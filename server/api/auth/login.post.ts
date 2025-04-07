@@ -1,33 +1,46 @@
-// server/api/auth/login.post.ts
-import jwt from 'jsonwebtoken';
-import { setCookie } from 'h3';
+import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
+import { setCookie } from 'h3'
 
-const SECRET = 'limbus-super-secret';
+const prisma = new PrismaClient()
+const SECRET = 'limbus-super-secret'
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event);
-  const { email, password } = body;
+  const body = await readBody(event)
+  const { email, password } = body
 
-  if (email === 'admin@limbus.gn' && password === 'secret') {
-    const token = jwt.sign(
-      { email, role: 'orga' },
-      SECRET,
-      { expiresIn: '1h' }
-    );
-
-    setCookie(event, 'limbus_token', token, {
-      httpOnly: true,
-      path: '/',
-      maxAge: 60 * 60, // 1 heure
-      sameSite: 'none',
-      secure: true
-    });
-
-    return { success: true };
+  if (!email || !password) {
+    return { success: false, message: 'Champs manquants' }
   }
 
-  return {
-    success: false,
-    message: 'Identifiants invalides'
-  };
-});
+  const user = await prisma.user.findUnique({
+    where: { email }
+  })
+
+  if (!user) {
+    return { success: false, message: 'Utilisateur introuvable' }
+  }
+
+  const passwordMatch = await bcrypt.compare(password, user.password)
+
+  if (!passwordMatch) {
+    return { success: false, message: 'Mot de passe incorrect' }
+  }
+
+  const token = jwt.sign(
+    { email: user.email, role: user.role },
+    SECRET,
+    { expiresIn: '20h' }
+  )
+
+  setCookie(event, 'limbus_token', token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: true,
+    path: '/',
+    maxAge: 60 * 60 * 20// 1 heure
+  })
+
+  return { success: true }
+})
