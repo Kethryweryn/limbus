@@ -1,6 +1,7 @@
 // server/api/auth/me.get.ts
 import jwt from 'jsonwebtoken'
 import { getHeader } from 'h3'
+import { parse } from 'cookie'
 
 const SECRET = 'limbus-super-secret'
 
