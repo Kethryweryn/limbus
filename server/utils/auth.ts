@@ -38,3 +38,10 @@ export function isApiRoute(url: string): boolean {
 export function isLoginPage(url: string): boolean {
   return url === '/login'
 }
+
+export function requireRole(event: H3Event, allowedRoles: string[]): boolean {
+  const user = getAuthUser(event)
+  if (!user || typeof user !== 'object' || !('role' in user)) return false
+
+  return allowedRoles.includes((user as any).role)
+}

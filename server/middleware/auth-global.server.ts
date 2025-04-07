@@ -24,4 +24,11 @@ export default defineEventHandler((event) => {
 
   // Stocker l'utilisateur dans le contexte si on veut l'exploiter ailleurs
   event.context.authUser = getAuthUser(event)
+
+  // Exemple : restreindre les pages /admin à "orga"
+  if (url.startsWith('/admin') || url.startsWith('/orga')) {
+    if (!requireRole(event, ['orga'])) {
+      return redirect(event, '/dashboard')
+    }
+  }
 })

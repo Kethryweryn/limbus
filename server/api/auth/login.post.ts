@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
 
   if (email === 'admin@limbus.gn' && password === 'secret') {
     const token = jwt.sign(
-      { email, role: 'mj' },
+      { email, role: 'orga' },
       SECRET,
       { expiresIn: '1h' }
     );
