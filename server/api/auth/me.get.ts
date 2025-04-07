@@ -1,13 +1,13 @@
 // server/api/auth/me.get.ts
 import jwt from 'jsonwebtoken'
-import { parse } from 'cookie'
+import { getHeader } from 'h3'
 
 const SECRET = 'limbus-super-secret'
 
 export default defineEventHandler(async (event) => {
     console.log('[auth/me] HEADERS DEBUG:', event.req.headers)
 
-    const rawCookie = event.req.headers.cookie || ''
+    const rawCookie = getHeader(event, 'cookie') || ''
     console.log('[auth/me] raw cookie string:', rawCookie)
 
     const cookies = parse(rawCookie)
