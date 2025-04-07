@@ -6,10 +6,6 @@ export default defineNuxtConfig({
   devServer: {
     host: '0.0.0.0',
     port: 3000,
-    https: {
-      key: './certs/key.pem',
-      cert: './certs/cert.pem'
-    }
   },
   serverMiddleware: [
     '~/server/middleware/ignore-bots.ts'
