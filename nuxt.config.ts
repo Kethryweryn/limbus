@@ -15,13 +15,4 @@ export default defineNuxtConfig({
   serverMiddleware: [
     '~/server/middleware/ignore-bots.ts'
   ],
-  vite: {
-    server: {
-      hmr: {
-        protocol: 'wss',
-        host: 'limbus.jdmottot.fr',
-        port: 443,
-      }
-    }
-  }
 })
