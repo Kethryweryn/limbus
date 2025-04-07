@@ -36,7 +36,7 @@ const onSubmit = async () => {
     });
 
     if (res.success) {
-      message.value = `Bienvenue ! (rôle : ${res.role})`;
+      message.value = `Bienvenue !`;
     } else {
       message.value = res.message;
     }

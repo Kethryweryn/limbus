@@ -7,6 +7,8 @@ const SECRET = 'limbus-super-secret';
 export default defineEventHandler(async (event) => {
     const cookies = parseCookies(event);
     const token = cookies.limbus_token;
+    console.log('[auth/me] cookies:', cookies);
+    console.log('[auth/me] token:', token);
 
     if (!token) {
         return { authenticated: false };
