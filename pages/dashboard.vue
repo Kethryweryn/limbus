@@ -1,17 +1,6 @@
 <template>
-  <div class="p-6">
-    <h1 class="text-2xl font-bold mb-4">
-      Tableau de bord <span v-if="user">({{ user.role }})</span>
-    </h1>
-    <UButton color="red" @click="logout">Se déconnecter</UButton>
+  <div>
+    <h1 class="text-3xl font-bold mb-6">Bienvenue sur le panneau d’administration</h1>
+    <p class="text-lg">Utilisez le menu de gauche pour naviguer entre les sections.</p>
   </div>
 </template>
-
-<script setup>
-const user = useRequestEvent()?.context.authUser
-
-const logout = async () => {
-  await $fetch('/api/auth/logout', { method: 'POST' })
-  return navigateTo('/login')
-}
-</script>
