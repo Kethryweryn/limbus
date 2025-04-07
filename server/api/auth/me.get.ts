@@ -9,6 +9,7 @@ export default defineEventHandler(async (event) => {
     const token = cookies.limbus_token;
     console.log('[auth/me] cookies:', cookies);
     console.log('[auth/me] token:', token);
+    console.log('[auth/me] headers:', event.req?.headers);
 
     if (!token) {
         return { authenticated: false };
