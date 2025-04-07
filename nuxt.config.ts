@@ -6,14 +6,17 @@ export default defineNuxtConfig({
   devServer: {
     host: '0.0.0.0',
     port: 3000,
+    https: false, // on laisse Apache gérer le HTTPS
   },
   serverMiddleware: [
     '~/server/middleware/ignore-bots.ts'
   ],
-  nitro: {
-    devProxy: {
-      '/api': {
-        target: 'http://localhost:3000', // proxy API si besoin localement
+  vite: {
+    server: {
+      hmr: {
+        protocol: 'wss',
+        host: 'limbus.jdmottot.fr',
+        port: 443,
       }
     }
   }
