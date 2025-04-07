@@ -1,15 +1,28 @@
 // server/api/auth/login.post.ts
+import jwt from 'jsonwebtoken';
+import { sendCookie } from 'h3'
+
+const SECRET = 'limbus-super-secret'; // À déplacer dans .env plus tard
+
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
   const { email, password } = body;
 
-  // Mock temporaire
   if (email === 'admin@limbus.gn' && password === 'secret') {
-    return {
-      success: true,
-      token: 'FAUX_JWT_TOKEN',
-      role: 'mj'
-    };
+    const token = jwt.sign(
+      { email, role: 'mj' },
+      SECRET,
+      { expiresIn: '1h' }
+    );
+
+    sendCookie(event, 'limbus_token', token, {
+      httpOnly: true,
+      path: '/',
+      maxAge: 60 * 60, // 1 heure
+      sameSite: 'strict'
+    });
+
+    return { success: true };
   }
 
   return {
