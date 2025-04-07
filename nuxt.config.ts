@@ -13,9 +13,6 @@ export default defineNuxtConfig({
   },
   serverMiddleware: [
     '~/server/middleware/auth-global.server.ts',
-    '~/server/middleware/force-headers.ts',
-    '~/server/middleware/log-headers.ts',
-    '~/server/middleware/forwarded-headers.ts',
     '~/server/middleware/ignore-bots.ts'
   ],
 })
