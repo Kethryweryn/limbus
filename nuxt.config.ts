@@ -5,5 +5,8 @@ export default defineNuxtConfig({
   modules: ['@nuxt/eslint', '@nuxt/ui'],
   devServer: {
     host: '0.0.0.0'
-  }
+  },
+  serverMiddleware: [
+    '~/server/middleware/ignore-bots.ts'
+  ]
 })
