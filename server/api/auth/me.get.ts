@@ -1,5 +1,4 @@
 // server/api/auth/me.get.ts
-console.log('[auth/me] HEADERS DEBUG:', event.req.headers);
 import jwt from 'jsonwebtoken';
 import { parseCookies } from 'h3';
 
