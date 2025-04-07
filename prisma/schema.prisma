@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,8 +8,8 @@ datasource db {
 }
 
 model User {
-  id       String  @id @default(uuid())
-  email    String  @unique
+  id       String   @id @default(uuid())
+  email    String   @unique
   password String
   role     String
   name     String?
@@ -23,3 +18,122 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
+model Game {
+  id            String      @id @default(uuid())
+  title         String
+  slug          String      @unique
+  description   String?
+  teaserUrl     String?
+  noteIntention String?
+
+  characters    Character[]
+  sessions      Session[]
+  factions      Faction[]
+  intrigues     Intrigue[]
+  items         Item[]
+  documents     Document[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Character {
+  id         String        @id @default(uuid())
+  name       String
+  description String?
+  game       Game          @relation(fields: [gameId], references: [id])
+  gameId     String
+
+  assignments SessionAssignment[]
+  intrigues   Intrigue[] @relation("CharacterIntrigues")
+  factions    Faction[]  @relation("CharacterFactions", references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Faction {
+  id         String       @id @default(uuid())
+  name       String
+  description String?
+  game       Game         @relation(fields: [gameId], references: [id])
+  gameId     String
+
+  characters Character[] @relation("CharacterFactions")
+  documents  Document[]  @relation("DocumentFactions")
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Session {
+  id         String       @id @default(uuid())
+  title      String
+  date       DateTime
+  location   String?
+  game       Game         @relation(fields: [gameId], references: [id])
+  gameId     String
+
+  assignments SessionAssignment[]
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model SessionAssignment {
+  id          String     @id @default(uuid())
+  session     Session    @relation(fields: [sessionId], references: [id])
+  sessionId   String
+  character   Character  @relation(fields: [characterId], references: [id])
+  characterId String
+  playerName  String
+  playerEmail String
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Intrigue {
+  id          String      @id @default(uuid())
+  title       String
+  description String?
+  game        Game        @relation(fields: [gameId], references: [id])
+  gameId      String
+
+  characters  Character[] @relation("CharacterIntrigues")
+  items       Item[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Item {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  quantity    Int
+  game        Game        @relation(fields: [gameId], references: [id])
+  gameId      String
+
+  intrigues   Intrigue[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Document {
+  id          String      @id @default(uuid())
+  title       String
+  type        String      // "common" | "character" | "faction"
+  content     String?
+  filePath    String?
+  game        Game        @relation(fields: [gameId], references: [id])
+  gameId      String
+
+  character   Character?  @relation(fields: [characterId], references: [id])
+  characterId String?
+  factions    Faction[]   @relation("DocumentFactions")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
