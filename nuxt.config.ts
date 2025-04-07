@@ -8,6 +8,7 @@ export default defineNuxtConfig({
     port: 3000,
   },
   serverMiddleware: [
+    '~/server/middleware/log-headers.ts',
     '~/server/middleware/forwarded-headers.ts',
     '~/server/middleware/ignore-bots.ts'
   ],
