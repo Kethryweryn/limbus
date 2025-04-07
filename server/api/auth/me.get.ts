@@ -8,8 +8,14 @@ export default defineEventHandler(async (event) => {
     console.log('[auth/me] HEADERS DEBUG:', event.req.headers)
 
     const rawCookie = event.req.headers.cookie || ''
+    console.log('[auth/me] raw cookie string:', rawCookie)
+
     const cookies = parse(rawCookie)
+    console.log('[auth/me] parsed cookies:', cookies)
+
     const token = cookies.limbus_token
+    console.log('[auth/me] token:', token)
+
 
     console.log('[auth/me] cookies:', cookies)
     console.log('[auth/me] token:', token)
