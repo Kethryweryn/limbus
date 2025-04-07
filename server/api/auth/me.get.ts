@@ -5,11 +5,11 @@ import { parseCookies } from 'h3';
 const SECRET = 'limbus-super-secret';
 
 export default defineEventHandler(async (event) => {
+    console.log('[auth/me] HEADERS DEBUG:', event.req.headers)
     const cookies = parseCookies(event);
     const token = cookies.limbus_token;
     console.log('[auth/me] cookies:', cookies);
     console.log('[auth/me] token:', token);
-    console.log('[auth/me] headers:', event.req?.headers);
 
     if (!token) {
         return { authenticated: false };
