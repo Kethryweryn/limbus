@@ -12,6 +12,7 @@ export default defineNuxtConfig({
     port: 3000,
   },
   serverMiddleware: [
+    '~/server/middleware/auth-global.server.ts',
     '~/server/middleware/force-headers.ts',
     '~/server/middleware/log-headers.ts',
     '~/server/middleware/forwarded-headers.ts',

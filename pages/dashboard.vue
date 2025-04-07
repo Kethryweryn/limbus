@@ -6,10 +6,6 @@
 </template>
 
 <script setup>
-definePageMeta({
-  middleware: ['auth']
-});
-
 const logout = async () => {
   await $fetch('/api/auth/logout', {
     method: 'POST'
