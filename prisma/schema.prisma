@@ -46,7 +46,8 @@ model Character {
 
   assignments SessionAssignment[]
   intrigues   Intrigue[] @relation("CharacterIntrigues")
-  factions    Faction[]  @relation("CharacterFactions", references: [id])
+  factions    Faction[]  @relation("CharacterFactions")
+  documents   Document[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
