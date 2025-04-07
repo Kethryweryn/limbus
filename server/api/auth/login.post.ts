@@ -1,8 +1,8 @@
 // server/api/auth/login.post.ts
 import jwt from 'jsonwebtoken';
-import { sendCookie } from 'h3'
+import { setCookie } from 'h3';
 
-const SECRET = 'limbus-super-secret'; // À déplacer dans .env plus tard
+const SECRET = 'limbus-super-secret';
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
       { expiresIn: '1h' }
     );
 
-    sendCookie(event, 'limbus_token', token, {
+    setCookie(event, 'limbus_token', token, {
       httpOnly: true,
       path: '/',
       maxAge: 60 * 60, // 1 heure
