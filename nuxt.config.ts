@@ -1,4 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { readFileSync } from 'fs'
 export default defineNuxtConfig({
   compatibilityDate: '2025-04-07',
   devtools: { enabled: true },
