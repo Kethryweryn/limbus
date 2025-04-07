@@ -25,9 +25,25 @@ const email = ref('');
 const password = ref('');
 const message = ref('');
 
-const onSubmit = () => {
-  console.log('Email:', email.value);
-  console.log('Password:', password.value);
-  message.value = 'Formulaire envoyé ! (sans appel serveur)';
+const onSubmit = async () => {
+  try {
+    const res = await $fetch('/api/auth/login', {
+      method: 'POST',
+      body: {
+        email: email.value,
+        password: password.value
+      }
+    });
+
+    if (res.success) {
+      message.value = `Bienvenue ! (rôle : ${res.role})`;
+    } else {
+      message.value = res.message;
+    }
+  } catch (err) {
+    console.error('Erreur API', err);
+    message.value = 'Erreur serveur';
+  }
 };
+
 </script>
