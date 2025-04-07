@@ -32,7 +32,8 @@ const onSubmit = async () => {
       body: {
         email: email.value,
         password: password.value
-      }
+      },
+      credentials: 'include'
     });
 
     if (res.success) {
