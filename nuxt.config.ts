@@ -6,7 +6,10 @@ export default defineNuxtConfig({
   devServer: {
     host: '0.0.0.0',
     port: 3000,
-    https: false, // on laisse Apache gérer le HTTPS
+    https: {
+      key: readFileSync('./certs/key.pem'),
+      cert: readFileSync('./certs/cert.pem')
+    }
   },
   serverMiddleware: [
     '~/server/middleware/ignore-bots.ts'
