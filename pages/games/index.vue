@@ -9,6 +9,7 @@
         class="w-full md:w-60" />
     </div>
 
+    <GameForm v-if="editingGame" v-model:game="editingGame" mode="edit" @submit="saveEdit" @cancel="cancelEdit" />
 
     <UCard v-for="game in filteredGames" :key="game.id" class="mb-4">
       <template #header>
@@ -25,8 +26,6 @@
     </UCard>
 
     <GameForm v-model:game="newGame" mode="create" @submit="createGame" />
-
-    <GameForm v-if="editingGame" v-model:game="editingGame" mode="edit" @submit="saveEdit" @cancel="cancelEdit" />
 
     <!-- Slideover -->
     <USlideover v-model="showSlideover">
@@ -67,13 +66,13 @@ const openSlideover = async (slug) => {
   const data = await $fetch(`/api/games/${slug}`)
   selectedGame.value = data
   showSlideover.value = true
-  router.push(`/games/${slug}`)
+  //router.push(`/games/${slug}`)
 }
 
 const closeSlideover = () => {
   showSlideover.value = false
   selectedGame.value = null
-  router.push('/games')
+  //router.push('/games')
 }
 
 watch(() => route.params.slug, async (slug) => {
