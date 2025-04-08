@@ -4,13 +4,15 @@
 
     <UCard class="mb-6">
       <template #header>Créer un nouveau jeu</template>
-      <form @submit.prevent="createGame" class="space-y-4">
-        <UInput v-model="newGame.title" label="Titre" required />
-        <UTextarea v-model="newGame.description" label="Description" />
-        <UInput v-model="newGame.teaserUrl" label="URL du teaser vidéo" />
-        <UTextarea v-model="newGame.noteIntention" label="Note d’intention" />
-        <UButton type="submit">Créer</UButton>
-      </form>
+      <template #default>
+        <form @submit.prevent="createGame" class="space-y-4">
+          <UInput v-model="newGame.title" label="Titre" required />
+          <UTextarea v-model="newGame.description" label="Description" />
+          <UInput v-model="newGame.teaserUrl" label="URL du teaser vidéo" />
+          <UTextarea v-model="newGame.noteIntention" label="Note d’intention" />
+          <UButton type="submit">Créer</UButton>
+        </form>
+      </template>
     </UCard>
 
     <UCard v-for="game in games" :key="game.id" class="mb-4">
@@ -25,21 +27,25 @@
           </div>
         </div>
       </template>
-      <p>{{ game.description }}</p>
+      <template #default>
+        <p>{{ game.description }}</p>
+      </template>
     </UCard>
 
     <UCard v-if="editingGame" class="mt-6">
       <template #header>Modifier le jeu</template>
-      <form @submit.prevent="saveEdit" class="space-y-4">
-        <UInput v-model="editingGame.title" label="Titre" />
-        <UTextarea v-model="editingGame.description" label="Description" />
-        <UInput v-model="editingGame.teaserUrl" label="URL du teaser" />
-        <UTextarea v-model="editingGame.noteIntention" label="Note d’intention" />
-        <div class="flex gap-2">
-          <UButton type="submit" color="blue">Enregistrer</UButton>
-          <UButton @click="editingGame = null" color="gray">Annuler</UButton>
-        </div>
-      </form>
+      <template #default>
+        <form @submit.prevent="saveEdit" class="space-y-4">
+          <UInput v-model="editingGame.title" label="Titre" />
+          <UTextarea v-model="editingGame.description" label="Description" />
+          <UInput v-model="editingGame.teaserUrl" label="URL du teaser" />
+          <UTextarea v-model="editingGame.noteIntention" label="Note d’intention" />
+          <div class="flex gap-2">
+            <UButton type="submit" color="blue">Enregistrer</UButton>
+            <UButton @click="editingGame = null" color="gray">Annuler</UButton>
+          </div>
+        </form>
+      </template>
     </UCard>
 
   </div>
