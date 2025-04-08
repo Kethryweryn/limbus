@@ -39,11 +39,14 @@
 </template>
 
 <script setup>
+// 👇 Solution sûre : import explicite en plus
+import { UVerticalNavigation, UHeader, UButton, UDropdown, UAvatar, USlideover } from '#components'
+
 const mobileOpen = ref(false)
 
 const navLinks = [
     { label: 'Dashboard', to: '/dashboard', icon: 'i-heroicons-home' },
-    { label: 'Jeux', to: '/dashboard/games', icon: 'i-heroicons-cube' },
+    { label: 'Jeux', to: '/dashboard/games', icon: 'i-heroicons-cube' }
 ]
 
 const userMenu = [
