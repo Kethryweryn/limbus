@@ -1,0 +1,49 @@
+.
+├── app.vue
+├── arbo.txt
+├── certs
+│   ├── cert.pem
+│   └── key.pem
+├── eslint.config.mjs
+├── layouts
+│   └── default.vue
+├── LICENSE
+├── nuxt.config.ts
+├── package.json
+├── package-lock.json
+├── pages
+│   ├── dashboard.vue
+│   ├── games.vue
+│   ├── index.vue
+│   ├── jeu
+│   │   └── [slug].vue
+│   ├── login.vue
+│   ├── logout.vue
+│   └── test.vue
+├── prisma
+│   ├── migrations
+│   │   ├── 20250407230444_init
+│   │   ├── 20250407233550_init
+│   │   └── migration_lock.toml
+│   └── schema.prisma
+├── public
+│   ├── favicon.ico
+│   └── robots.txt
+├── README.md
+├── server
+│   ├── api
+│   │   ├── auth
+│   │   ├── games
+│   │   └── public
+│   ├── middleware
+│   │   ├── auth-global.server.ts
+│   │   └── ignore-bots.ts
+│   ├── tsconfig.json
+│   └── utils
+│       ├── auth.ts
+│       ├── create-user.mjs
+│       ├── delete-user.mjs
+│       └── generateSlug.ts
+└── tsconfig.json
+
+16 directories, 30 files
