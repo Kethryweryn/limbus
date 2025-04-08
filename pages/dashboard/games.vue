@@ -38,8 +38,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { z } from 'zod'
-import { useForm } from '#imports' // si tu utilises vee-validate ou une lib similaire, à adapter
+//import { z } from 'zod'
+//import { useForm } from '#imports' // si tu utilises vee-validate ou une lib similaire, à adapter
 
 const games = ref([])
 const editingGame = ref(null)
