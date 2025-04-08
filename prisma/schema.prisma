@@ -41,6 +41,7 @@ model Character {
   id         String        @id @default(uuid())
   name       String
   description String?
+  slug        String       @unique
   game       Game          @relation(fields: [gameId], references: [id])
   gameId     String
 
