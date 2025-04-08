@@ -1,4 +1,4 @@
-import { prisma } from '~/server/utils/prisma' // ajuste si l'import change
+import { prisma } from '~/server/utils/prisma.ts' // ajuste si l'import change
 
 export default defineEventHandler(async () => {
     const gamesCount = await prisma.game.count()
