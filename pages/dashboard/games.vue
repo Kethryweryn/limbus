@@ -2,32 +2,6 @@
   <div class="p-6">
     <h1 class="text-2xl font-bold mb-4">Jeux</h1>
 
-    <UCard class="mb-6">
-      <template #header>Créer un nouveau jeu</template>
-      <template #default>
-        <form @submit.prevent="createGame" class="space-y-4">
-          <UFormGroup label="Titre">
-            <UInput v-model="newGame.title" required />
-          </UFormGroup>
-
-          <UFormGroup label="Description">
-            <UTextarea v-model="newGame.description" />
-          </UFormGroup>
-
-          <UFormGroup label="URL du teaser vidéo">
-            <UInput v-model="newGame.teaserUrl" />
-          </UFormGroup>
-
-          <UFormGroup label="Note d’intention">
-            <UTextarea v-model="newGame.noteIntention" />
-          </UFormGroup>
-
-          <UButton type="submit">Créer</UButton>
-        </form>
-      </template>
-    </UCard>
-
-
     <UCard v-for="game in games" :key="game.id" class="mb-4">
       <template #header>
         <div class="flex justify-between items-center">
@@ -45,85 +19,93 @@
       </template>
     </UCard>
 
-    <UCard v-if="editingGame" class="mt-6">
-      <template #header>Modifier le jeu</template>
-      <template #default>
-        <form @submit.prevent="saveEdit" class="space-y-4">
-          <UFormGroup label="Titre">
-            <UInput v-model="editingGame.title" />
-          </UFormGroup>
+    <GameForm
+      v-model:game="newGame"
+      mode="create"
+      @submit="createGame"
+    />
 
-          <UFormGroup label="Description">
-            <UTextarea v-model="editingGame.description" />
-          </UFormGroup>
-
-          <UFormGroup label="URL du teaser">
-            <UInput v-model="editingGame.teaserUrl" />
-          </UFormGroup>
-
-          <UFormGroup label="Note d’intention">
-            <UTextarea v-model="editingGame.noteIntention" />
-          </UFormGroup>
-
-          <div class="flex gap-2">
-            <UButton type="submit" color="blue">Enregistrer</UButton>
-            <UButton @click="editingGame = null" color="gray">Annuler</UButton>
-          </div>
-        </form>
-      </template>
-    </UCard>
-
+    <GameForm
+      v-if="editingGame"
+      v-model:game="editingGame"
+      mode="edit"
+      @submit="saveEdit"
+      @cancel="cancelEdit"
+    />
 
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { z } from 'zod'
+import { useForm } from '#imports' // si tu utilises vee-validate ou une lib similaire, à adapter
 
 const games = ref([])
-const newGame = ref({
+const editingGame = ref(null)
+
+const fetchGames = async () => {
+  games.value = await $fetch('/api/games')
+}
+
+onMounted(fetchGames)
+
+// Création d'un jeu vierge (à réutiliser à plusieurs endroits)
+const emptyGame = () => ({
   title: '',
   description: '',
   teaserUrl: '',
   noteIntention: ''
 })
 
-const fetchGames = async () => {
-  games.value = await $fetch('/api/games')
-}
+// Création d'un nouveau jeu
+const newGame = ref(emptyGame())
 
 const createGame = async () => {
-  await $fetch('/api/games', {
-    method: 'POST',
-    body: newGame.value
-  })
-
-  newGame.value = { title: '', description: '', teaserUrl: '', noteIntention: '' }
-  await fetchGames()
+  try {
+    await $fetch('/api/games', {
+      method: 'POST',
+      body: newGame.value
+    })
+    newGame.value = emptyGame()
+    await fetchGames()
+  } catch (error) {
+    console.error('Erreur lors de la création du jeu', error)
+  }
 }
 
-const editingGame = ref(null)
-
+// Edition d'un jeu existant
 const startEdit = (game) => {
   editingGame.value = { ...game }
 }
 
 const saveEdit = async () => {
-  await $fetch(`/api/games/${editingGame.value.id}`, {
-    method: 'PUT',
-    body: editingGame.value
-  })
+  if (!editingGame.value?.id) return
 
+  try {
+    await $fetch(`/api/games/${editingGame.value.id}`, {
+      method: 'PUT',
+      body: editingGame.value
+    })
+    editingGame.value = null
+    await fetchGames()
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde du jeu', error)
+  }
+}
+
+const cancelEdit = () => {
   editingGame.value = null
-  await fetchGames()
 }
 
 const deleteGame = async (id) => {
   if (confirm('Supprimer ce jeu ?')) {
-    await $fetch(`/api/games/${id}`, { method: 'DELETE' })
-    await fetchGames()
+    try {
+      await $fetch(`/api/games/${id}`, { method: 'DELETE' })
+      await fetchGames()
+    } catch (error) {
+      console.error('Erreur lors de la suppression du jeu', error)
+    }
   }
 }
-
-onMounted(fetchGames)
 </script>
