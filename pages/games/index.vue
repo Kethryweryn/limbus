@@ -102,8 +102,8 @@ const saveEdit = async () => {
   if (!editingGame.value?.id) return
 
   try {
-    await $fetch(`/api/games/${editingGame.value.id}`, {
-      method: 'PUT',
+    await $fetch(`/api/games/${editingGame.value.id}/put`, {
+      method: 'POST',
       body: editingGame.value
     })
     editingGame.value = null
@@ -120,7 +120,7 @@ const cancelEdit = () => {
 const deleteGame = async (id) => {
   if (confirm('Supprimer ce jeu ?')) {
     try {
-      await $fetch(`/api/games/${id}`, { method: 'DELETE' })
+      await $fetch(`/api/games/${id}/delete`, { method: 'POST' })
       await fetchGames()
     } catch (error) {
       console.error('Erreur lors de la suppression du jeu', error)
