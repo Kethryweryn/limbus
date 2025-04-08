@@ -6,16 +6,9 @@ export default defineNuxtConfig({
   },
   compatibilityDate: '2025-04-07',
   devtools: { enabled: true },
-  modules: ['@nuxt/eslint', '@nuxt/ui'],
+  modules: ['@nuxt/ui'],
   ui: {
     icons: ['heroicons']
-  },
-  components: {
-    global: true, // 👈 assure que tous les composants sont auto-importés
-    dirs: [
-      '~/components', // tes composants
-      '@nuxt/ui/components' // 👈 ajoute cette ligne
-    ]
   },
   devServer: {
     host: '0.0.0.0',
