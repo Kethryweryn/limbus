@@ -2,7 +2,7 @@
   <div class="flex items-center justify-center min-h-screen bg-gray-100 p-4">
     <UCard class="w-full max-w-md">
       <template #header>
-        <h1 class="text-xl font-bold">Test Login (sans API)</h1>
+        <h1 class="text-xl font-bold">Se connecter</h1>
       </template>
 
       <div v-if="checking">
