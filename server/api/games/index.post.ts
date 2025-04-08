@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { getAuthUser } from '@/server/utils/auth'
-import slugify from 'slugify'
+import { generateSlug } from '@/server/utils/generateSlug'
 
 const prisma = new PrismaClient()
 
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     return sendError(event, createError({ statusCode: 400, statusMessage: 'Title is required' }))
   }
 
-  const slug = slugify(title, { lower: true, strict: true })
+  const slug = generateSlug(title)
 
   const game = await prisma.game.create({
     data: {
