@@ -35,19 +35,6 @@
         </template>
       </UCard>
     </div>
-
-    <!-- Section plus détaillée (ex : activité récente) -->
-    <UCard class="shadow mt-10">
-      <template #header>
-        <span class="font-semibold text-lg">Activité récente</span>
-      </template>
-      <ul class="divide-y divide-gray-200">
-        <li v-for="(entry, i) in dashboardData.recentActivity" :key="i" class="py-2">
-          <span class="font-medium">{{ entry.user }}</span> a modifié <span class="italic">{{ entry.game }}</span>
-          <span class="text-sm text-gray-500">({{ new Date(entry.date).toLocaleString('fr-FR') }})</span>
-        </li>
-      </ul>
-    </UCard>
   </div>
 </template>
 

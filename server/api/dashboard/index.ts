@@ -7,20 +7,10 @@ export default defineEventHandler(async () => {
         where: { date: { gte: new Date() } },
         orderBy: { date: 'asc' },
     })
-    const recentActivity = await prisma.activity.findMany({
-        take: 5,
-        orderBy: { createdAt: 'desc' },
-        select: { user: true, game: true, createdAt: true },
-    })
 
     return {
         gamesCount,
         organizersCount,
         nextSessionDate: nextSession?.date,
-        recentActivity: recentActivity.map((a) => ({
-            user: a.user.name,
-            game: a.game.title,
-            date: a.createdAt,
-        }))
     }
 })
