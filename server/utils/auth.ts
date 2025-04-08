@@ -12,32 +12,17 @@ export function getAuthToken(event: H3Event): string | undefined {
 
 export function getAuthUser(event: H3Event): any | null {
   const token = getAuthToken(event)
-
-  if (!token || typeof token !== 'string' || token.length < 10) {
-    // Token vide, null, ou manifestement trop court → rejet immédiat
-    return null
-  }
+  if (!token) return null
 
   try {
-    const decoded = jwt.verify(token, SECRET)
-
-    // Vérifie présence d’email ou role par sécurité
-    if (!decoded || typeof decoded !== 'object' || !('email' in decoded)) {
-      return null
-    }
-
-    return decoded
+    return jwt.verify(token, SECRET)
   } catch {
     return null
   }
 }
 
-
-
 export function isAuthenticated(event: H3Event): boolean {
-  const user = getAuthUser(event)
-  console.log('[auth] isAuthenticated:', !!user, '| user:', user)
-  return !!user
+  return !!getAuthUser(event)
 }
 
 export function redirect(event: H3Event, location: string) {

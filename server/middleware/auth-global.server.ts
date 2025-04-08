@@ -18,7 +18,7 @@ export default defineEventHandler((event) => {
   if (isApiRoute(url)) return
 
   // Rediriger si non authentifié
-  if (!isAuthenticated(event)) {
+  if (!isAuthenticated(event) && !isLoginPage(url)) {
     return redirect(event, '/login')
   }
 
