@@ -10,9 +10,13 @@ export default defineEventHandler((event) => {
   const url = event.node.req.url || ''
 
   // Rediriger les utilisateurs déjà connectés loin de /login
-  if (isLoginPage(url) && isAuthenticated(event)) {
-    return redirect(event, '/dashboard')
+  if (isLoginPage(url)) {
+    if (isAuthenticated(event)) {
+      return redirect(event, '/dashboard')
+    }
+    return // autorisé à rester sur /login sans auth
   }
+
 
   // Ignorer les appels API
   if (isApiRoute(url)) return
