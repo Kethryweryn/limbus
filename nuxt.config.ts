@@ -15,4 +15,9 @@ export default defineNuxtConfig({
     '~/server/middleware/auth-global.server.ts',
     '~/server/middleware/ignore-bots.ts'
   ],
+  app: {
+    layoutTransition: true, // optionnel mais conseillé
+    rootId: 'app',
+    layout: 'default'       // 👈 force globalement l’usage du layout "default"
+  },
 })
