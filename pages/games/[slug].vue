@@ -2,10 +2,10 @@
     <div class="p-6 max-w-4xl mx-auto space-y-6">
         <h1 class="text-3xl font-bold">{{ game.title }}</h1>
 
-        <div v-if="game.teaserUrl" class="flex justify-center my-6">
-            <div class="relative w-full max-w-2xl pt-[56.25%]"> <!-- 16:9 aspect ratio -->
-                <iframe :src="embedTeaser(game.teaserUrl)" class="absolute top-0 left-0 w-full h-full rounded"
-                    frameborder="0" allowfullscreen></iframe>
+        <div v-if="game.teaserUrl" class="flex justify-center">
+            <div class="w-[640px] aspect-video">
+                <iframe :src="embedTeaser(game.teaserUrl)" class="w-full h-full rounded" frameborder="0"
+                    allowfullscreen></iframe>
             </div>
         </div>
 
