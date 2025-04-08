@@ -2,13 +2,12 @@
     <div class="p-6 max-w-4xl mx-auto space-y-6">
         <h1 class="text-3xl font-bold">{{ game.title }}</h1>
 
-        <div v-if="game.teaserUrl" class="flex justify-center">
-            <div class="w-[640px] aspect-video">
+        <div v-if="game.teaserUrl" class="flex justify-center my-6">
+            <div class="w-full max-w-lg aspect-video">
                 <iframe :src="embedTeaser(game.teaserUrl)" class="w-full h-full rounded" frameborder="0"
                     allowfullscreen></iframe>
             </div>
         </div>
-
 
         <div>
             <h2 class="text-xl font-semibold mb-2">Description</h2>
