@@ -24,7 +24,7 @@
 <script setup>
 const route = useRoute()
 const slug = route.params.slug
-const { data: game } = await useFetch(`/api/public/games/${slug}`)
+const { data: game } = await useFetch(`/api/games/${slug}`)
 
 const embedTeaser = (url) => {
     if (!url) return ''

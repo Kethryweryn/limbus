@@ -9,8 +9,8 @@ import {
 export default defineEventHandler((event) => {
   const url = event.node.req.url || ''
 
-  // Ignorer les appels API
-  if (isApiRoute(url)) return
+  // Ignorer uniquement les API d'authentification
+  if (url.startsWith('/api/auth')) return
 
   // Rediriger les utilisateurs déjà connectés loin de /login
   if (isLoginPage(url)) {
