@@ -39,8 +39,8 @@
 </template>
 
 <script setup>
-// 👇 Solution sûre : import explicite en plus
-import { UVerticalNavigation, UHeader, UButton, UDropdown, UAvatar, USlideover } from '#components'
+import { ref } from 'vue'
+import { navigateTo } from '#app'
 
 const mobileOpen = ref(false)
 
