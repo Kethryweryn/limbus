@@ -5,7 +5,7 @@
         <div v-if="game.teaserUrl" class="">
             <iframe :src="embedTeaser(game.teaserUrl)"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                class="aspect-video rounded" frameborder="0" allowfullscreen></iframe>
+                class="aspect-video rounded w-[640px]" frameborder="0" allowfullscreen></iframe>
         </div>
 
         <div>
