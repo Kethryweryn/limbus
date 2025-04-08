@@ -3,10 +3,10 @@
         <h1 class="text-3xl font-bold">{{ game.title }}</h1>
 
         <div v-if="game.teaserUrl" class="flex justify-center my-6">
-            <div class="w-full max-w-lg aspect-video">
+            <div class="aspect-w-16 aspect-h-9">
                 <iframe :src="embedTeaser(game.teaserUrl)"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    frameborder="0" allowfullscreen></iframe>
+                    class="w-full h-full rounded" frameborder="0" allowfullscreen></iframe>
             </div>
         </div>
 
