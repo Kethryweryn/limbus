@@ -2,8 +2,8 @@
     <div class="p-6 max-w-4xl mx-auto space-y-6">
         <h1 class="text-3xl font-bold">{{ game.title }}</h1>
 
-        <div v-if="game.teaserUrl" class="flex justify-center my-6">
-            <div class="aspect-w-16 aspect-h-9">
+        <div v-if="game.teaserUrl" class="flex justify-center my-6 aspect-video">
+            <div class="">
                 <iframe :src="embedTeaser(game.teaserUrl)"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     class="w-full h-full rounded" frameborder="0" allowfullscreen></iframe>
