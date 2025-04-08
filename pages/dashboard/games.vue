@@ -14,24 +14,12 @@
           </div>
         </div>
       </template>
-      <template #default>
-        <p>{{ game.description }}</p>
-      </template>
+      <p>{{ game.description }}</p>
     </UCard>
 
-    <GameForm
-      v-model:game="newGame"
-      mode="create"
-      @submit="createGame"
-    />
+    <GameForm v-model:game="newGame" mode="create" @submit="createGame" />
 
-    <GameForm
-      v-if="editingGame"
-      v-model:game="editingGame"
-      mode="edit"
-      @submit="saveEdit"
-      @cancel="cancelEdit"
-    />
+    <GameForm v-if="editingGame" v-model:game="editingGame" mode="edit" @submit="saveEdit" @cancel="cancelEdit" />
 
   </div>
 </template>
