@@ -2,19 +2,16 @@
 <template>
     <div class="min-h-screen bg-gray-50 text-gray-900">
         <!-- Header -->
-        <UHeader class="shadow-md">
-            <template #logo>
+        <header class="flex items-center justify-between p-4 bg-white shadow-md">
+            <div class="flex items-center space-x-2">
                 <UButton icon="i-heroicons-bars-3" color="gray" variant="ghost" class="md:hidden"
                     @click="mobileOpen = true" />
                 <span class="font-bold text-xl ml-2">Limbus</span>
-            </template>
-
-            <template #actions>
-                <UDropdown :items="userMenu" :popper="{ placement: 'bottom-end' }">
-                    <UAvatar size="sm" icon="i-heroicons-user" />
-                </UDropdown>
-            </template>
-        </UHeader>
+            </div>
+            <UDropdown :items="userMenu" :popper="{ placement: 'bottom-end' }">
+                <UAvatar size="sm" icon="i-heroicons-user" />
+            </UDropdown>
+        </header>
 
         <!-- Layout -->
         <div class="flex">

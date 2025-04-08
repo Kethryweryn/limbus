@@ -11,9 +11,11 @@
             <UIcon name="i-heroicons-cube" />
           </div>
         </template>
-        <div class="text-4xl font-bold">
-          {{ pending ? '...' : dashboardData.gamesCount }}
-        </div>
+        <template #default>
+          <div class="text-4xl font-bold">
+            {{ pending ? '...' : dashboardData.gamesCount }}
+          </div>
+        </template>
         <template #footer>
           <span class="text-sm text-gray-500">Mis à jour il y a 5 min</span>
         </template>
@@ -27,9 +29,11 @@
             <UIcon name="i-heroicons-calendar-days" />
           </div>
         </template>
-        <div class="text-lg">
-          {{ dashboardData.nextSessionDate ? formatDate(dashboardData.nextSessionDate) : 'Aucune session prévue' }}
-        </div>
+        <template #default>
+          <div class="text-lg">
+            {{ dashboardData.nextSessionDate ? formatDate(dashboardData.nextSessionDate) : 'Aucune session prévue' }}
+          </div>
+        </template>
         <template #footer>
           <UButton size="xs" color="gray" variant="soft">Voir les sessions</UButton>
         </template>
