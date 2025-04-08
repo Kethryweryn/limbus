@@ -44,44 +44,31 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { useFetch } from '#app'
 
 const games = ref([])
 const editingGame = ref(null)
-const router = useRouter()
-const route = useRoute()
 
 const showSlideover = ref(false)
 const selectedGame = ref(null)
 
 const fetchGames = async () => {
-  games.value = await $fetch('/api/games')
+  games.value = await useFetch('/api/games')
 }
 
 onMounted(fetchGames)
 
 //Slideover
 const openSlideover = async (slug) => {
-  const data = await $fetch(`/api/games/${slug}`)
+  const data = await useFetch(`/api/games/${slug}`)
   selectedGame.value = data
   showSlideover.value = true
-  //router.push(`/games/${slug}`)
 }
 
 const closeSlideover = () => {
   showSlideover.value = false
   selectedGame.value = null
-  //router.push('/games')
 }
-
-watch(() => route.params.slug, async (slug) => {
-  if (slug) {
-    await openSlideover(slug)
-  } else {
-    closeSlideover()
-  }
-})
 
 // Création d'un jeu vierge (à réutiliser à plusieurs endroits)
 const emptyGame = () => ({
