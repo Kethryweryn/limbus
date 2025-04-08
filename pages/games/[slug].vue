@@ -4,8 +4,7 @@
 
         <div v-if="game.teaserUrl" class="flex justify-center">
             <div class="w-[640px] aspect-video">
-                <iframe :src="embedTeaser(game.teaserUrl)" class="w-full h-full rounded" frameborder="0"
-                    allowfullscreen></iframe>
+
             </div>
         </div>
 
