@@ -11,23 +11,11 @@
             <UIcon name="i-heroicons-cube" />
           </div>
         </template>
-        <div class="text-4xl font-bold">{{ stats.games }}</div>
+        <div class="text-4xl font-bold">
+          {{ pending ? '...' : dashboardData.gamesCount }}
+        </div>
         <template #footer>
           <span class="text-sm text-gray-500">Mis à jour il y a 5 min</span>
-        </template>
-      </UCard>
-
-      <!-- Widget 2 -->
-      <UCard class="shadow">
-        <template #header>
-          <div class="flex justify-between items-center">
-            <span class="font-semibold">Organisateurs</span>
-            <UIcon name="i-heroicons-user-group" />
-          </div>
-        </template>
-        <div class="text-4xl font-bold">{{ stats.organizers }}</div>
-        <template #footer>
-          <span class="text-sm text-gray-500">Actifs ce mois-ci</span>
         </template>
       </UCard>
 
@@ -39,7 +27,9 @@
             <UIcon name="i-heroicons-calendar-days" />
           </div>
         </template>
-        <div class="text-lg">{{ stats.nextSession }}</div>
+        <div class="text-lg">
+          {{ dashboardData.nextSessionDate ? formatDate(dashboardData.nextSessionDate) : 'Aucune session prévue' }}
+        </div>
         <template #footer>
           <UButton size="xs" color="gray" variant="soft">Voir les sessions</UButton>
         </template>
@@ -52,9 +42,9 @@
         <span class="font-semibold text-lg">Activité récente</span>
       </template>
       <ul class="divide-y divide-gray-200">
-        <li v-for="(entry, i) in activity" :key="i" class="py-2">
+        <li v-for="(entry, i) in dashboardData.recentActivity" :key="i" class="py-2">
           <span class="font-medium">{{ entry.user }}</span> a modifié <span class="italic">{{ entry.game }}</span>
-          <span class="text-sm text-gray-500">({{ entry.date }})</span>
+          <span class="text-sm text-gray-500">({{ new Date(entry.date).toLocaleString('fr-FR') }})</span>
         </li>
       </ul>
     </UCard>
@@ -62,19 +52,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+const { data: dashboardData, pending, error } = await useFetch('/api/dashboard')
 
-const stats = ref({
-  games: 0,
-  organizers: 0,
-  nextSession: 'Chargement...'
-})
-
-const activity = ref([])
-
-onMounted(async () => {
-  const data = await $fetch('/api/dashboard')
-  stats.value = data.stats
-  activity.value = data.activity
+const formatDate = (iso) => new Date(iso).toLocaleDateString('fr-FR', {
+  day: 'numeric', month: 'long', year: 'numeric'
 })
 </script>
