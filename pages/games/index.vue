@@ -13,38 +13,76 @@
     <UCard v-for="game in filteredGames" :key="game.id" class="mb-4">
       <template #header>
         <div class="flex justify-between items-center">
-          <div>
-            <strong>{{ game.title }}</strong> — <code>{{ game.slug }}</code>
-          </div>
+          <button class="text-blue-600 hover:underline" @click="openSlideover(game.slug)">
+            {{ game.title }}
+          </button>
           <div class="flex gap-2">
             <UButton size="xs" color="blue" @click="startEdit(game)">Modifier</UButton>
             <UButton size="xs" color="red" @click="deleteGame(game.id)">Supprimer</UButton>
           </div>
         </div>
       </template>
-      <p>{{ game.description }}</p>
     </UCard>
 
     <GameForm v-model:game="newGame" mode="create" @submit="createGame" />
 
     <GameForm v-if="editingGame" v-model:game="editingGame" mode="edit" @submit="saveEdit" @cancel="cancelEdit" />
 
+    <!-- Slideover -->
+    <USlideover v-model="showSlideover">
+      <div class="p-4 space-y-4">
+        <h2 class="text-xl font-bold">{{ selectedGame?.title }}</h2>
+        <p>{{ selectedGame?.description }}</p>
+        <p class="text-sm text-gray-500">{{ selectedGame?.noteIntention }}</p>
+        <div class="mt-4">
+          <UButton :to="`/games/${selectedGame?.slug}`" color="gray" variant="ghost">Voir la page complète</UButton>
+        </div>
+      </div>
+    </USlideover>
+
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-//import { z } from 'zod'
-//import { useForm } from '#imports' // si tu utilises vee-validate ou une lib similaire, à adapter
+import { ref, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useFetch } from '#app'
 
 const games = ref([])
 const editingGame = ref(null)
+const router = useRouter()
+const route = useRoute()
+
+const showSlideover = ref(false)
+const selectedGame = ref(null)
 
 const fetchGames = async () => {
   games.value = await $fetch('/api/games')
 }
 
 onMounted(fetchGames)
+
+//Slideover
+const openSlideover = async (slug) => {
+  const data = await $fetch(`/api/games/${slug}`)
+  selectedGame.value = data
+  showSlideover.value = true
+  router.push(`/games/${slug}`)
+}
+
+const closeSlideover = () => {
+  showSlideover.value = false
+  selectedGame.value = null
+  router.push('/games')
+}
+
+watch(() => route.params.slug, async (slug) => {
+  if (slug) {
+    await openSlideover(slug)
+  } else {
+    closeSlideover()
+  }
+})
 
 // Création d'un jeu vierge (à réutiliser à plusieurs endroits)
 const emptyGame = () => ({
