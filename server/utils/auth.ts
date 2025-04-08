@@ -12,14 +12,23 @@ export function getAuthToken(event: H3Event): string | undefined {
 
 export function getAuthUser(event: H3Event): any | null {
   const token = getAuthToken(event)
-  if (!token) return null
+
+  if (!token || typeof token !== 'string') return null
 
   try {
-    return jwt.verify(token, SECRET)
-  } catch {
+    const payload = jwt.verify(token, SECRET)
+
+    // 🔒 Bonus : vérifie structure minimale
+    if (!payload || typeof payload !== 'object' || !('email' in payload)) {
+      return null
+    }
+
+    return payload
+  } catch (err) {
     return null
   }
 }
+
 
 export function isAuthenticated(event: H3Event): boolean {
   return !!getAuthUser(event)
