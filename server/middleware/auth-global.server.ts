@@ -9,16 +9,16 @@ import {
 export default defineEventHandler((event) => {
   const url = event.node.req.url || ''
 
+  // Ignorer les appels API
+  if (isApiRoute(url)) return
+
   // Rediriger les utilisateurs déjà connectés loin de /login
   if (isLoginPage(url) && isAuthenticated(event)) {
     return redirect(event, '/dashboard')
   }
 
-  // Ignorer les appels API
-  if (isApiRoute(url)) return
-
   // Rediriger si non authentifié
-  if (!isAuthenticated(event) && !isLoginPage(url)) {
+  if (!isAuthenticated(event)) {
     return redirect(event, '/login')
   }
 
