@@ -12,6 +12,10 @@ export default defineNuxtConfig({
   },
   components: {
     global: true, // 👈 assure que tous les composants sont auto-importés
+    dirs: [
+      '~/components', // tes composants
+      '@nuxt/ui/components' // 👈 ajoute cette ligne
+    ]
   },
   devServer: {
     host: '0.0.0.0',
