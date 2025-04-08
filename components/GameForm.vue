@@ -5,10 +5,22 @@
     </template>
 
     <form @submit.prevent="submit" class="space-y-4">
-      <UInput v-model="localGame.title" label="Titre" :error="errors.title" required />
-      <UTextarea v-model="localGame.description" label="Description" :error="errors.description" />
-      <UInput v-model="localGame.teaserUrl" label="URL du teaser vidéo" :error="errors.teaserUrl" />
-      <UTextarea v-model="localGame.noteIntention" label="Note d’intention" :error="errors.noteIntention" />
+      <UFormGroup label="Titre" :error="errors.title">
+        <UInput v-model="localGame.title" required />
+      </UFormGroup>
+
+      <UFormGroup label="Description" :error="errors.description">
+        <UTextarea v-model="localGame.description" />
+      </UFormGroup>
+
+      <UFormGroup label="URL du teaser vidéo" :error="errors.teaserUrl">
+        <UInput v-model="localGame.teaserUrl" />
+      </UFormGroup>
+
+      <UFormGroup label="Note d’intention" :error="errors.noteIntention">
+        <UTextarea v-model="localGame.noteIntention" />
+      </UFormGroup>
+
 
       <div class="flex gap-2">
         <UButton type="submit" color="blue">
