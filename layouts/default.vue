@@ -1,23 +1,26 @@
+<!-- layouts/default.vue -->
 <template>
     <div class="min-h-screen bg-gray-50 text-gray-900">
         <!-- Header -->
-        <div class="flex items-center justify-between p-4 border-b shadow-md bg-white">
-            <div class="flex items-center space-x-2">
+        <UHeader class="shadow-md">
+            <template #logo>
                 <UButton icon="i-heroicons-bars-3" color="gray" variant="ghost" class="md:hidden"
                     @click="mobileOpen = true" />
-                <span class="font-bold text-xl">Limbus</span>
-            </div>
+                <span class="font-bold text-xl ml-2">Limbus</span>
+            </template>
 
-            <UDropdown :items="userMenu" :popper="{ placement: 'bottom-end' }">
-                <UButton variant="ghost" icon="i-heroicons-user" />
-            </UDropdown>
-        </div>
+            <template #actions>
+                <UDropdown :items="userMenu" :popper="{ placement: 'bottom-end' }">
+                    <UAvatar size="sm" icon="i-heroicons-user" />
+                </UDropdown>
+            </template>
+        </UHeader>
 
         <!-- Layout -->
         <div class="flex">
             <!-- Sidebar desktop -->
             <aside class="hidden md:block w-64 bg-white border-r p-4">
-                <UNavigationTree :links="navLinks" />
+                <UVerticalNavigation :links="navLinks" />
             </aside>
 
             <!-- Page content -->
@@ -27,10 +30,10 @@
         </div>
 
         <!-- Mobile Sidebar -->
-        <USlideover v-model:open="mobileOpen">
+        <USlideover v-model="mobileOpen">
             <div class="p-4 space-y-6">
                 <h2 class="text-lg font-bold">Navigation</h2>
-                <UNavigationTree :links="navLinks" @select="mobileOpen = false" />
+                <UVerticalNavigation :links="navLinks" @click="mobileOpen = false" />
             </div>
         </USlideover>
     </div>
