@@ -27,7 +27,7 @@ const { data: game } = await useFetch(`/api/public/games/${slug}`)
 const embedTeaser = (url) => {
     if (!url) return ''
     // Cas YouTube classique
-    const match = url.match(/(?:v=|youtu\\.be\\/)([\\w -] +) /)
+    const match = url.match(/(?:v=|youtu\.be\/)([\w-]+)/)
     return match ? `https://www.youtube.com/embed/${match[1]}` : url
 }
 </script>
