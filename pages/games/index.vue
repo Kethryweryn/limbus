@@ -44,7 +44,6 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { useFetch } from '#app'
 
 const games = ref([])
 const editingGame = ref(null)
@@ -53,14 +52,14 @@ const showSlideover = ref(false)
 const selectedGame = ref(null)
 
 const fetchGames = async () => {
-  games.value = await useFetch('/api/games')
+  games.value = await $fetch('/api/games')
 }
 
 onMounted(fetchGames)
 
 //Slideover
 const openSlideover = async (slug) => {
-  const data = await useFetch(`/api/games/${slug}`)
+  const data = await $fetch(`/api/games/${slug}`)
   selectedGame.value = data
   showSlideover.value = true
 }
