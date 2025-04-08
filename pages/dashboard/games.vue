@@ -2,7 +2,15 @@
   <div class="p-6">
     <h1 class="text-2xl font-bold mb-4">Jeux</h1>
 
-    <UCard v-for="game in games" :key="game.id" class="mb-4">
+    <div class="flex flex-col md:flex-row justify-between gap-4 mb-4">
+      <UInput v-model="searchQuery" placeholder="Rechercher un jeu..." icon="i-heroicons-magnifying-glass"
+        class="flex-1" />
+      <USelect v-model="sortOption" :options="sortOptions" option-attribute="label" value-attribute="value"
+        class="w-full md:w-60" />
+    </div>
+
+
+    <UCard v-for="game in filteredGames" :key="game.id" class="mb-4">
       <template #header>
         <div class="flex justify-between items-center">
           <div>
@@ -96,4 +104,41 @@ const deleteGame = async (id) => {
     }
   }
 }
+
+//Recherche
+const searchQuery = ref('')
+const sortOption = ref('title-asc')
+
+const sortOptions = [
+  { label: 'Titre A-Z', value: 'title-asc' },
+  { label: 'Titre Z-A', value: 'title-desc' },
+  { label: 'Plus récent', value: 'date-desc' },
+  { label: 'Plus ancien', value: 'date-asc' }
+]
+
+const filteredGames = computed(() => {
+  let result = games.value.filter(game =>
+    [game.title, game.description].some(field =>
+      field?.toLowerCase().includes(searchQuery.value.toLowerCase())
+    )
+  )
+
+  switch (sortOption.value) {
+    case 'title-asc':
+      result.sort((a, b) => a.title.localeCompare(b.title))
+      break
+    case 'title-desc':
+      result.sort((a, b) => b.title.localeCompare(a.title))
+      break
+    case 'date-desc':
+      result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      break
+    case 'date-asc':
+      result.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+      break
+  }
+
+  return result
+})
+
 </script>
