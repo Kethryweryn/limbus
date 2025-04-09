@@ -34,7 +34,6 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import CharacterForm from '~/components/characters/CharacterForm.vue'
 
 const characters = ref([])
 const search = ref('')
