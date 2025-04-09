@@ -44,7 +44,8 @@ const mobileOpen = ref(false)
 
 const navLinks = [
     { label: 'Dashboard', to: '/dashboard', icon: 'i-heroicons-home' },
-    { label: 'Jeux', to: '/games', icon: 'i-heroicons-cube' }
+    { label: 'Jeux', to: '/games', icon: 'i-heroicons-cube' },
+    { label: 'Personnages', to: '/characters', icon: 'i-heroicons-identification' }
 ]
 
 const userMenu = [
