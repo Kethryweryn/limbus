@@ -1,20 +1,12 @@
-// composables/useGameFocus.ts
+import { computed } from 'vue'
 import { useGameStore } from '@/stores/game'
 
 export function useGameFocus() {
-    const gameStore = useGameStore()
-
-    function selectGame(game) {
-        gameStore.setGame(game)
-    }
-
-    function clearGame() {
-        gameStore.clearGame()
-    }
+    const store = useGameStore()
 
     return {
-        game: gameStore.currentGame,
-        selectGame,
-        clearGame
+        game: computed(() => store.currentGame),  // ✅ Réactif
+        selectGame: store.setGame,
+        clearGame: store.clearGame
     }
 }
