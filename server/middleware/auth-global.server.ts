@@ -26,7 +26,8 @@ export default defineEventHandler((event) => {
   }
 
   // Stocker l'utilisateur dans le contexte si on veut l'exploiter ailleurs
-  event.context.authUser = getAuthUser(event)
+  const rawUser = getAuthUser(event)
+  event.context.authUser = rawUser ? JSON.parse(JSON.stringify(rawUser)) : null
 
   // Exemple : restreindre les pages /admin à "orga"
   if (url.startsWith('/admin') || url.startsWith('/organizer')) {
