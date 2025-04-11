@@ -18,7 +18,7 @@
             {{ game.title }}
           </button>
           <div class="flex gap-2">
-            <template v-if="currentGame?.id === game.id">
+            <template v-if="activeGame?.id === game.id">
               <UBadge color="green" variant="solid" size="xs">
                 🎯 Jeu actif
               </UBadge>
@@ -51,7 +51,6 @@
           </UButton>
         </div>
 
-        <!-- ✅ FIX ICI -->
         <UButton @click="selectGame({ id: selectedGame.id, title: selectedGame.title })" size="sm" color="green">
           Utiliser ce jeu
         </UButton>
@@ -64,7 +63,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 
-const { selectGame, game: currentGame } = useGameFocus()
+const { selectGame, game: activeGame } = useGameFocus()
 
 const emptyGame = () => ({
   title: '',
