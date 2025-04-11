@@ -18,9 +18,17 @@
             {{ game.title }}
           </button>
           <div class="flex gap-2">
-            <UButton @click="selectGame({ id: game.id, title: game.title })" size="xs" color="green">
-              Définir comme jeu actif
-            </UButton>
+            <template v-if="currentGame?.id === game.id">
+              <UBadge color="green" variant="solid" size="xs">
+                🎯 Jeu actif
+              </UBadge>
+            </template>
+            <template v-else>
+              <UButton @click="selectGame({ id: game.id, title: game.title })" size="xs" color="green">
+                Définir comme jeu actif
+              </UButton>
+            </template>
+
             <UButton size="xs" color="blue" @click="startEdit(game)">Modifier</UButton>
             <UButton size="xs" color="red" @click="deleteGame(game.id)">Supprimer</UButton>
           </div>
@@ -56,7 +64,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 
-const { selectGame } = useGameFocus()
+const { selectGame, game: currentGame } = useGameFocus()
 
 const emptyGame = () => ({
   title: '',
