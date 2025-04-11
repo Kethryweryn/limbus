@@ -5,7 +5,7 @@
         </template>
 
         <UFormGroup label="Jeu" :error="errors.gameId">
-            <USelect v-model="localCharacter.gameId" :options="props.games.map(g => ({ label: g.name, value: g.id }))"
+            <USelect v-model="localCharacter.gameId" :options="props.games.map(g => ({ label: g.title, value: g.id }))"
                 placeholder="Choisissez un jeu" required />
         </UFormGroup>
 
