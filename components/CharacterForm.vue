@@ -5,8 +5,13 @@
         </template>
 
         <form @submit.prevent="submit" class="space-y-4">
-            <UInput v-model="localCharacter.name" label="Nom" :error="errors.name" required />
-            <UTextarea v-model="localCharacter.description" label="Description" />
+            <UFormGroup label="Nom" :error="errors.name">
+                <UInput v-model="localCharacter.name" required />
+            </UFormGroup>
+
+            <UFormGroup label="Description" :error="errors.description">
+                <UTextarea v-model="localCharacter.description" />
+            </UFormGroup>
 
             <div class="flex gap-2">
                 <UButton type="submit" color="blue">
