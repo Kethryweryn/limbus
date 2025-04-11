@@ -2,6 +2,10 @@
     <div class="p-6">
         <h1 class="text-2xl font-bold mb-4">Personnages</h1>
 
+        <!-- Contexte du jeu sélectionné -->
+        <GameContextBar />
+
+        <!-- Barre de recherche -->
         <div class="mb-6 flex gap-4 items-center">
             <UInput v-model="search" placeholder="Rechercher un personnage..." />
         </div>
@@ -10,7 +14,8 @@
         <UCard v-for="char in filteredCharacters" :key="char.id" class="mb-4">
             <template #header>
                 <div class="flex justify-between items-center">
-                    <NuxtLink :to="`/characters/${char.slug}`" class="font-semibold underline">{{ char.name }}
+                    <NuxtLink :to="`/characters/${char.slug}`" class="font-semibold underline">
+                        {{ char.name }}
                     </NuxtLink>
                     <div class="flex gap-2">
                         <UButton size="xs" color="blue" @click="startEdit(char)">Modifier</UButton>
@@ -26,41 +31,61 @@
         <!-- Création -->
         <CharacterForm v-model:character="newCharacter" :games="games" mode="create" @submit="createCharacter" />
 
-        <!-- Edition -->
+        <!-- Édition -->
         <CharacterForm v-if="editingCharacter" v-model:character="editingCharacter" :games="games" mode="edit"
             @submit="saveEdit" @cancel="editingCharacter = null" />
-
     </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useGameStore } from '@/stores/game'
+import GameContextBar from '@/components/GameContextBar.vue'
 
 const characters = ref([])
 const search = ref('')
 const games = ref([])
 
+const gameStore = useGameStore()
+const selectedGame = computed(() => gameStore.currentGame)
+
 const fetchGames = async () => {
     games.value = await $fetch('/api/games')
 }
-
-const filteredCharacters = computed(() => {
-    const term = search.value.toLowerCase()
-    return characters.value.filter(c =>
-        c.name.toLowerCase().includes(term) ||
-        (c.description?.toLowerCase().includes(term))
-    )
-})
 
 const fetchCharacters = async () => {
     characters.value = await $fetch('/api/characters')
 }
 
 onMounted(async () => {
-    await Promise.all([fetchCharacters(), fetchGames()])
+    await Promise.all([fetchGames(), fetchCharacters()])
 })
 
-const newCharacter = ref({ name: '', description: '', gameId: '' })
+// 🧠 Filtrage par jeu actif et recherche
+const filteredCharacters = computed(() => {
+    const term = search.value.toLowerCase()
+    const gameId = selectedGame.value?.id
+
+    return characters.value
+        .filter(c => !gameId || c.gameId === gameId)
+        .filter(c =>
+            c.name.toLowerCase().includes(term) ||
+            (c.description?.toLowerCase().includes(term))
+        )
+})
+
+// 🧱 Création
+const newCharacter = ref({
+    name: '',
+    description: '',
+    gameId: selectedGame.value?.id || ''
+})
+
+// Met à jour le jeu assigné au personnage si le jeu actif change
+watch(() => selectedGame.value?.id, (newId) => {
+    newCharacter.value.gameId = newId || ''
+})
+
 const editingCharacter = ref(null)
 
 const createCharacter = async () => {
@@ -69,10 +94,13 @@ const createCharacter = async () => {
             method: 'POST',
             body: newCharacter.value
         })
-        newCharacter.value = { name: '', description: '' }
+        newCharacter.value = {
+            name: '',
+            description: '',
+            gameId: selectedGame.value?.id || ''
+        }
         await fetchCharacters()
-    }
-    catch (error) {
+    } catch (error) {
         console.error('Erreur lors de la création du personnage', error)
     }
 }

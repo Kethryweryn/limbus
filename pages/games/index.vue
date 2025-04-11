@@ -18,6 +18,9 @@
             {{ game.title }}
           </button>
           <div class="flex gap-2">
+            <UButton @click="selectGame(game)" size="xs" color="green">
+              Définir comme jeu actif
+            </UButton>
             <UButton size="xs" color="blue" @click="startEdit(game)">Modifier</UButton>
             <UButton size="xs" color="red" @click="deleteGame(game.id)">Supprimer</UButton>
           </div>
@@ -36,6 +39,9 @@
         <div class="mt-4">
           <UButton :to="`/games/${selectedGame?.slug}`" color="gray" variant="ghost">Voir la page complète</UButton>
         </div>
+        <UButton @click="selectGame(game)" size="sm" color="green">
+          Utiliser ce jeu
+        </UButton>
       </div>
     </USlideover>
 
