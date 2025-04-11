@@ -18,7 +18,7 @@
             {{ game.title }}
           </button>
           <div class="flex gap-2">
-            <UButton @click="selectGame(game)" size="xs" color="green">
+            <UButton @click="selectGame({ id: game.id, title: game.title })" size="xs" color="green">
               Définir comme jeu actif
             </UButton>
             <UButton size="xs" color="blue" @click="startEdit(game)">Modifier</UButton>
@@ -36,23 +36,31 @@
         <h2 class="text-xl font-bold">{{ selectedGame?.title }}</h2>
         <p>{{ selectedGame?.description }}</p>
         <p class="text-sm text-gray-500">{{ selectedGame?.noteIntention }}</p>
+
         <div class="mt-4">
-          <UButton :to="`/games/${selectedGame?.slug}`" color="gray" variant="ghost">Voir la page complète</UButton>
+          <UButton :to="`/games/${selectedGame?.slug}`" color="gray" variant="ghost">
+            Voir la page complète
+          </UButton>
         </div>
-        <UButton @click="selectGame(game)" size="sm" color="green">
+
+        <!-- ✅ Fix ici -->
+        <UButton @click="selectGame({ id: selectedGame.id, title: selectedGame.title })" size="sm" color="green">
           Utiliser ce jeu
         </UButton>
       </div>
     </USlideover>
-
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useGameFocus } from '@/composables/useGameFocus'
+
+const { selectGame } = useGameFocus()
 
 const games = ref([])
 const editingGame = ref(null)
+const newGame = ref(emptyGame())
 
 const showSlideover = ref(false)
 const selectedGame = ref(null)
@@ -63,7 +71,6 @@ const fetchGames = async () => {
 
 onMounted(fetchGames)
 
-//Slideover
 const openSlideover = async (slug) => {
   const data = await $fetch(`/api/games/${slug}`)
   selectedGame.value = data
@@ -75,16 +82,12 @@ const closeSlideover = () => {
   selectedGame.value = null
 }
 
-// Création d'un jeu vierge (à réutiliser à plusieurs endroits)
 const emptyGame = () => ({
   title: '',
   description: '',
   teaserUrl: '',
   noteIntention: ''
 })
-
-// Création d'un nouveau jeu
-const newGame = ref(emptyGame())
 
 const createGame = async () => {
   try {
@@ -99,7 +102,6 @@ const createGame = async () => {
   }
 }
 
-// Edition d'un jeu existant
 const startEdit = (game) => {
   editingGame.value = { ...game }
 }
@@ -134,7 +136,6 @@ const deleteGame = async (id) => {
   }
 }
 
-//Recherche
 const searchQuery = ref('')
 const sortOption = ref('title-asc')
 
@@ -169,5 +170,4 @@ const filteredGames = computed(() => {
 
   return result
 })
-
 </script>
