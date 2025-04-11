@@ -2,6 +2,9 @@
   <div class="p-6">
     <h1 class="text-2xl font-bold mb-4">Jeux</h1>
 
+    <!-- Contexte du jeu sélectionné -->
+    <GameContextBar />
+
     <div class="flex flex-col md:flex-row justify-between gap-4 mb-4">
       <UInput v-model="searchQuery" placeholder="Rechercher un jeu..." icon="i-heroicons-magnifying-glass"
         class="flex-1" />
