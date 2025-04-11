@@ -6,7 +6,7 @@ const prisma = new PrismaClient()
 
 export default defineEventHandler(async (event) => {
   const user = getAuthUser(event)
-  if (!user || user.role !== 'orga') {
+  if (!user || user.role !== 'organizer') {
     return sendError(event, createError({ statusCode: 403, statusMessage: 'Forbidden' }))
   }
 

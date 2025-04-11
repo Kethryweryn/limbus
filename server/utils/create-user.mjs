@@ -7,7 +7,7 @@ async function createUser() {
   const email = 'kethryweryn@gmail.com'
   const password = '01240134'
   const name = 'Jean-Damien'
-  const role = 'orga'
+  const role = 'organizer'
 
   const hashedPassword = await bcrypt.hash(password, 10)
 
