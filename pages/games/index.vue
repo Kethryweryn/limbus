@@ -43,7 +43,7 @@
           </UButton>
         </div>
 
-        <!-- ✅ Fix ici -->
+        <!-- ✅ FIX ICI -->
         <UButton @click="selectGame({ id: selectedGame.id, title: selectedGame.title })" size="sm" color="green">
           Utiliser ce jeu
         </UButton>
