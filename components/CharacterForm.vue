@@ -4,6 +4,11 @@
             {{ mode === 'edit' ? 'Modifier le personnage' : 'Créer un nouveau personnage' }}
         </template>
 
+        <UFormGroup label="Jeu" :error="errors.gameId">
+            <USelect v-model="localCharacter.gameId" :options="props.games.map(g => ({ label: g.name, value: g.id }))"
+                placeholder="Choisissez un jeu" required />
+        </UFormGroup>
+
         <form @submit.prevent="submit" class="space-y-4">
             <UFormGroup label="Nom" :error="errors.name">
                 <UInput v-model="localCharacter.name" required />
@@ -32,6 +37,7 @@ import { ref, watch } from 'vue'
 
 const props = defineProps({
     character: { type: Object, required: true },
+    games: { type: Array, required: true },
     mode: { type: String, default: 'create' }
 })
 
@@ -51,6 +57,9 @@ function validate() {
     errors.value = {}
     if (!localCharacter.value.name?.trim()) {
         errors.value.name = 'Le nom est requis.'
+    }
+    if (!localCharacter.value.gameId) {
+        errors.value.gameId = 'Le jeu est requis.'
     }
     return Object.keys(errors.value).length === 0
 }

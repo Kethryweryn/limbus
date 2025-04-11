@@ -24,11 +24,12 @@
         </UCard>
 
         <!-- Création -->
-        <CharacterForm v-model:character="newCharacter" mode="create" @submit="createCharacter" />
+        <CharacterForm v-model:character="newCharacter" :games="games" mode="create" @submit="createCharacter" />
 
         <!-- Edition -->
-        <CharacterForm v-if="editingCharacter" v-model:character="editingCharacter" mode="edit" @submit="saveEdit"
-            @cancel="editingCharacter = null" />
+        <CharacterForm v-if="editingCharacter" v-model:character="editingCharacter" :games="games" mode="edit"
+            @submit="saveEdit" @cancel="editingCharacter = null" />
+
     </div>
 </template>
 
@@ -37,6 +38,11 @@ import { ref, computed, onMounted } from 'vue'
 
 const characters = ref([])
 const search = ref('')
+const games = ref([])
+
+const fetchGames = async () => {
+    games.value = await $fetch('/api/games')
+}
 
 const filteredCharacters = computed(() => {
     const term = search.value.toLowerCase()
@@ -49,9 +55,12 @@ const filteredCharacters = computed(() => {
 const fetchCharacters = async () => {
     characters.value = await $fetch('/api/characters')
 }
-onMounted(fetchCharacters)
 
-const newCharacter = ref({ name: '', description: '' })
+onMounted(async () => {
+    await Promise.all([fetchCharacters(), fetchGames()])
+})
+
+const newCharacter = ref({ name: '', description: '', gameId: '' })
 const editingCharacter = ref(null)
 
 const createCharacter = async () => {
