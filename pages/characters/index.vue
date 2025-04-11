@@ -55,12 +55,17 @@ const newCharacter = ref({ name: '', description: '' })
 const editingCharacter = ref(null)
 
 const createCharacter = async () => {
-    await $fetch('/api/characters', {
-        method: 'POST',
-        body: newCharacter.value
-    })
-    newCharacter.value = { name: '', description: '' }
-    await fetchCharacters()
+    try {
+        await $fetch('/api/characters', {
+            method: 'POST',
+            body: newCharacter.value
+        })
+        newCharacter.value = { name: '', description: '' }
+        await fetchCharacters()
+    }
+    catch (error) {
+        console.error('Erreur lors de la création du personnage', error)
+    }
 }
 
 const startEdit = (char) => {
@@ -68,17 +73,23 @@ const startEdit = (char) => {
 }
 
 const saveEdit = async () => {
-    await $fetch(`/api/characters/${editingCharacter.value.id}/PUT`, {
-        method: 'POST',
-        body: editingCharacter.value
-    })
-    editingCharacter.value = null
-    await fetchCharacters()
+    if (!editingCharacter.value?.id) return
+
+    try {
+        await $fetch(`/api/characters/${editingCharacter.value.id}/put`, {
+            method: 'POST',
+            body: editingCharacter.value
+        })
+        editingCharacter.value = null
+        await fetchCharacters()
+    } catch (error) {
+        console.error('Erreur lors de la sauvegarde du personnage', error)
+    }
 }
 
 const deleteCharacter = async (id) => {
     if (confirm('Supprimer ce personnage ?')) {
-        await $fetch(`/api/characters/${id}/DELETE`, { method: 'POST' })
+        await $fetch(`/api/characters/${id}/delete`, { method: 'POST' })
         await fetchCharacters()
     }
 }
