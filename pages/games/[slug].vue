@@ -1,44 +1,41 @@
 <template>
-    <div class="p-6 max-w-4xl mx-auto space-y-6">
+    <div v-if="game" class="p-6 max-w-4xl mx-auto space-y-6">
+        <!-- Carte d'infos -->
+        <UCard>
+            <template #header>
+                Détails du jeu
+            </template>
 
-        <div v-if="game" class="p-6 max-w-4xl mx-auto space-y-6">
-            <!-- Carte d'infos -->
-            <UCard>
-                <template #header>
-                    Détails du jeu
-                </template>
+            <p><strong>Titre :</strong> {{ game.title }}</p>
+            <p><strong>ID :</strong> {{ game.id }}</p>
 
-                <p><strong>Titre :</strong> {{ game.title }}</p>
-                <p><strong>ID :</strong> {{ game.id }}</p>
+            <UButton :disabled="isCurrentGame" :color="isCurrentGame ? 'gray' : 'green'"
+                @click="selectGame({ id: game.id, title: game.title })" class="mt-4">
+                {{ isCurrentGame ? 'Jeu déjà actif' : 'Définir comme jeu actif' }}
+            </UButton>
+        </UCard>
 
-                <UButton :disabled="isCurrentGame" :color="isCurrentGame ? 'gray' : 'green'" @click="selectGame(game)"
-                    class="mt-4">
-                    {{ isCurrentGame ? 'Jeu déjà actif' : 'Définir comme jeu actif' }}
-                </UButton>
-            </UCard>
+        <!-- Titre -->
+        <h1 class="text-3xl font-bold">{{ game.title }}</h1>
 
-            <!-- Titre -->
-            <h1 class="text-3xl font-bold">{{ game.title }}</h1>
-
-            <!-- Teaser -->
-            <div v-if="game.teaserUrl" class="flex justify-center my-6">
-                <div class="w-full max-w-lg aspect-video">
-                    <iframe :src="embedTeaser(game.teaserUrl)" class="w-full h-full rounded" frameborder="0"
-                        allowfullscreen></iframe>
-                </div>
+        <!-- Teaser -->
+        <div v-if="game.teaserUrl" class="flex justify-center my-6">
+            <div class="w-full max-w-lg aspect-video">
+                <iframe :src="embedTeaser(game.teaserUrl)" class="w-full h-full rounded" frameborder="0"
+                    allowfullscreen></iframe>
             </div>
+        </div>
 
-            <!-- Description -->
-            <div>
-                <h2 class="text-xl font-semibold mb-2">Description</h2>
-                <p>{{ game.description }}</p>
-            </div>
+        <!-- Description -->
+        <div>
+            <h2 class="text-xl font-semibold mb-2">Description</h2>
+            <p>{{ game.description }}</p>
+        </div>
 
-            <!-- Note d’intention -->
-            <div v-if="game.noteIntention">
-                <h2 class="text-xl font-semibold mb-2">Note d’intention</h2>
-                <p>{{ game.noteIntention }}</p>
-            </div>
+        <!-- Note d’intention -->
+        <div v-if="game.noteIntention">
+            <h2 class="text-xl font-semibold mb-2">Note d’intention</h2>
+            <p>{{ game.noteIntention }}</p>
         </div>
     </div>
 </template>
