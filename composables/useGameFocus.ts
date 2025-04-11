@@ -8,8 +8,13 @@ export function useGameFocus() {
         gameStore.setGame(game)
     }
 
+    function clearGame() {
+        gameStore.clearGame()
+    }
+
     return {
         game: gameStore.currentGame,
-        selectGame
+        selectGame,
+        clearGame
     }
 }

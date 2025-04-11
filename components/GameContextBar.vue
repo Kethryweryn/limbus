@@ -11,9 +11,6 @@
 <script setup>
 import { useGameFocus } from '@/composables/useGameFocus'
 
-const { game, selectGame, gameStore } = useGameFocus()
+const { game, clearGame } = useGameFocus()
 
-function clearGame() {
-    gameStore.clearGame()
-}
 </script>
