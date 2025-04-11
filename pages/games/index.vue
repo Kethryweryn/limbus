@@ -58,6 +58,13 @@ import { useGameFocus } from '@/composables/useGameFocus'
 
 const { selectGame } = useGameFocus()
 
+const emptyGame = () => ({
+  title: '',
+  description: '',
+  teaserUrl: '',
+  noteIntention: ''
+})
+
 const games = ref([])
 const editingGame = ref(null)
 const newGame = ref(emptyGame())
@@ -81,13 +88,6 @@ const closeSlideover = () => {
   showSlideover.value = false
   selectedGame.value = null
 }
-
-const emptyGame = () => ({
-  title: '',
-  description: '',
-  teaserUrl: '',
-  noteIntention: ''
-})
 
 const createGame = async () => {
   try {
