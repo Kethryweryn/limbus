@@ -16,7 +16,7 @@ model Game {
   slug           String     @unique
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
-  published      Boolean    @default(true) // ✅ Champ ajouté
+  published      Boolean    @default(true)
 
   characters     Character[]
   factions       Faction[]
@@ -35,10 +35,10 @@ model Character {
   game        Game       @relation(fields: [gameId], references: [id])
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  published   Boolean    @default(true) // ✅
+  published   Boolean    @default(true)
 
-  factions    Faction[]  @relation("CharacterFactions", references: [id])
-  intrigues   Intrigue[] @relation("CharacterIntrigues", references: [id])
+  factions    Faction[]  @relation("CharacterFactions")
+  intrigues   Intrigue[] @relation("CharacterIntrigues")
   documents   Document[]
   sessionAssignments SessionAssignment[]
 }
@@ -50,9 +50,9 @@ model Item {
   quantity    Int
   gameId      String
   game        Game       @relation(fields: [gameId], references: [id])
-  published   Boolean    @default(true) // ✅
+  published   Boolean    @default(true)
 
-  intrigues   Intrigue[] @relation("IntrigueItems", references: [id])
+  intrigues   Intrigue[] @relation("IntrigueItems")
 }
 
 model Faction {
@@ -61,7 +61,7 @@ model Faction {
   description String?
   gameId      String
   game        Game       @relation(fields: [gameId], references: [id])
-  published   Boolean    @default(true) // ✅
+  published   Boolean    @default(true)
 
   characters  Character[] @relation("CharacterFactions")
   documents   Document[]  @relation("DocumentFactions")
@@ -73,7 +73,7 @@ model Intrigue {
   summary     String?
   gameId      String
   game        Game       @relation(fields: [gameId], references: [id])
-  published   Boolean    @default(true) // ✅
+  published   Boolean    @default(true)
 
   characters  Character[] @relation("CharacterIntrigues")
   items       Item[]      @relation("IntrigueItems")
@@ -85,7 +85,7 @@ model Document {
   content     String?
   gameId      String
   game        Game       @relation(fields: [gameId], references: [id])
-  published   Boolean    @default(true) // ✅
+  published   Boolean    @default(true)
 
   characterId String?
   character   Character? @relation(fields: [characterId], references: [id])
@@ -99,7 +99,7 @@ model Session {
   date        DateTime?
   gameId      String
   game        Game       @relation(fields: [gameId], references: [id])
-  published   Boolean    @default(true) // ✅
+  published   Boolean    @default(true)
 
   assignments SessionAssignment[]
 }
