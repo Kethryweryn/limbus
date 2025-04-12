@@ -29,5 +29,8 @@
     "nuxi": "^3.24.1",
     "prisma": "^6.6.0",
     "tsx": "^4.19.3"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   }
 }
