@@ -6,7 +6,7 @@ export default defineNuxtConfig({
   },
   compatibilityDate: '2025-04-07',
   devtools: { enabled: true },
-  modules: ['@nuxt/ui', '@nuxt/eslint'],
+  modules: ['@nuxt/ui', '@nuxt/eslint', '@pinia/nuxt'],
   ui: {
     icons: ['heroicons']
   },
