@@ -12,7 +12,6 @@
         class="w-full md:w-60" />
     </div>
 
-    <GameForm v-if="editingGame" v-model:game="editingGame" mode="edit" @submit="saveEdit" @cancel="cancelEdit" />
 
     <UCard v-for="game in paginatedGames" :key="game.id" class="mb-4">
       <template #header>
@@ -39,107 +38,55 @@
       </template>
     </UCard>
 
-    <GameForm v-model:game="newGame" mode="create" @submit="createGame" />
     <div class="flex justify-center gap-4 mt-6">
       <UButton @click="prevPage" :disabled="page === 1">← Précédent</UButton>
       <span class="text-sm text-gray-500">Page {{ page }} / {{ totalPages }}</span>
       <UButton @click="nextPage" :disabled="page === totalPages">Suivant →</UButton>
     </div>
 
+  </div>
+  <!-- Slideover pour création / édition -->
+  <USlideover v-model="showFormSlideover">
+    <div class="p-4 space-y-4">
+      <GameForm v-if="activeFormGame" v-model:game="activeFormGame" :mode="formMode" @submit="handleGameFormSubmit"
+        @cancel="closeFormSlideover" />
+    </div>
+  </USlideover>
 
-    <!-- Slideover -->
-    <USlideover v-model="showSlideover">
-      <div class="p-4 space-y-4">
-        <h2 class="text-xl font-bold">{{ selectedGame?.title }}</h2>
-        <p>{{ selectedGame?.description }}</p>
-        <p class="text-sm text-gray-500">{{ selectedGame?.noteIntention }}</p>
+  <!-- Slideover de prévisualisation -->
+  <USlideover v-model="showPreviewSlideover">
+    <div class="p-4 space-y-4">
+      <h2 class="text-xl font-bold">{{ selectedGame?.title }}</h2>
+      <p>{{ selectedGame?.description }}</p>
+      <p class="text-sm text-gray-500">{{ selectedGame?.noteIntention }}</p>
 
-        <div class="mt-4">
-          <UButton :to="`/games/${selectedGame?.slug}`" color="gray" variant="ghost">
-            Voir la page complète
-          </UButton>
-        </div>
-
-        <UButton @click="selectGame({ id: selectedGame.id, title: selectedGame.title })" size="sm" color="green">
-          Utiliser ce jeu
+      <div class="mt-4">
+        <UButton :to="`/games/${selectedGame?.slug}`" color="gray" variant="ghost">
+          Voir la page complète
         </UButton>
       </div>
-    </USlideover>
-  </div>
+
+      <UButton @click="selectGame({ id: selectedGame.id, title: selectedGame.title })" size="sm" color="green">
+        Utiliser ce jeu
+      </UButton>
+    </div>
+  </USlideover>
 </template>
 
 <script setup>
+
 import { ref, computed, onMounted } from 'vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 
 const { selectGame, game: activeGame } = useGameFocus()
 
-const emptyGame = () => ({
-  title: '',
-  description: '',
-  teaserUrl: '',
-  noteIntention: ''
-})
-
 const games = ref([])
-const editingGame = ref(null)
-const newGame = ref(emptyGame())
-
-const showSlideover = ref(false)
-const selectedGame = ref(null)
 
 const fetchGames = async () => {
   games.value = await $fetch('/api/games')
 }
 
 onMounted(fetchGames)
-
-const openSlideover = async (slug) => {
-  const data = await $fetch(`/api/games/${slug}`)
-  selectedGame.value = data
-  showSlideover.value = true
-}
-
-const closeSlideover = () => {
-  showSlideover.value = false
-  selectedGame.value = null
-}
-
-const createGame = async () => {
-  try {
-    await $fetch('/api/games', {
-      method: 'POST',
-      body: newGame.value
-    })
-    newGame.value = emptyGame()
-    await fetchGames()
-  } catch (error) {
-    console.error('Erreur lors de la création du jeu', error)
-  }
-}
-
-const startEdit = (game) => {
-  editingGame.value = { ...game }
-}
-
-const saveEdit = async () => {
-  if (!editingGame.value?.id) return
-
-  try {
-    await $fetch(`/api/games/${editingGame.value.id}/put`, {
-      method: 'POST',
-      body: editingGame.value
-    })
-    editingGame.value = null
-    await fetchGames()
-  } catch (error) {
-    console.error('Erreur lors de la sauvegarde du jeu', error)
-  }
-}
-
-const cancelEdit = () => {
-  editingGame.value = null
-}
 
 const deleteGame = async (id) => {
   if (confirm('Supprimer ce jeu ?')) {
@@ -186,6 +133,48 @@ const filteredGames = computed(() => {
 
   return result
 })
+
+const showFormSlideover = ref(false)
+const showPreviewSlideover = ref(false)
+
+const activeFormGame = ref(null)
+const formMode = ref('create')
+
+function startEdit(game) {
+  activeFormGame.value = { ...game }
+  formMode.value = 'edit'
+  showFormSlideover.value = true
+}
+
+function closeFormSlideover() {
+  activeFormGame.value = null
+  showFormSlideover.value = false
+}
+
+function openSlideover(slug) {
+  selectedGame.value = games.value.find(g => g.slug === slug)
+  showPreviewSlideover.value = true
+}
+
+async function handleGameFormSubmit() {
+  try {
+    if (formMode.value === 'create') {
+      await $fetch('/api/games', {
+        method: 'POST',
+        body: activeFormGame.value
+      })
+    } else if (formMode.value === 'edit') {
+      await $fetch(`/api/games/${activeFormGame.value.id}/put`, {
+        method: 'POST',
+        body: activeFormGame.value
+      })
+    }
+    closeFormSlideover()
+    await fetchGames()
+  } catch (error) {
+    console.error('Erreur lors de la soumission du formulaire de jeu', error)
+  }
+}
 
 const page = ref(1)
 const itemsPerPage = 5
