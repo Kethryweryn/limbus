@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '~/server/utils/prisma'
 import { getAuthUser } from '@/server/utils/auth'
-import slugify from 'slugify'
-
-const prisma = new PrismaClient()
+import { generateSlug } from '~/server/utils/generateSlug'
 
 export default defineEventHandler(async (event) => {
   const user = getAuthUser(event)
@@ -10,11 +8,14 @@ export default defineEventHandler(async (event) => {
     return sendError(event, createError({ statusCode: 403, statusMessage: 'Forbidden' }))
   }
 
-  const id = getRouterParam(event, 'id')!
+  const id = getRouterParam(event, 'id')
+  if (!id) {
+    return sendError(event, createError({ statusCode: 400, statusMessage: 'ID manquant' }))
+  }
   const body = await readBody(event)
-  const { title, description, teaserUrl, noteIntention } = body
+  const { title, description, teaserUrl, noteIntention, published } = body
 
-  const slug = slugify(title || '', { lower: true, strict: true })
+  const slug = generateSlug(title)
 
   const game = await prisma.game.update({
     where: { id },
@@ -23,7 +24,8 @@ export default defineEventHandler(async (event) => {
       description,
       teaserUrl,
       noteIntention,
-      slug
+      slug,
+      published
     }
   })
 
