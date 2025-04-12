@@ -6,12 +6,13 @@
         <GameContextBar />
 
         <!-- Barre de recherche -->
-        <div class="mb-6 flex gap-4 items-center">
-            <UInput v-model="search" placeholder="Rechercher un personnage..." />
+        <div class="mb-6 flex flex-wrap gap-4 items-center justify-between">
+            <UInput v-model="search" placeholder="Rechercher un personnage..." class="w-full md:w-96" />
+            <UButton @click="openCreateSlideover" color="primary">Créer un personnage</UButton>
         </div>
 
         <!-- Liste des personnages -->
-        <UCard v-for="char in paginatedCharacters" :key="char.id" class="mb-4">
+        <UCard v-for="char in filteredCharacters" :key="char.id" class="mb-4">
             <template #header>
                 <div class="flex justify-between items-center">
                     <NuxtLink :to="`/characters/${char.slug}`" class="font-semibold underline">
@@ -22,25 +23,45 @@
                         <UButton size="xs" color="red" @click="deleteCharacter(char.id)">Supprimer</UButton>
                     </div>
                 </div>
+
+                <!-- Slideover pour création et édition -->
+                <USlideover v-model="showSlideover">
+                    <div class="p-4 space-y-4">
+                        <CharacterForm v-if="activeFormCharacter" v-model:character="activeFormCharacter" :games="games"
+                            :mode="formMode" @submit="handleFormSubmit" @cancel="closeSlideover" />
+                    </div>
+                </USlideover>
+
             </template>
             <template #default>
                 <p>{{ char.description }}</p>
+
+                <!-- Slideover pour création et édition -->
+                <USlideover v-model="showSlideover">
+                    <div class="p-4 space-y-4">
+                        <CharacterForm v-if="activeFormCharacter" v-model:character="activeFormCharacter" :games="games"
+                            :mode="formMode" @submit="handleFormSubmit" @cancel="closeSlideover" />
+                    </div>
+                </USlideover>
+
             </template>
         </UCard>
 
         <!-- Création -->
-        <CharacterForm v-model:character="newCharacter" :games="games" mode="create" @submit="createCharacter" />
-        <div class="flex justify-center gap-4 mt-6">
-            <UButton @click="prevCharPage" :disabled="charPage === 1">← Précédent</UButton>
-            <span class="text-sm text-gray-500">Page {{ charPage }} / {{ totalCharPages }}</span>
-            <UButton @click="nextCharPage" :disabled="charPage === totalCharPages">Suivant →</UButton>
-        </div>
 
 
         <!-- Édition -->
-        <CharacterForm v-if="editingCharacter" v-model:character="editingCharacter" :games="games" mode="edit"
-            @submit="saveEdit" @cancel="editingCharacter = null" />
+
     </div>
+
+    <!-- Slideover pour création et édition -->
+    <USlideover v-model="showSlideover">
+        <div class="p-4 space-y-4">
+            <CharacterForm v-if="activeFormCharacter" v-model:character="activeFormCharacter" :games="games"
+                :mode="formMode" @submit="handleFormSubmit" @cancel="closeSlideover" />
+        </div>
+    </USlideover>
+
 </template>
 
 <script setup>
@@ -130,30 +151,53 @@ const saveEdit = async () => {
     }
 }
 
+
+const showSlideover = ref(false)
+const activeFormCharacter = ref(null)
+const formMode = ref('create')
+
+function openCreateSlideover() {
+    activeFormCharacter.value = { name: '', description: '', gameId: selectedGame.value?.id || '' }
+    formMode.value = 'create'
+    showSlideover.value = true
+}
+
+function startEdit(char) {
+    activeFormCharacter.value = { ...char }
+    formMode.value = 'edit'
+    showSlideover.value = true
+}
+
+function closeSlideover() {
+    activeFormCharacter.value = null
+    showSlideover.value = false
+}
+
+async function handleFormSubmit() {
+    try {
+        if (formMode.value === 'create') {
+            await $fetch('/api/characters', {
+                method: 'POST',
+                body: activeFormCharacter.value
+            })
+        } else if (formMode.value === 'edit') {
+            await $fetch(`/api/characters/${activeFormCharacter.value.id}/put`, {
+                method: 'POST',
+                body: activeFormCharacter.value
+            })
+        }
+        closeSlideover()
+        await fetchCharacters()
+    } catch (error) {
+        console.error('Erreur lors de la soumission du formulaire', error)
+    }
+}
+
+
 const deleteCharacter = async (id) => {
     if (confirm('Supprimer ce personnage ?')) {
         await $fetch(`/api/characters/${id}/delete`, { method: 'POST' })
         await fetchCharacters()
     }
 }
-
-const charPage = ref(1)
-const itemsPerPage = 5
-
-const paginatedCharacters = computed(() => {
-    const start = (charPage.value - 1) * itemsPerPage
-    const end = start + itemsPerPage
-    return filteredCharacters.value.slice(start, end)
-})
-
-const totalCharPages = computed(() => Math.ceil(filteredCharacters.value.length / itemsPerPage))
-
-const nextCharPage = () => {
-    if (charPage.value < totalCharPages.value) charPage.value++
-}
-
-const prevCharPage = () => {
-    if (charPage.value > 1) charPage.value--
-}
-
 </script>
