@@ -118,7 +118,7 @@ watch(() => selectedGame.value?.id, (newId) => {
 
 // Quand on fait une recherche on revient à la page 1 de la pagination
 watch([search, filteredCharacters], () => {
-    page.value = 1
+    charPage.value = 1
 })
 
 const showSlideover = ref(false)
