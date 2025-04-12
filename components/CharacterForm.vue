@@ -12,7 +12,7 @@
             </UFormGroup>
 
             <UFormGroup label="Nom" :error="errors.name">
-                <UInput v-model="localCharacter.name" required />
+                <UInput v-model="localCharacter.name" required autofocus />
             </UFormGroup>
 
             <UFormGroup label="Description" :error="errors.description">
@@ -20,10 +20,10 @@
             </UFormGroup>
 
             <div class="flex gap-2">
-                <UButton type="submit" color="blue">
+                <UButton type="submit" color="blue" :disabled="!localCharacter.name?.trim() || !localCharacter.gameId">
                     {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
                 </UButton>
-                <UButton v-if="mode === 'edit'" @click="$emit('cancel')" color="gray">
+                <UButton @click="$emit('cancel')" color="gray">
                     Annuler
                 </UButton>
             </div>

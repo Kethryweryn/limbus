@@ -36,6 +36,9 @@
             <template #default>
                 <p>{{ char.description }}</p>
 
+
+
+
                 <!-- Slideover pour création et édition -->
                 <USlideover v-model="showSlideover">
                     <div class="p-4 space-y-4">
@@ -113,84 +116,6 @@ watch(() => selectedGame.value?.id, (newId) => {
     newCharacter.value.gameId = newId || ''
 })
 
-const editingCharacter = ref(null)
-
-const createCharacter = async () => {
-    try {
-        await $fetch('/api/characters', {
-            method: 'POST',
-            body: newCharacter.value
-        })
-        newCharacter.value = {
-            name: '',
-            description: '',
-            gameId: selectedGame.value?.id || ''
-        }
-        await fetchCharacters()
-    } catch (error) {
-        console.error('Erreur lors de la création du personnage', error)
-    }
-}
-
-const startEdit = (char) => {
-    editingCharacter.value = { ...char }
-}
-
-const saveEdit = async () => {
-    if (!editingCharacter.value?.id) return
-
-    try {
-        await $fetch(`/api/characters/${editingCharacter.value.id}/put`, {
-            method: 'POST',
-            body: editingCharacter.value
-        })
-        editingCharacter.value = null
-        await fetchCharacters()
-    } catch (error) {
-        console.error('Erreur lors de la sauvegarde du personnage', error)
-    }
-}
-
-
-
-function openCreateSlideover() {
-    activeFormCharacter.value = { name: '', description: '', gameId: selectedGame.value?.id || '' }
-    formMode.value = 'create'
-    showSlideover.value = true
-}
-
-
-formMode.value = 'edit'
-showSlideover.value = true
-}
-
-function closeSlideover() {
-    activeFormCharacter.value = null
-    showSlideover.value = false
-}
-
-async function handleFormSubmit() {
-    try {
-        if (formMode.value === 'create') {
-            await $fetch('/api/characters', {
-                method: 'POST',
-                body: activeFormCharacter.value
-            })
-        } else if (formMode.value === 'edit') {
-            await $fetch(`/api/characters/${activeFormCharacter.value.id}/put`, {
-                method: 'POST',
-                body: activeFormCharacter.value
-            })
-        }
-        closeSlideover()
-        await fetchCharacters()
-    } catch (error) {
-        console.error('Erreur lors de la soumission du formulaire', error)
-    }
-}
-
-
-
 const showSlideover = ref(false)
 const activeFormCharacter = ref(null)
 const formMode = ref('create')
@@ -231,7 +156,6 @@ async function handleFormSubmit() {
         console.error('Erreur lors de la soumission du formulaire', error)
     }
 }
-
 
 const deleteCharacter = async (id) => {
     if (confirm('Supprimer ce personnage ?')) {
