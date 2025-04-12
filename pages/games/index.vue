@@ -2,18 +2,21 @@
   <div class="p-6">
     <h1 class="text-2xl font-bold mb-4">Jeux</h1>
 
-    <!-- Contexte du jeu sélectionné -->
     <GameContextBar />
 
     <div class="flex flex-col md:flex-row justify-between gap-4 mb-4">
+      <div class="flex items-center gap-2">
+        <UCheckbox v-model="showArchived" />
+        <span class="text-sm text-gray-600">Afficher les archives</span>
+      </div>
+
       <UInput v-model="searchQuery" placeholder="Rechercher un jeu..." icon="i-heroicons-magnifying-glass"
         class="flex-1" />
       <USelect v-model="sortOption" :options="sortOptions" option-attribute="label" value-attribute="value"
         class="w-full md:w-60" />
     </div>
 
-
-    <UCard v-for="game in paginatedGames" :key="game.id" class="mb-4">
+    <UCard v-for="game in paginatedGames" :key="game.id" class="mb-4" :class="{ 'opacity-50': !game.published }">
       <template #header>
         <div class="flex justify-between items-center">
           <button class="text-blue-600 hover:underline" @click="openSlideover(game.slug)">
@@ -21,9 +24,7 @@
           </button>
           <div class="flex gap-2">
             <template v-if="activeGame?.id === game.id">
-              <UBadge color="green" variant="solid" size="xs">
-                🎯 Jeu actif
-              </UBadge>
+              <UBadge color="green" variant="solid" size="xs">🎯 Jeu actif</UBadge>
             </template>
             <template v-else>
               <UButton @click="selectGame({ id: game.id, title: game.title })" size="xs" color="green">
@@ -32,7 +33,13 @@
             </template>
 
             <UButton size="xs" color="blue" @click="startEdit(game)">Modifier</UButton>
-            <UButton size="xs" color="red" @click="deleteGame(game.id)">Supprimer</UButton>
+
+            <template v-if="!game.published">
+              <UBadge color="gray" variant="solid" size="xs">Archivé</UBadge>
+            </template>
+            <template v-else>
+              <UButton size="xs" color="red" @click="archiveGame(game.id)">Archiver</UButton>
+            </template>
           </div>
         </div>
       </template>
@@ -43,9 +50,9 @@
       <span class="text-sm text-gray-500">Page {{ page }} / {{ totalPages }}</span>
       <UButton @click="nextPage" :disabled="page === totalPages">Suivant →</UButton>
     </div>
-
   </div>
-  <!-- Slideover pour création / édition -->
+
+  <!-- Slideover formulaire -->
   <USlideover v-model="showFormSlideover">
     <div class="p-4 space-y-4">
       <GameForm v-if="activeFormGame" v-model:game="activeFormGame" :mode="formMode" @submit="handleGameFormSubmit"
@@ -53,7 +60,7 @@
     </div>
   </USlideover>
 
-  <!-- Slideover de prévisualisation -->
+  <!-- Slideover aperçu -->
   <USlideover v-model="showPreviewSlideover">
     <div class="p-4 space-y-4">
       <h2 class="text-xl font-bold">{{ selectedGame?.title }}</h2>
@@ -74,13 +81,14 @@
 </template>
 
 <script setup>
-
 import { ref, computed, onMounted } from 'vue'
 import { useGameFocus } from '@/composables/useGameFocus'
+import GameContextBar from '@/components/GameContextBar.vue'
 
 const { selectGame, game: activeGame } = useGameFocus()
 
 const games = ref([])
+const selectedGame = ref(null)
 
 const fetchGames = async () => {
   games.value = await $fetch('/api/games')
@@ -88,19 +96,25 @@ const fetchGames = async () => {
 
 onMounted(fetchGames)
 
-const deleteGame = async (id) => {
-  if (confirm('Supprimer ce jeu ?')) {
-    try {
-      await $fetch(`/api/games/${id}/delete`, { method: 'POST' })
-      await fetchGames()
-    } catch (error) {
-      console.error('Erreur lors de la suppression du jeu', error)
-    }
+const startEdit = (game) => {
+  activeFormGame.value = { ...game }
+  formMode.value = 'edit'
+  showFormSlideover.value = true
+}
+
+const archiveGame = async (id) => {
+  if (confirm('Archiver ce jeu ?')) {
+    await $fetch(`/api/games/${id}/put`, {
+      method: 'POST',
+      body: { published: false }
+    })
+    await fetchGames()
   }
 }
 
 const searchQuery = ref('')
 const sortOption = ref('title-asc')
+const showArchived = ref(false)
 
 const sortOptions = [
   { label: 'Titre A-Z', value: 'title-asc' },
@@ -115,6 +129,10 @@ const filteredGames = computed(() => {
       field?.toLowerCase().includes(searchQuery.value.toLowerCase())
     )
   )
+
+  if (!showArchived.value) {
+    result = result.filter(game => game.published)
+  }
 
   switch (sortOption.value) {
     case 'title-asc':
@@ -134,17 +152,28 @@ const filteredGames = computed(() => {
   return result
 })
 
+const page = ref(1)
+const itemsPerPage = 5
+
+const paginatedGames = computed(() => {
+  const start = (page.value - 1) * itemsPerPage
+  return filteredGames.value.slice(start, start + itemsPerPage)
+})
+
+const totalPages = computed(() => Math.ceil(filteredGames.value.length / itemsPerPage))
+
+const nextPage = () => {
+  if (page.value < totalPages.value) page.value++
+}
+
+const prevPage = () => {
+  if (page.value > 1) page.value--
+}
+
 const showFormSlideover = ref(false)
 const showPreviewSlideover = ref(false)
-
 const activeFormGame = ref(null)
 const formMode = ref('create')
-
-function startEdit(game) {
-  activeFormGame.value = { ...game }
-  formMode.value = 'edit'
-  showFormSlideover.value = true
-}
 
 function closeFormSlideover() {
   activeFormGame.value = null
@@ -175,24 +204,4 @@ async function handleGameFormSubmit() {
     console.error('Erreur lors de la soumission du formulaire de jeu', error)
   }
 }
-
-const page = ref(1)
-const itemsPerPage = 5
-
-const paginatedGames = computed(() => {
-  const start = (page.value - 1) * itemsPerPage
-  const end = start + itemsPerPage
-  return filteredGames.value.slice(start, end)
-})
-
-const totalPages = computed(() => Math.ceil(filteredGames.value.length / itemsPerPage))
-
-const nextPage = () => {
-  if (page.value < totalPages.value) page.value++
-}
-
-const prevPage = () => {
-  if (page.value > 1) page.value--
-}
-
 </script>
