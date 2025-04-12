@@ -7,135 +7,115 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id       String   @id @default(uuid())
-  email    String   @unique
-  password String
-  role     String
-  name     String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 model Game {
-  id            String      @id @default(uuid())
-  title         String
-  slug          String      @unique
-  description   String?
-  teaserUrl     String?
-  noteIntention String?
+  id             String     @id @default(cuid())
+  title          String
+  description    String
+  noteIntention  String?
+  teaserUrl      String?
+  slug           String     @unique
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  published      Boolean    @default(true) // ✅ Champ ajouté
 
-  characters    Character[]
-  sessions      Session[]
-  factions      Faction[]
-  intrigues     Intrigue[]
-  items         Item[]
-  documents     Document[]
-
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  characters     Character[]
+  factions       Faction[]
+  intrigues      Intrigue[]
+  items          Item[]
+  sessions       Session[]
+  documents      Document[]
 }
 
 model Character {
-  id         String        @id @default(uuid())
-  name       String
+  id          String     @id @default(cuid())
+  name        String
   description String?
-  slug        String       @unique
-  game       Game          @relation(fields: [gameId], references: [id])
-  gameId     String
-
-  assignments SessionAssignment[]
-  intrigues   Intrigue[] @relation("CharacterIntrigues")
-  factions    Faction[]  @relation("CharacterFactions")
-  documents   Document[]
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Faction {
-  id         String       @id @default(uuid())
-  name       String
-  description String?
-  game       Game         @relation(fields: [gameId], references: [id])
-  gameId     String
-
-  characters Character[] @relation("CharacterFactions")
-  documents  Document[]  @relation("DocumentFactions")
-
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
-
-model Session {
-  id         String       @id @default(uuid())
-  title      String
-  date       DateTime
-  location   String?
-  game       Game         @relation(fields: [gameId], references: [id])
-  gameId     String
-
-  assignments SessionAssignment[]
-
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
-
-model SessionAssignment {
-  id          String     @id @default(uuid())
-  session     Session    @relation(fields: [sessionId], references: [id])
-  sessionId   String
-  character   Character  @relation(fields: [characterId], references: [id])
-  characterId String
-  playerName  String
-  playerEmail String
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Intrigue {
-  id          String      @id @default(uuid())
-  title       String
-  description String?
-  game        Game        @relation(fields: [gameId], references: [id])
+  slug        String     @unique
   gameId      String
+  game        Game       @relation(fields: [gameId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  published   Boolean    @default(true) // ✅
 
-  characters  Character[] @relation("CharacterIntrigues")
-  items       Item[]
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  factions    Faction[]  @relation("CharacterFactions", references: [id])
+  intrigues   Intrigue[] @relation("CharacterIntrigues", references: [id])
+  documents   Document[]
+  sessionAssignments SessionAssignment[]
 }
 
 model Item {
-  id          String      @id @default(uuid())
+  id          String     @id @default(cuid())
   name        String
   description String?
   quantity    Int
-  game        Game        @relation(fields: [gameId], references: [id])
   gameId      String
+  game        Game       @relation(fields: [gameId], references: [id])
+  published   Boolean    @default(true) // ✅
 
-  intrigues   Intrigue[]
+  intrigues   Intrigue[] @relation("IntrigueItems", references: [id])
+}
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model Faction {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  gameId      String
+  game        Game       @relation(fields: [gameId], references: [id])
+  published   Boolean    @default(true) // ✅
+
+  characters  Character[] @relation("CharacterFactions")
+  documents   Document[]  @relation("DocumentFactions")
+}
+
+model Intrigue {
+  id          String     @id @default(cuid())
+  title       String
+  summary     String?
+  gameId      String
+  game        Game       @relation(fields: [gameId], references: [id])
+  published   Boolean    @default(true) // ✅
+
+  characters  Character[] @relation("CharacterIntrigues")
+  items       Item[]      @relation("IntrigueItems")
 }
 
 model Document {
-  id          String      @id @default(uuid())
+  id          String     @id @default(cuid())
   title       String
-  type        String      // "common" | "character" | "faction"
   content     String?
-  filePath    String?
-  game        Game        @relation(fields: [gameId], references: [id])
   gameId      String
+  game        Game       @relation(fields: [gameId], references: [id])
+  published   Boolean    @default(true) // ✅
 
-  character   Character?  @relation(fields: [characterId], references: [id])
   characterId String?
-  factions    Faction[]   @relation("DocumentFactions")
+  character   Character? @relation(fields: [characterId], references: [id])
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  factions    Faction[]  @relation("DocumentFactions")
+}
+
+model Session {
+  id          String     @id @default(cuid())
+  name        String
+  date        DateTime?
+  gameId      String
+  game        Game       @relation(fields: [gameId], references: [id])
+  published   Boolean    @default(true) // ✅
+
+  assignments SessionAssignment[]
+}
+
+model SessionAssignment {
+  id          String   @id @default(cuid())
+  sessionId   String
+  characterId String
+  session     Session  @relation(fields: [sessionId], references: [id])
+  character   Character @relation(fields: [characterId], references: [id])
+}
+
+model User {
+  id       String @id @default(cuid())
+  email    String @unique
+  name     String
+  password String
+  role     String
 }
