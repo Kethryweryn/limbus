@@ -94,7 +94,11 @@ const fetchGames = async () => {
   games.value = await $fetch('/api/games')
 }
 
-onMounted(fetchGames)
+onMounted(async () => {
+  await fetchGames()
+  console.log("Games fetched:", games.value)
+})
+
 
 const startEdit = (game) => {
   activeFormGame.value = { ...game }
