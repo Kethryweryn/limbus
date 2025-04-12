@@ -12,7 +12,7 @@
         </div>
 
         <!-- Liste des personnages -->
-        <UCard v-for="char in filteredCharacters" :key="char.id" class="mb-4">
+        <UCard v-for="char in paginatedCharacters" :key="char.id" class="mb-4">
             <template #header>
                 <div class="flex justify-between items-center">
                     <NuxtLink :to="`/characters/${char.slug}`" class="font-semibold underline">
@@ -23,37 +23,15 @@
                         <UButton size="xs" color="red" @click="deleteCharacter(char.id)">Supprimer</UButton>
                     </div>
                 </div>
-
-                <!-- Slideover pour création et édition -->
-                <USlideover v-model="showSlideover">
-                    <div class="p-4 space-y-4">
-                        <CharacterForm v-if="activeFormCharacter" v-model:character="activeFormCharacter" :games="games"
-                            :mode="formMode" @submit="handleFormSubmit" @cancel="closeSlideover" />
-                    </div>
-                </USlideover>
-
-            </template>
-            <template #default>
-                <p>{{ char.description }}</p>
-
-
-
-
-                <!-- Slideover pour création et édition -->
-                <USlideover v-model="showSlideover">
-                    <div class="p-4 space-y-4">
-                        <CharacterForm v-if="activeFormCharacter" v-model:character="activeFormCharacter" :games="games"
-                            :mode="formMode" @submit="handleFormSubmit" @cancel="closeSlideover" />
-                    </div>
-                </USlideover>
-
             </template>
         </UCard>
 
-        <!-- Création -->
+        <div class="flex justify-center gap-4 mt-6">
+            <UButton @click="prevCharPage" :disabled="charPage === 1">← Précédent</UButton>
+            <span class="text-sm text-gray-500">Page {{ charPage }} / {{ totalCharPages }}</span>
+            <UButton @click="nextCharPage" :disabled="charPage === totalCharPages">Suivant →</UButton>
+        </div>
 
-
-        <!-- Édition -->
 
     </div>
 
@@ -103,6 +81,28 @@ const filteredCharacters = computed(() => {
             (c.description?.toLowerCase().includes(term))
         )
 })
+
+const charPage = ref(1)
+const itemsPerPage = 5
+
+const paginatedCharacters = computed(() => {
+    const start = (charPage.value - 1) * itemsPerPage
+    const end = start + itemsPerPage
+    return filteredCharacters.value.slice(start, end)
+})
+
+const totalCharPages = computed(() =>
+    Math.ceil(filteredCharacters.value.length / itemsPerPage)
+)
+
+const nextCharPage = () => {
+    if (charPage.value < totalCharPages.value) charPage.value++
+}
+
+const prevCharPage = () => {
+    if (charPage.value > 1) charPage.value--
+}
+
 
 // 🧱 Création
 const newCharacter = ref({
