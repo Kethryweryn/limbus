@@ -4,12 +4,13 @@
             {{ mode === 'edit' ? 'Modifier le personnage' : 'Créer un nouveau personnage' }}
         </template>
 
-        <UFormGroup label="Jeu" :error="errors.gameId">
-            <USelect v-model="localCharacter.gameId" :options="props.games.map(g => ({ label: g.title, value: g.id }))"
-                placeholder="Choisissez un jeu" required />
-        </UFormGroup>
-
         <form @submit.prevent="submit" class="space-y-4">
+            <UFormGroup label="Jeu" :error="errors.gameId">
+                <USelect v-model="localCharacter.gameId"
+                    :options="props.games.map(g => ({ label: g.title, value: g.id }))" placeholder="Choisissez un jeu"
+                    required />
+            </UFormGroup>
+
             <UFormGroup label="Nom" :error="errors.name">
                 <UInput v-model="localCharacter.name" required />
             </UFormGroup>
