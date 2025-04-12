@@ -152,6 +152,45 @@ const saveEdit = async () => {
 }
 
 
+
+function openCreateSlideover() {
+    activeFormCharacter.value = { name: '', description: '', gameId: selectedGame.value?.id || '' }
+    formMode.value = 'create'
+    showSlideover.value = true
+}
+
+
+formMode.value = 'edit'
+showSlideover.value = true
+}
+
+function closeSlideover() {
+    activeFormCharacter.value = null
+    showSlideover.value = false
+}
+
+async function handleFormSubmit() {
+    try {
+        if (formMode.value === 'create') {
+            await $fetch('/api/characters', {
+                method: 'POST',
+                body: activeFormCharacter.value
+            })
+        } else if (formMode.value === 'edit') {
+            await $fetch(`/api/characters/${activeFormCharacter.value.id}/put`, {
+                method: 'POST',
+                body: activeFormCharacter.value
+            })
+        }
+        closeSlideover()
+        await fetchCharacters()
+    } catch (error) {
+        console.error('Erreur lors de la soumission du formulaire', error)
+    }
+}
+
+
+
 const showSlideover = ref(false)
 const activeFormCharacter = ref(null)
 const formMode = ref('create')
