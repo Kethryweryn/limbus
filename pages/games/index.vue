@@ -14,7 +14,7 @@
 
     <GameForm v-if="editingGame" v-model:game="editingGame" mode="edit" @submit="saveEdit" @cancel="cancelEdit" />
 
-    <UCard v-for="game in filteredGames" :key="game.id" class="mb-4">
+    <UCard v-for="game in paginatedGames" :key="game.id" class="mb-4">
       <template #header>
         <div class="flex justify-between items-center">
           <button class="text-blue-600 hover:underline" @click="openSlideover(game.slug)">
@@ -40,6 +40,12 @@
     </UCard>
 
     <GameForm v-model:game="newGame" mode="create" @submit="createGame" />
+    <div class="flex justify-center gap-4 mt-6">
+      <UButton @click="prevPage" :disabled="page === 1">← Précédent</UButton>
+      <span class="text-sm text-gray-500">Page {{ page }} / {{ totalPages }}</span>
+      <UButton @click="nextPage" :disabled="page === totalPages">Suivant →</UButton>
+    </div>
+
 
     <!-- Slideover -->
     <USlideover v-model="showSlideover">
@@ -180,4 +186,24 @@ const filteredGames = computed(() => {
 
   return result
 })
+
+const page = ref(1)
+const itemsPerPage = 5
+
+const paginatedGames = computed(() => {
+  const start = (page.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return filteredGames.value.slice(start, end)
+})
+
+const totalPages = computed(() => Math.ceil(filteredGames.value.length / itemsPerPage))
+
+const nextPage = () => {
+  if (page.value < totalPages.value) page.value++
+}
+
+const prevPage = () => {
+  if (page.value > 1) page.value--
+}
+
 </script>
