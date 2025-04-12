@@ -116,6 +116,11 @@ watch(() => selectedGame.value?.id, (newId) => {
     newCharacter.value.gameId = newId || ''
 })
 
+// Quand on fait une recherche on revient à la page 1 de la pagination
+watch([search, filteredCharacters], () => {
+    page.value = 1
+})
+
 const showSlideover = ref(false)
 const activeFormCharacter = ref(null)
 const formMode = ref('create')
@@ -163,4 +168,5 @@ const deleteCharacter = async (id) => {
         await fetchCharacters()
     }
 }
+
 </script>

@@ -204,4 +204,9 @@ async function handleGameFormSubmit() {
     console.error('Erreur lors de la soumission du formulaire de jeu', error)
   }
 }
+
+watch([searchQuery, filteredGames], () => {
+  page.value = 1
+})
+
 </script>
