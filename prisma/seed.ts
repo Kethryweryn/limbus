@@ -11,9 +11,11 @@ async function main() {
     console.log('🌱 Insertion de nouveaux jeux et personnages...')
 
     for (let i = 0; i < 10; i++) {
+        const title = faker.lorem.words(3)
         const game = await prisma.game.create({
             data: {
-                title: faker.lorem.words(3),
+                title,
+                slug: faker.helpers.slugify(title.toLowerCase()),
                 description: faker.lorem.paragraph(),
                 noteIntention: faker.lorem.sentences(1),
                 teaserUrl: ''
