@@ -48,5 +48,8 @@ export default defineNuxtConfig({
       navigateFallback: 'offline.html',
       navigateFallbackDenylist: [/^\/api/]
     }
+  },
+  experimental: {
+    renderJsonPayloads: true
   }
 })
