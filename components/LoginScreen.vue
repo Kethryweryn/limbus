@@ -9,7 +9,11 @@ const login = async () => {
             method: 'POST',
             body: { email: email.value, password: password.value }
         })
-        window.location.reload() // recharge proprement après login
+        if (window.location.pathname === '/logout') {
+            window.location.href = '/';
+        } else {
+            window.location.reload();
+        }
     } catch (err: any) {
         error.value = err?.data?.message || 'Erreur de connexion'
     }
