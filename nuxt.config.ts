@@ -44,7 +44,7 @@ export default defineNuxtConfig({
     },
     workbox: {
       globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-      navigateFallback: 'offline.html',
+      navigateFallback: '/public/offline.html',
       navigateFallbackDenylist: [/^\/api/]
     }
   }
