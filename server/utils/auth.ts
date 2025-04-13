@@ -20,10 +20,6 @@ export function getAuthUser(event: H3Event): any | null {
   }
 }
 
-export function isAuthenticated(event: H3Event): boolean {
-  return !!getAuthUser(event)
-}
-
 export function redirect(event: H3Event, location: string) {
   event.node.res.statusCode = 302
   event.node.res.setHeader('Location', location)
