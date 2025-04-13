@@ -1,4 +1,4 @@
 <script setup>
 await $fetch('/api/auth/logout', { method: 'POST' })
-navigateTo('/login')
+window.location.reload() // recharge proprement après login
 </script>

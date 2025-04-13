@@ -1,5 +1,18 @@
+<template>
+  <div v-if="loading"></div>
+  <div v-else-if="authenticated">
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
+  </div>
+  <div v-else>
+    <LoginScreen />
+  </div>
+</template>
+
 <script setup lang="ts">
-const router = useRouter()
+import LoginScreen from '~/components/LoginScreen.vue'
+
 const loading = ref(true)
 const authenticated = ref(false)
 
@@ -11,9 +24,6 @@ const checkAuth = async () => {
     authenticated.value = false
   } finally {
     loading.value = false
-    if (!authenticated.value && router.currentRoute.value.path !== '/login') {
-      router.replace('/login')
-    }
   }
 }
 
@@ -21,12 +31,3 @@ onMounted(() => {
   checkAuth()
 })
 </script>
-
-<template>
-  <div v-if="loading"></div>
-  <div v-else-if="authenticated">
-    <NuxtLayout>
-      <NuxtPage />
-    </NuxtLayout>
-  </div>
-</template>
