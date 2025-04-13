@@ -12,21 +12,25 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     return sendError(event, createError({ statusCode: 400, statusMessage: 'ID manquant' }))
   }
+
   const body = await readBody(event)
   const { title, description, teaserUrl, noteIntention, published } = body
 
-  const slug = generateSlug(title)
+  const data: any = {
+    description,
+    teaserUrl,
+    noteIntention,
+    published
+  }
+
+  if (title) {
+    data.title = title
+    data.slug = generateSlug(title)
+  }
 
   const game = await prisma.game.update({
     where: { id },
-    data: {
-      title,
-      description,
-      teaserUrl,
-      noteIntention,
-      slug,
-      published
-    }
+    data
   })
 
   return game
