@@ -1,4 +1,4 @@
 <script setup>
 await $fetch('/api/auth/logout', { method: 'POST' })
-navigateTo('/')
+window.location.reload()
 </script>
