@@ -13,7 +13,7 @@ export default defineEventHandler((event) => {
 
   // Reload si non authentifié
   if (!isAuthenticated(event)) {
-    window.location.reload()
+    return redirect(event, '/')
   }
 
   // Stocker l'utilisateur dans le contexte si on veut l'exploiter ailleurs
