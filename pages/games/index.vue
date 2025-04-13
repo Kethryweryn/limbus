@@ -4,6 +4,13 @@
 
     <GameContextBar />
 
+    <div class="flex justify-end mb-4">
+      <UButton icon="i-heroicons-plus" @click="startCreate" color="primary">
+        Créer un jeu
+      </UButton>
+    </div>
+
+
     <div class="flex flex-col md:flex-row justify-between gap-4 mb-4">
       <div class="flex items-center gap-2">
         <UCheckbox v-model="showArchived" />
@@ -102,6 +109,17 @@ onMounted(fetchGames)
 const startEdit = (game) => {
   activeFormGame.value = { ...game }
   formMode.value = 'edit'
+  showFormSlideover.value = true
+}
+
+function startCreate() {
+  activeFormGame.value = {
+    title: '',
+    description: '',
+    noteIntention: '',
+    published: false
+  }
+  formMode.value = 'create'
   showFormSlideover.value = true
 }
 
