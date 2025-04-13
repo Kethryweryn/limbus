@@ -5,9 +5,8 @@ import { H3Event } from 'h3'
 const SECRET = 'limbus-super-secret'
 
 export function getAuthToken(event: H3Event): string | undefined {
-  const rawCookie = event.node.req.headers.cookie || ''
-  const cookies = parse(rawCookie)
-  return cookies.limbus_token
+  const token = parse(event.node?.req?.headers?.cookie || '').limbus_token
+  return token
 }
 
 export function getAuthUser(event: H3Event): any | null {
@@ -29,10 +28,6 @@ export function redirect(event: H3Event, location: string) {
   event.node.res.statusCode = 302
   event.node.res.setHeader('Location', location)
   event.node.res.end()
-}
-
-export function isLoginPage(url: string): boolean {
-  return url === '/login'
 }
 
 export function requireRole(event: H3Event, allowedRoles: string[]): boolean {

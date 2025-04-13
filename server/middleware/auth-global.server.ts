@@ -2,7 +2,6 @@ import {
   isAuthenticated,
   redirect,
   getAuthUser,
-  isLoginPage,
   requireRole
 } from '../utils/auth'
 
@@ -12,17 +11,9 @@ export default defineEventHandler((event) => {
   // Ignorer uniquement les API d'authentification
   if (url.startsWith('/api/auth')) return
 
-  // Rediriger les utilisateurs déjà connectés loin de /login
-  if (isLoginPage(url)) {
-    if (isAuthenticated(event)) {
-      return redirect(event, '/dashboard')
-    }
-    return
-  }
-
-  // Rediriger si non authentifié
+  // Reload si non authentifié
   if (!isAuthenticated(event)) {
-    return redirect(event, '/login')
+    window.location.reload()
   }
 
   // Stocker l'utilisateur dans le contexte si on veut l'exploiter ailleurs

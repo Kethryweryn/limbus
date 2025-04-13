@@ -17,8 +17,5 @@ export default defineNuxtConfig({
   serverMiddleware: [
     '~/server/middleware/auth-global.server.ts',
     '~/server/middleware/ignore-bots.ts'
-  ],
-  router: {
-    middleware: ['auth.global']
-  }
+  ]
 })
