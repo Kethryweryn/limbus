@@ -27,7 +27,10 @@
               <UBadge color="green" variant="solid" size="xs">🎯 Jeu actif</UBadge>
             </template>
             <template v-else>
-              <UButton @click="selectGame({ id: game.id, title: game.title })" size="xs" color="green">
+              <UButton v-if="!game.published" @click="publishGame(game.id)" size="xs" color="orange">
+                Publier
+              </UButton>
+              <UButton v-else @click="selectGame({ id: game.id, title: game.title })" size="xs" color="green">
                 Définir comme jeu actif
               </UButton>
             </template>
@@ -109,6 +112,18 @@ const archiveGame = async (id) => {
       body: { published: false }
     })
     await fetchGames()
+  }
+}
+
+const publishGame = async (id) => {
+  try {
+    await $fetch(`/api/games/${id}/put`, {
+      method: 'POST',
+      body: { published: true }
+    })
+    await fetchGames()
+  } catch (error) {
+    console.error('Erreur lors de la publication du jeu', error)
   }
 }
 
