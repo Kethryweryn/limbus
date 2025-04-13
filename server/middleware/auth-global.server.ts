@@ -2,8 +2,8 @@ import {
   isAuthenticated,
   redirect,
   getAuthUser,
-  isApiRoute,
-  isLoginPage
+  isLoginPage,
+  requireRole
 } from '../utils/auth'
 
 export default defineEventHandler((event) => {

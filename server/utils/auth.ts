@@ -31,10 +31,6 @@ export function redirect(event: H3Event, location: string) {
   event.node.res.end()
 }
 
-export function isApiRoute(url: string): boolean {
-  return url.startsWith('/api')
-}
-
 export function isLoginPage(url: string): boolean {
   return url === '/login'
 }
