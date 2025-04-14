@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
     <div v-if="game" class="p-6 max-w-4xl mx-auto space-y-6">
         <!-- Carte d'infos -->
         <UCard>
@@ -57,4 +57,4 @@ const embedTeaser = (url) => {
     const match = url.match(/(?:v=|youtu\.be\/)([\w-]+)/)
     return match ? `https://www.youtube.com/embed/${match[1]}` : url
 }
-</script>
+</script> -->

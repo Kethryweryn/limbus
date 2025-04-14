@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <div class="p-6">
     <h1 class="text-2xl font-bold mb-4">Jeux</h1>
 
@@ -242,4 +242,4 @@ watch([searchQuery, filteredGames], () => {
   page.value = 1
 })
 
-</script>
+</script> -->
