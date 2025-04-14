@@ -77,7 +77,6 @@ const checkAuth = async () => {
   authenticated.value = false
 }
 
-
 onMounted(() => {
   checkAuth()
 })
