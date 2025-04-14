@@ -37,10 +37,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
 import { navigateTo } from '#app'
-
-const mobileOpen = ref(false)
 
 const navLinks = [
     { label: 'Dashboard', to: '/', icon: 'i-heroicons-home' },
