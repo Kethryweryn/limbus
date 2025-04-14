@@ -18,7 +18,6 @@ export default defineNuxtConfig({
   ],
   pwa: {
     registerType: 'autoUpdate',
-    includeAssets: ['/offline.html'],
     manifest: {
       name: 'Limbus',
       short_name: 'Limbus',
@@ -38,13 +37,14 @@ export default defineNuxtConfig({
           src: '/pwa-512x512.png',
           sizes: '512x512',
           type: 'image/png'
+        },
+        {
+          src: 'pwa-512x512.png',
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'any maskable'
         }
       ]
-    },
-    workbox: {
-      //globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-      navigateFallback: 'offline.html',
-      navigateFallbackDenylist: [/^\/api/]
     }
   },
 })
