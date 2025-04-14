@@ -8,10 +8,9 @@ interface LimbusDB extends DBSchema {
 }
 
 const DB_NAME = 'limbus-db'
-const DB_VERSION = 1
 
 export async function getDB() {
-    return openDB<LimbusDB>(DB_NAME, DB_VERSION, {
+    return openDB<LimbusDB>(DB_NAME, {
         upgrade(db) {
             // On ne crée pas de store ici — il sera créé dynamiquement si besoin
         }
@@ -24,7 +23,7 @@ export async function saveToStore<T = any>(store: string, key: string, value: T)
     // Créer dynamiquement un store si absent
     if (!db.objectStoreNames.contains(store)) {
         db.close()
-        const newDB = await openDB<LimbusDB>(DB_NAME, DB_VERSION + 1, {
+        const newDB = await openDB<LimbusDB>(DB_NAME, {
             upgrade(upgradeDb) {
                 if (!upgradeDb.objectStoreNames.contains(store)) {
                     upgradeDb.createObjectStore(store)
