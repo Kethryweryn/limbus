@@ -1,7 +1,10 @@
 <template>
   <div v-if="loading"></div>
   <div v-else-if="authenticated">
-    <NuxtRouteAnnouncer />
+    <NuxtLayout>
+      <NuxtRouteAnnouncer />
+      <NuxtWelcome />
+    </NuxtLayout>
   </div>
   <div v-else>
     <LoginScreen />
