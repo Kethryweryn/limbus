@@ -35,7 +35,9 @@ const authenticated = ref(false)
 
 const checkAuth = async () => {
   try {
+    console.log("Tjs ici");
     const { data } = await useFetch('/api/auth/me')
+    console.log("Apres le await");
 
     if (data.value?.authenticated && data.value?.user && process.client) {
       authenticated.value = true
