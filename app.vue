@@ -1,12 +1,15 @@
 <template>
-  <NuxtPwaAssets />
-  <div v-if="loading"></div>
+  <div v-if="loading">
+    <NuxtPwaAssets />
+  </div>
   <div v-else-if="authenticated">
+    <NuxtPwaAssets />
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
   </div>
   <div v-else>
+    <NuxtPwaAssets />
     <LoginScreen />
   </div>
 </template>

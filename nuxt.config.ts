@@ -22,6 +22,11 @@ export default defineNuxtConfig({
   ],
   pwa: {
     registerType: 'autoUpdate',
+    injectRegister: false,
+    pwaAssets: {
+      disabled: false,
+      config: true
+    },
     manifest: {
       name: 'Limbus',
       short_name: 'Limbus',
@@ -52,7 +57,17 @@ export default defineNuxtConfig({
     },
     workbox: {
       globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-      //navigateFallbackDenylist: [/^\/api/]
-    }
+      cleanOutadedCaches: true,
+      clientsClaim: true
+    },
+    devOptions: {
+      enabled: false,
+      suppressWarnings: true,
+      navigateFallback: '/',
+      navigateFallbackAllowlist: [/^\/$/],
+      type: 'module',
+    },
+
+    registerWebManifestInRouteRules: true,
   },
 })
