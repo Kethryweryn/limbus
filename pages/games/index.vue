@@ -5,11 +5,10 @@
     <GameContextBar />
 
     <div class="flex justify-end mb-4">
-      <UButton icon="i-heroicons-plus" @click="startCreate" color="primary">
+      <UButton icon="i-heroicons-plus" @click="startCreate" color="primary" v-if="!isOffline">
         Créer un jeu
       </UButton>
     </div>
-
 
     <div class="flex flex-col md:flex-row justify-between gap-4 mb-4">
       <div class="flex items-center gap-2">
@@ -34,7 +33,7 @@
               <UBadge color="green" variant="solid" size="xs">🎯 Jeu actif</UBadge>
             </template>
             <template v-else>
-              <UButton v-if="!game.published" @click="publishGame(game.id)" size="xs" color="orange">
+              <UButton v-if="!game.published && !isOffline" @click="publishGame(game.id)" size="xs" color="orange">
                 Publier
               </UButton>
               <UButton v-else @click="selectGame({ id: game.id, title: game.title })" size="xs" color="green">
@@ -42,12 +41,12 @@
               </UButton>
             </template>
 
-            <UButton size="xs" color="blue" @click="startEdit(game)">Modifier</UButton>
+            <UButton v-if="!isOffline" size="xs" color="blue" @click="startEdit(game)">Modifier</UButton>
 
             <template v-if="!game.published">
               <UBadge color="gray" variant="solid" size="xs">Archivé</UBadge>
             </template>
-            <template v-else>
+            <template v-else-if="!isOffline">
               <UButton size="xs" color="red" @click="archiveGame(game.id)">Archiver</UButton>
             </template>
           </div>
@@ -91,9 +90,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import GameContextBar from '@/components/GameContextBar.vue'
+import { getFromStore, saveToStore } from '~/utils/storage'
 
 const { selectGame, game: activeGame } = useGameFocus()
 
@@ -101,10 +101,37 @@ const games = ref([])
 const selectedGame = ref(null)
 
 const fetchGames = async () => {
-  games.value = await $fetch('/api/games')
+  if (!navigator.onLine) {
+    games.value = await getFromStore('games', 'list') || []
+    return
+  }
+
+  try {
+    const data = await $fetch('/api/games')
+    await saveToStore('games', 'list', data)
+  } catch (err) {
+    console.error('[games] erreur API', err)
+    games.value = []
+  }
 }
 
-onMounted(fetchGames)
+const isOffline = ref(false)
+const updateStatus = () => {
+  isOffline.value = !navigator.onLine
+}
+
+onMounted(() => {
+  updateStatus()
+  window.addEventListener('online', updateStatus)
+  window.addEventListener('offline', updateStatus)
+  fetchGames()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('online', updateStatus)
+  window.removeEventListener('offline', updateStatus)
+})
+
 
 const startEdit = (game) => {
   activeFormGame.value = { ...game }
