@@ -31,13 +31,18 @@ async function ensureStore(store: string) {
 }
 
 export async function saveToStore<T = any>(store: string, key: string, value: T) {
+    console.log(`[storage] saveToStore: ${store}/${key}`, value)
     const db = await ensureStore(store)
     await db.put(store, value, key)
+    console.log(`[storage] done saving ${store}/${key}`)
 }
+
 
 export async function getFromStore<T = any>(store: string, key: string): Promise<T | null> {
     const db = await ensureStore(store)
-    return db.get(store, key)
+    const result = await db.get(store, key)
+    console.log(`[storage] getFromStore: ${store}/${key}`, result)
+    return result
 }
 
 export async function deleteFromStore(store: string, key: string) {

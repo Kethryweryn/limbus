@@ -66,10 +66,11 @@ const updateDashboard = async () => {
   try {
     const { data } = await useFetch('/api/dashboard')
     dashboardData.value = data.value
+    console.log('[dashboard] données reçues du serveur', data.value)
     await saveToStore('dashboard', 'main', data.value)
+    console.log('[dashboard] données enregistrées dans le storage')
   } catch (e) {
     error.value = e
-    dashboardData.value = await getFromStore('dashboard', 'main')
   } finally {
     pending.value = false
   }
