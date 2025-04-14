@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken'
+//import jwt from 'jsonwebtoken'
 import { parse } from 'cookie'
 
 const SECRET = 'limbus-super-secret'
@@ -11,8 +11,8 @@ export default defineEventHandler((event) => {
     }
 
     try {
-        const user = jwt.verify(token, SECRET)
-        return { authenticated: true, user }
+        //const user = jwt.verify(token, SECRET)
+        return { authenticated: true }
     } catch {
         return { authenticated: false }
     }

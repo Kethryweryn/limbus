@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
+//import bcrypt from 'bcrypt'
+//import jwt from 'jsonwebtoken'
 import { setCookie } from 'h3'
 
 const prisma = new PrismaClient()
@@ -28,19 +28,19 @@ export default defineEventHandler(async (event) => {
     return { success: false, message: 'Mot de passe incorrect' }
   }
 
-  const token = jwt.sign(
-    { email: user.email, role: user.role },
-    SECRET,
-    { expiresIn: '20h' }
-  )
+  // const token = jwt.sign(
+  //   { email: user.email, role: user.role },
+  //   SECRET,
+  //   { expiresIn: '20h' }
+  // )
 
-  setCookie(event, 'limbus_token', token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: true,
-    path: '/',
-    maxAge: 60 * 60 * 20// 20 heures
-  })
+  // setCookie(event, 'limbus_token', token, {
+  //   httpOnly: true,
+  //   sameSite: 'lax',
+  //   secure: true,
+  //   path: '/',
+  //   maxAge: 60 * 60 * 20// 20 heures
+  // })
 
   return { success: true }
 })
