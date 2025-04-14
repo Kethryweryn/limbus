@@ -37,7 +37,7 @@ const checkAuth = async () => {
   try {
     const { data } = await useFetch('/api/auth/me')
 
-    if (data.value?.authenticated && data.value?.user && process.client) {
+    if (data.value?.authenticated && data.value?.user && process.client && navigator.onLine) {
       authenticated.value = true
 
       const payload = {
