@@ -31,6 +31,8 @@ useHead({
   ]
 })
 
+const authenticated = ref(false)
+
 const checkAuth = async () => {
   try {
     const { data } = await useFetch('/api/auth/me')
@@ -54,16 +56,19 @@ const checkAuth = async () => {
       return
     }
   } catch {
-    // fallback offline
     if (process.client && !navigator.onLine) {
       const raw = localStorage.getItem('offlineAuth')
       if (raw) {
-        const { payload, signature } = JSON.parse(raw)
-        const expectedSig = await signOfflineAuth(payload, 'limbus-pwa-secret')
+        try {
+          const { payload, signature } = JSON.parse(raw)
+          const expectedSig = await signOfflineAuth(payload, 'limbus-pwa-secret')
 
-        if (signature === expectedSig) {
-          authenticated.value = true
-          return
+          if (signature === expectedSig) {
+            authenticated.value = true
+            return
+          }
+        } catch {
+          // localStorage malformé ou modifié
         }
       }
     }
