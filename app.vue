@@ -1,3 +1,15 @@
+<template>
+  <div v-if="loading"></div>
+  <div v-else-if="authenticated">
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
+  </div>
+  <div v-else>
+    <LoginScreen />
+  </div>
+</template>
+
 <script setup lang="ts">
 import { useHead } from '#imports'
 import LoginScreen from '~/components/LoginScreen.vue'
@@ -9,7 +21,7 @@ useHead({
     { name: 'theme-color', content: '#ffffff' }
   ],
   link: [
-    { rel: 'icon', type: 'image/png', href: '/pwa-192x192.png' }
+    { rel: 'icon', type: 'image/png', href: '/icon-192x192.png' } // Adapte selon ton icon
   ]
 })
 
