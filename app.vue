@@ -2,8 +2,7 @@
   <div v-if="loading"></div>
   <div v-else-if="authenticated">
     <NuxtLayout>
-      <NuxtRouteAnnouncer />
-      <NuxtWelcome />
+      <NuxtPage />
     </NuxtLayout>
   </div>
   <div v-else>
