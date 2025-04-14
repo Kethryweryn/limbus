@@ -55,7 +55,6 @@ const checkAuth = async () => {
     return
   }
 
-  console.log("On ne devrait JAMAIS arriver là offline")
   // Sinon, on tente la vérif en ligne
   const { data } = await useFetch('/api/auth/me')
 
