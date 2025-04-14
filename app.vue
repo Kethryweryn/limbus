@@ -37,7 +37,7 @@ const checkAuth = async () => {
   try {
     const { data } = await useFetch('/api/auth/me')
 
-    if (data.value?.authenticated && data.value?.user && process.client && navigator.onLine) {
+    if (data.value?.authenticated && data.value?.user && process.client) {
       authenticated.value = true
 
       console.log("Bon");
@@ -60,6 +60,7 @@ const checkAuth = async () => {
       return
     }
   } catch {
+    console.log("Error on entre ici ?")
     if (process.client && !navigator.onLine) {
       const raw = localStorage.getItem('offlineAuth')
       if (raw) {
