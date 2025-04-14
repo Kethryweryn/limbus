@@ -11,9 +11,7 @@
                     required />
             </UFormGroup>
 
-            <UFormGroup label="Nom" :error="errors.name">
-                <UInput v-model="localCharacter.name" required autofocus />
-            </UFormGroup>
+
 
             <UFormGroup label="Description" :error="errors.description">
                 <UTextarea v-model="localCharacter.description" />
