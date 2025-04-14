@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
     <div v-if="game" class="mb-4 p-3 bg-gray-100 rounded-lg flex items-center justify-between">
         <div>
             <span class="font-medium">Jeu actif :</span>
@@ -13,4 +13,4 @@ import { useGameFocus } from '@/composables/useGameFocus'
 
 const { game, clearGame } = useGameFocus()
 
-</script>
+</script> -->

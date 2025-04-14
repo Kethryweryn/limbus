@@ -3,7 +3,7 @@
         <h1 class="text-2xl font-bold mb-4">Personnages</h1>
 
         <!-- Contexte du jeu sélectionné -->
-        <GameContextBar />
+        <!-- <GameContextBar /> -->
 
         <!-- Barre de recherche -->
         <div class="mb-6 flex flex-wrap gap-4 items-center justify-between">
@@ -48,7 +48,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useGameStore } from '@/stores/game'
-import GameContextBar from '@/components/GameContextBar.vue'
+//import GameContextBar from '@/components/GameContextBar.vue'
 
 const characters = ref([])
 const search = ref('')
