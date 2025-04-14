@@ -8,25 +8,28 @@ let dbInstance: IDBDatabase | null = null
 async function ensureStore(store: string) {
     const dbs = await indexedDB.databases?.()
     const existing = dbs?.find(db => db.name === DB_NAME)
+    let version = existing?.version ?? 1
 
-    // Récupère la version actuelle, ou démarre à 1
-    currentVersion = existing?.version ?? 1
-
-    const db = await openDB(DB_NAME, currentVersion)
+    // Tente d’ouvrir la DB existante
+    let db = await openDB(DB_NAME, version)
 
     if (!db.objectStoreNames.contains(store)) {
-        db.close()
+        console.log(`[storage] store "${store}" manquant, on recrée`)
 
-        currentVersion += 1
-        return openDB(DB_NAME, currentVersion, {
+        db.close()
+        version += 1
+
+        db = await openDB(DB_NAME, version, {
             upgrade(upgradeDb) {
                 if (!upgradeDb.objectStoreNames.contains(store)) {
+                    console.log(`[storage] création du store "${store}" dans upgrade`)
                     upgradeDb.createObjectStore(store)
                 }
             }
         })
     }
 
+    console.log(`[storage] ouverture prête, stores =`, db.objectStoreNames)
     return db
 }
 
