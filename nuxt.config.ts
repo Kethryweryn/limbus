@@ -57,7 +57,7 @@ export default defineNuxtConfig({
     },
     workbox: {
       globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-      cleanOutadedCaches: true,
+      cleanupOutadedCaches: true,
       clientsClaim: true
     },
     devOptions: {
