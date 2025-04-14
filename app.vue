@@ -42,6 +42,7 @@ const checkAuth = async () => {
   if (!process.client) return
 
   if (!navigator.onLine && isPWA()) {
+    console.log("On devrait arriver là offline")
     const raw = localStorage.getItem('offlineAuth')
     if (raw) {
       try {
@@ -60,6 +61,7 @@ const checkAuth = async () => {
     return
   }
 
+  console.log("On ne devrait JAMAIS arriver là offline")
   // Sinon, on tente la vérif en ligne
   const { data } = await useFetch('/api/auth/me')
 
