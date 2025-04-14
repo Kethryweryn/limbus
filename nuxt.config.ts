@@ -17,7 +17,6 @@ export default defineNuxtConfig({
     port: 3000,
   },
   serverMiddleware: [
-    '~/server/middleware/auth-global.server.ts',
     '~/server/middleware/ignore-bots.ts'
   ],
   pwa: {
