@@ -69,6 +69,7 @@ const checkAuth = async () => {
           }
         } catch {
           // localStorage malformé ou modifié
+          console.log("Pas réussi à charger correctement le local storage, impossible de simuler l'auth")
         }
       }
     }
