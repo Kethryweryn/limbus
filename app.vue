@@ -1,4 +1,5 @@
 <template>
+  <NuxtPwaAssets />
   <div v-if="loading"></div>
   <div v-else-if="authenticated">
     <NuxtLayout>
