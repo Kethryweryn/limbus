@@ -9,6 +9,7 @@ const login = async () => {
             method: 'POST',
             body: { email: email.value, password: password.value }
         })
+
         if (window.location.pathname === '/logout') {
             window.location.href = '/';
         } else {

@@ -16,6 +16,7 @@
 <script setup lang="ts">
 import { useHead } from '#imports'
 import LoginScreen from '~/components/LoginScreen.vue'
+import { signOfflineAuth } from '~/utils/hashOfflineAuth'
 
 useHead({
   title: 'Limbus',
@@ -30,16 +31,47 @@ useHead({
   ]
 })
 
-const authenticated = ref(false)
-
 const checkAuth = async () => {
   try {
     const { data } = await useFetch('/api/auth/me')
-    authenticated.value = data.value?.authenticated
+
+    if (data.value?.authenticated && data.value?.user && process.client) {
+      authenticated.value = true
+
+      const payload = {
+        name: data.value.user.name,
+        email: data.value.user.email,
+        role: data.value.user.role,
+        timestamp: new Date().toISOString()
+      }
+
+      const signature = await signOfflineAuth(payload, 'limbus-pwa-secret')
+
+      localStorage.setItem('offlineAuth', JSON.stringify({
+        payload,
+        signature
+      }))
+      return
+    }
   } catch {
-    authenticated.value = false
+    // fallback offline
+    if (process.client && !navigator.onLine) {
+      const raw = localStorage.getItem('offlineAuth')
+      if (raw) {
+        const { payload, signature } = JSON.parse(raw)
+        const expectedSig = await signOfflineAuth(payload, 'limbus-pwa-secret')
+
+        if (signature === expectedSig) {
+          authenticated.value = true
+          return
+        }
+      }
+    }
   }
+
+  authenticated.value = false
 }
+
 
 onMounted(() => {
   checkAuth()
