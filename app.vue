@@ -1,16 +1,16 @@
 <template>
-  <div v-if="loading"></div>
-  <div v-else-if="authenticated">
-    <NuxtLayout>
-      <NuxtPage />
-    </NuxtLayout>
-  </div>
+  <!-- <div v-if="loading"></div>
+  <div v-else-if="authenticated"> -->
+  <NuxtLayout>
+    <NuxtPage />
+  </NuxtLayout>
+  <!-- </div>
   <div v-else>
     <LoginScreen />
-  </div>
+  </div> -->
 </template>
 
-<script setup lang="ts">
+<!-- <script setup lang="ts">
 import LoginScreen from '~/components/LoginScreen.vue'
 
 const loading = ref(true)
@@ -30,4 +30,4 @@ const checkAuth = async () => {
 onMounted(() => {
   checkAuth()
 })
-</script>
+</script> -->
