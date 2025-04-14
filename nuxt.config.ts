@@ -4,7 +4,6 @@ export default defineNuxtConfig({
     devProxy: false,
     preset: 'node-server', // 👈 force l'utilisation du serveur Node natif
     prerender: {
-      crawl: true,
       routes: ["/", "/offline.html", "/robots.txt"]
     }
   },
@@ -57,7 +56,7 @@ export default defineNuxtConfig({
     },
     workbox: {
       globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-      cleanupOutadedCaches: true,
+      cleanupOutdatedCaches: true,
       clientsClaim: true
     },
     devOptions: {
