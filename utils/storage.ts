@@ -36,8 +36,15 @@ async function ensureStore(store: string) {
 export async function saveToStore<T = any>(store: string, key: string, value: T) {
     console.log(`[storage] saveToStore: ${store}/${key}`, value)
     const db = await ensureStore(store)
-    await db.put(store, value, key)
-    console.log(`[storage] done saving ${store}/${key}`)
+
+    try {
+        const tx = db.transaction(store, 'readwrite')
+        await tx.store.put(value, key)
+        await tx.done
+        console.log(`[storage] done saving ${store}/${key}`)
+    } catch (err) {
+        console.error(`[storage] ERREUR PUT ${store}/${key}`, err)
+    }
 }
 
 
