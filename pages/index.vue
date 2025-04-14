@@ -21,7 +21,7 @@
         </template>
       </UCard>
 
-      <!-- Widget 3 -->
+      <!-- Widget 2 -->
       <UCard class="shadow">
         <template #header>
           <div class="flex justify-between items-center">
@@ -43,6 +43,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
 import { getFromStore, saveToStore } from '~/utils/storage'
 
 const dashboardData = ref<any>(null)

@@ -1,50 +1,46 @@
-import { openDB, DBSchema } from 'idb'
-
-interface LimbusDB extends DBSchema {
-    [store: string]: {
-        key: string
-        value: any
-    }
-}
+import { openDB } from 'idb'
 
 const DB_NAME = 'limbus-db'
 
-export async function getDB() {
-    return openDB<LimbusDB>(DB_NAME, {
-        upgrade(db) {
-            // On ne crée pas de store ici — il sera créé dynamiquement si besoin
-        }
-    })
-}
+let currentVersion = 1
+let dbInstance: IDBDatabase | null = null
 
-export async function saveToStore<T = any>(store: string, key: string, value: T) {
-    const db = await getDB()
+async function ensureStore(store: string) {
+    const dbs = await indexedDB.databases?.()
+    const existing = dbs?.find(db => db.name === DB_NAME)
 
-    // Créer dynamiquement un store si absent
+    // Récupère la version actuelle, ou démarre à 1
+    currentVersion = existing?.version ?? 1
+
+    const db = await openDB(DB_NAME, currentVersion)
+
     if (!db.objectStoreNames.contains(store)) {
         db.close()
-        const newDB = await openDB<LimbusDB>(DB_NAME, {
+
+        currentVersion += 1
+        return openDB(DB_NAME, currentVersion, {
             upgrade(upgradeDb) {
                 if (!upgradeDb.objectStoreNames.contains(store)) {
                     upgradeDb.createObjectStore(store)
                 }
             }
         })
-        await newDB.put(store, value, key)
-        return
     }
 
+    return db
+}
+
+export async function saveToStore<T = any>(store: string, key: string, value: T) {
+    const db = await ensureStore(store)
     await db.put(store, value, key)
 }
 
 export async function getFromStore<T = any>(store: string, key: string): Promise<T | null> {
-    const db = await getDB()
-    if (!db.objectStoreNames.contains(store)) return null
+    const db = await ensureStore(store)
     return db.get(store, key)
 }
 
 export async function deleteFromStore(store: string, key: string) {
-    const db = await getDB()
-    if (!db.objectStoreNames.contains(store)) return
+    const db = await ensureStore(store)
     await db.delete(store, key)
 }
