@@ -4,7 +4,8 @@ export default defineNuxtConfig({
     devProxy: false,
     preset: 'node-server', // 👈 force l'utilisation du serveur Node natif
     prerender: {
-      crawl: true
+      crawl: true,
+      routes: ["/", "/offline.html", "/robots.txt"]
     }
   },
   compatibilityDate: '2025-04-07',
