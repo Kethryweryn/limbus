@@ -37,7 +37,6 @@ const checkAuth = async () => {
   if (!process.client) return
 
   if (!navigator.onLine) {
-    console.log("On devrait arriver là offline")
     const raw = localStorage.getItem('offlineAuth')
     if (raw) {
       try {
