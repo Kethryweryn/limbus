@@ -2,7 +2,7 @@
   <div class="p-6">
     <h1 class="text-2xl font-bold mb-4">Jeux</h1>
 
-    <!-- <GameContextBar /> -->
+    <GameContextBar />
 
     <div class="flex justify-end mb-4">
       <UButton icon="i-heroicons-plus" @click="startCreate" color="primary">
@@ -93,7 +93,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useGameFocus } from '@/composables/useGameFocus'
-//import GameContextBar from '@/components/GameContextBar.vue'
+import GameContextBar from '@/components/GameContextBar.vue'
 
 const { selectGame, game: activeGame } = useGameFocus()
 
