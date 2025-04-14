@@ -31,17 +31,12 @@ useHead({
   ]
 })
 
-function isPWA() {
-  return window.matchMedia('(display-mode: standalone)').matches
-    || window.navigator.standalone === true // pour iOS Safari
-}
-
 const authenticated = ref(false)
 
 const checkAuth = async () => {
   if (!process.client) return
 
-  if (!navigator.onLine && isPWA()) {
+  if (!navigator.onLine) {
     console.log("On devrait arriver là offline")
     const raw = localStorage.getItem('offlineAuth')
     if (raw) {
