@@ -31,57 +31,55 @@ useHead({
   ]
 })
 
+function isPWA() {
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true // pour iOS Safari
+}
+
 const authenticated = ref(false)
 
 const checkAuth = async () => {
-  try {
-    console.log("Tjs ici");
-    const { data } = await useFetch('/api/auth/me')
-    console.log("Apres le await");
+  if (!process.client) return
 
-    if (data.value?.authenticated && data.value?.user && process.client) {
-      authenticated.value = true
+  if (!navigator.onLine && isPWA()) {
+    const raw = localStorage.getItem('offlineAuth')
+    if (raw) {
+      try {
+        const { payload, signature } = JSON.parse(raw)
+        const expectedSig = await signOfflineAuth(payload, 'limbus-pwa-secret')
 
-      console.log("Bon");
-
-      const payload = {
-        name: data.value.user.name,
-        email: data.value.user.email,
-        role: data.value.user.role,
-        timestamp: new Date().toISOString()
-      }
-
-      console.log("Encore bon");
-
-      const signature = await signOfflineAuth(payload, 'limbus-pwa-secret')
-
-      localStorage.setItem('offlineAuth', JSON.stringify({
-        payload,
-        signature
-      }))
-      return
-    }
-  } catch {
-    console.log("Error on entre ici ?")
-    if (process.client && !navigator.onLine) {
-      const raw = localStorage.getItem('offlineAuth')
-      if (raw) {
-        try {
-          console.log("Offline ok")
-          const { payload, signature } = JSON.parse(raw)
-          console.log("ah ?")
-          const expectedSig = await signOfflineAuth(payload, 'limbus-pwa-secret')
-
-          if (signature === expectedSig) {
-            authenticated.value = true
-            return
-          }
-        } catch {
-          // localStorage malformé ou modifié
-          console.log("Pas réussi à charger correctement le local storage, impossible de simuler l'auth")
+        if (signature === expectedSig) {
+          authenticated.value = true
+          return
         }
+      } catch {
+        // stockage illisible
       }
     }
+    authenticated.value = false
+    return
+  }
+
+  // Sinon, on tente la vérif en ligne
+  const { data } = await useFetch('/api/auth/me')
+
+  if (data.value?.authenticated && data.value?.user) {
+    authenticated.value = true
+
+    const payload = {
+      name: data.value.user.name,
+      email: data.value.user.email,
+      role: data.value.user.role,
+      timestamp: new Date().toISOString()
+    }
+
+    const signature = await signOfflineAuth(payload, 'limbus-pwa-secret')
+
+    localStorage.setItem('offlineAuth', JSON.stringify({
+      payload,
+      signature
+    }))
+    return
   }
 
   authenticated.value = false
