@@ -1,17 +1,17 @@
-<template>
-  <div v-if="loading"></div>
-  <div v-else-if="authenticated">
-    <NuxtLayout>
-      <NuxtPage />
-    </NuxtLayout>
-  </div>
-  <div v-else>
-    <LoginScreen />
-  </div>
-</template>
-
 <script setup lang="ts">
+import { useHead } from '#imports'
 import LoginScreen from '~/components/LoginScreen.vue'
+
+useHead({
+  title: 'Limbus',
+  meta: [
+    { name: 'description', content: 'Plateforme de conception collaborative de jeux de rôle grandeur nature.' },
+    { name: 'theme-color', content: '#ffffff' }
+  ],
+  link: [
+    { rel: 'icon', type: 'image/png', href: '/pwa-192x192.png' }
+  ]
+})
 
 const loading = ref(true)
 const authenticated = ref(false)
