@@ -108,8 +108,8 @@ const fetchGames = async () => {
 
   try {
     const data = await $fetch('/api/games')
-    games.value = data.value
-    await saveToStore('games', 'list', data.value)
+    games.value = data
+    await saveToStore('games', 'list', data)
   } catch (err) {
     console.error('[games] erreur API', err)
     games.value = []
