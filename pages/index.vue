@@ -13,7 +13,7 @@
         </template>
         <template #default>
           <div class="text-4xl font-bold">
-            {{ pending ? '...' : dashboardData.gamesCount }}
+            {{ pending ? '...' : dashboardData?.gamesCount ?? '–' }}
           </div>
         </template>
         <template #footer>
@@ -31,7 +31,7 @@
         </template>
         <template #default>
           <div class="text-lg">
-            {{ dashboardData.nextSessionDate ? formatDate(dashboardData.nextSessionDate) : 'Aucune session prévue' }}
+            {{ dashboardData?.nextSessionDate ? formatDate(dashboardData.nextSessionDate) : 'Aucune session prévue' }}
           </div>
         </template>
         <template #footer>
@@ -42,10 +42,52 @@
   </div>
 </template>
 
-<script setup>
-const { data: dashboardData, pending, error } = await useFetch('/api/dashboard')
+<script setup lang="ts">
+import { getFromStore, saveToStore } from '~/utils/storage'
 
-const formatDate = (iso) => new Date(iso).toLocaleDateString('fr-FR', {
-  day: 'numeric', month: 'long', year: 'numeric'
+const dashboardData = ref<any>(null)
+const pending = ref(true)
+const error = ref(null)
+
+const formatDate = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric'
+})
+
+const updateDashboard = async () => {
+  if (!navigator.onLine) {
+    dashboardData.value = await getFromStore('dashboard', 'main')
+    pending.value = false
+    return
+  }
+
+  try {
+    const { data } = await useFetch('/api/dashboard')
+    dashboardData.value = data.value
+    await saveToStore('dashboard', 'main', data.value)
+  } catch (e) {
+    error.value = e
+    dashboardData.value = await getFromStore('dashboard', 'main')
+  } finally {
+    pending.value = false
+  }
+}
+
+const isOffline = ref(false)
+const updateStatus = () => {
+  isOffline.value = !navigator.onLine
+}
+
+onMounted(() => {
+  updateStatus()
+  window.addEventListener('online', updateStatus)
+  window.addEventListener('offline', updateStatus)
+  updateDashboard()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('online', updateStatus)
+  window.removeEventListener('offline', updateStatus)
 })
 </script>
