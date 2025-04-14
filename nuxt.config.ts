@@ -18,7 +18,7 @@ export default defineNuxtConfig({
   ],
   pwa: {
     registerType: 'autoUpdate',
-    //includeAssets: ['offline.html'],
+    includeAssets: ['/offline.html'],
     manifest: {
       name: 'Limbus',
       short_name: 'Limbus',
