@@ -45,6 +45,11 @@ export default defineNuxtConfig({
           purpose: 'any maskable'
         }
       ]
+    },
+    workbox: {
+      globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+      //navigateFallback: 'offline.html',
+      //navigateFallbackDenylist: [/^\/api/]
     }
   },
 })
