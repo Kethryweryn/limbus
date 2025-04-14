@@ -2,7 +2,9 @@
 export default defineNuxtConfig({
   nitro: {
     devProxy: false,
-    preset: 'node-server' // 👈 force l'utilisation du serveur Node natif
+    preset: 'node-server', // 👈 force l'utilisation du serveur Node natif
+    debug: true,
+    logLevel: 3
   },
   compatibilityDate: '2025-04-07',
   devtools: { enabled: true },
