@@ -67,7 +67,8 @@ const updateDashboard = async () => {
     const { data } = await useFetch('/api/dashboard')
     dashboardData.value = data.value
     console.log('[dashboard] données reçues du serveur', data.value)
-    await saveToStore('dashboard', 'main', data.value)
+    const clone = JSON.parse(JSON.stringify(data.value))
+    await saveToStore('dashboard', 'main', clone)
     console.log('[dashboard] données enregistrées dans le storage')
   } catch (e) {
     error.value = e
