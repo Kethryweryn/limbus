@@ -1,15 +1,14 @@
 <template>
-  <div v-if="loading">
+  <div v-if="authenticated">
     <NuxtPwaAssets />
-  </div>
-  <div v-else-if="authenticated">
-    <NuxtPwaAssets />
+    <NuxtLoadingIndicator />
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
   </div>
   <div v-else>
     <NuxtPwaAssets />
+    <NuxtLoadingIndicator />
     <LoginScreen />
   </div>
 </template>
@@ -31,7 +30,6 @@ useHead({
   ]
 })
 
-const loading = ref(true)
 const authenticated = ref(false)
 
 const checkAuth = async () => {
@@ -40,8 +38,6 @@ const checkAuth = async () => {
     authenticated.value = data.value?.authenticated
   } catch {
     authenticated.value = false
-  } finally {
-    loading.value = false
   }
 }
 

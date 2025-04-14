@@ -1,10 +1,9 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   nitro: {
-    devProxy: false,
     preset: 'node-server', // 👈 force l'utilisation du serveur Node natif
     prerender: {
-      routes: ["/", "/offline.html", "/robots.txt"]
+      routes: ["/", "/robots.txt"]
     }
   },
   compatibilityDate: '2025-04-07',
@@ -31,9 +30,6 @@ export default defineNuxtConfig({
       short_name: 'Limbus',
       description: 'Application GN utilisable hors-ligne',
       lang: 'fr',
-      scope: '/',
-      display: 'standalone',
-      background_color: '#ffffff',
       theme_color: '#000000',
       icons: [
         {
