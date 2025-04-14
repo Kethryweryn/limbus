@@ -40,12 +40,16 @@ const checkAuth = async () => {
     if (data.value?.authenticated && data.value?.user && process.client && navigator.onLine) {
       authenticated.value = true
 
+      console.log("Bon");
+
       const payload = {
         name: data.value.user.name,
         email: data.value.user.email,
         role: data.value.user.role,
         timestamp: new Date().toISOString()
       }
+
+      console.log("Encore bon");
 
       const signature = await signOfflineAuth(payload, 'limbus-pwa-secret')
 
@@ -60,7 +64,9 @@ const checkAuth = async () => {
       const raw = localStorage.getItem('offlineAuth')
       if (raw) {
         try {
+          console.log("Offline ok")
           const { payload, signature } = JSON.parse(raw)
+          console.log("ah ?")
           const expectedSig = await signOfflineAuth(payload, 'limbus-pwa-secret')
 
           if (signature === expectedSig) {
