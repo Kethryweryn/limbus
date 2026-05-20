@@ -1,10 +1,7 @@
-import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
 import { setCookie } from 'h3'
-
-const prisma = new PrismaClient()
-const SECRET = 'limbus-super-secret'
+import { prisma } from '~/server/utils/prisma'
+import { signAuthToken } from '~/server/utils/auth'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -28,11 +25,7 @@ export default defineEventHandler(async (event) => {
     return { success: false, message: 'Mot de passe incorrect' }
   }
 
-  const token = jwt.sign(
-    { email: user.email, role: user.role },
-    SECRET,
-    { expiresIn: '20h' }
-  )
+  const token = signAuthToken({ email: user.email, role: user.role })
 
   setCookie(event, 'limbus_token', token, {
     httpOnly: true,

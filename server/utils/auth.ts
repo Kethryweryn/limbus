@@ -2,7 +2,13 @@ import jwt from 'jsonwebtoken'
 import { getCookie } from 'h3'
 import type { H3Event } from 'h3'
 
-const SECRET = 'limbus-super-secret'
+function getJwtSecret(): string {
+  const secret = useRuntimeConfig().jwtSecret
+  if (!secret) {
+    throw createError({ statusCode: 500, statusMessage: 'JWT secret is not configured' })
+  }
+  return secret
+}
 
 export function getAuthToken(event: H3Event): string | undefined {
   return getCookie(event, 'limbus_token')
@@ -13,10 +19,14 @@ export function getAuthUser(event: H3Event): any | null {
   if (!token) return null
 
   try {
-    return jwt.verify(token, SECRET)
+    return jwt.verify(token, getJwtSecret())
   } catch {
     return null
   }
+}
+
+export function signAuthToken(payload: string | object | Buffer): string {
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '20h' })
 }
 
 export function redirect(event: H3Event, location: string) {
