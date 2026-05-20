@@ -46,7 +46,12 @@ import { useGameFocus } from '@/composables/useGameFocus'
 
 const route = useRoute()
 const slug = route.params.slug
-const { data: game } = await useFetch(`/api/games/${slug}`)
+const { data: game, error } = await useFetch(`/api/games/${slug}`)
+
+if (error.value) {
+    handleApiAuthError(error.value)
+    throw createError({ statusCode: error.value.statusCode || 404, message: 'Jeu introuvable' })
+}
 
 const { selectGame, game: currentGame } = useGameFocus()
 

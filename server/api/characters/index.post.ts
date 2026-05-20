@@ -1,12 +1,12 @@
 import { prisma } from '~/server/utils/prisma'
-import { generateSlug } from '~/server/utils/generateSlug'
 import { requireOrganizer } from '~/server/utils/auth'
+import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
 export default defineEventHandler(async (event) => {
     requireOrganizer(event)
 
     const body = await readBody(event)
-    const slug = generateSlug(body.name)
+    const slug = await generateUniqueSlug('character', body.name)
 
     const newCharacter = await prisma.character.create({
         data: {

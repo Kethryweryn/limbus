@@ -42,6 +42,7 @@ const slug = route.params.slug
 const { data: character, error } = await useFetch(`/api/characters/${slug}`)
 
 if (error.value) {
+    handleApiAuthError(error.value)
     throw createError({ statusCode: 404, message: 'Personnage introuvable' })
 }
 </script>

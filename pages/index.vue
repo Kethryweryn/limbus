@@ -64,9 +64,9 @@ const updateDashboard = async () => {
   }
 
   try {
-    const { data } = await useFetch('/api/dashboard')
-    dashboardData.value = data.value
-    saveToStore('dashboard', 'main', data.value)
+    const data = await useApiFetch('/api/dashboard')
+    dashboardData.value = data
+    saveToStore('dashboard', 'main', data)
   } catch (e) {
     error.value = e
   } finally {

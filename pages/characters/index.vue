@@ -8,7 +8,7 @@
         <!-- Barre de recherche -->
         <div class="mb-6 flex flex-wrap gap-4 items-center justify-between">
             <UInput v-model="search" placeholder="Rechercher un personnage..." class="w-full md:w-96" />
-            <UButton @click="openCreateSlideover" color="primary">Créer un personnage</UButton>
+            <UButton v-if="!isOffline" @click="openCreateSlideover" color="primary">Créer un personnage</UButton>
         </div>
 
         <!-- Liste des personnages -->
@@ -18,7 +18,7 @@
                     <NuxtLink :to="`/characters/${char.slug}`" class="font-semibold underline">
                         {{ char.name }}
                     </NuxtLink>
-                    <div class="flex gap-2">
+                    <div v-if="!isOffline" class="flex gap-2">
                         <UButton size="xs" color="blue" @click="startEdit(char)">Modifier</UButton>
                         <UButton size="xs" color="red" @click="deleteCharacter(char.id)">Supprimer</UButton>
                     </div>
@@ -46,8 +46,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useGameStore } from '@/stores/game'
+import { getFromStore, saveToStore } from '~/utils/storage'
 //import GameContextBar from '@/components/GameContextBar.vue'
 
 const characters = ref([])
@@ -56,17 +57,53 @@ const games = ref([])
 
 const gameStore = useGameStore()
 const selectedGame = computed(() => gameStore.currentGame)
+const isOffline = ref(false)
 
 const fetchGames = async () => {
-    games.value = await $fetch('/api/games')
+    if (!navigator.onLine) {
+        games.value = await getFromStore('games', 'list') || []
+        return
+    }
+
+    const data = await useApiFetch('/api/games')
+    games.value = data
+    await saveToStore('games', 'list', data)
 }
 
 const fetchCharacters = async () => {
-    characters.value = await $fetch('/api/characters')
+    if (!navigator.onLine) {
+        characters.value = await getFromStore('characters', 'list') || []
+        return
+    }
+
+    const data = await useApiFetch('/api/characters')
+    characters.value = data
+    await saveToStore('characters', 'list', data)
+}
+
+const refreshData = async () => {
+    await Promise.all([fetchGames(), fetchCharacters()])
+}
+
+const updateStatus = () => {
+    const wasOffline = isOffline.value
+    isOffline.value = !navigator.onLine
+
+    if (wasOffline && !isOffline.value) {
+        refreshData()
+    }
 }
 
 onMounted(async () => {
-    await Promise.all([fetchGames(), fetchCharacters()])
+    updateStatus()
+    window.addEventListener('online', updateStatus)
+    window.addEventListener('offline', updateStatus)
+    await refreshData()
+})
+
+onUnmounted(() => {
+    window.removeEventListener('online', updateStatus)
+    window.removeEventListener('offline', updateStatus)
 })
 
 // 🧠 Filtrage par jeu actif et recherche
@@ -145,12 +182,12 @@ function closeSlideover() {
 async function handleFormSubmit() {
     try {
         if (formMode.value === 'create') {
-            await $fetch('/api/characters', {
+            await useApiFetch('/api/characters', {
                 method: 'POST',
                 body: activeFormCharacter.value
             })
         } else if (formMode.value === 'edit') {
-            await $fetch(`/api/characters/${activeFormCharacter.value.id}/put`, {
+            await useApiFetch(`/api/characters/${activeFormCharacter.value.id}/put`, {
                 method: 'POST',
                 body: activeFormCharacter.value
             })
@@ -164,7 +201,7 @@ async function handleFormSubmit() {
 
 const deleteCharacter = async (id) => {
     if (confirm('Supprimer ce personnage ?')) {
-        await $fetch(`/api/characters/${id}/delete`, { method: 'POST' })
+        await useApiFetch(`/api/characters/${id}/delete`, { method: 'POST' })
         await fetchCharacters()
     }
 }

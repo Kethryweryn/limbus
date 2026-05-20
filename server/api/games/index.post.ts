@@ -1,6 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
-import { generateSlug } from '@/server/utils/generateSlug'
+import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -9,10 +9,10 @@ export default defineEventHandler(async (event) => {
   const { title, description, teaserUrl, noteIntention } = body
 
   if (!title) {
-    return sendError(event, createError({ statusCode: 400, statusMessage: 'Title is required' }))
+    throw createError({ statusCode: 400, statusMessage: 'Title is required' })
   }
 
-  const slug = generateSlug(title)
+  const slug = await generateUniqueSlug('game', title)
 
   const game = await prisma.game.create({
     data: {

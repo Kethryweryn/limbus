@@ -107,7 +107,7 @@ const fetchGames = async () => {
   }
 
   try {
-    const data = await $fetch('/api/games')
+    const data = await useApiFetch('/api/games')
     games.value = data
     saveToStore('games', 'list', data)
   } catch (err) {
@@ -153,7 +153,7 @@ function startCreate() {
 
 const archiveGame = async (id) => {
   if (confirm('Archiver ce jeu ?')) {
-    await $fetch(`/api/games/${id}/put`, {
+    await useApiFetch(`/api/games/${id}/put`, {
       method: 'POST',
       body: { published: false }
     })
@@ -163,7 +163,7 @@ const archiveGame = async (id) => {
 
 const publishGame = async (id) => {
   try {
-    await $fetch(`/api/games/${id}/put`, {
+    await useApiFetch(`/api/games/${id}/put`, {
       method: 'POST',
       body: { published: true }
     })
@@ -249,12 +249,12 @@ function openSlideover(slug) {
 async function handleGameFormSubmit() {
   try {
     if (formMode.value === 'create') {
-      await $fetch('/api/games', {
+      await useApiFetch('/api/games', {
         method: 'POST',
         body: activeFormGame.value
       })
     } else if (formMode.value === 'edit') {
-      await $fetch(`/api/games/${activeFormGame.value.id}/put`, {
+      await useApiFetch(`/api/games/${activeFormGame.value.id}/put`, {
         method: 'POST',
         body: activeFormGame.value
       })
