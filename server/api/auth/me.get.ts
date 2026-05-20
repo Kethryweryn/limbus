@@ -1,10 +1,10 @@
 import jwt from 'jsonwebtoken'
-import { parse } from 'cookie'
+import { getCookie } from 'h3'
 
 const SECRET = 'limbus-super-secret'
 
 export default defineEventHandler((event) => {
-    const token = parse(event.node?.req?.headers?.cookie || '').limbus_token
+    const token = getCookie(event, 'limbus_token')
 
     if (!token) {
         return { authenticated: false }

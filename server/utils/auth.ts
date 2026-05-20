@@ -1,12 +1,11 @@
 import jwt from 'jsonwebtoken'
-import { parse } from 'cookie'
-import { H3Event } from 'h3'
+import { getCookie } from 'h3'
+import type { H3Event } from 'h3'
 
 const SECRET = 'limbus-super-secret'
 
 export function getAuthToken(event: H3Event): string | undefined {
-  const token = parse(event.node?.req?.headers?.cookie || '').limbus_token
-  return token
+  return getCookie(event, 'limbus_token')
 }
 
 export function getAuthUser(event: H3Event): any | null {
