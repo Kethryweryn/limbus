@@ -41,3 +41,9 @@ export function requireRole(event: H3Event, allowedRoles: string[]): boolean {
 
   return allowedRoles.includes((user as any).role)
 }
+
+export function requireOrganizer(event: H3Event): void {
+  if (!requireRole(event, ['organizer'])) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+}

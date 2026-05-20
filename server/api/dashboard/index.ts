@@ -1,6 +1,9 @@
 import { prisma } from '~/server/utils/prisma' // ajuste si l'import change
+import { requireOrganizer } from '~/server/utils/auth'
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+    requireOrganizer(event)
+
     const gamesCount = await prisma.game.count()
     const organizersCount = await prisma.user.count({ where: { role: 'organizer' } })
     const nextSession = await prisma.session.findFirst({
