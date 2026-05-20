@@ -1,14 +1,9 @@
-import { PrismaClient } from '@prisma/client'
-import { getAuthUser } from '@/server/utils/auth'
+import { prisma } from '~/server/utils/prisma'
+import { requireOrganizer } from '~/server/utils/auth'
 import { generateSlug } from '@/server/utils/generateSlug'
 
-const prisma = new PrismaClient()
-
 export default defineEventHandler(async (event) => {
-  const user = getAuthUser(event)
-  if (!user || user.role !== 'organizer') {
-    return sendError(event, createError({ statusCode: 403, statusMessage: 'Forbidden' }))
-  }
+  requireOrganizer(event)
 
   const body = await readBody(event)
   const { title, description, teaserUrl, noteIntention } = body
