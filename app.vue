@@ -29,7 +29,7 @@
 <script setup lang="ts">
 import { onUnmounted, useHead } from '#imports'
 import LoginScreen from '~/components/LoginScreen.vue'
-import { isNetworkError, isOfflineMode, setServerUnavailable } from '~/utils/connection'
+import { isOfflineMode, isServerUnavailableError, setServerUnavailable } from '~/utils/connection'
 import { signOfflineAuth } from '~/utils/hashOfflineAuth'
 
 useHead({
@@ -77,7 +77,7 @@ const checkAuth = async () => {
     setServerUnavailable(false)
     serverUnavailable.value = false
   } catch (error) {
-    if (isNetworkError(error)) {
+    if (isServerUnavailableError(error)) {
       setServerUnavailable(true)
       serverUnavailable.value = true
       authenticated.value = await hasValidOfflineAuth()

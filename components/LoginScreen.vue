@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { isNetworkError, isOfflineMode, setServerUnavailable } from '~/utils/connection'
+import { isOfflineMode, isServerUnavailableError, setServerUnavailable } from '~/utils/connection'
 
 const email = ref('')
 const password = ref('')
@@ -28,7 +28,7 @@ const login = async () => {
         }
         setServerUnavailable(false)
     } catch (err: any) {
-        if (isNetworkError(err)) {
+        if (isServerUnavailableError(err)) {
             setServerUnavailable(true)
             updateStatus()
             error.value = 'Serveur indisponible.'

@@ -1,8 +1,4 @@
-import { isNetworkError, setServerUnavailable } from '~/utils/connection'
-
-function getErrorStatus(error: any): number | undefined {
-  return error?.statusCode || error?.status || error?.response?.status
-}
+import { getErrorStatus, isServerUnavailableError, setServerUnavailable } from '~/utils/connection'
 
 export function handleApiAuthError(error: any): void {
   const status = getErrorStatus(error)
@@ -18,8 +14,9 @@ export async function useApiFetch<T = unknown>(request: string, options?: any): 
     setServerUnavailable(false)
     return result
   } catch (error) {
-    if (isNetworkError(error)) {
+    if (isServerUnavailableError(error)) {
       setServerUnavailable(true)
+      throw error
     }
     handleApiAuthError(error)
     throw error
