@@ -7,7 +7,6 @@
             </template>
 
             <p><strong>Titre :</strong> {{ game.title }}</p>
-            <p><strong>ID :</strong> {{ game.id }}</p>
 
             <UButton :disabled="isCurrentGame" :color="isCurrentGame ? 'neutral' : 'success'"
                 @click="selectGame({ id: game.id, title: game.title })" class="mt-4">

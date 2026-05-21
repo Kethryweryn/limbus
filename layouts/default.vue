@@ -1,6 +1,6 @@
 <!-- layouts/default.vue -->
 <template>
-    <div class="min-h-screen bg-gray-50 text-gray-900">
+    <div class="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
         <!-- Header -->
         <header class="flex items-center justify-between p-4 bg-white shadow-md">
             <div class="flex items-center space-x-2">
@@ -14,9 +14,9 @@
         </header>
 
         <!-- Layout -->
-        <div class="flex">
+        <div class="flex flex-1">
             <!-- Sidebar desktop -->
-            <aside class="hidden md:block w-64 bg-white border-r p-4">
+            <aside class="hidden md:block w-64 bg-white border-r p-4 self-stretch">
                 <UNavigationMenu :items="navLinks" orientation="vertical" />
             </aside>
 

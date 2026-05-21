@@ -8,6 +8,9 @@ export function isServerUnavailable() {
 export function setServerUnavailable(value: boolean) {
   if (!process.client) return
 
+  const previousValue = isServerUnavailable()
+  if (previousValue === value) return
+
   if (value) {
     sessionStorage.setItem(SERVER_UNAVAILABLE_KEY, 'true')
   } else {
