@@ -5,34 +5,33 @@
     </template>
 
     <form @submit.prevent="submit" class="space-y-4">
-      <UFormGroup label="Jeu" :error="errors.gameId">
+      <UFormField label="Jeu" :error="errors.gameId">
         <USelect
           v-model="localLocation.gameId"
-          :options="gameOptions"
-          option-attribute="label"
-          value-attribute="value"
+          :items="gameOptions"
+          value-key="value"
           placeholder="Choisissez un jeu"
           required
         />
-      </UFormGroup>
+      </UFormField>
 
-      <UFormGroup label="Nom" :error="errors.name">
+      <UFormField label="Nom" :error="errors.name">
         <UInput v-model="localLocation.name" required />
-      </UFormGroup>
+      </UFormField>
 
-      <UFormGroup label="Adresse">
+      <UFormField label="Adresse">
         <UTextarea v-model="localLocation.address" />
-      </UFormGroup>
+      </UFormField>
 
-      <UFormGroup label="Notes">
+      <UFormField label="Notes">
         <UTextarea v-model="localLocation.notes" />
-      </UFormGroup>
+      </UFormField>
 
       <div class="flex gap-2">
-        <UButton type="submit" color="blue">
+        <UButton type="submit" color="primary">
           {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
         </UButton>
-        <UButton type="button" color="gray" @click="$emit('cancel')">
+        <UButton type="button" color="neutral" @click="$emit('cancel')">
           Annuler
         </UButton>
       </div>

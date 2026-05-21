@@ -5,25 +5,25 @@
         </template>
 
         <form @submit.prevent="submit" class="space-y-4">
-            <UFormGroup label="Jeu" :error="errors.gameId">
+            <UFormField label="Jeu" :error="errors.gameId">
                 <USelect v-model="localCharacter.gameId"
-                    :options="props.games.map(g => ({ label: g.title, value: g.id }))" placeholder="Choisissez un jeu"
+                    :items="props.games.map(g => ({ label: g.title, value: g.id }))" value-key="value" placeholder="Choisissez un jeu"
                     required />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Nom" :error="errors.name">
+            <UFormField label="Nom" :error="errors.name">
                 <UInput v-model="localCharacter.name" required autofocus />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Description" :error="errors.description">
+            <UFormField label="Description" :error="errors.description">
                 <UTextarea v-model="localCharacter.description" />
-            </UFormGroup>
+            </UFormField>
 
             <div class="flex gap-2">
-                <UButton type="submit" color="blue" :disabled="!localCharacter.name?.trim() || !localCharacter.gameId">
+                <UButton type="submit" color="primary" :disabled="!localCharacter.name?.trim() || !localCharacter.gameId">
                     {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
                 </UButton>
-                <UButton @click="$emit('cancel')" color="gray">
+                <UButton @click="$emit('cancel')" color="neutral">
                     Annuler
                 </UButton>
             </div>

@@ -1,16 +1,18 @@
 <template>
-  <div v-if="authenticated">
-    <NuxtPwaAssets />
-    <NuxtLoadingIndicator />
-    <NuxtLayout>
-      <NuxtPage />
-    </NuxtLayout>
-  </div>
-  <div v-else>
-    <NuxtPwaAssets />
-    <NuxtLoadingIndicator />
-    <LoginScreen />
-  </div>
+  <UApp>
+    <div v-if="authenticated">
+      <NuxtPwaAssets />
+      <NuxtLoadingIndicator />
+      <NuxtLayout>
+        <NuxtPage />
+      </NuxtLayout>
+    </div>
+    <div v-else>
+      <NuxtPwaAssets />
+      <NuxtLoadingIndicator />
+      <LoginScreen />
+    </div>
+  </UApp>
 </template>
 
 <script setup lang="ts">

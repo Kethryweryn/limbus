@@ -4,7 +4,7 @@
             <span class="font-medium">Jeu actif :</span>
             <span class="ml-2">{{ game.title }}</span>
         </div>
-        <UButton size="xs" color="gray" @click="clearGame">Changer de jeu</UButton>
+        <UButton size="xs" color="neutral" @click="clearGame">Changer de jeu</UButton>
     </div>
 </template>
 

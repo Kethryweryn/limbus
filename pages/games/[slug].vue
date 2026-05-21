@@ -9,7 +9,7 @@
             <p><strong>Titre :</strong> {{ game.title }}</p>
             <p><strong>ID :</strong> {{ game.id }}</p>
 
-            <UButton :disabled="isCurrentGame" :color="isCurrentGame ? 'gray' : 'green'"
+            <UButton :disabled="isCurrentGame" :color="isCurrentGame ? 'neutral' : 'success'"
                 @click="selectGame({ id: game.id, title: game.title })" class="mt-4">
                 {{ isCurrentGame ? 'Jeu déjà actif' : 'Définir comme jeu actif' }}
             </UButton>

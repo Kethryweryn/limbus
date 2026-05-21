@@ -5,35 +5,33 @@
     </template>
 
     <form @submit.prevent="submit" class="space-y-4">
-      <UFormGroup label="Jeu" :error="errors.gameId">
+      <UFormField label="Jeu" :error="errors.gameId">
         <USelect
           v-model="localSession.gameId"
-          :options="gameOptions"
-          option-attribute="label"
-          value-attribute="value"
+          :items="gameOptions"
+          value-key="value"
           placeholder="Choisissez un jeu"
           required
         />
-      </UFormGroup>
+      </UFormField>
 
-      <UFormGroup label="Nom" :error="errors.name">
+      <UFormField label="Nom" :error="errors.name">
         <UInput v-model="localSession.name" required />
-      </UFormGroup>
+      </UFormField>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <UFormGroup label="Date">
+        <UFormField label="Date">
           <UInput v-model="localSession.date" type="datetime-local" />
-        </UFormGroup>
+        </UFormField>
 
-        <UFormGroup label="Lieu">
+        <UFormField label="Lieu">
           <USelect
             v-model="localSession.locationId"
-            :options="locationOptions"
-            option-attribute="label"
-            value-attribute="value"
+            :items="locationOptions"
+            value-key="value"
             placeholder="Choisissez un lieu"
           />
-        </UFormGroup>
+        </UFormField>
       </div>
 
       <div class="space-y-3">
@@ -51,17 +49,15 @@
         >
           <USelect
             v-model="assignment.characterId"
-            :options="characterOptions"
-            option-attribute="label"
-            value-attribute="value"
+            :items="characterOptions"
+            value-key="value"
             placeholder="Personnage"
             class="md:col-span-3"
           />
           <USelect
             v-model="assignment.playerId"
-            :options="playerOptions"
-            option-attribute="label"
-            value-attribute="value"
+            :items="playerOptions"
+            value-key="value"
             placeholder="Joueur"
             class="md:col-span-3"
           />
@@ -78,7 +74,7 @@
           <UInput v-model="assignment.notes" placeholder="Notes" class="md:col-span-2" />
           <UButton
             type="button"
-            color="red"
+            color="error"
             variant="ghost"
             icon="i-heroicons-trash"
             class="md:col-span-1"
@@ -88,10 +84,10 @@
       </div>
 
       <div class="flex gap-2">
-        <UButton type="submit" color="blue">
+        <UButton type="submit" color="primary">
           {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
         </UButton>
-        <UButton type="button" color="gray" @click="$emit('cancel')">
+        <UButton type="button" color="neutral" @click="$emit('cancel')">
           Annuler
         </UButton>
       </div>

@@ -19,8 +19,8 @@
                         {{ char.name }}
                     </NuxtLink>
                     <div v-if="!isOffline" class="flex gap-2">
-                        <UButton size="xs" color="blue" @click="startEdit(char)">Modifier</UButton>
-                        <UButton size="xs" color="red" @click="deleteCharacter(char.id)">Supprimer</UButton>
+                        <UButton size="xs" color="primary" @click="startEdit(char)">Modifier</UButton>
+                        <UButton size="xs" color="error" @click="deleteCharacter(char.id)">Supprimer</UButton>
                     </div>
                 </div>
             </template>
@@ -36,11 +36,13 @@
     </div>
 
     <!-- Slideover pour création et édition -->
-    <USlideover v-model="showSlideover">
+    <USlideover v-model:open="showSlideover">
+        <template #body>
         <div class="p-4 space-y-4">
             <CharacterForm v-if="activeFormCharacter" v-model:character="activeFormCharacter" :games="games"
                 :mode="formMode" @submit="handleFormSubmit" @cancel="closeSlideover" />
         </div>
+        </template>
     </USlideover>
 
 </template>

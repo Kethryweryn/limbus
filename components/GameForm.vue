@@ -5,28 +5,28 @@
     </template>
 
     <form @submit.prevent="submit" class="space-y-4">
-      <UFormGroup label="Titre" :error="errors.title">
+      <UFormField label="Titre" :error="errors.title">
         <UInput v-model="localGame.title" required />
-      </UFormGroup>
+      </UFormField>
 
-      <UFormGroup label="Description" :error="errors.description">
+      <UFormField label="Description" :error="errors.description">
         <UTextarea v-model="localGame.description" />
-      </UFormGroup>
+      </UFormField>
 
-      <UFormGroup label="URL du teaser vidéo" :error="errors.teaserUrl">
+      <UFormField label="URL du teaser vidéo" :error="errors.teaserUrl">
         <UInput v-model="localGame.teaserUrl" />
-      </UFormGroup>
+      </UFormField>
 
-      <UFormGroup label="Note d’intention" :error="errors.noteIntention">
+      <UFormField label="Note d’intention" :error="errors.noteIntention">
         <UTextarea v-model="localGame.noteIntention" />
-      </UFormGroup>
+      </UFormField>
 
 
       <div class="flex gap-2">
-        <UButton type="submit" color="blue">
+        <UButton type="submit" color="primary">
           {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
         </UButton>
-        <UButton v-if="mode === 'edit'" @click="$emit('cancel')" color="gray">
+        <UButton v-if="mode === 'edit'" @click="$emit('cancel')" color="neutral">
           Annuler
         </UButton>
       </div>

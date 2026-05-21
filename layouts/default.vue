@@ -4,20 +4,20 @@
         <!-- Header -->
         <header class="flex items-center justify-between p-4 bg-white shadow-md">
             <div class="flex items-center space-x-2">
-                <UButton icon="i-heroicons-bars-3" color="gray" variant="ghost" class="md:hidden"
+                <UButton icon="i-heroicons-bars-3" color="neutral" variant="ghost" class="md:hidden"
                     @click="mobileOpen = true" />
                 <span class="font-bold text-xl ml-2">Limbus</span>
             </div>
-            <UDropdown :items="userMenu" :popper="{ placement: 'bottom-end' }">
+            <UDropdownMenu :items="userMenu" :content="{ align: 'end' }">
                 <UAvatar size="sm" icon="i-heroicons-user" />
-            </UDropdown>
+            </UDropdownMenu>
         </header>
 
         <!-- Layout -->
         <div class="flex">
             <!-- Sidebar desktop -->
             <aside class="hidden md:block w-64 bg-white border-r p-4">
-                <UVerticalNavigation :links="navLinks" />
+                <UNavigationMenu :items="navLinks" orientation="vertical" />
             </aside>
 
             <!-- Page content -->
@@ -44,11 +44,13 @@
         </div>
 
         <!-- Mobile Sidebar -->
-        <USlideover v-model="mobileOpen">
+        <USlideover v-model:open="mobileOpen" title="Navigation">
+            <template #body>
             <div class="p-4 space-y-6">
                 <h2 class="text-lg font-bold">Navigation</h2>
-                <UVerticalNavigation :links="navLinks" @click="mobileOpen = false" />
+                <UNavigationMenu :items="navLinks" orientation="vertical" @click="mobileOpen = false" />
             </div>
+            </template>
         </USlideover>
     </div>
 </template>
@@ -70,7 +72,7 @@ const userMenu = [
         {
             label: 'Déconnexion',
             icon: 'i-heroicons-arrow-left-on-rectangle',
-            click: () => navigateTo('/logout')
+            onSelect: () => navigateTo('/logout')
         }
     ]
 ]

@@ -15,9 +15,8 @@
       <USelect
         v-if="!selectedGame"
         v-model="gameFilter"
-        :options="gameFilterOptions"
-        option-attribute="label"
-        value-attribute="value"
+        :items="gameFilterOptions"
+        value-key="value"
         class="w-full md:w-64"
       />
     </div>
@@ -34,8 +33,8 @@
               </div>
             </div>
             <div v-if="!isOffline" class="flex gap-2">
-              <UButton size="xs" color="blue" @click="startEdit(player)">Modifier</UButton>
-              <UButton size="xs" color="red" @click="deletePlayer(player.id)">Supprimer</UButton>
+              <UButton size="xs" color="primary" @click="startEdit(player)">Modifier</UButton>
+              <UButton size="xs" color="error" @click="deletePlayer(player.id)">Supprimer</UButton>
             </div>
           </div>
         </template>
@@ -57,7 +56,8 @@
       </UCard>
     </div>
 
-    <USlideover v-model="showFormSlideover">
+    <USlideover v-model:open="showFormSlideover">
+      <template #body>
       <div class="p-4">
         <PlayerForm
           v-if="activeFormPlayer"
@@ -68,6 +68,7 @@
           @cancel="closeFormSlideover"
         />
       </div>
+      </template>
     </USlideover>
   </div>
 </template>

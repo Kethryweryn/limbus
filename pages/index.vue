@@ -35,7 +35,7 @@
           </div>
         </template>
         <template #footer>
-          <UButton size="xs" color="gray" variant="soft" to="/sessions">Voir les sessions</UButton>
+          <UButton size="xs" color="neutral" variant="soft" to="/sessions">Voir les sessions</UButton>
         </template>
       </UCard>
     </div>

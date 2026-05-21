@@ -15,9 +15,8 @@
       <USelect
         v-if="!selectedGame"
         v-model="gameFilter"
-        :options="gameFilterOptions"
-        option-attribute="label"
-        value-attribute="value"
+        :items="gameFilterOptions"
+        value-key="value"
         class="w-full md:w-64"
       />
     </div>
@@ -31,8 +30,8 @@
               <p class="text-sm text-gray-500 truncate">{{ location.game?.title || 'Jeu inconnu' }}</p>
             </div>
             <div v-if="!isOffline" class="flex gap-2">
-              <UButton size="xs" color="blue" @click="startEdit(location)">Modifier</UButton>
-              <UButton size="xs" color="red" @click="deleteLocation(location.id)">Supprimer</UButton>
+              <UButton size="xs" color="primary" @click="startEdit(location)">Modifier</UButton>
+              <UButton size="xs" color="error" @click="deleteLocation(location.id)">Supprimer</UButton>
             </div>
           </div>
         </template>
@@ -50,7 +49,8 @@
       </UCard>
     </div>
 
-    <USlideover v-model="showFormSlideover">
+    <USlideover v-model:open="showFormSlideover">
+      <template #body>
       <div class="p-4">
         <LocationForm
           v-if="activeFormLocation"
@@ -61,6 +61,7 @@
           @cancel="closeFormSlideover"
         />
       </div>
+      </template>
     </USlideover>
   </div>
 </template>

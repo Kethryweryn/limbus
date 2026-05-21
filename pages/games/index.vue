@@ -18,7 +18,7 @@
 
       <UInput v-model="searchQuery" placeholder="Rechercher un jeu..." icon="i-heroicons-magnifying-glass"
         class="flex-1" />
-      <USelect v-model="sortOption" :options="sortOptions" option-attribute="label" value-attribute="value"
+      <USelect v-model="sortOption" :items="sortOptions" value-key="value"
         class="w-full md:w-60" />
     </div>
 
@@ -30,24 +30,24 @@
           </button>
           <div class="flex gap-2">
             <template v-if="activeGame?.id === game.id">
-              <UBadge color="green" variant="solid" size="xs">🎯 Jeu actif</UBadge>
+              <UBadge color="success" variant="solid" size="xs">🎯 Jeu actif</UBadge>
             </template>
             <template v-else>
-              <UButton v-if="!game.published && !isOffline" @click="publishGame(game.id)" size="xs" color="orange">
+              <UButton v-if="!game.published && !isOffline" @click="publishGame(game.id)" size="xs" color="warning">
                 Publier
               </UButton>
-              <UButton v-else @click="selectGame({ id: game.id, title: game.title })" size="xs" color="green">
+              <UButton v-else @click="selectGame({ id: game.id, title: game.title })" size="xs" color="success">
                 Définir comme jeu actif
               </UButton>
             </template>
 
-            <UButton v-if="!isOffline" size="xs" color="blue" @click="startEdit(game)">Modifier</UButton>
+            <UButton v-if="!isOffline" size="xs" color="primary" @click="startEdit(game)">Modifier</UButton>
 
             <template v-if="!game.published">
-              <UBadge color="gray" variant="solid" size="xs">Archivé</UBadge>
+              <UBadge color="neutral" variant="solid" size="xs">Archivé</UBadge>
             </template>
             <template v-else-if="!isOffline">
-              <UButton size="xs" color="red" @click="archiveGame(game.id)">Archiver</UButton>
+              <UButton size="xs" color="error" @click="archiveGame(game.id)">Archiver</UButton>
             </template>
           </div>
         </div>
@@ -62,30 +62,34 @@
   </div>
 
   <!-- Slideover formulaire -->
-  <USlideover v-model="showFormSlideover">
+  <USlideover v-model:open="showFormSlideover">
+    <template #body>
     <div class="p-4 space-y-4">
       <GameForm v-if="activeFormGame" v-model:game="activeFormGame" :mode="formMode" @submit="handleGameFormSubmit"
         @cancel="closeFormSlideover" />
     </div>
+    </template>
   </USlideover>
 
   <!-- Slideover aperçu -->
-  <USlideover v-model="showPreviewSlideover">
+  <USlideover v-model:open="showPreviewSlideover">
+    <template #body>
     <div class="p-4 space-y-4">
       <h2 class="text-xl font-bold">{{ selectedGame?.title }}</h2>
       <p>{{ selectedGame?.description }}</p>
       <p class="text-sm text-gray-500">{{ selectedGame?.noteIntention }}</p>
 
       <div class="mt-4">
-        <UButton :to="`/games/${selectedGame?.slug}`" color="gray" variant="ghost">
+        <UButton :to="`/games/${selectedGame?.slug}`" color="neutral" variant="ghost">
           Voir la page complète
         </UButton>
       </div>
 
-      <UButton @click="selectGame({ id: selectedGame.id, title: selectedGame.title })" size="sm" color="green">
+      <UButton @click="selectGame({ id: selectedGame.id, title: selectedGame.title })" size="sm" color="success">
         Utiliser ce jeu
       </UButton>
     </div>
+    </template>
   </USlideover>
 </template>
 
