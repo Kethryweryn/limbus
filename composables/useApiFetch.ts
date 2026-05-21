@@ -1,3 +1,5 @@
+import { isNetworkError, setServerUnavailable } from '~/utils/connection'
+
 function getErrorStatus(error: any): number | undefined {
   return error?.statusCode || error?.status || error?.response?.status
 }
@@ -12,8 +14,13 @@ export function handleApiAuthError(error: any): void {
 
 export async function useApiFetch<T = unknown>(request: string, options?: any): Promise<T> {
   try {
-    return await $fetch<T>(request, options)
+    const result = await $fetch<T>(request, options)
+    setServerUnavailable(false)
+    return result
   } catch (error) {
+    if (isNetworkError(error)) {
+      setServerUnavailable(true)
+    }
     handleApiAuthError(error)
     throw error
   }

@@ -97,6 +97,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import GameContextBar from '@/components/GameContextBar.vue'
+import { isOfflineMode } from '~/utils/connection'
 import { getFromStore, saveToStore } from '~/utils/storage'
 
 const { selectGame, game: activeGame } = useGameFocus()
@@ -105,7 +106,7 @@ const games = ref([])
 const selectedGame = ref(null)
 
 const fetchGames = async () => {
-  if (!navigator.onLine) {
+  if (isOfflineMode()) {
     games.value = await getFromStore('games', 'list') || []
     return
   }
@@ -122,19 +123,25 @@ const fetchGames = async () => {
 
 const isOffline = ref(false)
 const updateStatus = () => {
-  isOffline.value = !navigator.onLine
+  const wasOffline = isOffline.value
+  isOffline.value = isOfflineMode()
+  if (wasOffline !== isOffline.value) {
+    fetchGames()
+  }
 }
 
 onMounted(() => {
   updateStatus()
   window.addEventListener('online', updateStatus)
   window.addEventListener('offline', updateStatus)
+  window.addEventListener('limbus:connection-change', updateStatus)
   fetchGames()
 })
 
 onUnmounted(() => {
   window.removeEventListener('online', updateStatus)
   window.removeEventListener('offline', updateStatus)
+  window.removeEventListener('limbus:connection-change', updateStatus)
 })
 
 

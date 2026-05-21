@@ -50,6 +50,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useGameStore } from '@/stores/game'
+import { isOfflineMode } from '~/utils/connection'
 import { getFromStore, saveToStore } from '~/utils/storage'
 //import GameContextBar from '@/components/GameContextBar.vue'
 
@@ -62,7 +63,7 @@ const selectedGame = computed(() => gameStore.currentGame)
 const isOffline = ref(false)
 
 const fetchGames = async () => {
-    if (!navigator.onLine) {
+    if (isOfflineMode()) {
         games.value = await getFromStore('games', 'list') || []
         return
     }
@@ -73,7 +74,7 @@ const fetchGames = async () => {
 }
 
 const fetchCharacters = async () => {
-    if (!navigator.onLine) {
+    if (isOfflineMode()) {
         characters.value = await getFromStore('characters', 'list') || []
         return
     }
@@ -89,9 +90,12 @@ const refreshData = async () => {
 
 const updateStatus = () => {
     const wasOffline = isOffline.value
-    isOffline.value = !navigator.onLine
+    isOffline.value = isOfflineMode()
 
     if (wasOffline && !isOffline.value) {
+        refreshData()
+    }
+    if (!wasOffline && isOffline.value) {
         refreshData()
     }
 }
@@ -100,12 +104,14 @@ onMounted(async () => {
     updateStatus()
     window.addEventListener('online', updateStatus)
     window.addEventListener('offline', updateStatus)
+    window.addEventListener('limbus:connection-change', updateStatus)
     await refreshData()
 })
 
 onUnmounted(() => {
     window.removeEventListener('online', updateStatus)
     window.removeEventListener('offline', updateStatus)
+    window.removeEventListener('limbus:connection-change', updateStatus)
 })
 
 // 🧠 Filtrage par jeu actif et recherche

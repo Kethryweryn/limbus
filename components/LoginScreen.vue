@@ -1,10 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { isNetworkError, isOfflineMode, setServerUnavailable } from '~/utils/connection'
 
 const email = ref('')
 const password = ref('')
 const error = ref('')
 const isOffline = ref(false)
+const browserOnline = ref(true)
+const offlineMessage = computed(() => browserOnline.value ? 'Le serveur ne répond pas.' : 'Vous êtes hors ligne.')
+
+const updateStatus = () => {
+    browserOnline.value = navigator.onLine
+    isOffline.value = isOfflineMode()
+}
 
 const login = async () => {
     try {
@@ -18,13 +26,29 @@ const login = async () => {
         } else {
             window.location.reload()
         }
+        setServerUnavailable(false)
     } catch (err: any) {
+        if (isNetworkError(err)) {
+            setServerUnavailable(true)
+            updateStatus()
+            error.value = 'Serveur indisponible.'
+            return
+        }
         error.value = err?.data?.message || 'Erreur de connexion'
     }
 }
 
 onMounted(() => {
-    isOffline.value = !navigator.onLine
+    updateStatus()
+    window.addEventListener('online', updateStatus)
+    window.addEventListener('offline', updateStatus)
+    window.addEventListener('limbus:connection-change', updateStatus)
+})
+
+onUnmounted(() => {
+    window.removeEventListener('online', updateStatus)
+    window.removeEventListener('offline', updateStatus)
+    window.removeEventListener('limbus:connection-change', updateStatus)
 })
 </script>
 
@@ -33,8 +57,8 @@ onMounted(() => {
         <h1 class="text-2xl mb-4">Connexion</h1>
 
         <div v-if="isOffline" class="text-center text-gray-500">
-            <p>Vous êtes hors ligne.</p>
-            <p>La connexion nécessite une connexion Internet.</p>
+            <p>{{ offlineMessage }}</p>
+            <p>La connexion nécessite un accès au serveur.</p>
         </div>
 
         <form v-else @submit.prevent="login" class="space-y-2">

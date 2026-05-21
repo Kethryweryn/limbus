@@ -3,6 +3,17 @@
     <div v-if="authenticated">
       <NuxtPwaAssets />
       <NuxtLoadingIndicator />
+      <div
+        v-if="serverUnavailable"
+        class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-900"
+      >
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <span>Serveur indisponible. Limbus utilise les donnees locales en lecture seule.</span>
+          <UButton size="xs" color="warning" variant="soft" @click="retryServer">
+            Reessayer
+          </UButton>
+        </div>
+      </div>
       <NuxtLayout>
         <NuxtPage />
       </NuxtLayout>
@@ -16,8 +27,9 @@
 </template>
 
 <script setup lang="ts">
-import { useHead } from '#imports'
+import { onUnmounted, useHead } from '#imports'
 import LoginScreen from '~/components/LoginScreen.vue'
+import { isNetworkError, isOfflineMode, setServerUnavailable } from '~/utils/connection'
 import { signOfflineAuth } from '~/utils/hashOfflineAuth'
 
 useHead({
@@ -34,39 +46,54 @@ useHead({
 })
 
 const authenticated = ref(false)
+const serverUnavailable = ref(false)
+
+async function hasValidOfflineAuth() {
+  const raw = localStorage.getItem('offlineAuth')
+  if (!raw) return false
+
+  try {
+    const { payload, signature } = JSON.parse(raw)
+    const expectedSig = await signOfflineAuth(payload, 'limbus-pwa-secret')
+    return signature === expectedSig
+  } catch {
+    return false
+  }
+}
 
 const checkAuth = async () => {
   if (!process.client) return
 
-  if (!navigator.onLine) {
-    const raw = localStorage.getItem('offlineAuth')
-    if (raw) {
-      try {
-        const { payload, signature } = JSON.parse(raw)
-        const expectedSig = await signOfflineAuth(payload, 'limbus-pwa-secret')
+  serverUnavailable.value = isOfflineMode()
 
-        if (signature === expectedSig) {
-          authenticated.value = true
-          return
-        }
-      } catch {
-        // stockage illisible
-      }
+  if (isOfflineMode()) {
+    authenticated.value = await hasValidOfflineAuth()
+    return
+  }
+
+  let authData
+  try {
+    authData = await $fetch('/api/auth/me')
+    setServerUnavailable(false)
+    serverUnavailable.value = false
+  } catch (error) {
+    if (isNetworkError(error)) {
+      setServerUnavailable(true)
+      serverUnavailable.value = true
+      authenticated.value = await hasValidOfflineAuth()
+      return
     }
     authenticated.value = false
     return
   }
 
-  // Sinon, on tente la vérif en ligne
-  const { data } = await useFetch('/api/auth/me')
-
-  if (data.value?.authenticated && data.value?.user) {
+  if (authData?.authenticated && authData?.user) {
     authenticated.value = true
 
     const payload = {
-      name: data.value.user.name,
-      email: data.value.user.email,
-      role: data.value.user.role,
+      name: authData.user.name,
+      email: authData.user.email,
+      role: authData.user.role,
       timestamp: new Date().toISOString()
     }
 
@@ -82,7 +109,19 @@ const checkAuth = async () => {
   authenticated.value = false
 }
 
+const retryServer = async () => {
+  setServerUnavailable(false)
+  await checkAuth()
+}
+
 onMounted(() => {
   checkAuth()
+  window.addEventListener('online', checkAuth)
+  window.addEventListener('limbus:connection-change', checkAuth)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('online', checkAuth)
+  window.removeEventListener('limbus:connection-change', checkAuth)
 })
 </script>

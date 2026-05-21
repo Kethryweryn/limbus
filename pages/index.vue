@@ -44,6 +44,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { isOfflineMode } from '~/utils/connection'
 import { getFromStore, saveToStore } from '~/utils/storage'
 
 const dashboardData = ref<any>(null)
@@ -57,7 +58,7 @@ const formatDate = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', {
 })
 
 const updateDashboard = async () => {
-  if (!navigator.onLine) {
+  if (isOfflineMode()) {
     dashboardData.value = await getFromStore('dashboard', 'main')
     pending.value = false
     return
@@ -76,18 +77,24 @@ const updateDashboard = async () => {
 
 const isOffline = ref(false)
 const updateStatus = () => {
-  isOffline.value = !navigator.onLine
+  const wasOffline = isOffline.value
+  isOffline.value = isOfflineMode()
+  if (!wasOffline && isOffline.value) {
+    updateDashboard()
+  }
 }
 
 onMounted(() => {
   updateStatus()
   window.addEventListener('online', updateStatus)
   window.addEventListener('offline', updateStatus)
+  window.addEventListener('limbus:connection-change', updateStatus)
   updateDashboard()
 })
 
 onUnmounted(() => {
   window.removeEventListener('online', updateStatus)
   window.removeEventListener('offline', updateStatus)
+  window.removeEventListener('limbus:connection-change', updateStatus)
 })
 </script>

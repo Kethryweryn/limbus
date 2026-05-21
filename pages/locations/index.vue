@@ -71,6 +71,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import LocationForm from '@/components/LocationForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
+import { isOfflineMode } from '~/utils/connection'
 import { getFromStore, saveToStore } from '~/utils/storage'
 
 const locations = ref([])
@@ -102,7 +103,7 @@ const filteredLocations = computed(() => {
 })
 
 const fetchLocations = async () => {
-  if (!navigator.onLine) {
+  if (isOfflineMode()) {
     locations.value = await getFromStore('locations', 'list') || []
     return
   }
@@ -113,7 +114,7 @@ const fetchLocations = async () => {
 }
 
 const fetchGames = async () => {
-  if (!navigator.onLine) {
+  if (isOfflineMode()) {
     games.value = await getFromStore('games', 'list') || []
     return
   }
@@ -129,7 +130,7 @@ const refreshData = async () => {
 
 const updateStatus = () => {
   const wasOffline = isOffline.value
-  isOffline.value = !navigator.onLine
+  isOffline.value = isOfflineMode()
 
   if (isOffline.value) {
     closeFormSlideover()
@@ -138,18 +139,23 @@ const updateStatus = () => {
   if (wasOffline && !isOffline.value) {
     refreshData()
   }
+  if (!wasOffline && isOffline.value) {
+    refreshData()
+  }
 }
 
 onMounted(async () => {
   updateStatus()
   window.addEventListener('online', updateStatus)
   window.addEventListener('offline', updateStatus)
+  window.addEventListener('limbus:connection-change', updateStatus)
   await refreshData()
 })
 
 onUnmounted(() => {
   window.removeEventListener('online', updateStatus)
   window.removeEventListener('offline', updateStatus)
+  window.removeEventListener('limbus:connection-change', updateStatus)
 })
 
 function startCreate() {

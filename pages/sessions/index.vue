@@ -102,6 +102,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import SessionForm from '@/components/SessionForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
+import { isOfflineMode } from '~/utils/connection'
 import { getFromStore, saveToStore } from '~/utils/storage'
 
 const sessions = ref([])
@@ -148,7 +149,7 @@ const formatLocation = (location) => {
 }
 
 const fetchSessions = async () => {
-  if (!navigator.onLine) {
+  if (isOfflineMode()) {
     sessions.value = await getFromStore('sessions', 'list') || []
     return
   }
@@ -159,7 +160,7 @@ const fetchSessions = async () => {
 }
 
 const fetchGames = async () => {
-  if (!navigator.onLine) {
+  if (isOfflineMode()) {
     games.value = await getFromStore('games', 'list') || []
     return
   }
@@ -170,7 +171,7 @@ const fetchGames = async () => {
 }
 
 const fetchCharacters = async () => {
-  if (!navigator.onLine) {
+  if (isOfflineMode()) {
     characters.value = await getFromStore('characters', 'list') || []
     return
   }
@@ -181,7 +182,7 @@ const fetchCharacters = async () => {
 }
 
 const fetchLocations = async () => {
-  if (!navigator.onLine) {
+  if (isOfflineMode()) {
     locations.value = await getFromStore('locations', 'list') || []
     return
   }
@@ -192,7 +193,7 @@ const fetchLocations = async () => {
 }
 
 const fetchPlayers = async () => {
-  if (!navigator.onLine) {
+  if (isOfflineMode()) {
     players.value = await getFromStore('players', 'list') || []
     return
   }
@@ -208,7 +209,7 @@ const refreshData = async () => {
 
 const updateStatus = () => {
   const wasOffline = isOffline.value
-  isOffline.value = !navigator.onLine
+  isOffline.value = isOfflineMode()
 
   if (isOffline.value) {
     closeFormSlideover()
@@ -217,18 +218,23 @@ const updateStatus = () => {
   if (wasOffline && !isOffline.value) {
     refreshData()
   }
+  if (!wasOffline && isOffline.value) {
+    refreshData()
+  }
 }
 
 onMounted(async () => {
   updateStatus()
   window.addEventListener('online', updateStatus)
   window.addEventListener('offline', updateStatus)
+  window.addEventListener('limbus:connection-change', updateStatus)
   await refreshData()
 })
 
 onUnmounted(() => {
   window.removeEventListener('online', updateStatus)
   window.removeEventListener('offline', updateStatus)
+  window.removeEventListener('limbus:connection-change', updateStatus)
 })
 
 function toDatetimeLocal(value) {
