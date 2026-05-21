@@ -40,6 +40,16 @@ node -e "console.log(process.env.DATABASE_URL ? 'DATABASE_URL ok' : 'DATABASE_UR
 node -e "console.log(process.env.JWT_SECRET ? 'JWT_SECRET ok' : 'JWT_SECRET missing')"
 ```
 
+## Donnees runtime
+
+Les photos uploadees pour les assignations de session sont stockees dans :
+
+```bash
+.data/uploads/session-assignment-photos
+```
+
+Ce dossier est ignore par Git. Il doit etre conserve par les sauvegardes et ne doit pas etre supprime lors d'un redeploiement.
+
 ## Test public temporaire
 
 Lancer l'application, puis exposer le port 3000 avec ngrok :

@@ -59,7 +59,10 @@ import { navigateTo } from '#app'
 const navLinks = [
     { label: 'Dashboard', to: '/', icon: 'i-heroicons-home' },
     { label: 'Jeux', to: '/games', icon: 'i-heroicons-cube' },
-    { label: 'Personnages', to: '/characters', icon: 'i-heroicons-identification' }
+    { label: 'Personnages', to: '/characters', icon: 'i-heroicons-identification' },
+    { label: 'Joueurs', to: '/players', icon: 'i-heroicons-users' },
+    { label: 'Lieux', to: '/locations', icon: 'i-heroicons-map-pin' },
+    { label: 'Sessions', to: '/sessions', icon: 'i-heroicons-calendar-days' }
 ]
 
 const userMenu = [

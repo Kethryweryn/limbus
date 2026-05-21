@@ -56,7 +56,23 @@ export default defineNuxtConfig({
     workbox: {
       globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       cleanupOutdatedCaches: true,
-      clientsClaim: true
+      clientsClaim: true,
+      runtimeCaching: [
+        {
+          urlPattern: /^\/api\/uploads\/session-assignment-photos\/.+/,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'session-assignment-photos',
+            expiration: {
+              maxEntries: 300,
+              maxAgeSeconds: 60 * 60 * 24 * 30
+            },
+            cacheableResponse: {
+              statuses: [0, 200]
+            }
+          }
+        }
+      ]
     },
     devOptions: {
       enabled: false,
