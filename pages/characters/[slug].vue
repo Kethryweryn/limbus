@@ -39,7 +39,7 @@
 <script setup>
 const route = useRoute()
 const slug = route.params.slug
-const { data: character, error } = await useFetch(`/api/characters/${slug}`)
+const { data: character, error } = await useFetch(`/api/characters/slug/${slug}`)
 
 if (error.value) {
     handleApiAuthError(error.value)

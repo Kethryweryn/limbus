@@ -164,8 +164,8 @@ function startCreate() {
 
 const archiveGame = async (id) => {
   if (confirm('Archiver ce jeu ?')) {
-    await useApiFetch(`/api/games/${id}/put`, {
-      method: 'POST',
+    await useApiFetch(`/api/games/${id}`, {
+      method: 'PUT',
       body: { published: false }
     })
     await fetchGames()
@@ -174,8 +174,8 @@ const archiveGame = async (id) => {
 
 const publishGame = async (id) => {
   try {
-    await useApiFetch(`/api/games/${id}/put`, {
-      method: 'POST',
+    await useApiFetch(`/api/games/${id}`, {
+      method: 'PUT',
       body: { published: true }
     })
     await fetchGames()
@@ -265,8 +265,8 @@ async function handleGameFormSubmit() {
         body: activeFormGame.value
       })
     } else if (formMode.value === 'edit') {
-      await useApiFetch(`/api/games/${activeFormGame.value.id}/put`, {
-        method: 'POST',
+      await useApiFetch(`/api/games/${activeFormGame.value.id}`, {
+        method: 'PUT',
         body: activeFormGame.value
       })
     }

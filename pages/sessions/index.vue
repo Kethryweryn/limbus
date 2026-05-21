@@ -295,8 +295,8 @@ async function handleSessionFormSubmit() {
       body: activeFormSession.value
     })
   } else {
-    await useApiFetch(`/api/sessions/${activeFormSession.value.id}/put`, {
-      method: 'POST',
+    await useApiFetch(`/api/sessions/${activeFormSession.value.id}`, {
+      method: 'PUT',
       body: activeFormSession.value
     })
   }
@@ -310,7 +310,7 @@ async function deleteSession(id) {
 
   if (!confirm('Supprimer cette session ?')) return
 
-  await useApiFetch(`/api/sessions/${id}/delete`, { method: 'POST' })
+  await useApiFetch(`/api/sessions/${id}`, { method: 'DELETE' })
   await fetchSessions()
 }
 </script>

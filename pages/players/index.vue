@@ -202,8 +202,8 @@ async function handlePlayerFormSubmit() {
       body: activeFormPlayer.value
     })
   } else {
-    await useApiFetch(`/api/players/${activeFormPlayer.value.id}/put`, {
-      method: 'POST',
+    await useApiFetch(`/api/players/${activeFormPlayer.value.id}`, {
+      method: 'PUT',
       body: activeFormPlayer.value
     })
   }
@@ -217,7 +217,7 @@ async function deletePlayer(id) {
 
   if (!confirm('Supprimer ce joueur ? Les assignations de session seront conservees sans joueur.')) return
 
-  await useApiFetch(`/api/players/${id}/delete`, { method: 'POST' })
+  await useApiFetch(`/api/players/${id}`, { method: 'DELETE' })
   await fetchPlayers()
 }
 </script>

@@ -195,8 +195,8 @@ async function handleFormSubmit() {
                 body: activeFormCharacter.value
             })
         } else if (formMode.value === 'edit') {
-            await useApiFetch(`/api/characters/${activeFormCharacter.value.id}/put`, {
-                method: 'POST',
+            await useApiFetch(`/api/characters/${activeFormCharacter.value.id}`, {
+                method: 'PUT',
                 body: activeFormCharacter.value
             })
         }
@@ -209,7 +209,7 @@ async function handleFormSubmit() {
 
 const deleteCharacter = async (id) => {
     if (confirm('Supprimer ce personnage ?')) {
-        await useApiFetch(`/api/characters/${id}/delete`, { method: 'POST' })
+        await useApiFetch(`/api/characters/${id}`, { method: 'DELETE' })
         await fetchCharacters()
     }
 }

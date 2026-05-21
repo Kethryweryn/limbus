@@ -194,8 +194,8 @@ async function handleLocationFormSubmit() {
       body: activeFormLocation.value
     })
   } else {
-    await useApiFetch(`/api/locations/${activeFormLocation.value.id}/put`, {
-      method: 'POST',
+    await useApiFetch(`/api/locations/${activeFormLocation.value.id}`, {
+      method: 'PUT',
       body: activeFormLocation.value
     })
   }
@@ -209,7 +209,7 @@ async function deleteLocation(id) {
 
   if (!confirm('Supprimer ce lieu ? Les sessions liees seront conservees sans lieu.')) return
 
-  await useApiFetch(`/api/locations/${id}/delete`, { method: 'POST' })
+  await useApiFetch(`/api/locations/${id}`, { method: 'DELETE' })
   await fetchLocations()
 }
 </script>
