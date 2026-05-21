@@ -1,7 +1,17 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '../generated/prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
 import { fakerFR as faker } from '@faker-js/faker'
 
-const prisma = new PrismaClient()
+const databaseUrl = process.env.DATABASE_URL
+if (!databaseUrl) {
+    throw new Error('DATABASE_URL is required')
+}
+
+const prisma = new PrismaClient({
+    adapter: new PrismaPg({
+        connectionString: databaseUrl
+    })
+})
 
 async function main() {
     console.log('🧹 Suppression des anciennes données...')
