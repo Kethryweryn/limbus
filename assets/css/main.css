@@ -1,0 +1,10 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+@source "../../app.vue";
+@source "../../components/**/*.{vue,js,ts}";
+@source "../../composables/**/*.{js,ts}";
+@source "../../layouts/**/*.vue";
+@source "../../pages/**/*.vue";
+@source "../../stores/**/*.{js,ts}";
+@source "../../utils/**/*.{js,ts}";

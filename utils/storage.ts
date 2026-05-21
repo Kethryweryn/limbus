@@ -1,32 +1,29 @@
 import { openDB } from 'idb'
 
 const DB_NAME = 'limbus-db'
+const STORES = ['dashboard', 'games', 'characters', 'players', 'locations', 'sessions']
 
-let currentVersion = 1
-let dbInstance: IDBDatabase | null = null
+let dbPromise: ReturnType<typeof openDB> | null = null
 
 async function ensureStore(store: string) {
-    const dbs = await indexedDB.databases?.()
-    const existing = dbs?.find(db => db.name === DB_NAME)
-    let version = existing?.version ?? 1
+    if (!STORES.includes(store)) {
+        STORES.push(store)
+        dbPromise = null
+    }
 
-    // Tente d’ouvrir la DB existante
-    let db = await openDB(DB_NAME, version)
-
-    if (!db.objectStoreNames.contains(store)) {
-        db.close()
-        version += 1
-
-        db = await openDB(DB_NAME, version, {
+    if (!dbPromise) {
+        dbPromise = openDB(DB_NAME, 5, {
             upgrade(upgradeDb) {
-                if (!upgradeDb.objectStoreNames.contains(store)) {
-                    upgradeDb.createObjectStore(store)
+                for (const storeName of STORES) {
+                    if (!upgradeDb.objectStoreNames.contains(storeName)) {
+                        upgradeDb.createObjectStore(storeName)
+                    }
                 }
             }
         })
     }
 
-    return db
+    return await dbPromise
 }
 
 export async function saveToStore<T = any>(store: string, key: string, value: T) {
