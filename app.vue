@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { onUnmounted, useHead } from '#imports'
+import { onUnmounted, useHead, useRoute } from '#imports'
 import LoginScreen from '~/components/LoginScreen.vue'
 import { isOfflineMode, isServerUnavailableError, setServerUnavailable } from '~/utils/connection'
 import { signOfflineAuth } from '~/utils/hashOfflineAuth'
@@ -47,6 +47,8 @@ useHead({
 
 const authenticated = ref(false)
 const serverUnavailable = ref(false)
+const route = useRoute()
+let authCheckInProgress = false
 
 async function hasValidOfflineAuth() {
   const raw = localStorage.getItem('offlineAuth')
@@ -61,13 +63,23 @@ async function hasValidOfflineAuth() {
   }
 }
 
-const checkAuth = async () => {
+const checkAuth = async (forceServerCheck = false) => {
   if (!process.client) return
+  if (authCheckInProgress) return
+
+  authCheckInProgress = true
 
   serverUnavailable.value = isOfflineMode()
 
-  if (isOfflineMode()) {
+  if (!forceServerCheck && isOfflineMode()) {
     authenticated.value = await hasValidOfflineAuth()
+    authCheckInProgress = false
+    return
+  }
+
+  if (forceServerCheck && !navigator.onLine) {
+    authenticated.value = await hasValidOfflineAuth()
+    authCheckInProgress = false
     return
   }
 
@@ -81,9 +93,11 @@ const checkAuth = async () => {
       setServerUnavailable(true)
       serverUnavailable.value = true
       authenticated.value = await hasValidOfflineAuth()
+      authCheckInProgress = false
       return
     }
     authenticated.value = false
+    authCheckInProgress = false
     return
   }
 
@@ -103,25 +117,37 @@ const checkAuth = async () => {
       payload,
       signature
     }))
+    authCheckInProgress = false
     return
   }
 
   authenticated.value = false
+  authCheckInProgress = false
 }
 
 const retryServer = async () => {
   setServerUnavailable(false)
-  await checkAuth()
+  await checkAuth(true)
+}
+
+const checkAuthFromEvent = () => {
+  checkAuth()
 }
 
 onMounted(() => {
   checkAuth()
-  window.addEventListener('online', checkAuth)
-  window.addEventListener('limbus:connection-change', checkAuth)
+  window.addEventListener('online', checkAuthFromEvent)
+  window.addEventListener('limbus:connection-change', checkAuthFromEvent)
+})
+
+watch(() => route.fullPath, () => {
+  if (serverUnavailable.value && navigator.onLine) {
+    checkAuth(true)
+  }
 })
 
 onUnmounted(() => {
-  window.removeEventListener('online', checkAuth)
-  window.removeEventListener('limbus:connection-change', checkAuth)
+  window.removeEventListener('online', checkAuthFromEvent)
+  window.removeEventListener('limbus:connection-change', checkAuthFromEvent)
 })
 </script>
