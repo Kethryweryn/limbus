@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
     gamesCount,
     registeredPlayersCount,
     playersWhoPlayedCount,
-    totalPlayersCount,
+    neverCastPlayersCount,
     nextSession,
     games
   ] = await Promise.all([
@@ -28,7 +28,11 @@ export default defineEventHandler(async (event) => {
         }
       }
     }),
-    prisma.player.count(),
+    prisma.player.count({
+      where: {
+        assignments: { none: {} }
+      }
+    }),
     prisma.session.findFirst({
       where: {
         date: { gte: now },
@@ -83,7 +87,7 @@ export default defineEventHandler(async (event) => {
       gamesCount,
       registeredPlayersCount,
       playersWhoPlayedCount,
-      neverCastPlayersCount: totalPlayersCount - playersWhoPlayedCount,
+      neverCastPlayersCount,
       sessionsByGame: games.map((game) => ({
         id: game.id,
         title: game.title,
