@@ -5,24 +5,14 @@
                 Jeux
             </UButton>
             <UButton
-                v-if="!isEditing"
+                :to="{ path: '/games', query: { edit: game.slug } }"
                 icon="i-heroicons-pencil-square"
                 color="primary"
-                @click="startEdit"
             >
                 Modifier
             </UButton>
         </div>
 
-        <GameForm
-            v-if="isEditing"
-            v-model:game="editableGame"
-            mode="edit"
-            @submit="handleGameFormSubmit"
-            @cancel="cancelEdit"
-        />
-
-        <template v-else>
         <!-- Carte d'infos -->
         <UCard>
             <template #header>
@@ -59,7 +49,6 @@
             <h2 class="text-xl font-semibold mb-2">Note d’intention</h2>
             <p>{{ game.noteIntention }}</p>
         </div>
-        </template>
     </div>
 </template>
 
@@ -68,9 +57,8 @@ import { useRoute } from 'vue-router'
 import { useGameFocus } from '@/composables/useGameFocus'
 
 const route = useRoute()
-const router = useRouter()
 const slug = route.params.slug
-const { data: game, error, refresh } = await useFetch(`/api/games/slug/${slug}`)
+const { data: game, error } = await useFetch(`/api/games/slug/${slug}`)
 
 if (error.value) {
     handleApiAuthError(error.value)
@@ -80,47 +68,6 @@ if (error.value) {
 const { selectGame, game: currentGame } = useGameFocus()
 
 const isCurrentGame = computed(() => currentGame?.value?.id === game.value?.id)
-const isEditing = ref(route.query.edit === '1')
-const editableGame = ref(game.value ? { ...game.value } : null)
-
-watch(() => route.query.edit, (value) => {
-    isEditing.value = value === '1'
-    if (isEditing.value && game.value) {
-        editableGame.value = { ...game.value }
-    }
-})
-
-function startEdit() {
-    editableGame.value = { ...game.value }
-    isEditing.value = true
-    router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
-}
-
-function cancelEdit() {
-    isEditing.value = false
-    editableGame.value = game.value ? { ...game.value } : null
-    const query = { ...route.query }
-    delete query.edit
-    router.replace({ path: route.path, query })
-}
-
-async function handleGameFormSubmit() {
-    if (!editableGame.value?.id) return
-
-    const updatedGame = await useApiFetch(`/api/games/${editableGame.value.id}`, {
-        method: 'PUT',
-        body: editableGame.value
-    })
-
-    if (updatedGame?.slug && updatedGame.slug !== route.params.slug) {
-        game.value = updatedGame
-        await router.replace(`/games/${updatedGame.slug}`)
-    } else {
-        await refresh()
-    }
-
-    cancelEdit()
-}
 
 const embedTeaser = (url) => {
     if (!url) return ''

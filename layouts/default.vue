@@ -157,10 +157,14 @@ const toggleSidebar = () => {
 onMounted(() => {
     const saved = localStorage.getItem('limbus-sidebar-collapsed')
     sidebarCollapsed.value = saved === 'true'
+    document.documentElement.style.setProperty('--limbus-sidebar-width', sidebarCollapsed.value ? '5rem' : '16rem')
 })
 
 watch(sidebarCollapsed, (value) => {
+    if (!import.meta.client) return
+
     localStorage.setItem('limbus-sidebar-collapsed', String(value))
+    document.documentElement.style.setProperty('--limbus-sidebar-width', value ? '5rem' : '16rem')
 })
 </script>
 

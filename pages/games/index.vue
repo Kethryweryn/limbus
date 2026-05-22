@@ -72,26 +72,6 @@
         </div>
         <div class="flex items-center gap-2">
           <UButton
-            v-if="formMode === 'edit' && activeFormGame?.slug"
-            icon="i-heroicons-arrows-pointing-out"
-            color="neutral"
-            variant="ghost"
-            size="sm"
-            @click="openFullPageEdit"
-          >
-            Pleine page
-          </UButton>
-          <UButton
-            v-else
-            :icon="isFormFullWidth ? 'i-heroicons-arrows-pointing-in' : 'i-heroicons-arrows-pointing-out'"
-            color="neutral"
-            variant="ghost"
-            size="sm"
-            @click="isFormFullWidth = !isFormFullWidth"
-          >
-            {{ isFormFullWidth ? 'Réduire' : 'Pleine largeur' }}
-          </UButton>
-          <UButton
             icon="i-heroicons-x-mark"
             color="neutral"
             variant="ghost"
@@ -178,6 +158,7 @@ const { selectGame, game: activeGame } = useGameFocus()
 
 const games = ref([])
 const selectedGame = ref(null)
+const route = useRoute()
 const router = useRouter()
 
 const fetchGames = async () => {
@@ -223,7 +204,6 @@ onUnmounted(() => {
 const startEdit = (game) => {
   activeFormGame.value = { ...game }
   formMode.value = 'edit'
-  isFormFullWidth.value = false
   showFormSlideover.value = true
 }
 
@@ -235,7 +215,6 @@ function startCreate() {
     published: false
   }
   formMode.value = 'create'
-  isFormFullWidth.value = false
   showFormSlideover.value = true
 }
 
@@ -323,17 +302,19 @@ const showFormSlideover = ref(false)
 const showPreviewSlideover = ref(false)
 const activeFormGame = ref(null)
 const formMode = ref('create')
-const isFormFullWidth = ref(false)
 
+const formSlideoverClass = 'w-screen max-w-none md:w-[calc(100vw-var(--limbus-sidebar-width,16rem))] md:max-w-none'
 const wideSlideoverClass = 'w-full sm:max-w-3xl lg:max-w-5xl'
-const fullWidthSlideoverClass = 'w-screen sm:max-w-none'
-const formSlideoverClass = computed(() => isFormFullWidth.value ? fullWidthSlideoverClass : wideSlideoverClass)
 const previewSlideoverClass = wideSlideoverClass
 
 function closeFormSlideover() {
   activeFormGame.value = null
   showFormSlideover.value = false
-  isFormFullWidth.value = false
+  if (route.query.edit) {
+    const query = { ...route.query }
+    delete query.edit
+    router.replace({ path: route.path, query })
+  }
 }
 
 function openSlideover(slug) {
@@ -351,12 +332,6 @@ function openFullPagePreview() {
   if (!selectedGame.value?.slug) return
   showPreviewSlideover.value = false
   router.push(`/games/${selectedGame.value.slug}`)
-}
-
-function openFullPageEdit() {
-  if (!activeFormGame.value?.slug) return
-  showFormSlideover.value = false
-  router.push(`/games/${activeFormGame.value.slug}?edit=1`)
 }
 
 async function handleGameFormSubmit() {
@@ -382,5 +357,16 @@ async function handleGameFormSubmit() {
 watch([searchQuery, filteredGames], () => {
   page.value = 1
 })
+
+watch([games, () => route.query.edit], () => {
+  const editSlug = route.query.edit
+  if (typeof editSlug !== 'string' || !editSlug) return
+
+  const game = games.value.find(item => item.slug === editSlug)
+  if (!game || activeFormGame.value?.slug === editSlug) return
+
+  showPreviewSlideover.value = false
+  startEdit(game)
+}, { immediate: true })
 
 </script>
