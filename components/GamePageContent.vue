@@ -23,7 +23,7 @@
           />
         </div>
 
-        <UCard>
+        <UCard variant="outline" class="bg-white text-gray-900">
           <template #header>
             Description
           </template>
@@ -34,7 +34,7 @@
       </section>
 
       <aside class="xl:col-span-4 space-y-6">
-        <UCard v-if="game.noteIntention">
+        <UCard v-if="game.noteIntention" variant="outline" class="bg-white text-gray-900">
           <template #header>
             Note d’intention
           </template>
