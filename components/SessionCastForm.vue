@@ -32,15 +32,45 @@
           placeholder="Joueur"
           class="lg:col-span-3"
         />
-        <div class="lg:col-span-3 flex items-center gap-2">
-          <UAvatar :src="assignment.photoUrl || undefined" icon="i-heroicons-camera" />
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            class="block w-full text-xs"
+        <div class="lg:col-span-3 flex items-center gap-3">
+          <button
+            type="button"
+            class="size-20 shrink-0 overflow-hidden rounded border border-gray-200 bg-gray-50 flex items-center justify-center"
             :disabled="uploadingIndex === index"
-            @change="uploadAssignmentPhoto($event, assignment, index)"
+            @click="assignment.photoUrl ? openPhotoPreview(assignment.photoUrl) : openFilePicker(index)"
           >
+            <img
+              v-if="assignment.photoUrl"
+              :src="assignment.photoUrl"
+              alt=""
+              class="h-full w-full object-cover"
+            >
+            <UIcon v-else name="i-heroicons-camera" class="size-8 text-gray-400" />
+          </button>
+
+          <div class="min-w-0 space-y-1">
+            <input
+              :ref="(el) => setFileInputRef(el, index)"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              class="hidden"
+              :disabled="uploadingIndex === index"
+              @change="uploadAssignmentPhoto($event, assignment, index)"
+            >
+            <UButton
+              type="button"
+              size="xs"
+              color="neutral"
+              variant="subtle"
+              :loading="uploadingIndex === index"
+              @click="openFilePicker(index)"
+            >
+              {{ assignment.photoUrl ? 'Changer la photo' : 'Ajouter une photo' }}
+            </UButton>
+            <p class="text-xs text-gray-500 truncate">
+              {{ photoLabel(assignment, index) }}
+            </p>
+          </div>
         </div>
         <UInput v-model="assignment.notes" placeholder="Notes" class="lg:col-span-2" />
         <UButton
@@ -58,12 +88,27 @@
       </div>
 
       <div class="flex gap-2">
-        <UButton type="submit" color="primary">Enregistrer le cast</UButton>
+        <UButton type="submit" color="primary" :loading="saving" :disabled="saving">
+          Enregistrer le cast
+        </UButton>
         <UButton type="button" color="neutral" to="/sessions">Retour</UButton>
       </div>
 
       <p v-if="serverError" class="text-red-500 text-sm">{{ serverError }}</p>
     </form>
+
+    <UModal v-model:open="showPhotoPreview">
+      <template #body>
+        <div class="flex justify-center p-2">
+          <img
+            v-if="previewPhotoUrl"
+            :src="previewPhotoUrl"
+            alt=""
+            class="max-h-[80vh] max-w-full rounded object-contain"
+          >
+        </div>
+      </template>
+    </UModal>
   </UCard>
 </template>
 
@@ -79,7 +124,12 @@ const props = defineProps({
 
 const assignments = ref([])
 const uploadingIndex = ref(null)
+const saving = ref(false)
 const serverError = ref('')
+const fileInputs = ref([])
+const selectedPhotoNames = ref({})
+const showPhotoPreview = ref(false)
+const previewPhotoUrl = ref('')
 
 const characterOptions = computed(() => props.characters
   .filter((character) => character.gameId === props.session.gameId)
@@ -105,7 +155,30 @@ watch(() => props.session, (session) => {
     photoUrl: assignment.photoUrl || '',
     notes: assignment.notes || ''
   })) || []
+  selectedPhotoNames.value = {}
 }, { immediate: true })
+
+function setFileInputRef(element, index) {
+  if (element) {
+    fileInputs.value[index] = element
+  }
+}
+
+function openFilePicker(index) {
+  fileInputs.value[index]?.click()
+}
+
+function photoLabel(assignment, index) {
+  if (uploadingIndex.value === index) return 'Envoi en cours...'
+  if (selectedPhotoNames.value[index]) return selectedPhotoNames.value[index]
+  if (assignment.photoUrl) return 'Photo enregistrée'
+  return 'Aucune photo'
+}
+
+function openPhotoPreview(photoUrl) {
+  previewPhotoUrl.value = photoUrl
+  showPhotoPreview.value = true
+}
 
 function addAssignment() {
   assignments.value.push({
@@ -121,11 +194,16 @@ function removeAssignment(index) {
 }
 
 async function submit() {
+  if (saving.value) return
+
+  saving.value = true
   try {
     await props.onSave(assignments.value.filter((assignment) => assignment.characterId))
     serverError.value = ''
   } catch (err) {
     serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+  } finally {
+    saving.value = false
   }
 }
 
@@ -135,6 +213,10 @@ async function uploadAssignmentPhoto(event, assignment, index) {
   if (!file) return
 
   uploadingIndex.value = index
+  selectedPhotoNames.value = {
+    ...selectedPhotoNames.value,
+    [index]: file.name
+  }
   try {
     const formData = new FormData()
     formData.append('photo', file)
