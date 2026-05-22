@@ -48,7 +48,7 @@
 
                 <div class="space-y-4">
                     <p class="text-sm leading-6 text-gray-600 line-clamp-5">
-                        {{ char.description || 'Aucune description renseignée.' }}
+                        {{ char.pitch || 'Aucun pitch renseigné.' }}
                     </p>
 
                     <div v-if="!isOffline" class="flex flex-wrap gap-2 pt-1">
@@ -187,7 +187,9 @@ const filteredCharacters = computed(() => {
         .filter(c => !gameId || c.gameId === gameId)
         .filter(c =>
             c.name.toLowerCase().includes(term) ||
-            (c.description?.toLowerCase().includes(term))
+            (c.pitch?.toLowerCase().includes(term)) ||
+            (c.background?.toLowerCase().includes(term)) ||
+            (c.costumeIndications?.toLowerCase().includes(term))
         )
 
     switch (sortOption.value) {
@@ -229,7 +231,10 @@ const prevCharPage = () => {
 // 🧱 Création
 const newCharacter = ref({
     name: '',
-    description: '',
+    pitch: '',
+    background: '',
+    backgroundDocumentUrl: '',
+    costumeIndications: '',
     gameId: selectedGame.value?.id || ''
 })
 
@@ -248,7 +253,14 @@ const activeFormCharacter = ref(null)
 const formMode = ref('create')
 
 function openCreateSlideover() {
-    activeFormCharacter.value = { name: '', description: '', gameId: selectedGame.value?.id || '' }
+    activeFormCharacter.value = {
+        name: '',
+        pitch: '',
+        background: '',
+        backgroundDocumentUrl: '',
+        costumeIndications: '',
+        gameId: selectedGame.value?.id || ''
+    }
     formMode.value = 'create'
     showSlideover.value = true
 }

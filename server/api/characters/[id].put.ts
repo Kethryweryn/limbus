@@ -12,10 +12,13 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readZodBody(event, updateCharacterSchema)
-  const { name, description, gameId, published } = body
+  const { name, pitch, background, backgroundDocumentUrl, costumeIndications, gameId, published } = body
 
   const data: any = {
-    description,
+    pitch,
+    background,
+    backgroundDocumentUrl,
+    costumeIndications,
     gameId,
     published
   }

@@ -15,7 +15,7 @@ const prisma = new PrismaClient({
 
 type CharacterSeed = {
   name: string
-  description: string
+  pitch: string
 }
 
 type PlayerSeed = {
@@ -46,14 +46,14 @@ const games: GameSeed[] = [
     description: 'Un huis clos politique dans une baronnie frontaliere ou une succession fragile menace de rallumer une guerre ancienne.',
     noteIntention: 'Mettre en tension alliances familiales, secrets de guerre et choix moraux.',
     characters: [
-      { name: 'Aelis de Valombre', description: 'Heritiere officielle de la baronnie, brillante mais isolee.' },
-      { name: 'Marceau Trelane', description: 'Capitaine de la garde, loyal a la ville plus qu aux nobles.' },
-      { name: 'Soeur Ysilde', description: 'Archiviste du temple, detentrice de confessions dangereuses.' },
-      { name: 'Corvin le Noir', description: 'Emissaire d une maison rivale, charmeur et opportuniste.' },
-      { name: 'Nora Fiel', description: 'Cheffe des artisans, lasse de payer pour les querelles des puissants.' },
-      { name: 'Bastian Lorme', description: 'Barde itinerant qui en sait trop sur la mort du baron.' },
-      { name: 'Helene de Briseciel', description: 'Diplomate venue negocier une paix impossible.' },
-      { name: 'Toma le Rouge', description: 'Ancien contrebandier devenu informateur de la garde.' }
+      { name: 'Aelis de Valombre', pitch: 'Heritiere officielle de la baronnie, brillante mais isolee.' },
+      { name: 'Marceau Trelane', pitch: 'Capitaine de la garde, loyal a la ville plus qu aux nobles.' },
+      { name: 'Soeur Ysilde', pitch: 'Archiviste du temple, detentrice de confessions dangereuses.' },
+      { name: 'Corvin le Noir', pitch: 'Emissaire d une maison rivale, charmeur et opportuniste.' },
+      { name: 'Nora Fiel', pitch: 'Cheffe des artisans, lasse de payer pour les querelles des puissants.' },
+      { name: 'Bastian Lorme', pitch: 'Barde itinerant qui en sait trop sur la mort du baron.' },
+      { name: 'Helene de Briseciel', pitch: 'Diplomate venue negocier une paix impossible.' },
+      { name: 'Toma le Rouge', pitch: 'Ancien contrebandier devenu informateur de la garde.' }
     ],
     players: [
       { name: 'Camille Bernard', email: 'camille.bernard@example.test', phone: '06 11 22 33 01' },
@@ -85,14 +85,14 @@ const games: GameSeed[] = [
     description: 'Une station scientifique coupe du reste du systeme solaire apres la decouverte d un signal impossible.',
     noteIntention: 'Tester la paranoia, la cooperation sous pression et les dilemmes scientifiques.',
     characters: [
-      { name: 'Dr Lena Kovacs', description: 'Directrice scientifique de Meridian, responsable du protocole de contact.' },
-      { name: 'Milo Varga', description: 'Ingenieur de maintenance qui connait les failles de la station.' },
-      { name: 'Samira Okonkwo', description: 'Officiere de securite chargee de maintenir le calme.' },
-      { name: 'Eli Chen', description: 'Analyste signal, premier a avoir entendu la transmission.' },
-      { name: 'Nadia Sol', description: 'Representante du consortium prive financeur de la mission.' },
-      { name: 'Jonas Pike', description: 'Medecin de bord, inquiet des effets psychologiques du signal.' },
-      { name: 'Rhea Tan', description: 'Pilote de navette bloquee a quai depuis la panne orbitale.' },
-      { name: 'Oskar Nilsson', description: 'Technicien reseau soupconne de falsifier les journaux systeme.' }
+      { name: 'Dr Lena Kovacs', pitch: 'Directrice scientifique de Meridian, responsable du protocole de contact.' },
+      { name: 'Milo Varga', pitch: 'Ingenieur de maintenance qui connait les failles de la station.' },
+      { name: 'Samira Okonkwo', pitch: 'Officiere de securite chargee de maintenir le calme.' },
+      { name: 'Eli Chen', pitch: 'Analyste signal, premier a avoir entendu la transmission.' },
+      { name: 'Nadia Sol', pitch: 'Representante du consortium prive financeur de la mission.' },
+      { name: 'Jonas Pike', pitch: 'Medecin de bord, inquiet des effets psychologiques du signal.' },
+      { name: 'Rhea Tan', pitch: 'Pilote de navette bloquee a quai depuis la panne orbitale.' },
+      { name: 'Oskar Nilsson', pitch: 'Technicien reseau soupconne de falsifier les journaux systeme.' }
     ],
     players: [
       { name: 'Amandine Blanc', email: 'amandine.blanc@example.test', phone: '06 22 33 44 01' },
@@ -124,14 +124,14 @@ const games: GameSeed[] = [
     description: 'Une soiree mondaine ou chaque invite cache une dette, une trahison ou une identite empruntee.',
     noteIntention: 'Favoriser le jeu social, les retournements publics et les revelations progressives.',
     characters: [
-      { name: 'Celeste Vairon', description: 'Organisatrice du bal, officiellement ruinee mais toujours influente.' },
-      { name: 'Octave Mirecourt', description: 'Critique mondain dont les chroniques peuvent detruire une reputation.' },
-      { name: 'Iris de Montfaucon', description: 'Jeune aristocrate revenue d exil avec un plan precis.' },
-      { name: 'Valentin Sorel', description: 'Faussaire elegant qui pretend etre collectionneur.' },
-      { name: 'Agathe Lenoir', description: 'Duenna redoutable, memoire vivante des scandales passes.' },
-      { name: 'Romain Delmas', description: 'Banquier discret qui tient plusieurs invites par leurs dettes.' },
-      { name: 'Mina Salvati', description: 'Chanteuse invitee, temoin d une disparition ancienne.' },
-      { name: 'Gaspard Voss', description: 'Majordome impeccable, seul a circuler partout sans etre vu.' }
+      { name: 'Celeste Vairon', pitch: 'Organisatrice du bal, officiellement ruinee mais toujours influente.' },
+      { name: 'Octave Mirecourt', pitch: 'Critique mondain dont les chroniques peuvent detruire une reputation.' },
+      { name: 'Iris de Montfaucon', pitch: 'Jeune aristocrate revenue d exil avec un plan precis.' },
+      { name: 'Valentin Sorel', pitch: 'Faussaire elegant qui pretend etre collectionneur.' },
+      { name: 'Agathe Lenoir', pitch: 'Duenna redoutable, memoire vivante des scandales passes.' },
+      { name: 'Romain Delmas', pitch: 'Banquier discret qui tient plusieurs invites par leurs dettes.' },
+      { name: 'Mina Salvati', pitch: 'Chanteuse invitee, temoin d une disparition ancienne.' },
+      { name: 'Gaspard Voss', pitch: 'Majordome impeccable, seul a circuler partout sans etre vu.' }
     ],
     players: [
       { name: 'Pauline Aubert', email: 'pauline.aubert@example.test', phone: '06 33 44 55 01' },
@@ -194,7 +194,7 @@ async function createGame(seed: GameSeed, gameIndex: number) {
       data: {
         name: character.name,
         slug: makeSlug(`${seed.title}-${character.name}`),
-        description: character.description,
+        pitch: character.pitch,
         gameId: game.id,
         published: true
       }

@@ -46,13 +46,19 @@ export const updateGameSchema = z.object({
 
 export const createCharacterSchema = z.object({
   name: requiredText('Name'),
-  description: optionalText,
+  pitch: optionalText,
+  background: optionalText,
+  backgroundDocumentUrl: optionalText,
+  costumeIndications: optionalText,
   gameId: requiredId('Game')
 })
 
 export const updateCharacterSchema = z.object({
   name: requiredText('Name').optional(),
-  description: optionalText,
+  pitch: optionalText,
+  background: optionalText,
+  backgroundDocumentUrl: optionalText,
+  costumeIndications: optionalText,
   gameId: requiredId('Game').optional(),
   published: optionalBoolean
 })

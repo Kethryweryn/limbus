@@ -13,7 +13,10 @@ export default defineEventHandler(async (event) => {
         data: {
             name: body.name,
             slug,
-            description: body.description,
+            pitch: body.pitch,
+            background: body.background,
+            backgroundDocumentUrl: body.backgroundDocumentUrl,
+            costumeIndications: body.costumeIndications,
             gameId: body.gameId
         }
     })

@@ -15,8 +15,43 @@
                 <UInput v-model="localCharacter.name" required autofocus size="lg" class="w-full" />
             </UFormField>
 
-            <UFormField label="Description" :error="errors.description">
-                <UTextarea v-model="localCharacter.description" :rows="12" size="lg" class="w-full" />
+            <UFormField label="Pitch" :error="errors.pitch">
+                <UTextarea
+                    v-model="localCharacter.pitch"
+                    :rows="5"
+                    size="lg"
+                    class="w-full"
+                    placeholder="Texte court envoyé aux joueurs lors de l’attribution du personnage."
+                />
+            </UFormField>
+
+            <UFormField label="Background" :error="errors.background">
+                <UTextarea
+                    v-model="localCharacter.background"
+                    :rows="18"
+                    size="lg"
+                    class="w-full font-mono text-sm"
+                    placeholder="Histoire complète du personnage."
+                />
+            </UFormField>
+
+            <UFormField label="Lien vers un background externe" :error="errors.backgroundDocumentUrl">
+                <UInput
+                    v-model="localCharacter.backgroundDocumentUrl"
+                    type="url"
+                    size="lg"
+                    class="w-full"
+                    placeholder="Google Docs, PDF, DOCX ou ODT hébergé ailleurs"
+                />
+            </UFormField>
+
+            <UFormField label="Indications costumes" :error="errors.costumeIndications">
+                <UTextarea
+                    v-model="localCharacter.costumeIndications"
+                    :rows="5"
+                    size="lg"
+                    class="w-full"
+                />
             </UFormField>
 
             <div class="flex flex-wrap gap-2 pt-2">

@@ -26,9 +26,44 @@
         <template v-else>
             <h1 class="text-3xl font-bold">{{ character.name }}</h1>
 
-            <div v-if="character.description">
-                <h2 class="text-xl font-semibold mb-2">Description</h2>
-                <p class="whitespace-pre-line">{{ character.description }}</p>
+            <section v-if="character.pitch" class="space-y-2 rounded-lg border border-gray-200 bg-white p-5">
+                <h2 class="text-xl font-semibold">Pitch</h2>
+                <p class="whitespace-pre-line leading-7 text-gray-700">{{ character.pitch }}</p>
+            </section>
+
+            <section
+                v-if="character.background || character.backgroundDocumentUrl"
+                class="space-y-4 rounded-lg border border-gray-200 bg-white p-5"
+            >
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <h2 class="text-xl font-semibold">Background</h2>
+                    <UButton
+                        v-if="character.backgroundDocumentUrl"
+                        :to="character.backgroundDocumentUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        icon="i-heroicons-arrow-top-right-on-square"
+                        color="neutral"
+                        variant="soft"
+                    >
+                        Ouvrir le document
+                    </UButton>
+                </div>
+                <p v-if="character.background" class="whitespace-pre-line leading-7 text-gray-700">
+                    {{ character.background }}
+                </p>
+            </section>
+
+            <section v-if="character.costumeIndications" class="space-y-2 rounded-lg border border-gray-200 bg-white p-5">
+                <h2 class="text-xl font-semibold">Indications costumes</h2>
+                <p class="whitespace-pre-line leading-7 text-gray-700">{{ character.costumeIndications }}</p>
+            </section>
+
+            <div
+                v-if="!character.pitch && !character.background && !character.backgroundDocumentUrl && !character.costumeIndications"
+                class="rounded-lg border border-dashed border-gray-300 bg-white p-5 text-sm text-gray-500"
+            >
+                Aucun contenu renseigné pour ce personnage.
             </div>
 
             <div v-if="character.factions?.length">
