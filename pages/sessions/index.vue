@@ -67,7 +67,20 @@
             class="text-sm border rounded p-2 bg-gray-50"
           >
             <div class="flex items-start gap-3">
-              <UAvatar :src="assignment.photoUrl || undefined" icon="i-heroicons-user" />
+              <button
+                type="button"
+                class="size-20 shrink-0 overflow-hidden rounded border border-gray-200 bg-gray-50 flex items-center justify-center"
+                :class="assignment.photoUrl ? 'cursor-pointer' : 'cursor-default'"
+                @click="assignment.photoUrl && openPhotoPreview(assignment.photoUrl)"
+              >
+                <img
+                  v-if="assignment.photoUrl"
+                  :src="assignment.photoUrl"
+                  alt=""
+                  class="h-full w-full object-cover"
+                >
+                <UIcon v-else name="i-heroicons-user" class="size-8 text-gray-400" />
+              </button>
               <div class="min-w-0">
                 <div class="font-medium">{{ assignment.character?.name }}</div>
                 <div class="text-gray-600">
@@ -101,6 +114,19 @@
       </template>
     </USlideover>
 
+    <UModal v-model:open="showPhotoPreview">
+      <template #body>
+        <div class="flex justify-center p-2">
+          <img
+            v-if="previewPhotoUrl"
+            :src="previewPhotoUrl"
+            alt=""
+            class="max-h-[80vh] max-w-full rounded object-contain"
+          >
+        </div>
+      </template>
+    </UModal>
+
   </div>
 </template>
 
@@ -123,6 +149,8 @@ const isOffline = ref(false)
 const showFormSlideover = ref(false)
 const activeFormSession = ref(null)
 const formMode = ref('create')
+const showPhotoPreview = ref(false)
+const previewPhotoUrl = ref('')
 const { game: selectedGame } = useGameFocus()
 
 const gameFilterOptions = computed(() => [
@@ -162,6 +190,11 @@ const formatDate = (value) => new Date(value).toLocaleString('fr-FR', {
 
 const formatLocation = (location) => {
   return location.address ? `${location.name} - ${location.address}` : location.name
+}
+
+function openPhotoPreview(photoUrl) {
+  previewPhotoUrl.value = photoUrl
+  showPhotoPreview.value = true
 }
 
 const fetchSessions = async () => {
