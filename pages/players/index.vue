@@ -29,7 +29,27 @@
               <UAvatar icon="i-heroicons-user" />
               <div class="min-w-0">
                 <h2 class="font-semibold truncate">{{ player.name }}</h2>
-                <p class="text-sm text-gray-500 truncate">{{ formatPlayerGames(player) }}</p>
+                <div class="flex flex-wrap gap-1 mt-1" :title="formatPlayerGames(player)">
+                  <UBadge
+                    v-for="game in visiblePlayerGames(player)"
+                    :key="game.id"
+                    color="neutral"
+                    variant="subtle"
+                    size="xs"
+                    class="max-w-40 truncate"
+                  >
+                    {{ game.title }}
+                  </UBadge>
+                  <UBadge
+                    v-if="hiddenPlayerGamesCount(player) > 0"
+                    color="neutral"
+                    variant="outline"
+                    size="xs"
+                  >
+                    +{{ hiddenPlayerGamesCount(player) }}
+                  </UBadge>
+                  <span v-if="!player.games?.length" class="text-sm text-gray-500">Aucun jeu</span>
+                </div>
               </div>
             </div>
             <div v-if="!isOffline" class="flex gap-2">
@@ -113,6 +133,10 @@ const formatPlayerGames = (player) => {
   if (!player.games?.length) return 'Aucun jeu'
   return player.games.map((game) => game.title).join(', ')
 }
+
+const visiblePlayerGames = (player) => player.games?.slice(0, 2) || []
+
+const hiddenPlayerGamesCount = (player) => Math.max((player.games?.length || 0) - visiblePlayerGames(player).length, 0)
 
 const fetchPlayers = async () => {
   if (isOfflineMode()) {

@@ -9,7 +9,12 @@ export function normalizeAssignments(assignments: Array<{
   if (!Array.isArray(assignments)) return []
 
   const seen = new Set<string>()
-  const normalized = []
+  const normalized: Array<{
+    characterId: string
+    playerId: string | null
+    photoUrl: string | null
+    notes: string | null
+  }> = []
 
   for (const assignment of assignments) {
     if (!assignment.characterId || seen.has(assignment.characterId)) continue
@@ -35,7 +40,7 @@ export async function assertPlayersRegisteredForGame(gameId: string, assignments
   const registeredPlayers = await prisma.player.count({
     where: {
       id: { in: playerIds },
-      games: { some: { id: gameId } }
+      gameLinks: { some: { gameId } }
     }
   })
 

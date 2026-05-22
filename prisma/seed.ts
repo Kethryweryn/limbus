@@ -208,8 +208,8 @@ async function createGame(seed: GameSeed, gameIndex: number) {
         email: player.email,
         phone: player.phone,
         notes: player.notes || null,
-        games: {
-          connect: [{ id: game.id }]
+        gameLinks: {
+          create: [{ gameId: game.id }]
         },
         published: true
       }
@@ -242,8 +242,8 @@ async function createCrossGamePlayers(gameIds: string[]) {
       email: 'alex.morgan@example.test',
       phone: '06 44 55 66 01',
       notes: 'Joueur inscrit sur plusieurs jeux pour tester les filtres.',
-      games: {
-        connect: gameIds.slice(0, 2).map((id) => ({ id }))
+      gameLinks: {
+        create: gameIds.slice(0, 2).map((gameId) => ({ gameId }))
       },
       published: true
     }
@@ -255,8 +255,8 @@ async function createCrossGamePlayers(gameIds: string[]) {
       email: 'morgan.dasilva@example.test',
       phone: '06 44 55 66 02',
       notes: 'Disponible sur tous les jeux de test.',
-      games: {
-        connect: gameIds.map((id) => ({ id }))
+      gameLinks: {
+        create: gameIds.map((gameId) => ({ gameId }))
       },
       published: true
     }

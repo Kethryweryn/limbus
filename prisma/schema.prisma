@@ -26,7 +26,7 @@ model Game {
   sessions       Session[]
   documents      Document[]
   locations      Location[]
-  players        Player[]   @relation("GamePlayers")
+  playerLinks    PlayerGame[]
 }
 
 model Character {
@@ -141,10 +141,23 @@ model Player {
   email       String?
   phone       String?
   notes       String?
-  games       Game[]     @relation("GamePlayers")
+  gameLinks   PlayerGame[]
   published   Boolean    @default(true)
 
   assignments SessionAssignment[]
+}
+
+model PlayerGame {
+  id        String   @id @default(cuid())
+  playerId  String
+  gameId    String
+  createdAt DateTime @default(now())
+
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, gameId])
+  @@index([gameId])
 }
 
 model User {
