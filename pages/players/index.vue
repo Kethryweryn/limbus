@@ -28,7 +28,9 @@
             <div class="flex items-center gap-3 min-w-0">
               <UAvatar icon="i-heroicons-user" />
               <div class="min-w-0">
-                <h2 class="font-semibold truncate">{{ player.name }}</h2>
+                <NuxtLink :to="`/players/${player.id}`" class="font-semibold truncate hover:underline">
+                  {{ player.name }}
+                </NuxtLink>
                 <div class="flex flex-wrap gap-1 mt-1" :title="formatPlayerGames(player)">
                   <UBadge
                     v-for="game in visiblePlayerGames(player)"
@@ -76,20 +78,22 @@
       </UCard>
     </div>
 
-    <USlideover v-model:open="showFormSlideover">
-      <template #body>
-      <div class="p-4">
-        <PlayerForm
-          v-if="activeFormPlayer"
-          v-model:player="activeFormPlayer"
-          :games="games"
-          :mode="formMode"
-          @submit="handlePlayerFormSubmit"
-          @cancel="closeFormSlideover"
-        />
-      </div>
-      </template>
-    </USlideover>
+    <AppWideSlideover
+      v-model:open="showFormSlideover"
+      :title="formMode === 'edit' ? 'Modifier le joueur' : 'Créer un joueur'"
+      :full-page-to="formMode === 'edit' && activeFormPlayer?.id ? `/players/${activeFormPlayer.id}?edit=1` : null"
+      @close="closeFormSlideover"
+      @full-page="showFormSlideover = false"
+    >
+      <PlayerForm
+        v-if="activeFormPlayer"
+        v-model:player="activeFormPlayer"
+        :games="games"
+        :mode="formMode"
+        @submit="handlePlayerFormSubmit"
+        @cancel="closeFormSlideover"
+      />
+    </AppWideSlideover>
   </div>
 </template>
 

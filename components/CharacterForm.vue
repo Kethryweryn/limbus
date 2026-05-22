@@ -1,29 +1,29 @@
 <template>
-    <UCard>
+    <UCard class="w-full">
         <template #header>
             {{ mode === 'edit' ? 'Modifier le personnage' : 'Créer un nouveau personnage' }}
         </template>
 
-        <form @submit.prevent="submit" class="space-y-4">
+        <form @submit.prevent="submit" class="w-full space-y-6">
             <UFormField label="Jeu" :error="errors.gameId">
                 <USelect v-model="localCharacter.gameId"
                     :items="props.games.map(g => ({ label: g.title, value: g.id }))" value-key="value" placeholder="Choisissez un jeu"
-                    required />
+                    required size="lg" class="w-full" />
             </UFormField>
 
             <UFormField label="Nom" :error="errors.name">
-                <UInput v-model="localCharacter.name" required autofocus />
+                <UInput v-model="localCharacter.name" required autofocus size="lg" class="w-full" />
             </UFormField>
 
             <UFormField label="Description" :error="errors.description">
-                <UTextarea v-model="localCharacter.description" />
+                <UTextarea v-model="localCharacter.description" :rows="12" size="lg" class="w-full" />
             </UFormField>
 
-            <div class="flex gap-2">
-                <UButton type="submit" color="primary" :disabled="!localCharacter.name?.trim() || !localCharacter.gameId">
+            <div class="flex flex-wrap gap-2 pt-2">
+                <UButton type="submit" color="primary" size="lg" :disabled="!localCharacter.name?.trim() || !localCharacter.gameId">
                     {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
                 </UButton>
-                <UButton @click="$emit('cancel')" color="neutral">
+                <UButton @click="$emit('cancel')" color="neutral" size="lg">
                     Annuler
                 </UButton>
             </div>

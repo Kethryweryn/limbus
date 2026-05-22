@@ -22,37 +22,92 @@
         class="w-full md:w-60" />
     </div>
 
-    <UCard v-for="game in paginatedGames" :key="game.id" class="mb-4" :class="{ 'opacity-50': !game.published }">
-      <template #header>
-        <div class="flex justify-between items-center">
-          <button class="text-blue-600 hover:underline" @click="openSlideover(game.slug)">
-            {{ game.title }}
-          </button>
-          <div class="flex gap-2">
-            <template v-if="activeGame?.id === game.id">
-              <UBadge color="success" variant="solid" size="xs">🎯 Jeu actif</UBadge>
-            </template>
-            <template v-else>
-              <UButton v-if="!game.published && !isOffline" @click="publishGame(game.id)" size="xs" color="warning">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <UCard
+        v-for="game in paginatedGames"
+        :key="game.id"
+        :class="{ 'opacity-60': !game.published }"
+      >
+        <template #header>
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0 space-y-2">
+              <button
+                class="block text-left text-lg font-semibold leading-tight hover:underline"
+                @click="openSlideover(game.slug)"
+              >
+                {{ game.title }}
+              </button>
+              <div class="flex flex-wrap gap-1">
+                <UBadge v-if="activeGame?.id === game.id" color="success" variant="subtle" size="xs">
+                  Jeu actif
+                </UBadge>
+                <UBadge v-if="!game.published" color="neutral" variant="solid" size="xs">
+                  Archivé
+                </UBadge>
+                <UBadge v-else color="primary" variant="subtle" size="xs">
+                  Publié
+                </UBadge>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <div class="space-y-4">
+          <p class="text-sm leading-6 text-gray-600 line-clamp-4">
+            {{ game.description || 'Aucune description renseignée.' }}
+          </p>
+
+          <div v-if="game.noteIntention" class="rounded-md bg-gray-50 p-3 text-sm text-gray-600">
+            <div class="mb-1 font-medium text-gray-700">Note d’intention</div>
+            <p class="line-clamp-3">{{ game.noteIntention }}</p>
+          </div>
+
+          <div class="flex flex-wrap gap-2 pt-1">
+            <template v-if="activeGame?.id !== game.id">
+              <UButton
+                v-if="!game.published && !isOffline"
+                icon="i-heroicons-arrow-up-tray"
+                size="xs"
+                color="warning"
+                @click="publishGame(game.id)"
+              >
                 Publier
               </UButton>
-              <UButton v-else @click="selectGame({ id: game.id, title: game.title })" size="xs" color="success">
-                Définir comme jeu actif
+              <UButton
+                v-else
+                icon="i-heroicons-check-circle"
+                size="xs"
+                color="success"
+                @click="selectGame({ id: game.id, title: game.title })"
+              >
+                Activer
               </UButton>
             </template>
 
-            <UButton v-if="!isOffline" size="xs" color="primary" @click="startEdit(game)">Modifier</UButton>
+            <UButton
+              v-if="!isOffline"
+              icon="i-heroicons-pencil-square"
+              size="xs"
+              color="primary"
+              @click="startEdit(game)"
+            >
+              Modifier
+            </UButton>
 
-            <template v-if="!game.published">
-              <UBadge color="neutral" variant="solid" size="xs">Archivé</UBadge>
-            </template>
-            <template v-else-if="!isOffline">
-              <UButton size="xs" color="error" @click="archiveGame(game.id)">Archiver</UButton>
-            </template>
+            <UButton
+              v-if="game.published && !isOffline"
+              icon="i-heroicons-archive-box"
+              size="xs"
+              color="error"
+              variant="soft"
+              @click="archiveGame(game.id)"
+            >
+              Archiver
+            </UButton>
           </div>
         </div>
-      </template>
-    </UCard>
+      </UCard>
+    </div>
 
     <div class="flex justify-center gap-4 mt-6">
       <UButton @click="prevPage" :disabled="page === 1">← Précédent</UButton>
@@ -62,83 +117,43 @@
   </div>
 
   <!-- Slideover formulaire -->
-  <USlideover v-model:open="showFormSlideover" :ui="{ content: formSlideoverClass }">
-    <template #header>
-      <div class="flex w-full items-center justify-between gap-3">
-        <div>
-          <h2 class="text-base font-semibold">
-            {{ formMode === 'edit' ? 'Modifier le jeu' : 'Créer un jeu' }}
-          </h2>
-        </div>
-        <div class="flex items-center gap-2">
-          <UButton
-            v-if="formMode === 'edit' && activeFormGame?.slug"
-            icon="i-heroicons-arrows-pointing-out"
-            color="neutral"
-            variant="ghost"
-            size="sm"
-            @click="openFullPageEdit"
-          >
-            Pleine page
-          </UButton>
-          <UButton
-            icon="i-heroicons-x-mark"
-            color="neutral"
-            variant="ghost"
-            size="sm"
-            aria-label="Fermer"
-            @click="closeFormSlideover"
-          />
-        </div>
-      </div>
-    </template>
-    <template #body>
-    <div class="p-6 space-y-6">
-      <GameForm v-if="activeFormGame" v-model:game="activeFormGame" :mode="formMode" @submit="handleGameFormSubmit"
-        @cancel="closeFormSlideover" />
-    </div>
-    </template>
-  </USlideover>
+  <AppWideSlideover
+    v-model:open="showFormSlideover"
+    :title="formMode === 'edit' ? 'Modifier le jeu' : 'Créer un jeu'"
+    :full-page-to="formMode === 'edit' && activeFormGame?.slug ? `/games/${activeFormGame.slug}?edit=1` : null"
+    @close="closeFormSlideover"
+    @full-page="showFormSlideover = false"
+  >
+    <GameForm
+      v-if="activeFormGame"
+      v-model:game="activeFormGame"
+      :mode="formMode"
+      @submit="handleGameFormSubmit"
+      @cancel="closeFormSlideover"
+    />
+  </AppWideSlideover>
 
   <!-- Slideover aperçu -->
-  <USlideover v-model:open="showPreviewSlideover" :ui="{ content: previewSlideoverClass }">
-    <template #header>
-      <div class="flex w-full items-center justify-between gap-3">
-        <h2 class="truncate text-base font-semibold">{{ selectedGame?.title }}</h2>
-        <div class="flex items-center gap-2">
-          <UButton
-            v-if="selectedGame?.slug"
-            icon="i-heroicons-arrows-pointing-out"
-            color="neutral"
-            variant="ghost"
-            size="sm"
-            @click="openFullPagePreview"
-          >
-            Pleine page
-          </UButton>
-          <UButton
-            v-if="selectedGame && !isOffline"
-            icon="i-heroicons-pencil-square"
-            color="primary"
-            variant="ghost"
-            size="sm"
-            @click="startEditFromPreview"
-          >
-            Modifier
-          </UButton>
-          <UButton
-            icon="i-heroicons-x-mark"
-            color="neutral"
-            variant="ghost"
-            size="sm"
-            aria-label="Fermer"
-            @click="showPreviewSlideover = false"
-          />
-        </div>
-      </div>
+  <AppWideSlideover
+    v-model:open="showPreviewSlideover"
+    :title="selectedGame?.title || 'Jeu'"
+    :full-page-to="selectedGame?.slug ? `/games/${selectedGame.slug}` : null"
+    @full-page="showPreviewSlideover = false"
+  >
+    <template #actions>
+      <UButton
+        v-if="selectedGame && !isOffline"
+        icon="i-heroicons-pencil-square"
+        color="primary"
+        variant="ghost"
+        size="sm"
+        @click="startEditFromPreview"
+      >
+        Modifier
+      </UButton>
     </template>
-    <template #body>
-    <div v-if="selectedGame" class="p-6 space-y-8">
+
+    <div v-if="selectedGame" class="space-y-8">
       <div class="space-y-3">
         <h2 class="text-3xl font-bold">{{ selectedGame?.title }}</h2>
         <p class="text-base leading-7 text-gray-700 whitespace-pre-line">{{ selectedGame?.description }}</p>
@@ -153,8 +168,7 @@
         Utiliser ce jeu
       </UButton>
     </div>
-    </template>
-  </USlideover>
+  </AppWideSlideover>
 </template>
 
 <script setup>
@@ -313,9 +327,6 @@ const showPreviewSlideover = ref(false)
 const activeFormGame = ref(null)
 const formMode = ref('create')
 
-const formSlideoverClass = 'w-screen max-w-none md:w-[calc(100vw-var(--limbus-sidebar-width,16rem))] md:max-w-none'
-const previewSlideoverClass = formSlideoverClass
-
 function closeFormSlideover() {
   activeFormGame.value = null
   showFormSlideover.value = false
@@ -335,18 +346,6 @@ function startEditFromPreview() {
   if (!selectedGame.value) return
   startEdit(selectedGame.value)
   showPreviewSlideover.value = false
-}
-
-function openFullPagePreview() {
-  if (!selectedGame.value?.slug) return
-  showPreviewSlideover.value = false
-  router.push(`/games/${selectedGame.value.slug}`)
-}
-
-function openFullPageEdit() {
-  if (!activeFormGame.value?.slug) return
-  showFormSlideover.value = false
-  router.push(`/games/${activeFormGame.value.slug}?edit=1`)
 }
 
 async function handleGameFormSubmit() {

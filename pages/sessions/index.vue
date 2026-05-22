@@ -95,24 +95,26 @@
       </div>
     </UCard>
 
-    <USlideover v-model:open="showFormSlideover">
-      <template #body>
-      <div class="p-4">
-        <SessionForm
-          v-if="activeFormSession"
-          v-model:session="activeFormSession"
-          :games="games"
-          :characters="characters"
-          :locations="locations"
-          :players="players"
-          :mode="formMode"
-          :show-cast="false"
-          @submit="handleSessionFormSubmit"
-          @cancel="closeFormSlideover"
-        />
-      </div>
-      </template>
-    </USlideover>
+    <AppWideSlideover
+      v-model:open="showFormSlideover"
+      :title="formMode === 'edit' ? 'Modifier la session' : 'Créer une session'"
+      :full-page-to="formMode === 'edit' && activeFormSession?.id ? `/sessions/${activeFormSession.id}?edit=details` : null"
+      @close="closeFormSlideover"
+      @full-page="showFormSlideover = false"
+    >
+      <SessionForm
+        v-if="activeFormSession"
+        v-model:session="activeFormSession"
+        :games="games"
+        :characters="characters"
+        :locations="locations"
+        :players="players"
+        :mode="formMode"
+        :show-cast="false"
+        @submit="handleSessionFormSubmit"
+        @cancel="closeFormSlideover"
+      />
+    </AppWideSlideover>
 
     <UModal v-model:open="showPhotoPreview">
       <template #body>

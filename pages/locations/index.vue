@@ -26,7 +26,9 @@
         <template #header>
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <h2 class="font-semibold truncate">{{ location.name }}</h2>
+              <NuxtLink :to="`/locations/${location.id}`" class="font-semibold truncate hover:underline">
+                {{ location.name }}
+              </NuxtLink>
               <p class="text-sm text-gray-500 truncate">{{ location.game?.title || 'Jeu inconnu' }}</p>
             </div>
             <div v-if="!isOffline" class="flex gap-2">
@@ -49,20 +51,22 @@
       </UCard>
     </div>
 
-    <USlideover v-model:open="showFormSlideover">
-      <template #body>
-      <div class="p-4">
-        <LocationForm
-          v-if="activeFormLocation"
-          v-model:location="activeFormLocation"
-          :games="games"
-          :mode="formMode"
-          @submit="handleLocationFormSubmit"
-          @cancel="closeFormSlideover"
-        />
-      </div>
-      </template>
-    </USlideover>
+    <AppWideSlideover
+      v-model:open="showFormSlideover"
+      :title="formMode === 'edit' ? 'Modifier le lieu' : 'Créer un lieu'"
+      :full-page-to="formMode === 'edit' && activeFormLocation?.id ? `/locations/${activeFormLocation.id}?edit=1` : null"
+      @close="closeFormSlideover"
+      @full-page="showFormSlideover = false"
+    >
+      <LocationForm
+        v-if="activeFormLocation"
+        v-model:location="activeFormLocation"
+        :games="games"
+        :mode="formMode"
+        @submit="handleLocationFormSubmit"
+        @cancel="closeFormSlideover"
+      />
+    </AppWideSlideover>
   </div>
 </template>
 

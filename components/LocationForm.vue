@@ -1,10 +1,10 @@
 <template>
-  <UCard>
+  <UCard class="w-full">
     <template #header>
       {{ mode === 'edit' ? 'Modifier le lieu' : 'Créer un lieu' }}
     </template>
 
-    <form @submit.prevent="submit" class="space-y-4">
+    <form @submit.prevent="submit" class="w-full space-y-6">
       <UFormField label="Jeu" :error="errors.gameId">
         <USelect
           v-model="localLocation.gameId"
@@ -12,26 +12,28 @@
           value-key="value"
           placeholder="Choisissez un jeu"
           required
+          size="lg"
+          class="w-full"
         />
       </UFormField>
 
       <UFormField label="Nom" :error="errors.name">
-        <UInput v-model="localLocation.name" required />
+        <UInput v-model="localLocation.name" required size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Adresse">
-        <UTextarea v-model="localLocation.address" />
+        <UTextarea v-model="localLocation.address" :rows="8" size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Notes">
-        <UTextarea v-model="localLocation.notes" />
+        <UTextarea v-model="localLocation.notes" :rows="8" size="lg" class="w-full" />
       </UFormField>
 
-      <div class="flex gap-2">
-        <UButton type="submit" color="primary">
+      <div class="flex flex-wrap gap-2 pt-2">
+        <UButton type="submit" color="primary" size="lg">
           {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
         </UButton>
-        <UButton type="button" color="neutral" @click="$emit('cancel')">
+        <UButton type="button" color="neutral" size="lg" @click="$emit('cancel')">
           Annuler
         </UButton>
       </div>

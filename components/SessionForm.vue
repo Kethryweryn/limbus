@@ -1,10 +1,10 @@
 <template>
-  <UCard>
+  <UCard class="w-full">
     <template #header>
       {{ mode === 'edit' ? 'Modifier la session' : 'Créer une session' }}
     </template>
 
-    <form @submit.prevent="submit" class="space-y-4">
+    <form @submit.prevent="submit" class="w-full space-y-6">
       <UFormField label="Jeu" :error="errors.gameId">
         <USelect
           v-model="localSession.gameId"
@@ -12,11 +12,13 @@
           value-key="value"
           placeholder="Choisissez un jeu"
           required
+          size="lg"
+          class="w-full"
         />
       </UFormField>
 
       <UFormField label="Nom" :error="errors.name">
-        <UInput v-model="localSession.name" required />
+        <UInput v-model="localSession.name" required size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Statut">
@@ -24,11 +26,13 @@
           v-model="localSession.status"
           :items="statusOptions"
           value-key="value"
+          size="lg"
+          class="w-full"
         />
       </UFormField>
 
       <UFormField label="Date">
-        <UInput v-model="localSession.date" type="datetime-local" />
+        <UInput v-model="localSession.date" type="datetime-local" size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Lieu">
@@ -37,6 +41,8 @@
           :items="locationOptions"
           value-key="value"
           placeholder="Choisissez un lieu"
+          size="lg"
+          class="w-full"
         />
       </UFormField>
 
@@ -89,11 +95,11 @@
         </div>
       </div>
 
-      <div class="flex gap-2">
-        <UButton type="submit" color="primary">
+      <div class="flex flex-wrap gap-2 pt-2">
+        <UButton type="submit" color="primary" size="lg">
           {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
         </UButton>
-        <UButton type="button" color="neutral" @click="$emit('cancel')">
+        <UButton type="button" color="neutral" size="lg" @click="$emit('cancel')">
           Annuler
         </UButton>
       </div>

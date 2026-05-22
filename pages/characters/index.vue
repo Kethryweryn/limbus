@@ -12,19 +12,53 @@
         </div>
 
         <!-- Liste des personnages -->
-        <UCard v-for="char in paginatedCharacters" :key="char.id" class="mb-4">
-            <template #header>
-                <div class="flex justify-between items-center">
-                    <NuxtLink :to="`/characters/${char.slug}`" class="font-semibold underline">
-                        {{ char.name }}
-                    </NuxtLink>
-                    <div v-if="!isOffline" class="flex gap-2">
-                        <UButton size="xs" color="primary" @click="startEdit(char)">Modifier</UButton>
-                        <UButton size="xs" color="error" @click="deleteCharacter(char.id)">Supprimer</UButton>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <UCard v-for="char in paginatedCharacters" :key="char.id">
+                <template #header>
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0 space-y-2">
+                            <NuxtLink :to="`/characters/${char.slug}`" class="block text-lg font-semibold leading-tight hover:underline">
+                                {{ char.name }}
+                            </NuxtLink>
+                            <div class="flex flex-wrap gap-1">
+                                <UBadge color="neutral" variant="subtle" size="xs" class="max-w-full truncate">
+                                    {{ char.game?.title || 'Jeu inconnu' }}
+                                </UBadge>
+                                <UBadge v-if="!char.published" color="neutral" variant="solid" size="xs">
+                                    Archivé
+                                </UBadge>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <div class="space-y-4">
+                    <p class="text-sm leading-6 text-gray-600 line-clamp-5">
+                        {{ char.description || 'Aucune description renseignée.' }}
+                    </p>
+
+                    <div v-if="!isOffline" class="flex flex-wrap gap-2 pt-1">
+                        <UButton
+                            icon="i-heroicons-pencil-square"
+                            size="xs"
+                            color="primary"
+                            @click="startEdit(char)"
+                        >
+                            Modifier
+                        </UButton>
+                        <UButton
+                            icon="i-heroicons-trash"
+                            size="xs"
+                            color="error"
+                            variant="soft"
+                            @click="deleteCharacter(char.id)"
+                        >
+                            Supprimer
+                        </UButton>
                     </div>
                 </div>
-            </template>
-        </UCard>
+            </UCard>
+        </div>
 
         <div class="flex justify-center gap-4 mt-6">
             <UButton @click="prevCharPage" :disabled="charPage === 1">← Précédent</UButton>
@@ -36,14 +70,22 @@
     </div>
 
     <!-- Slideover pour création et édition -->
-    <USlideover v-model:open="showSlideover">
-        <template #body>
-        <div class="p-4 space-y-4">
-            <CharacterForm v-if="activeFormCharacter" v-model:character="activeFormCharacter" :games="games"
-                :mode="formMode" @submit="handleFormSubmit" @cancel="closeSlideover" />
-        </div>
-        </template>
-    </USlideover>
+    <AppWideSlideover
+        v-model:open="showSlideover"
+        :title="formMode === 'edit' ? 'Modifier le personnage' : 'Créer un personnage'"
+        :full-page-to="formMode === 'edit' && activeFormCharacter?.slug ? `/characters/${activeFormCharacter.slug}?edit=1` : null"
+        @close="closeSlideover"
+        @full-page="showSlideover = false"
+    >
+        <CharacterForm
+            v-if="activeFormCharacter"
+            v-model:character="activeFormCharacter"
+            :games="games"
+            :mode="formMode"
+            @submit="handleFormSubmit"
+            @cancel="closeSlideover"
+        />
+    </AppWideSlideover>
 
 </template>
 

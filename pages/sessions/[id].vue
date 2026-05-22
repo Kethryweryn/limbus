@@ -12,13 +12,36 @@
           <span v-if="session?.location"> · {{ session.location.name }}</span>
         </p>
       </div>
-      <UBadge v-if="session" :color="statusMeta(session.status).color" variant="subtle">
-        {{ statusMeta(session.status).label }}
-      </UBadge>
+      <div v-if="session" class="flex flex-wrap items-center gap-2">
+        <UBadge :color="statusMeta(session.status).color" variant="subtle">
+          {{ statusMeta(session.status).label }}
+        </UBadge>
+        <UButton
+          v-if="!isEditingDetails"
+          icon="i-heroicons-pencil-square"
+          color="primary"
+          @click="startEditDetails"
+        >
+          Modifier
+        </UButton>
+      </div>
     </div>
 
+    <SessionForm
+      v-if="session && isEditingDetails"
+      v-model:session="editableSession"
+      :games="games"
+      :characters="characters"
+      :locations="locations"
+      :players="players"
+      mode="edit"
+      :show-cast="false"
+      @submit="saveDetails"
+      @cancel="cancelEditDetails"
+    />
+
     <SessionCastForm
-      v-if="session"
+      v-else-if="session"
       :session="session"
       :characters="characters"
       :players="players"
@@ -32,13 +55,19 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import SessionCastForm from '@/components/SessionCastForm.vue'
+import SessionForm from '@/components/SessionForm.vue'
 
 const route = useRoute()
+const router = useRouter()
 const session = ref(null)
+const games = ref([])
 const characters = ref([])
+const locations = ref([])
 const players = ref([])
+const isEditingDetails = ref(route.query.edit === 'details')
+const editableSession = ref(null)
 
 const statusLabels = {
   scheduled: { label: 'Prévue', color: 'primary' },
@@ -58,15 +87,20 @@ const formatDate = (value) => new Date(value).toLocaleString('fr-FR', {
 })
 
 async function loadData() {
-  const [sessionData, charactersData, playersData] = await Promise.all([
+  const [sessionData, gamesData, charactersData, locationsData, playersData] = await Promise.all([
     useApiFetch(`/api/sessions/${route.params.id}`),
+    useApiFetch('/api/games'),
     useApiFetch('/api/characters'),
+    useApiFetch('/api/locations'),
     useApiFetch('/api/players')
   ])
 
   session.value = sessionData
+  games.value = gamesData
   characters.value = charactersData
+  locations.value = locationsData
   players.value = playersData
+  editableSession.value = normalizeSessionForForm(sessionData)
 }
 
 async function saveCast(assignments) {
@@ -91,6 +125,54 @@ function toDatetimeLocal(value) {
   const date = new Date(value)
   const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
   return offsetDate.toISOString().slice(0, 16)
+}
+
+function normalizeSessionForForm(value) {
+  return {
+    ...value,
+    date: toDatetimeLocal(value.date),
+    locationId: value.locationId || '',
+    assignments: value.assignments?.map((assignment) => ({
+      characterId: assignment.characterId,
+      playerId: assignment.playerId || '',
+      photoUrl: assignment.photoUrl || '',
+      notes: assignment.notes || ''
+    })) || []
+  }
+}
+
+watch(() => route.query.edit, (value) => {
+  isEditingDetails.value = value === 'details'
+  if (isEditingDetails.value && session.value) {
+    editableSession.value = normalizeSessionForForm(session.value)
+  }
+})
+
+function startEditDetails() {
+  if (!session.value) return
+
+  editableSession.value = normalizeSessionForForm(session.value)
+  isEditingDetails.value = true
+  router.replace({ path: route.path, query: { ...route.query, edit: 'details' } })
+}
+
+function cancelEditDetails() {
+  isEditingDetails.value = false
+  editableSession.value = session.value ? normalizeSessionForForm(session.value) : null
+  const query = { ...route.query }
+  delete query.edit
+  router.replace({ path: route.path, query })
+}
+
+async function saveDetails() {
+  if (!editableSession.value?.id) return
+
+  session.value = await useApiFetch(`/api/sessions/${editableSession.value.id}`, {
+    method: 'PUT',
+    body: editableSession.value
+  })
+  editableSession.value = normalizeSessionForForm(session.value)
+  cancelEditDetails()
 }
 
 onMounted(loadData)
