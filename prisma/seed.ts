@@ -43,16 +43,16 @@ type GameSeed = {
 const games: GameSeed[] = [
   {
     title: 'Les Cendres de Valombre',
-    description: 'Un huis clos politique dans une baronnie frontaliere ou une succession fragile menace de rallumer une guerre ancienne.',
+    description: 'Un huis clos politique dans une baronnie frontalière où une succession fragile menace de rallumer une guerre ancienne.',
     noteIntention: 'Mettre en tension alliances familiales, secrets de guerre et choix moraux.',
     characters: [
-      { name: 'Aelis de Valombre', pitch: 'Heritiere officielle de la baronnie, brillante mais isolee.' },
-      { name: 'Marceau Trelane', pitch: 'Capitaine de la garde, loyal a la ville plus qu aux nobles.' },
-      { name: 'Soeur Ysilde', pitch: 'Archiviste du temple, detentrice de confessions dangereuses.' },
-      { name: 'Corvin le Noir', pitch: 'Emissaire d une maison rivale, charmeur et opportuniste.' },
+      { name: 'Aélis de Valombre', pitch: 'Héritière officielle de la baronnie, brillante mais isolée.' },
+      { name: 'Marceau Trelane', pitch: 'Capitaine de la garde, loyal à la ville plus qu’aux nobles.' },
+      { name: 'Sœur Ysilde', pitch: 'Archiviste du temple, détentrice de confessions dangereuses.' },
+      { name: 'Corvin le Noir', pitch: 'Émissaire d’une maison rivale, charmeur et opportuniste.' },
       { name: 'Nora Fiel', pitch: 'Cheffe des artisans, lasse de payer pour les querelles des puissants.' },
-      { name: 'Bastian Lorme', pitch: 'Barde itinerant qui en sait trop sur la mort du baron.' },
-      { name: 'Helene de Briseciel', pitch: 'Diplomate venue negocier une paix impossible.' },
+      { name: 'Bastian Lorme', pitch: 'Barde itinérant qui en sait trop sur la mort du baron.' },
+      { name: 'Hélène de Briseciel', pitch: 'Diplomate venue négocier une paix impossible.' },
       { name: 'Toma le Rouge', pitch: 'Ancien contrebandier devenu informateur de la garde.' }
     ],
     players: [
@@ -63,98 +63,98 @@ const games: GameSeed[] = [
       { name: 'Julien Robert', email: 'julien.robert@example.test', phone: '06 11 22 33 05' },
       { name: 'Manon Richard', email: 'manon.richard@example.test', phone: '06 11 22 33 06' },
       { name: 'Antoine Durand', email: 'antoine.durand@example.test', phone: '06 11 22 33 07' },
-      { name: 'Elise Leroy', email: 'elise.leroy@example.test', phone: '06 11 22 33 08' },
+      { name: 'Élise Leroy', email: 'elise.leroy@example.test', phone: '06 11 22 33 08' },
       { name: 'Thomas Garnier', email: 'thomas.garnier@example.test', phone: '06 11 22 33 09' },
-      { name: 'Ines Lefevre', email: 'ines.lefevre@example.test', phone: '06 11 22 33 10' }
+      { name: 'Inès Lefèvre', email: 'ines.lefevre@example.test', phone: '06 11 22 33 10' }
     ],
     locations: [
       {
         name: 'Domaine de la Haute Tour',
         address: '12 route des Remparts\n28000 Valombre',
-        notes: 'Grande salle disponible, couchages limites.'
+        notes: 'Grande salle disponible, couchages limités.'
       },
       {
         name: 'Ancienne Abbaye de Sombreval',
-        address: 'Chemin de l Abbaye\n28120 Sombreval',
-        notes: 'Ambiance forte, prevoir eclairage autonome.'
+        address: 'Chemin de l’Abbaye\n28120 Sombreval',
+        notes: 'Ambiance forte, prévoir éclairage autonome.'
       }
     ]
   },
   {
     title: 'Station Meridian',
-    description: 'Une station scientifique coupe du reste du systeme solaire apres la decouverte d un signal impossible.',
-    noteIntention: 'Tester la paranoia, la cooperation sous pression et les dilemmes scientifiques.',
+    description: 'Une station scientifique coupée du reste du système solaire après la découverte d’un signal impossible.',
+    noteIntention: 'Tester la paranoïa, la coopération sous pression et les dilemmes scientifiques.',
     characters: [
       { name: 'Dr Lena Kovacs', pitch: 'Directrice scientifique de Meridian, responsable du protocole de contact.' },
-      { name: 'Milo Varga', pitch: 'Ingenieur de maintenance qui connait les failles de la station.' },
-      { name: 'Samira Okonkwo', pitch: 'Officiere de securite chargee de maintenir le calme.' },
-      { name: 'Eli Chen', pitch: 'Analyste signal, premier a avoir entendu la transmission.' },
-      { name: 'Nadia Sol', pitch: 'Representante du consortium prive financeur de la mission.' },
-      { name: 'Jonas Pike', pitch: 'Medecin de bord, inquiet des effets psychologiques du signal.' },
-      { name: 'Rhea Tan', pitch: 'Pilote de navette bloquee a quai depuis la panne orbitale.' },
-      { name: 'Oskar Nilsson', pitch: 'Technicien reseau soupconne de falsifier les journaux systeme.' }
+      { name: 'Milo Varga', pitch: 'Ingénieur de maintenance qui connaît les failles de la station.' },
+      { name: 'Samira Okonkwo', pitch: 'Officière de sécurité chargée de maintenir le calme.' },
+      { name: 'Eli Chen', pitch: 'Analyste signal, premier à avoir entendu la transmission.' },
+      { name: 'Nadia Sol', pitch: 'Représentante du consortium privé financeur de la mission.' },
+      { name: 'Jonas Pike', pitch: 'Médecin de bord, inquiet des effets psychologiques du signal.' },
+      { name: 'Rhea Tan', pitch: 'Pilote de navette bloquée à quai depuis la panne orbitale.' },
+      { name: 'Oskar Nilsson', pitch: 'Technicien réseau soupçonné de falsifier les journaux système.' }
     ],
     players: [
       { name: 'Amandine Blanc', email: 'amandine.blanc@example.test', phone: '06 22 33 44 01' },
       { name: 'Mehdi Laurent', email: 'mehdi.laurent@example.test', phone: '06 22 33 44 02' },
       { name: 'Clara Rousseau', email: 'clara.rousseau@example.test', phone: '06 22 33 44 03' },
       { name: 'Hugo Fontaine', email: 'hugo.fontaine@example.test', phone: '06 22 33 44 04' },
-      { name: 'Lea Mercier', email: 'lea.mercier@example.test', phone: '06 22 33 44 05' },
-      { name: 'Raphael Chevalier', email: 'raphael.chevalier@example.test', phone: '06 22 33 44 06' },
+      { name: 'Léa Mercier', email: 'lea.mercier@example.test', phone: '06 22 33 44 05' },
+      { name: 'Raphaël Chevalier', email: 'raphael.chevalier@example.test', phone: '06 22 33 44 06' },
       { name: 'Nina Perrin', email: 'nina.perrin@example.test', phone: '06 22 33 44 07' },
       { name: 'Olivier Girard', email: 'olivier.girard@example.test', phone: '06 22 33 44 08' },
-      { name: 'Maelle Renaud', email: 'maelle.renaud@example.test', phone: '06 22 33 44 09' },
+      { name: 'Maëlle Renaud', email: 'maelle.renaud@example.test', phone: '06 22 33 44 09' },
       { name: 'Baptiste Collet', email: 'baptiste.collet@example.test', phone: '06 22 33 44 10' }
     ],
     locations: [
       {
         name: 'Hangar 17',
         address: '17 avenue des Industries\n93200 Saint-Denis',
-        notes: 'Grand volume, ideal pour decor science-fiction.'
+        notes: 'Grand volume, idéal pour décor science-fiction.'
       },
       {
         name: 'Laboratoire Atlas',
         address: '4 rue Newton\n91120 Palaiseau',
-        notes: 'Plusieurs salles modulables et acces technique.'
+        notes: 'Plusieurs salles modulables et accès technique.'
       }
     ]
   },
   {
-    title: 'Le Bal des Masques Brises',
-    description: 'Une soiree mondaine ou chaque invite cache une dette, une trahison ou une identite empruntee.',
-    noteIntention: 'Favoriser le jeu social, les retournements publics et les revelations progressives.',
+    title: 'Le Bal des Masques Brisés',
+    description: 'Une soirée mondaine où chaque invité cache une dette, une trahison ou une identité empruntée.',
+    noteIntention: 'Favoriser le jeu social, les retournements publics et les révélations progressives.',
     characters: [
-      { name: 'Celeste Vairon', pitch: 'Organisatrice du bal, officiellement ruinee mais toujours influente.' },
-      { name: 'Octave Mirecourt', pitch: 'Critique mondain dont les chroniques peuvent detruire une reputation.' },
-      { name: 'Iris de Montfaucon', pitch: 'Jeune aristocrate revenue d exil avec un plan precis.' },
-      { name: 'Valentin Sorel', pitch: 'Faussaire elegant qui pretend etre collectionneur.' },
-      { name: 'Agathe Lenoir', pitch: 'Duenna redoutable, memoire vivante des scandales passes.' },
-      { name: 'Romain Delmas', pitch: 'Banquier discret qui tient plusieurs invites par leurs dettes.' },
-      { name: 'Mina Salvati', pitch: 'Chanteuse invitee, temoin d une disparition ancienne.' },
-      { name: 'Gaspard Voss', pitch: 'Majordome impeccable, seul a circuler partout sans etre vu.' }
+      { name: 'Céleste Vairon', pitch: 'Organisatrice du bal, officiellement ruinée mais toujours influente.' },
+      { name: 'Octave Mirecourt', pitch: 'Critique mondain dont les chroniques peuvent détruire une réputation.' },
+      { name: 'Iris de Montfaucon', pitch: 'Jeune aristocrate revenue d’exil avec un plan précis.' },
+      { name: 'Valentin Sorel', pitch: 'Faussaire élégant qui prétend être collectionneur.' },
+      { name: 'Agathe Lenoir', pitch: 'Duenna redoutable, mémoire vivante des scandales passés.' },
+      { name: 'Romain Delmas', pitch: 'Banquier discret qui tient plusieurs invités par leurs dettes.' },
+      { name: 'Mina Salvati', pitch: 'Chanteuse invitée, témoin d’une disparition ancienne.' },
+      { name: 'Gaspard Voss', pitch: 'Majordome impeccable, seul à circuler partout sans être vu.' }
     ],
     players: [
       { name: 'Pauline Aubert', email: 'pauline.aubert@example.test', phone: '06 33 44 55 01' },
       { name: 'Maxime Henry', email: 'maxime.henry@example.test', phone: '06 33 44 55 02' },
-      { name: 'Chloe Renard', email: 'chloe.renard@example.test', phone: '06 33 44 55 03' },
+      { name: 'Chloé Renard', email: 'chloe.renard@example.test', phone: '06 33 44 55 03' },
       { name: 'Arthur Masson', email: 'arthur.masson@example.test', phone: '06 33 44 55 04' },
       { name: 'Eva Marchand', email: 'eva.marchand@example.test', phone: '06 33 44 55 05' },
-      { name: 'Noe Caron', email: 'noe.caron@example.test', phone: '06 33 44 55 06' },
+      { name: 'Noé Caron', email: 'noe.caron@example.test', phone: '06 33 44 55 06' },
       { name: 'Jeanne Giraud', email: 'jeanne.giraud@example.test', phone: '06 33 44 55 07' },
       { name: 'Louis Lambert', email: 'louis.lambert@example.test', phone: '06 33 44 55 08' },
-      { name: 'Anais Vidal', email: 'anais.vidal@example.test', phone: '06 33 44 55 09' },
+      { name: 'Anaïs Vidal', email: 'anais.vidal@example.test', phone: '06 33 44 55 09' },
       { name: 'Pierre Moulin', email: 'pierre.moulin@example.test', phone: '06 33 44 55 10' }
     ],
     locations: [
       {
-        name: 'Hotel des Verrieres',
-        address: '8 place du Theatre\n54000 Nancy',
+        name: 'Hôtel des Verrières',
+        address: '8 place du Théâtre\n54000 Nancy',
         notes: 'Salon principal lumineux, escalier central exploitable.'
       },
       {
         name: 'Maison Saint-Clair',
         address: '31 boulevard des Arts\n54000 Nancy',
-        notes: 'Plus intimiste, parfait pour scenes de complot.'
+        notes: 'Plus intimiste, parfait pour scènes de complot.'
       }
     ]
   }
@@ -287,7 +287,7 @@ async function createSessions(
         create: characters.map((character, index) => ({
           characterId: character.id,
           playerId: players[index]?.id || null,
-          notes: index === 0 ? 'Session passee complete utilisee pour tester les statistiques.' : null
+          notes: index === 0 ? 'Session passée complète utilisée pour tester les statistiques.' : null
         }))
       }
     }
@@ -305,7 +305,7 @@ async function createSessions(
         create: characters.slice(0, 6).map((character, index) => ({
           characterId: character.id,
           playerId: players[index]?.id || null,
-          notes: index % 3 === 0 ? 'Brief joueur a verifier avant impression.' : null
+          notes: index % 3 === 0 ? 'Brief joueur à vérifier avant impression.' : null
         }))
       }
     }
@@ -323,7 +323,7 @@ async function createSessions(
         create: characters.slice(2, 8).map((character, index) => ({
           characterId: character.id,
           playerId: players[index + 3]?.id || null,
-          notes: index === 1 ? 'Photo a reprendre le jour du jeu.' : null
+          notes: index === 1 ? 'Photo à reprendre le jour du jeu.' : null
         }))
       }
     }
@@ -331,10 +331,10 @@ async function createSessions(
 }
 
 async function main() {
-  console.log('Suppression des anciennes donnees metier...')
+  console.log('Suppression des anciennes données métier...')
   await clearBusinessData()
 
-  console.log('Creation du jeu de donnees de test...')
+  console.log('Création du jeu de données de test...')
   const createdGameIds: string[] = []
   for (const [index, game] of games.entries()) {
     const createdGame = await createGame(game, index)
@@ -342,7 +342,7 @@ async function main() {
   }
   await createCrossGamePlayers(createdGameIds)
 
-  console.log('Seed termine.')
+  console.log('Seed terminé.')
 }
 
 main()
