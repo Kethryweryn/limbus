@@ -8,6 +8,12 @@
         <!-- Barre de recherche -->
         <div class="mb-6 flex flex-wrap gap-4 items-center justify-between">
             <UInput v-model="search" placeholder="Rechercher un personnage..." class="w-full md:w-96" />
+            <USelect
+                v-model="sortOption"
+                :items="sortOptions"
+                value-key="value"
+                class="w-full md:w-64"
+            />
             <UButton v-if="!isOffline" @click="openCreateSlideover" color="primary">Créer un personnage</UButton>
         </div>
 
@@ -106,12 +112,19 @@ import { getFromStore, saveToStore } from '~/utils/storage'
 
 const characters = ref([])
 const search = ref('')
+const sortOption = ref('updated-desc')
 const games = ref([])
 const router = useRouter()
 
 const gameStore = useGameStore()
 const selectedGame = computed(() => gameStore.currentGame)
 const isOffline = ref(false)
+
+const sortOptions = [
+    { label: 'Dernière modification', value: 'updated-desc' },
+    { label: 'Nom A-Z', value: 'name-asc' },
+    { label: 'Nom Z-A', value: 'name-desc' }
+]
 
 const fetchGames = async () => {
     if (isOfflineMode()) {
@@ -170,12 +183,25 @@ const filteredCharacters = computed(() => {
     const term = search.value.toLowerCase()
     const gameId = selectedGame.value?.id
 
-    return characters.value
+    const result = characters.value
         .filter(c => !gameId || c.gameId === gameId)
         .filter(c =>
             c.name.toLowerCase().includes(term) ||
             (c.description?.toLowerCase().includes(term))
         )
+
+    switch (sortOption.value) {
+        case 'name-asc':
+            result.sort((a, b) => a.name.localeCompare(b.name))
+            break
+        case 'name-desc':
+            result.sort((a, b) => b.name.localeCompare(a.name))
+            break
+        default:
+            result.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    }
+
+    return result
 })
 
 const charPage = ref(1)
@@ -213,7 +239,7 @@ watch(() => selectedGame.value?.id, (newId) => {
 })
 
 // Quand on fait une recherche on revient à la page 1 de la pagination
-watch([search, filteredCharacters], () => {
+watch([search, sortOption, filteredCharacters], () => {
     charPage.value = 1
 })
 
