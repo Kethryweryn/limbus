@@ -4,14 +4,26 @@
             <UButton to="/games" icon="i-heroicons-arrow-left" color="neutral" variant="ghost">
                 Jeux
             </UButton>
-            <UButton
-                v-if="!isEditing"
-                icon="i-heroicons-pencil-square"
-                color="primary"
-                @click="startEdit"
-            >
-                Modifier
-            </UButton>
+            <div v-if="!isEditing" class="flex flex-wrap gap-2">
+                <UButton
+                    v-if="!isCurrentGame"
+                    icon="i-heroicons-check-circle"
+                    color="success"
+                    @click="selectGame({ id: game.id, title: game.title })"
+                >
+                    Rendre actif
+                </UButton>
+                <UBadge v-else color="success" variant="subtle" size="lg">
+                    Jeu actif
+                </UBadge>
+                <UButton
+                    icon="i-heroicons-pencil-square"
+                    color="primary"
+                    @click="startEdit"
+                >
+                    Modifier
+                </UButton>
+            </div>
         </div>
 
         <GameForm
@@ -23,44 +35,48 @@
         />
 
         <template v-else>
-            <UCard>
-                <template #header>
-                    Détails du jeu
-                </template>
-
-                <p><strong>Titre :</strong> {{ game.title }}</p>
-
-                <UButton
-                    :disabled="isCurrentGame"
-                    :color="isCurrentGame ? 'neutral' : 'success'"
-                    class="mt-4"
-                    @click="selectGame({ id: game.id, title: game.title })"
-                >
-                    {{ isCurrentGame ? 'Jeu déjà actif' : 'Définir comme jeu actif' }}
-                </UButton>
-            </UCard>
-
-            <h1 class="text-3xl font-bold">{{ game.title }}</h1>
-
-            <div v-if="game.teaserUrl" class="flex justify-center my-6">
-                <div class="w-full max-w-4xl aspect-video">
-                    <iframe
-                        :src="embedTeaser(game.teaserUrl)"
-                        class="w-full h-full rounded"
-                        frameborder="0"
-                        allowfullscreen
-                    />
+            <section class="space-y-4 border-b border-gray-200 pb-6">
+                <div class="flex flex-wrap gap-2">
+                    <UBadge v-if="!game.published" color="neutral" variant="solid">Archivé</UBadge>
+                    <UBadge v-if="isCurrentGame" color="success" variant="subtle">Jeu actif</UBadge>
                 </div>
-            </div>
+                <div class="space-y-3">
+                    <h1 class="text-4xl font-bold tracking-normal">{{ game.title }}</h1>
+                    <p class="max-w-4xl text-lg leading-8 text-gray-600 whitespace-pre-line">
+                        {{ game.description || 'Aucune description renseignée.' }}
+                    </p>
+                </div>
+            </section>
 
-            <div>
-                <h2 class="text-xl font-semibold mb-2">Description</h2>
-                <p class="whitespace-pre-line">{{ game.description }}</p>
-            </div>
+            <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+                <section class="xl:col-span-8 space-y-6">
+                    <div v-if="game.teaserUrl" class="w-full aspect-video overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+                        <iframe
+                            :src="embedTeaser(game.teaserUrl)"
+                            class="w-full h-full"
+                            frameborder="0"
+                            allowfullscreen
+                        />
+                    </div>
 
-            <div v-if="game.noteIntention">
-                <h2 class="text-xl font-semibold mb-2">Note d’intention</h2>
-                <p class="whitespace-pre-line">{{ game.noteIntention }}</p>
+                    <UCard>
+                        <template #header>
+                            Description
+                        </template>
+                        <p class="text-base leading-7 text-gray-700 whitespace-pre-line">
+                            {{ game.description || 'Aucune description renseignée.' }}
+                        </p>
+                    </UCard>
+                </section>
+
+                <aside class="xl:col-span-4 space-y-6">
+                    <UCard v-if="game.noteIntention">
+                        <template #header>
+                            Note d’intention
+                        </template>
+                        <p class="text-base leading-7 text-gray-700 whitespace-pre-line">{{ game.noteIntention }}</p>
+                    </UCard>
+                </aside>
             </div>
         </template>
     </div>
