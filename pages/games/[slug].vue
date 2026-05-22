@@ -23,6 +23,24 @@
                 >
                     Modifier
                 </UButton>
+                <UButton
+                    v-if="game.published"
+                    :icon="game.publicPage ? 'i-heroicons-eye-slash' : 'i-heroicons-globe-alt'"
+                    :color="game.publicPage ? 'neutral' : 'primary'"
+                    variant="soft"
+                    @click="setPublicPage(!game.publicPage)"
+                >
+                    {{ game.publicPage ? 'Dépublier' : 'Publier' }}
+                </UButton>
+                <UButton
+                    v-if="game.publicPage"
+                    :to="`/public/games/${game.slug}`"
+                    icon="i-heroicons-arrow-top-right-on-square"
+                    color="neutral"
+                    variant="ghost"
+                >
+                    Page publique
+                </UButton>
             </div>
         </div>
 
@@ -39,6 +57,7 @@
                 <div class="flex flex-wrap gap-2">
                     <UBadge v-if="!game.published" color="neutral" variant="solid">Archivé</UBadge>
                     <UBadge v-if="isCurrentGame" color="success" variant="subtle">Jeu actif</UBadge>
+                    <UBadge v-if="game.publicPage" color="primary" variant="subtle">Publié</UBadge>
                 </div>
                 <div class="space-y-3">
                     <h1 class="text-4xl font-bold tracking-normal">{{ game.title }}</h1>
@@ -139,6 +158,15 @@ async function handleGameFormSubmit() {
     }
 
     cancelEdit()
+}
+
+async function setPublicPage(publicPage) {
+    if (!game.value?.id) return
+
+    game.value = await useApiFetch(`/api/games/${game.value.id}`, {
+        method: 'PUT',
+        body: { publicPage }
+    })
 }
 
 const embedTeaser = (url) => {

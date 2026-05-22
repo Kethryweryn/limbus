@@ -47,6 +47,9 @@
                 <UBadge v-if="!game.published" color="neutral" variant="solid" size="xs">
                   Archivé
                 </UBadge>
+                <UBadge v-if="game.publicPage" color="primary" variant="subtle" size="xs">
+                  Publié
+                </UBadge>
               </div>
             </div>
           </div>
@@ -71,7 +74,7 @@
                 color="warning"
                 @click.stop="publishGame(game.id)"
               >
-                Publier
+                Restaurer
               </UButton>
               <UButton
                 v-else
@@ -92,6 +95,17 @@
               @click.stop="startEdit(game)"
             >
               Modifier
+            </UButton>
+
+            <UButton
+              v-if="game.published && !isOffline"
+              :icon="game.publicPage ? 'i-heroicons-eye-slash' : 'i-heroicons-globe-alt'"
+              size="xs"
+              :color="game.publicPage ? 'neutral' : 'primary'"
+              variant="soft"
+              @click.stop="setPublicPage(game, !game.publicPage)"
+            >
+              {{ game.publicPage ? 'Dépublier' : 'Publier' }}
             </UButton>
 
             <UButton
@@ -199,6 +213,7 @@ function startCreate() {
     title: '',
     description: '',
     noteIntention: '',
+    publicPage: false,
     published: false
   }
   formMode.value = 'create'
@@ -289,6 +304,14 @@ function closeFormSlideover() {
 function openGamePage(game) {
   if (!game?.slug) return
   router.push(`/games/${game.slug}`)
+}
+
+async function setPublicPage(game, publicPage) {
+  await useApiFetch(`/api/games/${game.id}`, {
+    method: 'PUT',
+    body: { publicPage }
+  })
+  await fetchGames()
 }
 
 async function handleGameFormSubmit() {

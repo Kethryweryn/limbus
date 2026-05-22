@@ -36,6 +36,7 @@ export default defineEventHandler(async (event) => {
                 createdAt: game.createdAt,
                 updatedAt: game.updatedAt,
                 published: game.published,
+                publicPage: game.publicPage,
                 lastActivityAt
             }
         })

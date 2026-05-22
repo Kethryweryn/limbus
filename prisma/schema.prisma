@@ -18,6 +18,7 @@ model Game {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   published      Boolean    @default(true)
+  publicPage     Boolean    @default(false)
 
   characters     Character[]
   factions       Faction[]

@@ -18,6 +18,11 @@
         <NuxtPage />
       </NuxtLayout>
     </div>
+    <div v-else-if="isPublicRoute">
+      <NuxtPwaAssets />
+      <NuxtLoadingIndicator />
+      <NuxtPage />
+    </div>
     <div v-else>
       <NuxtPwaAssets />
       <NuxtLoadingIndicator />
@@ -48,6 +53,7 @@ useHead({
 const authenticated = ref(false)
 const serverUnavailable = ref(false)
 const route = useRoute()
+const isPublicRoute = computed(() => route.path.startsWith('/public/'))
 let authCheckInProgress = false
 
 async function hasValidOfflineAuth() {

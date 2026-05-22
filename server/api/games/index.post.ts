@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   requireOrganizer(event)
 
   const body = await readZodBody(event, createGameSchema)
-  const { title, description, teaserUrl, noteIntention } = body
+  const { title, description, teaserUrl, noteIntention, publicPage } = body
 
   const slug = await generateUniqueSlug('game', title)
 
@@ -17,7 +17,8 @@ export default defineEventHandler(async (event) => {
       slug,
       description,
       teaserUrl,
-      noteIntention
+      noteIntention,
+      publicPage: publicPage ?? false
     }
   })
 

@@ -31,7 +31,8 @@ export const createGameSchema = z.object({
   title: requiredText('Title'),
   description: optionalText,
   teaserUrl: optionalText,
-  noteIntention: optionalText
+  noteIntention: optionalText,
+  publicPage: optionalBoolean
 })
 
 export const updateGameSchema = z.object({
@@ -39,7 +40,8 @@ export const updateGameSchema = z.object({
   description: optionalText,
   teaserUrl: optionalText,
   noteIntention: optionalText,
-  published: optionalBoolean
+  published: optionalBoolean,
+  publicPage: optionalBoolean
 })
 
 export const createCharacterSchema = z.object({
