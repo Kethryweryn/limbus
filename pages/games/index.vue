@@ -72,6 +72,16 @@
         </div>
         <div class="flex items-center gap-2">
           <UButton
+            v-if="formMode === 'edit' && activeFormGame?.slug"
+            icon="i-heroicons-arrows-pointing-out"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            @click="openFullPageEdit"
+          >
+            Pleine page
+          </UButton>
+          <UButton
             icon="i-heroicons-x-mark"
             color="neutral"
             variant="ghost"
@@ -304,8 +314,7 @@ const activeFormGame = ref(null)
 const formMode = ref('create')
 
 const formSlideoverClass = 'w-screen max-w-none md:w-[calc(100vw-var(--limbus-sidebar-width,16rem))] md:max-w-none'
-const wideSlideoverClass = 'w-full sm:max-w-3xl lg:max-w-5xl'
-const previewSlideoverClass = wideSlideoverClass
+const previewSlideoverClass = formSlideoverClass
 
 function closeFormSlideover() {
   activeFormGame.value = null
@@ -332,6 +341,12 @@ function openFullPagePreview() {
   if (!selectedGame.value?.slug) return
   showPreviewSlideover.value = false
   router.push(`/games/${selectedGame.value.slug}`)
+}
+
+function openFullPageEdit() {
+  if (!activeFormGame.value?.slug) return
+  showFormSlideover.value = false
+  router.push(`/games/${activeFormGame.value.slug}?edit=1`)
 }
 
 async function handleGameFormSubmit() {
