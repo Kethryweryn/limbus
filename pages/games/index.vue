@@ -109,9 +109,9 @@
       </UCard>
     </div>
 
-    <div class="flex justify-center gap-4 mt-6">
+    <div class="flex items-center justify-center gap-4 mt-6">
       <UButton @click="prevPage" :disabled="page === 1">← Précédent</UButton>
-      <span class="text-sm text-gray-500">Page {{ page }} / {{ totalPages }}</span>
+      <span class="inline-flex items-center text-sm text-gray-500">Page {{ page }} / {{ totalPages }}</span>
       <UButton @click="nextPage" :disabled="page === totalPages">Suivant →</UButton>
     </div>
   </div>
@@ -254,7 +254,7 @@ const paginatedGames = computed(() => {
   return filteredGames.value.slice(start, start + itemsPerPage)
 })
 
-const totalPages = computed(() => Math.ceil(filteredGames.value.length / itemsPerPage))
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredGames.value.length / itemsPerPage)))
 
 const nextPage = () => {
   if (page.value < totalPages.value) page.value++

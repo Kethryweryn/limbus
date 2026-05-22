@@ -34,7 +34,7 @@
           <span class="text-sm text-gray-500">{{ section.sessions.length }} session(s)</span>
         </div>
 
-        <UCard v-for="session in section.sessions" :key="session.id" class="mb-4">
+        <UCard v-for="session in paginatedSectionSessions(section)" :key="session.id" class="mb-4">
           <template #header>
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
               <div>
@@ -111,6 +111,14 @@
         <UCard v-if="section.sessions.length === 0">
           <div class="text-sm text-gray-500">Aucune session dans cette période.</div>
         </UCard>
+
+        <div v-else class="flex items-center justify-center gap-4 mt-4">
+          <UButton @click="prevSectionPage(section.key)" :disabled="sectionPage(section.key) === 1">← Précédent</UButton>
+          <span class="inline-flex items-center text-sm text-gray-500">
+            Page {{ sectionPage(section.key) }} / {{ totalSectionPages(section) }}
+          </span>
+          <UButton @click="nextSectionPage(section)" :disabled="sectionPage(section.key) === totalSectionPages(section)">Suivant →</UButton>
+        </div>
       </section>
     </div>
 
@@ -152,7 +160,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import SessionForm from '@/components/SessionForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
@@ -235,6 +243,41 @@ const sessionSections = computed(() => {
     { key: 'future', title: 'Sessions à venir', sessions: futureSessions.value },
     { key: 'past', title: 'Sessions passées', sessions: pastSessions.value }
   ]
+})
+
+const sessionPages = ref({
+  future: 1,
+  past: 1
+})
+const sessionItemsPerPage = 5
+
+const sectionPage = (key) => sessionPages.value[key] || 1
+
+const totalSectionPages = (section) => Math.max(1, Math.ceil(section.sessions.length / sessionItemsPerPage))
+
+const paginatedSectionSessions = (section) => {
+  const start = (sectionPage(section.key) - 1) * sessionItemsPerPage
+  return section.sessions.slice(start, start + sessionItemsPerPage)
+}
+
+const nextSectionPage = (section) => {
+  const key = section.key
+  if (sectionPage(key) < totalSectionPages(section)) {
+    sessionPages.value[key] = sectionPage(key) + 1
+  }
+}
+
+const prevSectionPage = (key) => {
+  if (sectionPage(key) > 1) {
+    sessionPages.value[key] = sectionPage(key) - 1
+  }
+}
+
+watch([searchQuery, gameFilter, periodFilter, filteredSessions], () => {
+  sessionPages.value = {
+    future: 1,
+    past: 1
+  }
 })
 
 const formatDate = (value) => new Date(value).toLocaleString('fr-FR', {

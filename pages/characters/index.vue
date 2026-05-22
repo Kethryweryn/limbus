@@ -74,9 +74,9 @@
             </UCard>
         </div>
 
-        <div class="flex justify-center gap-4 mt-6">
+        <div class="flex items-center justify-center gap-4 mt-6">
             <UButton @click="prevCharPage" :disabled="charPage === 1">← Précédent</UButton>
-            <span class="text-sm text-gray-500">Page {{ charPage }} / {{ totalCharPages }}</span>
+            <span class="inline-flex items-center text-sm text-gray-500">Page {{ charPage }} / {{ totalCharPages }}</span>
             <UButton @click="nextCharPage" :disabled="charPage === totalCharPages">Suivant →</UButton>
         </div>
 
@@ -214,7 +214,7 @@ const paginatedCharacters = computed(() => {
 })
 
 const totalCharPages = computed(() =>
-    Math.ceil(filteredCharacters.value.length / itemsPerPage)
+    Math.max(1, Math.ceil(filteredCharacters.value.length / itemsPerPage))
 )
 
 const nextCharPage = () => {

@@ -22,7 +22,7 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      <UCard v-for="player in filteredPlayers" :key="player.id">
+      <UCard v-for="player in paginatedPlayers" :key="player.id">
         <template #header>
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3 min-w-0">
@@ -78,6 +78,12 @@
       </UCard>
     </div>
 
+    <div class="flex items-center justify-center gap-4 mt-6">
+      <UButton @click="prevPage" :disabled="page === 1">← Précédent</UButton>
+      <span class="inline-flex items-center text-sm text-gray-500">Page {{ page }} / {{ totalPages }}</span>
+      <UButton @click="nextPage" :disabled="page === totalPages">Suivant →</UButton>
+    </div>
+
     <AppWideSlideover
       v-model:open="showFormSlideover"
       :title="formMode === 'edit' ? 'Modifier le joueur' : 'Créer un joueur'"
@@ -98,7 +104,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import PlayerForm from '@/components/PlayerForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
@@ -131,6 +137,28 @@ const filteredPlayers = computed(() => {
         field?.toLowerCase().includes(term)
       )
     )
+})
+
+const page = ref(1)
+const itemsPerPage = 9
+
+const paginatedPlayers = computed(() => {
+  const start = (page.value - 1) * itemsPerPage
+  return filteredPlayers.value.slice(start, start + itemsPerPage)
+})
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredPlayers.value.length / itemsPerPage)))
+
+const nextPage = () => {
+  if (page.value < totalPages.value) page.value++
+}
+
+const prevPage = () => {
+  if (page.value > 1) page.value--
+}
+
+watch([searchQuery, gameFilter, filteredPlayers], () => {
+  page.value = 1
 })
 
 const formatPlayerGames = (player) => {
