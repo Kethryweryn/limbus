@@ -230,7 +230,7 @@ async function createGame(seed: GameSeed, gameIndex: number) {
 
   await createSessions(game.id, seed.title, gameIndex, characters, players, locations)
 
-  console.log(`${seed.title}: ${characters.length} personnages, ${players.length} joueurs, ${locations.length} lieux, 2 sessions`)
+  console.log(`${seed.title}: ${characters.length} personnages, ${players.length} joueurs, ${locations.length} lieux, 3 sessions`)
 
   return game
 }
@@ -271,8 +271,27 @@ async function createSessions(
   players: Array<{ id: string, name: string }>,
   locations: Array<{ id: string, name: string }>
 ) {
+  const pastDate = new Date(Date.UTC(2025, 5 + gameIndex, 7, 12, 0, 0))
   const firstDate = new Date(Date.UTC(2026, 8 + gameIndex, 12, 12, 0, 0))
   const secondDate = new Date(Date.UTC(2026, 9 + gameIndex, 3, 12, 0, 0))
+
+  await prisma.session.create({
+    data: {
+      name: `${gameTitle} - Session archive`,
+      date: pastDate,
+      gameId,
+      locationId: locations[0]?.id,
+      status: 'completed',
+      published: true,
+      assignments: {
+        create: characters.slice(0, 5).map((character, index) => ({
+          characterId: character.id,
+          playerId: players[index + 1]?.id || null,
+          notes: index === 0 ? 'Session passee utilisee pour tester les statistiques.' : null
+        }))
+      }
+    }
+  })
 
   await prisma.session.create({
     data: {
