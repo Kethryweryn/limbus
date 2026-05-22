@@ -15,6 +15,18 @@
                 <UInput v-model="localCharacter.name" required autofocus size="lg" class="w-full" />
             </UFormField>
 
+            <UFormField v-if="factionOptions.length" label="Groupes">
+                <USelectMenu
+                    v-model="localCharacter.factionIds"
+                    :items="factionOptions"
+                    value-key="value"
+                    multiple
+                    placeholder="Associer des groupes"
+                    size="lg"
+                    class="w-full"
+                />
+            </UFormField>
+
             <UFormField label="Pitch" :error="errors.pitch">
                 <UTextarea
                     v-model="localCharacter.pitch"
@@ -69,11 +81,12 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
     character: { type: Object, required: true },
     games: { type: Array, required: true },
+    factions: { type: Array, default: () => [] },
     mode: { type: String, default: 'create' }
 })
 
@@ -83,10 +96,28 @@ const localCharacter = ref({ ...props.character })
 const errors = ref({})
 const serverError = ref('')
 
+const factionOptions = computed(() =>
+    props.factions
+        .filter((faction) => faction.gameId === localCharacter.value.gameId)
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((faction) => ({
+            label: faction.name,
+            value: faction.id
+        }))
+)
+
 watch(() => props.character, (newVal) => {
-    localCharacter.value = { ...newVal }
+    localCharacter.value = {
+        ...newVal,
+        factionIds: newVal.factionIds || newVal.factions?.map((faction) => faction.id) || []
+    }
     errors.value = {}
     serverError.value = ''
+}, { immediate: true })
+
+watch(() => localCharacter.value.gameId, () => {
+    const validFactionIds = new Set(factionOptions.value.map((faction) => faction.value))
+    localCharacter.value.factionIds = (localCharacter.value.factionIds || []).filter((id) => validFactionIds.has(id))
 })
 
 function validate() {

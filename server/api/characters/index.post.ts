@@ -9,6 +9,19 @@ export default defineEventHandler(async (event) => {
     const body = await readZodBody(event, createCharacterSchema)
     const slug = await generateUniqueSlug('character', body.name)
 
+    if (body.factionIds.length) {
+        const matchingFactions = await prisma.faction.count({
+            where: {
+                id: { in: body.factionIds },
+                gameId: body.gameId
+            }
+        })
+
+        if (matchingFactions !== body.factionIds.length) {
+            throw createError({ statusCode: 400, statusMessage: 'Groupes invalides pour ce jeu' })
+        }
+    }
+
     const newCharacter = await prisma.character.create({
         data: {
             name: body.name,
@@ -17,7 +30,14 @@ export default defineEventHandler(async (event) => {
             background: body.background,
             backgroundDocumentUrl: body.backgroundDocumentUrl,
             costumeIndications: body.costumeIndications,
-            gameId: body.gameId
+            gameId: body.gameId,
+            factions: {
+                connect: body.factionIds.map((id) => ({ id }))
+            }
+        },
+        include: {
+            game: true,
+            factions: true
         }
     })
 

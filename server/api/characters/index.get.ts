@@ -7,7 +7,8 @@ export default defineEventHandler(async (event) => {
     return await prisma.character.findMany({
         orderBy: { updatedAt: 'desc' },
         include: {
-            game: true
+            game: true,
+            factions: true
         }
     })
 })

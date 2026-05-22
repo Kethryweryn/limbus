@@ -18,6 +18,12 @@ type CharacterSeed = {
   pitch: string
 }
 
+type FactionSeed = {
+  name: string
+  pitch: string
+  characterNames: string[]
+}
+
 type PlayerSeed = {
   name: string
   email: string
@@ -36,6 +42,7 @@ type GameSeed = {
   description: string
   noteIntention: string
   characters: CharacterSeed[]
+  factions: FactionSeed[]
   players: PlayerSeed[]
   locations: LocationSeed[]
 }
@@ -54,6 +61,18 @@ const games: GameSeed[] = [
       { name: 'Bastian Lorme', pitch: 'Barde itinérant qui en sait trop sur la mort du baron.' },
       { name: 'Hélène de Briseciel', pitch: 'Diplomate venue négocier une paix impossible.' },
       { name: 'Toma le Rouge', pitch: 'Ancien contrebandier devenu informateur de la garde.' }
+    ],
+    factions: [
+      {
+        name: 'La Maison de Valombre',
+        pitch: 'Le cercle noble qui tente de préserver la légitimité de la succession.',
+        characterNames: ['Aélis de Valombre', 'Hélène de Briseciel']
+      },
+      {
+        name: 'La Ville basse',
+        pitch: 'Artisans, informateurs et figures populaires décidés à ne plus subir les décisions des puissants.',
+        characterNames: ['Nora Fiel', 'Toma le Rouge', 'Bastian Lorme']
+      }
     ],
     players: [
       { name: 'Camille Bernard', email: 'camille.bernard@example.test', phone: '06 11 22 33 01' },
@@ -94,6 +113,18 @@ const games: GameSeed[] = [
       { name: 'Rhea Tan', pitch: 'Pilote de navette bloquée à quai depuis la panne orbitale.' },
       { name: 'Oskar Nilsson', pitch: 'Technicien réseau soupçonné de falsifier les journaux système.' }
     ],
+    factions: [
+      {
+        name: 'Équipe scientifique',
+        pitch: 'Les spécialistes chargés de comprendre le signal sans provoquer de catastrophe.',
+        characterNames: ['Dr Lena Kovacs', 'Eli Chen', 'Jonas Pike']
+      },
+      {
+        name: 'Consortium Meridian',
+        pitch: 'Les représentants des intérêts privés, techniques et sécuritaires de la station.',
+        characterNames: ['Nadia Sol', 'Samira Okonkwo', 'Milo Varga']
+      }
+    ],
     players: [
       { name: 'Amandine Blanc', email: 'amandine.blanc@example.test', phone: '06 22 33 44 01' },
       { name: 'Mehdi Laurent', email: 'mehdi.laurent@example.test', phone: '06 22 33 44 02' },
@@ -132,6 +163,18 @@ const games: GameSeed[] = [
       { name: 'Romain Delmas', pitch: 'Banquier discret qui tient plusieurs invités par leurs dettes.' },
       { name: 'Mina Salvati', pitch: 'Chanteuse invitée, témoin d’une disparition ancienne.' },
       { name: 'Gaspard Voss', pitch: 'Majordome impeccable, seul à circuler partout sans être vu.' }
+    ],
+    factions: [
+      {
+        name: 'Les invités de marque',
+        pitch: 'Les figures mondaines dont la réputation peut basculer au cours de la soirée.',
+        characterNames: ['Céleste Vairon', 'Octave Mirecourt', 'Iris de Montfaucon']
+      },
+      {
+        name: 'Les ombres du bal',
+        pitch: 'Celles et ceux qui connaissent les secrets circulant derrière les sourires.',
+        characterNames: ['Valentin Sorel', 'Mina Salvati', 'Gaspard Voss']
+      }
     ],
     players: [
       { name: 'Pauline Aubert', email: 'pauline.aubert@example.test', phone: '06 33 44 55 01' },
@@ -200,6 +243,26 @@ async function createGame(seed: GameSeed, gameIndex: number) {
       }
     })
   ))
+  const characterByName = new Map(characters.map((character, index) => [seed.characters[index].name, character]))
+
+  await Promise.all(seed.factions.map((faction) =>
+    prisma.faction.create({
+      data: {
+        name: faction.name,
+        slug: makeSlug(`${seed.title}-${faction.name}`),
+        pitch: faction.pitch,
+        gameId: game.id,
+        published: true,
+        characters: {
+          connect: faction.characterNames
+            .flatMap((characterName) => {
+              const character = characterByName.get(characterName)
+              return character ? [{ id: character.id }] : []
+            })
+        }
+      }
+    })
+  ))
 
   const players = await Promise.all(seed.players.map((player) =>
     prisma.player.create({
@@ -230,7 +293,7 @@ async function createGame(seed: GameSeed, gameIndex: number) {
 
   await createSessions(game.id, seed.title, gameIndex, characters, players, locations)
 
-  console.log(`${seed.title}: ${characters.length} personnages, ${players.length} joueurs, ${locations.length} lieux, 3 sessions`)
+  console.log(`${seed.title}: ${characters.length} personnages, ${seed.factions.length} groupes, ${players.length} joueurs, ${locations.length} lieux, 3 sessions`)
 
   return game
 }

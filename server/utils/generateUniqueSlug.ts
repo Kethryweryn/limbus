@@ -1,14 +1,18 @@
 import { prisma } from '~/server/utils/prisma'
 import { generateSlug } from '~/server/utils/generateSlug'
 
-type SlugModel = 'game' | 'character'
+type SlugModel = 'game' | 'character' | 'faction'
 
 async function findBySlug(model: SlugModel, slug: string): Promise<{ id: string } | null> {
   if (model === 'game') {
     return prisma.game.findUnique({ where: { slug }, select: { id: true } })
   }
 
-  return prisma.character.findUnique({ where: { slug }, select: { id: true } })
+  if (model === 'character') {
+    return prisma.character.findUnique({ where: { slug }, select: { id: true } })
+  }
+
+  return prisma.faction.findUnique({ where: { slug }, select: { id: true } })
 }
 
 export async function generateUniqueSlug(model: SlugModel, text: string, excludeId?: string): Promise<string> {

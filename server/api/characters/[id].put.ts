@@ -12,7 +12,25 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readZodBody(event, updateCharacterSchema)
-  const { name, pitch, background, backgroundDocumentUrl, costumeIndications, gameId, published } = body
+  const { name, pitch, background, backgroundDocumentUrl, costumeIndications, gameId, factionIds, published } = body
+  const existingCharacter = factionIds ? await prisma.character.findUnique({
+    where: { id },
+    select: { gameId: true }
+  }) : null
+
+  const targetGameId = gameId || existingCharacter?.gameId
+  if (factionIds && targetGameId) {
+    const matchingFactions = await prisma.faction.count({
+      where: {
+        id: { in: factionIds },
+        gameId: targetGameId
+      }
+    })
+
+    if (matchingFactions !== factionIds.length) {
+      throw createError({ statusCode: 400, statusMessage: 'Groupes invalides pour ce jeu' })
+    }
+  }
 
   const data: any = {
     pitch,
@@ -28,8 +46,18 @@ export default defineEventHandler(async (event) => {
     data.slug = await generateUniqueSlug('character', name, id)
   }
 
+  if (factionIds) {
+    data.factions = {
+      set: factionIds.map((factionId) => ({ id: factionId }))
+    }
+  }
+
   return await prisma.character.update({
     where: { id },
-    data
+    data,
+    include: {
+      game: true,
+      factions: true
+    }
   })
 })

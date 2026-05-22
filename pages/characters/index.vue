@@ -38,6 +38,16 @@
                                 <UBadge color="neutral" variant="subtle" size="xs" class="max-w-full truncate">
                                     {{ char.game?.title || 'Jeu inconnu' }}
                                 </UBadge>
+                                <UBadge
+                                    v-for="faction in char.factions || []"
+                                    :key="faction.id"
+                                    color="primary"
+                                    variant="subtle"
+                                    size="xs"
+                                    class="max-w-40 truncate"
+                                >
+                                    {{ faction.name }}
+                                </UBadge>
                                 <UBadge v-if="!char.published" color="neutral" variant="solid" size="xs">
                                     Archivé
                                 </UBadge>
@@ -95,6 +105,7 @@
             v-if="activeFormCharacter"
             v-model:character="activeFormCharacter"
             :games="games"
+            :factions="factions"
             :mode="formMode"
             @submit="handleFormSubmit"
             @cancel="closeSlideover"
@@ -114,6 +125,7 @@ const characters = ref([])
 const search = ref('')
 const sortOption = ref('updated-desc')
 const games = ref([])
+const factions = ref([])
 const router = useRouter()
 
 const gameStore = useGameStore()
@@ -148,8 +160,19 @@ const fetchCharacters = async () => {
     await saveToStore('characters', 'list', data)
 }
 
+const fetchFactions = async () => {
+    if (isOfflineMode()) {
+        factions.value = await getFromStore('factions', 'list') || []
+        return
+    }
+
+    const data = await useApiFetch('/api/factions')
+    factions.value = data
+    await saveToStore('factions', 'list', data)
+}
+
 const refreshData = async () => {
-    await Promise.all([fetchGames(), fetchCharacters()])
+    await Promise.all([fetchGames(), fetchCharacters(), fetchFactions()])
 }
 
 const updateStatus = () => {
@@ -189,7 +212,8 @@ const filteredCharacters = computed(() => {
             c.name.toLowerCase().includes(term) ||
             (c.pitch?.toLowerCase().includes(term)) ||
             (c.background?.toLowerCase().includes(term)) ||
-            (c.costumeIndications?.toLowerCase().includes(term))
+            (c.costumeIndications?.toLowerCase().includes(term)) ||
+            (c.factions || []).some((faction) => faction.name?.toLowerCase().includes(term))
         )
 
     switch (sortOption.value) {
@@ -235,6 +259,7 @@ const newCharacter = ref({
     background: '',
     backgroundDocumentUrl: '',
     costumeIndications: '',
+    factionIds: [],
     gameId: selectedGame.value?.id || ''
 })
 
@@ -259,6 +284,7 @@ function openCreateSlideover() {
         background: '',
         backgroundDocumentUrl: '',
         costumeIndications: '',
+        factionIds: [],
         gameId: selectedGame.value?.id || ''
     }
     formMode.value = 'create'
@@ -266,7 +292,10 @@ function openCreateSlideover() {
 }
 
 function startEdit(char) {
-    activeFormCharacter.value = { ...char }
+    activeFormCharacter.value = {
+        ...char,
+        factionIds: char.factions?.map((faction) => faction.id) || []
+    }
     formMode.value = 'edit'
     showSlideover.value = true
 }
@@ -295,7 +324,7 @@ async function handleFormSubmit() {
             })
         }
         closeSlideover()
-        await fetchCharacters()
+        await Promise.all([fetchCharacters(), fetchFactions()])
     } catch (error) {
         console.error('Erreur lors de la soumission du formulaire', error)
     }
@@ -304,7 +333,7 @@ async function handleFormSubmit() {
 const deleteCharacter = async (id) => {
     if (confirm('Supprimer ce personnage ?')) {
         await useApiFetch(`/api/characters/${id}`, { method: 'DELETE' })
-        await fetchCharacters()
+        await Promise.all([fetchCharacters(), fetchFactions()])
     }
 }
 

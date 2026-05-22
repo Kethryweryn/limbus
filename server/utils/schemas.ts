@@ -50,7 +50,8 @@ export const createCharacterSchema = z.object({
   background: optionalText,
   backgroundDocumentUrl: optionalText,
   costumeIndications: optionalText,
-  gameId: requiredId('Game')
+  gameId: requiredId('Game'),
+  factionIds: z.array(requiredId('Faction')).optional().default([])
 })
 
 export const updateCharacterSchema = z.object({
@@ -60,6 +61,18 @@ export const updateCharacterSchema = z.object({
   backgroundDocumentUrl: optionalText,
   costumeIndications: optionalText,
   gameId: requiredId('Game').optional(),
+  factionIds: z.array(requiredId('Faction')).optional(),
+  published: optionalBoolean
+})
+
+export const factionSchema = z.object({
+  name: requiredText('Name'),
+  pitch: optionalText,
+  background: optionalText,
+  backgroundDocumentUrl: optionalText,
+  costumeIndications: optionalText,
+  gameId: requiredId('Game'),
+  characterIds: z.array(requiredId('Character')).optional().default([]),
   published: optionalBoolean
 })
 

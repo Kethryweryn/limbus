@@ -18,6 +18,7 @@
             v-if="isEditing"
             v-model:character="editableCharacter"
             :games="games || []"
+            :factions="factions || []"
             mode="edit"
             @submit="handleFormSubmit"
             @cancel="cancelEdit"
@@ -25,6 +26,20 @@
 
         <template v-else>
             <h1 class="text-3xl font-bold">{{ character.name }}</h1>
+
+            <div v-if="character.factions?.length" class="flex flex-wrap gap-2">
+                <UButton
+                    v-for="faction in character.factions"
+                    :key="faction.id"
+                    :to="`/factions/${faction.slug}`"
+                    color="primary"
+                    variant="soft"
+                    size="sm"
+                    icon="i-heroicons-user-group"
+                >
+                    {{ faction.name }}
+                </UButton>
+            </div>
 
             <section v-if="character.pitch" class="space-y-2 rounded-lg border border-gray-200 bg-white p-5">
                 <h2 class="text-xl font-semibold">Pitch</h2>
@@ -66,15 +81,6 @@
                 Aucun contenu renseigné pour ce personnage.
             </div>
 
-            <div v-if="character.factions?.length">
-                <h2 class="text-xl font-semibold mb-2">Factions</h2>
-                <ul class="list-disc pl-5">
-                    <li v-for="faction in character.factions" :key="faction.id">
-                        {{ faction.name }}
-                    </li>
-                </ul>
-            </div>
-
             <div v-if="character.intrigues?.length">
                 <h2 class="text-xl font-semibold mb-2">Intrigues</h2>
                 <ul class="list-disc pl-5">
@@ -102,6 +108,7 @@ const router = useRouter()
 const slug = route.params.slug
 const { data: character, error, refresh } = await useFetch(`/api/characters/slug/${slug}`)
 const { data: games } = await useFetch('/api/games')
+const { data: factions } = await useFetch('/api/factions')
 
 if (error.value) {
     handleApiAuthError(error.value)
@@ -109,24 +116,31 @@ if (error.value) {
 }
 
 const isEditing = ref(route.query.edit === '1')
-const editableCharacter = ref(character.value ? { ...character.value } : null)
+const editableCharacter = ref(character.value ? characterFormPayload(character.value) : null)
 
 watch(() => route.query.edit, (value) => {
     isEditing.value = value === '1'
     if (isEditing.value && character.value) {
-        editableCharacter.value = { ...character.value }
+        editableCharacter.value = characterFormPayload(character.value)
     }
 })
 
+function characterFormPayload(value) {
+    return {
+        ...value,
+        factionIds: value.factions?.map((faction) => faction.id) || []
+    }
+}
+
 function startEdit() {
-    editableCharacter.value = { ...character.value }
+    editableCharacter.value = characterFormPayload(character.value)
     isEditing.value = true
     router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
 }
 
 function cancelEdit() {
     isEditing.value = false
-    editableCharacter.value = character.value ? { ...character.value } : null
+    editableCharacter.value = character.value ? characterFormPayload(character.value) : null
     const query = { ...route.query }
     delete query.edit
     router.replace({ path: route.path, query })

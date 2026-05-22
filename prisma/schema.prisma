@@ -65,17 +65,21 @@ model Item {
 }
 
 model Faction {
-  id          String     @id @default(cuid())
-  name        String
-  description String?
-  gameId      String
-  game        Game       @relation(fields: [gameId], references: [id])
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  published   Boolean    @default(true)
+  id                    String     @id @default(cuid())
+  name                  String
+  pitch                 String?
+  background            String?
+  backgroundDocumentUrl String?
+  costumeIndications    String?
+  slug                  String     @unique
+  gameId                String
+  game                  Game       @relation(fields: [gameId], references: [id])
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  published             Boolean    @default(true)
 
-  characters  Character[] @relation("CharacterFactions")
-  documents   Document[]  @relation("DocumentFactions")
+  characters            Character[] @relation("CharacterFactions")
+  documents             Document[]  @relation("DocumentFactions")
 }
 
 model Intrigue {
