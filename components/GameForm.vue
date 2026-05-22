@@ -1,32 +1,32 @@
 <template>
-  <UCard>
+  <UCard class="w-full">
     <template #header>
       {{ mode === 'edit' ? 'Modifier le jeu' : 'Créer un nouveau jeu' }}
     </template>
 
-    <form @submit.prevent="submit" class="space-y-4">
+    <form @submit.prevent="submit" class="w-full space-y-6">
       <UFormField label="Titre" :error="errors.title">
-        <UInput v-model="localGame.title" required />
+        <UInput v-model="localGame.title" required size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Description" :error="errors.description">
-        <UTextarea v-model="localGame.description" />
+        <UTextarea v-model="localGame.description" :rows="10" size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="URL du teaser vidéo" :error="errors.teaserUrl">
-        <UInput v-model="localGame.teaserUrl" />
+        <UInput v-model="localGame.teaserUrl" size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Note d’intention" :error="errors.noteIntention">
-        <UTextarea v-model="localGame.noteIntention" />
+        <UTextarea v-model="localGame.noteIntention" :rows="8" size="lg" class="w-full" />
       </UFormField>
 
 
-      <div class="flex gap-2">
-        <UButton type="submit" color="primary">
+      <div class="flex flex-wrap gap-2 pt-2">
+        <UButton type="submit" color="primary" size="lg">
           {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
         </UButton>
-        <UButton v-if="mode === 'edit'" @click="$emit('cancel')" color="neutral">
+        <UButton v-if="mode === 'edit'" @click="$emit('cancel')" color="neutral" size="lg">
           Annuler
         </UButton>
       </div>

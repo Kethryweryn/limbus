@@ -103,7 +103,7 @@
       </div>
     </template>
     <template #body>
-    <div class="p-4 space-y-4">
+    <div class="p-6 space-y-6">
       <GameForm v-if="activeFormGame" v-model:game="activeFormGame" :mode="formMode" @submit="handleGameFormSubmit"
         @cancel="closeFormSlideover" />
     </div>
@@ -148,10 +148,16 @@
       </div>
     </template>
     <template #body>
-    <div v-if="selectedGame" class="p-4 space-y-4">
-      <h2 class="text-xl font-bold">{{ selectedGame?.title }}</h2>
-      <p>{{ selectedGame?.description }}</p>
-      <p class="text-sm text-gray-500">{{ selectedGame?.noteIntention }}</p>
+    <div v-if="selectedGame" class="p-6 space-y-8">
+      <div class="space-y-3">
+        <h2 class="text-3xl font-bold">{{ selectedGame?.title }}</h2>
+        <p class="text-base leading-7 text-gray-700 whitespace-pre-line">{{ selectedGame?.description }}</p>
+      </div>
+
+      <div v-if="selectedGame?.noteIntention" class="space-y-2">
+        <h3 class="text-lg font-semibold">Note d’intention</h3>
+        <p class="text-base leading-7 text-gray-700 whitespace-pre-line">{{ selectedGame?.noteIntention }}</p>
+      </div>
 
       <UButton @click="selectGame({ id: selectedGame.id, title: selectedGame.title })" size="sm" color="success">
         Utiliser ce jeu
