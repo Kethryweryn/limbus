@@ -280,6 +280,7 @@ async function createSessions(
       date: firstDate,
       gameId,
       locationId: locations[0]?.id,
+      status: 'scheduled',
       published: true,
       assignments: {
         create: characters.slice(0, 6).map((character, index) => ({
@@ -297,6 +298,7 @@ async function createSessions(
       date: secondDate,
       gameId,
       locationId: locations[1]?.id,
+      status: 'postponed',
       published: true,
       assignments: {
         create: characters.slice(2, 8).map((character, index) => ({

@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readZodBody(event, sessionSchema)
-  const { name, gameId, locationId, published } = body
+  const { name, gameId, locationId, status, published } = body
   const assignments = normalizeAssignments(body.assignments)
   await assertPlayersRegisteredForGame(gameId, assignments)
 
@@ -29,6 +29,7 @@ export default defineEventHandler(async (event) => {
       gameId,
       date: parseDate(body.date),
       locationId: locationId || null,
+      status,
       published: published ?? true,
       assignments: {
         deleteMany: {},

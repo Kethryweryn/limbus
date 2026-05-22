@@ -19,22 +19,28 @@
         <UInput v-model="localSession.name" required />
       </UFormField>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <UFormField label="Date">
-          <UInput v-model="localSession.date" type="datetime-local" />
-        </UFormField>
+      <UFormField label="Statut">
+        <USelect
+          v-model="localSession.status"
+          :items="statusOptions"
+          value-key="value"
+        />
+      </UFormField>
 
-        <UFormField label="Lieu">
-          <USelect
-            v-model="localSession.locationId"
-            :items="locationOptions"
-            value-key="value"
-            placeholder="Choisissez un lieu"
-          />
-        </UFormField>
-      </div>
+      <UFormField label="Date">
+        <UInput v-model="localSession.date" type="datetime-local" />
+      </UFormField>
 
-      <div class="space-y-3">
+      <UFormField label="Lieu">
+        <USelect
+          v-model="localSession.locationId"
+          :items="locationOptions"
+          value-key="value"
+          placeholder="Choisissez un lieu"
+        />
+      </UFormField>
+
+      <div v-if="showCast" class="space-y-3">
         <div class="flex items-center justify-between">
           <h3 class="font-semibold">Cast</h3>
           <UButton type="button" size="xs" icon="i-heroicons-plus" @click="addAssignment">
@@ -106,7 +112,8 @@ const props = defineProps({
   characters: { type: Array, required: true },
   locations: { type: Array, required: true },
   players: { type: Array, required: true },
-  mode: { type: String, default: 'create' }
+  mode: { type: String, default: 'create' },
+  showCast: { type: Boolean, default: true }
 })
 
 const emit = defineEmits(['submit', 'cancel', 'update:session'])
@@ -119,6 +126,13 @@ const gameOptions = computed(() => props.games.map((game) => ({
   label: game.title,
   value: game.id
 })))
+
+const statusOptions = [
+  { label: 'Prévue', value: 'scheduled' },
+  { label: 'Reportée', value: 'postponed' },
+  { label: 'Annulée', value: 'cancelled' },
+  { label: 'Terminée', value: 'completed' }
+]
 
 const characterOptions = computed(() => props.characters
   .filter((character) => !localSession.value.gameId || character.gameId === localSession.value.gameId)

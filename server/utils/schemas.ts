@@ -5,6 +5,7 @@ const optionalText = z.string().trim().optional().nullable()
 const optionalBoolean = z.boolean().optional()
 const requiredText = (field: string) => z.string().trim().min(1, `${field} is required`)
 const requiredId = (field: string) => z.string().trim().min(1, `${field} is required`)
+const sessionStatus = z.enum(['scheduled', 'postponed', 'cancelled', 'completed'])
 
 export async function readZodBody<T>(event: H3Event, schema: ZodType<T>): Promise<T> {
   return await readValidatedBody(event, (body) => {
@@ -83,6 +84,7 @@ export const sessionSchema = z.object({
   gameId: requiredId('Game'),
   date: optionalText,
   locationId: optionalText,
+  status: sessionStatus.optional().default('scheduled'),
   published: optionalBoolean,
   assignments: z.array(sessionAssignmentSchema).optional()
 })

@@ -32,9 +32,15 @@
               <span v-if="session.location"> · {{ session.location.name }}</span>
             </p>
           </div>
-          <div v-if="!isOffline" class="flex gap-2">
-            <UButton size="xs" color="primary" @click="startEdit(session)">Modifier</UButton>
-            <UButton size="xs" color="error" @click="deleteSession(session.id)">Supprimer</UButton>
+          <div class="flex flex-wrap gap-2">
+            <UBadge :color="statusMeta(session.status).color" variant="subtle" size="xs">
+              {{ statusMeta(session.status).label }}
+            </UBadge>
+            <UButton v-if="!isOffline" size="xs" color="primary" :to="`/sessions/${session.id}`">
+              Cast
+            </UButton>
+            <UButton v-if="!isOffline" size="xs" color="primary" @click="startEdit(session)">Modifier</UButton>
+            <UButton v-if="!isOffline" size="xs" color="error" @click="deleteSession(session.id)">Supprimer</UButton>
           </div>
         </div>
       </template>
@@ -87,6 +93,7 @@
           :locations="locations"
           :players="players"
           :mode="formMode"
+          :show-cast="false"
           @submit="handleSessionFormSubmit"
           @cancel="closeFormSlideover"
         />
@@ -122,6 +129,15 @@ const gameFilterOptions = computed(() => [
   { label: 'Tous les jeux', value: 'all' },
   ...games.value.map((game) => ({ label: game.title, value: game.id }))
 ])
+
+const statusLabels = {
+  scheduled: { label: 'Prévue', color: 'primary' },
+  postponed: { label: 'Reportée', color: 'warning' },
+  cancelled: { label: 'Annulée', color: 'error' },
+  completed: { label: 'Terminée', color: 'success' }
+}
+
+const statusMeta = (status) => statusLabels[status] || statusLabels.scheduled
 
 const filteredSessions = computed(() => {
   const term = searchQuery.value.toLowerCase()
@@ -266,6 +282,7 @@ function startCreate() {
     gameId: selectedGame.value?.id || games.value[0]?.id || '',
     date: '',
     locationId: '',
+    status: 'scheduled',
     published: true,
     assignments: []
   }
