@@ -5,6 +5,7 @@ export default defineEventHandler(async (event) => {
     requireOrganizer(event)
 
     return await prisma.character.findMany({
+        orderBy: { updatedAt: 'desc' },
         include: {
             game: true
         }

@@ -5,7 +5,7 @@ export default defineEventHandler(async (event) => {
   requireOrganizer(event)
 
   return await prisma.location.findMany({
-    orderBy: { name: 'asc' },
+    orderBy: { createdAt: 'desc' },
     include: {
       game: true
     }

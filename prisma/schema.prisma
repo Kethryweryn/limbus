@@ -53,6 +53,8 @@ model Item {
   quantity    Int
   gameId      String
   game        Game       @relation(fields: [gameId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   published   Boolean    @default(true)
 
   intrigues   Intrigue[] @relation("IntrigueItems")
@@ -64,6 +66,8 @@ model Faction {
   description String?
   gameId      String
   game        Game       @relation(fields: [gameId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   published   Boolean    @default(true)
 
   characters  Character[] @relation("CharacterFactions")
@@ -76,6 +80,8 @@ model Intrigue {
   summary     String?
   gameId      String
   game        Game       @relation(fields: [gameId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   published   Boolean    @default(true)
 
   characters  Character[] @relation("CharacterIntrigues")
@@ -105,6 +111,8 @@ model Session {
   locationId  String?
   location    Location?  @relation(fields: [locationId], references: [id])
   status      String     @default("scheduled")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   published   Boolean    @default(true)
 
   assignments SessionAssignment[]
@@ -131,6 +139,8 @@ model Location {
   notes       String?
   gameId      String
   game        Game       @relation(fields: [gameId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   published   Boolean    @default(true)
 
   sessions    Session[]

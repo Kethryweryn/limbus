@@ -18,8 +18,9 @@
 
       <UInput v-model="searchQuery" placeholder="Rechercher un jeu..." icon="i-heroicons-magnifying-glass"
         class="flex-1" />
-      <USelect v-model="sortOption" :items="sortOptions" value-key="value"
-        class="w-full md:w-60" />
+      <div class="text-sm text-gray-500">
+        Triés par dernière activité
+      </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -53,12 +54,12 @@
 
         <div class="space-y-4">
           <p class="text-sm leading-6 text-gray-600 line-clamp-4">
-            {{ game.description || 'Aucune description renseignée.' }}
+            {{ excerpt(game.description, 220) || 'Aucune description renseignée.' }}
           </p>
 
           <div v-if="game.noteIntention" class="rounded-md bg-gray-50 p-3 text-sm text-gray-600">
             <div class="mb-1 font-medium text-gray-700">Note d’intention</div>
-            <p class="line-clamp-3">{{ game.noteIntention }}</p>
+            <p class="line-clamp-3">{{ excerpt(game.noteIntention, 160) }}</p>
           </div>
 
           <div class="flex flex-wrap gap-2 pt-1">
@@ -227,15 +228,7 @@ const publishGame = async (id) => {
 }
 
 const searchQuery = ref('')
-const sortOption = ref('title-asc')
 const showArchived = ref(false)
-
-const sortOptions = [
-  { label: 'Titre A-Z', value: 'title-asc' },
-  { label: 'Titre Z-A', value: 'title-desc' },
-  { label: 'Plus récent', value: 'date-desc' },
-  { label: 'Plus ancien', value: 'date-asc' }
-]
 
 const filteredGames = computed(() => {
   let result = games.value.filter(game =>
@@ -248,20 +241,7 @@ const filteredGames = computed(() => {
     result = result.filter(game => game.published)
   }
 
-  switch (sortOption.value) {
-    case 'title-asc':
-      result.sort((a, b) => a.title.localeCompare(b.title))
-      break
-    case 'title-desc':
-      result.sort((a, b) => b.title.localeCompare(a.title))
-      break
-    case 'date-desc':
-      result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      break
-    case 'date-asc':
-      result.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-      break
-  }
+  result.sort((a, b) => new Date(b.lastActivityAt || b.updatedAt).getTime() - new Date(a.lastActivityAt || a.updatedAt).getTime())
 
   return result
 })
@@ -282,6 +262,14 @@ const nextPage = () => {
 
 const prevPage = () => {
   if (page.value > 1) page.value--
+}
+
+const excerpt = (value, maxLength) => {
+  const text = value?.trim()
+  if (!text) return ''
+  if (text.length <= maxLength) return text
+
+  return `${text.slice(0, maxLength).trimEnd()}...`
 }
 
 const showFormSlideover = ref(false)
