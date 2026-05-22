@@ -13,13 +13,21 @@
 
         <!-- Liste des personnages -->
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            <UCard v-for="char in paginatedCharacters" :key="char.id">
+            <UCard
+                v-for="char in paginatedCharacters"
+                :key="char.id"
+                class="cursor-pointer transition-shadow hover:shadow-md"
+                role="link"
+                tabindex="0"
+                @click="openCharacterPage(char)"
+                @keydown.enter="openCharacterPage(char)"
+            >
                 <template #header>
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0 space-y-2">
-                            <NuxtLink :to="`/characters/${char.slug}`" class="block text-lg font-semibold leading-tight hover:underline">
+                            <h2 class="text-lg font-semibold leading-tight">
                                 {{ char.name }}
-                            </NuxtLink>
+                            </h2>
                             <div class="flex flex-wrap gap-1">
                                 <UBadge color="neutral" variant="subtle" size="xs" class="max-w-full truncate">
                                     {{ char.game?.title || 'Jeu inconnu' }}
@@ -42,7 +50,7 @@
                             icon="i-heroicons-pencil-square"
                             size="xs"
                             color="primary"
-                            @click="startEdit(char)"
+                            @click.stop="startEdit(char)"
                         >
                             Modifier
                         </UButton>
@@ -51,7 +59,7 @@
                             size="xs"
                             color="error"
                             variant="soft"
-                            @click="deleteCharacter(char.id)"
+                            @click.stop="deleteCharacter(char.id)"
                         >
                             Supprimer
                         </UButton>
@@ -99,6 +107,7 @@ import { getFromStore, saveToStore } from '~/utils/storage'
 const characters = ref([])
 const search = ref('')
 const games = ref([])
+const router = useRouter()
 
 const gameStore = useGameStore()
 const selectedGame = computed(() => gameStore.currentGame)
@@ -227,6 +236,11 @@ function startEdit(char) {
 function closeSlideover() {
     activeFormCharacter.value = null
     showSlideover.value = false
+}
+
+function openCharacterPage(char) {
+    if (!char?.slug) return
+    router.push(`/characters/${char.slug}`)
 }
 
 async function handleFormSubmit() {

@@ -1,5 +1,5 @@
 <template>
-    <div v-if="game" class="p-6 max-w-4xl mx-auto space-y-6">
+    <div v-if="game" class="p-6 max-w-7xl mx-auto space-y-6">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <UButton to="/games" icon="i-heroicons-arrow-left" color="neutral" variant="ghost">
                 Jeux
@@ -43,7 +43,7 @@
             <h1 class="text-3xl font-bold">{{ game.title }}</h1>
 
             <div v-if="game.teaserUrl" class="flex justify-center my-6">
-                <div class="w-full max-w-lg aspect-video">
+                <div class="w-full max-w-4xl aspect-video">
                     <iframe
                         :src="embedTeaser(game.teaserUrl)"
                         class="w-full h-full rounded"

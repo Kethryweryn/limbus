@@ -1,5 +1,5 @@
 <template>
-    <div class="p-6 max-w-4xl mx-auto space-y-6">
+    <div class="p-6 max-w-7xl mx-auto space-y-6">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <UButton to="/characters" icon="i-heroicons-arrow-left" color="neutral" variant="ghost">
                 Personnages

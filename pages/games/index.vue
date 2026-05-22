@@ -26,26 +26,25 @@
       <UCard
         v-for="game in paginatedGames"
         :key="game.id"
+        class="cursor-pointer transition-shadow hover:shadow-md"
         :class="{ 'opacity-60': !game.published }"
+        role="link"
+        tabindex="0"
+        @click="openGamePage(game)"
+        @keydown.enter="openGamePage(game)"
       >
         <template #header>
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0 space-y-2">
-              <button
-                class="block text-left text-lg font-semibold leading-tight hover:underline"
-                @click="openSlideover(game.slug)"
-              >
+              <h2 class="text-lg font-semibold leading-tight">
                 {{ game.title }}
-              </button>
+              </h2>
               <div class="flex flex-wrap gap-1">
                 <UBadge v-if="activeGame?.id === game.id" color="success" variant="subtle" size="xs">
                   Jeu actif
                 </UBadge>
                 <UBadge v-if="!game.published" color="neutral" variant="solid" size="xs">
                   Archivé
-                </UBadge>
-                <UBadge v-else color="primary" variant="subtle" size="xs">
-                  Publié
                 </UBadge>
               </div>
             </div>
@@ -69,7 +68,7 @@
                 icon="i-heroicons-arrow-up-tray"
                 size="xs"
                 color="warning"
-                @click="publishGame(game.id)"
+                @click.stop="publishGame(game.id)"
               >
                 Publier
               </UButton>
@@ -78,9 +77,9 @@
                 icon="i-heroicons-check-circle"
                 size="xs"
                 color="success"
-                @click="selectGame({ id: game.id, title: game.title })"
+                @click.stop="selectGame({ id: game.id, title: game.title })"
               >
-                Activer
+                Rendre actif
               </UButton>
             </template>
 
@@ -89,7 +88,7 @@
               icon="i-heroicons-pencil-square"
               size="xs"
               color="primary"
-              @click="startEdit(game)"
+              @click.stop="startEdit(game)"
             >
               Modifier
             </UButton>
@@ -100,7 +99,7 @@
               size="xs"
               color="error"
               variant="soft"
-              @click="archiveGame(game.id)"
+              @click.stop="archiveGame(game.id)"
             >
               Archiver
             </UButton>
@@ -133,42 +132,6 @@
     />
   </AppWideSlideover>
 
-  <!-- Slideover aperçu -->
-  <AppWideSlideover
-    v-model:open="showPreviewSlideover"
-    :title="selectedGame?.title || 'Jeu'"
-    :full-page-to="selectedGame?.slug ? `/games/${selectedGame.slug}` : null"
-    @full-page="showPreviewSlideover = false"
-  >
-    <template #actions>
-      <UButton
-        v-if="selectedGame && !isOffline"
-        icon="i-heroicons-pencil-square"
-        color="primary"
-        variant="ghost"
-        size="sm"
-        @click="startEditFromPreview"
-      >
-        Modifier
-      </UButton>
-    </template>
-
-    <div v-if="selectedGame" class="space-y-8">
-      <div class="space-y-3">
-        <h2 class="text-3xl font-bold">{{ selectedGame?.title }}</h2>
-        <p class="text-base leading-7 text-gray-700 whitespace-pre-line">{{ selectedGame?.description }}</p>
-      </div>
-
-      <div v-if="selectedGame?.noteIntention" class="space-y-2">
-        <h3 class="text-lg font-semibold">Note d’intention</h3>
-        <p class="text-base leading-7 text-gray-700 whitespace-pre-line">{{ selectedGame?.noteIntention }}</p>
-      </div>
-
-      <UButton @click="selectGame({ id: selectedGame.id, title: selectedGame.title })" size="sm" color="success">
-        Utiliser ce jeu
-      </UButton>
-    </div>
-  </AppWideSlideover>
 </template>
 
 <script setup>
@@ -181,7 +144,6 @@ import { getFromStore, saveToStore } from '~/utils/storage'
 const { selectGame, game: activeGame } = useGameFocus()
 
 const games = ref([])
-const selectedGame = ref(null)
 const route = useRoute()
 const router = useRouter()
 
@@ -323,7 +285,6 @@ const prevPage = () => {
 }
 
 const showFormSlideover = ref(false)
-const showPreviewSlideover = ref(false)
 const activeFormGame = ref(null)
 const formMode = ref('create')
 
@@ -337,15 +298,9 @@ function closeFormSlideover() {
   }
 }
 
-function openSlideover(slug) {
-  selectedGame.value = games.value.find(g => g.slug === slug)
-  showPreviewSlideover.value = true
-}
-
-function startEditFromPreview() {
-  if (!selectedGame.value) return
-  startEdit(selectedGame.value)
-  showPreviewSlideover.value = false
+function openGamePage(game) {
+  if (!game?.slug) return
+  router.push(`/games/${game.slug}`)
 }
 
 async function handleGameFormSubmit() {
@@ -379,7 +334,6 @@ watch([games, () => route.query.edit], () => {
   const game = games.value.find(item => item.slug === editSlug)
   if (!game || activeFormGame.value?.slug === editSlug) return
 
-  showPreviewSlideover.value = false
   startEdit(game)
 }, { immediate: true })
 

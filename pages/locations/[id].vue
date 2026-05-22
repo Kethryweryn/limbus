@@ -1,5 +1,5 @@
 <template>
-  <div v-if="location" class="p-6 max-w-4xl mx-auto space-y-6">
+  <div v-if="location" class="p-6 max-w-7xl mx-auto space-y-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <UButton to="/locations" icon="i-heroicons-arrow-left" color="neutral" variant="ghost">
         Lieux
