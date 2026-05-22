@@ -1,6 +1,6 @@
 <template>
-  <main v-if="game" class="min-h-screen bg-gray-50 text-gray-900">
-    <div class="mx-auto max-w-7xl px-6 py-10">
+  <main v-if="game" class="light min-h-screen bg-gray-50 text-gray-900" style="color-scheme: light;">
+    <div class="p-6 max-w-7xl mx-auto">
       <GamePageContent :game="game" />
     </div>
   </main>
@@ -8,7 +8,8 @@
 
 <script setup>
 definePageMeta({
-  layout: false
+  layout: false,
+  colorMode: 'light'
 })
 
 const route = useRoute()
@@ -19,6 +20,17 @@ if (error.value) {
 }
 
 useHead(() => ({
-  title: game.value ? `${game.value.title} - Limbus` : 'Limbus'
+  title: game.value ? `${game.value.title} - Limbus` : 'Limbus',
+  htmlAttrs: {
+    class: 'light',
+    'data-color-mode-forced': 'light'
+  },
+  bodyAttrs: {
+    class: 'bg-gray-50 text-gray-900'
+  },
+  meta: [
+    { name: 'color-scheme', content: 'light' },
+    { name: 'theme-color', content: '#f9fafb' }
+  ]
 }))
 </script>
