@@ -8,9 +8,9 @@
         class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-900"
       >
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span>Serveur indisponible. Limbus utilise les donnees locales en lecture seule.</span>
+          <span>Serveur indisponible. Limbus utilise les données locales en lecture seule.</span>
           <UButton size="xs" color="warning" variant="soft" @click="retryServer">
-            Reessayer
+            Réessayer
           </UButton>
         </div>
       </div>

@@ -65,7 +65,7 @@
             <div>{{ player.email }}</div>
           </div>
           <div v-if="player.phone">
-            <span class="text-gray-500">Telephone</span>
+            <span class="text-gray-500">Téléphone</span>
             <div>{{ player.phone }}</div>
           </div>
           <div v-if="player.notes">
@@ -247,7 +247,7 @@ async function handlePlayerFormSubmit() {
 async function deletePlayer(id) {
   if (isOffline.value) return
 
-  if (!confirm('Supprimer ce joueur ? Les assignations de session seront conservees sans joueur.')) return
+  if (!confirm('Supprimer ce joueur ? Les assignations de session seront conservées sans joueur.')) return
 
   await useApiFetch(`/api/players/${id}`, { method: 'DELETE' })
   await fetchPlayers()

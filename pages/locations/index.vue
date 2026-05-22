@@ -207,7 +207,7 @@ async function handleLocationFormSubmit() {
 async function deleteLocation(id) {
   if (isOffline.value) return
 
-  if (!confirm('Supprimer ce lieu ? Les sessions liees seront conservees sans lieu.')) return
+  if (!confirm('Supprimer ce lieu ? Les sessions liées seront conservées sans lieu.')) return
 
   await useApiFetch(`/api/locations/${id}`, { method: 'DELETE' })
   await fetchLocations()

@@ -47,7 +47,7 @@ export async function assertPlayersRegisteredForGame(gameId: string, assignments
   if (registeredPlayers !== playerIds.length) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Un joueur assigne n est pas inscrit au jeu de la session'
+      statusMessage: 'Un joueur assigné n’est pas inscrit au jeu de la session'
     })
   }
 }

@@ -49,11 +49,11 @@
         <div>
           <span class="text-gray-500">Lieu</span>
           <div class="font-medium">
-            {{ session.location ? formatLocation(session.location) : 'Non renseigne' }}
+            {{ session.location ? formatLocation(session.location) : 'Non renseigné' }}
           </div>
         </div>
         <div>
-          <span class="text-gray-500">Cast assigne</span>
+          <span class="text-gray-500">Cast assigné</span>
           <div class="font-medium">{{ session.assignments?.length || 0 }} personnage(s)</div>
         </div>
       </div>
@@ -71,7 +71,7 @@
               <div class="min-w-0">
                 <div class="font-medium">{{ assignment.character?.name }}</div>
                 <div class="text-gray-600">
-                  {{ assignment.player?.name || 'Joueur non assigne' }}
+                  {{ assignment.player?.name || 'Joueur non assigné' }}
                   <span v-if="assignment.player?.email"> · {{ assignment.player.email }}</span>
                 </div>
               </div>

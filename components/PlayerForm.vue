@@ -23,7 +23,7 @@
         <UInput v-model="localPlayer.email" type="email" />
       </UFormField>
 
-      <UFormField label="Telephone">
+      <UFormField label="Téléphone">
         <UInput v-model="localPlayer.phone" />
       </UFormField>
 
