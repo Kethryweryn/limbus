@@ -284,10 +284,10 @@ async function createSessions(
       status: 'completed',
       published: true,
       assignments: {
-        create: characters.slice(0, 5).map((character, index) => ({
+        create: characters.map((character, index) => ({
           characterId: character.id,
-          playerId: players[index + 1]?.id || null,
-          notes: index === 0 ? 'Session passee utilisee pour tester les statistiques.' : null
+          playerId: players[index]?.id || null,
+          notes: index === 0 ? 'Session passee complete utilisee pour tester les statistiques.' : null
         }))
       }
     }

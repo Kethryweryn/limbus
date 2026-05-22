@@ -64,11 +64,11 @@
             </div>
             <div>
               <div class="text-3xl font-bold">{{ dashboardData?.stats.registeredPlayersCount ?? 0 }}</div>
-              <div class="text-sm text-gray-500">Joueurs inscrits</div>
+              <div class="text-sm text-gray-500">Joueurs au total</div>
             </div>
             <div>
               <div class="text-3xl font-bold">{{ dashboardData?.stats.playersWhoPlayedCount ?? 0 }}</div>
-              <div class="text-sm text-gray-500">Joueurs ayant joué un jeu</div>
+              <div class="text-sm text-gray-500">Anciens joueurs</div>
             </div>
             <div>
               <div class="text-3xl font-bold">{{ dashboardData?.stats.neverCastPlayersCount ?? 0 }}</div>
