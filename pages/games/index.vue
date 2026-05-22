@@ -62,7 +62,46 @@
   </div>
 
   <!-- Slideover formulaire -->
-  <USlideover v-model:open="showFormSlideover">
+  <USlideover v-model:open="showFormSlideover" :ui="{ content: formSlideoverClass }">
+    <template #header>
+      <div class="flex w-full items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-semibold">
+            {{ formMode === 'edit' ? 'Modifier le jeu' : 'Créer un jeu' }}
+          </h2>
+        </div>
+        <div class="flex items-center gap-2">
+          <UButton
+            v-if="formMode === 'edit' && activeFormGame?.slug"
+            icon="i-heroicons-arrows-pointing-out"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            @click="openFullPageEdit"
+          >
+            Pleine page
+          </UButton>
+          <UButton
+            v-else
+            :icon="isFormFullWidth ? 'i-heroicons-arrows-pointing-in' : 'i-heroicons-arrows-pointing-out'"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            @click="isFormFullWidth = !isFormFullWidth"
+          >
+            {{ isFormFullWidth ? 'Réduire' : 'Pleine largeur' }}
+          </UButton>
+          <UButton
+            icon="i-heroicons-x-mark"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="Fermer"
+            @click="closeFormSlideover"
+          />
+        </div>
+      </div>
+    </template>
     <template #body>
     <div class="p-4 space-y-4">
       <GameForm v-if="activeFormGame" v-model:game="activeFormGame" :mode="formMode" @submit="handleGameFormSubmit"
@@ -72,18 +111,47 @@
   </USlideover>
 
   <!-- Slideover aperçu -->
-  <USlideover v-model:open="showPreviewSlideover">
+  <USlideover v-model:open="showPreviewSlideover" :ui="{ content: previewSlideoverClass }">
+    <template #header>
+      <div class="flex w-full items-center justify-between gap-3">
+        <h2 class="truncate text-base font-semibold">{{ selectedGame?.title }}</h2>
+        <div class="flex items-center gap-2">
+          <UButton
+            v-if="selectedGame?.slug"
+            icon="i-heroicons-arrows-pointing-out"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            @click="openFullPagePreview"
+          >
+            Pleine page
+          </UButton>
+          <UButton
+            v-if="selectedGame && !isOffline"
+            icon="i-heroicons-pencil-square"
+            color="primary"
+            variant="ghost"
+            size="sm"
+            @click="startEditFromPreview"
+          >
+            Modifier
+          </UButton>
+          <UButton
+            icon="i-heroicons-x-mark"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="Fermer"
+            @click="showPreviewSlideover = false"
+          />
+        </div>
+      </div>
+    </template>
     <template #body>
-    <div class="p-4 space-y-4">
+    <div v-if="selectedGame" class="p-4 space-y-4">
       <h2 class="text-xl font-bold">{{ selectedGame?.title }}</h2>
       <p>{{ selectedGame?.description }}</p>
       <p class="text-sm text-gray-500">{{ selectedGame?.noteIntention }}</p>
-
-      <div class="mt-4">
-        <UButton :to="`/games/${selectedGame?.slug}`" color="neutral" variant="ghost">
-          Voir la page complète
-        </UButton>
-      </div>
 
       <UButton @click="selectGame({ id: selectedGame.id, title: selectedGame.title })" size="sm" color="success">
         Utiliser ce jeu
@@ -104,6 +172,7 @@ const { selectGame, game: activeGame } = useGameFocus()
 
 const games = ref([])
 const selectedGame = ref(null)
+const router = useRouter()
 
 const fetchGames = async () => {
   if (isOfflineMode()) {
@@ -148,6 +217,7 @@ onUnmounted(() => {
 const startEdit = (game) => {
   activeFormGame.value = { ...game }
   formMode.value = 'edit'
+  isFormFullWidth.value = false
   showFormSlideover.value = true
 }
 
@@ -159,6 +229,7 @@ function startCreate() {
     published: false
   }
   formMode.value = 'create'
+  isFormFullWidth.value = false
   showFormSlideover.value = true
 }
 
@@ -246,15 +317,40 @@ const showFormSlideover = ref(false)
 const showPreviewSlideover = ref(false)
 const activeFormGame = ref(null)
 const formMode = ref('create')
+const isFormFullWidth = ref(false)
+
+const wideSlideoverClass = 'w-full sm:max-w-3xl lg:max-w-5xl'
+const fullWidthSlideoverClass = 'w-screen sm:max-w-none'
+const formSlideoverClass = computed(() => isFormFullWidth.value ? fullWidthSlideoverClass : wideSlideoverClass)
+const previewSlideoverClass = wideSlideoverClass
 
 function closeFormSlideover() {
   activeFormGame.value = null
   showFormSlideover.value = false
+  isFormFullWidth.value = false
 }
 
 function openSlideover(slug) {
   selectedGame.value = games.value.find(g => g.slug === slug)
   showPreviewSlideover.value = true
+}
+
+function startEditFromPreview() {
+  if (!selectedGame.value) return
+  startEdit(selectedGame.value)
+  showPreviewSlideover.value = false
+}
+
+function openFullPagePreview() {
+  if (!selectedGame.value?.slug) return
+  showPreviewSlideover.value = false
+  router.push(`/games/${selectedGame.value.slug}`)
+}
+
+function openFullPageEdit() {
+  if (!activeFormGame.value?.slug) return
+  showFormSlideover.value = false
+  router.push(`/games/${activeFormGame.value.slug}?edit=1`)
 }
 
 async function handleGameFormSubmit() {

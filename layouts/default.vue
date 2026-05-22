@@ -14,10 +14,43 @@
         </header>
 
         <!-- Layout -->
-        <div class="flex flex-1">
+        <div class="flex flex-1 min-h-0">
             <!-- Sidebar desktop -->
-            <aside class="hidden md:block w-64 bg-white border-r p-4 self-stretch">
-                <UNavigationMenu :items="navLinks" orientation="vertical" />
+            <aside
+                class="hidden md:flex bg-white border-r self-stretch flex-col transition-[width] duration-200"
+                :class="sidebarCollapsed ? 'w-20' : 'w-64'"
+            >
+                <div class="flex items-center p-3 border-b border-gray-100" :class="sidebarCollapsed ? 'justify-center' : 'justify-between'">
+                    <span v-if="!sidebarCollapsed" class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Navigation
+                    </span>
+                    <UButton
+                        :icon="sidebarCollapsed ? 'i-heroicons-chevron-double-right' : 'i-heroicons-chevron-double-left'"
+                        color="neutral"
+                        variant="ghost"
+                        size="sm"
+                        :aria-label="sidebarCollapsed ? 'Déplier le menu' : 'Replier le menu'"
+                        @click="toggleSidebar"
+                    />
+                </div>
+
+                <nav class="flex-1 p-3 space-y-5 overflow-y-auto">
+                    <div>
+                        <SidebarLink
+                            :item="dashboardLink"
+                            :collapsed="sidebarCollapsed"
+                            :active="isActive(dashboardLink.to)"
+                        />
+                    </div>
+
+                    <SidebarSection
+                        v-for="section in navSections"
+                        :key="section.label"
+                        :section="section"
+                        :collapsed="sidebarCollapsed"
+                        :is-active="isActive"
+                    />
+                </nav>
             </aside>
 
             <!-- Page content -->
@@ -46,10 +79,23 @@
         <!-- Mobile Sidebar -->
         <USlideover v-model:open="mobileOpen" title="Navigation">
             <template #body>
-            <div class="p-4 space-y-6">
-                <h2 class="text-lg font-bold">Navigation</h2>
-                <UNavigationMenu :items="navLinks" orientation="vertical" @click="mobileOpen = false" />
-            </div>
+                <div class="p-4 space-y-6">
+                    <h2 class="text-lg font-bold">Navigation</h2>
+                    <nav class="space-y-5">
+                        <SidebarLink
+                            :item="dashboardLink"
+                            :active="isActive(dashboardLink.to)"
+                            @click="mobileOpen = false"
+                        />
+                        <SidebarSection
+                            v-for="section in navSections"
+                            :key="section.label"
+                            :section="section"
+                            :is-active="isActive"
+                            @navigate="mobileOpen = false"
+                        />
+                    </nav>
+                </div>
             </template>
         </USlideover>
     </div>
@@ -58,13 +104,32 @@
 <script setup>
 import { navigateTo } from '#app'
 
-const navLinks = [
-    { label: 'Dashboard', to: '/', icon: 'i-heroicons-home' },
-    { label: 'Jeux', to: '/games', icon: 'i-heroicons-cube' },
-    { label: 'Personnages', to: '/characters', icon: 'i-heroicons-identification' },
-    { label: 'Joueurs', to: '/players', icon: 'i-heroicons-users' },
-    { label: 'Lieux', to: '/locations', icon: 'i-heroicons-map-pin' },
-    { label: 'Sessions', to: '/sessions', icon: 'i-heroicons-calendar-days' }
+const route = useRoute()
+const sidebarCollapsed = ref(false)
+
+const dashboardLink = { label: 'Dashboard', to: '/', icon: 'i-heroicons-home' }
+
+const navSections = [
+    {
+        label: 'Écriture',
+        icon: 'i-heroicons-pencil-square',
+        links: [
+            { label: 'Jeux', to: '/games', icon: 'i-heroicons-cube' },
+            { label: 'Personnages', to: '/characters', icon: 'i-heroicons-identification' },
+            { label: 'Groupes', to: '/factions', icon: 'i-heroicons-user-group' },
+            { label: 'Intrigues', to: '/intrigues', icon: 'i-heroicons-book-open' },
+            { label: 'Objets', to: '/items', icon: 'i-heroicons-archive-box' }
+        ]
+    },
+    {
+        label: 'Organisation',
+        icon: 'i-heroicons-calendar-days',
+        links: [
+            { label: 'Joueurs', to: '/players', icon: 'i-heroicons-users' },
+            { label: 'Lieux', to: '/locations', icon: 'i-heroicons-map-pin' },
+            { label: 'Sessions', to: '/sessions', icon: 'i-heroicons-calendar-days' }
+        ]
+    }
 ]
 
 const userMenu = [
@@ -76,6 +141,27 @@ const userMenu = [
         }
     ]
 ]
+
+const isActive = (path) => {
+    if (path === '/') {
+        return route.path === '/'
+    }
+
+    return route.path === path || route.path.startsWith(`${path}/`)
+}
+
+const toggleSidebar = () => {
+    sidebarCollapsed.value = !sidebarCollapsed.value
+}
+
+onMounted(() => {
+    const saved = localStorage.getItem('limbus-sidebar-collapsed')
+    sidebarCollapsed.value = saved === 'true'
+})
+
+watch(sidebarCollapsed, (value) => {
+    localStorage.setItem('limbus-sidebar-collapsed', String(value))
+})
 </script>
 
 
