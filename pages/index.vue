@@ -2,41 +2,94 @@
   <div class="space-y-6">
     <h1 class="text-3xl font-bold">Tableau de bord</h1>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-      <!-- Widget 1 -->
-      <UCard class="shadow">
-        <template #header>
-          <div class="flex justify-between items-center">
-            <span class="font-semibold">Nombre de jeux</span>
-            <UIcon name="i-heroicons-cube" />
-          </div>
-        </template>
-        <template #default>
-          <div class="text-4xl font-bold">
-            {{ pending ? '...' : dashboardData?.gamesCount ?? '–' }}
-          </div>
-        </template>
-        <template #footer>
-          <span class="text-sm text-gray-500">Mis à jour il y a 5 min</span>
-        </template>
-      </UCard>
-
-      <!-- Widget 2 -->
-      <UCard class="shadow">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <UCard class="xl:col-span-2">
         <template #header>
           <div class="flex justify-between items-center">
             <span class="font-semibold">Prochaine session</span>
             <UIcon name="i-heroicons-calendar-days" />
           </div>
         </template>
-        <template #default>
-          <div class="text-lg">
-            {{ dashboardData?.nextSessionDate ? formatDate(dashboardData.nextSessionDate) : 'Aucune session prévue' }}
+
+        <div v-if="pending" class="text-gray-500">Chargement...</div>
+        <div v-else-if="!dashboardData?.nextSession" class="text-gray-500">Aucune session prévue</div>
+        <div v-else class="space-y-4">
+          <div>
+            <div class="text-xl font-semibold">{{ dashboardData.nextSession.name }}</div>
+            <div class="text-sm text-gray-500">{{ dashboardData.nextSession.game.title }}</div>
           </div>
-        </template>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <span class="text-gray-500">Date</span>
+              <div class="font-medium">{{ formatDateTime(dashboardData.nextSession.date) }}</div>
+            </div>
+            <div>
+              <span class="text-gray-500">Lieu</span>
+              <div class="font-medium">{{ formatLocation(dashboardData.nextSession.location) }}</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between text-sm mb-2">
+              <span class="text-gray-500">Cast</span>
+              <span class="font-medium">
+                {{ dashboardData.nextSession.cast.assigned }}/{{ dashboardData.nextSession.cast.total }} rôles assignés
+                ({{ dashboardData.nextSession.cast.percent }}%)
+              </span>
+            </div>
+            <UProgress :model-value="dashboardData.nextSession.cast.percent" />
+          </div>
+        </div>
+
         <template #footer>
           <UButton size="xs" color="neutral" variant="soft" to="/sessions">Voir les sessions</UButton>
         </template>
+      </UCard>
+
+      <UCard>
+        <template #header>
+          <div class="flex justify-between items-center">
+            <span class="font-semibold">Stats</span>
+            <UIcon name="i-heroicons-chart-bar" />
+          </div>
+        </template>
+
+        <div v-if="pending" class="text-gray-500">Chargement...</div>
+        <div v-else class="space-y-5">
+          <div class="grid grid-cols-1 gap-3">
+            <div>
+              <div class="text-3xl font-bold">{{ dashboardData?.stats.gamesCount ?? 0 }}</div>
+              <div class="text-sm text-gray-500">Jeux</div>
+            </div>
+            <div>
+              <div class="text-3xl font-bold">{{ dashboardData?.stats.registeredPlayersCount ?? 0 }}</div>
+              <div class="text-sm text-gray-500">Joueurs inscrits</div>
+            </div>
+            <div>
+              <div class="text-3xl font-bold">{{ dashboardData?.stats.playersWhoPlayedCount ?? 0 }}</div>
+              <div class="text-sm text-gray-500">Joueurs ayant joué un jeu</div>
+            </div>
+            <div>
+              <div class="text-3xl font-bold">{{ dashboardData?.stats.neverCastPlayersCount ?? 0 }}</div>
+              <div class="text-sm text-gray-500">Joueurs jamais castés</div>
+            </div>
+          </div>
+
+          <div>
+            <h2 class="text-sm font-semibold mb-2">Sessions par jeu</h2>
+            <div class="space-y-2">
+              <div
+                v-for="game in dashboardData?.stats.sessionsByGame || []"
+                :key="game.id"
+                class="flex justify-between gap-3 text-sm"
+              >
+                <span class="truncate">{{ game.title }}</span>
+                <span class="font-medium">{{ game.sessionsCount }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </UCard>
     </div>
   </div>
@@ -51,11 +104,18 @@ const dashboardData = ref<any>(null)
 const pending = ref(true)
 const error = ref(null)
 
-const formatDate = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', {
+const formatDateTime = (value: string) => new Date(value).toLocaleString('fr-FR', {
   day: 'numeric',
   month: 'long',
-  year: 'numeric'
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit'
 })
+
+const formatLocation = (location: any) => {
+  if (!location) return 'Non renseigné'
+  return location.address ? `${location.name} - ${location.address}` : location.name
+}
 
 const updateDashboard = async () => {
   if (isOfflineMode()) {
@@ -68,7 +128,7 @@ const updateDashboard = async () => {
     const data = await useApiFetch('/api/dashboard')
     dashboardData.value = data
     saveToStore('dashboard', 'main', data)
-  } catch (e) {
+  } catch (e: any) {
     error.value = e
   } finally {
     pending.value = false
