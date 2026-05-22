@@ -1,6 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
+import { readZodBody, updateGameSchema } from '~/server/utils/schemas'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -10,7 +11,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
   }
 
-  const body = await readBody(event)
+  const body = await readZodBody(event, updateGameSchema)
   const { title, description, teaserUrl, noteIntention, published } = body
 
   const data: any = {

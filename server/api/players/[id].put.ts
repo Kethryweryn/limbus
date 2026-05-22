@@ -1,5 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
+import { playerSchema, readZodBody } from '~/server/utils/schemas'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -9,16 +10,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
   }
 
-  const body = await readBody(event)
+  const body = await readZodBody(event, playerSchema)
   const { name, email, phone, notes, gameId, published } = body
-
-  if (!name?.trim()) {
-    throw createError({ statusCode: 400, statusMessage: 'Name is required' })
-  }
-
-  if (!gameId) {
-    throw createError({ statusCode: 400, statusMessage: 'Game is required' })
-  }
 
   return await prisma.player.update({
     where: { id },

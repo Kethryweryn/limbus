@@ -1,5 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
+import { readZodBody, sessionSchema } from '~/server/utils/schemas'
 
 function parseDate(value: unknown): Date | null {
   if (!value || typeof value !== 'string') return null
@@ -11,32 +12,28 @@ function normalizeAssignments(assignments: any[] | undefined) {
   if (!Array.isArray(assignments)) return []
 
   const seen = new Set<string>()
-  return assignments
-    .filter((assignment) => assignment?.characterId && !seen.has(assignment.characterId))
-    .map((assignment) => {
-      seen.add(assignment.characterId)
-      return {
-        characterId: assignment.characterId,
-        playerId: assignment.playerId || null,
-        photoUrl: assignment.photoUrl || null,
-        notes: assignment.notes || null
-      }
+  const normalized = []
+
+  for (const assignment of assignments) {
+    if (!assignment.characterId || seen.has(assignment.characterId)) continue
+
+    seen.add(assignment.characterId)
+    normalized.push({
+      characterId: assignment.characterId,
+      playerId: assignment.playerId || null,
+      photoUrl: assignment.photoUrl || null,
+      notes: assignment.notes || null
     })
+  }
+
+  return normalized
 }
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
 
-  const body = await readBody(event)
+  const body = await readZodBody(event, sessionSchema)
   const { name, gameId, locationId, published } = body
-
-  if (!name?.trim()) {
-    throw createError({ statusCode: 400, statusMessage: 'Name is required' })
-  }
-
-  if (!gameId) {
-    throw createError({ statusCode: 400, statusMessage: 'Game is required' })
-  }
 
   return await prisma.session.create({
     data: {
