@@ -1,32 +1,12 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { readZodBody, sessionSchema } from '~/server/utils/schemas'
+import { assertPlayersRegisteredForGame, normalizeAssignments } from '~/server/utils/sessionAssignments'
 
 function parseDate(value: unknown): Date | null {
   if (!value || typeof value !== 'string') return null
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? null : date
-}
-
-function normalizeAssignments(assignments: any[] | undefined) {
-  if (!Array.isArray(assignments)) return []
-
-  const seen = new Set<string>()
-  const normalized = []
-
-  for (const assignment of assignments) {
-    if (!assignment.characterId || seen.has(assignment.characterId)) continue
-
-    seen.add(assignment.characterId)
-    normalized.push({
-      characterId: assignment.characterId,
-      playerId: assignment.playerId || null,
-      photoUrl: assignment.photoUrl || null,
-      notes: assignment.notes || null
-    })
-  }
-
-  return normalized
 }
 
 export default defineEventHandler(async (event) => {
@@ -39,6 +19,8 @@ export default defineEventHandler(async (event) => {
 
   const body = await readZodBody(event, sessionSchema)
   const { name, gameId, locationId, published } = body
+  const assignments = normalizeAssignments(body.assignments)
+  await assertPlayersRegisteredForGame(gameId, assignments)
 
   return await prisma.session.update({
     where: { id },
@@ -50,7 +32,7 @@ export default defineEventHandler(async (event) => {
       published: published ?? true,
       assignments: {
         deleteMany: {},
-        create: normalizeAssignments(body.assignments)
+        create: assignments
       }
     },
     include: {

@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readZodBody(event, playerSchema)
-  const { name, email, phone, notes, gameId, published } = body
+  const { name, email, phone, notes, gameIds, published } = body
 
   return await prisma.player.update({
     where: { id },
@@ -20,11 +20,15 @@ export default defineEventHandler(async (event) => {
       email: email || null,
       phone: phone || null,
       notes: notes || null,
-      gameId,
+      games: {
+        set: gameIds.map((id) => ({ id }))
+      },
       published: published ?? true
     },
     include: {
-      game: true
+      games: {
+        orderBy: { title: 'asc' }
+      }
     }
   })
 })

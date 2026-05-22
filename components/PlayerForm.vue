@@ -5,13 +5,13 @@
     </template>
 
     <form @submit.prevent="submit" class="space-y-4">
-      <UFormField label="Jeu" :error="errors.gameId">
-        <USelect
-          v-model="localPlayer.gameId"
+      <UFormField label="Jeux">
+        <USelectMenu
+          v-model="localPlayer.gameIds"
           :items="gameOptions"
           value-key="value"
-          placeholder="Choisissez un jeu"
-          required
+          multiple
+          placeholder="Choisissez les jeux"
         />
       </UFormField>
 
@@ -75,9 +75,6 @@ function validate() {
   errors.value = {}
   if (!localPlayer.value.name?.trim()) {
     errors.value.name = 'Le nom est requis.'
-  }
-  if (!localPlayer.value.gameId) {
-    errors.value.gameId = 'Le jeu est requis.'
   }
   return Object.keys(errors.value).length === 0
 }

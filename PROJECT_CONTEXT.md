@@ -33,7 +33,7 @@ Elle associe notamment :
 - une liste de joueurs ;
 - des assignations entre joueurs et personnages.
 
-Les joueurs contiennent les informations pratiques stables comme le nom, l'email et le telephone. La photo depend de l'assignation d'un joueur a un personnage pour une session donnee, afin de correspondre au role incarne. Ces donnees doivent permettre de generer facilement des trombinoscopes.
+Les joueurs contiennent les informations pratiques stables comme le nom, l'email et le telephone. Un joueur peut etre inscrit a plusieurs jeux. La photo depend de l'assignation d'un joueur a un personnage pour une session donnee, afin de correspondre au role incarne. Ces donnees doivent permettre de generer facilement des trombinoscopes.
 
 Les lieux doivent permettre de stocker les informations utiles a l'organisation, notamment le nom du lieu et son adresse. Ces donnees doivent permettre de generer une feuille de route pour la session.
 

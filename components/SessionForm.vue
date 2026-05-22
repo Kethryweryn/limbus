@@ -140,7 +140,7 @@ const locationOptions = computed(() => [
 const playerOptions = computed(() => [
   { label: 'Aucun joueur', value: '' },
   ...props.players
-    .filter((player) => !localSession.value.gameId || player.gameId === localSession.value.gameId)
+    .filter((player) => !localSession.value.gameId || player.games?.some((game) => game.id === localSession.value.gameId))
     .map((player) => ({
       label: player.email ? `${player.name} - ${player.email}` : player.name,
       value: player.id

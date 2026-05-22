@@ -59,7 +59,7 @@ export const playerSchema = z.object({
   email: optionalText,
   phone: optionalText,
   notes: optionalText,
-  gameId: requiredId('Game'),
+  gameIds: z.array(requiredId('Game')).optional().default([]),
   published: optionalBoolean
 })
 

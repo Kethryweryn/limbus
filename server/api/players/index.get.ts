@@ -7,7 +7,9 @@ export default defineEventHandler(async (event) => {
   return await prisma.player.findMany({
     orderBy: { name: 'asc' },
     include: {
-      game: true
+      games: {
+        orderBy: { title: 'asc' }
+      }
     }
   })
 })

@@ -208,7 +208,9 @@ async function createGame(seed: GameSeed, gameIndex: number) {
         email: player.email,
         phone: player.phone,
         notes: player.notes || null,
-        gameId: game.id,
+        games: {
+          connect: [{ id: game.id }]
+        },
         published: true
       }
     })
@@ -229,6 +231,36 @@ async function createGame(seed: GameSeed, gameIndex: number) {
   await createSessions(game.id, seed.title, gameIndex, characters, players, locations)
 
   console.log(`${seed.title}: ${characters.length} personnages, ${players.length} joueurs, ${locations.length} lieux, 2 sessions`)
+
+  return game
+}
+
+async function createCrossGamePlayers(gameIds: string[]) {
+  await prisma.player.create({
+    data: {
+      name: 'Alex Morgan',
+      email: 'alex.morgan@example.test',
+      phone: '06 44 55 66 01',
+      notes: 'Joueur inscrit sur plusieurs jeux pour tester les filtres.',
+      games: {
+        connect: gameIds.slice(0, 2).map((id) => ({ id }))
+      },
+      published: true
+    }
+  })
+
+  await prisma.player.create({
+    data: {
+      name: 'Morgan Da Silva',
+      email: 'morgan.dasilva@example.test',
+      phone: '06 44 55 66 02',
+      notes: 'Disponible sur tous les jeux de test.',
+      games: {
+        connect: gameIds.map((id) => ({ id }))
+      },
+      published: true
+    }
+  })
 }
 
 async function createSessions(
@@ -282,9 +314,12 @@ async function main() {
   await clearBusinessData()
 
   console.log('Creation du jeu de donnees de test...')
+  const createdGameIds: string[] = []
   for (const [index, game] of games.entries()) {
-    await createGame(game, index)
+    const createdGame = await createGame(game, index)
+    createdGameIds.push(createdGame.id)
   }
+  await createCrossGamePlayers(createdGameIds)
 
   console.log('Seed termine.')
 }

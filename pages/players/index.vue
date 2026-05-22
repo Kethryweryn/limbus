@@ -29,7 +29,7 @@
               <UAvatar icon="i-heroicons-user" />
               <div class="min-w-0">
                 <h2 class="font-semibold truncate">{{ player.name }}</h2>
-                <p class="text-sm text-gray-500 truncate">{{ player.game?.title || 'Jeu inconnu' }}</p>
+                <p class="text-sm text-gray-500 truncate">{{ formatPlayerGames(player) }}</p>
               </div>
             </div>
             <div v-if="!isOffline" class="flex gap-2">
@@ -101,13 +101,18 @@ const filteredPlayers = computed(() => {
   const gameId = selectedGame.value?.id || (gameFilter.value === 'all' ? '' : gameFilter.value)
 
   return players.value
-    .filter((player) => !gameId || player.gameId === gameId)
+    .filter((player) => !gameId || player.games?.some((game) => game.id === gameId))
     .filter((player) =>
-      [player.name, player.email, player.phone, player.game?.title].some((field) =>
+      [player.name, player.email, player.phone, ...(player.games || []).map((game) => game.title)].some((field) =>
         field?.toLowerCase().includes(term)
       )
     )
 })
+
+const formatPlayerGames = (player) => {
+  if (!player.games?.length) return 'Aucun jeu'
+  return player.games.map((game) => game.title).join(', ')
+}
 
 const fetchPlayers = async () => {
   if (isOfflineMode()) {
@@ -173,7 +178,7 @@ function startCreate() {
     email: '',
     phone: '',
     notes: '',
-    gameId: selectedGame.value?.id || games.value[0]?.id || '',
+    gameIds: selectedGame.value?.id ? [selectedGame.value.id] : [],
     published: true
   }
   formMode.value = 'create'
@@ -183,7 +188,10 @@ function startCreate() {
 function startEdit(player) {
   if (isOffline.value) return
 
-  activeFormPlayer.value = { ...player }
+  activeFormPlayer.value = {
+    ...player,
+    gameIds: player.games?.map((game) => game.id) || []
+  }
   formMode.value = 'edit'
   showFormSlideover.value = true
 }

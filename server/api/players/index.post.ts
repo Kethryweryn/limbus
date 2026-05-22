@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   requireOrganizer(event)
 
   const body = await readZodBody(event, playerSchema)
-  const { name, email, phone, notes, gameId, published } = body
+  const { name, email, phone, notes, gameIds, published } = body
 
   return await prisma.player.create({
     data: {
@@ -14,11 +14,15 @@ export default defineEventHandler(async (event) => {
       email: email || null,
       phone: phone || null,
       notes: notes || null,
-      gameId,
+      games: {
+        connect: gameIds.map((id) => ({ id }))
+      },
       published: published ?? true
     },
     include: {
-      game: true
+      games: {
+        orderBy: { title: 'asc' }
+      }
     }
   })
 })
