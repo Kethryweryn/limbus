@@ -129,6 +129,7 @@ export const timelineEventSchema = z.object({
   requiredResponsibles: z.coerce.number().int().min(0).optional().default(0),
   gameId: requiredId('Game'),
   characterIds: z.array(requiredId('Character')).optional().default([]),
+  factionIds: z.array(requiredId('Faction')).optional().default([]),
   intrigueIds: z.array(requiredId('Intrigue')).optional().default([]),
   itemIds: z.array(requiredId('Item')).optional().default([]),
   published: optionalBoolean

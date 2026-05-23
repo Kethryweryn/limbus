@@ -3,7 +3,15 @@ import { prisma } from '~/server/utils/prisma'
 export const timelineEventInclude = {
   game: true,
   characters: {
-    orderBy: [{ type: 'asc' as const }, { name: 'asc' as const }]
+    orderBy: [{ type: 'asc' as const }, { name: 'asc' as const }],
+    include: {
+      factions: {
+        orderBy: { name: 'asc' as const }
+      }
+    }
+  },
+  factions: {
+    orderBy: { name: 'asc' as const }
   },
   intrigues: {
     orderBy: { name: 'asc' as const }
@@ -30,13 +38,22 @@ type ConflictResource = {
   eventNames: string[]
 }
 
-export async function validateTimelineEventRelations(gameId: string, characterIds: string[], intrigueIds: string[], itemIds: string[]) {
+export async function validateTimelineEventRelations(gameId: string, characterIds: string[], factionIds: string[], intrigueIds: string[], itemIds: string[]) {
   if (characterIds.length) {
     const count = await prisma.character.count({
       where: { id: { in: characterIds }, gameId }
     })
     if (count !== characterIds.length) {
       throw createError({ statusCode: 400, statusMessage: 'Personnages invalides pour ce jeu' })
+    }
+  }
+
+  if (factionIds.length) {
+    const count = await prisma.faction.count({
+      where: { id: { in: factionIds }, gameId }
+    })
+    if (count !== factionIds.length) {
+      throw createError({ statusCode: 400, statusMessage: 'Groupes invalides pour ce jeu' })
     }
   }
 

@@ -524,7 +524,7 @@ async function createGame(seed: GameSeed, gameIndex: number) {
     })
   }))
 
-  await createTimelineEvents(game.id, characters, intrigues, items)
+  await createTimelineEvents(game.id, characters, factions, intrigues, items)
 
   await createSessions(game.id, seed.title, gameIndex, characters, participants, locations)
 
@@ -536,6 +536,7 @@ async function createGame(seed: GameSeed, gameIndex: number) {
 async function createTimelineEvents(
   gameId: string,
   characters: Array<{ id: string, name: string, type: string }>,
+  factions: Array<{ id: string, name: string }>,
   intrigues: Array<{ id: string, name: string }>,
   items: Array<{ id: string, name: string }>
 ) {
@@ -550,6 +551,7 @@ async function createTimelineEvents(
       time: '10:00',
       requiredResponsibles: 2,
       characterIds: pjCharacters.slice(0, 3).map((character) => character.id),
+      factionIds: factions.slice(0, 1).map((faction) => faction.id),
       intrigueIds: intrigues.slice(0, 1).map((intrigue) => intrigue.id),
       itemIds: items.slice(0, 1).map((item) => item.id)
     },
@@ -560,6 +562,7 @@ async function createTimelineEvents(
       time: '14:30',
       requiredResponsibles: 1,
       characterIds: [pjCharacters[0]?.id, pnjCharacters[0]?.id].filter((id): id is string => Boolean(id)),
+      factionIds: [],
       intrigueIds: intrigues.slice(1, 2).map((intrigue) => intrigue.id),
       itemIds: items.slice(1, 2).map((item) => item.id)
     },
@@ -570,6 +573,7 @@ async function createTimelineEvents(
       time: '14:30',
       requiredResponsibles: 1,
       characterIds: pjCharacters.slice(0, 1).map((character) => character.id),
+      factionIds: factions.slice(1, 2).map((faction) => faction.id),
       intrigueIds: intrigues.slice(2, 3).map((intrigue) => intrigue.id),
       itemIds: items.slice(1, 2).map((item) => item.id)
     },
@@ -580,6 +584,7 @@ async function createTimelineEvents(
       time: '22:00',
       requiredResponsibles: 2,
       characterIds: pnjCharacters.slice(0, 2).map((character) => character.id),
+      factionIds: [],
       intrigueIds: [],
       itemIds: []
     }
@@ -597,6 +602,9 @@ async function createTimelineEvents(
         published: true,
         characters: {
           connect: timelineEvent.characterIds.map((id) => ({ id }))
+        },
+        factions: {
+          connect: timelineEvent.factionIds.map((id) => ({ id }))
         },
         intrigues: {
           connect: timelineEvent.intrigueIds.map((id) => ({ id }))

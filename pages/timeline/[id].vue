@@ -24,6 +24,7 @@
       v-model:event="editableEvent"
       :games="games"
       :characters="characters"
+      :factions="factions"
       :intrigues="intrigues"
       :items="items"
       mode="edit"
@@ -46,7 +47,7 @@
             :title="conflictTitle(timelineEvent)"
           />
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <h2 class="text-sm font-semibold mb-2">Personnages</h2>
               <div class="flex flex-wrap gap-1">
@@ -54,6 +55,15 @@
                   {{ character.name }}
                 </UBadge>
                 <span v-if="!timelineEvent.characters?.length" class="text-sm text-gray-500">Aucun</span>
+              </div>
+            </div>
+            <div>
+              <h2 class="text-sm font-semibold mb-2">Groupes</h2>
+              <div class="flex flex-wrap gap-1">
+                <UBadge v-for="faction in timelineEvent.factions || []" :key="faction.id" color="warning" variant="subtle">
+                  {{ faction.name }}
+                </UBadge>
+                <span v-if="!timelineEvent.factions?.length" class="text-sm text-gray-500">Aucun</span>
               </div>
             </div>
             <div>
@@ -111,15 +121,17 @@ const timelineEvent = ref(null)
 const editableEvent = ref(null)
 const games = ref([])
 const characters = ref([])
+const factions = ref([])
 const intrigues = ref([])
 const items = ref([])
 const isEditing = ref(route.query.edit === '1')
 
 async function loadData() {
-  const [eventData, gamesData, charactersData, intriguesData, itemsData] = await Promise.all([
+  const [eventData, gamesData, charactersData, factionsData, intriguesData, itemsData] = await Promise.all([
     useApiFetch(`/api/timeline-events/${route.params.id}`),
     useApiFetch('/api/games'),
     useApiFetch('/api/characters'),
+    useApiFetch('/api/factions'),
     useApiFetch('/api/intrigues'),
     useApiFetch('/api/items')
   ])
@@ -127,6 +139,7 @@ async function loadData() {
   timelineEvent.value = eventData
   games.value = gamesData
   characters.value = charactersData
+  factions.value = factionsData
   intrigues.value = intriguesData
   items.value = itemsData
   editableEvent.value = eventFormPayload(eventData)
@@ -143,6 +156,7 @@ function eventFormPayload(value) {
   return {
     ...value,
     characterIds: value.characterIds || value.characters?.map((character) => character.id) || [],
+    factionIds: value.factionIds || value.factions?.map((faction) => faction.id) || [],
     intrigueIds: value.intrigueIds || value.intrigues?.map((intrigue) => intrigue.id) || [],
     itemIds: value.itemIds || value.items?.map((item) => item.id) || []
   }

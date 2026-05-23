@@ -27,41 +27,71 @@
           <thead class="bg-gray-50">
             <tr>
               <th class="sticky left-0 z-10 bg-gray-50 border-r border-gray-200 px-3 py-2 text-left font-medium min-w-48">
-                Responsable
+                Heure
               </th>
               <th
-                v-for="timelineEvent in events"
-                :key="timelineEvent.id"
-                class="border-r border-gray-200 px-3 py-2 text-left font-medium min-w-44"
+                v-for="responsible in eligibleResponsibles"
+                :key="responsible.participantId"
+                class="border-r border-gray-200 px-3 py-2 text-left font-medium min-w-64"
               >
-                <div>J{{ timelineEvent.day }} · {{ timelineEvent.time }}</div>
-                <div class="text-xs text-gray-500 font-normal line-clamp-2">{{ timelineEvent.name }}</div>
-                <UBadge :color="responsibleColor(timelineEvent)" variant="subtle" size="xs" class="mt-1">
-                  {{ selectedResponsibleIds(timelineEvent.id).length }}/{{ timelineEvent.requiredResponsibles || 0 }}
+                <div>{{ responsible.participant?.name || 'Participant inconnu' }}</div>
+                <UBadge color="neutral" variant="subtle" size="xs">
+                  {{ responsible.role === 'organizer' ? 'Orga' : 'PNJ' }}
                 </UBadge>
               </th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="responsible in eligibleResponsibles" :key="responsible.participantId">
+            <tr v-for="slot in timelineSlots" :key="`${slot.day}-${slot.time}`">
               <td class="sticky left-0 z-10 bg-white border-t border-r border-gray-200 px-3 py-2 font-medium">
-                <div>{{ responsible.participant?.name || 'Participant inconnu' }}</div>
-                <UBadge color="neutral" variant="subtle" size="xs">
-                  {{ responsible.role === 'organizer' ? 'Orga' : 'PNJ' }}
-                </UBadge>
+                <div>Jour {{ slot.day }}</div>
+                <div class="text-gray-500">{{ slot.time }}</div>
               </td>
               <td
-                v-for="timelineEvent in events"
-                :key="timelineEvent.id"
-                class="border-t border-r border-gray-200 px-3 py-2 align-top"
-                :class="isResponsibleAssigned(timelineEvent.id, responsible.participantId) ? 'bg-primary-50' : ''"
+                v-for="responsible in eligibleResponsibles"
+                :key="`${slot.day}-${slot.time}-${responsible.participantId}`"
+                class="border-t border-r border-gray-200 p-2 align-top"
               >
-                <UCheckbox
-                  :model-value="isResponsibleAssigned(timelineEvent.id, responsible.participantId)"
-                  :disabled="!responsibleOptions.length"
-                  :aria-label="`Assigner ${responsible.participant?.name || 'ce responsable'} à ${timelineEvent.name}`"
-                  @update:model-value="toggleResponsible(timelineEvent.id, responsible.participantId, $event)"
-                />
+                <div class="space-y-2">
+                  <article
+                    v-for="timelineEvent in eventsForSlot(slot)"
+                    :key="timelineEvent.id"
+                    class="rounded border p-2 transition"
+                    :class="isResponsibleAssigned(timelineEvent.id, responsible.participantId) ? 'border-primary-300 bg-primary-50' : 'border-gray-200 bg-gray-50 opacity-70'"
+                  >
+                    <div class="flex items-start gap-2">
+                      <UCheckbox
+                        :model-value="isResponsibleAssigned(timelineEvent.id, responsible.participantId)"
+                        :disabled="!responsibleOptions.length"
+                        :aria-label="`Assigner ${responsible.participant?.name || 'ce responsable'} à ${timelineEvent.name}`"
+                        @update:model-value="toggleResponsible(timelineEvent.id, responsible.participantId, $event)"
+                      />
+                      <div class="min-w-0 flex-1 space-y-2">
+                        <div class="flex items-start justify-between gap-2">
+                          <div class="font-medium leading-tight">{{ timelineEvent.name }}</div>
+                          <UBadge :color="responsibleColor(timelineEvent)" variant="subtle" size="xs" class="shrink-0">
+                            {{ selectedResponsibleIds(timelineEvent.id).length }}/{{ timelineEvent.requiredResponsibles || 0 }}
+                          </UBadge>
+                        </div>
+                        <div v-if="eventBadgeSummary(timelineEvent).badges.length" class="flex flex-wrap gap-1">
+                          <UBadge
+                            v-for="badge in eventBadgeSummary(timelineEvent).badges"
+                            :key="`${timelineEvent.id}-${badge.type}-${badge.id}`"
+                            :color="badge.color"
+                            variant="subtle"
+                            size="xs"
+                            class="max-w-full truncate"
+                          >
+                            {{ badge.label }}
+                          </UBadge>
+                        </div>
+                        <div v-else-if="eventBadgeSummary(timelineEvent).summary" class="text-xs text-gray-500">
+                          {{ eventBadgeSummary(timelineEvent).summary }}
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -107,6 +137,18 @@ const responsibleOptions = computed(() =>
   }))
 )
 
+const timelineSlots = computed(() => {
+  const slotByKey = new Map()
+  for (const timelineEvent of events.value) {
+    const key = `${timelineEvent.day}-${timelineEvent.time}`
+    if (!slotByKey.has(key)) {
+      slotByKey.set(key, { day: timelineEvent.day, time: timelineEvent.time })
+    }
+  }
+
+  return [...slotByKey.values()].sort((a, b) => a.day - b.day || a.time.localeCompare(b.time))
+})
+
 watch(() => props.timelineData, (value) => {
   const nextAssignments = {}
   for (const timelineEvent of value.events || []) {
@@ -125,6 +167,10 @@ function isResponsibleAssigned(timelineEventId, participantId) {
   return selectedResponsibleIds(timelineEventId).includes(participantId)
 }
 
+function eventsForSlot(slot) {
+  return events.value.filter((timelineEvent) => timelineEvent.day === slot.day && timelineEvent.time === slot.time)
+}
+
 function toggleResponsible(timelineEventId, participantId, checked) {
   const current = new Set(selectedResponsibleIds(timelineEventId))
   if (checked) {
@@ -141,6 +187,38 @@ function toggleResponsible(timelineEventId, participantId, checked) {
 function responsibleColor(timelineEvent) {
   if (!timelineEvent.requiredResponsibles) return 'neutral'
   return selectedResponsibleIds(timelineEvent.id).length >= timelineEvent.requiredResponsibles ? 'success' : 'warning'
+}
+
+function eventBadgeSummary(timelineEvent) {
+  const badges = [
+    ...(timelineEvent.characters || []).map((character) => ({
+      id: character.id,
+      type: 'character',
+      label: character.name,
+      color: 'neutral'
+    })),
+    ...(timelineEvent.factions || []).map((faction) => ({
+      id: faction.id,
+      type: 'faction',
+      label: faction.name,
+      color: 'warning'
+    })),
+    ...(timelineEvent.items || []).map((item) => ({
+      id: item.id,
+      type: 'item',
+      label: item.name,
+      color: 'success'
+    }))
+  ]
+
+  if (badges.length < 5) {
+    return { badges, summary: '' }
+  }
+
+  return {
+    badges: [],
+    summary: `${timelineEvent.characters?.length || 0} personnage(s), ${timelineEvent.factions?.length || 0} groupe(s), ${timelineEvent.items?.length || 0} objet(s)`
+  }
 }
 
 async function submit() {

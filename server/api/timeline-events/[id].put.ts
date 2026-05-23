@@ -13,9 +13,10 @@ export default defineEventHandler(async (event) => {
 
   const body = await readZodBody(event, timelineEventSchema)
   const characterIds = [...new Set(body.characterIds)]
+  const factionIds = [...new Set(body.factionIds)]
   const intrigueIds = [...new Set(body.intrigueIds)]
   const itemIds = [...new Set(body.itemIds)]
-  await validateTimelineEventRelations(body.gameId, characterIds, intrigueIds, itemIds)
+  await validateTimelineEventRelations(body.gameId, characterIds, factionIds, intrigueIds, itemIds)
 
   return await prisma.timelineEvent.update({
     where: { id },
@@ -28,6 +29,7 @@ export default defineEventHandler(async (event) => {
       gameId: body.gameId,
       published: body.published ?? true,
       characters: { set: characterIds.map((characterId) => ({ id: characterId })) },
+      factions: { set: factionIds.map((factionId) => ({ id: factionId })) },
       intrigues: { set: intrigueIds.map((intrigueId) => ({ id: intrigueId })) },
       items: { set: itemIds.map((itemId) => ({ id: itemId })) }
     },

@@ -90,6 +90,7 @@ model Faction {
 
   characters            Character[] @relation("CharacterFactions")
   intrigues             Intrigue[]  @relation("FactionIntrigues")
+  timelineEvents        TimelineEvent[] @relation("TimelineEventFactions")
   documents             Document[]  @relation("DocumentFactions")
 }
 
@@ -126,6 +127,7 @@ model TimelineEvent {
   published             Boolean    @default(true)
 
   characters            Character[] @relation("TimelineEventCharacters")
+  factions              Faction[]   @relation("TimelineEventFactions")
   intrigues             Intrigue[]  @relation("TimelineEventIntrigues")
   items                 Item[]      @relation("TimelineEventItems")
   responsibles          TimelineEventResponsible[]

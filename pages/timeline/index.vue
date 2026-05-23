@@ -94,6 +94,16 @@
                     >
                       {{ item.name }}
                     </UBadge>
+                    <UBadge
+                      v-for="faction in timelineEvent.factions || []"
+                      :key="`grid-faction-${timelineEvent.id}-${faction.id}`"
+                      color="warning"
+                      variant="subtle"
+                      size="xs"
+                      class="max-w-full truncate"
+                    >
+                      {{ faction.name }}
+                    </UBadge>
                   </div>
                 </button>
               </div>
@@ -167,6 +177,16 @@
                   {{ intrigue.name }}
                 </UBadge>
                 <UBadge
+                  v-for="faction in timelineEvent.factions || []"
+                  :key="`faction-${faction.id}`"
+                  color="warning"
+                  variant="subtle"
+                  size="xs"
+                  class="max-w-44 truncate"
+                >
+                  {{ faction.name }}
+                </UBadge>
+                <UBadge
                   v-for="item in timelineEvent.items || []"
                   :key="`item-${item.id}`"
                   color="success"
@@ -233,6 +253,7 @@
         v-model:event="activeFormEvent"
         :games="games"
         :characters="characters"
+        :factions="factions"
         :intrigues="intrigues"
         :items="items"
         :mode="formMode"
@@ -254,6 +275,7 @@ import { getFromStore, saveToStore } from '~/utils/storage'
 const timelineEvents = ref([])
 const games = ref([])
 const characters = ref([])
+const factions = ref([])
 const intrigues = ref([])
 const items = ref([])
 const searchQuery = ref('')
@@ -282,6 +304,7 @@ const filteredEvents = computed(() => {
         timelineEvent.description,
         timelineEvent.game?.title,
         ...(timelineEvent.characters || []).map((character) => character.name),
+        ...(timelineEvent.factions || []).map((faction) => faction.name),
         ...(timelineEvent.intrigues || []).map((intrigue) => intrigue.name),
         ...(timelineEvent.items || []).map((item) => item.name)
       ].some((field) => field?.toLowerCase().includes(term))
@@ -352,6 +375,17 @@ const fetchIntrigues = async () => {
   await saveToStore('intrigues', 'list', data)
 }
 
+const fetchFactions = async () => {
+  if (isOfflineMode()) {
+    factions.value = await getFromStore('factions', 'list') || []
+    return
+  }
+
+  const data = await useApiFetch('/api/factions')
+  factions.value = data
+  await saveToStore('factions', 'list', data)
+}
+
 const fetchItems = async () => {
   if (isOfflineMode()) {
     items.value = await getFromStore('items', 'list') || []
@@ -364,7 +398,7 @@ const fetchItems = async () => {
 }
 
 const refreshData = async () => {
-  await Promise.all([fetchTimelineEvents(), fetchGames(), fetchCharacters(), fetchIntrigues(), fetchItems()])
+  await Promise.all([fetchTimelineEvents(), fetchGames(), fetchCharacters(), fetchFactions(), fetchIntrigues(), fetchItems()])
 }
 
 const updateStatus = () => {
@@ -398,6 +432,7 @@ function eventFormPayload(timelineEvent) {
   return {
     ...timelineEvent,
     characterIds: timelineEvent.characterIds || timelineEvent.characters?.map((character) => character.id) || [],
+    factionIds: timelineEvent.factionIds || timelineEvent.factions?.map((faction) => faction.id) || [],
     intrigueIds: timelineEvent.intrigueIds || timelineEvent.intrigues?.map((intrigue) => intrigue.id) || [],
     itemIds: timelineEvent.itemIds || timelineEvent.items?.map((item) => item.id) || []
   }
@@ -414,6 +449,7 @@ function startCreate() {
     requiredResponsibles: 0,
     gameId: selectedGame.value?.id || games.value[0]?.id || '',
     characterIds: [],
+    factionIds: [],
     intrigueIds: [],
     itemIds: [],
     published: true
