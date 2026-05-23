@@ -24,6 +24,15 @@ type FactionSeed = {
   characterNames: string[]
 }
 
+type IntrigueSeed = {
+  name: string
+  pitch: string
+  description: string
+  level: 'main_story' | 'main_character' | 'major' | 'minor'
+  characterNames: string[]
+  factionNames: string[]
+}
+
 type PlayerSeed = {
   name: string
   email: string
@@ -43,6 +52,7 @@ type GameSeed = {
   noteIntention: string
   characters: CharacterSeed[]
   factions: FactionSeed[]
+  intrigues: IntrigueSeed[]
   players: PlayerSeed[]
   locations: LocationSeed[]
 }
@@ -72,6 +82,32 @@ const games: GameSeed[] = [
         name: 'La Ville basse',
         pitch: 'Artisans, informateurs et figures populaires décidés à ne plus subir les décisions des puissants.',
         characterNames: ['Nora Fiel', 'Toma le Rouge', 'Bastian Lorme']
+      }
+    ],
+    intrigues: [
+      {
+        name: 'La succession du baron',
+        pitch: 'La mort du baron ouvre une crise politique qui menace toute la vallée.',
+        description: 'Plusieurs camps cherchent à imposer leur lecture du testament et à contrôler la transition avant que les maisons voisines ne s’en mêlent.',
+        level: 'main_story',
+        characterNames: ['Aélis de Valombre', 'Corvin le Noir', 'Hélène de Briseciel'],
+        factionNames: ['La Maison de Valombre']
+      },
+      {
+        name: 'Les dettes de la Ville basse',
+        pitch: 'Les artisans et contrebandiers possèdent des informations capables de renverser les négociations.',
+        description: 'Cette intrigue suit les promesses non tenues par l’ancienne baronnie et les preuves que la Ville basse peut utiliser pour obtenir des garanties.',
+        level: 'major',
+        characterNames: ['Nora Fiel', 'Toma le Rouge', 'Bastian Lorme'],
+        factionNames: ['La Ville basse']
+      },
+      {
+        name: 'La confession disparue',
+        pitch: 'Une confession consignée par le temple a été volée avant d’être archivée.',
+        description: 'Le document manquant relie plusieurs personnages à la nuit de la mort du baron.',
+        level: 'minor',
+        characterNames: ['Sœur Ysilde', 'Bastian Lorme'],
+        factionNames: []
       }
     ],
     players: [
@@ -125,6 +161,32 @@ const games: GameSeed[] = [
         characterNames: ['Nadia Sol', 'Samira Okonkwo', 'Milo Varga']
       }
     ],
+    intrigues: [
+      {
+        name: 'Le signal impossible',
+        pitch: 'La station doit décider si le signal est une découverte, un piège ou une preuve de vie extraterrestre.',
+        description: 'Chaque décision scientifique modifie le rapport de force entre sécurité, communication et exploitation privée.',
+        level: 'main_story',
+        characterNames: ['Dr Lena Kovacs', 'Eli Chen', 'Samira Okonkwo'],
+        factionNames: ['Équipe scientifique']
+      },
+      {
+        name: 'La responsabilité du protocole',
+        pitch: 'Lena porte les conséquences d’un protocole qu’elle a elle-même défendu.',
+        description: 'Cette trame personnelle pousse Lena à choisir entre transparence scientifique, protection de son équipe et pression du consortium.',
+        level: 'main_character',
+        characterNames: ['Dr Lena Kovacs', 'Nadia Sol'],
+        factionNames: ['Consortium Meridian']
+      },
+      {
+        name: 'Les journaux falsifiés',
+        pitch: 'Des fichiers système ont été modifiés pendant la première réception du signal.',
+        description: 'Les journaux techniques peuvent innocenter ou condamner plusieurs membres de l’équipage.',
+        level: 'major',
+        characterNames: ['Milo Varga', 'Oskar Nilsson', 'Rhea Tan'],
+        factionNames: []
+      }
+    ],
     players: [
       { name: 'Amandine Blanc', email: 'amandine.blanc@example.test', phone: '06 22 33 44 01' },
       { name: 'Mehdi Laurent', email: 'mehdi.laurent@example.test', phone: '06 22 33 44 02' },
@@ -174,6 +236,32 @@ const games: GameSeed[] = [
         name: 'Les ombres du bal',
         pitch: 'Celles et ceux qui connaissent les secrets circulant derrière les sourires.',
         characterNames: ['Valentin Sorel', 'Mina Salvati', 'Gaspard Voss']
+      }
+    ],
+    intrigues: [
+      {
+        name: 'Le scandale des masques',
+        pitch: 'Le bal a été organisé pour révéler publiquement une trahison ancienne.',
+        description: 'Les invités de marque savent qu’une révélation approche, mais ignorent qui sera frappé en premier.',
+        level: 'main_story',
+        characterNames: ['Céleste Vairon', 'Octave Mirecourt', 'Iris de Montfaucon'],
+        factionNames: ['Les invités de marque']
+      },
+      {
+        name: 'La collection falsifiée',
+        pitch: 'Plusieurs pièces exposées pendant la soirée ne sont pas celles qu’elles prétendent être.',
+        description: 'Cette intrigue relie dettes, faux documents et réputation mondaine.',
+        level: 'major',
+        characterNames: ['Valentin Sorel', 'Romain Delmas'],
+        factionNames: ['Les ombres du bal']
+      },
+      {
+        name: 'La chanson interrompue',
+        pitch: 'Mina connaît les derniers mots d’une personne disparue lors d’un bal précédent.',
+        description: 'Le souvenir de la chanteuse peut rouvrir une affaire que plusieurs invités croyaient enterrée.',
+        level: 'minor',
+        characterNames: ['Mina Salvati', 'Agathe Lenoir', 'Gaspard Voss'],
+        factionNames: []
       }
     ],
     players: [
@@ -245,7 +333,7 @@ async function createGame(seed: GameSeed, gameIndex: number) {
   ))
   const characterByName = new Map(characters.map((character, index) => [seed.characters[index].name, character]))
 
-  await Promise.all(seed.factions.map((faction) =>
+  const factions = await Promise.all(seed.factions.map((faction) =>
     prisma.faction.create({
       data: {
         name: faction.name,
@@ -258,6 +346,35 @@ async function createGame(seed: GameSeed, gameIndex: number) {
             .flatMap((characterName) => {
               const character = characterByName.get(characterName)
               return character ? [{ id: character.id }] : []
+            })
+        }
+      }
+    })
+  ))
+  const factionByName = new Map(factions.map((faction, index) => [seed.factions[index].name, faction]))
+
+  await Promise.all(seed.intrigues.map((intrigue) =>
+    prisma.intrigue.create({
+      data: {
+        name: intrigue.name,
+        slug: makeSlug(`${seed.title}-${intrigue.name}`),
+        pitch: intrigue.pitch,
+        description: intrigue.description,
+        level: intrigue.level,
+        gameId: game.id,
+        published: true,
+        characters: {
+          connect: intrigue.characterNames
+            .flatMap((characterName) => {
+              const character = characterByName.get(characterName)
+              return character ? [{ id: character.id }] : []
+            })
+        },
+        factions: {
+          connect: intrigue.factionNames
+            .flatMap((factionName) => {
+              const faction = factionByName.get(factionName)
+              return faction ? [{ id: faction.id }] : []
             })
         }
       }
@@ -293,7 +410,7 @@ async function createGame(seed: GameSeed, gameIndex: number) {
 
   await createSessions(game.id, seed.title, gameIndex, characters, players, locations)
 
-  console.log(`${seed.title}: ${characters.length} personnages, ${seed.factions.length} groupes, ${players.length} joueurs, ${locations.length} lieux, 3 sessions`)
+  console.log(`${seed.title}: ${characters.length} personnages, ${seed.factions.length} groupes, ${seed.intrigues.length} intrigues, ${players.length} joueurs, ${locations.length} lieux, 3 sessions`)
 
   return game
 }
