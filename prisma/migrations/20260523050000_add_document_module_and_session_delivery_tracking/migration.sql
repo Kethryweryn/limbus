@@ -1,5 +1,4 @@
 ALTER TABLE "Document" ADD COLUMN "documentUrl" TEXT;
-ALTER TABLE "Document" ADD COLUMN "audience" TEXT NOT NULL DEFAULT 'targeted';
 ALTER TABLE "Document" ADD COLUMN "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE "Document" ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
@@ -22,8 +21,6 @@ CREATE INDEX "SessionDocumentDelivery_sessionId_kind_idx" ON "SessionDocumentDel
 CREATE INDEX "SessionDocumentDelivery_participantId_idx" ON "SessionDocumentDelivery"("participantId");
 CREATE INDEX "SessionDocumentDelivery_documentId_idx" ON "SessionDocumentDelivery"("documentId");
 CREATE INDEX "SessionDocumentDelivery_characterId_idx" ON "SessionDocumentDelivery"("characterId");
-CREATE UNIQUE INDEX "SessionDocumentDelivery_document_once_key" ON "SessionDocumentDelivery"("sessionId", "documentId", "participantId", "kind") WHERE "documentId" IS NOT NULL AND "kind" = 'document';
-CREATE UNIQUE INDEX "SessionDocumentDelivery_character_sheet_once_key" ON "SessionDocumentDelivery"("sessionId", "characterId", "participantId", "kind") WHERE "characterId" IS NOT NULL AND "kind" = 'character_sheet';
 
 ALTER TABLE "SessionDocumentDelivery" ADD CONSTRAINT "SessionDocumentDelivery_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "Session"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "SessionDocumentDelivery" ADD CONSTRAINT "SessionDocumentDelivery_participantId_fkey" FOREIGN KEY ("participantId") REFERENCES "Participant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
