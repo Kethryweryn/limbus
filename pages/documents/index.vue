@@ -41,6 +41,9 @@
               <UBadge color="neutral" variant="outline" size="xs">
                 {{ audienceLabel(document.audience) }}
               </UBadge>
+              <UBadge :color="document.readyToSend ? 'success' : 'neutral'" variant="subtle" size="xs">
+                {{ document.readyToSend ? 'Prêt' : 'Brouillon' }}
+              </UBadge>
             </div>
           </div>
         </template>
@@ -269,6 +272,7 @@ function documentFormPayload(document) {
   return {
     ...document,
     audience: document.audience || 'targeted',
+    readyToSend: Boolean(document.readyToSend),
     content: document.content || '',
     documentUrl: document.documentUrl || '',
     characterId: document.characterId || document.character?.id || '',
@@ -283,6 +287,7 @@ function startCreate() {
   activeFormDocument.value = {
     title: '',
     audience: 'targeted',
+    readyToSend: false,
     content: '',
     documentUrl: '',
     gameId: selectedGame.value?.id || games.value[0]?.id || '',

@@ -1,0 +1,2 @@
+ALTER TABLE "Character" ADD COLUMN "sheetReadyToSend" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Document" ADD COLUMN "readyToSend" BOOLEAN NOT NULL DEFAULT false;

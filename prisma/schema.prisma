@@ -38,6 +38,7 @@ model Character {
   pitch                 String?
   background            String?
   backgroundDocumentUrl String?
+  sheetReadyToSend      Boolean    @default(false)
   costumeIndications    String?
   slug                  String     @unique
   gameId                String
@@ -143,6 +144,7 @@ model Document {
   content     String?
   documentUrl String?
   audience    String      @default("targeted")
+  readyToSend Boolean     @default(false)
   gameId      String
   game        Game        @relation(fields: [gameId], references: [id])
   createdAt   DateTime    @default(now())

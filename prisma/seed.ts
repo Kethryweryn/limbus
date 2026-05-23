@@ -413,6 +413,7 @@ async function createGame(seed: GameSeed, gameIndex: number) {
         type: character.type || 'pj',
         slug: makeSlug(`${seed.title}-${character.name}`),
         pitch: character.pitch,
+        sheetReadyToSend: character.type !== 'pnj',
         gameId: game.id,
         published: true
       }
@@ -545,6 +546,7 @@ async function createDocuments(
         title: `Feuille de route - ${gameTitle}`,
         content: 'Adresse du lieu, horaires d’arrivée, consignes de stationnement, affaires à prévoir : serviette, gel douche, sac de couchage, vêtements chauds et gourde.',
         audience: 'everyone',
+        readyToSend: true,
         gameId,
         published: true
       },
@@ -552,6 +554,7 @@ async function createDocuments(
         title: `Document monde - ${gameTitle}`,
         content: 'Présentation synthétique de l’univers, des conventions de jeu, des informations connues de tous et du niveau de transparence attendu.',
         audience: 'everyone',
+        readyToSend: true,
         gameId,
         published: true
       },
@@ -559,6 +562,7 @@ async function createDocuments(
         title: `Cadrage orga - ${gameTitle}`,
         content: 'Rappels logistiques internes, répartition des responsabilités, points de vigilance sécurité et contacts d’urgence.',
         audience: 'organizers',
+        readyToSend: false,
         gameId,
         published: true
       },
@@ -566,6 +570,7 @@ async function createDocuments(
         title: `Instructions PNJs - ${gameTitle}`,
         content: 'Consignes générales pour les PNJs, rythme des interventions, limites d’improvisation et coordination avec l’équipe d’organisation.',
         audience: 'npcs',
+        readyToSend: false,
         gameId,
         published: true
       }

@@ -30,6 +30,7 @@ export default defineEventHandler(async (event) => {
             pitch: body.pitch,
             background: body.background,
             backgroundDocumentUrl: body.backgroundDocumentUrl,
+            sheetReadyToSend: body.sheetReadyToSend ?? false,
             costumeIndications: body.costumeIndications,
             gameId: body.gameId,
             factions: {

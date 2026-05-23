@@ -186,6 +186,7 @@ export async function getSessionDocumentDashboard(sessionId: string) {
         character: assignment.character,
         participant: assignment.participant,
         hasExternalDocument: Boolean(assignment.character.backgroundDocumentUrl),
+        readyToSend: Boolean(assignment.character.sheetReadyToSend),
         sentAt: delivery?.sentAt || null
       }
     })
@@ -208,7 +209,7 @@ export async function getSessionDocumentDashboard(sessionId: string) {
 export async function markDocumentDeliveries(sessionId: string, documentIds: string[]) {
   const dashboard = await getSessionDocumentDashboard(sessionId)
   const selectedIds = new Set(documentIds)
-  const documents = dashboard.documents.filter((document) => selectedIds.has(document.id))
+  const documents = dashboard.documents.filter((document) => selectedIds.has(document.id) && document.readyToSend)
   const created: Array<{ documentId: string, participantId: string }> = []
 
   for (const document of documents) {
@@ -245,7 +246,7 @@ export async function markCharacterSheetDeliveries(sessionId: string) {
   let sentCount = 0
 
   for (const sheet of dashboard.characterSheets) {
-    if (!sheet.participant?.id || !sheet.character?.id || sheet.sentAt) continue
+    if (!sheet.participant?.id || !sheet.character?.id || !sheet.readyToSend || sheet.sentAt) continue
 
     const exists = await prisma.sessionDocumentDelivery.findFirst({
       where: {

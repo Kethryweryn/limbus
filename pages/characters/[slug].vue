@@ -30,6 +30,9 @@
                 <UBadge color="warning" variant="subtle">
                     {{ character.type === 'pnj' ? 'PNJ' : 'PJ' }}
                 </UBadge>
+                <UBadge :color="character.sheetReadyToSend ? 'success' : 'neutral'" variant="subtle">
+                    {{ character.sheetReadyToSend ? 'Fiche prête' : 'Fiche brouillon' }}
+                </UBadge>
             </div>
 
             <div v-if="character.factions?.length" class="flex flex-wrap gap-2">

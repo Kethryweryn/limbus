@@ -55,6 +55,7 @@ export const createCharacterSchema = z.object({
   pitch: optionalText,
   background: optionalText,
   backgroundDocumentUrl: optionalText,
+  sheetReadyToSend: optionalBoolean,
   costumeIndications: optionalText,
   gameId: requiredId('Game'),
   factionIds: z.array(requiredId('Faction')).optional().default([])
@@ -66,6 +67,7 @@ export const updateCharacterSchema = z.object({
   pitch: optionalText,
   background: optionalText,
   backgroundDocumentUrl: optionalText,
+  sheetReadyToSend: optionalBoolean,
   costumeIndications: optionalText,
   gameId: requiredId('Game').optional(),
   factionIds: z.array(requiredId('Faction')).optional(),
@@ -91,6 +93,7 @@ export const intrigueSchema = z.object({
   gameId: requiredId('Game'),
   characterIds: z.array(requiredId('Character')).optional().default([]),
   factionIds: z.array(requiredId('Faction')).optional().default([]),
+  readyToSend: optionalBoolean,
   published: optionalBoolean
 })
 

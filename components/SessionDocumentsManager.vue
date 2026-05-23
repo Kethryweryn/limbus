@@ -57,6 +57,9 @@
                   <UBadge color="neutral" variant="outline" size="xs">
                     {{ audienceLabel(document.audience) }}
                   </UBadge>
+                  <UBadge :color="document.readyToSend ? 'success' : 'neutral'" variant="subtle" size="xs">
+                    {{ document.readyToSend ? 'Prêt' : 'Brouillon' }}
+                  </UBadge>
                 </div>
               </div>
 
@@ -64,7 +67,7 @@
                 color="primary"
                 size="sm"
                 :loading="sendingDocumentId === document.id"
-                :disabled="sendingDocumentId === document.id || !pendingRecipients(document).length"
+                :disabled="sendingDocumentId === document.id || !document.readyToSend || !pendingRecipients(document).length"
                 @click="sendDocuments([document.id])"
               >
                 Envoyer aux manquants
@@ -117,7 +120,7 @@
                 <div class="text-gray-500">{{ sheet.character.name }}</div>
               </div>
               <UBadge :color="sheet.sentAt ? 'success' : 'warning'" variant="subtle" size="xs">
-                {{ sheet.sentAt ? 'Envoyée' : 'À envoyer' }}
+                {{ sheet.sentAt ? 'Envoyée' : sheet.readyToSend ? 'À envoyer' : 'Brouillon' }}
               </UBadge>
             </div>
             <p class="mt-2 text-xs text-gray-500">
@@ -162,7 +165,7 @@ const documents = computed(() => props.documentsData.documents || [])
 const characterSheets = computed(() => props.documentsData.characterSheets || [])
 const sessionRoleRecipients = computed(() => props.documentsData.sessionRoleRecipients || [])
 
-const pendingCharacterSheets = computed(() => characterSheets.value.filter((sheet) => !sheet.sentAt))
+const pendingCharacterSheets = computed(() => characterSheets.value.filter((sheet) => sheet.readyToSend && !sheet.sentAt))
 
 const sentRecipients = (document) => document.recipients.filter((recipient) => recipient.sentAt)
 const pendingRecipients = (document) => document.recipients.filter((recipient) => !recipient.sentAt)

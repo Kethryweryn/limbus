@@ -39,6 +39,12 @@
         />
       </UFormField>
 
+      <UCheckbox
+        v-model="localDocument.readyToSend"
+        label="Document prêt à être envoyé"
+        description="Décochez pour repasser le document en brouillon."
+      />
+
       <div v-if="localDocument.audience === 'targeted'" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <UFormField label="Personnage">
           <USelect
@@ -165,6 +171,7 @@ watch(() => props.document, (newDocument) => {
   localDocument.value = {
     ...newDocument,
     audience: newDocument.audience || 'targeted',
+    readyToSend: Boolean(newDocument.readyToSend),
     content: newDocument.content || '',
     documentUrl: newDocument.documentUrl || '',
     characterId: newDocument.characterId || newDocument.character?.id || '',

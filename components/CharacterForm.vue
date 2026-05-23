@@ -67,6 +67,12 @@
                 />
             </UFormField>
 
+            <UCheckbox
+                v-model="localCharacter.sheetReadyToSend"
+                label="Fiche prête à être envoyée"
+                description="Décochez pour repasser la fiche en brouillon."
+            />
+
             <UFormField label="Indications costumes" :error="errors.costumeIndications">
                 <UTextarea
                     v-model="localCharacter.costumeIndications"
@@ -124,6 +130,7 @@ watch(() => props.character, (newVal) => {
     localCharacter.value = {
         ...newVal,
         type: newVal.type || 'pj',
+        sheetReadyToSend: Boolean(newVal.sheetReadyToSend),
         factionIds: newVal.factionIds || newVal.factions?.map((faction) => faction.id) || []
     }
     errors.value = {}
