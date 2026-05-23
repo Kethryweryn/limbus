@@ -57,6 +57,11 @@ export const createCharacterSchema = z.object({
   backgroundDocumentUrl: optionalText,
   sheetReadyToSend: optionalBoolean,
   costumeIndications: optionalText,
+  excludeFromTrombinoscope: optionalBoolean,
+  trombinoscopeFaceHidden: optionalBoolean,
+  trombinoscopePhotoUrl: optionalText,
+  trombinoscopeNote: optionalText,
+  trombinoscopeDisplayName: optionalText,
   gameId: requiredId('Game'),
   factionIds: z.array(requiredId('Faction')).optional().default([])
 })
@@ -69,6 +74,11 @@ export const updateCharacterSchema = z.object({
   backgroundDocumentUrl: optionalText,
   sheetReadyToSend: optionalBoolean,
   costumeIndications: optionalText,
+  excludeFromTrombinoscope: optionalBoolean,
+  trombinoscopeFaceHidden: optionalBoolean,
+  trombinoscopePhotoUrl: optionalText,
+  trombinoscopeNote: optionalText,
+  trombinoscopeDisplayName: optionalText,
   gameId: requiredId('Game').optional(),
   factionIds: z.array(requiredId('Faction')).optional(),
   published: optionalBoolean
@@ -130,6 +140,7 @@ export const documentSchema = z.object({
   content: optionalText,
   documentUrl: optionalText,
   audience: documentAudience.optional().default('targeted'),
+  readyToSend: optionalBoolean,
   gameId: requiredId('Game'),
   characterId: optionalText,
   characterIds: z.array(requiredId('Character')).optional().default([]),
@@ -163,6 +174,16 @@ export const sessionTimelineSchema = z.object({
 
 export const sessionDocumentSendSchema = z.object({
   documentIds: z.array(requiredId('Document')).optional().default([])
+})
+
+export const characterTrombinoscopeSchema = z.object({
+  entries: z.array(z.object({
+    targetCharacterId: requiredId('Character'),
+    included: z.boolean(),
+    faceKnown: z.boolean(),
+    displayName: optionalText,
+    note: optionalText
+  })).default([])
 })
 
 export const sessionAssignmentSchema = z.object({

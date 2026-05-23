@@ -32,6 +32,11 @@ export default defineEventHandler(async (event) => {
             backgroundDocumentUrl: body.backgroundDocumentUrl,
             sheetReadyToSend: body.sheetReadyToSend ?? false,
             costumeIndications: body.costumeIndications,
+            excludeFromTrombinoscope: body.excludeFromTrombinoscope ?? false,
+            trombinoscopeFaceHidden: body.trombinoscopeFaceHidden ?? false,
+            trombinoscopePhotoUrl: body.trombinoscopePhotoUrl,
+            trombinoscopeNote: body.trombinoscopeNote,
+            trombinoscopeDisplayName: body.trombinoscopeDisplayName,
             gameId: body.gameId,
             factions: {
                 connect: body.factionIds.map((id) => ({ id }))

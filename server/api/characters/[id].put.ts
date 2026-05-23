@@ -12,7 +12,23 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readZodBody(event, updateCharacterSchema)
-  const { name, type, pitch, background, backgroundDocumentUrl, sheetReadyToSend, costumeIndications, gameId, factionIds, published } = body
+  const {
+    name,
+    type,
+    pitch,
+    background,
+    backgroundDocumentUrl,
+    sheetReadyToSend,
+    costumeIndications,
+    excludeFromTrombinoscope,
+    trombinoscopeFaceHidden,
+    trombinoscopePhotoUrl,
+    trombinoscopeNote,
+    trombinoscopeDisplayName,
+    gameId,
+    factionIds,
+    published
+  } = body
   const existingCharacter = factionIds ? await prisma.character.findUnique({
     where: { id },
     select: { gameId: true }
@@ -39,6 +55,11 @@ export default defineEventHandler(async (event) => {
     backgroundDocumentUrl,
     sheetReadyToSend,
     costumeIndications,
+    excludeFromTrombinoscope,
+    trombinoscopeFaceHidden,
+    trombinoscopePhotoUrl,
+    trombinoscopeNote,
+    trombinoscopeDisplayName,
     gameId,
     published
   }

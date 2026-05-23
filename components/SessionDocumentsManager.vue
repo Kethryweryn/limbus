@@ -6,9 +6,14 @@
           <h2 class="font-semibold">Documents de session</h2>
           <p class="text-sm text-gray-500">{{ documents.length }} document(s)</p>
         </div>
-        <UButton color="primary" :loading="sendingSheets" :disabled="sendingSheets || !pendingCharacterSheets.length" @click="sendCharacterSheets">
-          Envoyer les fiches personnage
-        </UButton>
+        <div class="flex flex-wrap gap-2">
+          <UButton color="neutral" variant="soft" :loading="generatingTrombinoscopes" @click="generateTrombinoscopes">
+            Générer les trombinoscopes
+          </UButton>
+          <UButton color="primary" :loading="sendingBundle" :disabled="sendingBundle || !bundleReadySheets.length" @click="sendCharacterSheetsAndTrombinoscopes">
+            Envoyer fiches et trombis
+          </UButton>
+        </div>
       </div>
     </template>
 
@@ -101,12 +106,27 @@
           <div>
             <h3 class="font-semibold">Fiches personnage</h3>
             <p class="text-sm text-gray-500">
-              {{ characterSheets.length - pendingCharacterSheets.length }}/{{ characterSheets.length }} fiche(s) envoyée(s)
+              {{ sentCharacterSheets.length }}/{{ characterSheets.length }} fiche(s) envoyée(s) ·
+              {{ sentTrombinoscopes.length }}/{{ characterSheets.length }} trombinoscope(s) envoyé(s)
+            </p>
+            <p v-if="missingTrombinoscopePhotos" class="text-sm text-amber-600">
+              {{ missingTrombinoscopePhotos }} photo(s) manquante(s) dans les trombinoscopes générés.
             </p>
           </div>
-          <UButton color="primary" :loading="sendingSheets" :disabled="sendingSheets || !pendingCharacterSheets.length" @click="sendCharacterSheets">
-            Envoyer les fiches personnage
-          </UButton>
+          <div class="flex flex-wrap gap-2">
+            <UButton color="neutral" variant="soft" :loading="generatingTrombinoscopes" @click="generateTrombinoscopes">
+              Générer les trombinoscopes
+            </UButton>
+            <UButton color="primary" :loading="sendingBundle" :disabled="sendingBundle || !bundleReadySheets.length" @click="sendCharacterSheetsAndTrombinoscopes">
+              Envoyer fiches et trombis
+            </UButton>
+            <UButton color="neutral" variant="soft" :loading="sendingSheets" :disabled="sendingSheets || !pendingCharacterSheets.length" @click="sendCharacterSheets">
+              Envoyer fiches seules
+            </UButton>
+            <UButton color="neutral" variant="soft" :loading="sendingTrombinoscopes" :disabled="sendingTrombinoscopes || !pendingTrombinoscopes.length" @click="sendTrombinoscopes">
+              Envoyer trombinoscopes seuls
+            </UButton>
+          </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
           <div
@@ -119,13 +139,37 @@
                 <div class="font-medium">{{ sheet.participant.name }}</div>
                 <div class="text-gray-500">{{ sheet.character.name }}</div>
               </div>
-              <UBadge :color="sheet.sentAt ? 'success' : 'warning'" variant="subtle" size="xs">
-                {{ sheet.sentAt ? 'Envoyée' : sheet.readyToSend ? 'À envoyer' : 'Brouillon' }}
-              </UBadge>
+              <div class="flex flex-wrap justify-end gap-1">
+                <UBadge :color="sheet.sentAt ? 'success' : 'warning'" variant="subtle" size="xs">
+                  Fiche {{ sheet.sentAt ? 'envoyée' : sheet.readyToSend ? 'prête' : 'brouillon' }}
+                </UBadge>
+                <UBadge :color="sheet.trombinoscopeSentAt ? 'success' : sheet.trombinoscopeGeneratedAt ? 'warning' : 'neutral'" variant="subtle" size="xs">
+                  Trombi {{ sheet.trombinoscopeSentAt ? 'envoyé' : sheet.trombinoscopeGeneratedAt ? 'généré' : 'à générer' }}
+                </UBadge>
+                <UBadge :color="sheet.bundleSentAt ? 'success' : 'neutral'" variant="subtle" size="xs">
+                  Ensemble {{ sheet.bundleSentAt ? 'envoyé' : 'à envoyer' }}
+                </UBadge>
+              </div>
             </div>
             <p class="mt-2 text-xs text-gray-500">
               {{ sheet.hasExternalDocument ? 'Document externe lié à la fiche.' : 'Document généré depuis le background.' }}
             </p>
+            <div class="mt-2 flex flex-wrap items-center gap-2">
+              <UButton
+                v-if="sheet.trombinoscopeUrl"
+                :to="sheet.trombinoscopeUrl"
+                target="_blank"
+                color="neutral"
+                variant="soft"
+                size="xs"
+                icon="i-heroicons-arrow-down-tray"
+              >
+                Télécharger le trombinoscope
+              </UButton>
+              <UBadge v-if="sheet.trombinoscopeMissingPhotos" color="warning" variant="subtle" size="xs">
+                {{ sheet.trombinoscopeMissingPhotos }} photo(s) manquante(s)
+              </UBadge>
+            </div>
           </div>
         </div>
       </section>
@@ -159,6 +203,9 @@ const props = defineProps({
 
 const sendingDocumentId = ref('')
 const sendingSheets = ref(false)
+const sendingTrombinoscopes = ref(false)
+const sendingBundle = ref(false)
+const generatingTrombinoscopes = ref(false)
 const serverError = ref('')
 
 const documents = computed(() => props.documentsData.documents || [])
@@ -166,6 +213,13 @@ const characterSheets = computed(() => props.documentsData.characterSheets || []
 const sessionRoleRecipients = computed(() => props.documentsData.sessionRoleRecipients || [])
 
 const pendingCharacterSheets = computed(() => characterSheets.value.filter((sheet) => sheet.readyToSend && !sheet.sentAt))
+const pendingTrombinoscopes = computed(() => characterSheets.value.filter((sheet) => sheet.trombinoscopeGeneratedAt && !sheet.trombinoscopeSentAt))
+const bundleReadySheets = computed(() => characterSheets.value.filter((sheet) => sheet.readyToSend && sheet.trombinoscopeGeneratedAt))
+const sentCharacterSheets = computed(() => characterSheets.value.filter((sheet) => sheet.sentAt))
+const sentTrombinoscopes = computed(() => characterSheets.value.filter((sheet) => sheet.trombinoscopeSentAt))
+const missingTrombinoscopePhotos = computed(() =>
+  characterSheets.value.reduce((total, sheet) => total + (sheet.trombinoscopeMissingPhotos || 0), 0)
+)
 
 const sentRecipients = (document) => document.recipients.filter((recipient) => recipient.sentAt)
 const pendingRecipients = (document) => document.recipients.filter((recipient) => !recipient.sentAt)
@@ -214,6 +268,51 @@ async function sendCharacterSheets() {
     serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
   } finally {
     sendingSheets.value = false
+  }
+}
+
+async function sendTrombinoscopes() {
+  sendingTrombinoscopes.value = true
+  try {
+    await useApiFetch(`/api/sessions/${props.documentsData.session.id}/documents/send-trombinoscopes`, {
+      method: 'POST'
+    })
+    serverError.value = ''
+    await props.onRefresh()
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+  } finally {
+    sendingTrombinoscopes.value = false
+  }
+}
+
+async function sendCharacterSheetsAndTrombinoscopes() {
+  sendingBundle.value = true
+  try {
+    await useApiFetch(`/api/sessions/${props.documentsData.session.id}/documents/send-character-sheets-and-trombinoscopes`, {
+      method: 'POST'
+    })
+    serverError.value = ''
+    await props.onRefresh()
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+  } finally {
+    sendingBundle.value = false
+  }
+}
+
+async function generateTrombinoscopes() {
+  generatingTrombinoscopes.value = true
+  try {
+    await useApiFetch(`/api/sessions/${props.documentsData.session.id}/trombinoscopes/generate`, {
+      method: 'POST'
+    })
+    serverError.value = ''
+    await props.onRefresh()
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+  } finally {
+    generatingTrombinoscopes.value = false
   }
 }
 </script>

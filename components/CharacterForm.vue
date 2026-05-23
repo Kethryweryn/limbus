@@ -73,6 +73,68 @@
                 description="Décochez pour repasser la fiche en brouillon."
             />
 
+            <UCard variant="outline" class="bg-gray-50">
+                <template #header>
+                    Options de trombinoscope
+                </template>
+
+                <div class="space-y-4">
+                    <UCheckbox
+                        v-model="localCharacter.excludeFromTrombinoscope"
+                        label="Ne jamais inclure ce personnage dans un trombinoscope"
+                    />
+                    <UCheckbox
+                        v-model="localCharacter.trombinoscopeFaceHidden"
+                        label="Personne ne connaît son visage"
+                        description="Sa photo sera remplacée par un point d’interrogation par défaut."
+                    />
+                    <UFormField label="Photo de trombinoscope par défaut" :error="errors.trombinoscopePhotoUrl">
+                        <div class="flex flex-col gap-2 sm:flex-row">
+                            <UInput
+                                v-model="localCharacter.trombinoscopePhotoUrl"
+                                type="url"
+                                size="lg"
+                                class="w-full"
+                                placeholder="URL ou photo téléversée utilisée à la place de la photo de session"
+                            />
+                            <input
+                                ref="trombinoscopePhotoInput"
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                class="hidden"
+                                @change="uploadTrombinoscopePhoto"
+                            >
+                            <UButton
+                                type="button"
+                                color="neutral"
+                                variant="soft"
+                                icon="i-heroicons-photo"
+                                :loading="uploadingTrombinoscopePhoto"
+                                @click="trombinoscopePhotoInput?.click()"
+                            >
+                                Photo
+                            </UButton>
+                        </div>
+                    </UFormField>
+                    <UFormField label="Fausse identité par défaut">
+                        <UInput
+                            v-model="localCharacter.trombinoscopeDisplayName"
+                            size="lg"
+                            class="w-full"
+                            placeholder="Nom affiché dans les trombinoscopes"
+                        />
+                    </UFormField>
+                    <UFormField label="Note de trombinoscope par défaut">
+                        <UTextarea
+                            v-model="localCharacter.trombinoscopeNote"
+                            :rows="3"
+                            size="lg"
+                            class="w-full"
+                        />
+                    </UFormField>
+                </div>
+            </UCard>
+
             <UFormField label="Indications costumes" :error="errors.costumeIndications">
                 <UTextarea
                     v-model="localCharacter.costumeIndications"
@@ -111,6 +173,8 @@ const emit = defineEmits(['submit', 'cancel', 'update:character'])
 const localCharacter = ref({ ...props.character })
 const errors = ref({})
 const serverError = ref('')
+const trombinoscopePhotoInput = ref(null)
+const uploadingTrombinoscopePhoto = ref(false)
 const characterTypeOptions = [
     { label: 'PJ', value: 'pj' },
     { label: 'PNJ', value: 'pnj' }
@@ -131,6 +195,8 @@ watch(() => props.character, (newVal) => {
         ...newVal,
         type: newVal.type || 'pj',
         sheetReadyToSend: Boolean(newVal.sheetReadyToSend),
+        excludeFromTrombinoscope: Boolean(newVal.excludeFromTrombinoscope),
+        trombinoscopeFaceHidden: Boolean(newVal.trombinoscopeFaceHidden),
         factionIds: newVal.factionIds || newVal.factions?.map((faction) => faction.id) || []
     }
     errors.value = {}
@@ -160,6 +226,28 @@ async function submit() {
         await emit('submit')
     } catch (err) {
         serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    }
+}
+
+async function uploadTrombinoscopePhoto(event) {
+    const input = event.target
+    const file = input.files?.[0]
+    if (!file) return
+
+    uploadingTrombinoscopePhoto.value = true
+    try {
+        const formData = new FormData()
+        formData.append('photo', file)
+        const result = await useApiFetch('/api/uploads/session-assignment-photos', {
+            method: 'POST',
+            body: formData
+        })
+        localCharacter.value.trombinoscopePhotoUrl = result.photoUrl
+    } catch (err) {
+        serverError.value = err?.data?.message || err?.message || 'Impossible d’envoyer la photo'
+    } finally {
+        uploadingTrombinoscopePhoto.value = false
+        input.value = ''
     }
 }
 </script>

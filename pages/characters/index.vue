@@ -276,7 +276,13 @@ const newCharacter = ref({
     type: 'pj',
     background: '',
     backgroundDocumentUrl: '',
+    sheetReadyToSend: false,
     costumeIndications: '',
+    excludeFromTrombinoscope: false,
+    trombinoscopeFaceHidden: false,
+    trombinoscopePhotoUrl: '',
+    trombinoscopeNote: '',
+    trombinoscopeDisplayName: '',
     factionIds: [],
     gameId: selectedGame.value?.id || ''
 })
@@ -302,7 +308,13 @@ function openCreateSlideover() {
         type: 'pj',
         background: '',
         backgroundDocumentUrl: '',
+        sheetReadyToSend: false,
         costumeIndications: '',
+        excludeFromTrombinoscope: false,
+        trombinoscopeFaceHidden: false,
+        trombinoscopePhotoUrl: '',
+        trombinoscopeNote: '',
+        trombinoscopeDisplayName: '',
         factionIds: [],
         gameId: selectedGame.value?.id || ''
     }

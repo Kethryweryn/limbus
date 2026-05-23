@@ -40,6 +40,11 @@ model Character {
   backgroundDocumentUrl String?
   sheetReadyToSend      Boolean    @default(false)
   costumeIndications    String?
+  excludeFromTrombinoscope Boolean @default(false)
+  trombinoscopeFaceHidden  Boolean @default(false)
+  trombinoscopePhotoUrl    String?
+  trombinoscopeNote        String?
+  trombinoscopeDisplayName String?
   slug                  String     @unique
   gameId                String
   game                  Game       @relation(fields: [gameId], references: [id])
@@ -56,6 +61,27 @@ model Character {
   locatedItems          Item[]      @relation("ItemLocationCharacter")
   timelineEvents        TimelineEvent[] @relation("TimelineEventCharacters")
   documentDeliveries    SessionDocumentDelivery[]
+  trombinoscopeViewerEntries CharacterTrombinoscopeEntry[] @relation("TrombinoscopeViewerEntries")
+  trombinoscopeTargetEntries CharacterTrombinoscopeEntry[] @relation("TrombinoscopeTargetEntries")
+  trombinoscopeDocuments SessionTrombinoscope[] @relation("TrombinoscopeViewerDocuments")
+}
+
+model CharacterTrombinoscopeEntry {
+  id                String    @id @default(cuid())
+  viewerCharacterId String
+  targetCharacterId String
+  included          Boolean   @default(true)
+  faceKnown         Boolean   @default(true)
+  displayName       String?
+  note              String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  viewerCharacter   Character @relation("TrombinoscopeViewerEntries", fields: [viewerCharacterId], references: [id], onDelete: Cascade)
+  targetCharacter   Character @relation("TrombinoscopeTargetEntries", fields: [targetCharacterId], references: [id], onDelete: Cascade)
+
+  @@unique([viewerCharacterId, targetCharacterId])
+  @@index([targetCharacterId])
 }
 
 model Item {
@@ -176,6 +202,7 @@ model Session {
   participants SessionParticipant[]
   timelineResponsibles TimelineEventResponsible[]
   documentDeliveries SessionDocumentDelivery[]
+  trombinoscopes SessionTrombinoscope[]
 }
 
 model SessionAssignment {
@@ -231,6 +258,25 @@ model Participant {
   sessionRoles SessionParticipant[]
   timelineResponsibilities TimelineEventResponsible[]
   documentDeliveries SessionDocumentDelivery[]
+  trombinoscopes SessionTrombinoscope[]
+}
+
+model SessionTrombinoscope {
+  id                String      @id @default(cuid())
+  sessionId         String
+  viewerCharacterId String
+  participantId     String
+  fileName          String
+  contentHtml       String
+  missingPhotos     Int         @default(0)
+  generatedAt       DateTime    @default(now())
+
+  session           Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  viewerCharacter   Character   @relation("TrombinoscopeViewerDocuments", fields: [viewerCharacterId], references: [id], onDelete: Cascade)
+  participant       Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, viewerCharacterId, participantId])
+  @@index([participantId])
 }
 
 model SessionDocumentDelivery {

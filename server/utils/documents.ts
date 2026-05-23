@@ -62,7 +62,7 @@ export async function getSessionDocumentDashboard(sessionId: string) {
     throw createError({ statusCode: 404, statusMessage: 'Session introuvable' })
   }
 
-  const [documents, deliveries] = await Promise.all([
+  const [documents, deliveries, trombinoscopes] = await Promise.all([
     prisma.document.findMany({
       where: { gameId: session.gameId },
       orderBy: [{ updatedAt: 'desc' }, { title: 'asc' }],
@@ -74,6 +74,13 @@ export async function getSessionDocumentDashboard(sessionId: string) {
         participant: true,
         document: true,
         character: true
+      }
+    }),
+    prisma.sessionTrombinoscope.findMany({
+      where: { sessionId: session.id },
+      include: {
+        viewerCharacter: true,
+        participant: true
       }
     })
   ])
@@ -181,13 +188,37 @@ export async function getSessionDocumentDashboard(sessionId: string) {
         && item.characterId === assignment.characterId
         && item.participantId === assignment.participantId
       )
+      const trombinoscopeDelivery = deliveries.find((item) =>
+        item.kind === 'trombinoscope'
+        && item.characterId === assignment.characterId
+        && item.participantId === assignment.participantId
+      )
+      const bundleDelivery = deliveries.find((item) =>
+        item.kind === 'character_sheet_bundle'
+        && item.characterId === assignment.characterId
+        && item.participantId === assignment.participantId
+      )
+      const generatedTrombinoscope = trombinoscopes.find((item) =>
+        item.viewerCharacterId === assignment.characterId
+        && item.participantId === assignment.participantId
+      )
+      const inferredBundleSentAt = delivery?.sentAt && trombinoscopeDelivery?.sentAt
+        ? new Date(Math.max(new Date(delivery.sentAt).getTime(), new Date(trombinoscopeDelivery.sentAt).getTime()))
+        : null
 
       return {
         character: assignment.character,
         participant: assignment.participant,
         hasExternalDocument: Boolean(assignment.character.backgroundDocumentUrl),
         readyToSend: Boolean(assignment.character.sheetReadyToSend),
-        sentAt: delivery?.sentAt || null
+        sentAt: delivery?.sentAt || null,
+        trombinoscopeSentAt: trombinoscopeDelivery?.sentAt || null,
+        bundleSentAt: bundleDelivery?.sentAt || inferredBundleSentAt,
+        trombinoscopeGeneratedAt: generatedTrombinoscope?.generatedAt || null,
+        trombinoscopeMissingPhotos: generatedTrombinoscope?.missingPhotos || 0,
+        trombinoscopeUrl: generatedTrombinoscope
+          ? `/api/sessions/${session.id}/trombinoscopes/${assignment.characterId}`
+          : null
       }
     })
 
@@ -270,4 +301,101 @@ export async function markCharacterSheetDeliveries(sessionId: string) {
   }
 
   return { sentCount }
+}
+
+async function upsertDelivery(data: {
+  sessionId: string
+  participantId: string
+  characterId: string
+  kind: string
+  force?: boolean
+}) {
+  const existing = await prisma.sessionDocumentDelivery.findFirst({
+    where: {
+      sessionId: data.sessionId,
+      participantId: data.participantId,
+      characterId: data.characterId,
+      kind: data.kind
+    },
+    orderBy: { sentAt: 'desc' }
+  })
+
+  if (existing) {
+    if (!data.force) return false
+
+    await prisma.sessionDocumentDelivery.update({
+      where: { id: existing.id },
+      data: { sentAt: new Date() }
+    })
+    return true
+  }
+
+  await prisma.sessionDocumentDelivery.create({
+    data: {
+      sessionId: data.sessionId,
+      participantId: data.participantId,
+      characterId: data.characterId,
+      kind: data.kind
+    }
+  })
+  return true
+}
+
+export async function markTrombinoscopeDeliveries(sessionId: string) {
+  const dashboard = await getSessionDocumentDashboard(sessionId)
+  let sentCount = 0
+
+  for (const sheet of dashboard.characterSheets) {
+    if (!sheet.participant?.id || !sheet.character?.id || !sheet.trombinoscopeGeneratedAt || sheet.trombinoscopeSentAt) continue
+
+    const sent = await upsertDelivery({
+      sessionId,
+      participantId: sheet.participant.id,
+      characterId: sheet.character.id,
+      kind: 'trombinoscope'
+    })
+    if (sent) sentCount++
+  }
+
+  return { sentCount }
+}
+
+export async function markCharacterSheetBundleDeliveries(sessionId: string) {
+  const dashboard = await getSessionDocumentDashboard(sessionId)
+  let sheetSentCount = 0
+  let trombinoscopeSentCount = 0
+  let bundleSentCount = 0
+
+  for (const sheet of dashboard.characterSheets) {
+    if (!sheet.participant?.id || !sheet.character?.id || !sheet.readyToSend || !sheet.trombinoscopeGeneratedAt) continue
+
+    const sheetSent = await upsertDelivery({
+      sessionId,
+      participantId: sheet.participant.id,
+      characterId: sheet.character.id,
+      kind: 'character_sheet',
+      force: true
+    })
+    if (sheetSent) sheetSentCount++
+
+    const trombinoscopeSent = await upsertDelivery({
+      sessionId,
+      participantId: sheet.participant.id,
+      characterId: sheet.character.id,
+      kind: 'trombinoscope',
+      force: true
+    })
+    if (trombinoscopeSent) trombinoscopeSentCount++
+
+    const bundleSent = await upsertDelivery({
+      sessionId,
+      participantId: sheet.participant.id,
+      characterId: sheet.character.id,
+      kind: 'character_sheet_bundle',
+      force: true
+    })
+    if (bundleSent) bundleSentCount++
+  }
+
+  return { sheetSentCount, trombinoscopeSentCount, bundleSentCount }
 }

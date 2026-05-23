@@ -4,14 +4,23 @@
             <UButton to="/characters" icon="i-heroicons-arrow-left" color="neutral" variant="ghost">
                 Personnages
             </UButton>
-            <UButton
-                v-if="!isEditing"
-                icon="i-heroicons-pencil-square"
-                color="primary"
-                @click="startEdit"
-            >
-                Modifier
-            </UButton>
+            <div v-if="!isEditing" class="flex flex-wrap gap-2">
+                <UButton
+                    icon="i-heroicons-identification"
+                    color="neutral"
+                    variant="soft"
+                    @click="openTrombinoscopeModal"
+                >
+                    Trombinoscope
+                </UButton>
+                <UButton
+                    icon="i-heroicons-pencil-square"
+                    color="primary"
+                    @click="startEdit"
+                >
+                    Modifier
+                </UButton>
+            </div>
         </div>
 
         <CharacterForm
@@ -165,6 +174,91 @@
                 </form>
             </template>
         </UModal>
+
+        <UModal v-model:open="showTrombinoscopeModal" title="Trombinoscope" fullscreen>
+            <template #body>
+                <div class="space-y-5">
+                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h2 class="text-xl font-semibold">Trombinoscope de {{ character.name }}</h2>
+                            <p class="text-sm text-gray-500">
+                                Sélectionnez les personnages visibles et ajustez les noms, notes et visages connus.
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <UButton color="neutral" variant="soft" @click="setAllTrombinoscopeEntries(false)">
+                                Tout désélectionner
+                            </UButton>
+                            <UButton color="neutral" variant="soft" @click="setAllTrombinoscopeEntries(true)">
+                                Tout sélectionner
+                            </UButton>
+                            <UButton color="primary" :loading="savingTrombinoscope" @click="saveTrombinoscopeConfig">
+                                Enregistrer
+                            </UButton>
+                        </div>
+                    </div>
+
+                    <div v-if="loadingTrombinoscope" class="rounded border border-gray-200 bg-white p-5 text-sm text-gray-500">
+                        Chargement du trombinoscope...
+                    </div>
+
+                    <div v-else class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                        <article
+                            v-for="entry in trombinoscopeEntries"
+                            :key="entry.targetCharacterId"
+                            class="rounded-lg border border-gray-200 bg-white p-4"
+                        >
+                            <div class="flex flex-col gap-3">
+                                <div class="flex flex-wrap items-start justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <h3 class="font-semibold">{{ entry.character.name }}</h3>
+                                            <UBadge color="warning" variant="subtle" size="xs">
+                                                {{ entry.character.type === 'pnj' ? 'PNJ' : 'PJ' }}
+                                            </UBadge>
+                                            <UBadge
+                                                v-for="faction in entry.character.factions || []"
+                                                :key="faction.id"
+                                                color="primary"
+                                                variant="subtle"
+                                                size="xs"
+                                            >
+                                                {{ faction.name }}
+                                            </UBadge>
+                                            <UBadge v-if="entry.character.excludeFromTrombinoscope" color="neutral" variant="solid" size="xs">
+                                                Exclu globalement
+                                            </UBadge>
+                                        </div>
+                                    </div>
+                                    <UCheckbox
+                                        v-model="entry.included"
+                                        label="Inclure"
+                                        :disabled="entry.character.excludeFromTrombinoscope"
+                                    />
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <UFormField label="Nom affiché">
+                                        <UInput v-model="entry.displayName" :disabled="!entry.included" class="w-full" />
+                                    </UFormField>
+                                    <UCheckbox
+                                        v-model="entry.faceKnown"
+                                        label="Visage connu"
+                                        :disabled="!entry.included || entry.character.trombinoscopeFaceHidden"
+                                    />
+                                </div>
+
+                                <UFormField label="Note personnalisée">
+                                    <UTextarea v-model="entry.note" :disabled="!entry.included" :rows="3" class="w-full" />
+                                </UFormField>
+                            </div>
+                        </article>
+                    </div>
+
+                    <p v-if="trombinoscopeError" class="text-sm text-red-500">{{ trombinoscopeError }}</p>
+                </div>
+            </template>
+        </UModal>
     </div>
 </template>
 
@@ -185,6 +279,11 @@ if (error.value) {
 const isEditing = ref(route.query.edit === '1')
 const editableCharacter = ref(character.value ? characterFormPayload(character.value) : null)
 const showIntrigueModal = ref(false)
+const showTrombinoscopeModal = ref(false)
+const loadingTrombinoscope = ref(false)
+const savingTrombinoscope = ref(false)
+const trombinoscopeEntries = ref([])
+const trombinoscopeError = ref('')
 const selectedIntrigueIds = ref(character.value?.intrigues?.map((intrigue) => intrigue.id) || [])
 
 const availableIntrigues = computed(() =>
@@ -285,5 +384,62 @@ async function saveCharacterIntrigues() {
 
     showIntrigueModal.value = false
     await Promise.all([refresh(), refreshIntrigues()])
+}
+
+async function openTrombinoscopeModal() {
+    if (!character.value?.id) return
+
+    showTrombinoscopeModal.value = true
+    loadingTrombinoscope.value = true
+    trombinoscopeError.value = ''
+
+    try {
+        const data = await useApiFetch(`/api/characters/${character.value.id}/trombinoscope`)
+        trombinoscopeEntries.value = (data.characters || []).map((target) => ({
+            targetCharacterId: target.id,
+            character: target,
+            included: Boolean(target.trombinoscope?.included) && !target.excludeFromTrombinoscope,
+            faceKnown: Boolean(target.trombinoscope?.faceKnown) && !target.trombinoscopeFaceHidden,
+            displayName: target.trombinoscope?.displayName || target.name,
+            note: target.trombinoscope?.note || ''
+        }))
+    } catch (err) {
+        trombinoscopeError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    } finally {
+        loadingTrombinoscope.value = false
+    }
+}
+
+function setAllTrombinoscopeEntries(value) {
+    trombinoscopeEntries.value = trombinoscopeEntries.value.map((entry) => ({
+        ...entry,
+        included: entry.character.excludeFromTrombinoscope ? false : value
+    }))
+}
+
+async function saveTrombinoscopeConfig() {
+    if (!character.value?.id) return
+
+    savingTrombinoscope.value = true
+    trombinoscopeError.value = ''
+    try {
+        await useApiFetch(`/api/characters/${character.value.id}/trombinoscope`, {
+            method: 'PUT',
+            body: {
+                entries: trombinoscopeEntries.value.map((entry) => ({
+                    targetCharacterId: entry.targetCharacterId,
+                    included: Boolean(entry.included) && !entry.character.excludeFromTrombinoscope,
+                    faceKnown: Boolean(entry.faceKnown) && !entry.character.trombinoscopeFaceHidden,
+                    displayName: entry.displayName,
+                    note: entry.note
+                }))
+            }
+        })
+        showTrombinoscopeModal.value = false
+    } catch (err) {
+        trombinoscopeError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    } finally {
+        savingTrombinoscope.value = false
+    }
 }
 </script>
