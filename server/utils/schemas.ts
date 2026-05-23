@@ -8,8 +8,8 @@ const requiredId = (field: string) => z.string().trim().min(1, `${field} is requ
 const sessionStatus = z.enum(['scheduled', 'postponed', 'cancelled', 'completed'])
 const intrigueLevel = z.enum(['main_story', 'main_character', 'major', 'minor'])
 const characterType = z.enum(['pj', 'pnj'])
-const sessionParticipantRole = z.enum(['participant', 'organizer', 'npc'])
-const documentAudience = z.enum(['targeted', 'everyone', 'organizers', 'npcs'])
+const sessionParticipantRole = z.enum(['participant', 'organizer', 'npc', 'kitchen'])
+const documentAudience = z.enum(['targeted', 'everyone', 'organizers', 'npcs', 'kitchen'])
 const timelineTime = z.string().trim().regex(/^\d{2}:\d{2}$/, 'Time must use HH:mm format')
 
 export async function readZodBody<T>(event: H3Event, schema: ZodType<T>): Promise<T> {

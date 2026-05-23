@@ -204,6 +204,10 @@ function normalizeSessionForForm(value) {
       ?.filter((participant) => participant.role === 'npc')
       .map((participant) => participant.participantId || participant.participant?.id)
       .filter(Boolean) || [],
+    kitchenIds: value.participants
+      ?.filter((participant) => participant.role === 'kitchen')
+      .map((participant) => participant.participantId || participant.participant?.id)
+      .filter(Boolean) || [],
     assignments: value.assignments?.map((assignment) => ({
       characterId: assignment.characterId,
       participantId: assignment.participantId || '',

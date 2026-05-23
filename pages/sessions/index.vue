@@ -416,6 +416,10 @@ function normalizeSessionForForm(session) {
       ?.filter((participant) => participant.role === 'npc')
       .map((participant) => participant.participantId || participant.participant?.id)
       .filter(Boolean) || [],
+    kitchenIds: session.participants
+      ?.filter((participant) => participant.role === 'kitchen')
+      .map((participant) => participant.participantId || participant.participant?.id)
+      .filter(Boolean) || [],
     assignments: session.assignments?.map((assignment) => ({
       characterId: assignment.characterId,
       participantId: assignment.participantId || '',
@@ -437,6 +441,7 @@ function startCreate() {
     published: true,
     organizerIds: [],
     npcIds: [],
+    kitchenIds: [],
     participants: [],
     assignments: []
   }

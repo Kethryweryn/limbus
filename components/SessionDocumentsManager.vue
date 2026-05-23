@@ -175,7 +175,7 @@
       </section>
 
       <section v-if="sessionRoleRecipients.length">
-        <h3 class="font-semibold mb-3">PNJs et organisateurs de session</h3>
+        <h3 class="font-semibold mb-3">Équipe de session</h3>
         <div class="flex flex-wrap gap-2">
           <UBadge
             v-for="recipient in sessionRoleRecipients"
@@ -183,7 +183,7 @@
             color="neutral"
             variant="subtle"
           >
-            {{ recipient.role === 'organizer' ? 'Orga' : 'PNJ' }} - {{ recipient.participant.name }}
+            {{ roleLabel(recipient.role) }} - {{ recipient.participant.name }}
           </UBadge>
         </div>
       </section>
@@ -227,8 +227,15 @@ const audienceLabel = (audience) => ({
   targeted: 'Ciblage manuel',
   everyone: 'Tout le monde',
   organizers: 'Organisateurs',
-  npcs: 'PNJs'
+  npcs: 'PNJs',
+  kitchen: 'Équipe cuisine'
 }[audience] || 'Ciblage manuel')
+
+const roleLabel = (role) => ({
+  organizer: 'Orga',
+  npc: 'PNJ',
+  kitchen: 'Cuisine'
+}[role] || 'Session')
 
 const formatDate = (value) => new Date(value).toLocaleString('fr-FR', {
   day: '2-digit',

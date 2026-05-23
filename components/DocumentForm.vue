@@ -115,8 +115,9 @@ const serverError = ref('')
 const audienceOptions = [
   { label: 'Ciblage manuel', value: 'targeted' },
   { label: 'Tout le monde', value: 'everyone' },
-  { label: 'Organisateurs uniquement', value: 'organizers' },
-  { label: 'PNJs uniquement', value: 'npcs' }
+  { label: 'Organisateurs', value: 'organizers' },
+  { label: 'PNJs', value: 'npcs' },
+  { label: 'Équipe cuisine', value: 'kitchen' }
 ]
 
 const gameOptions = computed(() => props.games.map((game) => ({

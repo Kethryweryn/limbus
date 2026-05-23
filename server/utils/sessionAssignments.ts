@@ -1,6 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 
-type SessionParticipantRole = 'participant' | 'organizer' | 'npc'
+type SessionParticipantRole = 'participant' | 'organizer' | 'npc' | 'kitchen'
 
 export function normalizeAssignments(assignments: Array<{
   characterId: string
@@ -50,7 +50,7 @@ export function normalizeSessionParticipants(participants: Array<{
   for (const assignment of assignments) {
     if (!assignment.participantId) continue
 
-    const hasSessionRole = ['participant', 'organizer', 'npc'].some((role) =>
+    const hasSessionRole = ['participant', 'organizer', 'npc', 'kitchen'].some((role) =>
       normalized.has(`${assignment.participantId}:${role}`)
     )
     if (!hasSessionRole) {

@@ -46,7 +46,7 @@
         />
       </UFormField>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <UFormField label="Organisateurs">
           <USelectMenu
             v-model="localSession.organizerIds"
@@ -68,6 +68,19 @@
             multiple
             :disabled="!sessionParticipantOptions.length"
             placeholder="Sélectionner les PNJ"
+            size="lg"
+            class="w-full"
+          />
+        </UFormField>
+
+        <UFormField label="Équipe cuisine">
+          <USelectMenu
+            v-model="localSession.kitchenIds"
+            :items="sessionParticipantOptions"
+            value-key="value"
+            multiple
+            :disabled="!sessionParticipantOptions.length"
+            placeholder="Sélectionner l’équipe cuisine"
             size="lg"
             class="w-full"
           />
@@ -213,7 +226,8 @@ function sessionRoleIds(session, role) {
 function sessionParticipantsPayload(session) {
   const explicitParticipants = [
     ...(session.organizerIds || []).map((participantId) => ({ participantId, role: 'organizer' })),
-    ...(session.npcIds || []).map((participantId) => ({ participantId, role: 'npc' }))
+    ...(session.npcIds || []).map((participantId) => ({ participantId, role: 'npc' })),
+    ...(session.kitchenIds || []).map((participantId) => ({ participantId, role: 'kitchen' }))
   ]
   const explicitIds = new Set(explicitParticipants.map((participant) => participant.participantId))
   const castParticipantIds = [...new Set((session.assignments || [])
@@ -235,6 +249,7 @@ watch(() => props.session, (newSession) => {
     ...newSession,
     organizerIds: newSession.organizerIds || sessionRoleIds(newSession, 'organizer'),
     npcIds: newSession.npcIds || sessionRoleIds(newSession, 'npc'),
+    kitchenIds: newSession.kitchenIds || sessionRoleIds(newSession, 'kitchen'),
     assignments: props.showCast
       ? sessionCharacters.value.map((character) => {
           const assignment = assignmentsByCharacterId.get(character.id)

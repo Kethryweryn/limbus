@@ -379,6 +379,8 @@ function makeSlug(value: string) {
 }
 
 async function clearBusinessData() {
+  await prisma.sessionTrombinoscope.deleteMany()
+  await prisma.characterTrombinoscopeEntry.deleteMany()
   await prisma.sessionDocumentDelivery.deleteMany()
   await prisma.timelineEventResponsible.deleteMany()
   await prisma.sessionAssignment.deleteMany()
@@ -573,6 +575,14 @@ async function createDocuments(
         readyToSend: false,
         gameId,
         published: true
+      },
+      {
+        title: `Recettes cuisine - ${gameTitle}`,
+        content: 'Menus prévus, quantités par repas, contraintes alimentaires connues, plan de préparation et consignes de service pour l’équipe cuisine.',
+        audience: 'kitchen',
+        readyToSend: false,
+        gameId,
+        published: true
       }
     ]
   })
@@ -705,9 +715,11 @@ async function createSessions(
   const pnjCharacters = characters.filter((character) => character.type === 'pnj')
   const organizer = participants[8]
   const sessionPnj = participants[9]
+  const kitchen = participants[7]
   const fixedSessionRoles = [
     organizer ? { participantId: organizer.id, role: 'organizer' } : null,
-    sessionPnj ? { participantId: sessionPnj.id, role: 'npc' } : null
+    sessionPnj ? { participantId: sessionPnj.id, role: 'npc' } : null,
+    kitchen ? { participantId: kitchen.id, role: 'kitchen' } : null
   ].filter((role): role is { participantId: string, role: string } => Boolean(role))
 
   const sessionParticipantsFor = (

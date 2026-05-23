@@ -115,6 +115,14 @@ export async function getSessionDocumentDashboard(sessionId: string) {
       targetLabel: 'PNJ de session'
     }))
 
+  const kitchenRecipients = session.participants
+    .filter((sessionParticipant) => sessionParticipant.role === 'kitchen')
+    .map((sessionParticipant) => ({
+      participant: sessionParticipant.participant,
+      character: null,
+      targetLabel: 'Équipe cuisine'
+    }))
+
   const uniqueRecipients = (recipients: Array<{
     participant: { id: string }
     character: { id: string, name: string } | null
@@ -122,7 +130,9 @@ export async function getSessionDocumentDashboard(sessionId: string) {
   }>) => {
     const byParticipantId = new Map<string, typeof recipients[number]>()
     for (const recipient of recipients) {
-      byParticipantId.set(recipient.participant.id, recipient)
+      if (!byParticipantId.has(recipient.participant.id)) {
+        byParticipantId.set(recipient.participant.id, recipient)
+      }
     }
     return [...byParticipantId.values()]
   }
@@ -130,10 +140,11 @@ export async function getSessionDocumentDashboard(sessionId: string) {
   const documentsWithRecipients = documents.map((document) => {
     const baseRecipients = (() => {
       if (document.audience === 'everyone') {
-        return uniqueRecipients([...castRecipients, ...organizerRecipients, ...npcRecipients])
+        return uniqueRecipients([...castRecipients, ...organizerRecipients, ...npcRecipients, ...kitchenRecipients])
       }
       if (document.audience === 'organizers') return organizerRecipients
       if (document.audience === 'npcs') return npcRecipients
+      if (document.audience === 'kitchen') return kitchenRecipients
 
       const targetCharacterIds = new Set<string>()
       if (document.characterId) {
@@ -223,7 +234,11 @@ export async function getSessionDocumentDashboard(sessionId: string) {
     })
 
   const sessionRoleRecipients = session.participants
-    .filter((sessionParticipant) => sessionParticipant.role === 'organizer' || sessionParticipant.role === 'npc')
+    .filter((sessionParticipant) =>
+      sessionParticipant.role === 'organizer'
+      || sessionParticipant.role === 'npc'
+      || sessionParticipant.role === 'kitchen'
+    )
     .map((sessionParticipant) => ({
       role: sessionParticipant.role,
       participant: sessionParticipant.participant

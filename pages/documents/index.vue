@@ -190,7 +190,8 @@ const audienceLabel = (audience) => ({
   targeted: 'Ciblage manuel',
   everyone: 'Tout le monde',
   organizers: 'Organisateurs',
-  npcs: 'PNJs'
+  npcs: 'PNJs',
+  kitchen: 'Équipe cuisine'
 }[audience] || 'Ciblage manuel')
 
 const fetchDocuments = async () => {
