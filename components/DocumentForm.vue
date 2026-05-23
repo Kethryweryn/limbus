@@ -29,7 +29,17 @@
         <UInput v-model="localDocument.documentUrl" size="lg" class="w-full" placeholder="Lien PDF, docx, Google Docs..." />
       </UFormField>
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <UFormField label="Destinataires">
+        <USelect
+          v-model="localDocument.audience"
+          :items="audienceOptions"
+          value-key="value"
+          size="lg"
+          class="w-full"
+        />
+      </UFormField>
+
+      <div v-if="localDocument.audience === 'targeted'" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <UFormField label="Personnage">
           <USelect
             v-model="localDocument.characterId"
@@ -62,7 +72,7 @@
         variant="soft"
         icon="i-heroicons-exclamation-triangle"
         title="Document non ciblé"
-        description="Associez au moins un personnage ou un groupe pour pouvoir l’envoyer depuis une session."
+        description="Associez au moins un personnage ou un groupe, ou choisissez une audience générale."
       />
 
       <div class="flex flex-wrap gap-2 pt-2">
@@ -95,6 +105,13 @@ const emit = defineEmits(['submit', 'cancel', 'update:document'])
 const localDocument = ref({ ...props.document })
 const errors = ref({})
 const serverError = ref('')
+
+const audienceOptions = [
+  { label: 'Ciblage manuel', value: 'targeted' },
+  { label: 'Tout le monde', value: 'everyone' },
+  { label: 'Organisateurs uniquement', value: 'organizers' },
+  { label: 'PNJs uniquement', value: 'npcs' }
+]
 
 const gameOptions = computed(() => props.games.map((game) => ({
   label: game.title,
@@ -133,7 +150,10 @@ const factionOptions = computed(() => [
   ...realFactionOptions.value
 ])
 
-const hasTargets = computed(() => Boolean(localDocument.value.characterId || localDocument.value.characterIds?.length || localDocument.value.factionIds?.length))
+const hasTargets = computed(() =>
+  localDocument.value.audience !== 'targeted'
+  || Boolean(localDocument.value.characterId || localDocument.value.characterIds?.length || localDocument.value.factionIds?.length)
+)
 
 const canSubmit = computed(() =>
   localDocument.value.title?.trim()
@@ -144,6 +164,7 @@ const canSubmit = computed(() =>
 watch(() => props.document, (newDocument) => {
   localDocument.value = {
     ...newDocument,
+    audience: newDocument.audience || 'targeted',
     content: newDocument.content || '',
     documentUrl: newDocument.documentUrl || '',
     characterId: newDocument.characterId || newDocument.character?.id || '',
@@ -174,6 +195,15 @@ function validate() {
 }
 
 function expandVirtualFactionSelection(value) {
+  if (value.audience !== 'targeted') {
+    return {
+      ...value,
+      characterId: '',
+      characterIds: [],
+      factionIds: []
+    }
+  }
+
   const factionIds = value.factionIds || []
   const selectedVirtualIds = new Set(factionIds.filter((id) => id.startsWith('__')))
   const realFactionIds = factionIds.filter((id) => !id.startsWith('__'))

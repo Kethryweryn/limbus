@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
       title: body.title,
       content: body.content,
       documentUrl: body.documentUrl,
+      audience: body.audience,
       gameId: body.gameId,
       characterId: body.characterId || null,
       published: body.published ?? true,

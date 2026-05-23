@@ -142,6 +142,7 @@ model Document {
   title       String
   content     String?
   documentUrl String?
+  audience    String      @default("targeted")
   gameId      String
   game        Game        @relation(fields: [gameId], references: [id])
   createdAt   DateTime    @default(now())

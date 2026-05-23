@@ -84,38 +84,88 @@ export async function getSessionDocumentDashboard(sessionId: string) {
       .map((assignment) => [assignment.characterId, assignment])
   )
 
-  const documentsWithRecipients = documents.map((document) => {
-    const targetCharacterIds = new Set<string>()
-    if (document.characterId) {
-      targetCharacterIds.add(document.characterId)
-    }
-    for (const character of document.characters || []) {
-      targetCharacterIds.add(character.id)
-    }
+  const castRecipients = session.assignments
+    .filter((assignment) => assignment.participantId && assignment.participant)
+    .map((assignment) => ({
+      participant: assignment.participant!,
+      character: assignment.character,
+      targetLabel: assignment.character.name
+    }))
 
-    for (const faction of document.factions || []) {
-      for (const character of faction.characters || []) {
+  const organizerRecipients = session.participants
+    .filter((sessionParticipant) => sessionParticipant.role === 'organizer')
+    .map((sessionParticipant) => ({
+      participant: sessionParticipant.participant,
+      character: null,
+      targetLabel: 'Organisateur'
+    }))
+
+  const npcRecipients = session.participants
+    .filter((sessionParticipant) => sessionParticipant.role === 'npc')
+    .map((sessionParticipant) => ({
+      participant: sessionParticipant.participant,
+      character: null,
+      targetLabel: 'PNJ de session'
+    }))
+
+  const uniqueRecipients = (recipients: Array<{
+    participant: { id: string }
+    character: { id: string, name: string } | null
+    targetLabel: string
+  }>) => {
+    const byParticipantId = new Map<string, typeof recipients[number]>()
+    for (const recipient of recipients) {
+      byParticipantId.set(recipient.participant.id, recipient)
+    }
+    return [...byParticipantId.values()]
+  }
+
+  const documentsWithRecipients = documents.map((document) => {
+    const baseRecipients = (() => {
+      if (document.audience === 'everyone') {
+        return uniqueRecipients([...castRecipients, ...organizerRecipients, ...npcRecipients])
+      }
+      if (document.audience === 'organizers') return organizerRecipients
+      if (document.audience === 'npcs') return npcRecipients
+
+      const targetCharacterIds = new Set<string>()
+      if (document.characterId) {
+        targetCharacterIds.add(document.characterId)
+      }
+      for (const character of document.characters || []) {
         targetCharacterIds.add(character.id)
       }
-    }
 
-    const recipients = [...targetCharacterIds]
-      .flatMap((characterId) => {
+      for (const faction of document.factions || []) {
+        for (const character of faction.characters || []) {
+          targetCharacterIds.add(character.id)
+        }
+      }
+
+      return [...targetCharacterIds].flatMap((characterId) => {
         const assignment = castByCharacterId.get(characterId)
         if (!assignment?.participantId || !assignment.participant) return []
-
-        const delivery = deliveries.find((item) =>
-          item.kind === 'document'
-          && item.documentId === document.id
-          && item.participantId === assignment.participantId
-        )
 
         return [{
           participant: assignment.participant,
           character: assignment.character,
-          sentAt: delivery?.sentAt || null
+          targetLabel: assignment.character.name
         }]
       })
+    })()
+
+    const recipients = baseRecipients.map((recipient) => {
+      const delivery = deliveries.find((item) =>
+        item.kind === 'document'
+        && item.documentId === document.id
+        && item.participantId === recipient.participant.id
+      )
+
+      return {
+        ...recipient,
+        sentAt: delivery?.sentAt || null
+      }
+    })
 
     return {
       ...document,
