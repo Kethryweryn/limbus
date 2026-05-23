@@ -19,6 +19,12 @@
         value-key="value"
         class="w-full md:w-64"
       />
+      <USelect
+        v-model="sortOption"
+        :items="sortOptions"
+        value-key="value"
+        class="w-full md:w-64"
+      />
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -124,6 +130,7 @@ const games = ref([])
 const characters = ref([])
 const searchQuery = ref('')
 const gameFilter = ref('all')
+const sortOption = ref('updated-desc')
 const isOffline = ref(false)
 const showFormSlideover = ref(false)
 const activeFormFaction = ref(null)
@@ -136,11 +143,17 @@ const gameFilterOptions = computed(() => [
   ...games.value.map((game) => ({ label: game.title, value: game.id }))
 ])
 
+const sortOptions = [
+  { label: 'Dernière modification', value: 'updated-desc' },
+  { label: 'Nom A-Z', value: 'name-asc' },
+  { label: 'Nom Z-A', value: 'name-desc' }
+]
+
 const filteredFactions = computed(() => {
   const term = searchQuery.value.toLowerCase()
   const gameId = selectedGame.value?.id || (gameFilter.value === 'all' ? '' : gameFilter.value)
 
-  return factions.value
+  const result = factions.value
     .filter((faction) => !gameId || faction.gameId === gameId)
     .filter((faction) =>
       [
@@ -152,6 +165,19 @@ const filteredFactions = computed(() => {
         ...(faction.characters || []).map((character) => character.name)
       ].some((field) => field?.toLowerCase().includes(term))
     )
+
+  switch (sortOption.value) {
+    case 'name-asc':
+      result.sort((a, b) => a.name.localeCompare(b.name))
+      break
+    case 'name-desc':
+      result.sort((a, b) => b.name.localeCompare(a.name))
+      break
+    default:
+      result.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+  }
+
+  return result
 })
 
 const page = ref(1)
@@ -172,7 +198,7 @@ const prevPage = () => {
   if (page.value > 1) page.value--
 }
 
-watch([searchQuery, gameFilter, filteredFactions], () => {
+watch([searchQuery, gameFilter, sortOption, filteredFactions], () => {
   page.value = 1
 })
 
