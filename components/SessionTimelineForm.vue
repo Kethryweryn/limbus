@@ -22,34 +22,6 @@
         description="Ajoutez des organisateurs ou des PNJs à la session pour assigner la timeline."
       />
 
-      <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <article
-          v-for="timelineEvent in events"
-          :key="timelineEvent.id"
-          class="rounded border border-gray-200 p-4 space-y-3"
-        >
-          <div class="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <div class="text-sm text-gray-500">Jour {{ timelineEvent.day }} · {{ timelineEvent.time }}</div>
-              <h3 class="font-semibold">{{ timelineEvent.name }}</h3>
-            </div>
-            <UBadge :color="responsibleColor(timelineEvent)" variant="subtle">
-              {{ selectedResponsibleIds(timelineEvent.id).length }}/{{ timelineEvent.requiredResponsibles || 0 }}
-            </UBadge>
-          </div>
-
-          <USelectMenu
-            v-model="assignments[timelineEvent.id]"
-            :items="responsibleOptions"
-            value-key="value"
-            multiple
-            :disabled="!responsibleOptions.length"
-            placeholder="Assigner des responsables"
-            class="w-full"
-          />
-        </article>
-      </div>
-
       <div class="overflow-x-auto rounded border border-gray-200">
         <table class="min-w-full border-collapse text-sm">
           <thead class="bg-gray-50">
@@ -64,6 +36,9 @@
               >
                 <div>J{{ timelineEvent.day }} · {{ timelineEvent.time }}</div>
                 <div class="text-xs text-gray-500 font-normal line-clamp-2">{{ timelineEvent.name }}</div>
+                <UBadge :color="responsibleColor(timelineEvent)" variant="subtle" size="xs" class="mt-1">
+                  {{ selectedResponsibleIds(timelineEvent.id).length }}/{{ timelineEvent.requiredResponsibles || 0 }}
+                </UBadge>
               </th>
             </tr>
           </thead>
@@ -81,9 +56,12 @@
                 class="border-t border-r border-gray-200 px-3 py-2 align-top"
                 :class="isResponsibleAssigned(timelineEvent.id, responsible.participantId) ? 'bg-primary-50' : ''"
               >
-                <span v-if="isResponsibleAssigned(timelineEvent.id, responsible.participantId)" class="font-medium">
-                  {{ timelineEvent.name }}
-                </span>
+                <UCheckbox
+                  :model-value="isResponsibleAssigned(timelineEvent.id, responsible.participantId)"
+                  :disabled="!responsibleOptions.length"
+                  :aria-label="`Assigner ${responsible.participant?.name || 'ce responsable'} à ${timelineEvent.name}`"
+                  @update:model-value="toggleResponsible(timelineEvent.id, responsible.participantId, $event)"
+                />
               </td>
             </tr>
           </tbody>
@@ -145,6 +123,19 @@ function selectedResponsibleIds(timelineEventId) {
 
 function isResponsibleAssigned(timelineEventId, participantId) {
   return selectedResponsibleIds(timelineEventId).includes(participantId)
+}
+
+function toggleResponsible(timelineEventId, participantId, checked) {
+  const current = new Set(selectedResponsibleIds(timelineEventId))
+  if (checked) {
+    current.add(participantId)
+  } else {
+    current.delete(participantId)
+  }
+  assignments.value = {
+    ...assignments.value,
+    [timelineEventId]: [...current]
+  }
 }
 
 function responsibleColor(timelineEvent) {

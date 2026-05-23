@@ -74,11 +74,25 @@
                     <UBadge v-if="timelineEvent.requiredResponsibles" color="neutral" variant="subtle" size="xs">
                       {{ timelineEvent.requiredResponsibles }} resp.
                     </UBadge>
-                    <UBadge v-if="timelineEvent.characters?.length" color="neutral" variant="subtle" size="xs">
-                      {{ timelineEvent.characters.length }} perso.
+                    <UBadge
+                      v-for="character in timelineEvent.characters || []"
+                      :key="`grid-character-${timelineEvent.id}-${character.id}`"
+                      color="neutral"
+                      variant="subtle"
+                      size="xs"
+                      class="max-w-full truncate"
+                    >
+                      {{ character.name }}
                     </UBadge>
-                    <UBadge v-if="timelineEvent.items?.length" color="success" variant="subtle" size="xs">
-                      {{ timelineEvent.items.length }} objet(s)
+                    <UBadge
+                      v-for="item in timelineEvent.items || []"
+                      :key="`grid-item-${timelineEvent.id}-${item.id}`"
+                      color="success"
+                      variant="subtle"
+                      size="xs"
+                      class="max-w-full truncate"
+                    >
+                      {{ item.name }}
                     </UBadge>
                   </div>
                 </button>
