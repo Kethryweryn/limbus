@@ -10,9 +10,15 @@
     </template>
 
     <form @submit.prevent="submit" class="space-y-4">
+      <div v-if="totalPages > 1" class="flex justify-end">
+        <span v-if="totalPages > 1" class="text-sm text-gray-500">
+          {{ paginationStart + 1 }}-{{ paginationEnd }} / {{ sortedAssignments.length }}
+        </span>
+      </div>
+
       <div
-        v-for="(assignment, index) in assignments"
-        :key="index"
+        v-for="(assignment, index) in paginatedAssignments"
+        :key="assignment.characterId"
         class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start rounded border border-gray-200 p-3"
       >
         <div class="lg:col-span-3 min-w-0">
@@ -24,6 +30,9 @@
           </div>
           <p v-if="characterById(assignment.characterId)?.type === 'pnj'" class="mt-1 text-xs text-gray-500">
             Assignable uniquement à un organisateur ou PNJ de session.
+          </p>
+          <p v-else-if="hasGroups" class="mt-1 text-xs text-gray-500 truncate">
+            {{ characterGroupLabel(characterById(assignment.characterId)) }}
           </p>
         </div>
         <USelect
@@ -81,6 +90,18 @@
         Aucun personnage dans ce jeu.
       </div>
 
+      <div v-if="totalPages > 1" class="flex items-center justify-center gap-4">
+        <UButton type="button" color="neutral" variant="soft" :disabled="currentPage === 1" @click="currentPage--">
+          Précédent
+        </UButton>
+        <span class="inline-flex items-center text-sm text-gray-500">
+          Page {{ currentPage }} / {{ totalPages }}
+        </span>
+        <UButton type="button" color="neutral" variant="soft" :disabled="currentPage === totalPages" @click="currentPage++">
+          Suivant
+        </UButton>
+      </div>
+
       <div class="flex gap-2">
         <UButton type="submit" color="primary" :loading="saving" :disabled="saving">
           Enregistrer le cast
@@ -124,10 +145,36 @@ const fileInputs = ref([])
 const selectedPhotoNames = ref({})
 const showPhotoPreview = ref(false)
 const previewPhotoUrl = ref('')
+const currentPage = ref(1)
+const itemsPerPage = 25
 
 const sessionCharacters = computed(() => props.characters
   .filter((character) => character.gameId === props.session.gameId)
   .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'pj' ? -1 : 1)))
+
+const hasGroups = computed(() => sessionCharacters.value.some((character) => character.factions?.length))
+
+const sortedAssignments = computed(() => [...assignments.value].sort((a, b) => {
+  const characterA = characterById(a.characterId)
+  const characterB = characterById(b.characterId)
+  if (!characterA || !characterB) return 0
+
+  if (hasGroups.value) {
+    const groupCompare = characterGroupLabel(characterA).localeCompare(characterGroupLabel(characterB))
+    if (groupCompare !== 0) return groupCompare
+    return characterA.name.localeCompare(characterB.name)
+  }
+
+  if (characterA.type !== characterB.type) {
+    return characterA.type === 'pj' ? -1 : 1
+  }
+  return characterA.name.localeCompare(characterB.name)
+}))
+
+const totalPages = computed(() => Math.max(1, Math.ceil(sortedAssignments.value.length / itemsPerPage)))
+const paginationStart = computed(() => (currentPage.value - 1) * itemsPerPage)
+const paginationEnd = computed(() => Math.min(paginationStart.value + itemsPerPage, sortedAssignments.value.length))
+const paginatedAssignments = computed(() => sortedAssignments.value.slice(paginationStart.value, paginationEnd.value))
 
 const participantOptions = computed(() => [
   { label: 'Aucun participant', value: '' },
@@ -148,6 +195,10 @@ const pnjCastableIds = computed(() => new Set(
 
 function characterById(characterId) {
   return props.characters.find((character) => character.id === characterId)
+}
+
+function characterGroupLabel(character) {
+  return character?.factions?.[0]?.name || 'Sans groupe'
 }
 
 function participantOptionsForAssignment(assignment) {
@@ -173,7 +224,13 @@ watch([() => props.session, sessionCharacters], ([session]) => {
     }
   })
   selectedPhotoNames.value = {}
+  currentPage.value = 1
 }, { immediate: true })
+
+watch(totalPages, () => {
+  if (currentPage.value > totalPages.value) currentPage.value = totalPages.value
+  if (currentPage.value < 1) currentPage.value = 1
+})
 
 function setFileInputRef(element, index) {
   if (element) {
