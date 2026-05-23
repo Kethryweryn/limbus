@@ -6,9 +6,6 @@
           <h2 class="font-semibold">Cast</h2>
           <p class="text-sm text-gray-500">{{ assignments.length }} personnage(s)</p>
         </div>
-        <UButton type="button" size="sm" icon="i-heroicons-plus" @click="addAssignment">
-          Ajouter
-        </UButton>
       </div>
     </template>
 
@@ -18,13 +15,17 @@
         :key="index"
         class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start rounded border border-gray-200 p-3"
       >
-        <USelect
-          v-model="assignment.characterId"
-          :items="characterOptions"
-          value-key="value"
-          placeholder="Personnage"
-          class="lg:col-span-3"
-        />
+        <div class="lg:col-span-3 min-w-0">
+          <div class="flex items-center gap-2">
+            <UBadge color="warning" variant="subtle" size="xs">
+              {{ characterById(assignment.characterId)?.type === 'pnj' ? 'PNJ' : 'PJ' }}
+            </UBadge>
+            <span class="font-medium truncate">{{ characterById(assignment.characterId)?.name || 'Personnage inconnu' }}</span>
+          </div>
+          <p v-if="characterById(assignment.characterId)?.type === 'pnj'" class="mt-1 text-xs text-gray-500">
+            Assignable uniquement à un organisateur ou PNJ de session.
+          </p>
+        </div>
         <USelect
           v-model="assignment.participantId"
           :items="participantOptionsForAssignment(assignment)"
@@ -73,18 +74,11 @@
           </div>
         </div>
         <UInput v-model="assignment.notes" placeholder="Notes" class="lg:col-span-2" />
-        <UButton
-          type="button"
-          color="error"
-          variant="ghost"
-          icon="i-heroicons-trash"
-          class="lg:col-span-1"
-          @click="removeAssignment(index)"
-        />
+        <div class="lg:col-span-1" />
       </div>
 
       <div v-if="!assignments.length" class="rounded border border-dashed border-gray-300 p-6 text-sm text-gray-500">
-        Aucun personnage assigné.
+        Aucun personnage dans ce jeu.
       </div>
 
       <div class="flex gap-2">
@@ -131,13 +125,9 @@ const selectedPhotoNames = ref({})
 const showPhotoPreview = ref(false)
 const previewPhotoUrl = ref('')
 
-const characterOptions = computed(() => props.characters
+const sessionCharacters = computed(() => props.characters
   .filter((character) => character.gameId === props.session.gameId)
-  .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'pj' ? -1 : 1))
-  .map((character) => ({
-    label: `${character.type === 'pnj' ? 'PNJ' : 'PJ'} - ${character.name}`,
-    value: character.id
-  })))
+  .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'pj' ? -1 : 1)))
 
 const participantOptions = computed(() => [
   { label: 'Aucun participant', value: '' },
@@ -167,13 +157,21 @@ function participantOptionsForAssignment(assignment) {
   return participantOptions.value.filter((participant) => !participant.value || pnjCastableIds.value.has(participant.value))
 }
 
-watch(() => props.session, (session) => {
-  assignments.value = session.assignments?.map((assignment) => ({
-    characterId: assignment.characterId || assignment.character?.id || '',
-    participantId: assignment.participantId || assignment.participant?.id || '',
-    photoUrl: assignment.photoUrl || '',
-    notes: assignment.notes || ''
-  })) || []
+watch([() => props.session, sessionCharacters], ([session]) => {
+  const assignmentsByCharacterId = new Map((session.assignments || []).map((assignment) => [
+    assignment.characterId || assignment.character?.id,
+    assignment
+  ]))
+
+  assignments.value = sessionCharacters.value.map((character) => {
+    const assignment = assignmentsByCharacterId.get(character.id)
+    return {
+      characterId: character.id,
+      participantId: assignment?.participantId || assignment?.participant?.id || '',
+      photoUrl: assignment?.photoUrl || '',
+      notes: assignment?.notes || ''
+    }
+  })
   selectedPhotoNames.value = {}
 }, { immediate: true })
 
@@ -197,19 +195,6 @@ function photoLabel(assignment, index) {
 function openPhotoPreview(photoUrl) {
   previewPhotoUrl.value = photoUrl
   showPhotoPreview.value = true
-}
-
-function addAssignment() {
-  assignments.value.push({
-    characterId: '',
-    participantId: '',
-    photoUrl: '',
-    notes: ''
-  })
-}
-
-function removeAssignment(index) {
-  assignments.value.splice(index, 1)
 }
 
 async function submit() {

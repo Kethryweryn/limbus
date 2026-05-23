@@ -27,7 +27,7 @@
         <template v-else>
             <div class="space-y-2">
                 <h1 class="text-3xl font-bold">{{ character.name }}</h1>
-                <UBadge :color="character.type === 'pnj' ? 'warning' : 'success'" variant="subtle">
+                <UBadge color="warning" variant="subtle">
                     {{ character.type === 'pnj' ? 'PNJ' : 'PJ' }}
                 </UBadge>
             </div>

@@ -109,6 +109,14 @@ const games: GameSeed[] = [
         level: 'minor',
         characterNames: ['Sœur Ysilde', 'Bastian Lorme'],
         factionNames: []
+      },
+      {
+        name: 'La rumeur sans porteur',
+        pitch: 'Une rumeur circule sans que personne ne semble encore vouloir s’en charger.',
+        description: 'Intrigue volontairement non associée pour tester le signalement des intrigues orphelines.',
+        level: 'minor',
+        characterNames: [],
+        factionNames: []
       }
     ],
     participants: [
@@ -186,6 +194,14 @@ const games: GameSeed[] = [
         level: 'major',
         characterNames: ['Milo Varga', 'Oskar Nilsson', 'Rhea Tan'],
         factionNames: []
+      },
+      {
+        name: 'Le message sans destinataire',
+        pitch: 'Un message anonyme attend encore d’être rattaché à un personnage ou un groupe.',
+        description: 'Intrigue volontairement non associée pour tester le signalement des intrigues orphelines.',
+        level: 'minor',
+        characterNames: [],
+        factionNames: []
       }
     ],
     participants: [
@@ -262,6 +278,14 @@ const games: GameSeed[] = [
         description: 'Le souvenir de la chanteuse peut rouvrir une affaire que plusieurs invités croyaient enterrée.',
         level: 'minor',
         characterNames: ['Mina Salvati', 'Agathe Lenoir', 'Gaspard Voss'],
+        factionNames: []
+      },
+      {
+        name: 'Le billet non signé',
+        pitch: 'Un billet compromettant a été retrouvé sans destinataire identifié.',
+        description: 'Intrigue volontairement non associée pour tester le signalement des intrigues orphelines.',
+        level: 'minor',
+        characterNames: [],
         factionNames: []
       }
     ],
@@ -456,20 +480,56 @@ async function createSessions(
   const pastDate = new Date(Date.UTC(2025, 5 + gameIndex, 7, 12, 0, 0))
   const firstDate = new Date(Date.UTC(2026, 8 + gameIndex, 12, 12, 0, 0))
   const secondDate = new Date(Date.UTC(2026, 9 + gameIndex, 3, 12, 0, 0))
-  const sessionParticipantsFor = (assignments: Array<{ character: { type: string }, participantId: string | null }>) => {
-    const roles = new Map<string, string>()
+  const pjCharacters = characters.filter((character) => character.type !== 'pnj')
+  const pnjCharacters = characters.filter((character) => character.type === 'pnj')
+  const organizer = participants[8]
+  const sessionPnj = participants[9]
+  const fixedSessionRoles = [
+    organizer ? { participantId: organizer.id, role: 'organizer' } : null,
+    sessionPnj ? { participantId: sessionPnj.id, role: 'npc' } : null
+  ].filter((role): role is { participantId: string, role: string } => Boolean(role))
+
+  const sessionParticipantsFor = (
+    assignments: Array<{ character: { type: string }, participantId: string | null }>,
+    fixedRoles = fixedSessionRoles
+  ) => {
+    const roles = new Map<string, { participantId: string, role: string }>()
+    for (const role of fixedRoles) {
+      roles.set(`${role.participantId}:${role.role}`, role)
+    }
+
     for (const assignment of assignments) {
       if (!assignment.participantId) continue
-      roles.set(assignment.participantId, assignment.character.type === 'pnj' ? 'npc' : 'participant')
+
+      const hasSessionRole = fixedRoles.some((role) => role.participantId === assignment.participantId)
+      if (hasSessionRole) continue
+
+      const role = assignment.character.type === 'pnj' ? 'npc' : 'participant'
+      roles.set(`${assignment.participantId}:${role}`, { participantId: assignment.participantId, role })
     }
-    return [...roles.entries()].map(([participantId, role]) => ({ participantId, role }))
+    return [...roles.values()]
   }
 
-  const pastAssignments = characters.map((character, index) => ({
-    character,
-    characterId: character.id,
-    participantId: participants[index]?.id || null,
-    notes: index === 0 ? 'Session passée complète utilisée pour tester les statistiques.' : null
+  const buildAssignments = (assignedPjCount: number, assignedPnjCount: number) => [
+    ...pjCharacters.map((character, index) => ({
+      character,
+      characterId: character.id,
+      participantId: index < assignedPjCount ? participants[index]?.id || null : null,
+      notes: index === 0 ? 'Brief participant à vérifier avant impression.' : null
+    })),
+    ...pnjCharacters.map((character, index) => ({
+      character,
+      characterId: character.id,
+      participantId: index < assignedPnjCount
+        ? [organizer?.id, sessionPnj?.id][index] || null
+        : null,
+      notes: index === 0 ? 'Rôle PNJ attribué à l’équipe de session.' : null
+    }))
+  ]
+
+  const pastAssignments = buildAssignments(pjCharacters.length, pnjCharacters.length).map((assignment, index) => ({
+    ...assignment,
+    notes: index === 0 ? 'Session passée complète utilisée pour tester les statistiques.' : assignment.notes
   }))
 
   await prisma.session.create({
@@ -489,12 +549,7 @@ async function createSessions(
     }
   })
 
-  const firstAssignments = characters.slice(0, 6).map((character, index) => ({
-    character,
-    characterId: character.id,
-    participantId: participants[index]?.id || null,
-    notes: index % 3 === 0 ? 'Brief participant à vérifier avant impression.' : null
-  }))
+  const firstAssignments = buildAssignments(Math.max(0, pjCharacters.length - 2), 1)
 
   await prisma.session.create({
     data: {
@@ -513,12 +568,7 @@ async function createSessions(
     }
   })
 
-  const secondAssignments = characters.slice(2, 8).map((character, index) => ({
-    character,
-    characterId: character.id,
-    participantId: participants[index + 3]?.id || null,
-    notes: index === 1 ? 'Photo à reprendre le jour du jeu.' : null
-  }))
+  const secondAssignments = buildAssignments(Math.max(0, pjCharacters.length - 1), 0)
 
   await prisma.session.create({
     data: {

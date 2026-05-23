@@ -77,9 +77,6 @@
       <div v-if="showCast" class="space-y-3">
         <div class="flex items-center justify-between">
           <h3 class="font-semibold">Cast</h3>
-          <UButton type="button" size="xs" icon="i-heroicons-plus" @click="addAssignment">
-            Ajouter
-          </UButton>
         </div>
 
         <div
@@ -87,13 +84,14 @@
           :key="index"
           class="grid grid-cols-1 md:grid-cols-12 gap-2 items-start rounded border border-gray-200 p-3"
         >
-          <USelect
-            v-model="assignment.characterId"
-            :items="characterOptions"
-            value-key="value"
-            placeholder="Personnage"
-            class="md:col-span-3"
-          />
+          <div class="md:col-span-3 min-w-0">
+            <div class="flex items-center gap-2">
+              <UBadge color="warning" variant="subtle" size="xs">
+                {{ characterById(assignment.characterId)?.type === 'pnj' ? 'PNJ' : 'PJ' }}
+              </UBadge>
+              <span class="font-medium truncate">{{ characterById(assignment.characterId)?.name || 'Personnage inconnu' }}</span>
+            </div>
+          </div>
           <USelect
             v-model="assignment.participantId"
             :items="participantOptionsForAssignment(assignment)"
@@ -112,14 +110,7 @@
             >
           </div>
           <UInput v-model="assignment.notes" placeholder="Notes" class="md:col-span-2" />
-          <UButton
-            type="button"
-            color="error"
-            variant="ghost"
-            icon="i-heroicons-trash"
-            class="md:col-span-1"
-            @click="removeAssignment(index)"
-          />
+          <div class="md:col-span-1" />
         </div>
       </div>
 
@@ -168,13 +159,9 @@ const statusOptions = [
   { label: 'Terminée', value: 'completed' }
 ]
 
-const characterOptions = computed(() => props.characters
+const sessionCharacters = computed(() => props.characters
   .filter((character) => !localSession.value.gameId || character.gameId === localSession.value.gameId)
-  .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'pj' ? -1 : 1))
-  .map((character) => ({
-    label: `${character.type === 'pnj' ? 'PNJ' : 'PJ'} - ${character.name}`,
-    value: character.id
-  })))
+  .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'pj' ? -1 : 1)))
 
 const locationOptions = computed(() => [
   { label: 'Aucun lieu', value: '' },
@@ -239,22 +226,48 @@ function sessionParticipantsPayload(session) {
 }
 
 watch(() => props.session, (newSession) => {
+  const assignmentsByCharacterId = new Map((newSession.assignments || []).map((assignment) => [
+    assignment.characterId || assignment.character?.id,
+    assignment
+  ]))
+
   localSession.value = {
     ...newSession,
     organizerIds: newSession.organizerIds || sessionRoleIds(newSession, 'organizer'),
     npcIds: newSession.npcIds || sessionRoleIds(newSession, 'npc'),
-    assignments: newSession.assignments?.map((assignment) => ({
-      characterId: assignment.characterId || assignment.character?.id || '',
-      participantId: assignment.participantId || assignment.participant?.id || '',
-      photoUrl: assignment.photoUrl || '',
-      notes: assignment.notes || ''
-    })) || []
+    assignments: props.showCast
+      ? sessionCharacters.value.map((character) => {
+          const assignment = assignmentsByCharacterId.get(character.id)
+          return {
+            characterId: character.id,
+            participantId: assignment?.participantId || assignment?.participant?.id || '',
+            photoUrl: assignment?.photoUrl || '',
+            notes: assignment?.notes || ''
+          }
+        })
+      : newSession.assignments?.map((assignment) => ({
+          characterId: assignment.characterId || assignment.character?.id || '',
+          participantId: assignment.participantId || assignment.participant?.id || '',
+          photoUrl: assignment.photoUrl || '',
+          notes: assignment.notes || ''
+        })) || []
   }
   errors.value = {}
   serverError.value = ''
 }, { immediate: true })
 
 watch(() => localSession.value.gameId, () => {
+  if (props.showCast) {
+    const assignmentsByCharacterId = new Map((localSession.value.assignments || []).map((assignment) => [assignment.characterId, assignment]))
+    localSession.value.assignments = sessionCharacters.value.map((character) => ({
+      characterId: character.id,
+      participantId: assignmentsByCharacterId.get(character.id)?.participantId || '',
+      photoUrl: assignmentsByCharacterId.get(character.id)?.photoUrl || '',
+      notes: assignmentsByCharacterId.get(character.id)?.notes || ''
+    }))
+    return
+  }
+
   localSession.value.assignments = localSession.value.assignments?.filter((assignment) =>
     props.characters.some((character) => character.id === assignment.characterId && character.gameId === localSession.value.gameId)
   ) || []
@@ -269,19 +282,6 @@ watch([() => localSession.value.organizerIds, () => localSession.value.npcIds], 
     return assignment
   })
 }, { deep: true })
-
-function addAssignment() {
-  localSession.value.assignments.push({
-    characterId: '',
-    participantId: '',
-    photoUrl: '',
-    notes: ''
-  })
-}
-
-function removeAssignment(index) {
-  localSession.value.assignments.splice(index, 1)
-}
 
 function validate() {
   errors.value = {}

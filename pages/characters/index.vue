@@ -46,7 +46,7 @@
                                 <UBadge color="neutral" variant="subtle" size="xs" class="max-w-full truncate">
                                     {{ char.game?.title || 'Jeu inconnu' }}
                                 </UBadge>
-                                <UBadge :color="char.type === 'pnj' ? 'warning' : 'success'" variant="subtle" size="xs">
+                                <UBadge color="warning" variant="subtle" size="xs">
                                     {{ char.type === 'pnj' ? 'PNJ' : 'PJ' }}
                                 </UBadge>
                                 <UBadge
