@@ -28,10 +28,7 @@
             </UBadge>
             <span class="font-medium truncate">{{ characterById(assignment.characterId)?.name || 'Personnage inconnu' }}</span>
           </div>
-          <p v-if="characterById(assignment.characterId)?.type === 'pnj'" class="mt-1 text-xs text-gray-500">
-            Assignable uniquement à un organisateur ou PNJ de session.
-          </p>
-          <p v-else-if="hasGroups" class="mt-1 text-xs text-gray-500 truncate">
+          <p v-if="hasGroups" class="mt-1 text-xs text-gray-500 truncate">
             {{ characterGroupLabel(characterById(assignment.characterId)) }}
           </p>
         </div>
@@ -162,7 +159,6 @@ const sortedAssignments = computed(() => [...assignments.value].sort((a, b) => {
   if (hasGroups.value) {
     const groupCompare = characterGroupLabel(characterA).localeCompare(characterGroupLabel(characterB))
     if (groupCompare !== 0) return groupCompare
-    return characterA.name.localeCompare(characterB.name)
   }
 
   if (characterA.type !== characterB.type) {
