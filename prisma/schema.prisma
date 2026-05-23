@@ -79,20 +79,25 @@ model Faction {
   published             Boolean    @default(true)
 
   characters            Character[] @relation("CharacterFactions")
+  intrigues             Intrigue[]  @relation("FactionIntrigues")
   documents             Document[]  @relation("DocumentFactions")
 }
 
 model Intrigue {
-  id          String     @id @default(cuid())
-  title       String
-  summary     String?
+  id          String    @id @default(cuid())
+  name        String
+  pitch       String?
+  description String?
+  level       String    @default("minor")
+  slug        String    @unique
   gameId      String
-  game        Game       @relation(fields: [gameId], references: [id])
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  published   Boolean    @default(true)
+  game        Game      @relation(fields: [gameId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  published   Boolean   @default(true)
 
   characters  Character[] @relation("CharacterIntrigues")
+  factions    Faction[]   @relation("FactionIntrigues")
   items       Item[]      @relation("IntrigueItems")
 }
 

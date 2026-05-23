@@ -40,6 +40,9 @@ export default defineEventHandler(async (event) => {
       game: true,
       characters: {
         orderBy: { name: 'asc' }
+      },
+      intrigues: {
+        orderBy: { updatedAt: 'desc' }
       }
     }
   })

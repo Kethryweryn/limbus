@@ -6,6 +6,7 @@ const optionalBoolean = z.boolean().optional()
 const requiredText = (field: string) => z.string().trim().min(1, `${field} is required`)
 const requiredId = (field: string) => z.string().trim().min(1, `${field} is required`)
 const sessionStatus = z.enum(['scheduled', 'postponed', 'cancelled', 'completed'])
+const intrigueLevel = z.enum(['main_story', 'main_character', 'major', 'minor'])
 
 export async function readZodBody<T>(event: H3Event, schema: ZodType<T>): Promise<T> {
   return await readValidatedBody(event, (body) => {
@@ -73,6 +74,17 @@ export const factionSchema = z.object({
   costumeIndications: optionalText,
   gameId: requiredId('Game'),
   characterIds: z.array(requiredId('Character')).optional().default([]),
+  published: optionalBoolean
+})
+
+export const intrigueSchema = z.object({
+  name: requiredText('Name'),
+  pitch: optionalText,
+  description: optionalText,
+  level: intrigueLevel.default('minor'),
+  gameId: requiredId('Game'),
+  characterIds: z.array(requiredId('Character')).optional().default([]),
+  factionIds: z.array(requiredId('Faction')).optional().default([]),
   published: optionalBoolean
 })
 

@@ -4,20 +4,15 @@ import { requireOrganizer } from '~/server/utils/auth'
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
 
-  const slug = getRouterParam(event, 'slug')
-  if (!slug) {
-    throw createError({ statusCode: 400, statusMessage: 'Slug manquant' })
-  }
-
-  return await prisma.faction.findUnique({
-    where: { slug },
+  return await prisma.intrigue.findMany({
+    orderBy: { updatedAt: 'desc' },
     include: {
       game: true,
       characters: {
         orderBy: { name: 'asc' }
       },
-      intrigues: {
-        orderBy: { updatedAt: 'desc' }
+      factions: {
+        orderBy: { name: 'asc' }
       }
     }
   })

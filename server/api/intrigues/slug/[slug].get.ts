@@ -9,14 +9,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Slug manquant' })
   }
 
-  return await prisma.character.findUnique({
+  return await prisma.intrigue.findUnique({
     where: { slug },
     include: {
       game: true,
-      intrigues: {
-        orderBy: { updatedAt: 'desc' }
-      },
-      factions: true
+      characters: { orderBy: { name: 'asc' } },
+      factions: { orderBy: { name: 'asc' } }
     }
   })
 })

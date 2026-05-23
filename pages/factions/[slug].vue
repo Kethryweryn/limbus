@@ -98,9 +98,66 @@
               Aucun personnage associé.
             </p>
           </UCard>
+
+          <UCard variant="outline" class="bg-white">
+            <template #header>
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <span>Intrigues associées</span>
+                <UButton
+                  color="neutral"
+                  variant="soft"
+                  size="sm"
+                  :icon="faction.intrigues?.length ? 'i-heroicons-pencil-square' : 'i-heroicons-plus'"
+                  @click="showIntrigueModal = true"
+                >
+                  {{ faction.intrigues?.length ? 'Modifier' : 'Ajouter' }}
+                </UButton>
+              </div>
+            </template>
+
+            <div v-if="faction.intrigues?.length" class="space-y-2">
+              <NuxtLink
+                v-for="intrigue in faction.intrigues"
+                :key="intrigue.id"
+                :to="`/intrigues/${intrigue.slug}`"
+                class="flex items-center justify-between gap-3 rounded-md border border-gray-200 px-3 py-2 hover:bg-gray-50"
+              >
+                <span class="font-medium">{{ intrigue.name }}</span>
+                <UIcon name="i-heroicons-chevron-right" class="h-4 w-4 text-gray-400" />
+              </NuxtLink>
+            </div>
+            <p v-else class="text-sm text-gray-500">
+              Aucune intrigue associée.
+            </p>
+          </UCard>
         </aside>
       </div>
     </template>
+
+    <UModal v-model:open="showIntrigueModal" title="Intrigues du groupe">
+      <template #body>
+        <form class="space-y-4" @submit.prevent="saveFactionIntrigues">
+          <UFormField label="Intrigues">
+            <USelectMenu
+              v-model="selectedIntrigueIds"
+              :items="intrigueOptions"
+              value-key="value"
+              multiple
+              placeholder="Associer des intrigues"
+              class="w-full"
+            />
+          </UFormField>
+          <div class="flex flex-wrap gap-2">
+            <UButton type="submit" color="primary">
+              Enregistrer
+            </UButton>
+            <UButton type="button" color="neutral" variant="soft" @click="showIntrigueModal = false">
+              Annuler
+            </UButton>
+          </div>
+        </form>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -111,6 +168,7 @@ const slug = route.params.slug
 const { data: faction, error, refresh } = await useFetch(`/api/factions/slug/${slug}`)
 const { data: games } = await useFetch('/api/games')
 const { data: characters } = await useFetch('/api/characters')
+const { data: intrigues, refresh: refreshIntrigues } = await useFetch('/api/intrigues')
 
 if (error.value) {
   handleApiAuthError(error.value)
@@ -119,12 +177,31 @@ if (error.value) {
 
 const isEditing = ref(route.query.edit === '1')
 const editableFaction = ref(faction.value ? factionFormPayload(faction.value) : null)
+const showIntrigueModal = ref(false)
+const selectedIntrigueIds = ref(faction.value?.intrigues?.map((intrigue) => intrigue.id) || [])
+
+const availableIntrigues = computed(() =>
+  (intrigues.value || [])
+    .filter((intrigue) => intrigue.gameId === faction.value?.gameId)
+    .sort((a, b) => a.name.localeCompare(b.name))
+)
+
+const intrigueOptions = computed(() =>
+  availableIntrigues.value.map((intrigue) => ({
+    label: intrigue.name,
+    value: intrigue.id
+  }))
+)
 
 watch(() => route.query.edit, (value) => {
   isEditing.value = value === '1'
   if (isEditing.value && faction.value) {
     editableFaction.value = factionFormPayload(faction.value)
   }
+})
+
+watch(() => faction.value?.intrigues, (value) => {
+  selectedIntrigueIds.value = value?.map((intrigue) => intrigue.id) || []
 })
 
 function factionFormPayload(value) {
@@ -164,5 +241,42 @@ async function handleFormSubmit() {
   }
 
   cancelEdit()
+}
+
+async function saveFactionIntrigues() {
+  if (!faction.value?.id) return
+
+  const currentIds = new Set(faction.value.intrigues?.map((intrigue) => intrigue.id) || [])
+  const nextIds = new Set(selectedIntrigueIds.value || [])
+  const relevantIntrigues = availableIntrigues.value.filter((intrigue) =>
+    currentIds.has(intrigue.id) || nextIds.has(intrigue.id)
+  )
+
+  await Promise.all(relevantIntrigues.map((intrigue) => {
+    const factionIds = new Set(intrigue.factions?.map((item) => item.id) || [])
+
+    if (nextIds.has(intrigue.id)) {
+      factionIds.add(faction.value.id)
+    } else {
+      factionIds.delete(faction.value.id)
+    }
+
+    return useApiFetch(`/api/intrigues/${intrigue.id}`, {
+      method: 'PUT',
+      body: {
+        name: intrigue.name,
+        pitch: intrigue.pitch,
+        description: intrigue.description,
+        level: intrigue.level,
+        gameId: intrigue.gameId,
+        characterIds: intrigue.characters?.map((character) => character.id) || [],
+        factionIds: Array.from(factionIds),
+        published: intrigue.published
+      }
+    })
+  }))
+
+  showIntrigueModal.value = false
+  await Promise.all([refresh(), refreshIntrigues()])
 }
 </script>

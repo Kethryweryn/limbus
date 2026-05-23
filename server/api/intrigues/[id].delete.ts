@@ -9,14 +9,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
   }
 
-  return await prisma.character.findUnique({
-    where: { id },
-    include: {
-      game: true,
-      intrigues: {
-        orderBy: { updatedAt: 'desc' }
-      },
-      factions: true
-    }
+  await prisma.intrigue.delete({
+    where: { id }
   })
+
+  return { success: true }
 })
