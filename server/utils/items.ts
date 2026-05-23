@@ -2,8 +2,8 @@ import { prisma } from '~/server/utils/prisma'
 
 export const itemInclude = {
   game: true,
-  locationParticipant: true,
-  participants: {
+  locationCharacter: true,
+  characters: {
     orderBy: { name: 'asc' as const }
   },
   intrigues: {
@@ -11,21 +11,21 @@ export const itemInclude = {
   }
 }
 
-export async function validateItemRelations(gameId: string, participantIds: string[], intrigueIds: string[], locationParticipantId?: string | null) {
-  const allParticipantIds = [...new Set([
-    ...participantIds,
-    ...(locationParticipantId ? [locationParticipantId] : [])
+export async function validateItemRelations(gameId: string, characterIds: string[], intrigueIds: string[], locationCharacterId?: string | null) {
+  const allCharacterIds = [...new Set([
+    ...characterIds,
+    ...(locationCharacterId ? [locationCharacterId] : [])
   ])]
 
-  if (allParticipantIds.length) {
-    const count = await prisma.participant.count({
+  if (allCharacterIds.length) {
+    const count = await prisma.character.count({
       where: {
-        id: { in: allParticipantIds },
-        gameLinks: { some: { gameId } }
+        id: { in: allCharacterIds },
+        gameId
       }
     })
-    if (count !== allParticipantIds.length) {
-      throw createError({ statusCode: 400, statusMessage: 'Participants invalides pour ce jeu' })
+    if (count !== allCharacterIds.length) {
+      throw createError({ statusCode: 400, statusMessage: 'Personnages invalides pour ce jeu' })
     }
   }
 

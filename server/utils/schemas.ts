@@ -113,9 +113,9 @@ export const itemSchema = z.object({
   name: requiredText('Name'),
   description: optionalText,
   locationText: optionalText,
-  locationParticipantId: optionalText,
+  locationCharacterId: optionalText,
   gameId: requiredId('Game'),
-  participantIds: z.array(requiredId('Participant')).optional().default([]),
+  characterIds: z.array(requiredId('Character')).optional().default([]),
   intrigueIds: z.array(requiredId('Intrigue')).optional().default([]),
   published: optionalBoolean
 })

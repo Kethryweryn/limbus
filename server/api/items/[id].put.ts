@@ -12,21 +12,21 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readZodBody(event, itemSchema)
-  const participantIds = [...new Set(body.participantIds)]
+  const characterIds = [...new Set(body.characterIds)]
   const intrigueIds = [...new Set(body.intrigueIds)]
-  await validateItemRelations(body.gameId, participantIds, intrigueIds, body.locationParticipantId)
+  await validateItemRelations(body.gameId, characterIds, intrigueIds, body.locationCharacterId)
 
   return await prisma.item.update({
     where: { id },
     data: {
       name: body.name,
       description: body.description,
-      locationText: body.locationParticipantId ? null : body.locationText,
-      locationParticipantId: body.locationParticipantId || null,
+      locationText: body.locationCharacterId ? null : body.locationText,
+      locationCharacterId: body.locationCharacterId || null,
       gameId: body.gameId,
       published: body.published ?? true,
-      participants: {
-        set: participantIds.map((participantId) => ({ id: participantId }))
+      characters: {
+        set: characterIds.map((characterId) => ({ id: characterId }))
       },
       intrigues: {
         set: intrigueIds.map((intrigueId) => ({ id: intrigueId }))
