@@ -13,6 +13,9 @@ export default defineEventHandler(async (event) => {
       },
       factions: {
         orderBy: { name: 'asc' }
+      },
+      items: {
+        orderBy: { name: 'asc' }
       }
     }
   })

@@ -34,7 +34,8 @@ export default defineEventHandler(async (event) => {
     include: {
       game: true,
       characters: { orderBy: { name: 'asc' } },
-      factions: { orderBy: { name: 'asc' } }
+      factions: { orderBy: { name: 'asc' } },
+      items: { orderBy: { name: 'asc' } }
     }
   })
 })

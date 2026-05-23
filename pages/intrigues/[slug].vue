@@ -65,7 +65,7 @@
             variant="soft"
             icon="i-heroicons-exclamation-triangle"
             title="Intrigue non associée"
-            description="Cette intrigue n’est liée à aucun personnage ni groupe."
+            description="Cette intrigue n’est liée à aucun personnage, groupe ni objet."
           />
         </section>
 
@@ -111,6 +111,27 @@
               Aucun groupe associé.
             </p>
           </UCard>
+
+          <UCard variant="outline" class="bg-white">
+            <template #header>
+              Objets
+            </template>
+
+            <div v-if="intrigue.items?.length" class="space-y-2">
+              <NuxtLink
+                v-for="item in intrigue.items"
+                :key="item.id"
+                :to="`/items/${item.id}`"
+                class="flex items-center justify-between gap-3 rounded-md border border-gray-200 px-3 py-2 hover:bg-gray-50"
+              >
+                <span class="font-medium">{{ item.name }}</span>
+                <UIcon name="i-heroicons-chevron-right" class="h-4 w-4 text-gray-400" />
+              </NuxtLink>
+            </div>
+            <p v-else class="text-sm text-gray-500">
+              Aucun objet associé.
+            </p>
+          </UCard>
         </aside>
       </div>
     </template>
@@ -135,7 +156,7 @@ if (error.value) {
 
 const isEditing = ref(route.query.edit === '1')
 const editableIntrigue = ref(intrigue.value ? intrigueFormPayload(intrigue.value) : null)
-const isUnassigned = computed(() => !(intrigue.value?.characters?.length || intrigue.value?.factions?.length))
+const isUnassigned = computed(() => !(intrigue.value?.characters?.length || intrigue.value?.factions?.length || intrigue.value?.items?.length))
 
 watch(() => route.query.edit, (value) => {
   isEditing.value = value === '1'

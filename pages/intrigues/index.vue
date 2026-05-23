@@ -62,7 +62,7 @@
             {{ intrigue.pitch || 'Aucun pitch renseigné.' }}
           </p>
 
-          <div v-if="intrigue.characters?.length || intrigue.factions?.length" class="flex flex-wrap gap-1">
+          <div v-if="intrigue.characters?.length || intrigue.factions?.length || intrigue.items?.length" class="flex flex-wrap gap-1">
             <UBadge
               v-for="character in intrigue.characters || []"
               :key="`character-${character.id}`"
@@ -82,6 +82,16 @@
               class="max-w-40 truncate"
             >
               {{ faction.name }}
+            </UBadge>
+            <UBadge
+              v-for="item in intrigue.items || []"
+              :key="`item-${item.id}`"
+              color="warning"
+              variant="subtle"
+              size="xs"
+              class="max-w-40 truncate"
+            >
+              {{ item.name }}
             </UBadge>
           </div>
 
@@ -182,7 +192,8 @@ const filteredIntrigues = computed(() => {
         intrigue.description,
         intrigue.game?.title,
         ...(intrigue.characters || []).map((character) => character.name),
-        ...(intrigue.factions || []).map((faction) => faction.name)
+        ...(intrigue.factions || []).map((faction) => faction.name),
+        ...(intrigue.items || []).map((item) => item.name)
       ].some((field) => field?.toLowerCase().includes(term))
     )
 
@@ -225,7 +236,7 @@ watch([searchQuery, gameFilter, levelFilter, sortOption, filteredIntrigues], () 
   page.value = 1
 })
 
-const isUnassigned = (intrigue) => !(intrigue.characters?.length || intrigue.factions?.length)
+const isUnassigned = (intrigue) => !(intrigue.characters?.length || intrigue.factions?.length || intrigue.items?.length)
 
 const fetchIntrigues = async () => {
   if (isOfflineMode()) {

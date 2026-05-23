@@ -1,5 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
+import { itemInclude } from '~/server/utils/items'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -9,13 +10,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
   }
 
-  return await prisma.intrigue.findUnique({
+  const item = await prisma.item.findUnique({
     where: { id },
-    include: {
-      game: true,
-      characters: { orderBy: { name: 'asc' } },
-      factions: { orderBy: { name: 'asc' } },
-      items: { orderBy: { name: 'asc' } }
-    }
+    include: itemInclude
   })
+
+  if (!item) {
+    throw createError({ statusCode: 404, statusMessage: 'Objet introuvable' })
+  }
+
+  return item
 })

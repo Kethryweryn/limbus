@@ -52,17 +52,21 @@ model Character {
 }
 
 model Item {
-  id          String     @id @default(cuid())
-  name        String
-  description String?
-  quantity    Int
-  gameId      String
-  game        Game       @relation(fields: [gameId], references: [id])
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  published   Boolean    @default(true)
+  id                    String       @id @default(cuid())
+  name                  String
+  description           String?
+  quantity              Int          @default(1)
+  locationText          String?
+  locationParticipantId String?
+  locationParticipant   Participant? @relation("ItemLocationParticipant", fields: [locationParticipantId], references: [id], onDelete: SetNull)
+  gameId                String
+  game                  Game         @relation(fields: [gameId], references: [id])
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  published             Boolean      @default(true)
 
-  intrigues   Intrigue[] @relation("IntrigueItems")
+  participants          Participant[] @relation("ParticipantItems")
+  intrigues             Intrigue[]    @relation("IntrigueItems")
 }
 
 model Faction {
@@ -184,6 +188,8 @@ model Participant {
 
   assignments SessionAssignment[]
   sessionRoles SessionParticipant[]
+  locatedItems Item[] @relation("ItemLocationParticipant")
+  items Item[] @relation("ParticipantItems")
 }
 
 model ParticipantGame {

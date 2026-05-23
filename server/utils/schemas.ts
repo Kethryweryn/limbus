@@ -109,6 +109,17 @@ export const locationSchema = z.object({
   published: optionalBoolean
 })
 
+export const itemSchema = z.object({
+  name: requiredText('Name'),
+  description: optionalText,
+  locationText: optionalText,
+  locationParticipantId: optionalText,
+  gameId: requiredId('Game'),
+  participantIds: z.array(requiredId('Participant')).optional().default([]),
+  intrigueIds: z.array(requiredId('Intrigue')).optional().default([]),
+  published: optionalBoolean
+})
+
 export const sessionAssignmentSchema = z.object({
   characterId: requiredId('Character'),
   participantId: optionalText,

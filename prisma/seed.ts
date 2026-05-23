@@ -47,6 +47,15 @@ type LocationSeed = {
   notes?: string
 }
 
+type ItemSeed = {
+  name: string
+  description: string
+  locationText?: string
+  locationParticipantName?: string
+  participantNames: string[]
+  intrigueNames: string[]
+}
+
 type GameSeed = {
   title: string
   description: string
@@ -56,6 +65,7 @@ type GameSeed = {
   intrigues: IntrigueSeed[]
   participants: ParticipantSeed[]
   locations: LocationSeed[]
+  items: ItemSeed[]
 }
 
 const games: GameSeed[] = [
@@ -142,6 +152,22 @@ const games: GameSeed[] = [
         address: 'Chemin de l’Abbaye\n28120 Sombreval',
         notes: 'Ambiance forte, prévoir éclairage autonome.'
       }
+    ],
+    items: [
+      {
+        name: 'Testament scellé du baron',
+        description: 'Document central de la succession, porteur de clauses contradictoires.',
+        locationText: 'Coffre de la salle du conseil',
+        participantNames: ['Camille Bernard'],
+        intrigueNames: ['La succession du baron']
+      },
+      {
+        name: 'Médaillon noirci',
+        description: 'Bijou retrouvé après l’incendie de l’aile nord.',
+        locationParticipantName: 'Inès Lefèvre',
+        participantNames: [],
+        intrigueNames: []
+      }
     ]
   },
   {
@@ -226,6 +252,22 @@ const games: GameSeed[] = [
         name: 'Laboratoire Atlas',
         address: '4 rue Newton\n91120 Palaiseau',
         notes: 'Plusieurs salles modulables et accès technique.'
+      }
+    ],
+    items: [
+      {
+        name: 'Enregistreur du signal',
+        description: 'Module de stockage contenant la première capture exploitable.',
+        locationText: 'Baie technique B',
+        participantNames: ['Amandine Blanc', 'Clara Rousseau'],
+        intrigueNames: ['Le signal impossible']
+      },
+      {
+        name: 'Badge d’accès falsifié',
+        description: 'Badge modifié donnant accès aux journaux système.',
+        locationParticipantName: 'Olivier Girard',
+        participantNames: ['Olivier Girard'],
+        intrigueNames: ['Les journaux falsifiés']
       }
     ]
   },
@@ -312,6 +354,22 @@ const games: GameSeed[] = [
         address: '31 boulevard des Arts\n54000 Nancy',
         notes: 'Plus intimiste, parfait pour scènes de complot.'
       }
+    ],
+    items: [
+      {
+        name: 'Masque fendu',
+        description: 'Masque décoratif portant une inscription cachée sous la dorure.',
+        locationText: 'Vestiaire des invités',
+        participantNames: ['Pauline Aubert'],
+        intrigueNames: ['Le scandale des masques']
+      },
+      {
+        name: 'Billet parfumé',
+        description: 'Message court dont le destinataire reste à identifier.',
+        locationText: 'Poche intérieure du manteau rouge',
+        participantNames: [],
+        intrigueNames: []
+      }
     ]
   }
 ]
@@ -323,10 +381,10 @@ function makeSlug(value: string) {
 async function clearBusinessData() {
   await prisma.sessionAssignment.deleteMany()
   await prisma.session.deleteMany()
+  await prisma.item.deleteMany()
   await prisma.participant.deleteMany()
   await prisma.location.deleteMany()
   await prisma.document.deleteMany()
-  await prisma.item.deleteMany()
   await prisma.intrigue.deleteMany()
   await prisma.faction.deleteMany()
   await prisma.character.deleteMany()
@@ -379,7 +437,7 @@ async function createGame(seed: GameSeed, gameIndex: number) {
   ))
   const factionByName = new Map(factions.map((faction, index) => [seed.factions[index].name, faction]))
 
-  await Promise.all(seed.intrigues.map((intrigue) =>
+  const intrigues = await Promise.all(seed.intrigues.map((intrigue) =>
     prisma.intrigue.create({
       data: {
         name: intrigue.name,
@@ -406,6 +464,7 @@ async function createGame(seed: GameSeed, gameIndex: number) {
       }
     })
   ))
+  const intrigueByName = new Map(intrigues.map((intrigue, index) => [seed.intrigues[index].name, intrigue]))
 
   const participants = await Promise.all(seed.participants.map((participant) =>
     prisma.participant.create({
@@ -421,6 +480,7 @@ async function createGame(seed: GameSeed, gameIndex: number) {
       }
     })
   ))
+  const participantByName = new Map(participants.map((participant, index) => [seed.participants[index].name, participant]))
 
   const locations = await Promise.all(seed.locations.map((location) =>
     prisma.location.create({
@@ -434,9 +494,39 @@ async function createGame(seed: GameSeed, gameIndex: number) {
     })
   ))
 
+  await Promise.all(seed.items.map((item) => {
+    const locationParticipant = item.locationParticipantName ? participantByName.get(item.locationParticipantName) : null
+
+    return prisma.item.create({
+      data: {
+        name: item.name,
+        description: item.description,
+        quantity: 1,
+        locationText: locationParticipant ? null : item.locationText || null,
+        locationParticipantId: locationParticipant?.id || null,
+        gameId: game.id,
+        published: true,
+        participants: {
+          connect: item.participantNames
+            .flatMap((participantName) => {
+              const participant = participantByName.get(participantName)
+              return participant ? [{ id: participant.id }] : []
+            })
+        },
+        intrigues: {
+          connect: item.intrigueNames
+            .flatMap((intrigueName) => {
+              const intrigue = intrigueByName.get(intrigueName)
+              return intrigue ? [{ id: intrigue.id }] : []
+            })
+        }
+      }
+    })
+  }))
+
   await createSessions(game.id, seed.title, gameIndex, characters, participants, locations)
 
-  console.log(`${seed.title}: ${characters.length} personnages, ${seed.factions.length} groupes, ${seed.intrigues.length} intrigues, ${participants.length} participants, ${locations.length} lieux, 3 sessions`)
+  console.log(`${seed.title}: ${characters.length} personnages, ${seed.factions.length} groupes, ${seed.intrigues.length} intrigues, ${seed.items.length} objets, ${participants.length} participants, ${locations.length} lieux, 3 sessions`)
 
   return game
 }
