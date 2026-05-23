@@ -21,7 +21,75 @@
       />
     </div>
 
-    <div v-if="filteredEvents.length" class="space-y-6">
+    <div v-if="filteredEvents.length" class="space-y-8">
+      <UCard>
+        <template #header>
+          <div>
+            <h2 class="font-semibold">Vue chronologique</h2>
+            <p class="text-sm text-gray-500">Timeline abstraite du jeu, organisée par jour et par horaire.</p>
+          </div>
+        </template>
+
+        <div class="overflow-x-auto">
+          <div
+            class="min-w-[52rem] grid rounded border border-gray-200 bg-white text-sm"
+            :style="{ gridTemplateColumns: `7rem repeat(${timelineDays.length}, minmax(14rem, 1fr))` }"
+          >
+            <div class="sticky left-0 z-20 border-r border-b border-gray-200 bg-gray-50 px-3 py-2 font-medium">
+              Horaire
+            </div>
+            <div
+              v-for="day in timelineDays"
+              :key="`header-${day}`"
+              class="border-r border-b border-gray-200 bg-gray-50 px-3 py-2 font-medium"
+            >
+              Jour {{ day }}
+            </div>
+
+            <template v-for="time in timelineTimes" :key="time">
+              <div class="sticky left-0 z-10 border-r border-b border-gray-200 bg-white px-3 py-3 font-medium">
+                {{ time }}
+              </div>
+              <div
+                v-for="day in timelineDays"
+                :key="`${day}-${time}`"
+                class="min-h-28 border-r border-b border-gray-200 p-2"
+              >
+                <button
+                  v-for="timelineEvent in eventsForSlot(day, time)"
+                  :key="timelineEvent.id"
+                  type="button"
+                  class="mb-2 w-full rounded border border-gray-200 bg-gray-50 p-3 text-left transition hover:border-primary-300 hover:bg-primary-50"
+                  @click="openEventPage(timelineEvent)"
+                >
+                  <div class="flex items-start justify-between gap-2">
+                    <span class="font-medium leading-tight">{{ timelineEvent.name }}</span>
+                    <UIcon
+                      v-if="timelineEvent.conflicts?.length"
+                      name="i-heroicons-exclamation-triangle"
+                      class="size-4 shrink-0 text-warning-500"
+                    />
+                  </div>
+                  <div class="mt-2 flex flex-wrap gap-1">
+                    <UBadge v-if="timelineEvent.requiredResponsibles" color="neutral" variant="subtle" size="xs">
+                      {{ timelineEvent.requiredResponsibles }} resp.
+                    </UBadge>
+                    <UBadge v-if="timelineEvent.characters?.length" color="neutral" variant="subtle" size="xs">
+                      {{ timelineEvent.characters.length }} perso.
+                    </UBadge>
+                    <UBadge v-if="timelineEvent.items?.length" color="success" variant="subtle" size="xs">
+                      {{ timelineEvent.items.length }} objet(s)
+                    </UBadge>
+                  </div>
+                </button>
+              </div>
+            </template>
+          </div>
+        </div>
+      </UCard>
+
+      <div>
+        <h2 class="text-lg font-semibold mb-3">Détail des événements</h2>
       <section
         v-for="dayGroup in eventsByDay"
         :key="dayGroup.day"
@@ -132,6 +200,7 @@
           </article>
         </div>
       </section>
+      </div>
     </div>
 
     <UCard v-else>
@@ -216,6 +285,14 @@ const eventsByDay = computed(() => {
 
   return [...groups.entries()].map(([day, events]) => ({ day, events }))
 })
+
+const timelineDays = computed(() => [...new Set(filteredEvents.value.map((timelineEvent) => timelineEvent.day))].sort((a, b) => a - b))
+
+const timelineTimes = computed(() => [...new Set(filteredEvents.value.map((timelineEvent) => timelineEvent.time))].sort((a, b) => a.localeCompare(b)))
+
+function eventsForSlot(day, time) {
+  return filteredEvents.value.filter((timelineEvent) => timelineEvent.day === day && timelineEvent.time === time)
+}
 
 const fetchTimelineEvents = async () => {
   if (isOfflineMode()) {

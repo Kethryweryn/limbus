@@ -52,6 +52,9 @@
                 <UButton v-if="!isOffline" size="xs" color="primary" :to="`/sessions/${session.id}`">
                   Cast
                 </UButton>
+                <UButton v-if="!isOffline" size="xs" color="primary" variant="soft" :to="`/sessions/${session.id}?tab=timeline`">
+                  Timeline
+                </UButton>
                 <UButton v-if="!isOffline" size="xs" color="primary" @click="startEdit(session)">Modifier</UButton>
                 <UButton v-if="!isOffline" size="xs" color="error" @click="deleteSession(session.id)">Supprimer</UButton>
               </div>
