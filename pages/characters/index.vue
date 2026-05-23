@@ -5,15 +5,23 @@
         <!-- Contexte du jeu sélectionné -->
         <GameContextBar />
 
-        <!-- Barre de recherche -->
         <div class="mb-6 flex flex-wrap gap-4 items-center justify-between">
-            <UInput v-model="search" placeholder="Rechercher un personnage..." class="w-full md:w-96" />
-            <USelect
-                v-model="sortOption"
-                :items="sortOptions"
-                value-key="value"
-                class="w-full md:w-64"
-            />
+            <div class="flex flex-col md:flex-row gap-4 flex-1">
+                <UInput v-model="search" placeholder="Rechercher un personnage..." class="w-full md:w-96" />
+                <USelect
+                    v-if="!selectedGame"
+                    v-model="gameFilter"
+                    :items="gameFilterOptions"
+                    value-key="value"
+                    class="w-full md:w-64"
+                />
+                <USelect
+                    v-model="sortOption"
+                    :items="sortOptions"
+                    value-key="value"
+                    class="w-full md:w-64"
+                />
+            </div>
             <UButton v-if="!isOffline" @click="openCreateSlideover" color="primary">Créer un personnage</UButton>
         </div>
 
@@ -124,6 +132,7 @@ import { getFromStore, saveToStore } from '~/utils/storage'
 const characters = ref([])
 const search = ref('')
 const sortOption = ref('updated-desc')
+const gameFilter = ref('all')
 const games = ref([])
 const factions = ref([])
 const router = useRouter()
@@ -137,6 +146,11 @@ const sortOptions = [
     { label: 'Nom A-Z', value: 'name-asc' },
     { label: 'Nom Z-A', value: 'name-desc' }
 ]
+
+const gameFilterOptions = computed(() => [
+    { label: 'Tous les jeux', value: 'all' },
+    ...games.value.map((game) => ({ label: game.title, value: game.id }))
+])
 
 const fetchGames = async () => {
     if (isOfflineMode()) {
@@ -204,7 +218,7 @@ onUnmounted(() => {
 // 🧠 Filtrage par jeu actif et recherche
 const filteredCharacters = computed(() => {
     const term = search.value.toLowerCase()
-    const gameId = selectedGame.value?.id
+    const gameId = selectedGame.value?.id || (gameFilter.value === 'all' ? '' : gameFilter.value)
 
     const result = characters.value
         .filter(c => !gameId || c.gameId === gameId)
@@ -231,7 +245,7 @@ const filteredCharacters = computed(() => {
 })
 
 const charPage = ref(1)
-const itemsPerPage = 5
+const itemsPerPage = 6
 
 const paginatedCharacters = computed(() => {
     const start = (charPage.value - 1) * itemsPerPage
@@ -269,7 +283,7 @@ watch(() => selectedGame.value?.id, (newId) => {
 })
 
 // Quand on fait une recherche on revient à la page 1 de la pagination
-watch([search, sortOption, filteredCharacters], () => {
+watch([search, sortOption, gameFilter, filteredCharacters], () => {
     charPage.value = 1
 })
 
