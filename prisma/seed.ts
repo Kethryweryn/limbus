@@ -1,5 +1,8 @@
 import { PrismaClient } from '../generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { deflateSync } from 'node:zlib'
 import slugify from 'slugify'
 
 const databaseUrl = process.env.DATABASE_URL
@@ -378,6 +381,130 @@ function makeSlug(value: string) {
   return slugify(value, { lower: true, strict: true })
 }
 
+function uploadPhotoUrl(filename: string) {
+  return `/api/uploads/session-assignment-photos/${filename}`
+}
+
+function getSeedPhotoDir() {
+  return join(process.cwd(), '.data', 'uploads', 'session-assignment-photos')
+}
+
+async function createParticipantPhotos(participants: Array<{ id: string, name: string }>, gameIndex: number) {
+  await mkdir(getSeedPhotoDir(), { recursive: true })
+
+  const photos = new Map<string, string>()
+  for (const [index, participant] of participants.entries()) {
+    const filename = `seed-${gameIndex}-${makeSlug(participant.name)}.png`
+    await writeFile(
+      join(getSeedPhotoDir(), filename),
+      createSeedPortraitPng(index + gameIndex * 17)
+    )
+    photos.set(participant.id, uploadPhotoUrl(filename))
+  }
+
+  return photos
+}
+
+function createSeedPortraitPng(seed: number) {
+  const width = 180
+  const height = 240
+  const palette = [
+    [79, 70, 229],
+    [14, 165, 233],
+    [16, 185, 129],
+    [245, 158, 11],
+    [244, 63, 94],
+    [139, 92, 246],
+    [20, 184, 166],
+    [249, 115, 22]
+  ]
+  const accent = palette[seed % palette.length]
+  const bg = palette[(seed + 3) % palette.length]
+  const data = Buffer.alloc((width * 4 + 1) * height)
+
+  for (let y = 0; y < height; y++) {
+    const rowStart = y * (width * 4 + 1)
+    data[rowStart] = 0
+    for (let x = 0; x < width; x++) {
+      const offset = rowStart + 1 + x * 4
+      const gradient = y / height
+      let r = Math.round(bg[0] * (1 - gradient) + 248 * gradient)
+      let g = Math.round(bg[1] * (1 - gradient) + 250 * gradient)
+      let b = Math.round(bg[2] * (1 - gradient) + 252 * gradient)
+
+      const face = ellipse(x, y, 90, 88, 40, 46)
+      const body = ellipse(x, y, 90, 205, 62, 54)
+      const hair = ellipse(x, y, 90, 72, 46, 30)
+
+      if (body) {
+        r = accent[0]
+        g = accent[1]
+        b = accent[2]
+      }
+      if (face) {
+        r = 246
+        g = 205 - (seed % 5) * 8
+        b = 168 - (seed % 4) * 6
+      }
+      if (hair && y < 92) {
+        r = 44 + (seed % 4) * 18
+        g = 33 + (seed % 3) * 14
+        b = 24 + (seed % 5) * 10
+      }
+
+      data[offset] = r
+      data[offset + 1] = g
+      data[offset + 2] = b
+      data[offset + 3] = 255
+    }
+  }
+
+  return encodePng(width, height, data)
+}
+
+function ellipse(x: number, y: number, cx: number, cy: number, rx: number, ry: number) {
+  return ((x - cx) ** 2) / (rx ** 2) + ((y - cy) ** 2) / (ry ** 2) <= 1
+}
+
+function encodePng(width: number, height: number, rawData: Buffer) {
+  const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])
+  const ihdr = Buffer.alloc(13)
+  ihdr.writeUInt32BE(width, 0)
+  ihdr.writeUInt32BE(height, 4)
+  ihdr[8] = 8
+  ihdr[9] = 6
+  ihdr[10] = 0
+  ihdr[11] = 0
+  ihdr[12] = 0
+
+  return Buffer.concat([
+    signature,
+    pngChunk('IHDR', ihdr),
+    pngChunk('IDAT', deflateSync(rawData)),
+    pngChunk('IEND', Buffer.alloc(0))
+  ])
+}
+
+function pngChunk(type: string, data: Buffer) {
+  const typeBuffer = Buffer.from(type)
+  const length = Buffer.alloc(4)
+  length.writeUInt32BE(data.length, 0)
+  const crc = Buffer.alloc(4)
+  crc.writeUInt32BE(crc32(Buffer.concat([typeBuffer, data])), 0)
+  return Buffer.concat([length, typeBuffer, data, crc])
+}
+
+function crc32(buffer: Buffer) {
+  let crc = 0xffffffff
+  for (const byte of buffer) {
+    crc ^= byte
+    for (let index = 0; index < 8; index++) {
+      crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1))
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0
+}
+
 async function clearBusinessData() {
   await prisma.sessionTrombinoscope.deleteMany()
   await prisma.characterTrombinoscopeEntry.deleteMany()
@@ -531,7 +658,8 @@ async function createGame(seed: GameSeed, gameIndex: number) {
   await createTimelineEvents(game.id, characters, factions, intrigues, items)
   await createDocuments(game.id, seed.title)
 
-  await createSessions(game.id, seed.title, gameIndex, characters, participants, locations)
+  const participantPhotos = await createParticipantPhotos(participants, gameIndex)
+  await createSessions(game.id, seed.title, gameIndex, characters, participants, locations, participantPhotos)
 
   console.log(`${seed.title}: ${characters.length} personnages, ${seed.factions.length} groupes, ${seed.intrigues.length} intrigues, ${seed.items.length} objets, ${participants.length} participants, ${locations.length} lieux, 3 sessions`)
 
@@ -706,7 +834,8 @@ async function createSessions(
   gameIndex: number,
   characters: Array<{ id: string, name: string, type: string }>,
   participants: Array<{ id: string, name: string }>,
-  locations: Array<{ id: string, name: string }>
+  locations: Array<{ id: string, name: string }>,
+  participantPhotos: Map<string, string>
 ) {
   const pastDate = new Date(Date.UTC(2025, 5 + gameIndex, 7, 12, 0, 0))
   const firstDate = new Date(Date.UTC(2026, 8 + gameIndex, 12, 12, 0, 0))
@@ -748,6 +877,7 @@ async function createSessions(
       character,
       characterId: character.id,
       participantId: index < assignedPjCount ? participants[index]?.id || null : null,
+      photoUrl: index < assignedPjCount && participants[index]?.id ? participantPhotos.get(participants[index].id) || null : null,
       notes: index === 0 ? 'Brief participant à vérifier avant impression.' : null
     })),
     ...pnjCharacters.map((character, index) => ({
@@ -755,6 +885,9 @@ async function createSessions(
       characterId: character.id,
       participantId: index < assignedPnjCount
         ? [organizer?.id, sessionPnj?.id][index] || null
+        : null,
+      photoUrl: index < assignedPnjCount
+        ? participantPhotos.get(([organizer?.id, sessionPnj?.id][index] || '')) || null
         : null,
       notes: index === 0 ? 'Rôle PNJ attribué à l’équipe de session.' : null
     }))
