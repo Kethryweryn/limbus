@@ -526,7 +526,7 @@ async function createGame(seed: GameSeed, gameIndex: number) {
   }))
 
   await createTimelineEvents(game.id, characters, factions, intrigues, items)
-  await createDocuments(game.id, seed.title, characters, factions)
+  await createDocuments(game.id, seed.title)
 
   await createSessions(game.id, seed.title, gameIndex, characters, participants, locations)
 
@@ -537,35 +537,40 @@ async function createGame(seed: GameSeed, gameIndex: number) {
 
 async function createDocuments(
   gameId: string,
-  gameTitle: string,
-  characters: Array<{ id: string, name: string, type: string }>,
-  factions: Array<{ id: string, name: string }>
+  gameTitle: string
 ) {
-  const pjCharacters = characters.filter((character) => character.type !== 'pnj')
-
-  await prisma.document.create({
-    data: {
-      title: `Brief général - ${gameTitle}`,
-      content: 'Document de cadrage à envoyer aux personnages concernés avant la session.',
-      gameId,
-      published: true,
-      factions: {
-        connect: factions.slice(0, 1).map((faction) => ({ id: faction.id }))
-      }
-    }
-  })
-
-  if (pjCharacters[0]) {
-    await prisma.document.create({
-      data: {
-        title: `Note personnelle - ${pjCharacters[0].name}`,
-        content: 'Note individuelle de préparation liée à ce personnage.',
+  await prisma.document.createMany({
+    data: [
+      {
+        title: `Feuille de route - ${gameTitle}`,
+        content: 'Adresse du lieu, horaires d’arrivée, consignes de stationnement, affaires à prévoir : serviette, gel douche, sac de couchage, vêtements chauds et gourde.',
+        audience: 'everyone',
         gameId,
-        characterId: pjCharacters[0].id,
+        published: true
+      },
+      {
+        title: `Document monde - ${gameTitle}`,
+        content: 'Présentation synthétique de l’univers, des conventions de jeu, des informations connues de tous et du niveau de transparence attendu.',
+        audience: 'everyone',
+        gameId,
+        published: true
+      },
+      {
+        title: `Cadrage orga - ${gameTitle}`,
+        content: 'Rappels logistiques internes, répartition des responsabilités, points de vigilance sécurité et contacts d’urgence.',
+        audience: 'organizers',
+        gameId,
+        published: true
+      },
+      {
+        title: `Instructions PNJs - ${gameTitle}`,
+        content: 'Consignes générales pour les PNJs, rythme des interventions, limites d’improvisation et coordination avec l’équipe d’organisation.',
+        audience: 'npcs',
+        gameId,
         published: true
       }
-    })
-  }
+    ]
+  })
 }
 
 async function createTimelineEvents(

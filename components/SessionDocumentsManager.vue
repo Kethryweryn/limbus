@@ -54,6 +54,9 @@
                   <UBadge v-if="document.documentUrl" color="primary" variant="subtle" size="xs">
                     Fichier lié
                   </UBadge>
+                  <UBadge color="neutral" variant="outline" size="xs">
+                    {{ audienceLabel(document.audience) }}
+                  </UBadge>
                 </div>
               </div>
 
@@ -76,7 +79,7 @@
               >
                 <div class="font-medium">{{ recipient.participant.name }}</div>
                 <div class="text-gray-500">
-                  {{ recipient.character.name }}
+                  {{ recipient.targetLabel || recipient.character?.name || 'Destinataire session' }}
                   <span v-if="recipient.sentAt"> · envoyé le {{ formatDate(recipient.sentAt) }}</span>
                   <span v-else> · à envoyer</span>
                 </div>
@@ -84,14 +87,24 @@
             </div>
 
             <p v-else class="mt-3 text-sm text-gray-500">
-              Aucun destinataire trouvé dans le cast de cette session.
+              Aucun destinataire trouvé pour cette session.
             </p>
           </article>
         </div>
       </section>
 
       <section>
-        <h3 class="font-semibold mb-3">Fiches personnage</h3>
+        <div class="mb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h3 class="font-semibold">Fiches personnage</h3>
+            <p class="text-sm text-gray-500">
+              {{ characterSheets.length - pendingCharacterSheets.length }}/{{ characterSheets.length }} fiche(s) envoyée(s)
+            </p>
+          </div>
+          <UButton color="primary" :loading="sendingSheets" :disabled="sendingSheets || !pendingCharacterSheets.length" @click="sendCharacterSheets">
+            Envoyer les fiches personnage
+          </UButton>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
           <div
             v-for="sheet in characterSheets"
@@ -153,6 +166,12 @@ const pendingCharacterSheets = computed(() => characterSheets.value.filter((shee
 
 const sentRecipients = (document) => document.recipients.filter((recipient) => recipient.sentAt)
 const pendingRecipients = (document) => document.recipients.filter((recipient) => !recipient.sentAt)
+const audienceLabel = (audience) => ({
+  targeted: 'Ciblage manuel',
+  everyone: 'Tout le monde',
+  organizers: 'Organisateurs',
+  npcs: 'PNJs'
+}[audience] || 'Ciblage manuel')
 
 const formatDate = (value) => new Date(value).toLocaleString('fr-FR', {
   day: '2-digit',

@@ -38,6 +38,9 @@
               <UBadge v-if="document.documentUrl" color="primary" variant="subtle" size="xs">
                 Fichier lié
               </UBadge>
+              <UBadge color="neutral" variant="outline" size="xs">
+                {{ audienceLabel(document.audience) }}
+              </UBadge>
             </div>
           </div>
         </template>
@@ -177,7 +180,15 @@ const prevPage = () => {
   if (page.value > 1) page.value--
 }
 
-const hasTargets = (document) => Boolean(document.character || document.characters?.length || document.factions?.length)
+const hasTargets = (document) =>
+  document.audience !== 'targeted'
+  || Boolean(document.character || document.characters?.length || document.factions?.length)
+const audienceLabel = (audience) => ({
+  targeted: 'Ciblage manuel',
+  everyone: 'Tout le monde',
+  organizers: 'Organisateurs',
+  npcs: 'PNJs'
+}[audience] || 'Ciblage manuel')
 
 const fetchDocuments = async () => {
   if (isOfflineMode()) {
@@ -257,6 +268,7 @@ onUnmounted(() => {
 function documentFormPayload(document) {
   return {
     ...document,
+    audience: document.audience || 'targeted',
     content: document.content || '',
     documentUrl: document.documentUrl || '',
     characterId: document.characterId || document.character?.id || '',
@@ -270,6 +282,7 @@ function startCreate() {
 
   activeFormDocument.value = {
     title: '',
+    audience: 'targeted',
     content: '',
     documentUrl: '',
     gameId: selectedGame.value?.id || games.value[0]?.id || '',
