@@ -379,8 +379,10 @@ function makeSlug(value: string) {
 }
 
 async function clearBusinessData() {
+  await prisma.timelineEventResponsible.deleteMany()
   await prisma.sessionAssignment.deleteMany()
   await prisma.session.deleteMany()
+  await prisma.timelineEvent.deleteMany()
   await prisma.item.deleteMany()
   await prisma.participant.deleteMany()
   await prisma.location.deleteMany()
@@ -492,7 +494,7 @@ async function createGame(seed: GameSeed, gameIndex: number) {
     })
   ))
 
-  await Promise.all(seed.items.map((item) => {
+  const items = await Promise.all(seed.items.map((item) => {
     const locationCharacter = item.locationCharacterName ? characterByName.get(item.locationCharacterName) : null
 
     return prisma.item.create({
@@ -522,11 +524,89 @@ async function createGame(seed: GameSeed, gameIndex: number) {
     })
   }))
 
+  await createTimelineEvents(game.id, characters, intrigues, items)
+
   await createSessions(game.id, seed.title, gameIndex, characters, participants, locations)
 
   console.log(`${seed.title}: ${characters.length} personnages, ${seed.factions.length} groupes, ${seed.intrigues.length} intrigues, ${seed.items.length} objets, ${participants.length} participants, ${locations.length} lieux, 3 sessions`)
 
   return game
+}
+
+async function createTimelineEvents(
+  gameId: string,
+  characters: Array<{ id: string, name: string, type: string }>,
+  intrigues: Array<{ id: string, name: string }>,
+  items: Array<{ id: string, name: string }>
+) {
+  const pjCharacters = characters.filter((character) => character.type !== 'pnj')
+  const pnjCharacters = characters.filter((character) => character.type === 'pnj')
+
+  const timelineSeeds = [
+    {
+      name: 'Briefing d’ouverture',
+      description: 'Mise en place des informations initiales et lancement des premières dynamiques de jeu.',
+      day: 1,
+      time: '10:00',
+      requiredResponsibles: 2,
+      characterIds: pjCharacters.slice(0, 3).map((character) => character.id),
+      intrigueIds: intrigues.slice(0, 1).map((intrigue) => intrigue.id),
+      itemIds: items.slice(0, 1).map((item) => item.id)
+    },
+    {
+      name: 'Intervention secrète',
+      description: 'Scène encadrée par l’organisation, prévue pour révéler une information sensible.',
+      day: 1,
+      time: '14:30',
+      requiredResponsibles: 1,
+      characterIds: [pjCharacters[0]?.id, pnjCharacters[0]?.id].filter((id): id is string => Boolean(id)),
+      intrigueIds: intrigues.slice(1, 2).map((intrigue) => intrigue.id),
+      itemIds: items.slice(1, 2).map((item) => item.id)
+    },
+    {
+      name: 'Incident concurrent',
+      description: 'Événement volontairement placé au même créneau pour tester les alertes de conflit.',
+      day: 1,
+      time: '14:30',
+      requiredResponsibles: 1,
+      characterIds: pjCharacters.slice(0, 1).map((character) => character.id),
+      intrigueIds: intrigues.slice(2, 3).map((intrigue) => intrigue.id),
+      itemIds: items.slice(1, 2).map((item) => item.id)
+    },
+    {
+      name: 'Débriefing de fin de journée',
+      description: 'Point logistique et préparation des relances du lendemain.',
+      day: 1,
+      time: '22:00',
+      requiredResponsibles: 2,
+      characterIds: pnjCharacters.slice(0, 2).map((character) => character.id),
+      intrigueIds: [],
+      itemIds: []
+    }
+  ]
+
+  await Promise.all(timelineSeeds.map((timelineEvent) =>
+    prisma.timelineEvent.create({
+      data: {
+        name: timelineEvent.name,
+        description: timelineEvent.description,
+        day: timelineEvent.day,
+        time: timelineEvent.time,
+        requiredResponsibles: timelineEvent.requiredResponsibles,
+        gameId,
+        published: true,
+        characters: {
+          connect: timelineEvent.characterIds.map((id) => ({ id }))
+        },
+        intrigues: {
+          connect: timelineEvent.intrigueIds.map((id) => ({ id }))
+        },
+        items: {
+          connect: timelineEvent.itemIds.map((id) => ({ id }))
+        }
+      }
+    })
+  ))
 }
 
 async function createCrossGameParticipants(gameIds: string[]) {

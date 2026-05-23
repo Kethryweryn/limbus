@@ -24,6 +24,7 @@ model Game {
   factions       Faction[]
   intrigues      Intrigue[]
   items          Item[]
+  timelineEvents TimelineEvent[]
   sessions       Session[]
   documents      Document[]
   locations      Location[]
@@ -51,6 +52,7 @@ model Character {
   sessionAssignments    SessionAssignment[]
   items                 Item[]      @relation("CharacterItems")
   locatedItems          Item[]      @relation("ItemLocationCharacter")
+  timelineEvents        TimelineEvent[] @relation("TimelineEventCharacters")
 }
 
 model Item {
@@ -69,6 +71,7 @@ model Item {
 
   characters            Character[]   @relation("CharacterItems")
   intrigues             Intrigue[]    @relation("IntrigueItems")
+  timelineEvents        TimelineEvent[] @relation("TimelineEventItems")
 }
 
 model Faction {
@@ -106,6 +109,28 @@ model Intrigue {
   characters  Character[] @relation("CharacterIntrigues")
   factions    Faction[]   @relation("FactionIntrigues")
   items       Item[]      @relation("IntrigueItems")
+  timelineEvents TimelineEvent[] @relation("TimelineEventIntrigues")
+}
+
+model TimelineEvent {
+  id                    String     @id @default(cuid())
+  name                  String
+  description           String?
+  day                   Int
+  time                  String
+  requiredResponsibles  Int        @default(0)
+  gameId                String
+  game                  Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  published             Boolean    @default(true)
+
+  characters            Character[] @relation("TimelineEventCharacters")
+  intrigues             Intrigue[]  @relation("TimelineEventIntrigues")
+  items                 Item[]      @relation("TimelineEventItems")
+  responsibles          TimelineEventResponsible[]
+
+  @@index([gameId, day, time])
 }
 
 model Document {
@@ -137,6 +162,7 @@ model Session {
 
   assignments SessionAssignment[]
   participants SessionParticipant[]
+  timelineResponsibles TimelineEventResponsible[]
 }
 
 model SessionAssignment {
@@ -190,6 +216,21 @@ model Participant {
 
   assignments SessionAssignment[]
   sessionRoles SessionParticipant[]
+  timelineResponsibilities TimelineEventResponsible[]
+}
+
+model TimelineEventResponsible {
+  id              String        @id @default(cuid())
+  sessionId       String
+  timelineEventId String
+  participantId   String
+  session         Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  timelineEvent   TimelineEvent @relation(fields: [timelineEventId], references: [id], onDelete: Cascade)
+  participant     Participant   @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, timelineEventId, participantId])
+  @@index([participantId])
+  @@index([timelineEventId])
 }
 
 model ParticipantGame {

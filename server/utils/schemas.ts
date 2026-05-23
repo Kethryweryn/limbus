@@ -9,6 +9,7 @@ const sessionStatus = z.enum(['scheduled', 'postponed', 'cancelled', 'completed'
 const intrigueLevel = z.enum(['main_story', 'main_character', 'major', 'minor'])
 const characterType = z.enum(['pj', 'pnj'])
 const sessionParticipantRole = z.enum(['participant', 'organizer', 'npc'])
+const timelineTime = z.string().trim().regex(/^\d{2}:\d{2}$/, 'Time must use HH:mm format')
 
 export async function readZodBody<T>(event: H3Event, schema: ZodType<T>): Promise<T> {
   return await readValidatedBody(event, (body) => {
@@ -118,6 +119,26 @@ export const itemSchema = z.object({
   characterIds: z.array(requiredId('Character')).optional().default([]),
   intrigueIds: z.array(requiredId('Intrigue')).optional().default([]),
   published: optionalBoolean
+})
+
+export const timelineEventSchema = z.object({
+  name: requiredText('Name'),
+  description: optionalText,
+  day: z.coerce.number().int().min(1),
+  time: timelineTime,
+  requiredResponsibles: z.coerce.number().int().min(0).optional().default(0),
+  gameId: requiredId('Game'),
+  characterIds: z.array(requiredId('Character')).optional().default([]),
+  intrigueIds: z.array(requiredId('Intrigue')).optional().default([]),
+  itemIds: z.array(requiredId('Item')).optional().default([]),
+  published: optionalBoolean
+})
+
+export const sessionTimelineSchema = z.object({
+  assignments: z.array(z.object({
+    timelineEventId: requiredId('TimelineEvent'),
+    participantIds: z.array(requiredId('Participant')).optional().default([])
+  })).optional().default([])
 })
 
 export const sessionAssignmentSchema = z.object({

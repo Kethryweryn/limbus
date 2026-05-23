@@ -118,7 +118,8 @@ const navSections = [
             { label: 'Personnages', to: '/characters', icon: 'i-heroicons-identification' },
             { label: 'Groupes', to: '/factions', icon: 'i-heroicons-user-group' },
             { label: 'Intrigues', to: '/intrigues', icon: 'i-heroicons-book-open' },
-            { label: 'Objets', to: '/items', icon: 'i-heroicons-archive-box' }
+            { label: 'Objets', to: '/items', icon: 'i-heroicons-archive-box' },
+            { label: 'Timeline', to: '/timeline', icon: 'i-heroicons-clock' }
         ]
     },
     {
