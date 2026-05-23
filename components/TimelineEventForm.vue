@@ -129,6 +129,12 @@ const gameOptions = computed(() => props.games.map((game) => ({
   value: game.id
 })))
 
+const virtualFactionOptions = [
+  { label: 'Tous les PJs', value: '__all_pj__' },
+  { label: 'Tous les PNJs', value: '__all_pnj__' },
+  { label: 'Tous les participants', value: '__all_characters__' }
+]
+
 const characterOptions = computed(() =>
   props.characters
     .filter((character) => character.gameId === localEvent.value.gameId)
@@ -149,7 +155,7 @@ const intrigueOptions = computed(() =>
     }))
 )
 
-const factionOptions = computed(() =>
+const realFactionOptions = computed(() =>
   props.factions
     .filter((faction) => faction.gameId === localEvent.value.gameId)
     .sort((a, b) => a.name.localeCompare(b.name))
@@ -158,6 +164,11 @@ const factionOptions = computed(() =>
       value: faction.id
     }))
 )
+
+const factionOptions = computed(() => [
+  ...virtualFactionOptions,
+  ...realFactionOptions.value
+])
 
 const itemOptions = computed(() =>
   props.items
@@ -211,15 +222,35 @@ function validate() {
   return Object.keys(errors.value).length === 0
 }
 
+function expandVirtualFactionSelection(value) {
+  const factionIds = value.factionIds || []
+  const selectedVirtualIds = new Set(factionIds.filter((id) => id.startsWith('__')))
+  const realFactionIds = factionIds.filter((id) => !id.startsWith('__'))
+  const gameCharacters = props.characters.filter((character) => character.gameId === value.gameId)
+  const expandedCharacterIds = gameCharacters
+    .filter((character) =>
+      selectedVirtualIds.has('__all_characters__')
+      || (selectedVirtualIds.has('__all_pj__') && character.type !== 'pnj')
+      || (selectedVirtualIds.has('__all_pnj__') && character.type === 'pnj')
+    )
+    .map((character) => character.id)
+
+  return {
+    ...value,
+    factionIds: realFactionIds,
+    characterIds: [...new Set([...(value.characterIds || []), ...expandedCharacterIds])]
+  }
+}
+
 async function submit() {
   if (!validate()) return
 
   try {
-    emit('update:event', {
+    emit('update:event', expandVirtualFactionSelection({
       ...localEvent.value,
       day: Number(localEvent.value.day),
       requiredResponsibles: Number(localEvent.value.requiredResponsibles || 0)
-    })
+    }))
     await emit('submit')
     serverError.value = ''
   } catch (err) {
