@@ -1,4 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
+import { readFile } from 'node:fs/promises'
+import { basename, join } from 'node:path'
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 
 type CharacterLike = {
   id: string
@@ -10,6 +13,15 @@ type CharacterLike = {
   trombinoscopeNote?: string | null
   trombinoscopeDisplayName?: string | null
   factions?: Array<{ id: string, name: string }>
+}
+
+type TrombinoscopeRow = {
+  target: CharacterLike
+  displayName: string
+  note: string
+  photoUrl: string
+  hidePhoto: boolean
+  missingPhoto: boolean
 }
 
 function escapeHtml(value: string) {
@@ -207,14 +219,7 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
           missingPhoto
         }
       })
-      .filter(Boolean) as Array<{
-        target: CharacterLike
-        displayName: string
-        note: string
-        photoUrl: string
-        hidePhoto: boolean
-        missingPhoto: boolean
-      }>
+      .filter(Boolean) as TrombinoscopeRow[]
 
     const html = renderTrombinoscopeHtml({
       sessionName: session.name,
@@ -222,6 +227,13 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
       viewerName: viewer.name,
       entries: rows
     })
+    const pdfBytes = await renderTrombinoscopePdf({
+      sessionName: session.name,
+      gameTitle: session.game.title,
+      viewerName: viewer.name,
+      entries: rows
+    })
+    const fileName = `${slugFilePart(session.name)}-${slugFilePart(viewer.name)}-trombinoscope.pdf`
 
     await prisma.sessionTrombinoscope.upsert({
       where: {
@@ -232,8 +244,9 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
         }
       },
       update: {
-        fileName: `${slugFilePart(session.name)}-${slugFilePart(viewer.name)}-trombinoscope.html`,
+        fileName,
         contentHtml: html,
+        contentPdfBase64: Buffer.from(pdfBytes).toString('base64'),
         missingPhotos: rows.filter((row) => row.missingPhoto).length,
         generatedAt: new Date()
       },
@@ -241,8 +254,9 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
         sessionId,
         viewerCharacterId: viewer.id,
         participantId: assignment.participant.id,
-        fileName: `${slugFilePart(session.name)}-${slugFilePart(viewer.name)}-trombinoscope.html`,
+        fileName,
         contentHtml: html,
+        contentPdfBase64: Buffer.from(pdfBytes).toString('base64'),
         missingPhotos: rows.filter((row) => row.missingPhoto).length
       }
     })
@@ -277,14 +291,7 @@ function renderTrombinoscopeHtml({
   sessionName: string
   gameTitle: string
   viewerName: string
-  entries: Array<{
-    target: CharacterLike
-    displayName: string
-    note: string
-    photoUrl: string
-    hidePhoto: boolean
-    missingPhoto: boolean
-  }>
+  entries: TrombinoscopeRow[]
 }) {
   const cards = entries.map((entry) => {
     const image = entry.hidePhoto || entry.missingPhoto
@@ -346,4 +353,258 @@ function renderTrombinoscopeHtml({
 function toPublicUrl(value: string, publicBaseUrl: string) {
   if (!value || !publicBaseUrl || !value.startsWith('/')) return value
   return `${publicBaseUrl.replace(/\/$/, '')}${value}`
+}
+
+async function renderTrombinoscopePdf({
+  sessionName,
+  gameTitle,
+  viewerName,
+  entries
+}: {
+  sessionName: string
+  gameTitle: string
+  viewerName: string
+  entries: TrombinoscopeRow[]
+}) {
+  const pdf = await PDFDocument.create()
+  const regularFont = await pdf.embedFont(StandardFonts.Helvetica)
+  const boldFont = await pdf.embedFont(StandardFonts.HelveticaBold)
+  const pageSize: [number, number] = [595.28, 841.89]
+  const margin = 36
+  const gap = 14
+  const cardWidth = (pageSize[0] - margin * 2 - gap * 2) / 3
+  const cardHeight = 246
+  const photoHeight = 132
+  let page = pdf.addPage(pageSize)
+  let y = pageSize[1] - margin
+  let x = margin
+  let column = 0
+
+  const drawHeader = () => {
+    page.drawText(pdfSafeText(gameTitle.toUpperCase()), {
+      x: margin,
+      y,
+      size: 9,
+      font: boldFont,
+      color: rgb(0.39, 0.45, 0.55)
+    })
+    y -= 20
+    page.drawText(pdfSafeText(`Trombinoscope de ${viewerName}`), {
+      x: margin,
+      y,
+      size: 22,
+      font: boldFont,
+      color: rgb(0.07, 0.09, 0.15)
+    })
+    y -= 18
+    page.drawText(pdfSafeText(sessionName), {
+      x: margin,
+      y,
+      size: 10,
+      font: regularFont,
+      color: rgb(0.29, 0.33, 0.41)
+    })
+    y -= 28
+  }
+
+  drawHeader()
+
+  for (const entry of entries) {
+    if (y - cardHeight < margin) {
+      page = pdf.addPage(pageSize)
+      y = pageSize[1] - margin
+      x = margin
+      column = 0
+      drawHeader()
+    }
+
+    const top = y
+    page.drawRectangle({
+      x,
+      y: top - cardHeight,
+      width: cardWidth,
+      height: cardHeight,
+      borderColor: rgb(0.88, 0.91, 0.94),
+      borderWidth: 1,
+      color: rgb(1, 1, 1)
+    })
+
+    const imageBox = {
+      x: x + 10,
+      y: top - 10 - photoHeight,
+      width: cardWidth - 20,
+      height: photoHeight
+    }
+    await drawPhoto(pdf, page, entry, imageBox, boldFont)
+
+    let textY = imageBox.y - 16
+    textY = drawWrappedText(page, entry.displayName, x + 10, textY, cardWidth - 20, {
+      font: boldFont,
+      size: 12,
+      lineHeight: 14,
+      color: rgb(0.07, 0.09, 0.15),
+      maxLines: 2
+    })
+
+    const tagText = [
+      entry.target.type === 'pnj' ? 'PNJ' : 'PJ',
+      ...(entry.target.factions || []).map((faction) => faction.name)
+    ].join(' · ')
+    textY = drawWrappedText(page, tagText, x + 10, textY - 4, cardWidth - 20, {
+      font: regularFont,
+      size: 8,
+      lineHeight: 10,
+      color: rgb(0.39, 0.45, 0.55),
+      maxLines: 2
+    })
+
+    if (entry.note) {
+      drawWrappedText(page, entry.note, x + 10, textY - 6, cardWidth - 20, {
+        font: regularFont,
+        size: 8,
+        lineHeight: 10,
+        color: rgb(0.29, 0.33, 0.41),
+        maxLines: 5
+      })
+    }
+
+    column++
+    if (column === 3) {
+      column = 0
+      x = margin
+      y -= cardHeight + gap
+    } else {
+      x += cardWidth + gap
+    }
+  }
+
+  return await pdf.save()
+}
+
+async function drawPhoto(pdf: PDFDocument, page: any, entry: TrombinoscopeRow, box: {
+  x: number
+  y: number
+  width: number
+  height: number
+}, boldFont: any) {
+  page.drawRectangle({
+    ...box,
+    color: rgb(0.9, 0.93, 0.96)
+  })
+
+  if (entry.hidePhoto || entry.missingPhoto) {
+    page.drawText('?', {
+      x: box.x + box.width / 2 - 18,
+      y: box.y + box.height / 2 - 24,
+      size: 60,
+      font: boldFont,
+      color: rgb(0.39, 0.45, 0.55)
+    })
+    return
+  }
+
+  const imageBytes = await loadImageBytes(entry.photoUrl)
+  if (!imageBytes) {
+    page.drawText('?', {
+      x: box.x + box.width / 2 - 18,
+      y: box.y + box.height / 2 - 24,
+      size: 60,
+      font: boldFont,
+      color: rgb(0.39, 0.45, 0.55)
+    })
+    return
+  }
+
+  try {
+    const image = isPng(imageBytes)
+      ? await pdf.embedPng(imageBytes)
+      : await pdf.embedJpg(imageBytes)
+    const scale = Math.min(box.width / image.width, box.height / image.height)
+    const width = image.width * scale
+    const height = image.height * scale
+    page.drawImage(image, {
+      x: box.x + (box.width - width) / 2,
+      y: box.y + (box.height - height) / 2,
+      width,
+      height
+    })
+  } catch {
+    page.drawText('?', {
+      x: box.x + box.width / 2 - 18,
+      y: box.y + box.height / 2 - 24,
+      size: 60,
+      font: boldFont,
+      color: rgb(0.39, 0.45, 0.55)
+    })
+  }
+}
+
+async function loadImageBytes(photoUrl: string) {
+  try {
+    if (photoUrl.startsWith('/api/uploads/session-assignment-photos/')) {
+      const filename = basename(photoUrl)
+      return await readFile(join(process.cwd(), '.data', 'uploads', 'session-assignment-photos', filename))
+    }
+
+    if (/^https?:\/\//.test(photoUrl)) {
+      const response = await fetch(photoUrl)
+      if (!response.ok) return null
+      return Buffer.from(await response.arrayBuffer())
+    }
+  } catch {
+    return null
+  }
+
+  return null
+}
+
+function isPng(bytes: Uint8Array) {
+  return bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47
+}
+
+function drawWrappedText(page: any, text: string, x: number, y: number, maxWidth: number, options: {
+  font: any
+  size: number
+  lineHeight: number
+  color: ReturnType<typeof rgb>
+  maxLines: number
+}) {
+  const words = pdfSafeText(text).replace(/\s+/g, ' ').trim().split(' ').filter(Boolean)
+  const lines: string[] = []
+  let line = ''
+
+  for (const word of words) {
+    const nextLine = line ? `${line} ${word}` : word
+    if (options.font.widthOfTextAtSize(nextLine, options.size) <= maxWidth) {
+      line = nextLine
+    } else {
+      if (line) lines.push(line)
+      line = word
+    }
+
+    if (lines.length >= options.maxLines) break
+  }
+
+  if (line && lines.length < options.maxLines) lines.push(line)
+
+  lines.forEach((lineText, index) => {
+    page.drawText(lineText, {
+      x,
+      y: y - index * options.lineHeight,
+      size: options.size,
+      font: options.font,
+      color: options.color
+    })
+  })
+
+  return y - lines.length * options.lineHeight
+}
+
+function pdfSafeText(value: string) {
+  return value
+    .replace(/[’‘]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, '-')
+    .replace(/…/g, '...')
+    .replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g, '')
 }

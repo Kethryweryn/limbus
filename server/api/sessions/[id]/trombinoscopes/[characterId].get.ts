@@ -11,8 +11,12 @@ export default defineEventHandler(async (event) => {
   }
 
   const trombinoscope = await getSessionTrombinoscope(id, characterId)
-  setHeader(event, 'content-type', 'text/html; charset=utf-8')
+  if (!trombinoscope.contentPdfBase64) {
+    throw createError({ statusCode: 404, statusMessage: 'PDF non généré' })
+  }
+
+  setHeader(event, 'content-type', 'application/pdf')
   setHeader(event, 'content-disposition', `attachment; filename="${trombinoscope.fileName}"`)
 
-  return trombinoscope.contentHtml
+  return Buffer.from(trombinoscope.contentPdfBase64, 'base64')
 })

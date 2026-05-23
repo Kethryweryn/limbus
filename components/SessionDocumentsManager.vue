@@ -164,7 +164,7 @@
                 size="xs"
                 icon="i-heroicons-arrow-down-tray"
               >
-                Télécharger le trombinoscope
+                Télécharger le PDF
               </UButton>
               <UBadge v-if="sheet.trombinoscopeMissingPhotos" color="warning" variant="subtle" size="xs">
                 {{ sheet.trombinoscopeMissingPhotos }} photo(s) manquante(s)
