@@ -26,13 +26,13 @@
       </UFormField>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <UFormField label="Localisation chez un participant">
+        <UFormField label="Localisation chez un personnage">
           <USelect
-            v-model="localItem.locationParticipantId"
-            :items="locationParticipantOptions"
+            v-model="localItem.locationCharacterId"
+            :items="locationCharacterOptions"
             value-key="value"
             :disabled="!localItem.gameId"
-            placeholder="Sélectionner un participant"
+            placeholder="Sélectionner un personnage"
             size="lg"
             class="w-full"
           />
@@ -41,7 +41,7 @@
         <UFormField label="Localisation libre">
           <UInput
             v-model="localItem.locationText"
-            :disabled="Boolean(localItem.locationParticipantId)"
+            :disabled="Boolean(localItem.locationCharacterId)"
             size="lg"
             class="w-full"
             placeholder="Salle, coffre, régie..."
@@ -49,14 +49,14 @@
         </UFormField>
       </div>
 
-      <UFormField label="Participants associés">
+      <UFormField label="Personnages associés">
         <USelectMenu
-          v-model="localItem.participantIds"
-          :items="participantOptions"
+          v-model="localItem.characterIds"
+          :items="characterOptions"
           value-key="value"
           multiple
-          :disabled="!participantOptions.length"
-          placeholder="Associer des participants"
+          :disabled="!characterOptions.length"
+          placeholder="Associer des personnages"
           size="lg"
           class="w-full"
         />
@@ -81,7 +81,7 @@
         variant="soft"
         icon="i-heroicons-exclamation-triangle"
         title="Objet non associé"
-        description="Cet objet n’est associé à aucun participant ni aucune intrigue."
+        description="Cet objet n’est associé à aucun personnage ni aucune intrigue."
       />
 
       <div class="flex flex-wrap gap-2 pt-2">
@@ -104,7 +104,7 @@ import { computed, ref, watch } from 'vue'
 const props = defineProps({
   item: { type: Object, required: true },
   games: { type: Array, required: true },
-  participants: { type: Array, required: true },
+  characters: { type: Array, required: true },
   intrigues: { type: Array, required: true },
   mode: { type: String, default: 'create' }
 })
@@ -120,19 +120,19 @@ const gameOptions = computed(() => props.games.map((game) => ({
   value: game.id
 })))
 
-const participantOptions = computed(() =>
-  props.participants
-    .filter((participant) => participant.games?.some((game) => game.id === localItem.value.gameId))
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((participant) => ({
-      label: participant.email ? `${participant.name} - ${participant.email}` : participant.name,
-      value: participant.id
+const characterOptions = computed(() =>
+  props.characters
+    .filter((character) => character.gameId === localItem.value.gameId)
+    .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'pj' ? -1 : 1))
+    .map((character) => ({
+      label: `${character.type === 'pnj' ? 'PNJ' : 'PJ'} - ${character.name}`,
+      value: character.id
     }))
 )
 
-const locationParticipantOptions = computed(() => [
-  { label: 'Aucun participant', value: '' },
-  ...participantOptions.value
+const locationCharacterOptions = computed(() => [
+  { label: 'Aucun personnage', value: '' },
+  ...characterOptions.value
 ])
 
 const intrigueOptions = computed(() =>
@@ -145,33 +145,33 @@ const intrigueOptions = computed(() =>
     }))
 )
 
-const isUnassigned = computed(() => !(localItem.value.participantIds?.length || localItem.value.intrigueIds?.length))
+const isUnassigned = computed(() => !(localItem.value.characterIds?.length || localItem.value.intrigueIds?.length))
 
 watch(() => props.item, (newItem) => {
   localItem.value = {
     ...newItem,
-    participantIds: newItem.participantIds || newItem.participants?.map((participant) => participant.id) || [],
+    characterIds: newItem.characterIds || newItem.characters?.map((character) => character.id) || [],
     intrigueIds: newItem.intrigueIds || newItem.intrigues?.map((intrigue) => intrigue.id) || [],
-    locationParticipantId: newItem.locationParticipantId || newItem.locationParticipant?.id || '',
+    locationCharacterId: newItem.locationCharacterId || newItem.locationCharacter?.id || '',
     locationText: newItem.locationText || ''
   }
   errors.value = {}
   serverError.value = ''
 }, { immediate: true })
 
-watch(() => localItem.value.locationParticipantId, (participantId) => {
-  if (participantId) {
+watch(() => localItem.value.locationCharacterId, (characterId) => {
+  if (characterId) {
     localItem.value.locationText = ''
   }
 })
 
 watch(() => localItem.value.gameId, () => {
-  const validParticipantIds = new Set(participantOptions.value.map((participant) => participant.value))
+  const validCharacterIds = new Set(characterOptions.value.map((character) => character.value))
   const validIntrigueIds = new Set(intrigueOptions.value.map((intrigue) => intrigue.value))
-  localItem.value.participantIds = (localItem.value.participantIds || []).filter((id) => validParticipantIds.has(id))
+  localItem.value.characterIds = (localItem.value.characterIds || []).filter((id) => validCharacterIds.has(id))
   localItem.value.intrigueIds = (localItem.value.intrigueIds || []).filter((id) => validIntrigueIds.has(id))
-  if (localItem.value.locationParticipantId && !validParticipantIds.has(localItem.value.locationParticipantId)) {
-    localItem.value.locationParticipantId = ''
+  if (localItem.value.locationCharacterId && !validCharacterIds.has(localItem.value.locationCharacterId)) {
+    localItem.value.locationCharacterId = ''
   }
 })
 

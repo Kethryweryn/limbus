@@ -60,16 +60,16 @@
             <div class="font-medium">{{ formatItemLocation(item) }}</div>
           </div>
 
-          <div v-if="item.participants?.length || item.intrigues?.length" class="flex flex-wrap gap-1">
+          <div v-if="item.characters?.length || item.intrigues?.length" class="flex flex-wrap gap-1">
             <UBadge
-              v-for="participant in item.participants || []"
-              :key="`participant-${participant.id}`"
+              v-for="character in item.characters || []"
+              :key="`character-${character.id}`"
               color="neutral"
               variant="subtle"
               size="xs"
               class="max-w-40 truncate"
             >
-              {{ participant.name }}
+              {{ character.name }}
             </UBadge>
             <UBadge
               v-for="intrigue in item.intrigues || []"
@@ -112,7 +112,7 @@
         v-if="activeFormItem"
         v-model:item="activeFormItem"
         :games="games"
-        :participants="participants"
+        :characters="characters"
         :intrigues="intrigues"
         :mode="formMode"
         @submit="handleItemFormSubmit"
@@ -132,7 +132,7 @@ import { getFromStore, saveToStore } from '~/utils/storage'
 
 const items = ref([])
 const games = ref([])
-const participants = ref([])
+const characters = ref([])
 const intrigues = ref([])
 const searchQuery = ref('')
 const gameFilter = ref('all')
@@ -159,9 +159,9 @@ const filteredItems = computed(() => {
         item.name,
         item.description,
         item.locationText,
-        item.locationParticipant?.name,
+        item.locationCharacter?.name,
         item.game?.title,
-        ...(item.participants || []).map((participant) => participant.name),
+        ...(item.characters || []).map((character) => character.name),
         ...(item.intrigues || []).map((intrigue) => intrigue.name)
       ].some((field) => field?.toLowerCase().includes(term))
     )
@@ -190,10 +190,10 @@ watch([searchQuery, gameFilter, filteredItems], () => {
   page.value = 1
 })
 
-const isUnassigned = (item) => !(item.participants?.length || item.intrigues?.length)
+const isUnassigned = (item) => !(item.characters?.length || item.intrigues?.length)
 
 const formatItemLocation = (item) => {
-  if (item.locationParticipant) return item.locationParticipant.name
+  if (item.locationCharacter) return item.locationCharacter.name
   if (item.locationText) return item.locationText
   return 'Non renseignée'
 }
@@ -220,15 +220,15 @@ const fetchGames = async () => {
   await saveToStore('games', 'list', data)
 }
 
-const fetchParticipants = async () => {
+const fetchCharacters = async () => {
   if (isOfflineMode()) {
-    participants.value = await getFromStore('participants', 'list') || []
+    characters.value = await getFromStore('characters', 'list') || []
     return
   }
 
-  const data = await useApiFetch('/api/participants')
-  participants.value = data
-  await saveToStore('participants', 'list', data)
+  const data = await useApiFetch('/api/characters')
+  characters.value = data
+  await saveToStore('characters', 'list', data)
 }
 
 const fetchIntrigues = async () => {
@@ -243,7 +243,7 @@ const fetchIntrigues = async () => {
 }
 
 const refreshData = async () => {
-  await Promise.all([fetchItems(), fetchGames(), fetchParticipants(), fetchIntrigues()])
+  await Promise.all([fetchItems(), fetchGames(), fetchCharacters(), fetchIntrigues()])
 }
 
 const updateStatus = () => {
@@ -276,9 +276,9 @@ onUnmounted(() => {
 function itemFormPayload(item) {
   return {
     ...item,
-    participantIds: item.participantIds || item.participants?.map((participant) => participant.id) || [],
+    characterIds: item.characterIds || item.characters?.map((character) => character.id) || [],
     intrigueIds: item.intrigueIds || item.intrigues?.map((intrigue) => intrigue.id) || [],
-    locationParticipantId: item.locationParticipantId || item.locationParticipant?.id || '',
+    locationCharacterId: item.locationCharacterId || item.locationCharacter?.id || '',
     locationText: item.locationText || ''
   }
 }
@@ -290,9 +290,9 @@ function startCreate() {
     name: '',
     description: '',
     locationText: '',
-    locationParticipantId: '',
+    locationCharacterId: '',
     gameId: selectedGame.value?.id || games.value[0]?.id || '',
-    participantIds: [],
+    characterIds: [],
     intrigueIds: [],
     published: true
   }

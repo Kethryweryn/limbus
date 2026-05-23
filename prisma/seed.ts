@@ -51,8 +51,8 @@ type ItemSeed = {
   name: string
   description: string
   locationText?: string
-  locationParticipantName?: string
-  participantNames: string[]
+  locationCharacterName?: string
+  characterNames: string[]
   intrigueNames: string[]
 }
 
@@ -158,14 +158,14 @@ const games: GameSeed[] = [
         name: 'Testament scellé du baron',
         description: 'Document central de la succession, porteur de clauses contradictoires.',
         locationText: 'Coffre de la salle du conseil',
-        participantNames: ['Camille Bernard'],
+        characterNames: ['Aélis de Valombre'],
         intrigueNames: ['La succession du baron']
       },
       {
         name: 'Médaillon noirci',
         description: 'Bijou retrouvé après l’incendie de l’aile nord.',
-        locationParticipantName: 'Inès Lefèvre',
-        participantNames: [],
+        locationCharacterName: 'Sœur Ysilde',
+        characterNames: [],
         intrigueNames: []
       }
     ]
@@ -259,14 +259,14 @@ const games: GameSeed[] = [
         name: 'Enregistreur du signal',
         description: 'Module de stockage contenant la première capture exploitable.',
         locationText: 'Baie technique B',
-        participantNames: ['Amandine Blanc', 'Clara Rousseau'],
+        characterNames: ['Dr Lena Kovacs', 'Eli Chen'],
         intrigueNames: ['Le signal impossible']
       },
       {
         name: 'Badge d’accès falsifié',
         description: 'Badge modifié donnant accès aux journaux système.',
-        locationParticipantName: 'Olivier Girard',
-        participantNames: ['Olivier Girard'],
+        locationCharacterName: 'Oskar Nilsson',
+        characterNames: ['Oskar Nilsson'],
         intrigueNames: ['Les journaux falsifiés']
       }
     ]
@@ -360,14 +360,14 @@ const games: GameSeed[] = [
         name: 'Masque fendu',
         description: 'Masque décoratif portant une inscription cachée sous la dorure.',
         locationText: 'Vestiaire des invités',
-        participantNames: ['Pauline Aubert'],
+        characterNames: ['Céleste Vairon'],
         intrigueNames: ['Le scandale des masques']
       },
       {
         name: 'Billet parfumé',
         description: 'Message court dont le destinataire reste à identifier.',
         locationText: 'Poche intérieure du manteau rouge',
-        participantNames: [],
+        characterNames: [],
         intrigueNames: []
       }
     ]
@@ -480,8 +480,6 @@ async function createGame(seed: GameSeed, gameIndex: number) {
       }
     })
   ))
-  const participantByName = new Map(participants.map((participant, index) => [seed.participants[index].name, participant]))
-
   const locations = await Promise.all(seed.locations.map((location) =>
     prisma.location.create({
       data: {
@@ -495,22 +493,22 @@ async function createGame(seed: GameSeed, gameIndex: number) {
   ))
 
   await Promise.all(seed.items.map((item) => {
-    const locationParticipant = item.locationParticipantName ? participantByName.get(item.locationParticipantName) : null
+    const locationCharacter = item.locationCharacterName ? characterByName.get(item.locationCharacterName) : null
 
     return prisma.item.create({
       data: {
         name: item.name,
         description: item.description,
         quantity: 1,
-        locationText: locationParticipant ? null : item.locationText || null,
-        locationParticipantId: locationParticipant?.id || null,
+        locationText: locationCharacter ? null : item.locationText || null,
+        locationCharacterId: locationCharacter?.id || null,
         gameId: game.id,
         published: true,
-        participants: {
-          connect: item.participantNames
-            .flatMap((participantName) => {
-              const participant = participantByName.get(participantName)
-              return participant ? [{ id: participant.id }] : []
+        characters: {
+          connect: item.characterNames
+            .flatMap((characterName) => {
+              const character = characterByName.get(characterName)
+              return character ? [{ id: character.id }] : []
             })
         },
         intrigues: {

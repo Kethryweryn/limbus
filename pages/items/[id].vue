@@ -18,7 +18,7 @@
       v-if="isEditing"
       v-model:item="editableItem"
       :games="games || []"
-      :participants="participants || []"
+      :characters="characters || []"
       :intrigues="intrigues || []"
       mode="edit"
       @submit="saveItem"
@@ -48,20 +48,20 @@
 
       <section class="space-y-4 rounded-lg border border-gray-200 bg-white p-5">
         <h2 class="text-xl font-semibold">Associations</h2>
-        <div v-if="item.participants?.length || item.intrigues?.length" class="space-y-4">
-          <div v-if="item.participants?.length">
-            <h3 class="text-sm font-semibold mb-2">Participants</h3>
+        <div v-if="item.characters?.length || item.intrigues?.length" class="space-y-4">
+          <div v-if="item.characters?.length">
+            <h3 class="text-sm font-semibold mb-2">Personnages</h3>
             <div class="flex flex-wrap gap-2">
               <UButton
-                v-for="participant in item.participants"
-                :key="participant.id"
-                :to="`/participants/${participant.id}`"
+                v-for="character in item.characters"
+                :key="character.id"
+                :to="`/characters/${character.slug}`"
                 color="neutral"
                 variant="soft"
                 size="sm"
-                icon="i-heroicons-user"
+                icon="i-heroicons-identification"
               >
-                {{ participant.name }}
+                {{ character.name }}
               </UButton>
             </div>
           </div>
@@ -83,7 +83,7 @@
             </div>
           </div>
         </div>
-        <p v-else class="text-sm text-gray-500">Cet objet n’est associé à aucun participant ni aucune intrigue.</p>
+        <p v-else class="text-sm text-gray-500">Cet objet n’est associé à aucun personnage ni aucune intrigue.</p>
       </section>
     </template>
   </div>
@@ -96,7 +96,7 @@ const route = useRoute()
 const router = useRouter()
 const { data: item, error, refresh } = await useFetch(`/api/items/${route.params.id}`)
 const { data: games } = await useFetch('/api/games')
-const { data: participants } = await useFetch('/api/participants')
+const { data: characters } = await useFetch('/api/characters')
 const { data: intrigues } = await useFetch('/api/intrigues')
 
 if (error.value) {
@@ -106,7 +106,7 @@ if (error.value) {
 
 const isEditing = ref(route.query.edit === '1')
 const editableItem = ref(item.value ? itemFormPayload(item.value) : null)
-const isUnassigned = computed(() => !(item.value?.participants?.length || item.value?.intrigues?.length))
+const isUnassigned = computed(() => !(item.value?.characters?.length || item.value?.intrigues?.length))
 
 watch(() => route.query.edit, (value) => {
   isEditing.value = value === '1'
@@ -118,15 +118,15 @@ watch(() => route.query.edit, (value) => {
 function itemFormPayload(value) {
   return {
     ...value,
-    participantIds: value.participants?.map((participant) => participant.id) || [],
+    characterIds: value.characters?.map((character) => character.id) || [],
     intrigueIds: value.intrigues?.map((intrigue) => intrigue.id) || [],
-    locationParticipantId: value.locationParticipantId || value.locationParticipant?.id || '',
+    locationCharacterId: value.locationCharacterId || value.locationCharacter?.id || '',
     locationText: value.locationText || ''
   }
 }
 
 function formatItemLocation(value) {
-  if (value.locationParticipant) return value.locationParticipant.name
+  if (value.locationCharacter) return value.locationCharacter.name
   if (value.locationText) return value.locationText
   return 'Non renseignée'
 }
