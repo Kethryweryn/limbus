@@ -379,6 +379,7 @@ function makeSlug(value: string) {
 }
 
 async function clearBusinessData() {
+  await prisma.sessionDocumentDelivery.deleteMany()
   await prisma.timelineEventResponsible.deleteMany()
   await prisma.sessionAssignment.deleteMany()
   await prisma.session.deleteMany()
@@ -525,12 +526,46 @@ async function createGame(seed: GameSeed, gameIndex: number) {
   }))
 
   await createTimelineEvents(game.id, characters, factions, intrigues, items)
+  await createDocuments(game.id, seed.title, characters, factions)
 
   await createSessions(game.id, seed.title, gameIndex, characters, participants, locations)
 
   console.log(`${seed.title}: ${characters.length} personnages, ${seed.factions.length} groupes, ${seed.intrigues.length} intrigues, ${seed.items.length} objets, ${participants.length} participants, ${locations.length} lieux, 3 sessions`)
 
   return game
+}
+
+async function createDocuments(
+  gameId: string,
+  gameTitle: string,
+  characters: Array<{ id: string, name: string, type: string }>,
+  factions: Array<{ id: string, name: string }>
+) {
+  const pjCharacters = characters.filter((character) => character.type !== 'pnj')
+
+  await prisma.document.create({
+    data: {
+      title: `Brief général - ${gameTitle}`,
+      content: 'Document de cadrage à envoyer aux personnages concernés avant la session.',
+      gameId,
+      published: true,
+      factions: {
+        connect: factions.slice(0, 1).map((faction) => ({ id: faction.id }))
+      }
+    }
+  })
+
+  if (pjCharacters[0]) {
+    await prisma.document.create({
+      data: {
+        title: `Note personnelle - ${pjCharacters[0].name}`,
+        content: 'Note individuelle de préparation liée à ce personnage.',
+        gameId,
+        characterId: pjCharacters[0].id,
+        published: true
+      }
+    })
+  }
 }
 
 async function createTimelineEvents(

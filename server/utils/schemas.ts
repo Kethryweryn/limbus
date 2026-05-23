@@ -121,6 +121,20 @@ export const itemSchema = z.object({
   published: optionalBoolean
 })
 
+export const documentSchema = z.object({
+  title: requiredText('Title'),
+  content: optionalText,
+  documentUrl: optionalText,
+  gameId: requiredId('Game'),
+  characterId: optionalText,
+  characterIds: z.array(requiredId('Character')).optional().default([]),
+  factionIds: z.array(requiredId('Faction')).optional().default([]),
+  published: optionalBoolean
+}).refine((value) => Boolean(value.content?.trim() || value.documentUrl?.trim()), {
+  message: 'Content or document URL is required',
+  path: ['content']
+})
+
 export const timelineEventSchema = z.object({
   name: requiredText('Name'),
   description: optionalText,
@@ -140,6 +154,10 @@ export const sessionTimelineSchema = z.object({
     timelineEventId: requiredId('TimelineEvent'),
     participantIds: z.array(requiredId('Participant')).optional().default([])
   })).optional().default([])
+})
+
+export const sessionDocumentSendSchema = z.object({
+  documentIds: z.array(requiredId('Document')).optional().default([])
 })
 
 export const sessionAssignmentSchema = z.object({

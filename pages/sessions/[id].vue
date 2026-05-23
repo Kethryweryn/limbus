@@ -55,6 +55,13 @@
       >
         Timeline
       </UButton>
+      <UButton
+        :color="activeTab === 'documents' ? 'primary' : 'neutral'"
+        :variant="activeTab === 'documents' ? 'solid' : 'soft'"
+        @click="setTab('documents')"
+      >
+        Documents
+      </UButton>
     </div>
 
     <SessionCastForm
@@ -71,6 +78,12 @@
       :on-save="saveTimeline"
     />
 
+    <SessionDocumentsManager
+      v-if="session && !isEditingDetails && activeTab === 'documents' && documentsData"
+      :documents-data="documentsData"
+      :on-refresh="refreshDocumentsData"
+    />
+
     <UCard v-if="!session">
       Chargement...
     </UCard>
@@ -82,6 +95,7 @@ import { onMounted, ref, watch } from 'vue'
 import SessionCastForm from '@/components/SessionCastForm.vue'
 import SessionForm from '@/components/SessionForm.vue'
 import SessionTimelineForm from '@/components/SessionTimelineForm.vue'
+import SessionDocumentsManager from '@/components/SessionDocumentsManager.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -91,7 +105,8 @@ const characters = ref([])
 const locations = ref([])
 const participants = ref([])
 const timelineData = ref(null)
-const activeTab = ref(route.query.tab === 'timeline' ? 'timeline' : 'cast')
+const documentsData = ref(null)
+const activeTab = ref(['timeline', 'documents'].includes(route.query.tab) ? route.query.tab : 'cast')
 const isEditingDetails = ref(route.query.edit === 'details')
 const editableSession = ref(null)
 
@@ -113,13 +128,14 @@ const formatDate = (value) => new Date(value).toLocaleString('fr-FR', {
 })
 
 async function loadData() {
-  const [sessionData, gamesData, charactersData, locationsData, participantsData, timelineSessionData] = await Promise.all([
+  const [sessionData, gamesData, charactersData, locationsData, participantsData, timelineSessionData, sessionDocumentsData] = await Promise.all([
     useApiFetch(`/api/sessions/${route.params.id}`),
     useApiFetch('/api/games'),
     useApiFetch('/api/characters'),
     useApiFetch('/api/locations'),
     useApiFetch('/api/participants'),
-    useApiFetch(`/api/sessions/${route.params.id}/timeline`)
+    useApiFetch(`/api/sessions/${route.params.id}/timeline`),
+    useApiFetch(`/api/sessions/${route.params.id}/documents`)
   ])
 
   session.value = sessionData
@@ -128,6 +144,7 @@ async function loadData() {
   locations.value = locationsData
   participants.value = participantsData
   timelineData.value = timelineSessionData
+  documentsData.value = sessionDocumentsData
   editableSession.value = normalizeSessionForForm(sessionData)
 }
 
@@ -160,6 +177,11 @@ async function saveTimeline(assignments) {
     body: { assignments }
   })
   timelineData.value = await useApiFetch(`/api/sessions/${session.value.id}/timeline`)
+}
+
+async function refreshDocumentsData() {
+  if (!session.value) return
+  documentsData.value = await useApiFetch(`/api/sessions/${session.value.id}/documents`)
 }
 
 function toDatetimeLocal(value) {
@@ -199,7 +221,7 @@ watch(() => route.query.edit, (value) => {
 })
 
 watch(() => route.query.tab, (value) => {
-  activeTab.value = value === 'timeline' ? 'timeline' : 'cast'
+  activeTab.value = ['timeline', 'documents'].includes(value) ? value : 'cast'
 })
 
 function startEditDetails() {
@@ -232,6 +254,7 @@ async function saveDetails() {
   })
   editableSession.value = normalizeSessionForForm(session.value)
   timelineData.value = await useApiFetch(`/api/sessions/${session.value.id}/timeline`)
+  await refreshDocumentsData()
   cancelEditDetails()
 }
 

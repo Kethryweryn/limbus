@@ -45,18 +45,25 @@
                   <span v-if="session.location"> · {{ session.location.name }}</span>
                 </p>
               </div>
-              <div class="flex flex-wrap gap-2">
-                <UBadge :color="statusMeta(session.status).color" variant="subtle" size="xs">
-                  {{ statusMeta(session.status).label }}
-                </UBadge>
-                <UButton v-if="!isOffline" size="xs" color="primary" :to="`/sessions/${session.id}`">
-                  Cast
-                </UButton>
-                <UButton v-if="!isOffline" size="xs" color="primary" variant="soft" :to="`/sessions/${session.id}?tab=timeline`">
-                  Timeline
-                </UButton>
-                <UButton v-if="!isOffline" size="xs" color="primary" @click="startEdit(session)">Modifier</UButton>
-                <UButton v-if="!isOffline" size="xs" color="error" @click="deleteSession(session.id)">Supprimer</UButton>
+              <div class="flex flex-col items-start md:items-end gap-2">
+                <div>
+                  <UBadge :color="statusMeta(session.status).color" variant="subtle" size="xs">
+                    {{ statusMeta(session.status).label }}
+                  </UBadge>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <UButton v-if="!isOffline" size="xs" color="primary" :to="`/sessions/${session.id}`">
+                    Cast
+                  </UButton>
+                  <UButton v-if="!isOffline" size="xs" color="primary" variant="soft" :to="`/sessions/${session.id}?tab=timeline`">
+                    Timeline
+                  </UButton>
+                  <UButton v-if="!isOffline" size="xs" color="primary" variant="soft" :to="`/sessions/${session.id}?tab=documents`">
+                    Documents
+                  </UButton>
+                  <UButton v-if="!isOffline" size="xs" color="primary" @click="startEdit(session)">Organisation</UButton>
+                  <UButton v-if="!isOffline" size="xs" color="error" @click="deleteSession(session.id)">Supprimer</UButton>
+                </div>
               </div>
             </div>
           </template>

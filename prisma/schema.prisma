@@ -49,10 +49,12 @@ model Character {
   factions              Faction[]  @relation("CharacterFactions")
   intrigues             Intrigue[] @relation("CharacterIntrigues")
   documents             Document[]
+  targetedDocuments     Document[] @relation("DocumentCharacters")
   sessionAssignments    SessionAssignment[]
   items                 Item[]      @relation("CharacterItems")
   locatedItems          Item[]      @relation("ItemLocationCharacter")
   timelineEvents        TimelineEvent[] @relation("TimelineEventCharacters")
+  documentDeliveries    SessionDocumentDelivery[]
 }
 
 model Item {
@@ -136,17 +138,22 @@ model TimelineEvent {
 }
 
 model Document {
-  id          String     @id @default(cuid())
+  id          String      @id @default(cuid())
   title       String
   content     String?
+  documentUrl String?
   gameId      String
-  game        Game       @relation(fields: [gameId], references: [id])
-  published   Boolean    @default(true)
+  game        Game        @relation(fields: [gameId], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  published   Boolean     @default(true)
 
   characterId String?
-  character   Character? @relation(fields: [characterId], references: [id])
+  character   Character?  @relation(fields: [characterId], references: [id], onDelete: SetNull)
+  characters  Character[]  @relation("DocumentCharacters")
 
-  factions    Faction[]  @relation("DocumentFactions")
+  factions    Faction[]   @relation("DocumentFactions")
+  deliveries  SessionDocumentDelivery[]
 }
 
 model Session {
@@ -165,6 +172,7 @@ model Session {
   assignments SessionAssignment[]
   participants SessionParticipant[]
   timelineResponsibles TimelineEventResponsible[]
+  documentDeliveries SessionDocumentDelivery[]
 }
 
 model SessionAssignment {
@@ -219,6 +227,27 @@ model Participant {
   assignments SessionAssignment[]
   sessionRoles SessionParticipant[]
   timelineResponsibilities TimelineEventResponsible[]
+  documentDeliveries SessionDocumentDelivery[]
+}
+
+model SessionDocumentDelivery {
+  id            String      @id @default(cuid())
+  sessionId     String
+  participantId String
+  documentId    String?
+  characterId   String?
+  kind          String      @default("document")
+  sentAt        DateTime    @default(now())
+
+  session       Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  document      Document?   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  character     Character?  @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, kind])
+  @@index([participantId])
+  @@index([documentId])
+  @@index([characterId])
 }
 
 model TimelineEventResponsible {
