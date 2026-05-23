@@ -8,15 +8,15 @@ export default defineEventHandler(async (event) => {
 
   const [
     gamesCount,
-    registeredPlayersCount,
-    playersWhoPlayedCount,
-    neverCastPlayersCount,
+    totalParticipantsCount,
+    participantsWhoPlayedCount,
+    neverCastParticipantsCount,
     nextSession,
     games
   ] = await Promise.all([
     prisma.game.count(),
-    prisma.player.count({ where: { gameLinks: { some: {} } } }),
-    prisma.player.count({
+    prisma.participant.count(),
+    prisma.participant.count({
       where: {
         assignments: {
           some: {
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
         }
       }
     }),
-    prisma.player.count({
+    prisma.participant.count({
       where: {
         assignments: { none: {} }
       }
@@ -42,7 +42,11 @@ export default defineEventHandler(async (event) => {
       include: {
         game: true,
         location: true,
-        assignments: true
+        assignments: {
+          include: {
+            character: true
+          }
+        }
       }
     }),
     prisma.game.findMany({
@@ -55,8 +59,9 @@ export default defineEventHandler(async (event) => {
     })
   ])
 
-  const castAssigned = nextSession?.assignments.filter((assignment) => Boolean(assignment.playerId)).length || 0
-  const castTotal = nextSession?.assignments.length || 0
+  const pjAssignments = nextSession?.assignments.filter((assignment) => assignment.character?.type !== 'pnj') || []
+  const castAssigned = pjAssignments.filter((assignment) => Boolean(assignment.participantId)).length
+  const castTotal = pjAssignments.length
 
   return {
     nextSession: nextSession
@@ -85,9 +90,9 @@ export default defineEventHandler(async (event) => {
       : null,
     stats: {
       gamesCount,
-      registeredPlayersCount,
-      playersWhoPlayedCount,
-      neverCastPlayersCount,
+      totalParticipantsCount,
+      participantsWhoPlayedCount,
+      neverCastParticipantsCount,
       sessionsByGame: games.map((game) => ({
         id: game.id,
         title: game.title,

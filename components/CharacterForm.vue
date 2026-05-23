@@ -15,6 +15,16 @@
                 <UInput v-model="localCharacter.name" required autofocus size="lg" class="w-full" />
             </UFormField>
 
+            <UFormField label="Type">
+                <USelect
+                    v-model="localCharacter.type"
+                    :items="characterTypeOptions"
+                    value-key="value"
+                    size="lg"
+                    class="w-full"
+                />
+            </UFormField>
+
             <UFormField v-if="factionOptions.length" label="Groupes">
                 <USelectMenu
                     v-model="localCharacter.factionIds"
@@ -33,7 +43,7 @@
                     :rows="5"
                     size="lg"
                     class="w-full"
-                    placeholder="Texte court envoyé aux joueurs lors de l’attribution du personnage."
+                    placeholder="Texte court envoyé aux participants lors de l’attribution du personnage."
                 />
             </UFormField>
 
@@ -95,6 +105,10 @@ const emit = defineEmits(['submit', 'cancel', 'update:character'])
 const localCharacter = ref({ ...props.character })
 const errors = ref({})
 const serverError = ref('')
+const characterTypeOptions = [
+    { label: 'PJ', value: 'pj' },
+    { label: 'PNJ', value: 'pnj' }
+]
 
 const factionOptions = computed(() =>
     props.factions
@@ -109,6 +123,7 @@ const factionOptions = computed(() =>
 watch(() => props.character, (newVal) => {
     localCharacter.value = {
         ...newVal,
+        type: newVal.type || 'pj',
         factionIds: newVal.factionIds || newVal.factions?.map((faction) => faction.id) || []
     }
     errors.value = {}

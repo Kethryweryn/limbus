@@ -63,16 +63,16 @@
               <div class="text-sm text-gray-500">Jeux</div>
             </div>
             <div>
-              <div class="text-3xl font-bold">{{ dashboardData?.stats.registeredPlayersCount ?? 0 }}</div>
-              <div class="text-sm text-gray-500">Joueurs au total</div>
+              <div class="text-3xl font-bold">{{ dashboardData?.stats.totalParticipantsCount ?? 0 }}</div>
+              <div class="text-sm text-gray-500">Participants au total</div>
             </div>
             <div>
-              <div class="text-3xl font-bold">{{ dashboardData?.stats.playersWhoPlayedCount ?? 0 }}</div>
-              <div class="text-sm text-gray-500">Anciens joueurs</div>
+              <div class="text-3xl font-bold">{{ dashboardData?.stats.participantsWhoPlayedCount ?? 0 }}</div>
+              <div class="text-sm text-gray-500">Anciens participants</div>
             </div>
             <div>
-              <div class="text-3xl font-bold">{{ dashboardData?.stats.neverCastPlayersCount ?? 0 }}</div>
-              <div class="text-sm text-gray-500">Joueurs jamais castés</div>
+              <div class="text-3xl font-bold">{{ dashboardData?.stats.neverCastParticipantsCount ?? 0 }}</div>
+              <div class="text-sm text-gray-500">Participants jamais castés</div>
             </div>
           </div>
 

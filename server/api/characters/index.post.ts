@@ -25,6 +25,7 @@ export default defineEventHandler(async (event) => {
     const newCharacter = await prisma.character.create({
         data: {
             name: body.name,
+            type: body.type,
             slug,
             pitch: body.pitch,
             background: body.background,

@@ -26,10 +26,10 @@
           class="lg:col-span-3"
         />
         <USelect
-          v-model="assignment.playerId"
-          :items="playerOptions"
+          v-model="assignment.participantId"
+          :items="participantOptionsForAssignment(assignment)"
           value-key="value"
-          placeholder="Joueur"
+          placeholder="Participant"
           class="lg:col-span-3"
         />
         <div class="lg:col-span-3 flex items-center gap-3">
@@ -118,7 +118,7 @@ import { computed, ref, watch } from 'vue'
 const props = defineProps({
   session: { type: Object, required: true },
   characters: { type: Array, required: true },
-  players: { type: Array, required: true },
+  participants: { type: Array, required: true },
   onSave: { type: Function, required: true }
 })
 
@@ -133,25 +133,44 @@ const previewPhotoUrl = ref('')
 
 const characterOptions = computed(() => props.characters
   .filter((character) => character.gameId === props.session.gameId)
+  .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'pj' ? -1 : 1))
   .map((character) => ({
-    label: character.name,
+    label: `${character.type === 'pnj' ? 'PNJ' : 'PJ'} - ${character.name}`,
     value: character.id
   })))
 
-const playerOptions = computed(() => [
-  { label: 'Aucun joueur', value: '' },
-  ...props.players
-    .filter((player) => player.games?.some((game) => game.id === props.session.gameId))
-    .map((player) => ({
-      label: player.email ? `${player.name} - ${player.email}` : player.name,
-      value: player.id
+const participantOptions = computed(() => [
+  { label: 'Aucun participant', value: '' },
+  ...props.participants
+    .filter((participant) => participant.games?.some((game) => game.id === props.session.gameId))
+    .map((participant) => ({
+      label: participant.email ? `${participant.name} - ${participant.email}` : participant.name,
+      value: participant.id
     }))
 ])
+
+const pnjCastableIds = computed(() => new Set(
+  props.session.participants
+    ?.filter((participant) => participant.role === 'organizer' || participant.role === 'npc')
+    .map((participant) => participant.participantId || participant.participant?.id)
+    .filter(Boolean) || []
+))
+
+function characterById(characterId) {
+  return props.characters.find((character) => character.id === characterId)
+}
+
+function participantOptionsForAssignment(assignment) {
+  const character = characterById(assignment.characterId)
+  if (character?.type !== 'pnj') return participantOptions.value
+
+  return participantOptions.value.filter((participant) => !participant.value || pnjCastableIds.value.has(participant.value))
+}
 
 watch(() => props.session, (session) => {
   assignments.value = session.assignments?.map((assignment) => ({
     characterId: assignment.characterId || assignment.character?.id || '',
-    playerId: assignment.playerId || assignment.player?.id || '',
+    participantId: assignment.participantId || assignment.participant?.id || '',
     photoUrl: assignment.photoUrl || '',
     notes: assignment.notes || ''
   })) || []
@@ -183,7 +202,7 @@ function openPhotoPreview(photoUrl) {
 function addAssignment() {
   assignments.value.push({
     characterId: '',
-    playerId: '',
+    participantId: '',
     photoUrl: '',
     notes: ''
   })

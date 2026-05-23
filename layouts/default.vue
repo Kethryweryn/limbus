@@ -125,7 +125,7 @@ const navSections = [
         label: 'Organisation',
         icon: 'i-heroicons-calendar-days',
         links: [
-            { label: 'Joueurs', to: '/players', icon: 'i-heroicons-users' },
+            { label: 'Participants', to: '/participants', icon: 'i-heroicons-users' },
             { label: 'Lieux', to: '/locations', icon: 'i-heroicons-map-pin' },
             { label: 'Sessions', to: '/sessions', icon: 'i-heroicons-calendar-days' }
         ]

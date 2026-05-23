@@ -33,7 +33,7 @@
       :games="games"
       :characters="characters"
       :locations="locations"
-      :players="players"
+      :participants="participants"
       mode="edit"
       :show-cast="false"
       @submit="saveDetails"
@@ -44,7 +44,7 @@
       v-else-if="session"
       :session="session"
       :characters="characters"
-      :players="players"
+      :participants="participants"
       :on-save="saveCast"
     />
 
@@ -65,7 +65,7 @@ const session = ref(null)
 const games = ref([])
 const characters = ref([])
 const locations = ref([])
-const players = ref([])
+const participants = ref([])
 const isEditingDetails = ref(route.query.edit === 'details')
 const editableSession = ref(null)
 
@@ -87,19 +87,19 @@ const formatDate = (value) => new Date(value).toLocaleString('fr-FR', {
 })
 
 async function loadData() {
-  const [sessionData, gamesData, charactersData, locationsData, playersData] = await Promise.all([
+  const [sessionData, gamesData, charactersData, locationsData, participantsData] = await Promise.all([
     useApiFetch(`/api/sessions/${route.params.id}`),
     useApiFetch('/api/games'),
     useApiFetch('/api/characters'),
     useApiFetch('/api/locations'),
-    useApiFetch('/api/players')
+    useApiFetch('/api/participants')
   ])
 
   session.value = sessionData
   games.value = gamesData
   characters.value = charactersData
   locations.value = locationsData
-  players.value = playersData
+  participants.value = participantsData
   editableSession.value = normalizeSessionForForm(sessionData)
 }
 
@@ -115,6 +115,10 @@ async function saveCast(assignments) {
       locationId: session.value.locationId || '',
       status: session.value.status || 'scheduled',
       published: session.value.published,
+      participants: session.value.participants?.map((participant) => ({
+        participantId: participant.participantId || participant.participant?.id,
+        role: participant.role
+      })) || [],
       assignments
     }
   })
@@ -132,9 +136,17 @@ function normalizeSessionForForm(value) {
     ...value,
     date: toDatetimeLocal(value.date),
     locationId: value.locationId || '',
+    organizerIds: value.participants
+      ?.filter((participant) => participant.role === 'organizer')
+      .map((participant) => participant.participantId || participant.participant?.id)
+      .filter(Boolean) || [],
+    npcIds: value.participants
+      ?.filter((participant) => participant.role === 'npc')
+      .map((participant) => participant.participantId || participant.participant?.id)
+      .filter(Boolean) || [],
     assignments: value.assignments?.map((assignment) => ({
       characterId: assignment.characterId,
-      playerId: assignment.playerId || '',
+      participantId: assignment.participantId || '',
       photoUrl: assignment.photoUrl || '',
       notes: assignment.notes || ''
     })) || []

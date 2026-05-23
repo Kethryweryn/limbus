@@ -1,13 +1,13 @@
 <template>
   <UCard class="w-full">
     <template #header>
-      {{ mode === 'edit' ? 'Modifier le joueur' : 'Créer un joueur' }}
+      {{ mode === 'edit' ? 'Modifier le participant' : 'Créer un participant' }}
     </template>
 
     <form @submit.prevent="submit" class="w-full space-y-6">
       <UFormField label="Jeux">
         <USelectMenu
-          v-model="localPlayer.gameIds"
+          v-model="localParticipant.gameIds"
           :items="gameOptions"
           value-key="value"
           multiple
@@ -18,19 +18,19 @@
       </UFormField>
 
       <UFormField label="Nom" :error="errors.name">
-        <UInput v-model="localPlayer.name" required size="lg" class="w-full" />
+        <UInput v-model="localParticipant.name" required size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Email">
-        <UInput v-model="localPlayer.email" type="email" size="lg" class="w-full" />
+        <UInput v-model="localParticipant.email" type="email" size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Téléphone">
-        <UInput v-model="localPlayer.phone" size="lg" class="w-full" />
+        <UInput v-model="localParticipant.phone" size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Notes">
-        <UTextarea v-model="localPlayer.notes" :rows="8" size="lg" class="w-full" />
+        <UTextarea v-model="localParticipant.notes" :rows="8" size="lg" class="w-full" />
       </UFormField>
 
       <div class="flex flex-wrap gap-2 pt-2">
@@ -51,14 +51,14 @@
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
-  player: { type: Object, required: true },
+  participant: { type: Object, required: true },
   games: { type: Array, required: true },
   mode: { type: String, default: 'create' }
 })
 
-const emit = defineEmits(['submit', 'cancel', 'update:player'])
+const emit = defineEmits(['submit', 'cancel', 'update:participant'])
 
-const localPlayer = ref({ ...props.player })
+const localParticipant = ref({ ...props.participant })
 const errors = ref({})
 const serverError = ref('')
 
@@ -67,15 +67,15 @@ const gameOptions = computed(() => props.games.map((game) => ({
   value: game.id
 })))
 
-watch(() => props.player, (newPlayer) => {
-  localPlayer.value = { ...newPlayer }
+watch(() => props.participant, (newParticipant) => {
+  localParticipant.value = { ...newParticipant }
   errors.value = {}
   serverError.value = ''
 }, { immediate: true })
 
 function validate() {
   errors.value = {}
-  if (!localPlayer.value.name?.trim()) {
+  if (!localParticipant.value.name?.trim()) {
     errors.value.name = 'Le nom est requis.'
   }
   return Object.keys(errors.value).length === 0
@@ -85,7 +85,7 @@ async function submit() {
   if (!validate()) return
 
   try {
-    emit('update:player', localPlayer.value)
+    emit('update:participant', localParticipant.value)
     await emit('submit')
     serverError.value = ''
   } catch (err) {
@@ -93,3 +93,5 @@ async function submit() {
   }
 }
 </script>
+
+

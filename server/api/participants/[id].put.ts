@@ -1,7 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
-import { playerSchema, readZodBody } from '~/server/utils/schemas'
-import { exposePlayerGames, playerGameLinksInclude } from '~/server/utils/players'
+import { participantSchema, readZodBody } from '~/server/utils/schemas'
+import { exposeParticipantGames, participantGameLinksInclude } from '~/server/utils/participants'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -11,12 +11,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
   }
 
-  const body = await readZodBody(event, playerSchema)
+  const body = await readZodBody(event, participantSchema)
   const { name, email, phone, notes, gameIds, published } = body
   const uniqueGameIds = [...new Set(gameIds)]
 
-  const existingLinks = await prisma.playerGame.findMany({
-    where: { playerId: id },
+  const existingLinks = await prisma.participantGame.findMany({
+    where: { participantId: id },
     select: { gameId: true }
   })
   const existingGameIds = new Set(existingLinks.map((link) => link.gameId))
@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
   const gameIdsToRemove = [...existingGameIds].filter((gameId) => !nextGameIds.has(gameId))
   const gameIdsToAdd = uniqueGameIds.filter((gameId) => !existingGameIds.has(gameId))
 
-  const player = await prisma.player.update({
+  const participant = await prisma.participant.update({
     where: { id },
     data: {
       name,
@@ -38,8 +38,11 @@ export default defineEventHandler(async (event) => {
       },
       published: published ?? true
     },
-    include: playerGameLinksInclude
+    include: participantGameLinksInclude
   })
 
-  return exposePlayerGames(player)
+  return exposeParticipantGames(participant)
 })
+
+
+

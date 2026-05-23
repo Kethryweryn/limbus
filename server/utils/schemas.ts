@@ -7,6 +7,8 @@ const requiredText = (field: string) => z.string().trim().min(1, `${field} is re
 const requiredId = (field: string) => z.string().trim().min(1, `${field} is required`)
 const sessionStatus = z.enum(['scheduled', 'postponed', 'cancelled', 'completed'])
 const intrigueLevel = z.enum(['main_story', 'main_character', 'major', 'minor'])
+const characterType = z.enum(['pj', 'pnj'])
+const sessionParticipantRole = z.enum(['participant', 'organizer', 'npc'])
 
 export async function readZodBody<T>(event: H3Event, schema: ZodType<T>): Promise<T> {
   return await readValidatedBody(event, (body) => {
@@ -47,6 +49,7 @@ export const updateGameSchema = z.object({
 
 export const createCharacterSchema = z.object({
   name: requiredText('Name'),
+  type: characterType.default('pj'),
   pitch: optionalText,
   background: optionalText,
   backgroundDocumentUrl: optionalText,
@@ -57,6 +60,7 @@ export const createCharacterSchema = z.object({
 
 export const updateCharacterSchema = z.object({
   name: requiredText('Name').optional(),
+  type: characterType.optional(),
   pitch: optionalText,
   background: optionalText,
   backgroundDocumentUrl: optionalText,
@@ -88,7 +92,7 @@ export const intrigueSchema = z.object({
   published: optionalBoolean
 })
 
-export const playerSchema = z.object({
+export const participantSchema = z.object({
   name: requiredText('Name'),
   email: optionalText,
   phone: optionalText,
@@ -107,9 +111,14 @@ export const locationSchema = z.object({
 
 export const sessionAssignmentSchema = z.object({
   characterId: requiredId('Character'),
-  playerId: optionalText,
+  participantId: optionalText,
   photoUrl: optionalText,
   notes: optionalText
+})
+
+export const sessionParticipantSchema = z.object({
+  participantId: requiredId('Participant'),
+  role: sessionParticipantRole
 })
 
 export const sessionSchema = z.object({
@@ -119,7 +128,8 @@ export const sessionSchema = z.object({
   locationId: optionalText,
   status: sessionStatus.optional().default('scheduled'),
   published: optionalBoolean,
-  assignments: z.array(sessionAssignmentSchema).optional()
+  assignments: z.array(sessionAssignmentSchema).optional(),
+  participants: z.array(sessionParticipantSchema).optional().default([])
 })
 
 export const loginSchema = z.object({

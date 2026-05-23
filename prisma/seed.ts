@@ -16,6 +16,7 @@ const prisma = new PrismaClient({
 type CharacterSeed = {
   name: string
   pitch: string
+  type?: 'pj' | 'pnj'
 }
 
 type FactionSeed = {
@@ -33,7 +34,7 @@ type IntrigueSeed = {
   factionNames: string[]
 }
 
-type PlayerSeed = {
+type ParticipantSeed = {
   name: string
   email: string
   phone: string
@@ -53,7 +54,7 @@ type GameSeed = {
   characters: CharacterSeed[]
   factions: FactionSeed[]
   intrigues: IntrigueSeed[]
-  players: PlayerSeed[]
+  participants: ParticipantSeed[]
   locations: LocationSeed[]
 }
 
@@ -69,8 +70,8 @@ const games: GameSeed[] = [
       { name: 'Corvin le Noir', pitch: 'Émissaire d’une maison rivale, charmeur et opportuniste.' },
       { name: 'Nora Fiel', pitch: 'Cheffe des artisans, lasse de payer pour les querelles des puissants.' },
       { name: 'Bastian Lorme', pitch: 'Barde itinérant qui en sait trop sur la mort du baron.' },
-      { name: 'Hélène de Briseciel', pitch: 'Diplomate venue négocier une paix impossible.' },
-      { name: 'Toma le Rouge', pitch: 'Ancien contrebandier devenu informateur de la garde.' }
+      { name: 'Hélène de Briseciel', pitch: 'Diplomate venue négocier une paix impossible.', type: 'pnj' },
+      { name: 'Toma le Rouge', pitch: 'Ancien contrebandier devenu informateur de la garde.', type: 'pnj' }
     ],
     factions: [
       {
@@ -110,7 +111,7 @@ const games: GameSeed[] = [
         factionNames: []
       }
     ],
-    players: [
+    participants: [
       { name: 'Camille Bernard', email: 'camille.bernard@example.test', phone: '06 11 22 33 01' },
       { name: 'Lucie Moreau', email: 'lucie.moreau@example.test', phone: '06 11 22 33 02' },
       { name: 'Nicolas Martin', email: 'nicolas.martin@example.test', phone: '06 11 22 33 03' },
@@ -146,8 +147,8 @@ const games: GameSeed[] = [
       { name: 'Eli Chen', pitch: 'Analyste signal, premier à avoir entendu la transmission.' },
       { name: 'Nadia Sol', pitch: 'Représentante du consortium privé financeur de la mission.' },
       { name: 'Jonas Pike', pitch: 'Médecin de bord, inquiet des effets psychologiques du signal.' },
-      { name: 'Rhea Tan', pitch: 'Pilote de navette bloquée à quai depuis la panne orbitale.' },
-      { name: 'Oskar Nilsson', pitch: 'Technicien réseau soupçonné de falsifier les journaux système.' }
+      { name: 'Rhea Tan', pitch: 'Pilote de navette bloquée à quai depuis la panne orbitale.', type: 'pnj' },
+      { name: 'Oskar Nilsson', pitch: 'Technicien réseau soupçonné de falsifier les journaux système.', type: 'pnj' }
     ],
     factions: [
       {
@@ -187,7 +188,7 @@ const games: GameSeed[] = [
         factionNames: []
       }
     ],
-    players: [
+    participants: [
       { name: 'Amandine Blanc', email: 'amandine.blanc@example.test', phone: '06 22 33 44 01' },
       { name: 'Mehdi Laurent', email: 'mehdi.laurent@example.test', phone: '06 22 33 44 02' },
       { name: 'Clara Rousseau', email: 'clara.rousseau@example.test', phone: '06 22 33 44 03' },
@@ -223,8 +224,8 @@ const games: GameSeed[] = [
       { name: 'Valentin Sorel', pitch: 'Faussaire élégant qui prétend être collectionneur.' },
       { name: 'Agathe Lenoir', pitch: 'Duenna redoutable, mémoire vivante des scandales passés.' },
       { name: 'Romain Delmas', pitch: 'Banquier discret qui tient plusieurs invités par leurs dettes.' },
-      { name: 'Mina Salvati', pitch: 'Chanteuse invitée, témoin d’une disparition ancienne.' },
-      { name: 'Gaspard Voss', pitch: 'Majordome impeccable, seul à circuler partout sans être vu.' }
+      { name: 'Mina Salvati', pitch: 'Chanteuse invitée, témoin d’une disparition ancienne.', type: 'pnj' },
+      { name: 'Gaspard Voss', pitch: 'Majordome impeccable, seul à circuler partout sans être vu.', type: 'pnj' }
     ],
     factions: [
       {
@@ -264,7 +265,7 @@ const games: GameSeed[] = [
         factionNames: []
       }
     ],
-    players: [
+    participants: [
       { name: 'Pauline Aubert', email: 'pauline.aubert@example.test', phone: '06 33 44 55 01' },
       { name: 'Maxime Henry', email: 'maxime.henry@example.test', phone: '06 33 44 55 02' },
       { name: 'Chloé Renard', email: 'chloe.renard@example.test', phone: '06 33 44 55 03' },
@@ -298,7 +299,7 @@ function makeSlug(value: string) {
 async function clearBusinessData() {
   await prisma.sessionAssignment.deleteMany()
   await prisma.session.deleteMany()
-  await prisma.player.deleteMany()
+  await prisma.participant.deleteMany()
   await prisma.location.deleteMany()
   await prisma.document.deleteMany()
   await prisma.item.deleteMany()
@@ -324,6 +325,7 @@ async function createGame(seed: GameSeed, gameIndex: number) {
     prisma.character.create({
       data: {
         name: character.name,
+        type: character.type || 'pj',
         slug: makeSlug(`${seed.title}-${character.name}`),
         pitch: character.pitch,
         gameId: game.id,
@@ -381,13 +383,13 @@ async function createGame(seed: GameSeed, gameIndex: number) {
     })
   ))
 
-  const players = await Promise.all(seed.players.map((player) =>
-    prisma.player.create({
+  const participants = await Promise.all(seed.participants.map((participant) =>
+    prisma.participant.create({
       data: {
-        name: player.name,
-        email: player.email,
-        phone: player.phone,
-        notes: player.notes || null,
+        name: participant.name,
+        email: participant.email,
+        phone: participant.phone,
+        notes: participant.notes || null,
         gameLinks: {
           create: [{ gameId: game.id }]
         },
@@ -408,20 +410,20 @@ async function createGame(seed: GameSeed, gameIndex: number) {
     })
   ))
 
-  await createSessions(game.id, seed.title, gameIndex, characters, players, locations)
+  await createSessions(game.id, seed.title, gameIndex, characters, participants, locations)
 
-  console.log(`${seed.title}: ${characters.length} personnages, ${seed.factions.length} groupes, ${seed.intrigues.length} intrigues, ${players.length} joueurs, ${locations.length} lieux, 3 sessions`)
+  console.log(`${seed.title}: ${characters.length} personnages, ${seed.factions.length} groupes, ${seed.intrigues.length} intrigues, ${participants.length} participants, ${locations.length} lieux, 3 sessions`)
 
   return game
 }
 
-async function createCrossGamePlayers(gameIds: string[]) {
-  await prisma.player.create({
+async function createCrossGameParticipants(gameIds: string[]) {
+  await prisma.participant.create({
     data: {
       name: 'Alex Morgan',
       email: 'alex.morgan@example.test',
       phone: '06 44 55 66 01',
-      notes: 'Joueur inscrit sur plusieurs jeux pour tester les filtres.',
+      notes: 'participant inscrit sur plusieurs jeux pour tester les filtres.',
       gameLinks: {
         create: gameIds.slice(0, 2).map((gameId) => ({ gameId }))
       },
@@ -429,7 +431,7 @@ async function createCrossGamePlayers(gameIds: string[]) {
     }
   })
 
-  await prisma.player.create({
+  await prisma.participant.create({
     data: {
       name: 'Morgan Da Silva',
       email: 'morgan.dasilva@example.test',
@@ -447,13 +449,28 @@ async function createSessions(
   gameId: string,
   gameTitle: string,
   gameIndex: number,
-  characters: Array<{ id: string, name: string }>,
-  players: Array<{ id: string, name: string }>,
+  characters: Array<{ id: string, name: string, type: string }>,
+  participants: Array<{ id: string, name: string }>,
   locations: Array<{ id: string, name: string }>
 ) {
   const pastDate = new Date(Date.UTC(2025, 5 + gameIndex, 7, 12, 0, 0))
   const firstDate = new Date(Date.UTC(2026, 8 + gameIndex, 12, 12, 0, 0))
   const secondDate = new Date(Date.UTC(2026, 9 + gameIndex, 3, 12, 0, 0))
+  const sessionParticipantsFor = (assignments: Array<{ character: { type: string }, participantId: string | null }>) => {
+    const roles = new Map<string, string>()
+    for (const assignment of assignments) {
+      if (!assignment.participantId) continue
+      roles.set(assignment.participantId, assignment.character.type === 'pnj' ? 'npc' : 'participant')
+    }
+    return [...roles.entries()].map(([participantId, role]) => ({ participantId, role }))
+  }
+
+  const pastAssignments = characters.map((character, index) => ({
+    character,
+    characterId: character.id,
+    participantId: participants[index]?.id || null,
+    notes: index === 0 ? 'Session passée complète utilisée pour tester les statistiques.' : null
+  }))
 
   await prisma.session.create({
     data: {
@@ -463,15 +480,21 @@ async function createSessions(
       locationId: locations[0]?.id,
       status: 'completed',
       published: true,
+      participants: {
+        create: sessionParticipantsFor(pastAssignments)
+      },
       assignments: {
-        create: characters.map((character, index) => ({
-          characterId: character.id,
-          playerId: players[index]?.id || null,
-          notes: index === 0 ? 'Session passée complète utilisée pour tester les statistiques.' : null
-        }))
+        create: pastAssignments.map(({ character, ...assignment }) => assignment)
       }
     }
   })
+
+  const firstAssignments = characters.slice(0, 6).map((character, index) => ({
+    character,
+    characterId: character.id,
+    participantId: participants[index]?.id || null,
+    notes: index % 3 === 0 ? 'Brief participant à vérifier avant impression.' : null
+  }))
 
   await prisma.session.create({
     data: {
@@ -481,15 +504,21 @@ async function createSessions(
       locationId: locations[0]?.id,
       status: 'scheduled',
       published: true,
+      participants: {
+        create: sessionParticipantsFor(firstAssignments)
+      },
       assignments: {
-        create: characters.slice(0, 6).map((character, index) => ({
-          characterId: character.id,
-          playerId: players[index]?.id || null,
-          notes: index % 3 === 0 ? 'Brief joueur à vérifier avant impression.' : null
-        }))
+        create: firstAssignments.map(({ character, ...assignment }) => assignment)
       }
     }
   })
+
+  const secondAssignments = characters.slice(2, 8).map((character, index) => ({
+    character,
+    characterId: character.id,
+    participantId: participants[index + 3]?.id || null,
+    notes: index === 1 ? 'Photo à reprendre le jour du jeu.' : null
+  }))
 
   await prisma.session.create({
     data: {
@@ -499,12 +528,11 @@ async function createSessions(
       locationId: locations[1]?.id,
       status: 'postponed',
       published: true,
+      participants: {
+        create: sessionParticipantsFor(secondAssignments)
+      },
       assignments: {
-        create: characters.slice(2, 8).map((character, index) => ({
-          characterId: character.id,
-          playerId: players[index + 3]?.id || null,
-          notes: index === 1 ? 'Photo à reprendre le jour du jeu.' : null
-        }))
+        create: secondAssignments.map(({ character, ...assignment }) => assignment)
       }
     }
   })
@@ -520,7 +548,7 @@ async function main() {
     const createdGame = await createGame(game, index)
     createdGameIds.push(createdGame.id)
   }
-  await createCrossGamePlayers(createdGameIds)
+  await createCrossGameParticipants(createdGameIds)
 
   console.log('Seed terminé.')
 }

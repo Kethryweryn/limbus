@@ -1,7 +1,7 @@
 import { openDB } from 'idb'
 
 const DB_NAME = 'limbus-db'
-const STORES = ['dashboard', 'games', 'characters', 'factions', 'intrigues', 'players', 'locations', 'sessions']
+const STORES = ['dashboard', 'games', 'characters', 'factions', 'intrigues', 'participants', 'locations', 'sessions']
 
 let dbPromise: ReturnType<typeof openDB> | null = null
 

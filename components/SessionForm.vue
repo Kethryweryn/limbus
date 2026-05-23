@@ -46,6 +46,34 @@
         />
       </UFormField>
 
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <UFormField label="Organisateurs">
+          <USelectMenu
+            v-model="localSession.organizerIds"
+            :items="sessionParticipantOptions"
+            value-key="value"
+            multiple
+            :disabled="!sessionParticipantOptions.length"
+            placeholder="Sélectionner les organisateurs"
+            size="lg"
+            class="w-full"
+          />
+        </UFormField>
+
+        <UFormField label="PNJ de session">
+          <USelectMenu
+            v-model="localSession.npcIds"
+            :items="sessionParticipantOptions"
+            value-key="value"
+            multiple
+            :disabled="!sessionParticipantOptions.length"
+            placeholder="Sélectionner les PNJ"
+            size="lg"
+            class="w-full"
+          />
+        </UFormField>
+      </div>
+
       <div v-if="showCast" class="space-y-3">
         <div class="flex items-center justify-between">
           <h3 class="font-semibold">Cast</h3>
@@ -67,10 +95,10 @@
             class="md:col-span-3"
           />
           <USelect
-            v-model="assignment.playerId"
-            :items="playerOptions"
+            v-model="assignment.participantId"
+            :items="participantOptionsForAssignment(assignment)"
             value-key="value"
-            placeholder="Joueur"
+            placeholder="Participant"
             class="md:col-span-3"
           />
           <div class="md:col-span-3 flex items-center gap-2">
@@ -117,7 +145,7 @@ const props = defineProps({
   games: { type: Array, required: true },
   characters: { type: Array, required: true },
   locations: { type: Array, required: true },
-  players: { type: Array, required: true },
+  participants: { type: Array, required: true },
   mode: { type: String, default: 'create' },
   showCast: { type: Boolean, default: true }
 })
@@ -142,8 +170,9 @@ const statusOptions = [
 
 const characterOptions = computed(() => props.characters
   .filter((character) => !localSession.value.gameId || character.gameId === localSession.value.gameId)
+  .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'pj' ? -1 : 1))
   .map((character) => ({
-    label: character.name,
+    label: `${character.type === 'pnj' ? 'PNJ' : 'PJ'} - ${character.name}`,
     value: character.id
   })))
 
@@ -157,22 +186,66 @@ const locationOptions = computed(() => [
     }))
 ])
 
-const playerOptions = computed(() => [
-  { label: 'Aucun joueur', value: '' },
-  ...props.players
-    .filter((player) => !localSession.value.gameId || player.games?.some((game) => game.id === localSession.value.gameId))
-    .map((player) => ({
-      label: player.email ? `${player.name} - ${player.email}` : player.name,
-      value: player.id
+const participantOptions = computed(() => [
+  { label: 'Aucun participant', value: '' },
+  ...props.participants
+    .filter((participant) => !localSession.value.gameId || participant.games?.some((game) => game.id === localSession.value.gameId))
+    .map((participant) => ({
+      label: participant.email ? `${participant.name} - ${participant.email}` : participant.name,
+      value: participant.id
     }))
 ])
+
+const sessionParticipantOptions = computed(() => participantOptions.value.filter((participant) => participant.value))
+
+const selectedOrganizerIds = computed(() => new Set(localSession.value.organizerIds || []))
+const selectedNpcIds = computed(() => new Set(localSession.value.npcIds || []))
+const pnjCastableIds = computed(() => new Set([
+  ...selectedOrganizerIds.value,
+  ...selectedNpcIds.value
+]))
+
+function characterById(characterId) {
+  return props.characters.find((character) => character.id === characterId)
+}
+
+function participantOptionsForAssignment(assignment) {
+  const character = characterById(assignment.characterId)
+  if (character?.type !== 'pnj') return participantOptions.value
+
+  return participantOptions.value.filter((participant) => !participant.value || pnjCastableIds.value.has(participant.value))
+}
+
+function sessionRoleIds(session, role) {
+  return session.participants
+    ?.filter((participant) => participant.role === role)
+    .map((participant) => participant.participantId || participant.participant?.id)
+    .filter(Boolean) || []
+}
+
+function sessionParticipantsPayload(session) {
+  const explicitParticipants = [
+    ...(session.organizerIds || []).map((participantId) => ({ participantId, role: 'organizer' })),
+    ...(session.npcIds || []).map((participantId) => ({ participantId, role: 'npc' }))
+  ]
+  const explicitIds = new Set(explicitParticipants.map((participant) => participant.participantId))
+  const castParticipantIds = [...new Set((session.assignments || [])
+    .map((assignment) => assignment.participantId)
+    .filter((participantId) => participantId && !explicitIds.has(participantId)))]
+  const castParticipants = castParticipantIds
+    .map((participantId) => ({ participantId, role: 'participant' }))
+
+  return [...explicitParticipants, ...castParticipants]
+}
 
 watch(() => props.session, (newSession) => {
   localSession.value = {
     ...newSession,
+    organizerIds: newSession.organizerIds || sessionRoleIds(newSession, 'organizer'),
+    npcIds: newSession.npcIds || sessionRoleIds(newSession, 'npc'),
     assignments: newSession.assignments?.map((assignment) => ({
       characterId: assignment.characterId || assignment.character?.id || '',
-      playerId: assignment.playerId || assignment.player?.id || '',
+      participantId: assignment.participantId || assignment.participant?.id || '',
       photoUrl: assignment.photoUrl || '',
       notes: assignment.notes || ''
     })) || []
@@ -187,10 +260,20 @@ watch(() => localSession.value.gameId, () => {
   ) || []
 })
 
+watch([() => localSession.value.organizerIds, () => localSession.value.npcIds], () => {
+  localSession.value.assignments = (localSession.value.assignments || []).map((assignment) => {
+    const character = characterById(assignment.characterId)
+    if (character?.type === 'pnj' && assignment.participantId && !pnjCastableIds.value.has(assignment.participantId)) {
+      return { ...assignment, participantId: '' }
+    }
+    return assignment
+  })
+}, { deep: true })
+
 function addAssignment() {
   localSession.value.assignments.push({
     characterId: '',
-    playerId: '',
+    participantId: '',
     photoUrl: '',
     notes: ''
   })
@@ -217,7 +300,8 @@ async function submit() {
   try {
     emit('update:session', {
       ...localSession.value,
-      assignments: localSession.value.assignments.filter((assignment) => assignment.characterId)
+      assignments: localSession.value.assignments.filter((assignment) => assignment.characterId),
+      participants: sessionParticipantsPayload(localSession.value)
     })
     await emit('submit')
     serverError.value = ''

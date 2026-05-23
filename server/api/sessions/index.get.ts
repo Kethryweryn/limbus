@@ -9,10 +9,15 @@ export default defineEventHandler(async (event) => {
     include: {
       game: true,
       location: true,
+      participants: {
+        include: {
+          participant: true
+        }
+      },
       assignments: {
         include: {
           character: true,
-          player: true
+          participant: true
         },
         orderBy: {
           characterId: 'asc'

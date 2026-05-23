@@ -27,7 +27,7 @@
           :rows="5"
           size="lg"
           class="w-full"
-          placeholder="Texte court présentant le groupe aux joueurs."
+          placeholder="Texte court présentant le groupe aux participants."
         />
       </UFormField>
 
@@ -106,9 +106,9 @@ const gameOptions = computed(() => props.games.map((game) => ({
 const characterOptions = computed(() =>
   props.characters
     .filter((character) => character.gameId === localFaction.value.gameId)
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'pj' ? -1 : 1))
     .map((character) => ({
-      label: character.name,
+      label: `${character.type === 'pnj' ? 'PNJ' : 'PJ'} - ${character.name}`,
       value: character.id
     }))
 )

@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readZodBody(event, updateCharacterSchema)
-  const { name, pitch, background, backgroundDocumentUrl, costumeIndications, gameId, factionIds, published } = body
+  const { name, type, pitch, background, backgroundDocumentUrl, costumeIndications, gameId, factionIds, published } = body
   const existingCharacter = factionIds ? await prisma.character.findUnique({
     where: { id },
     select: { gameId: true }
@@ -34,6 +34,7 @@ export default defineEventHandler(async (event) => {
 
   const data: any = {
     pitch,
+    type,
     background,
     backgroundDocumentUrl,
     costumeIndications,

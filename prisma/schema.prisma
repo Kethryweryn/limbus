@@ -27,12 +27,13 @@ model Game {
   sessions       Session[]
   documents      Document[]
   locations      Location[]
-  playerLinks    PlayerGame[]
+  participantLinks ParticipantGame[]
 }
 
 model Character {
   id                    String     @id @default(cuid())
   name                  String
+  type                  String     @default("pj")
   pitch                 String?
   background            String?
   backgroundDocumentUrl String?
@@ -129,20 +130,33 @@ model Session {
   published   Boolean    @default(true)
 
   assignments SessionAssignment[]
+  participants SessionParticipant[]
 }
 
 model SessionAssignment {
   id          String   @id @default(cuid())
   sessionId   String
   characterId String
-  playerId    String?
+  participantId String?
   photoUrl    String?
   notes       String?
   session     Session  @relation(fields: [sessionId], references: [id])
   character   Character @relation(fields: [characterId], references: [id])
-  player      Player?   @relation(fields: [playerId], references: [id])
+  participant Participant? @relation(fields: [participantId], references: [id])
 
   @@unique([sessionId, characterId])
+}
+
+model SessionParticipant {
+  id            String      @id @default(cuid())
+  sessionId     String
+  participantId String
+  role          String
+  session       Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, participantId, role])
+  @@index([participantId])
 }
 
 model Location {
@@ -159,28 +173,29 @@ model Location {
   sessions    Session[]
 }
 
-model Player {
+model Participant {
   id          String     @id @default(cuid())
   name        String
   email       String?
   phone       String?
   notes       String?
-  gameLinks   PlayerGame[]
+  gameLinks   ParticipantGame[]
   published   Boolean    @default(true)
 
   assignments SessionAssignment[]
+  sessionRoles SessionParticipant[]
 }
 
-model PlayerGame {
+model ParticipantGame {
   id        String   @id @default(cuid())
-  playerId  String
+  participantId String
   gameId    String
   createdAt DateTime @default(now())
 
-  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
   game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
-  @@unique([playerId, gameId])
+  @@unique([participantId, gameId])
   @@index([gameId])
 }
 

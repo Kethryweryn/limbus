@@ -1,6 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
-import { exposePlayerGames, playerGameLinksInclude } from '~/server/utils/players'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -10,14 +9,17 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
   }
 
-  const player = await prisma.player.findUnique({
-    where: { id },
-    include: playerGameLinksInclude
+  await prisma.sessionAssignment.updateMany({
+    where: { participantId: id },
+    data: { participantId: null }
   })
 
-  if (!player) {
-    throw createError({ statusCode: 404, statusMessage: 'Joueur introuvable' })
-  }
+  await prisma.participant.delete({
+    where: { id }
+  })
 
-  return exposePlayerGames(player)
+  return { success: true }
 })
+
+
+

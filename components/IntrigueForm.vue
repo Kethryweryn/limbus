@@ -124,8 +124,11 @@ const gameOptions = computed(() => props.games.map((game) => ({
 const characterOptions = computed(() =>
   props.characters
     .filter((character) => character.gameId === localIntrigue.value.gameId)
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((character) => ({ label: character.name, value: character.id }))
+    .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'pj' ? -1 : 1))
+    .map((character) => ({
+      label: `${character.type === 'pnj' ? 'PNJ' : 'PJ'} - ${character.name}`,
+      value: character.id
+    }))
 )
 
 const factionOptions = computed(() =>

@@ -46,6 +46,9 @@
                                 <UBadge color="neutral" variant="subtle" size="xs" class="max-w-full truncate">
                                     {{ char.game?.title || 'Jeu inconnu' }}
                                 </UBadge>
+                                <UBadge :color="char.type === 'pnj' ? 'warning' : 'success'" variant="subtle" size="xs">
+                                    {{ char.type === 'pnj' ? 'PNJ' : 'PJ' }}
+                                </UBadge>
                                 <UBadge
                                     v-for="faction in char.factions || []"
                                     :key="faction.id"
@@ -270,6 +273,7 @@ const prevCharPage = () => {
 const newCharacter = ref({
     name: '',
     pitch: '',
+    type: 'pj',
     background: '',
     backgroundDocumentUrl: '',
     costumeIndications: '',
@@ -295,6 +299,7 @@ function openCreateSlideover() {
     activeFormCharacter.value = {
         name: '',
         pitch: '',
+        type: 'pj',
         background: '',
         backgroundDocumentUrl: '',
         costumeIndications: '',

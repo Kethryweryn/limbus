@@ -25,7 +25,12 @@
         />
 
         <template v-else>
-            <h1 class="text-3xl font-bold">{{ character.name }}</h1>
+            <div class="space-y-2">
+                <h1 class="text-3xl font-bold">{{ character.name }}</h1>
+                <UBadge :color="character.type === 'pnj' ? 'warning' : 'success'" variant="subtle">
+                    {{ character.type === 'pnj' ? 'PNJ' : 'PJ' }}
+                </UBadge>
+            </div>
 
             <div v-if="character.factions?.length" class="flex flex-wrap gap-2">
                 <UButton

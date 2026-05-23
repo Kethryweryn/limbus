@@ -1,4 +1,4 @@
-type PlayerWithGameLinks = {
+type ParticipantWithGameLinks = {
   gameLinks?: Array<{
     createdAt: Date
     game: {
@@ -15,15 +15,15 @@ type PlayerWithGameLinks = {
   }>
 }
 
-export const playerGameLinksInclude = {
+export const participantGameLinksInclude = {
   gameLinks: {
     orderBy: { createdAt: 'desc' as const },
     include: { game: true }
   }
 }
 
-export function exposePlayerGames<T extends PlayerWithGameLinks>(player: T) {
-  const { gameLinks, ...rest } = player
+export function exposeParticipantGames<T extends ParticipantWithGameLinks>(participant: T) {
+  const { gameLinks, ...rest } = participant
   return {
     ...rest,
     games: gameLinks?.map((link) => ({
@@ -33,6 +33,8 @@ export function exposePlayerGames<T extends PlayerWithGameLinks>(player: T) {
   }
 }
 
-export function exposePlayersGames<T extends PlayerWithGameLinks>(players: T[]) {
-  return players.map(exposePlayerGames)
+export function exposeParticipantsGames<T extends ParticipantWithGameLinks>(participants: T[]) {
+  return participants.map(exposeParticipantGames)
 }
+
+

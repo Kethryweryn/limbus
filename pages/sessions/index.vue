@@ -97,8 +97,8 @@
                   <div class="min-w-0">
                     <div class="font-medium">{{ assignment.character?.name }}</div>
                     <div class="text-gray-600">
-                      {{ assignment.player?.name || 'Joueur non assigné' }}
-                      <span v-if="assignment.player?.email"> · {{ assignment.player.email }}</span>
+                      {{ assignment.participant?.name || 'Participant non assigné' }}
+                      <span v-if="assignment.participant?.email"> · {{ assignment.participant.email }}</span>
                     </div>
                   </div>
                 </div>
@@ -135,7 +135,7 @@
         :games="games"
         :characters="characters"
         :locations="locations"
-        :players="players"
+        :participants="participants"
         :mode="formMode"
         :show-cast="false"
         @submit="handleSessionFormSubmit"
@@ -171,7 +171,7 @@ const sessions = ref([])
 const games = ref([])
 const characters = ref([])
 const locations = ref([])
-const players = ref([])
+const participants = ref([])
 const searchQuery = ref('')
 const gameFilter = ref('all')
 const periodFilter = ref('future')
@@ -341,19 +341,19 @@ const fetchLocations = async () => {
   await saveToStore('locations', 'list', data)
 }
 
-const fetchPlayers = async () => {
+const fetchParticipants = async () => {
   if (isOfflineMode()) {
-    players.value = await getFromStore('players', 'list') || []
+    participants.value = await getFromStore('participants', 'list') || []
     return
   }
 
-  const data = await useApiFetch('/api/players')
-  players.value = data
-  await saveToStore('players', 'list', data)
+  const data = await useApiFetch('/api/participants')
+  participants.value = data
+  await saveToStore('participants', 'list', data)
 }
 
 const refreshData = async () => {
-  await Promise.all([fetchSessions(), fetchGames(), fetchCharacters(), fetchLocations(), fetchPlayers()])
+  await Promise.all([fetchSessions(), fetchGames(), fetchCharacters(), fetchLocations(), fetchParticipants()])
 }
 
 const updateStatus = () => {
@@ -398,9 +398,17 @@ function normalizeSessionForForm(session) {
     ...session,
     date: toDatetimeLocal(session.date),
     locationId: session.locationId || '',
+    organizerIds: session.participants
+      ?.filter((participant) => participant.role === 'organizer')
+      .map((participant) => participant.participantId || participant.participant?.id)
+      .filter(Boolean) || [],
+    npcIds: session.participants
+      ?.filter((participant) => participant.role === 'npc')
+      .map((participant) => participant.participantId || participant.participant?.id)
+      .filter(Boolean) || [],
     assignments: session.assignments?.map((assignment) => ({
       characterId: assignment.characterId,
-      playerId: assignment.playerId || '',
+      participantId: assignment.participantId || '',
       photoUrl: assignment.photoUrl || '',
       notes: assignment.notes || ''
     })) || []
@@ -417,6 +425,9 @@ function startCreate() {
     locationId: '',
     status: 'scheduled',
     published: true,
+    organizerIds: [],
+    npcIds: [],
+    participants: [],
     assignments: []
   }
   formMode.value = 'create'
