@@ -12,7 +12,7 @@ type CharacterLike = {
   trombinoscopePhotoUrl?: string | null
   trombinoscopeNote?: string | null
   trombinoscopeDisplayName?: string | null
-  factions?: Array<{ id: string, name: string }>
+  factions?: Array<{ id: string, name: string, showInTrombinoscope?: boolean | null }>
 }
 
 type TrombinoscopeRow = {
@@ -205,9 +205,12 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
         if (!config.included || target.excludeFromTrombinoscope) return null
 
         const targetAssignment = castByCharacterId.get(target.id)
-        const photoUrl = toPublicUrl(target.trombinoscopePhotoUrl || targetAssignment?.photoUrl || '', publicBaseUrl)
+        const sourcePhotoUrl = target.trombinoscopePhotoUrl || targetAssignment?.photoUrl || ''
+        const photoUrl = sourcePhotoUrl.startsWith('/api/uploads/session-assignment-photos/')
+          ? sourcePhotoUrl
+          : toPublicUrl(sourcePhotoUrl, publicBaseUrl)
         const hidePhoto = target.trombinoscopeFaceHidden || !config.faceKnown
-        const missingPhoto = !hidePhoto && !photoUrl
+        const missingPhoto = !hidePhoto && !sourcePhotoUrl
         if (missingPhoto) missingPhotosCount++
 
         return {
@@ -297,16 +300,15 @@ function renderTrombinoscopeHtml({
     const image = entry.hidePhoto || entry.missingPhoto
       ? '<div class="unknown">?</div>'
       : `<img src="${escapeHtml(entry.photoUrl)}" alt="">`
-    const tags = [
-      entry.target.type === 'pnj' ? 'PNJ' : 'PJ',
-      ...(entry.target.factions || []).map((faction) => faction.name)
-    ]
+    const tags = (entry.target.factions || [])
+      .filter((faction) => faction.showInTrombinoscope)
+      .map((faction) => faction.name)
 
     return `
       <article class="card">
         <div class="photo">${image}</div>
         <h2>${escapeHtml(entry.displayName)}</h2>
-        <div class="tags">${tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join('')}</div>
+        ${tags.length ? `<div class="tags">${tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join('')}</div>` : ''}
         ${entry.note ? `<p>${escapeHtml(entry.note)}</p>` : ''}
       </article>
     `
@@ -446,17 +448,19 @@ async function renderTrombinoscopePdf({
       maxLines: 2
     })
 
-    const tagText = [
-      entry.target.type === 'pnj' ? 'PNJ' : 'PJ',
-      ...(entry.target.factions || []).map((faction) => faction.name)
-    ].join(' · ')
-    textY = drawWrappedText(page, tagText, x + 10, textY - 4, cardWidth - 20, {
-      font: regularFont,
-      size: 8,
-      lineHeight: 10,
-      color: rgb(0.39, 0.45, 0.55),
-      maxLines: 2
-    })
+    const tagText = (entry.target.factions || [])
+      .filter((faction) => faction.showInTrombinoscope)
+      .map((faction) => faction.name)
+      .join(' · ')
+    if (tagText) {
+      textY = drawWrappedText(page, tagText, x + 10, textY - 4, cardWidth - 20, {
+        font: regularFont,
+        size: 8,
+        lineHeight: 10,
+        color: rgb(0.39, 0.45, 0.55),
+        maxLines: 2
+      })
+    }
 
     if (entry.note) {
       drawWrappedText(page, entry.note, x + 10, textY - 6, cardWidth - 20, {

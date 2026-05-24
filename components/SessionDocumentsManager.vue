@@ -6,14 +6,6 @@
           <h2 class="font-semibold">Documents de session</h2>
           <p class="text-sm text-gray-500">{{ documents.length }} document(s)</p>
         </div>
-        <div class="flex flex-wrap gap-2">
-          <UButton color="neutral" variant="soft" :loading="generatingTrombinoscopes" @click="generateTrombinoscopes">
-            Générer les trombinoscopes
-          </UButton>
-          <UButton color="primary" :loading="sendingBundle" :disabled="sendingBundle || !bundleReadySheets.length" @click="sendCharacterSheetsAndTrombinoscopes">
-            Envoyer fiches et trombis
-          </UButton>
-        </div>
       </div>
     </template>
 
@@ -155,17 +147,22 @@
               {{ sheet.hasExternalDocument ? 'Document externe lié à la fiche.' : 'Document généré depuis le background.' }}
             </p>
             <div class="mt-2 flex flex-wrap items-center gap-2">
-              <UButton
+              <a
                 v-if="sheet.trombinoscopeUrl"
-                :to="sheet.trombinoscopeUrl"
+                :href="sheet.trombinoscopeUrl"
                 target="_blank"
-                color="neutral"
-                variant="soft"
-                size="xs"
-                icon="i-heroicons-arrow-down-tray"
+                rel="noopener noreferrer"
               >
-                Télécharger le PDF
-              </UButton>
+                <UButton
+                  type="button"
+                  color="neutral"
+                  variant="soft"
+                  size="xs"
+                  icon="i-heroicons-eye"
+                >
+                  Vérifier le PDF
+                </UButton>
+              </a>
               <UBadge v-if="sheet.trombinoscopeMissingPhotos" color="warning" variant="subtle" size="xs">
                 {{ sheet.trombinoscopeMissingPhotos }} photo(s) manquante(s)
               </UBadge>
@@ -218,7 +215,7 @@ const bundleReadySheets = computed(() => characterSheets.value.filter((sheet) =>
 const sentCharacterSheets = computed(() => characterSheets.value.filter((sheet) => sheet.sentAt))
 const sentTrombinoscopes = computed(() => characterSheets.value.filter((sheet) => sheet.trombinoscopeSentAt))
 const missingTrombinoscopePhotos = computed(() =>
-  characterSheets.value.reduce((total, sheet) => total + (sheet.trombinoscopeMissingPhotos || 0), 0)
+  Math.max(0, ...characterSheets.value.map((sheet) => sheet.trombinoscopeMissingPhotos || 0))
 )
 
 const sentRecipients = (document) => document.recipients.filter((recipient) => recipient.sentAt)

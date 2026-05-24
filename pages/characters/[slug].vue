@@ -209,8 +209,8 @@
                             class="rounded-lg border border-gray-200 bg-white p-4"
                         >
                             <div class="flex flex-col gap-3">
-                                <div class="flex flex-wrap items-start justify-between gap-3">
-                                    <div class="min-w-0">
+                                <div class="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto] lg:items-start">
+                                    <div class="min-w-0 space-y-2">
                                         <div class="flex flex-wrap items-center gap-2">
                                             <h3 class="font-semibold">{{ entry.character.name }}</h3>
                                             <UBadge color="warning" variant="subtle" size="xs">
@@ -230,22 +230,24 @@
                                             </UBadge>
                                         </div>
                                     </div>
-                                    <UCheckbox
-                                        v-model="entry.included"
-                                        label="Inclure"
-                                        :disabled="entry.character.excludeFromTrombinoscope"
-                                    />
+                                    <div class="flex flex-wrap gap-4 lg:justify-end">
+                                        <UCheckbox
+                                            v-model="entry.included"
+                                            label="Inclure"
+                                            :disabled="entry.character.excludeFromTrombinoscope"
+                                        />
+                                        <UCheckbox
+                                            v-model="entry.faceKnown"
+                                            label="Visage connu"
+                                            :disabled="!entry.included || entry.character.trombinoscopeFaceHidden"
+                                        />
+                                    </div>
                                 </div>
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div class="grid grid-cols-1 gap-3">
                                     <UFormField label="Nom affiché">
                                         <UInput v-model="entry.displayName" :disabled="!entry.included" class="w-full" />
                                     </UFormField>
-                                    <UCheckbox
-                                        v-model="entry.faceKnown"
-                                        label="Visage connu"
-                                        :disabled="!entry.included || entry.character.trombinoscopeFaceHidden"
-                                    />
                                 </div>
 
                                 <UFormField label="Note personnalisée">

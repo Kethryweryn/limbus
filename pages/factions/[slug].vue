@@ -4,14 +4,23 @@
       <UButton to="/factions" icon="i-heroicons-arrow-left" color="neutral" variant="ghost">
         Groupes
       </UButton>
-      <UButton
-        v-if="!isEditing"
-        icon="i-heroicons-pencil-square"
-        color="primary"
-        @click="startEdit"
-      >
-        Modifier
-      </UButton>
+      <div v-if="!isEditing" class="flex flex-wrap gap-2">
+        <UButton
+          icon="i-heroicons-identification"
+          color="neutral"
+          variant="soft"
+          @click="showTrombinoscopeModal = true"
+        >
+          Trombinoscope
+        </UButton>
+        <UButton
+          icon="i-heroicons-pencil-square"
+          color="primary"
+          @click="startEdit"
+        >
+          Modifier
+        </UButton>
+      </div>
     </div>
 
     <FactionForm
@@ -158,6 +167,26 @@
         </form>
       </template>
     </UModal>
+
+    <UModal v-model:open="showTrombinoscopeModal" title="Trombinoscope du groupe">
+      <template #body>
+        <form class="space-y-4" @submit.prevent="saveFactionTrombinoscopeOptions">
+          <UCheckbox
+            v-model="trombinoscopeOptions.showInTrombinoscope"
+            label="Afficher le nom du groupe dans les trombinoscopes"
+            description="Désactivé par défaut pour ne pas révéler les appartenances de groupe."
+          />
+          <div class="flex flex-wrap gap-2">
+            <UButton type="submit" color="primary">
+              Enregistrer
+            </UButton>
+            <UButton type="button" color="neutral" variant="soft" @click="showTrombinoscopeModal = false">
+              Annuler
+            </UButton>
+          </div>
+        </form>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -178,6 +207,10 @@ if (error.value) {
 const isEditing = ref(route.query.edit === '1')
 const editableFaction = ref(faction.value ? factionFormPayload(faction.value) : null)
 const showIntrigueModal = ref(false)
+const showTrombinoscopeModal = ref(false)
+const trombinoscopeOptions = ref({
+  showInTrombinoscope: Boolean(faction.value?.showInTrombinoscope)
+})
 const selectedIntrigueIds = ref(faction.value?.intrigues?.map((intrigue) => intrigue.id) || [])
 
 const availableIntrigues = computed(() =>
@@ -202,6 +235,10 @@ watch(() => route.query.edit, (value) => {
 
 watch(() => faction.value?.intrigues, (value) => {
   selectedIntrigueIds.value = value?.map((intrigue) => intrigue.id) || []
+})
+
+watch(() => faction.value?.showInTrombinoscope, (value) => {
+  trombinoscopeOptions.value.showInTrombinoscope = Boolean(value)
 })
 
 function factionFormPayload(value) {
@@ -278,5 +315,21 @@ async function saveFactionIntrigues() {
 
   showIntrigueModal.value = false
   await Promise.all([refresh(), refreshIntrigues()])
+}
+
+async function saveFactionTrombinoscopeOptions() {
+  if (!faction.value?.id) return
+
+  const updatedFaction = await useApiFetch(`/api/factions/${faction.value.id}`, {
+    method: 'PUT',
+    body: {
+      ...factionFormPayload(faction.value),
+      showInTrombinoscope: Boolean(trombinoscopeOptions.value.showInTrombinoscope)
+    }
+  })
+
+  faction.value = updatedFaction
+  showTrombinoscopeModal.value = false
+  await refresh()
 }
 </script>

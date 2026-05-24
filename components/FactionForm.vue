@@ -55,6 +55,12 @@
         <UTextarea v-model="localFaction.costumeIndications" :rows="5" size="lg" class="w-full" />
       </UFormField>
 
+      <UCheckbox
+        v-model="localFaction.showInTrombinoscope"
+        label="Afficher le nom du groupe dans les trombinoscopes"
+        description="Désactivé par défaut pour ne pas révéler les appartenances de groupe."
+      />
+
       <UFormField label="Personnages">
         <USelectMenu
           v-model="localFaction.characterIds"
@@ -116,6 +122,7 @@ const characterOptions = computed(() =>
 watch(() => props.faction, (newFaction) => {
   localFaction.value = {
     ...newFaction,
+    showInTrombinoscope: Boolean(newFaction.showInTrombinoscope),
     characterIds: newFaction.characterIds || newFaction.characters?.map((character) => character.id) || []
   }
   errors.value = {}

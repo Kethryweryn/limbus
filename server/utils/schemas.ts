@@ -90,6 +90,7 @@ export const factionSchema = z.object({
   background: optionalText,
   backgroundDocumentUrl: optionalText,
   costumeIndications: optionalText,
+  showInTrombinoscope: optionalBoolean,
   gameId: requiredId('Game'),
   characterIds: z.array(requiredId('Character')).optional().default([]),
   published: optionalBoolean

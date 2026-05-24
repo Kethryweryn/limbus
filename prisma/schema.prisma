@@ -110,6 +110,7 @@ model Faction {
   background            String?
   backgroundDocumentUrl String?
   costumeIndications    String?
+  showInTrombinoscope   Boolean    @default(false)
   slug                  String     @unique
   gameId                String
   game                  Game       @relation(fields: [gameId], references: [id])

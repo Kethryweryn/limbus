@@ -30,6 +30,7 @@ export default defineEventHandler(async (event) => {
       background: body.background,
       backgroundDocumentUrl: body.backgroundDocumentUrl,
       costumeIndications: body.costumeIndications,
+      showInTrombinoscope: body.showInTrombinoscope ?? false,
       gameId: body.gameId,
       published: body.published ?? true,
       characters: {

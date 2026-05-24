@@ -76,8 +76,14 @@
               </div>
             </div>
             <div>
-              <span class="text-gray-500">Cast assigné</span>
-              <div class="font-medium">{{ session.assignments?.length || 0 }} personnage(s)</div>
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <span class="text-gray-500">Cast assigné</span>
+                <span class="font-medium">
+                  {{ assignedCastCount(session) }}/{{ totalCastCount(session) }} rôle(s)
+                  <span class="text-gray-500">({{ castPercent(session) }}%)</span>
+                </span>
+              </div>
+              <UProgress :model-value="castPercent(session)" />
             </div>
           </div>
 
@@ -300,6 +306,15 @@ const formatDate = (value) => new Date(value).toLocaleString('fr-FR', {
 
 const formatLocation = (location) => {
   return location.address ? `${location.name} - ${location.address}` : location.name
+}
+
+const totalCastCount = (session) => session.assignments?.length || 0
+const assignedCastCount = (session) =>
+  (session.assignments || []).filter((assignment) => assignment.participantId || assignment.participant?.id).length
+const castPercent = (session) => {
+  const total = totalCastCount(session)
+  if (!total) return 0
+  return Math.round((assignedCastCount(session) / total) * 100)
 }
 
 function openPhotoPreview(photoUrl) {
