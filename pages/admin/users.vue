@@ -12,15 +12,15 @@
         <h2 class="font-semibold">Créer un utilisateur</h2>
       </template>
 
-      <form class="grid grid-cols-1 lg:grid-cols-5 gap-3 items-end" @submit.prevent="createUser">
+      <form class="grid grid-cols-1 lg:grid-cols-5 gap-3 items-end" autocomplete="off" @submit.prevent="createUser">
         <UFormField label="Nom">
-          <UInput v-model="newUser.name" required />
+          <UInput v-model="newUser.name" required autocomplete="off" name="new-user-display-name" />
         </UFormField>
         <UFormField label="Email">
-          <UInput v-model="newUser.email" type="email" required />
+          <UInput v-model="newUser.email" type="email" required autocomplete="off" name="new-user-contact-email" />
         </UFormField>
         <UFormField label="Mot de passe">
-          <UInput v-model="newUser.password" type="password" required />
+          <UInput v-model="newUser.password" type="password" required autocomplete="new-password" name="new-user-initial-password" />
         </UFormField>
         <UFormField label="Rôle">
           <USelect v-model="newUser.role" :items="USER_ROLE_OPTIONS" value-key="value" />
@@ -48,16 +48,22 @@
         <div class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <UFormField label="Nom">
-              <UInput v-model="user.name" />
+              <UInput v-model="user.name" autocomplete="off" :name="`managed-user-name-${user.id}`" />
             </UFormField>
             <UFormField label="Email">
-              <UInput v-model="user.email" type="email" />
+              <UInput v-model="user.email" type="email" autocomplete="off" :name="`managed-user-email-${user.id}`" />
             </UFormField>
             <UFormField label="Rôle">
               <USelect v-model="user.role" :items="USER_ROLE_OPTIONS" value-key="value" />
             </UFormField>
             <UFormField label="Nouveau mot de passe">
-              <UInput v-model="user.password" type="password" placeholder="Laisser vide pour ne pas changer" />
+              <UInput
+                v-model="user.password"
+                type="password"
+                placeholder="Laisser vide pour ne pas changer"
+                autocomplete="new-password"
+                :name="`managed-user-new-password-${user.id}`"
+              />
             </UFormField>
           </div>
 
