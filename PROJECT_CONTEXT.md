@@ -69,3 +69,17 @@ Les lectures API par slug sont explicites pour eviter toute ambiguite entre `id`
 - `GET /api/characters/slug/:slug`
 
 Les fichiers dans `server/api` doivent utiliser les suffixes de methode Nuxt/Nitro (`.get.ts`, `.post.ts`, `.put.ts`, `.delete.ts`) plutot que des chemins comme `/put` ou `/delete`.
+
+## Conventions UI
+
+Le projet utilise Nuxt UI v4. Pour `UModal`, le contenu affiche dans la fenetre modale doit etre place dans le slot `#body` :
+
+```vue
+<UModal v-model:open="open" title="Titre">
+  <template #body>
+    <!-- contenu de la modale -->
+  </template>
+</UModal>
+```
+
+Ne pas mettre directement le contenu enfant sous `UModal`, sinon il peut etre rendu dans la page au lieu de s'afficher dans la modale.
