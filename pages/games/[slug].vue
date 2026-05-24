@@ -85,13 +85,17 @@
                             Inviter
                         </UButton>
                     </form>
-
                     <UAlert
-                        v-if="lastInvitationUrl"
-                        :color="lastInvitationMailSent ? 'success' : 'warning'"
+                        v-if="shareMessage"
+                        color="success"
                         variant="soft"
-                        :title="lastInvitationMailSent ? 'Invitation envoyée' : 'Invitation créée'"
-                        :description="lastInvitationUrl"
+                        :description="shareMessage"
+                    />
+                    <UAlert
+                        v-if="shareError"
+                        color="error"
+                        variant="soft"
+                        :description="shareError"
                     />
 
                     <div class="space-y-2">
@@ -133,7 +137,6 @@
                         </div>
                         <p v-if="!invitations.length" class="text-sm text-gray-500">Aucune invitation.</p>
                     </div>
-                    <p v-if="shareError" class="text-sm text-red-500">{{ shareError }}</p>
                 </div>
             </template>
         </UModal>
@@ -166,8 +169,7 @@ const shares = ref([])
 const invitations = ref([])
 const inviteEmail = ref('')
 const inviting = ref(false)
-const lastInvitationUrl = ref('')
-const lastInvitationMailSent = ref(false)
+const shareMessage = ref('')
 const shareError = ref('')
 const canManageShares = computed(() =>
     Boolean(game.value?.id)
@@ -244,15 +246,20 @@ async function inviteUser() {
     if (!game.value?.id || !inviteEmail.value) return
 
     inviting.value = true
+    shareMessage.value = ''
+    shareError.value = ''
     try {
         const invitation = await useApiFetch(`/api/games/${game.value.id}/invitations`, {
             method: 'POST',
             body: { email: inviteEmail.value }
         })
-        lastInvitationUrl.value = invitation.invitationUrl || ''
-        lastInvitationMailSent.value = Boolean(invitation.emailDelivery?.sent)
         inviteEmail.value = ''
         await refreshShares()
+        if (invitation.emailDelivery?.sent) {
+            shareMessage.value = `Invitation envoyée à ${invitation.email}.`
+        } else {
+            shareError.value = `Invitation créée, mais email non envoyé : ${invitation.emailDelivery?.reason || 'raison inconnue'}.`
+        }
     } catch (err) {
         shareError.value = err?.data?.message || err?.message || 'Impossible de créer l’invitation'
     } finally {
@@ -264,6 +271,8 @@ async function removeShare(userId) {
     if (!game.value?.id || !userId) return
 
     try {
+        shareMessage.value = ''
+        shareError.value = ''
         await useApiFetch(`/api/games/${game.value.id}/shares/${userId}`, { method: 'DELETE' })
         await refreshShares()
     } catch (err) {
@@ -275,6 +284,8 @@ async function revokeInvitation(invitationId) {
     if (!game.value?.id || !invitationId) return
 
     try {
+        shareMessage.value = ''
+        shareError.value = ''
         await useApiFetch(`/api/games/${game.value.id}/invitations/${invitationId}`, { method: 'DELETE' })
         await refreshShares()
     } catch (err) {

@@ -78,6 +78,12 @@ export default defineEventHandler(async (event) => {
       url
     })
   } catch (error: any) {
+    console.warn('Game invitation email failed', {
+      gameId: id,
+      invitationId: invitation.id,
+      email: invitation.email,
+      error: error?.statusMessage || error?.message || 'smtp_error'
+    })
     emailDelivery = {
       sent: false,
       reason: error?.statusMessage || error?.message || 'smtp_error'

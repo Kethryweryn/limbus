@@ -1,7 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { requireGameOwner } from '~/server/utils/gameAccess'
-import { GAME_INVITATION_STATUSES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -13,14 +12,10 @@ export default defineEventHandler(async (event) => {
   }
   await requireGameOwner(event, id)
 
-  await prisma.gameInvitation.updateMany({
+  await prisma.gameInvitation.deleteMany({
     where: {
       id: invitationId,
-      gameId: id,
-      status: GAME_INVITATION_STATUSES.pending
-    },
-    data: {
-      status: GAME_INVITATION_STATUSES.revoked
+      gameId: id
     }
   })
 
