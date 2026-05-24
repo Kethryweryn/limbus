@@ -21,8 +21,9 @@ const login = async () => {
             body: { email: email.value, password: password.value }
         })
 
-        if (window.location.pathname === '/logout') {
-            window.location.href = '/'
+        const currentPath = window.location.pathname.replace(/\/+$/, '') || '/'
+        if (currentPath === '/logout') {
+            window.location.replace('/')
         } else {
             window.location.reload()
         }
