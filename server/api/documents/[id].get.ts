@@ -1,5 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
+import { gameScopedWhere } from '~/server/utils/gameAccess'
 import { documentInclude } from '~/server/utils/documents'
 
 export default defineEventHandler(async (event) => {
@@ -10,8 +11,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
   }
 
-  const document = await prisma.document.findUnique({
-    where: { id },
+  const document = await prisma.document.findFirst({
+    where: await gameScopedWhere(event, { id }),
     include: documentInclude
   })
 

@@ -15,6 +15,8 @@ model Game {
   noteIntention  String?
   teaserUrl      String?
   slug           String     @unique
+  ownerId        String?
+  owner          User?      @relation("OwnedGames", fields: [ownerId], references: [id], onDelete: SetNull)
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   published      Boolean    @default(true)
@@ -29,6 +31,9 @@ model Game {
   documents      Document[]
   locations      Location[]
   participantLinks ParticipantGame[]
+  shares         GameShare[]
+
+  @@index([ownerId])
 }
 
 model Character {
@@ -329,9 +334,28 @@ model ParticipantGame {
 }
 
 model User {
-  id       String @id @default(cuid())
-  email    String @unique
-  name     String
-  password String
-  role     String
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("organizer")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ownedGames Game[] @relation("OwnedGames")
+  gameShares GameShare[]
+}
+
+model GameShare {
+  id        String   @id @default(cuid())
+  gameId    String
+  userId    String
+  role      String   @default("organizer")
+  createdAt DateTime @default(now())
+
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, userId])
+  @@index([userId])
 }

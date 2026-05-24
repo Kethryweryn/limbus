@@ -1,11 +1,18 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
+import { canAccessAllGames, accessibleGameWhere } from '~/server/utils/gameAccess'
 
 export default defineEventHandler(async (event) => {
     requireOrganizer(event)
+    const { user, allGames } = await canAccessAllGames(event)
 
     const games = await prisma.game.findMany({
+        where: accessibleGameWhere(user.id, allGames),
         include: {
+            owner: { select: { id: true, name: true, email: true } },
+            shares: {
+                include: { user: { select: { id: true, name: true, email: true, role: true } } }
+            },
             characters: { select: { updatedAt: true } },
             factions: { select: { updatedAt: true } },
             intrigues: { select: { updatedAt: true } },
@@ -37,6 +44,9 @@ export default defineEventHandler(async (event) => {
                 updatedAt: game.updatedAt,
                 published: game.published,
                 publicPage: game.publicPage,
+                ownerId: game.ownerId,
+                owner: game.owner,
+                shares: game.shares,
                 lastActivityAt
             }
         })

@@ -88,3 +88,17 @@ export const VIRTUAL_CHARACTER_GROUP_OPTIONS = [
   { label: 'Tous les PNJs', value: VIRTUAL_CHARACTER_GROUPS.allPnj },
   { label: 'Tous les participants', value: VIRTUAL_CHARACTER_GROUPS.allCharacters }
 ]
+
+export const USER_ROLES = {
+  admin: 'admin',
+  organizer: 'organizer'
+} as const
+
+export const USER_ROLE_OPTIONS = [
+  { label: 'Administrateur', value: USER_ROLES.admin },
+  { label: 'Organisateur', value: USER_ROLES.organizer }
+]
+
+export const GAME_SHARE_ROLES = {
+  organizer: 'organizer'
+} as const

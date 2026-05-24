@@ -2,6 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { readZodBody, updateGameSchema } from '~/server/utils/schemas'
+import { requireGameAccess } from '~/server/utils/gameAccess'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -10,6 +11,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
   }
+  await requireGameAccess(event, id)
 
   const body = await readZodBody(event, updateGameSchema)
   const { title, description, teaserUrl, noteIntention, published, publicPage } = body

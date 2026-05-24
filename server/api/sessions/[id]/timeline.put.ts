@@ -1,6 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { readZodBody, sessionTimelineSchema } from '~/server/utils/schemas'
+import { requireGameAccess } from '~/server/utils/gameAccess'
 import { SESSION_ROLES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
@@ -22,6 +23,7 @@ export default defineEventHandler(async (event) => {
   if (!session) {
     throw createError({ statusCode: 404, statusMessage: 'Session introuvable' })
   }
+  await requireGameAccess(event, session.gameId)
 
   const timelineEventIds = [...new Set(body.assignments.map((assignment) => assignment.timelineEventId))]
   if (timelineEventIds.length) {

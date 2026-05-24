@@ -1,6 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
+import { requireGameAccess } from '~/server/utils/gameAccess'
 import { readZodBody, updateCharacterSchema } from '~/server/utils/schemas'
 
 export default defineEventHandler(async (event) => {
@@ -10,6 +11,15 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
   }
+
+  const existingCharacter = await prisma.character.findUnique({
+    where: { id },
+    select: { gameId: true }
+  })
+  if (!existingCharacter) {
+    throw createError({ statusCode: 404, statusMessage: 'Personnage introuvable' })
+  }
+  await requireGameAccess(event, existingCharacter.gameId)
 
   const body = await readZodBody(event, updateCharacterSchema)
   const {
@@ -29,12 +39,10 @@ export default defineEventHandler(async (event) => {
     factionIds,
     published
   } = body
-  const existingCharacter = factionIds ? await prisma.character.findUnique({
-    where: { id },
-    select: { gameId: true }
-  }) : null
-
   const targetGameId = gameId || existingCharacter?.gameId
+  if (gameId && gameId !== existingCharacter.gameId) {
+    await requireGameAccess(event, gameId)
+  }
   if (factionIds && targetGameId) {
     const matchingFactions = await prisma.faction.count({
       where: {

@@ -2,11 +2,13 @@ import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { factionSchema, readZodBody } from '~/server/utils/schemas'
+import { requireGameAccess } from '~/server/utils/gameAccess'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
 
   const body = await readZodBody(event, factionSchema)
+  await requireGameAccess(event, body.gameId)
   const slug = await generateUniqueSlug('faction', body.name)
 
   if (body.characterIds.length) {

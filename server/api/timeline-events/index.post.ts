@@ -1,12 +1,14 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { readZodBody, timelineEventSchema } from '~/server/utils/schemas'
+import { requireGameAccess } from '~/server/utils/gameAccess'
 import { timelineEventInclude, validateTimelineEventRelations } from '~/server/utils/timelineEvents'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
 
   const body = await readZodBody(event, timelineEventSchema)
+  await requireGameAccess(event, body.gameId)
   const characterIds = [...new Set(body.characterIds)]
   const factionIds = [...new Set(body.factionIds)]
   const intrigueIds = [...new Set(body.intrigueIds)]

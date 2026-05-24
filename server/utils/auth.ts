@@ -1,6 +1,15 @@
 import jwt from 'jsonwebtoken'
 import { getCookie } from 'h3'
 import type { H3Event } from 'h3'
+import { prisma } from '~/server/utils/prisma'
+import { USER_ROLES } from '~/utils/domain'
+
+export type AuthUser = {
+  id: string
+  email: string
+  name?: string
+  role: string
+}
 
 function getJwtSecret(): string {
   const secret = useRuntimeConfig().jwtSecret
@@ -25,6 +34,35 @@ export function getAuthUser(event: H3Event): any | null {
   }
 }
 
+export async function requireAuthUser(event: H3Event): Promise<AuthUser> {
+  const payload = getAuthUser(event)
+  if (!payload || typeof payload !== 'object') {
+    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+  }
+
+  const id = 'id' in payload ? String((payload as any).id || '') : ''
+  const email = 'email' in payload ? String((payload as any).email || '') : ''
+  if (!id && !email) {
+    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+  }
+
+  const user = await prisma.user.findFirst({
+    where: id ? { id } : { email },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true
+    }
+  })
+
+  if (!user) {
+    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+  }
+
+  return user
+}
+
 export function signAuthToken(payload: string | object | Buffer): string {
   return jwt.sign(payload, getJwtSecret(), { expiresIn: '20h' })
 }
@@ -43,7 +81,19 @@ export function requireRole(event: H3Event, allowedRoles: string[]): boolean {
 }
 
 export function requireOrganizer(event: H3Event): void {
-  if (!requireRole(event, ['organizer'])) {
+  if (!requireRole(event, [USER_ROLES.organizer, USER_ROLES.admin])) {
     throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
   }
+}
+
+export async function requireAdmin(event: H3Event): Promise<AuthUser> {
+  const user = await requireAuthUser(event)
+  if (user.role !== USER_ROLES.admin) {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+  return user
+}
+
+export function isAdminMode(event: H3Event, user: Pick<AuthUser, 'role'>): boolean {
+  return user.role === USER_ROLES.admin && getCookie(event, 'limbus_admin_mode') === '1'
 }

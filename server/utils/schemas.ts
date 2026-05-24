@@ -5,7 +5,8 @@ import {
   DOCUMENT_AUDIENCES,
   INTRIGUE_LEVELS,
   SESSION_ROLES,
-  SESSION_STATUSES
+  SESSION_STATUSES,
+  USER_ROLES
 } from '~/utils/domain'
 
 const optionalText = z.string().trim().optional().nullable()
@@ -39,6 +40,7 @@ const documentAudience = z.enum([
   DOCUMENT_AUDIENCES.kitchen
 ])
 const timelineTime = z.string().trim().regex(/^\d{2}:\d{2}$/, 'Time must use HH:mm format')
+const userRole = z.enum([USER_ROLES.admin, USER_ROLES.organizer])
 
 export async function readZodBody<T>(event: H3Event, schema: ZodType<T>): Promise<T> {
   return await readValidatedBody(event, (body) => {
@@ -241,4 +243,26 @@ export const sessionSchema = z.object({
 export const loginSchema = z.object({
   email: requiredText('Email'),
   password: requiredText('Password')
+})
+
+export const userCreateSchema = z.object({
+  email: requiredText('Email').email('Invalid email'),
+  name: requiredText('Name'),
+  password: requiredText('Password').min(8, 'Password must contain at least 8 characters'),
+  role: userRole.default(USER_ROLES.organizer)
+})
+
+export const userUpdateSchema = z.object({
+  email: requiredText('Email').email('Invalid email').optional(),
+  name: requiredText('Name').optional(),
+  password: requiredText('Password').min(8, 'Password must contain at least 8 characters').optional(),
+  role: userRole.optional()
+})
+
+export const adminModeSchema = z.object({
+  enabled: z.boolean()
+})
+
+export const gameShareSchema = z.object({
+  userId: requiredId('User')
 })

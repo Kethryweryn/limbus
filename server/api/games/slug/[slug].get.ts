@@ -1,5 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
+import { canAccessAllGames, accessibleGameWhere } from '~/server/utils/gameAccess'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -9,7 +10,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Slug manquant' })
   }
 
-  const game = await prisma.game.findUnique({ where: { slug } })
+  const { user, allGames } = await canAccessAllGames(event)
+  const game = await prisma.game.findFirst({
+    where: {
+      slug,
+      ...accessibleGameWhere(user.id, allGames)
+    }
+  })
   if (!game) {
     throw createError({ statusCode: 404, statusMessage: 'Jeu non trouvé' })
   }

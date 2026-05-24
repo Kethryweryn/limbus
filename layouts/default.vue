@@ -106,10 +106,12 @@ import { navigateTo } from '#app'
 
 const route = useRoute()
 const sidebarCollapsed = ref(false)
+const { data: authState, refresh: refreshAuthState } = await useFetch('/api/auth/me')
+const isAdmin = computed(() => authState.value?.user?.role === 'admin')
 
 const dashboardLink = { label: 'Dashboard', to: '/', icon: 'i-heroicons-home' }
 
-const navSections = [
+const navSections = computed(() => [
     {
         label: 'Écriture',
         icon: 'i-heroicons-pencil-square',
@@ -131,18 +133,43 @@ const navSections = [
             { label: 'Lieux', to: '/locations', icon: 'i-heroicons-map-pin' },
             { label: 'Sessions', to: '/sessions', icon: 'i-heroicons-calendar-days' }
         ]
-    }
-]
+    },
+    ...(isAdmin.value
+        ? [{
+            label: 'Administration',
+            icon: 'i-heroicons-shield-check',
+            links: [
+                { label: 'Utilisateurs', to: '/admin/users', icon: 'i-heroicons-user-circle' }
+            ]
+        }]
+        : [])
+])
 
-const userMenu = [
+const userMenu = computed(() => [
+    ...(isAdmin.value
+        ? [[
+            {
+                label: authState.value?.adminMode ? 'Désactiver le mode admin' : 'Activer le mode admin',
+                icon: 'i-heroicons-shield-check',
+                onSelect: async () => {
+                    await $fetch('/api/admin/mode', {
+                        method: 'POST',
+                        body: { enabled: !authState.value?.adminMode }
+                    })
+                    await refreshAuthState()
+                    await refreshNuxtData()
+                }
+            }
+        ]]
+        : []),
     [
         {
             label: 'Déconnexion',
             icon: 'i-heroicons-arrow-left-on-rectangle',
             onSelect: () => navigateTo('/logout')
         }
-    ]
-]
+    }
+])
 
 const isActive = (path) => {
     if (path === '/') {

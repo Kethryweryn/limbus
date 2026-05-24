@@ -1,4 +1,5 @@
 import { requireOrganizer } from '~/server/utils/auth'
+import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { markTrombinoscopeDeliveries } from '~/server/utils/documents'
 
 export default defineEventHandler(async (event) => {
@@ -8,6 +9,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
   }
+  await requireSessionAccess(event, id)
 
   return await markTrombinoscopeDeliveries(id)
 })

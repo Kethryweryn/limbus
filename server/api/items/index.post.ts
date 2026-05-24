@@ -1,12 +1,14 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { itemSchema, readZodBody } from '~/server/utils/schemas'
+import { requireGameAccess } from '~/server/utils/gameAccess'
 import { itemInclude, validateItemRelations } from '~/server/utils/items'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
 
   const body = await readZodBody(event, itemSchema)
+  await requireGameAccess(event, body.gameId)
   const characterIds = [...new Set(body.characterIds)]
   const intrigueIds = [...new Set(body.intrigueIds)]
   await validateItemRelations(body.gameId, characterIds, intrigueIds, body.locationCharacterId)

@@ -1,5 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
+import { gameScopedWhere } from '~/server/utils/gameAccess'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -9,8 +10,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Slug manquant' })
   }
 
-  return await prisma.character.findUnique({
-    where: { slug },
+  return await prisma.character.findFirst({
+    where: await gameScopedWhere(event, { slug }),
     include: {
       game: true,
       intrigues: {

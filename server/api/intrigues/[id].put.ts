@@ -1,6 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
+import { requireGameAccess } from '~/server/utils/gameAccess'
 import { intrigueSchema, readZodBody } from '~/server/utils/schemas'
 
 export default defineEventHandler(async (event) => {
@@ -10,8 +11,14 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
   }
+  const intrigue = await prisma.intrigue.findUnique({ where: { id }, select: { gameId: true } })
+  if (!intrigue) {
+    throw createError({ statusCode: 404, statusMessage: 'Intrigue introuvable' })
+  }
+  await requireGameAccess(event, intrigue.gameId)
 
   const body = await readZodBody(event, intrigueSchema)
+  await requireGameAccess(event, body.gameId)
   await validateIntrigueRelations(body.gameId, body.characterIds, body.factionIds)
 
   return await prisma.intrigue.update({

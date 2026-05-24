@@ -1,5 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
+import { requireGameAccess } from '~/server/utils/gameAccess'
 import { timelineEventInclude, withTimelineConflicts } from '~/server/utils/timelineEvents'
 
 export default defineEventHandler(async (event) => {
@@ -25,6 +26,7 @@ export default defineEventHandler(async (event) => {
   if (!session) {
     throw createError({ statusCode: 404, statusMessage: 'Session introuvable' })
   }
+  await requireGameAccess(event, session.gameId)
 
   const [events, responsibles] = await Promise.all([
     prisma.timelineEvent.findMany({

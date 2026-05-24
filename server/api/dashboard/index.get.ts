@@ -1,11 +1,14 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
+import { gameScopedWhere } from '~/server/utils/gameAccess'
 import { CHARACTER_TYPES, SESSION_STATUSES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
 
   const now = new Date()
+  const gameWhere = await gameScopedWhere(event)
+  const sessionWhere = await gameScopedWhere(event, {})
 
   const [
     gamesCount,
@@ -15,13 +18,22 @@ export default defineEventHandler(async (event) => {
     nextSession,
     games
   ] = await Promise.all([
-    prisma.game.count(),
-    prisma.participant.count(),
+    prisma.game.count({ where: gameWhere }),
+    prisma.participant.count({
+      where: {
+        gameLinks: {
+          some: {
+            game: gameWhere
+          }
+        }
+      }
+    }),
     prisma.participant.count({
       where: {
         assignments: {
           some: {
             session: {
+              ...sessionWhere,
               date: { lt: now },
               status: { not: SESSION_STATUSES.cancelled }
             }
@@ -31,11 +43,17 @@ export default defineEventHandler(async (event) => {
     }),
     prisma.participant.count({
       where: {
+        gameLinks: {
+          some: {
+            game: gameWhere
+          }
+        },
         assignments: { none: {} }
       }
     }),
     prisma.session.findFirst({
       where: {
+        ...sessionWhere,
         date: { gte: now },
         status: { not: SESSION_STATUSES.cancelled }
       },
@@ -51,6 +69,7 @@ export default defineEventHandler(async (event) => {
       }
     }),
     prisma.game.findMany({
+      where: gameWhere,
       orderBy: { title: 'asc' },
       include: {
         _count: {

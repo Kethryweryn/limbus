@@ -22,7 +22,12 @@ export default defineEventHandler(async (event) => {
     return { success: false, message: 'Mot de passe incorrect' }
   }
 
-  const token = signAuthToken({ email: user.email, role: user.role })
+  const token = signAuthToken({
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role
+  })
 
   setCookie(event, 'limbus_token', token, {
     httpOnly: true,

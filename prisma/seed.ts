@@ -552,7 +552,7 @@ async function clearBusinessData() {
   await prisma.game.deleteMany()
 }
 
-async function createGame(seed: GameSeed, gameIndex: number) {
+async function createGame(seed: GameSeed, gameIndex: number, ownerId?: string) {
   const game = await prisma.game.create({
     data: {
       title: seed.title,
@@ -560,7 +560,8 @@ async function createGame(seed: GameSeed, gameIndex: number) {
       description: seed.description,
       noteIntention: seed.noteIntention,
       teaserUrl: '',
-      published: true
+      published: true,
+      ownerId
     }
   })
 
@@ -1021,9 +1022,16 @@ async function main() {
   await clearBusinessData()
 
   console.log('Création du jeu de données de test...')
+  const owner = await prisma.user.findFirst({
+    orderBy: [
+      { role: 'asc' },
+      { email: 'asc' }
+    ],
+    select: { id: true }
+  })
   const createdGameIds: string[] = []
   for (const [index, game] of games.entries()) {
-    const createdGame = await createGame(game, index)
+    const createdGame = await createGame(game, index, owner?.id)
     createdGameIds.push(createdGame.id)
   }
   await createCrossGameParticipants(createdGameIds)

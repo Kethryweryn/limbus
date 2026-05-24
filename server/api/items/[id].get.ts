@@ -1,5 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
+import { gameScopedWhere } from '~/server/utils/gameAccess'
 import { itemInclude } from '~/server/utils/items'
 
 export default defineEventHandler(async (event) => {
@@ -10,8 +11,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
   }
 
-  const item = await prisma.item.findUnique({
-    where: { id },
+  const item = await prisma.item.findFirst({
+    where: await gameScopedWhere(event, { id }),
     include: itemInclude
   })
 

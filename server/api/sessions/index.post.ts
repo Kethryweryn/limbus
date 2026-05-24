@@ -1,6 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { readZodBody, sessionSchema } from '~/server/utils/schemas'
+import { requireGameAccess } from '~/server/utils/gameAccess'
 import { assertSessionCastRules, normalizeAssignments, normalizeSessionParticipants } from '~/server/utils/sessionAssignments'
 
 function parseDate(value: unknown): Date | null {
@@ -14,6 +15,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readZodBody(event, sessionSchema)
   const { name, gameId, locationId, status, published } = body
+  await requireGameAccess(event, gameId)
   const assignments = normalizeAssignments(body.assignments)
   const participants = normalizeSessionParticipants(body.participants, assignments)
   await assertSessionCastRules(gameId, participants, assignments)

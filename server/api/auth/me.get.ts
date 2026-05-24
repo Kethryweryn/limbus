@@ -1,16 +1,20 @@
-import { getAuthToken, getAuthUser } from '~/server/utils/auth'
+import { getAuthToken, isAdminMode, requireAuthUser } from '~/server/utils/auth'
 
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
     const token = getAuthToken(event)
 
     if (!token) {
         return { authenticated: false }
     }
 
-    const user = getAuthUser(event)
-    if (!user) {
+    try {
+        const user = await requireAuthUser(event)
+        return {
+            authenticated: true,
+            user,
+            adminMode: isAdminMode(event, user)
+        }
+    } catch {
         return { authenticated: false }
     }
-
-    return { authenticated: true, user }
 })

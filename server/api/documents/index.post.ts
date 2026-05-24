@@ -1,12 +1,14 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { documentSchema, readZodBody } from '~/server/utils/schemas'
+import { requireGameAccess } from '~/server/utils/gameAccess'
 import { documentInclude, validateDocumentRelations } from '~/server/utils/documents'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
 
   const body = await readZodBody(event, documentSchema)
+  await requireGameAccess(event, body.gameId)
   const characterIds = [...new Set(body.characterIds)]
   const factionIds = [...new Set(body.factionIds)]
   await validateDocumentRelations(body.gameId, body.characterId, characterIds, factionIds)
