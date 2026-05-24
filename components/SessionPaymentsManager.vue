@@ -23,7 +23,40 @@
             <UInput v-model="settings.paymentLinkUrl" placeholder="https://..." />
           </UFormField>
           <UFormField label="RIB PDF">
-            <UInput v-model="settings.paymentRibUrl" placeholder="https://..." />
+            <div class="flex flex-wrap items-center gap-2">
+              <input
+                ref="ribInput"
+                type="file"
+                accept="application/pdf"
+                class="hidden"
+                @change="uploadRib"
+              >
+              <UButton
+                color="neutral"
+                variant="soft"
+                :loading="uploadingRib"
+                @click="ribInput?.click()"
+              >
+                {{ settings.paymentRibUrl ? 'Remplacer le RIB' : 'Téléverser un RIB' }}
+              </UButton>
+              <UButton
+                v-if="settings.paymentRibUrl"
+                color="neutral"
+                variant="ghost"
+                :to="settings.paymentRibUrl"
+                target="_blank"
+              >
+                Voir le PDF
+              </UButton>
+              <UButton
+                v-if="settings.paymentRibUrl"
+                color="neutral"
+                variant="ghost"
+                @click="removeRib"
+              >
+                Retirer
+              </UButton>
+            </div>
           </UFormField>
         </div>
         <UButton color="primary" variant="soft" :loading="savingSettings" @click="saveSettings">
@@ -136,6 +169,8 @@ const settings = reactive({
   paymentLinkUrl: ''
 })
 const savingSettings = ref(false)
+const uploadingRib = ref(false)
+const ribInput = ref(null)
 const sendingPaymentEmails = ref(false)
 const paymentSendCooldown = ref(false)
 const sendingPaymentParticipantId = ref('')
@@ -196,6 +231,33 @@ async function saveSettings() {
   } finally {
     savingSettings.value = false
   }
+}
+
+async function uploadRib(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  uploadingRib.value = true
+  try {
+    const formData = new FormData()
+    formData.append('rib', file)
+    const result = await useApiFetch('/api/uploads/session-payment-ribs', {
+      method: 'POST',
+      body: formData
+    })
+    settings.paymentRibUrl = result.ribUrl
+    await saveSettings()
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.message || 'Impossible de téléverser le RIB'
+  } finally {
+    uploadingRib.value = false
+    event.target.value = ''
+  }
+}
+
+async function removeRib() {
+  settings.paymentRibUrl = ''
+  await saveSettings()
 }
 
 function firstName(name) {

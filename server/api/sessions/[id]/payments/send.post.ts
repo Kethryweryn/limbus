@@ -13,5 +13,6 @@ export default defineEventHandler(async (event) => {
   await requireSessionAccess(event, id)
 
   const body = await readZodBody(event, sessionPaymentSendSchema)
-  return await sendSessionPaymentEmails(id, body.reminder, body.participantId)
+  const url = getRequestURL(event)
+  return await sendSessionPaymentEmails(id, body.reminder, body.participantId, url.origin)
 })

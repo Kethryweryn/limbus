@@ -10,6 +10,13 @@ function firstName(name: string) {
   return name.trim().split(/\s+/)[0] || name
 }
 
+function absoluteUrl(baseUrl: string, value?: string | null) {
+  if (!value) return value
+  if (/^https?:\/\//i.test(value)) return value
+  if (!baseUrl) return value
+  return `${baseUrl}${value}`
+}
+
 function isPlayableCharacterType(type: string) {
   return type === CHARACTER_TYPES.pj || type === CHARACTER_TYPES.pnj
 }
@@ -144,7 +151,7 @@ export async function setSessionPaymentStatus(sessionId: string, participantId: 
   })
 }
 
-export async function sendSessionPaymentEmails(sessionId: string, reminder = false, participantId?: string | null) {
+export async function sendSessionPaymentEmails(sessionId: string, reminder = false, participantId?: string | null, baseUrl = '') {
   const dashboard = await getSessionPaymentDashboard(sessionId)
   const now = new Date()
   let sentCount = 0
@@ -169,7 +176,7 @@ export async function sendSessionPaymentEmails(sessionId: string, reminder = fal
         sessionName: dashboard.session.name,
         gameTitle: dashboard.session.game.title,
         paymentLinkUrl: dashboard.session.paymentLinkUrl,
-        paymentRibUrl: dashboard.session.paymentRibUrl,
+        paymentRibUrl: absoluteUrl(baseUrl, dashboard.session.paymentRibUrl),
         reminder: isReminder
       })
     })
@@ -200,7 +207,7 @@ export async function sendSessionPaymentEmails(sessionId: string, reminder = fal
   return { sentCount, skippedCount }
 }
 
-export async function sendSessionPaymentTestEmails(sessionId: string, emails: string[], participantId?: string | null) {
+export async function sendSessionPaymentTestEmails(sessionId: string, emails: string[], participantId?: string | null, baseUrl = '') {
   const dashboard = await getSessionPaymentDashboard(sessionId)
   const sample = dashboard.rows.find((row) => row.participant.id === participantId) || dashboard.rows[0]
   const reminder = Boolean(sample?.paymentEmailSentAt)
@@ -213,7 +220,7 @@ export async function sendSessionPaymentTestEmails(sessionId: string, emails: st
       sessionName: dashboard.session.name,
       gameTitle: dashboard.session.game.title,
       paymentLinkUrl: dashboard.session.paymentLinkUrl,
-      paymentRibUrl: dashboard.session.paymentRibUrl,
+      paymentRibUrl: absoluteUrl(baseUrl, dashboard.session.paymentRibUrl),
       reminder
     })
   })
