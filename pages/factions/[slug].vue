@@ -171,7 +171,7 @@
     <UModal v-model:open="showTrombinoscopeModal" title="Trombinoscope du groupe">
       <template #body>
         <form class="space-y-4" @submit.prevent="saveFactionTrombinoscopeOptions">
-          <UCheckbox
+          <AppCheckboxRow
             v-model="trombinoscopeOptions.showInTrombinoscope"
             label="Afficher le nom du groupe dans les trombinoscopes"
             description="Désactivé par défaut pour ne pas révéler les appartenances de groupe."

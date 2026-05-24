@@ -55,7 +55,7 @@
         <UTextarea v-model="localFaction.costumeIndications" :rows="5" size="lg" class="w-full" />
       </UFormField>
 
-      <UCheckbox
+      <AppCheckboxRow
         v-model="localFaction.showInTrombinoscope"
         label="Afficher le nom du groupe dans les trombinoscopes"
         description="Désactivé par défaut pour ne pas révéler les appartenances de groupe."

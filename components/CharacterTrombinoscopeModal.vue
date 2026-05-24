@@ -54,13 +54,13 @@
                     </UBadge>
                   </div>
                 </div>
-                <div class="flex flex-wrap gap-4 lg:justify-end">
-                  <UCheckbox
+                <div class="grid gap-2 sm:grid-cols-2 lg:min-w-72">
+                  <AppCheckboxRow
                     v-model="entry.included"
                     label="Inclure"
                     :disabled="entry.character.excludeFromTrombinoscope"
                   />
-                  <UCheckbox
+                  <AppCheckboxRow
                     v-model="entry.faceKnown"
                     label="Visage connu"
                     :disabled="!entry.included || entry.character.trombinoscopeFaceHidden"

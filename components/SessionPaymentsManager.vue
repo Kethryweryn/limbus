@@ -149,6 +149,7 @@
     <EmailTestModal
       v-model:open="showTestModal"
       :default-email="props.defaultEmail"
+      :organizer-emails="organizerEmails"
       :preview="testPreview"
       :on-submit="sendPaymentTest"
     />
@@ -187,6 +188,11 @@ const paidRows = computed(() => rows.value.filter((row) => row.paidAt))
 const unpaidRows = computed(() => rows.value.filter((row) => !row.paidAt))
 const emailedRows = computed(() => rows.value.filter((row) => row.paymentEmailSentAt))
 const remindedRows = computed(() => rows.value.filter((row) => row.paymentReminderSentAt))
+const organizerEmails = computed(() =>
+  (props.paymentsData.sessionRoleRecipients || [])
+    .filter((recipient) => recipient.role === 'organizer' && recipient.participant?.email)
+    .map((recipient) => recipient.participant.email)
+)
 const testPreview = computed(() => ({
   subject: `[Test] ${testRow.value?.paymentEmailSentAt ? 'Relance paiement' : 'Paiement'} - ${props.paymentsData.session.name}`,
   body: [

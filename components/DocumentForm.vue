@@ -39,7 +39,7 @@
         />
       </UFormField>
 
-      <UCheckbox
+      <AppCheckboxRow
         v-model="localDocument.readyToSend"
         label="Document prêt à être envoyé"
         description="Décochez pour repasser le document en brouillon."

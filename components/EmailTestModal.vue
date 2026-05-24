@@ -4,12 +4,12 @@
       <div class="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
         <section class="space-y-4">
           <div class="space-y-2">
-            <UCheckbox
+            <AppCheckboxRow
               v-model="sendToMe"
               label="Moi"
               :disabled="!props.defaultEmail"
             />
-            <UCheckbox
+            <AppCheckboxRow
               v-model="sendToOrganizers"
               label="Équipe orga"
               :disabled="!organizerEmails.length"

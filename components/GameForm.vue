@@ -21,7 +21,7 @@
         <UTextarea v-model="localGame.noteIntention" :rows="8" size="lg" class="w-full" />
       </UFormField>
 
-      <UCheckbox v-model="localGame.publicPage" label="Publier la page publique" />
+      <AppCheckboxRow v-model="localGame.publicPage" label="Publier la page publique" />
 
 
       <div class="flex flex-wrap gap-2 pt-2">

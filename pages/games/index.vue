@@ -11,10 +11,7 @@
     </div>
 
     <div class="flex flex-col md:flex-row justify-between gap-4 mb-4">
-      <div class="flex items-center gap-2">
-        <UCheckbox v-model="showArchived" />
-        <span class="text-sm text-gray-600">Afficher les archives</span>
-      </div>
+      <AppCheckboxRow v-model="showArchived" label="Afficher les archives" />
 
       <UInput v-model="searchQuery" placeholder="Rechercher un jeu..." icon="i-heroicons-magnifying-glass"
         class="flex-1" />

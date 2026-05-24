@@ -23,7 +23,7 @@
       </template>
 
       <form class="space-y-5" @submit.prevent="saveSettings">
-        <UCheckbox v-model="form.enabled" label="Activer l’envoi d’emails" />
+        <AppCheckboxRow v-model="form.enabled" label="Activer l’envoi d’emails" />
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <UFormField label="Serveur SMTP">

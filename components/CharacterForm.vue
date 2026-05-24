@@ -67,7 +67,7 @@
                 />
             </UFormField>
 
-            <UCheckbox
+            <AppCheckboxRow
                 v-model="localCharacter.sheetReadyToSend"
                 label="Fiche prête à être envoyée"
                 description="Décochez pour repasser la fiche en brouillon."
@@ -79,11 +79,11 @@
                 </template>
 
                 <div class="space-y-4">
-                    <UCheckbox
+                    <AppCheckboxRow
                         v-model="localCharacter.excludeFromTrombinoscope"
                         label="Ne jamais inclure ce personnage dans un trombinoscope"
                     />
-                    <UCheckbox
+                    <AppCheckboxRow
                         v-model="localCharacter.trombinoscopeFaceHidden"
                         label="Personne ne connaît son visage"
                         description="Sa photo sera remplacée par un point d’interrogation par défaut."

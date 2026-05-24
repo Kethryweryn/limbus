@@ -56,7 +56,12 @@ async function getPaymentSession(sessionId: string) {
           participant: true
         }
       },
-      payments: true
+      payments: true,
+      participants: {
+        include: {
+          participant: true
+        }
+      }
     }
   })
 
@@ -99,6 +104,10 @@ export async function getSessionPaymentDashboard(sessionId: string) {
       paymentLinkUrl: session.paymentLinkUrl,
       game: session.game
     },
+    sessionRoleRecipients: session.participants.map((sessionParticipant) => ({
+      role: sessionParticipant.role,
+      participant: sessionParticipant.participant
+    })),
     rows
   }
 }

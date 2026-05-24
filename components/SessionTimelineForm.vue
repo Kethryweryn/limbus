@@ -58,12 +58,14 @@
                     :key="timelineEvent.id"
                     class="rounded border p-2 transition"
                     :class="isResponsibleAssigned(timelineEvent.id, responsible.participantId) ? 'border-primary-300 bg-primary-50' : 'border-gray-200 bg-gray-50 opacity-70'"
+                    @click="toggleResponsible(timelineEvent.id, responsible.participantId, !isResponsibleAssigned(timelineEvent.id, responsible.participantId))"
                   >
                     <div class="flex items-start gap-2">
                       <UCheckbox
                         :model-value="isResponsibleAssigned(timelineEvent.id, responsible.participantId)"
                         :disabled="!responsibleOptions.length"
                         :aria-label="`Assigner ${responsible.participant?.name || 'ce responsable'} à ${timelineEvent.name}`"
+                        @click.stop
                         @update:model-value="toggleResponsible(timelineEvent.id, responsible.participantId, $event)"
                       />
                       <div class="min-w-0 flex-1 space-y-2">
