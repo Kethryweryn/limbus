@@ -36,7 +36,7 @@
               >
                 <div>{{ responsible.participant?.name || 'Participant inconnu' }}</div>
                 <UBadge color="neutral" variant="subtle" size="xs">
-                  {{ responsible.role === 'organizer' ? 'Orga' : 'PNJ' }}
+                  {{ responsible.role === SESSION_ROLES.organizer ? 'Orga' : 'PNJ' }}
                 </UBadge>
               </th>
             </tr>
@@ -109,6 +109,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { SESSION_ROLES } from '~/utils/domain'
 
 const props = defineProps({
   timelineData: { type: Object, required: true },
@@ -123,16 +124,16 @@ const events = computed(() => props.timelineData.events || [])
 
 const eligibleResponsibles = computed(() =>
   (props.timelineData.session?.participants || [])
-    .filter((participant) => participant.role === 'organizer' || participant.role === 'npc')
+    .filter((participant) => participant.role === SESSION_ROLES.organizer || participant.role === SESSION_ROLES.npc)
     .sort((a, b) => {
-      if (a.role !== b.role) return a.role === 'organizer' ? -1 : 1
+      if (a.role !== b.role) return a.role === SESSION_ROLES.organizer ? -1 : 1
       return (a.participant?.name || '').localeCompare(b.participant?.name || '')
     })
 )
 
 const responsibleOptions = computed(() =>
   eligibleResponsibles.value.map((responsible) => ({
-    label: `${responsible.role === 'organizer' ? 'Orga' : 'PNJ'} - ${responsible.participant?.name || 'Participant inconnu'}`,
+    label: `${responsible.role === SESSION_ROLES.organizer ? 'Orga' : 'PNJ'} - ${responsible.participant?.name || 'Participant inconnu'}`,
     value: responsible.participantId || responsible.participant?.id
   }))
 )

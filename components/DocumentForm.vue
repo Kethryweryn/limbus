@@ -45,7 +45,7 @@
         description="Décochez pour repasser le document en brouillon."
       />
 
-      <div v-if="localDocument.audience === 'targeted'" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div v-if="localDocument.audience === DOCUMENT_AUDIENCES.targeted" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <UFormField label="Personnage">
           <USelect
             v-model="localDocument.characterId"
@@ -97,6 +97,13 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import {
+  CHARACTER_TYPES,
+  DOCUMENT_AUDIENCES,
+  DOCUMENT_AUDIENCE_OPTIONS,
+  VIRTUAL_CHARACTER_GROUP_OPTIONS,
+  VIRTUAL_CHARACTER_GROUPS
+} from '~/utils/domain'
 
 const props = defineProps({
   document: { type: Object, required: true },
@@ -112,13 +119,7 @@ const localDocument = ref({ ...props.document })
 const errors = ref({})
 const serverError = ref('')
 
-const audienceOptions = [
-  { label: 'Ciblage manuel', value: 'targeted' },
-  { label: 'Tout le monde', value: 'everyone' },
-  { label: 'Organisateurs', value: 'organizers' },
-  { label: 'PNJs', value: 'npcs' },
-  { label: 'Équipe cuisine', value: 'kitchen' }
-]
+const audienceOptions = DOCUMENT_AUDIENCE_OPTIONS
 
 const gameOptions = computed(() => props.games.map((game) => ({
   label: game.title,
@@ -129,18 +130,14 @@ const characterOptions = computed(() => [
   { label: 'Aucun personnage', value: '' },
   ...props.characters
     .filter((character) => character.gameId === localDocument.value.gameId)
-    .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'pj' ? -1 : 1))
+    .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === CHARACTER_TYPES.pj ? -1 : 1))
     .map((character) => ({
-      label: `${character.type === 'pnj' ? 'PNJ' : 'PJ'} - ${character.name}`,
+      label: `${character.type === CHARACTER_TYPES.pnj ? 'PNJ' : 'PJ'} - ${character.name}`,
       value: character.id
     }))
 ])
 
-const virtualFactionOptions = [
-  { label: 'Tous les PJs', value: '__all_pj__' },
-  { label: 'Tous les PNJs', value: '__all_pnj__' },
-  { label: 'Tous les participants', value: '__all_characters__' }
-]
+const virtualFactionOptions = VIRTUAL_CHARACTER_GROUP_OPTIONS
 
 const realFactionOptions = computed(() =>
   props.factions
@@ -158,7 +155,7 @@ const factionOptions = computed(() => [
 ])
 
 const hasTargets = computed(() =>
-  localDocument.value.audience !== 'targeted'
+  localDocument.value.audience !== DOCUMENT_AUDIENCES.targeted
   || Boolean(localDocument.value.characterId || localDocument.value.characterIds?.length || localDocument.value.factionIds?.length)
 )
 
@@ -171,7 +168,7 @@ const canSubmit = computed(() =>
 watch(() => props.document, (newDocument) => {
   localDocument.value = {
     ...newDocument,
-    audience: newDocument.audience || 'targeted',
+    audience: newDocument.audience || DOCUMENT_AUDIENCES.targeted,
     readyToSend: Boolean(newDocument.readyToSend),
     content: newDocument.content || '',
     documentUrl: newDocument.documentUrl || '',
@@ -203,7 +200,7 @@ function validate() {
 }
 
 function expandVirtualFactionSelection(value) {
-  if (value.audience !== 'targeted') {
+  if (value.audience !== DOCUMENT_AUDIENCES.targeted) {
     return {
       ...value,
       characterId: '',
@@ -218,9 +215,9 @@ function expandVirtualFactionSelection(value) {
   const gameCharacters = props.characters.filter((character) => character.gameId === value.gameId)
   const expandedCharacterIds = gameCharacters
     .filter((character) =>
-      selectedVirtualIds.has('__all_characters__')
-      || (selectedVirtualIds.has('__all_pj__') && character.type !== 'pnj')
-      || (selectedVirtualIds.has('__all_pnj__') && character.type === 'pnj')
+      selectedVirtualIds.has(VIRTUAL_CHARACTER_GROUPS.allCharacters)
+      || (selectedVirtualIds.has(VIRTUAL_CHARACTER_GROUPS.allPj) && character.type !== CHARACTER_TYPES.pnj)
+      || (selectedVirtualIds.has(VIRTUAL_CHARACTER_GROUPS.allPnj) && character.type === CHARACTER_TYPES.pnj)
     )
     .map((character) => character.id)
 

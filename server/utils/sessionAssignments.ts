@@ -1,6 +1,8 @@
 import { prisma } from '~/server/utils/prisma'
+import { CHARACTER_TYPES, SESSION_ROLES } from '~/utils/domain'
 
-type SessionParticipantRole = 'participant' | 'organizer' | 'npc' | 'kitchen'
+type SessionParticipantRole = typeof SESSION_ROLES[keyof typeof SESSION_ROLES]
+const sessionParticipantRoles = Object.values(SESSION_ROLES)
 
 export function normalizeAssignments(assignments: Array<{
   characterId: string
@@ -50,13 +52,13 @@ export function normalizeSessionParticipants(participants: Array<{
   for (const assignment of assignments) {
     if (!assignment.participantId) continue
 
-    const hasSessionRole = ['participant', 'organizer', 'npc', 'kitchen'].some((role) =>
+    const hasSessionRole = sessionParticipantRoles.some((role) =>
       normalized.has(`${assignment.participantId}:${role}`)
     )
     if (!hasSessionRole) {
-      normalized.set(`${assignment.participantId}:participant`, {
+      normalized.set(`${assignment.participantId}:${SESSION_ROLES.participant}`, {
         participantId: assignment.participantId,
-        role: 'participant'
+        role: SESSION_ROLES.participant
       })
     }
   }
@@ -116,7 +118,7 @@ export async function assertSessionCastRules(
 
   const pnjCastableParticipantIds = new Set(
     sessionParticipants
-      .filter((participant) => participant.role === 'organizer' || participant.role === 'npc')
+      .filter((participant) => participant.role === SESSION_ROLES.organizer || participant.role === SESSION_ROLES.npc)
       .map((participant) => participant.participantId)
   )
 
@@ -124,7 +126,7 @@ export async function assertSessionCastRules(
     if (!assignment.participantId) continue
 
     const character = charactersById.get(assignment.characterId)
-    if (character?.type === 'pnj' && !pnjCastableParticipantIds.has(assignment.participantId)) {
+    if (character?.type === CHARACTER_TYPES.pnj && !pnjCastableParticipantIds.has(assignment.participantId)) {
       throw createError({
         statusCode: 400,
         statusMessage: 'Un rôle PNJ ne peut être assigné qu’à un organisateur ou un PNJ de session'

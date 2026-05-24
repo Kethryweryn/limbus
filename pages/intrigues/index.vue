@@ -140,6 +140,7 @@ import GameContextBar from '@/components/GameContextBar.vue'
 import IntrigueForm from '@/components/IntrigueForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import { formatIntrigueLevel, intrigueLevelOrder } from '~/utils/intrigueLevels'
+import { INTRIGUE_LEVEL_OPTIONS, INTRIGUE_LEVELS } from '~/utils/domain'
 import { isOfflineMode } from '~/utils/connection'
 import { getFromStore, saveToStore } from '~/utils/storage'
 
@@ -165,10 +166,7 @@ const gameFilterOptions = computed(() => [
 
 const levelFilterOptions = [
   { label: 'Tous les niveaux', value: 'all' },
-  { label: 'Trame principale scénario', value: 'main_story' },
-  { label: 'Trame principale personnage', value: 'main_character' },
-  { label: 'Intrigue majeure', value: 'major' },
-  { label: 'Intrigue mineure', value: 'minor' }
+  ...INTRIGUE_LEVEL_OPTIONS
 ]
 
 const sortOptions = [
@@ -328,7 +326,7 @@ function startCreate() {
     name: '',
     pitch: '',
     description: '',
-    level: 'minor',
+    level: INTRIGUE_LEVELS.minor,
     gameId: selectedGame.value?.id || games.value[0]?.id || '',
     characterIds: [],
     factionIds: [],

@@ -1,4 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
+import { DOCUMENT_AUDIENCES, SESSION_ROLES } from '~/utils/domain'
 
 export const documentInclude = {
   game: true,
@@ -100,7 +101,7 @@ export async function getSessionDocumentDashboard(sessionId: string) {
     }))
 
   const organizerRecipients = session.participants
-    .filter((sessionParticipant) => sessionParticipant.role === 'organizer')
+    .filter((sessionParticipant) => sessionParticipant.role === SESSION_ROLES.organizer)
     .map((sessionParticipant) => ({
       participant: sessionParticipant.participant,
       character: null,
@@ -108,7 +109,7 @@ export async function getSessionDocumentDashboard(sessionId: string) {
     }))
 
   const npcRecipients = session.participants
-    .filter((sessionParticipant) => sessionParticipant.role === 'npc')
+    .filter((sessionParticipant) => sessionParticipant.role === SESSION_ROLES.npc)
     .map((sessionParticipant) => ({
       participant: sessionParticipant.participant,
       character: null,
@@ -116,7 +117,7 @@ export async function getSessionDocumentDashboard(sessionId: string) {
     }))
 
   const kitchenRecipients = session.participants
-    .filter((sessionParticipant) => sessionParticipant.role === 'kitchen')
+    .filter((sessionParticipant) => sessionParticipant.role === SESSION_ROLES.kitchen)
     .map((sessionParticipant) => ({
       participant: sessionParticipant.participant,
       character: null,
@@ -139,12 +140,12 @@ export async function getSessionDocumentDashboard(sessionId: string) {
 
   const documentsWithRecipients = documents.map((document) => {
     const baseRecipients = (() => {
-      if (document.audience === 'everyone') {
+      if (document.audience === DOCUMENT_AUDIENCES.everyone) {
         return uniqueRecipients([...castRecipients, ...organizerRecipients, ...npcRecipients, ...kitchenRecipients])
       }
-      if (document.audience === 'organizers') return organizerRecipients
-      if (document.audience === 'npcs') return npcRecipients
-      if (document.audience === 'kitchen') return kitchenRecipients
+      if (document.audience === DOCUMENT_AUDIENCES.organizers) return organizerRecipients
+      if (document.audience === DOCUMENT_AUDIENCES.npcs) return npcRecipients
+      if (document.audience === DOCUMENT_AUDIENCES.kitchen) return kitchenRecipients
 
       const targetCharacterIds = new Set<string>()
       if (document.characterId) {
@@ -235,9 +236,9 @@ export async function getSessionDocumentDashboard(sessionId: string) {
 
   const sessionRoleRecipients = session.participants
     .filter((sessionParticipant) =>
-      sessionParticipant.role === 'organizer'
-      || sessionParticipant.role === 'npc'
-      || sessionParticipant.role === 'kitchen'
+      sessionParticipant.role === SESSION_ROLES.organizer
+      || sessionParticipant.role === SESSION_ROLES.npc
+      || sessionParticipant.role === SESSION_ROLES.kitchen
     )
     .map((sessionParticipant) => ({
       role: sessionParticipant.role,

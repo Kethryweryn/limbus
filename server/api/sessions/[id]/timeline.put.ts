@@ -1,6 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { readZodBody, sessionTimelineSchema } from '~/server/utils/schemas'
+import { SESSION_ROLES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -37,7 +38,7 @@ export default defineEventHandler(async (event) => {
 
   const eligibleParticipantIds = new Set(
     session.participants
-      .filter((participant) => participant.role === 'organizer' || participant.role === 'npc')
+      .filter((participant) => participant.role === SESSION_ROLES.organizer || participant.role === SESSION_ROLES.npc)
       .map((participant) => participant.participantId)
   )
 

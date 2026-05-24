@@ -181,6 +181,7 @@ import GameContextBar from '@/components/GameContextBar.vue'
 import SessionForm from '@/components/SessionForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import { isOfflineMode } from '~/utils/connection'
+import { SESSION_ROLES, SESSION_STATUSES, SESSION_STATUS_META } from '~/utils/domain'
 import { getFromStore, saveToStore } from '~/utils/storage'
 
 const sessions = ref([])
@@ -210,14 +211,7 @@ const periodFilterOptions = [
   { label: 'Tout', value: 'all' }
 ]
 
-const statusLabels = {
-  scheduled: { label: 'Prévue', color: 'primary' },
-  postponed: { label: 'Reportée', color: 'warning' },
-  cancelled: { label: 'Annulée', color: 'error' },
-  completed: { label: 'Terminée', color: 'success' }
-}
-
-const statusMeta = (status) => statusLabels[status] || statusLabels.scheduled
+const statusMeta = (status) => SESSION_STATUS_META[status] || SESSION_STATUS_META[SESSION_STATUSES.scheduled]
 
 const filteredSessions = computed(() => {
   const term = searchQuery.value.toLowerCase()
@@ -424,15 +418,15 @@ function normalizeSessionForForm(session) {
     date: toDatetimeLocal(session.date),
     locationId: session.locationId || '',
     organizerIds: session.participants
-      ?.filter((participant) => participant.role === 'organizer')
+      ?.filter((participant) => participant.role === SESSION_ROLES.organizer)
       .map((participant) => participant.participantId || participant.participant?.id)
       .filter(Boolean) || [],
     npcIds: session.participants
-      ?.filter((participant) => participant.role === 'npc')
+      ?.filter((participant) => participant.role === SESSION_ROLES.npc)
       .map((participant) => participant.participantId || participant.participant?.id)
       .filter(Boolean) || [],
     kitchenIds: session.participants
-      ?.filter((participant) => participant.role === 'kitchen')
+      ?.filter((participant) => participant.role === SESSION_ROLES.kitchen)
       .map((participant) => participant.participantId || participant.participant?.id)
       .filter(Boolean) || [],
     assignments: session.assignments?.map((assignment) => ({
@@ -452,7 +446,7 @@ function startCreate() {
     gameId: selectedGame.value?.id || games.value[0]?.id || '',
     date: '',
     locationId: '',
-    status: 'scheduled',
+    status: SESSION_STATUSES.scheduled,
     published: true,
     organizerIds: [],
     npcIds: [],

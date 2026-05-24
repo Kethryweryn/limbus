@@ -2,6 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { readFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+import { CHARACTER_TYPES } from '~/utils/domain'
 
 type CharacterLike = {
   id: string
@@ -44,7 +45,7 @@ function slugFilePart(value: string) {
 }
 
 function characterSort(a: CharacterLike, b: CharacterLike) {
-  if (a.type !== b.type) return a.type === 'pj' ? -1 : 1
+  if (a.type !== b.type) return a.type === CHARACTER_TYPES.pj ? -1 : 1
   return a.name.localeCompare(b.name)
 }
 

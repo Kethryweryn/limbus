@@ -96,6 +96,7 @@ import SessionCastForm from '@/components/SessionCastForm.vue'
 import SessionForm from '@/components/SessionForm.vue'
 import SessionTimelineForm from '@/components/SessionTimelineForm.vue'
 import SessionDocumentsManager from '@/components/SessionDocumentsManager.vue'
+import { SESSION_ROLES, SESSION_STATUSES, SESSION_STATUS_META } from '~/utils/domain'
 
 const route = useRoute()
 const router = useRouter()
@@ -110,14 +111,7 @@ const activeTab = ref(['timeline', 'documents'].includes(route.query.tab) ? rout
 const isEditingDetails = ref(route.query.edit === 'details')
 const editableSession = ref(null)
 
-const statusLabels = {
-  scheduled: { label: 'Prévue', color: 'primary' },
-  postponed: { label: 'Reportée', color: 'warning' },
-  cancelled: { label: 'Annulée', color: 'error' },
-  completed: { label: 'Terminée', color: 'success' }
-}
-
-const statusMeta = (status) => statusLabels[status] || statusLabels.scheduled
+const statusMeta = (status) => SESSION_STATUS_META[status] || SESSION_STATUS_META[SESSION_STATUSES.scheduled]
 
 const formatDate = (value) => new Date(value).toLocaleString('fr-FR', {
   day: 'numeric',
@@ -158,7 +152,7 @@ async function saveCast(assignments) {
       gameId: session.value.gameId,
       date: toDatetimeLocal(session.value.date),
       locationId: session.value.locationId || '',
-      status: session.value.status || 'scheduled',
+      status: session.value.status || SESSION_STATUSES.scheduled,
       published: session.value.published,
       participants: session.value.participants?.map((participant) => ({
         participantId: participant.participantId || participant.participant?.id,
@@ -197,15 +191,15 @@ function normalizeSessionForForm(value) {
     date: toDatetimeLocal(value.date),
     locationId: value.locationId || '',
     organizerIds: value.participants
-      ?.filter((participant) => participant.role === 'organizer')
+      ?.filter((participant) => participant.role === SESSION_ROLES.organizer)
       .map((participant) => participant.participantId || participant.participant?.id)
       .filter(Boolean) || [],
     npcIds: value.participants
-      ?.filter((participant) => participant.role === 'npc')
+      ?.filter((participant) => participant.role === SESSION_ROLES.npc)
       .map((participant) => participant.participantId || participant.participant?.id)
       .filter(Boolean) || [],
     kitchenIds: value.participants
-      ?.filter((participant) => participant.role === 'kitchen')
+      ?.filter((participant) => participant.role === SESSION_ROLES.kitchen)
       .map((participant) => participant.participantId || participant.participant?.id)
       .filter(Boolean) || [],
     assignments: value.assignments?.map((assignment) => ({

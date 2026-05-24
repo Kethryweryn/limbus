@@ -192,6 +192,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import { DOCUMENT_AUDIENCE_LABELS, SESSION_ROLE_LABELS } from '~/utils/domain'
 
 const props = defineProps({
   documentsData: { type: Object, required: true },
@@ -220,19 +221,8 @@ const missingTrombinoscopePhotos = computed(() =>
 
 const sentRecipients = (document) => document.recipients.filter((recipient) => recipient.sentAt)
 const pendingRecipients = (document) => document.recipients.filter((recipient) => !recipient.sentAt)
-const audienceLabel = (audience) => ({
-  targeted: 'Ciblage manuel',
-  everyone: 'Tout le monde',
-  organizers: 'Organisateurs',
-  npcs: 'PNJs',
-  kitchen: 'Équipe cuisine'
-}[audience] || 'Ciblage manuel')
-
-const roleLabel = (role) => ({
-  organizer: 'Orga',
-  npc: 'PNJ',
-  kitchen: 'Cuisine'
-}[role] || 'Session')
+const audienceLabel = (audience) => DOCUMENT_AUDIENCE_LABELS[audience] || DOCUMENT_AUDIENCE_LABELS.targeted
+const roleLabel = (role) => SESSION_ROLE_LABELS[role] || 'Session'
 
 const formatDate = (value) => new Date(value).toLocaleString('fr-FR', {
   day: '2-digit',

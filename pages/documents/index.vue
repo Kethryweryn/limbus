@@ -122,6 +122,7 @@ import DocumentForm from '@/components/DocumentForm.vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import { isOfflineMode } from '~/utils/connection'
+import { DOCUMENT_AUDIENCES, DOCUMENT_AUDIENCE_LABELS } from '~/utils/domain'
 import { getFromStore, saveToStore } from '~/utils/storage'
 
 const documents = ref([])
@@ -184,15 +185,9 @@ const prevPage = () => {
 }
 
 const hasTargets = (document) =>
-  document.audience !== 'targeted'
+  document.audience !== DOCUMENT_AUDIENCES.targeted
   || Boolean(document.character || document.characters?.length || document.factions?.length)
-const audienceLabel = (audience) => ({
-  targeted: 'Ciblage manuel',
-  everyone: 'Tout le monde',
-  organizers: 'Organisateurs',
-  npcs: 'PNJs',
-  kitchen: 'Équipe cuisine'
-}[audience] || 'Ciblage manuel')
+const audienceLabel = (audience) => DOCUMENT_AUDIENCE_LABELS[audience] || DOCUMENT_AUDIENCE_LABELS[DOCUMENT_AUDIENCES.targeted]
 
 const fetchDocuments = async () => {
   if (isOfflineMode()) {
@@ -272,7 +267,7 @@ onUnmounted(() => {
 function documentFormPayload(document) {
   return {
     ...document,
-    audience: document.audience || 'targeted',
+    audience: document.audience || DOCUMENT_AUDIENCES.targeted,
     readyToSend: Boolean(document.readyToSend),
     content: document.content || '',
     documentUrl: document.documentUrl || '',
@@ -287,7 +282,7 @@ function startCreate() {
 
   activeFormDocument.value = {
     title: '',
-    audience: 'targeted',
+    audience: DOCUMENT_AUDIENCES.targeted,
     readyToSend: false,
     content: '',
     documentUrl: '',

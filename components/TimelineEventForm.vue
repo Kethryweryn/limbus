@@ -107,6 +107,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { CHARACTER_TYPES, VIRTUAL_CHARACTER_GROUP_OPTIONS, VIRTUAL_CHARACTER_GROUPS } from '~/utils/domain'
 
 const props = defineProps({
   event: { type: Object, required: true },
@@ -129,18 +130,12 @@ const gameOptions = computed(() => props.games.map((game) => ({
   value: game.id
 })))
 
-const virtualFactionOptions = [
-  { label: 'Tous les PJs', value: '__all_pj__' },
-  { label: 'Tous les PNJs', value: '__all_pnj__' },
-  { label: 'Tous les participants', value: '__all_characters__' }
-]
-
 const characterOptions = computed(() =>
   props.characters
     .filter((character) => character.gameId === localEvent.value.gameId)
-    .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'pj' ? -1 : 1))
+    .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === CHARACTER_TYPES.pj ? -1 : 1))
     .map((character) => ({
-      label: `${character.type === 'pnj' ? 'PNJ' : 'PJ'} - ${character.name}`,
+      label: `${character.type === CHARACTER_TYPES.pnj ? 'PNJ' : 'PJ'} - ${character.name}`,
       value: character.id
     }))
 )
@@ -166,7 +161,7 @@ const realFactionOptions = computed(() =>
 )
 
 const factionOptions = computed(() => [
-  ...virtualFactionOptions,
+  ...VIRTUAL_CHARACTER_GROUP_OPTIONS,
   ...realFactionOptions.value
 ])
 
@@ -229,9 +224,9 @@ function expandVirtualFactionSelection(value) {
   const gameCharacters = props.characters.filter((character) => character.gameId === value.gameId)
   const expandedCharacterIds = gameCharacters
     .filter((character) =>
-      selectedVirtualIds.has('__all_characters__')
-      || (selectedVirtualIds.has('__all_pj__') && character.type !== 'pnj')
-      || (selectedVirtualIds.has('__all_pnj__') && character.type === 'pnj')
+      selectedVirtualIds.has(VIRTUAL_CHARACTER_GROUPS.allCharacters)
+      || (selectedVirtualIds.has(VIRTUAL_CHARACTER_GROUPS.allPj) && character.type !== CHARACTER_TYPES.pnj)
+      || (selectedVirtualIds.has(VIRTUAL_CHARACTER_GROUPS.allPnj) && character.type === CHARACTER_TYPES.pnj)
     )
     .map((character) => character.id)
 

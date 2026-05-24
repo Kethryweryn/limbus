@@ -1,15 +1,43 @@
 import { z, type ZodError, type ZodType } from 'zod'
 import type { H3Event } from 'h3'
+import {
+  CHARACTER_TYPES,
+  DOCUMENT_AUDIENCES,
+  INTRIGUE_LEVELS,
+  SESSION_ROLES,
+  SESSION_STATUSES
+} from '~/utils/domain'
 
 const optionalText = z.string().trim().optional().nullable()
 const optionalBoolean = z.boolean().optional()
 const requiredText = (field: string) => z.string().trim().min(1, `${field} is required`)
 const requiredId = (field: string) => z.string().trim().min(1, `${field} is required`)
-const sessionStatus = z.enum(['scheduled', 'postponed', 'cancelled', 'completed'])
-const intrigueLevel = z.enum(['main_story', 'main_character', 'major', 'minor'])
-const characterType = z.enum(['pj', 'pnj'])
-const sessionParticipantRole = z.enum(['participant', 'organizer', 'npc', 'kitchen'])
-const documentAudience = z.enum(['targeted', 'everyone', 'organizers', 'npcs', 'kitchen'])
+const sessionStatus = z.enum([
+  SESSION_STATUSES.scheduled,
+  SESSION_STATUSES.postponed,
+  SESSION_STATUSES.cancelled,
+  SESSION_STATUSES.completed
+])
+const intrigueLevel = z.enum([
+  INTRIGUE_LEVELS.mainStory,
+  INTRIGUE_LEVELS.mainCharacter,
+  INTRIGUE_LEVELS.major,
+  INTRIGUE_LEVELS.minor
+])
+const characterType = z.enum([CHARACTER_TYPES.pj, CHARACTER_TYPES.pnj])
+const sessionParticipantRole = z.enum([
+  SESSION_ROLES.participant,
+  SESSION_ROLES.organizer,
+  SESSION_ROLES.npc,
+  SESSION_ROLES.kitchen
+])
+const documentAudience = z.enum([
+  DOCUMENT_AUDIENCES.targeted,
+  DOCUMENT_AUDIENCES.everyone,
+  DOCUMENT_AUDIENCES.organizers,
+  DOCUMENT_AUDIENCES.npcs,
+  DOCUMENT_AUDIENCES.kitchen
+])
 const timelineTime = z.string().trim().regex(/^\d{2}:\d{2}$/, 'Time must use HH:mm format')
 
 export async function readZodBody<T>(event: H3Event, schema: ZodType<T>): Promise<T> {
@@ -51,7 +79,7 @@ export const updateGameSchema = z.object({
 
 export const createCharacterSchema = z.object({
   name: requiredText('Name'),
-  type: characterType.default('pj'),
+  type: characterType.default(CHARACTER_TYPES.pj),
   pitch: optionalText,
   background: optionalText,
   backgroundDocumentUrl: optionalText,
@@ -100,7 +128,7 @@ export const intrigueSchema = z.object({
   name: requiredText('Name'),
   pitch: optionalText,
   description: optionalText,
-  level: intrigueLevel.default('minor'),
+  level: intrigueLevel.default(INTRIGUE_LEVELS.minor),
   gameId: requiredId('Game'),
   characterIds: z.array(requiredId('Character')).optional().default([]),
   factionIds: z.array(requiredId('Faction')).optional().default([]),
@@ -140,7 +168,7 @@ export const documentSchema = z.object({
   title: requiredText('Title'),
   content: optionalText,
   documentUrl: optionalText,
-  audience: documentAudience.optional().default('targeted'),
+  audience: documentAudience.optional().default(DOCUMENT_AUDIENCES.targeted),
   readyToSend: optionalBoolean,
   gameId: requiredId('Game'),
   characterId: optionalText,
@@ -204,7 +232,7 @@ export const sessionSchema = z.object({
   gameId: requiredId('Game'),
   date: optionalText,
   locationId: optionalText,
-  status: sessionStatus.optional().default('scheduled'),
+  status: sessionStatus.optional().default(SESSION_STATUSES.scheduled),
   published: optionalBoolean,
   assignments: z.array(sessionAssignmentSchema).optional(),
   participants: z.array(sessionParticipantSchema).optional().default([])

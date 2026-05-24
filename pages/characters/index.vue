@@ -47,7 +47,7 @@
                                     {{ char.game?.title || 'Jeu inconnu' }}
                                 </UBadge>
                                 <UBadge color="warning" variant="subtle" size="xs">
-                                    {{ char.type === 'pnj' ? 'PNJ' : 'PJ' }}
+                                    {{ char.type === CHARACTER_TYPES.pnj ? 'PNJ' : 'PJ' }}
                                 </UBadge>
                                 <UBadge
                                     v-for="faction in char.factions || []"
@@ -129,6 +129,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { isOfflineMode } from '~/utils/connection'
+import { CHARACTER_TYPES } from '~/utils/domain'
 import { getFromStore, saveToStore } from '~/utils/storage'
 //import GameContextBar from '@/components/GameContextBar.vue'
 
@@ -273,7 +274,7 @@ const prevCharPage = () => {
 const newCharacter = ref({
     name: '',
     pitch: '',
-    type: 'pj',
+    type: CHARACTER_TYPES.pj,
     background: '',
     backgroundDocumentUrl: '',
     sheetReadyToSend: false,
@@ -305,7 +306,7 @@ function openCreateSlideover() {
     activeFormCharacter.value = {
         name: '',
         pitch: '',
-        type: 'pj',
+        type: CHARACTER_TYPES.pj,
         background: '',
         backgroundDocumentUrl: '',
         sheetReadyToSend: false,

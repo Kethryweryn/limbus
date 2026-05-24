@@ -24,7 +24,7 @@
         <div class="lg:col-span-3 min-w-0">
           <div class="flex items-center gap-2">
             <UBadge color="warning" variant="subtle" size="xs">
-              {{ characterById(assignment.characterId)?.type === 'pnj' ? 'PNJ' : 'PJ' }}
+              {{ characterById(assignment.characterId)?.type === CHARACTER_TYPES.pnj ? 'PNJ' : 'PJ' }}
             </UBadge>
             <span class="font-medium truncate">{{ characterById(assignment.characterId)?.name || 'Personnage inconnu' }}</span>
           </div>
@@ -126,6 +126,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { CHARACTER_TYPES, SESSION_ROLES } from '~/utils/domain'
 
 const props = defineProps({
   session: { type: Object, required: true },
@@ -147,7 +148,7 @@ const itemsPerPage = 25
 
 const sessionCharacters = computed(() => props.characters
   .filter((character) => character.gameId === props.session.gameId)
-  .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'pj' ? -1 : 1)))
+  .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === CHARACTER_TYPES.pj ? -1 : 1)))
 
 const hasGroups = computed(() => sessionCharacters.value.some((character) => character.factions?.length))
 
@@ -162,7 +163,7 @@ const sortedAssignments = computed(() => [...assignments.value].sort((a, b) => {
   }
 
   if (characterA.type !== characterB.type) {
-    return characterA.type === 'pj' ? -1 : 1
+    return characterA.type === CHARACTER_TYPES.pj ? -1 : 1
   }
   return characterA.name.localeCompare(characterB.name)
 }))
@@ -184,7 +185,7 @@ const participantOptions = computed(() => [
 
 const pnjCastableIds = computed(() => new Set(
   props.session.participants
-    ?.filter((participant) => participant.role === 'organizer' || participant.role === 'npc')
+    ?.filter((participant) => participant.role === SESSION_ROLES.organizer || participant.role === SESSION_ROLES.npc)
     .map((participant) => participant.participantId || participant.participant?.id)
     .filter(Boolean) || []
 ))
@@ -199,7 +200,7 @@ function characterGroupLabel(character) {
 
 function participantOptionsForAssignment(assignment) {
   const character = characterById(assignment.characterId)
-  if (character?.type !== 'pnj') return participantOptions.value
+  if (character?.type !== CHARACTER_TYPES.pnj) return participantOptions.value
 
   return participantOptions.value.filter((participant) => !participant.value || pnjCastableIds.value.has(participant.value))
 }

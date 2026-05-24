@@ -30,16 +30,16 @@ Elle associe notamment :
 - un jeu ;
 - une date ;
 - un lieu ;
-- une liste de joueurs ;
-- des assignations entre joueurs et personnages.
+- une liste de participants ;
+- des assignations entre participants et personnages.
 
-Les joueurs contiennent les informations pratiques stables comme le nom, l'email et le telephone. Un joueur peut etre inscrit a plusieurs jeux. Cette inscription est datee afin de pouvoir afficher en priorite les derniers jeux auxquels le joueur a ete inscrit. La photo depend de l'assignation d'un joueur a un personnage pour une session donnee, afin de correspondre au role incarne. Ces donnees doivent permettre de generer facilement des trombinoscopes.
+Les participants contiennent les informations pratiques stables comme le nom, l'email et le telephone. Un participant peut etre inscrit a plusieurs jeux. Cette inscription est datee afin de pouvoir afficher en priorite les derniers jeux auxquels le participant a ete inscrit. La photo depend de l'assignation d'un participant a un personnage pour une session donnee, afin de correspondre au role incarne. Ces donnees doivent permettre de generer facilement des trombinoscopes.
 
 Les lieux doivent permettre de stocker les informations utiles a l'organisation, notamment le nom du lieu et son adresse. Ces donnees doivent permettre de generer une feuille de route pour la session.
 
 ## Orientation produit
 
-Limbus doit rester un outil d'organisation et de production pour des organisateurs de GN. Les modules de session doivent assembler des donnees existantes, comme les joueurs, les lieux et les personnages, sans forcement porter toute leur gestion detaillee.
+Limbus doit rester un outil d'organisation et de production pour des organisateurs de GN. Les modules de session doivent assembler des donnees existantes, comme les participants, les lieux et les personnages, sans forcement porter toute leur gestion detaillee.
 
 Les fonctionnalites offline sont pensees en priorite comme un mode lecture lorsque la connexion est temporairement indisponible. Les modifications offline et leur resynchronisation pourront etre traitees plus tard comme un chantier specifique.
 
@@ -56,8 +56,8 @@ Les operations API qui modifient ou relient des donnees utilisent les identifian
 - `DELETE /api/games/:id`
 - `PUT /api/characters/:id`
 - `DELETE /api/characters/:id`
-- `PUT /api/players/:id`
-- `DELETE /api/players/:id`
+- `PUT /api/participants/:id`
+- `DELETE /api/participants/:id`
 - `PUT /api/locations/:id`
 - `DELETE /api/locations/:id`
 - `PUT /api/sessions/:id`

@@ -1,5 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
+import { CHARACTER_TYPES, SESSION_STATUSES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -22,7 +23,7 @@ export default defineEventHandler(async (event) => {
           some: {
             session: {
               date: { lt: now },
-              status: { not: 'cancelled' }
+              status: { not: SESSION_STATUSES.cancelled }
             }
           }
         }
@@ -36,7 +37,7 @@ export default defineEventHandler(async (event) => {
     prisma.session.findFirst({
       where: {
         date: { gte: now },
-        status: { not: 'cancelled' }
+        status: { not: SESSION_STATUSES.cancelled }
       },
       orderBy: { date: 'asc' },
       include: {
@@ -59,7 +60,7 @@ export default defineEventHandler(async (event) => {
     })
   ])
 
-  const pjAssignments = nextSession?.assignments.filter((assignment) => assignment.character?.type !== 'pnj') || []
+  const pjAssignments = nextSession?.assignments.filter((assignment) => assignment.character?.type !== CHARACTER_TYPES.pnj) || []
   const castAssigned = pjAssignments.filter((assignment) => Boolean(assignment.participantId)).length
   const castTotal = pjAssignments.length
 

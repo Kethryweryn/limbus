@@ -94,6 +94,13 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import {
+  CHARACTER_TYPES,
+  INTRIGUE_LEVEL_OPTIONS,
+  INTRIGUE_LEVELS,
+  VIRTUAL_CHARACTER_GROUP_OPTIONS,
+  VIRTUAL_CHARACTER_GROUPS
+} from '~/utils/domain'
 
 const props = defineProps({
   intrigue: { type: Object, required: true },
@@ -109,18 +116,9 @@ const localIntrigue = ref({ ...props.intrigue })
 const errors = ref({})
 const serverError = ref('')
 
-const levelOptions = [
-  { label: 'Trame principale scénario', value: 'main_story' },
-  { label: 'Trame principale personnage', value: 'main_character' },
-  { label: 'Intrigue majeure', value: 'major' },
-  { label: 'Intrigue mineure', value: 'minor' }
-]
+const levelOptions = INTRIGUE_LEVEL_OPTIONS
 
-const virtualFactionOptions = [
-  { label: 'Tous les PJs', value: '__all_pj__' },
-  { label: 'Tous les PNJs', value: '__all_pnj__' },
-  { label: 'Tous les participants', value: '__all_characters__' }
-]
+const virtualFactionOptions = VIRTUAL_CHARACTER_GROUP_OPTIONS
 
 const gameOptions = computed(() => props.games.map((game) => ({
   label: game.title,
@@ -130,9 +128,9 @@ const gameOptions = computed(() => props.games.map((game) => ({
 const characterOptions = computed(() =>
   props.characters
     .filter((character) => character.gameId === localIntrigue.value.gameId)
-    .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'pj' ? -1 : 1))
+    .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === CHARACTER_TYPES.pj ? -1 : 1))
     .map((character) => ({
-      label: `${character.type === 'pnj' ? 'PNJ' : 'PJ'} - ${character.name}`,
+      label: `${character.type === CHARACTER_TYPES.pnj ? 'PNJ' : 'PJ'} - ${character.name}`,
       value: character.id
     }))
 )
@@ -156,7 +154,7 @@ const hasAssignments = computed(() =>
 watch(() => props.intrigue, (newIntrigue) => {
   localIntrigue.value = {
     ...newIntrigue,
-    level: newIntrigue.level || 'minor',
+    level: newIntrigue.level || INTRIGUE_LEVELS.minor,
     characterIds: newIntrigue.characterIds || newIntrigue.characters?.map((character) => character.id) || [],
     factionIds: newIntrigue.factionIds || newIntrigue.factions?.map((faction) => faction.id) || []
   }
@@ -190,9 +188,9 @@ function expandVirtualFactionSelection(value) {
   const gameCharacters = props.characters.filter((character) => character.gameId === value.gameId)
   const expandedCharacterIds = gameCharacters
     .filter((character) =>
-      selectedVirtualIds.has('__all_characters__')
-      || (selectedVirtualIds.has('__all_pj__') && character.type !== 'pnj')
-      || (selectedVirtualIds.has('__all_pnj__') && character.type === 'pnj')
+      selectedVirtualIds.has(VIRTUAL_CHARACTER_GROUPS.allCharacters)
+      || (selectedVirtualIds.has(VIRTUAL_CHARACTER_GROUPS.allPj) && character.type !== CHARACTER_TYPES.pnj)
+      || (selectedVirtualIds.has(VIRTUAL_CHARACTER_GROUPS.allPnj) && character.type === CHARACTER_TYPES.pnj)
     )
     .map((character) => character.id)
 

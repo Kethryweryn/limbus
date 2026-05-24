@@ -20,12 +20,19 @@ type CharacterSeed = {
   name: string
   pitch: string
   type?: 'pj' | 'pnj'
+  background?: string
+  costumeIndications?: string
+  trombinoscopeFaceHidden?: boolean
+  trombinoscopeDisplayName?: string
+  trombinoscopeNote?: string
+  excludeFromTrombinoscope?: boolean
 }
 
 type FactionSeed = {
   name: string
   pitch: string
   characterNames: string[]
+  showInTrombinoscope?: boolean
 }
 
 type IntrigueSeed = {
@@ -83,14 +90,15 @@ const games: GameSeed[] = [
       { name: 'Corvin le Noir', pitch: 'Émissaire d’une maison rivale, charmeur et opportuniste.' },
       { name: 'Nora Fiel', pitch: 'Cheffe des artisans, lasse de payer pour les querelles des puissants.' },
       { name: 'Bastian Lorme', pitch: 'Barde itinérant qui en sait trop sur la mort du baron.' },
-      { name: 'Hélène de Briseciel', pitch: 'Diplomate venue négocier une paix impossible.', type: 'pnj' },
-      { name: 'Toma le Rouge', pitch: 'Ancien contrebandier devenu informateur de la garde.', type: 'pnj' }
+      { name: 'Hélène de Briseciel', pitch: 'Diplomate venue négocier une paix impossible.', type: 'pnj', trombinoscopeFaceHidden: true },
+      { name: 'Toma le Rouge', pitch: 'Ancien contrebandier devenu informateur de la garde.', type: 'pnj', trombinoscopeDisplayName: 'Informateur anonyme' }
     ],
     factions: [
       {
         name: 'La Maison de Valombre',
         pitch: 'Le cercle noble qui tente de préserver la légitimité de la succession.',
-        characterNames: ['Aélis de Valombre', 'Hélène de Briseciel']
+        characterNames: ['Aélis de Valombre', 'Hélène de Briseciel'],
+        showInTrombinoscope: true
       },
       {
         name: 'La Ville basse',
@@ -184,14 +192,15 @@ const games: GameSeed[] = [
       { name: 'Eli Chen', pitch: 'Analyste signal, premier à avoir entendu la transmission.' },
       { name: 'Nadia Sol', pitch: 'Représentante du consortium privé financeur de la mission.' },
       { name: 'Jonas Pike', pitch: 'Médecin de bord, inquiet des effets psychologiques du signal.' },
-      { name: 'Rhea Tan', pitch: 'Pilote de navette bloquée à quai depuis la panne orbitale.', type: 'pnj' },
-      { name: 'Oskar Nilsson', pitch: 'Technicien réseau soupçonné de falsifier les journaux système.', type: 'pnj' }
+      { name: 'Rhea Tan', pitch: 'Pilote de navette bloquée à quai depuis la panne orbitale.', type: 'pnj', trombinoscopeFaceHidden: true },
+      { name: 'Oskar Nilsson', pitch: 'Technicien réseau soupçonné de falsifier les journaux système.', type: 'pnj', trombinoscopeDisplayName: 'Technicien inconnu' }
     ],
     factions: [
       {
         name: 'Équipe scientifique',
         pitch: 'Les spécialistes chargés de comprendre le signal sans provoquer de catastrophe.',
-        characterNames: ['Dr Lena Kovacs', 'Eli Chen', 'Jonas Pike']
+        characterNames: ['Dr Lena Kovacs', 'Eli Chen', 'Jonas Pike'],
+        showInTrombinoscope: true
       },
       {
         name: 'Consortium Meridian',
@@ -285,14 +294,15 @@ const games: GameSeed[] = [
       { name: 'Valentin Sorel', pitch: 'Faussaire élégant qui prétend être collectionneur.' },
       { name: 'Agathe Lenoir', pitch: 'Duenna redoutable, mémoire vivante des scandales passés.' },
       { name: 'Romain Delmas', pitch: 'Banquier discret qui tient plusieurs invités par leurs dettes.' },
-      { name: 'Mina Salvati', pitch: 'Chanteuse invitée, témoin d’une disparition ancienne.', type: 'pnj' },
-      { name: 'Gaspard Voss', pitch: 'Majordome impeccable, seul à circuler partout sans être vu.', type: 'pnj' }
+      { name: 'Mina Salvati', pitch: 'Chanteuse invitée, témoin d’une disparition ancienne.', type: 'pnj', trombinoscopeFaceHidden: true },
+      { name: 'Gaspard Voss', pitch: 'Majordome impeccable, seul à circuler partout sans être vu.', type: 'pnj', trombinoscopeDisplayName: 'Personnel de maison' }
     ],
     factions: [
       {
         name: 'Les invités de marque',
         pitch: 'Les figures mondaines dont la réputation peut basculer au cours de la soirée.',
-        characterNames: ['Céleste Vairon', 'Octave Mirecourt', 'Iris de Montfaucon']
+        characterNames: ['Céleste Vairon', 'Octave Mirecourt', 'Iris de Montfaucon'],
+        showInTrombinoscope: true
       },
       {
         name: 'Les ombres du bal',
@@ -505,6 +515,25 @@ function crc32(buffer: Buffer) {
   return (crc ^ 0xffffffff) >>> 0
 }
 
+function defaultCharacterBackground(gameTitle: string, characterName: string, type: 'pj' | 'pnj') {
+  const roleLabel = type === 'pnj' ? 'personnage non joueur' : 'personnage joueur'
+  return `${characterName} est un ${roleLabel} de ${gameTitle}.
+
+Son histoire personnelle contient des objectifs, des relations et des zones d’ombre à développer pendant l’écriture. Ce texte volontairement plus long permet de tester l’affichage des backgrounds, la génération des fiches personnage et les cas de relecture.`
+}
+
+function defaultCostumeIndications(type: 'pj' | 'pnj') {
+  return type === 'pnj'
+    ? 'Tenue identifiable mais modulable, accessoires faciles à retirer pour permettre plusieurs apparitions.'
+    : 'Silhouette cohérente avec le statut social du personnage, avec un signe distinctif facile à reconnaître.'
+}
+
+function defaultTrombinoscopeNote(type: 'pj' | 'pnj') {
+  return type === 'pnj'
+    ? 'Peut apparaître ponctuellement pendant la session.'
+    : ''
+}
+
 async function clearBusinessData() {
   await prisma.sessionTrombinoscope.deleteMany()
   await prisma.characterTrombinoscopeEntry.deleteMany()
@@ -542,7 +571,13 @@ async function createGame(seed: GameSeed, gameIndex: number) {
         type: character.type || 'pj',
         slug: makeSlug(`${seed.title}-${character.name}`),
         pitch: character.pitch,
+        background: character.background || defaultCharacterBackground(seed.title, character.name, character.type || 'pj'),
+        costumeIndications: character.costumeIndications || defaultCostumeIndications(character.type || 'pj'),
         sheetReadyToSend: character.type !== 'pnj',
+        excludeFromTrombinoscope: character.excludeFromTrombinoscope ?? false,
+        trombinoscopeFaceHidden: character.trombinoscopeFaceHidden ?? false,
+        trombinoscopeDisplayName: character.trombinoscopeDisplayName || null,
+        trombinoscopeNote: character.trombinoscopeNote || defaultTrombinoscopeNote(character.type || 'pj'),
         gameId: game.id,
         published: true
       }
@@ -556,6 +591,7 @@ async function createGame(seed: GameSeed, gameIndex: number) {
         name: faction.name,
         slug: makeSlug(`${seed.title}-${faction.name}`),
         pitch: faction.pitch,
+        showInTrombinoscope: faction.showInTrombinoscope ?? false,
         gameId: game.id,
         published: true,
         characters: {
@@ -657,6 +693,7 @@ async function createGame(seed: GameSeed, gameIndex: number) {
 
   await createTimelineEvents(game.id, characters, factions, intrigues, items)
   await createDocuments(game.id, seed.title)
+  await createTrombinoscopeEntries(characters)
 
   const participantPhotos = await createParticipantPhotos(participants, gameIndex)
   await createSessions(game.id, seed.title, gameIndex, characters, participants, locations, participantPhotos)
@@ -711,6 +748,31 @@ async function createDocuments(
         readyToSend: false,
         gameId,
         published: true
+      }
+    ]
+  })
+}
+
+async function createTrombinoscopeEntries(characters: Array<{ id: string, type: string }>) {
+  const pjCharacters = characters.filter((character) => character.type !== 'pnj')
+  if (pjCharacters.length < 3) return
+
+  await prisma.characterTrombinoscopeEntry.createMany({
+    data: [
+      {
+        viewerCharacterId: pjCharacters[0].id,
+        targetCharacterId: pjCharacters[1].id,
+        included: true,
+        faceKnown: true,
+        displayName: 'Contact à confirmer',
+        note: 'Le personnage pense reconnaître cette personne, sans certitude.'
+      },
+      {
+        viewerCharacterId: pjCharacters[0].id,
+        targetCharacterId: pjCharacters[2].id,
+        included: true,
+        faceKnown: false,
+        note: 'Nom connu, visage inconnu au début de la session.'
       }
     ]
   })

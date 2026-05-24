@@ -100,6 +100,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { CHARACTER_TYPES } from '~/utils/domain'
 
 const props = defineProps({
   item: { type: Object, required: true },
@@ -123,9 +124,9 @@ const gameOptions = computed(() => props.games.map((game) => ({
 const characterOptions = computed(() =>
   props.characters
     .filter((character) => character.gameId === localItem.value.gameId)
-    .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'pj' ? -1 : 1))
+    .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === CHARACTER_TYPES.pj ? -1 : 1))
     .map((character) => ({
-      label: `${character.type === 'pnj' ? 'PNJ' : 'PJ'} - ${character.name}`,
+      label: `${character.type === CHARACTER_TYPES.pnj ? 'PNJ' : 'PJ'} - ${character.name}`,
       value: character.id
     }))
 )

@@ -160,6 +160,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { CHARACTER_TYPE_OPTIONS, CHARACTER_TYPES } from '~/utils/domain'
 
 const props = defineProps({
     character: { type: Object, required: true },
@@ -175,10 +176,7 @@ const errors = ref({})
 const serverError = ref('')
 const trombinoscopePhotoInput = ref(null)
 const uploadingTrombinoscopePhoto = ref(false)
-const characterTypeOptions = [
-    { label: 'PJ', value: 'pj' },
-    { label: 'PNJ', value: 'pnj' }
-]
+const characterTypeOptions = CHARACTER_TYPE_OPTIONS
 
 const factionOptions = computed(() =>
     props.factions
@@ -193,7 +191,7 @@ const factionOptions = computed(() =>
 watch(() => props.character, (newVal) => {
     localCharacter.value = {
         ...newVal,
-        type: newVal.type || 'pj',
+        type: newVal.type || CHARACTER_TYPES.pj,
         sheetReadyToSend: Boolean(newVal.sheetReadyToSend),
         excludeFromTrombinoscope: Boolean(newVal.excludeFromTrombinoscope),
         trombinoscopeFaceHidden: Boolean(newVal.trombinoscopeFaceHidden),

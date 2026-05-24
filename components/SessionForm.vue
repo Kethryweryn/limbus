@@ -100,7 +100,7 @@
           <div class="md:col-span-3 min-w-0">
             <div class="flex items-center gap-2">
               <UBadge color="warning" variant="subtle" size="xs">
-                {{ characterById(assignment.characterId)?.type === 'pnj' ? 'PNJ' : 'PJ' }}
+                {{ characterById(assignment.characterId)?.type === CHARACTER_TYPES.pnj ? 'PNJ' : 'PJ' }}
               </UBadge>
               <span class="font-medium truncate">{{ characterById(assignment.characterId)?.name || 'Personnage inconnu' }}</span>
             </div>
@@ -143,6 +143,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { CHARACTER_TYPES, SESSION_ROLES, SESSION_STATUS_OPTIONS } from '~/utils/domain'
 
 const props = defineProps({
   session: { type: Object, required: true },
@@ -165,16 +166,11 @@ const gameOptions = computed(() => props.games.map((game) => ({
   value: game.id
 })))
 
-const statusOptions = [
-  { label: 'Prévue', value: 'scheduled' },
-  { label: 'Reportée', value: 'postponed' },
-  { label: 'Annulée', value: 'cancelled' },
-  { label: 'Terminée', value: 'completed' }
-]
+const statusOptions = SESSION_STATUS_OPTIONS
 
 const sessionCharacters = computed(() => props.characters
   .filter((character) => !localSession.value.gameId || character.gameId === localSession.value.gameId)
-  .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'pj' ? -1 : 1)))
+  .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === CHARACTER_TYPES.pj ? -1 : 1)))
 
 const locationOptions = computed(() => [
   { label: 'Aucun lieu', value: '' },
@@ -211,7 +207,7 @@ function characterById(characterId) {
 
 function participantOptionsForAssignment(assignment) {
   const character = characterById(assignment.characterId)
-  if (character?.type !== 'pnj') return participantOptions.value
+  if (character?.type !== CHARACTER_TYPES.pnj) return participantOptions.value
 
   return participantOptions.value.filter((participant) => !participant.value || pnjCastableIds.value.has(participant.value))
 }
@@ -225,16 +221,16 @@ function sessionRoleIds(session, role) {
 
 function sessionParticipantsPayload(session) {
   const explicitParticipants = [
-    ...(session.organizerIds || []).map((participantId) => ({ participantId, role: 'organizer' })),
-    ...(session.npcIds || []).map((participantId) => ({ participantId, role: 'npc' })),
-    ...(session.kitchenIds || []).map((participantId) => ({ participantId, role: 'kitchen' }))
+    ...(session.organizerIds || []).map((participantId) => ({ participantId, role: SESSION_ROLES.organizer })),
+    ...(session.npcIds || []).map((participantId) => ({ participantId, role: SESSION_ROLES.npc })),
+    ...(session.kitchenIds || []).map((participantId) => ({ participantId, role: SESSION_ROLES.kitchen }))
   ]
   const explicitIds = new Set(explicitParticipants.map((participant) => participant.participantId))
   const castParticipantIds = [...new Set((session.assignments || [])
     .map((assignment) => assignment.participantId)
     .filter((participantId) => participantId && !explicitIds.has(participantId)))]
   const castParticipants = castParticipantIds
-    .map((participantId) => ({ participantId, role: 'participant' }))
+    .map((participantId) => ({ participantId, role: SESSION_ROLES.participant }))
 
   return [...explicitParticipants, ...castParticipants]
 }
@@ -247,9 +243,9 @@ watch(() => props.session, (newSession) => {
 
   localSession.value = {
     ...newSession,
-    organizerIds: newSession.organizerIds || sessionRoleIds(newSession, 'organizer'),
-    npcIds: newSession.npcIds || sessionRoleIds(newSession, 'npc'),
-    kitchenIds: newSession.kitchenIds || sessionRoleIds(newSession, 'kitchen'),
+    organizerIds: newSession.organizerIds || sessionRoleIds(newSession, SESSION_ROLES.organizer),
+    npcIds: newSession.npcIds || sessionRoleIds(newSession, SESSION_ROLES.npc),
+    kitchenIds: newSession.kitchenIds || sessionRoleIds(newSession, SESSION_ROLES.kitchen),
     assignments: props.showCast
       ? sessionCharacters.value.map((character) => {
           const assignment = assignmentsByCharacterId.get(character.id)
@@ -291,7 +287,7 @@ watch(() => localSession.value.gameId, () => {
 watch([() => localSession.value.organizerIds, () => localSession.value.npcIds], () => {
   localSession.value.assignments = (localSession.value.assignments || []).map((assignment) => {
     const character = characterById(assignment.characterId)
-    if (character?.type === 'pnj' && assignment.participantId && !pnjCastableIds.value.has(assignment.participantId)) {
+    if (character?.type === CHARACTER_TYPES.pnj && assignment.participantId && !pnjCastableIds.value.has(assignment.participantId)) {
       return { ...assignment, participantId: '' }
     }
     return assignment
