@@ -1,13 +1,13 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
-import { gameScopedWhere } from '~/server/utils/gameAccess'
+import { accessibleGameModelWhere, gameScopedWhere } from '~/server/utils/gameAccess'
 import { CHARACTER_TYPES, SESSION_STATUSES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
 
   const now = new Date()
-  const gameWhere = await gameScopedWhere(event)
+  const gameWhere = await accessibleGameModelWhere(event)
   const sessionWhere = await gameScopedWhere(event, {})
 
   const [

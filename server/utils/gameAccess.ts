@@ -37,6 +37,18 @@ export async function accessibleGameIds(event: H3Event) {
   return games.map((game) => game.id)
 }
 
+export async function accessibleGameModelWhere(event: H3Event, extraWhere: Record<string, any> = {}) {
+  const { user, allGames } = await canAccessAllGames(event)
+  if (allGames) return extraWhere
+
+  return {
+    AND: [
+      extraWhere,
+      accessibleGameWhere(user.id)
+    ]
+  }
+}
+
 export async function requireGameAccess(event: H3Event, gameId: string) {
   const { user, allGames } = await canAccessAllGames(event)
   if (allGames) return { user, allGames }
