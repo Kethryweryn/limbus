@@ -103,7 +103,7 @@
         <UButton type="submit" color="primary" :loading="saving" :disabled="saving">
           Enregistrer le cast
         </UButton>
-        <UButton type="button" color="neutral" to="/sessions">Retour</UButton>
+        <UButton type="button" color="neutral" variant="soft" to="/sessions">Retour</UButton>
       </div>
 
       <p v-if="serverError" class="text-red-500 text-sm">{{ serverError }}</p>

@@ -131,7 +131,7 @@
         <UButton type="submit" color="primary" size="lg">
           {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
         </UButton>
-        <UButton type="button" color="neutral" size="lg" @click="$emit('cancel')">
+        <UButton type="button" color="neutral" variant="soft" size="lg" @click="$emit('cancel')">
           Annuler
         </UButton>
       </div>

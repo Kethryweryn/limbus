@@ -42,13 +42,6 @@
 
     <div v-if="session && !isEditingDetails" class="flex flex-wrap gap-2">
       <UButton
-        :color="activeTab === 'cast' ? 'primary' : 'neutral'"
-        :variant="activeTab === 'cast' ? 'solid' : 'soft'"
-        @click="setTab('cast')"
-      >
-        Cast
-      </UButton>
-      <UButton
         :color="activeTab === 'timeline' ? 'primary' : 'neutral'"
         :variant="activeTab === 'timeline' ? 'solid' : 'soft'"
         @click="setTab('timeline')"
@@ -61,6 +54,13 @@
         @click="setTab('documents')"
       >
         Documents
+      </UButton>
+      <UButton
+        :color="activeTab === 'cast' ? 'primary' : 'neutral'"
+        :variant="activeTab === 'cast' ? 'solid' : 'soft'"
+        @click="setTab('cast')"
+      >
+        Cast
       </UButton>
     </div>
 
@@ -107,7 +107,7 @@ const locations = ref([])
 const participants = ref([])
 const timelineData = ref(null)
 const documentsData = ref(null)
-const activeTab = ref(['timeline', 'documents'].includes(route.query.tab) ? route.query.tab : 'cast')
+const activeTab = ref(['timeline', 'documents', 'cast'].includes(route.query.tab) ? route.query.tab : 'cast')
 const isEditingDetails = ref(route.query.edit === 'details')
 const editableSession = ref(null)
 
@@ -219,7 +219,7 @@ watch(() => route.query.edit, (value) => {
 })
 
 watch(() => route.query.tab, (value) => {
-  activeTab.value = ['timeline', 'documents'].includes(value) ? value : 'cast'
+  activeTab.value = ['timeline', 'documents', 'cast'].includes(value) ? value : 'cast'
 })
 
 function startEditDetails() {

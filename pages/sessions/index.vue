@@ -52,14 +52,14 @@
                   </UBadge>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                  <UButton v-if="!isOffline" size="xs" color="primary" :to="`/sessions/${session.id}`">
-                    Cast
-                  </UButton>
-                  <UButton v-if="!isOffline" size="xs" color="primary" variant="soft" :to="`/sessions/${session.id}?tab=timeline`">
+                  <UButton v-if="!isOffline" size="xs" color="neutral" variant="soft" :to="`/sessions/${session.id}?tab=timeline`">
                     Timeline
                   </UButton>
-                  <UButton v-if="!isOffline" size="xs" color="primary" variant="soft" :to="`/sessions/${session.id}?tab=documents`">
+                  <UButton v-if="!isOffline" size="xs" color="neutral" variant="soft" :to="`/sessions/${session.id}?tab=documents`">
                     Documents
+                  </UButton>
+                  <UButton v-if="!isOffline" size="xs" color="neutral" variant="soft" :to="`/sessions/${session.id}?tab=cast`">
+                    Cast
                   </UButton>
                   <UButton v-if="!isOffline" size="xs" color="primary" @click="startEdit(session)">Organisation</UButton>
                   <UButton v-if="!isOffline" size="xs" color="error" @click="deleteSession(session.id)">Supprimer</UButton>
@@ -129,11 +129,11 @@
         </UCard>
 
         <div v-else class="flex items-center justify-center gap-4 mt-4">
-          <UButton @click="prevSectionPage(section.key)" :disabled="sectionPage(section.key) === 1">← Précédent</UButton>
+          <UButton color="neutral" variant="soft" @click="prevSectionPage(section.key)" :disabled="sectionPage(section.key) === 1">← Précédent</UButton>
           <span class="inline-flex items-center text-sm text-gray-500">
             Page {{ sectionPage(section.key) }} / {{ totalSectionPages(section) }}
           </span>
-          <UButton @click="nextSectionPage(section)" :disabled="sectionPage(section.key) === totalSectionPages(section)">Suivant →</UButton>
+          <UButton color="neutral" variant="soft" @click="nextSectionPage(section)" :disabled="sectionPage(section.key) === totalSectionPages(section)">Suivant →</UButton>
         </div>
       </section>
     </div>
