@@ -11,13 +11,31 @@
     </div>
 
     <div class="flex flex-col md:flex-row gap-4 mb-4">
-      <USelect
-        v-if="!selectedGame"
-        v-model="gameFilter"
-        :items="gameFilterOptions"
-        value-key="value"
-        class="w-full md:w-64"
-      />
+      <div v-if="!selectedGame" class="relative w-full md:w-80">
+        <UInput
+          v-model="gameSearch"
+          placeholder="Rechercher un jeu..."
+          icon="i-heroicons-magnifying-glass"
+          class="w-full"
+        />
+        <div
+          v-if="gameSearch && !selectedTimelineGameId"
+          class="absolute z-30 mt-1 max-h-72 w-full overflow-y-auto rounded border border-gray-200 bg-white shadow"
+        >
+          <button
+            v-for="game in filteredSelectableGames"
+            :key="game.id"
+            type="button"
+            class="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+            @click="selectTimelineGame(game)"
+          >
+            {{ game.title }}
+          </button>
+          <div v-if="!filteredSelectableGames.length" class="px-3 py-2 text-sm text-gray-500">
+            Aucun jeu trouvé.
+          </div>
+        </div>
+      </div>
       <UInput
         v-if="selectedTimelineGameId"
         v-model="searchQuery"
@@ -276,7 +294,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import TimelineEventForm from '@/components/TimelineEventForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
@@ -291,6 +309,7 @@ const intrigues = ref([])
 const items = ref([])
 const searchQuery = ref('')
 const gameFilter = ref('')
+const gameSearch = ref('')
 const isOffline = ref(false)
 const showFormSlideover = ref(false)
 const activeFormEvent = ref(null)
@@ -298,12 +317,31 @@ const formMode = ref('create')
 const router = useRouter()
 const { game: selectedGame } = useGameFocus()
 
-const gameFilterOptions = computed(() => [
-  { label: 'Sélectionner un jeu', value: '' },
-  ...games.value.map((game) => ({ label: game.title, value: game.id }))
-])
-
 const selectedTimelineGameId = computed(() => selectedGame.value?.id || gameFilter.value || '')
+const selectedTimelineGame = computed(() =>
+  selectedGame.value || games.value.find((game) => game.id === gameFilter.value) || null
+)
+
+const filteredSelectableGames = computed(() => {
+  const term = gameSearch.value.trim().toLowerCase()
+  if (!term) return games.value.slice(0, 10)
+
+  return games.value
+    .filter((game) => game.title.toLowerCase().includes(term))
+    .slice(0, 10)
+})
+
+watch(gameSearch, (value) => {
+  if (!selectedTimelineGame.value) return
+  if (value !== selectedTimelineGame.value.title) {
+    gameFilter.value = ''
+  }
+})
+
+function selectTimelineGame(game) {
+  gameFilter.value = game.id
+  gameSearch.value = game.title
+}
 
 const filteredEvents = computed(() => {
   if (!selectedTimelineGameId.value) return []
