@@ -10,7 +10,13 @@ export default defineEventHandler(async (event) => {
         orderBy: { updatedAt: 'desc' },
         include: {
             game: true,
-            factions: true
+            factions: true,
+            intrigues: {
+                select: {
+                    id: true,
+                    level: true
+                }
+            }
         }
     })
 })

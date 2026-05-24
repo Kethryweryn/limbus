@@ -72,6 +72,18 @@
                         {{ char.pitch || 'Aucun pitch renseigné.' }}
                     </p>
 
+                    <div class="flex flex-wrap gap-1">
+                        <UBadge
+                            v-for="level in intrigueLevelsSummary(char)"
+                            :key="level.value"
+                            :color="level.count ? level.color : 'neutral'"
+                            :variant="level.count ? 'subtle' : 'outline'"
+                            size="xs"
+                        >
+                            {{ level.shortLabel }} {{ level.count }}
+                        </UBadge>
+                    </div>
+
                     <div v-if="!isOffline" class="flex flex-wrap gap-2 pt-1">
                         <UButton
                             icon="i-heroicons-pencil-square"
@@ -129,7 +141,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { isOfflineMode } from '~/utils/connection'
-import { CHARACTER_TYPES } from '~/utils/domain'
+import { CHARACTER_TYPES, INTRIGUE_LEVELS } from '~/utils/domain'
 import { getFromStore, saveToStore } from '~/utils/storage'
 //import GameContextBar from '@/components/GameContextBar.vue'
 
@@ -150,6 +162,25 @@ const sortOptions = [
     { label: 'Nom A-Z', value: 'name-asc' },
     { label: 'Nom Z-A', value: 'name-desc' }
 ]
+
+const intrigueLevelCards = [
+    { value: INTRIGUE_LEVELS.mainStory, shortLabel: 'Scénario', color: 'primary' },
+    { value: INTRIGUE_LEVELS.mainCharacter, shortLabel: 'Perso', color: 'primary' },
+    { value: INTRIGUE_LEVELS.major, shortLabel: 'Majeure', color: 'warning' },
+    { value: INTRIGUE_LEVELS.minor, shortLabel: 'Mineure', color: 'neutral' }
+]
+
+const intrigueLevelsSummary = (character) => {
+    const counts = (character.intrigues || []).reduce((acc, intrigue) => {
+        acc[intrigue.level] = (acc[intrigue.level] || 0) + 1
+        return acc
+    }, {})
+
+    return intrigueLevelCards.map((level) => ({
+        ...level,
+        count: counts[level.value] || 0
+    }))
+}
 
 const gameFilterOptions = computed(() => [
     { label: 'Tous les jeux', value: 'all' },
