@@ -56,7 +56,12 @@ onUnmounted(() => {
     <div class="min-h-screen bg-gray-50 px-4 py-8 sm:px-6 flex items-center justify-center">
         <UCard class="w-full max-w-md">
             <template #header>
-                <div class="space-y-1">
+                <div class="space-y-4">
+                    <img
+                        src="/brand/limbus-logo.png"
+                        alt="Limbus"
+                        class="mx-auto h-28 w-full max-w-xs object-contain"
+                    >
                     <h1 class="text-2xl font-semibold">Connexion</h1>
                     <p class="text-sm text-gray-500">Accédez à votre espace Limbus.</p>
                 </div>

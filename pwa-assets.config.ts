@@ -8,5 +8,5 @@ export default defineConfig({
         preset: '2023',
     },
     preset,
-    images: ['public/pwa-192x192.png'],
+    images: ['public/brand/limbus-icon.png'],
 })

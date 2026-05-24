@@ -68,7 +68,7 @@ useHead({
   link: [
     { rel: 'icon', type: 'image/png', href: '/pwa-192x192.png' },
     { rel: 'apple-touch-icon', href: '/pwa-192x192.png', sizes: '192x192' },
-    { rel: 'mask-icon', href: '/pwa-192x192.png', color: '#ffffff' }
+    { rel: 'shortcut icon', type: 'image/png', href: '/brand/limbus-icon.png' }
   ]
 })
 

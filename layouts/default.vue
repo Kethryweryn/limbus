@@ -3,10 +3,17 @@
     <div class="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
         <!-- Header -->
         <header class="flex items-center justify-between p-4 bg-white shadow-md">
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center gap-3">
                 <UButton icon="i-heroicons-bars-3" color="neutral" variant="ghost" class="md:hidden"
                     @click="mobileOpen = true" />
-                <span class="font-bold text-xl ml-2">Limbus</span>
+                <NuxtLink to="/" class="flex items-center gap-2">
+                    <img
+                        src="/brand/limbus-icon.png"
+                        alt=""
+                        class="size-9 rounded-md object-cover"
+                    >
+                    <span class="font-bold text-xl">Limbus</span>
+                </NuxtLink>
             </div>
             <UDropdownMenu :items="userMenu" :content="{ align: 'end' }">
                 <UAvatar size="sm" icon="i-heroicons-user" />
@@ -80,7 +87,14 @@
         <USlideover v-model:open="mobileOpen" title="Navigation">
             <template #body>
                 <div class="p-4 space-y-6">
-                    <h2 class="text-lg font-bold">Navigation</h2>
+                    <div class="flex items-center gap-3">
+                        <img
+                            src="/brand/limbus-icon.png"
+                            alt=""
+                            class="size-10 rounded-md object-cover"
+                        >
+                        <h2 class="text-lg font-bold">Navigation</h2>
+                    </div>
                     <nav class="space-y-5">
                         <SidebarLink
                             :item="dashboardLink"
