@@ -58,7 +58,7 @@ onUnmounted(() => {
             <template #header>
                 <div class="space-y-4">
                     <img
-                        src="/brand/limbus-logo.png"
+                        src="/brand/limbus-logo-header.png"
                         alt="Limbus"
                         class="mx-auto h-28 w-full max-w-xs object-contain"
                     >

@@ -6,13 +6,12 @@
             <div class="flex items-center gap-3">
                 <UButton icon="i-heroicons-bars-3" color="neutral" variant="ghost" class="md:hidden"
                     @click="mobileOpen = true" />
-                <NuxtLink to="/" class="flex items-center gap-2">
+                <NuxtLink to="/" class="flex items-center">
                     <img
-                        src="/brand/limbus-icon.png"
-                        alt=""
-                        class="size-9 rounded-md object-cover"
+                        src="/brand/limbus-logo-header.png"
+                        alt="Limbus"
+                        class="h-10 w-auto object-contain"
                     >
-                    <span class="font-bold text-xl">Limbus</span>
                 </NuxtLink>
             </div>
             <UDropdownMenu :items="userMenu" :content="{ align: 'end' }">
@@ -89,7 +88,7 @@
                 <div class="p-4 space-y-6">
                     <div class="flex items-center gap-3">
                         <img
-                            src="/brand/limbus-icon.png"
+                            src="/brand/limbus-icon-app.png"
                             alt=""
                             class="size-10 rounded-md object-cover"
                         >
