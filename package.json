@@ -26,7 +26,7 @@
     "eslint": "^9.39.4",
     "idb": "^8.0.3",
     "jsonwebtoken": "^9.0.3",
-    "nodemailer": "^7.0.6",
+    "nodemailer": "^8.0.8",
     "nuxi": "^3.35.2",
     "nuxt": "^4.4.6",
     "pg": "^8.16.3",
