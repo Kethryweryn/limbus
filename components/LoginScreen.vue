@@ -53,19 +53,59 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="min-h-screen flex flex-col items-center justify-center">
-        <h1 class="text-2xl mb-4">Connexion</h1>
+    <div class="min-h-screen bg-gray-50 px-4 py-8 sm:px-6 flex items-center justify-center">
+        <UCard class="w-full max-w-md">
+            <template #header>
+                <div class="space-y-1">
+                    <h1 class="text-2xl font-semibold">Connexion</h1>
+                    <p class="text-sm text-gray-500">Accédez à votre espace d’organisation Limbus.</p>
+                </div>
+            </template>
 
-        <div v-if="isOffline" class="text-center text-gray-500">
-            <p>{{ offlineMessage }}</p>
-            <p>La connexion nécessite un accès au serveur.</p>
-        </div>
+            <div v-if="isOffline" class="space-y-3">
+                <UAlert
+                    color="warning"
+                    variant="soft"
+                    icon="i-heroicons-wifi"
+                    :title="offlineMessage"
+                    description="La connexion nécessite un accès au serveur."
+                />
+            </div>
 
-        <form v-else @submit.prevent="login" class="space-y-2">
-            <input v-model="email" type="email" placeholder="Email" required />
-            <input v-model="password" type="password" placeholder="Mot de passe" required />
-            <button type="submit">Se connecter</button>
-            <p v-if="error" class="text-red-600">{{ error }}</p>
-        </form>
+            <form v-else class="space-y-4" @submit.prevent="login">
+                <UFormField label="Email">
+                    <UInput
+                        v-model="email"
+                        type="email"
+                        autocomplete="email"
+                        required
+                        size="lg"
+                        class="w-full"
+                    />
+                </UFormField>
+
+                <UFormField label="Mot de passe">
+                    <UInput
+                        v-model="password"
+                        type="password"
+                        autocomplete="current-password"
+                        required
+                        size="lg"
+                        class="w-full"
+                    />
+                </UFormField>
+
+                <UButton type="submit" color="primary" size="lg" block>
+                    Se connecter
+                </UButton>
+
+                <UAlert
+                    v-if="error"
+                    color="error"
+                    variant="soft"
+                    :description="error"
+                />
+            </form>
+        </UCard>
     </div>
 </template>
