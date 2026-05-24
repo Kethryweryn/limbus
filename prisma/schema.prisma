@@ -200,6 +200,8 @@ model Session {
   game        Game       @relation(fields: [gameId], references: [id])
   locationId  String?
   location    Location?  @relation(fields: [locationId], references: [id])
+  paymentRibUrl String?
+  paymentLinkUrl String?
   status      String     @default("scheduled")
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -210,6 +212,7 @@ model Session {
   timelineResponsibles TimelineEventResponsible[]
   documentDeliveries SessionDocumentDelivery[]
   trombinoscopes SessionTrombinoscope[]
+  payments SessionPayment[]
 }
 
 model SessionAssignment {
@@ -267,6 +270,24 @@ model Participant {
   timelineResponsibilities TimelineEventResponsible[]
   documentDeliveries SessionDocumentDelivery[]
   trombinoscopes SessionTrombinoscope[]
+  payments SessionPayment[]
+}
+
+model SessionPayment {
+  id                  String      @id @default(cuid())
+  sessionId           String
+  participantId       String
+  paidAt              DateTime?
+  paymentEmailSentAt  DateTime?
+  paymentReminderSentAt DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  session             Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  participant         Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, participantId])
+  @@index([participantId])
 }
 
 model SessionTrombinoscope {

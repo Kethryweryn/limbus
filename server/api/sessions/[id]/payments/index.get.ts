@@ -1,16 +1,15 @@
 import { requireOrganizer } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
-import { markTrombinoscopeDeliveries } from '~/server/utils/documents'
+import { getSessionPaymentDashboard } from '~/server/utils/sessionPayments'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
 
   const id = getRouterParam(event, 'id')
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
+    throw createError({ statusCode: 400, message: 'ID manquant' })
   }
   await requireSessionAccess(event, id)
 
-  const url = getRequestURL(event)
-  return await markTrombinoscopeDeliveries(id, url.origin)
+  return await getSessionPaymentDashboard(id)
 })

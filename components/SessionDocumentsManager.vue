@@ -60,15 +60,26 @@
                 </div>
               </div>
 
-              <UButton
-                color="primary"
-                size="sm"
-                :loading="sendingDocumentId === document.id"
-                :disabled="sendingDocumentId === document.id || !document.readyToSend || !pendingRecipients(document).length"
-                @click="sendDocuments([document.id])"
-              >
-                Envoyer aux manquants
-              </UButton>
+              <div class="flex flex-wrap gap-2 lg:justify-end">
+                <UButton
+                  color="primary"
+                  size="sm"
+                  :loading="sendingDocumentId === document.id"
+                  :disabled="sendingDocumentId === document.id || !document.readyToSend || !pendingRecipients(document).length"
+                  @click="sendDocuments([document.id])"
+                >
+                  Envoyer aux manquants
+                </UButton>
+                <UButton
+                  color="neutral"
+                  variant="soft"
+                  size="sm"
+                  :disabled="testingEmail"
+                  @click="openDocumentTest(document)"
+                >
+                  Tester l'email
+                </UButton>
+              </div>
             </div>
 
             <div v-if="document.recipients.length" class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -159,6 +170,16 @@
               >
                 Vérifier le PDF
               </UButton>
+              <UButton
+                type="button"
+                color="neutral"
+                variant="soft"
+                size="xs"
+                :disabled="testingEmail"
+                @click="openCharacterSheetTest(sheet)"
+              >
+                Tester l'email
+              </UButton>
               <UBadge v-if="sheet.trombinoscopeMissingPhotos" color="warning" variant="subtle" size="xs">
                 {{ sheet.trombinoscopeMissingPhotos }} photo(s) manquante(s)
               </UBadge>
@@ -183,6 +204,12 @@
 
       <p v-if="serverError" class="text-red-500 text-sm">{{ serverError }}</p>
     </div>
+
+    <EmailTestModal
+      v-model:open="showTestModal"
+      :default-email="props.defaultEmail"
+      :on-submit="sendTestEmail"
+    />
   </UCard>
 </template>
 
@@ -192,6 +219,7 @@ import { DOCUMENT_AUDIENCE_LABELS, SESSION_ROLE_LABELS } from '~/utils/domain'
 
 const props = defineProps({
   documentsData: { type: Object, required: true },
+  defaultEmail: { type: String, default: '' },
   onRefresh: { type: Function, required: true }
 })
 
@@ -201,6 +229,9 @@ const sendingTrombinoscopes = ref(false)
 const sendingBundle = ref(false)
 const generatingTrombinoscopes = ref(false)
 const previewingPdfUrl = ref('')
+const testingEmail = ref(false)
+const showTestModal = ref(false)
+const testTarget = ref(null)
 const serverError = ref('')
 
 const documents = computed(() => props.documentsData.documents || [])
@@ -304,6 +335,47 @@ async function generateTrombinoscopes() {
     serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
   } finally {
     generatingTrombinoscopes.value = false
+  }
+}
+
+function openDocumentTest(document) {
+  testTarget.value = { type: 'document', documentId: document.id }
+  showTestModal.value = true
+}
+
+function openCharacterSheetTest(sheet) {
+  testTarget.value = { type: 'character_sheet', characterId: sheet.character.id }
+  showTestModal.value = true
+}
+
+async function sendTestEmail(emails) {
+  if (!testTarget.value) return
+
+  testingEmail.value = true
+  try {
+    if (testTarget.value.type === 'document') {
+      await useApiFetch(`/api/sessions/${props.documentsData.session.id}/documents/test-email`, {
+        method: 'POST',
+        body: {
+          emails,
+          documentIds: [testTarget.value.documentId]
+        }
+      })
+    } else {
+      await useApiFetch(`/api/sessions/${props.documentsData.session.id}/documents/test-character-sheet`, {
+        method: 'POST',
+        body: {
+          emails,
+          characterId: testTarget.value.characterId
+        }
+      })
+    }
+    serverError.value = ''
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    throw err
+  } finally {
+    testingEmail.value = false
   }
 }
 

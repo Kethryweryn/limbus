@@ -11,5 +11,6 @@ export default defineEventHandler(async (event) => {
   }
   await requireSessionAccess(event, id)
 
-  return await markCharacterSheetBundleDeliveries(id)
+  const url = getRequestURL(event)
+  return await markCharacterSheetBundleDeliveries(id, url.origin)
 })

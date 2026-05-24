@@ -1,4 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
+import { sendEmail } from '~/server/utils/email'
 import { DOCUMENT_AUDIENCES, SESSION_ROLES } from '~/utils/domain'
 
 export const documentInclude = {
@@ -253,6 +254,18 @@ export async function getSessionDocumentDashboard(sessionId: string) {
   }
 }
 
+function absoluteUrl(baseUrl: string, value?: string | null) {
+  if (!value) return null
+  if (/^https?:\/\//i.test(value)) return value
+  return `${baseUrl}${value}`
+}
+
+function assertSent(result: Awaited<ReturnType<typeof sendEmail>>) {
+  if (!result.sent) {
+    throw createError({ statusCode: 500, message: 'SMTP désactivé' })
+  }
+}
+
 export async function markDocumentDeliveries(sessionId: string, documentIds: string[]) {
   const dashboard = await getSessionDocumentDashboard(sessionId)
   const selectedIds = new Set(documentIds)
@@ -272,6 +285,19 @@ export async function markDocumentDeliveries(sessionId: string, documentIds: str
         }
       })
       if (exists) continue
+      if (!recipient.participant.email) continue
+
+      const result = await sendEmail({
+        to: recipient.participant.email,
+        subject: document.title,
+        text: [
+          `Bonjour ${recipient.participant.name.split(/\s+/)[0] || recipient.participant.name},`,
+          '',
+          document.content || '',
+          document.documentUrl ? `Document lié : ${document.documentUrl}` : ''
+        ].filter(Boolean).join('\n')
+      })
+      assertSent(result)
 
       await prisma.sessionDocumentDelivery.create({
         data: {
@@ -294,6 +320,7 @@ export async function markCharacterSheetDeliveries(sessionId: string) {
 
   for (const sheet of dashboard.characterSheets) {
     if (!sheet.participant?.id || !sheet.character?.id || !sheet.readyToSend || sheet.sentAt) continue
+    if (!sheet.participant.email) continue
 
     const exists = await prisma.sessionDocumentDelivery.findFirst({
       where: {
@@ -304,6 +331,22 @@ export async function markCharacterSheetDeliveries(sessionId: string) {
       }
     })
     if (exists) continue
+
+    const result = await sendEmail({
+      to: sheet.participant.email,
+      subject: `Fiche personnage - ${sheet.character.name}`,
+      text: [
+        `Bonjour ${sheet.participant.name.split(/\s+/)[0] || sheet.participant.name},`,
+        '',
+        `Voici ta fiche pour ${dashboard.session.name}.`,
+        '',
+        `Personnage : ${sheet.character.name}`,
+        sheet.character.backgroundDocumentUrl
+          ? `Fiche liée : ${sheet.character.backgroundDocumentUrl}`
+          : sheet.character.background || ''
+      ].filter(Boolean).join('\n')
+    })
+    assertSent(result)
 
     await prisma.sessionDocumentDelivery.create({
       data: {
@@ -357,12 +400,25 @@ async function upsertDelivery(data: {
   return true
 }
 
-export async function markTrombinoscopeDeliveries(sessionId: string) {
+export async function markTrombinoscopeDeliveries(sessionId: string, baseUrl = '') {
   const dashboard = await getSessionDocumentDashboard(sessionId)
   let sentCount = 0
 
   for (const sheet of dashboard.characterSheets) {
     if (!sheet.participant?.id || !sheet.character?.id || !sheet.trombinoscopeGeneratedAt || sheet.trombinoscopeSentAt) continue
+    if (!sheet.participant.email) continue
+
+    const result = await sendEmail({
+      to: sheet.participant.email,
+      subject: `Trombinoscope - ${dashboard.session.name}`,
+      text: [
+        `Bonjour ${sheet.participant.name.split(/\s+/)[0] || sheet.participant.name},`,
+        '',
+        `Voici ton trombinoscope pour ${dashboard.session.name}.`,
+        absoluteUrl(baseUrl, sheet.trombinoscopeUrl)
+      ].filter(Boolean).join('\n')
+    })
+    assertSent(result)
 
     const sent = await upsertDelivery({
       sessionId,
@@ -376,7 +432,7 @@ export async function markTrombinoscopeDeliveries(sessionId: string) {
   return { sentCount }
 }
 
-export async function markCharacterSheetBundleDeliveries(sessionId: string) {
+export async function markCharacterSheetBundleDeliveries(sessionId: string, baseUrl = '') {
   const dashboard = await getSessionDocumentDashboard(sessionId)
   let sheetSentCount = 0
   let trombinoscopeSentCount = 0
@@ -384,6 +440,26 @@ export async function markCharacterSheetBundleDeliveries(sessionId: string) {
 
   for (const sheet of dashboard.characterSheets) {
     if (!sheet.participant?.id || !sheet.character?.id || !sheet.readyToSend || !sheet.trombinoscopeGeneratedAt) continue
+    if (!sheet.participant.email) continue
+
+    const result = await sendEmail({
+      to: sheet.participant.email,
+      subject: `Fiche personnage et trombinoscope - ${dashboard.session.name}`,
+      text: [
+        `Bonjour ${sheet.participant.name.split(/\s+/)[0] || sheet.participant.name},`,
+        '',
+        `Voici ta fiche et ton trombinoscope pour ${dashboard.session.name}.`,
+        '',
+        `Personnage : ${sheet.character.name}`,
+        sheet.character.backgroundDocumentUrl
+          ? `Fiche liée : ${sheet.character.backgroundDocumentUrl}`
+          : sheet.character.background || '',
+        absoluteUrl(baseUrl, sheet.trombinoscopeUrl)
+          ? `Trombinoscope : ${absoluteUrl(baseUrl, sheet.trombinoscopeUrl)}`
+          : ''
+      ].filter(Boolean).join('\n')
+    })
+    assertSent(result)
 
     const sheetSent = await upsertDelivery({
       sessionId,
@@ -414,4 +490,64 @@ export async function markCharacterSheetBundleDeliveries(sessionId: string) {
   }
 
   return { sheetSentCount, trombinoscopeSentCount, bundleSentCount }
+}
+
+export async function sendDocumentTestEmails(sessionId: string, documentIds: string[], emails: string[]) {
+  const dashboard = await getSessionDocumentDashboard(sessionId)
+  const selectedIds = new Set(documentIds)
+  const documents = dashboard.documents.filter((document) => selectedIds.has(document.id))
+
+  if (!documents.length) {
+    throw createError({ statusCode: 400, message: 'Aucun document sélectionné' })
+  }
+
+  for (const document of documents) {
+    const result = await sendEmail({
+      to: emails,
+      subject: `[Test] ${document.title}`,
+      text: [
+        `Document de test pour la session ${dashboard.session.name}.`,
+        '',
+        document.content || '',
+        document.documentUrl ? `Document lié : ${document.documentUrl}` : ''
+      ].filter(Boolean).join('\n')
+    })
+    if (!result.sent) {
+      throw createError({ statusCode: 500, message: 'SMTP désactivé' })
+    }
+  }
+
+  return { sentCount: emails.length * documents.length }
+}
+
+export async function sendCharacterSheetBundleTestEmail(sessionId: string, characterId: string, emails: string[], baseUrl: string) {
+  const dashboard = await getSessionDocumentDashboard(sessionId)
+  const sheet = dashboard.characterSheets.find((item) => item.character.id === characterId)
+
+  if (!sheet) {
+    throw createError({ statusCode: 404, message: 'Fiche personnage introuvable pour cette session' })
+  }
+
+  const trombinoscopeUrl = sheet.trombinoscopeUrl
+    ? `${baseUrl}${sheet.trombinoscopeUrl}`
+    : null
+
+  const result = await sendEmail({
+    to: emails,
+    subject: `[Test] Fiche personnage - ${sheet.character.name}`,
+    text: [
+      `Fiche personnage de test pour ${dashboard.session.name}.`,
+      '',
+      `Personnage : ${sheet.character.name}`,
+      sheet.character.backgroundDocumentUrl
+        ? `Fiche liée : ${sheet.character.backgroundDocumentUrl}`
+        : sheet.character.background || 'Aucun background saisi.',
+      trombinoscopeUrl ? `Trombinoscope : ${trombinoscopeUrl}` : 'Trombinoscope non généré.'
+    ].filter(Boolean).join('\n')
+  })
+  if (!result.sent) {
+    throw createError({ statusCode: 500, message: 'SMTP désactivé' })
+  }
+
+  return { sentCount: emails.length }
 }
