@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
     })
 
     if (matchingCharacters !== body.characterIds.length) {
-      throw createError({ statusCode: 400, statusMessage: 'Personnages invalides pour ce jeu' })
+      throw createError({ statusCode: 400, message: 'Personnages invalides pour ce jeu' })
     }
   }
 

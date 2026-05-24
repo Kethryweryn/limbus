@@ -72,7 +72,7 @@ export async function getCharacterTrombinoscopeConfig(viewerCharacterId: string)
   })
 
   if (!viewer) {
-    throw createError({ statusCode: 404, statusMessage: 'Personnage introuvable' })
+    throw createError({ statusCode: 404, message: 'Personnage introuvable' })
   }
 
   const [characters, entries] = await Promise.all([
@@ -113,7 +113,7 @@ export async function saveCharacterTrombinoscopeConfig(
   })
 
   if (!viewer) {
-    throw createError({ statusCode: 404, statusMessage: 'Personnage introuvable' })
+    throw createError({ statusCode: 404, message: 'Personnage introuvable' })
   }
 
   const targetIds = [...new Set(entries.map((entry) => entry.targetCharacterId))]
@@ -122,7 +122,7 @@ export async function saveCharacterTrombinoscopeConfig(
   })
 
   if (matchingCharacters !== targetIds.length) {
-    throw createError({ statusCode: 400, statusMessage: 'Personnages invalides pour ce jeu' })
+    throw createError({ statusCode: 400, message: 'Personnages invalides pour ce jeu' })
   }
 
   for (const entry of entries) {
@@ -170,7 +170,7 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
   })
 
   if (!session) {
-    throw createError({ statusCode: 404, statusMessage: 'Session introuvable' })
+    throw createError({ statusCode: 404, message: 'Session introuvable' })
   }
 
   const [characters, entries] = await Promise.all([
@@ -280,7 +280,7 @@ export async function getSessionTrombinoscope(sessionId: string, characterId: st
   })
 
   if (!trombinoscope) {
-    throw createError({ statusCode: 404, statusMessage: 'Trombinoscope introuvable' })
+    throw createError({ statusCode: 404, message: 'Trombinoscope introuvable' })
   }
 
   return trombinoscope

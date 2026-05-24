@@ -5,7 +5,7 @@ import { invitationAcceptSchema, readZodBody } from '~/server/utils/schemas'
 export default defineEventHandler(async (event) => {
   const authPayload = getAuthUser(event)
   if (!authPayload) {
-    throw createError({ statusCode: 401, statusMessage: 'Connexion requise' })
+    throw createError({ statusCode: 401, message: 'Connexion requise' })
   }
 
   const user = await requireAuthUser(event)

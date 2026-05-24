@@ -22,16 +22,16 @@ export default defineEventHandler(async (event) => {
   const file = parts?.find((part) => part.name === 'photo')
 
   if (!file?.data?.length) {
-    throw createError({ statusCode: 400, statusMessage: 'Photo is required' })
+    throw createError({ statusCode: 400, message: 'Photo is required' })
   }
 
   if (file.data.length > MAX_SIZE) {
-    throw createError({ statusCode: 400, statusMessage: 'Photo is too large' })
+    throw createError({ statusCode: 400, message: 'Photo is too large' })
   }
 
   const extension = ALLOWED_TYPES.get(file.type || '')
   if (!extension) {
-    throw createError({ statusCode: 400, statusMessage: 'Unsupported photo format' })
+    throw createError({ statusCode: 400, message: 'Unsupported photo format' })
   }
 
   const filename = `${randomUUID()}.${extension}`

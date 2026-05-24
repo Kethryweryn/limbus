@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
 
   const slug = getRouterParam(event, 'slug')
   if (!slug) {
-    throw createError({ statusCode: 400, statusMessage: 'Slug manquant' })
+    throw createError({ statusCode: 400, message: 'Slug manquant' })
   }
 
   const { user, allGames } = await canAccessAllGames(event)
@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
     }
   })
   if (!game) {
-    throw createError({ statusCode: 404, statusMessage: 'Jeu non trouvé' })
+    throw createError({ statusCode: 404, message: 'Jeu non trouvé' })
   }
 
   return game

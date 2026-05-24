@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, 'id')
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
+    throw createError({ statusCode: 400, message: 'ID manquant' })
   }
 
   const existingCharacter = await prisma.character.findUnique({
@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
     select: { gameId: true }
   })
   if (!existingCharacter) {
-    throw createError({ statusCode: 404, statusMessage: 'Personnage introuvable' })
+    throw createError({ statusCode: 404, message: 'Personnage introuvable' })
   }
   await requireGameAccess(event, existingCharacter.gameId)
   await assertUnmodifiedSince(event, 'character', id)
@@ -54,7 +54,7 @@ export default defineEventHandler(async (event) => {
     })
 
     if (matchingFactions !== factionIds.length) {
-      throw createError({ statusCode: 400, statusMessage: 'Groupes invalides pour ce jeu' })
+      throw createError({ statusCode: 400, message: 'Groupes invalides pour ce jeu' })
     }
   }
 

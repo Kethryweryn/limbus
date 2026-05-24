@@ -62,7 +62,7 @@ export async function requireGameAccess(event: H3Event, gameId: string) {
   })
 
   if (!game) {
-    throw createError({ statusCode: 403, statusMessage: 'Jeu inaccessible' })
+    throw createError({ statusCode: 403, message: 'Jeu inaccessible' })
   }
 
   return { user, allGames }
@@ -93,7 +93,7 @@ export async function requireSessionAccess(event: H3Event, sessionId: string) {
     select: { gameId: true }
   })
   if (!session) {
-    throw createError({ statusCode: 404, statusMessage: 'Session introuvable' })
+    throw createError({ statusCode: 404, message: 'Session introuvable' })
   }
 
   await requireGameAccess(event, session.gameId)

@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, 'id')
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
+    throw createError({ statusCode: 400, message: 'ID manquant' })
   }
 
   const gameIds = await accessibleGameIds(event)
@@ -18,10 +18,10 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!participant) {
-    throw createError({ statusCode: 404, statusMessage: 'Participant introuvable' })
+    throw createError({ statusCode: 404, message: 'Participant introuvable' })
   }
   if (gameIds !== null && !participant.gameLinks.length) {
-    throw createError({ statusCode: 403, statusMessage: 'Participant inaccessible' })
+    throw createError({ statusCode: 403, message: 'Participant inaccessible' })
   }
 
   return exposeParticipantGames(participant)

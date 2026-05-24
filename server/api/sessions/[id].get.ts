@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, 'id')
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
+    throw createError({ statusCode: 400, message: 'ID manquant' })
   }
 
   const session = await prisma.session.findFirst({
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!session) {
-    throw createError({ statusCode: 404, statusMessage: 'Session introuvable' })
+    throw createError({ statusCode: 404, message: 'Session introuvable' })
   }
 
   return session

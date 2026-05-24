@@ -7,11 +7,11 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, 'id')
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
+    throw createError({ statusCode: 400, message: 'ID manquant' })
   }
   const faction = await prisma.faction.findUnique({ where: { id }, select: { gameId: true } })
   if (!faction) {
-    throw createError({ statusCode: 404, statusMessage: 'Groupe introuvable' })
+    throw createError({ statusCode: 404, message: 'Groupe introuvable' })
   }
   await requireGameAccess(event, faction.gameId)
 

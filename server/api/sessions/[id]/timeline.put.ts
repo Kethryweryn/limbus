@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, 'id')
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
+    throw createError({ statusCode: 400, message: 'ID manquant' })
   }
 
   const body = await readZodBody(event, sessionTimelineSchema)
@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!session) {
-    throw createError({ statusCode: 404, statusMessage: 'Session introuvable' })
+    throw createError({ statusCode: 404, message: 'Session introuvable' })
   }
   await requireGameAccess(event, session.gameId)
 
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
       }
     })
     if (count !== timelineEventIds.length) {
-      throw createError({ statusCode: 400, statusMessage: 'Événements invalides pour cette session' })
+      throw createError({ statusCode: 400, message: 'Événements invalides pour cette session' })
     }
   }
 

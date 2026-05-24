@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, 'id')
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
+    throw createError({ statusCode: 400, message: 'ID manquant' })
   }
 
   const body = await readZodBody(event, participantSchema)
@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   const uniqueGameIds = [...new Set(gameIds)]
   const allowedGameIds = await accessibleGameIds(event)
   if (allowedGameIds !== null && uniqueGameIds.some((gameId) => !allowedGameIds.includes(gameId))) {
-    throw createError({ statusCode: 403, statusMessage: 'Jeu inaccessible' })
+    throw createError({ statusCode: 403, message: 'Jeu inaccessible' })
   }
 
   await assertUnmodifiedSince(event, 'participant', id)

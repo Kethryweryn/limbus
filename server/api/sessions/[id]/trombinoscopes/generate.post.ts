@@ -8,11 +8,11 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, 'id')
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
+    throw createError({ statusCode: 400, message: 'ID manquant' })
   }
   const session = await prisma.session.findUnique({ where: { id }, select: { gameId: true } })
   if (!session) {
-    throw createError({ statusCode: 404, statusMessage: 'Session introuvable' })
+    throw createError({ statusCode: 404, message: 'Session introuvable' })
   }
   await requireGameAccess(event, session.gameId)
 

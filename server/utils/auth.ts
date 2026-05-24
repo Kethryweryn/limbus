@@ -14,7 +14,7 @@ export type AuthUser = {
 function getJwtSecret(): string {
   const secret = useRuntimeConfig().jwtSecret
   if (!secret) {
-    throw createError({ statusCode: 500, statusMessage: 'JWT secret is not configured' })
+    throw createError({ statusCode: 500, message: 'JWT secret is not configured' })
   }
   return secret
 }
@@ -37,13 +37,13 @@ export function getAuthUser(event: H3Event): any | null {
 export async function requireAuthUser(event: H3Event): Promise<AuthUser> {
   const payload = getAuthUser(event)
   if (!payload || typeof payload !== 'object') {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+    throw createError({ statusCode: 401, message: 'Unauthorized' })
   }
 
   const id = 'id' in payload ? String((payload as any).id || '') : ''
   const email = 'email' in payload ? String((payload as any).email || '') : ''
   if (!id && !email) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+    throw createError({ statusCode: 401, message: 'Unauthorized' })
   }
 
   const user = await prisma.user.findFirst({
@@ -57,7 +57,7 @@ export async function requireAuthUser(event: H3Event): Promise<AuthUser> {
   })
 
   if (!user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+    throw createError({ statusCode: 401, message: 'Unauthorized' })
   }
 
   return user
@@ -82,14 +82,14 @@ export function requireRole(event: H3Event, allowedRoles: string[]): boolean {
 
 export function requireOrganizer(event: H3Event): void {
   if (!requireRole(event, [USER_ROLES.organizer, USER_ROLES.admin])) {
-    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+    throw createError({ statusCode: 403, message: 'Forbidden' })
   }
 }
 
 export async function requireAdmin(event: H3Event): Promise<AuthUser> {
   const user = await requireAuthUser(event)
   if (user.role !== USER_ROLES.admin) {
-    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+    throw createError({ statusCode: 403, message: 'Forbidden' })
   }
   return user
 }

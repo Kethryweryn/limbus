@@ -29,7 +29,7 @@ export async function validateDocumentRelations(gameId: string, characterId?: st
       where: { id: { in: allCharacterIds }, gameId }
     })
     if (count !== allCharacterIds.length) {
-      throw createError({ statusCode: 400, statusMessage: 'Personnages invalides pour ce jeu' })
+      throw createError({ statusCode: 400, message: 'Personnages invalides pour ce jeu' })
     }
   }
 
@@ -38,7 +38,7 @@ export async function validateDocumentRelations(gameId: string, characterId?: st
       where: { id: { in: factionIds }, gameId }
     })
     if (count !== factionIds.length) {
-      throw createError({ statusCode: 400, statusMessage: 'Groupes invalides pour ce jeu' })
+      throw createError({ statusCode: 400, message: 'Groupes invalides pour ce jeu' })
     }
   }
 }
@@ -61,7 +61,7 @@ export async function getSessionDocumentDashboard(sessionId: string) {
   })
 
   if (!session) {
-    throw createError({ statusCode: 404, statusMessage: 'Session introuvable' })
+    throw createError({ statusCode: 404, message: 'Session introuvable' })
   }
 
   const [documents, deliveries, trombinoscopes] = await Promise.all([

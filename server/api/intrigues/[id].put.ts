@@ -10,11 +10,11 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, 'id')
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
+    throw createError({ statusCode: 400, message: 'ID manquant' })
   }
   const intrigue = await prisma.intrigue.findUnique({ where: { id }, select: { gameId: true } })
   if (!intrigue) {
-    throw createError({ statusCode: 404, statusMessage: 'Intrigue introuvable' })
+    throw createError({ statusCode: 404, message: 'Intrigue introuvable' })
   }
   await requireGameAccess(event, intrigue.gameId)
   await assertUnmodifiedSince(event, 'intrigue', id)
@@ -55,7 +55,7 @@ async function validateIntrigueRelations(gameId: string, characterIds: string[],
       where: { id: { in: characterIds }, gameId }
     })
     if (count !== characterIds.length) {
-      throw createError({ statusCode: 400, statusMessage: 'Personnages invalides pour ce jeu' })
+      throw createError({ statusCode: 400, message: 'Personnages invalides pour ce jeu' })
     }
   }
 
@@ -64,7 +64,7 @@ async function validateIntrigueRelations(gameId: string, characterIds: string[],
       where: { id: { in: factionIds }, gameId }
     })
     if (count !== factionIds.length) {
-      throw createError({ statusCode: 400, statusMessage: 'Groupes invalides pour ce jeu' })
+      throw createError({ statusCode: 400, message: 'Groupes invalides pour ce jeu' })
     }
   }
 }

@@ -25,7 +25,7 @@ export async function validateItemRelations(gameId: string, characterIds: string
       }
     })
     if (count !== allCharacterIds.length) {
-      throw createError({ statusCode: 400, statusMessage: 'Personnages invalides pour ce jeu' })
+      throw createError({ statusCode: 400, message: 'Personnages invalides pour ce jeu' })
     }
   }
 
@@ -34,7 +34,7 @@ export async function validateItemRelations(gameId: string, characterIds: string
       where: { id: { in: intrigueIds }, gameId }
     })
     if (count !== intrigueIds.length) {
-      throw createError({ statusCode: 400, statusMessage: 'Intrigues invalides pour ce jeu' })
+      throw createError({ statusCode: 400, message: 'Intrigues invalides pour ce jeu' })
     }
   }
 }

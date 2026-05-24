@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, 'id')
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
+    throw createError({ statusCode: 400, message: 'ID manquant' })
   }
 
   await requireGameAccess(event, id)
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!game) {
-    throw createError({ statusCode: 404, statusMessage: 'Not Found' })
+    throw createError({ statusCode: 404, message: 'Not Found' })
   }
 
   return game

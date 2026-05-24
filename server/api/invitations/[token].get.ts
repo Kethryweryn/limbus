@@ -3,7 +3,7 @@ import { getValidInvitation } from '~/server/utils/invitations'
 export default defineEventHandler(async (event) => {
   const token = getRouterParam(event, 'token')
   if (!token) {
-    throw createError({ statusCode: 400, statusMessage: 'Token manquant' })
+    throw createError({ statusCode: 400, message: 'Token manquant' })
   }
 
   const invitation = await getValidInvitation(token)

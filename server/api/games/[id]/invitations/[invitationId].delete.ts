@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
   const invitationId = getRouterParam(event, 'invitationId')
   if (!id || !invitationId) {
-    throw createError({ statusCode: 400, statusMessage: 'Paramètre manquant' })
+    throw createError({ statusCode: 400, message: 'Paramètre manquant' })
   }
   await requireGameOwner(event, id)
 

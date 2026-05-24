@@ -10,11 +10,11 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, 'id')
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
+    throw createError({ statusCode: 400, message: 'ID manquant' })
   }
   const timelineEvent = await prisma.timelineEvent.findUnique({ where: { id }, select: { gameId: true } })
   if (!timelineEvent) {
-    throw createError({ statusCode: 404, statusMessage: 'Événement introuvable' })
+    throw createError({ statusCode: 404, message: 'Événement introuvable' })
   }
   await requireGameAccess(event, timelineEvent.gameId)
   await assertUnmodifiedSince(event, 'timelineEvent', id)

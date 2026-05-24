@@ -10,11 +10,11 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, 'id')
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
+    throw createError({ statusCode: 400, message: 'ID manquant' })
   }
   const document = await prisma.document.findUnique({ where: { id }, select: { gameId: true } })
   if (!document) {
-    throw createError({ statusCode: 404, statusMessage: 'Document introuvable' })
+    throw createError({ statusCode: 404, message: 'Document introuvable' })
   }
   await requireGameAccess(event, document.gameId)
   await assertUnmodifiedSince(event, 'document', id)

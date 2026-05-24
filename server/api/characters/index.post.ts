@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
         })
 
         if (matchingFactions !== body.factionIds.length) {
-            throw createError({ statusCode: 400, statusMessage: 'Groupes invalides pour ce jeu' })
+            throw createError({ statusCode: 400, message: 'Groupes invalides pour ce jeu' })
         }
     }
 

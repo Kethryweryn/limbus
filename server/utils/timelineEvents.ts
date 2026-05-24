@@ -44,7 +44,7 @@ export async function validateTimelineEventRelations(gameId: string, characterId
       where: { id: { in: characterIds }, gameId }
     })
     if (count !== characterIds.length) {
-      throw createError({ statusCode: 400, statusMessage: 'Personnages invalides pour ce jeu' })
+      throw createError({ statusCode: 400, message: 'Personnages invalides pour ce jeu' })
     }
   }
 
@@ -53,7 +53,7 @@ export async function validateTimelineEventRelations(gameId: string, characterId
       where: { id: { in: factionIds }, gameId }
     })
     if (count !== factionIds.length) {
-      throw createError({ statusCode: 400, statusMessage: 'Groupes invalides pour ce jeu' })
+      throw createError({ statusCode: 400, message: 'Groupes invalides pour ce jeu' })
     }
   }
 
@@ -62,7 +62,7 @@ export async function validateTimelineEventRelations(gameId: string, characterId
       where: { id: { in: intrigueIds }, gameId }
     })
     if (count !== intrigueIds.length) {
-      throw createError({ statusCode: 400, statusMessage: 'Intrigues invalides pour ce jeu' })
+      throw createError({ statusCode: 400, message: 'Intrigues invalides pour ce jeu' })
     }
   }
 
@@ -71,7 +71,7 @@ export async function validateTimelineEventRelations(gameId: string, characterId
       where: { id: { in: itemIds }, gameId }
     })
     if (count !== itemIds.length) {
-      throw createError({ statusCode: 400, statusMessage: 'Objets invalides pour ce jeu' })
+      throw createError({ statusCode: 400, message: 'Objets invalides pour ce jeu' })
     }
   }
 }

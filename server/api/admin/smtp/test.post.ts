@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   if (!result.sent) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'SMTP désactivé'
+      message: 'SMTP désactivé'
     })
   }
 

@@ -29,13 +29,13 @@ export async function getValidInvitation(token: string) {
   })
 
   if (!invitation) {
-    throw createError({ statusCode: 404, statusMessage: 'Invitation introuvable' })
+    throw createError({ statusCode: 404, message: 'Invitation introuvable' })
   }
   if (invitation.status !== GAME_INVITATION_STATUSES.pending) {
-    throw createError({ statusCode: 400, statusMessage: 'Invitation déjà utilisée ou annulée' })
+    throw createError({ statusCode: 400, message: 'Invitation déjà utilisée ou annulée' })
   }
   if (invitation.expiresAt.getTime() < Date.now()) {
-    throw createError({ statusCode: 400, statusMessage: 'Invitation expirée' })
+    throw createError({ statusCode: 400, message: 'Invitation expirée' })
   }
 
   return invitation
@@ -48,7 +48,7 @@ export async function acceptInvitationForUser(token: string, userId: string) {
     select: { id: true, email: true }
   })
   if (!user) {
-    throw createError({ statusCode: 404, statusMessage: 'Utilisateur introuvable' })
+    throw createError({ statusCode: 404, message: 'Utilisateur introuvable' })
   }
 
   await prisma.$transaction([

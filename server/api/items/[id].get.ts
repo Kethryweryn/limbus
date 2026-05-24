@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, 'id')
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
+    throw createError({ statusCode: 400, message: 'ID manquant' })
   }
 
   const item = await prisma.item.findFirst({
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!item) {
-    throw createError({ statusCode: 404, statusMessage: 'Objet introuvable' })
+    throw createError({ statusCode: 404, message: 'Objet introuvable' })
   }
 
   return item

@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, 'id')
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
+    throw createError({ statusCode: 400, message: 'ID manquant' })
   }
   const { user } = await requireGameOwner(event, id)
   const body = await readZodBody(event, gameInvitationCreateSchema)
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   })
 
   if (existingUser?.id === game?.ownerId) {
-    throw createError({ statusCode: 400, statusMessage: 'Cet utilisateur possède déjà ce jeu' })
+    throw createError({ statusCode: 400, message: 'Cet utilisateur possède déjà ce jeu' })
   }
   if (existingUser) {
     const existingShare = await prisma.gameShare.findUnique({
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
       }
     })
     if (existingShare) {
-      throw createError({ statusCode: 400, statusMessage: 'Cet utilisateur a déjà accès au jeu' })
+      throw createError({ statusCode: 400, message: 'Cet utilisateur a déjà accès au jeu' })
     }
   }
 

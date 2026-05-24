@@ -6,10 +6,10 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, 'id')
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
+    throw createError({ statusCode: 400, message: 'ID manquant' })
   }
   if (id === currentUser.id) {
-    throw createError({ statusCode: 400, statusMessage: 'Impossible de supprimer son propre utilisateur' })
+    throw createError({ statusCode: 400, message: 'Impossible de supprimer son propre utilisateur' })
   }
 
   const ownedGamesCount = await prisma.game.count({ where: { ownerId: id } })

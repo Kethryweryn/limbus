@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
 
   const slug = getRouterParam(event, 'slug')
   if (!slug) {
-    throw createError({ statusCode: 400, statusMessage: 'Slug manquant' })
+    throw createError({ statusCode: 400, message: 'Slug manquant' })
   }
 
   return await prisma.intrigue.findFirst({

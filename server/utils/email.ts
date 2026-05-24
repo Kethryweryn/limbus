@@ -51,7 +51,7 @@ export function encryptSmtpPassword(password: string) {
 export function decryptSmtpPassword(payload: string) {
   const [ivRaw, tagRaw, encryptedRaw] = payload.split(':')
   if (!ivRaw || !tagRaw || !encryptedRaw) {
-    throw createError({ statusCode: 500, statusMessage: 'Mot de passe SMTP invalide' })
+    throw createError({ statusCode: 500, message: 'Mot de passe SMTP invalide' })
   }
 
   const decipher = createDecipheriv('aes-256-gcm', getEncryptionKey(), Buffer.from(ivRaw, 'base64url'))
@@ -137,7 +137,7 @@ export async function sendEmail(message: EmailMessage) {
   }
 
   if (!settings.host || !settings.fromEmail) {
-    throw createError({ statusCode: 500, statusMessage: 'Configuration SMTP incomplète' })
+    throw createError({ statusCode: 500, message: 'Configuration SMTP incomplète' })
   }
 
   const nodemailer = await import('nodemailer')

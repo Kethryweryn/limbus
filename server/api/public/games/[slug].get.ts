@@ -3,7 +3,7 @@ import { prisma } from '~/server/utils/prisma'
 export default defineEventHandler(async (event) => {
   const slug = getRouterParam(event, 'slug')
   if (!slug) {
-    throw createError({ statusCode: 400, statusMessage: 'Slug manquant' })
+    throw createError({ statusCode: 400, message: 'Slug manquant' })
   }
 
   const game = await prisma.game.findFirst({
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!game) {
-    throw createError({ statusCode: 404, statusMessage: 'Jeu non publié' })
+    throw createError({ statusCode: 404, message: 'Jeu non publié' })
   }
 
   return game

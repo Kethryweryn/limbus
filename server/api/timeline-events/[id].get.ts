@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, 'id')
   if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
+    throw createError({ statusCode: 400, message: 'ID manquant' })
   }
 
   const timelineEvent = await prisma.timelineEvent.findUnique({
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!timelineEvent) {
-    throw createError({ statusCode: 404, statusMessage: 'Événement introuvable' })
+    throw createError({ statusCode: 404, message: 'Événement introuvable' })
   }
   await requireGameAccess(event, timelineEvent.gameId)
 
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
 
   const enrichedEvent = withTimelineConflicts(relatedEvents).find((eventWithConflicts) => eventWithConflicts.id === id)
   if (!enrichedEvent) {
-    throw createError({ statusCode: 404, statusMessage: 'Événement introuvable' })
+    throw createError({ statusCode: 404, message: 'Événement introuvable' })
   }
 
   return enrichedEvent

@@ -53,7 +53,7 @@ export async function readZodBody<T>(event: H3Event, schema: ZodType<T>): Promis
 
     throw createError({
       statusCode: 400,
-      statusMessage: 'Invalid request body',
+      message: 'Invalid request body',
       data: formatZodError(result.error)
     })
   })

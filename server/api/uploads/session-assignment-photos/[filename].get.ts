@@ -20,20 +20,20 @@ export default defineEventHandler(async (event) => {
   const filename = basename(rawFilename || '')
 
   if (!filename || filename !== rawFilename) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid filename' })
+    throw createError({ statusCode: 400, message: 'Invalid filename' })
   }
 
   const filePath = join(getUploadDir(), filename)
   const contentType = CONTENT_TYPES[extname(filename)]
 
   if (!contentType) {
-    throw createError({ statusCode: 404, statusMessage: 'File not found' })
+    throw createError({ statusCode: 404, message: 'File not found' })
   }
 
   try {
     await access(filePath)
   } catch {
-    throw createError({ statusCode: 404, statusMessage: 'File not found' })
+    throw createError({ statusCode: 404, message: 'File not found' })
   }
 
   setHeader(event, 'Content-Type', contentType)

@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   const uniqueGameIds = [...new Set(gameIds)]
   const allowedGameIds = await accessibleGameIds(event)
   if (allowedGameIds !== null && uniqueGameIds.some((gameId) => !allowedGameIds.includes(gameId))) {
-    throw createError({ statusCode: 403, statusMessage: 'Jeu inaccessible' })
+    throw createError({ statusCode: 403, message: 'Jeu inaccessible' })
   }
 
   const participant = await prisma.participant.create({
