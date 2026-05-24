@@ -94,6 +94,17 @@
             </UButton>
 
             <UButton
+              v-if="canManageShares(game)"
+              icon="i-heroicons-share"
+              size="xs"
+              color="neutral"
+              variant="soft"
+              @click.stop="openShareModal(game)"
+            >
+              Partager
+            </UButton>
+
+            <UButton
               v-if="game.published"
               :icon="game.publicPage ? 'i-heroicons-eye-slash' : 'i-heroicons-globe-alt'"
               size="xs"
@@ -143,6 +154,8 @@
     />
   </AppWideSlideover>
 
+  <GameShareModal v-model:open="showShares" :game="shareGame" />
+
 </template>
 
 <script setup>
@@ -157,6 +170,7 @@ const { selectGame, game: activeGame } = useGameFocus()
 const games = ref([])
 const route = useRoute()
 const router = useRouter()
+const { data: authState } = await useFetch('/api/auth/me')
 
 const fetchGames = async () => {
   if (isOfflineMode()) {
@@ -286,6 +300,8 @@ const excerpt = (value, maxLength) => {
 const showFormSlideover = ref(false)
 const activeFormGame = ref(null)
 const formMode = ref('create')
+const showShares = ref(false)
+const shareGame = ref(null)
 
 function closeFormSlideover() {
   activeFormGame.value = null
@@ -308,6 +324,16 @@ async function setPublicPage(game, publicPage) {
     body: { publicPage }
   })
   await fetchGames()
+}
+
+function canManageShares(game) {
+  return Boolean(game?.id)
+    && (authState.value?.adminMode || game.ownerId === authState.value?.user?.id)
+}
+
+function openShareModal(game) {
+  shareGame.value = game
+  showShares.value = true
 }
 
 async function handleGameFormSubmit() {
