@@ -58,7 +58,7 @@ onUnmounted(() => {
             <template #header>
                 <div class="space-y-1">
                     <h1 class="text-2xl font-semibold">Connexion</h1>
-                    <p class="text-sm text-gray-500">Accédez à votre espace d’organisation Limbus.</p>
+                    <p class="text-sm text-gray-500">Accédez à votre espace Limbus.</p>
                 </div>
             </template>
 

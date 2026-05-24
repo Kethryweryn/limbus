@@ -106,6 +106,7 @@ import { navigateTo } from '#app'
 
 const route = useRoute()
 const sidebarCollapsed = ref(false)
+const mobileOpen = ref(false)
 const { data: authState, refresh: refreshAuthState } = await useFetch('/api/auth/me')
 const isAdmin = computed(() => authState.value?.user?.role === 'admin')
 
