@@ -102,3 +102,9 @@ export const USER_ROLE_OPTIONS = [
 export const GAME_SHARE_ROLES = {
   organizer: 'organizer'
 } as const
+
+export const GAME_INVITATION_STATUSES = {
+  pending: 'pending',
+  accepted: 'accepted',
+  revoked: 'revoked'
+} as const

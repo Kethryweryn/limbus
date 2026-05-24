@@ -32,6 +32,7 @@ model Game {
   locations      Location[]
   participantLinks ParticipantGame[]
   shares         GameShare[]
+  invitations    GameInvitation[]
 
   @@index([ownerId])
 }
@@ -344,6 +345,8 @@ model User {
 
   ownedGames Game[] @relation("OwnedGames")
   gameShares GameShare[]
+  sentInvitations GameInvitation[] @relation("SentGameInvitations")
+  acceptedInvitations GameInvitation[] @relation("AcceptedGameInvitations")
 }
 
 model GameShare {
@@ -358,4 +361,26 @@ model GameShare {
 
   @@unique([gameId, userId])
   @@index([userId])
+}
+
+model GameInvitation {
+  id           String    @id @default(cuid())
+  gameId       String
+  email        String
+  token        String    @unique
+  status       String    @default("pending")
+  invitedById  String
+  acceptedById String?
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  game         Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  invitedBy    User      @relation("SentGameInvitations", fields: [invitedById], references: [id], onDelete: Cascade)
+  acceptedBy   User?     @relation("AcceptedGameInvitations", fields: [acceptedById], references: [id], onDelete: SetNull)
+
+  @@index([gameId])
+  @@index([email])
+  @@index([invitedById])
 }

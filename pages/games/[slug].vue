@@ -74,19 +74,28 @@
         <UModal v-model:open="showShares" title="Partage du jeu">
             <template #body>
                 <div class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2">
-                        <USelect
-                            v-model="selectedShareUserId"
-                            :items="shareableUserOptions"
-                            value-key="value"
-                            placeholder="Sélectionner un utilisateur"
+                    <form class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2" @submit.prevent="inviteUser">
+                        <UInput
+                            v-model="inviteEmail"
+                            type="email"
+                            placeholder="email@exemple.fr"
+                            required
                         />
-                        <UButton color="primary" :disabled="!selectedShareUserId" @click="shareGame">
-                            Ajouter
+                        <UButton type="submit" color="primary" :disabled="!inviteEmail" :loading="inviting">
+                            Inviter
                         </UButton>
-                    </div>
+                    </form>
+
+                    <UAlert
+                        v-if="lastInvitationUrl"
+                        color="primary"
+                        variant="soft"
+                        title="Invitation créée"
+                        :description="lastInvitationUrl"
+                    />
 
                     <div class="space-y-2">
+                        <h3 class="font-semibold">Accès actifs</h3>
                         <div v-for="share in shares" :key="share.id" class="flex items-center justify-between gap-3 rounded border border-gray-200 p-3">
                             <div>
                                 <div class="font-medium">{{ share.user?.name }}</div>
@@ -98,6 +107,32 @@
                         </div>
                         <p v-if="!shares.length" class="text-sm text-gray-500">Aucun partage pour ce jeu.</p>
                     </div>
+
+                    <div class="space-y-2">
+                        <h3 class="font-semibold">Invitations</h3>
+                        <div v-for="invitation in invitations" :key="invitation.id" class="flex items-center justify-between gap-3 rounded border border-gray-200 p-3">
+                            <div>
+                                <div class="font-medium">{{ invitation.email }}</div>
+                                <div class="text-sm text-gray-500">
+                                    {{ invitationStatusLabel(invitation) }}
+                                    <span v-if="invitation.acceptedBy"> · {{ invitation.acceptedBy.name }}</span>
+                                </div>
+                                <div v-if="invitation.invitationUrl" class="mt-1 text-xs text-gray-500 break-all">
+                                    {{ invitation.invitationUrl }}
+                                </div>
+                            </div>
+                            <UButton
+                                v-if="invitation.status === GAME_INVITATION_STATUSES.pending"
+                                color="error"
+                                variant="soft"
+                                size="xs"
+                                @click="revokeInvitation(invitation.id)"
+                            >
+                                Annuler
+                            </UButton>
+                        </div>
+                        <p v-if="!invitations.length" class="text-sm text-gray-500">Aucune invitation.</p>
+                    </div>
                     <p v-if="shareError" class="text-sm text-red-500">{{ shareError }}</p>
                 </div>
             </template>
@@ -108,6 +143,7 @@
 <script setup>
 import { useRoute } from 'vue-router'
 import { useGameFocus } from '@/composables/useGameFocus'
+import { GAME_INVITATION_STATUSES } from '~/utils/domain'
 
 const route = useRoute()
 const router = useRouter()
@@ -126,23 +162,16 @@ const isCurrentGame = computed(() => currentGame?.value?.id === game.value?.id)
 const isEditing = ref(route.query.edit === '1')
 const editableGame = ref(game.value ? { ...game.value } : null)
 const showShares = ref(false)
-const users = ref([])
 const shares = ref([])
-const selectedShareUserId = ref('')
+const invitations = ref([])
+const inviteEmail = ref('')
+const inviting = ref(false)
+const lastInvitationUrl = ref('')
 const shareError = ref('')
 const canManageShares = computed(() =>
     Boolean(game.value?.id)
     && (authState.value?.adminMode || game.value?.ownerId === authState.value?.user?.id)
 )
-const shareableUserOptions = computed(() => {
-    const sharedIds = new Set(shares.value.map((share) => share.userId))
-    return users.value
-        .filter((user) => user.id !== game.value?.ownerId && !sharedIds.has(user.id))
-        .map((user) => ({
-            label: user.email ? `${user.name} - ${user.email}` : user.name,
-            value: user.id
-        }))
-})
 
 watch(showShares, async (value) => {
     if (!value || !canManageShares.value) return
@@ -201,30 +230,31 @@ async function refreshShares() {
     if (!game.value?.id) return
 
     try {
-        const [usersData, sharesData] = await Promise.all([
-            useApiFetch('/api/users'),
-            useApiFetch(`/api/games/${game.value.id}/shares`)
-        ])
-        users.value = usersData
-        shares.value = sharesData
-        selectedShareUserId.value = ''
+        const data = await useApiFetch(`/api/games/${game.value.id}/shares`)
+        shares.value = data.shares || []
+        invitations.value = data.invitations || []
         shareError.value = ''
     } catch (err) {
         shareError.value = err?.data?.message || err?.message || 'Impossible de charger les partages'
     }
 }
 
-async function shareGame() {
-    if (!game.value?.id || !selectedShareUserId.value) return
+async function inviteUser() {
+    if (!game.value?.id || !inviteEmail.value) return
 
+    inviting.value = true
     try {
-        await useApiFetch(`/api/games/${game.value.id}/shares`, {
+        const invitation = await useApiFetch(`/api/games/${game.value.id}/invitations`, {
             method: 'POST',
-            body: { userId: selectedShareUserId.value }
+            body: { email: inviteEmail.value }
         })
+        lastInvitationUrl.value = invitation.invitationUrl || ''
+        inviteEmail.value = ''
         await refreshShares()
     } catch (err) {
-        shareError.value = err?.data?.message || err?.message || 'Impossible d’ajouter le partage'
+        shareError.value = err?.data?.message || err?.message || 'Impossible de créer l’invitation'
+    } finally {
+        inviting.value = false
     }
 }
 
@@ -237,6 +267,24 @@ async function removeShare(userId) {
     } catch (err) {
         shareError.value = err?.data?.message || err?.message || 'Impossible de retirer le partage'
     }
+}
+
+async function revokeInvitation(invitationId) {
+    if (!game.value?.id || !invitationId) return
+
+    try {
+        await useApiFetch(`/api/games/${game.value.id}/invitations/${invitationId}`, { method: 'DELETE' })
+        await refreshShares()
+    } catch (err) {
+        shareError.value = err?.data?.message || err?.message || 'Impossible d’annuler l’invitation'
+    }
+}
+
+function invitationStatusLabel(invitation) {
+    if (invitation.status === GAME_INVITATION_STATUSES.accepted) return 'Acceptée'
+    if (invitation.status === GAME_INVITATION_STATUSES.revoked) return 'Annulée'
+    if (new Date(invitation.expiresAt).getTime() < Date.now()) return 'Expirée'
+    return 'En attente'
 }
 
 </script>

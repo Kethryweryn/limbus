@@ -11,11 +11,23 @@ export default defineEventHandler(async (event) => {
   }
   await requireGameOwner(event, id)
 
-  return await prisma.gameShare.findMany({
-    where: { gameId: id },
-    orderBy: { createdAt: 'asc' },
-    include: {
-      user: { select: { id: true, name: true, email: true, role: true } }
-    }
-  })
+  const [shares, invitations] = await Promise.all([
+    prisma.gameShare.findMany({
+      where: { gameId: id },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        user: { select: { id: true, name: true, email: true, role: true } }
+      }
+    }),
+    prisma.gameInvitation.findMany({
+      where: { gameId: id },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        invitedBy: { select: { id: true, name: true, email: true } },
+        acceptedBy: { select: { id: true, name: true, email: true } }
+      }
+    })
+  ])
+
+  return { shares, invitations }
 })

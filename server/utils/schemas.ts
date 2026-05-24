@@ -263,6 +263,16 @@ export const adminModeSchema = z.object({
   enabled: z.boolean()
 })
 
-export const gameShareSchema = z.object({
-  userId: requiredId('User')
+export const gameInvitationCreateSchema = z.object({
+  email: requiredText('Email').email('Invalid email')
+})
+
+export const invitationRegistrationSchema = z.object({
+  token: requiredText('Token'),
+  name: requiredText('Name'),
+  password: requiredText('Password').min(8, 'Password must contain at least 8 characters')
+})
+
+export const invitationAcceptSchema = z.object({
+  token: requiredText('Token')
 })
