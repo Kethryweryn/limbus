@@ -139,7 +139,8 @@ const navSections = computed(() => [
             label: 'Administration',
             icon: 'i-heroicons-shield-check',
             links: [
-                { label: 'Utilisateurs', to: '/admin/users', icon: 'i-heroicons-user-circle' }
+                { label: 'Utilisateurs', to: '/admin/users', icon: 'i-heroicons-user-circle' },
+                { label: 'SMTP', to: '/admin/smtp', icon: 'i-heroicons-envelope' }
             ]
         }]
         : [])

@@ -88,9 +88,9 @@
 
                     <UAlert
                         v-if="lastInvitationUrl"
-                        color="primary"
+                        :color="lastInvitationMailSent ? 'success' : 'warning'"
                         variant="soft"
-                        title="Invitation créée"
+                        :title="lastInvitationMailSent ? 'Invitation envoyée' : 'Invitation créée'"
                         :description="lastInvitationUrl"
                     />
 
@@ -167,6 +167,7 @@ const invitations = ref([])
 const inviteEmail = ref('')
 const inviting = ref(false)
 const lastInvitationUrl = ref('')
+const lastInvitationMailSent = ref(false)
 const shareError = ref('')
 const canManageShares = computed(() =>
     Boolean(game.value?.id)
@@ -249,6 +250,7 @@ async function inviteUser() {
             body: { email: inviteEmail.value }
         })
         lastInvitationUrl.value = invitation.invitationUrl || ''
+        lastInvitationMailSent.value = Boolean(invitation.emailDelivery?.sent)
         inviteEmail.value = ''
         await refreshShares()
     } catch (err) {

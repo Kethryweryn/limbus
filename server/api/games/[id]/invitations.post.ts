@@ -4,6 +4,7 @@ import { requireGameOwner } from '~/server/utils/gameAccess'
 import { gameInvitationCreateSchema, readZodBody } from '~/server/utils/schemas'
 import { GAME_INVITATION_STATUSES } from '~/utils/domain'
 import { createInvitationToken, invitationUrl, normalizeInvitationEmail } from '~/server/utils/invitations'
+import { sendGameInvitationEmail } from '~/server/utils/email'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -22,7 +23,7 @@ export default defineEventHandler(async (event) => {
   })
   const game = await prisma.game.findUnique({
     where: { id },
-    select: { ownerId: true }
+    select: { ownerId: true, title: true }
   })
 
   if (existingUser?.id === game?.ownerId) {
@@ -66,9 +67,26 @@ export default defineEventHandler(async (event) => {
       acceptedBy: { select: { id: true, name: true, email: true } }
     }
   })
+  const url = invitationUrl(event, invitation.token)
+  let emailDelivery = null
+
+  try {
+    emailDelivery = await sendGameInvitationEmail({
+      to: invitation.email,
+      gameTitle: game?.title || 'Limbus',
+      inviterName: user.name || user.email,
+      url
+    })
+  } catch (error: any) {
+    emailDelivery = {
+      sent: false,
+      reason: error?.statusMessage || error?.message || 'smtp_error'
+    }
+  }
 
   return {
     ...invitation,
-    invitationUrl: invitationUrl(event, invitation.token)
+    invitationUrl: url,
+    emailDelivery
   }
 })

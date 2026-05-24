@@ -6,7 +6,8 @@ export default defineNuxtConfig({
   },
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
-    jwtSecret: process.env.JWT_SECRET
+    jwtSecret: process.env.JWT_SECRET,
+    smtpEncryptionSecret: process.env.SMTP_ENCRYPTION_SECRET
   },
   nitro: {
     preset: 'node-server', // 👈 force l'utilisation du serveur Node natif

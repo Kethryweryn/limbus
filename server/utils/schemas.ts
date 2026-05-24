@@ -41,6 +41,10 @@ const documentAudience = z.enum([
 ])
 const timelineTime = z.string().trim().regex(/^\d{2}:\d{2}$/, 'Time must use HH:mm format')
 const userRole = z.enum([USER_ROLES.admin, USER_ROLES.organizer])
+const optionalEmail = z.string().trim().default('').refine(
+  (value) => !value || z.string().email().safeParse(value).success,
+  'Invalid email'
+)
 
 export async function readZodBody<T>(event: H3Event, schema: ZodType<T>): Promise<T> {
   return await readValidatedBody(event, (body) => {
@@ -275,4 +279,36 @@ export const invitationRegistrationSchema = z.object({
 
 export const invitationAcceptSchema = z.object({
   token: requiredText('Token')
+})
+
+export const smtpSettingsSchema = z.object({
+  enabled: z.boolean().optional().default(false),
+  host: z.string().trim().default(''),
+  port: z.coerce.number().int().min(1).max(65535).default(587),
+  secure: z.boolean().optional().default(false),
+  username: optionalText,
+  password: z.string().optional().nullable(),
+  fromEmail: optionalEmail,
+  fromName: optionalText
+}).superRefine((value, ctx) => {
+  if (!value.enabled) return
+
+  if (!value.host) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['host'],
+      message: 'Host is required when SMTP is enabled'
+    })
+  }
+  if (!value.fromEmail) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['fromEmail'],
+      message: 'Sender email is required when SMTP is enabled'
+    })
+  }
+})
+
+export const smtpTestSchema = z.object({
+  to: requiredText('Recipient').email('Invalid recipient email')
 })

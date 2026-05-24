@@ -384,3 +384,17 @@ model GameInvitation {
   @@index([email])
   @@index([invitedById])
 }
+
+model SmtpSettings {
+  id                String   @id @default("default")
+  enabled           Boolean  @default(false)
+  host              String
+  port              Int      @default(587)
+  secure            Boolean  @default(false)
+  username          String?
+  passwordEncrypted String?
+  fromEmail         String
+  fromName          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
