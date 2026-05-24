@@ -44,6 +44,17 @@
       <NuxtLoadingIndicator />
       <NuxtPage />
     </div>
+    <div v-else-if="!authReady">
+      <NuxtPwaAssets />
+      <NuxtLoadingIndicator />
+      <div class="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <img
+          src="/brand/limbus-logo-header.png"
+          alt="Limbus"
+          class="h-24 w-full max-w-xs object-contain opacity-90"
+        >
+      </div>
+    </div>
     <div v-else>
       <NuxtPwaAssets />
       <NuxtLoadingIndicator />
@@ -73,6 +84,7 @@ useHead({
 })
 
 const authenticated = ref(false)
+const authReady = ref(false)
 const serverUnavailable = ref(false)
 const syncing = ref(false)
 const pendingSyncCount = ref(0)
@@ -100,17 +112,22 @@ const checkAuth = async (forceServerCheck = false) => {
 
   authCheckInProgress = true
 
+  const finishAuthCheck = () => {
+    authReady.value = true
+    authCheckInProgress = false
+  }
+
   serverUnavailable.value = isOfflineMode()
 
   if (!forceServerCheck && isOfflineMode()) {
     authenticated.value = await hasValidOfflineAuth()
-    authCheckInProgress = false
+    finishAuthCheck()
     return
   }
 
   if (forceServerCheck && !navigator.onLine) {
     authenticated.value = await hasValidOfflineAuth()
-    authCheckInProgress = false
+    finishAuthCheck()
     return
   }
 
@@ -124,11 +141,11 @@ const checkAuth = async (forceServerCheck = false) => {
       setServerUnavailable(true)
       serverUnavailable.value = true
       authenticated.value = await hasValidOfflineAuth()
-      authCheckInProgress = false
+      finishAuthCheck()
       return
     }
     authenticated.value = false
-    authCheckInProgress = false
+    finishAuthCheck()
     return
   }
 
@@ -148,12 +165,12 @@ const checkAuth = async (forceServerCheck = false) => {
       payload,
       signature
     }))
-    authCheckInProgress = false
+    finishAuthCheck()
     return
   }
 
   authenticated.value = false
-  authCheckInProgress = false
+  finishAuthCheck()
 }
 
 const retryServer = async () => {
