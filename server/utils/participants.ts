@@ -15,10 +15,13 @@ type ParticipantWithGameLinks = {
   }>
 }
 
-export const participantGameLinksInclude = {
-  gameLinks: {
-    orderBy: { createdAt: 'desc' as const },
-    include: { game: true }
+export function participantGameLinksInclude(gameIds: string[] | null = null) {
+  return {
+    gameLinks: {
+      where: gameIds === null ? undefined : { gameId: { in: gameIds } },
+      orderBy: { createdAt: 'desc' as const },
+      include: { game: true }
+    }
   }
 }
 

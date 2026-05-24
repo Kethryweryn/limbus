@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
       ? undefined
       : { gameLinks: { some: { gameId: { in: gameIds } } } },
     orderBy: { name: 'asc' },
-    include: participantGameLinksInclude
+    include: participantGameLinksInclude(gameIds)
   })
 
   return exposeParticipantsGames(participants)

@@ -14,13 +14,13 @@ export default defineEventHandler(async (event) => {
   const gameIds = await accessibleGameIds(event)
   const participant = await prisma.participant.findFirst({
     where: { id },
-    include: participantGameLinksInclude
+    include: participantGameLinksInclude(gameIds)
   })
 
   if (!participant) {
     throw createError({ statusCode: 404, statusMessage: 'Participant introuvable' })
   }
-  if (gameIds !== null && !participant.gameLinks.some((link) => gameIds.includes(link.gameId))) {
+  if (gameIds !== null && !participant.gameLinks.length) {
     throw createError({ statusCode: 403, statusMessage: 'Participant inaccessible' })
   }
 

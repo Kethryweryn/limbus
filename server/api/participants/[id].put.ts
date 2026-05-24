@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
       },
       published: published ?? true
     },
-    include: participantGameLinksInclude
+    include: participantGameLinksInclude(allowedGameIds)
   })
 
   return exposeParticipantGames(participant)
