@@ -10,7 +10,7 @@
                     <img
                         src="/brand/limbus-logo-header.png"
                         alt="Limbus"
-                        class="h-10 w-auto object-contain"
+                        class="h-11 w-auto object-contain md:h-14"
                     >
                 </NuxtLink>
             </div>
