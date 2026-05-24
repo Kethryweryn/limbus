@@ -168,7 +168,7 @@ const userMenu = computed(() => [
             icon: 'i-heroicons-arrow-left-on-rectangle',
             onSelect: () => navigateTo('/logout')
         }
-    }
+    ]
 ])
 
 const isActive = (path) => {
