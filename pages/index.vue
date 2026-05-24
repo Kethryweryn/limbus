@@ -60,19 +60,25 @@
           <div class="grid grid-cols-1 gap-3">
             <div>
               <div class="text-3xl font-bold">{{ dashboardData?.stats.gamesCount ?? 0 }}</div>
-              <div class="text-sm text-gray-500">Jeux</div>
+              <div class="text-sm text-gray-500">{{ pluralLabel(dashboardData?.stats.gamesCount ?? 0, 'Jeu', 'Jeux') }}</div>
             </div>
             <div>
               <div class="text-3xl font-bold">{{ dashboardData?.stats.totalParticipantsCount ?? 0 }}</div>
-              <div class="text-sm text-gray-500">Participants au total</div>
+              <div class="text-sm text-gray-500">
+                {{ pluralLabel(dashboardData?.stats.totalParticipantsCount ?? 0, 'Participant au total', 'Participants au total') }}
+              </div>
             </div>
             <div>
               <div class="text-3xl font-bold">{{ dashboardData?.stats.participantsWhoPlayedCount ?? 0 }}</div>
-              <div class="text-sm text-gray-500">Anciens participants</div>
+              <div class="text-sm text-gray-500">
+                {{ pluralLabel(dashboardData?.stats.participantsWhoPlayedCount ?? 0, 'Ancien participant', 'Anciens participants') }}
+              </div>
             </div>
             <div>
               <div class="text-3xl font-bold">{{ dashboardData?.stats.neverCastParticipantsCount ?? 0 }}</div>
-              <div class="text-sm text-gray-500">Participants jamais castés</div>
+              <div class="text-sm text-gray-500">
+                {{ pluralLabel(dashboardData?.stats.neverCastParticipantsCount ?? 0, 'Participant jamais casté', 'Participants jamais castés') }}
+              </div>
             </div>
           </div>
 
@@ -116,6 +122,8 @@ const formatLocation = (location: any) => {
   if (!location) return 'Non renseigné'
   return location.address ? `${location.name} - ${location.address}` : location.name
 }
+
+const pluralLabel = (count: number, singular: string, plural: string) => count === 1 ? singular : plural
 
 const updateDashboard = async () => {
   if (isOfflineMode()) {
