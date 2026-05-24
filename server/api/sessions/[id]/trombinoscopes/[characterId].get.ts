@@ -24,6 +24,8 @@ export default defineEventHandler(async (event) => {
 
   setHeader(event, 'content-type', 'application/pdf')
   setHeader(event, 'content-disposition', `inline; filename="${trombinoscope.fileName}"`)
+  setHeader(event, 'x-content-type-options', 'nosniff')
+  setHeader(event, 'cache-control', 'no-store')
 
   return Buffer.from(trombinoscope.contentPdfBase64, 'base64')
 })

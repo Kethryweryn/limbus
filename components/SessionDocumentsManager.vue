@@ -147,22 +147,18 @@
               {{ sheet.hasExternalDocument ? 'Document externe lié à la fiche.' : 'Document généré depuis le background.' }}
             </p>
             <div class="mt-2 flex flex-wrap items-center gap-2">
-              <a
+              <UButton
                 v-if="sheet.trombinoscopeUrl"
-                :href="sheet.trombinoscopeUrl"
-                target="_blank"
-                rel="noopener noreferrer"
+                type="button"
+                color="neutral"
+                variant="soft"
+                size="xs"
+                icon="i-heroicons-eye"
+                :loading="previewingPdfUrl === sheet.trombinoscopeUrl"
+                @click="previewPdf(sheet)"
               >
-                <UButton
-                  type="button"
-                  color="neutral"
-                  variant="soft"
-                  size="xs"
-                  icon="i-heroicons-eye"
-                >
-                  Vérifier le PDF
-                </UButton>
-              </a>
+                Vérifier le PDF
+              </UButton>
               <UBadge v-if="sheet.trombinoscopeMissingPhotos" color="warning" variant="subtle" size="xs">
                 {{ sheet.trombinoscopeMissingPhotos }} photo(s) manquante(s)
               </UBadge>
@@ -204,6 +200,7 @@ const sendingSheets = ref(false)
 const sendingTrombinoscopes = ref(false)
 const sendingBundle = ref(false)
 const generatingTrombinoscopes = ref(false)
+const previewingPdfUrl = ref('')
 const serverError = ref('')
 
 const documents = computed(() => props.documentsData.documents || [])
@@ -307,6 +304,42 @@ async function generateTrombinoscopes() {
     serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
   } finally {
     generatingTrombinoscopes.value = false
+  }
+}
+
+async function previewPdf(sheet) {
+  if (!sheet.trombinoscopeUrl || !import.meta.client) return
+
+  previewingPdfUrl.value = sheet.trombinoscopeUrl
+  serverError.value = ''
+  const previewWindow = window.open('about:blank', '_blank')
+
+  try {
+    const response = await fetch(sheet.trombinoscopeUrl, {
+      credentials: 'include',
+      headers: { accept: 'application/pdf' }
+    })
+    if (!response.ok) {
+      throw new Error('Impossible de charger le PDF')
+    }
+
+    const blob = await response.blob()
+    const pdfBlob = blob.type === 'application/pdf'
+      ? blob
+      : new Blob([blob], { type: 'application/pdf' })
+    const url = URL.createObjectURL(pdfBlob)
+
+    if (previewWindow) {
+      previewWindow.location.href = url
+    } else {
+      window.open(url, '_blank')
+    }
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  } catch (err) {
+    if (previewWindow) previewWindow.close()
+    serverError.value = err?.message || 'Impossible de vérifier le PDF'
+  } finally {
+    previewingPdfUrl.value = ''
   }
 }
 </script>
