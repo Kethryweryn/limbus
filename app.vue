@@ -53,7 +53,7 @@ useHead({
 const authenticated = ref(false)
 const serverUnavailable = ref(false)
 const route = useRoute()
-const isPublicRoute = computed(() => route.path.startsWith('/public/'))
+const isPublicRoute = computed(() => route.path.startsWith('/public/') || route.path.startsWith('/invitations/'))
 let authCheckInProgress = false
 
 async function hasValidOfflineAuth() {

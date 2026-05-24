@@ -31,23 +31,53 @@
           </UButton>
         </div>
 
-        <form v-else class="space-y-3" @submit.prevent="register">
-          <UFormField label="Nom">
-            <UInput v-model="form.name" required />
-          </UFormField>
-          <UFormField label="Email">
-            <UInput :model-value="invitation.email" type="email" disabled />
-          </UFormField>
-          <UFormField label="Mot de passe">
-            <UInput v-model="form.password" type="password" required />
-          </UFormField>
-          <UButton type="submit" color="primary" :loading="saving">
-            Créer mon compte et accepter
-          </UButton>
-          <p class="text-sm text-gray-500">
-            Si vous avez déjà un compte avec cette adresse, connectez-vous puis revenez sur ce lien.
-          </p>
-        </form>
+        <div v-else class="space-y-4">
+          <div class="flex flex-wrap gap-2">
+            <UButton
+              :color="mode === 'register' ? 'primary' : 'neutral'"
+              :variant="mode === 'register' ? 'solid' : 'soft'"
+              size="sm"
+              @click="mode = 'register'"
+            >
+              Créer mon compte
+            </UButton>
+            <UButton
+              :color="mode === 'login' ? 'primary' : 'neutral'"
+              :variant="mode === 'login' ? 'solid' : 'soft'"
+              size="sm"
+              @click="mode = 'login'"
+            >
+              J’ai déjà un compte
+            </UButton>
+          </div>
+
+          <form v-if="mode === 'register'" class="space-y-3" @submit.prevent="register">
+            <UFormField label="Nom">
+              <UInput v-model="form.name" required />
+            </UFormField>
+            <UFormField label="Email">
+              <UInput :model-value="invitation.email" type="email" disabled />
+            </UFormField>
+            <UFormField label="Mot de passe">
+              <UInput v-model="form.password" type="password" required />
+            </UFormField>
+            <UButton type="submit" color="primary" :loading="saving">
+              Créer mon compte et accepter
+            </UButton>
+          </form>
+
+          <form v-else class="space-y-3" @submit.prevent="loginAndAccept">
+            <UFormField label="Email">
+              <UInput v-model="loginForm.email" type="email" required />
+            </UFormField>
+            <UFormField label="Mot de passe">
+              <UInput v-model="loginForm.password" type="password" required />
+            </UFormField>
+            <UButton type="submit" color="primary" :loading="saving">
+              Me connecter et accepter
+            </UButton>
+          </form>
+        </div>
 
         <p v-if="serverError" class="text-sm text-red-500">{{ serverError }}</p>
       </div>
@@ -67,18 +97,40 @@ const invitation = ref(null)
 const loadError = ref('')
 const serverError = ref('')
 const saving = ref(false)
+const mode = ref('register')
 const form = ref({
   name: '',
+  password: ''
+})
+const loginForm = ref({
+  email: '',
   password: ''
 })
 const { data: authState } = await useFetch('/api/auth/me')
 
 try {
   invitation.value = await $fetch(`/api/invitations/${token}`)
+  loginForm.value.email = invitation.value.email
 } catch (err) {
   loadError.value = err?.data?.message || err?.statusMessage || 'Invitation introuvable'
 } finally {
   pending.value = false
+}
+
+async function loginAndAccept() {
+  saving.value = true
+  serverError.value = ''
+  try {
+    await $fetch('/api/auth/login', {
+      method: 'POST',
+      body: loginForm.value
+    })
+    await acceptInvitation()
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.statusMessage || 'Impossible de se connecter'
+  } finally {
+    saving.value = false
+  }
 }
 
 async function acceptInvitation() {
