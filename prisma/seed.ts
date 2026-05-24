@@ -897,6 +897,46 @@ async function createCrossGameParticipants(gameIds: string[]) {
   })
 }
 
+async function createSeedGameShares() {
+  const sharedUserEmail = 'manon.mechin@gmail.com'
+  const sharedGameTitle = 'Le Bal des Masques Brisés'
+
+  const [user, game] = await Promise.all([
+    prisma.user.findUnique({
+      where: { email: sharedUserEmail },
+      select: { id: true, email: true }
+    }),
+    prisma.game.findFirst({
+      where: { title: sharedGameTitle },
+      select: { id: true, title: true }
+    })
+  ])
+
+  if (!user || !game) {
+    console.warn(
+      `Partage seed ignoré: utilisateur ${sharedUserEmail} ou jeu "${sharedGameTitle}" introuvable.`
+    )
+    return
+  }
+
+  await prisma.gameShare.upsert({
+    where: {
+      gameId_userId: {
+        gameId: game.id,
+        userId: user.id
+      }
+    },
+    create: {
+      gameId: game.id,
+      userId: user.id,
+      role: 'organizer'
+    },
+    update: {
+      role: 'organizer'
+    }
+  })
+}
+
 async function createSessions(
   gameId: string,
   gameTitle: string,
@@ -1059,6 +1099,7 @@ async function main() {
     createdGameIds.push(createdGame.id)
   }
   await createCrossGameParticipants(createdGameIds)
+  await createSeedGameShares()
 
   console.log('Seed terminé.')
 }
