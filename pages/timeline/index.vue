@@ -5,13 +5,12 @@
     <GameContextBar />
 
     <div class="flex justify-end mb-4">
-      <UButton v-if="!isOffline" icon="i-heroicons-plus" color="primary" @click="startCreate">
+      <UButton v-if="!isOffline && selectedTimelineGameId" icon="i-heroicons-plus" color="primary" @click="startCreate">
         Créer un événement
       </UButton>
     </div>
 
     <div class="flex flex-col md:flex-row gap-4 mb-4">
-      <UInput v-model="searchQuery" placeholder="Rechercher un événement..." icon="i-heroicons-magnifying-glass" />
       <USelect
         v-if="!selectedGame"
         v-model="gameFilter"
@@ -19,9 +18,21 @@
         value-key="value"
         class="w-full md:w-64"
       />
+      <UInput
+        v-if="selectedTimelineGameId"
+        v-model="searchQuery"
+        placeholder="Rechercher un événement..."
+        icon="i-heroicons-magnifying-glass"
+      />
     </div>
 
-    <div v-if="filteredEvents.length" class="space-y-8">
+    <UCard v-if="!selectedTimelineGameId">
+      <div class="text-sm text-gray-500">
+        Sélectionnez un jeu pour afficher sa timeline.
+      </div>
+    </UCard>
+
+    <div v-else-if="filteredEvents.length" class="space-y-8">
       <UCard>
         <template #header>
           <div>
@@ -279,7 +290,7 @@ const factions = ref([])
 const intrigues = ref([])
 const items = ref([])
 const searchQuery = ref('')
-const gameFilter = ref('all')
+const gameFilter = ref('')
 const isOffline = ref(false)
 const showFormSlideover = ref(false)
 const activeFormEvent = ref(null)
@@ -288,16 +299,19 @@ const router = useRouter()
 const { game: selectedGame } = useGameFocus()
 
 const gameFilterOptions = computed(() => [
-  { label: 'Tous les jeux', value: 'all' },
+  { label: 'Sélectionner un jeu', value: '' },
   ...games.value.map((game) => ({ label: game.title, value: game.id }))
 ])
 
+const selectedTimelineGameId = computed(() => selectedGame.value?.id || gameFilter.value || '')
+
 const filteredEvents = computed(() => {
+  if (!selectedTimelineGameId.value) return []
+
   const term = searchQuery.value.toLowerCase()
-  const gameId = selectedGame.value?.id || (gameFilter.value === 'all' ? '' : gameFilter.value)
 
   return timelineEvents.value
-    .filter((timelineEvent) => !gameId || timelineEvent.gameId === gameId)
+    .filter((timelineEvent) => timelineEvent.gameId === selectedTimelineGameId.value)
     .filter((timelineEvent) =>
       [
         timelineEvent.name,
@@ -439,7 +453,7 @@ function eventFormPayload(timelineEvent) {
 }
 
 function startCreate() {
-  if (isOffline.value) return
+  if (isOffline.value || !selectedTimelineGameId.value) return
 
   activeFormEvent.value = {
     name: '',
@@ -447,7 +461,7 @@ function startCreate() {
     day: 1,
     time: '12:00',
     requiredResponsibles: 0,
-    gameId: selectedGame.value?.id || games.value[0]?.id || '',
+    gameId: selectedTimelineGameId.value,
     characterIds: [],
     factionIds: [],
     intrigueIds: [],
