@@ -81,7 +81,7 @@ export async function requireGameOwner(event: H3Event, gameId: string) {
   })
 
   if (!game) {
-    throw createError({ statusCode: 403, statusMessage: 'Seul le propriétaire du jeu peut faire cette action' })
+    throw createError({ statusCode: 403, message: 'Seul le propriétaire du jeu peut faire cette action' })
   }
 
   return { user, allGames }

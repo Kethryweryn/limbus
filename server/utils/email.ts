@@ -32,7 +32,7 @@ function getEncryptionKey() {
   if (!secret) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'SMTP_ENCRYPTION_SECRET ou JWT_SECRET doit être configuré pour chiffrer le mot de passe SMTP'
+      message: 'SMTP_ENCRYPTION_SECRET ou JWT_SECRET doit être configuré pour chiffrer le mot de passe SMTP'
     })
   }
 

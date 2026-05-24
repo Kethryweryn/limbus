@@ -89,7 +89,7 @@ export async function assertSessionCastRules(
     if (registeredParticipants !== participantIds.length) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Un participant assigné n’est pas inscrit au jeu de la session'
+        message: 'Un participant assigné n’est pas inscrit au jeu de la session'
       })
     }
   }
@@ -112,7 +112,7 @@ export async function assertSessionCastRules(
   if (characters.length !== characterIds.length) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Un personnage assigné n’appartient pas au jeu de la session'
+      message: 'Un personnage assigné n’appartient pas au jeu de la session'
     })
   }
 
@@ -129,7 +129,7 @@ export async function assertSessionCastRules(
     if (character?.type === CHARACTER_TYPES.pnj && !pnjCastableParticipantIds.has(assignment.participantId)) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Un rôle PNJ ne peut être assigné qu’à un organisateur ou un PNJ de session'
+        message: 'Un rôle PNJ ne peut être assigné qu’à un organisateur ou un PNJ de session'
       })
     }
   }

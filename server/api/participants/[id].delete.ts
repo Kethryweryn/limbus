@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
     if (links.some((link) => !allowedGameIds.includes(link.gameId))) {
       throw createError({
         statusCode: 403,
-        statusMessage: 'Ce participant est lié à des jeux auxquels vous n’avez pas accès'
+        message: 'Ce participant est lié à des jeux auxquels vous n’avez pas accès'
       })
     }
   }

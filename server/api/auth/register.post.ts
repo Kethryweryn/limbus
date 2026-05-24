@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   if (existingUser) {
     throw createError({
       statusCode: 409,
-      statusMessage: 'Un compte existe déjà pour cette adresse. Connectez-vous pour accepter l’invitation.'
+      message: 'Un compte existe déjà pour cette adresse. Connectez-vous pour accepter l’invitation.'
     })
   }
 

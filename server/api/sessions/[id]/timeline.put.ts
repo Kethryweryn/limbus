@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
     if (invalidParticipantId) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Un responsable doit être organisateur ou PNJ de la session'
+        message: 'Un responsable doit être organisateur ou PNJ de la session'
       })
     }
 

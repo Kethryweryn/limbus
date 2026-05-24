@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   if (ownedGamesCount) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Cet utilisateur possède encore des jeux. Transférez-les avant suppression.'
+      message: 'Cet utilisateur possède encore des jeux. Transférez-les avant suppression.'
     })
   }
 
