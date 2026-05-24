@@ -9,17 +9,8 @@
           </p>
         </div>
         <div class="flex flex-wrap gap-2">
-          <UButton color="primary" :loading="sendingPaymentEmails" :disabled="sendingPaymentEmails || !unpaidRows.length" @click="sendPaymentEmails(false)">
-            Envoyer aux manquants
-          </UButton>
-          <UButton color="warning" variant="soft" :loading="sendingReminders" :disabled="sendingReminders || !unpaidRows.length" @click="sendPaymentEmails(true)">
-            Relancer
-          </UButton>
-          <UButton color="neutral" variant="soft" @click="openPaymentTest(false)">
-            Tester l'email
-          </UButton>
-          <UButton color="neutral" variant="soft" @click="openPaymentTest(true)">
-            Tester la relance
+          <UButton color="primary" :loading="sendingPaymentEmails" :disabled="sendingPaymentEmails || paymentSendCooldown || !unpaidRows.length" @click="sendPaymentEmails">
+            Envoyer / relancer les manquants
           </UButton>
         </div>
       </div>
@@ -85,14 +76,33 @@
                 </UBadge>
               </div>
             </div>
-            <UButton
-              :color="row.paidAt ? 'neutral' : 'success'"
-              :variant="row.paidAt ? 'soft' : 'solid'"
-              :loading="updatingParticipantId === row.participant.id"
-              @click="setPaid(row, !row.paidAt)"
-            >
-              {{ row.paidAt ? 'Annuler le paiement' : 'Valider le paiement' }}
-            </UButton>
+            <div class="flex flex-wrap gap-2 lg:justify-end">
+              <UButton
+                color="primary"
+                variant="soft"
+                :loading="sendingPaymentParticipantId === row.participant.id"
+                :disabled="row.paidAt || !row.participant.email || sendingPaymentParticipantId === row.participant.id || paymentParticipantSendCooldownId === row.participant.id"
+                @click="sendPaymentEmail(row)"
+              >
+                {{ row.paymentEmailSentAt ? 'Relancer' : 'Envoyer' }}
+              </UButton>
+              <UButton
+                color="neutral"
+                variant="soft"
+                :disabled="testingEmail || paymentTestCooldownId === row.participant.id"
+                @click="openPaymentTest(row)"
+              >
+                Tester l'email
+              </UButton>
+              <UButton
+                :color="row.paidAt ? 'neutral' : 'success'"
+                :variant="row.paidAt ? 'soft' : 'solid'"
+                :loading="updatingParticipantId === row.participant.id"
+                @click="setPaid(row, !row.paidAt)"
+              >
+                {{ row.paidAt ? 'Annuler le paiement' : 'Valider le paiement' }}
+              </UButton>
+            </div>
           </div>
         </article>
       </section>
@@ -106,6 +116,7 @@
     <EmailTestModal
       v-model:open="showTestModal"
       :default-email="props.defaultEmail"
+      :preview="testPreview"
       :on-submit="sendPaymentTest"
     />
   </UCard>
@@ -126,10 +137,14 @@ const settings = reactive({
 })
 const savingSettings = ref(false)
 const sendingPaymentEmails = ref(false)
-const sendingReminders = ref(false)
+const paymentSendCooldown = ref(false)
+const sendingPaymentParticipantId = ref('')
+const paymentParticipantSendCooldownId = ref('')
 const updatingParticipantId = ref('')
+const testingEmail = ref(false)
+const paymentTestCooldownId = ref('')
 const showTestModal = ref(false)
-const testReminder = ref(false)
+const testRow = ref(null)
 const serverError = ref('')
 
 const rows = computed(() => props.paymentsData.rows || [])
@@ -137,6 +152,22 @@ const paidRows = computed(() => rows.value.filter((row) => row.paidAt))
 const unpaidRows = computed(() => rows.value.filter((row) => !row.paidAt))
 const emailedRows = computed(() => rows.value.filter((row) => row.paymentEmailSentAt))
 const remindedRows = computed(() => rows.value.filter((row) => row.paymentReminderSentAt))
+const testPreview = computed(() => ({
+  subject: `[Test] ${testRow.value?.paymentEmailSentAt ? 'Relance paiement' : 'Paiement'} - ${props.paymentsData.session.name}`,
+  body: [
+    `Bonjour ${firstName(testRow.value?.participant?.name || 'Prénom')},`,
+    '',
+    testRow.value?.paymentEmailSentAt
+      ? `Petit rappel pour le paiement de ta participation à ${props.paymentsData.session.name}.`
+      : `Tu peux maintenant régler ta participation à ${props.paymentsData.session.name}.`,
+    `Jeu : ${props.paymentsData.session.game?.title || ''}`,
+    settings.paymentLinkUrl ? `Lien de paiement : ${settings.paymentLinkUrl}` : '',
+    settings.paymentRibUrl ? `RIB : ${settings.paymentRibUrl}` : '',
+    '',
+    'Merci !'
+  ].filter(Boolean).join('\n'),
+  attachments: [settings.paymentRibUrl].filter(Boolean)
+}))
 
 watch(() => props.paymentsData.session, (session) => {
   settings.paymentRibUrl = session?.paymentRibUrl || ''
@@ -167,33 +198,80 @@ async function saveSettings() {
   }
 }
 
-async function sendPaymentEmails(reminder) {
-  const loading = reminder ? sendingReminders : sendingPaymentEmails
-  loading.value = true
+function firstName(name) {
+  return name.trim().split(/\s+/)[0] || name
+}
+
+function releaseCooldown(target) {
+  target.value = true
+  window.setTimeout(() => {
+    target.value = false
+  }, 1500)
+}
+
+async function sendPaymentEmails() {
+  if (!confirm('Envoyer les emails de paiement aux participants impayés ?')) return
+
+  sendingPaymentEmails.value = true
   try {
     await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/send`, {
       method: 'POST',
-      body: { reminder }
+      body: {}
     })
     serverError.value = ''
     await props.onRefresh()
   } catch (err) {
     serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
   } finally {
-    loading.value = false
+    sendingPaymentEmails.value = false
+    releaseCooldown(paymentSendCooldown)
   }
 }
 
-function openPaymentTest(reminder) {
-  testReminder.value = reminder
+async function sendPaymentEmail(row) {
+  sendingPaymentParticipantId.value = row.participant.id
+  try {
+    await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/send`, {
+      method: 'POST',
+      body: { participantId: row.participant.id }
+    })
+    serverError.value = ''
+    await props.onRefresh()
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+  } finally {
+    sendingPaymentParticipantId.value = ''
+    paymentParticipantSendCooldownId.value = row.participant.id
+    window.setTimeout(() => {
+      if (paymentParticipantSendCooldownId.value === row.participant.id) {
+        paymentParticipantSendCooldownId.value = ''
+      }
+    }, 1500)
+  }
+}
+
+function openPaymentTest(row) {
+  testRow.value = row
   showTestModal.value = true
 }
 
 async function sendPaymentTest(emails) {
-  await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/test-email`, {
-    method: 'POST',
-    body: { emails, reminder: testReminder.value }
-  })
+  const participantId = testRow.value?.participant?.id || ''
+  testingEmail.value = true
+  try {
+    await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/test-email`, {
+      method: 'POST',
+      body: { emails, participantId }
+    })
+  } finally {
+    testingEmail.value = false
+    paymentTestCooldownId.value = participantId
+    window.setTimeout(() => {
+      if (paymentTestCooldownId.value === participantId) {
+        paymentTestCooldownId.value = ''
+      }
+    }, 1500)
+  }
 }
 
 async function setPaid(row, paid) {

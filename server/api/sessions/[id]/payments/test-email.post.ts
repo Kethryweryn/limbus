@@ -1,6 +1,6 @@
 import { requireOrganizer } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
-import { emailTestSchema, readZodBody, sessionPaymentSendSchema } from '~/server/utils/schemas'
+import { emailTestSchema, readZodBody } from '~/server/utils/schemas'
 import { sendSessionPaymentTestEmails } from '~/server/utils/sessionPayments'
 
 export default defineEventHandler(async (event) => {
@@ -12,6 +12,6 @@ export default defineEventHandler(async (event) => {
   }
   await requireSessionAccess(event, id)
 
-  const body = await readZodBody(event, emailTestSchema.merge(sessionPaymentSendSchema))
-  return await sendSessionPaymentTestEmails(id, body.emails, body.reminder)
+  const body = await readZodBody(event, emailTestSchema)
+  return await sendSessionPaymentTestEmails(id, body.emails, body.participantId)
 })

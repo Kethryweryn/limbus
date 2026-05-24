@@ -58,6 +58,9 @@
                   <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.id}?tab=documents`">
                     Documents
                   </UButton>
+                  <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.id}?tab=payments`">
+                    Paiements
+                  </UButton>
                   <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.id}?tab=cast`">
                     Cast
                   </UButton>

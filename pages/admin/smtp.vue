@@ -86,7 +86,7 @@
         <UFormField label="Destinataire">
           <UInput v-model="testEmail" type="email" required class="w-full" />
         </UFormField>
-        <UButton type="submit" color="primary" variant="soft" :loading="testing">
+        <UButton type="submit" color="primary" variant="soft" :loading="testing" :disabled="testing || testCooldown">
           Envoyer un test
         </UButton>
       </form>
@@ -116,6 +116,7 @@ const secureOptions = [
 const settings = ref(null)
 const saving = ref(false)
 const testing = ref(false)
+const testCooldown = ref(false)
 const message = ref('')
 const serverError = ref('')
 const testEmail = ref('')
@@ -200,6 +201,10 @@ async function sendTest() {
     serverError.value = err?.data?.message || err?.statusMessage || err?.message || 'Impossible d’envoyer l’email de test'
   } finally {
     testing.value = false
+    testCooldown.value = true
+    window.setTimeout(() => {
+      testCooldown.value = false
+    }, 1500)
   }
 }
 

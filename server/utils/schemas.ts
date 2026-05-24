@@ -214,7 +214,8 @@ export const sessionDocumentSendSchema = z.object({
 export const emailTestSchema = z.object({
   emails: z.array(requiredText('Email').email('Invalid email')).min(1, 'At least one email is required'),
   documentIds: z.array(requiredId('Document')).optional().default([]),
-  characterId: optionalText
+  characterId: optionalText,
+  participantId: optionalText
 })
 
 export const sessionPaymentSettingsSchema = z.object({
@@ -227,7 +228,8 @@ export const sessionPaymentStatusSchema = z.object({
 })
 
 export const sessionPaymentSendSchema = z.object({
-  reminder: z.boolean().optional().default(false)
+  reminder: z.boolean().optional().default(false),
+  participantId: optionalText
 })
 
 export const characterTrombinoscopeSchema = z.object({

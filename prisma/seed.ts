@@ -150,7 +150,8 @@ const games: GameSeed[] = [
       { name: 'Antoine Durand', email: 'antoine.durand@example.test', phone: '06 11 22 33 07' },
       { name: 'Élise Leroy', email: 'elise.leroy@example.test', phone: '06 11 22 33 08' },
       { name: 'Thomas Garnier', email: 'thomas.garnier@example.test', phone: '06 11 22 33 09' },
-      { name: 'Inès Lefèvre', email: 'ines.lefevre@example.test', phone: '06 11 22 33 10' }
+      { name: 'Inès Lefèvre', email: 'ines.lefevre@example.test', phone: '06 11 22 33 10' },
+      { name: 'Jean-Damien Mottot', email: 'kethryweryn@gmail.com', phone: '06 11 22 33 11' }
     ],
     locations: [
       {
@@ -537,6 +538,7 @@ function defaultTrombinoscopeNote(type: 'pj' | 'pnj') {
 async function clearBusinessData() {
   await prisma.sessionTrombinoscope.deleteMany()
   await prisma.characterTrombinoscopeEntry.deleteMany()
+  await prisma.sessionPayment.deleteMany()
   await prisma.sessionDocumentDelivery.deleteMany()
   await prisma.timelineEventResponsible.deleteMany()
   await prisma.sessionAssignment.deleteMany()
@@ -908,6 +910,7 @@ async function createSessions(
   const organizer = participants[8]
   const sessionPnj = participants[9]
   const kitchen = participants[7]
+  const emailTestParticipant = participants.find((participant) => participant.name === 'Jean-Damien Mottot')
   const fixedSessionRoles = [
     organizer ? { participantId: organizer.id, role: 'organizer' } : null,
     sessionPnj ? { participantId: sessionPnj.id, role: 'npc' } : null,
@@ -979,6 +982,12 @@ async function createSessions(
   })
 
   const firstAssignments = buildAssignments(Math.max(0, pjCharacters.length - 2), 1)
+  const firstSessionRoles = gameIndex === 0 && emailTestParticipant
+    ? [
+        ...fixedSessionRoles,
+        { participantId: emailTestParticipant.id, role: 'organizer' }
+      ]
+    : fixedSessionRoles
 
   await prisma.session.create({
     data: {
@@ -989,7 +998,7 @@ async function createSessions(
       status: 'scheduled',
       published: true,
       participants: {
-        create: sessionParticipantsFor(firstAssignments)
+        create: sessionParticipantsFor(firstAssignments, firstSessionRoles)
       },
       assignments: {
         create: firstAssignments.map(({ character, ...assignment }) => assignment)
@@ -998,6 +1007,17 @@ async function createSessions(
   })
 
   const secondAssignments = buildAssignments(Math.max(0, pjCharacters.length - 1), 0)
+  if (gameIndex === 0 && emailTestParticipant) {
+    const openPjAssignment = secondAssignments.find((assignment) =>
+      assignment.character.type !== 'pnj'
+      && !assignment.participantId
+    )
+    if (openPjAssignment) {
+      openPjAssignment.participantId = emailTestParticipant.id
+      openPjAssignment.photoUrl = participantPhotos.get(emailTestParticipant.id) || null
+      openPjAssignment.notes = 'Assignation de test pour les emails.'
+    }
+  }
 
   await prisma.session.create({
     data: {

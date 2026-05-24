@@ -65,7 +65,7 @@
                   color="primary"
                   size="sm"
                   :loading="sendingDocumentId === document.id"
-                  :disabled="sendingDocumentId === document.id || !document.readyToSend || !pendingRecipients(document).length"
+                  :disabled="sendingDocumentId === document.id || documentSendCooldownId === document.id || !document.readyToSend || !pendingRecipients(document).length"
                   @click="sendDocuments([document.id])"
                 >
                   Envoyer aux manquants
@@ -74,7 +74,7 @@
                   color="neutral"
                   variant="soft"
                   size="sm"
-                  :disabled="testingEmail"
+                  :disabled="testingEmail || testEmailCooldownKey === `document:${document.id}`"
                   @click="openDocumentTest(document)"
                 >
                   Tester l'email
@@ -120,13 +120,13 @@
             <UButton color="neutral" variant="soft" :loading="generatingTrombinoscopes" @click="generateTrombinoscopes">
               Générer les trombinoscopes
             </UButton>
-            <UButton color="primary" :loading="sendingBundle" :disabled="sendingBundle || !bundleReadySheets.length" @click="sendCharacterSheetsAndTrombinoscopes">
+            <UButton color="primary" :loading="sendingBundle" :disabled="sendingBundle || bundleSendCooldown || !bundleReadySheets.length" @click="sendCharacterSheetsAndTrombinoscopes">
               Envoyer fiches et trombis
             </UButton>
-            <UButton color="neutral" variant="soft" :loading="sendingSheets" :disabled="sendingSheets || !pendingCharacterSheets.length" @click="sendCharacterSheets">
+            <UButton color="neutral" variant="soft" :loading="sendingSheets" :disabled="sendingSheets || sheetsSendCooldown || !pendingCharacterSheets.length" @click="sendCharacterSheets">
               Envoyer fiches seules
             </UButton>
-            <UButton color="neutral" variant="soft" :loading="sendingTrombinoscopes" :disabled="sendingTrombinoscopes || !pendingTrombinoscopes.length" @click="sendTrombinoscopes">
+            <UButton color="neutral" variant="soft" :loading="sendingTrombinoscopes" :disabled="sendingTrombinoscopes || trombinoscopesSendCooldown || !pendingTrombinoscopes.length" @click="sendTrombinoscopes">
               Envoyer trombinoscopes seuls
             </UButton>
           </div>
@@ -175,7 +175,7 @@
                 color="neutral"
                 variant="soft"
                 size="xs"
-                :disabled="testingEmail"
+                :disabled="testingEmail || testEmailCooldownKey === `character_sheet:${sheet.character.id}`"
                 @click="openCharacterSheetTest(sheet)"
               >
                 Tester l'email
@@ -208,6 +208,8 @@
     <EmailTestModal
       v-model:open="showTestModal"
       :default-email="props.defaultEmail"
+      :organizer-emails="organizerEmails"
+      :preview="testPreview"
       :on-submit="sendTestEmail"
     />
   </UCard>
@@ -215,7 +217,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { DOCUMENT_AUDIENCE_LABELS, SESSION_ROLE_LABELS } from '~/utils/domain'
+import { DOCUMENT_AUDIENCE_LABELS, SESSION_ROLES, SESSION_ROLE_LABELS } from '~/utils/domain'
 
 const props = defineProps({
   documentsData: { type: Object, required: true },
@@ -224,12 +226,17 @@ const props = defineProps({
 })
 
 const sendingDocumentId = ref('')
+const documentSendCooldownId = ref('')
 const sendingSheets = ref(false)
 const sendingTrombinoscopes = ref(false)
 const sendingBundle = ref(false)
+const sheetsSendCooldown = ref(false)
+const trombinoscopesSendCooldown = ref(false)
+const bundleSendCooldown = ref(false)
 const generatingTrombinoscopes = ref(false)
 const previewingPdfUrl = ref('')
 const testingEmail = ref(false)
+const testEmailCooldownKey = ref('')
 const showTestModal = ref(false)
 const testTarget = ref(null)
 const serverError = ref('')
@@ -237,6 +244,11 @@ const serverError = ref('')
 const documents = computed(() => props.documentsData.documents || [])
 const characterSheets = computed(() => props.documentsData.characterSheets || [])
 const sessionRoleRecipients = computed(() => props.documentsData.sessionRoleRecipients || [])
+const organizerEmails = computed(() =>
+  sessionRoleRecipients.value
+    .filter((recipient) => recipient.role === SESSION_ROLES.organizer && recipient.participant?.email)
+    .map((recipient) => recipient.participant.email)
+)
 
 const pendingCharacterSheets = computed(() => characterSheets.value.filter((sheet) => sheet.readyToSend && !sheet.sentAt))
 const pendingTrombinoscopes = computed(() => characterSheets.value.filter((sheet) => sheet.trombinoscopeGeneratedAt && !sheet.trombinoscopeSentAt))
@@ -246,6 +258,43 @@ const sentTrombinoscopes = computed(() => characterSheets.value.filter((sheet) =
 const missingTrombinoscopePhotos = computed(() =>
   Math.max(0, ...characterSheets.value.map((sheet) => sheet.trombinoscopeMissingPhotos || 0))
 )
+const testPreview = computed(() => {
+  if (!testTarget.value) {
+    return { subject: '', body: '', attachments: [] }
+  }
+
+  if (testTarget.value.type === 'document') {
+    const document = documents.value.find((item) => item.id === testTarget.value.documentId)
+    return {
+      subject: document ? `[Test] ${document.title}` : '',
+      body: [
+        `Document de test pour la session ${props.documentsData.session.name}.`,
+        '',
+        document?.content || '',
+        document?.documentUrl ? `Document lié : ${document.documentUrl}` : ''
+      ].filter(Boolean).join('\n'),
+      attachments: document?.documentUrl ? [document.documentUrl] : []
+    }
+  }
+
+  const sheet = characterSheets.value.find((item) => item.character.id === testTarget.value.characterId)
+  return {
+    subject: sheet ? `[Test] Fiche personnage - ${sheet.character.name}` : '',
+    body: [
+      `Fiche personnage de test pour ${props.documentsData.session.name}.`,
+      '',
+      sheet ? `Personnage : ${sheet.character.name}` : '',
+      sheet?.character.backgroundDocumentUrl
+        ? `Fiche liée : ${sheet.character.backgroundDocumentUrl}`
+        : sheet?.character.background || 'Aucun background saisi.',
+      sheet?.trombinoscopeUrl ? `Trombinoscope : ${sheet.trombinoscopeUrl}` : 'Trombinoscope non généré.'
+    ].filter(Boolean).join('\n'),
+    attachments: [
+      sheet?.character.backgroundDocumentUrl,
+      sheet?.trombinoscopeUrl
+    ].filter(Boolean)
+  }
+})
 
 const sentRecipients = (document) => document.recipients.filter((recipient) => recipient.sentAt)
 const pendingRecipients = (document) => document.recipients.filter((recipient) => !recipient.sentAt)
@@ -262,6 +311,7 @@ const formatDate = (value) => new Date(value).toLocaleString('fr-FR', {
 
 async function sendDocuments(documentIds) {
   if (!documentIds.length) return
+  if (!confirm('Envoyer ce document aux destinataires manquants ?')) return
 
   sendingDocumentId.value = documentIds[0]
   try {
@@ -274,11 +324,19 @@ async function sendDocuments(documentIds) {
   } catch (err) {
     serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
   } finally {
+    documentSendCooldownId.value = documentIds[0]
     sendingDocumentId.value = ''
+    window.setTimeout(() => {
+      if (documentSendCooldownId.value === documentIds[0]) {
+        documentSendCooldownId.value = ''
+      }
+    }, 1500)
   }
 }
 
 async function sendCharacterSheets() {
+  if (!confirm('Envoyer les fiches personnage aux destinataires manquants ?')) return
+
   sendingSheets.value = true
   try {
     await useApiFetch(`/api/sessions/${props.documentsData.session.id}/documents/send-character-sheets`, {
@@ -290,10 +348,13 @@ async function sendCharacterSheets() {
     serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
   } finally {
     sendingSheets.value = false
+    releaseCooldown(sheetsSendCooldown)
   }
 }
 
 async function sendTrombinoscopes() {
+  if (!confirm('Envoyer les trombinoscopes aux destinataires manquants ?')) return
+
   sendingTrombinoscopes.value = true
   try {
     await useApiFetch(`/api/sessions/${props.documentsData.session.id}/documents/send-trombinoscopes`, {
@@ -305,10 +366,13 @@ async function sendTrombinoscopes() {
     serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
   } finally {
     sendingTrombinoscopes.value = false
+    releaseCooldown(trombinoscopesSendCooldown)
   }
 }
 
 async function sendCharacterSheetsAndTrombinoscopes() {
+  if (!confirm('Envoyer les fiches personnage et les trombinoscopes ?')) return
+
   sendingBundle.value = true
   try {
     await useApiFetch(`/api/sessions/${props.documentsData.session.id}/documents/send-character-sheets-and-trombinoscopes`, {
@@ -320,7 +384,15 @@ async function sendCharacterSheetsAndTrombinoscopes() {
     serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
   } finally {
     sendingBundle.value = false
+    releaseCooldown(bundleSendCooldown)
   }
+}
+
+function releaseCooldown(target) {
+  target.value = true
+  window.setTimeout(() => {
+    target.value = false
+  }, 1500)
 }
 
 async function generateTrombinoscopes() {
@@ -351,6 +423,10 @@ function openCharacterSheetTest(sheet) {
 async function sendTestEmail(emails) {
   if (!testTarget.value) return
 
+  const cooldownKey = testTarget.value.type === 'document'
+    ? `document:${testTarget.value.documentId}`
+    : `character_sheet:${testTarget.value.characterId}`
+
   testingEmail.value = true
   try {
     if (testTarget.value.type === 'document') {
@@ -376,6 +452,12 @@ async function sendTestEmail(emails) {
     throw err
   } finally {
     testingEmail.value = false
+    testEmailCooldownKey.value = cooldownKey
+    window.setTimeout(() => {
+      if (testEmailCooldownKey.value === cooldownKey) {
+        testEmailCooldownKey.value = ''
+      }
+    }, 1500)
   }
 }
 

@@ -144,32 +144,33 @@ export async function setSessionPaymentStatus(sessionId: string, participantId: 
   })
 }
 
-export async function sendSessionPaymentEmails(sessionId: string, reminder = false) {
+export async function sendSessionPaymentEmails(sessionId: string, reminder = false, participantId?: string | null) {
   const dashboard = await getSessionPaymentDashboard(sessionId)
   const now = new Date()
   let sentCount = 0
   let skippedCount = 0
 
-  for (const row of dashboard.rows) {
+  const rows = participantId
+    ? dashboard.rows.filter((row) => row.participant.id === participantId)
+    : dashboard.rows
+
+  for (const row of rows) {
     if (row.paidAt || !row.participant.email) {
       skippedCount++
       continue
     }
-    if (!reminder && row.paymentEmailSentAt) {
-      skippedCount++
-      continue
-    }
+    const isReminder = reminder || Boolean(row.paymentEmailSentAt)
 
     const result = await sendEmail({
       to: row.participant.email,
-      subject: `${reminder ? 'Relance paiement' : 'Paiement'} - ${dashboard.session.name}`,
+      subject: `${isReminder ? 'Relance paiement' : 'Paiement'} - ${dashboard.session.name}`,
       text: paymentEmailText({
         participantName: row.participant.name,
         sessionName: dashboard.session.name,
         gameTitle: dashboard.session.game.title,
         paymentLinkUrl: dashboard.session.paymentLinkUrl,
         paymentRibUrl: dashboard.session.paymentRibUrl,
-        reminder
+        reminder: isReminder
       })
     })
     if (!result.sent) {
@@ -186,10 +187,10 @@ export async function sendSessionPaymentEmails(sessionId: string, reminder = fal
       create: {
         sessionId,
         participantId: row.participant.id,
-        paymentEmailSentAt: reminder ? row.paymentEmailSentAt : now,
-        paymentReminderSentAt: reminder ? now : null
+        paymentEmailSentAt: isReminder ? row.paymentEmailSentAt || now : now,
+        paymentReminderSentAt: isReminder ? now : null
       },
-      update: reminder
+      update: isReminder
         ? { paymentReminderSentAt: now }
         : { paymentEmailSentAt: now }
     })
@@ -199,9 +200,10 @@ export async function sendSessionPaymentEmails(sessionId: string, reminder = fal
   return { sentCount, skippedCount }
 }
 
-export async function sendSessionPaymentTestEmails(sessionId: string, emails: string[], reminder = false) {
+export async function sendSessionPaymentTestEmails(sessionId: string, emails: string[], participantId?: string | null) {
   const dashboard = await getSessionPaymentDashboard(sessionId)
-  const sample = dashboard.rows[0]
+  const sample = dashboard.rows.find((row) => row.participant.id === participantId) || dashboard.rows[0]
+  const reminder = Boolean(sample?.paymentEmailSentAt)
 
   const result = await sendEmail({
     to: emails,
