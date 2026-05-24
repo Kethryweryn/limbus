@@ -5,7 +5,7 @@
     <GameContextBar />
 
     <div class="flex justify-end mb-4">
-      <UButton v-if="!isOffline" icon="i-heroicons-plus" color="primary" @click="startCreate">
+      <UButton icon="i-heroicons-plus" color="primary" @click="startCreate">
         Créer un groupe
       </UButton>
     </div>
@@ -79,7 +79,7 @@
             </UBadge>
           </div>
 
-          <div v-if="!isOffline" class="flex flex-wrap gap-2 pt-1">
+          <div class="flex flex-wrap gap-2 pt-1">
             <UButton icon="i-heroicons-pencil-square" size="xs" color="primary" @click.stop="startEdit(faction)">
               Modifier
             </UButton>
@@ -243,10 +243,6 @@ const updateStatus = () => {
   const wasOffline = isOffline.value
   isOffline.value = isOfflineMode()
 
-  if (isOffline.value) {
-    closeFormSlideover()
-  }
-
   if (wasOffline !== isOffline.value) {
     refreshData()
   }
@@ -274,8 +270,6 @@ function factionFormPayload(faction) {
 }
 
 function startCreate() {
-  if (isOffline.value) return
-
   activeFormFaction.value = {
     name: '',
     pitch: '',
@@ -291,8 +285,6 @@ function startCreate() {
 }
 
 function startEdit(faction) {
-  if (isOffline.value) return
-
   activeFormFaction.value = factionFormPayload(faction)
   formMode.value = 'edit'
   showFormSlideover.value = true
@@ -309,8 +301,6 @@ function openFactionPage(faction) {
 }
 
 async function handleFactionFormSubmit() {
-  if (isOffline.value) return
-
   if (formMode.value === 'create') {
     await useApiFetch('/api/factions', {
       method: 'POST',
@@ -328,7 +318,6 @@ async function handleFactionFormSubmit() {
 }
 
 async function deleteFaction(id) {
-  if (isOffline.value) return
   if (!confirm('Supprimer ce groupe ? Les personnages liés seront conservés.')) return
 
   await useApiFetch(`/api/factions/${id}`, { method: 'DELETE' })

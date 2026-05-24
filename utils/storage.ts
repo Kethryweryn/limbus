@@ -1,7 +1,7 @@
 import { openDB } from 'idb'
 
 const DB_NAME = 'limbus-db'
-const STORES = ['dashboard', 'games', 'characters', 'factions', 'intrigues', 'items', 'documents', 'timelineEvents', 'participants', 'locations', 'sessions']
+const STORES = ['dashboard', 'games', 'characters', 'factions', 'intrigues', 'items', 'documents', 'timelineEvents', 'participants', 'locations', 'sessions', 'syncQueue']
 
 let dbPromise: ReturnType<typeof openDB> | null = null
 
@@ -12,7 +12,7 @@ async function ensureStore(store: string) {
     }
 
     if (!dbPromise) {
-        dbPromise = openDB(DB_NAME, 10, {
+        dbPromise = openDB(DB_NAME, 11, {
             upgrade(upgradeDb) {
                 for (const storeName of STORES) {
                     if (!upgradeDb.objectStoreNames.contains(storeName)) {

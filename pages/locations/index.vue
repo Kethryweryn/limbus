@@ -5,7 +5,7 @@
     <GameContextBar />
 
     <div class="flex justify-end mb-4">
-      <UButton v-if="!isOffline" icon="i-heroicons-plus" color="primary" @click="startCreate">
+      <UButton icon="i-heroicons-plus" color="primary" @click="startCreate">
         Créer un lieu
       </UButton>
     </div>
@@ -31,7 +31,7 @@
               </NuxtLink>
               <p class="text-sm text-gray-500 truncate">{{ location.game?.title || 'Jeu inconnu' }}</p>
             </div>
-            <div v-if="!isOffline" class="flex gap-2">
+            <div class="flex gap-2">
               <UButton size="xs" color="primary" @click="startEdit(location)">Modifier</UButton>
               <UButton size="xs" color="error" @click="deleteLocation(location.id)">Supprimer</UButton>
             </div>
@@ -164,10 +164,6 @@ const updateStatus = () => {
   const wasOffline = isOffline.value
   isOffline.value = isOfflineMode()
 
-  if (isOffline.value) {
-    closeFormSlideover()
-  }
-
   if (wasOffline && !isOffline.value) {
     refreshData()
   }
@@ -191,8 +187,6 @@ onUnmounted(() => {
 })
 
 function startCreate() {
-  if (isOffline.value) return
-
   activeFormLocation.value = {
     name: '',
     address: '',
@@ -205,8 +199,6 @@ function startCreate() {
 }
 
 function startEdit(location) {
-  if (isOffline.value) return
-
   activeFormLocation.value = { ...location }
   formMode.value = 'edit'
   showFormSlideover.value = true
@@ -218,8 +210,6 @@ function closeFormSlideover() {
 }
 
 async function handleLocationFormSubmit() {
-  if (isOffline.value) return
-
   if (formMode.value === 'create') {
     await useApiFetch('/api/locations', {
       method: 'POST',
@@ -237,8 +227,6 @@ async function handleLocationFormSubmit() {
 }
 
 async function deleteLocation(id) {
-  if (isOffline.value) return
-
   if (!confirm('Supprimer ce lieu ? Les sessions liées seront conservées sans lieu.')) return
 
   await useApiFetch(`/api/locations/${id}`, { method: 'DELETE' })

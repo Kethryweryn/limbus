@@ -3,6 +3,7 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { readZodBody, timelineEventSchema } from '~/server/utils/schemas'
 import { timelineEventInclude, validateTimelineEventRelations } from '~/server/utils/timelineEvents'
+import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -16,6 +17,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Événement introuvable' })
   }
   await requireGameAccess(event, timelineEvent.gameId)
+  await assertUnmodifiedSince(event, 'timelineEvent', id)
 
   const body = await readZodBody(event, timelineEventSchema)
   await requireGameAccess(event, body.gameId)

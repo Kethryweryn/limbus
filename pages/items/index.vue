@@ -5,7 +5,7 @@
     <GameContextBar />
 
     <div class="flex justify-end mb-4">
-      <UButton v-if="!isOffline" icon="i-heroicons-plus" color="primary" @click="startCreate">
+      <UButton icon="i-heroicons-plus" color="primary" @click="startCreate">
         Créer un objet
       </UButton>
     </div>
@@ -83,7 +83,7 @@
             </UBadge>
           </div>
 
-          <div v-if="!isOffline" class="flex flex-wrap gap-2 pt-1">
+          <div class="flex flex-wrap gap-2 pt-1">
             <UButton icon="i-heroicons-pencil-square" size="xs" color="primary" @click.stop="startEdit(item)">
               Modifier
             </UButton>
@@ -250,10 +250,6 @@ const updateStatus = () => {
   const wasOffline = isOffline.value
   isOffline.value = isOfflineMode()
 
-  if (isOffline.value) {
-    closeFormSlideover()
-  }
-
   if (wasOffline !== isOffline.value) {
     refreshData()
   }
@@ -284,8 +280,6 @@ function itemFormPayload(item) {
 }
 
 function startCreate() {
-  if (isOffline.value) return
-
   activeFormItem.value = {
     name: '',
     description: '',
@@ -301,8 +295,6 @@ function startCreate() {
 }
 
 function startEdit(item) {
-  if (isOffline.value) return
-
   activeFormItem.value = itemFormPayload(item)
   formMode.value = 'edit'
   showFormSlideover.value = true
@@ -319,8 +311,6 @@ function openItemPage(item) {
 }
 
 async function handleItemFormSubmit() {
-  if (isOffline.value) return
-
   if (formMode.value === 'create') {
     await useApiFetch('/api/items', {
       method: 'POST',
@@ -338,7 +328,6 @@ async function handleItemFormSubmit() {
 }
 
 async function deleteItem(id) {
-  if (isOffline.value) return
   if (!confirm('Supprimer cet objet ?')) return
 
   await useApiFetch(`/api/items/${id}`, { method: 'DELETE' })

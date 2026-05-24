@@ -5,7 +5,7 @@
     <GameContextBar />
 
     <div class="flex justify-end mb-4">
-      <UButton v-if="!isOffline" icon="i-heroicons-plus" color="primary" @click="startCreate">
+      <UButton icon="i-heroicons-plus" color="primary" @click="startCreate">
         Créer un participant
       </UButton>
     </div>
@@ -54,7 +54,7 @@
                 </div>
               </div>
             </div>
-            <div v-if="!isOffline" class="flex gap-2">
+            <div class="flex gap-2">
               <UButton size="xs" color="primary" @click="startEdit(participant)">Modifier</UButton>
               <UButton size="xs" color="error" @click="deleteParticipant(participant.id)">Supprimer</UButton>
             </div>
@@ -200,10 +200,6 @@ const updateStatus = () => {
   const wasOffline = isOffline.value
   isOffline.value = isOfflineMode()
 
-  if (isOffline.value) {
-    closeFormSlideover()
-  }
-
   if (wasOffline && !isOffline.value) {
     refreshData()
   }
@@ -227,8 +223,6 @@ onUnmounted(() => {
 })
 
 function startCreate() {
-  if (isOffline.value) return
-
   activeFormParticipant.value = {
     name: '',
     email: '',
@@ -242,8 +236,6 @@ function startCreate() {
 }
 
 function startEdit(participant) {
-  if (isOffline.value) return
-
   activeFormParticipant.value = {
     ...participant,
     gameIds: participant.games?.map((game) => game.id) || []
@@ -258,8 +250,6 @@ function closeFormSlideover() {
 }
 
 async function handleParticipantFormSubmit() {
-  if (isOffline.value) return
-
   if (formMode.value === 'create') {
     await useApiFetch('/api/participants', {
       method: 'POST',
@@ -277,8 +267,6 @@ async function handleParticipantFormSubmit() {
 }
 
 async function deleteParticipant(id) {
-  if (isOffline.value) return
-
   if (!confirm('Supprimer ce participant ? Les assignations de session seront conservées sans participant.')) return
 
   await useApiFetch(`/api/participants/${id}`, { method: 'DELETE' })

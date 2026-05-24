@@ -2,6 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { locationSchema, readZodBody } from '~/server/utils/schemas'
 import { requireGameAccess } from '~/server/utils/gameAccess'
+import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -15,6 +16,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Lieu introuvable' })
   }
   await requireGameAccess(event, location.gameId)
+  await assertUnmodifiedSince(event, 'location', id)
 
   const body = await readZodBody(event, locationSchema)
   const { name, address, notes, gameId, published } = body

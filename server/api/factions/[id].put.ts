@@ -3,6 +3,7 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { factionSchema, readZodBody } from '~/server/utils/schemas'
+import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -16,6 +17,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Groupe introuvable' })
   }
   await requireGameAccess(event, faction.gameId)
+  await assertUnmodifiedSince(event, 'faction', id)
 
   const body = await readZodBody(event, factionSchema)
   await requireGameAccess(event, body.gameId)

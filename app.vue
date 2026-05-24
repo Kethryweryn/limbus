@@ -8,15 +8,36 @@
         class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-900"
       >
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span>Serveur indisponible. Limbus utilise les données locales en lecture seule.</span>
+          <span>Serveur indisponible. Les modifications sont enregistrées localement et seront synchronisées au retour serveur.</span>
           <UButton size="xs" color="warning" variant="soft" @click="retryServer">
             Réessayer
           </UButton>
         </div>
       </div>
+      <div
+        v-if="pendingSyncCount"
+        class="bg-blue-50 border-b border-blue-200 px-4 py-2 text-sm text-blue-900"
+      >
+        {{ pendingSyncCount }} modification(s) hors ligne en attente de synchronisation.
+      </div>
+      <div
+        v-if="syncErrors.length"
+        class="bg-red-50 border-b border-red-200 px-4 py-2 text-sm text-red-900"
+      >
+        {{ syncErrors.length }} modification(s) n’ont pas pu être synchronisées. Vérifiez les conflits avant de continuer.
+      </div>
       <NuxtLayout>
         <NuxtPage />
       </NuxtLayout>
+      <div
+        v-if="syncing"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/50 backdrop-blur-sm"
+      >
+        <div class="rounded bg-white px-6 py-5 text-center shadow-xl">
+          <div class="text-lg font-semibold">Synchronisation en cours</div>
+          <div class="mt-1 text-sm text-gray-500">Les modifications hors ligne sont envoyées au serveur.</div>
+        </div>
+      </div>
     </div>
     <div v-else-if="isPublicRoute">
       <NuxtPwaAssets />
@@ -36,6 +57,7 @@ import { onUnmounted, useHead, useRoute } from '#imports'
 import LoginScreen from '~/components/LoginScreen.vue'
 import { isOfflineMode, isServerUnavailableError, setServerUnavailable } from '~/utils/connection'
 import { signOfflineAuth } from '~/utils/hashOfflineAuth'
+import { getOfflineQueue, processOfflineQueue } from '~/utils/offlineSync'
 
 useHead({
   title: 'Limbus',
@@ -52,6 +74,9 @@ useHead({
 
 const authenticated = ref(false)
 const serverUnavailable = ref(false)
+const syncing = ref(false)
+const pendingSyncCount = ref(0)
+const syncErrors = ref<string[]>([])
 const route = useRoute()
 const isPublicRoute = computed(() => route.path.startsWith('/public/') || route.path.startsWith('/invitations/'))
 let authCheckInProgress = false
@@ -134,26 +159,67 @@ const checkAuth = async (forceServerCheck = false) => {
 const retryServer = async () => {
   setServerUnavailable(false)
   await checkAuth(true)
+  await syncPendingChanges()
 }
 
-const checkAuthFromEvent = () => {
-  checkAuth()
+const checkAuthFromEvent = async () => {
+  await checkAuth()
+  if (navigator.onLine && !serverUnavailable.value) {
+    await syncPendingChanges()
+  }
+}
+
+const refreshQueueState = async () => {
+  const queue = await getOfflineQueue()
+  pendingSyncCount.value = queue.filter((operation) => operation.status === 'pending' || operation.status === 'syncing').length
+  syncErrors.value = queue.filter((operation) => operation.status === 'error').map((operation) => operation.error || 'Erreur de synchronisation')
+}
+
+const syncPendingChanges = async () => {
+  if (!process.client || syncing.value || !navigator.onLine) return
+
+  const queue = await getOfflineQueue()
+  const pending = queue.filter((operation) => operation.status === 'pending')
+  if (!pending.length) {
+    await refreshQueueState()
+    return
+  }
+
+  syncing.value = true
+  try {
+    const { results, aborted } = await processOfflineQueue()
+    if (aborted) {
+      await refreshQueueState()
+      return
+    }
+
+    syncErrors.value = results.filter((result) => !result.ok).map((result) => result.error || 'Erreur de synchronisation')
+    await refreshQueueState()
+    if (!syncErrors.value.length) {
+      window.location.reload()
+    }
+  } finally {
+    syncing.value = false
+  }
 }
 
 onMounted(() => {
   checkAuth()
+  refreshQueueState()
   window.addEventListener('online', checkAuthFromEvent)
   window.addEventListener('limbus:connection-change', checkAuthFromEvent)
+  window.addEventListener('limbus:sync-queue-change', refreshQueueState)
 })
 
 watch(() => route.fullPath, () => {
   if (serverUnavailable.value && navigator.onLine) {
-    checkAuth(true)
+    checkAuth(true).then(syncPendingChanges)
   }
 })
 
 onUnmounted(() => {
   window.removeEventListener('online', checkAuthFromEvent)
   window.removeEventListener('limbus:connection-change', checkAuthFromEvent)
+  window.removeEventListener('limbus:sync-queue-change', refreshQueueState)
 })
 </script>

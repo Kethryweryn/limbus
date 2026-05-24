@@ -22,7 +22,7 @@
                     class="w-full md:w-64"
                 />
             </div>
-            <UButton v-if="!isOffline" @click="openCreateSlideover" color="primary">Créer un personnage</UButton>
+            <UButton @click="openCreateSlideover" color="primary">Créer un personnage</UButton>
         </div>
 
         <!-- Liste des personnages -->
@@ -84,7 +84,7 @@
                         </UBadge>
                     </div>
 
-                    <div v-if="!isOffline" class="flex flex-wrap gap-2 pt-1">
+                    <div class="flex flex-wrap gap-2 pt-1">
                         <UButton
                             icon="i-heroicons-pencil-square"
                             size="xs"

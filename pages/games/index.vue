@@ -5,7 +5,7 @@
     <GameContextBar />
 
     <div class="flex justify-end mb-4">
-      <UButton icon="i-heroicons-plus" @click="startCreate" color="primary" v-if="!isOffline">
+      <UButton icon="i-heroicons-plus" @click="startCreate" color="primary">
         Créer un jeu
       </UButton>
     </div>
@@ -68,7 +68,7 @@
           <div class="flex flex-wrap gap-2 pt-1">
             <template v-if="activeGame?.id !== game.id">
               <UButton
-                v-if="!game.published && !isOffline"
+                v-if="!game.published"
                 icon="i-heroicons-arrow-up-tray"
                 size="xs"
                 color="warning"
@@ -88,7 +88,6 @@
             </template>
 
             <UButton
-              v-if="!isOffline"
               icon="i-heroicons-pencil-square"
               size="xs"
               color="primary"
@@ -98,7 +97,7 @@
             </UButton>
 
             <UButton
-              v-if="game.published && !isOffline"
+              v-if="game.published"
               :icon="game.publicPage ? 'i-heroicons-eye-slash' : 'i-heroicons-globe-alt'"
               size="xs"
               :color="game.publicPage ? 'neutral' : 'primary'"
@@ -109,7 +108,7 @@
             </UButton>
 
             <UButton
-              v-if="game.published && !isOffline"
+              v-if="game.published"
               icon="i-heroicons-archive-box"
               size="xs"
               color="error"

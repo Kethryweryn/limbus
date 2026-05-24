@@ -3,6 +3,7 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { readZodBody, updateGameSchema } from '~/server/utils/schemas'
 import { requireGameAccess } from '~/server/utils/gameAccess'
+import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -12,6 +13,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'ID manquant' })
   }
   await requireGameAccess(event, id)
+  await assertUnmodifiedSince(event, 'game', id)
 
   const body = await readZodBody(event, updateGameSchema)
   const { title, description, teaserUrl, noteIntention, published, publicPage } = body

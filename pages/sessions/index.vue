@@ -5,7 +5,7 @@
     <GameContextBar />
 
     <div class="flex justify-end mb-4">
-      <UButton v-if="!isOffline" icon="i-heroicons-plus" color="primary" @click="startCreate">
+      <UButton icon="i-heroicons-plus" color="primary" @click="startCreate">
         Créer une session
       </UButton>
     </div>
@@ -52,17 +52,17 @@
                   </UBadge>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                  <UButton v-if="!isOffline" size="xs" color="neutral" variant="soft" :to="`/sessions/${session.id}?tab=timeline`">
+                  <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.id}?tab=timeline`">
                     Timeline
                   </UButton>
-                  <UButton v-if="!isOffline" size="xs" color="neutral" variant="soft" :to="`/sessions/${session.id}?tab=documents`">
+                  <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.id}?tab=documents`">
                     Documents
                   </UButton>
-                  <UButton v-if="!isOffline" size="xs" color="neutral" variant="soft" :to="`/sessions/${session.id}?tab=cast`">
+                  <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.id}?tab=cast`">
                     Cast
                   </UButton>
-                  <UButton v-if="!isOffline" size="xs" color="primary" @click="startEdit(session)">Organisation</UButton>
-                  <UButton v-if="!isOffline" size="xs" color="error" @click="deleteSession(session.id)">Supprimer</UButton>
+                  <UButton size="xs" color="primary" @click="startEdit(session)">Organisation</UButton>
+                  <UButton size="xs" color="error" @click="deleteSession(session.id)">Supprimer</UButton>
                 </div>
               </div>
             </div>
@@ -379,10 +379,6 @@ const updateStatus = () => {
   const wasOffline = isOffline.value
   isOffline.value = isOfflineMode()
 
-  if (isOffline.value) {
-    closeFormSlideover()
-  }
-
   if (wasOffline && !isOffline.value) {
     refreshData()
   }
@@ -439,8 +435,6 @@ function normalizeSessionForForm(session) {
 }
 
 function startCreate() {
-  if (isOffline.value) return
-
   activeFormSession.value = {
     name: '',
     gameId: selectedGame.value?.id || games.value[0]?.id || '',
@@ -459,8 +453,6 @@ function startCreate() {
 }
 
 function startEdit(session) {
-  if (isOffline.value) return
-
   activeFormSession.value = normalizeSessionForForm(session)
   formMode.value = 'edit'
   showFormSlideover.value = true
@@ -472,8 +464,6 @@ function closeFormSlideover() {
 }
 
 async function handleSessionFormSubmit() {
-  if (isOffline.value) return
-
   if (formMode.value === 'create') {
     await useApiFetch('/api/sessions', {
       method: 'POST',
@@ -491,8 +481,6 @@ async function handleSessionFormSubmit() {
 }
 
 async function deleteSession(id) {
-  if (isOffline.value) return
-
   if (!confirm('Supprimer cette session ?')) return
 
   await useApiFetch(`/api/sessions/${id}`, { method: 'DELETE' })

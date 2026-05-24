@@ -3,6 +3,7 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { documentSchema, readZodBody } from '~/server/utils/schemas'
 import { documentInclude, validateDocumentRelations } from '~/server/utils/documents'
+import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -16,6 +17,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Document introuvable' })
   }
   await requireGameAccess(event, document.gameId)
+  await assertUnmodifiedSince(event, 'document', id)
 
   const body = await readZodBody(event, documentSchema)
   await requireGameAccess(event, body.gameId)

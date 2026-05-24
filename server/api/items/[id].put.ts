@@ -3,6 +3,7 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { itemSchema, readZodBody } from '~/server/utils/schemas'
 import { itemInclude, validateItemRelations } from '~/server/utils/items'
+import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -16,6 +17,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Objet introuvable' })
   }
   await requireGameAccess(event, item.gameId)
+  await assertUnmodifiedSince(event, 'item', id)
 
   const body = await readZodBody(event, itemSchema)
   await requireGameAccess(event, body.gameId)

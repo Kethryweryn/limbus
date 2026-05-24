@@ -5,7 +5,7 @@
     <GameContextBar />
 
     <div class="flex justify-end mb-4">
-      <UButton v-if="!isOffline && selectedTimelineGameId" icon="i-heroicons-plus" color="primary" @click="startCreate">
+      <UButton v-if="selectedTimelineGameId" icon="i-heroicons-plus" color="primary" @click="startCreate">
         Créer un événement
       </UButton>
     </div>
@@ -241,7 +241,6 @@
                 {{ timelineEvent.requiredResponsibles || 0 }} responsable(s)
               </UBadge>
               <UButton
-                v-if="!isOffline"
                 icon="i-heroicons-pencil-square"
                 size="xs"
                 color="primary"
@@ -250,7 +249,6 @@
                 Modifier
               </UButton>
               <UButton
-                v-if="!isOffline"
                 icon="i-heroicons-trash"
                 size="xs"
                 color="error"
@@ -457,10 +455,6 @@ const updateStatus = () => {
   const wasOffline = isOffline.value
   isOffline.value = isOfflineMode()
 
-  if (isOffline.value) {
-    closeFormSlideover()
-  }
-
   if (wasOffline !== isOffline.value) {
     refreshData()
   }
@@ -511,8 +505,6 @@ function startCreate() {
 }
 
 function startEdit(timelineEvent) {
-  if (isOffline.value) return
-
   activeFormEvent.value = eventFormPayload(timelineEvent)
   formMode.value = 'edit'
   showFormSlideover.value = true
@@ -529,8 +521,6 @@ function openEventPage(timelineEvent) {
 }
 
 async function handleEventFormSubmit() {
-  if (isOffline.value) return
-
   if (formMode.value === 'create') {
     await useApiFetch('/api/timeline-events', {
       method: 'POST',
@@ -548,7 +538,6 @@ async function handleEventFormSubmit() {
 }
 
 async function deleteTimelineEvent(id) {
-  if (isOffline.value) return
   if (!confirm('Supprimer cet événement ?')) return
 
   await useApiFetch(`/api/timeline-events/${id}`, { method: 'DELETE' })

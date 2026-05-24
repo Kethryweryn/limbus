@@ -5,7 +5,7 @@
     <GameContextBar />
 
     <div class="flex justify-end mb-4">
-      <UButton v-if="!isOffline" icon="i-heroicons-plus" color="primary" @click="startCreate">
+      <UButton icon="i-heroicons-plus" color="primary" @click="startCreate">
         Créer une intrigue
       </UButton>
     </div>
@@ -95,7 +95,7 @@
             </UBadge>
           </div>
 
-          <div v-if="!isOffline" class="flex flex-wrap gap-2 pt-1">
+          <div class="flex flex-wrap gap-2 pt-1">
             <UButton icon="i-heroicons-pencil-square" size="xs" color="primary" @click.stop="startEdit(intrigue)">
               Modifier
             </UButton>
@@ -288,10 +288,6 @@ const updateStatus = () => {
   const wasOffline = isOffline.value
   isOffline.value = isOfflineMode()
 
-  if (isOffline.value) {
-    closeFormSlideover()
-  }
-
   if (wasOffline !== isOffline.value) {
     refreshData()
   }
@@ -320,8 +316,6 @@ function intrigueFormPayload(intrigue) {
 }
 
 function startCreate() {
-  if (isOffline.value) return
-
   activeFormIntrigue.value = {
     name: '',
     pitch: '',
@@ -337,8 +331,6 @@ function startCreate() {
 }
 
 function startEdit(intrigue) {
-  if (isOffline.value) return
-
   activeFormIntrigue.value = intrigueFormPayload(intrigue)
   formMode.value = 'edit'
   showFormSlideover.value = true
@@ -355,8 +347,6 @@ function openIntriguePage(intrigue) {
 }
 
 async function handleIntrigueFormSubmit() {
-  if (isOffline.value) return
-
   if (formMode.value === 'create') {
     await useApiFetch('/api/intrigues', {
       method: 'POST',
@@ -374,7 +364,6 @@ async function handleIntrigueFormSubmit() {
 }
 
 async function deleteIntrigue(id) {
-  if (isOffline.value) return
   if (!confirm('Supprimer cette intrigue ?')) return
 
   await useApiFetch(`/api/intrigues/${id}`, { method: 'DELETE' })

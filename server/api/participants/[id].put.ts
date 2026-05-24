@@ -3,6 +3,7 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { accessibleGameIds } from '~/server/utils/gameAccess'
 import { participantSchema, readZodBody } from '~/server/utils/schemas'
 import { exposeParticipantGames, participantGameLinksInclude } from '~/server/utils/participants'
+import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -19,6 +20,8 @@ export default defineEventHandler(async (event) => {
   if (allowedGameIds !== null && uniqueGameIds.some((gameId) => !allowedGameIds.includes(gameId))) {
     throw createError({ statusCode: 403, statusMessage: 'Jeu inaccessible' })
   }
+
+  await assertUnmodifiedSince(event, 'participant', id)
 
   const existingLinks = await prisma.participantGame.findMany({
     where: { participantId: id },

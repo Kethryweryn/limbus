@@ -260,6 +260,7 @@ model Participant {
   notes       String?
   gameLinks   ParticipantGame[]
   published   Boolean    @default(true)
+  updatedAt   DateTime   @updatedAt
 
   assignments SessionAssignment[]
   sessionRoles SessionParticipant[]

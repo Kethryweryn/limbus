@@ -5,7 +5,7 @@
     <GameContextBar />
 
     <div class="flex justify-end mb-4">
-      <UButton v-if="!isOffline" icon="i-heroicons-plus" color="primary" @click="startCreate">
+      <UButton icon="i-heroicons-plus" color="primary" @click="startCreate">
         Créer un document
       </UButton>
     </div>
@@ -79,7 +79,7 @@
             </UBadge>
           </div>
 
-          <div v-if="!isOffline" class="flex flex-wrap gap-2 pt-1">
+          <div class="flex flex-wrap gap-2 pt-1">
             <UButton icon="i-heroicons-pencil-square" size="xs" color="primary" @click="startEdit(document)">
               Modifier
             </UButton>
@@ -241,10 +241,6 @@ const updateStatus = () => {
   const wasOffline = isOffline.value
   isOffline.value = isOfflineMode()
 
-  if (isOffline.value) {
-    closeFormSlideover()
-  }
-
   if (wasOffline !== isOffline.value) {
     refreshData()
   }
@@ -278,8 +274,6 @@ function documentFormPayload(document) {
 }
 
 function startCreate() {
-  if (isOffline.value) return
-
   activeFormDocument.value = {
     title: '',
     audience: DOCUMENT_AUDIENCES.targeted,
@@ -297,8 +291,6 @@ function startCreate() {
 }
 
 function startEdit(document) {
-  if (isOffline.value) return
-
   activeFormDocument.value = documentFormPayload(document)
   formMode.value = 'edit'
   showFormSlideover.value = true
@@ -310,8 +302,6 @@ function closeFormSlideover() {
 }
 
 async function handleDocumentFormSubmit() {
-  if (isOffline.value) return
-
   if (formMode.value === 'create') {
     await useApiFetch('/api/documents', {
       method: 'POST',
@@ -329,7 +319,6 @@ async function handleDocumentFormSubmit() {
 }
 
 async function deleteDocument(id) {
-  if (isOffline.value) return
   if (!confirm('Supprimer ce document ?')) return
 
   await useApiFetch(`/api/documents/${id}`, { method: 'DELETE' })
