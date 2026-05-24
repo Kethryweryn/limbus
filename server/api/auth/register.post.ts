@@ -7,8 +7,8 @@ import { invitationRegistrationSchema, readZodBody } from '~/server/utils/schema
 
 export default defineEventHandler(async (event) => {
   const body = await readZodBody(event, invitationRegistrationSchema)
-  const invitation = await getValidInvitation(body.token)
-  const email = normalizeInvitationEmail(invitation.email)
+  await getValidInvitation(body.token)
+  const email = normalizeInvitationEmail(body.email)
 
   const existingUser = await prisma.user.findUnique({
     where: { email },

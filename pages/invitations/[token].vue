@@ -26,6 +26,12 @@
           <p class="text-sm text-gray-600">
             Vous êtes connecté avec {{ authState.user.email }}.
           </p>
+          <UAlert
+            v-if="normalizedAuthEmail !== normalizedInvitationEmail"
+            color="warning"
+            variant="soft"
+            description="Cette invitation a été envoyée à une autre adresse email. Elle sera rattachée au compte actuellement connecté."
+          />
           <UButton color="primary" :loading="saving" @click="acceptInvitation">
             Accepter l’invitation
           </UButton>
@@ -56,7 +62,7 @@
               <UInput v-model="form.name" required />
             </UFormField>
             <UFormField label="Email">
-              <UInput :model-value="invitation.email" type="email" disabled />
+              <UInput v-model="form.email" type="email" required />
             </UFormField>
             <UFormField label="Mot de passe">
               <UInput v-model="form.password" type="password" required />
@@ -99,6 +105,7 @@ const serverError = ref('')
 const saving = ref(false)
 const mode = ref('register')
 const form = ref({
+  email: '',
   name: '',
   password: ''
 })
@@ -107,9 +114,13 @@ const loginForm = ref({
   password: ''
 })
 const { data: authState } = await useFetch('/api/auth/me')
+const normalizeEmail = (email) => String(email || '').trim().toLowerCase()
+const normalizedAuthEmail = computed(() => normalizeEmail(authState.value?.user?.email))
+const normalizedInvitationEmail = computed(() => normalizeEmail(invitation.value?.email))
 
 try {
   invitation.value = await $fetch(`/api/invitations/${token}`)
+  form.value.email = invitation.value.email
   loginForm.value.email = invitation.value.email
 } catch (err) {
   loadError.value = err?.data?.message || err?.statusMessage || 'Invitation introuvable'
@@ -157,6 +168,7 @@ async function register() {
       method: 'POST',
       body: {
         token,
+        email: form.value.email,
         name: form.value.name,
         password: form.value.password
       }

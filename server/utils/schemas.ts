@@ -273,6 +273,7 @@ export const gameInvitationCreateSchema = z.object({
 
 export const invitationRegistrationSchema = z.object({
   token: requiredText('Token'),
+  email: requiredText('Email').email('Invalid email'),
   name: requiredText('Name'),
   password: requiredText('Password').min(8, 'Password must contain at least 8 characters')
 })

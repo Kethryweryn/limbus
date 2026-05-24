@@ -50,9 +50,6 @@ export async function acceptInvitationForUser(token: string, userId: string) {
   if (!user) {
     throw createError({ statusCode: 404, statusMessage: 'Utilisateur introuvable' })
   }
-  if (normalizeInvitationEmail(user.email) !== normalizeInvitationEmail(invitation.email)) {
-    throw createError({ statusCode: 403, message: 'Cette invitation est liée à une autre adresse email' })
-  }
 
   await prisma.$transaction([
     prisma.gameShare.upsert({
