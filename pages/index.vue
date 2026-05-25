@@ -51,7 +51,7 @@
         <template #header>
           <div class="flex justify-between items-center">
             <span class="font-semibold">Stats</span>
-            <UIcon name="i-heroicons-chart-bar" />
+            <UIcon name="i-heroicons-calculator" />
           </div>
         </template>
 
