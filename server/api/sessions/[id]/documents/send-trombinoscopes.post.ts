@@ -11,6 +11,5 @@ export default defineEventHandler(async (event) => {
   }
   await requireSessionAccess(event, id)
 
-  const url = getRequestURL(event)
-  return await markTrombinoscopeDeliveries(id, url.origin)
+  return await markTrombinoscopeDeliveries(id)
 })

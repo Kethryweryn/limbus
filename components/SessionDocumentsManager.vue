@@ -62,6 +62,17 @@
 
               <div class="flex flex-wrap gap-2 lg:justify-end">
                 <UButton
+                  type="button"
+                  color="neutral"
+                  variant="soft"
+                  size="sm"
+                  icon="i-heroicons-eye"
+                  :loading="previewingPdfUrl === document.pdfUrl"
+                  @click="previewPdf(document.pdfUrl)"
+                >
+                  Vérifier le PDF
+                </UButton>
+                <UButton
                   color="primary"
                   size="sm"
                   :loading="sendingDocumentId === document.id"
@@ -159,6 +170,17 @@
             </p>
             <div class="mt-2 flex flex-wrap items-center gap-2">
               <UButton
+                type="button"
+                color="neutral"
+                variant="soft"
+                size="xs"
+                icon="i-heroicons-eye"
+                :loading="previewingPdfUrl === sheet.characterSheetPdfUrl"
+                @click="previewPdf(sheet.characterSheetPdfUrl)"
+              >
+                Vérifier la fiche
+              </UButton>
+              <UButton
                 v-if="sheet.trombinoscopeUrl"
                 type="button"
                 color="neutral"
@@ -166,9 +188,9 @@
                 size="xs"
                 icon="i-heroicons-eye"
                 :loading="previewingPdfUrl === sheet.trombinoscopeUrl"
-                @click="previewPdf(sheet)"
+                @click="previewPdf(sheet.trombinoscopeUrl)"
               >
-                Vérifier le PDF
+                Vérifier le trombi
               </UButton>
               <UButton
                 type="button"
@@ -273,7 +295,10 @@ const testPreview = computed(() => {
         document?.content || '',
         document?.documentUrl ? `Document lié : ${document.documentUrl}` : ''
       ].filter(Boolean).join('\n'),
-      attachments: document?.documentUrl ? [document.documentUrl] : []
+      attachments: [
+        document?.pdfUrl,
+        document?.documentUrl
+      ].filter(Boolean)
     }
   }
 
@@ -290,7 +315,7 @@ const testPreview = computed(() => {
       sheet?.trombinoscopeUrl ? `Trombinoscope : ${sheet.trombinoscopeUrl}` : 'Trombinoscope non généré.'
     ].filter(Boolean).join('\n'),
     attachments: [
-      sheet?.character.backgroundDocumentUrl,
+      sheet?.characterSheetPdfUrl,
       sheet?.trombinoscopeUrl
     ].filter(Boolean)
   }
@@ -461,15 +486,15 @@ async function sendTestEmail(emails) {
   }
 }
 
-async function previewPdf(sheet) {
-  if (!sheet.trombinoscopeUrl || !import.meta.client) return
+async function previewPdf(pdfUrl) {
+  if (!pdfUrl || !import.meta.client) return
 
-  previewingPdfUrl.value = sheet.trombinoscopeUrl
+  previewingPdfUrl.value = pdfUrl
   serverError.value = ''
   const previewWindow = window.open('about:blank', '_blank')
 
   try {
-    const response = await fetch(sheet.trombinoscopeUrl, {
+    const response = await fetch(pdfUrl, {
       credentials: 'include',
       headers: { accept: 'application/pdf' }
     })

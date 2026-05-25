@@ -17,6 +17,5 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Personnage manquant' })
   }
 
-  const url = getRequestURL(event)
-  return await sendCharacterSheetBundleTestEmail(id, body.characterId, body.emails, url.origin)
+  return await sendCharacterSheetBundleTestEmail(id, body.characterId, body.emails)
 })

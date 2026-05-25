@@ -1,6 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { sendEmail } from '~/server/utils/email'
 import { DOCUMENT_AUDIENCES, SESSION_ROLES } from '~/utils/domain'
+import { generatedPdfFileName, renderTextPdf } from '~/server/utils/generatedPdfs'
 
 export const documentInclude = {
   game: true,
@@ -189,7 +190,8 @@ export async function getSessionDocumentDashboard(sessionId: string) {
 
     return {
       ...document,
-      recipients
+      recipients,
+      pdfUrl: `/api/sessions/${session.id}/documents/${document.id}/pdf`
     }
   })
 
@@ -229,6 +231,7 @@ export async function getSessionDocumentDashboard(sessionId: string) {
         bundleSentAt: bundleDelivery?.sentAt || inferredBundleSentAt,
         trombinoscopeGeneratedAt: generatedTrombinoscope?.generatedAt || null,
         trombinoscopeMissingPhotos: generatedTrombinoscope?.missingPhotos || 0,
+        characterSheetPdfUrl: `/api/sessions/${session.id}/documents/character-sheets/${assignment.characterId}/pdf`,
         trombinoscopeUrl: generatedTrombinoscope
           ? `/api/sessions/${session.id}/trombinoscopes/${assignment.characterId}`
           : null
@@ -252,12 +255,6 @@ export async function getSessionDocumentDashboard(sessionId: string) {
     characterSheets,
     sessionRoleRecipients
   }
-}
-
-function absoluteUrl(baseUrl: string, value?: string | null) {
-  if (!value) return null
-  if (/^https?:\/\//i.test(value)) return value
-  return `${baseUrl}${value}`
 }
 
 function assertSent(result: Awaited<ReturnType<typeof sendEmail>>) {
@@ -295,7 +292,10 @@ export async function markDocumentDeliveries(sessionId: string, documentIds: str
           '',
           document.content || '',
           document.documentUrl ? `Document lié : ${document.documentUrl}` : ''
-        ].filter(Boolean).join('\n')
+        ].filter(Boolean).join('\n'),
+        attachments: [
+          await buildDocumentPdfAttachment(dashboard.session, document)
+        ]
       })
       assertSent(result)
 
@@ -344,7 +344,10 @@ export async function markCharacterSheetDeliveries(sessionId: string) {
         sheet.character.backgroundDocumentUrl
           ? `Fiche liée : ${sheet.character.backgroundDocumentUrl}`
           : sheet.character.background || ''
-      ].filter(Boolean).join('\n')
+      ].filter(Boolean).join('\n'),
+      attachments: [
+        await buildCharacterSheetPdfAttachment(dashboard.session, sheet.character)
+      ]
     })
     assertSent(result)
 
@@ -400,7 +403,7 @@ async function upsertDelivery(data: {
   return true
 }
 
-export async function markTrombinoscopeDeliveries(sessionId: string, baseUrl = '') {
+export async function markTrombinoscopeDeliveries(sessionId: string) {
   const dashboard = await getSessionDocumentDashboard(sessionId)
   let sentCount = 0
 
@@ -415,8 +418,11 @@ export async function markTrombinoscopeDeliveries(sessionId: string, baseUrl = '
         `Bonjour ${sheet.participant.name.split(/\s+/)[0] || sheet.participant.name},`,
         '',
         `Voici ton trombinoscope pour ${dashboard.session.name}.`,
-        absoluteUrl(baseUrl, sheet.trombinoscopeUrl)
-      ].filter(Boolean).join('\n')
+        'Le PDF est joint à cet email.'
+      ].filter(Boolean).join('\n'),
+      attachments: [
+        await buildTrombinoscopePdfAttachment(sessionId, sheet.character.id)
+      ]
     })
     assertSent(result)
 
@@ -432,7 +438,7 @@ export async function markTrombinoscopeDeliveries(sessionId: string, baseUrl = '
   return { sentCount }
 }
 
-export async function markCharacterSheetBundleDeliveries(sessionId: string, baseUrl = '') {
+export async function markCharacterSheetBundleDeliveries(sessionId: string) {
   const dashboard = await getSessionDocumentDashboard(sessionId)
   let sheetSentCount = 0
   let trombinoscopeSentCount = 0
@@ -454,10 +460,12 @@ export async function markCharacterSheetBundleDeliveries(sessionId: string, base
         sheet.character.backgroundDocumentUrl
           ? `Fiche liée : ${sheet.character.backgroundDocumentUrl}`
           : sheet.character.background || '',
-        absoluteUrl(baseUrl, sheet.trombinoscopeUrl)
-          ? `Trombinoscope : ${absoluteUrl(baseUrl, sheet.trombinoscopeUrl)}`
-          : ''
-      ].filter(Boolean).join('\n')
+        'Les PDF sont joints à cet email.'
+      ].filter(Boolean).join('\n'),
+      attachments: [
+        await buildCharacterSheetPdfAttachment(dashboard.session, sheet.character),
+        await buildTrombinoscopePdfAttachment(sessionId, sheet.character.id)
+      ]
     })
     assertSent(result)
 
@@ -510,7 +518,10 @@ export async function sendDocumentTestEmails(sessionId: string, documentIds: str
         '',
         document.content || '',
         document.documentUrl ? `Document lié : ${document.documentUrl}` : ''
-      ].filter(Boolean).join('\n')
+      ].filter(Boolean).join('\n'),
+      attachments: [
+        await buildDocumentPdfAttachment(dashboard.session, document)
+      ]
     })
     if (!result.sent) {
       throw createError({ statusCode: 500, message: 'SMTP désactivé' })
@@ -520,17 +531,13 @@ export async function sendDocumentTestEmails(sessionId: string, documentIds: str
   return { sentCount: emails.length * documents.length }
 }
 
-export async function sendCharacterSheetBundleTestEmail(sessionId: string, characterId: string, emails: string[], baseUrl: string) {
+export async function sendCharacterSheetBundleTestEmail(sessionId: string, characterId: string, emails: string[]) {
   const dashboard = await getSessionDocumentDashboard(sessionId)
   const sheet = dashboard.characterSheets.find((item) => item.character.id === characterId)
 
   if (!sheet) {
     throw createError({ statusCode: 404, message: 'Fiche personnage introuvable pour cette session' })
   }
-
-  const trombinoscopeUrl = sheet.trombinoscopeUrl
-    ? `${baseUrl}${sheet.trombinoscopeUrl}`
-    : null
 
   const result = await sendEmail({
     to: emails,
@@ -542,12 +549,91 @@ export async function sendCharacterSheetBundleTestEmail(sessionId: string, chara
       sheet.character.backgroundDocumentUrl
         ? `Fiche liée : ${sheet.character.backgroundDocumentUrl}`
         : sheet.character.background || 'Aucun background saisi.',
-      trombinoscopeUrl ? `Trombinoscope : ${trombinoscopeUrl}` : 'Trombinoscope non généré.'
-    ].filter(Boolean).join('\n')
+      sheet.trombinoscopeUrl ? 'Trombinoscope joint à cet email.' : 'Trombinoscope non généré.'
+    ].filter(Boolean).join('\n'),
+    attachments: [
+      await buildCharacterSheetPdfAttachment(dashboard.session, sheet.character),
+      ...(sheet.trombinoscopeUrl ? [await buildTrombinoscopePdfAttachment(sessionId, sheet.character.id)] : [])
+    ]
   })
   if (!result.sent) {
     throw createError({ statusCode: 500, message: 'SMTP désactivé' })
   }
 
   return { sentCount: emails.length }
+}
+
+export async function buildDocumentPdf(sessionId: string, documentId: string) {
+  const dashboard = await getSessionDocumentDashboard(sessionId)
+  const document = dashboard.documents.find((item) => item.id === documentId)
+  if (!document) {
+    throw createError({ statusCode: 404, message: 'Document introuvable pour cette session' })
+  }
+
+  return {
+    filename: generatedPdfFileName([dashboard.session.name, document.title]),
+    bytes: await renderTextPdf({
+      title: document.title,
+      subtitle: `${dashboard.session.name} - ${dashboard.session.game.title}`,
+      sections: [
+        { title: 'Contenu', body: document.content || 'Aucun corps de document renseigné.' },
+        ...(document.documentUrl ? [{ title: 'Document lié', body: document.documentUrl }] : [])
+      ]
+    })
+  }
+}
+
+export async function buildCharacterSheetPdf(sessionId: string, characterId: string) {
+  const dashboard = await getSessionDocumentDashboard(sessionId)
+  const sheet = dashboard.characterSheets.find((item) => item.character.id === characterId)
+  if (!sheet) {
+    throw createError({ statusCode: 404, message: 'Fiche personnage introuvable pour cette session' })
+  }
+
+  return {
+    filename: generatedPdfFileName([dashboard.session.name, sheet.character.name, 'fiche-personnage']),
+    bytes: await renderTextPdf({
+      title: sheet.character.name,
+      subtitle: `Fiche personnage - ${dashboard.session.name}`,
+      sections: [
+        { title: 'Pitch', body: sheet.character.pitch || '' },
+        { title: 'Background', body: sheet.character.background || '' },
+        ...(sheet.character.backgroundDocumentUrl ? [{ title: 'Document lié', body: sheet.character.backgroundDocumentUrl }] : []),
+        { title: 'Indications costume', body: sheet.character.costumeIndications || '' }
+      ]
+    })
+  }
+}
+
+async function buildDocumentPdfAttachment(session: { id: string }, document: { id: string }) {
+  const pdf = await buildDocumentPdf(session.id, document.id)
+  return {
+    filename: pdf.filename,
+    content: Buffer.from(pdf.bytes),
+    contentType: 'application/pdf'
+  }
+}
+
+async function buildCharacterSheetPdfAttachment(session: { id: string }, character: { id: string }) {
+  const pdf = await buildCharacterSheetPdf(session.id, character.id)
+  return {
+    filename: pdf.filename,
+    content: Buffer.from(pdf.bytes),
+    contentType: 'application/pdf'
+  }
+}
+
+async function buildTrombinoscopePdfAttachment(sessionId: string, characterId: string) {
+  const trombinoscope = await prisma.sessionTrombinoscope.findFirst({
+    where: { sessionId, viewerCharacterId: characterId }
+  })
+  if (!trombinoscope?.contentPdfBase64) {
+    throw createError({ statusCode: 404, message: 'Trombinoscope PDF introuvable' })
+  }
+
+  return {
+    filename: trombinoscope.fileName,
+    content: Buffer.from(trombinoscope.contentPdfBase64, 'base64'),
+    contentType: 'application/pdf'
+  }
 }
