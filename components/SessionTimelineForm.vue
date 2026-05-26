@@ -71,9 +71,20 @@
                       <div class="min-w-0 flex-1 space-y-2">
                         <div class="flex items-start justify-between gap-2">
                           <div class="font-medium leading-tight">{{ timelineEvent.name }}</div>
-                          <UBadge :color="responsibleColor(timelineEvent)" variant="subtle" size="xs" class="shrink-0">
-                            {{ selectedResponsibleIds(timelineEvent.id).length }}/{{ timelineEvent.requiredResponsibles || 0 }}
-                          </UBadge>
+                          <div class="flex shrink-0 items-center gap-1">
+                            <UBadge :color="responsibleColor(timelineEvent)" variant="subtle" size="xs">
+                              {{ selectedResponsibleIds(timelineEvent.id).length }}/{{ timelineEvent.requiredResponsibles || 0 }}
+                            </UBadge>
+                            <UButton
+                              :to="`/timeline/${timelineEvent.id}`"
+                              icon="i-heroicons-arrow-top-right-on-square"
+                              color="neutral"
+                              variant="ghost"
+                              size="xs"
+                              aria-label="Voir le détail de l’événement"
+                              @click.stop
+                            />
+                          </div>
                         </div>
                         <div v-if="eventBadgeSummary(timelineEvent).badges.length" class="flex flex-wrap gap-1">
                           <UBadge

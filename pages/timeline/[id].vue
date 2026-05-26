@@ -2,7 +2,7 @@
   <div class="p-6 space-y-6">
     <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
       <div>
-        <UButton to="/timeline" color="neutral" variant="ghost" icon="i-heroicons-arrow-left" class="mb-3">
+        <UButton :to="timelineBackTo" color="neutral" variant="ghost" icon="i-heroicons-arrow-left" class="mb-3">
           Timeline
         </UButton>
         <p class="text-sm text-gray-500">Jour {{ timelineEvent?.day }} · {{ timelineEvent?.time }}</p>
@@ -51,7 +51,13 @@
             <div>
               <h2 class="text-sm font-semibold mb-2">Personnages</h2>
               <div class="flex flex-wrap gap-1">
-                <UBadge v-for="character in timelineEvent.characters || []" :key="character.id" color="neutral" variant="subtle">
+                <UBadge
+                  v-for="character in timelineEvent.characters || []"
+                  :key="character.id"
+                  :to="`/characters/${character.slug}`"
+                  color="neutral"
+                  variant="subtle"
+                >
                   {{ character.name }}
                 </UBadge>
                 <span v-if="!timelineEvent.characters?.length" class="text-sm text-gray-500">Aucun</span>
@@ -60,7 +66,13 @@
             <div>
               <h2 class="text-sm font-semibold mb-2">Groupes</h2>
               <div class="flex flex-wrap gap-1">
-                <UBadge v-for="faction in timelineEvent.factions || []" :key="faction.id" color="warning" variant="subtle">
+                <UBadge
+                  v-for="faction in timelineEvent.factions || []"
+                  :key="faction.id"
+                  :to="`/factions/${faction.slug}`"
+                  color="warning"
+                  variant="subtle"
+                >
                   {{ faction.name }}
                 </UBadge>
                 <span v-if="!timelineEvent.factions?.length" class="text-sm text-gray-500">Aucun</span>
@@ -69,7 +81,13 @@
             <div>
               <h2 class="text-sm font-semibold mb-2">Intrigues</h2>
               <div class="flex flex-wrap gap-1">
-                <UBadge v-for="intrigue in timelineEvent.intrigues || []" :key="intrigue.id" color="primary" variant="subtle">
+                <UBadge
+                  v-for="intrigue in timelineEvent.intrigues || []"
+                  :key="intrigue.id"
+                  :to="`/intrigues/${intrigue.slug}`"
+                  color="primary"
+                  variant="subtle"
+                >
                   {{ intrigue.name }}
                 </UBadge>
                 <span v-if="!timelineEvent.intrigues?.length" class="text-sm text-gray-500">Aucune</span>
@@ -78,7 +96,13 @@
             <div>
               <h2 class="text-sm font-semibold mb-2">Objets</h2>
               <div class="flex flex-wrap gap-1">
-                <UBadge v-for="item in timelineEvent.items || []" :key="item.id" color="success" variant="subtle">
+                <UBadge
+                  v-for="item in timelineEvent.items || []"
+                  :key="item.id"
+                  :to="`/items/${item.id}`"
+                  color="success"
+                  variant="subtle"
+                >
                   {{ item.name }}
                 </UBadge>
                 <span v-if="!timelineEvent.items?.length" class="text-sm text-gray-500">Aucun</span>
@@ -112,7 +136,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import TimelineEventForm from '@/components/TimelineEventForm.vue'
 
 const route = useRoute()
@@ -125,6 +149,13 @@ const factions = ref([])
 const intrigues = ref([])
 const items = ref([])
 const isEditing = ref(route.query.edit === '1')
+const timelineBackTo = computed(() => ({
+  path: '/timeline',
+  query: {
+    ...(route.query.fromGameId ? { gameId: route.query.fromGameId } : {}),
+    ...(!route.query.fromGameId && timelineEvent.value?.gameId ? { gameId: timelineEvent.value.gameId } : {})
+  }
+}))
 
 async function loadData() {
   const [eventData, gamesData, charactersData, factionsData, intriguesData, itemsData] = await Promise.all([
@@ -167,13 +198,15 @@ function startEdit() {
 
   editableEvent.value = eventFormPayload(timelineEvent.value)
   isEditing.value = true
-  router.replace({ path: route.path, query: { edit: '1' } })
+  router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
 }
 
 function cancelEdit() {
   isEditing.value = false
   editableEvent.value = timelineEvent.value ? eventFormPayload(timelineEvent.value) : null
-  router.replace({ path: route.path })
+  const query = { ...route.query }
+  delete query.edit
+  router.replace({ path: route.path, query })
 }
 
 async function saveEvent() {

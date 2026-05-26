@@ -1,6 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { canAccessAllGames, accessibleGameWhere } from '~/server/utils/gameAccess'
+import { SESSION_STATUSES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
     requireOrganizer(event)
@@ -16,7 +17,18 @@ export default defineEventHandler(async (event) => {
             characters: { select: { updatedAt: true } },
             factions: { select: { updatedAt: true } },
             intrigues: { select: { updatedAt: true } },
-            items: { select: { updatedAt: true } }
+            items: { select: { updatedAt: true } },
+            documents: { select: { updatedAt: true } },
+            timelineEvents: { select: { updatedAt: true } },
+            sessions: {
+                where: {
+                    date: { gte: new Date() },
+                    status: { not: SESSION_STATUSES.cancelled }
+                },
+                select: { id: true, name: true, date: true, status: true },
+                orderBy: { date: 'asc' },
+                take: 1
+            }
         }
     })
 
@@ -26,7 +38,9 @@ export default defineEventHandler(async (event) => {
                 ...game.characters.map((item) => item.updatedAt),
                 ...game.factions.map((item) => item.updatedAt),
                 ...game.intrigues.map((item) => item.updatedAt),
-                ...game.items.map((item) => item.updatedAt)
+                ...game.items.map((item) => item.updatedAt),
+                ...game.documents.map((item) => item.updatedAt),
+                ...game.timelineEvents.map((item) => item.updatedAt)
             ]
             const lastActivityAt = new Date(Math.max(
                 game.updatedAt.getTime(),
@@ -47,7 +61,10 @@ export default defineEventHandler(async (event) => {
                 ownerId: game.ownerId,
                 owner: game.owner,
                 shares: game.shares,
-                lastActivityAt
+                lastActivityAt,
+                lastWritingActivityAt: lastActivityAt,
+                nextScheduledSession: game.sessions[0] || null,
+                nextScheduledSessionAt: game.sessions[0]?.date || null
             }
         })
         .sort((a, b) => b.lastActivityAt.getTime() - a.lastActivityAt.getTime())

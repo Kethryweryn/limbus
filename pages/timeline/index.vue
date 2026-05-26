@@ -44,6 +44,31 @@
       />
     </div>
 
+    <div v-if="!selectedTimelineGameId && quickAccessGames.length" class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+      <UCard
+        v-for="quickAccess in quickAccessGames"
+        :key="quickAccess.key"
+      >
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div class="min-w-0">
+            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              {{ quickAccess.label }}
+            </div>
+            <div class="truncate font-medium">{{ quickAccess.game.title }}</div>
+            <div class="text-sm text-gray-500">{{ quickAccess.detail }}</div>
+          </div>
+          <UButton
+            color="primary"
+            variant="soft"
+            size="sm"
+            @click="selectTimelineGame(quickAccess.game)"
+          >
+            Ouvrir
+          </UButton>
+        </div>
+      </UCard>
+    </div>
+
     <UCard v-if="!selectedTimelineGameId">
       <div class="text-sm text-gray-500">
         Sélectionnez un jeu pour afficher sa timeline.
@@ -313,6 +338,7 @@ const showFormSlideover = ref(false)
 const activeFormEvent = ref(null)
 const formMode = ref('create')
 const router = useRouter()
+const route = useRoute()
 const { game: selectedGame } = useGameFocus()
 
 const selectedTimelineGameId = computed(() => selectedGame.value?.id || gameFilter.value || '')
@@ -329,6 +355,47 @@ const filteredSelectableGames = computed(() => {
     .slice(0, 10)
 })
 
+const latestWritingGame = computed(() =>
+  [...games.value]
+    .filter((game) => game.lastWritingActivityAt || game.lastActivityAt || game.updatedAt)
+    .sort((a, b) =>
+      new Date(b.lastWritingActivityAt || b.lastActivityAt || b.updatedAt).getTime()
+      - new Date(a.lastWritingActivityAt || a.lastActivityAt || a.updatedAt).getTime()
+    )[0] || null
+)
+
+const nextSessionGame = computed(() =>
+  [...games.value]
+    .filter((game) => game.nextScheduledSessionAt)
+    .sort((a, b) =>
+      new Date(a.nextScheduledSessionAt).getTime() - new Date(b.nextScheduledSessionAt).getTime()
+    )[0] || null
+)
+
+const quickAccessGames = computed(() => {
+  const shortcuts = []
+  if (latestWritingGame.value) {
+    const date = latestWritingGame.value.lastWritingActivityAt || latestWritingGame.value.lastActivityAt || latestWritingGame.value.updatedAt
+    shortcuts.push({
+      key: `writing-${latestWritingGame.value.id}`,
+      label: 'Dernière modification en écriture',
+      game: latestWritingGame.value,
+      detail: `Modifié le ${formatDate(date)}`
+    })
+  }
+
+  if (nextSessionGame.value) {
+    shortcuts.push({
+      key: `session-${nextSessionGame.value.id}`,
+      label: 'Prochaine session prévue',
+      game: nextSessionGame.value,
+      detail: `${formatDate(nextSessionGame.value.nextScheduledSessionAt)} · ${nextSessionGame.value.nextScheduledSession?.name || 'Session'}`
+    })
+  }
+
+  return shortcuts
+})
+
 watch(gameSearch, (value) => {
   if (!selectedTimelineGame.value) return
   if (value !== selectedTimelineGame.value.title) {
@@ -339,6 +406,22 @@ watch(gameSearch, (value) => {
 function selectTimelineGame(game) {
   gameFilter.value = game.id
   gameSearch.value = game.title
+  router.replace({
+    path: route.path,
+    query: {
+      ...route.query,
+      gameId: game.id
+    }
+  })
+}
+
+function formatDate(value) {
+  if (!value) return 'Date inconnue'
+  return new Date(value).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
 }
 
 const filteredEvents = computed(() => {
@@ -466,6 +549,7 @@ onMounted(async () => {
   window.addEventListener('offline', updateStatus)
   window.addEventListener('limbus:connection-change', updateStatus)
   await refreshData()
+  restoreTimelineGameFromRoute()
 })
 
 onUnmounted(() => {
@@ -517,7 +601,10 @@ function closeFormSlideover() {
 
 function openEventPage(timelineEvent) {
   if (!timelineEvent?.id) return
-  router.push(`/timeline/${timelineEvent.id}`)
+  router.push({
+    path: `/timeline/${timelineEvent.id}`,
+    query: selectedTimelineGameId.value ? { fromGameId: selectedTimelineGameId.value } : {}
+  })
 }
 
 async function handleEventFormSubmit() {
@@ -549,5 +636,23 @@ function conflictTitle(timelineEvent) {
     .map((conflict) => `${conflict.type === 'character' ? 'Personnage' : 'Objet'} : ${conflict.name}`)
     .join(', ')
   return `Conflit au même créneau (${labels})`
+}
+
+watch(() => route.query.gameId, () => {
+  restoreTimelineGameFromRoute()
+})
+
+function restoreTimelineGameFromRoute() {
+  if (selectedGame.value) return
+
+  const routeGameId = route.query.gameId
+  if (typeof routeGameId !== 'string' || !routeGameId) return
+  if (gameFilter.value === routeGameId) return
+
+  const game = games.value.find((item) => item.id === routeGameId)
+  if (!game) return
+
+  gameFilter.value = game.id
+  gameSearch.value = game.title
 }
 </script>
