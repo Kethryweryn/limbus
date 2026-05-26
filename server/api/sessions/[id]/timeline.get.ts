@@ -1,6 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
-import { requireGameAccess } from '~/server/utils/gameAccess'
+import { requireGameAccess, requireSessionAccess } from '~/server/utils/gameAccess'
 import { timelineEventInclude, withTimelineConflicts } from '~/server/utils/timelineEvents'
 
 export default defineEventHandler(async (event) => {
@@ -11,8 +11,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'ID manquant' })
   }
 
+  const accessibleSession = await requireSessionAccess(event, id)
+
   const session = await prisma.session.findUnique({
-    where: { id },
+    where: { id: accessibleSession.id },
     include: {
       game: true,
       participants: {

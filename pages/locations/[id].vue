@@ -89,6 +89,15 @@ async function saveLocation() {
     method: 'PUT',
     body: editableLocation.value
   })
+  if (location.value?.slug && location.value.slug !== route.params.id) {
+    const query = { ...route.query }
+    delete query.edit
+    await router.replace({
+      path: `/locations/${location.value.slug}`,
+      query
+    })
+    return
+  }
   await refresh()
   cancelEdit()
 }

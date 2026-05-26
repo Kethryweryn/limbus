@@ -4,6 +4,7 @@ import { readZodBody, sessionSchema } from '~/server/utils/schemas'
 import { requireGameAccess, requireSessionAccess } from '~/server/utils/gameAccess'
 import { assertSessionCastRules, normalizeAssignments, normalizeSessionParticipants } from '~/server/utils/sessionAssignments'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
+import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
 function parseDate(value: unknown): Date | null {
   if (!value || typeof value !== 'string') return null
@@ -18,8 +19,8 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({ statusCode: 400, message: 'ID manquant' })
   }
-  await requireSessionAccess(event, id)
-  await assertUnmodifiedSince(event, 'session', id)
+  const existingSession = await requireSessionAccess(event, id)
+  await assertUnmodifiedSince(event, 'session', existingSession.id)
 
   const body = await readZodBody(event, sessionSchema)
   const { name, gameId, locationId, status, published } = body
@@ -29,9 +30,10 @@ export default defineEventHandler(async (event) => {
   await assertSessionCastRules(gameId, participants, assignments)
 
   return await prisma.session.update({
-    where: { id },
+    where: { id: existingSession.id },
     data: {
       name,
+      slug: await generateUniqueSlug('session', name, existingSession.id),
       gameId,
       date: parseDate(body.date),
       locationId: locationId || null,

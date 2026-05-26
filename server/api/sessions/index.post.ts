@@ -3,6 +3,7 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { readZodBody, sessionSchema } from '~/server/utils/schemas'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { assertSessionCastRules, normalizeAssignments, normalizeSessionParticipants } from '~/server/utils/sessionAssignments'
+import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
 function parseDate(value: unknown): Date | null {
   if (!value || typeof value !== 'string') return null
@@ -23,6 +24,7 @@ export default defineEventHandler(async (event) => {
   return await prisma.session.create({
     data: {
       name,
+      slug: await generateUniqueSlug('session', name),
       gameId,
       date: parseDate(body.date),
       locationId: locationId || null,

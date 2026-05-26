@@ -3,6 +3,7 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { accessibleGameIds } from '~/server/utils/gameAccess'
 import { participantSchema, readZodBody } from '~/server/utils/schemas'
 import { exposeParticipantGames, participantGameLinksInclude } from '~/server/utils/participants'
+import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -18,6 +19,7 @@ export default defineEventHandler(async (event) => {
   const participant = await prisma.participant.create({
     data: {
       name,
+      slug: await generateUniqueSlug('participant', name),
       email: email || null,
       phone: phone || null,
       notes: notes || null,

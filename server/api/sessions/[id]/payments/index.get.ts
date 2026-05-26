@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({ statusCode: 400, message: 'ID manquant' })
   }
-  await requireSessionAccess(event, id)
+  const session = await requireSessionAccess(event, id)
 
-  return await getSessionPaymentDashboard(id)
+  return await getSessionPaymentDashboard(session.id)
 })

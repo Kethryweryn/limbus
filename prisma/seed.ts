@@ -646,6 +646,7 @@ async function createGame(seed: GameSeed, gameIndex: number, ownerId?: string) {
     prisma.participant.create({
       data: {
         name: participant.name,
+        slug: makeSlug(`${seed.title}-${participant.name}`),
         email: participant.email,
         phone: participant.phone,
         notes: participant.notes || null,
@@ -660,6 +661,7 @@ async function createGame(seed: GameSeed, gameIndex: number, ownerId?: string) {
     prisma.location.create({
       data: {
         name: location.name,
+        slug: makeSlug(`${seed.title}-${location.name}`),
         address: location.address,
         notes: location.notes || null,
         gameId: game.id,
@@ -876,6 +878,7 @@ async function createCrossGameParticipants(gameIds: string[]) {
   await prisma.participant.create({
     data: {
       name: 'Alex Morgan',
+      slug: makeSlug('multi-alex-morgan'),
       email: 'alex.morgan@example.test',
       phone: '06 44 55 66 01',
       notes: 'participant inscrit sur plusieurs jeux pour tester les filtres.',
@@ -889,6 +892,7 @@ async function createCrossGameParticipants(gameIds: string[]) {
   await prisma.participant.create({
     data: {
       name: 'Morgan Da Silva',
+      slug: makeSlug('multi-morgan-da-silva'),
       email: 'morgan.dasilva@example.test',
       phone: '06 44 55 66 02',
       notes: 'Disponible sur tous les jeux de test.',
@@ -1014,6 +1018,7 @@ async function createSessions(
   await prisma.session.create({
     data: {
       name: `${gameTitle} - Session archive`,
+      slug: makeSlug(`${gameTitle}-session-archive`),
       date: pastDate,
       gameId,
       locationId: locations[0]?.id,
@@ -1039,6 +1044,7 @@ async function createSessions(
   await prisma.session.create({
     data: {
       name: `${gameTitle} - Session alpha`,
+      slug: makeSlug(`${gameTitle}-session-alpha`),
       date: firstDate,
       gameId,
       locationId: locations[0]?.id,
@@ -1069,6 +1075,7 @@ async function createSessions(
   await prisma.session.create({
     data: {
       name: `${gameTitle} - Session beta`,
+      slug: makeSlug(`${gameTitle}-session-beta`),
       date: secondDate,
       gameId,
       locationId: locations[1]?.id,

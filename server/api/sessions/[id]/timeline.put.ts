@@ -1,7 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { readZodBody, sessionTimelineSchema } from '~/server/utils/schemas'
-import { requireGameAccess } from '~/server/utils/gameAccess'
+import { requireGameAccess, requireSessionAccess } from '~/server/utils/gameAccess'
 import { SESSION_ROLES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
@@ -13,8 +13,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readZodBody(event, sessionTimelineSchema)
+  const accessibleSession = await requireSessionAccess(event, id)
   const session = await prisma.session.findUnique({
-    where: { id },
+    where: { id: accessibleSession.id },
     include: {
       participants: true
     }

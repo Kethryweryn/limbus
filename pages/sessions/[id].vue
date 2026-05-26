@@ -282,6 +282,15 @@ async function saveDetails() {
   timelineData.value = await useApiFetch(`/api/sessions/${session.value.id}/timeline`)
   await refreshDocumentsData()
   await refreshPaymentsData()
+  if (session.value?.slug && session.value.slug !== route.params.id) {
+    const query = { ...route.query }
+    delete query.edit
+    await router.replace({
+      path: `/sessions/${session.value.slug}`,
+      query
+    })
+    return
+  }
   cancelEditDetails()
 }
 

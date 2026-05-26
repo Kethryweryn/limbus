@@ -109,6 +109,15 @@ async function saveParticipant() {
     method: 'PUT',
     body: editableParticipant.value
   })
+  if (participant.value?.slug && participant.value.slug !== route.params.id) {
+    const query = { ...route.query }
+    delete query.edit
+    await router.replace({
+      path: `/participants/${participant.value.slug}`,
+      query
+    })
+    return
+  }
   await refresh()
   cancelEdit()
 }

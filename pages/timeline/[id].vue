@@ -152,7 +152,7 @@ const isEditing = ref(route.query.edit === '1')
 const returnContext = ref(null)
 const timelineBackTo = computed(() => ({
   path: returnContext.value?.source === 'session'
-    ? `/sessions/${returnContext.value.sessionId}`
+    ? `/sessions/${returnContext.value.sessionSlug || returnContext.value.sessionId}`
     : '/timeline',
   query: returnContext.value?.source === 'session'
     ? { tab: 'timeline' }

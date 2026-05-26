@@ -3,6 +3,7 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { locationSchema, readZodBody } from '~/server/utils/schemas'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
+import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -26,6 +27,7 @@ export default defineEventHandler(async (event) => {
     where: { id },
     data: {
       name,
+      slug: await generateUniqueSlug('location', name, id),
       address: address || null,
       notes: notes || null,
       gameId,

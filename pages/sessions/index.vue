@@ -52,16 +52,16 @@
                   </UBadge>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                  <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.id}?tab=timeline`">
+                  <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.slug || session.id}?tab=timeline`">
                     Timeline
                   </UButton>
-                  <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.id}?tab=documents`">
+                  <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.slug || session.id}?tab=documents`">
                     Documents
                   </UButton>
-                  <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.id}?tab=payments`">
+                  <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.slug || session.id}?tab=payments`">
                     Paiements
                   </UButton>
-                  <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.id}?tab=cast`">
+                  <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.slug || session.id}?tab=cast`">
                     Cast
                   </UButton>
                   <UButton size="xs" color="primary" @click="startEdit(session)">Organisation</UButton>
@@ -144,7 +144,7 @@
     <AppWideSlideover
       v-model:open="showFormSlideover"
       :title="formMode === 'edit' ? 'Modifier la session' : 'Créer une session'"
-      :full-page-to="formMode === 'edit' && activeFormSession?.id ? `/sessions/${activeFormSession.id}?edit=details` : null"
+      :full-page-to="formMode === 'edit' && activeFormSession?.id ? `/sessions/${activeFormSession.slug || activeFormSession.id}?edit=details` : null"
       @close="closeFormSlideover"
       @full-page="showFormSlideover = false"
     >

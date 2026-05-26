@@ -197,6 +197,7 @@ model Document {
 model Session {
   id          String     @id @default(cuid())
   name        String
+  slug        String     @unique
   date        DateTime?
   gameId      String
   game        Game       @relation(fields: [gameId], references: [id])
@@ -246,6 +247,7 @@ model SessionParticipant {
 model Location {
   id          String     @id @default(cuid())
   name        String
+  slug        String     @unique
   address     String?
   notes       String?
   gameId      String
@@ -260,6 +262,7 @@ model Location {
 model Participant {
   id          String     @id @default(cuid())
   name        String
+  slug        String     @unique
   email       String?
   phone       String?
   notes       String?

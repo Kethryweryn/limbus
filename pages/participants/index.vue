@@ -28,7 +28,7 @@
             <div class="flex items-center gap-3 min-w-0">
               <UAvatar icon="i-heroicons-user" />
               <div class="min-w-0">
-                <NuxtLink :to="`/participants/${participant.id}`" class="font-semibold truncate hover:underline">
+                <NuxtLink :to="`/participants/${participant.slug || participant.id}`" class="font-semibold truncate hover:underline">
                   {{ participant.name }}
                 </NuxtLink>
                 <div class="flex flex-wrap gap-1 mt-1" :title="formatParticipantGames(participant)">
@@ -87,7 +87,7 @@
     <AppWideSlideover
       v-model:open="showFormSlideover"
       :title="formMode === 'edit' ? 'Modifier le participant' : 'Créer un participant'"
-      :full-page-to="formMode === 'edit' && activeFormParticipant?.id ? `/participants/${activeFormParticipant.id}?edit=1` : null"
+      :full-page-to="formMode === 'edit' && activeFormParticipant?.id ? `/participants/${activeFormParticipant.slug || activeFormParticipant.id}?edit=1` : null"
       @close="closeFormSlideover"
       @full-page="showFormSlideover = false"
     >

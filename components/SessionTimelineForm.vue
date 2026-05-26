@@ -246,6 +246,7 @@ function rememberSessionTimelineContext(timelineEvent) {
   sessionStorage.setItem('limbus:timeline-return-context', JSON.stringify({
     source: 'session',
     sessionId: props.timelineData.session.id,
+    sessionSlug: props.timelineData.session.slug || props.timelineData.session.id,
     eventId: timelineEvent.id
   }))
 }

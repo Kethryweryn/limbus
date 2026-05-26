@@ -88,9 +88,14 @@ export async function requireGameOwner(event: H3Event, gameId: string) {
 }
 
 export async function requireSessionAccess(event: H3Event, sessionId: string) {
-  const session = await prisma.session.findUnique({
-    where: { id: sessionId },
-    select: { gameId: true }
+  const session = await prisma.session.findFirst({
+    where: {
+      OR: [
+        { id: sessionId },
+        { slug: sessionId }
+      ]
+    },
+    select: { id: true, gameId: true }
   })
   if (!session) {
     throw createError({ statusCode: 404, message: 'Session introuvable' })
