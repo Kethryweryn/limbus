@@ -392,6 +392,22 @@ function makeSlug(value: string) {
   return slugify(value, { lower: true, strict: true })
 }
 
+const usedParticipantSlugs = new Set<string>()
+
+function makeParticipantSlug(name: string) {
+  const baseSlug = makeSlug(name) || 'participant'
+  let slug = baseSlug
+  let suffix = 2
+
+  while (usedParticipantSlugs.has(slug)) {
+    slug = `${baseSlug}-${suffix}`
+    suffix += 1
+  }
+
+  usedParticipantSlugs.add(slug)
+  return slug
+}
+
 function uploadPhotoUrl(filename: string) {
   return `/api/uploads/session-assignment-photos/${filename}`
 }
@@ -646,7 +662,7 @@ async function createGame(seed: GameSeed, gameIndex: number, ownerId?: string) {
     prisma.participant.create({
       data: {
         name: participant.name,
-        slug: makeSlug(`${seed.title}-${participant.name}`),
+        slug: makeParticipantSlug(participant.name),
         email: participant.email,
         phone: participant.phone,
         notes: participant.notes || null,
@@ -878,7 +894,7 @@ async function createCrossGameParticipants(gameIds: string[]) {
   await prisma.participant.create({
     data: {
       name: 'Alex Morgan',
-      slug: makeSlug('multi-alex-morgan'),
+      slug: makeParticipantSlug('Alex Morgan'),
       email: 'alex.morgan@example.test',
       phone: '06 44 55 66 01',
       notes: 'participant inscrit sur plusieurs jeux pour tester les filtres.',
@@ -892,7 +908,7 @@ async function createCrossGameParticipants(gameIds: string[]) {
   await prisma.participant.create({
     data: {
       name: 'Morgan Da Silva',
-      slug: makeSlug('multi-morgan-da-silva'),
+      slug: makeParticipantSlug('Morgan Da Silva'),
       email: 'morgan.dasilva@example.test',
       phone: '06 44 55 66 02',
       notes: 'Disponible sur tous les jeux de test.',
