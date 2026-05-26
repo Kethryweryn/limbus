@@ -78,6 +78,12 @@ type GameSeed = {
   items: ItemSeed[]
 }
 
+type PreservedGameShare = {
+  gameSlug: string
+  userId: string
+  role: string
+}
+
 const games: GameSeed[] = [
   {
     title: 'Les Cendres de Valombre',
@@ -574,6 +580,59 @@ async function clearBusinessData() {
   await prisma.game.deleteMany()
 }
 
+async function preserveSeedGameShares(): Promise<PreservedGameShare[]> {
+  const seedGameSlugs = games.map((game) => makeSlug(game.title))
+  const shares = await prisma.gameShare.findMany({
+    where: {
+      game: {
+        slug: { in: seedGameSlugs }
+      }
+    },
+    select: {
+      userId: true,
+      role: true,
+      game: {
+        select: {
+          slug: true
+        }
+      }
+    }
+  })
+
+  return shares.map((share) => ({
+    gameSlug: share.game.slug,
+    userId: share.userId,
+    role: share.role
+  }))
+}
+
+async function restoreSeedGameShares(
+  preservedShares: PreservedGameShare[],
+  createdGamesBySlug: Map<string, { id: string }>
+) {
+  for (const share of preservedShares) {
+    const game = createdGamesBySlug.get(share.gameSlug)
+    if (!game) continue
+
+    await prisma.gameShare.upsert({
+      where: {
+        gameId_userId: {
+          gameId: game.id,
+          userId: share.userId
+        }
+      },
+      create: {
+        gameId: game.id,
+        userId: share.userId,
+        role: share.role
+      },
+      update: {
+        role: share.role
+      }
+    })
+  }
+}
+
 async function createGame(seed: GameSeed, gameIndex: number, ownerId?: string) {
   const game = await prisma.game.create({
     data: {
@@ -920,46 +979,6 @@ async function createCrossGameParticipants(gameIds: string[]) {
   })
 }
 
-async function createSeedGameShares() {
-  const sharedUserEmail = 'manon.mechin@gmail.com'
-  const sharedGameTitle = 'Le Bal des Masques Brisés'
-
-  const [user, game] = await Promise.all([
-    prisma.user.findUnique({
-      where: { email: sharedUserEmail },
-      select: { id: true, email: true }
-    }),
-    prisma.game.findFirst({
-      where: { title: sharedGameTitle },
-      select: { id: true, title: true }
-    })
-  ])
-
-  if (!user || !game) {
-    console.warn(
-      `Partage seed ignoré: utilisateur ${sharedUserEmail} ou jeu "${sharedGameTitle}" introuvable.`
-    )
-    return
-  }
-
-  await prisma.gameShare.upsert({
-    where: {
-      gameId_userId: {
-        gameId: game.id,
-        userId: user.id
-      }
-    },
-    create: {
-      gameId: game.id,
-      userId: user.id,
-      role: 'organizer'
-    },
-    update: {
-      role: 'organizer'
-    }
-  })
-}
-
 async function createSessions(
   gameId: string,
   gameTitle: string,
@@ -1109,6 +1128,7 @@ async function createSessions(
 
 async function main() {
   console.log('Suppression des anciennes données métier...')
+  const preservedGameShares = await preserveSeedGameShares()
   await clearBusinessData()
 
   console.log('Création du jeu de données de test...')
@@ -1120,14 +1140,16 @@ async function main() {
     select: { id: true }
   })
   const createdGameIds: string[] = []
+  const createdGamesBySlug = new Map<string, { id: string }>()
   for (const [index, game] of games.entries()) {
     const createdGame = await createGame(game, index, owner?.id)
     createdGameIds.push(createdGame.id)
+    createdGamesBySlug.set(createdGame.slug, { id: createdGame.id })
   }
   await createCrossGameParticipants(createdGameIds)
-  await createSeedGameShares()
+  await restoreSeedGameShares(preservedGameShares, createdGamesBySlug)
 
-  console.log('Seed terminé.')
+  console.log(`Seed terminé. ${preservedGameShares.length} partage(s) utilisateur/jeu restauré(s).`)
 }
 
 main()
