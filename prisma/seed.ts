@@ -84,6 +84,14 @@ type PreservedGameShare = {
   role: string
 }
 
+function seedParticipantEmails() {
+  return [
+    ...games.flatMap((game) => game.participants.map((participant) => participant.email)),
+    'alex.morgan@example.test',
+    'morgan.dasilva@example.test'
+  ]
+}
+
 const games: GameSeed[] = [
   {
     title: 'Les Cendres de Valombre',
@@ -400,12 +408,15 @@ function makeSlug(value: string) {
 
 const usedParticipantSlugs = new Set<string>()
 
-function makeParticipantSlug(name: string) {
+async function makeParticipantSlug(name: string) {
   const baseSlug = makeSlug(name) || 'participant'
   let slug = baseSlug
   let suffix = 2
 
-  while (usedParticipantSlugs.has(slug)) {
+  while (
+    usedParticipantSlugs.has(slug)
+    || await prisma.participant.findUnique({ where: { slug }, select: { id: true } })
+  ) {
     slug = `${baseSlug}-${suffix}`
     suffix += 1
   }
@@ -558,26 +569,166 @@ function defaultTrombinoscopeNote(type: 'pj' | 'pnj') {
 }
 
 async function clearBusinessData() {
-  await prisma.sessionTrombinoscope.deleteMany()
-  await prisma.characterTrombinoscopeEntry.deleteMany()
-  await prisma.sessionPayment.deleteMany()
-  await prisma.sessionDocumentDelivery.deleteMany()
-  await prisma.timelineEventResponsible.deleteMany()
-  await prisma.sessionAssignment.deleteMany()
-  await prisma.sessionParticipant.deleteMany()
-  await prisma.session.deleteMany()
-  await prisma.timelineEvent.deleteMany()
-  await prisma.item.deleteMany()
-  await prisma.participantGame.deleteMany()
-  await prisma.participant.deleteMany()
-  await prisma.location.deleteMany()
-  await prisma.document.deleteMany()
-  await prisma.intrigue.deleteMany()
-  await prisma.faction.deleteMany()
-  await prisma.character.deleteMany()
-  await prisma.gameInvitation.deleteMany()
-  await prisma.gameShare.deleteMany()
-  await prisma.game.deleteMany()
+  const seedGameSlugs = games.map((game) => makeSlug(game.title))
+  const seedParticipantEmailList = seedParticipantEmails()
+  const seedGames = await prisma.game.findMany({
+    where: {
+      slug: { in: seedGameSlugs }
+    },
+    select: { id: true }
+  })
+  const seedGameIds = seedGames.map((game) => game.id)
+
+  await prisma.sessionTrombinoscope.deleteMany({
+    where: {
+      session: { gameId: { in: seedGameIds } }
+    }
+  })
+  await prisma.characterTrombinoscopeEntry.deleteMany({
+    where: {
+      OR: [
+        { viewerCharacter: { gameId: { in: seedGameIds } } },
+        { targetCharacter: { gameId: { in: seedGameIds } } }
+      ]
+    }
+  })
+  await prisma.sessionPayment.deleteMany({
+    where: {
+      session: { gameId: { in: seedGameIds } }
+    }
+  })
+  await prisma.sessionDocumentDelivery.deleteMany({
+    where: {
+      OR: [
+        { session: { gameId: { in: seedGameIds } } },
+        { document: { gameId: { in: seedGameIds } } },
+        { character: { gameId: { in: seedGameIds } } }
+      ]
+    }
+  })
+  await prisma.timelineEventResponsible.deleteMany({
+    where: {
+      OR: [
+        { session: { gameId: { in: seedGameIds } } },
+        { timelineEvent: { gameId: { in: seedGameIds } } }
+      ]
+    }
+  })
+  await prisma.sessionAssignment.deleteMany({
+    where: {
+      OR: [
+        { session: { gameId: { in: seedGameIds } } },
+        { character: { gameId: { in: seedGameIds } } }
+      ]
+    }
+  })
+  await prisma.sessionParticipant.deleteMany({
+    where: {
+      session: { gameId: { in: seedGameIds } }
+    }
+  })
+  await prisma.session.deleteMany({
+    where: {
+      gameId: { in: seedGameIds }
+    }
+  })
+  await prisma.timelineEvent.deleteMany({
+    where: {
+      gameId: { in: seedGameIds }
+    }
+  })
+  await prisma.item.deleteMany({
+    where: {
+      gameId: { in: seedGameIds }
+    }
+  })
+  await prisma.participantGame.deleteMany({
+    where: {
+      OR: [
+        { gameId: { in: seedGameIds } },
+        { participant: { email: { in: seedParticipantEmailList } } }
+      ]
+    }
+  })
+  await prisma.sessionParticipant.deleteMany({
+    where: {
+      participant: { email: { in: seedParticipantEmailList } }
+    }
+  })
+  await prisma.sessionAssignment.updateMany({
+    where: {
+      participant: { email: { in: seedParticipantEmailList } }
+    },
+    data: {
+      participantId: null,
+      photoUrl: null
+    }
+  })
+  await prisma.timelineEventResponsible.deleteMany({
+    where: {
+      participant: { email: { in: seedParticipantEmailList } }
+    }
+  })
+  await prisma.sessionPayment.deleteMany({
+    where: {
+      participant: { email: { in: seedParticipantEmailList } }
+    }
+  })
+  await prisma.sessionTrombinoscope.deleteMany({
+    where: {
+      participant: { email: { in: seedParticipantEmailList } }
+    }
+  })
+  await prisma.sessionDocumentDelivery.deleteMany({
+    where: {
+      participant: { email: { in: seedParticipantEmailList } }
+    }
+  })
+  await prisma.participant.deleteMany({
+    where: {
+      email: { in: seedParticipantEmailList }
+    }
+  })
+  await prisma.location.deleteMany({
+    where: {
+      gameId: { in: seedGameIds }
+    }
+  })
+  await prisma.document.deleteMany({
+    where: {
+      gameId: { in: seedGameIds }
+    }
+  })
+  await prisma.intrigue.deleteMany({
+    where: {
+      gameId: { in: seedGameIds }
+    }
+  })
+  await prisma.faction.deleteMany({
+    where: {
+      gameId: { in: seedGameIds }
+    }
+  })
+  await prisma.character.deleteMany({
+    where: {
+      gameId: { in: seedGameIds }
+    }
+  })
+  await prisma.gameInvitation.deleteMany({
+    where: {
+      gameId: { in: seedGameIds }
+    }
+  })
+  await prisma.gameShare.deleteMany({
+    where: {
+      gameId: { in: seedGameIds }
+    }
+  })
+  await prisma.game.deleteMany({
+    where: {
+      id: { in: seedGameIds }
+    }
+  })
 }
 
 async function preserveSeedGameShares(): Promise<PreservedGameShare[]> {
@@ -717,11 +868,13 @@ async function createGame(seed: GameSeed, gameIndex: number, ownerId?: string) {
   ))
   const intrigueByName = new Map(intrigues.map((intrigue, index) => [seed.intrigues[index].name, intrigue]))
 
-  const participants = await Promise.all(seed.participants.map((participant) =>
-    prisma.participant.create({
+  const participants = []
+  for (const participant of seed.participants) {
+    const slug = await makeParticipantSlug(participant.name)
+    participants.push(await prisma.participant.create({
       data: {
         name: participant.name,
-        slug: makeParticipantSlug(participant.name),
+        slug,
         email: participant.email,
         phone: participant.phone,
         notes: participant.notes || null,
@@ -730,8 +883,8 @@ async function createGame(seed: GameSeed, gameIndex: number, ownerId?: string) {
         },
         published: true
       }
-    })
-  ))
+    }))
+  }
   const locations = await Promise.all(seed.locations.map((location) =>
     prisma.location.create({
       data: {
@@ -950,10 +1103,11 @@ async function createTimelineEvents(
 }
 
 async function createCrossGameParticipants(gameIds: string[]) {
+  const alexMorganSlug = await makeParticipantSlug('Alex Morgan')
   await prisma.participant.create({
     data: {
       name: 'Alex Morgan',
-      slug: makeParticipantSlug('Alex Morgan'),
+      slug: alexMorganSlug,
       email: 'alex.morgan@example.test',
       phone: '06 44 55 66 01',
       notes: 'participant inscrit sur plusieurs jeux pour tester les filtres.',
@@ -964,10 +1118,11 @@ async function createCrossGameParticipants(gameIds: string[]) {
     }
   })
 
+  const morganDaSilvaSlug = await makeParticipantSlug('Morgan Da Silva')
   await prisma.participant.create({
     data: {
       name: 'Morgan Da Silva',
-      slug: makeParticipantSlug('Morgan Da Silva'),
+      slug: morganDaSilvaSlug,
       email: 'morgan.dasilva@example.test',
       phone: '06 44 55 66 02',
       notes: 'Disponible sur tous les jeux de test.',
