@@ -729,6 +729,11 @@ async function clearBusinessData() {
       id: { in: seedGameIds }
     }
   })
+  await prisma.game.deleteMany({
+    where: {
+      title: 'test'
+    }
+  })
 }
 
 async function preserveSeedGameShares(): Promise<PreservedGameShare[]> {
