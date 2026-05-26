@@ -149,16 +149,14 @@ const factions = ref([])
 const intrigues = ref([])
 const items = ref([])
 const isEditing = ref(route.query.edit === '1')
+const returnContext = ref(null)
 const timelineBackTo = computed(() => ({
-  path: typeof route.query.fromSessionId === 'string'
-    ? `/sessions/${route.query.fromSessionId}`
+  path: returnContext.value?.source === 'session'
+    ? `/sessions/${returnContext.value.sessionId}`
     : '/timeline',
-  query: typeof route.query.fromSessionId === 'string'
+  query: returnContext.value?.source === 'session'
     ? { tab: 'timeline' }
-    : {
-        ...(route.query.fromGameId ? { gameId: route.query.fromGameId } : {}),
-        ...(!route.query.fromGameId && timelineEvent.value?.gameId ? { gameId: timelineEvent.value.gameId } : {})
-      }
+    : {}
 }))
 
 async function loadData() {
@@ -172,12 +170,35 @@ async function loadData() {
   ])
 
   timelineEvent.value = eventData
+  ensureTimelineReturnContext(eventData)
   games.value = gamesData
   characters.value = charactersData
   factions.value = factionsData
   intrigues.value = intriguesData
   items.value = itemsData
   editableEvent.value = eventFormPayload(eventData)
+}
+
+function readTimelineReturnContext() {
+  if (!import.meta.client) return null
+
+  try {
+    const raw = sessionStorage.getItem('limbus:timeline-return-context')
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function ensureTimelineReturnContext(eventData) {
+  const storedContext = readTimelineReturnContext()
+  returnContext.value = storedContext?.eventId === eventData?.id ? storedContext : null
+  if (returnContext.value || !import.meta.client || !eventData?.gameId) return
+
+  const fallbackContext = { source: 'timeline', gameId: eventData.gameId, eventId: eventData.id }
+  returnContext.value = fallbackContext
+  sessionStorage.setItem('limbus:timeline-game-id', eventData.gameId)
+  sessionStorage.setItem('limbus:timeline-return-context', JSON.stringify(fallbackContext))
 }
 
 watch(() => route.query.edit, (value) => {

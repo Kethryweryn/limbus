@@ -82,7 +82,7 @@
                               variant="ghost"
                               size="xs"
                               aria-label="Voir le détail de l’événement"
-                              @click.stop
+                              @click.stop="rememberSessionTimelineContext(timelineEvent)"
                             />
                           </div>
                         </div>
@@ -237,11 +237,17 @@ function eventBadgeSummary(timelineEvent) {
 
 function eventDetailTo(timelineEvent) {
   return {
-    path: `/timeline/${timelineEvent.slug || timelineEvent.id}`,
-    query: props.timelineData.session?.id
-      ? { fromSessionId: props.timelineData.session.id }
-      : {}
+    path: `/timeline/${timelineEvent.slug || timelineEvent.id}`
   }
+}
+
+function rememberSessionTimelineContext(timelineEvent) {
+  if (!import.meta.client || !props.timelineData.session?.id) return
+  sessionStorage.setItem('limbus:timeline-return-context', JSON.stringify({
+    source: 'session',
+    sessionId: props.timelineData.session.id,
+    eventId: timelineEvent.id
+  }))
 }
 
 async function submit() {

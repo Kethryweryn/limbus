@@ -406,13 +406,7 @@ watch(gameSearch, (value) => {
 function selectTimelineGame(game) {
   gameFilter.value = game.id
   gameSearch.value = game.title
-  router.replace({
-    path: route.path,
-    query: {
-      ...route.query,
-      gameId: game.id
-    }
-  })
+  rememberTimelineGame(game.id)
 }
 
 function formatDate(value) {
@@ -549,7 +543,7 @@ onMounted(async () => {
   window.addEventListener('offline', updateStatus)
   window.addEventListener('limbus:connection-change', updateStatus)
   await refreshData()
-  restoreTimelineGameFromRoute()
+  restoreTimelineGameContext()
 })
 
 onUnmounted(() => {
@@ -601,10 +595,11 @@ function closeFormSlideover() {
 
 function openEventPage(timelineEvent) {
   if (!timelineEvent?.id) return
-  router.push({
-    path: `/timeline/${timelineEvent.slug || timelineEvent.id}`,
-    query: selectedTimelineGameId.value ? { fromGameId: selectedTimelineGameId.value } : {}
-  })
+  if (selectedTimelineGameId.value) {
+    rememberTimelineGame(selectedTimelineGameId.value)
+    rememberTimelineReturnContext({ source: 'timeline', gameId: selectedTimelineGameId.value, eventId: timelineEvent.id })
+  }
+  router.push(`/timeline/${timelineEvent.slug || timelineEvent.id}`)
 }
 
 async function handleEventFormSubmit() {
@@ -638,21 +633,38 @@ function conflictTitle(timelineEvent) {
   return `Conflit au même créneau (${labels})`
 }
 
-watch(() => route.query.gameId, () => {
-  restoreTimelineGameFromRoute()
+watch(() => [route.query.gameId, route.query.game], () => {
+  restoreTimelineGameContext()
 })
 
-function restoreTimelineGameFromRoute() {
+function rememberTimelineGame(gameId) {
+  if (!import.meta.client || !gameId) return
+  sessionStorage.setItem('limbus:timeline-game-id', gameId)
+}
+
+function rememberTimelineReturnContext(context) {
+  if (!import.meta.client) return
+  sessionStorage.setItem('limbus:timeline-return-context', JSON.stringify(context))
+}
+
+function restoreTimelineGameContext() {
   if (selectedGame.value) return
 
-  const routeGameId = route.query.gameId
-  if (typeof routeGameId !== 'string' || !routeGameId) return
-  if (gameFilter.value === routeGameId) return
+  const routeGame = route.query.game || route.query.gameId
+  const storedGameId = import.meta.client ? sessionStorage.getItem('limbus:timeline-game-id') : ''
+  const gameKey = typeof routeGame === 'string' && routeGame ? routeGame : storedGameId
+  if (!gameKey) return
 
-  const game = games.value.find((item) => item.id === routeGameId)
+  const game = games.value.find((item) => item.id === gameKey || item.slug === gameKey)
   if (!game) return
+  if (gameFilter.value === game.id) return
 
   gameFilter.value = game.id
   gameSearch.value = game.title
+  rememberTimelineGame(game.id)
+
+  if (typeof routeGame === 'string' && routeGame) {
+    router.replace({ path: route.path, query: {} })
+  }
 }
 </script>
