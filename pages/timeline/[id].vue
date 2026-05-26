@@ -51,60 +51,60 @@
             <div>
               <h2 class="text-sm font-semibold mb-2">Personnages</h2>
               <div class="flex flex-wrap gap-1">
-                <UBadge
+                <NuxtLink
                   v-for="character in timelineEvent.characters || []"
                   :key="character.id"
                   :to="`/characters/${character.slug}`"
-                  color="neutral"
-                  variant="subtle"
                 >
-                  {{ character.name }}
-                </UBadge>
+                  <UBadge color="neutral" variant="subtle" class="cursor-pointer hover:ring-1 hover:ring-neutral-300">
+                    {{ character.name }}
+                  </UBadge>
+                </NuxtLink>
                 <span v-if="!timelineEvent.characters?.length" class="text-sm text-gray-500">Aucun</span>
               </div>
             </div>
             <div>
               <h2 class="text-sm font-semibold mb-2">Groupes</h2>
               <div class="flex flex-wrap gap-1">
-                <UBadge
+                <NuxtLink
                   v-for="faction in timelineEvent.factions || []"
                   :key="faction.id"
                   :to="`/factions/${faction.slug}`"
-                  color="warning"
-                  variant="subtle"
                 >
-                  {{ faction.name }}
-                </UBadge>
+                  <UBadge color="warning" variant="subtle" class="cursor-pointer hover:ring-1 hover:ring-warning-300">
+                    {{ faction.name }}
+                  </UBadge>
+                </NuxtLink>
                 <span v-if="!timelineEvent.factions?.length" class="text-sm text-gray-500">Aucun</span>
               </div>
             </div>
             <div>
               <h2 class="text-sm font-semibold mb-2">Intrigues</h2>
               <div class="flex flex-wrap gap-1">
-                <UBadge
+                <NuxtLink
                   v-for="intrigue in timelineEvent.intrigues || []"
                   :key="intrigue.id"
                   :to="`/intrigues/${intrigue.slug}`"
-                  color="primary"
-                  variant="subtle"
                 >
-                  {{ intrigue.name }}
-                </UBadge>
+                  <UBadge color="primary" variant="subtle" class="cursor-pointer hover:ring-1 hover:ring-primary-300">
+                    {{ intrigue.name }}
+                  </UBadge>
+                </NuxtLink>
                 <span v-if="!timelineEvent.intrigues?.length" class="text-sm text-gray-500">Aucune</span>
               </div>
             </div>
             <div>
               <h2 class="text-sm font-semibold mb-2">Objets</h2>
               <div class="flex flex-wrap gap-1">
-                <UBadge
+                <NuxtLink
                   v-for="item in timelineEvent.items || []"
                   :key="item.id"
                   :to="`/items/${item.id}`"
-                  color="success"
-                  variant="subtle"
                 >
-                  {{ item.name }}
-                </UBadge>
+                  <UBadge color="success" variant="subtle" class="cursor-pointer hover:ring-1 hover:ring-success-300">
+                    {{ item.name }}
+                  </UBadge>
+                </NuxtLink>
                 <span v-if="!timelineEvent.items?.length" class="text-sm text-gray-500">Aucun</span>
               </div>
             </div>
@@ -150,11 +150,15 @@ const intrigues = ref([])
 const items = ref([])
 const isEditing = ref(route.query.edit === '1')
 const timelineBackTo = computed(() => ({
-  path: '/timeline',
-  query: {
-    ...(route.query.fromGameId ? { gameId: route.query.fromGameId } : {}),
-    ...(!route.query.fromGameId && timelineEvent.value?.gameId ? { gameId: timelineEvent.value.gameId } : {})
-  }
+  path: typeof route.query.fromSessionId === 'string'
+    ? `/sessions/${route.query.fromSessionId}`
+    : '/timeline',
+  query: typeof route.query.fromSessionId === 'string'
+    ? { tab: 'timeline' }
+    : {
+        ...(route.query.fromGameId ? { gameId: route.query.fromGameId } : {}),
+        ...(!route.query.fromGameId && timelineEvent.value?.gameId ? { gameId: timelineEvent.value.gameId } : {})
+      }
 }))
 
 async function loadData() {

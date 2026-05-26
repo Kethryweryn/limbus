@@ -76,8 +76,8 @@
                               {{ selectedResponsibleIds(timelineEvent.id).length }}/{{ timelineEvent.requiredResponsibles || 0 }}
                             </UBadge>
                             <UButton
-                              :to="`/timeline/${timelineEvent.id}`"
-                              icon="i-heroicons-arrow-top-right-on-square"
+                              :to="eventDetailTo(timelineEvent)"
+                              icon="i-heroicons-eye"
                               color="neutral"
                               variant="ghost"
                               size="xs"
@@ -232,6 +232,15 @@ function eventBadgeSummary(timelineEvent) {
   return {
     badges: [],
     summary: `${timelineEvent.characters?.length || 0} personnage(s), ${timelineEvent.factions?.length || 0} groupe(s), ${timelineEvent.items?.length || 0} objet(s)`
+  }
+}
+
+function eventDetailTo(timelineEvent) {
+  return {
+    path: `/timeline/${timelineEvent.id}`,
+    query: props.timelineData.session?.id
+      ? { fromSessionId: props.timelineData.session.id }
+      : {}
   }
 }
 
