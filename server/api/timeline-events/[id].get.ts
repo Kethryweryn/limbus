@@ -6,13 +6,18 @@ import { timelineEventInclude, withTimelineConflicts } from '~/server/utils/time
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
 
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'ID manquant' })
+  const idOrSlug = getRouterParam(event, 'id')
+  if (!idOrSlug) {
+    throw createError({ statusCode: 400, message: 'Paramètre manquant' })
   }
 
-  const timelineEvent = await prisma.timelineEvent.findUnique({
-    where: { id },
+  const timelineEvent = await prisma.timelineEvent.findFirst({
+    where: {
+      OR: [
+        { id: idOrSlug },
+        { slug: idOrSlug }
+      ]
+    },
     include: timelineEventInclude
   })
 
@@ -30,7 +35,7 @@ export default defineEventHandler(async (event) => {
     include: timelineEventInclude
   })
 
-  const enrichedEvent = withTimelineConflicts(relatedEvents).find((eventWithConflicts) => eventWithConflicts.id === id)
+  const enrichedEvent = withTimelineConflicts(relatedEvents).find((eventWithConflicts) => eventWithConflicts.id === timelineEvent.id)
   if (!enrichedEvent) {
     throw createError({ statusCode: 404, message: 'Événement introuvable' })
   }

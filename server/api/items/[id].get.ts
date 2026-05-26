@@ -6,13 +6,18 @@ import { itemInclude } from '~/server/utils/items'
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
 
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'ID manquant' })
+  const idOrSlug = getRouterParam(event, 'id')
+  if (!idOrSlug) {
+    throw createError({ statusCode: 400, message: 'Paramètre manquant' })
   }
 
   const item = await prisma.item.findFirst({
-    where: await gameScopedWhere(event, { id }),
+    where: await gameScopedWhere(event, {
+      OR: [
+        { id: idOrSlug },
+        { slug: idOrSlug }
+      ]
+    }),
     include: itemInclude
   })
 

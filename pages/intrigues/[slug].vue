@@ -121,7 +121,7 @@
               <NuxtLink
                 v-for="item in intrigue.items"
                 :key="item.id"
-                :to="`/items/${item.id}`"
+                :to="`/items/${item.slug || item.id}`"
                 class="flex items-center justify-between gap-3 rounded-md border border-gray-200 px-3 py-2 hover:bg-gray-50"
               >
                 <span class="font-medium">{{ item.name }}</span>

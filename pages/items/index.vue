@@ -104,7 +104,7 @@
     <AppWideSlideover
       v-model:open="showFormSlideover"
       :title="formMode === 'edit' ? 'Modifier l’objet' : 'Créer un objet'"
-      :full-page-to="formMode === 'edit' && activeFormItem?.id ? `/items/${activeFormItem.id}?edit=1` : null"
+      :full-page-to="formMode === 'edit' && (activeFormItem?.slug || activeFormItem?.id) ? `/items/${activeFormItem.slug || activeFormItem.id}?edit=1` : null"
       @close="closeFormSlideover"
       @full-page="showFormSlideover = false"
     >
@@ -306,8 +306,8 @@ function closeFormSlideover() {
 }
 
 function openItemPage(item) {
-  if (!item?.id) return
-  router.push(`/items/${item.id}`)
+  if (!item?.slug && !item?.id) return
+  router.push(`/items/${item.slug || item.id}`)
 }
 
 async function handleItemFormSubmit() {

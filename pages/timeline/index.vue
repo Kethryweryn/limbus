@@ -296,7 +296,7 @@
     <AppWideSlideover
       v-model:open="showFormSlideover"
       :title="formMode === 'edit' ? 'Modifier l’événement' : 'Créer un événement'"
-      :full-page-to="formMode === 'edit' && activeFormEvent?.id ? `/timeline/${activeFormEvent.id}?edit=1` : null"
+      :full-page-to="formMode === 'edit' && (activeFormEvent?.slug || activeFormEvent?.id) ? `/timeline/${activeFormEvent.slug || activeFormEvent.id}?edit=1` : null"
       @close="closeFormSlideover"
       @full-page="showFormSlideover = false"
     >
@@ -602,7 +602,7 @@ function closeFormSlideover() {
 function openEventPage(timelineEvent) {
   if (!timelineEvent?.id) return
   router.push({
-    path: `/timeline/${timelineEvent.id}`,
+    path: `/timeline/${timelineEvent.slug || timelineEvent.id}`,
     query: selectedTimelineGameId.value ? { fromGameId: selectedTimelineGameId.value } : {}
   })
 }

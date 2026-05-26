@@ -4,6 +4,7 @@ import { requireGameAccess } from '~/server/utils/gameAccess'
 import { itemSchema, readZodBody } from '~/server/utils/schemas'
 import { itemInclude, validateItemRelations } from '~/server/utils/items'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
+import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -29,6 +30,7 @@ export default defineEventHandler(async (event) => {
     where: { id },
     data: {
       name: body.name,
+      slug: await generateUniqueSlug('item', body.name, id),
       description: body.description,
       locationText: body.locationCharacterId ? null : body.locationText,
       locationCharacterId: body.locationCharacterId || null,

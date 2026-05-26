@@ -3,6 +3,7 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { readZodBody, timelineEventSchema } from '~/server/utils/schemas'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { timelineEventInclude, validateTimelineEventRelations } from '~/server/utils/timelineEvents'
+import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -18,6 +19,7 @@ export default defineEventHandler(async (event) => {
   return await prisma.timelineEvent.create({
     data: {
       name: body.name,
+      slug: await generateUniqueSlug('timelineEvent', body.name),
       description: body.description,
       day: body.day,
       time: body.time,

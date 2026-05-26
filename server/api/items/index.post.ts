@@ -3,6 +3,7 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { itemSchema, readZodBody } from '~/server/utils/schemas'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { itemInclude, validateItemRelations } from '~/server/utils/items'
+import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -16,6 +17,7 @@ export default defineEventHandler(async (event) => {
   return await prisma.item.create({
     data: {
       name: body.name,
+      slug: await generateUniqueSlug('item', body.name),
       description: body.description,
       quantity: 1,
       locationText: body.locationCharacterId ? null : body.locationText,

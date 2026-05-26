@@ -674,6 +674,7 @@ async function createGame(seed: GameSeed, gameIndex: number, ownerId?: string) {
     return prisma.item.create({
       data: {
         name: item.name,
+        slug: makeSlug(`${seed.title}-${item.name}`),
         description: item.description,
         quantity: 1,
         locationText: locationCharacter ? null : item.locationText || null,
@@ -698,7 +699,7 @@ async function createGame(seed: GameSeed, gameIndex: number, ownerId?: string) {
     })
   }))
 
-  await createTimelineEvents(game.id, characters, factions, intrigues, items)
+  await createTimelineEvents(game.id, seed.title, characters, factions, intrigues, items)
   await createDocuments(game.id, seed.title)
   await createTrombinoscopeEntries(characters)
 
@@ -787,6 +788,7 @@ async function createTrombinoscopeEntries(characters: Array<{ id: string, type: 
 
 async function createTimelineEvents(
   gameId: string,
+  gameTitle: string,
   characters: Array<{ id: string, name: string, type: string }>,
   factions: Array<{ id: string, name: string }>,
   intrigues: Array<{ id: string, name: string }>,
@@ -846,6 +848,7 @@ async function createTimelineEvents(
     prisma.timelineEvent.create({
       data: {
         name: timelineEvent.name,
+        slug: makeSlug(`${gameTitle}-${timelineEvent.name}`),
         description: timelineEvent.description,
         day: timelineEvent.day,
         time: timelineEvent.time,

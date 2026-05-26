@@ -99,7 +99,7 @@
                 <NuxtLink
                   v-for="item in timelineEvent.items || []"
                   :key="item.id"
-                  :to="`/items/${item.id}`"
+                  :to="`/items/${item.slug || item.id}`"
                 >
                   <UBadge color="success" variant="subtle" class="cursor-pointer hover:ring-1 hover:ring-success-300">
                     {{ item.name }}
@@ -221,6 +221,16 @@ async function saveEvent() {
     body: editableEvent.value
   })
   editableEvent.value = eventFormPayload(timelineEvent.value)
+  isEditing.value = false
+  if (timelineEvent.value?.slug && timelineEvent.value.slug !== route.params.id) {
+    const query = { ...route.query }
+    delete query.edit
+    await router.replace({
+      path: `/timeline/${timelineEvent.value.slug}`,
+      query
+    })
+    return
+  }
   cancelEdit()
 }
 

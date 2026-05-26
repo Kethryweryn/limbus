@@ -237,7 +237,7 @@ function eventBadgeSummary(timelineEvent) {
 
 function eventDetailTo(timelineEvent) {
   return {
-    path: `/timeline/${timelineEvent.id}`,
+    path: `/timeline/${timelineEvent.slug || timelineEvent.id}`,
     query: props.timelineData.session?.id
       ? { fromSessionId: props.timelineData.session.id }
       : {}

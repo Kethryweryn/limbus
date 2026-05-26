@@ -4,6 +4,7 @@ import { requireGameAccess } from '~/server/utils/gameAccess'
 import { readZodBody, timelineEventSchema } from '~/server/utils/schemas'
 import { timelineEventInclude, validateTimelineEventRelations } from '~/server/utils/timelineEvents'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
+import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
 export default defineEventHandler(async (event) => {
   requireOrganizer(event)
@@ -31,6 +32,7 @@ export default defineEventHandler(async (event) => {
     where: { id },
     data: {
       name: body.name,
+      slug: await generateUniqueSlug('timelineEvent', body.name, id),
       description: body.description,
       day: body.day,
       time: body.time,

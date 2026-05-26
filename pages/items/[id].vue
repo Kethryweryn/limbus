@@ -152,7 +152,15 @@ async function saveItem() {
     method: 'PUT',
     body: editableItem.value
   })
-  await refresh()
-  cancelEdit()
+  isEditing.value = false
+
+  if (item.value?.slug && item.value.slug !== route.params.id) {
+    const query = { ...route.query }
+    delete query.edit
+    await router.replace({ path: `/items/${item.value.slug}`, query })
+  } else {
+    await refresh()
+    cancelEdit()
+  }
 }
 </script>

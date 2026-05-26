@@ -93,6 +93,7 @@ model CharacterTrombinoscopeEntry {
 model Item {
   id                    String       @id @default(cuid())
   name                  String
+  slug                  String       @unique
   description           String?
   quantity              Int          @default(1)
   locationText          String?
@@ -152,6 +153,7 @@ model Intrigue {
 model TimelineEvent {
   id                    String     @id @default(cuid())
   name                  String
+  slug                  String     @unique
   description           String?
   day                   Int
   time                  String
