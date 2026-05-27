@@ -5,6 +5,7 @@ import { gameInvitationCreateSchema, readZodBody } from '~/server/utils/schemas'
 import { GAME_INVITATION_STATUSES } from '~/utils/domain'
 import { createInvitationToken, invitationUrl, normalizeInvitationEmail } from '~/server/utils/invitations'
 import { sendGameInvitationEmail } from '~/server/utils/email'
+import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
@@ -16,6 +17,12 @@ export default defineEventHandler(async (event) => {
   const { user } = await requireGameOwner(event, id)
   const body = await readZodBody(event, gameInvitationCreateSchema)
   const email = normalizeInvitationEmail(body.email)
+  assertRateLimit(event, {
+    name: 'game-invitation',
+    limit: 10,
+    windowMs: 60 * 60 * 1000,
+    keyParts: [authUserRateLimitKey(event), id]
+  })
 
   const existingUser = await prisma.user.findUnique({
     where: { email },

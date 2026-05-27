@@ -212,7 +212,9 @@ export const sessionDocumentSendSchema = z.object({
 })
 
 export const emailTestSchema = z.object({
-  emails: z.array(requiredText('Email').email('Invalid email')).min(1, 'At least one email is required'),
+  emails: z.array(requiredText('Email').email('Invalid email'))
+    .min(1, 'At least one email is required')
+    .max(10, 'Too many recipients'),
   documentIds: z.array(requiredId('Document')).optional().default([]),
   characterId: optionalText,
   participantId: optionalText

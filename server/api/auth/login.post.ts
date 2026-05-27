@@ -3,10 +3,22 @@ import { setCookie } from 'h3'
 import { prisma } from '~/server/utils/prisma'
 import { signAuthToken } from '~/server/utils/auth'
 import { loginSchema, readZodBody } from '~/server/utils/schemas'
+import { assertRateLimit } from '~/server/utils/rateLimit'
 
 export default defineEventHandler(async (event) => {
   const body = await readZodBody(event, loginSchema)
   const { email, password } = body
+  assertRateLimit(event, {
+    name: 'auth-login-ip',
+    limit: 30,
+    windowMs: 15 * 60 * 1000
+  })
+  assertRateLimit(event, {
+    name: 'auth-login-email',
+    limit: 10,
+    windowMs: 15 * 60 * 1000,
+    keyParts: [email]
+  })
 
   const user = await prisma.user.findUnique({
     where: { email }
