@@ -54,13 +54,45 @@ export function decryptSmtpPassword(payload: string) {
     throw createError({ statusCode: 500, message: 'Mot de passe SMTP invalide' })
   }
 
-  const decipher = createDecipheriv('aes-256-gcm', getEncryptionKey(), Buffer.from(ivRaw, 'base64url'))
-  decipher.setAuthTag(Buffer.from(tagRaw, 'base64url'))
+  try {
+    const decipher = createDecipheriv('aes-256-gcm', getEncryptionKey(), Buffer.from(ivRaw, 'base64url'))
+    decipher.setAuthTag(Buffer.from(tagRaw, 'base64url'))
 
-  return Buffer.concat([
-    decipher.update(Buffer.from(encryptedRaw, 'base64url')),
-    decipher.final()
-  ]).toString('utf8')
+    return Buffer.concat([
+      decipher.update(Buffer.from(encryptedRaw, 'base64url')),
+      decipher.final()
+    ]).toString('utf8')
+  } catch {
+    throw createError({
+      statusCode: 500,
+      message: 'Impossible de déchiffrer le mot de passe SMTP. Vérifiez SMTP_ENCRYPTION_SECRET/JWT_SECRET ou ressaisissez le mot de passe SMTP.'
+    })
+  }
+}
+
+function smtpErrorMessage(error: any) {
+  const code = String(error?.code || '')
+  const command = String(error?.command || '')
+  const response = String(error?.response || error?.message || '')
+  const statusCode = Number(error?.responseCode || 0)
+
+  if (code === 'EAUTH' || command === 'AUTH' || statusCode === 535 || statusCode === 534) {
+    return 'Authentification SMTP refusée. Vérifiez le login SMTP et le mot de passe ou la clé SMTP.'
+  }
+
+  if (code === 'ECONNECTION' || code === 'ESOCKET' || code === 'ETIMEDOUT') {
+    return 'Connexion au serveur SMTP impossible. Vérifiez le serveur, le port, la sécurité TLS et les restrictions IP.'
+  }
+
+  if (statusCode >= 500 && statusCode < 600) {
+    return `Le serveur SMTP a refusé l’envoi : ${response || `erreur ${statusCode}`}`
+  }
+
+  if (response) {
+    return `Erreur SMTP : ${response}`
+  }
+
+  return 'Erreur SMTP inconnue pendant l’envoi.'
 }
 
 export async function getSmtpSettings() {
@@ -158,14 +190,22 @@ export async function sendEmail(message: EmailMessage) {
     ? `"${settings.fromName.replace(/"/g, '\\"')}" <${settings.fromEmail}>`
     : settings.fromEmail
 
-  const info = await transporter.sendMail({
-    from,
-    to: message.to,
-    subject: message.subject,
-    text: message.text,
-    html: message.html,
-    attachments: message.attachments
-  })
+  let info
+  try {
+    info = await transporter.sendMail({
+      from,
+      to: message.to,
+      subject: message.subject,
+      text: message.text,
+      html: message.html,
+      attachments: message.attachments
+    })
+  } catch (error: any) {
+    throw createError({
+      statusCode: 502,
+      message: smtpErrorMessage(error)
+    })
+  }
 
   return { sent: true, messageId: info.messageId }
 }
