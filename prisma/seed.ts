@@ -433,7 +433,7 @@ function getSeedPhotoDir() {
   return join(process.cwd(), '.data', 'uploads', 'session-assignment-photos')
 }
 
-async function createParticipantPhotos(participants: Array<{ id: string, name: string }>, gameIndex: number) {
+async function createParticipantPhotos(gameId: string, participants: Array<{ id: string, name: string }>, gameIndex: number) {
   await mkdir(getSeedPhotoDir(), { recursive: true })
 
   const photos = new Map<string, string>()
@@ -443,7 +443,16 @@ async function createParticipantPhotos(participants: Array<{ id: string, name: s
       join(getSeedPhotoDir(), filename),
       createSeedPortraitPng(index + gameIndex * 17)
     )
-    photos.set(participant.id, uploadPhotoUrl(filename))
+    const photoUrl = uploadPhotoUrl(filename)
+    await prisma.uploadedFile.create({
+      data: {
+        kind: 'session-assignment-photo',
+        filename,
+        url: photoUrl,
+        gameId
+      }
+    })
+    photos.set(participant.id, photoUrl)
   }
 
   return photos
@@ -640,6 +649,14 @@ async function clearBusinessData() {
   await prisma.item.deleteMany({
     where: {
       gameId: { in: seedGameIds }
+    }
+  })
+  await prisma.uploadedFile.deleteMany({
+    where: {
+      OR: [
+        { gameId: { in: seedGameIds } },
+        { session: { gameId: { in: seedGameIds } } }
+      ]
     }
   })
   await prisma.participantGame.deleteMany({
@@ -933,7 +950,7 @@ async function createGame(seed: GameSeed, gameIndex: number, ownerId?: string) {
   await createDocuments(game.id, seed.title)
   await createTrombinoscopeEntries(characters)
 
-  const participantPhotos = await createParticipantPhotos(participants, gameIndex)
+  const participantPhotos = await createParticipantPhotos(game.id, participants, gameIndex)
   await createSessions(game.id, seed.title, gameIndex, characters, participants, locations, participantPhotos)
 
   console.log(`${seed.title}: ${characters.length} personnages, ${seed.factions.length} groupes, ${seed.intrigues.length} intrigues, ${seed.items.length} objets, ${participants.length} participants, ${locations.length} lieux, 3 sessions`)

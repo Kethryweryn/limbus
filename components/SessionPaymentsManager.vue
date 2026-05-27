@@ -247,6 +247,7 @@ async function uploadRib(event) {
   try {
     const formData = new FormData()
     formData.append('rib', file)
+    formData.append('sessionId', props.paymentsData.session.id)
     const result = await useApiFetch('/api/uploads/session-payment-ribs', {
       method: 'POST',
       body: formData

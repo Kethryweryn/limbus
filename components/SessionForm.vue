@@ -332,6 +332,11 @@ async function uploadAssignmentPhoto(event, assignment, index) {
   try {
     const formData = new FormData()
     formData.append('photo', file)
+    if (localSession.value.id) {
+      formData.append('sessionId', localSession.value.id)
+    } else if (localSession.value.gameId) {
+      formData.append('gameId', localSession.value.gameId)
+    }
     const result = await useApiFetch('/api/uploads/session-assignment-photos', {
       method: 'POST',
       body: formData

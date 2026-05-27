@@ -1,6 +1,5 @@
 import { requireOrganizer } from '~/server/utils/auth'
-import { prisma } from '~/server/utils/prisma'
-import { requireGameAccess } from '~/server/utils/gameAccess'
+import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
 
 export default defineEventHandler(async (event) => {
@@ -10,11 +9,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({ statusCode: 400, message: 'ID manquant' })
   }
-  const session = await prisma.session.findUnique({ where: { id }, select: { gameId: true } })
-  if (!session) {
-    throw createError({ statusCode: 404, message: 'Session introuvable' })
-  }
-  await requireGameAccess(event, session.gameId)
+  const session = await requireSessionAccess(event, id)
 
   const forwardedProto = getHeader(event, 'x-forwarded-proto')
   const protocol = Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto
@@ -22,5 +17,5 @@ export default defineEventHandler(async (event) => {
   const fallbackProtocol = host.startsWith('localhost') || host.startsWith('127.0.0.1') ? 'http' : 'https'
   const publicBaseUrl = host ? `${protocol || fallbackProtocol}://${host}` : ''
 
-  return await generateSessionTrombinoscopes(id, publicBaseUrl)
+  return await generateSessionTrombinoscopes(session.id, publicBaseUrl)
 })

@@ -30,6 +30,7 @@ model Game {
   sessions       Session[]
   documents      Document[]
   locations      Location[]
+  uploadedFiles  UploadedFile[]
   participantLinks ParticipantGame[]
   shares         GameShare[]
   invitations    GameInvitation[]
@@ -216,6 +217,7 @@ model Session {
   documentDeliveries SessionDocumentDelivery[]
   trombinoscopes SessionTrombinoscope[]
   payments SessionPayment[]
+  uploadedFiles UploadedFile[]
 }
 
 model SessionAssignment {
@@ -359,6 +361,22 @@ model ParticipantGame {
 
   @@unique([participantId, gameId])
   @@index([gameId])
+}
+
+model UploadedFile {
+  id        String   @id @default(cuid())
+  kind      String
+  filename  String   @unique
+  url       String   @unique
+  gameId    String?
+  game      Game?    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  sessionId String?
+  session   Session? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([kind])
+  @@index([gameId])
+  @@index([sessionId])
 }
 
 model User {

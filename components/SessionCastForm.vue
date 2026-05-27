@@ -278,6 +278,7 @@ async function uploadAssignmentPhoto(event, assignment, index) {
   try {
     const formData = new FormData()
     formData.append('photo', file)
+    formData.append('sessionId', props.session.id)
     const result = await useApiFetch('/api/uploads/session-assignment-photos', {
       method: 'POST',
       body: formData

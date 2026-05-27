@@ -1,6 +1,5 @@
 import { requireOrganizer } from '~/server/utils/auth'
-import { prisma } from '~/server/utils/prisma'
-import { requireGameAccess } from '~/server/utils/gameAccess'
+import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { getSessionTrombinoscope } from '~/server/utils/trombinoscopes'
 
 export default defineEventHandler(async (event) => {
@@ -11,13 +10,9 @@ export default defineEventHandler(async (event) => {
   if (!id || !characterId) {
     throw createError({ statusCode: 400, message: 'Paramètres manquants' })
   }
-  const session = await prisma.session.findUnique({ where: { id }, select: { gameId: true } })
-  if (!session) {
-    throw createError({ statusCode: 404, message: 'Session introuvable' })
-  }
-  await requireGameAccess(event, session.gameId)
+  const session = await requireSessionAccess(event, id)
 
-  const trombinoscope = await getSessionTrombinoscope(id, characterId)
+  const trombinoscope = await getSessionTrombinoscope(session.id, characterId)
   if (!trombinoscope.contentPdfBase64) {
     throw createError({ statusCode: 404, message: 'PDF non généré' })
   }

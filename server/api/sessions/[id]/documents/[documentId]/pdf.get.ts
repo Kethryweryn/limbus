@@ -11,9 +11,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Paramètres manquants' })
   }
 
-  await requireSessionAccess(event, id)
+  const session = await requireSessionAccess(event, id)
 
-  const pdf = await buildDocumentPdf(id, documentId)
+  const pdf = await buildDocumentPdf(session.id, documentId)
   setHeader(event, 'content-type', 'application/pdf')
   setHeader(event, 'content-disposition', `inline; filename="${pdf.filename}"`)
   setHeader(event, 'x-content-type-options', 'nosniff')

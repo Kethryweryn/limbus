@@ -236,6 +236,7 @@ async function uploadTrombinoscopePhoto(event) {
     try {
         const formData = new FormData()
         formData.append('photo', file)
+        formData.append('gameId', localCharacter.value.gameId)
         const result = await useApiFetch('/api/uploads/session-assignment-photos', {
             method: 'POST',
             body: formData

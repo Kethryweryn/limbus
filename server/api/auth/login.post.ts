@@ -13,13 +13,13 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!user) {
-    return { success: false, message: 'Utilisateur introuvable' }
+    return { success: false, message: 'Email ou mot de passe incorrect' }
   }
 
   const passwordMatch = await bcrypt.compare(password, user.password)
 
   if (!passwordMatch) {
-    return { success: false, message: 'Mot de passe incorrect' }
+    return { success: false, message: 'Email ou mot de passe incorrect' }
   }
 
   const token = signAuthToken({
