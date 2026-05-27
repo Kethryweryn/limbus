@@ -4,7 +4,7 @@ import { readZodBody, sessionPaymentSendSchema } from '~/server/utils/schemas'
 import { sendSessionPaymentEmails } from '~/server/utils/sessionPayments'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const id = getRouterParam(event, 'id')
   if (!id) {

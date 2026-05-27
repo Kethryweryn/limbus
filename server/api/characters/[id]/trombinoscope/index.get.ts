@@ -4,7 +4,7 @@ import { requireGameAccess } from '~/server/utils/gameAccess'
 import { getCharacterTrombinoscopeConfig } from '~/server/utils/trombinoscopes'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const id = getRouterParam(event, 'id')
   if (!id) {

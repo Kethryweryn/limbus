@@ -6,7 +6,7 @@ import { exposeParticipantGames, participantGameLinksInclude } from '~/server/ut
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const body = await readZodBody(event, participantSchema)
   const { name, email, phone, notes, gameIds, published } = body

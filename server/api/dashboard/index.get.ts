@@ -4,7 +4,7 @@ import { accessibleGameModelWhere, gameScopedWhere } from '~/server/utils/gameAc
 import { CHARACTER_TYPES, SESSION_STATUSES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const now = new Date()
   const gameWhere = await accessibleGameModelWhere(event)

@@ -4,7 +4,7 @@ import { gameScopedWhere } from '~/server/utils/gameAccess'
 import { itemInclude } from '~/server/utils/items'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   return await prisma.item.findMany({
     where: await gameScopedWhere(event),

@@ -3,7 +3,7 @@ import { getSessionDocumentDashboard } from '~/server/utils/documents'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const id = getRouterParam(event, 'id')
   if (!id) {

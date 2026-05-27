@@ -4,7 +4,7 @@ import { canAccessAllGames, accessibleGameWhere } from '~/server/utils/gameAcces
 import { SESSION_STATUSES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
-    requireOrganizer(event)
+    await requireOrganizer(event)
     const { user, allGames } = await canAccessAllGames(event)
 
     const games = await prisma.game.findMany({

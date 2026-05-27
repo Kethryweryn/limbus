@@ -16,7 +16,7 @@ function getUploadDir() {
 }
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const rawFilename = getRouterParam(event, 'filename')
   const filename = basename(rawFilename || '')

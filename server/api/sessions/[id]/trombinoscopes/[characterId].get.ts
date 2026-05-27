@@ -3,7 +3,7 @@ import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { getSessionTrombinoscope } from '~/server/utils/trombinoscopes'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const id = getRouterParam(event, 'id')
   const characterId = getRouterParam(event, 'characterId')

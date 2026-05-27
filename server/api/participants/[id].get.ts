@@ -4,7 +4,7 @@ import { accessibleGameIds } from '~/server/utils/gameAccess'
 import { exposeParticipantGames, participantGameLinksInclude } from '~/server/utils/participants'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const idOrSlug = getRouterParam(event, 'id')
   if (!idOrSlug) {

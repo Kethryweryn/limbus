@@ -4,7 +4,7 @@ import { gameScopedWhere } from '~/server/utils/gameAccess'
 import { documentInclude } from '~/server/utils/documents'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const gameId = getQuery(event).gameId?.toString()
   return await prisma.document.findMany({

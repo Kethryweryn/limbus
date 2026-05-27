@@ -5,7 +5,7 @@ import { requireGameAccess } from '~/server/utils/gameAccess'
 import { documentInclude, validateDocumentRelations } from '~/server/utils/documents'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const body = await readZodBody(event, documentSchema)
   await requireGameAccess(event, body.gameId)

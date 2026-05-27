@@ -13,7 +13,7 @@ function parseDate(value: unknown): Date | null {
 }
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const id = getRouterParam(event, 'id')
   if (!id) {

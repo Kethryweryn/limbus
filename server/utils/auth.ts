@@ -35,6 +35,10 @@ export function getAuthUser(event: H3Event): any | null {
 }
 
 export async function requireAuthUser(event: H3Event): Promise<AuthUser> {
+  const context = event.context as any
+  const cachedUser = context.authUser as AuthUser | undefined
+  if (cachedUser) return cachedUser
+
   const payload = getAuthUser(event)
   if (!payload || typeof payload !== 'object') {
     throw createError({ statusCode: 401, message: 'Unauthorized' })
@@ -60,6 +64,7 @@ export async function requireAuthUser(event: H3Event): Promise<AuthUser> {
     throw createError({ statusCode: 401, message: 'Unauthorized' })
   }
 
+  context.authUser = user
   return user
 }
 
@@ -73,17 +78,17 @@ export function redirect(event: H3Event, location: string) {
   event.node.res.end()
 }
 
-export function requireRole(event: H3Event, allowedRoles: string[]): boolean {
-  const user = getAuthUser(event)
-  if (!user || typeof user !== 'object' || !('role' in user)) return false
-
-  return allowedRoles.includes((user as any).role)
+export async function requireRole(event: H3Event, allowedRoles: string[]): Promise<boolean> {
+  const user = await requireAuthUser(event)
+  return allowedRoles.includes(user.role)
 }
 
-export function requireOrganizer(event: H3Event): void {
-  if (!requireRole(event, [USER_ROLES.organizer, USER_ROLES.admin])) {
+export async function requireOrganizer(event: H3Event): Promise<AuthUser> {
+  const user = await requireAuthUser(event)
+  if (![USER_ROLES.organizer, USER_ROLES.admin].includes(user.role)) {
     throw createError({ statusCode: 403, message: 'Forbidden' })
   }
+  return user
 }
 
 export async function requireAdmin(event: H3Event): Promise<AuthUser> {

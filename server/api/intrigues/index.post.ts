@@ -5,7 +5,7 @@ import { intrigueSchema, readZodBody } from '~/server/utils/schemas'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const body = await readZodBody(event, intrigueSchema)
   await requireGameAccess(event, body.gameId)

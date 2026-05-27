@@ -4,7 +4,7 @@ import { readZodBody, sessionDocumentSendSchema } from '~/server/utils/schemas'
 import { markDocumentDeliveries } from '~/server/utils/documents'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const id = getRouterParam(event, 'id')
   if (!id) {

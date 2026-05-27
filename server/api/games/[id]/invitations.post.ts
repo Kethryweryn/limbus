@@ -7,7 +7,7 @@ import { createInvitationToken, invitationUrl, normalizeInvitationEmail } from '
 import { sendGameInvitationEmail } from '~/server/utils/email'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const id = getRouterParam(event, 'id')
   if (!id) {

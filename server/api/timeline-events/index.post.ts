@@ -6,7 +6,7 @@ import { timelineEventInclude, validateTimelineEventRelations } from '~/server/u
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const body = await readZodBody(event, timelineEventSchema)
   await requireGameAccess(event, body.gameId)

@@ -5,7 +5,7 @@ import { requireGameAccess, requireSessionAccess } from '~/server/utils/gameAcce
 import { SESSION_ROLES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const id = getRouterParam(event, 'id')
   if (!id) {

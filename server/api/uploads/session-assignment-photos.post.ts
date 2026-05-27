@@ -41,7 +41,7 @@ function hasValidImageSignature(data: Buffer, extension: string) {
 }
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const parts = await readMultipartFormData(event)
   const file = parts?.find((part) => part.name === 'photo')

@@ -3,7 +3,7 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { gameScopedWhere } from '~/server/utils/gameAccess'
 
 export default defineEventHandler(async (event) => {
-    requireOrganizer(event)
+    await requireOrganizer(event)
 
     return await prisma.character.findMany({
         where: await gameScopedWhere(event),

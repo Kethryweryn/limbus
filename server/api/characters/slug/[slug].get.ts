@@ -3,7 +3,7 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { gameScopedWhere } from '~/server/utils/gameAccess'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const slug = getRouterParam(event, 'slug')
   if (!slug) {

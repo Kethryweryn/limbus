@@ -6,7 +6,7 @@ import { documentInclude, validateDocumentRelations } from '~/server/utils/docum
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const id = getRouterParam(event, 'id')
   if (!id) {

@@ -6,7 +6,7 @@ import { itemInclude, validateItemRelations } from '~/server/utils/items'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const body = await readZodBody(event, itemSchema)
   await requireGameAccess(event, body.gameId)

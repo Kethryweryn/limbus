@@ -4,7 +4,7 @@ import { gameScopedWhere } from '~/server/utils/gameAccess'
 import { itemInclude } from '~/server/utils/items'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const idOrSlug = getRouterParam(event, 'id')
   if (!idOrSlug) {

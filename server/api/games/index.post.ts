@@ -5,7 +5,7 @@ import { createGameSchema, readZodBody } from '~/server/utils/schemas'
 import { requireCurrentUser } from '~/server/utils/gameAccess'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
   const user = await requireCurrentUser(event)
 
   const body = await readZodBody(event, createGameSchema)

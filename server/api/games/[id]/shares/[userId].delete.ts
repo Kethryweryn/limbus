@@ -3,7 +3,7 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { requireGameOwner } from '~/server/utils/gameAccess'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const id = getRouterParam(event, 'id')
   const userId = getRouterParam(event, 'userId')

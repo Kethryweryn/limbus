@@ -4,7 +4,7 @@ import { emailTestSchema, readZodBody } from '~/server/utils/schemas'
 import { sendSessionPaymentTestEmails } from '~/server/utils/sessionPayments'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const id = getRouterParam(event, 'id')
   if (!id) {

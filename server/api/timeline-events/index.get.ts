@@ -4,7 +4,7 @@ import { gameScopedWhere } from '~/server/utils/gameAccess'
 import { timelineEventInclude, withTimelineConflicts } from '~/server/utils/timelineEvents'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const gameId = getQuery(event).gameId?.toString()
   const events = await prisma.timelineEvent.findMany({

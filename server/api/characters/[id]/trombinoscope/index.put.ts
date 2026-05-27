@@ -5,7 +5,7 @@ import { characterTrombinoscopeSchema, readZodBody } from '~/server/utils/schema
 import { saveCharacterTrombinoscopeConfig } from '~/server/utils/trombinoscopes'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const id = getRouterParam(event, 'id')
   if (!id) {

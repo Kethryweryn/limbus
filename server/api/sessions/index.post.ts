@@ -12,7 +12,7 @@ function parseDate(value: unknown): Date | null {
 }
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const body = await readZodBody(event, sessionSchema)
   const { name, gameId, locationId, status, published } = body

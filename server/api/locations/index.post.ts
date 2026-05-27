@@ -5,7 +5,7 @@ import { requireGameAccess } from '~/server/utils/gameAccess'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const body = await readZodBody(event, locationSchema)
   const { name, address, notes, gameId, published } = body

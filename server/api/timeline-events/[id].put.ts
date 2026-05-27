@@ -7,7 +7,7 @@ import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const id = getRouterParam(event, 'id')
   if (!id) {

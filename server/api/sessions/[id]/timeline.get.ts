@@ -4,7 +4,7 @@ import { requireGameAccess, requireSessionAccess } from '~/server/utils/gameAcce
 import { timelineEventInclude, withTimelineConflicts } from '~/server/utils/timelineEvents'
 
 export default defineEventHandler(async (event) => {
-  requireOrganizer(event)
+  await requireOrganizer(event)
 
   const id = getRouterParam(event, 'id')
   if (!id) {
