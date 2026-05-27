@@ -966,6 +966,7 @@ async function createDocuments(
     data: [
       {
         title: `Feuille de route - ${gameTitle}`,
+        slug: slugify(`Feuille de route - ${gameTitle}`, { lower: true, strict: true }),
         content: 'Adresse du lieu, horaires d’arrivée, consignes de stationnement, affaires à prévoir : serviette, gel douche, sac de couchage, vêtements chauds et gourde.',
         audience: 'everyone',
         readyToSend: true,
@@ -974,6 +975,7 @@ async function createDocuments(
       },
       {
         title: `Document monde - ${gameTitle}`,
+        slug: slugify(`Document monde - ${gameTitle}`, { lower: true, strict: true }),
         content: 'Présentation synthétique de l’univers, des conventions de jeu, des informations connues de tous et du niveau de transparence attendu.',
         audience: 'everyone',
         readyToSend: true,
@@ -982,6 +984,7 @@ async function createDocuments(
       },
       {
         title: `Cadrage orga - ${gameTitle}`,
+        slug: slugify(`Cadrage orga - ${gameTitle}`, { lower: true, strict: true }),
         content: 'Rappels logistiques internes, répartition des responsabilités, points de vigilance sécurité et contacts d’urgence.',
         audience: 'organizers',
         readyToSend: false,
@@ -990,6 +993,7 @@ async function createDocuments(
       },
       {
         title: `Instructions PNJs - ${gameTitle}`,
+        slug: slugify(`Instructions PNJs - ${gameTitle}`, { lower: true, strict: true }),
         content: 'Consignes générales pour les PNJs, rythme des interventions, limites d’improvisation et coordination avec l’équipe d’organisation.',
         audience: 'npcs',
         readyToSend: false,
@@ -998,6 +1002,7 @@ async function createDocuments(
       },
       {
         title: `Recettes cuisine - ${gameTitle}`,
+        slug: slugify(`Recettes cuisine - ${gameTitle}`, { lower: true, strict: true }),
         content: 'Menus prévus, quantités par repas, contraintes alimentaires connues, plan de préparation et consignes de service pour l’équipe cuisine.',
         audience: 'kitchen',
         readyToSend: false,

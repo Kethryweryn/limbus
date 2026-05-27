@@ -3,6 +3,7 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { documentSchema, readZodBody } from '~/server/utils/schemas'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { documentInclude, validateDocumentRelations } from '~/server/utils/documents'
+import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
@@ -16,6 +17,7 @@ export default defineEventHandler(async (event) => {
   return await prisma.document.create({
     data: {
       title: body.title,
+      slug: await generateUniqueSlug('document', body.title),
       content: body.content,
       documentUrl: body.documentUrl,
       audience: body.audience,

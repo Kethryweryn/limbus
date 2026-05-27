@@ -1,7 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { generateSlug } from '~/server/utils/generateSlug'
 
-type SlugModel = 'game' | 'character' | 'faction' | 'intrigue' | 'item' | 'timelineEvent' | 'participant' | 'location' | 'session'
+type SlugModel = 'game' | 'character' | 'faction' | 'intrigue' | 'item' | 'timelineEvent' | 'participant' | 'location' | 'session' | 'document'
 
 const slugFallbackByModel: Record<SlugModel, string> = {
   game: 'jeu',
@@ -12,7 +12,8 @@ const slugFallbackByModel: Record<SlugModel, string> = {
   timelineEvent: 'evenement',
   participant: 'participant',
   location: 'lieu',
-  session: 'session'
+  session: 'session',
+  document: 'document'
 }
 
 async function findBySlug(model: SlugModel, slug: string): Promise<{ id: string } | null> {
@@ -48,7 +49,11 @@ async function findBySlug(model: SlugModel, slug: string): Promise<{ id: string 
     return prisma.location.findUnique({ where: { slug }, select: { id: true } })
   }
 
-  return prisma.session.findUnique({ where: { slug }, select: { id: true } })
+  if (model === 'session') {
+    return prisma.session.findUnique({ where: { slug }, select: { id: true } })
+  }
+
+  return prisma.document.findUnique({ where: { slug }, select: { id: true } })
 }
 
 export async function generateUniqueSlug(model: SlugModel, text: string, excludeId?: string): Promise<string> {

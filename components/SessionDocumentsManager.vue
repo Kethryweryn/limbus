@@ -21,7 +21,13 @@
             <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
               <div class="min-w-0 space-y-2">
                 <div>
-                  <h4 class="font-medium">{{ document.title }}</h4>
+                  <NuxtLink
+                    :to="`/documents/${document.slug || document.id}`"
+                    class="font-medium text-gray-950 hover:text-primary-600"
+                    @click="rememberDocumentReturn(document)"
+                  >
+                    {{ document.title }}
+                  </NuxtLink>
                   <p class="text-sm text-gray-500">
                     {{ sentRecipients(document).length }}/{{ document.recipients.length }} destinataire(s) envoyé(s)
                   </p>
@@ -443,6 +449,17 @@ function openDocumentTest(document) {
 function openCharacterSheetTest(sheet) {
   testTarget.value = { type: 'character_sheet', characterId: sheet.character.id }
   showTestModal.value = true
+}
+
+function rememberDocumentReturn(document) {
+  if (!import.meta.client) return
+
+  sessionStorage.setItem('limbus:document-return-context', JSON.stringify({
+    source: 'session',
+    sessionId: props.documentsData.session.id,
+    sessionSlug: props.documentsData.session.slug,
+    documentId: document.id
+  }))
 }
 
 async function sendTestEmail(emails) {

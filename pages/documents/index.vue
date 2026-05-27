@@ -26,7 +26,13 @@
         <template #header>
           <div class="space-y-2">
             <div class="flex items-start justify-between gap-3">
-              <h2 class="text-lg font-semibold leading-tight">{{ document.title }}</h2>
+              <NuxtLink
+                :to="`/documents/${document.slug || document.id}`"
+                class="text-lg font-semibold leading-tight text-gray-950 hover:text-primary-600"
+                @click="rememberDocumentReturn(document)"
+              >
+                {{ document.title }}
+              </NuxtLink>
               <UBadge v-if="!hasTargets(document)" color="warning" variant="soft" size="xs">
                 Non ciblé
               </UBadge>
@@ -294,6 +300,15 @@ function startEdit(document) {
   activeFormDocument.value = documentFormPayload(document)
   formMode.value = 'edit'
   showFormSlideover.value = true
+}
+
+function rememberDocumentReturn(document) {
+  if (!import.meta.client) return
+
+  sessionStorage.setItem('limbus:document-return-context', JSON.stringify({
+    source: 'documents',
+    documentId: document.id
+  }))
 }
 
 function closeFormSlideover() {

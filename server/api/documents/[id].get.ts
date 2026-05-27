@@ -12,7 +12,12 @@ export default defineEventHandler(async (event) => {
   }
 
   const document = await prisma.document.findFirst({
-    where: await gameScopedWhere(event, { id }),
+    where: await gameScopedWhere(event, {
+      OR: [
+        { id },
+        { slug: id }
+      ]
+    }),
     include: documentInclude
   })
 
