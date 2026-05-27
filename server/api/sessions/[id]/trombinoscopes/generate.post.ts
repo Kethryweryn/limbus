@@ -1,6 +1,7 @@
 import { requireOrganizer } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
+import { publicAppUrl } from '~/server/utils/appUrl'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
@@ -11,11 +12,5 @@ export default defineEventHandler(async (event) => {
   }
   const session = await requireSessionAccess(event, id)
 
-  const forwardedProto = getHeader(event, 'x-forwarded-proto')
-  const protocol = Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto
-  const host = getHeader(event, 'x-forwarded-host') || getHeader(event, 'host') || ''
-  const fallbackProtocol = host.startsWith('localhost') || host.startsWith('127.0.0.1') ? 'http' : 'https'
-  const publicBaseUrl = host ? `${protocol || fallbackProtocol}://${host}` : ''
-
-  return await generateSessionTrombinoscopes(session.id, publicBaseUrl)
+  return await generateSessionTrombinoscopes(session.id, publicAppUrl())
 })

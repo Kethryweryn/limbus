@@ -3,6 +3,7 @@ import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { emailTestSchema, readZodBody } from '~/server/utils/schemas'
 import { sendSessionPaymentTestEmails } from '~/server/utils/sessionPayments'
 import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
+import { publicAppUrl } from '~/server/utils/appUrl'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
@@ -20,6 +21,5 @@ export default defineEventHandler(async (event) => {
   })
 
   const body = await readZodBody(event, emailTestSchema)
-  const url = getRequestURL(event)
-  return await sendSessionPaymentTestEmails(session.id, body.emails, body.participantId, url.origin)
+  return await sendSessionPaymentTestEmails(session.id, body.emails, body.participantId, publicAppUrl())
 })

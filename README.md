@@ -40,6 +40,14 @@ bun run dev
 
 ## Production
 
+Configure the server environment before building:
+
+```bash
+PUBLIC_APP_URL="https://limbuslarp.fr"
+```
+
+`PUBLIC_APP_URL` is required in production. It is used to generate absolute links for invitations, generated PDFs, trombinoscopes and payment emails without trusting proxy or host headers.
+
 Build the application for production:
 
 ```bash

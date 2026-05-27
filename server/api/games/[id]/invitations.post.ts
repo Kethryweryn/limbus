@@ -74,7 +74,7 @@ export default defineEventHandler(async (event) => {
       acceptedBy: { select: { id: true, name: true, email: true } }
     }
   })
-  const url = invitationUrl(event, invitation.token)
+  const url = invitationUrl(invitation.token)
   let emailDelivery = null
 
   try {

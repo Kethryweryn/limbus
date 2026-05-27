@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
-import type { H3Event } from 'h3'
 import { prisma } from '~/server/utils/prisma'
 import { GAME_SHARE_ROLES, GAME_INVITATION_STATUSES, USER_ROLES } from '~/utils/domain'
+import { absoluteAppUrl } from '~/server/utils/appUrl'
 
 export function normalizeInvitationEmail(email: string) {
   return email.trim().toLowerCase()
@@ -11,12 +11,8 @@ export function createInvitationToken() {
   return randomBytes(32).toString('base64url')
 }
 
-export function invitationUrl(event: H3Event, token: string) {
-  const forwardedProto = getHeader(event, 'x-forwarded-proto')
-  const protocol = Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto
-  const host = getHeader(event, 'x-forwarded-host') || getHeader(event, 'host') || ''
-  const fallbackProtocol = host.startsWith('localhost') || host.startsWith('127.0.0.1') ? 'http' : 'https'
-  return host ? `${protocol || fallbackProtocol}://${host}/invitations/${token}` : `/invitations/${token}`
+export function invitationUrl(token: string) {
+  return absoluteAppUrl(`/invitations/${token}`)
 }
 
 export async function getValidInvitation(token: string) {
