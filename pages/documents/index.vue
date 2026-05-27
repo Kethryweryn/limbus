@@ -22,17 +22,21 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      <UCard v-for="document in paginatedDocuments" :key="document.id">
+      <UCard
+        v-for="document in paginatedDocuments"
+        :key="document.id"
+        class="cursor-pointer transition-shadow hover:shadow-md"
+        role="link"
+        tabindex="0"
+        @click="openDocumentPage(document)"
+        @keydown.enter="openDocumentPage(document)"
+      >
         <template #header>
           <div class="space-y-2">
             <div class="flex items-start justify-between gap-3">
-              <NuxtLink
-                :to="`/documents/${document.slug || document.id}`"
-                class="text-lg font-semibold leading-tight text-gray-950 hover:text-primary-600"
-                @click="rememberDocumentReturn(document)"
-              >
+              <h2 class="text-lg font-semibold leading-tight">
                 {{ document.title }}
-              </NuxtLink>
+              </h2>
               <UBadge v-if="!hasTargets(document)" color="warning" variant="soft" size="xs">
                 Non ciblé
               </UBadge>
@@ -86,10 +90,10 @@
           </div>
 
           <div class="flex flex-wrap gap-2 pt-1">
-            <UButton icon="i-heroicons-pencil-square" size="xs" color="primary" @click="startEdit(document)">
+            <UButton icon="i-heroicons-pencil-square" size="xs" color="primary" @click.stop="startEdit(document)">
               Modifier
             </UButton>
-            <UButton icon="i-heroicons-trash" size="xs" color="error" variant="soft" @click="deleteDocument(document.id)">
+            <UButton icon="i-heroicons-trash" size="xs" color="error" variant="soft" @click.stop="deleteDocument(document.id)">
               Supprimer
             </UButton>
           </div>
@@ -106,7 +110,9 @@
     <AppWideSlideover
       v-model:open="showFormSlideover"
       :title="formMode === 'edit' ? 'Modifier le document' : 'Créer un document'"
+      :full-page-to="formMode === 'edit' && activeFormDocument?.slug ? `/documents/${activeFormDocument.slug}?edit=1` : null"
       @close="closeFormSlideover"
+      @full-page="showFormSlideover = false"
     >
       <DocumentForm
         v-if="activeFormDocument"
@@ -142,6 +148,7 @@ const showFormSlideover = ref(false)
 const activeFormDocument = ref(null)
 const formMode = ref('create')
 const { game: selectedGame } = useGameFocus()
+const router = useRouter()
 
 const page = ref(1)
 const itemsPerPage = 9
@@ -309,6 +316,12 @@ function rememberDocumentReturn(document) {
     source: 'documents',
     documentId: document.id
   }))
+}
+
+function openDocumentPage(document) {
+  if (!document?.slug) return
+  rememberDocumentReturn(document)
+  router.push(`/documents/${document.slug}`)
 }
 
 function closeFormSlideover() {

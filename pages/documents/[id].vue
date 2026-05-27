@@ -8,17 +8,31 @@
         <h1 class="text-2xl font-bold">{{ documentItem?.title || 'Document' }}</h1>
         <p class="text-sm text-gray-500">{{ documentItem?.game?.title || 'Jeu inconnu' }}</p>
       </div>
-      <div v-if="documentItem" class="flex flex-wrap gap-2">
+      <div v-if="documentItem && !isEditing" class="flex flex-wrap gap-2">
         <UBadge :color="documentItem.readyToSend ? 'success' : 'neutral'" variant="subtle">
           {{ documentItem.readyToSend ? 'Prêt' : 'Brouillon' }}
         </UBadge>
         <UBadge color="neutral" variant="outline">
           {{ audienceLabel(documentItem.audience) }}
         </UBadge>
+        <UButton icon="i-heroicons-pencil-square" color="primary" @click="startEdit">
+          Modifier
+        </UButton>
       </div>
     </div>
 
-    <div v-if="documentItem" class="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
+    <DocumentForm
+      v-if="documentItem && isEditing"
+      v-model:document="editableDocument"
+      :games="games"
+      :characters="characters"
+      :factions="factions"
+      mode="edit"
+      @submit="saveDocument"
+      @cancel="cancelEdit"
+    />
+
+    <div v-else-if="documentItem" class="grid grid-cols-1 xl:grid-cols-[1fr_22rem] gap-6">
       <UCard>
         <template #header>
           Contenu
@@ -106,11 +120,18 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import DocumentForm from '@/components/DocumentForm.vue'
 import { DOCUMENT_AUDIENCE_LABELS } from '~/utils/domain'
 
 const route = useRoute()
+const router = useRouter()
 const documentItem = ref(null)
+const editableDocument = ref(null)
+const games = ref([])
+const characters = ref([])
+const factions = ref([])
+const isEditing = ref(route.query.edit === '1')
 const returnContext = ref(null)
 
 const documentBackTo = computed(() => {
@@ -131,9 +152,75 @@ const documentBackLabel = computed(() =>
 const audienceLabel = (audience) => DOCUMENT_AUDIENCE_LABELS[audience] || DOCUMENT_AUDIENCE_LABELS.targeted
 
 async function loadData() {
-  const data = await useApiFetch(`/api/documents/${route.params.id}`)
+  const [data, gamesData, charactersData, factionsData] = await Promise.all([
+    useApiFetch(`/api/documents/${route.params.id}`),
+    useApiFetch('/api/games'),
+    useApiFetch('/api/characters'),
+    useApiFetch('/api/factions')
+  ])
+
   documentItem.value = data
+  editableDocument.value = documentFormPayload(data)
+  games.value = gamesData
+  characters.value = charactersData
+  factions.value = factionsData
   ensureDocumentReturnContext(data)
+}
+
+watch(() => route.query.edit, (value) => {
+  isEditing.value = value === '1'
+  if (isEditing.value && documentItem.value) {
+    editableDocument.value = documentFormPayload(documentItem.value)
+  }
+})
+
+function documentFormPayload(document) {
+  return {
+    ...document,
+    content: document.content || '',
+    documentUrl: document.documentUrl || '',
+    characterId: document.characterId || document.character?.id || '',
+    characterIds: document.characterIds || document.characters?.map((character) => character.id) || [],
+    factionIds: document.factionIds || document.factions?.map((faction) => faction.id) || []
+  }
+}
+
+function startEdit() {
+  editableDocument.value = documentFormPayload(documentItem.value)
+  isEditing.value = true
+  router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
+}
+
+function cancelEdit() {
+  isEditing.value = false
+  editableDocument.value = documentItem.value ? documentFormPayload(documentItem.value) : null
+  const query = { ...route.query }
+  delete query.edit
+  router.replace({ path: route.path, query })
+}
+
+async function saveDocument() {
+  if (!editableDocument.value?.id) return
+
+  const updatedDocument = await useApiFetch(`/api/documents/${editableDocument.value.id}`, {
+    method: 'PUT',
+    body: editableDocument.value
+  })
+
+  documentItem.value = updatedDocument
+  editableDocument.value = documentFormPayload(updatedDocument)
+  if (updatedDocument?.slug && updatedDocument.slug !== route.params.id) {
+    const query = { ...route.query }
+    delete query.edit
+    await router.replace({
+      path: `/documents/${updatedDocument.slug}`,
+      query
+    })
+    isEditing.value = false
+    return
+  }
+
+  cancelEdit()
 }
 
 function readDocumentReturnContext() {
