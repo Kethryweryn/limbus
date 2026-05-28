@@ -184,7 +184,7 @@ import GameContextBar from '@/components/GameContextBar.vue'
 import SessionForm from '@/components/SessionForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import { isOfflineMode } from '~/utils/connection'
-import { SESSION_ROLES, SESSION_STATUSES, SESSION_STATUS_META } from '~/utils/domain'
+import { CHARACTER_TYPES, SESSION_ROLES, SESSION_STATUSES, SESSION_STATUS_META } from '~/utils/domain'
 import { getFromStore, saveToStore } from '~/utils/storage'
 
 const sessions = ref([])
@@ -305,9 +305,11 @@ const formatLocation = (location) => {
   return location.address ? `${location.name} - ${location.address}` : location.name
 }
 
-const totalCastCount = (session) => session.assignments?.length || 0
+const castProgressAssignments = (session) =>
+  (session.assignments || []).filter((assignment) => assignment.character?.type !== CHARACTER_TYPES.pnj)
+const totalCastCount = (session) => castProgressAssignments(session).length
 const assignedCastCount = (session) =>
-  (session.assignments || []).filter((assignment) => assignment.participantId || assignment.participant?.id).length
+  castProgressAssignments(session).filter((assignment) => assignment.participantId || assignment.participant?.id).length
 const castPercent = (session) => {
   const total = totalCastCount(session)
   if (!total) return 0
