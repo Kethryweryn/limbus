@@ -35,6 +35,7 @@ model Game {
   shares         GameShare[]
   invitations    GameInvitation[]
   registrationPeriods RegistrationPeriod[]
+  registrationForm RegistrationForm?
 
   @@index([ownerId])
 }
@@ -257,6 +258,30 @@ model RegistrationPeriodSession {
   seats     Int
 
   @@index([periodId])
+}
+
+// Formulaire d'inscription d'un jeu (R8). Chaque modification crée une version immuable :
+// une inscription garde la version qu'elle a remplie (R9, ADR-0019).
+model RegistrationForm {
+  id        String   @id @default(cuid())
+  gameId    String   @unique
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  versions  RegistrationFormVersion[]
+}
+
+model RegistrationFormVersion {
+  id         String           @id @default(cuid())
+  formId     String
+  form       RegistrationForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  number     Int
+  // Définition validée par registrationFormDefinitionSchema (server/utils/schemas.ts)
+  definition Json
+  createdAt  DateTime         @default(now())
+
+  @@unique([formId, number])
 }
 
 model SessionAssignment {

@@ -12,6 +12,7 @@ import {
   USER_ROLES
 } from '~/utils/domain'
 import { isHttpUrl, isUploadUrl, PHOTO_UPLOAD_PREFIX, RIB_UPLOAD_PREFIX } from '~/utils/urls'
+import { REGISTRATION_STANDARD_FIELDS, type RegistrationStandardFieldKey } from '~/utils/registrationForms'
 
 const optionalText = z.string().trim().optional().nullable()
 const optionalBoolean = z.boolean().optional()
@@ -300,6 +301,15 @@ export const registrationPeriodSchema = z.object({
   sessions: z.array(registrationPeriodSessionSchema)
     .min(1, 'At least one session is required')
     .refine((sessions) => new Set(sessions.map((session) => session.sessionId)).size === sessions.length, 'Duplicate session')
+})
+
+const registrationFieldSetting = z.object({ asked: z.boolean(), required: z.boolean() })
+
+export const registrationFormDefinitionSchema = z.object({
+  standardFields: z.object(
+    Object.fromEntries(REGISTRATION_STANDARD_FIELDS.map(({ key }) => [key, registrationFieldSetting])) as
+      Record<RegistrationStandardFieldKey, typeof registrationFieldSetting>
+  )
 })
 
 export const loginSchema = z.object({

@@ -8,9 +8,14 @@
             {{ periods.length }} période{{ periods.length > 1 ? 's' : '' }} d’inscription
           </p>
         </div>
-        <UButton icon="i-heroicons-plus" color="primary" @click="edit(null)">
-          Nouvelle période d’inscription
-        </UButton>
+        <div class="flex flex-wrap gap-2">
+          <UButton icon="i-heroicons-clipboard-document-list" color="neutral" variant="soft" @click="showFormEditor = true">
+            Formulaire
+          </UButton>
+          <UButton icon="i-heroicons-plus" color="primary" @click="edit(null)">
+            Nouvelle période d’inscription
+          </UButton>
+        </div>
       </div>
     </template>
 
@@ -95,13 +100,14 @@
       :period="editedPeriod"
       @saved="refresh"
     />
+    <RegistrationFormEditor v-model:open="showFormEditor" :game-id="gameId" :game-title="gameTitle" />
   </UCard>
 </template>
 
 <script setup>
 import { REGISTRATION_PERIOD_STATE_META, REGISTRATION_PERIOD_STATES } from '~/utils/domain'
 
-// Bloc d'un jeu sur la page Inscriptions (R33) : ses périodes d'inscription
+// Bloc d'un jeu sur la page Inscriptions (R33) : ses périodes d'inscription et son formulaire (US-002)
 const props = defineProps({
   gameId: { type: String, required: true },
   gameTitle: { type: String, required: true }
@@ -111,6 +117,7 @@ const periods = ref([])
 const errorMessage = ref('')
 const showForm = ref(false)
 const editedPeriod = ref(null)
+const showFormEditor = ref(false)
 
 await refresh()
 

@@ -26,7 +26,7 @@ Règles couvertes : R1 à R3, R5, R6, R8 (note d'intention et champs standards),
 | US | Titre | Statut |
 |---|---|---|
 | [US-001](US-001-creer-une-periode-d-inscription.md) | Créer et paramétrer une période d'inscription | terminée |
-| [US-002](US-002-champs-standards-du-formulaire.md) | Note d'intention et champs standards du formulaire | à faire |
+| [US-002](US-002-champs-standards-du-formulaire.md) | Note d'intention et champs standards du formulaire | terminée |
 | [US-003](US-003-inviter-des-participants.md) | Inviter des participants | à faire |
 | [US-004](US-004-repondre-a-une-invitation.md) | Répondre à une invitation par son lien personnel | à faire |
 | [US-005](US-005-suivre-les-inscriptions.md) | Suivre et gérer les inscriptions | à faire |
