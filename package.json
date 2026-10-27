@@ -13,7 +13,8 @@
     "start": "node .output/server/index.mjs",
     "user:create": "tsx scripts/create-user.ts",
     "test": "vitest run",
-    "typecheck": "nuxi typecheck"
+    "typecheck": "nuxi typecheck",
+    "test:integration": "vitest run --config tests/integration/vitest.config.ts"
   },
   "dependencies": {
     "@nuxt/eslint": "^1.15.2",
