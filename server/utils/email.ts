@@ -201,6 +201,14 @@ export async function sendEmail(message: EmailMessage) {
       attachments: message.attachments
     })
   } catch (error: any) {
+    // Trace côté serveur (journalctl -u limbus) : sans elle, la cause n'apparaît que dans le navigateur.
+    // Pas de destinataire ni de contenu : ce sont des données personnelles.
+    console.error(`[smtp] échec d'envoi via ${settings.host}:${settings.port}`, {
+      code: error?.code,
+      responseCode: error?.responseCode,
+      command: error?.command,
+      response: error?.response || error?.message
+    })
     throw createError({
       statusCode: 502,
       message: smtpErrorMessage(error)

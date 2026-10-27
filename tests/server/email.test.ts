@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import { decryptSmtpPassword, encryptSmtpPassword } from '~/server/utils/email'
+import { describe, expect, it, vi } from 'vitest'
+import { decryptSmtpPassword, encryptSmtpPassword, sendEmail } from '~/server/utils/email'
+import { prisma } from '~/server/utils/prisma'
 import { runtimeConfig } from '../setup'
 
 describe('chiffrement du mot de passe SMTP', () => {
@@ -30,5 +31,31 @@ describe('chiffrement du mot de passe SMTP', () => {
     runtimeConfig.smtpEncryptionSecret = 'autre-secret'
 
     expect(() => decryptSmtpPassword(encrypted)).toThrow()
+  })
+})
+
+describe('échec d’envoi SMTP', () => {
+  it('journalise la cause sans le destinataire, puis renvoie une 502 lisible', async () => {
+    const authError = Object.assign(new Error('Invalid login'), {
+      code: 'EAUTH',
+      responseCode: 535,
+      command: 'AUTH PLAIN',
+      response: '535 5.7.8 Authentication failed'
+    })
+    vi.doMock('nodemailer', () => ({ createTransport: () => ({ sendMail: vi.fn().mockRejectedValue(authError) }) }))
+    Object.assign(prisma, {
+      smtpSettings: {
+        findUnique: vi.fn().mockResolvedValue({ enabled: true, host: 'smtp.example.test', port: 587, secure: false, username: null, passwordEncrypted: null, fromEmail: 'limbus@example.test', fromName: null })
+      }
+    })
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await expect(sendEmail({ to: 'joueuse@example.test', subject: 'Sujet', text: 'Texte' }))
+      .rejects.toMatchObject({ statusCode: 502, message: expect.stringContaining('Authentification SMTP refusée') })
+
+    expect(log).toHaveBeenCalledWith("[smtp] échec d'envoi via smtp.example.test:587", expect.objectContaining({ code: 'EAUTH', responseCode: 535 }))
+    expect(JSON.stringify(log.mock.calls)).not.toContain('joueuse@example.test')
+    log.mockRestore()
+    vi.doUnmock('nodemailer')
   })
 })
