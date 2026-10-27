@@ -31,12 +31,13 @@ rsync -a --delete \
   --exclude .output-next \
   --exclude .output-prev \
   --exclude .data \
+  --exclude .nuxt \
   --exclude node_modules \
   "$APP_DIR/" "$BUILD_DIR/"
 
 cd "$BUILD_DIR"
-# Installation propre : un node_modules en lien symbolique casse la résolution
-# des imports internes de Nuxt (#internal/nuxt/paths) au prérendu
+# .nuxt est exclu de la copie : il contient des chemins absolus vers $APP_DIR
+# qui cassent le prérendu (#internal/nuxt/paths introuvable)
 npm ci --include=dev
 npm run build
 
