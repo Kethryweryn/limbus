@@ -1,6 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
-import { accessibleGameIds } from '~/server/utils/gameAccess'
+import { accessibleGameIds, requireParticipantAccess } from '~/server/utils/gameAccess'
 import { participantSchema, readZodBody } from '~/server/utils/schemas'
 import { exposeParticipantGames, participantGameLinksInclude } from '~/server/utils/participants'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
@@ -13,6 +13,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({ statusCode: 400, message: 'ID manquant' })
   }
+  await requireParticipantAccess(event, id)
 
   const body = await readZodBody(event, participantSchema)
   const { name, email, phone, notes, gameIds, published } = body

@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'ID manquant' })
   }
 
-  return await prisma.character.findFirst({
+  const record = await prisma.character.findFirst({
     where: await gameScopedWhere(event, { id }),
     include: {
       game: true,
@@ -20,4 +20,9 @@ export default defineEventHandler(async (event) => {
       factions: true
     }
   })
+  if (!record) {
+    throw createError({ statusCode: 404, message: 'Introuvable' })
+  }
+
+  return record
 })

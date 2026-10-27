@@ -1,6 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
-import { accessibleGameIds } from '~/server/utils/gameAccess'
+import { accessibleGameIds, requireParticipantAccess } from '~/server/utils/gameAccess'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
@@ -9,6 +9,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({ statusCode: 400, message: 'ID manquant' })
   }
+  await requireParticipantAccess(event, id)
   const allowedGameIds = await accessibleGameIds(event)
   if (allowedGameIds !== null) {
     const links = await prisma.participantGame.findMany({

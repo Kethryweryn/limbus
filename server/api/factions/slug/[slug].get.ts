@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Slug manquant' })
   }
 
-  return await prisma.faction.findFirst({
+  const record = await prisma.faction.findFirst({
     where: await gameScopedWhere(event, { slug }),
     include: {
       game: true,
@@ -22,4 +22,9 @@ export default defineEventHandler(async (event) => {
       }
     }
   })
+  if (!record) {
+    throw createError({ statusCode: 404, message: 'Introuvable' })
+  }
+
+  return record
 })

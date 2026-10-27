@@ -5,10 +5,13 @@ export default defineNuxtConfig({
     app: 'app'
   },
   css: ['~/assets/css/main.css'],
+  // Valeurs vides au build : les secrets sont lus dans l'environnement au démarrage
+  // (JWT_SECRET, SMTP_ENCRYPTION_SECRET, PUBLIC_APP_URL). Un process.env ici serait
+  // figé en clair dans .output au moment du build.
   runtimeConfig: {
-    jwtSecret: process.env.JWT_SECRET,
-    smtpEncryptionSecret: process.env.SMTP_ENCRYPTION_SECRET,
-    publicAppUrl: process.env.PUBLIC_APP_URL
+    jwtSecret: '',
+    smtpEncryptionSecret: '',
+    publicAppUrl: ''
   },
   nitro: {
     preset: 'node-server', // 👈 force l'utilisation du serveur Node natif

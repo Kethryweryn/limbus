@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Slug manquant' })
   }
 
-  return await prisma.intrigue.findFirst({
+  const record = await prisma.intrigue.findFirst({
     where: await gameScopedWhere(event, { slug }),
     include: {
       game: true,
@@ -19,4 +19,9 @@ export default defineEventHandler(async (event) => {
       items: { orderBy: { name: 'asc' } }
     }
   })
+  if (!record) {
+    throw createError({ statusCode: 404, message: 'Introuvable' })
+  }
+
+  return record
 })

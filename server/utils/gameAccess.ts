@@ -105,6 +105,22 @@ export async function requireSessionAccess(event: H3Event, sessionId: string) {
   return session
 }
 
+// Un participant est partagé entre jeux : il est accessible s'il est inscrit à au moins un jeu accessible
+export async function requireParticipantAccess(event: H3Event, participantId: string) {
+  const gameIds = await accessibleGameIds(event)
+  const participant = await prisma.participant.findFirst({
+    where: {
+      id: participantId,
+      ...(gameIds === null ? {} : { gameLinks: { some: { gameId: { in: gameIds } } } })
+    },
+    select: { id: true }
+  })
+
+  if (!participant) {
+    throw createError({ statusCode: 404, message: 'Participant introuvable' })
+  }
+}
+
 export async function gameScopedWhere(event: H3Event, extraWhere: Record<string, any> = {}) {
   const gameIds = await accessibleGameIds(event)
   if (gameIds === null) return extraWhere

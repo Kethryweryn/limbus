@@ -12,7 +12,7 @@ export type AuthUser = {
 }
 
 function getJwtSecret(): string {
-  const secret = useRuntimeConfig().jwtSecret
+  const secret = useRuntimeConfig().jwtSecret || process.env.JWT_SECRET
   if (!secret) {
     throw createError({ statusCode: 500, message: 'JWT secret is not configured' })
   }
