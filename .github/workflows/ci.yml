@@ -1,9 +1,16 @@
 name: CI
 
+# Documentation seule : ni CI ni déploiement (ADR-0022). Dès qu'un autre fichier change, tout tourne.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'doc/**'
+      - '*.md'
   pull_request:
+    paths-ignore:
+      - 'doc/**'
+      - '*.md'
 
 permissions:
   contents: read
