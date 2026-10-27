@@ -43,9 +43,6 @@ else
 fi
 echo "Déploiement de $(git rev-parse --short HEAD) : $(git log -1 --format=%s)"
 
-npm ci --include=dev
-npx prisma generate
-
 rm -rf "$BUILD_DIR"
 rsync -a --delete \
   --exclude .git \
@@ -55,23 +52,30 @@ rsync -a --delete \
   --exclude .data \
   --exclude .nuxt \
   --exclude node_modules \
+  --exclude generated \
   "$APP_DIR/" "$BUILD_DIR/"
 
-cd "$BUILD_DIR"
+# Une seule installation, dans le dossier de build : elle sert au build, aux migrations,
+# puis remplace celle de $APP_DIR (utilisée par les scripts comme npm run user:create).
 # .nuxt est exclu de la copie : il contient des chemins absolus vers $APP_DIR
 # qui cassent le prérendu (#internal/nuxt/paths introuvable)
+cd "$BUILD_DIR"
 npm ci --include=dev
+npx prisma generate
 npm run build
-
-cd "$APP_DIR"
 npx prisma migrate deploy
 
+cd "$APP_DIR"
 rm -rf .output-next .output-prev
 mv "$BUILD_DIR/.output" .output-next
 if [ -d .output ]; then
   mv .output .output-prev
 fi
 mv .output-next .output
+
+rm -rf node_modules generated
+mv "$BUILD_DIR/node_modules" "$BUILD_DIR/generated" .
+rm -rf "$BUILD_DIR"
 
 systemctl restart "$SERVICE_NAME"
 systemctl status "$SERVICE_NAME" --no-pager
