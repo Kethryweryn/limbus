@@ -38,6 +38,7 @@ npm run typecheck
 npm test
 npm run build
 TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/limbus_test npm run test:integration
+TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/limbus_test npm run test:e2e   # Playwright (npx playwright install chromium)
 ```
 
 Les tests d'intégration vident la base indiquée : son nom doit contenir « test ».

@@ -46,4 +46,8 @@ On travaille directement sur `main`. Chaque push déclenche la CI, et **si elle 
 
 Intégration (`tests/integration/`) : l'application compilée tourne contre une base PostgreSQL jetable, dont le nom doit contenir « test » car elle est vidée. Le scénario : deux organisatrices, Alice et Bob, et une co-organisatrice ; on vérifie qu'Alice n'atteint rien du jeu de Bob, avec un témoin positif à chaque fois. Lancement : `npm run build && TEST_DATABASE_URL=postgresql://…/limbus_test npm run test:integration`. En local sous Windows, il faut passer par un conteneur Linux.
 
+Bout en bout : Playwright (`tests/e2e/`), dans Chromium, contre l'application compilée et la même base de test : connexion, déconnexion (données de l'appareil effacées), 403, page publique. Lancement : `npm run build && TEST_DATABASE_URL=… npm run test:e2e`. Sous Windows, passer par l'image `mcr.microsoft.com/playwright:v<version>-noble` (même version que `@playwright/test`). Attendre `networkidle` avant de remplir un formulaire : avant l'hydratation, le clic le soumet nativement.
+
+Dépendances : Dependabot ouvre chaque lundi une PR groupée (mineures et correctifs) et une PR par version majeure. La CI les valide ; les fusionner les déploie.
+
 Unitaires : Vitest (`tests/`). `tests/setup.ts` recrée les auto-imports Nitro (`createError`, `getHeader`, `useRuntimeConfig`…) et remplace Prisma par un objet vide. Dans un test, on lui assigne les méthodes nécessaires (voir `tests/server/auth.test.ts`). `h3` est fixé en v1 en devDependency pour correspondre à Nitro.

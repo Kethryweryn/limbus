@@ -30,3 +30,7 @@ scripts/decrypt-smtp-password.ts
 
 # Prisma generated client
 generated/prisma
+
+# Playwright
+test-results/
+playwright-report/
