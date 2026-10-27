@@ -18,8 +18,10 @@ export default defineEventHandler(async (event) => {
     role: body.role
   }
 
+  // Un nouveau mot de passe déconnecte toutes les sessions ouvertes de ce compte
   if (body.password) {
     data.password = await bcrypt.hash(body.password, 10)
+    data.sessionVersion = { increment: 1 }
   }
 
   return await prisma.user.update({

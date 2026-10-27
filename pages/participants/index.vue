@@ -267,7 +267,7 @@ async function handleParticipantFormSubmit() {
 }
 
 async function deleteParticipant(id) {
-  if (!confirm('Supprimer ce participant ? Les assignations de session seront conservées sans participant.')) return
+  if (!confirm('Supprimer définitivement ce participant et ses données (coordonnées, photos, paiements, envois) ? Les rôles de session restent, sans participant. Les trombinoscopes où figurait sa photo devront être régénérés.')) return
 
   await useApiFetch(`/api/participants/${id}`, { method: 'DELETE' })
   await fetchParticipants()

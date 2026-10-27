@@ -4,14 +4,26 @@
       <UButton to="/participants" icon="i-heroicons-arrow-left" color="neutral" variant="ghost">
         Participants
       </UButton>
-      <UButton
-        v-if="!isEditing"
-        icon="i-heroicons-pencil-square"
-        color="primary"
-        @click="startEdit"
-      >
-        Modifier
-      </UButton>
+      <div v-if="!isEditing" class="flex gap-2">
+        <UButton
+          :href="`/api/participants/${participant.id}/export`"
+          external
+          download
+          icon="i-heroicons-arrow-down-tray"
+          color="neutral"
+          variant="outline"
+          title="Toutes ses données dans vos jeux (demande d’accès RGPD)"
+        >
+          Exporter ses données
+        </UButton>
+        <UButton
+          icon="i-heroicons-pencil-square"
+          color="primary"
+          @click="startEdit"
+        >
+          Modifier
+        </UButton>
+      </div>
     </div>
 
     <ParticipantForm

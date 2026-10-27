@@ -1,6 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { accessibleGameIds, requireParticipantAccess } from '~/server/utils/gameAccess'
+import { eraseParticipant } from '~/server/utils/participantPrivacy'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
@@ -24,17 +25,6 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  await prisma.sessionAssignment.updateMany({
-    where: { participantId: id },
-    data: { participantId: null }
-  })
-
-  await prisma.participant.delete({
-    where: { id }
-  })
-
-  return { success: true }
+  const { deletedPhotos } = await eraseParticipant(id)
+  return { success: true, deletedPhotos }
 })
-
-
-

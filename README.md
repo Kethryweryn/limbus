@@ -9,7 +9,9 @@ Il couvre deux besoins :
 
 Les participants portent les informations stables (nom, email, téléphone) et peuvent être inscrits à plusieurs jeux. La photo dépend de l'assignation à un personnage pour une session donnée, pour correspondre au rôle incarné.
 
-Un jeu peut être partagé avec d'autres organisateurs par invitation email. L'application est une PWA : en cas de coupure réseau, elle reste consultable en lecture.
+Un jeu peut être partagé avec d'autres organisateurs par invitation email. Depuis le menu utilisateur, on peut fermer sa session sur tous ses appareils ; un changement de mot de passe le fait aussi.
+
+Données personnelles (RGPD) : la fiche d'un participant permet d'exporter ses données en JSON (droit d'accès), limitées aux jeux de l'organisateur. Le supprimer efface ses coordonnées, paiements, envois et photos, fichiers compris. Les trombinoscopes qui contenaient sa photo sont supprimés et doivent être régénérés. L'application est une PWA : en cas de coupure réseau, elle reste consultable en lecture.
 
 ## Stack
 

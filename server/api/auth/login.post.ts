@@ -1,7 +1,6 @@
 import bcrypt from 'bcrypt'
-import { setCookie } from 'h3'
 import { prisma } from '~/server/utils/prisma'
-import { signAuthToken } from '~/server/utils/auth'
+import { setAuthCookie } from '~/server/utils/auth'
 import { loginSchema, readZodBody } from '~/server/utils/schemas'
 import { assertRateLimit } from '~/server/utils/rateLimit'
 
@@ -34,20 +33,7 @@ export default defineEventHandler(async (event) => {
     return { success: false, message: 'Email ou mot de passe incorrect' }
   }
 
-  const token = signAuthToken({
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role
-  })
-
-  setCookie(event, 'limbus_token', token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: true,
-    path: '/',
-    maxAge: 60 * 60 * 20// 20 heures
-  })
+  setAuthCookie(event, user)
 
   return { success: true }
 })

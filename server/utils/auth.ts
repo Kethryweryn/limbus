@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken'
-import { getCookie } from 'h3'
+import { deleteCookie, getCookie, setCookie } from 'h3'
 import type { H3Event } from 'h3'
 import { prisma } from '~/server/utils/prisma'
 import { USER_ROLES } from '~/utils/domain'
@@ -11,6 +11,9 @@ export type AuthUser = {
   role: string
 }
 
+const AUTH_COOKIE = 'limbus_token'
+const SESSION_DURATION_SECONDS = 60 * 60 * 20
+
 function getJwtSecret(): string {
   const secret = useRuntimeConfig().jwtSecret || process.env.JWT_SECRET
   if (!secret) {
@@ -20,7 +23,7 @@ function getJwtSecret(): string {
 }
 
 export function getAuthToken(event: H3Event): string | undefined {
-  return getCookie(event, 'limbus_token')
+  return getCookie(event, AUTH_COOKIE)
 }
 
 declare module 'h3' {
@@ -29,7 +32,7 @@ declare module 'h3' {
   }
 }
 
-type AuthTokenPayload = jwt.JwtPayload & { id?: unknown }
+type AuthTokenPayload = jwt.JwtPayload & { id?: unknown, v?: unknown }
 
 export function getAuthUser(event: H3Event): AuthTokenPayload | null {
   const token = getAuthToken(event)
@@ -47,31 +50,58 @@ export async function requireAuthUser(event: H3Event): Promise<AuthUser> {
   if (event.context.authUser) return event.context.authUser
 
   // Le jeton n'est qu'une référence : rôle et email sont relus en base à chaque requête
-  const id = getAuthUser(event)?.id
+  const payload = getAuthUser(event)
+  const id = payload?.id
   if (typeof id !== 'string' || !id) {
     throw createError({ statusCode: 401, message: 'Unauthorized' })
   }
 
-  const user = await prisma.user.findUnique({
+  const record = await prisma.user.findUnique({
     where: { id },
     select: {
       id: true,
       email: true,
       name: true,
-      role: true
+      role: true,
+      sessionVersion: true
     }
   })
 
-  if (!user) {
+  // Un jeton émis avant la dernière révocation n'est plus valable (jeton sans version : 0)
+  const tokenVersion = payload?.v ?? 0
+  if (!record || tokenVersion !== record.sessionVersion) {
     throw createError({ statusCode: 401, message: 'Unauthorized' })
   }
 
+  const { sessionVersion: _sessionVersion, ...user } = record
   event.context.authUser = user
   return user
 }
 
 export function signAuthToken(payload: string | object | Buffer): string {
-  return jwt.sign(payload, getJwtSecret(), { expiresIn: '20h' })
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: SESSION_DURATION_SECONDS })
+}
+
+export function setAuthCookie(event: H3Event, user: { id: string, sessionVersion: number }) {
+  setCookie(event, AUTH_COOKIE, signAuthToken({ id: user.id, v: user.sessionVersion }), {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: true,
+    path: '/',
+    maxAge: SESSION_DURATION_SECONDS
+  })
+}
+
+export function clearAuthCookie(event: H3Event) {
+  deleteCookie(event, AUTH_COOKIE, { path: '/' })
+}
+
+// Déconnecte l'utilisateur sur tous ses appareils : les jetons déjà émis ne passent plus
+export async function revokeUserSessions(userId: string) {
+  await prisma.user.update({
+    where: { id: userId },
+    data: { sessionVersion: { increment: 1 } }
+  })
 }
 
 export function redirect(event: H3Event, location: string) {

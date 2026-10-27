@@ -168,7 +168,8 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['POST', `/api/games/${b.game.id}/invitations`, { email: 'intrus@example.test' }],
     ['DELETE', `/api/games/${b.game.id}/invitations/${b.invitation.id}`],
     ['GET', `/api/uploads/session-assignment-photos/${b.photo.filename}`],
-    ['GET', `/api/uploads/session-payment-ribs/${b.rib.filename}`]
+    ['GET', `/api/uploads/session-payment-ribs/${b.rib.filename}`],
+    ['GET', `/api/participants/${b.participant.id}/export`]
   ]
 
   it.each(denied)('%s %s est refusé', async (method, path, body) => {
@@ -182,6 +183,7 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect((await api(alice, 'GET', `/api/sessions/${a.session.id}/timeline`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/characters/${a.character.id}/trombinoscope`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/shares`)).status).toBe(200)
+    expect((await api(alice, 'GET', `/api/participants/${a.participant.id}/export`)).status).toBe(200)
     // Fichier référencé mais absent du disque : l'accès est accordé, puis 404
     expect((await api(alice, 'GET', `/api/uploads/session-assignment-photos/${a.photo.filename}`)).status).toBe(404)
   })

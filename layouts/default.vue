@@ -183,6 +183,15 @@ const userMenu = computed(() => [
             label: 'Déconnexion',
             icon: 'i-heroicons-arrow-left-on-rectangle',
             onSelect: () => navigateTo('/logout')
+        },
+        {
+            label: 'Déconnecter tous mes appareils',
+            icon: 'i-heroicons-device-phone-mobile',
+            onSelect: async () => {
+                if (!confirm('Fermer la session sur tous vos appareils, y compris celui-ci ?')) return
+                await $fetch('/api/auth/logout-all', { method: 'POST' })
+                await navigateTo('/logout')
+            }
         }
     ]
 ])

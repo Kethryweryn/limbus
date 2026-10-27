@@ -386,6 +386,8 @@ model User {
   name      String
   password  String
   role      String   @default("organizer")
+  // Incrémenté pour invalider toutes les sessions ouvertes (déconnexion partout, changement de mot de passe)
+  sessionVersion Int @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

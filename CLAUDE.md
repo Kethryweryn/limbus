@@ -17,7 +17,8 @@ On travaille directement sur `main`. Chaque push déclenche la CI, et **si elle 
   - `gameScopedWhere` / `accessibleGameIds` pour les listes.
 - Quand une modification change le `gameId` d'une ressource, vérifier l'accès au jeu cible aussi. Les références vers d'autres entités (factions, lieu, participants, personnages) doivent appartenir au même jeu.
 - Corps de requête : toujours valider avec un schéma zod de `server/utils/schemas.ts` via `readZodBody`.
-- Le JWT ne porte que l'`id` : rôle et email sont relus en base à chaque requête.
+- Le JWT ne porte que l'`id` et la version de session `v` : rôle et email sont relus en base à chaque requête, et un jeton dont `v` ne correspond plus à `User.sessionVersion` est refusé. Pour déconnecter un compte partout (changement de mot de passe…), appeler `revokeUserSessions`.
+- Données personnelles des participants : la suppression passe par `eraseParticipant` (photos et fichiers compris), l'export par `exportParticipantData`, limité aux jeux de l'organisateur. Toute nouvelle donnée liée à un participant doit être couverte par ces deux fonctions (`server/utils/participantPrivacy.ts`).
 - Les fichiers uploadés sont servis par des routes qui vérifient les droits, jamais en statique. On vérifie le type réel (signature) et on renomme avec un UUID.
 - Les liens absolus (emails, PDF) passent par `absoluteAppUrl()`, jamais par les en-têtes Host.
 - L'IP client pour le rate limit est la dernière entrée de `X-Forwarded-For`, ajoutée par Apache (voir `clientIp`).
