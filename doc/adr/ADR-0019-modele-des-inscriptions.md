@@ -4,6 +4,7 @@ titre: Modèle des inscriptions, champs standards en colonnes, formulaire versio
 statut: proposé
 date: 2026-10-27
 liens: [SPEC-001, EPIC-001, ADR-0011]
+# Amendé le 2026-10-28, avant acceptation : portée « tout le jeu » (inscription permanente) et lien de diffusion.
 ---
 
 # ADR-0019 : Modèle des inscriptions, champs standards en colonnes, formulaire versionné
@@ -18,7 +19,11 @@ La première version ([EPIC-001](../epics/EPIC-001-inscription-sur-invitation/RE
   - le mode d'entrée (`invitation` | `form`), le mode de sélection (`random` | `chosen` | `mixed`, utilisé à partir de l'epic de sélection) ;
   - l'état, la clôture, le délai de réponse ;
   - les réglages des epics suivants, ajoutés au fur et à mesure.
-- `RegistrationPeriodSession` relie une période d'inscription à ses sessions, avec le nombre de places ; `sessionId` y est unique (une session n'appartient qu'à une période d'inscription).
+- `RegistrationPeriod.scope` vaut `sessions` (sessions précises) ou `game` (inscription permanente, R30).
+- `RegistrationPeriodSession` relie une période de portée `sessions` à ses sessions, avec le nombre de places ; `sessionId` y est unique (une session n'appartient qu'à une période dédiée).
+- La couverture de l'inscription permanente n'est pas stockée : une session est couverte par sa période dédiée si elle en a une, sinon par la période de portée `game` ouverte du jeu. Ce calcul est fait à la lecture, par une seule fonction. Une session créée plus tard est donc couverte sans écriture supplémentaire.
+- Au plus une période de portée `game` non clôturée par jeu. La règle est vérifiée dans une transaction à la création et à la réouverture ; PostgreSQL pourra l'imposer par un index unique partiel.
+- `RegistrationPeriod.publicId` : identifiant aléatoire court, unique, qui forme le lien de diffusion (`/s/<publicId>`, R32). Il est distinct de l'identifiant interne et du slug du jeu, pour que le lien reste stable si le titre change et qu'il ne permette pas de deviner les autres périodes.
 - `RegistrationForm` (un par jeu) et `RegistrationFormVersion` : chaque modification crée une version immuable, dont la définition (réglages des champs standards, puis questions et options) est un JSON validé par un schéma zod.
 - `Registration` porte :
   - la période d'inscription, la session attribuée (facultative), le participant, le statut, la source, l'organisateur invitant, la version du formulaire remplie ;

@@ -37,14 +37,14 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 
 ### Organisateur : préparer une période d'inscription
 
-1. Il crée la période d'inscription depuis le jeu et y rattache une ou plusieurs sessions.
+1. Il crée la période d'inscription depuis le jeu : pour une ou plusieurs sessions précises, ou pour tout le jeu (inscription permanente).
 2. Il choisit le mode d'entrée, le mode de sélection, le calendrier, les places par session, le délai de confirmation et le traitement des rejoueurs.
 3. Il choisit le formulaire du jeu, ou le crée.
-4. Il ouvre la période d'inscription. En mode formulaire, un lien d'inscription apparaît sur la page publique du jeu.
+4. Il ouvre la période d'inscription. En mode formulaire, il copie le lien de diffusion pour ses annonces, et un lien d'inscription apparaît sur la page publique du jeu.
 
 ### Inscrit, mode formulaire
 
-1. Depuis la page publique du jeu, il ouvre le formulaire. Il y lit la note d'intention, coche son adhésion, puis remplit les champs.
+1. Il ouvre le formulaire depuis le lien de diffusion partagé par les orgas (annonce sur un réseau social, par exemple), ou depuis la page publique du jeu. Il y lit la note d'intention, coche son adhésion, puis remplit les champs.
 2. Il reçoit un email de confirmation. Le lien qu'il contient valide son adresse et lui sert ensuite de lien personnel.
 3. Jusqu'à la clôture, il peut modifier son inscription ou la retirer par ce lien.
 
@@ -69,7 +69,11 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 
 ### Période d'inscription
 
-- **R1** Une période d'inscription appartient à un jeu et regroupe une ou plusieurs de ses sessions. Une session appartient à au plus une période d'inscription.
+- **R1** Une période d'inscription appartient à un jeu. Elle couvre :
+  - soit **des sessions précises**, une ou plusieurs ;
+  - soit **tout le jeu** : c'est l'inscription permanente (R30).
+
+  Une session est couverte par au plus une période d'inscription : sa période dédiée si elle en a une, sinon l'inscription permanente du jeu si elle existe.
 - **R2** Une période d'inscription ne recrute que des PJ. Les PNJ et l'équipe cuisine restent ajoutés à la main dans la session.
 - **R3** Mode d'entrée : `invitation` ou `formulaire`.
 - **R4** Mode de sélection : `hasard`, `choix` ou `mixte`. En mode mixte :
@@ -91,7 +95,7 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
   - des questions propres au jeu (texte libre, choix unique, choix multiple, échelle de 1 à 5), dont chaque option peut être reliée à des personnages, factions ou intrigues ;
   - une question d'équilibre facultative (R17).
 - **R9** Une inscription garde la version du formulaire qui a été remplie : modifier le formulaire ne change pas les réponses déjà données.
-- **R10** Dans une période d'inscription à plusieurs sessions, l'inscrit indique les sessions où il est disponible (au moins une).
+- **R10** Dans une période d'inscription qui couvre plusieurs sessions précises, le formulaire liste ces sessions et l'inscrit indique celles où il est disponible (au moins une). L'inscription permanente ne demande pas de disponibilités.
 
 ### Inscription et identité
 
@@ -137,11 +141,24 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
   - un personnage lié à celui d'une personne avec qui il ne veut pas jouer.
 - **R29** Les attributions verrouillées par les orgas sont respectées. L'assistant propose une répartition, mais ne l'applique qu'à la demande explicite de l'organisateur.
 
+### Inscription permanente et diffusion
+
+- **R30** L'inscription permanente d'un jeu est une période d'inscription qui couvre toutes ses sessions, présentes et futures, sauf celles qui ont leur propre période d'inscription (R1). Elle se distingue d'une période ordinaire sur ces points :
+  - un jeu en a au plus une ouverte à la fois ;
+  - elle est toujours en mode formulaire et n'a pas de date de clôture : les orgas la clôturent à la main ;
+  - les inscrits forment un vivier, sans disponibilités (R10). Pour chaque session, les orgas choisissent dans ce vivier les personnes à retenir (mode choix), qui confirment ensuite dans le délai (R20) ;
+  - le réglage des rejoueurs (R7) s'applique au vivier : après avoir joué une session, un inscrit reste dans le vivier, y est signalé ou en est exclu, selon ce réglage.
+- **R31** Rattacher une session à une période d'inscription dédiée la retire de l'inscription permanente. C'est refusé si des inscrits du vivier ont déjà été retenus pour cette session.
+- **R32** Chaque période d'inscription en mode formulaire a un **lien de diffusion** : une URL publique, stable et courte, que les orgas copient pour leurs annonces (réseaux sociaux, email, site). Ce lien :
+  - ouvre le formulaire, même si la page publique du jeu n'est pas activée ;
+  - fournit un aperçu pour les réseaux sociaux (balises Open Graph : nom du jeu, sessions concernées et leurs dates, début de la note d'intention) ;
+  - affiche « inscriptions closes » une fois la période clôturée, au lieu d'une erreur.
+
 ## Données
 
 À créer, en plus de l'existant :
 
-- **Période d'inscription** : jeu, sessions, modes, calendrier, places par session, délai de confirmation, traitement des rejoueurs, pondérations, quota, formulaire.
+- **Période d'inscription** : jeu, portée (sessions précises ou tout le jeu), sessions, identifiant public du lien de diffusion, modes, calendrier, places par session, délai de confirmation, traitement des rejoueurs, pondérations, quota, formulaire.
 - **Formulaire** et ses versions : champs standards activés, questions, options, liens vers les personnages, factions et intrigues.
 - **Inscription** :
   - période d'inscription, participant, statut, source (formulaire ou invitation, et organisateur invitant) ;
@@ -172,7 +189,7 @@ Données personnelles :
 Chaque lot devient un epic, livrable seul :
 
 1. Période d'inscription et mode invitation (R1 à R3, R5, R6, R8 pour la note d'intention et les champs standards, R12 à R16, R20, R22). Voir [EPIC-001](../epics/EPIC-001-inscription-sur-invitation/README.md).
-2. Formulaire public (R8 au complet, R9 à R11, R13).
+2. Formulaire public, inscription permanente et lien de diffusion (R8 au complet, R9 à R11, R13, R30 à R32). L'epic 1 prévoit déjà la portée dans le modèle.
 3. Sélection (R4, R7, R17 à R21).
 4. Affinités (R23 à R25).
 5. Relations entre personnages et questionnaire relié aux rôles (R8, R26).
@@ -188,3 +205,4 @@ Chaque lot devient un epic, livrable seul :
 
 - 2026-10-27 : création à partir de la fiche todo.
 - 2026-10-27 : « campagne » renommé « période d'inscription » (le mot a un autre sens en GN). En mode invitation, accepter vaut confirmation (R16). Un délai dépassé est signalé, puis traité par les orgas (R20). Les inscrits confirmés sans personnage apparaissent dans les paiements (R22). La fiche allergies (R15) passe au lot 1, qui collecte les allergies.
+- 2026-10-28 : les orgas annoncent leurs jeux et sessions avec un lien vers le formulaire, valable pour une session, quelques sessions, ou tout le jeu. Ajout de l'inscription permanente, qui couvre toutes les sessions présentes et futures (R1, R10, R30, R31), et du lien de diffusion avec aperçu pour les réseaux sociaux (R32).
