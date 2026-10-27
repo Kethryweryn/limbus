@@ -8,9 +8,14 @@
             {{ periods.length }} période{{ periods.length > 1 ? 's' : '' }} d’inscription
           </p>
         </div>
-        <UButton icon="i-heroicons-plus" color="primary" @click="edit(null)">
-          Nouvelle période d’inscription
-        </UButton>
+        <div class="flex flex-wrap gap-2">
+          <UButton icon="i-heroicons-clipboard-document-list" color="neutral" variant="soft" @click="showFormEditor = true">
+            Formulaire
+          </UButton>
+          <UButton icon="i-heroicons-plus" color="primary" @click="edit(null)">
+            Nouvelle période d’inscription
+          </UButton>
+        </div>
       </div>
     </template>
 
@@ -95,6 +100,7 @@
       :period="editedPeriod"
       @saved="refresh"
     />
+    <RegistrationFormEditor v-model:open="showFormEditor" :game-id="gameId" />
   </UCard>
 </template>
 
@@ -111,6 +117,7 @@ const periods = ref([])
 const errorMessage = ref('')
 const showForm = ref(false)
 const editedPeriod = ref(null)
+const showFormEditor = ref(false)
 
 await refresh()
 

@@ -181,7 +181,12 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['GET', `/api/uploads/session-assignment-photos/${b.photo.filename}`],
     ['GET', `/api/uploads/session-payment-ribs/${b.rib.filename}`],
     ['GET', `/api/participants/${b.participant.id}/export`],
-    ['GET', `/api/games/${b.game.id}/registration-context`]
+    ['GET', `/api/games/${b.game.id}/registration-context`],
+    ['GET', `/api/games/${b.game.id}/registration-form`],
+    ['PUT', `/api/games/${b.game.id}/registration-form`, {
+      standardFields: Object.fromEntries(['lastName', 'firstName', 'facebookName', 'phone', 'emergencyContact', 'dietary']
+        .map((key) => [key, { asked: false, required: false }]))
+    }]
   ]
 
   it.each(denied)('%s %s est refusé', async (method, path, body) => {
@@ -197,6 +202,7 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/shares`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/participants/${a.participant.id}/export`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/registration-context`)).status).toBe(200)
+    expect((await api(alice, 'GET', `/api/games/${a.game.id}/registration-form`)).status).toBe(200)
     // Fichier référencé mais absent du disque : l'accès est accordé, puis 404
     expect((await api(alice, 'GET', `/api/uploads/session-assignment-photos/${a.photo.filename}`)).status).toBe(404)
   })
