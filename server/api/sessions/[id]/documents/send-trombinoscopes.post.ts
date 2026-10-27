@@ -1,5 +1,6 @@
 import { requireOrganizer } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
+import { withSessionSendLock } from '~/server/utils/sendLock'
 import { markTrombinoscopeDeliveries } from '~/server/utils/documents'
 import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
 
@@ -18,5 +19,5 @@ export default defineEventHandler(async (event) => {
     keyParts: [authUserRateLimitKey(event), session.id]
   })
 
-  return await markTrombinoscopeDeliveries(session.id)
+  return await withSessionSendLock(session.id, () => markTrombinoscopeDeliveries(session.id))
 })

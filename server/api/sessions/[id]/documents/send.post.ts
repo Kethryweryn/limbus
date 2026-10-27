@@ -1,5 +1,6 @@
 import { requireOrganizer } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
+import { withSessionSendLock } from '~/server/utils/sendLock'
 import { readZodBody, sessionDocumentSendSchema } from '~/server/utils/schemas'
 import { markDocumentDeliveries } from '~/server/utils/documents'
 import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
@@ -20,5 +21,5 @@ export default defineEventHandler(async (event) => {
   })
 
   const body = await readZodBody(event, sessionDocumentSendSchema)
-  return await markDocumentDeliveries(session.id, body.documentIds)
+  return await withSessionSendLock(session.id, () => markDocumentDeliveries(session.id, body.documentIds))
 })

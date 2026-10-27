@@ -194,6 +194,14 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
   let generatedCount = 0
   let missingPhotosCount = 0
 
+  // Trombinoscopes d'une distribution précédente (rôle réattribué ou retiré) : périmés
+  const currentCast = session.assignments
+    .filter((assignment) => assignment.participantId)
+    .map((assignment) => ({ viewerCharacterId: assignment.characterId, participantId: assignment.participantId! }))
+  await prisma.sessionTrombinoscope.deleteMany({
+    where: { sessionId, ...(currentCast.length ? { NOT: { OR: currentCast } } : {}) }
+  })
+
   for (const assignment of session.assignments) {
     if (!assignment.participantId || !assignment.participant) continue
 
@@ -271,13 +279,23 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
   return { generatedCount, missingPhotosCount }
 }
 
+// Trombinoscope du joueur actuellement distribué sur ce rôle : celui d'un ancien joueur est ignoré
 export async function getSessionTrombinoscope(sessionId: string, characterId: string) {
-  const trombinoscope = await prisma.sessionTrombinoscope.findFirst({
-    where: {
-      sessionId,
-      viewerCharacterId: characterId
-    }
+  const assignment = await prisma.sessionAssignment.findUnique({
+    where: { sessionId_characterId: { sessionId, characterId } },
+    select: { participantId: true }
   })
+  const trombinoscope = assignment?.participantId
+    ? await prisma.sessionTrombinoscope.findUnique({
+        where: {
+          sessionId_viewerCharacterId_participantId: {
+            sessionId,
+            viewerCharacterId: characterId,
+            participantId: assignment.participantId
+          }
+        }
+      })
+    : null
 
   if (!trombinoscope) {
     throw createError({ statusCode: 404, message: 'Trombinoscope introuvable' })

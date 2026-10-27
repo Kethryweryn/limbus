@@ -4,6 +4,8 @@ import { setAuthCookie } from '~/server/utils/auth'
 import { loginSchema, readZodBody } from '~/server/utils/schemas'
 import { assertRateLimit } from '~/server/utils/rateLimit'
 
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('mot-de-passe-factice', 10)
+
 export default defineEventHandler(async (event) => {
   const body = await readZodBody(event, loginSchema)
   const { email, password } = body
@@ -23,14 +25,12 @@ export default defineEventHandler(async (event) => {
     where: { email }
   })
 
-  if (!user) {
-    return { success: false, message: 'Email ou mot de passe incorrect' }
-  }
+  // Même coût de calcul que l'email existe ou non : le temps de réponse ne révèle pas les comptes
+  const passwordMatch = await bcrypt.compare(password, user?.password ?? DUMMY_PASSWORD_HASH)
 
-  const passwordMatch = await bcrypt.compare(password, user.password)
-
-  if (!passwordMatch) {
-    return { success: false, message: 'Email ou mot de passe incorrect' }
+  // 401 et non 200 { success: false } : l'écran de connexion n'affiche l'erreur que si la requête échoue
+  if (!user || !passwordMatch) {
+    throw createError({ statusCode: 401, message: 'Email ou mot de passe incorrect' })
   }
 
   setAuthCookie(event, user)

@@ -2,6 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { sendEmail } from '~/server/utils/email'
 import { DOCUMENT_AUDIENCES, SESSION_ROLES } from '~/utils/domain'
 import { generatedPdfFileName, renderTextPdf } from '~/server/utils/generatedPdfs'
+import { getSessionTrombinoscope } from '~/server/utils/trombinoscopes'
 
 export const documentInclude = {
   game: true,
@@ -621,10 +622,8 @@ async function buildCharacterSheetPdfAttachment(session: { id: string }, charact
 }
 
 async function buildTrombinoscopePdfAttachment(sessionId: string, characterId: string) {
-  const trombinoscope = await prisma.sessionTrombinoscope.findFirst({
-    where: { sessionId, viewerCharacterId: characterId }
-  })
-  if (!trombinoscope?.contentPdfBase64) {
+  const trombinoscope = await getSessionTrombinoscope(sessionId, characterId)
+  if (!trombinoscope.contentPdfBase64) {
     throw createError({ statusCode: 404, message: 'Trombinoscope PDF introuvable' })
   }
 

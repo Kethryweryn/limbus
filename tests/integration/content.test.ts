@@ -2,6 +2,7 @@
 import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import bcrypt from 'bcrypt'
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
@@ -166,5 +167,64 @@ describe('une ressource ne change pas de jeu', () => {
   ] as const)('PUT /api/%s vers un autre jeu d’Alice est refusé', async (path, id, body) => {
     const { game } = await aliceGame(`deplace-${path}`)
     expect((await api(alice, 'PUT', `/api/${path}/${id()}`, body(game.id))).status).toBe(400)
+  })
+})
+
+describe('connexion', () => {
+  it('ne dépend pas de la casse de l’email', async () => {
+    await prisma.user.create({ data: { email: 'casse@example.test', name: 'Casse', password: await bcrypt.hash('mot-de-passe-solide', 4) } })
+
+    const response = await fetch(`${inject('baseUrl')}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: ' Casse@Example.TEST ', password: 'mot-de-passe-solide' })
+    })
+    expect(await response.json()).toEqual({ success: true })
+    expect(response.headers.get('set-cookie')).toContain('limbus_token=')
+  })
+
+  it('un mauvais mot de passe répond 401 avec un message', async () => {
+    const response = await api(null, 'POST', '/api/auth/login', { email: 'casse@example.test', password: 'mauvais-mot-de-passe' })
+    expect(response.status).toBe(401)
+    expect(response.body).toMatchObject({ message: 'Email ou mot de passe incorrect' })
+  })
+
+  it('un compte créé par un admin avec des majuscules est enregistré en minuscules', async () => {
+    const response = await api(world.users.admin, 'POST', '/api/admin/users', { email: 'Nouveau.Compte@Example.test', name: 'Nouveau', password: 'mot-de-passe-solide' })
+    expect(response.status).toBe(200)
+    expect(response.body).toMatchObject({ email: 'nouveau.compte@example.test' })
+  })
+})
+
+describe('créations simultanées du même nom', () => {
+  it('ne provoquent pas d’erreur 500 et reçoivent chacune un slug distinct', async () => {
+    const responses = await Promise.all(Array.from({ length: 5 }, () =>
+      api(alice, 'POST', '/api/factions', { name: 'Groupe en double', gameId: a.game.id })
+    ))
+    expect(responses.map((response) => response.status)).toEqual([200, 200, 200, 200, 200])
+    const slugs = responses.map((response) => (response.body as { slug: string }).slug)
+    expect(new Set(slugs).size).toBe(5)
+  })
+})
+
+describe('trombinoscopes après un changement de distribution', () => {
+  it('celui de l’ancien joueur n’est plus servi, et disparaît à la génération suivante', async () => {
+    const { game, character, participant, session } = await aliceGame('trombi')
+    const remplacant = await prisma.participant.create({
+      data: { name: 'Remplaçant', slug: 'joueur-contenu-remplacant', gameLinks: { create: { gameId: game.id } } }
+    })
+    const assignment = await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id } })
+    const url = `/api/sessions/${session.id}/trombinoscopes/${character.id}`
+
+    expect((await api(alice, 'POST', `/api/sessions/${session.id}/trombinoscopes/generate`, {})).status).toBe(200)
+    expect((await api(alice, 'GET', url)).status).toBe(200)
+
+    await prisma.sessionAssignment.update({ where: { id: assignment.id }, data: { participantId: remplacant.id } })
+    expect((await api(alice, 'GET', url)).status).toBe(404)
+
+    expect((await api(alice, 'POST', `/api/sessions/${session.id}/trombinoscopes/generate`, {})).status).toBe(200)
+    expect((await api(alice, 'GET', url)).status).toBe(200)
+    expect(await prisma.sessionTrombinoscope.findMany({ where: { sessionId: session.id }, select: { participantId: true } }))
+      .toEqual([{ participantId: remplacant.id }])
   })
 })

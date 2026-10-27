@@ -1,5 +1,6 @@
 import { requireOrganizer } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
+import { withSessionSendLock } from '~/server/utils/sendLock'
 import { readZodBody, sessionPaymentSendSchema } from '~/server/utils/schemas'
 import { sendSessionPaymentEmails } from '~/server/utils/sessionPayments'
 import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
@@ -20,5 +21,5 @@ export default defineEventHandler(async (event) => {
   })
 
   const body = await readZodBody(event, sessionPaymentSendSchema)
-  return await sendSessionPaymentEmails(session.id, body.reminder, body.participantId)
+  return await withSessionSendLock(session.id, () => sendSessionPaymentEmails(session.id, body.reminder, body.participantId))
 })

@@ -1,5 +1,6 @@
 import { requireOrganizer } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
+import { withSessionSendLock } from '~/server/utils/sendLock'
 import { markCharacterSheetBundleDeliveries } from '~/server/utils/documents'
 import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
 
@@ -18,5 +19,5 @@ export default defineEventHandler(async (event) => {
     keyParts: [authUserRateLimitKey(event), session.id]
   })
 
-  return await markCharacterSheetBundleDeliveries(session.id)
+  return await withSessionSendLock(session.id, () => markCharacterSheetBundleDeliveries(session.id))
 })

@@ -19,6 +19,8 @@ const uploadOrExternalUrl = (prefix: string) => optionalText.refine(
   'URL http(s) ou fichier téléversé attendu'
 )
 const requiredText = (field: string) => z.string().trim().min(1, `${field} is required`)
+// Les emails de compte sont stockés en minuscules : la connexion ne dépend pas de la casse saisie
+const accountEmail = () => requiredText('Email').toLowerCase().email('Invalid email')
 const requiredId = (field: string) => z.string().trim().min(1, `${field} is required`)
 const sessionStatus = z.enum([
   SESSION_STATUSES.scheduled,
@@ -275,19 +277,19 @@ export const sessionSchema = z.object({
 })
 
 export const loginSchema = z.object({
-  email: requiredText('Email'),
+  email: requiredText('Email').toLowerCase(),
   password: requiredText('Password')
 })
 
 export const userCreateSchema = z.object({
-  email: requiredText('Email').email('Invalid email'),
+  email: accountEmail(),
   name: requiredText('Name'),
   password: requiredText('Password').min(8, 'Password must contain at least 8 characters'),
   role: userRole.default(USER_ROLES.organizer)
 })
 
 export const userUpdateSchema = z.object({
-  email: requiredText('Email').email('Invalid email').optional(),
+  email: accountEmail().optional(),
   name: requiredText('Name').optional(),
   password: requiredText('Password').min(8, 'Password must contain at least 8 characters').optional(),
   role: userRole.optional()
