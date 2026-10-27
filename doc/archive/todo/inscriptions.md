@@ -1,6 +1,7 @@
 ---
 titre: Inscriptions, sélection et aide au casting
-statut: à trancher
+statut: prête
+spec: ../../specs/SPEC-001-inscriptions.md
 date: 2026-10-27
 ---
 
@@ -140,10 +141,19 @@ Chaque lot est livrable seul : après le lot 1, on peut organiser une session su
    - Verrous sur les attributions fixées par les orgas.
    - Application des choix aux attributions de session.
 
-## Points à trancher
+## Décisions (2026-10-27)
 
-1. **Vivier sur plusieurs sessions**, avec des disponibilités par session. Recommandation : le prévoir dans le modèle dès le lot 1, même si l'écran ne gère d'abord qu'une session.
-2. **Reconnaissance d'un même joueur d'un jeu à l'autre**. Recommandation : par email, mais seulement parmi les participants des jeux de l'organisatrice. Le même email chez une autre équipe donne une fiche distincte, pour que personne ne voie les données d'une autre équipe.
-3. **Ordre en mode mixte**. Recommandation : les invitations des orgas passent d'abord, puis le tirage au sort porte sur les places restantes.
-4. **Allergies et contact d'urgence**. Recommandation : les rattacher à l'inscription plutôt qu'à la fiche du participant, pour qu'ils soient à jour à chaque session. En bonus, générer une fiche allergies pour l'équipe cuisine.
-5. **Ajustements de la proposition demandés par l'utilisateur** : à recueillir.
+Fiche transformée en [SPEC-001](../../specs/SPEC-001-inscriptions.md). Réponses de l'utilisateur aux points ouverts :
+
+1. Vivier sur plusieurs sessions : oui, prévu dans le modèle dès le lot 1.
+2. Reconnaissance d'un joueur : par email, parmi les participants des jeux de la même propriétaire.
+3. Mode mixte : invitations des orgas d'abord, puis tirage sur les places restantes ; quota par organisateur ou global, au choix pour chaque campagne.
+4. Allergies et contact d'urgence : sur l'inscription, avec une fiche allergies pour la cuisine.
+5. Recrutement : PJ seulement ; PNJ et cuisine restent ajoutés à la main.
+6. Liste d'attente : l'outil propose la personne suivante, l'orga valide.
+7. Confirmation : obligatoire pour une personne retenue, avec un délai réglable.
+8. Visibilité des affinités et réponses : tous les organisateurs du jeu.
+9. Rejoueurs : réglage par campagne (autorisé, signalé, exclu du tirage).
+10. Tirage : pondérations possibles, « non tirés avant » et équilibre (parité) ; pas de priorité aux nouveaux joueurs, pas de groupes.
+11. Modification par l'inscrit : oui, jusqu'à la clôture.
+12. Pas d'autre ajustement de la proposition.

@@ -4,4 +4,4 @@ Fonctionnalités validées, décrites telles qu'elles marchent. Modèle : [`../m
 
 | Spec | Titre | Statut | Epics |
 |---|---|---|---|
-| | *(aucune pour l'instant)* | | |
+| [SPEC-001](SPEC-001-inscriptions.md) | Inscriptions, sélection et aide au casting | validée | à découper |
