@@ -66,7 +66,7 @@ jobs:
           # Clé d'hôte épinglée : on refuse tout autre serveur
           echo 'limbuslarp.fr ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMkspHzioErwvXaWQ6j2PTKPOafoIwTxwYObxlxr44F+' > ~/.ssh/known_hosts
           # Côté serveur, cette clé ne peut lancer que deploy.sh, avec ce commit en argument
-          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes root@limbuslarp.fr "$GITHUB_SHA"
+          ssh -i ~/.ssh/deploy -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes root@limbuslarp.fr "$GITHUB_SHA"
 
       - name: Vérifier que le site répond
         run: |
