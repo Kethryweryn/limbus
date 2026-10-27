@@ -8,13 +8,13 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 
 | Epic | Titre | Spec | Statut |
 |---|---|---|---|
-| [EPIC-001](EPIC-001-inscription-sur-invitation/README.md) | Période d'inscription et mode invitation | [SPEC-001](../specs/SPEC-001-inscriptions.md) | à faire |
+| [EPIC-001](EPIC-001-inscription-sur-invitation/README.md) | Période d'inscription et mode invitation | [SPEC-001](../specs/SPEC-001-inscriptions.md) | en cours |
 
 ## US
 
 | US | Titre | Epic | Statut |
 |---|---|---|---|
-| [US-001](EPIC-001-inscription-sur-invitation/US-001-creer-une-periode-d-inscription.md) | Créer et paramétrer une période d'inscription | EPIC-001 | à faire |
+| [US-001](EPIC-001-inscription-sur-invitation/US-001-creer-une-periode-d-inscription.md) | Créer et paramétrer une période d'inscription | EPIC-001 | terminée |
 | [US-002](EPIC-001-inscription-sur-invitation/US-002-champs-standards-du-formulaire.md) | Note d'intention et champs standards du formulaire | EPIC-001 | à faire |
 | [US-003](EPIC-001-inscription-sur-invitation/US-003-inviter-des-participants.md) | Inviter des participants | EPIC-001 | à faire |
 | [US-004](EPIC-001-inscription-sur-invitation/US-004-repondre-a-une-invitation.md) | Répondre à une invitation par son lien personnel | EPIC-001 | à faire |

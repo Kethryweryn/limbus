@@ -69,6 +69,8 @@
                     <UBadge v-if="game.publicPage" color="primary" variant="subtle">Publié</UBadge>
                 </template>
             </GamePageContent>
+
+            <RegistrationPeriodsPanel :game-id="game.id" />
         </template>
 
         <GameShareModal v-model:open="showShares" :game="game" />

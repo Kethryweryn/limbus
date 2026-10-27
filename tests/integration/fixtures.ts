@@ -58,11 +58,19 @@ async function createGameWorld(prisma: PrismaClient, key: string, ownerId: strin
       sessionId: session.id
     }
   })
+  const registrationPeriod = await prisma.registrationPeriod.create({
+    data: {
+      name: `Inscriptions ${key}`,
+      gameId,
+      publicId: `periode-${key}`,
+      sessions: { create: { sessionId: session.id, seats: 10 } }
+    }
+  })
   const invitation = await prisma.gameInvitation.create({
     data: { gameId, email: `invite-${key}@example.test`, token: `token-${key}`, invitedById: ownerId, expiresAt: new Date(Date.now() + 86_400_000) }
   })
 
-  return { game, faction, character, intrigue, item, location, document, timelineEvent, participant, session, photo, rib, invitation }
+  return { game, faction, character, intrigue, item, location, document, timelineEvent, participant, session, registrationPeriod, photo, rib, invitation }
 }
 
 export async function createWorld(prisma: PrismaClient) {

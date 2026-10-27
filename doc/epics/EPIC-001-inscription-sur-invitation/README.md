@@ -1,7 +1,7 @@
 ---
 id: EPIC-001
 titre: Période d'inscription et mode invitation
-statut: à faire
+statut: en cours
 spec: ../../specs/SPEC-001-inscriptions.md
 date: 2026-10-27
 adr: [ADR-0018, ADR-0019, ADR-0020, ADR-0021]
@@ -25,7 +25,7 @@ Règles couvertes : R1 à R3, R5, R6, R8 (note d'intention et champs standards),
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-001](US-001-creer-une-periode-d-inscription.md) | Créer et paramétrer une période d'inscription | à faire |
+| [US-001](US-001-creer-une-periode-d-inscription.md) | Créer et paramétrer une période d'inscription | terminée |
 | [US-002](US-002-champs-standards-du-formulaire.md) | Note d'intention et champs standards du formulaire | à faire |
 | [US-003](US-003-inviter-des-participants.md) | Inviter des participants | à faire |
 | [US-004](US-004-repondre-a-une-invitation.md) | Répondre à une invitation par son lien personnel | à faire |

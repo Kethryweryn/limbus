@@ -1,7 +1,7 @@
 ---
 id: US-001
 titre: Créer et paramétrer une période d'inscription
-statut: à faire
+statut: terminée
 epic: EPIC-001
 regles: [R1, R2, R3, R5, R6, R20]
 adr: [ADR-0019, ADR-0020]
@@ -13,30 +13,40 @@ En tant qu'organisatrice d'un jeu, je veux ouvrir une période d'inscription pou
 
 ## Critères d'acceptation
 
-- [ ] Depuis la page du jeu, un onglet « Inscriptions » liste les périodes d'inscription du jeu (nom, sessions, statut, nombre d'inscrits par statut) et permet d'en créer une.
-- [ ] Une période d'inscription porte :
+- [x] Sur la page du jeu, une section « Inscriptions » liste les périodes d'inscription du jeu (nom, état, sessions et places, délai, clôture) et permet d'en créer une.
+- [x] Une période d'inscription porte :
   - un nom ;
   - une ou plusieurs sessions du jeu ;
   - le mode d'entrée (seul « invitation » est proposé dans cet epic) ;
   - une date de clôture facultative ;
-  - un délai de réponse en jours (7 par défaut) ;
+  - un délai de réponse en jours (7 par défaut, de 1 à 90) ;
   - un nombre de places par session.
-- [ ] Étant donné une session déjà rattachée à une autre période d'inscription, quand je l'ajoute, alors l'enregistrement est refusé avec un message clair (R1).
-- [ ] Le modèle prévoit la portée « tout le jeu » de l'inscription permanente (R1, R30), mais l'interface de cet epic ne propose que la portée « sessions précises ». L'inscription permanente, qui est en mode formulaire, arrive avec EPIC-002.
-- [ ] Étant donné une session d'un autre jeu, quand je l'envoie à l'API, alors la requête est refusée (400 ou 403).
-- [ ] Le nombre de places proposé par défaut est le nombre de personnages PJ du jeu ; je peux le modifier pour chaque session (R5).
-- [ ] Une période d'inscription a un état : `brouillon`, `ouverte` ou `clôturée`. Elle est clôturée à la main ou par sa date de clôture, évaluée à la lecture (ADR-0020). Une période d'inscription clôturée n'accepte plus de modifications par les inscrits (R6, R13).
-- [ ] Je peux supprimer une période d'inscription sans inscription ; si elle en a, l'interface l'interdit et propose de la clôturer.
-- [ ] Un co-organisateur du jeu a les mêmes droits ; un organisateur sans accès au jeu n'atteint rien.
+- [x] Étant donné une session déjà rattachée à une autre période d'inscription, quand je l'ajoute, alors l'enregistrement est refusé (409) avec un message qui nomme la session et la période (R1). Le formulaire grise ces sessions. Deux enregistrements simultanés sont départagés par la contrainte d'unicité.
+- [x] Le modèle prévoit la portée « tout le jeu » de l'inscription permanente (R1, R30), mais l'interface de cet epic ne propose que la portée « sessions précises ». L'inscription permanente, qui est en mode formulaire, arrive avec EPIC-002.
+- [x] Étant donné une session d'un autre jeu, quand je l'envoie à l'API, alors la requête est refusée (400 ou 403).
+- [x] Le nombre de places proposé par défaut est le nombre de personnages PJ du jeu ; je peux le modifier pour chaque session (R5).
+- [x] Une période d'inscription a un état : `brouillon`, `ouverte` ou `clôturée`. Elle est clôturée à la main ou par sa date de clôture, évaluée à la lecture (ADR-0020). Rouvrir une période dont la date est passée retire cette date, après confirmation.
+- [x] Je peux supprimer une période d'inscription ; supprimer une session ou le jeu retire le rattachement en cascade.
+- [x] Un co-organisateur du jeu a les mêmes droits ; un organisateur sans accès au jeu n'atteint rien.
 
-## Notes techniques
+Reporté aux US qui créent les inscriptions :
 
-- Modèle : `RegistrationPeriod` (jeu, nom, portée `sessions` | `game`, identifiant public du lien de diffusion, mode d'entrée, mode de sélection réservé aux epics suivants, état, clôture, délai), `RegistrationPeriodSession` (période, session unique, places), selon [ADR-0019](../../adr/ADR-0019-modele-des-inscriptions.md).
-- Routes : `GET/POST /api/registration-periods`, `GET/PUT/DELETE /api/registration-periods/:id`, avec `requireGameAccess`, `assertSameGame` et les schémas zod de `server/utils/schemas.ts`.
-- Écrans : onglet du jeu, formulaire de période d'inscription (`UModal`, contenu dans `#body`).
-- Supprimer un jeu ou une session supprime en cascade ce qui en dépend (ADR-0009) ; supprimer une session retire seulement son rattachement.
+- le nombre d'inscrits par statut dans la liste (US-003, US-005) ;
+- l'interdiction de supprimer une période qui a des inscriptions, au profit de sa clôture (US-003) ;
+- le refus des modifications par les inscrits après la clôture (R6, R13 : US-004).
+
+## Réalisation
+
+- Modèle : `RegistrationPeriod` et `RegistrationPeriodSession`, migration `20261028100000_add_registration_periods`. `publicId` est déjà généré pour le futur lien de diffusion (R32).
+- Constantes dans `utils/domain.ts` ; état effectif calculé par `effectivePeriodState` (`utils/registrationPeriods.ts`), partagé entre le serveur et l'interface.
+- Routes :
+  - `GET/POST /api/registration-periods` ; la liste se filtre par `?gameId=` ;
+  - `GET/PUT/DELETE /api/registration-periods/:id` ;
+  - `GET /api/games/:id/registration-context` (sessions du jeu avec leur période, nombre de PJ).
+- Contrôles serveur dans `server/utils/registrationPeriods.ts` : sessions du même jeu, session libre, places par défaut.
+- Écrans : `RegistrationPeriodsPanel` sur la page du jeu, `RegistrationPeriodForm` en modale.
 
 ## Tests
 
-- Unitaires : schémas de validation (sessions en double, délai, places).
-- Intégration : CRUD complet ; une session dans deux périodes d'inscription refusée ; ajout à `isolation.test.ts` (Alice ne lit, ne crée ni ne modifie de période d'inscription sur le jeu de Bob, ni avec une session de Bob).
+- Unitaires : `tests/utils/registrationPeriods.test.ts` (état effectif), `tests/server/registrationPeriods.test.ts` (schéma, sessions et places, conflit d'unicité).
+- Intégration : `tests/integration/registrationPeriods.test.ts` (création, places par défaut, conflit et concurrence, modification, clôture par date, contexte, cascades). `isolation.test.ts` couvre les routes de période et le contexte du jeu : lecture, liste, modification, suppression, création dans le jeu de Bob, sessions de Bob.

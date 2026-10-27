@@ -17,7 +17,7 @@ afterAll(async () => {
 
 type Resource = {
   path: string
-  model: 'character' | 'faction' | 'intrigue' | 'item' | 'location' | 'document' | 'timelineEvent' | 'participant' | 'session' | 'game'
+  model: 'character' | 'faction' | 'intrigue' | 'item' | 'location' | 'document' | 'timelineEvent' | 'participant' | 'session' | 'game' | 'registrationPeriod'
   entity: (w: GameWorld) => { id: string, slug?: string }
   // Corps valide pour une mise à jour, rattaché au jeu donné
   body: (w: GameWorld) => Record<string, unknown>
@@ -34,7 +34,13 @@ const resources: Resource[] = [
   { path: 'documents', model: 'document', entity: (w) => w.document, body: (w) => ({ title: 'Renommé', content: 'x', gameId: w.game.id }) },
   { path: 'timeline-events', model: 'timelineEvent', entity: (w) => w.timelineEvent, body: (w) => ({ name: 'Renommé', day: 1, time: '11:00', gameId: w.game.id }) },
   { path: 'participants', model: 'participant', entity: (w) => w.participant, body: (w) => ({ name: 'Renommé', gameIds: [w.game.id] }) },
-  { path: 'sessions', model: 'session', entity: (w) => w.session, body: (w) => ({ name: 'Renommé', gameId: w.game.id }) }
+  { path: 'sessions', model: 'session', entity: (w) => w.session, body: (w) => ({ name: 'Renommé', gameId: w.game.id }) },
+  {
+    path: 'registration-periods',
+    model: 'registrationPeriod',
+    entity: (w) => w.registrationPeriod,
+    body: (w) => ({ name: 'Renommé', gameId: w.game.id, sessions: [{ sessionId: w.session.id, seats: 10 }] })
+  }
 ]
 
 async function exists(model: Resource['model'], id: string) {
@@ -95,7 +101,8 @@ describe('création dans un jeu inaccessible', () => {
     ['documents', { title: 'Intrus', content: 'x', gameId: b.game.id }],
     ['timeline-events', { name: 'Intrus', day: 1, time: '10:00', gameId: b.game.id }],
     ['sessions', { name: 'Intrus', gameId: b.game.id }],
-    ['participants', { name: 'Intrus', gameIds: [b.game.id] }]
+    ['participants', { name: 'Intrus', gameIds: [b.game.id] }],
+    ['registration-periods', { name: 'Intrus', gameId: b.game.id, sessions: [{ sessionId: b.session.id }] }]
   ]
 
   it.each(creations)('POST /api/%s refusé', async (path, body) => {
@@ -132,7 +139,10 @@ describe('références croisées vers le jeu de Bob', () => {
     ['POST', '/api/sessions', { name: 'X', gameId: a.game.id, participants: [{ participantId: b.participant.id, role: 'participant' }] }],
     ['PUT', `/api/sessions/${a.session.id}/timeline`, { assignments: [{ timelineEventId: b.timelineEvent.id, participantIds: [] }] }],
     ['PUT', `/api/sessions/${a.session.id}/timeline`, { assignments: [{ timelineEventId: a.timelineEvent.id, participantIds: [b.participant.id] }] }],
-    ['PUT', `/api/characters/${a.character.id}/trombinoscope`, { entries: [{ targetCharacterId: b.character.id, included: true, faceKnown: true }] }]
+    ['PUT', `/api/characters/${a.character.id}/trombinoscope`, { entries: [{ targetCharacterId: b.character.id, included: true, faceKnown: true }] }],
+    ['POST', '/api/registration-periods', { name: 'X', gameId: a.game.id, sessions: [{ sessionId: b.session.id }] }],
+    ['PUT', `/api/registration-periods/${a.registrationPeriod.id}`, { name: 'X', gameId: a.game.id, sessions: [{ sessionId: b.session.id }] }],
+    ['PUT', `/api/registration-periods/${a.registrationPeriod.id}`, { name: 'X', gameId: b.game.id, sessions: [{ sessionId: b.session.id }] }]
   ]
 
   it.each(references)('%s %s %j est rejeté', async (method, path, body) => {
@@ -170,7 +180,8 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['DELETE', `/api/games/${b.game.id}/invitations/${b.invitation.id}`],
     ['GET', `/api/uploads/session-assignment-photos/${b.photo.filename}`],
     ['GET', `/api/uploads/session-payment-ribs/${b.rib.filename}`],
-    ['GET', `/api/participants/${b.participant.id}/export`]
+    ['GET', `/api/participants/${b.participant.id}/export`],
+    ['GET', `/api/games/${b.game.id}/registration-context`]
   ]
 
   it.each(denied)('%s %s est refusé', async (method, path, body) => {
@@ -185,8 +196,15 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect((await api(alice, 'GET', `/api/characters/${a.character.id}/trombinoscope`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/shares`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/participants/${a.participant.id}/export`)).status).toBe(200)
+    expect((await api(alice, 'GET', `/api/games/${a.game.id}/registration-context`)).status).toBe(200)
     // Fichier référencé mais absent du disque : l'accès est accordé, puis 404
     expect((await api(alice, 'GET', `/api/uploads/session-assignment-photos/${a.photo.filename}`)).status).toBe(404)
+  })
+
+  it('la liste filtrée sur le jeu de Bob est vide', async () => {
+    const response = await api(alice, 'GET', `/api/registration-periods?gameId=${b.game.id}`)
+    expect(response.status).toBe(200)
+    expect(response.body).toEqual([])
   })
 
   it('le tableau de bord ne montre pas le jeu de Bob', async () => {
