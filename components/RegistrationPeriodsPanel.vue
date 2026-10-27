@@ -3,8 +3,10 @@
     <template #header>
       <div class="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 class="text-lg font-semibold">Inscriptions</h2>
-          <p class="text-sm text-gray-500">Recrutez les PJ d’une ou plusieurs sessions.</p>
+          <h2 class="text-lg font-semibold">{{ gameTitle }}</h2>
+          <p class="text-sm text-gray-500">
+            {{ periods.length }} période{{ periods.length > 1 ? 's' : '' }} d’inscription
+          </p>
         </div>
         <UButton icon="i-heroicons-plus" color="primary" @click="edit(null)">
           Nouvelle période d’inscription
@@ -99,8 +101,10 @@
 <script setup>
 import { REGISTRATION_PERIOD_STATE_META, REGISTRATION_PERIOD_STATES } from '~/utils/domain'
 
+// Bloc d'un jeu sur la page Inscriptions (R33) : ses périodes d'inscription
 const props = defineProps({
-  gameId: { type: String, required: true }
+  gameId: { type: String, required: true },
+  gameTitle: { type: String, required: true }
 })
 
 const periods = ref([])
