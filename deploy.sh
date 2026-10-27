@@ -5,6 +5,9 @@ APP_DIR="/var/www/limbus"
 BUILD_DIR="/tmp/limbus-build"
 SERVICE_NAME="limbus"
 
+# Construire avec le même Node que celui du service (paquet système), pas celui de nvm
+export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
+
 if [ "$(id -u)" -ne 0 ]; then
   echo "Ce script doit être lancé en root."
   exit 1
