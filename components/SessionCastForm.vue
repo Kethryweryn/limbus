@@ -9,7 +9,7 @@
       </div>
     </template>
 
-    <form @submit.prevent="submit" class="space-y-4">
+    <form class="space-y-4" @submit.prevent="submit">
       <div v-if="totalPages > 1" class="flex justify-end">
         <span v-if="totalPages > 1" class="text-sm text-gray-500">
           {{ paginationStart + 1 }}-{{ paginationEnd }} / {{ sortedAssignments.length }}

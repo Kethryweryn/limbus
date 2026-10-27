@@ -79,9 +79,9 @@
     </div>
 
     <div class="flex items-center justify-center gap-4 mt-6">
-      <UButton @click="prevPage" :disabled="page === 1">← Précédent</UButton>
+      <UButton :disabled="page === 1" @click="prevPage">← Précédent</UButton>
       <span class="inline-flex items-center text-sm text-gray-500">Page {{ page }} / {{ totalPages }}</span>
-      <UButton @click="nextPage" :disabled="page === totalPages">Suivant →</UButton>
+      <UButton :disabled="page === totalPages" @click="nextPage">Suivant →</UButton>
     </div>
 
     <AppWideSlideover

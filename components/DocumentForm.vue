@@ -4,7 +4,7 @@
       {{ mode === 'edit' ? 'Modifier le document' : 'Créer un document' }}
     </template>
 
-    <form @submit.prevent="submit" class="w-full space-y-6">
+    <form class="w-full space-y-6" @submit.prevent="submit">
       <UFormField label="Jeu" :error="errors.gameId">
         <USelect
           v-model="localDocument.gameId"

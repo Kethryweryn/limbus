@@ -1,6 +1,6 @@
 <script setup>
 await $fetch('/api/auth/logout', { method: 'POST' })
-if (process.client) {
+if (import.meta.client) {
     localStorage.removeItem('offlineAuth')
     await navigateTo('/', { replace: true })
 }

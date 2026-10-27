@@ -75,7 +75,7 @@ export default defineEventHandler(async (event) => {
     }
   })
   const url = invitationUrl(invitation.token)
-  let emailDelivery = null
+  let emailDelivery: Awaited<ReturnType<typeof sendGameInvitationEmail>> | { sent: false, reason: string }
 
   try {
     emailDelivery = await sendGameInvitationEmail({

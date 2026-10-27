@@ -4,7 +4,7 @@
       {{ mode === 'edit' ? 'Modifier le jeu' : 'Créer un nouveau jeu' }}
     </template>
 
-    <form @submit.prevent="submit" class="w-full space-y-6">
+    <form class="w-full space-y-6" @submit.prevent="submit">
       <UFormField label="Titre" :error="errors.title">
         <UInput v-model="localGame.title" required size="lg" class="w-full" />
       </UFormField>
@@ -28,7 +28,7 @@
         <UButton type="submit" color="primary" size="lg">
           {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
         </UButton>
-        <UButton v-if="mode === 'edit'" @click="$emit('cancel')" color="neutral" size="lg">
+        <UButton v-if="mode === 'edit'" color="neutral" size="lg" @click="$emit('cancel')">
           Annuler
         </UButton>
       </div>

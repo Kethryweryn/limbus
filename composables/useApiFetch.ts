@@ -3,7 +3,7 @@ import { enqueueOfflineOperation, isQueueableApiWrite } from '~/utils/offlineSyn
 
 export function handleApiAuthError(error: any): void {
   const status = getErrorStatus(error)
-  if (!process.client || (status !== 401 && status !== 403)) return
+  if (!import.meta.client || (status !== 401 && status !== 403)) return
 
   localStorage.removeItem('offlineAuth')
   window.location.reload()
@@ -12,7 +12,7 @@ export function handleApiAuthError(error: any): void {
 export async function useApiFetch<T = unknown>(request: string, options?: any): Promise<T> {
   const requestOptions = withConcurrencyHeaders(options)
 
-  if (process.client && isQueueableApiWrite(request, requestOptions) && !navigator.onLine) {
+  if (import.meta.client && isQueueableApiWrite(request, requestOptions) && !navigator.onLine) {
     return await enqueueOfflineOperation(request, requestOptions) as T
   }
 
@@ -23,7 +23,7 @@ export async function useApiFetch<T = unknown>(request: string, options?: any): 
   } catch (error) {
     if (isServerUnavailableError(error)) {
       setServerUnavailable(true)
-      if (process.client && isQueueableApiWrite(request, requestOptions)) {
+      if (import.meta.client && isQueueableApiWrite(request, requestOptions)) {
         return await enqueueOfflineOperation(request, requestOptions) as T
       }
       throw error

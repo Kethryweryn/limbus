@@ -4,9 +4,10 @@
             {{ mode === 'edit' ? 'Modifier le personnage' : 'Créer un nouveau personnage' }}
         </template>
 
-        <form @submit.prevent="submit" class="w-full space-y-6">
+        <form class="w-full space-y-6" @submit.prevent="submit">
             <UFormField label="Jeu" :error="errors.gameId">
-                <USelect v-model="localCharacter.gameId"
+                <USelect
+v-model="localCharacter.gameId"
                     :items="props.games.map(g => ({ label: g.title, value: g.id }))" value-key="value" placeholder="Choisissez un jeu"
                     required size="lg" class="w-full" />
             </UFormField>
@@ -148,7 +149,7 @@
                 <UButton type="submit" color="primary" size="lg" :disabled="!localCharacter.name?.trim() || !localCharacter.gameId">
                     {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
                 </UButton>
-                <UButton @click="$emit('cancel')" color="neutral" size="lg">
+                <UButton color="neutral" size="lg" @click="$emit('cancel')">
                     Annuler
                 </UButton>
             </div>

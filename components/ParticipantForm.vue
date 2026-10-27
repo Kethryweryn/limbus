@@ -4,7 +4,7 @@
       {{ mode === 'edit' ? 'Modifier le participant' : 'Créer un participant' }}
     </template>
 
-    <form @submit.prevent="submit" class="w-full space-y-6">
+    <form class="w-full space-y-6" @submit.prevent="submit">
       <UFormField label="Jeux">
         <USelectMenu
           v-model="localParticipant.gameIds"

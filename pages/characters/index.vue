@@ -22,7 +22,7 @@
                     class="w-full md:w-64"
                 />
             </div>
-            <UButton @click="openCreateSlideover" color="primary">Créer un personnage</UButton>
+            <UButton color="primary" @click="openCreateSlideover">Créer un personnage</UButton>
         </div>
 
         <!-- Liste des personnages -->
@@ -108,13 +108,13 @@
         </div>
 
         <div class="flex items-center justify-center gap-4 mt-6">
-            <UButton @click="prevCharPage" :disabled="charPage === 1">← Précédent</UButton>
+            <UButton :disabled="charPage === 1" @click="prevCharPage">← Précédent</UButton>
             <span class="inline-flex items-center text-sm text-gray-500">Page {{ charPage }} / {{ totalCharPages }}</span>
-            <UButton @click="nextCharPage" :disabled="charPage === totalCharPages">Suivant →</UButton>
+            <UButton :disabled="charPage === totalCharPages" @click="nextCharPage">Suivant →</UButton>
         </div>
 
 
-    </div>
+
 
     <!-- Slideover pour création et édition -->
     <AppWideSlideover
@@ -134,7 +134,7 @@
             @cancel="closeSlideover"
         />
     </AppWideSlideover>
-
+    </div>
 </template>
 
 <script setup>

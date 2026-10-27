@@ -132,11 +132,11 @@
         </UCard>
 
         <div v-else class="flex items-center justify-center gap-4 mt-4">
-          <UButton color="neutral" variant="soft" @click="prevSectionPage(section.key)" :disabled="sectionPage(section.key) === 1">← Précédent</UButton>
+          <UButton color="neutral" variant="soft" :disabled="sectionPage(section.key) === 1" @click="prevSectionPage(section.key)">← Précédent</UButton>
           <span class="inline-flex items-center text-sm text-gray-500">
             Page {{ sectionPage(section.key) }} / {{ totalSectionPages(section) }}
           </span>
-          <UButton color="neutral" variant="soft" @click="nextSectionPage(section)" :disabled="sectionPage(section.key) === totalSectionPages(section)">Suivant →</UButton>
+          <UButton color="neutral" variant="soft" :disabled="sectionPage(section.key) === totalSectionPages(section)" @click="nextSectionPage(section)">Suivant →</UButton>
         </div>
       </section>
     </div>

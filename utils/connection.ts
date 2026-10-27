@@ -1,12 +1,12 @@
 const SERVER_UNAVAILABLE_KEY = 'limbusServerUnavailable'
 
 export function isServerUnavailable() {
-  if (!process.client) return false
+  if (!import.meta.client) return false
   return sessionStorage.getItem(SERVER_UNAVAILABLE_KEY) === 'true'
 }
 
 export function setServerUnavailable(value: boolean) {
-  if (!process.client) return
+  if (!import.meta.client) return
 
   const previousValue = isServerUnavailable()
   if (previousValue === value) return
@@ -21,7 +21,7 @@ export function setServerUnavailable(value: boolean) {
 }
 
 export function isOfflineMode() {
-  if (!process.client) return false
+  if (!import.meta.client) return false
   return !navigator.onLine || isServerUnavailable()
 }
 

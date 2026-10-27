@@ -8,12 +8,13 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "lint": "eslint . --ext .js,.vue",
-    "lint:fix": "eslint . --ext .js,.vue --fix",
-    "start": "node .output/server/index.mjs"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "start": "node .output/server/index.mjs",
+    "user:create": "tsx scripts/create-user.ts",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@faker-js/faker": "^9.7.0",
     "@nuxt/eslint": "^1.15.2",
     "@nuxt/ui": "^4.7.1",
     "@pinia/nuxt": "^0.11.3",
@@ -26,11 +27,11 @@
     "eslint": "^9.39.4",
     "idb": "^8.0.3",
     "jsonwebtoken": "^9.0.3",
-    "nodemailer": "^8.0.8",
+    "nodemailer": "^10.2.1",
     "nuxi": "^3.35.2",
     "nuxt": "^4.4.6",
-    "pg": "^8.16.3",
     "pdf-lib": "^1.17.1",
+    "pg": "^8.16.3",
     "pinia": "^3.0.4",
     "pinia-plugin-persistedstate": "^4.7.1",
     "slugify": "^1.6.9",
@@ -41,9 +42,10 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/nodemailer": "^8.0.0",
+    "h3": "^1.15.11",
     "prisma": "^7.8.0",
-    "tsx": "^4.22.3"
+    "tsx": "^4.22.3",
+    "vitest": "^5.0.5"
   },
   "overrides": {
     "@hono/node-server": "^1.19.14"

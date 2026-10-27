@@ -136,7 +136,7 @@ export async function processOfflineQueue() {
 }
 
 export function notifyQueueChanged() {
-  if (!process.client) return
+  if (!import.meta.client) return
   window.dispatchEvent(new CustomEvent('limbus:sync-queue-change'))
 }
 

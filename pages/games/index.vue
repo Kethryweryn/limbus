@@ -5,7 +5,7 @@
     <GameContextBar />
 
     <div class="flex justify-end mb-4">
-      <UButton icon="i-heroicons-plus" @click="startCreate" color="primary">
+      <UButton icon="i-heroicons-plus" color="primary" @click="startCreate">
         Créer un jeu
       </UButton>
     </div>
@@ -13,7 +13,8 @@
     <div class="flex flex-col md:flex-row justify-between gap-4 mb-4">
       <AppCheckboxRow v-model="showArchived" label="Afficher les archives" />
 
-      <UInput v-model="searchQuery" placeholder="Rechercher un jeu..." icon="i-heroicons-magnifying-glass"
+      <UInput
+v-model="searchQuery" placeholder="Rechercher un jeu..." icon="i-heroicons-magnifying-glass"
         class="flex-1" />
       <div class="text-sm text-gray-500">
         Triés par dernière activité
@@ -131,11 +132,11 @@
     </div>
 
     <div class="flex items-center justify-center gap-4 mt-6">
-      <UButton @click="prevPage" :disabled="page === 1">← Précédent</UButton>
+      <UButton :disabled="page === 1" @click="prevPage">← Précédent</UButton>
       <span class="inline-flex items-center text-sm text-gray-500">Page {{ page }} / {{ totalPages }}</span>
-      <UButton @click="nextPage" :disabled="page === totalPages">Suivant →</UButton>
+      <UButton :disabled="page === totalPages" @click="nextPage">Suivant →</UButton>
     </div>
-  </div>
+
 
   <!-- Slideover formulaire -->
   <AppWideSlideover
@@ -155,7 +156,7 @@
   </AppWideSlideover>
 
   <GameShareModal v-model:open="showShares" :game="shareGame" />
-
+  </div>
 </template>
 
 <script setup>

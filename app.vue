@@ -107,7 +107,7 @@ async function hasValidOfflineAuth() {
 }
 
 const checkAuth = async (forceServerCheck = false) => {
-  if (!process.client) return
+  if (!import.meta.client) return
   if (authCheckInProgress) return
 
   authCheckInProgress = true
@@ -193,7 +193,7 @@ const refreshQueueState = async () => {
 }
 
 const syncPendingChanges = async () => {
-  if (!process.client || syncing.value || !navigator.onLine) return
+  if (!import.meta.client || syncing.value || !navigator.onLine) return
 
   const queue = await getOfflineQueue()
   const pending = queue.filter((operation) => operation.status === 'pending')

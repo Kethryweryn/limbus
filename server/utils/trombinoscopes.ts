@@ -611,5 +611,6 @@ function pdfSafeText(value: string) {
     .replace(/[“”]/g, '"')
     .replace(/[–—]/g, '-')
     .replace(/…/g, '...')
+    // eslint-disable-next-line no-control-regex -- garde volontairement tab, LF et CR (encodage WinAnsi)
     .replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g, '')
 }

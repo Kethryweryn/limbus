@@ -4,7 +4,8 @@
         <!-- Header -->
         <header class="flex items-center justify-between p-4 bg-white shadow-md">
             <div class="flex items-center gap-3">
-                <UButton icon="i-heroicons-bars-3" color="neutral" variant="ghost" class="md:hidden"
+                <UButton
+icon="i-heroicons-bars-3" color="neutral" variant="ghost" class="md:hidden"
                     @click="mobileOpen = true" />
                 <NuxtLink to="/" class="flex items-center">
                     <img
