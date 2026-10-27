@@ -35,7 +35,10 @@ npm run lint
 npm run typecheck
 npm test
 npm run build
+TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/limbus_test npm run test:integration
 ```
+
+Les tests d'intégration vident la base indiquée : son nom doit contenir « test ».
 
 Sous Windows, `npm run build` échoue à l'étape de prérendu (« File URL path must be absolute »). C'est une limite de l'environnement : le build est vérifié sous Linux par la CI.
 
@@ -52,7 +55,7 @@ Sous Windows, `npm run build` échoue à l'étape de prérendu (« File URL path
 
 Serveur Debian derrière Apache (reverse proxy HTTPS). L'application tourne sous l'utilisateur système `limbus`, dans un service systemd durci, et n'écoute que sur `127.0.0.1:3000`.
 
-- **Déployer** : `/var/www/limbus/deploy.sh` (en root). Le script fait `git pull`, construit dans un dossier temporaire, applique les migrations, remplace `.output` puis redémarre le service. L'ancienne version reste dans `.output-prev`.
+- **Déployer** : automatique après chaque push sur `main` dont la CI passe. À la main : `/var/www/limbus/deploy.sh` (en root). Le script fait `git pull`, construit dans un dossier temporaire, applique les migrations, remplace `.output` puis redémarre le service. L'ancienne version reste dans `.output-prev`.
 - **(Ré)installer le service** : `install-service.sh`.
 - **Créer un compte ou changer un mot de passe** : `cd /var/www/limbus && npm run user:create`.
 - **Données runtime** : les uploads (photos, RIB) sont dans `.data/uploads`, hors Git, et ne doivent jamais être supprimés au déploiement. Le `.env` est en `root:600` : systemd le lit avant de passer à l'utilisateur `limbus`.

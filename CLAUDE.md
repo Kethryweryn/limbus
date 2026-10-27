@@ -4,9 +4,9 @@ Outil d'organisation de GN (Nuxt 4, Nuxt UI 4, Prisma 7 / PostgreSQL). Contexte 
 
 ## Avant de considérer un changement terminé
 
-`npm run lint`, `npm run typecheck` et `npm test` doivent passer. Le build complet est vérifié par la CI (GitHub Actions), car il échoue sous Windows au prérendu.
+`npm run lint`, `npm run typecheck` et `npm test` doivent passer. Le build et les tests d'intégration tournent dans la CI (GitHub Actions) ; sous Windows, le build échoue au prérendu.
 
-On travaille directement sur `main` ; chaque push déclenche la CI. Le déploiement est manuel, avec `deploy.sh` sur le serveur.
+On travaille directement sur `main`. Chaque push déclenche la CI, et **si elle passe, le commit est déployé automatiquement en production** (job `deploy`, qui lance `deploy.sh <sha>` sur le serveur). Un push sur main est donc une mise en production.
 
 ## Sécurité des routes API
 
@@ -21,6 +21,8 @@ On travaille directement sur `main` ; chaque push déclenche la CI. Le déploiem
 - Les fichiers uploadés sont servis par des routes qui vérifient les droits, jamais en statique. On vérifie le type réel (signature) et on renomme avec un UUID.
 - Les liens absolus (emails, PDF) passent par `absoluteAppUrl()`, jamais par les en-têtes Host.
 - L'IP client pour le rate limit est la dernière entrée de `X-Forwarded-For`, ajoutée par Apache (voir `clientIp`).
+- Jamais de `process.env.X` dans `nuxt.config.ts` pour un secret : la valeur serait figée en clair dans `.output` au build. `runtimeConfig` reste vide, et le code lit `useRuntimeConfig().x || process.env.X` à l'exécution.
+- Toute nouvelle route ou ressource liée à un jeu doit être ajoutée à `tests/integration/isolation.test.ts`.
 
 ## Conventions API
 
@@ -37,4 +39,6 @@ On travaille directement sur `main` ; chaque push déclenche la CI. Le déploiem
 
 ## Tests
 
-Vitest (`tests/`). `tests/setup.ts` recrée les auto-imports Nitro (`createError`, `getHeader`, `useRuntimeConfig`…) et remplace Prisma par un objet vide. Dans un test, on lui assigne les méthodes nécessaires (voir `tests/server/auth.test.ts`). `h3` est fixé en v1 en devDependency pour correspondre à Nitro.
+Intégration (`tests/integration/`) : l'application compilée tourne contre une base PostgreSQL jetable, dont le nom doit contenir « test » car elle est vidée. Le scénario : deux organisatrices, Alice et Bob, et une co-organisatrice ; on vérifie qu'Alice n'atteint rien du jeu de Bob, avec un témoin positif à chaque fois. Lancement : `npm run build && TEST_DATABASE_URL=postgresql://…/limbus_test npm run test:integration`. En local sous Windows, il faut passer par un conteneur Linux.
+
+Unitaires : Vitest (`tests/`). `tests/setup.ts` recrée les auto-imports Nitro (`createError`, `getHeader`, `useRuntimeConfig`…) et remplace Prisma par un objet vide. Dans un test, on lui assigne les méthodes nécessaires (voir `tests/server/auth.test.ts`). `h3` est fixé en v1 en devDependency pour correspondre à Nitro.
