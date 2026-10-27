@@ -2,7 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { readZodBody, sessionSchema } from '~/server/utils/schemas'
 import { requireGameAccess, requireSessionAccess } from '~/server/utils/gameAccess'
-import { assertSessionCastRules, normalizeAssignments, normalizeSessionParticipants } from '~/server/utils/sessionAssignments'
+import { assertSessionCastRules, assertSessionLocation, normalizeAssignments, normalizeSessionParticipants } from '~/server/utils/sessionAssignments'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
@@ -28,6 +28,7 @@ export default defineEventHandler(async (event) => {
   const assignments = normalizeAssignments(body.assignments)
   const participants = normalizeSessionParticipants(body.participants, assignments)
   await assertSessionCastRules(gameId, participants, assignments)
+  await assertSessionLocation(gameId, locationId)
 
   return await prisma.session.update({
     where: { id: existingSession.id },

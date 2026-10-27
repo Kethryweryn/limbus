@@ -66,6 +66,18 @@ export function normalizeSessionParticipants(participants: Array<{
   return [...normalized.values()]
 }
 
+export async function assertSessionLocation(gameId: string, locationId?: string | null) {
+  if (!locationId) return
+
+  const location = await prisma.location.findFirst({
+    where: { id: locationId, gameId },
+    select: { id: true }
+  })
+  if (!location) {
+    throw createError({ statusCode: 400, message: 'Lieu invalide pour ce jeu' })
+  }
+}
+
 export async function assertSessionCastRules(
   gameId: string,
   sessionParticipants: ReturnType<typeof normalizeSessionParticipants>,

@@ -15,14 +15,17 @@ type RateLimitBucket = {
 const buckets = new Map<string, RateLimitBucket>()
 let cleanupCounter = 0
 
-function clientIp(event: H3Event) {
+const TRUSTED_PROXIES = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1'])
+
+// Seul le reverse proxy local est cru : il ajoute l'IP réelle en DERNIER dans
+// X-Forwarded-For. Les valeurs précédentes viennent du client et sont falsifiables.
+export function clientIp(event: H3Event) {
+  const remoteAddress = event.node.req.socket.remoteAddress || 'unknown'
+  if (!TRUSTED_PROXIES.has(remoteAddress)) return remoteAddress
+
   const forwardedFor = getHeader(event, 'x-forwarded-for')
-  const forwardedValue = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor
-  const firstForwardedIp = forwardedValue?.split(',')[0]?.trim()
-  return firstForwardedIp
-    || getHeader(event, 'x-real-ip')
-    || event.node.req.socket.remoteAddress
-    || 'unknown'
+  const lastForwardedIp = forwardedFor?.split(',').at(-1)?.trim()
+  return lastForwardedIp || remoteAddress
 }
 
 function cleanExpiredBuckets(now: number) {

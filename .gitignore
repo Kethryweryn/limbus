@@ -26,7 +26,7 @@ logs
 # Certificats
 certs
 
-scripts
+scripts/decrypt-smtp-password.ts
 
 # Prisma generated client
 generated/prisma
