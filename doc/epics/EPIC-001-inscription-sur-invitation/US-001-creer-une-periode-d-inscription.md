@@ -35,6 +35,8 @@ Reporté aux US qui créent les inscriptions :
 - l'interdiction de supprimer une période qui a des inscriptions, au profit de sa clôture (US-003) ;
 - le refus des modifications par les inscrits après la clôture (R6, R13 : US-004).
 
+> Depuis [US-009](US-009-page-inscriptions.md), cette section n'est plus sur la fiche du jeu, qui sert à l'écriture : elle est sur la page « Inscriptions » du menu Organisation (R33).
+
 ## Réalisation
 
 - Modèle : `RegistrationPeriod` et `RegistrationPeriodSession`, migration `20261028100000_add_registration_periods`. `publicId` est déjà généré pour le futur lien de diffusion (R32).

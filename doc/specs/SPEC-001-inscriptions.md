@@ -37,7 +37,7 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 
 ### Organisateur : préparer une période d'inscription
 
-1. Il crée la période d'inscription depuis le jeu : pour une ou plusieurs sessions précises, ou pour tout le jeu (inscription permanente).
+1. Depuis la page « Inscriptions » du menu Organisation (R33), il crée la période d'inscription d'un jeu : pour une ou plusieurs sessions précises, ou pour tout le jeu (inscription permanente).
 2. Il choisit le mode d'entrée, le mode de sélection, le calendrier, les places par session, le délai de confirmation et le traitement des rejoueurs.
 3. Il choisit le formulaire du jeu, ou le crée.
 4. Il ouvre la période d'inscription. En mode formulaire, il copie le lien de diffusion pour ses annonces, et un lien d'inscription apparaît sur la page publique du jeu.
@@ -154,6 +154,13 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
   - fournit un aperçu pour les réseaux sociaux (balises Open Graph : nom du jeu, sessions concernées et leurs dates, début de la note d'intention) ;
   - affiche « inscriptions closes » une fois la période clôturée, au lieu d'une erreur.
 
+### Place dans l'application
+
+- **R33** Les inscriptions relèvent de l'**organisation**, pas de l'écriture du jeu :
+  - le menu de gauche a une entrée « Inscriptions » dans la section Organisation, juste au-dessus de « Participants » ;
+  - elle mène à une page qui liste les périodes d'inscription, regroupées par jeu, avec pour chaque jeu l'accès à son formulaire d'inscription. Elle suit le jeu actif comme les autres pages d'organisation ; sans jeu actif, un filtre par jeu est proposé ;
+  - les pages d'écriture (fiche du jeu, personnages…) n'affichent rien des inscriptions.
+
 ## Données
 
 À créer, en plus de l'existant :
@@ -188,7 +195,7 @@ Données personnelles :
 
 Chaque lot devient un epic, livrable seul :
 
-1. Période d'inscription et mode invitation (R1 à R3, R5, R6, R8 pour la note d'intention et les champs standards, R12 à R16, R20, R22). Voir [EPIC-001](../epics/EPIC-001-inscription-sur-invitation/README.md).
+1. Période d'inscription et mode invitation (R1 à R3, R5, R6, R8 pour la note d'intention et les champs standards, R12 à R16, R20, R22, R33). Voir [EPIC-001](../epics/EPIC-001-inscription-sur-invitation/README.md).
 2. Formulaire public, inscription permanente et lien de diffusion (R8 au complet, R9 à R11, R13, R30 à R32). L'epic 1 prévoit déjà la portée dans le modèle.
 3. Sélection (R4, R7, R17 à R21).
 4. Affinités (R23 à R25).
@@ -206,3 +213,4 @@ Chaque lot devient un epic, livrable seul :
 - 2026-10-27 : création à partir de la fiche todo.
 - 2026-10-27 : « campagne » renommé « période d'inscription » (le mot a un autre sens en GN). En mode invitation, accepter vaut confirmation (R16). Un délai dépassé est signalé, puis traité par les orgas (R20). Les inscrits confirmés sans personnage apparaissent dans les paiements (R22). La fiche allergies (R15) passe au lot 1, qui collecte les allergies.
 - 2026-10-28 : les orgas annoncent leurs jeux et sessions avec un lien vers le formulaire, valable pour une session, quelques sessions, ou tout le jeu. Ajout de l'inscription permanente, qui couvre toutes les sessions présentes et futures (R1, R10, R30, R31), et du lien de diffusion avec aperçu pour les réseaux sociaux (R32).
+- 2026-10-28 : les inscriptions quittent la fiche du jeu pour une page « Inscriptions » dans la section Organisation du menu (R33) ; la fiche du jeu sert à l'écriture.

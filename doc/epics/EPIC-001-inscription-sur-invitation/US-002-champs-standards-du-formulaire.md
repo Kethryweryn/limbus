@@ -13,7 +13,7 @@ En tant qu'organisatrice, je veux choisir les informations demandées aux inscri
 
 ## Critères d'acceptation
 
-- [ ] Chaque jeu a un formulaire d'inscription, réglable depuis l'onglet « Inscriptions ».
+- [ ] Chaque jeu a un formulaire d'inscription, réglable depuis son bloc sur la page « Inscriptions » (bouton « Formulaire », [US-009](US-009-page-inscriptions.md)).
 - [ ] Le formulaire affiche en ouverture la note d'intention du jeu, suivie d'une case « J'ai lu la note d'intention et j'y adhère », toujours obligatoire.
 - [ ] Champs standards, chacun avec deux réglages, « demandé » et « obligatoire » : nom, prénom, nom Facebook, téléphone, contact d'urgence (nom et téléphone), allergies et intolérances. L'email est toujours demandé et obligatoire.
 - [ ] Par défaut, sont demandés : nom, prénom, téléphone, contact d'urgence et allergies.

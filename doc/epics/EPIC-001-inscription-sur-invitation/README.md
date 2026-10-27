@@ -19,7 +19,7 @@ Organiser une session sur invitation de bout en bout :
 
 Le formulaire public, le tirage au sort et le casting viennent dans les epics suivants ; le modèle de données les prévoit dès maintenant (plusieurs sessions, modes de sélection, versions du formulaire).
 
-Règles couvertes : R1 à R3, R5, R6, R8 (note d'intention et champs standards), R12 à R16, R20, R22 de [SPEC-001](../../specs/SPEC-001-inscriptions.md).
+Règles couvertes : R1 à R3, R5, R6, R8 (note d'intention et champs standards), R12 à R16, R20, R22, R33 de [SPEC-001](../../specs/SPEC-001-inscriptions.md).
 
 ## US
 
@@ -33,8 +33,9 @@ Règles couvertes : R1 à R3, R5, R6, R8 (note d'intention et champs standards),
 | [US-006](US-006-desistement.md) | Désistement d'une personne confirmée | à faire |
 | [US-007](US-007-inscrits-dans-les-paiements.md) | Inscrits confirmés dans le tableau des paiements | à faire |
 | [US-008](US-008-fiche-allergies.md) | Fiche allergies de la session | à faire |
+| [US-009](US-009-page-inscriptions.md) | Page Inscriptions dans le menu Organisation | à faire |
 
-Ordre conseillé : US-001 → US-002 → US-003 → US-004, puis US-005 à US-008 dans n'importe quel ordre. Chaque US fait l'objet d'une PR ([ADR-0017](../../adr/ADR-0017-branches-et-pull-requests.md)).
+Ordre conseillé : US-001 → US-009 → US-002 → US-003 → US-004, puis US-005 à US-008 dans n'importe quel ordre. Chaque US fait l'objet d'une PR ([ADR-0017](../../adr/ADR-0017-branches-et-pull-requests.md)).
 
 ## Définition de terminé
 
