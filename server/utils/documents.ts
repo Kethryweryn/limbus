@@ -126,12 +126,8 @@ export async function getSessionDocumentDashboard(sessionId: string) {
       targetLabel: 'Équipe cuisine'
     }))
 
-  const uniqueRecipients = (recipients: Array<{
-    participant: { id: string }
-    character: { id: string, name: string } | null
-    targetLabel: string
-  }>) => {
-    const byParticipantId = new Map<string, typeof recipients[number]>()
+  const uniqueRecipients = <Recipient extends { participant: { id: string } }>(recipients: Recipient[]) => {
+    const byParticipantId = new Map<string, Recipient>()
     for (const recipient of recipients) {
       if (!byParticipantId.has(recipient.participant.id)) {
         byParticipantId.set(recipient.participant.id, recipient)

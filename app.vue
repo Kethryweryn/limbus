@@ -149,7 +149,7 @@ const checkAuth = async (forceServerCheck = false) => {
     return
   }
 
-  if (authData?.authenticated && authData?.user) {
+  if (authData?.authenticated && 'user' in authData && authData.user) {
     authenticated.value = true
 
     const payload = {

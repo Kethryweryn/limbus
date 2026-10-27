@@ -87,7 +87,7 @@ export async function getSessionPaymentDashboard(sessionId: string) {
       const payment = paymentsByParticipantId.get(assignment.participantId!)
 
       return {
-        participant: assignment.participant,
+        participant: assignment.participant!,
         character: assignment.character,
         paidAt: payment?.paidAt || null,
         paymentEmailSentAt: payment?.paymentEmailSentAt || null,

@@ -19,15 +19,10 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-04-07',
   devtools: { enabled: true },
   modules: ['@nuxt/ui', '@nuxt/eslint', '@pinia/nuxt', '@vite-pwa/nuxt'],
-  ui: {
-    icons: ['heroicons']
-  },
   devServer: {
     host: '0.0.0.0',
     port: 3000,
   },
-  serverMiddleware: [
-  ],
   pwa: {
     registerType: 'autoUpdate',
     injectRegister: false,

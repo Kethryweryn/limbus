@@ -461,7 +461,7 @@ async function createParticipantPhotos(gameId: string, participants: Array<{ id:
 function createSeedPortraitPng(seed: number) {
   const width = 180
   const height = 240
-  const palette = [
+  const palette: Array<[number, number, number]> = [
     [79, 70, 229],
     [14, 165, 233],
     [16, 185, 129],
@@ -471,8 +471,8 @@ function createSeedPortraitPng(seed: number) {
     [20, 184, 166],
     [249, 115, 22]
   ]
-  const accent = palette[seed % palette.length]
-  const bg = palette[(seed + 3) % palette.length]
+  const accent = palette[seed % palette.length]!
+  const bg = palette[(seed + 3) % palette.length]!
   const data = Buffer.alloc((width * 4 + 1) * height)
 
   for (let y = 0; y < height; y++) {
@@ -833,7 +833,7 @@ async function createGame(seed: GameSeed, gameIndex: number, ownerId?: string) {
       }
     })
   ))
-  const characterByName = new Map(characters.map((character, index) => [seed.characters[index].name, character]))
+  const characterByName = new Map(characters.map((character, index) => [seed.characters[index]!.name, character]))
 
   const factions = await Promise.all(seed.factions.map((faction) =>
     prisma.faction.create({
@@ -854,7 +854,7 @@ async function createGame(seed: GameSeed, gameIndex: number, ownerId?: string) {
       }
     })
   ))
-  const factionByName = new Map(factions.map((faction, index) => [seed.factions[index].name, faction]))
+  const factionByName = new Map(factions.map((faction, index) => [seed.factions[index]!.name, faction]))
 
   const intrigues = await Promise.all(seed.intrigues.map((intrigue) =>
     prisma.intrigue.create({
@@ -883,7 +883,7 @@ async function createGame(seed: GameSeed, gameIndex: number, ownerId?: string) {
       }
     })
   ))
-  const intrigueByName = new Map(intrigues.map((intrigue, index) => [seed.intrigues[index].name, intrigue]))
+  const intrigueByName = new Map(intrigues.map((intrigue, index) => [seed.intrigues[index]!.name, intrigue]))
 
   const participants = []
   for (const participant of seed.participants) {
@@ -1020,16 +1020,16 @@ async function createTrombinoscopeEntries(characters: Array<{ id: string, type: 
   await prisma.characterTrombinoscopeEntry.createMany({
     data: [
       {
-        viewerCharacterId: pjCharacters[0].id,
-        targetCharacterId: pjCharacters[1].id,
+        viewerCharacterId: pjCharacters[0]!.id,
+        targetCharacterId: pjCharacters[1]!.id,
         included: true,
         faceKnown: true,
         displayName: 'Contact à confirmer',
         note: 'Le personnage pense reconnaître cette personne, sans certitude.'
       },
       {
-        viewerCharacterId: pjCharacters[0].id,
-        targetCharacterId: pjCharacters[2].id,
+        viewerCharacterId: pjCharacters[0]!.id,
+        targetCharacterId: pjCharacters[2]!.id,
         included: true,
         faceKnown: false,
         note: 'Nom connu, visage inconnu au début de la session.'

@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     data: {
       title,
       slug,
-      description,
+      description: description ?? '',
       teaserUrl,
       noteIntention,
       ownerId: user.id,

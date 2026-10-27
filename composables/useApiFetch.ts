@@ -19,7 +19,7 @@ export async function useApiFetch<T = unknown>(request: string, options?: any): 
   try {
     const result = await $fetch<T>(request, requestOptions)
     setServerUnavailable(false)
-    return result
+    return result as T
   } catch (error) {
     if (isServerUnavailableError(error)) {
       setServerUnavailable(true)

@@ -23,35 +23,37 @@ export function getAuthToken(event: H3Event): string | undefined {
   return getCookie(event, 'limbus_token')
 }
 
-export function getAuthUser(event: H3Event): any | null {
+declare module 'h3' {
+  interface H3EventContext {
+    authUser?: AuthUser
+  }
+}
+
+type AuthTokenPayload = jwt.JwtPayload & { id?: unknown }
+
+export function getAuthUser(event: H3Event): AuthTokenPayload | null {
   const token = getAuthToken(event)
   if (!token) return null
 
   try {
-    return jwt.verify(token, getJwtSecret())
+    const payload = jwt.verify(token, getJwtSecret(), { algorithms: ['HS256'] })
+    return typeof payload === 'object' ? payload : null
   } catch {
     return null
   }
 }
 
 export async function requireAuthUser(event: H3Event): Promise<AuthUser> {
-  const context = event.context as any
-  const cachedUser = context.authUser as AuthUser | undefined
-  if (cachedUser) return cachedUser
+  if (event.context.authUser) return event.context.authUser
 
-  const payload = getAuthUser(event)
-  if (!payload || typeof payload !== 'object') {
+  // Le jeton n'est qu'une référence : rôle et email sont relus en base à chaque requête
+  const id = getAuthUser(event)?.id
+  if (typeof id !== 'string' || !id) {
     throw createError({ statusCode: 401, message: 'Unauthorized' })
   }
 
-  const id = 'id' in payload ? String((payload as any).id || '') : ''
-  const email = 'email' in payload ? String((payload as any).email || '') : ''
-  if (!id && !email) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-
-  const user = await prisma.user.findFirst({
-    where: id ? { id } : { email },
+  const user = await prisma.user.findUnique({
+    where: { id },
     select: {
       id: true,
       email: true,
@@ -64,7 +66,7 @@ export async function requireAuthUser(event: H3Event): Promise<AuthUser> {
     throw createError({ statusCode: 401, message: 'Unauthorized' })
   }
 
-  context.authUser = user
+  event.context.authUser = user
   return user
 }
 
@@ -85,7 +87,7 @@ export async function requireRole(event: H3Event, allowedRoles: string[]): Promi
 
 export async function requireOrganizer(event: H3Event): Promise<AuthUser> {
   const user = await requireAuthUser(event)
-  if (![USER_ROLES.organizer, USER_ROLES.admin].includes(user.role)) {
+  if (!([USER_ROLES.organizer, USER_ROLES.admin] as string[]).includes(user.role)) {
     throw createError({ statusCode: 403, message: 'Forbidden' })
   }
   return user

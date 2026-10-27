@@ -35,7 +35,7 @@ async function main() {
 
   const name = existing ? '' : await ask('Nom : ')
   const roleAnswer = existing ? existing.role : (await ask('Rôle (admin/organizer) [organizer] : ')) || USER_ROLES.organizer
-  if (![USER_ROLES.admin, USER_ROLES.organizer].includes(roleAnswer)) throw new Error('Rôle invalide')
+  if (!([USER_ROLES.admin, USER_ROLES.organizer] as string[]).includes(roleAnswer)) throw new Error('Rôle invalide')
 
   const password = await ask('Mot de passe : ', true)
   if (password.length < MIN_PASSWORD_LENGTH) {

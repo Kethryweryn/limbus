@@ -72,7 +72,7 @@ export function assertRateLimit(event: H3Event, options: RateLimitOptions) {
 
   if (bucket.count > options.limit) {
     const retryAfterSeconds = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000))
-    setHeader(event, 'Retry-After', String(retryAfterSeconds))
+    setHeader(event, 'Retry-After', retryAfterSeconds)
     throw createError({
       statusCode: 429,
       message: 'Trop de tentatives. Réessaie dans quelques minutes.'
@@ -81,6 +81,6 @@ export function assertRateLimit(event: H3Event, options: RateLimitOptions) {
 }
 
 export function authUserRateLimitKey(event: H3Event) {
-  const user = (event.context as any).authUser
+  const user = event.context.authUser
   return user?.id || user?.email || 'anonymous'
 }

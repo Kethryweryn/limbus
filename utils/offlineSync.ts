@@ -30,19 +30,19 @@ const STORE_BY_API_PREFIX: Record<string, string> = {
 }
 
 function normalizedPath(request: string) {
-  return request.split('?')[0].replace(/^\/+/, '')
+  return (request.split('?')[0] || '').replace(/^\/+/, '')
 }
 
 function apiResource(request: string) {
   const path = normalizedPath(request)
   const parts = path.split('/')
-  return parts[0] === 'api' ? parts[1] : ''
+  return parts[0] === 'api' ? parts[1] || '' : ''
 }
 
 function apiEntityId(request: string) {
   const path = normalizedPath(request)
   const parts = path.split('/')
-  return parts[0] === 'api' ? parts[2] : ''
+  return parts[0] === 'api' ? parts[2] || '' : ''
 }
 
 export function isQueueableApiWrite(request: string, options?: any) {
