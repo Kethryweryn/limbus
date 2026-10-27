@@ -35,7 +35,9 @@ rsync -a --delete \
   "$APP_DIR/" "$BUILD_DIR/"
 
 cd "$BUILD_DIR"
-ln -s "$APP_DIR/node_modules" node_modules
+# Installation propre : un node_modules en lien symbolique casse la résolution
+# des imports internes de Nuxt (#internal/nuxt/paths) au prérendu
+npm ci --include=dev
 npm run build
 
 cd "$APP_DIR"
