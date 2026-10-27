@@ -108,3 +108,34 @@ export const GAME_INVITATION_STATUSES = {
   accepted: 'accepted',
   revoked: 'revoked'
 } as const
+
+// Périodes d'inscription (SPEC-001)
+export const REGISTRATION_PERIOD_SCOPES = {
+  sessions: 'sessions',
+  game: 'game'
+} as const
+
+export const REGISTRATION_ENTRY_MODES = {
+  invitation: 'invitation',
+  form: 'form'
+} as const
+
+export const REGISTRATION_SELECTION_MODES = {
+  random: 'random',
+  chosen: 'chosen',
+  mixed: 'mixed'
+} as const
+
+export const REGISTRATION_PERIOD_STATES = {
+  draft: 'draft',
+  open: 'open',
+  closed: 'closed'
+} as const
+
+export const REGISTRATION_PERIOD_STATE_META = {
+  [REGISTRATION_PERIOD_STATES.draft]: { label: 'Brouillon', color: 'neutral' },
+  [REGISTRATION_PERIOD_STATES.open]: { label: 'Ouverte', color: 'success' },
+  [REGISTRATION_PERIOD_STATES.closed]: { label: 'Clôturée', color: 'warning' }
+} as const
+
+export const REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS = 7

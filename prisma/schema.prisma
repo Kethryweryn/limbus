@@ -34,6 +34,7 @@ model Game {
   participantLinks ParticipantGame[]
   shares         GameShare[]
   invitations    GameInvitation[]
+  registrationPeriods RegistrationPeriod[]
 
   @@index([ownerId])
 }
@@ -219,6 +220,43 @@ model Session {
   trombinoscopes SessionTrombinoscope[]
   payments SessionPayment[]
   uploadedFiles UploadedFile[]
+  registrationPeriodLink RegistrationPeriodSession?
+}
+
+// Période d'inscription : recrutement des PJ de sessions précises (scope "sessions")
+// ou de tout le jeu (scope "game", inscription permanente). Voir SPEC-001 et ADR-0019.
+model RegistrationPeriod {
+  id                String   @id @default(cuid())
+  gameId            String
+  game              Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  name              String
+  scope             String   @default("sessions")
+  // Identifiant aléatoire du lien de diffusion (R32), distinct de l'id et du slug du jeu
+  publicId          String   @unique
+  entryMode         String   @default("invitation")
+  selectionMode     String   @default("chosen")
+  // Clôture effective : state "closed", ou state "open" et closesAt passé (ADR-0020)
+  state             String   @default("draft")
+  closesAt          DateTime?
+  responseDelayDays Int      @default(7)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  sessions          RegistrationPeriodSession[]
+
+  @@index([gameId])
+}
+
+model RegistrationPeriodSession {
+  id        String             @id @default(cuid())
+  periodId  String
+  period    RegistrationPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  // Une session n'appartient qu'à une période d'inscription dédiée (R1)
+  sessionId String             @unique
+  session   Session            @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  seats     Int
+
+  @@index([periodId])
 }
 
 model SessionAssignment {

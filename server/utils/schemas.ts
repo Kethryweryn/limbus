@@ -4,6 +4,9 @@ import {
   CHARACTER_TYPES,
   DOCUMENT_AUDIENCES,
   INTRIGUE_LEVELS,
+  REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS,
+  REGISTRATION_ENTRY_MODES,
+  REGISTRATION_PERIOD_STATES,
   SESSION_ROLES,
   SESSION_STATUSES,
   USER_ROLES
@@ -274,6 +277,29 @@ export const sessionSchema = z.object({
   published: optionalBoolean,
   assignments: z.array(sessionAssignmentSchema).optional(),
   participants: z.array(sessionParticipantSchema).optional().default([])
+})
+
+const registrationPeriodSessionSchema = z.object({
+  sessionId: requiredId('Session'),
+  // Absent : le nombre de personnages PJ du jeu (R5)
+  seats: z.number().int().min(0).max(1000).optional().nullable()
+})
+
+export const registrationPeriodSchema = z.object({
+  name: requiredText('Name'),
+  gameId: requiredId('Game'),
+  // Le formulaire public et l'inscription permanente arrivent avec EPIC-002
+  entryMode: z.enum([REGISTRATION_ENTRY_MODES.invitation]).default(REGISTRATION_ENTRY_MODES.invitation),
+  state: z.enum([
+    REGISTRATION_PERIOD_STATES.draft,
+    REGISTRATION_PERIOD_STATES.open,
+    REGISTRATION_PERIOD_STATES.closed
+  ]).default(REGISTRATION_PERIOD_STATES.draft),
+  closesAt: optionalText.refine((value) => !value || !Number.isNaN(new Date(value).getTime()), 'Invalid date'),
+  responseDelayDays: z.number().int().min(1).max(90).default(REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS),
+  sessions: z.array(registrationPeriodSessionSchema)
+    .min(1, 'At least one session is required')
+    .refine((sessions) => new Set(sessions.map((session) => session.sessionId)).size === sessions.length, 'Duplicate session')
 })
 
 export const loginSchema = z.object({

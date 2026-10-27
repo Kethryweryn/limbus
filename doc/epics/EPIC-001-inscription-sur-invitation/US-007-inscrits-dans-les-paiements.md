@@ -16,7 +16,7 @@ En tant qu'organisatrice, je veux suivre le paiement des personnes confirmées d
 - [ ] Le tableau des paiements d'une session liste les participants qui ont un personnage PJ, comme aujourd'hui, et aussi les participants de rôle « participant » sans personnage. Ces derniers apparaissent avec la mention « personnage à attribuer ».
 - [ ] Une personne n'apparaît qu'une fois, même si elle a un personnage et un rôle de participant.
 - [ ] L'envoi des emails de paiement, les relances et le marquage « payé » fonctionnent pour ces lignes. Le texte de l'email ne mentionne pas de personnage quand il n'y en a pas.
-- [ ] Les PNJ et l'équipe cuisine restent hors du tableau, comme aujourd'hui.
+- [ ] Le reste du tableau ne change pas : les participants qui ont un personnage PJ ou PNJ y figurent déjà (`isPlayableCharacterType`), l'équipe cuisine et les orgas sans personnage n'y sont pas.
 
 ## Notes techniques
 
