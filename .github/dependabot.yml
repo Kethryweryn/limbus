@@ -1,0 +1,35 @@
+# Mises à jour des dépendances : une PR par semaine regroupant les versions mineures et correctifs,
+# une PR par mise à jour majeure (à lire avant de fusionner). La CI valide chaque PR ;
+# fusionner dans main la déploie en production.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Paris
+    # Attendre qu'une version ait quelques jours : une version piégée est souvent retirée entre-temps
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'Dépendances'
+    groups:
+      mineures-et-correctifs:
+        update-types: [minor, patch]
+    ignore:
+      # h3 est fixé en v1 pour correspondre à Nitro (voir CLAUDE.md)
+      - dependency-name: h3
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: 'CI'
+    groups:
+      actions:
+        patterns: ['*']
