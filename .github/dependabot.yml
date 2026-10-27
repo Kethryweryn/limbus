@@ -13,7 +13,8 @@ updates:
     # Attendre qu'une version ait quelques jours : une version piégée est souvent retirée entre-temps
     cooldown:
       default-days: 7
-    open-pull-requests-limit: 5
+    # Assez de place pour que la PR groupée ne soit pas bloquée par les PR de versions majeures
+    open-pull-requests-limit: 10
     commit-message:
       prefix: 'Dépendances'
     groups:
@@ -22,6 +23,16 @@ updates:
     ignore:
       # h3 est fixé en v1 pour correspondre à Nitro (voir CLAUDE.md)
       - dependency-name: h3
+        update-types: [version-update:semver-major]
+      # Majeures qui ne passent pas encore la CI (octobre 2026), à reprendre ensemble plus tard :
+      # TypeScript 7 n'est pas encore pris en charge par typescript-eslint,
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      # assets-generator 2 change les types du module d'icônes : à monter avec @vite-pwa/nuxt,
+      - dependency-name: '@vite-pwa/assets-generator'
+        update-types: [version-update:semver-major]
+      # @pinia/nuxt 1 exige Pinia 4 : à monter avec pinia et pinia-plugin-persistedstate
+      - dependency-name: '@pinia/nuxt'
         update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
