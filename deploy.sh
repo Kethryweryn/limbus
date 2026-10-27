@@ -18,9 +18,31 @@ if ! command -v rsync >/dev/null 2>&1; then
   exit 1
 fi
 
+# Un seul déploiement à la fois (manuel ou depuis la CI)
+exec 9>/run/limbus-deploy.lock
+if ! flock -n 9; then
+  echo "Un déploiement est déjà en cours."
+  exit 1
+fi
+
 cd "$APP_DIR"
 
-git pull
+# Depuis la CI (clé SSH à commande forcée), SSH_ORIGINAL_COMMAND porte le commit validé :
+# on avance main exactement jusqu'à lui, jamais au-delà. Sans argument : dernier commit de main.
+DEPLOY_SHA="${1:-${SSH_ORIGINAL_COMMAND:-}}"
+if [ -n "$DEPLOY_SHA" ]; then
+  if ! [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+    echo "Commit invalide : $DEPLOY_SHA"
+    exit 1
+  fi
+  git fetch origin main
+  git merge-base --is-ancestor "$DEPLOY_SHA" origin/main || { echo "$DEPLOY_SHA n'est pas sur main"; exit 1; }
+  git merge --ff-only "$DEPLOY_SHA"
+else
+  git pull --ff-only
+fi
+echo "Déploiement de $(git rev-parse --short HEAD) : $(git log -1 --format=%s)"
+
 npm ci --include=dev
 npx prisma generate
 
