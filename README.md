@@ -1,83 +1,59 @@
-# Nuxt Minimal Starter
+# Limbus
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Outil d'organisation de jeux de rôle grandeur nature (GN), en ligne sur <https://limbuslarp.fr>.
 
-## Setup
+Il couvre deux besoins :
 
-Make sure to install dependencies:
+- **l'écriture d'un jeu** : personnages, factions, intrigues, objets, documents, chronologie. Tout est centralisé pour faciliter l'écriture, la relecture et la cohérence ;
+- **l'organisation des sessions** : une session associe un jeu, une date, un lieu, des participants et le casting (participant ↔ personnage). Elle produit les trombinoscopes, les feuilles de personnage en PDF, les envois d'emails (documents, paiements) et une chronologie de déroulé.
+
+Les participants portent les informations stables (nom, email, téléphone) et peuvent être inscrits à plusieurs jeux. La photo dépend de l'assignation à un personnage pour une session donnée, pour correspondre au rôle incarné.
+
+Un jeu peut être partagé avec d'autres organisateurs par invitation email. L'application est une PWA : en cas de coupure réseau, elle reste consultable en lecture.
+
+## Stack
+
+Nuxt 4 · Nuxt UI 4 · Pinia · Prisma 7 / PostgreSQL · Nodemailer · pdf-lib · Vitest. Node 24.
+
+## Développement
+
+Prérequis : Node 24 et une base PostgreSQL.
 
 ```bash
-# npm
+cp .env.example .env      # puis renseigner DATABASE_URL, JWT_SECRET, SMTP_ENCRYPTION_SECRET
 npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
+npx prisma migrate dev    # crée le schéma
+npx prisma db seed        # données de démonstration (optionnel)
+npm run user:create       # premier compte (admin ou organizer)
+npm run dev               # http://localhost:3000
 ```
 
-## Development Server
-
-Start the development server on `http://localhost:3000`:
+Vérifications (lancées aussi par la CI GitHub à chaque push) :
 
 ```bash
-# npm
-npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
+npm run lint
+npm run typecheck
+npm test
+npm run build
 ```
+
+Sous Windows, `npm run build` échoue à l'étape de prérendu (« File URL path must be absolute »). C'est une limite de l'environnement : le build est vérifié sous Linux par la CI.
+
+## Variables d'environnement
+
+| Variable | Rôle |
+|---|---|
+| `DATABASE_URL` | Connexion PostgreSQL |
+| `JWT_SECRET` | Signature des cookies de session. Le changer déconnecte tout le monde |
+| `SMTP_ENCRYPTION_SECRET` | Chiffrement du mot de passe SMTP stocké en base (repli sur `JWT_SECRET`). Le changer oblige à ressaisir le mot de passe SMTP |
+| `PUBLIC_APP_URL` | URL publique, obligatoire en production. Sert aux liens absolus dans les emails et PDF ; on ne se fie jamais aux en-têtes Host |
 
 ## Production
 
-Configure the server environment before building:
+Serveur Debian derrière Apache (reverse proxy HTTPS). L'application tourne sous l'utilisateur système `limbus`, dans un service systemd durci, et n'écoute que sur `127.0.0.1:3000`.
 
-```bash
-PUBLIC_APP_URL="https://limbuslarp.fr"
-```
-
-`PUBLIC_APP_URL` is required in production. It is used to generate absolute links for invitations, generated PDFs, trombinoscopes and payment emails without trusting proxy or host headers.
-
-Build the application for production:
-
-```bash
-# npm
-npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
-```
-
-Locally preview production build:
-
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+- **Déployer** : `/var/www/limbus/deploy.sh` (en root). Le script fait `git pull`, construit dans un dossier temporaire, applique les migrations, remplace `.output` puis redémarre le service. L'ancienne version reste dans `.output-prev`.
+- **(Ré)installer le service** : `install-service.sh`.
+- **Créer un compte ou changer un mot de passe** : `cd /var/www/limbus && npm run user:create`.
+- **Données runtime** : les uploads (photos, RIB) sont dans `.data/uploads`, hors Git, et ne doivent jamais être supprimés au déploiement. Le `.env` est en `root:600` : systemd le lit avant de passer à l'utilisateur `limbus`.
+- **Sauvegardes** : chaque jour, chiffrées avec age, envoyées hors du serveur (voir `/etc/sauvegarde/RESTAURATION.txt` sur le serveur).
