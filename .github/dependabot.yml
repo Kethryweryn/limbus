@@ -31,8 +31,11 @@ updates:
       # assets-generator 2 change les types du module d'icônes : à monter avec @vite-pwa/nuxt,
       - dependency-name: '@vite-pwa/assets-generator'
         update-types: [version-update:semver-major]
-      # @pinia/nuxt 1 exige Pinia 4 : à monter avec pinia et pinia-plugin-persistedstate
+      # @pinia/nuxt 1 exige Pinia 4, et @pinia/nuxt 0.11 exige Pinia 3 :
+      # les deux se montent ensemble, avec pinia-plugin-persistedstate
       - dependency-name: '@pinia/nuxt'
+        update-types: [version-update:semver-major]
+      - dependency-name: pinia
         update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
