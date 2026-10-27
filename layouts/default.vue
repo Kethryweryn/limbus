@@ -145,6 +145,7 @@ const navSections = computed(() => [
         label: 'Organisation',
         icon: 'i-heroicons-calendar-days',
         links: [
+            { label: 'Inscriptions', to: '/registrations', icon: 'i-heroicons-clipboard-document-check' },
             { label: 'Participants', to: '/participants', icon: 'i-heroicons-users' },
             { label: 'Lieux', to: '/locations', icon: 'i-heroicons-map-pin' },
             { label: 'Sessions', to: '/sessions', icon: 'i-heroicons-calendar-days' }
