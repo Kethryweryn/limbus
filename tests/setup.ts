@@ -15,5 +15,5 @@ Object.assign(globalThis, {
 vi.mock('~/server/utils/prisma', () => ({ prisma: {} }))
 
 beforeEach(() => {
-  for (const key of Object.keys(runtimeConfig)) delete runtimeConfig[key]
+  for (const key of Object.keys(runtimeConfig)) Reflect.deleteProperty(runtimeConfig, key)
 })
