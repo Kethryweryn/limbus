@@ -157,3 +157,5 @@ Fiche transformée en [SPEC-001](../../specs/SPEC-001-inscriptions.md). Réponse
 10. Tirage : pondérations possibles, « non tirés avant » et équilibre (parité) ; pas de priorité aux nouveaux joueurs, pas de groupes.
 11. Modification par l'inscrit : oui, jusqu'à la clôture.
 12. Pas d'autre ajustement de la proposition.
+
+> Note du 2026-10-27 : « campagne » a été renommé « période d'inscription » dans la spec, le mot désignant en GN une série de jeux dans un même continuum.

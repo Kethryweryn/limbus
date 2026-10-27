@@ -15,7 +15,7 @@ Toute évolution suit le cycle décrit dans `doc/README.md` : fiche `doc/todo/` 
 
 `npm run lint`, `npm run typecheck` et `npm test` doivent passer. Le build et les tests d'intégration tournent dans la CI (GitHub Actions) ; sous Windows, le build échoue au prérendu.
 
-On travaille directement sur `main`. Chaque push déclenche la CI, et **si elle passe, le commit est déployé automatiquement en production** (job `deploy`, qui lance `deploy.sh <sha>` sur le serveur). Un push sur main est donc une mise en production.
+On ne pousse jamais directement sur `main` (ADR-0017) : chaque chantier a sa branche (`us/…`, `doc/…`, `fix/…`, `deps/…`) et sa pull request, qui cite ses US, specs et ADR. On fusionne en squash une PR dont la CI est verte. La fusion dans `main` relance la CI, et **si elle passe, le commit est déployé automatiquement en production** (job `deploy`, qui lance `deploy.sh <sha>` sur le serveur). Fusionner une PR est donc une mise en production.
 
 ## Sécurité des routes API
 

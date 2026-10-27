@@ -4,7 +4,7 @@ titre: Inscriptions, sélection et aide au casting
 statut: validée
 date: 2026-10-27
 origine: ../archive/todo/inscriptions.md
-epics: []
+epics: [EPIC-001]
 adr: [ADR-0007, ADR-0008, ADR-0011]
 ---
 
@@ -20,25 +20,27 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 
 ## Vocabulaire
 
-- **Campagne** : le recrutement des PJ d'une ou plusieurs sessions d'un même jeu, avec son paramétrage.
+- **Période d'inscription** : le recrutement des PJ d'une ou plusieurs sessions d'un même jeu, avec son paramétrage.
 - **Formulaire** : les questions posées aux inscrits. Il est défini au niveau du jeu.
-- **Inscription** : la candidature d'une personne à une campagne, avec ses réponses et son statut.
+- **Inscription** : la candidature d'une personne à une période d'inscription, avec ses réponses et son statut.
 - **Lien personnel** : l'URL secrète par laquelle un inscrit, qui n'a pas de compte, consulte et modifie son inscription.
+
+« Campagne » n'est pas employé ici : en GN, ce mot désigne une série de jeux dans un même continuum.
 
 ## Acteurs
 
-- **Organisateurs du jeu** : la propriétaire et les co-organisateurs (`GameShare`). Ils ont tous les mêmes droits sur les campagnes, les inscriptions, les affinités et les réponses.
+- **Organisateurs du jeu** : la propriétaire et les co-organisateurs (`GameShare`). Ils ont tous les mêmes droits sur les périodes d'inscription, les inscriptions, les affinités et les réponses.
 - **Inscrit** : une personne sans compte, qui agit uniquement par la page publique et son lien personnel.
 - **Équipe cuisine** : elle reçoit la fiche allergies de sa session.
 
 ## Parcours
 
-### Organisateur : préparer une campagne
+### Organisateur : préparer une période d'inscription
 
-1. Il crée la campagne depuis le jeu et y rattache une ou plusieurs sessions.
+1. Il crée la période d'inscription depuis le jeu et y rattache une ou plusieurs sessions.
 2. Il choisit le mode d'entrée, le mode de sélection, le calendrier, les places par session, le délai de confirmation et le traitement des rejoueurs.
 3. Il choisit le formulaire du jeu, ou le crée.
-4. Il ouvre la campagne. En mode formulaire, un lien d'inscription apparaît sur la page publique du jeu.
+4. Il ouvre la période d'inscription. En mode formulaire, un lien d'inscription apparaît sur la page publique du jeu.
 
 ### Inscrit, mode formulaire
 
@@ -49,7 +51,7 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 ### Inscrit, mode invitation
 
 1. L'organisateur ajoute la personne (participant existant, ou nom et email).
-2. Elle reçoit un email avec son lien personnel. Elle y accepte ou décline l'invitation, puis remplit le formulaire.
+2. Elle reçoit un email avec son lien personnel. Elle y remplit le formulaire et accepte l'invitation, ce qui confirme sa place, ou la décline. Elle a pour cela le délai de confirmation de la période d'inscription.
 
 ### Sélection et confirmation
 
@@ -60,22 +62,22 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 
 ### Organisateur : répartir
 
-1. Dans une campagne à plusieurs sessions, il place chaque personne retenue dans une session où elle est disponible.
+1. Dans une période d'inscription à plusieurs sessions, il place chaque personne retenue dans une session où elle est disponible.
 2. Il attribue les personnages, aidé par les scores et les alertes de l'assistant de casting.
 
 ## Règles métier
 
-### Campagne
+### Période d'inscription
 
-- **R1** Une campagne appartient à un jeu et regroupe une ou plusieurs de ses sessions. Une session appartient à au plus une campagne.
-- **R2** Une campagne ne recrute que des PJ. Les PNJ et l'équipe cuisine restent ajoutés à la main dans la session.
+- **R1** Une période d'inscription appartient à un jeu et regroupe une ou plusieurs de ses sessions. Une session appartient à au plus une période d'inscription.
+- **R2** Une période d'inscription ne recrute que des PJ. Les PNJ et l'équipe cuisine restent ajoutés à la main dans la session.
 - **R3** Mode d'entrée : `invitation` ou `formulaire`.
 - **R4** Mode de sélection : `hasard`, `choix` ou `mixte`. En mode mixte :
-  - la part choisie est soit **N invitations par organisateur**, soit **un quota global**, au choix pour chaque campagne ;
+  - la part choisie est soit **N invitations par organisateur**, soit **un quota global**, au choix pour chaque période d'inscription ;
   - les invitations des orgas sont attribuées d'abord, puis le tirage porte sur les places restantes.
 - **R5** Le nombre de places d'une session vaut par défaut le nombre de personnages PJ du jeu ; il est modifiable session par session.
-- **R6** Le formulaire n'accepte d'inscriptions qu'entre l'ouverture et la clôture de la campagne.
-- **R7** Rejoueurs : un participant qui a déjà joué le jeu (participant d'une session terminée de ce jeu) est, selon le réglage de la campagne :
+- **R6** Le formulaire n'accepte d'inscriptions qu'entre l'ouverture et la clôture de la période d'inscription.
+- **R7** Rejoueurs : un participant qui a déjà joué le jeu (participant d'une session terminée de ce jeu) est, selon le réglage de la période d'inscription :
   - `autorisé` ;
   - `signalé` aux orgas ;
   - `exclu` du tirage. Il reste alors sélectionnable par choix.
@@ -89,7 +91,7 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
   - des questions propres au jeu (texte libre, choix unique, choix multiple, échelle de 1 à 5), dont chaque option peut être reliée à des personnages, factions ou intrigues ;
   - une question d'équilibre facultative (R17).
 - **R9** Une inscription garde la version du formulaire qui a été remplie : modifier le formulaire ne change pas les réponses déjà données.
-- **R10** Dans une campagne à plusieurs sessions, l'inscrit indique les sessions où il est disponible (au moins une).
+- **R10** Dans une période d'inscription à plusieurs sessions, l'inscrit indique les sessions où il est disponible (au moins une).
 
 ### Inscription et identité
 
@@ -107,15 +109,19 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
   - une inscription retenue devient `confirmée`, ou `désistée` ;
   - une inscription en attente peut à son tour devenir retenue.
 
-  En mode invitation, une invitation acceptée est directement `retenue` ; une invitation déclinée est `désistée`.
-- **R17** Le tirage au sort est équiprobable, sauf pondérations activées dans la campagne :
-  - **non tirés avant** : priorité aux personnes non retenues lors d'une campagne précédente du même jeu ;
+  En mode invitation, une inscription commence au statut `invitée`. Accepter l'invitation, formulaire rempli, vaut confirmation : elle passe directement à `confirmée`. La décliner la fait passer à `désistée`.
+- **R17** Le tirage au sort est équiprobable, sauf pondérations activées dans la période d'inscription :
+  - **non tirés avant** : priorité aux personnes non retenues lors d'une période d'inscription précédente du même jeu ;
   - **équilibre** : les personnages peuvent porter un attribut d'équilibre (par exemple le genre du personnage) et la question d'équilibre du formulaire demande la préférence de l'inscrit. Le tirage réserve alors les places par valeur, au prorata des rôles.
 - **R18** Le tirage est reproductible : la graine, les pondérations et le résultat sont journalisés avec l'auteur et la date, et consultables par les orgas.
 - **R19** La liste d'attente suit l'ordre du tirage, ou l'ordre fixé par les orgas en mode choix.
-- **R20** Une personne retenue doit confirmer dans le délai de la campagne (réglable, 7 jours par défaut). Passé ce délai, sa place est libérée.
+- **R20** Une personne retenue doit confirmer dans le délai de la période d'inscription (réglable, 7 jours par défaut), de même qu'une personne invitée doit répondre dans ce délai. Passé ce délai, l'inscription est signalée « délai dépassé » aux orgas, qui libèrent la place (R21) ou prolongent le délai.
 - **R21** Quand une place se libère, l'outil propose la personne suivante de la liste d'attente ; l'organisateur valide avant tout email.
-- **R22** Une inscription confirmée crée le `SessionParticipant` (rôle participant) de la session où la personne est placée, ce qui la fait entrer dans le circuit de paiement. Un désistement après confirmation retire le `SessionParticipant` ; le paiement éventuel est traité à la main.
+- **R22** Une inscription confirmée crée le `SessionParticipant` (rôle participant) de la session où la personne est placée. Elle entre dans le circuit de paiement dès ce moment, même si aucun personnage ne lui est encore attribué. Aujourd'hui, le tableau des paiements ne liste que les participants ayant un personnage PJ : il doit lister aussi les inscrits confirmés.
+
+  Un désistement après confirmation :
+  - retire le `SessionParticipant` et libère le personnage éventuellement attribué dans cette session ;
+  - laisse le paiement éventuel à traiter à la main.
 
 ### Affinités et casting
 
@@ -135,15 +141,15 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 
 À créer, en plus de l'existant :
 
-- **Campagne** : jeu, sessions, modes, calendrier, places par session, délai de confirmation, traitement des rejoueurs, pondérations, quota, formulaire.
+- **Période d'inscription** : jeu, sessions, modes, calendrier, places par session, délai de confirmation, traitement des rejoueurs, pondérations, quota, formulaire.
 - **Formulaire** et ses versions : champs standards activés, questions, options, liens vers les personnages, factions et intrigues.
 - **Inscription** :
-  - campagne, participant, statut, source (formulaire ou invitation, et organisateur invitant) ;
+  - période d'inscription, participant, statut, source (formulaire ou invitation, et organisateur invitant) ;
   - identité saisie, contact d'urgence, allergies, consentement daté ;
   - réponses, disponibilités, session attribuée ;
   - jeton hashé, rang au tirage, dates de confirmation.
 - **Affinité** : inscription, type, texte saisi, cible rapprochée.
-- **Tirage** : campagne, graine, pondérations, résultat, auteur, date.
+- **Tirage** : période d'inscription, graine, pondérations, résultat, auteur, date.
 - **Relation entre personnages** : deux personnages, type, description.
 - **Attribut d'équilibre** facultatif sur un personnage.
 
@@ -154,7 +160,7 @@ Données personnelles :
 
 ## Sécurité et droits
 
-- Les routes d'organisation suivent [ADR-0007](../adr/ADR-0007-isolation-par-jeu.md) et sont ajoutées à `isolation.test.ts`. Les sessions rattachées à une campagne et les personnages ciblés doivent appartenir au jeu de la campagne.
+- Les routes d'organisation suivent [ADR-0007](../adr/ADR-0007-isolation-par-jeu.md) et sont ajoutées à `isolation.test.ts`. Les sessions rattachées à une période d'inscription et les personnages ciblés doivent appartenir au jeu de la période d'inscription.
 - Les routes de l'inscrit sont sous `public/*`, et protégées ainsi :
   - formulaire : limitation de débit par IP, champ piège, période d'ouverture vérifiée côté serveur ;
   - lien personnel : jeton comparé à son hash, limitation de débit.
@@ -165,8 +171,8 @@ Données personnelles :
 
 Chaque lot devient un epic, livrable seul :
 
-1. Campagne et mode invitation (R1 à R6, R12 à R14, R16, R20, R22).
-2. Formulaire public (R8 à R11, R13, R15).
+1. Période d'inscription et mode invitation (R1 à R3, R5, R6, R8 pour la note d'intention et les champs standards, R12 à R16, R20, R22). Voir [EPIC-001](../epics/EPIC-001-inscription-sur-invitation/README.md).
+2. Formulaire public (R8 au complet, R9 à R11, R13).
 3. Sélection (R4, R7, R17 à R21).
 4. Affinités (R23 à R25).
 5. Relations entre personnages et questionnaire relié aux rôles (R8, R26).
@@ -177,3 +183,8 @@ Chaque lot devient un epic, livrable seul :
 - Recrutement des PNJ et de l'équipe cuisine (R2).
 - Comptes participants, et paiement en ligne.
 - Resynchronisation des écritures hors ligne : les écrans d'inscription demandent une connexion.
+
+## Historique
+
+- 2026-10-27 : création à partir de la fiche todo.
+- 2026-10-27 : « campagne » renommé « période d'inscription » (le mot a un autre sens en GN). En mode invitation, accepter vaut confirmation (R16). Un délai dépassé est signalé, puis traité par les orgas (R20). Les inscrits confirmés sans personnage apparaissent dans les paiements (R22). La fiche allergies (R15) passe au lot 1, qui collecte les allergies.

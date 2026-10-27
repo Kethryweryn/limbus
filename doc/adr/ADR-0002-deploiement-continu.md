@@ -1,9 +1,9 @@
 ---
 id: ADR-0002
 titre: Déploiement continu de main après une CI verte
-statut: accepté
+statut: accepté, en partie remplacé par ADR-0017 (travail par PR au lieu de pushs directs sur main)
 date: 2026-10-27
-liens: [ADR-0015]
+liens: [ADR-0015, ADR-0017]
 ---
 
 # ADR-0002 : Déploiement continu de `main` après une CI verte
