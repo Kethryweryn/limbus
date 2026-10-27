@@ -61,7 +61,8 @@ jobs:
           DEPLOY_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
           install -m 700 -d ~/.ssh
-          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy
+          # Tolère une clé collée depuis Windows (fins de ligne CRLF, BOM)
+          printf '%s\n' "$DEPLOY_KEY" | tr -d '\r' | sed '1s/^\xEF\xBB\xBF//' > ~/.ssh/deploy
           chmod 600 ~/.ssh/deploy
           # Clé d'hôte épinglée : on refuse tout autre serveur
           echo 'limbuslarp.fr ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMkspHzioErwvXaWQ6j2PTKPOafoIwTxwYObxlxr44F+' > ~/.ssh/known_hosts
