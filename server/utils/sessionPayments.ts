@@ -1,6 +1,8 @@
 import { prisma } from '~/server/utils/prisma'
 import { sendEmail } from '~/server/utils/email'
 import { CHARACTER_TYPES } from '~/utils/domain'
+import { readUpload } from '~/server/utils/uploads'
+import { isHttpUrl } from '~/utils/urls'
 
 function compactLines(lines: Array<string | null | undefined>) {
   return lines.filter((line) => typeof line === 'string' && line.trim()).join('\n')
@@ -10,11 +12,15 @@ function firstName(name: string) {
   return name.trim().split(/\s+/)[0] || name
 }
 
-function absoluteUrl(baseUrl: string, value?: string | null) {
-  if (!value) return value
-  if (/^https?:\/\//i.test(value)) return value
-  if (!baseUrl) return value
-  return `${baseUrl}${value}`
+// Le RIB téléversé est joint à l'email : les participants n'ont pas de compte pour l'ouvrir dans Limbus
+async function ribAttachment(paymentRibUrl: string | null) {
+  const content = await readUpload(paymentRibUrl).catch(() => null)
+  if (!content) return null
+  return { filename: 'RIB.pdf', content, contentType: 'application/pdf' }
+}
+
+function externalRibUrl(paymentRibUrl: string | null) {
+  return paymentRibUrl && isHttpUrl(paymentRibUrl) ? paymentRibUrl : null
 }
 
 function isPlayableCharacterType(type: string) {
@@ -27,6 +33,7 @@ function paymentEmailText(params: {
   gameTitle: string
   paymentLinkUrl?: string | null
   paymentRibUrl?: string | null
+  ribAttached?: boolean
   reminder?: boolean
 }) {
   const intro = params.reminder
@@ -40,6 +47,7 @@ function paymentEmailText(params: {
     `Jeu : ${params.gameTitle}`,
     params.paymentLinkUrl ? `Lien de paiement : ${params.paymentLinkUrl}` : null,
     params.paymentRibUrl ? `RIB : ${params.paymentRibUrl}` : null,
+    params.ribAttached ? 'Le RIB est joint à cet email.' : null,
     '',
     'Merci !'
   ])
@@ -160,8 +168,9 @@ export async function setSessionPaymentStatus(sessionId: string, participantId: 
   })
 }
 
-export async function sendSessionPaymentEmails(sessionId: string, reminder = false, participantId?: string | null, baseUrl = '') {
+export async function sendSessionPaymentEmails(sessionId: string, reminder = false, participantId?: string | null) {
   const dashboard = await getSessionPaymentDashboard(sessionId)
+  const rib = await ribAttachment(dashboard.session.paymentRibUrl)
   const now = new Date()
   let sentCount = 0
   let skippedCount = 0
@@ -185,9 +194,11 @@ export async function sendSessionPaymentEmails(sessionId: string, reminder = fal
         sessionName: dashboard.session.name,
         gameTitle: dashboard.session.game.title,
         paymentLinkUrl: dashboard.session.paymentLinkUrl,
-        paymentRibUrl: absoluteUrl(baseUrl, dashboard.session.paymentRibUrl),
+        paymentRibUrl: externalRibUrl(dashboard.session.paymentRibUrl),
+        ribAttached: Boolean(rib),
         reminder: isReminder
-      })
+      }),
+      attachments: rib ? [rib] : []
     })
     if (!result.sent) {
       throw createError({ statusCode: 500, message: 'SMTP désactivé' })
@@ -216,8 +227,9 @@ export async function sendSessionPaymentEmails(sessionId: string, reminder = fal
   return { sentCount, skippedCount }
 }
 
-export async function sendSessionPaymentTestEmails(sessionId: string, emails: string[], participantId?: string | null, baseUrl = '') {
+export async function sendSessionPaymentTestEmails(sessionId: string, emails: string[], participantId?: string | null) {
   const dashboard = await getSessionPaymentDashboard(sessionId)
+  const rib = await ribAttachment(dashboard.session.paymentRibUrl)
   const sample = dashboard.rows.find((row) => row.participant.id === participantId) || dashboard.rows[0]
   const reminder = Boolean(sample?.paymentEmailSentAt)
 
@@ -229,9 +241,11 @@ export async function sendSessionPaymentTestEmails(sessionId: string, emails: st
       sessionName: dashboard.session.name,
       gameTitle: dashboard.session.game.title,
       paymentLinkUrl: dashboard.session.paymentLinkUrl,
-      paymentRibUrl: absoluteUrl(baseUrl, dashboard.session.paymentRibUrl),
+      paymentRibUrl: externalRibUrl(dashboard.session.paymentRibUrl),
+      ribAttached: Boolean(rib),
       reminder
-    })
+    }),
+    attachments: rib ? [rib] : []
   })
   if (!result.sent) {
     throw createError({ statusCode: 500, message: 'SMTP désactivé' })

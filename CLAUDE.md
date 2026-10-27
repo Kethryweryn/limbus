@@ -20,6 +20,9 @@ On travaille directement sur `main`. Chaque push déclenche la CI, et **si elle 
 - Le JWT ne porte que l'`id` et la version de session `v` : rôle et email sont relus en base à chaque requête, et un jeton dont `v` ne correspond plus à `User.sessionVersion` est refusé. Pour déconnecter un compte partout (changement de mot de passe…), appeler `revokeUserSessions`.
 - Données personnelles des participants : la suppression passe par `eraseParticipant` (photos et fichiers compris), l'export par `exportParticipantData`, limité aux jeux de l'organisateur. Toute nouvelle donnée liée à un participant doit être couverte par ces deux fonctions (`server/utils/participantPrivacy.ts`).
 - Les fichiers uploadés sont servis par des routes qui vérifient les droits, jamais en statique. On vérifie le type réel (signature) et on renomme avec un UUID.
+- Fichiers téléversés (`server/utils/uploads.ts`) : toute modification ou suppression qui retire une référence à une photo ou à un RIB appelle ensuite `deleteUnusedUploads` (relever les URL avec `collectUploadUrls` avant une suppression). Les participants n'ont pas de compte : un fichier qui leur est destiné part en pièce jointe, jamais en lien vers l'API.
+- URL saisies par les utilisateurs : schémas `externalUrl` / `uploadOrExternalUrl` (http(s) ou fichier téléversé uniquement), sinon un `javascript:` s'exécuterait dans un lien ou une iframe. Seul YouTube est intégré en iframe (`youtubeEmbedUrl`). Le serveur ne télécharge une image externe que via `fetchPublicImage` (hôte public, délai et taille bornés).
+- Une ressource ne change jamais de jeu (`assertSameGame`).
 - Les liens absolus (emails, PDF) passent par `absoluteAppUrl()`, jamais par les en-têtes Host.
 - L'IP client pour le rate limit est la dernière entrée de `X-Forwarded-For`, ajoutée par Apache (voir `clientIp`).
 - Jamais de `process.env.X` dans `nuxt.config.ts` pour un secret : la valeur serait figée en clair dans `.output` au build. `runtimeConfig` reste vide, et le code lit `useRuntimeConfig().x || process.env.X` à l'exécution.
@@ -36,6 +39,7 @@ On travaille directement sur `main`. Chaque push déclenche la CI, et **si elle 
 
 - Nuxt UI v4 : le contenu d'un `UModal` va dans le slot `#body`, sinon il s'affiche dans la page.
 - Chaque page doit avoir un seul élément racine dans son template.
+- Hors ligne : la déconnexion efface tout ce qui est sur l'appareil (`clearOfflineData`), et la connexion d'un autre compte aussi (`claimOfflineData`). Seul un 401 renvoie à l'écran de connexion ; un 403 est un refus ponctuel.
 - Hors ligne : mode lecture d'abord. Les écritures hors ligne sont mises en file (`utils/offlineSync.ts`), mais la resynchronisation reste un chantier à part.
 
 ## Tests

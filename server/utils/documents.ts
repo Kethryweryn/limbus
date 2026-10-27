@@ -442,7 +442,8 @@ export async function markCharacterSheetBundleDeliveries(sessionId: string) {
 
   for (const sheet of dashboard.characterSheets) {
     if (!sheet.participant?.id || !sheet.character?.id || !sheet.readyToSend || !sheet.trombinoscopeGeneratedAt) continue
-    if (!sheet.participant.email) continue
+    // Comme les autres envois : seulement aux destinataires qui n'ont pas encore reçu fiche et trombinoscope
+    if (sheet.bundleSentAt || !sheet.participant.email) continue
 
     const result = await sendEmail({
       to: sheet.participant.email,

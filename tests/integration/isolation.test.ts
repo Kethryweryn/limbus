@@ -103,7 +103,8 @@ describe('création dans un jeu inaccessible', () => {
   })
 
   it('déplacer sa propre ressource vers le jeu de Bob est refusé', async () => {
-    expect(DENIED).toContain((await api(alice, 'PUT', `/api/characters/${a.character.id}`, { gameId: b.game.id })).status)
+    // Refus avant même le contrôle d'accès : une ressource ne change jamais de jeu
+    expect([400, ...DENIED]).toContain((await api(alice, 'PUT', `/api/characters/${a.character.id}`, { gameId: b.game.id })).status)
     const character = await prisma.character.findUnique({ where: { id: a.character.id } })
     expect(character?.gameId).toBe(a.game.id)
   })

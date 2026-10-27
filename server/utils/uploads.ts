@@ -1,0 +1,86 @@
+import { readFile, unlink } from 'node:fs/promises'
+import { basename, join } from 'node:path'
+import { prisma } from '~/server/utils/prisma'
+import { isUploadUrl, PHOTO_UPLOAD_PREFIX, RIB_UPLOAD_PREFIX } from '~/utils/urls'
+
+export const UPLOAD_DIRS = {
+  photos: 'session-assignment-photos',
+  ribs: 'session-payment-ribs'
+} as const
+
+export function uploadDir(kind: typeof UPLOAD_DIRS[keyof typeof UPLOAD_DIRS]) {
+  return join(process.cwd(), '.data', 'uploads', kind)
+}
+
+// Chemin sur le disque d'un fichier téléversé, ou null pour une URL externe
+export function uploadFilePath(url: string | null | undefined) {
+  if (!url) return null
+  if (isUploadUrl(url, PHOTO_UPLOAD_PREFIX)) return join(uploadDir(UPLOAD_DIRS.photos), basename(url))
+  if (isUploadUrl(url, RIB_UPLOAD_PREFIX)) return join(uploadDir(UPLOAD_DIRS.ribs), basename(url))
+  return null
+}
+
+export async function readUpload(url: string | null | undefined) {
+  const path = uploadFilePath(url)
+  return path ? await readFile(path) : null
+}
+
+/**
+ * Supprime (base et disque) les fichiers téléversés qui ne sont plus référencés nulle part :
+ * photo d'assignation, photo de personnage, RIB de session. Une même photo peut servir
+ * à plusieurs sessions : on ne supprime qu'une fois la dernière référence partie.
+ * À appeler après la modification ou la suppression qui a retiré les références.
+ */
+export async function deleteUnusedUploads(urls: Array<string | null | undefined>) {
+  const candidates = [...new Set(urls)].filter((url): url is string => Boolean(uploadFilePath(url)))
+  if (!candidates.length) return 0
+
+  const [assignments, characters, sessions] = await Promise.all([
+    prisma.sessionAssignment.findMany({ where: { photoUrl: { in: candidates } }, select: { photoUrl: true } }),
+    prisma.character.findMany({ where: { trombinoscopePhotoUrl: { in: candidates } }, select: { trombinoscopePhotoUrl: true } }),
+    prisma.session.findMany({ where: { paymentRibUrl: { in: candidates } }, select: { paymentRibUrl: true } })
+  ])
+  const used = new Set<string | null>([
+    ...assignments.map((row) => row.photoUrl),
+    ...characters.map((row) => row.trombinoscopePhotoUrl),
+    ...sessions.map((row) => row.paymentRibUrl)
+  ])
+  const orphans = candidates.filter((url) => !used.has(url))
+
+  await prisma.uploadedFile.deleteMany({ where: { url: { in: orphans } } })
+  for (const url of orphans) {
+    await unlink(uploadFilePath(url)!).catch((error: NodeJS.ErrnoException) => {
+      if (error.code !== 'ENOENT') throw error
+    })
+  }
+  return orphans.length
+}
+
+// Fichiers d'un ensemble de sessions et de personnages, à relever avant de les supprimer
+export async function collectUploadUrls(where: { gameId?: string, sessionId?: string, characterId?: string }) {
+  const sessionWhere = where.sessionId ? { id: where.sessionId } : where.gameId ? { gameId: where.gameId } : null
+  const assignmentWhere = where.characterId
+    ? { characterId: where.characterId }
+    : sessionWhere ? { session: sessionWhere } : null
+
+  const [files, assignments, characters, sessions] = await Promise.all([
+    where.characterId
+      ? []
+      : prisma.uploadedFile.findMany({
+          where: where.sessionId ? { sessionId: where.sessionId } : { OR: [{ gameId: where.gameId }, { session: { gameId: where.gameId } }] },
+          select: { url: true }
+        }),
+    assignmentWhere ? prisma.sessionAssignment.findMany({ where: assignmentWhere, select: { photoUrl: true } }) : [],
+    where.characterId || where.gameId
+      ? prisma.character.findMany({ where: where.characterId ? { id: where.characterId } : { gameId: where.gameId }, select: { trombinoscopePhotoUrl: true } })
+      : [],
+    sessionWhere ? prisma.session.findMany({ where: sessionWhere, select: { paymentRibUrl: true } }) : []
+  ])
+
+  return [
+    ...files.map((row) => row.url),
+    ...assignments.map((row) => row.photoUrl),
+    ...characters.map((row) => row.trombinoscopePhotoUrl),
+    ...sessions.map((row) => row.paymentRibUrl)
+  ]
+}

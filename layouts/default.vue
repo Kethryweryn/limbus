@@ -117,6 +117,7 @@ icon="i-heroicons-bars-3" color="neutral" variant="ghost" class="md:hidden"
 
 <script setup>
 import { navigateTo } from '#app'
+import { getOfflineQueue } from '~/utils/offlineSync'
 
 const route = useRoute()
 const sidebarCollapsed = ref(false)
@@ -182,19 +183,30 @@ const userMenu = computed(() => [
         {
             label: 'Déconnexion',
             icon: 'i-heroicons-arrow-left-on-rectangle',
-            onSelect: () => navigateTo('/logout')
+            onSelect: logout
         },
         {
             label: 'Déconnecter tous mes appareils',
             icon: 'i-heroicons-device-phone-mobile',
             onSelect: async () => {
                 if (!confirm('Fermer la session sur tous vos appareils, y compris celui-ci ?')) return
+                if (!await confirmPendingChangesLoss()) return
                 await $fetch('/api/auth/logout-all', { method: 'POST' })
                 await navigateTo('/logout')
             }
         }
     ]
 ])
+
+// La déconnexion efface les données de l'appareil, y compris les modifications hors ligne non envoyées
+async function confirmPendingChangesLoss() {
+    const pending = (await getOfflineQueue()).length
+    return !pending || confirm(`${pending} modification(s) faite(s) hors ligne n’ont pas encore été envoyées et seront perdues. Se déconnecter quand même ?`)
+}
+
+async function logout() {
+    if (await confirmPendingChangesLoss()) await navigateTo('/logout')
+}
 
 const isActive = (path) => {
     if (path === '/') {

@@ -8,9 +8,16 @@ import {
   SESSION_STATUSES,
   USER_ROLES
 } from '~/utils/domain'
+import { isHttpUrl, isUploadUrl, PHOTO_UPLOAD_PREFIX, RIB_UPLOAD_PREFIX } from '~/utils/urls'
 
 const optionalText = z.string().trim().optional().nullable()
 const optionalBoolean = z.boolean().optional()
+// Les URL sont affichées en lien ou en iframe : http(s) uniquement, sinon un javascript: s'exécuterait au clic
+const externalUrl = optionalText.refine((value) => !value || isHttpUrl(value), 'URL http(s) attendue')
+const uploadOrExternalUrl = (prefix: string) => optionalText.refine(
+  (value) => !value || isHttpUrl(value) || isUploadUrl(value, prefix),
+  'URL http(s) ou fichier téléversé attendu'
+)
 const requiredText = (field: string) => z.string().trim().min(1, `${field} is required`)
 const requiredId = (field: string) => z.string().trim().min(1, `${field} is required`)
 const sessionStatus = z.enum([
@@ -69,7 +76,7 @@ function formatZodError(error: ZodError) {
 export const createGameSchema = z.object({
   title: requiredText('Title'),
   description: optionalText,
-  teaserUrl: optionalText,
+  teaserUrl: externalUrl,
   noteIntention: optionalText,
   publicPage: optionalBoolean
 })
@@ -77,7 +84,7 @@ export const createGameSchema = z.object({
 export const updateGameSchema = z.object({
   title: requiredText('Title').optional(),
   description: optionalText,
-  teaserUrl: optionalText,
+  teaserUrl: externalUrl,
   noteIntention: optionalText,
   published: optionalBoolean,
   publicPage: optionalBoolean
@@ -88,12 +95,12 @@ export const createCharacterSchema = z.object({
   type: characterType.default(CHARACTER_TYPES.pj),
   pitch: optionalText,
   background: optionalText,
-  backgroundDocumentUrl: optionalText,
+  backgroundDocumentUrl: externalUrl,
   sheetReadyToSend: optionalBoolean,
   costumeIndications: optionalText,
   excludeFromTrombinoscope: optionalBoolean,
   trombinoscopeFaceHidden: optionalBoolean,
-  trombinoscopePhotoUrl: optionalText,
+  trombinoscopePhotoUrl: uploadOrExternalUrl(PHOTO_UPLOAD_PREFIX),
   trombinoscopeNote: optionalText,
   trombinoscopeDisplayName: optionalText,
   gameId: requiredId('Game'),
@@ -105,12 +112,12 @@ export const updateCharacterSchema = z.object({
   type: characterType.optional(),
   pitch: optionalText,
   background: optionalText,
-  backgroundDocumentUrl: optionalText,
+  backgroundDocumentUrl: externalUrl,
   sheetReadyToSend: optionalBoolean,
   costumeIndications: optionalText,
   excludeFromTrombinoscope: optionalBoolean,
   trombinoscopeFaceHidden: optionalBoolean,
-  trombinoscopePhotoUrl: optionalText,
+  trombinoscopePhotoUrl: uploadOrExternalUrl(PHOTO_UPLOAD_PREFIX),
   trombinoscopeNote: optionalText,
   trombinoscopeDisplayName: optionalText,
   gameId: requiredId('Game').optional(),
@@ -122,7 +129,7 @@ export const factionSchema = z.object({
   name: requiredText('Name'),
   pitch: optionalText,
   background: optionalText,
-  backgroundDocumentUrl: optionalText,
+  backgroundDocumentUrl: externalUrl,
   costumeIndications: optionalText,
   showInTrombinoscope: optionalBoolean,
   gameId: requiredId('Game'),
@@ -173,7 +180,7 @@ export const itemSchema = z.object({
 export const documentSchema = z.object({
   title: requiredText('Title'),
   content: optionalText,
-  documentUrl: optionalText,
+  documentUrl: externalUrl,
   audience: documentAudience.optional().default(DOCUMENT_AUDIENCES.targeted),
   readyToSend: optionalBoolean,
   gameId: requiredId('Game'),
@@ -221,8 +228,8 @@ export const emailTestSchema = z.object({
 })
 
 export const sessionPaymentSettingsSchema = z.object({
-  paymentRibUrl: optionalText,
-  paymentLinkUrl: optionalText
+  paymentRibUrl: uploadOrExternalUrl(RIB_UPLOAD_PREFIX),
+  paymentLinkUrl: externalUrl
 })
 
 export const sessionPaymentStatusSchema = z.object({
@@ -247,7 +254,7 @@ export const characterTrombinoscopeSchema = z.object({
 export const sessionAssignmentSchema = z.object({
   characterId: requiredId('Character'),
   participantId: optionalText,
-  photoUrl: optionalText,
+  photoUrl: uploadOrExternalUrl(PHOTO_UPLOAD_PREFIX),
   notes: optionalText
 })
 

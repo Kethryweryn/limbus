@@ -10,8 +10,12 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({ statusCode: 400, message: 'ID manquant' })
   }
-  await requireSessionAccess(event, id)
+  const session = await requireSessionAccess(event, id)
+  const previous = await prisma.session.findUniqueOrThrow({ where: { id: session.id }, select: { paymentRibUrl: true } })
 
   const body = await readZodBody(event, sessionPaymentSettingsSchema)
-  return await updateSessionPaymentSettings(id, body)
+  const updated = await updateSessionPaymentSettings(session.id, body)
+  // Ancien RIB remplacé ou retiré : effacé du disque
+  await deleteUnusedUploads([previous.paymentRibUrl])
+  return updated
 })

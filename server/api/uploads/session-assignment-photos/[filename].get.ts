@@ -3,16 +3,13 @@ import { access } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import { requireOrganizer } from '~/server/utils/auth'
 import { prisma } from '~/server/utils/prisma'
+import { uploadDir, UPLOAD_DIRS } from '~/server/utils/uploads'
 import { requireGameAccess, requireSessionAccess } from '~/server/utils/gameAccess'
 
 const CONTENT_TYPES: Record<string, string> = {
   '.jpg': 'image/jpeg',
   '.png': 'image/png',
   '.webp': 'image/webp'
-}
-
-function getUploadDir() {
-  return join(process.cwd(), '.data', 'uploads', 'session-assignment-photos')
 }
 
 export default defineEventHandler(async (event) => {
@@ -25,7 +22,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Invalid filename' })
   }
 
-  const filePath = join(getUploadDir(), filename)
+  const filePath = join(uploadDir(UPLOAD_DIRS.photos), filename)
   const contentType = CONTENT_TYPES[extname(filename)]
 
   if (!contentType) {

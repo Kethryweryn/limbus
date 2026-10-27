@@ -1,10 +1,11 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { readZodBody, sessionSchema } from '~/server/utils/schemas'
-import { requireGameAccess, requireSessionAccess } from '~/server/utils/gameAccess'
+import { requireGameAccess, requireSessionAccess, assertSameGame } from '~/server/utils/gameAccess'
 import { assertSessionCastRules, assertSessionLocation, normalizeAssignments, normalizeSessionParticipants } from '~/server/utils/sessionAssignments'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
+import { deleteUnusedUploads } from '~/server/utils/uploads'
 
 function parseDate(value: unknown): Date | null {
   if (!value || typeof value !== 'string') return null
@@ -24,13 +25,20 @@ export default defineEventHandler(async (event) => {
 
   const body = await readZodBody(event, sessionSchema)
   const { name, gameId, locationId, status, published } = body
+  assertSameGame(existingSession.gameId, gameId)
   await requireGameAccess(event, gameId)
   const assignments = normalizeAssignments(body.assignments)
   const participants = normalizeSessionParticipants(body.participants, assignments)
   await assertSessionCastRules(gameId, participants, assignments)
   await assertSessionLocation(gameId, locationId)
 
-  return await prisma.session.update({
+  // Photos remplacées ou retirées de la distribution : effacées si plus rien ne les utilise
+  const previousPhotoUrls = (await prisma.sessionAssignment.findMany({
+    where: { sessionId: existingSession.id },
+    select: { photoUrl: true }
+  })).map((assignment) => assignment.photoUrl)
+
+  const session = await prisma.session.update({
     where: { id: existingSession.id },
     data: {
       name,
@@ -65,4 +73,7 @@ export default defineEventHandler(async (event) => {
       }
     }
   })
+
+  await deleteUnusedUploads(previousPhotoUrls)
+  return session
 })

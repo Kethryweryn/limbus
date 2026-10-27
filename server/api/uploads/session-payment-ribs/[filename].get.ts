@@ -3,11 +3,8 @@ import { access } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import { requireOrganizer } from '~/server/utils/auth'
 import { prisma } from '~/server/utils/prisma'
+import { uploadDir, UPLOAD_DIRS } from '~/server/utils/uploads'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
-
-function getUploadDir() {
-  return join(process.cwd(), '.data', 'uploads', 'session-payment-ribs')
-}
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
@@ -19,7 +16,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Nom de fichier invalide' })
   }
 
-  const filePath = join(getUploadDir(), filename)
+  const filePath = join(uploadDir(UPLOAD_DIRS.ribs), filename)
   const uploadedFile = await prisma.uploadedFile.findUnique({
     where: { filename },
     select: { kind: true, sessionId: true }

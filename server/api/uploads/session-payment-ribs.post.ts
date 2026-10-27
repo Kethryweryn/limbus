@@ -3,13 +3,10 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { requireOrganizer } from '~/server/utils/auth'
 import { prisma } from '~/server/utils/prisma'
+import { uploadDir, UPLOAD_DIRS } from '~/server/utils/uploads'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
 
 const MAX_SIZE = 10 * 1024 * 1024
-
-function getUploadDir() {
-  return join(process.cwd(), '.data', 'uploads', 'session-payment-ribs')
-}
 
 function hasPdfSignature(data: Buffer) {
   return data.length >= 5 && data.subarray(0, 5).toString('ascii') === '%PDF-'
@@ -41,11 +38,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const filename = `${randomUUID()}.pdf`
-  const uploadDir = getUploadDir()
+  const targetDir = uploadDir(UPLOAD_DIRS.ribs)
   const session = await requireSessionAccess(event, sessionId)
 
-  await mkdir(uploadDir, { recursive: true })
-  await writeFile(join(uploadDir, filename), file.data)
+  await mkdir(targetDir, { recursive: true })
+  await writeFile(join(targetDir, filename), file.data)
   const ribUrl = `/api/uploads/session-payment-ribs/${filename}`
   await prisma.uploadedFile.create({
     data: {

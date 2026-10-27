@@ -1,8 +1,8 @@
 import { prisma } from '~/server/utils/prisma'
-import { readFile } from 'node:fs/promises'
-import { basename, join } from 'node:path'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import { CHARACTER_TYPES } from '~/utils/domain'
+import { readUpload, uploadFilePath } from '~/server/utils/uploads'
+import { fetchPublicImage } from '~/server/utils/remoteImage'
 
 type CharacterLike = {
   id: string
@@ -207,7 +207,7 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
 
         const targetAssignment = castByCharacterId.get(target.id)
         const sourcePhotoUrl = target.trombinoscopePhotoUrl || targetAssignment?.photoUrl || ''
-        const photoUrl = sourcePhotoUrl.startsWith('/api/uploads/session-assignment-photos/')
+        const photoUrl = uploadFilePath(sourcePhotoUrl)
           ? sourcePhotoUrl
           : toPublicUrl(sourcePhotoUrl, publicBaseUrl)
         const hidePhoto = target.trombinoscopeFaceHidden || !config.faceKnown
@@ -545,22 +545,10 @@ async function drawPhoto(pdf: PDFDocument, page: any, entry: TrombinoscopeRow, b
 }
 
 async function loadImageBytes(photoUrl: string) {
-  try {
-    if (photoUrl.startsWith('/api/uploads/session-assignment-photos/')) {
-      const filename = basename(photoUrl)
-      return await readFile(join(process.cwd(), '.data', 'uploads', 'session-assignment-photos', filename))
-    }
-
-    if (/^https?:\/\//.test(photoUrl)) {
-      const response = await fetch(photoUrl)
-      if (!response.ok) return null
-      return Buffer.from(await response.arrayBuffer())
-    }
-  } catch {
-    return null
+  if (uploadFilePath(photoUrl)) {
+    return await readUpload(photoUrl).catch(() => null)
   }
-
-  return null
+  return await fetchPublicImage(photoUrl)
 }
 
 function isPng(bytes: Uint8Array) {

@@ -3,6 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { requireOrganizer } from '~/server/utils/auth'
 import { prisma } from '~/server/utils/prisma'
+import { uploadDir, UPLOAD_DIRS } from '~/server/utils/uploads'
 import { requireGameAccess, requireSessionAccess } from '~/server/utils/gameAccess'
 
 const ALLOWED_TYPES = new Map([
@@ -12,10 +13,6 @@ const ALLOWED_TYPES = new Map([
 ])
 
 const MAX_SIZE = 5 * 1024 * 1024
-
-function getUploadDir() {
-  return join(process.cwd(), '.data', 'uploads', 'session-assignment-photos')
-}
 
 function hasValidImageSignature(data: Buffer, extension: string) {
   if (extension === 'jpg') {
@@ -65,7 +62,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const filename = `${randomUUID()}.${extension}`
-  const uploadDir = getUploadDir()
+  const targetDir = uploadDir(UPLOAD_DIRS.photos)
   const session = sessionId ? await requireSessionAccess(event, sessionId) : null
   const linkedGameId = session?.gameId || gameId || null
   if (!linkedGameId) {
@@ -73,8 +70,8 @@ export default defineEventHandler(async (event) => {
   }
   await requireGameAccess(event, linkedGameId)
 
-  await mkdir(uploadDir, { recursive: true })
-  await writeFile(join(uploadDir, filename), file.data)
+  await mkdir(targetDir, { recursive: true })
+  await writeFile(join(targetDir, filename), file.data)
   const photoUrl = `/api/uploads/session-assignment-photos/${filename}`
   await prisma.uploadedFile.create({
     data: {

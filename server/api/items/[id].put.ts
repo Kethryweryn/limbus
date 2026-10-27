@@ -1,6 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
-import { requireGameAccess } from '~/server/utils/gameAccess'
+import { requireGameAccess, assertSameGame } from '~/server/utils/gameAccess'
 import { itemSchema, readZodBody } from '~/server/utils/schemas'
 import { itemInclude, validateItemRelations } from '~/server/utils/items'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
@@ -21,6 +21,7 @@ export default defineEventHandler(async (event) => {
   await assertUnmodifiedSince(event, 'item', id)
 
   const body = await readZodBody(event, itemSchema)
+  assertSameGame(item.gameId, body.gameId)
   await requireGameAccess(event, body.gameId)
   const characterIds = [...new Set(body.characterIds)]
   const intrigueIds = [...new Set(body.intrigueIds)]

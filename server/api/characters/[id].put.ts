@@ -1,9 +1,10 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
-import { requireGameAccess } from '~/server/utils/gameAccess'
+import { requireGameAccess, assertSameGame } from '~/server/utils/gameAccess'
 import { readZodBody, updateCharacterSchema } from '~/server/utils/schemas'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
+import { deleteUnusedUploads } from '~/server/utils/uploads'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
@@ -15,7 +16,7 @@ export default defineEventHandler(async (event) => {
 
   const existingCharacter = await prisma.character.findUnique({
     where: { id },
-    select: { gameId: true }
+    select: { gameId: true, trombinoscopePhotoUrl: true }
   })
   if (!existingCharacter) {
     throw createError({ statusCode: 404, message: 'Personnage introuvable' })
@@ -41,10 +42,8 @@ export default defineEventHandler(async (event) => {
     factionIds,
     published
   } = body
-  const targetGameId = gameId || existingCharacter?.gameId
-  if (gameId && gameId !== existingCharacter.gameId) {
-    await requireGameAccess(event, gameId)
-  }
+  assertSameGame(existingCharacter.gameId, gameId)
+  const targetGameId = existingCharacter.gameId
   if (factionIds && targetGameId) {
     const matchingFactions = await prisma.faction.count({
       where: {
@@ -70,7 +69,6 @@ export default defineEventHandler(async (event) => {
     trombinoscopePhotoUrl,
     trombinoscopeNote,
     trombinoscopeDisplayName,
-    gameId,
     published
   }
 
@@ -85,7 +83,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  return await prisma.character.update({
+  const character = await prisma.character.update({
     where: { id },
     data,
     include: {
@@ -93,4 +91,6 @@ export default defineEventHandler(async (event) => {
       factions: true
     }
   })
+  await deleteUnusedUploads([existingCharacter.trombinoscopePhotoUrl])
+  return character
 })

@@ -14,14 +14,25 @@
 
     <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
       <section class="xl:col-span-8 space-y-6">
-        <div v-if="game.teaserUrl" class="w-full aspect-video overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+        <div v-if="teaserEmbedUrl" class="w-full aspect-video overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
           <iframe
-            :src="embedTeaser(game.teaserUrl)"
+            :src="teaserEmbedUrl"
             class="w-full h-full"
             frameborder="0"
             allowfullscreen
           />
         </div>
+        <UButton
+          v-else-if="teaserLinkUrl"
+          :to="teaserLinkUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          icon="i-heroicons-play"
+          color="neutral"
+          variant="outline"
+        >
+          Voir le teaser
+        </UButton>
 
         <UCard variant="outline" class="bg-white text-gray-900">
           <template #header>
@@ -46,16 +57,15 @@
 </template>
 
 <script setup>
-defineProps({
+import { isHttpUrl, youtubeEmbedUrl } from '~/utils/urls'
+
+const props = defineProps({
   game: {
     type: Object,
     required: true
   }
 })
 
-const embedTeaser = (url) => {
-  if (!url) return ''
-  const match = url.match(/(?:v=|youtu\.be\/)([\w-]+)/)
-  return match ? `https://www.youtube.com/embed/${match[1]}` : url
-}
+const teaserEmbedUrl = computed(() => youtubeEmbedUrl(props.game.teaserUrl))
+const teaserLinkUrl = computed(() => props.game.teaserUrl && isHttpUrl(props.game.teaserUrl) ? props.game.teaserUrl : null)
 </script>

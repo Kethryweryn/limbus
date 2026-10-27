@@ -1,11 +1,14 @@
 import { getErrorStatus, isServerUnavailableError, setServerUnavailable } from '~/utils/connection'
 import { enqueueOfflineOperation, isQueueableApiWrite } from '~/utils/offlineSync'
+import { forgetOfflineAuth } from '~/utils/storage'
 
+// Session expirée ou révoquée : retour à l'écran de connexion. Un 403 n'est qu'un refus
+// ponctuel (action réservée au propriétaire, ressource d'un autre jeu) : on reste connecté.
+// Les données hors ligne sont gardées : le même compte les retrouve en se reconnectant.
 export function handleApiAuthError(error: any): void {
-  const status = getErrorStatus(error)
-  if (!import.meta.client || (status !== 401 && status !== 403)) return
+  if (!import.meta.client || getErrorStatus(error) !== 401) return
 
-  localStorage.removeItem('offlineAuth')
+  forgetOfflineAuth()
   window.location.reload()
 }
 

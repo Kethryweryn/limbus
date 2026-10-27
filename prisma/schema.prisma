@@ -54,7 +54,7 @@ model Character {
   trombinoscopeDisplayName String?
   slug                  String     @unique
   gameId                String
-  game                  Game       @relation(fields: [gameId], references: [id])
+  game                  Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
   published             Boolean    @default(true)
@@ -101,7 +101,7 @@ model Item {
   locationCharacterId   String?
   locationCharacter     Character?   @relation("ItemLocationCharacter", fields: [locationCharacterId], references: [id], onDelete: SetNull)
   gameId                String
-  game                  Game         @relation(fields: [gameId], references: [id])
+  game                  Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
   published             Boolean      @default(true)
@@ -121,7 +121,7 @@ model Faction {
   showInTrombinoscope   Boolean    @default(false)
   slug                  String     @unique
   gameId                String
-  game                  Game       @relation(fields: [gameId], references: [id])
+  game                  Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
   published             Boolean    @default(true)
@@ -140,7 +140,7 @@ model Intrigue {
   level       String    @default("minor")
   slug        String    @unique
   gameId      String
-  game        Game      @relation(fields: [gameId], references: [id])
+  game        Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   published   Boolean   @default(true)
@@ -183,7 +183,7 @@ model Document {
   audience    String      @default("targeted")
   readyToSend Boolean     @default(false)
   gameId      String
-  game        Game        @relation(fields: [gameId], references: [id])
+  game        Game        @relation(fields: [gameId], references: [id], onDelete: Cascade)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   published   Boolean     @default(true)
@@ -202,7 +202,7 @@ model Session {
   slug        String     @unique
   date        DateTime?
   gameId      String
-  game        Game       @relation(fields: [gameId], references: [id])
+  game        Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
   locationId  String?
   location    Location?  @relation(fields: [locationId], references: [id])
   paymentRibUrl String?
@@ -228,8 +228,8 @@ model SessionAssignment {
   participantId String?
   photoUrl    String?
   notes       String?
-  session     Session  @relation(fields: [sessionId], references: [id])
-  character   Character @relation(fields: [characterId], references: [id])
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
   participant Participant? @relation(fields: [participantId], references: [id])
 
   @@unique([sessionId, characterId])
@@ -254,7 +254,7 @@ model Location {
   address     String?
   notes       String?
   gameId      String
-  game        Game       @relation(fields: [gameId], references: [id])
+  game        Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   published   Boolean    @default(true)

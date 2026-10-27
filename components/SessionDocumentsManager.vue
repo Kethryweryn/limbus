@@ -402,7 +402,7 @@ async function sendTrombinoscopes() {
 }
 
 async function sendCharacterSheetsAndTrombinoscopes() {
-  if (!confirm('Envoyer les fiches personnage et les trombinoscopes ?')) return
+  if (!confirm('Envoyer les fiches personnage et les trombinoscopes aux destinataires manquants ?')) return
 
   sendingBundle.value = true
   try {

@@ -68,6 +68,13 @@ export async function requireGameAccess(event: H3Event, gameId: string) {
   return { user, allGames }
 }
 
+// Une ressource ne change jamais de jeu : ses liens (groupes, intrigues, sessions…) resteraient dans l'ancien
+export function assertSameGame(currentGameId: string, requestedGameId?: string | null) {
+  if (requestedGameId && requestedGameId !== currentGameId) {
+    throw createError({ statusCode: 400, message: 'Une ressource ne peut pas changer de jeu' })
+  }
+}
+
 export async function requireGameOwner(event: H3Event, gameId: string) {
   const { user, allGames } = await canAccessAllGames(event)
   if (allGames) return { user, allGames }

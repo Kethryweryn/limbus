@@ -1,12 +1,5 @@
-import { unlink } from 'node:fs/promises'
-import { basename, join } from 'node:path'
 import { prisma } from '~/server/utils/prisma'
-
-const PHOTO_URL_PREFIX = '/api/uploads/session-assignment-photos/'
-
-function photoPath(url: string) {
-  return join(process.cwd(), '.data', 'uploads', 'session-assignment-photos', basename(url))
-}
+import { deleteUnusedUploads } from '~/server/utils/uploads'
 
 /**
  * Efface un participant et tout ce qui le concerne (RGPD, droit à l'effacement) :
@@ -19,10 +12,10 @@ export async function eraseParticipant(participantId: string) {
     where: { participantId },
     select: { sessionId: true, photoUrl: true }
   })
-  const photoUrls = [...new Set(assignments.map((assignment) => assignment.photoUrl).filter((url): url is string => Boolean(url)))]
+  const photoUrls = assignments.map((assignment) => assignment.photoUrl)
   const sessionsWithPhoto = [...new Set(assignments.filter((assignment) => assignment.photoUrl).map((assignment) => assignment.sessionId))]
 
-  const orphanPhotoUrls = await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx) => {
     await tx.sessionAssignment.updateMany({
       where: { participantId },
       data: { participantId: null, photoUrl: null }
@@ -31,32 +24,10 @@ export async function eraseParticipant(participantId: string) {
       await tx.sessionTrombinoscope.deleteMany({ where: { sessionId: { in: sessionsWithPhoto } } })
     }
     await tx.participant.delete({ where: { id: participantId } })
-
-    // Une photo encore utilisée ailleurs (autre assignation, photo de personnage) est gardée
-    const stillUsed = new Set([
-      ...(await tx.sessionAssignment.findMany({
-        where: { photoUrl: { in: photoUrls } },
-        select: { photoUrl: true }
-      })).map((row) => row.photoUrl),
-      ...(await tx.character.findMany({
-        where: { trombinoscopePhotoUrl: { in: photoUrls } },
-        select: { trombinoscopePhotoUrl: true }
-      })).map((row) => row.trombinoscopePhotoUrl)
-    ])
-    const orphans = photoUrls.filter((url) => !stillUsed.has(url))
-    await tx.uploadedFile.deleteMany({ where: { url: { in: orphans } } })
-    return orphans
   })
 
-  // Fichiers supprimés après la transaction : en cas d'échec de la base, rien n'est perdu
-  for (const url of orphanPhotoUrls) {
-    if (!url.startsWith(PHOTO_URL_PREFIX)) continue
-    await unlink(photoPath(url)).catch((error: NodeJS.ErrnoException) => {
-      if (error.code !== 'ENOENT') throw error
-    })
-  }
-
-  return { deletedPhotos: orphanPhotoUrls.length }
+  // Une photo encore utilisée ailleurs (autre assignation, photo de personnage) est gardée
+  return { deletedPhotos: await deleteUnusedUploads(photoUrls) }
 }
 
 /**

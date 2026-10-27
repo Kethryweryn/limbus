@@ -203,11 +203,11 @@ const testPreview = computed(() => ({
       : `Tu peux maintenant régler ta participation à ${props.paymentsData.session.name}.`,
     `Jeu : ${props.paymentsData.session.game?.title || ''}`,
     settings.paymentLinkUrl ? `Lien de paiement : ${settings.paymentLinkUrl}` : '',
-    settings.paymentRibUrl ? `RIB : ${settings.paymentRibUrl}` : '',
+    settings.paymentRibUrl ? 'Le RIB est joint à cet email.' : '',
     '',
     'Merci !'
   ].filter(Boolean).join('\n'),
-  attachments: [settings.paymentRibUrl].filter(Boolean)
+  attachments: settings.paymentRibUrl ? ['RIB.pdf'] : []
 }))
 
 watch(() => props.paymentsData.session, (session) => {

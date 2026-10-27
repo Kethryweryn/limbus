@@ -67,7 +67,7 @@
 import { onUnmounted, useHead, useRoute } from '#imports'
 import LoginScreen from '~/components/LoginScreen.vue'
 import { isOfflineMode, isServerUnavailableError, setServerUnavailable } from '~/utils/connection'
-import { signOfflineAuth } from '~/utils/hashOfflineAuth'
+import { claimOfflineData, getOfflineAuth, rememberOfflineAuth } from '~/utils/storage'
 import { getOfflineQueue, processOfflineQueue } from '~/utils/offlineSync'
 
 useHead({
@@ -93,17 +93,8 @@ const route = useRoute()
 const isPublicRoute = computed(() => route.path.startsWith('/public/') || route.path.startsWith('/invitations/'))
 let authCheckInProgress = false
 
-async function hasValidOfflineAuth() {
-  const raw = localStorage.getItem('offlineAuth')
-  if (!raw) return false
-
-  try {
-    const { payload, signature } = JSON.parse(raw)
-    const expectedSig = await signOfflineAuth(payload, 'limbus-pwa-secret')
-    return signature === expectedSig
-  } catch {
-    return false
-  }
+function hasValidOfflineAuth() {
+  return Boolean(getOfflineAuth())
 }
 
 const checkAuth = async (forceServerCheck = false) => {
@@ -120,13 +111,13 @@ const checkAuth = async (forceServerCheck = false) => {
   serverUnavailable.value = isOfflineMode()
 
   if (!forceServerCheck && isOfflineMode()) {
-    authenticated.value = await hasValidOfflineAuth()
+    authenticated.value = hasValidOfflineAuth()
     finishAuthCheck()
     return
   }
 
   if (forceServerCheck && !navigator.onLine) {
-    authenticated.value = await hasValidOfflineAuth()
+    authenticated.value = hasValidOfflineAuth()
     finishAuthCheck()
     return
   }
@@ -140,7 +131,7 @@ const checkAuth = async (forceServerCheck = false) => {
     if (isServerUnavailableError(error)) {
       setServerUnavailable(true)
       serverUnavailable.value = true
-      authenticated.value = await hasValidOfflineAuth()
+      authenticated.value = hasValidOfflineAuth()
       finishAuthCheck()
       return
     }
@@ -152,19 +143,8 @@ const checkAuth = async (forceServerCheck = false) => {
   if (authData?.authenticated && 'user' in authData && authData.user) {
     authenticated.value = true
 
-    const payload = {
-      name: authData.user.name,
-      email: authData.user.email,
-      role: authData.user.role,
-      timestamp: new Date().toISOString()
-    }
-
-    const signature = await signOfflineAuth(payload, 'limbus-pwa-secret')
-
-    localStorage.setItem('offlineAuth', JSON.stringify({
-      payload,
-      signature
-    }))
+    await claimOfflineData(authData.user.id)
+    rememberOfflineAuth(authData.user)
     finishAuthCheck()
     return
   }
