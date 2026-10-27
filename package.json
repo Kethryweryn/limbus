@@ -1,5 +1,5 @@
 {
-  "name": "nuxt-app",
+  "name": "limbus",
   "private": true,
   "type": "module",
   "scripts": {
@@ -49,5 +49,8 @@
   },
   "overrides": {
     "@hono/node-server": "^1.19.14"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }
