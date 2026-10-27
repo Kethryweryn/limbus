@@ -100,14 +100,14 @@
       :period="editedPeriod"
       @saved="refresh"
     />
-    <RegistrationFormEditor v-model:open="showFormEditor" :game-id="gameId" />
+    <RegistrationFormEditor v-model:open="showFormEditor" :game-id="gameId" :game-title="gameTitle" />
   </UCard>
 </template>
 
 <script setup>
 import { REGISTRATION_PERIOD_STATE_META, REGISTRATION_PERIOD_STATES } from '~/utils/domain'
 
-// Bloc d'un jeu sur la page Inscriptions (R33) : ses périodes d'inscription
+// Bloc d'un jeu sur la page Inscriptions (R33) : ses périodes d'inscription et son formulaire (US-002)
 const props = defineProps({
   gameId: { type: String, required: true },
   gameTitle: { type: String, required: true }

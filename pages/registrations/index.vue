@@ -2,7 +2,7 @@
   <div class="p-6 space-y-4">
     <div>
       <h1 class="text-2xl font-bold">Inscriptions</h1>
-      <p class="text-sm text-gray-500">Périodes d’inscription de chaque jeu, pour recruter les PJ des sessions.</p>
+      <p class="text-sm text-gray-500">Périodes d’inscription et formulaire de chaque jeu, pour recruter les PJ des sessions.</p>
     </div>
 
     <GameContextBar />

@@ -1,5 +1,5 @@
 <template>
-  <UModal v-model:open="open" title="Formulaire d’inscription" :ui="{ content: 'sm:max-w-3xl' }">
+  <UModal v-model:open="open" :title="`Formulaire d’inscription · ${gameTitle}`" :ui="{ content: 'sm:max-w-3xl' }">
     <template #body>
       <div class="space-y-6">
         <p class="text-sm text-gray-500">
@@ -94,7 +94,8 @@ import { DEFAULT_REGISTRATION_FORM_DEFINITION, REGISTRATION_STANDARD_FIELDS } fr
 const open = defineModel('open', { type: Boolean, default: false })
 
 const props = defineProps({
-  gameId: { type: String, required: true }
+  gameId: { type: String, required: true },
+  gameTitle: { type: String, required: true }
 })
 
 const settings = ref(cloneSettings(DEFAULT_REGISTRATION_FORM_DEFINITION.standardFields))
