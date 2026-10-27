@@ -2,6 +2,15 @@
 
 Outil d'organisation de GN (Nuxt 4, Nuxt UI 4, Prisma 7 / PostgreSQL). Contexte produit et commandes : voir README.md. Le code et l'interface sont en français.
 
+## Documentation (`doc/`)
+
+Toute évolution suit le cycle décrit dans `doc/README.md` : fiche `doc/todo/` → `SPEC-NNN` → epics et `US-NNN` → archive.
+
+- Une nouvelle idée ou demande de fonctionnalité devient d'abord une fiche todo (modèles dans `doc/modeles/`).
+- Toute décision technique (modèle de données, algorithme, bibliothèque, sécurité) fait l'objet d'un ADR dans `doc/adr/`. On ne supprime pas un ADR, on le remplace.
+- Les commits d'implémentation citent l'US ; l'US et l'index sont mis à jour dans le même commit.
+- Avant de travailler sur une fonctionnalité, lire sa spec et les ADR liés. Chaque dossier a un index `README.md` : le tenir à jour.
+
 ## Avant de considérer un changement terminé
 
 `npm run lint`, `npm run typecheck` et `npm test` doivent passer. Le build et les tests d'intégration tournent dans la CI (GitHub Actions) ; sous Windows, le build échoue au prérendu.

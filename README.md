@@ -13,6 +13,8 @@ Un jeu peut être partagé avec d'autres organisateurs par invitation email. Dep
 
 Données personnelles (RGPD) : la fiche d'un participant permet d'exporter ses données en JSON (droit d'accès), limitées aux jeux de l'organisateur. Le supprimer efface ses coordonnées, paiements, envois et photos, fichiers compris. Les trombinoscopes qui contenaient sa photo sont supprimés et doivent être régénérés. L'application est une PWA : en cas de coupure réseau, elle reste consultable en lecture.
 
+Documentation du projet (propositions, spécifications, US, décisions techniques) : [`doc/`](doc/README.md).
+
 ## Stack
 
 Nuxt 4 · Nuxt UI 4 · Pinia · Prisma 7 / PostgreSQL · Nodemailer · pdf-lib · Vitest. Node 24.
