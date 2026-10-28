@@ -58,14 +58,16 @@ Permettre à une organisatrice de confier son jeu à une autre équipe d'organis
   - la fiche du jeu : titre, description, note d'intention, lien du teaser ;
   - les personnages, factions, intrigues, objets, événements de la chronologie, documents et lieux, avec tous leurs champs ;
   - les réglages du trombinoscope de chaque personnage (qui connaît qui, nom affiché, visage connu ou non, note) ;
+  - le formulaire d'inscription, car ses questions liées au casting sont souvent pensées avec les personnages écrits (R14) ;
   - tous les liens entre ces éléments : personnages des factions et des intrigues, objets portés ou situés, documents ciblés, événements liés. Ils pointent vers les éléments de la copie, jamais vers ceux du jeu source.
 - **R5** Ne sont pas copiés, car ce sont des données propres à chaque équipe, souvent personnelles :
   - les sessions et tout ce qui en dépend : cast, attributions et photos des joueurs, paiements, envois, trombinoscopes générés, responsables de la chronologie ;
   - les participants et leurs liens au jeu ;
   - les co-organisateurs et les invitations en cours ;
-  - les périodes d'inscription et les inscriptions ;
-  - le formulaire d'inscription. Il sera copié plus tard, dans un lot à part.
+  - les périodes d'inscription et les inscriptions, avec leurs réponses.
 - **R6** Les fichiers téléversés dans Limbus (fond de personnage ou de faction, document, photo de trombinoscope d'un personnage) sont dupliqués sous un nouveau nom. Supprimer un fichier d'un côté ne touche pas l'autre. Les liens externes (http/https) sont repris tels quels.
+
+- **R14** Le formulaire d'inscription est copié dans sa version en vigueur, qui devient la version 1 du formulaire de la copie. Les versions précédentes ne sont pas copiées : elles ne servent qu'aux réponses des inscriptions du jeu source. Une question qui fait référence à un élément du jeu (personnage, faction…) pointe vers l'élément correspondant de la copie, jamais vers celui du jeu source.
 
 ### Attribution
 
@@ -100,10 +102,9 @@ Permettre à une organisatrice de confier son jeu à une autre équipe d'organis
 
 ## Découpage
 
-1. Léguer une copie du contenu d'écriture à un compte organisateur existant, avec les liens recréés et le crédit (R1 à R5, R7, R9 à R13).
+1. Léguer une copie du contenu d'écriture et du formulaire d'inscription à un compte organisateur existant, avec les liens recréés et le crédit (R1 à R5, R7, R9 à R14).
 2. Dupliquer les fichiers téléversés (R6).
 3. Destinataire sans compte : invitation, copie en attente, attribution à la création du compte, expiration et annulation (R8).
-4. Copie du formulaire d'inscription (après SPEC-001, lot formulaire public).
 
 ## Hors périmètre
 
@@ -114,3 +115,4 @@ Permettre à une organisatrice de confier son jeu à une autre équipe d'organis
 ## Historique
 
 - 2026-10-28 : création à partir de la fiche todo. Choix de l'utilisatrice : attribution automatique, invitation puis attribution pour une destinataire sans compte, crédit visible, pas de copie pour soi-même.
+- 2026-10-28 : le formulaire d'inscription est copié avec le contenu d'écriture, dès le premier lot (R4, R14).
