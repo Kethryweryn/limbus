@@ -99,21 +99,48 @@
 
         <div v-for="link in period.sessions" :key="`registrations-${link.sessionId}`" class="mt-4 space-y-2 border-t border-gray-100 pt-3">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <h3 class="text-sm font-semibold text-gray-700">
-              {{ link.session.name }} · {{ invitedCount(period, link.sessionId) }} invitation{{ invitedCount(period, link.sessionId) > 1 ? 's' : '' }}
-              pour {{ link.seats }} place{{ link.seats > 1 ? 's' : '' }}
-            </h3>
-            <UButton
-              size="xs"
-              icon="i-heroicons-envelope"
-              color="primary"
-              variant="soft"
-              :disabled="period.effectiveState !== REGISTRATION_PERIOD_STATES.open"
-              :title="period.effectiveState === REGISTRATION_PERIOD_STATES.open ? undefined : 'Ouvrez la période pour inviter'"
-              @click="invite(period, link)"
-            >
-              Inviter
-            </UButton>
+            <div>
+              <h3 class="text-sm font-semibold text-gray-700">
+                {{ link.session.name }} · {{ invitedCount(period, link.sessionId) }} invitation{{ invitedCount(period, link.sessionId) > 1 ? 's' : '' }}
+                pour {{ link.seats }} place{{ link.seats > 1 ? 's' : '' }}
+              </h3>
+              <div v-if="sessionRegistrations(period, link.sessionId).length" class="mt-1 flex flex-wrap gap-1">
+                <UBadge
+                  v-for="counter in countRegistrationsByStatus(sessionRegistrations(period, link.sessionId))"
+                  :key="counter.status"
+                  size="sm"
+                  :color="counter.color"
+                  variant="outline"
+                >
+                  {{ counter.label }} : {{ counter.count }}
+                </UBadge>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <UButton
+                v-if="sessionRegistrations(period, link.sessionId).length"
+                size="xs"
+                icon="i-heroicons-arrow-down-tray"
+                color="neutral"
+                variant="soft"
+                :href="`/api/sessions/${link.sessionId}/registrations/export`"
+                external
+                download
+              >
+                CSV
+              </UButton>
+              <UButton
+                size="xs"
+                icon="i-heroicons-envelope"
+                color="primary"
+                variant="soft"
+                :disabled="period.effectiveState !== REGISTRATION_PERIOD_STATES.open"
+                :title="period.effectiveState === REGISTRATION_PERIOD_STATES.open ? undefined : 'Ouvrez la période pour inviter'"
+                @click="invite(period, link)"
+              >
+                Inviter
+              </UButton>
+            </div>
           </div>
           <p v-if="invitedCount(period, link.sessionId) > link.seats" class="text-xs text-warning-600">
             Plus d’invitations que de places.
@@ -135,17 +162,52 @@
                   <template v-else>
                     <span v-if="registration.invitationSentAt"> · invitée le {{ formatDate(registration.invitationSentAt) }}</span>
                     <span v-else class="text-warning-600"> · email non envoyé</span>
+                    <span v-if="registration.lastRemindedAt"> · relancée le {{ formatDate(registration.lastRemindedAt) }}</span>
                     <span v-if="registration.confirmedAt"> · confirmée le {{ formatDate(registration.confirmedAt) }}</span>
                     <span v-else-if="registration.responseDueAt"> · réponse avant le {{ formatDate(registration.responseDueAt) }}</span>
                   </template>
                 </div>
+                <p v-if="registration.missingFromSession" class="text-xs text-warning-600">
+                  N’est plus participante de la session (retirée depuis l’écran de session).
+                </p>
               </div>
-              <div v-if="registration.status === REGISTRATION_STATUSES.invited" class="flex shrink-0 gap-2">
-                <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-arrow-path" @click="resend(registration)">
-                  Renvoyer
+              <div class="flex shrink-0 flex-wrap gap-2">
+                <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="showDetail(registration)">
+                  Détail
                 </UButton>
-                <UButton size="xs" color="error" variant="soft" icon="i-heroicons-x-mark" @click="cancel(registration)">
-                  Annuler
+                <template v-if="registration.status === REGISTRATION_STATUSES.invited">
+                  <UButton
+                    v-if="registration.invitationSentAt"
+                    size="xs"
+                    color="neutral"
+                    variant="soft"
+                    icon="i-heroicons-bell-alert"
+                    @click="remind(registration)"
+                  >
+                    Relancer
+                  </UButton>
+                  <UButton v-else size="xs" color="neutral" variant="soft" icon="i-heroicons-arrow-path" @click="resend(registration)">
+                    Envoyer
+                  </UButton>
+                  <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-calendar-days" @click="askExtension(registration)">
+                    Prolonger
+                  </UButton>
+                  <UButton size="xs" color="warning" variant="soft" icon="i-heroicons-user-minus" @click="release(registration)">
+                    Libérer
+                  </UButton>
+                  <UButton size="xs" color="error" variant="soft" icon="i-heroicons-x-mark" @click="cancel(registration)">
+                    Annuler
+                  </UButton>
+                </template>
+                <UButton
+                  v-else-if="registration.status === REGISTRATION_STATUSES.confirmed"
+                  size="xs"
+                  color="error"
+                  variant="soft"
+                  icon="i-heroicons-user-minus"
+                  @click="withdraw(registration)"
+                >
+                  Retirer
                 </UButton>
               </div>
             </li>
@@ -178,6 +240,24 @@
       :withdrawn-participant-ids="withdrawnParticipantIds(inviteTarget.period)"
       @invited="invited"
     />
+    <RegistrationDetail v-model:open="showDetailModal" :registration-id="detailId" />
+    <UModal v-model:open="showExtension" :title="extensionTarget ? `Prolonger l’échéance de ${extensionTarget.participant.name}` : 'Prolonger'">
+      <template #body>
+        <form class="space-y-4" @submit.prevent="extend">
+          <UFormField
+            label="Nombre de jours"
+            description="À partir de l’échéance actuelle, ou d’aujourd’hui si elle est passée."
+            :error="extensionError || undefined"
+          >
+            <UInput v-model.number="extensionDays" type="number" min="1" max="90" required />
+          </UFormField>
+          <div class="flex justify-end gap-2">
+            <UButton color="neutral" variant="soft" @click="showExtension = false">Annuler</UButton>
+            <UButton type="submit" color="primary" :loading="extending">Prolonger</UButton>
+          </div>
+        </form>
+      </template>
+    </UModal>
   </UCard>
 </template>
 
@@ -185,9 +265,14 @@
 import {
   REGISTRATION_PERIOD_STATE_META,
   REGISTRATION_PERIOD_STATES,
-  REGISTRATION_STATUS_META,
   REGISTRATION_STATUSES
 } from '~/utils/domain'
+import {
+  REGISTRATION_DISPLAY_STATUS_META,
+  countRegistrationsByStatus,
+  registrationDisplayStatus
+} from '~/utils/registrations'
+import { apiErrorMessage, apiFieldErrors } from '~/utils/apiErrors'
 
 // Bloc d'un jeu sur la page Inscriptions (R33) : ses périodes d'inscription et son formulaire (US-002)
 const props = defineProps({
@@ -247,15 +332,86 @@ function withdrawnParticipantIds(period) {
     .map((registration) => registration.participant.id)
 }
 
-// Refus d'une invitation, désistement par le lien, ou retrait par une organisatrice (US-005)
+// Refus d'une invitation, désistement par le lien, place libérée ou retrait par une organisatrice (US-005)
 function withdrawalLabel(registration) {
   const date = formatDate(registration.withdrawnAt || registration.respondedAt)
-  if (registration.withdrawnBy) return `retirée le ${date} par ${registration.withdrawnBy.name}`
+  if (registration.withdrawnBy) {
+    return `${registration.confirmedAt ? 'retirée' : 'place libérée'} le ${date} par ${registration.withdrawnBy.name}`
+  }
   return registration.confirmedAt ? `désistée le ${date} par la personne` : `invitation déclinée le ${date}`
 }
 
+// « Délai dépassé » se lit sur l'échéance (R20, ADR-0020)
 function statusMeta(registration) {
-  return REGISTRATION_STATUS_META[registration.status] || { label: registration.status, color: 'neutral' }
+  return REGISTRATION_DISPLAY_STATUS_META[registrationDisplayStatus(registration)] || { label: registration.status, color: 'neutral' }
+}
+
+const showDetailModal = ref(false)
+const detailId = ref(null)
+
+function showDetail(registration) {
+  detailId.value = registration.id
+  showDetailModal.value = true
+}
+
+// Actions d'une organisatrice sur une inscription (US-005) : on recharge la liste, réussite ou échec
+async function registrationAction(registration, action, body, success) {
+  try {
+    await useApiFetch(`/api/registrations/${registration.id}/${action}`, { method: 'POST', body })
+    await refresh()
+    infoColor.value = 'success'
+    infoMessage.value = success
+    return true
+  } catch (err) {
+    await refresh()
+    errorMessage.value = apiErrorMessage(err, 'Action impossible')
+    return false
+  }
+}
+
+async function remind(registration) {
+  if (!confirm(`Relancer ${registration.participant.name} ? Un email de rappel part avec un nouveau lien ; le lien envoyé précédemment ne fonctionnera plus.`)) return
+  await registrationAction(registration, 'remind', undefined, `Rappel envoyé à ${registration.participant.name}.`)
+}
+
+async function release(registration) {
+  if (!confirm(`Libérer la place de ${registration.participant.name} ? Son lien indiquera que, sans réponse dans le délai, sa place a été réattribuée. Vous pourrez la réinviter.`)) return
+  await registrationAction(registration, 'release', undefined, `Place de ${registration.participant.name} libérée.`)
+}
+
+async function withdraw(registration) {
+  if (!confirm(`Retirer ${registration.participant.name} de la session ? Ses personnages (PJ et PNJ) seront libérés, les trombinoscopes régénérés et l’équipe prévenue par email.`)) return
+  await registrationAction(registration, 'withdraw', undefined, `${registration.participant.name} a été retirée de la session.`)
+}
+
+const showExtension = ref(false)
+const extensionTarget = ref(null)
+const extensionDays = ref(7)
+const extensionError = ref('')
+const extending = ref(false)
+
+function askExtension(registration) {
+  extensionTarget.value = registration
+  extensionDays.value = 7
+  extensionError.value = ''
+  showExtension.value = true
+}
+
+async function extend() {
+  const registration = extensionTarget.value
+  extending.value = true
+  extensionError.value = ''
+  try {
+    await useApiFetch(`/api/registrations/${registration.id}/extend`, { method: 'POST', body: { days: extensionDays.value } })
+    showExtension.value = false
+    await refresh()
+    infoColor.value = 'success'
+    infoMessage.value = `Échéance de ${registration.participant.name} prolongée.`
+  } catch (err) {
+    extensionError.value = apiFieldErrors(err).days || apiErrorMessage(err, 'Prolongation impossible')
+  } finally {
+    extending.value = false
+  }
 }
 
 function invite(period, link) {

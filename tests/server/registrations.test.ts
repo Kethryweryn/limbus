@@ -4,6 +4,7 @@ import { runtimeConfig } from '../setup'
 import { registrationInvitationSchema } from '~/server/utils/schemas'
 import {
   createRegistrationToken,
+  extendedResponseDueAt,
   hashRegistrationToken,
   participantEmailMatchWhere,
   registrationInvitationEmailText,
@@ -82,6 +83,36 @@ describe('email d’invitation', () => {
     expect(text).toContain('Alice vous invite à jouer à « Les Ombres », session Printemps (10 mars 2027)')
     expect(text).toContain('https://limbus.example/inscription/abc')
     expect(text).toContain('avant le 1 février 2027')
+  })
+  it('une relance le dit, et prévient que les anciens liens ne marchent plus (US-005)', () => {
+    const base = { participantName: 'Zoé', gameTitle: 'Les Ombres', sessionName: null, sessionDate: null, responseDueAt: null, inviterName: null, url: 'https://x' }
+    expect(registrationInvitationEmailText(base)).not.toContain('pas encore reçu')
+    const text = registrationInvitationEmailText({ ...base, reminder: true })
+    expect(text).toContain('Nous n’avons pas encore reçu votre réponse')
+    expect(text).toContain('Les liens reçus précédemment ne fonctionnent plus')
+  })
+
+  it('une relance après l’échéance ne rappelle pas une date passée', () => {
+    const base = { participantName: 'Zoé', gameTitle: 'Les Ombres', sessionName: null, sessionDate: null, inviterName: null, url: 'https://x', reminder: true }
+    const late = registrationInvitationEmailText({ ...base, responseDueAt: new Date(Date.now() - 86_400_000) })
+    expect(late).not.toContain('avant le')
+    expect(late).toContain('dès que possible')
+    expect(registrationInvitationEmailText({ ...base, responseDueAt: new Date(Date.now() + 86_400_000) })).toContain('avant le')
+  })
+})
+
+describe('prolongation de l’échéance (US-005)', () => {
+  const now = new Date('2027-01-10T12:00:00Z')
+  const day = 24 * 60 * 60 * 1000
+
+  it('part de l’échéance actuelle quand elle est à venir', () => {
+    const due = new Date('2027-01-12T12:00:00Z')
+    expect(extendedResponseDueAt(due, 3, now).getTime()).toBe(due.getTime() + 3 * day)
+  })
+
+  it('part d’aujourd’hui quand l’échéance est passée ou absente', () => {
+    expect(extendedResponseDueAt(new Date('2027-01-01T00:00:00Z'), 3, now).getTime()).toBe(now.getTime() + 3 * day)
+    expect(extendedResponseDueAt(null, 3, now).getTime()).toBe(now.getTime() + 3 * day)
   })
 })
 

@@ -73,6 +73,7 @@ export function registrationInvitationEmailText(params: {
   responseDueAt: Date | null
   inviterName: string | null
   url: string
+  reminder?: boolean
 }) {
   const session = params.sessionName
     ? `${params.sessionName}${params.sessionDate ? ` (${formatDate(params.sessionDate)})` : ''}`
@@ -81,12 +82,18 @@ export function registrationInvitationEmailText(params: {
   return [
     `Bonjour ${params.participantName},`,
     '',
+    params.reminder ? 'Nous n’avons pas encore reçu votre réponse à cette invitation.' : null,
+    params.reminder ? '' : null,
     `${params.inviterName || 'L’équipe d’organisation'} vous invite à jouer à « ${params.gameTitle} »${session ? `, session ${session}` : ''}.`,
     '',
     'Ce lien personnel vous permet de lire la note d’intention, de donner vos informations et de répondre à l’invitation :',
     params.url,
     '',
-    params.responseDueAt ? `Merci de répondre avant le ${formatDate(params.responseDueAt)}.` : null,
+    // Une relance après l'échéance ne rappelle pas une date passée (ADR-0020 : l'invitation reste ouverte)
+    params.responseDueAt && (!params.reminder || params.responseDueAt.getTime() > Date.now())
+      ? `Merci de répondre avant le ${formatDate(params.responseDueAt)}.`
+      : params.reminder ? 'Merci de répondre dès que possible.' : null,
+    params.reminder ? 'Les liens reçus précédemment ne fonctionnent plus : utilisez celui-ci.' : null,
     'Ce lien vous est propre : ne le transférez pas.'
   ].filter((line) => line !== null).join('\n')
 }
@@ -104,6 +111,7 @@ type InvitationContext = {
   sessionDate: Date | null
   responseDueAt: Date | null
   inviterName: string | null
+  reminder?: boolean
 }
 
 /**
@@ -118,14 +126,18 @@ async function sendInvitationEmail(transport: EmailTransport | null, target: Inv
   try {
     await transport.send({
       to: target.to,
-      subject: `Invitation : ${context.gameTitle}`,
+      subject: `${context.reminder ? 'Rappel – invitation' : 'Invitation'} : ${context.gameTitle}`,
       text: registrationInvitationEmailText({ ...context, participantName: target.participantName, url: registrationUrl(target.token) })
     })
   } catch (error) {
     return { sent: false, message: (error as { message?: string })?.message || 'Erreur SMTP' }
   }
 
-  await prisma.registration.update({ where: { id: target.registrationId }, data: { invitationSentAt: new Date() } })
+  // La date d'invitation reste celle du premier envoi : une relance a sa propre date
+  await prisma.registration.update({
+    where: { id: target.registrationId },
+    data: context.reminder ? { lastRemindedAt: new Date() } : { invitationSentAt: new Date() }
+  })
   return { sent: true, message: null }
 }
 
@@ -324,8 +336,10 @@ export function assertUnansweredInvitation(registration: { status: string, respo
  * Renvoie l'invitation avec un nouveau lien : l'ancien cesse de fonctionner (ADR-0018).
  * L'échéance ne change pas : la prolonger est une action à part (US-005).
  * L'email part à l'adresse de l'inscription : c'est elle qui fait foi (R12).
+ * Relance (US-005) : même envoi, avec un objet de rappel ; seul le hash du jeton étant stocké,
+ * on ne peut pas renvoyer le lien précédent.
  */
-export async function resendRegistrationInvitation(registrationId: string, inviter: { name?: string | null }) {
+export async function resendRegistrationInvitation(registrationId: string, inviter: { name?: string | null }, options: { reminder?: boolean } = {}) {
   const registration = await prisma.registration.findUniqueOrThrow({
     where: { id: registrationId },
     select: {
@@ -343,7 +357,14 @@ export async function resendRegistrationInvitation(registrationId: string, invit
   const to = registration.email
 
   const { token, tokenHash } = createRegistrationToken()
-  await prisma.registration.update({ where: { id: registration.id }, data: { tokenHash } })
+  // Statut revérifié dans l'écriture : une réponse arrivée entre-temps garde son lien
+  const { count } = await prisma.registration.updateMany({
+    where: { id: registration.id, status: REGISTRATION_STATUSES.invited, respondedAt: null },
+    data: { tokenHash }
+  })
+  if (!count) {
+    throw createError({ statusCode: 409, message: 'Cette invitation a déjà reçu une réponse' })
+  }
 
   const transport = await openEmailTransport().catch(() => null)
   const result = await sendInvitationEmail(
@@ -354,13 +375,81 @@ export async function resendRegistrationInvitation(registrationId: string, invit
       sessionName: registration.session?.name ?? null,
       sessionDate: registration.session?.date ?? null,
       responseDueAt: registration.responseDueAt,
-      inviterName: inviter.name ?? null
+      inviterName: inviter.name ?? null,
+      reminder: Boolean(options.reminder)
     }
   ).finally(() => transport?.close())
   if (!result.sent) {
     throw createError({ statusCode: 502, message: `L’ancien lien est invalidé, mais l’email n’est pas parti : ${result.message}` })
   }
   return { sent: true }
+}
+
+/**
+ * Prolonge l'échéance d'une invitation sans réponse (US-005, R20). On part de l'échéance actuelle,
+ * ou d'aujourd'hui si elle est déjà passée : prolonger de 3 jours donne toujours 3 jours pour répondre.
+ */
+export function extendedResponseDueAt(current: Date | null, days: number, now = new Date()) {
+  const from = current && current.getTime() > now.getTime() ? current : now
+  return registrationResponseDueAt(days, from)
+}
+
+export async function extendRegistrationDeadline(registrationId: string, days: number) {
+  const registration = await prisma.registration.findUniqueOrThrow({
+    where: { id: registrationId },
+    select: { id: true, status: true, respondedAt: true, responseDueAt: true }
+  })
+  assertUnansweredInvitation(registration)
+  const responseDueAt = extendedResponseDueAt(registration.responseDueAt, days)
+  const { count } = await prisma.registration.updateMany({
+    where: { id: registration.id, status: REGISTRATION_STATUSES.invited, respondedAt: null },
+    data: { responseDueAt }
+  })
+  if (!count) {
+    throw createError({ statusCode: 409, message: 'Cette invitation a déjà reçu une réponse' })
+  }
+  return { responseDueAt }
+}
+
+/**
+ * Libère la place d'une invitation sans réponse (US-005, R20) : l'inscription passe à désistée,
+ * avec l'organisatrice comme autrice. Le lien ne permet plus de répondre ; il affiche seulement
+ * que la place a été réattribuée faute de réponse. La personne peut être réinvitée (R16).
+ */
+export async function releaseRegistration(registrationId: string, releasedBy: { id: string }) {
+  const { count } = await prisma.registration.updateMany({
+    where: { id: registrationId, status: REGISTRATION_STATUSES.invited, respondedAt: null },
+    data: { status: REGISTRATION_STATUSES.withdrawn, withdrawnAt: new Date(), withdrawnById: releasedBy.id }
+  })
+  if (!count) {
+    throw createError({ statusCode: 409, message: 'Cette invitation a déjà reçu une réponse' })
+  }
+  return { success: true }
+}
+
+/**
+ * Signale les personnes confirmées qui ne sont plus participantes de leur session (ADR-0021) :
+ * retirées à la main de l'écran de session, sans passer par le désistement.
+ */
+export async function withSessionPresence<T extends { status: string, sessionId: string | null, participant: { id: string } }>(registrations: T[]) {
+  const confirmed = registrations.filter((registration) => registration.status === REGISTRATION_STATUSES.confirmed && registration.sessionId)
+  const present = confirmed.length
+    ? await prisma.sessionParticipant.findMany({
+        where: {
+          role: SESSION_ROLES.participant,
+          sessionId: { in: [...new Set(confirmed.map((registration) => registration.sessionId!))] },
+          participantId: { in: [...new Set(confirmed.map((registration) => registration.participant.id))] }
+        },
+        select: { sessionId: true, participantId: true }
+      })
+    : []
+  const keys = new Set(present.map((row) => `${row.sessionId}:${row.participantId}`))
+  return registrations.map((registration) => ({
+    ...registration,
+    missingFromSession: registration.status === REGISTRATION_STATUSES.confirmed
+      && Boolean(registration.sessionId)
+      && !keys.has(`${registration.sessionId}:${registration.participant.id}`)
+  }))
 }
 
 export function registrationWithdrawalEmailText(params: {

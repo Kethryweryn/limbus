@@ -187,6 +187,12 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['GET', `/api/registration-periods/${b.registrationPeriod.id}/registrations`],
     ['POST', `/api/registrations/${b.registration.id}/resend`],
     ['DELETE', `/api/registrations/${b.registration.id}`],
+    ['GET', `/api/registrations/${b.registration.id}`],
+    ['POST', `/api/registrations/${b.registration.id}/remind`],
+    ['POST', `/api/registrations/${b.registration.id}/extend`, { days: 3 }],
+    ['POST', `/api/registrations/${b.registration.id}/release`],
+    ['POST', `/api/registrations/${b.registration.id}/withdraw`],
+    ['GET', `/api/sessions/${b.session.id}/registrations/export`],
     ['PUT', `/api/games/${b.game.id}/registration-form`, {
       standardFields: Object.fromEntries(['lastName', 'firstName', 'facebookName', 'phone', 'emergencyContact', 'dietary']
         .map((key) => [key, { asked: false, required: false }]))
@@ -208,12 +214,14 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/registration-context`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/registration-form`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/registration-periods/${a.registrationPeriod.id}/registrations`)).status).toBe(200)
+    expect((await api(alice, 'GET', `/api/registrations/${a.registration.id}`)).status).toBe(200)
+    expect((await api(alice, 'GET', `/api/sessions/${a.session.id}/registrations/export`)).status).toBe(200)
     // Fichier référencé mais absent du disque : l'accès est accordé, puis 404
     expect((await api(alice, 'GET', `/api/uploads/session-assignment-photos/${a.photo.filename}`)).status).toBe(404)
   })
 
   it('les inscriptions de Bob sont intactes', async () => {
-    expect(await prisma.registration.findUnique({ where: { id: b.registration.id } })).toMatchObject({ status: 'invited', tokenHash: 'hash-b' })
+    expect(await prisma.registration.findUnique({ where: { id: b.registration.id } })).toMatchObject({ status: 'invited', tokenHash: 'hash-b', withdrawnById: null, lastRemindedAt: null })
   })
 
   it('inviter dans sa période un participant ou une session de Bob est refusé', async () => {
