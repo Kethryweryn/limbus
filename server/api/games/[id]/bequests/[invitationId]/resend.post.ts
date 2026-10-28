@@ -1,8 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
-import { bequestExpiresAt, findPendingBequest, purgeExpiredBequests, requireBequestOwner } from '~/server/utils/bequests'
+import { bequestExpiresAt, findPendingBequest, purgeExpiredBequests, requireBequestOwner, sendBequestInvitation } from '~/server/utils/bequests'
 import { invitationUrl } from '~/server/utils/invitations'
-import { sendGameBequestInvitationEmail } from '~/server/utils/email'
 import { GAME_INVITATION_STATUSES } from '~/utils/domain'
 import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
 
@@ -27,18 +26,14 @@ export default defineEventHandler(async (event) => {
   const invitation = await findPendingBequest(id, invitationId)
 
   const expiresAt = bequestExpiresAt()
-  const delivery = await sendGameBequestInvitationEmail({
+  // Sans email parti, l'expiration ne bouge pas : la destinataire n'a reçu aucune nouvelle date
+  await sendBequestInvitation({
     to: invitation.email,
     gameTitle: game.title,
     ownerName: user.name || user.email,
     url: invitationUrl(invitation.token),
     expiresAt
-  }).catch((error: { message?: string }) => ({ sent: false, reason: error?.message || 'smtp_error' }))
-  // Sans email parti, l'expiration ne bouge pas : la destinataire n'a reçu aucune nouvelle date
-  if (!delivery.sent) {
-    const reason = 'reason' in delivery && delivery.reason !== 'smtp_disabled' ? delivery.reason : 'envoi d’emails désactivé'
-    throw createError({ statusCode: 502, message: `L’invitation n’a pas pu partir (${reason}).` })
-  }
+  }, '.')
 
   await prisma.gameInvitation.updateMany({
     where: { id: invitation.id, status: GAME_INVITATION_STATUSES.pending },

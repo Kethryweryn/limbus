@@ -25,10 +25,12 @@ En tant que propriétaire d'un jeu, je veux voir les legs que j'ai faits à des 
 ## Réalisation
 
 - La liste « Legs en attente » est dans la fenêtre « Léguer une copie » de la fiche du jeu, sous le formulaire : c'est là que la propriétaire lègue, et la liste se met à jour après un legs, un renvoi ou une annulation.
-- Comme le legs lui-même, ces routes sont réservées à la propriétaire, y compris en mode administrateur (R1) : `requireBequestOwner` (`server/utils/bequests.ts`) s'ajoute à `requireGameOwner`.
+- Comme le legs lui-même, ces routes sont réservées à la propriétaire, y compris en mode administrateur (R1) : `requireBequestOwner` (`server/utils/bequests.ts`) vérifie que le jeu appartient à la personne connectée.
 - Le renvoi garde le même lien : l'ancien email reste valable, avec la nouvelle date. Si l'email ne part pas, l'expiration ne change pas (502).
 - Le nettoyage (`purgeExpiredBequests`) supprime aussi une copie en attente qui n'a plus aucune invitation en cours, quelle qu'en soit la raison.
+  Une copie qui n’a encore aucune invitation n’est supprimée qu’après une heure : son legs est peut-être en train de se faire.
 - Une annulation sur une copie attribuée entre-temps répond 409 et ne touche à rien : la suppression reste conditionnelle à `bequestPending`.
+- Hors ligne, l’annulation n’est pas mise en file : un DELETE sur une sous-route (legs, partages, invitations) est une action, comme un POST.
 
 ## Notes techniques
 

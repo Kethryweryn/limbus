@@ -13,5 +13,7 @@ describe('écritures mises en file hors ligne', () => {
     expect(isQueueableApiWrite('/api/sessions/s1/allergies/send', { method: 'POST' })).toBe(false)
     expect(isQueueableApiWrite('/api/sessions/s1/payments/send', { method: 'POST', body: {} })).toBe(false)
     expect(isQueueableApiWrite('/api/games/g1/bequests', { method: 'POST', body: {} })).toBe(false)
+    expect(isQueueableApiWrite('/api/games/g1/bequests/i1', { method: 'DELETE' })).toBe(false)
+    expect(isQueueableApiWrite('/api/games/g1/shares/u1', { method: 'DELETE' })).toBe(false)
   })
 })

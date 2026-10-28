@@ -43,7 +43,7 @@
             />
           </UFormField>
           <AppCheckboxRow v-model="confirmed" label="Je confirme vouloir léguer une copie de ce jeu à cette personne." />
-          <UButton type="submit" color="primary" :disabled="!email || !confirmed" :loading="sending">
+          <UButton type="submit" color="primary" :disabled="!email || !confirmed || busy" :loading="sending">
             Léguer une copie
           </UButton>
         </form>
@@ -65,10 +65,10 @@
                 </div>
               </div>
               <div class="flex gap-2">
-                <UButton size="xs" color="neutral" variant="soft" :loading="busyId === bequest.id" @click="resend(bequest)">
+                <UButton size="xs" color="neutral" variant="soft" :loading="busyId === bequest.id" :disabled="busy" @click="resend(bequest)">
                   Renvoyer
                 </UButton>
-                <UButton size="xs" color="error" variant="soft" :disabled="busyId === bequest.id" @click="cancel(bequest)">
+                <UButton size="xs" color="error" variant="soft" :disabled="busy" @click="cancel(bequest)">
                   Annuler
                 </UButton>
               </div>
@@ -101,6 +101,8 @@ const message = ref('')
 const errorMessage = ref('')
 const pendingBequests = ref([])
 const busyId = ref('')
+// Une action à la fois : chacune efface les messages et recharge la liste
+const busy = computed(() => sending.value || Boolean(busyId.value))
 
 const formatDate = (value) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long' })
 
@@ -124,6 +126,7 @@ async function loadPendingBequests() {
 }
 
 async function resend(bequest) {
+  if (busy.value) return
   busyId.value = bequest.id
   message.value = ''
   errorMessage.value = ''
@@ -139,7 +142,7 @@ async function resend(bequest) {
 }
 
 async function cancel(bequest) {
-  if (!confirm(`Annuler le legs à ${bequest.email} ? La copie sera supprimée, et le lien de son invitation ne fonctionnera plus.`)) return
+  if (busy.value || !confirm(`Annuler le legs à ${bequest.email} ? La copie sera supprimée, et le lien de son invitation ne fonctionnera plus.`)) return
   busyId.value = bequest.id
   message.value = ''
   errorMessage.value = ''
@@ -155,7 +158,7 @@ async function cancel(bequest) {
 }
 
 async function bequeath() {
-  if (!props.game?.id || !email.value || !confirmed.value) return
+  if (!props.game?.id || !email.value || !confirmed.value || busy.value) return
 
   sending.value = true
   message.value = ''

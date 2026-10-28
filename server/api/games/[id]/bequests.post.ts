@@ -1,10 +1,10 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
-import { bequestExpiresAt, purgeExpiredBequests, requireBequestOwner } from '~/server/utils/bequests'
+import { bequestExpiresAt, purgeExpiredBequests, requireBequestOwner, sendBequestInvitation } from '~/server/utils/bequests'
 import { gameBequestSchema, readZodBody } from '~/server/utils/schemas'
 import { createInvitationToken, invitationUrl, normalizeInvitationEmail } from '~/server/utils/invitations'
 import { copyGame, deletePendingCopy } from '~/server/utils/gameCopy'
-import { sendGameBequestEmail, sendGameBequestInvitationEmail } from '~/server/utils/email'
+import { sendGameBequestEmail } from '~/server/utils/email'
 import { GAME_INVITATION_KINDS } from '~/utils/domain'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
 import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
@@ -47,13 +47,12 @@ export default defineEventHandler(async (event) => {
       data: { gameId: copy.id, email, token: createInvitationToken(), kind: GAME_INVITATION_KINDS.bequest, invitedById: user.id, expiresAt },
       select: { token: true }
     })
-    // Sans email, la destinataire n'a aucun moyen de recevoir la copie : rien n'est légué
-    const delivery = await sendGameBequestInvitationEmail({ to: email, gameTitle: game.title, ownerName, url: invitationUrl(invitation.token), expiresAt })
-      .catch((error: { message?: string }) => ({ sent: false, reason: error?.message || 'smtp_error' }))
-    if (!delivery.sent) {
+    // Sans email, rien n'est légué
+    try {
+      await sendBequestInvitation({ to: email, gameTitle: game.title, ownerName, url: invitationUrl(invitation.token), expiresAt }, ' : rien n’a été légué.')
+    } catch (error) {
       await deletePendingCopy(copy.id)
-      const reason = 'reason' in delivery && delivery.reason !== 'smtp_disabled' ? delivery.reason : 'envoi d’emails désactivé'
-      throw createError({ statusCode: 502, message: `L’invitation n’a pas pu partir (${reason}) : rien n’a été légué.` })
+      throw error
     }
     return { recipient: { name: null, email }, pending: true, expiresAt, emailDelivery: { sent: true } }
   }

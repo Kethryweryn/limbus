@@ -414,6 +414,19 @@ describe('suivi des legs en attente (US-012)', () => {
     expect((await api(carol, 'POST', `/api/games/${game.id}/bequests/${invitation.id}/resend`)).status).toBe(404)
   })
 
+  it('laisse une copie sans invitation le temps que son legs se termine, puis la supprime', async () => {
+    const { game } = await sourceGame(carol)
+    // Copie faite, invitation pas encore créée : un legs en cours
+    const inProgress = await prisma.game.create({ data: { title: 'En cours', slug: `en-cours-${++pendingCounter}`, description: 'Un jeu', copiedFromGameId: game.id, bequestPending: true } })
+    const abandoned = await prisma.game.create({
+      data: { title: 'Abandonnée', slug: `abandonnee-${pendingCounter}`, description: 'Un jeu', copiedFromGameId: game.id, bequestPending: true, createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000) }
+    })
+
+    expect((await list(game.id)).status).toBe(200)
+    expect(await prisma.game.findUnique({ where: { id: inProgress.id } })).not.toBeNull()
+    expect(await prisma.game.findUnique({ where: { id: abandoned.id } })).toBeNull()
+  })
+
   it('réservé à la propriétaire : ni co-organisatrice, ni mode administrateur', async () => {
     const { game, copy, invitation } = await pendingBequest(carol)
     await prisma.gameShare.create({ data: { gameId: game.id, userId: alice.id } })
