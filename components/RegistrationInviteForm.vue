@@ -66,6 +66,8 @@
 </template>
 
 <script setup>
+import { apiErrorMessage } from '~/utils/apiErrors'
+
 const open = defineModel('open', { type: Boolean, default: false })
 
 const props = defineProps({
@@ -75,8 +77,10 @@ const props = defineProps({
   sessionName: { type: String, required: true },
   seats: { type: Number, required: true },
   invitedCount: { type: Number, required: true },
-  // Participants qui ont déjà une inscription dans la période : une seule par personne
-  registeredParticipantIds: { type: Array, default: () => [] }
+  // Participants qui ont déjà une inscription en cours dans la période : une seule par personne
+  registeredParticipantIds: { type: Array, default: () => [] },
+  // Participants qui ont décliné ou se sont désistés : leur inscription repart avec un nouveau lien
+  withdrawnParticipantIds: { type: Array, default: () => [] }
 })
 
 const emit = defineEmits(['invited'])
@@ -119,6 +123,7 @@ function canInvite(participant) {
 function participantDescription(participant) {
   if (props.registeredParticipantIds.includes(participant.id)) return 'Déjà inscrit dans cette période'
   if (!participant.email?.trim()) return 'Sans email : ajoutez-en un sur sa fiche pour l’inviter'
+  if (props.withdrawnParticipantIds.includes(participant.id)) return `${participant.email} · a décliné ou s’est désisté·e : la réinviter lui envoie un nouveau lien`
   return participant.email
 }
 
@@ -141,10 +146,7 @@ async function submit() {
     emit('invited', result)
     open.value = false
   } catch (err) {
-    const details = err?.data?.data?.data?.map?.((issue) => issue.message).join(', ')
-    serverError.value = err?.data?.message === 'Invalid request body' && details
-      ? `Saisie invalide : ${details}`
-      : err?.data?.message || err?.message || 'Invitation impossible'
+    serverError.value = apiErrorMessage(err, 'Invitation impossible')
   } finally {
     saving.value = false
   }

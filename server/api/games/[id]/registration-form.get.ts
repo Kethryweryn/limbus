@@ -12,6 +12,9 @@ export default defineEventHandler(async (event) => {
   }
   await requireGameAccess(event, gameId)
 
-  const game = await prisma.game.findUniqueOrThrow({ where: { id: gameId }, select: { title: true, noteIntention: true } })
+  const game = await prisma.game.findUnique({ where: { id: gameId }, select: { title: true, noteIntention: true } })
+  if (!game) {
+    throw createError({ statusCode: 404, message: 'Jeu introuvable' })
+  }
   return { ...await getCurrentRegistrationForm(gameId), game }
 })

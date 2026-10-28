@@ -27,3 +27,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0021](ADR-0021-inscription-et-participation-de-session.md) | L'inscription crée la participation de session, la session reste la référence | proposé | 2026-10-27 |
 | [ADR-0022](ADR-0022-pas-de-ci-pour-la-documentation.md) | Pas de CI ni de déploiement quand seule la documentation change | accepté, en partie remplacé par ADR-0023 | 2026-10-28 |
 | [ADR-0023](ADR-0023-deploiement-sans-ci-redondante.md) | Construire une fois dans la CI, tester ce build, le déployer tel quel | accepté | 2026-10-28 |
+| [ADR-0024](ADR-0024-migrations-compatibles-avec-le-build-en-service.md) | Migrations compatibles avec le build en service, vérifiées par la CI | accepté | 2026-10-28 |

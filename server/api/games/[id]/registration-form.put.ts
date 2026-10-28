@@ -12,6 +12,6 @@ export default defineEventHandler(async (event) => {
   }
   await requireGameAccess(event, gameId)
 
-  const definition = await readZodBody(event, registrationFormDefinitionSchema)
-  return await saveRegistrationFormDefinition(gameId, definition)
+  const { baseVersionNumber, ...definition } = await readZodBody(event, registrationFormDefinitionSchema)
+  return await saveRegistrationFormDefinition(gameId, definition, baseVersionNumber)
 })

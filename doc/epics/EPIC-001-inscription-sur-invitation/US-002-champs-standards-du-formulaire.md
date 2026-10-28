@@ -27,6 +27,12 @@ En tant qu'organisatrice, je veux choisir les informations demandées aux inscri
 - Les questions propres au jeu et les affinités s'ajouteront à la version dans les epics suivants.
 - Routes : `GET/PUT /api/games/:id/registration-form`, avec `requireGameAccess`.
 
+Après la revue de code du 2026-10-28 :
+
+- Enregistrer depuis un éditeur ouvert sur une version dépassée est refusé (409) : on ne peut plus écraser les changements d'une autre organisatrice.
+- Les réponses sont limitées à 500 caractères (2 000 pour les allergies), avec un message en français ; l'email à 254.
+- L'aperçu de l'éditeur et la page du lien utilisent la même liste de champs (`REGISTRATION_FORM_INPUTS`).
+
 ## Réalisation
 
 - Migration `20261028120000_add_registration_forms` : tables `RegistrationForm` et `RegistrationFormVersion` (définition en JSONB, unicité `formId` + `number`).

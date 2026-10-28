@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
     name: 'registration-resend',
     limit: 30,
     windowMs: 10 * 60 * 1000,
-    keyParts: [authUserRateLimitKey(event)]
+    keyParts: [authUserRateLimitKey(event), registration.period.id]
   })
 
   // Sans session (supprimée), le verrou porte sur l'inscription elle-même

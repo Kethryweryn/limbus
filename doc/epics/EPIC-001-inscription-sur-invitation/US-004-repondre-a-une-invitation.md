@@ -35,6 +35,14 @@ Précisions apportées pendant la réalisation :
 - Si le jeu n'a jamais enregistré de formulaire, la première réponse enregistre la définition par défaut comme version 1, pour que l'inscription garde la version qu'elle a remplie (R9).
 - La page s'affiche hors de l'application organisateur (ni menu, ni bandeau de synchronisation), même pour une organisatrice connectée.
 
+Après la revue de code du 2026-10-28 :
+
+- L'email saisi dans le formulaire remplace celui de la fiche du participant (R12) ; les autres informations restent sur l'inscription (R14).
+- La date de consentement santé est celle du dernier enregistrement des allergies (R14).
+- La version du formulaire n'est figée qu'une fois la réponse validée ; deux premières réponses simultanées partagent la même version 1.
+- Une page de place réattribuée faute de réponse affiche : « Sans réponse de votre part dans le délai, votre place a été réattribuée. »
+- La limite de débit est comptée par lien, avec un plafond large par adresse IP, pour que plusieurs joueurs derrière un même wifi ne se bloquent pas.
+
 ## Notes techniques
 
 - Pages : `pages/inscription/[token].vue`, hors du layout organisateur, sans mise en cache hors ligne.

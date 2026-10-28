@@ -100,9 +100,9 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 ### Inscription et identité
 
 - **R11** Une inscription par formulaire n'est **reçue** qu'une fois l'email confirmé par le lien envoyé. Une inscription non confirmée sous 7 jours est supprimée.
-- **R12** L'inscrit est rapproché d'un participant existant par son email, sans tenir compte de la casse, mais seulement parmi les participants liés aux jeux de la même propriétaire. Sinon, un nouveau participant est créé et lié au jeu. Un même email chez une autre équipe donne une fiche distincte.
+- **R12** L'inscrit est rapproché d'un participant existant par son email, sans tenir compte de la casse, mais seulement parmi les participants liés aux jeux de la même propriétaire. Sinon, un nouveau participant est créé et lié au jeu. Un même email chez une autre équipe donne une fiche distincte. L'email donné par la personne dans le formulaire fait foi : il remplace celui de sa fiche, et tous les envois suivants (renvoi du lien, paiements, documents) partent à cette adresse.
 - **R13** Le lien personnel permet de consulter, modifier ou retirer l'inscription jusqu'à la clôture ; il permet ensuite seulement de confirmer sa place ou de se désister. Le jeton est aléatoire, stocké sous forme de hash, et propre à chaque inscription.
-- **R14** Allergies, intolérances et contact d'urgence sont rattachés à l'inscription, pas au participant. La saisie des allergies demande un consentement explicite, car ce sont des données de santé.
+- **R14** Allergies, intolérances et contact d'urgence sont rattachés à l'inscription, pas au participant. La saisie des allergies demande un consentement explicite, car ce sont des données de santé ; la date de consentement conservée est celle du dernier enregistrement des allergies.
 - **R15** Chaque session dispose d'une fiche allergies (nom et allergies des participants confirmés), destinée à l'équipe cuisine.
 
 ### Sélection
@@ -113,7 +113,7 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
   - une inscription retenue devient `confirmée`, ou `désistée` ;
   - une inscription en attente peut à son tour devenir retenue.
 
-  En mode invitation, une inscription commence au statut `invitée`. Accepter l'invitation, formulaire rempli, vaut confirmation : elle passe directement à `confirmée`. La décliner la fait passer à `désistée`.
+  En mode invitation, une inscription commence au statut `invitée`. Accepter l'invitation, formulaire rempli, vaut confirmation : elle passe directement à `confirmée`. La décliner la fait passer à `désistée`. Une personne qui a décliné ou s'est désistée, par erreur par exemple, peut être réinvitée par les orgas : son inscription repart au statut `invitée` avec un nouveau lien.
 - **R17** Le tirage au sort est équiprobable, sauf pondérations activées dans la période d'inscription :
   - **non tirés avant** : priorité aux personnes non retenues lors d'une période d'inscription précédente du même jeu ;
   - **équilibre** : les personnages peuvent porter un attribut d'équilibre (par exemple le genre du personnage) et la question d'équilibre du formulaire demande la préférence de l'inscrit. Le tirage réserve alors les places par valeur, au prorata des rôles.
@@ -214,3 +214,4 @@ Chaque lot devient un epic, livrable seul :
 - 2026-10-27 : « campagne » renommé « période d'inscription » (le mot a un autre sens en GN). En mode invitation, accepter vaut confirmation (R16). Un délai dépassé est signalé, puis traité par les orgas (R20). Les inscrits confirmés sans personnage apparaissent dans les paiements (R22). La fiche allergies (R15) passe au lot 1, qui collecte les allergies.
 - 2026-10-28 : les orgas annoncent leurs jeux et sessions avec un lien vers le formulaire, valable pour une session, quelques sessions, ou tout le jeu. Ajout de l'inscription permanente, qui couvre toutes les sessions présentes et futures (R1, R10, R30, R31), et du lien de diffusion avec aperçu pour les réseaux sociaux (R32).
 - 2026-10-28 : les inscriptions quittent la fiche du jeu pour une page « Inscriptions » dans la section Organisation du menu (R33) ; la fiche du jeu sert à l'écriture.
+- 2026-10-28 (revue de code) : l'email du formulaire fait foi et met à jour la fiche (R12) ; la date de consentement santé est celle du dernier enregistrement (R14) ; une personne qui a décliné ou s'est désistée peut être réinvitée (R16). Un désistement libère tous les personnages de la personne dans la session (PJ et PNJ), régénère les trombinoscopes déjà générés et prévient les orgas ; un paiement reçu reste visible dans le tableau des paiements.

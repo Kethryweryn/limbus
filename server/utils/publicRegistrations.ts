@@ -36,6 +36,7 @@ const publicRegistrationSelect = {
   responseDueAt: true,
   respondedAt: true,
   confirmedAt: true,
+  withdrawnById: true,
   formVersion: { select: { id: true, definition: true } },
   participant: { select: { name: true } },
   session: { select: { name: true, date: true, location: { select: { name: true, address: true } } } },
@@ -93,34 +94,49 @@ export function registrationPermissions(registration: Pick<PublicRegistration, '
   }
 }
 
-/**
- * Définition à remplir : celle que l'inscription a déjà remplie (R9), sinon la version en vigueur.
- * Une première réponse fige la version : sans formulaire enregistré, la définition par défaut devient la version 1.
- */
-async function formForRegistration(registration: PublicRegistration, freeze: boolean) {
+// Définition à remplir : celle que l'inscription a déjà remplie (R9), sinon la version en vigueur
+async function formForRegistration(registration: PublicRegistration) {
   if (registration.formVersion) {
     return {
       versionId: registration.formVersion.id,
       definition: normalizeRegistrationFormDefinition(registration.formVersion.definition as RegistrationFormDefinition)
     }
   }
-  let current = await getCurrentRegistrationForm(registration.period.gameId)
-  if (!current.version && freeze) {
-    current = await saveRegistrationFormDefinition(registration.period.gameId, DEFAULT_REGISTRATION_FORM_DEFINITION)
-  }
+  const current = await getCurrentRegistrationForm(registration.period.gameId)
   return { versionId: current.version?.id ?? null, definition: current.definition }
 }
 
 export async function registrationFormDefinition(registration: PublicRegistration) {
-  return (await formForRegistration(registration, false)).definition
+  return (await formForRegistration(registration)).definition
+}
+
+/**
+ * Version figée par une réponse validée : sans formulaire enregistré, la définition par défaut devient la
+ * version 1. Deux premières réponses simultanées se partagent cette version au lieu de se gêner.
+ */
+export async function frozenFormVersionId(registration: PublicRegistration, versionId: string | null) {
+  if (versionId) return versionId
+  const gameId = registration.period.gameId
+  try {
+    return (await saveRegistrationFormDefinition(gameId, DEFAULT_REGISTRATION_FORM_DEFINITION)).version!.id
+  } catch (error) {
+    if ((error as { statusCode?: number })?.statusCode !== 409) throw error
+    return (await getCurrentRegistrationForm(gameId)).version!.id
+  }
+}
+
+// Ce que la page dit d'une inscription désistée, selon qui y a mis fin et quand
+export function withdrawalReason(registration: Pick<PublicRegistration, 'confirmedAt' | 'withdrawnById'>) {
+  if (registration.confirmedAt) return registration.withdrawnById ? 'removed' : 'withdrawn'
+  return registration.withdrawnById ? 'released' : 'declined'
 }
 
 // Données montrées à la personne : les siennes et celles du jeu, jamais celles des autres inscrits
 export async function exposePublicRegistration(registration: PublicRegistration, now = new Date()) {
   const game = { title: registration.period.game.title }
   if (registration.status === REGISTRATION_STATUSES.withdrawn) {
-    // Refus d'une invitation ou désistement après confirmation : seul le message de la page change
-    return { status: registration.status, game, withdrawnAfterConfirmation: Boolean(registration.confirmedAt) }
+    // Refus, désistement, place réattribuée faute de réponse, ou retrait par l'équipe : seul le message change
+    return { status: registration.status, game, withdrawalReason: withdrawalReason(registration) }
   }
 
   const prefill = splitParticipantName(registration.participant.name)
@@ -162,27 +178,29 @@ export type RegistrationAnswers = {
   dietary: string | null
 }
 
+// Définition qui valide la réponse ; rien n'est écrit tant que la réponse n'est pas validée
 export async function answerFormDefinition(registration: PublicRegistration) {
   const { status } = registration
   const permissions = registrationPermissions(registration)
   if (status === REGISTRATION_STATUSES.invited ? !permissions.canAccept : !permissions.canEdit) {
     throw createError({ statusCode: 409, message: 'Votre inscription ne peut plus être modifiée.' })
   }
-  return await formForRegistration(registration, true)
+  return await formForRegistration(registration)
 }
 
 /**
  * Accepte l'invitation (statut confirmée) ou modifie une inscription confirmée.
  * L'acceptation crée le SessionParticipant dans la même transaction (ADR-0021, R22).
- * Les informations restent sur l'inscription et ne modifient pas la fiche du participant (R14).
+ * Les informations restent sur l'inscription (R14) ; seul l'email remonte sur la fiche du participant :
+ * c'est l'adresse donnée par la personne qui fait foi pour tous les envois (R12).
  */
-export async function saveRegistrationAnswers(registration: PublicRegistration, versionId: string | null, answers: RegistrationAnswers) {
+export async function saveRegistrationAnswers(registration: PublicRegistration, versionId: string, answers: RegistrationAnswers) {
   const now = new Date()
   const accepting = registration.status === REGISTRATION_STATUSES.invited
   const data = {
     ...answers,
-    // Le consentement santé n'a de sens qu'avec des allergies déclarées ; on garde sa première date
-    healthConsentAt: answers.dietary ? registration.healthConsentAt ?? now : null,
+    // Le consentement santé n'a de sens qu'avec des allergies déclarées ; il date du dernier enregistrement
+    healthConsentAt: answers.dietary ? now : null,
     charterAcceptedAt: registration.charterAcceptedAt ?? now,
     formVersionId: versionId,
     ...(accepting ? { status: REGISTRATION_STATUSES.confirmed, respondedAt: now, confirmedAt: now } : {})
@@ -194,6 +212,7 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
     if (!count) {
       throw createError({ statusCode: 409, message: 'Votre inscription a changé entre-temps : rechargez la page.' })
     }
+    await tx.participant.update({ where: { id: registration.participantId }, data: { email: answers.email } })
     if (accepting && registration.sessionId) {
       await tx.sessionParticipant.upsert({
         where: {
@@ -279,7 +298,15 @@ export function guardPublicRegistrationRequest(event: H3Event, kind: 'read' | 'w
   setHeader(event, 'Cache-Control', 'no-store')
   setHeader(event, 'Referrer-Policy', 'no-referrer')
   setHeader(event, 'X-Robots-Tag', 'noindex')
-  assertRateLimit(event, kind === 'read'
-    ? { name: 'public-registration-read', limit: 60, windowMs: 10 * 60 * 1000 }
-    : { name: 'public-registration-write', limit: 20, windowMs: 10 * 60 * 1000 })
+  // Par lien et par IP, avec un plafond large par IP : plusieurs joueurs derrière un même wifi
+  // ne se bloquent pas entre eux, et un balayage de jetons reste freiné
+  const token = String(getRouterParam(event, 'token') || '').slice(0, 64)
+  const windowMs = 10 * 60 * 1000
+  if (kind === 'read') {
+    assertRateLimit(event, { name: 'public-registration-read', limit: 60, windowMs, keyParts: [token] })
+    assertRateLimit(event, { name: 'public-registration-read-ip', limit: 600, windowMs })
+  } else {
+    assertRateLimit(event, { name: 'public-registration-write', limit: 20, windowMs, keyParts: [token] })
+    assertRateLimit(event, { name: 'public-registration-write-ip', limit: 100, windowMs })
+  }
 }

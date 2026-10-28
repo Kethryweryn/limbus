@@ -11,6 +11,30 @@ export const REGISTRATION_STANDARD_FIELDS = [
 
 export type RegistrationStandardFieldKey = typeof REGISTRATION_STANDARD_FIELDS[number]['key']
 
+// Champs saisis par l'inscrit, dans l'ordre du formulaire : un réglage peut donner deux champs (contact d'urgence).
+// Partagés par l'aperçu de l'éditeur et la page du lien personnel, pour que l'aperçu reste fidèle.
+export const REGISTRATION_FORM_INPUTS: ReadonlyArray<{
+  setting: RegistrationStandardFieldKey
+  key: string
+  label: string
+  type?: string
+  autocomplete?: string
+  wide?: boolean
+  multiline?: boolean
+}> = [
+  { setting: 'lastName', key: 'lastName', label: 'Nom', autocomplete: 'family-name' },
+  { setting: 'firstName', key: 'firstName', label: 'Prénom', autocomplete: 'given-name' },
+  { setting: 'phone', key: 'phone', label: 'Téléphone', type: 'tel', autocomplete: 'tel' },
+  { setting: 'facebookName', key: 'facebookName', label: 'Nom Facebook' },
+  { setting: 'emergencyContact', key: 'emergencyContactName', label: 'Contact d’urgence : nom' },
+  { setting: 'emergencyContact', key: 'emergencyContactPhone', label: 'Contact d’urgence : téléphone', type: 'tel' },
+  { setting: 'dietary', key: 'dietary', label: 'Allergies et intolérances alimentaires', wide: true, multiline: true }
+]
+
+// Longueur maximale d'une réponse ; les allergies peuvent demander une description détaillée
+export const REGISTRATION_ANSWER_MAX_LENGTH = 500
+export const REGISTRATION_DIETARY_MAX_LENGTH = 2000
+
 export type RegistrationFieldSetting = { asked: boolean, required: boolean }
 
 export type RegistrationFormDefinition = {

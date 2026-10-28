@@ -89,3 +89,11 @@ Autre point : une vérification obligatoire nourrie par un job qui peut être ig
 - **Reconstruire dans la CI sur `main` après la fusion** : retour d'un build non testé, ou d'un second passage des tests.
 - **Rendre obligatoires les jobs `changes` et `check`** : un job ignoré compte comme réussi. Le verdict unique est plus lisible, et ne dépend pas des noms des autres jobs.
 - **File de fusion (merge queue)** : utile quand beaucoup de PR arrivent en même temps. Pour un seul développeur, exiger une branche à jour suffit ([Earthly](https://earthly.dev/blog/merge-queues/)).
+
+## Complément du 2026-10-28 (revue de code)
+
+- `deploy.sh` vérifie l'archive (arbre Git du commit visé, version de Node) **avant** d'avancer le dépôt du serveur : un refus le laisse exactement dans son état. Les fichiers de travail sont effacés à la sortie, et l'archive reçue est limitée à 200 Mo.
+- Le job `deploy` choisit, parmi les CI réussies du dernier commit de la PR, celle dont l'archive porte l'arbre de `main`.
+- Secours : lancer le workflow à la main sur `main` (« Run workflow ») construit, teste et déploie `main` quand aucune archive de PR ne convient (archive expirée, fusion sans PR à jour).
+- Les migrations sont contrôlées par la CI avant la fusion ([ADR-0024](ADR-0024-migrations-compatibles-avec-le-build-en-service.md)).
+

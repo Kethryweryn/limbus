@@ -7,6 +7,7 @@ name: CI
 #   qu'elle a été construite à partir du code exact de main, et l'envoie au serveur.
 # La protection de main exige la seule vérification « Verdict CI », sur une branche à jour avec main.
 # Documentation seule : `check` n'est pas lancé sur la PR, et la fusion ne déploie rien (ADR-0022).
+# Secours (« Run workflow » sur main) : construit, teste et déploie main, quand l'archive de la PR manque.
 on:
   push:
     branches: [main]
@@ -14,6 +15,7 @@ on:
       - 'doc/**'
       - '*.md'
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -43,9 +45,27 @@ jobs:
             echo "code=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # Les migrations s'appliquent avant le redémarrage, quand l'ancien build sert encore (ADR-0024) :
+      # une migration qui casse l'ancien build doit le dire explicitement
+      - name: Migrations compatibles avec le build en service
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          failed=0
+          for file in $(git diff --name-only --diff-filter=AM "$BASE...$HEAD" -- 'prisma/migrations/*/migration.sql'); do
+            if grep -qiE 'DROP[[:space:]]+(COLUMN|TABLE)|RENAME[[:space:]]+(COLUMN|TO)|SET[[:space:]]+NOT[[:space:]]+NULL|ALTER[[:space:]]+COLUMN[^;]*[[:space:]]TYPE[[:space:]]' "$file" \
+              && ! grep -q -- '-- deploiement-incompatible :' "$file"; then
+              echo "::error file=$file::Migration incompatible avec le build en service (suppression, renommage, NOT NULL ou changement de type). Découpez-la en deux déploiements, ou ajoutez « -- deploiement-incompatible : <raison> » (ADR-0024)."
+              failed=1
+            fi
+          done
+          exit "$failed"
+
   check:
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    # always() : sur un lancement manuel, `changes` est ignoré mais les tests doivent tourner
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     # Même système (glibc) et même Node majeur que le serveur : le build déployé contient des modules natifs (bcrypt)
@@ -130,7 +150,11 @@ jobs:
           fi
 
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: check
+    # Fusion : l'archive vient de la PR. Lancement manuel sur main : elle vient de `check`, juste au-dessus
+    if: >-
+      always() && github.ref == 'refs/heads/main'
+      && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && needs.check.result == 'success'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -144,28 +168,40 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Récupérer le build testé de la PR
+      - name: Récupérer le build testé
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
-          pr=$(gh api "repos/$REPO/commits/$GITHUB_SHA/pulls" --jq '[.[] | select(.merged_at != null)][0]')
-          [ -n "$pr" ] && [ "$pr" != null ] || { echo "Aucune PR fusionnée pour $GITHUB_SHA"; exit 1; }
-          head_sha=$(jq -r '.head.sha' <<<"$pr")
-          head_repo=$(jq -r '.head.repo.full_name' <<<"$pr")
-          # Un build venu d'un fork ne part pas en production
-          [ "$head_repo" = "$REPO" ] || { echo "PR issue d'un autre dépôt ($head_repo) : pas de build réutilisable"; exit 1; }
-          run=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?event=pull_request&status=success&head_sha=$head_sha" --jq '.workflow_runs[0].id')
-          [ -n "$run" ] && [ "$run" != null ] || { echo "Pas de CI réussie pour $head_sha"; exit 1; }
-          echo "PR #$(jq -r '.number' <<<"$pr"), CI $run"
-          gh run download "$run" --repo "$REPO" --name limbus-build --dir build
+          expected=$(git rev-parse 'HEAD^{tree}')
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            gh run download "$GITHUB_RUN_ID" --repo "$REPO" --name limbus-build --dir build
+          else
+            pr=$(gh api "repos/$REPO/commits/$GITHUB_SHA/pulls" --jq '[.[] | select(.merged_at != null)][0]')
+            [ -n "$pr" ] && [ "$pr" != null ] || { echo "Aucune PR fusionnée pour $GITHUB_SHA : lancer le workflow à la main sur main"; exit 1; }
+            head_sha=$(jq -r '.head.sha' <<<"$pr")
+            head_repo=$(jq -r '.head.repo.full_name' <<<"$pr")
+            # Un build venu d'un fork ne part pas en production
+            [ "$head_repo" = "$REPO" ] || { echo "PR issue d'un autre dépôt ($head_repo) : lancer le workflow à la main sur main"; exit 1; }
+            # Plusieurs CI réussies peuvent exister pour ce commit (relances) : on prend celle qui a testé l'arbre de main
+            for run in $(gh api "repos/$REPO/actions/workflows/ci.yml/runs?event=pull_request&status=success&head_sha=$head_sha" --jq '.workflow_runs[:5][].id'); do
+              rm -rf candidate && mkdir candidate
+              gh run download "$run" --repo "$REPO" --name limbus-build --dir candidate 2>/dev/null || continue
+              if [ "$(tar -xzOf candidate/limbus-build.tar.gz BUILD_TREE)" = "$expected" ]; then
+                echo "PR #$(jq -r '.number' <<<"$pr"), CI $run"
+                mv candidate build
+                break
+              fi
+            done
+            [ -f build/limbus-build.tar.gz ] || { echo "Aucun build testé ne correspond au code de main (archive expirée ou PR pas à jour) : lancer le workflow à la main sur main"; exit 1; }
+          fi
 
       - name: Vérifier que le build correspond au code de main
         run: |
           tar -xzf build/limbus-build.tar.gz -C build BUILD_TREE BUILD_NODE
           expected=$(git rev-parse 'HEAD^{tree}')
           echo "arbre de main : $expected / arbre du build : $(cat build/BUILD_TREE) / $(cat build/BUILD_NODE)"
-          [ "$(cat build/BUILD_TREE)" = "$expected" ] || { echo "Le build testé ne correspond pas au code de main : mettre la PR à jour avant de fusionner"; exit 1; }
+          [ "$(cat build/BUILD_TREE)" = "$expected" ] || { echo "Le build testé ne correspond pas au code de main"; exit 1; }
 
       - name: Déployer le build
         env:

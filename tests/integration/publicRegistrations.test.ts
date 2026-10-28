@@ -170,8 +170,8 @@ describe('accepter', () => {
     expect(saved.formVersion?.number).toBe(1)
 
     expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: participant.id, role: 'participant' } })).toBe(1)
-    // La fiche du participant n'est pas modifiée (R14)
-    expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id } })).toMatchObject({ email: participant.email, phone: '0100000000' })
+    // L'email du formulaire fait foi et remonte sur la fiche (R12) ; le reste reste sur l'inscription (R14)
+    expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id } })).toMatchObject({ email: 'camille.perso@example.test', phone: '0100000000' })
 
     const email = smtp.received.find((message) => message.to.includes('camille.perso@example.test'))!
     expect(email.text).toContain(game.title)
@@ -241,13 +241,13 @@ describe('décliner', () => {
     const response = await publicApi('POST', `${path}/decline`)
 
     expect(response.status, JSON.stringify(response.body)).toBe(200)
-    expect(response.body).toEqual({ status: 'withdrawn', game: { title: game.title }, withdrawnAfterConfirmation: false })
+    expect(response.body).toEqual({ status: 'withdrawn', game: { title: game.title }, withdrawalReason: 'declined' })
     const saved = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })
     expect(saved.status).toBe('withdrawn')
     expect(saved.withdrawnAt).not.toBeNull()
     expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(0)
 
-    expect((await publicApi('GET', path)).body).toEqual({ status: 'withdrawn', game: { title: game.title }, withdrawnAfterConfirmation: false })
+    expect((await publicApi('GET', path)).body).toEqual({ status: 'withdrawn', game: { title: game.title }, withdrawalReason: 'declined' })
     expect((await publicApi('PUT', path, answers())).status).toBe(409)
     expect((await publicApi('POST', `${path}/decline`)).status).toBe(409)
   })
@@ -262,7 +262,7 @@ describe('décliner', () => {
 describe('se désister (US-006)', () => {
   const PHOTOS = join(process.cwd(), '.data', 'uploads', 'session-assignment-photos')
 
-  it('libère la session et le personnage, efface la photo, garde le paiement et prévient les orgas', async () => {
+  it('libère la session et les personnages, efface la photo, régénère les trombinoscopes, garde le paiement visible et prévient les orgas', async () => {
     const { path, game, session, participant, registration } = await invitation()
     expect((await publicApi('PUT', path, answers())).status).toBe(200)
 
@@ -281,22 +281,28 @@ describe('se désister (US-006)', () => {
     const response = await publicApi('POST', `${path}/withdraw`)
 
     expect(response.status, JSON.stringify(response.body)).toBe(200)
-    expect(response.body).toEqual({ status: 'withdrawn', game: { title: game.title }, withdrawnAfterConfirmation: true })
+    expect(response.body).toEqual({ status: 'withdrawn', game: { title: game.title }, withdrawalReason: 'withdrawn' })
     const saved = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })
     expect(saved).toMatchObject({ status: 'withdrawn', withdrawnById: null })
     expect(saved.withdrawnAt).not.toBeNull()
 
     expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(0)
-    // Le personnage reste, sans joueur ni photo ; le fichier est effacé, les trombinoscopes sont à régénérer
+    // Le personnage reste, sans joueur ni photo ; le fichier est effacé
     expect(await prisma.sessionAssignment.findUniqueOrThrow({ where: { id: assignment.id } })).toMatchObject({ participantId: null, photoUrl: null })
     expect(await prisma.uploadedFile.count({ where: { url } })).toBe(0)
     expect(existsSync(join(PHOTOS, filename))).toBe(false)
-    expect(await prisma.sessionTrombinoscope.count({ where: { sessionId: session.id } })).toBe(0)
-    // Le paiement reçu est gardé, à traiter à la main (R22)
+    // Le paiement reçu est gardé, à traiter à la main (R22), et reste visible dans le tableau des paiements
     expect(await prisma.sessionPayment.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(1)
+    const payments = await api(alice, 'GET', `/api/sessions/${session.id}/payments`)
+    expect((payments.body as any).unassignedPayments).toMatchObject([{ participant: { id: participant.id } }])
+    expect((payments.body as any).rows).toEqual([])
 
-    const notice = smtp.received.slice(sentBefore).find((message) => message.to.includes('alice@example.test'))
-    expect(notice?.text).toContain(`${participant.name} s’est désisté·e de la session ${session.name}`)
+    // Après la réponse : trombinoscopes régénérés sans elle, puis email aux organisateurs
+    await expect.poll(() => smtp.received.slice(sentBefore).find((message) => message.to.includes('alice@example.test'))?.text, { timeout: 10_000 })
+      .toContain(`${participant.name} s’est désisté·e de la session ${session.name}`)
+    const notice = smtp.received.slice(sentBefore).find((message) => message.to.includes('alice@example.test'))!
+    expect(notice.text).toContain('trombinoscopes de la session ont été régénérés')
+    expect(await prisma.sessionTrombinoscope.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(0)
 
     // L'organisatrice voit le désistement dans la liste
     const list = await api(alice, 'GET', `/api/registration-periods/${saved.periodId}/registrations`)
@@ -320,6 +326,46 @@ describe('se désister (US-006)', () => {
     const { path, registration } = await invitation()
     expect((await publicApi('POST', `${path}/withdraw`)).status).toBe(409)
     expect((await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })).status).toBe('invited')
+  })
+})
+
+describe('règles issues de la revue de code', () => {
+  it('la date de consentement santé est celle du dernier enregistrement (R14)', async () => {
+    const { path, registration } = await invitation()
+    await publicApi('PUT', path, answers())
+    const first = (await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })).healthConsentAt!
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    await publicApi('PUT', path, answers({ dietary: 'Gluten' }))
+    const second = (await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })).healthConsentAt!
+    expect(second.getTime()).toBeGreaterThan(first.getTime())
+  })
+
+  it('une réponse invalide ne crée pas de version du formulaire', async () => {
+    const { path, game } = await invitation()
+    expect((await publicApi('PUT', path, answers({ phone: '' }))).status).toBe(400)
+    expect(await prisma.registrationFormVersion.count({ where: { form: { gameId: game.id } } })).toBe(0)
+  })
+
+  it('deux premières réponses simultanées partagent la version 1', async () => {
+    const first = await invitation()
+    const period = await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: first.period.id } })
+    const other = await prisma.participant.create({ data: { name: 'Seconde Personne', slug: `seconde-personne-${counter}`, email: `seconde-${counter}@example.test`, gameLinks: { create: { gameId: first.game.id } } } })
+    const token = randomBytes(32).toString('base64url')
+    await prisma.registration.create({ data: { periodId: period.id, sessionId: first.session.id, participantId: other.id, status: 'invited', source: 'invitation', email: other.email!, tokenHash: sha256(token) } })
+
+    const statuses = (await Promise.all([
+      publicApi('PUT', first.path, answers()),
+      publicApi('PUT', `/api/public/registrations/${token}`, answers({ email: `seconde-${counter}@example.test` }))
+    ])).map((response) => response.status)
+    expect(statuses).toEqual([200, 200])
+    expect(await prisma.registrationFormVersion.count({ where: { form: { gameId: first.game.id } } })).toBe(1)
+  })
+
+  it('une place réattribuée faute de réponse le dit à la personne', async () => {
+    const { path, registration } = await invitation()
+    await prisma.registration.update({ where: { id: registration.id }, data: { status: 'withdrawn', withdrawnAt: new Date(), withdrawnById: alice.id } })
+    expect((await publicApi('GET', path)).body).toMatchObject({ status: 'withdrawn', withdrawalReason: 'released' })
   })
 })
 

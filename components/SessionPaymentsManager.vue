@@ -140,6 +140,19 @@
         </article>
       </section>
 
+      <section v-if="unassignedPayments.length" class="space-y-2 rounded border border-warning-200 bg-warning-50 p-4">
+        <h3 class="font-medium text-warning-800">Paiements reçus de personnes sans personnage</h3>
+        <p class="text-sm text-warning-700">
+          Ces personnes ont payé puis se sont désistées ou ont été retirées : à rembourser, ou à garder, selon votre décision.
+        </p>
+        <ul class="text-sm text-gray-700">
+          <li v-for="payment in unassignedPayments" :key="payment.participant.id">
+            {{ payment.participant.name }} · payé le {{ formatDate(payment.paidAt) }}
+            <span v-if="payment.participant.email"> · {{ payment.participant.email }}</span>
+          </li>
+        </ul>
+      </section>
+
       <p v-if="!rows.length" class="text-sm text-gray-500">
         Aucun personnage casté pour le suivi de paiement.
       </p>
@@ -184,6 +197,7 @@ const testRow = ref(null)
 const serverError = ref('')
 
 const rows = computed(() => props.paymentsData.rows || [])
+const unassignedPayments = computed(() => props.paymentsData.unassignedPayments || [])
 const paidRows = computed(() => rows.value.filter((row) => row.paidAt))
 const unpaidRows = computed(() => rows.value.filter((row) => !row.paidAt))
 const emailedRows = computed(() => rows.value.filter((row) => row.paymentEmailSentAt))

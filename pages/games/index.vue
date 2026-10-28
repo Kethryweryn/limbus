@@ -160,6 +160,7 @@ v-model="searchQuery" placeholder="Rechercher un jeu..." icon="i-heroicons-magni
 </template>
 
 <script setup>
+import { isArchivedGame } from '~/utils/games'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import GameContextBar from '@/components/GameContextBar.vue'
@@ -264,7 +265,7 @@ const filteredGames = computed(() => {
   )
 
   if (!showArchived.value) {
-    result = result.filter(game => game.published)
+    result = result.filter(game => !isArchivedGame(game))
   }
 
   result.sort((a, b) => new Date(b.lastActivityAt || b.updatedAt).getTime() - new Date(a.lastActivityAt || a.updatedAt).getTime())

@@ -68,6 +68,7 @@
 
 <script setup>
 import { REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS, REGISTRATION_PERIOD_STATES } from '~/utils/domain'
+import { apiErrorMessage } from '~/utils/apiErrors'
 
 const open = defineModel('open', { type: Boolean, default: false })
 
@@ -162,6 +163,10 @@ function validate() {
   errors.value = {}
   if (!form.value.name?.trim()) errors.value.name = 'Le nom est requis.'
   if (!Object.keys(seatsBySession.value).length) errors.value.sessions = 'Choisissez au moins une session.'
+  // Un champ vidé n'est pas « nombre de PJ par défaut » : on demande une valeur explicite
+  else if (Object.values(seatsBySession.value).some((seats) => !Number.isInteger(seats) || seats < 0 || seats > 1000)) {
+    errors.value.sessions = 'Indiquez pour chaque session un nombre de places entre 0 et 1000.'
+  }
   const delay = Number(form.value.responseDelayDays)
   if (!Number.isInteger(delay) || delay < 1 || delay > 90) errors.value.responseDelayDays = 'Entre 1 et 90 jours.'
   return Object.keys(errors.value).length === 0
@@ -179,10 +184,7 @@ async function submit() {
       state: form.value.state,
       closesAt: form.value.closesAt ? new Date(form.value.closesAt).toISOString() : null,
       responseDelayDays: Number(form.value.responseDelayDays),
-      sessions: Object.entries(seatsBySession.value).map(([sessionId, seats]) => ({
-        sessionId,
-        seats: Number.isInteger(seats) ? seats : null
-      })),
+      sessions: Object.entries(seatsBySession.value).map(([sessionId, seats]) => ({ sessionId, seats })),
       updatedAt: form.value.updatedAt
     }
     const saved = props.period?.id
@@ -191,7 +193,7 @@ async function submit() {
     emit('saved', saved)
     open.value = false
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Enregistrement impossible'
+    serverError.value = apiErrorMessage(err, 'Enregistrement impossible')
   } finally {
     saving.value = false
   }

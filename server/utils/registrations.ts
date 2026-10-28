@@ -1,9 +1,10 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
-import { absoluteAppUrl } from '~/server/utils/appUrl'
-import { sendEmail } from '~/server/utils/email'
+import { absoluteAppUrl, publicAppUrl } from '~/server/utils/appUrl'
+import { openEmailTransport, sendEmail, type EmailTransport } from '~/server/utils/email'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
+import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
 import { REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
 import { effectivePeriodState } from '~/utils/registrationPeriods'
 
@@ -55,6 +56,10 @@ export function rethrowAlreadyRegistered(error: unknown): never {
   if (code === 'P2002' && JSON.stringify(meta ?? {}).includes('participantId')) {
     throw createError({ statusCode: 409, message: 'Cette personne a déjà une inscription dans cette période d’inscription' })
   }
+  // Deux invitations simultanées d'une nouvelle personne de même nom visent le même slug de fiche
+  if (code === 'P2002' && JSON.stringify(meta ?? {}).includes('slug')) {
+    throw createError({ statusCode: 409, message: 'Une invitation de la même personne est en cours : rechargez la page et vérifiez la liste.' })
+  }
   throw error
 }
 
@@ -104,17 +109,18 @@ type InvitationContext = {
 /**
  * Envoie l'email d'invitation et note la date d'envoi. Un échec est rendu, pas levé :
  * dans un envoi groupé, il ne doit pas empêcher les envois suivants.
+ * Le transport est ouvert une fois pour tout l'envoi groupé ; null : envoi d'emails désactivé.
  */
-async function sendInvitationEmail(target: InvitationEmailTarget, context: InvitationContext) {
+async function sendInvitationEmail(transport: EmailTransport | null, target: InvitationEmailTarget, context: InvitationContext) {
+  if (!transport) {
+    return { sent: false, message: 'SMTP désactivé' }
+  }
   try {
-    const result = await sendEmail({
+    await transport.send({
       to: target.to,
       subject: `Invitation : ${context.gameTitle}`,
       text: registrationInvitationEmailText({ ...context, participantName: target.participantName, url: registrationUrl(target.token) })
     })
-    if (!result.sent) {
-      return { sent: false, message: 'SMTP désactivé' }
-    }
   } catch (error) {
     return { sent: false, message: (error as { message?: string })?.message || 'Erreur SMTP' }
   }
@@ -136,7 +142,9 @@ const periodForInvitationSelect = {
 /**
  * Invite des personnes à une session d'une période d'inscription ouverte (US-003) :
  * des participants du jeu, et/ou une nouvelle personne rapprochée par email (R12).
- * Les inscriptions sont créées ensemble, puis les emails partent un par un.
+ * Une personne qui avait décliné ou s'était désistée peut être réinvitée : son inscription repart
+ * au statut invitée, avec un nouveau lien (une seule inscription par personne et par période).
+ * Les inscriptions sont créées ensemble, puis les emails partent sur une seule connexion SMTP.
  */
 export async function inviteToRegistrationPeriod(params: {
   periodId: string
@@ -170,18 +178,34 @@ export async function inviteToRegistrationPeriod(params: {
     })
   }
 
-  const matched = params.newParticipant ? await findParticipantByEmail(period.game, params.newParticipant.email) : null
-  const knownIds = [...new Set([...participants.map((participant) => participant.id), ...(matched ? [matched.id] : [])])]
-  const already = await prisma.registration.findMany({
-    where: { periodId: period.id, participantId: { in: knownIds } },
-    select: { participant: { select: { name: true } } }
-  })
-  if (already.length) {
+  // Deux fiches avec la même adresse recevraient deux liens dans la même boîte
+  const byEmail = new Map<string, string[]>()
+  for (const participant of participants) {
+    const email = participant.email!.trim().toLowerCase()
+    byEmail.set(email, [...(byEmail.get(email) || []), participant.name])
+  }
+  const sharedEmails = [...byEmail.values()].filter((names) => names.length > 1)
+  if (sharedEmails.length) {
     throw createError({
-      statusCode: 409,
-      message: `Déjà inscrit dans cette période d’inscription : ${already.map((registration) => registration.participant.name).join(', ')}`
+      statusCode: 400,
+      message: `Ces fiches ont la même adresse email : ${sharedEmails.map((names) => names.join(' et ')).join(' ; ')}. Invitez une seule d’entre elles.`
     })
   }
+
+  const matched = params.newParticipant ? await findParticipantByEmail(period.game, params.newParticipant.email) : null
+  const knownIds = [...new Set([...participants.map((participant) => participant.id), ...(matched ? [matched.id] : [])])]
+  const existing = await prisma.registration.findMany({
+    where: { periodId: period.id, participantId: { in: knownIds } },
+    select: { id: true, participantId: true, status: true, participant: { select: { name: true } } }
+  })
+  const active = existing.filter((registration) => registration.status !== REGISTRATION_STATUSES.withdrawn)
+  if (active.length) {
+    throw createError({
+      statusCode: 409,
+      message: `Déjà inscrit dans cette période d’inscription : ${active.map((registration) => registration.participant.name).join(', ')}`
+    })
+  }
+  const reinvitedByParticipant = new Map(existing.map((registration) => [registration.participantId, registration.id]))
 
   const responseDueAt = registrationResponseDueAt(period.responseDelayDays)
   const newParticipant = params.newParticipant
@@ -215,20 +239,37 @@ export async function inviteToRegistrationPeriod(params: {
     const created: InvitationEmailTarget[] = []
     for (const participant of invited) {
       const { token, tokenHash } = createRegistrationToken()
-      const registration = await tx.registration.create({
-        data: {
-          periodId: period.id,
-          sessionId: params.sessionId,
-          participantId: participant.id,
-          status: REGISTRATION_STATUSES.invited,
-          source: REGISTRATION_SOURCES.invitation,
-          invitedById: params.inviter.id,
-          email: participant.email,
-          tokenHash,
-          responseDueAt
-        },
-        select: { id: true }
-      })
+      const invitation = {
+        sessionId: params.sessionId,
+        status: REGISTRATION_STATUSES.invited,
+        invitedById: params.inviter.id,
+        email: participant.email,
+        tokenHash,
+        responseDueAt
+      }
+      const previousId = reinvitedByParticipant.get(participant.id)
+      // Réinvitation : les réponses précédentes restent pour préremplir, mais l'adhésion,
+      // le consentement santé et la version du formulaire sont à redonner
+      const registration = previousId
+        ? await tx.registration.update({
+            where: { id: previousId, status: REGISTRATION_STATUSES.withdrawn },
+            data: {
+              ...invitation,
+              invitationSentAt: null,
+              respondedAt: null,
+              confirmedAt: null,
+              withdrawnAt: null,
+              withdrawnById: null,
+              charterAcceptedAt: null,
+              healthConsentAt: null,
+              formVersionId: null
+            },
+            select: { id: true }
+          })
+        : await tx.registration.create({
+            data: { ...invitation, periodId: period.id, participantId: participant.id, source: REGISTRATION_SOURCES.invitation },
+            select: { id: true }
+          })
       created.push({ registrationId: registration.id, token, to: participant.email, participantName: participant.name })
     }
     return created
@@ -242,9 +283,14 @@ export async function inviteToRegistrationPeriod(params: {
     inviterName: params.inviter.name ?? null
   }
   const results = []
-  for (const target of targets) {
-    const result = await sendInvitationEmail(target, context)
-    results.push({ registrationId: target.registrationId, participantName: target.participantName, ...result })
+  const transport = await openEmailTransport().catch(() => null)
+  try {
+    for (const target of targets) {
+      const result = await sendInvitationEmail(transport, target, context)
+      results.push({ registrationId: target.registrationId, participantName: target.participantName, ...result })
+    }
+  } finally {
+    transport?.close()
   }
 
   return {
@@ -277,7 +323,7 @@ export function assertUnansweredInvitation(registration: { status: string, respo
 /**
  * Renvoie l'invitation avec un nouveau lien : l'ancien cesse de fonctionner (ADR-0018).
  * L'échéance ne change pas : la prolonger est une action à part (US-005).
- * L'email part à l'adresse actuelle de la fiche, pour qu'une adresse corrigée soit prise en compte.
+ * L'email part à l'adresse de l'inscription : c'est elle qui fait foi (R12).
  */
 export async function resendRegistrationInvitation(registrationId: string, inviter: { name?: string | null }) {
   const registration = await prisma.registration.findUniqueOrThrow({
@@ -288,18 +334,20 @@ export async function resendRegistrationInvitation(registrationId: string, invit
       respondedAt: true,
       email: true,
       responseDueAt: true,
-      participant: { select: { name: true, email: true } },
+      participant: { select: { name: true } },
       session: { select: { name: true, date: true } },
       period: { select: { game: { select: { title: true } } } }
     }
   })
   assertUnansweredInvitation(registration)
-  const to = registration.participant.email?.trim() || registration.email
+  const to = registration.email
 
   const { token, tokenHash } = createRegistrationToken()
-  await prisma.registration.update({ where: { id: registration.id }, data: { tokenHash, email: to } })
+  await prisma.registration.update({ where: { id: registration.id }, data: { tokenHash } })
 
+  const transport = await openEmailTransport().catch(() => null)
   const result = await sendInvitationEmail(
+    transport,
     { registrationId: registration.id, token, to, participantName: registration.participant.name },
     {
       gameTitle: registration.period.game.title,
@@ -308,7 +356,7 @@ export async function resendRegistrationInvitation(registrationId: string, invit
       responseDueAt: registration.responseDueAt,
       inviterName: inviter.name ?? null
     }
-  )
+  ).finally(() => transport?.close())
   if (!result.sent) {
     throw createError({ statusCode: 502, message: `L’ancien lien est invalidé, mais l’email n’est pas parti : ${result.message}` })
   }
@@ -320,6 +368,7 @@ export function registrationWithdrawalEmailText(params: {
   gameTitle: string
   sessionName: string | null
   withdrawnBy: string | null
+  trombinoscopes: 'regenerated' | 'failed' | null
 }) {
   const session = params.sessionName ? ` de la session ${params.sessionName}` : ''
   return [
@@ -327,9 +376,14 @@ export function registrationWithdrawalEmailText(params: {
       ? `${params.withdrawnBy} a retiré ${params.participantName}${session} du jeu « ${params.gameTitle} ».`
       : `${params.participantName} s’est désisté·e${session} du jeu « ${params.gameTitle} ».`,
     '',
-    'La personne ne fait plus partie des participants de la session, et son éventuel personnage est libre.',
-    'Un paiement déjà reçu n’est pas modifié : il est à traiter à la main.'
-  ].join('\n')
+    'La personne ne fait plus partie des participants de la session, et ses personnages (PJ et PNJ) sont libres.',
+    params.trombinoscopes === 'regenerated'
+      ? 'Les trombinoscopes de la session ont été régénérés sans elle : renvoyez-les si vous les aviez déjà envoyés.'
+      : params.trombinoscopes === 'failed'
+        ? 'Les trombinoscopes de la session n’ont pas pu être régénérés : relancez leur génération depuis la session.'
+        : null,
+    'Un paiement déjà reçu n’est pas modifié : il reste visible dans le tableau des paiements de la session, à traiter à la main.'
+  ].filter((line) => line !== null).join('\n')
 }
 
 // Prévient l'équipe du jeu (propriétaire et co-organisatrices) ; un échec d'envoi n'annule pas le désistement
@@ -350,10 +404,11 @@ async function notifyOrganizersOfWithdrawal(gameId: string, text: string, subjec
 /**
  * Désistement d'une personne confirmée, par son lien ou par une organisatrice (US-006, ADR-0021) :
  * - l'inscription passe à désistée ;
- * - la personne quitte la session et le personnage qu'elle y avait, qui reste sans joueur ;
- * - sa photo d'attribution part avec, le fichier aussi s'il ne sert plus, et les trombinoscopes
- *   de la session qui la montraient sont à régénérer ;
+ * - la personne quitte la session et tous les personnages (PJ et PNJ) qu'elle y avait, qui restent sans joueur ;
+ * - ses photos d'attribution partent avec, le fichier aussi s'il ne sert plus ;
+ * - les trombinoscopes déjà générés pour la session sont régénérés sans elle ;
  * - un paiement éventuel est gardé, à traiter à la main (R22).
+ * Régénération et email aux organisateurs se font après la réponse : la personne n'attend pas le serveur SMTP.
  */
 export async function withdrawRegistration(registrationId: string, withdrawnBy: { id: string, name?: string | null } | null) {
   const registration = await prisma.registration.findUniqueOrThrow({
@@ -383,23 +438,35 @@ export async function withdrawRegistration(registrationId: string, withdrawnBy: 
     await tx.sessionParticipant.deleteMany({ where: { ...where, role: SESSION_ROLES.participant } })
     const assignments = await tx.sessionAssignment.findMany({ where, select: { photoUrl: true } })
     await tx.sessionAssignment.updateMany({ where, data: { participantId: null, photoUrl: null } })
-    const photos = assignments.map((assignment) => assignment.photoUrl).filter((url): url is string => Boolean(url))
-    if (photos.length) {
-      await tx.sessionTrombinoscope.deleteMany({ where: { sessionId: registration.sessionId } })
-    }
-    return photos
+    return assignments.map((assignment) => assignment.photoUrl).filter((url): url is string => Boolean(url))
   })
 
   await deleteUnusedUploads(photoUrls)
-  const notified = await notifyOrganizersOfWithdrawal(
+  const followUp = afterWithdrawal(registration, withdrawnBy)
+  followUp.catch((error) => console.error('[désistement] suites non effectuées', { registrationId: registration.id, error: (error as Error)?.message }))
+  return { followUp }
+}
+
+// Trombinoscopes à refaire et équipe à prévenir : rien de cela ne doit faire échouer le désistement
+async function afterWithdrawal(
+  registration: { sessionId: string | null, participant: { name: string }, session: { name: string } | null, period: { gameId: string, game: { title: string } } },
+  withdrawnBy: { id: string, name?: string | null } | null
+) {
+  let trombinoscopes: 'regenerated' | 'failed' | null = null
+  if (registration.sessionId && await prisma.sessionTrombinoscope.count({ where: { sessionId: registration.sessionId } })) {
+    trombinoscopes = await generateSessionTrombinoscopes(registration.sessionId, publicAppUrl())
+      .then(() => 'regenerated' as const)
+      .catch(() => 'failed' as const)
+  }
+  return await notifyOrganizersOfWithdrawal(
     registration.period.gameId,
     registrationWithdrawalEmailText({
       participantName: registration.participant.name,
       gameTitle: registration.period.game.title,
       sessionName: registration.session?.name ?? null,
-      withdrawnBy: withdrawnBy ? withdrawnBy.name || 'Une organisatrice' : null
+      withdrawnBy: withdrawnBy ? withdrawnBy.name || 'Une organisatrice' : null,
+      trombinoscopes
     }),
     `Désistement : ${registration.participant.name} (${registration.period.game.title})`
   )
-  return { notified }
 }

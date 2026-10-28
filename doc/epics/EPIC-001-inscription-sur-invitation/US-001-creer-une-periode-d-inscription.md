@@ -37,6 +37,14 @@ Reporté aux US qui créent les inscriptions :
 
 > Depuis [US-009](US-009-page-inscriptions.md), cette section n'est plus sur la fiche du jeu, qui sert à l'écriture : elle est sur la page « Inscriptions » du menu Organisation (R33).
 
+Après la revue de code du 2026-10-28 :
+
+- Une modification qui omet l'état, la date de clôture ou le délai les conserve (elle ne les remet plus à leur valeur par défaut) ; `closesAt: null` retire la date.
+- Ouvrir une période dont la date de clôture est passée est refusé avec une explication.
+- Une session annulée ou terminée ne peut pas être ajoutée à une période.
+- Le nombre de places est vérifié dans le formulaire (0 à 1000), et les messages de validation du serveur sont en français.
+- La page Inscriptions charge toutes les périodes et leurs inscriptions en une requête ; le filtre par jeu respecte la case « Afficher les jeux archivés ».
+
 ## Réalisation
 
 - Modèle : `RegistrationPeriod` et `RegistrationPeriodSession`, migration `20261028100000_add_registration_periods`. `publicId` est déjà généré pour le futur lien de diffusion (R32).

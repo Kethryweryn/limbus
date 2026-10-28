@@ -3,12 +3,13 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { readZodBody, registrationPeriodSchema } from '~/server/utils/schemas'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import {
-  createRegistrationPeriodPublicId,
+  assertClosingDateAllowsState,
   exposeRegistrationPeriod,
   parseOptionalDate,
   registrationPeriodInclude,
   resolveRegistrationPeriodSessions,
-  rethrowSessionAlreadyTaken
+  rethrowSessionAlreadyTaken,
+  withFreshPublicId
 } from '~/server/utils/registrationPeriods'
 import { REGISTRATION_PERIOD_SCOPES } from '~/utils/domain'
 
@@ -17,22 +18,24 @@ export default defineEventHandler(async (event) => {
 
   const body = await readZodBody(event, registrationPeriodSchema)
   await requireGameAccess(event, body.gameId)
+  const closesAt = parseOptionalDate(body.closesAt)
+  assertClosingDateAllowsState(body.state, closesAt)
   const sessions = await resolveRegistrationPeriodSessions(body.gameId, body.sessions)
 
-  const period = await prisma.registrationPeriod.create({
+  const period = await withFreshPublicId((publicId) => prisma.registrationPeriod.create({
     data: {
       gameId: body.gameId,
       name: body.name,
       scope: REGISTRATION_PERIOD_SCOPES.sessions,
-      publicId: createRegistrationPeriodPublicId(),
+      publicId,
       entryMode: body.entryMode,
       state: body.state,
-      closesAt: parseOptionalDate(body.closesAt),
+      closesAt,
       responseDelayDays: body.responseDelayDays,
       sessions: { create: sessions }
     },
     include: registrationPeriodInclude
-  }).catch(rethrowSessionAlreadyTaken)
+  })).catch(rethrowSessionAlreadyTaken)
 
   return exposeRegistrationPeriod(period)
 })
