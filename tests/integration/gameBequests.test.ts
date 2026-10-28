@@ -4,12 +4,12 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { DEFAULT_REGISTRATION_FORM_DEFINITION } from '~/utils/registrationForms'
-import { api } from './api'
+import { api, DENIED } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
 
 const world = inject('world')
-const { alice, bob, carol } = world.users
+const { alice, bob, carol, admin } = world.users
 const prisma = createTestPrisma()
 const PHOTOS = join(process.cwd(), '.data', 'uploads', 'session-assignment-photos')
 let smtp: Awaited<ReturnType<typeof startTestSmtp>>
@@ -24,11 +24,12 @@ afterAll(async () => {
   await prisma.$disconnect()
 })
 
-// Jeu d'Alice avec tout son contenu d'écriture, ses liens, une photo téléversée et des données d'équipe
-async function sourceGame() {
+// Jeu (d'Alice par défaut) avec tout son contenu d'écriture, ses liens, une photo téléversée et des données d'équipe.
+// Les legs sont limités à 10 par heure et par compte : les tests d'US-011 lèguent depuis le compte de Bob.
+async function sourceGame(owner: { id: string } = alice) {
   const key = `legs-${++counter}`
   const game = await prisma.game.create({
-    data: { title: `Les Brumes ${key}`, slug: `les-brumes-${key}`, description: 'Un jeu', noteIntention: 'Intention', teaserUrl: 'https://example.test/teaser', ownerId: alice.id, publicPage: true }
+    data: { title: `Les Brumes ${key}`, slug: `les-brumes-${key}`, description: 'Un jeu', noteIntention: 'Intention', teaserUrl: 'https://example.test/teaser', ownerId: owner.id, publicPage: true }
   })
   const gameId = game.id
 
@@ -220,14 +221,11 @@ describe('legs d’un jeu à une organisatrice qui a un compte', () => {
     expect(copy!.uploadedFiles).toHaveLength(1)
   })
 
-  it('refuse de léguer à soi-même ou à un email sans compte, sans rien créer', async () => {
+  it('refuse de léguer à soi-même ou à une adresse invalide, sans rien créer', async () => {
     const { game } = await sourceGame()
     const self = await api(alice, 'POST', `/api/games/${game.id}/bequests`, { email: 'alice@example.test' })
     expect(self.status).toBe(400)
     expect((self.body as any).message).toContain('propre jeu')
-    const unknown = await api(alice, 'POST', `/api/games/${game.id}/bequests`, { email: 'personne@example.test' })
-    expect(unknown.status).toBe(400)
-    expect((unknown.body as any).message).toContain('Aucun compte')
     expect((await api(alice, 'POST', `/api/games/${game.id}/bequests`, { email: 'pas-un-email' })).status).toBe(400)
     expect(await copiesOf(game.id)).toHaveLength(0)
   })
@@ -236,5 +234,105 @@ describe('legs d’un jeu à une organisatrice qui a un compte', () => {
     const { game } = await sourceGame()
     expect((await api(carol, 'POST', `/api/games/${game.id}/bequests`, { email: 'bob@example.test' })).status).toBe(403)
     expect(await copiesOf(game.id)).toHaveLength(0)
+  })
+})
+
+describe('legs à une personne sans compte (US-011)', () => {
+  const tokenIn = (text: string) => text.match(/\/invitations\/([\w-]+)/)?.[1]
+  let counter = 0
+
+  // Legs à une adresse sans compte : copie en attente et email d'invitation
+  async function pendingBequest() {
+    const { game } = await sourceGame(bob)
+    const email = `nouvelle-${++counter}@example.test`
+    const sent = smtp.received.length
+    const response = await api(bob, 'POST', `/api/games/${game.id}/bequests`, { email })
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    expect(response.body).toMatchObject({ pending: true, recipient: { email } })
+    const message = smtp.received.slice(sent).find((received) => received.to.includes(email))!
+    const [copy] = await copiesOf(game.id)
+    return { game, email, copy: copy!, message, token: tokenIn(message.text)! }
+  }
+
+  it('crée une copie en attente, invisible pour tous, et envoie une invitation', async () => {
+    const { game, copy, message, token } = await pendingBequest()
+    expect(copy).toMatchObject({ ownerId: null, bequestPending: true, creditSourceTitle: game.title })
+    expect(copy.characters).toHaveLength(2)
+    expect(message.text).toContain('vous lègue une copie')
+    expect(token).toBeTruthy()
+
+    // Ni la propriétaire du jeu source (Bob ici), ni une autre organisatrice, ni le mode administrateur
+    for (const [user, options] of [[bob, {}], [alice, {}], [admin, { adminMode: true }]] as const) {
+      const games = await api(user, 'GET', '/api/games', undefined, options)
+      expect(JSON.stringify(games.body)).not.toContain(copy.id)
+      expect(DENIED).toContain((await api(user, 'GET', `/api/games/${copy.id}`, undefined, options)).status)
+      expect((await api(user, 'GET', `/api/games/slug/${copy.slug}`, undefined, options)).status).toBe(404)
+      expect((await api(user, 'GET', `/api/characters/${copy.characters[0]!.id}`, undefined, options)).status).toBe(404)
+      const characters = await api(user, 'GET', '/api/characters', undefined, options)
+      expect(JSON.stringify(characters.body)).not.toContain(copy.characters[0]!.id)
+    }
+    // Témoin : le mode administrateur voit bien le jeu source
+    expect((await api(admin, 'GET', `/api/games/${game.id}`, undefined, { adminMode: true })).status).toBe(200)
+  })
+
+  it('attribue la copie à la création du compte par le lien, sans co-organisation', async () => {
+    const { email, copy, token } = await pendingBequest()
+    expect((await api(null, 'GET', `/api/invitations/${token}`)).body).toMatchObject({ kind: 'bequest', inviterName: 'bob', email })
+
+    const response = await api(null, 'POST', '/api/auth/register', { token, email, name: 'Nouvelle', password: 'mot-de-passe-solide' })
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    const user = await prisma.user.findUniqueOrThrow({ where: { email } })
+    expect(await prisma.game.findUnique({ where: { id: copy.id } })).toMatchObject({ ownerId: user.id, bequestPending: false })
+    expect(await prisma.gameShare.count({ where: { userId: user.id } })).toBe(0)
+    expect((await api(user, 'GET', `/api/games/slug/${copy.slug}`)).status).toBe(200)
+    // Le lien ne sert qu'une fois
+    expect((await api(null, 'GET', `/api/invitations/${token}`)).status).toBe(400)
+  })
+
+  it('attribue la copie à un compte créé entre-temps, après connexion', async () => {
+    const { email, copy, token } = await pendingBequest()
+    const user = await prisma.user.create({ data: { email, name: 'Arrivée entre-temps', password: 'non-utilise' } })
+    expect((await api(user, 'POST', '/api/invitations/accept', { token })).status).toBe(200)
+    expect(await prisma.game.findUnique({ where: { id: copy.id } })).toMatchObject({ ownerId: user.id, bequestPending: false })
+  })
+
+  it('refuse que la propriétaire du jeu source reçoive son propre legs', async () => {
+    const { copy, token } = await pendingBequest()
+    expect((await api(bob, 'POST', '/api/invitations/accept', { token })).status).toBe(400)
+    expect(await prisma.game.findUnique({ where: { id: copy.id } })).toMatchObject({ ownerId: null, bequestPending: true })
+  })
+
+  it('supprime la copie et ses fichiers quand l’invitation a expiré', async () => {
+    const { copy, token } = await pendingBequest()
+    const photo = copy.uploadedFiles[0]!.url
+    await prisma.gameInvitation.updateMany({ where: { token }, data: { expiresAt: new Date(Date.now() - 1000) } })
+
+    const response = await api(null, 'GET', `/api/invitations/${token}`)
+    expect(response.status).toBe(400)
+    expect(JSON.stringify(response.body)).toContain('supprimée')
+    expect(await prisma.game.findUnique({ where: { id: copy.id } })).toBeNull()
+    expect(existsSync(join(PHOTOS, basename(photo)))).toBe(false)
+  })
+
+  it('ne lègue rien quand l’invitation ne peut pas partir', async () => {
+    const { game } = await sourceGame(bob)
+    await smtp.disable()
+    try {
+      const response = await api(bob, 'POST', `/api/games/${game.id}/bequests`, { email: 'injoignable@example.test' })
+      expect(response.status).toBe(502)
+    } finally {
+      await smtp.enable()
+    }
+    expect(await copiesOf(game.id)).toHaveLength(0)
+  })
+
+  it('une invitation de co-organisation donne toujours un accès partagé', async () => {
+    const { game } = await sourceGame()
+    const sent = smtp.received.length
+    expect((await api(alice, 'POST', `/api/games/${game.id}/invitations`, { email: 'bob@example.test' })).status).toBe(200)
+    const token = tokenIn(smtp.received.slice(sent).find((received) => received.to.includes('bob@example.test'))!.text)!
+    expect((await api(bob, 'POST', '/api/invitations/accept', { token })).status).toBe(200)
+    expect(await prisma.gameShare.count({ where: { gameId: game.id, userId: bob.id } })).toBe(1)
+    expect(await prisma.game.findUnique({ where: { id: game.id } })).toMatchObject({ ownerId: alice.id })
   })
 })

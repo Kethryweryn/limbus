@@ -25,5 +25,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-008](../archive/epics/EPIC-001-inscription-sur-invitation/US-008-fiche-allergies.md) | Fiche allergies de la session | EPIC-001 | terminée |
 | [US-009](../archive/epics/EPIC-001-inscription-sur-invitation/US-009-page-inscriptions.md) | Page Inscriptions dans le menu Organisation | EPIC-001 | terminée |
 | [US-010](EPIC-002-legs-de-jeu/US-010-leguer-a-un-compte-existant.md) | Léguer une copie à une organisatrice qui a un compte | EPIC-002 | terminée |
-| [US-011](EPIC-002-legs-de-jeu/US-011-leguer-sans-compte.md) | Léguer une copie à une personne sans compte | EPIC-002 | à faire |
+| [US-011](EPIC-002-legs-de-jeu/US-011-leguer-sans-compte.md) | Léguer une copie à une personne sans compte | EPIC-002 | terminée |
 | [US-012](EPIC-002-legs-de-jeu/US-012-suivre-les-legs-en-attente.md) | Suivre et annuler les legs en attente | EPIC-002 | à faire |

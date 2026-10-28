@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { decryptSmtpPassword, encryptSmtpPassword, sendEmail } from '~/server/utils/email'
+import { decryptSmtpPassword, encryptSmtpPassword, gameBequestInvitationEmailText, sendEmail } from '~/server/utils/email'
 import { prisma } from '~/server/utils/prisma'
 import { runtimeConfig } from '../setup'
 
@@ -57,5 +57,20 @@ describe('échec d’envoi SMTP', () => {
     expect(JSON.stringify(log.mock.calls)).not.toContain('joueuse@example.test')
     log.mockRestore()
     vi.doUnmock('nodemailer')
+  })
+})
+
+describe('invitation au legs d’un jeu (US-011)', () => {
+  it('dit qui lègue quel jeu, donne le lien et sa date limite', () => {
+    const text = gameBequestInvitationEmailText({
+      gameTitle: 'Les Brumes',
+      ownerName: 'Alice',
+      url: 'https://limbus.example/invitations/abc',
+      expiresAt: new Date('2027-01-15T12:00:00Z')
+    })
+    expect(text).toContain('Alice vous lègue une copie de son jeu « Les Brumes »')
+    expect(text).toContain('https://limbus.example/invitations/abc')
+    expect(text).toContain('valable jusqu’au 15 janvier 2027')
+    expect(text).toContain('la copie est supprimée')
   })
 })

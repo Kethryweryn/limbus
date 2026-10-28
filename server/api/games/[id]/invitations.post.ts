@@ -2,7 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { requireGameOwner } from '~/server/utils/gameAccess'
 import { gameInvitationCreateSchema, readZodBody } from '~/server/utils/schemas'
-import { GAME_INVITATION_STATUSES } from '~/utils/domain'
+import { GAME_INVITATION_KINDS, GAME_INVITATION_STATUSES } from '~/utils/domain'
 import { createInvitationToken, invitationUrl, normalizeInvitationEmail } from '~/server/utils/invitations'
 import { sendGameInvitationEmail } from '~/server/utils/email'
 import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
@@ -54,6 +54,7 @@ export default defineEventHandler(async (event) => {
     where: {
       gameId: id,
       email,
+      kind: GAME_INVITATION_KINDS.share,
       status: GAME_INVITATION_STATUSES.pending
     },
     data: {

@@ -19,7 +19,7 @@ En tant que propriétaire d'un jeu, je veux en donner une copie à une organisat
   - demande une confirmation.
 - [x] Mon propre email est refusé, avec une explication (R2).
 - [x] Si l'email correspond à un compte organisateur, la copie est créée et lui appartient aussitôt, sans acceptation (R7). Elle reçoit un email avec un lien vers la copie.
-- [x] Si l'email ne correspond à aucun compte, US-011 prend le relais ; avant US-011, le legs est refusé avec un message clair.
+- [x] Si l'email ne correspond à aucun compte, US-011 prend le relais (fait).
 - [x] La copie reprend :
   - la fiche du jeu ;
   - les personnages, factions, intrigues, objets, événements de la chronologie, documents et lieux ;

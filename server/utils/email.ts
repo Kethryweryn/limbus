@@ -296,3 +296,31 @@ export async function sendGameBequestEmail(params: { to: string, gameTitle: stri
     `
   })
 }
+
+// Legs à une personne sans compte (SPEC-002 R8) : le lien crée le compte et attribue la copie
+export function gameBequestInvitationEmailText(params: { gameTitle: string, ownerName: string, url: string, expiresAt: Date }) {
+  const expires = params.expiresAt.toLocaleDateString('fr-FR', { dateStyle: 'long', timeZone: 'Europe/Paris' })
+  return [
+    `${params.ownerName} vous lègue une copie de son jeu « ${params.gameTitle} » dans Limbus, l’outil d’organisation de GN.`,
+    '',
+    'Pour la recevoir, créez votre compte avec ce lien (ou connectez-vous si vous en avez déjà un) : la copie vous appartiendra aussitôt, et vous pourrez la modifier librement.',
+    params.url,
+    '',
+    `Ce lien est valable jusqu’au ${expires}. Passé cette date, la copie est supprimée.`
+  ].join('\n')
+}
+
+export async function sendGameBequestInvitationEmail(params: { to: string, gameTitle: string, ownerName: string, url: string, expiresAt: Date }) {
+  const text = gameBequestInvitationEmailText(params)
+  return await sendEmail({
+    to: params.to,
+    subject: `Un jeu vous est légué : ${params.gameTitle}`,
+    text,
+    html: text.split('\n')
+      .filter(Boolean)
+      .map((line) => (line === params.url
+        ? `<p><a href="${escapeHtml(params.url)}">Créer mon compte et recevoir la copie</a></p>`
+        : `<p>${escapeHtml(line)}</p>`))
+      .join('\n')
+  })
+}

@@ -1,6 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { requireGameOwner } from '~/server/utils/gameAccess'
+import { GAME_INVITATION_KINDS } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
@@ -20,7 +21,8 @@ export default defineEventHandler(async (event) => {
       }
     }),
     prisma.gameInvitation.findMany({
-      where: { gameId: id },
+      // Les invitations de legs (US-011) se suivent à part (US-012)
+      where: { gameId: id, kind: GAME_INVITATION_KINDS.share },
       orderBy: { createdAt: 'desc' },
       include: {
         invitedBy: { select: { id: true, name: true, email: true } },

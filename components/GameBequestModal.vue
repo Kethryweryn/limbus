@@ -95,7 +95,9 @@ async function bequeath() {
       body: { email: email.value }
     })
     const recipient = result.recipient?.name || result.recipient?.email
-    message.value = result.emailDelivery?.sent
+    message.value = result.pending
+      ? `${recipient} n’a pas encore de compte Limbus : elle a reçu une invitation à en créer un, valable jusqu’au ${new Date(result.expiresAt).toLocaleDateString('fr-FR', { dateStyle: 'long' })}. La copie lui sera attribuée à la création de son compte.`
+      : result.emailDelivery?.sent
       ? `Copie léguée à ${recipient}, qui a été prévenue par email.`
       : `Copie léguée à ${recipient}, mais l’email n’a pas pu être envoyé : prévenez-la vous-même.`
     email.value = ''

@@ -1,6 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { requireGameOwner } from '~/server/utils/gameAccess'
+import { GAME_INVITATION_KINDS } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
@@ -15,7 +16,9 @@ export default defineEventHandler(async (event) => {
   await prisma.gameInvitation.deleteMany({
     where: {
       id: invitationId,
-      gameId: id
+      gameId: id,
+      // Une invitation de legs s'annule avec sa copie (US-012)
+      kind: GAME_INVITATION_KINDS.share
     }
   })
 

@@ -10,6 +10,8 @@ export default defineEventHandler(async (event) => {
   return {
     email: invitation.email,
     expiresAt: invitation.expiresAt,
-    game: invitation.game
+    kind: invitation.kind,
+    inviterName: invitation.invitedBy.name || invitation.invitedBy.email,
+    game: { id: invitation.game.id, title: invitation.game.title, slug: invitation.game.slug }
   }
 })
