@@ -1,6 +1,12 @@
 name: CI
 
-# Documentation seule : ni CI ni déploiement (ADR-0022). Dès qu'un autre fichier change, tout tourne.
+# Construire une fois, tester, déployer ce build (ADR-0023) :
+# - sur une PR, l'application est construite dans un conteneur Debian 12 + Node 24 (comme le serveur),
+#   testée, puis archivée ;
+# - la fusion dans main ne relance pas les tests : le job `deploy` reprend l'archive de la PR, vérifie
+#   qu'elle a été construite à partir du code exact de main, et l'envoie au serveur.
+# La protection de main exige la seule vérification « Verdict CI », sur une branche à jour avec main.
+# Documentation seule : `check` n'est pas lancé sur la PR, et la fusion ne déploie rien (ADR-0022).
 on:
   push:
     branches: [main]
@@ -8,17 +14,42 @@ on:
       - 'doc/**'
       - '*.md'
   pull_request:
-    paths-ignore:
-      - 'doc/**'
-      - '*.md'
 
 permissions:
   contents: read
 
 jobs:
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Autre chose que de la documentation ?
+        id: diff
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          files=$(git diff --name-only "$BASE...$HEAD")
+          echo "$files"
+          if echo "$files" | grep -qvE '^(doc/.*|[^/]+\.md)$'; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+
   check:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # Même système (glibc) et même Node majeur que le serveur : le build déployé contient des modules natifs (bcrypt)
+    container: node:24-bookworm
     services:
       postgres:
         image: postgres:15
@@ -26,23 +57,22 @@ jobs:
           POSTGRES_USER: limbus
           POSTGRES_PASSWORD: limbus
           POSTGRES_DB: limbus_test
-        ports: ['5432:5432']
         options: >-
           --health-cmd "pg_isready -U limbus"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://limbus:limbus@localhost:5432/limbus_test
-      TEST_DATABASE_URL: postgresql://limbus:limbus@localhost:5432/limbus_test
+      DATABASE_URL: postgresql://limbus:limbus@postgres:5432/limbus_test
+      TEST_DATABASE_URL: postgresql://limbus:limbus@postgres:5432/limbus_test
       PUBLIC_APP_URL: https://limbuslarp.fr
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v7
+      - uses: actions/cache@v4
         with:
-          node-version: 24
-          cache: npm
+          path: ~/.npm
+          key: npm-bookworm-${{ hashFiles('package-lock.json') }}
 
       - run: npm ci
       - run: npx prisma generate
@@ -62,17 +92,82 @@ jobs:
           path: test-results/
           retention-days: 7
 
+      # Seul un build qui a passé tous les tests est archivé. L'arbre Git testé et la version de Node
+      # l'accompagnent : le déploiement vérifie le premier, le serveur le second.
+      - name: Archiver le build testé
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git rev-parse 'HEAD^{tree}' > BUILD_TREE
+          node --version > BUILD_NODE
+          tar -czf limbus-build.tar.gz .output BUILD_TREE BUILD_NODE
+      - uses: actions/upload-artifact@v7
+        with:
+          name: limbus-build
+          path: limbus-build.tar.gz
+          retention-days: 14
+
+  # Seule vérification exigée par la protection de main : un verdict explicite plutôt qu'un job ignoré
+  verdict:
+    name: Verdict CI
+    if: always() && github.event_name == 'pull_request'
+    needs: [changes, check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Tous les contrôles nécessaires ont réussi
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          CODE: ${{ needs.changes.outputs.code }}
+          CHECK: ${{ needs.check.result }}
+        run: |
+          echo "changes=$CHANGES code=$CODE check=$CHECK"
+          [ "$CHANGES" = success ] || { echo "La détection des changements a échoué"; exit 1; }
+          if [ "$CODE" = true ]; then
+            [ "$CHECK" = success ] || { echo "Les tests n'ont pas réussi"; exit 1; }
+          else
+            [ "$CHECK" = skipped ] || { echo "État inattendu des tests pour une PR de documentation"; exit 1; }
+            echo "Documentation seule : rien à tester"
+          fi
+
   deploy:
-    needs: check
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
     # Jamais deux déploiements en parallèle, et on ne coupe pas un déploiement en cours
     concurrency:
       group: deploy-production
       cancel-in-progress: false
     steps:
-      - name: Déployer le commit validé
+      - uses: actions/checkout@v7
+
+      - name: Récupérer le build testé de la PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          pr=$(gh api "repos/$REPO/commits/$GITHUB_SHA/pulls" --jq '[.[] | select(.merged_at != null)][0]')
+          [ -n "$pr" ] && [ "$pr" != null ] || { echo "Aucune PR fusionnée pour $GITHUB_SHA"; exit 1; }
+          head_sha=$(jq -r '.head.sha' <<<"$pr")
+          head_repo=$(jq -r '.head.repo.full_name' <<<"$pr")
+          # Un build venu d'un fork ne part pas en production
+          [ "$head_repo" = "$REPO" ] || { echo "PR issue d'un autre dépôt ($head_repo) : pas de build réutilisable"; exit 1; }
+          run=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?event=pull_request&status=success&head_sha=$head_sha" --jq '.workflow_runs[0].id')
+          [ -n "$run" ] && [ "$run" != null ] || { echo "Pas de CI réussie pour $head_sha"; exit 1; }
+          echo "PR #$(jq -r '.number' <<<"$pr"), CI $run"
+          gh run download "$run" --repo "$REPO" --name limbus-build --dir build
+
+      - name: Vérifier que le build correspond au code de main
+        run: |
+          tar -xzf build/limbus-build.tar.gz -C build BUILD_TREE BUILD_NODE
+          expected=$(git rev-parse 'HEAD^{tree}')
+          echo "arbre de main : $expected / arbre du build : $(cat build/BUILD_TREE) / $(cat build/BUILD_NODE)"
+          [ "$(cat build/BUILD_TREE)" = "$expected" ] || { echo "Le build testé ne correspond pas au code de main : mettre la PR à jour avant de fusionner"; exit 1; }
+
+      - name: Déployer le build
         env:
           DEPLOY_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
@@ -82,8 +177,8 @@ jobs:
           chmod 600 ~/.ssh/deploy
           # Clé d'hôte épinglée : on refuse tout autre serveur
           echo 'limbuslarp.fr ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMkspHzioErwvXaWQ6j2PTKPOafoIwTxwYObxlxr44F+' > ~/.ssh/known_hosts
-          # Côté serveur, cette clé ne peut lancer que deploy.sh, avec ce commit en argument
-          ssh -i ~/.ssh/deploy -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes root@limbuslarp.fr "$GITHUB_SHA"
+          # Côté serveur, cette clé ne peut lancer que deploy.sh, avec ce commit en argument ; l'archive arrive sur l'entrée standard
+          ssh -i ~/.ssh/deploy -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes root@limbuslarp.fr "$GITHUB_SHA" < build/limbus-build.tar.gz
 
       - name: Vérifier que le site répond
         run: |

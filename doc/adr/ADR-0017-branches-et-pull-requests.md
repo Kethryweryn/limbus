@@ -1,9 +1,9 @@
 ---
 id: ADR-0017
 titre: Travail par branches et pull requests, fusion dans main pour déployer
-statut: accepté
+statut: accepté, complété par ADR-0023 (protection de main, déploiement du build testé sans nouvelle CI)
 date: 2026-10-27
-liens: [ADR-0002, ADR-0001]
+liens: [ADR-0002, ADR-0001, ADR-0023]
 ---
 
 # ADR-0017 : Travail par branches et pull requests, fusion dans `main` pour déployer

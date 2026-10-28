@@ -3,6 +3,7 @@ set -euo pipefail
 
 APP_DIR="/var/www/limbus"
 BUILD_DIR="/tmp/limbus-build"
+ARTIFACT="/tmp/limbus-artifact.tar.gz"
 SERVICE_NAME="limbus"
 
 # Construire avec le même Node que celui du service (paquet système), pas celui de nvm
@@ -27,7 +28,15 @@ fi
 
 cd "$APP_DIR"
 
-# Depuis la CI (clé SSH à commande forcée), SSH_ORIGINAL_COMMAND porte le commit validé :
+# Depuis la CI (clé SSH à commande forcée), le build testé de la PR arrive sur l'entrée standard
+# (ADR-0023) : on le déploie tel quel. Lancé à la main, le script reconstruit sur le serveur (secours).
+rm -f "$ARTIFACT"
+if [ -n "${SSH_ORIGINAL_COMMAND:-}" ]; then
+  cat > "$ARTIFACT"
+  [ -s "$ARTIFACT" ] || { echo "Archive du build absente"; exit 1; }
+fi
+
+# Depuis la CI, SSH_ORIGINAL_COMMAND porte le commit validé :
 # on avance main exactement jusqu'à lui, jamais au-delà. Sans argument : dernier commit de main.
 DEPLOY_SHA="${1:-${SSH_ORIGINAL_COMMAND:-}}"
 if [ -n "$DEPLOY_SHA" ]; then
@@ -55,14 +64,36 @@ rsync -a --delete \
   --exclude generated \
   "$APP_DIR/" "$BUILD_DIR/"
 
-# Une seule installation, dans le dossier de build : elle sert au build, aux migrations,
+# Une seule installation, dans le dossier de build : elle sert au build de secours, aux migrations,
 # puis remplace celle de $APP_DIR (utilisée par les scripts comme npm run user:create).
 # .nuxt est exclu de la copie : il contient des chemins absolus vers $APP_DIR
 # qui cassent le prérendu (#internal/nuxt/paths introuvable)
 cd "$BUILD_DIR"
-npm ci --include=dev
+# Dépendances inchangées (même package-lock.json, même Node) : on reprend celles en place par liens
+# physiques, quasi instantanés (ADR-0023). Supprimer l'empreinte force une réinstallation complète.
+DEPS_STAMP="node_modules/.limbus-deps-stamp"
+deps_fingerprint="$(sha256sum package-lock.json | cut -d' ' -f1) $(node --version)"
+if [ -d "$APP_DIR/node_modules" ] && [ "$(cat "$APP_DIR/$DEPS_STAMP" 2>/dev/null)" = "$deps_fingerprint" ]; then
+  echo "Dépendances inchangées : reprise de node_modules"
+  cp -al "$APP_DIR/node_modules" node_modules
+  # Ce que npm ci ferait après l'installation : nuxt prepare crée .nuxt/tsconfig.json, que Prisma lit
+  npm run postinstall
+else
+  npm ci --include=dev
+  echo "$deps_fingerprint" > "$DEPS_STAMP"
+fi
 npx prisma generate
-npm run build
+if [ -s "$ARTIFACT" ]; then
+  tar -xzf "$ARTIFACT" -C "$BUILD_DIR" .output BUILD_TREE BUILD_NODE
+  # Le build doit venir du code exact de ce commit, et d'un Node de même version majeure que le service
+  expected_tree=$(git -C "$APP_DIR" rev-parse 'HEAD^{tree}')
+  [ "$(cat BUILD_TREE)" = "$expected_tree" ] || { echo "Le build reçu ne correspond pas au commit $(git -C "$APP_DIR" rev-parse --short HEAD)"; exit 1; }
+  build_node=$(cut -d. -f1 BUILD_NODE)
+  [ "$build_node" = "$(node --version | cut -d. -f1)" ] || { echo "Build fait avec Node $(cat BUILD_NODE), service sous $(node --version)"; exit 1; }
+  echo "Build testé reçu (Node $(cat BUILD_NODE))"
+else
+  npm run build
+fi
 npx prisma migrate deploy
 
 cd "$APP_DIR"
@@ -75,7 +106,7 @@ mv .output-next .output
 
 rm -rf node_modules generated
 mv "$BUILD_DIR/node_modules" "$BUILD_DIR/generated" .
-rm -rf "$BUILD_DIR"
+rm -rf "$BUILD_DIR" "$ARTIFACT"
 
 systemctl restart "$SERVICE_NAME"
 systemctl status "$SERVICE_NAME" --no-pager
