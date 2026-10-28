@@ -20,6 +20,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-004](EPIC-001-inscription-sur-invitation/US-004-repondre-a-une-invitation.md) | Répondre à une invitation par son lien personnel | EPIC-001 | terminée |
 | [US-005](EPIC-001-inscription-sur-invitation/US-005-suivre-les-inscriptions.md) | Suivre et gérer les inscriptions | EPIC-001 | terminée |
 | [US-006](EPIC-001-inscription-sur-invitation/US-006-desistement.md) | Désistement d'une personne confirmée | EPIC-001 | terminée |
-| [US-007](EPIC-001-inscription-sur-invitation/US-007-inscrits-dans-les-paiements.md) | Inscrits confirmés dans le tableau des paiements | EPIC-001 | à faire |
+| [US-007](EPIC-001-inscription-sur-invitation/US-007-inscrits-dans-les-paiements.md) | Inscrits confirmés dans le tableau des paiements | EPIC-001 | terminée |
 | [US-008](EPIC-001-inscription-sur-invitation/US-008-fiche-allergies.md) | Fiche allergies de la session | EPIC-001 | à faire |
 | [US-009](EPIC-001-inscription-sur-invitation/US-009-page-inscriptions.md) | Page Inscriptions dans le menu Organisation | EPIC-001 | terminée |
