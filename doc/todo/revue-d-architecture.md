@@ -45,3 +45,4 @@ Livrable : un rapport dans `doc/revues/AAAA-MM-JJ-architecture.md` (nouveau doss
   - supervision (monitoring) de la production ;
   - listage du répertoire `/files/` du serveur.
 - 2026-10-29 : chaque recommandation est triée avec l'utilisatrice avant toute suite ; la revue elle-même ne modifie pas le code.
+- 2026-10-29 : pas de spec : une revue est un constat ponctuel, pas une fonctionnalité. La PR du rapport ajoute `revues/` à l'arborescence de `doc/README.md`, et archive cette fiche dans `archive/todo/` avec un lien vers le rapport.
