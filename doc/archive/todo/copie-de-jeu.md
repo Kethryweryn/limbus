@@ -1,6 +1,7 @@
 ---
 titre: Copie d'un jeu pour le léguer
 statut: prête
+spec: ../../specs/SPEC-002-copie-de-jeu.md
 date: 2026-10-27
 ---
 
