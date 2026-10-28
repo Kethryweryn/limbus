@@ -12,7 +12,8 @@ export const registrationPeriodInclude = {
   }
 } as const
 
-// Inscriptions telles que la liste des organisatrices les montre, sans les réponses au formulaire (US-005 les détaillera)
+// Inscriptions telles que la liste des organisatrices les montre, sans les réponses au formulaire
+// (détail : GET /api/registrations/:id)
 export const registrationListSelect = {
   id: true,
   sessionId: true,
@@ -20,6 +21,7 @@ export const registrationListSelect = {
   source: true,
   email: true,
   invitationSentAt: true,
+  lastRemindedAt: true,
   responseDueAt: true,
   respondedAt: true,
   confirmedAt: true,

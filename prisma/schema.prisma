@@ -320,6 +320,8 @@ model Registration {
   // SHA-256 du jeton du lien personnel (ADR-0018) ; null quand le lien est invalidé
   tokenHash             String?                  @unique
   invitationSentAt      DateTime?
+  // Dernière relance par les orgas (US-005)
+  lastRemindedAt        DateTime?
   responseDueAt         DateTime?
   respondedAt           DateTime?
   confirmedAt           DateTime?

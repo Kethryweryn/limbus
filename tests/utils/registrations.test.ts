@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isInvitationOverdue, registrationLinkExpired, splitParticipantName } from '~/utils/registrations'
+import { countRegistrationsByStatus, isInvitationOverdue, registrationDisplayStatus, registrationLinkExpired, splitParticipantName } from '~/utils/registrations'
 
 const now = new Date('2027-01-10T12:00:00Z')
 
@@ -32,5 +32,28 @@ describe('splitParticipantName', () => {
   it('prénom puis nom', () => {
     expect(splitParticipantName('  Camille  de la Tour ')).toEqual({ firstName: 'Camille', lastName: 'de la Tour' })
     expect(splitParticipantName('Zoé')).toEqual({ firstName: 'Zoé', lastName: '' })
+  })
+})
+
+describe('statut montré aux orgas (US-005)', () => {
+  it('« délai dépassé » pour une invitation sans réponse après l’échéance, le statut sinon', () => {
+    expect(registrationDisplayStatus({ status: 'invited', responseDueAt: '2027-01-09' }, now)).toBe('overdue')
+    expect(registrationDisplayStatus({ status: 'invited', responseDueAt: '2027-01-11' }, now)).toBe('invited')
+    expect(registrationDisplayStatus({ status: 'confirmed', responseDueAt: '2027-01-09' }, now)).toBe('confirmed')
+    expect(registrationDisplayStatus({ status: 'withdrawn', responseDueAt: '2027-01-09' }, now)).toBe('withdrawn')
+  })
+
+  it('compte par statut, dans l’ordre d’affichage, sans les statuts absents', () => {
+    const counts = countRegistrationsByStatus([
+      { status: 'confirmed' },
+      { status: 'invited', responseDueAt: '2027-01-09' },
+      { status: 'confirmed' },
+      { status: 'invited', responseDueAt: '2027-01-20' }
+    ], now)
+    expect(counts.map(({ status, count, label }) => [status, count, label])).toEqual([
+      ['invited', 1, 'Invitée'],
+      ['overdue', 1, 'Délai dépassé'],
+      ['confirmed', 2, 'Confirmée']
+    ])
   })
 })
