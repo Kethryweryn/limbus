@@ -22,9 +22,12 @@ export default defineEventHandler(async (event) => {
       invitationSentAt: true,
       responseDueAt: true,
       respondedAt: true,
+      confirmedAt: true,
+      withdrawnAt: true,
       createdAt: true,
       participant: { select: { id: true, name: true, slug: true } },
-      invitedBy: { select: { name: true } }
+      invitedBy: { select: { name: true } },
+      withdrawnBy: { select: { name: true } }
     }
   })
 })

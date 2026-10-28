@@ -9,6 +9,7 @@ import {
   registrationInvitationEmailText,
   registrationResponseDueAt,
   registrationUrl,
+  registrationWithdrawalEmailText,
   rethrowAlreadyRegistered
 } from '~/server/utils/registrations'
 
@@ -93,5 +94,14 @@ describe('rethrowAlreadyRegistered', () => {
   it('laisse passer les autres erreurs', () => {
     const error = new Error('autre')
     expect(() => rethrowAlreadyRegistered(error)).toThrow(error)
+  })
+})
+
+describe('email de désistement aux organisateurs (US-006)', () => {
+  it('distingue le désistement par la personne du retrait par une organisatrice', () => {
+    const base = { participantName: 'Zoé', gameTitle: 'Les Ombres', sessionName: 'Printemps' }
+    expect(registrationWithdrawalEmailText({ ...base, withdrawnBy: null })).toContain('Zoé s’est désisté·e de la session Printemps du jeu « Les Ombres ».')
+    expect(registrationWithdrawalEmailText({ ...base, withdrawnBy: 'Alice' })).toContain('Alice a retiré Zoé de la session Printemps du jeu « Les Ombres ».')
+    expect(registrationWithdrawalEmailText({ ...base, withdrawnBy: null })).toContain('à traiter à la main')
   })
 })

@@ -13,7 +13,8 @@
       <UCard v-else-if="registration?.status === REGISTRATION_STATUSES.withdrawn">
         <h1 class="text-xl font-semibold">{{ registration.game.title }}</h1>
         <p class="mt-2 text-sm text-gray-600">
-          Vous n’êtes pas inscrit·e : vous avez décliné l’invitation ou vous vous êtes désisté·e. Ce lien ne permet plus rien.
+          {{ registration.withdrawnAfterConfirmation ? 'Vous vous êtes désisté·e.' : 'Vous avez décliné l’invitation.' }}
+          Ce lien ne permet plus rien. Pour toute question, contactez l’équipe d’organisation du jeu.
         </p>
       </UCard>
 
@@ -111,6 +112,17 @@
             </div>
           </form>
         </UCard>
+
+        <UCard v-if="registration.canWithdraw">
+          <h2 class="font-semibold">Me désister</h2>
+          <p class="mt-2 text-sm text-gray-600">
+            Si vous ne pouvez plus venir, prévenez l’équipe d’organisation en vous désistant : votre place sera libérée.
+            Pour un paiement déjà effectué, voyez directement avec elle.
+          </p>
+          <UButton class="mt-3" color="error" variant="soft" :loading="withdrawing" @click="withdraw">
+            Me désister
+          </UButton>
+        </UCard>
       </template>
     </div>
   </main>
@@ -146,6 +158,7 @@ const registration = ref(null)
 const form = reactive({})
 const saving = ref(false)
 const declining = ref(false)
+const withdrawing = ref(false)
 const errorMessage = ref('')
 const fieldErrors = ref({})
 const successMessage = ref('')
@@ -236,6 +249,19 @@ async function decline() {
     showError(err, 'Impossible de décliner. Réessayez dans quelques minutes.')
   } finally {
     declining.value = false
+  }
+}
+
+async function withdraw() {
+  if (!confirm('Vous désister ? Votre place sera libérée et ce lien ne permettra plus de revenir sur votre inscription.')) return
+  withdrawing.value = true
+  errorMessage.value = ''
+  try {
+    apply(await $fetch(`${endpoint}/withdraw`, { method: 'POST' }))
+  } catch (err) {
+    showError(err, 'Impossible de vous désister. Réessayez dans quelques minutes.')
+  } finally {
+    withdrawing.value = false
   }
 }
 

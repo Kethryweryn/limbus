@@ -129,9 +129,15 @@
                 <UBadge class="ml-2" size="sm" :color="statusMeta(registration).color" variant="subtle">{{ statusMeta(registration).label }}</UBadge>
                 <div class="text-xs text-gray-500">
                   {{ registration.email }}
-                  <span v-if="registration.invitationSentAt"> · invitée le {{ formatDate(registration.invitationSentAt) }}</span>
-                  <span v-else class="text-warning-600"> · email non envoyé</span>
-                  <span v-if="registration.responseDueAt"> · réponse avant le {{ formatDate(registration.responseDueAt) }}</span>
+                  <template v-if="registration.status === REGISTRATION_STATUSES.withdrawn">
+                    · {{ withdrawalLabel(registration) }}
+                  </template>
+                  <template v-else>
+                    <span v-if="registration.invitationSentAt"> · invitée le {{ formatDate(registration.invitationSentAt) }}</span>
+                    <span v-else class="text-warning-600"> · email non envoyé</span>
+                    <span v-if="registration.confirmedAt"> · confirmée le {{ formatDate(registration.confirmedAt) }}</span>
+                    <span v-else-if="registration.responseDueAt"> · réponse avant le {{ formatDate(registration.responseDueAt) }}</span>
+                  </template>
                 </div>
               </div>
               <div v-if="registration.status === REGISTRATION_STATUSES.invited" class="flex shrink-0 gap-2">
@@ -223,6 +229,13 @@ function invitedCount(period, sessionId) {
 
 function registeredParticipantIds(period) {
   return (registrationsByPeriod.value[period.id] || []).map((registration) => registration.participant.id)
+}
+
+// Refus d'une invitation, désistement par le lien, ou retrait par une organisatrice (US-005)
+function withdrawalLabel(registration) {
+  const date = formatDate(registration.withdrawnAt || registration.respondedAt)
+  if (registration.withdrawnBy) return `retirée le ${date} par ${registration.withdrawnBy.name}`
+  return registration.confirmedAt ? `désistée le ${date} par la personne` : `invitation déclinée le ${date}`
 }
 
 function statusMeta(registration) {

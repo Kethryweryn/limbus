@@ -3,7 +3,8 @@ import { prisma } from '~/server/utils/prisma'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
 import { sendEmail } from '~/server/utils/email'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
-import { REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES } from '~/utils/domain'
+import { deleteUnusedUploads } from '~/server/utils/uploads'
+import { REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
 import { effectivePeriodState } from '~/utils/registrationPeriods'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -312,4 +313,93 @@ export async function resendRegistrationInvitation(registrationId: string, invit
     throw createError({ statusCode: 502, message: `L’ancien lien est invalidé, mais l’email n’est pas parti : ${result.message}` })
   }
   return { sent: true }
+}
+
+export function registrationWithdrawalEmailText(params: {
+  participantName: string
+  gameTitle: string
+  sessionName: string | null
+  withdrawnBy: string | null
+}) {
+  const session = params.sessionName ? ` de la session ${params.sessionName}` : ''
+  return [
+    params.withdrawnBy
+      ? `${params.withdrawnBy} a retiré ${params.participantName}${session} du jeu « ${params.gameTitle} ».`
+      : `${params.participantName} s’est désisté·e${session} du jeu « ${params.gameTitle} ».`,
+    '',
+    'La personne ne fait plus partie des participants de la session, et son éventuel personnage est libre.',
+    'Un paiement déjà reçu n’est pas modifié : il est à traiter à la main.'
+  ].join('\n')
+}
+
+// Prévient l'équipe du jeu (propriétaire et co-organisatrices) ; un échec d'envoi n'annule pas le désistement
+async function notifyOrganizersOfWithdrawal(gameId: string, text: string, subject: string) {
+  const game = await prisma.game.findUniqueOrThrow({
+    where: { id: gameId },
+    select: { owner: { select: { email: true } }, shares: { select: { user: { select: { email: true } } } } }
+  })
+  const recipients = [...new Set([game.owner?.email, ...game.shares.map((share) => share.user.email)].filter((email): email is string => Boolean(email)))]
+  if (!recipients.length) return false
+  try {
+    return (await sendEmail({ to: recipients, subject, text })).sent
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Désistement d'une personne confirmée, par son lien ou par une organisatrice (US-006, ADR-0021) :
+ * - l'inscription passe à désistée ;
+ * - la personne quitte la session et le personnage qu'elle y avait, qui reste sans joueur ;
+ * - sa photo d'attribution part avec, le fichier aussi s'il ne sert plus, et les trombinoscopes
+ *   de la session qui la montraient sont à régénérer ;
+ * - un paiement éventuel est gardé, à traiter à la main (R22).
+ */
+export async function withdrawRegistration(registrationId: string, withdrawnBy: { id: string, name?: string | null } | null) {
+  const registration = await prisma.registration.findUniqueOrThrow({
+    where: { id: registrationId },
+    select: {
+      id: true,
+      sessionId: true,
+      participantId: true,
+      participant: { select: { name: true } },
+      session: { select: { name: true } },
+      period: { select: { gameId: true, game: { select: { title: true } } } }
+    }
+  })
+
+  const photoUrls = await prisma.$transaction(async (tx) => {
+    // Le statut est revérifié dans l'écriture : deux désistements simultanés n'en font qu'un
+    const { count } = await tx.registration.updateMany({
+      where: { id: registration.id, status: REGISTRATION_STATUSES.confirmed },
+      data: { status: REGISTRATION_STATUSES.withdrawn, withdrawnAt: new Date(), withdrawnById: withdrawnBy?.id ?? null }
+    })
+    if (!count) {
+      throw createError({ statusCode: 409, message: 'Seule une inscription confirmée peut faire l’objet d’un désistement.' })
+    }
+    if (!registration.sessionId) return []
+
+    const where = { sessionId: registration.sessionId, participantId: registration.participantId }
+    await tx.sessionParticipant.deleteMany({ where: { ...where, role: SESSION_ROLES.participant } })
+    const assignments = await tx.sessionAssignment.findMany({ where, select: { photoUrl: true } })
+    await tx.sessionAssignment.updateMany({ where, data: { participantId: null, photoUrl: null } })
+    const photos = assignments.map((assignment) => assignment.photoUrl).filter((url): url is string => Boolean(url))
+    if (photos.length) {
+      await tx.sessionTrombinoscope.deleteMany({ where: { sessionId: registration.sessionId } })
+    }
+    return photos
+  })
+
+  await deleteUnusedUploads(photoUrls)
+  const notified = await notifyOrganizersOfWithdrawal(
+    registration.period.gameId,
+    registrationWithdrawalEmailText({
+      participantName: registration.participant.name,
+      gameTitle: registration.period.game.title,
+      sessionName: registration.session?.name ?? null,
+      withdrawnBy: withdrawnBy ? withdrawnBy.name || 'Une organisatrice' : null
+    }),
+    `Désistement : ${registration.participant.name} (${registration.period.game.title})`
+  )
+  return { notified }
 }
