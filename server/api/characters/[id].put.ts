@@ -4,7 +4,7 @@ import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { requireGameAccess, assertSameGame } from '~/server/utils/gameAccess'
 import { readZodBody, updateCharacterSchema } from '~/server/utils/schemas'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
-import { assertGameUpload, deleteUnusedUploads } from '~/server/utils/uploads'
+import { assertGameUploads, deleteUnusedUploads } from '~/server/utils/uploads'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
@@ -44,10 +44,7 @@ export default defineEventHandler(async (event) => {
   } = body
   assertSameGame(existingCharacter.gameId, gameId)
   const targetGameId = existingCharacter.gameId
-  // Une photo déjà en place n'est pas revérifiée : seule une nouvelle référence doit appartenir au jeu
-  if (trombinoscopePhotoUrl && trombinoscopePhotoUrl !== existingCharacter.trombinoscopePhotoUrl) {
-    await assertGameUpload(trombinoscopePhotoUrl, targetGameId)
-  }
+  await assertGameUploads([trombinoscopePhotoUrl], targetGameId, { sessionFiles: false, keep: [existingCharacter.trombinoscopePhotoUrl], label: 'Photo de trombinoscope' })
   if (factionIds && targetGameId) {
     const matchingFactions = await prisma.faction.count({
       where: {

@@ -21,15 +21,31 @@ export function uploadFilePath(url: string | null | undefined) {
 }
 
 /**
- * Un fichier téléversé référencé par un élément du jeu (photo de personnage) doit appartenir à ce jeu,
- * et pas à une session : sinon une organisatrice pourrait s'approprier le fichier d'un autre jeu, ou
- * faire passer la photo d'un joueur pour celle d'un personnage (puis la léguer, SPEC-002 R5).
+ * Les fichiers téléversés qu'un élément référence doivent appartenir à son jeu : sinon une organisatrice
+ * pourrait s'approprier le fichier d'un autre jeu en mettant son nom dans une URL (photo, RIB joint aux emails).
+ * - sessionFiles : false pour un élément du jeu (photo de personnage), qui ne prend pas la photo d'un joueur
+ *   prise pour une session (SPEC-002 R5) ; true pour une session, qui peut reprendre un fichier d'une autre
+ *   session du même jeu.
+ * - keep : références déjà en place, non revérifiées, pour ne pas bloquer la modification d'anciennes données.
  */
-export async function assertGameUpload(url: string | null | undefined, gameId: string) {
-  if (!uploadFilePath(url)) return
-  const file = await prisma.uploadedFile.findFirst({ where: { url: url!, gameId, sessionId: null }, select: { id: true } })
-  if (!file) {
-    throw createError({ statusCode: 400, message: 'Photo inconnue pour ce jeu : téléversez-la depuis la fiche du personnage.' })
+export async function assertGameUploads(
+  urls: Array<string | null | undefined>,
+  gameId: string,
+  options: { sessionFiles: boolean, keep?: Array<string | null | undefined>, label?: string }
+) {
+  const keep = new Set(options.keep ?? [])
+  const candidates = [...new Set(urls)].filter((url): url is string => Boolean(uploadFilePath(url)) && !keep.has(url))
+  if (!candidates.length) return
+  const owned = await prisma.uploadedFile.count({
+    where: {
+      url: { in: candidates },
+      ...(options.sessionFiles
+        ? { OR: [{ gameId }, { session: { gameId } }] }
+        : { gameId, sessionId: null })
+    }
+  })
+  if (owned !== candidates.length) {
+    throw createError({ statusCode: 400, message: `${options.label ?? 'Fichier'} inconnu pour ce jeu : téléversez le fichier depuis Limbus.` })
   }
 }
 

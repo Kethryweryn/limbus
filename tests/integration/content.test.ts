@@ -66,6 +66,21 @@ describe('URL saisies par les organisateurs', () => {
     })).status).toBe(200)
   })
 
+  it('accepte dans une session les photos et le RIB téléversés pour le jeu (témoin)', async () => {
+    const { game, character, session } = await aliceGame('fichiers-session')
+    const photo = await upload('photo', game.id, session.id)
+    const rib = await upload('rib', game.id, session.id)
+    expect((await api(alice, 'PUT', `/api/sessions/${session.id}/payments/settings`, { paymentRibUrl: rib.url })).status).toBe(200)
+    // Une photo prise pour une autre session du même jeu peut resservir
+    const created = await api(alice, 'POST', '/api/sessions', { name: 'Autre session fichiers', gameId: game.id, assignments: [{ characterId: character.id, photoUrl: photo.url }] })
+    expect(created.status, JSON.stringify(created.body)).toBe(200)
+    const updated = await api(alice, 'PUT', `/api/sessions/${session.id}`, { name: session.name, gameId: game.id, assignments: [{ characterId: character.id, photoUrl: photo.url }] })
+    expect(updated.status, JSON.stringify(updated.body)).toBe(200)
+    // Modifier le seul lien de paiement garde le RIB
+    expect((await api(alice, 'PUT', `/api/sessions/${session.id}/payments/settings`, { paymentLinkUrl: 'https://paiement.example/x' })).status).toBe(200)
+    expect((await prisma.session.findUniqueOrThrow({ where: { id: session.id } })).paymentRibUrl).toBe(rib.url)
+  })
+
   it('refuse comme photo de personnage un fichier d’un autre jeu ou la photo d’un joueur', async () => {
     const { game, session } = await aliceGame('photo-etrangere')
     const playerPhoto = await upload('photo', game.id, session.id)

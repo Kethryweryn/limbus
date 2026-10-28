@@ -5,7 +5,7 @@ import { requireGameAccess, requireSessionAccess, assertSameGame } from '~/serve
 import { assertSessionCastRules, assertSessionLocation, normalizeAssignments, normalizeSessionParticipants } from '~/server/utils/sessionAssignments'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
-import { deleteUnusedUploads } from '~/server/utils/uploads'
+import { assertGameUploads, deleteUnusedUploads } from '~/server/utils/uploads'
 
 function parseDate(value: unknown): Date | null {
   if (!value || typeof value !== 'string') return null
@@ -37,6 +37,7 @@ export default defineEventHandler(async (event) => {
     where: { sessionId: existingSession.id },
     select: { photoUrl: true }
   })).map((assignment) => assignment.photoUrl)
+  await assertGameUploads(assignments.map((assignment) => assignment.photoUrl), gameId, { sessionFiles: true, keep: previousPhotoUrls, label: 'Photo d’attribution' })
 
   const session = await prisma.session.update({
     where: { id: existingSession.id },
