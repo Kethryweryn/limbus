@@ -6,6 +6,12 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 |---|---|---|---|
 | [Documentation de l'existant](documentation-de-l-existant.md) | à trancher | 2026-10-29 | Specs des fonctionnalités antérieures à la reprise, une par domaine |
 | [API pour une IA](api-pour-ia.md) | à trancher | 2026-10-29 | Accès d'une IA aux jeux d'une organisatrice connectée, avec ses droits (MCP ou REST) |
+| [Durcissement web](durcissement-web.md) | à trancher | 2026-10-29 | CSP et COOP sur les pages, origine des écritures, cookie `__Host-` (revue R-01 à R-03) |
+| [Supervision](supervision.md) | à trancher | 2026-10-29 | Route de santé et surveillance externe avec alerte email (revue R-15, R-16) |
+| [Photos et RGPD](photos-et-rgpd.md) | à trancher | 2026-10-29 | Durée de conservation des photos et information des participants (revue R-08, R-09) |
+| [Interface en TypeScript](interface-en-typescript.md) | à trancher | 2026-10-29 | Composants et pages en `lang="ts"`, réponses d'API typées (revue R-10) |
+| [Tests de bout en bout des parcours](tests-e2e-des-parcours.md) | à trancher | 2026-10-29 | Playwright pour le casting, les trombinoscopes, les envois et les inscriptions (revue R-14) |
+| [Nettoyages techniques](nettoyages-techniques.md) | prête | 2026-10-29 | Requêtes en boucle, lecture des paramètres d'URL, outils de build en devDependencies (revue R-07, R-11, R-12) |
 
 ## Archivées
 

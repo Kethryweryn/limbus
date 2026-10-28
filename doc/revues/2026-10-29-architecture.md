@@ -2,7 +2,7 @@
 titre: Revue d'architecture comparée à l'état de l'art
 date: 2026-10-29
 origine: ../archive/todo/revue-d-architecture.md
-statut: recommandations à trier
+statut: triée
 ---
 
 # Revue d'architecture, 29 octobre 2026
@@ -194,6 +194,29 @@ Triées par priorité. Effort : S (moins d'une demi-journée), M (une à deux jo
 
 Chaque recommandation est triée avec l'utilisatrice (décision du 29 octobre 2026). Le résultat du tri est noté ici, recommandation par recommandation :
 
+Tri fait le 29 octobre 2026.
+
 | N° | Décision | Suite |
 |---|---|---|
-| | | |
+| R-05 | Faire maintenant | Opération serveur. La rotation par Claude a été bloquée (écriture d'un secret) : elle est laissée à l'utilisatrice, avec un script qui rechiffre le mot de passe SMTP sans l'afficher. Nouveau secret à sauvegarder dans Proton Pass. **En attente.** |
+| R-04 | Faire maintenant | Le compte `xargos` n'a pas de clé SSH : l'utilisatrice lui ajoute la sienne, la connexion par clé est testée, puis `PasswordAuthentication no`. **En attente.** |
+| R-06 | Faire maintenant | **Fait** le 29 octobre : `Options -Indexes` sur `/files/` dans le vhost jdmottot.fr. Le listage répond 403, les liens directs 200. |
+| R-01 | Fiche todo | [Durcissement web](../todo/durcissement-web.md) |
+| R-02 | Fiche todo | [Durcissement web](../todo/durcissement-web.md) |
+| R-03 | Fiche todo | [Durcissement web](../todo/durcissement-web.md) |
+| R-15 | Fiche todo | [Supervision](../todo/supervision.md) |
+| R-16 | Avec la supervision | Noté dans la fiche [Supervision](../todo/supervision.md), à décider quand elle existera |
+| R-08 | Fiche todo | [Photos et RGPD](../todo/photos-et-rgpd.md) |
+| R-09 | Fiche todo | [Photos et RGPD](../todo/photos-et-rgpd.md) |
+| R-10 | Fiche todo | [Interface en TypeScript](../todo/interface-en-typescript.md), en chantier dédié |
+| R-14 | Fiche todo | [Tests de bout en bout des parcours](../todo/tests-e2e-des-parcours.md) |
+| R-13 | Avec la resynchronisation | À traiter dans le chantier de resynchronisation hors ligne déjà prévu (CLAUDE.md), sans fiche à part |
+| R-07 | Fiche todo | [Nettoyages techniques](../todo/nettoyages-techniques.md) |
+| R-11 | Fiche todo | [Nettoyages techniques](../todo/nettoyages-techniques.md) |
+| R-12 | Fiche todo | [Nettoyages techniques](../todo/nettoyages-techniques.md) |
+
+### Incident pendant le tri
+
+Le 29 octobre, en vérifiant R-06, le site jdmottot.fr répondait 500 depuis la nuit. PHP avait été mis à jour automatiquement le 28 octobre. Le rechargement nocturne d'Apache par logrotate n'est qu'un « reload » : il a chargé les nouvelles extensions PHP dans l'ancienne version encore en mémoire, d'où l'erreur « undefined symbol ». Le site a été réparé par un redémarrage complet d'Apache.
+
+Pour éviter que cela se reproduise, `needrestart` a été installé en mode automatique : il redémarre les services dont les bibliothèques ont été mises à jour. Le noyau qui tourne (6.1.0-48) est aussi en retard sur le noyau installé (6.1.0-54) : il faudra redémarrer le serveur, au moment que l'utilisatrice choisira. Cet incident confirme l'intérêt de R-15.
