@@ -46,10 +46,12 @@ function apiEntityId(request: string) {
 }
 
 // Un POST sur une sous-route (/api/sessions/:id/payments/send…) est une action, souvent un envoi d'emails :
-// rejouée plus tard sans confirmation, elle partirait avec des données périmées. Seules les créations
-// (/api/<ressource>) et les modifications (PUT, DELETE) sont mises en file.
+// rejouée plus tard sans confirmation, elle partirait avec des données périmées. De même pour un DELETE sur
+// une sous-route (/api/games/:id/bequests/:invitationId…) : il ne supprime pas la ressource elle-même.
+// Seules les créations (/api/<ressource>) et les modifications (PUT, DELETE /api/<ressource>/:id) sont mises en file.
 function isActionRequest(request: string, method: string) {
-  return method === 'POST' && normalizedPath(request).split('/').length > 2
+  const segments = normalizedPath(request).split('/').length
+  return (method === 'POST' && segments > 2) || (method === 'DELETE' && segments > 3)
 }
 
 export function isQueueableApiWrite(request: string, options?: any) {

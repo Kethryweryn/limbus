@@ -102,7 +102,7 @@ Permettre à une organisatrice de confier son jeu à une autre équipe d'organis
 
 ## Découpage
 
-Voir [EPIC-002](../epics/EPIC-002-legs-de-jeu/README.md) :
+Voir [EPIC-002](../archive/epics/EPIC-002-legs-de-jeu/README.md) :
 
 1. Léguer une copie à un compte organisateur existant : contenu d'écriture, formulaire d'inscription, fichiers dupliqués, liens recréés et crédit (R1 à R7, R9 à R14). Les fichiers ne peuvent pas venir dans un lot à part : leur accès dépend du jeu, et une copie qui pointerait vers les photos du jeu source ne pourrait pas les afficher.
 2. Destinataire sans compte : invitation, copie en attente et attribution à la création du compte (R8).
@@ -119,3 +119,4 @@ Voir [EPIC-002](../epics/EPIC-002-legs-de-jeu/README.md) :
 - 2026-10-28 : création à partir de la fiche todo. Choix de l'utilisatrice : attribution automatique, invitation puis attribution pour une destinataire sans compte, crédit visible, pas de copie pour soi-même.
 - 2026-10-28 : le formulaire d'inscription est copié avec le contenu d'écriture, dès le premier lot (R4, R14).
 - 2026-10-28 : découpage en EPIC-002 ; fichiers dupliqués dès le premier lot ; stockage décidé dans ADR-0025.
+- 2026-10-29 : EPIC-002 terminé (US-010 à US-012) ; la liste des legs en attente est dans la fenêtre « Léguer une copie » de la fiche du jeu.

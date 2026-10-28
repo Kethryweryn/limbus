@@ -9,7 +9,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | Epic | Titre | Spec | Statut |
 |---|---|---|---|
 | [EPIC-001](../archive/epics/EPIC-001-inscription-sur-invitation/README.md) | Période d'inscription et mode invitation | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
-| [EPIC-002](EPIC-002-legs-de-jeu/README.md) | Léguer une copie d'un jeu à une autre équipe | [SPEC-002](../specs/SPEC-002-copie-de-jeu.md) | en cours |
+| [EPIC-002](../archive/epics/EPIC-002-legs-de-jeu/README.md) | Léguer une copie d'un jeu à une autre équipe | [SPEC-002](../specs/SPEC-002-copie-de-jeu.md) | terminé |
 
 ## US
 
@@ -24,6 +24,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-007](../archive/epics/EPIC-001-inscription-sur-invitation/US-007-inscrits-dans-les-paiements.md) | Inscrits confirmés dans le tableau des paiements | EPIC-001 | terminée |
 | [US-008](../archive/epics/EPIC-001-inscription-sur-invitation/US-008-fiche-allergies.md) | Fiche allergies de la session | EPIC-001 | terminée |
 | [US-009](../archive/epics/EPIC-001-inscription-sur-invitation/US-009-page-inscriptions.md) | Page Inscriptions dans le menu Organisation | EPIC-001 | terminée |
-| [US-010](EPIC-002-legs-de-jeu/US-010-leguer-a-un-compte-existant.md) | Léguer une copie à une organisatrice qui a un compte | EPIC-002 | terminée |
-| [US-011](EPIC-002-legs-de-jeu/US-011-leguer-sans-compte.md) | Léguer une copie à une personne sans compte | EPIC-002 | terminée |
-| [US-012](EPIC-002-legs-de-jeu/US-012-suivre-les-legs-en-attente.md) | Suivre et annuler les legs en attente | EPIC-002 | à faire |
+| [US-010](../archive/epics/EPIC-002-legs-de-jeu/US-010-leguer-a-un-compte-existant.md) | Léguer une copie à une organisatrice qui a un compte | EPIC-002 | terminée |
+| [US-011](../archive/epics/EPIC-002-legs-de-jeu/US-011-leguer-sans-compte.md) | Léguer une copie à une personne sans compte | EPIC-002 | terminée |
+| [US-012](../archive/epics/EPIC-002-legs-de-jeu/US-012-suivre-les-legs-en-attente.md) | Suivre et annuler les legs en attente | EPIC-002 | terminée |

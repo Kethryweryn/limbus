@@ -45,7 +45,7 @@ En tant que propriétaire d'un jeu, je veux en donner une copie à une organisat
 
 ## Notes techniques
 
-- Modèle ([ADR-0025](../../adr/ADR-0025-legs-de-jeu.md)) : `Game.creditSourceTitle`, `Game.creditAuthorName`, `Game.copiedFromGameId` (SetNull), `Game.bequestPending` (faux pour cette US). Migration additive.
+- Modèle ([ADR-0025](../../../adr/ADR-0025-legs-de-jeu.md)) : `Game.creditSourceTitle`, `Game.creditAuthorName`, `Game.copiedFromGameId` (SetNull), `Game.bequestPending` (faux pour cette US). Migration additive.
 - Service `copyGame` dans `server/utils/gameCopy.ts` : une transaction, table de correspondance des identifiants, slugs régénérés, liste explicite des champs copiés par modèle.
 - Fichiers dupliqués avant la transaction, effacés si elle échoue.
 - Route `POST /api/games/:id/bequests` avec `requireGameOwner`, schéma zod (email), limite de débit.
