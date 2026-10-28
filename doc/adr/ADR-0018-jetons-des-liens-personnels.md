@@ -1,7 +1,7 @@
 ---
 id: ADR-0018
 titre: Liens personnels des inscrits par jeton aléatoire stocké hashé
-statut: proposé
+statut: accepté
 date: 2026-10-27
 liens: [SPEC-001, EPIC-001, ADR-0013]
 ---

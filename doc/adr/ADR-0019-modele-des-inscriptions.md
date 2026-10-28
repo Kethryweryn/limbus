@@ -1,7 +1,7 @@
 ---
 id: ADR-0019
 titre: Modèle des inscriptions, champs standards en colonnes, formulaire versionné
-statut: proposé
+statut: accepté
 date: 2026-10-27
 liens: [SPEC-001, EPIC-001, ADR-0011]
 # Amendé le 2026-10-28, avant acceptation : portée « tout le jeu » (inscription permanente) et lien de diffusion.
@@ -11,7 +11,7 @@ liens: [SPEC-001, EPIC-001, ADR-0011]
 
 ## Contexte
 
-La première version ([EPIC-001](../epics/EPIC-001-inscription-sur-invitation/README.md)) ne gère que les invitations et les champs standards. Les suivantes ajouteront le formulaire public, les questions propres au jeu, les affinités, le tirage et le casting, sur plusieurs sessions. Le modèle doit les accueillir sans refonte. Il doit aussi garder les réponses telles qu'elles ont été données, et rester simple à exporter et à effacer (RGPD).
+La première version ([EPIC-001](../archive/epics/EPIC-001-inscription-sur-invitation/README.md)) ne gère que les invitations et les champs standards. Les suivantes ajouteront le formulaire public, les questions propres au jeu, les affinités, le tirage et le casting, sur plusieurs sessions. Le modèle doit les accueillir sans refonte. Il doit aussi garder les réponses telles qu'elles ont été données, et rester simple à exporter et à effacer (RGPD).
 
 ## Décision
 

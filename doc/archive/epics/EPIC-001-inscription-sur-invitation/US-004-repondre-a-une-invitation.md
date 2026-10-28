@@ -46,8 +46,8 @@ Après la revue de code du 2026-10-28 :
 ## Notes techniques
 
 - Pages : `pages/inscription/[token].vue`, hors du layout organisateur, sans mise en cache hors ligne.
-- Routes : `GET /api/public/registrations/:token`, `PUT /api/public/registrations/:token` (réponse et modifications), avec limitation de débit par IP ([ADR-0013](../../adr/ADR-0013-un-seul-processus.md)) et validation zod construite à partir de la version du formulaire.
-- La création du `SessionParticipant` suit [ADR-0021](../../adr/ADR-0021-inscription-et-participation-de-session.md).
+- Routes : `GET /api/public/registrations/:token`, `PUT /api/public/registrations/:token` (réponse et modifications), avec limitation de débit par IP ([ADR-0013](../../../adr/ADR-0013-un-seul-processus.md)) et validation zod construite à partir de la version du formulaire.
+- La création du `SessionParticipant` suit [ADR-0021](../../../adr/ADR-0021-inscription-et-participation-de-session.md).
 - Les données d'inscription sont ajoutées à `eraseParticipant` et `exportParticipantData`.
 
 ## Tests

@@ -1,8 +1,8 @@
 ---
 id: EPIC-001
 titre: Période d'inscription et mode invitation
-statut: en cours
-spec: ../../specs/SPEC-001-inscriptions.md
+statut: terminé
+spec: ../../../specs/SPEC-001-inscriptions.md
 date: 2026-10-27
 adr: [ADR-0018, ADR-0019, ADR-0020, ADR-0021]
 ---
@@ -19,7 +19,7 @@ Organiser une session sur invitation de bout en bout :
 
 Le formulaire public, le tirage au sort et le casting viennent dans les epics suivants ; le modèle de données les prévoit dès maintenant (plusieurs sessions, modes de sélection, versions du formulaire).
 
-Règles couvertes : R1 à R3, R5, R6, R8 (note d'intention et champs standards), R12 à R16, R20, R22, R33 de [SPEC-001](../../specs/SPEC-001-inscriptions.md).
+Règles couvertes : R1 à R3, R5, R6, R8 (note d'intention et champs standards), R12 à R16, R20, R22, R33 de [SPEC-001](../../../specs/SPEC-001-inscriptions.md).
 
 ## US
 
@@ -35,7 +35,7 @@ Règles couvertes : R1 à R3, R5, R6, R8 (note d'intention et champs standards),
 | [US-008](US-008-fiche-allergies.md) | Fiche allergies de la session | terminée |
 | [US-009](US-009-page-inscriptions.md) | Page Inscriptions dans le menu Organisation | terminée |
 
-Ordre conseillé : US-001 → US-009 → US-002 → US-003 → US-004, puis US-005 à US-008 dans n'importe quel ordre. Chaque US fait l'objet d'une PR ([ADR-0017](../../adr/ADR-0017-branches-et-pull-requests.md)).
+Ordre conseillé : US-001 → US-009 → US-002 → US-003 → US-004, puis US-005 à US-008 dans n'importe quel ordre. Chaque US fait l'objet d'une PR ([ADR-0017](../../../adr/ADR-0017-branches-et-pull-requests.md)).
 
 ## Définition de terminé
 
@@ -44,3 +44,7 @@ Ordre conseillé : US-001 → US-009 → US-002 → US-003 → US-004, puis US-0
 - `eraseParticipant` et `exportParticipantData` couvrent les inscriptions (`tests/integration/privacy.test.ts`).
 - Un test Playwright couvre le parcours complet : invitation → réponse par le lien → présence dans la session et les paiements.
 - SPEC-001 est à jour, et les ADR de l'epic sont passés de `proposé` à `accepté`, ou remplacés.
+
+## Clôture
+
+Terminé le 2026-10-28 : les neuf US sont livrées (PR #16 à #24), la définition de terminé est remplie, et ADR-0018 à ADR-0021 sont acceptés. Les choix métier faits après la livraison (relance sans lien, prolongation à une date choisie, PNJ suivis dans les paiements, fiche allergies qui compte toutes les personnes à table) sont décrits dans SPEC-001 et dans les US concernées.

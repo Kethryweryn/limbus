@@ -40,7 +40,7 @@ Après la revue de code du 2026-10-28 :
 ## Notes techniques
 
 - Route : `POST /api/public/registrations/:token/withdraw`, avec limitation de débit. Le retrait par une organisatrice réutilise la même fonction serveur.
-- Retirer le joueur d'un personnage efface aussi sa photo d'attribution, et le fichier si plus rien ne le référence ([ADR-0008](../../adr/ADR-0008-fichiers-televerses.md)).
+- Retirer le joueur d'un personnage efface aussi sa photo d'attribution, et le fichier si plus rien ne le référence ([ADR-0008](../../../adr/ADR-0008-fichiers-televerses.md)).
 
 ## Tests
 

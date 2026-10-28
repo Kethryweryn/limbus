@@ -23,7 +23,7 @@ En tant qu'organisatrice, je veux choisir les informations demandées aux inscri
 
 ## Notes techniques
 
-- Modèle : `RegistrationForm` (un par jeu) et `RegistrationFormVersion` (numéro, réglages des champs standards en JSON validé par zod, date). Les réponses aux champs standards sont des colonnes de `Registration` ([ADR-0019](../../adr/ADR-0019-modele-des-inscriptions.md)).
+- Modèle : `RegistrationForm` (un par jeu) et `RegistrationFormVersion` (numéro, réglages des champs standards en JSON validé par zod, date). Les réponses aux champs standards sont des colonnes de `Registration` ([ADR-0019](../../../adr/ADR-0019-modele-des-inscriptions.md)).
 - Les questions propres au jeu et les affinités s'ajouteront à la version dans les epics suivants.
 - Routes : `GET/PUT /api/games/:id/registration-form`, avec `requireGameAccess`.
 

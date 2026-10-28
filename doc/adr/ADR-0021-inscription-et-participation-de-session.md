@@ -1,7 +1,7 @@
 ---
 id: ADR-0021
 titre: L'inscription crée la participation de session, la session reste la référence
-statut: proposé
+statut: accepté
 date: 2026-10-27
 liens: [SPEC-001, EPIC-001]
 ---

@@ -45,7 +45,7 @@ Après la revue de code du 2026-10-28 :
 
 ## Notes techniques
 
-- Modèle : `Registration` ([ADR-0019](../../adr/ADR-0019-modele-des-inscriptions.md)) ; jeton selon [ADR-0018](../../adr/ADR-0018-jetons-des-liens-personnels.md).
+- Modèle : `Registration` ([ADR-0019](../../../adr/ADR-0019-modele-des-inscriptions.md)) ; jeton selon [ADR-0018](../../../adr/ADR-0018-jetons-des-liens-personnels.md).
 - Routes : `POST /api/registration-periods/:id/invitations`, `POST /api/registrations/:id/resend`, `DELETE /api/registrations/:id`.
 - Le rapprochement par email est une fonction serveur testée à part, réutilisée par le formulaire public (EPIC-002).
 
