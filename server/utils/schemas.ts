@@ -280,39 +280,64 @@ export const sessionSchema = z.object({
   participants: z.array(sessionParticipantSchema).optional().default([])
 })
 
+// Schémas des inscriptions (SPEC-001) : messages en français, affichés tels quels dans l'interface
+const frenchText = (label: string) => z.string({ error: `${label} est obligatoire` }).trim().min(1, `${label} est obligatoire`)
+
 const registrationPeriodSessionSchema = z.object({
-  sessionId: requiredId('Session'),
+  sessionId: frenchText('La session'),
   // Absent : le nombre de personnages PJ du jeu (R5)
-  seats: z.number().int().min(0).max(1000).optional().nullable()
+  seats: z.number({ error: 'Le nombre de places doit être un nombre entier' })
+    .int('Le nombre de places doit être un nombre entier')
+    .min(0, 'Le nombre de places ne peut pas être négatif')
+    .max(1000, 'Pas plus de 1000 places')
+    .optional().nullable()
 })
 
+const registrationPeriodState = z.enum([
+  REGISTRATION_PERIOD_STATES.draft,
+  REGISTRATION_PERIOD_STATES.open,
+  REGISTRATION_PERIOD_STATES.closed
+], { error: 'État de période inconnu' })
+const registrationClosesAt = optionalText.refine((value) => !value || !Number.isNaN(new Date(value).getTime()), 'Date de clôture invalide')
+const registrationResponseDelay = z.number({ error: 'Le délai de réponse doit être un nombre de jours' })
+  .int('Le délai de réponse doit être un nombre entier de jours')
+  .min(1, 'Le délai de réponse est d’au moins 1 jour')
+  .max(90, 'Le délai de réponse est de 90 jours au plus')
+const registrationPeriodSessions = z.array(registrationPeriodSessionSchema)
+  .min(1, 'Choisissez au moins une session')
+  .refine((sessions) => new Set(sessions.map((session) => session.sessionId)).size === sessions.length, 'Une session est choisie deux fois')
+
 export const registrationPeriodSchema = z.object({
-  name: requiredText('Name'),
-  gameId: requiredId('Game'),
+  name: frenchText('Le nom'),
+  gameId: frenchText('Le jeu'),
   // Le formulaire public et l'inscription permanente arrivent avec EPIC-002
-  entryMode: z.enum([REGISTRATION_ENTRY_MODES.invitation]).default(REGISTRATION_ENTRY_MODES.invitation),
-  state: z.enum([
-    REGISTRATION_PERIOD_STATES.draft,
-    REGISTRATION_PERIOD_STATES.open,
-    REGISTRATION_PERIOD_STATES.closed
-  ]).default(REGISTRATION_PERIOD_STATES.draft),
-  closesAt: optionalText.refine((value) => !value || !Number.isNaN(new Date(value).getTime()), 'Invalid date'),
-  responseDelayDays: z.number().int().min(1).max(90).default(REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS),
-  sessions: z.array(registrationPeriodSessionSchema)
-    .min(1, 'At least one session is required')
-    .refine((sessions) => new Set(sessions.map((session) => session.sessionId)).size === sessions.length, 'Duplicate session')
+  entryMode: z.enum([REGISTRATION_ENTRY_MODES.invitation], { error: 'Seul le mode invitation est disponible' }).default(REGISTRATION_ENTRY_MODES.invitation),
+  state: registrationPeriodState.default(REGISTRATION_PERIOD_STATES.draft),
+  closesAt: registrationClosesAt,
+  responseDelayDays: registrationResponseDelay.default(REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS),
+  sessions: registrationPeriodSessions
+})
+
+// Modification : un champ absent est conservé, jamais remis à sa valeur par défaut ; closesAt à null retire la date
+export const registrationPeriodUpdateSchema = z.object({
+  name: frenchText('Le nom'),
+  gameId: frenchText('Le jeu'),
+  state: registrationPeriodState.optional(),
+  closesAt: registrationClosesAt,
+  responseDelayDays: registrationResponseDelay.optional(),
+  sessions: registrationPeriodSessions
 })
 
 // Invitations d'une session de la période (US-003) : des participants du jeu et/ou une nouvelle personne
 export const registrationInvitationSchema = z.object({
-  sessionId: requiredId('Session'),
-  participantIds: z.array(requiredId('Participant')).optional().default([])
-    .refine((ids) => new Set(ids).size === ids.length, 'Duplicate participant'),
+  sessionId: frenchText('La session'),
+  participantIds: z.array(frenchText('Le participant')).optional().default([])
+    .refine((ids) => new Set(ids).size === ids.length, 'Une personne est choisie deux fois'),
   newParticipant: z.object({
-    name: requiredText('Name'),
-    email: requiredText('Email').toLowerCase().email('Invalid email')
+    name: frenchText('Le nom'),
+    email: frenchText('L’email').toLowerCase().max(254, 'Email trop long').email('Email invalide')
   }).optional().nullable()
-}).refine((body) => body.participantIds.length > 0 || body.newParticipant, 'Nobody to invite')
+}).refine((body) => body.participantIds.length > 0 || body.newParticipant, 'Choisissez au moins une personne à inviter')
 
 const registrationFieldSetting = z.object({ asked: z.boolean(), required: z.boolean() })
 
@@ -320,7 +345,9 @@ export const registrationFormDefinitionSchema = z.object({
   standardFields: z.object(
     Object.fromEntries(REGISTRATION_STANDARD_FIELDS.map(({ key }) => [key, registrationFieldSetting])) as
       Record<RegistrationStandardFieldKey, typeof registrationFieldSetting>
-  )
+  ),
+  // Version sur laquelle l'éditeur s'appuie (null : formulaire jamais enregistré) ; absente, pas de contrôle
+  baseVersionNumber: z.number().int().min(1).nullable().optional()
 })
 
 export const loginSchema = z.object({

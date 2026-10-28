@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { prisma } from '~/server/utils/prisma'
 import {
+  withdrawalReason,
   findRegistrationByToken,
   registrationConfirmationEmailText,
   registrationPermissions
@@ -61,3 +62,13 @@ describe('email de confirmation', () => {
     expect(text).toContain('https://limbus.example/inscription/abc')
   })
 })
+
+describe('withdrawalReason', () => {
+  it('distingue refus, désistement, place réattribuée et retrait par l’équipe', () => {
+    expect(withdrawalReason({ confirmedAt: null, withdrawnById: null })).toBe('declined')
+    expect(withdrawalReason({ confirmedAt: new Date(), withdrawnById: null })).toBe('withdrawn')
+    expect(withdrawalReason({ confirmedAt: null, withdrawnById: 'orga' })).toBe('released')
+    expect(withdrawalReason({ confirmedAt: new Date(), withdrawnById: 'orga' })).toBe('removed')
+  })
+})
+

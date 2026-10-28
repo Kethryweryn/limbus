@@ -248,6 +248,55 @@ describe('renvoyer et annuler une invitation', () => {
   })
 })
 
+describe('règles issues de la revue de code', () => {
+  it('une personne qui a décliné peut être réinvitée, avec un nouveau lien', async () => {
+    const { session, period, participant } = await openPeriod()
+    await invite(period.id, { sessionId: session.id, participantIds: [participant.id] })
+    const declined = await prisma.registration.update({
+      where: { periodId_participantId: { periodId: period.id, participantId: participant.id } },
+      data: { status: 'withdrawn', respondedAt: new Date(), withdrawnAt: new Date(), phone: '0612345678', charterAcceptedAt: new Date() }
+    })
+
+    const response = await invite(period.id, { sessionId: session.id, participantIds: [participant.id] })
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    const reinvited = await prisma.registration.findUniqueOrThrow({ where: { id: declined.id } })
+    expect(reinvited).toMatchObject({ status: 'invited', respondedAt: null, withdrawnAt: null, charterAcceptedAt: null, phone: '0612345678' })
+    expect(reinvited.tokenHash).not.toBe(declined.tokenHash)
+    expect(emailsTo(participant.email!)).toHaveLength(2)
+  })
+
+  it('refuse deux fiches avec la même adresse email', async () => {
+    const { game, session, period, participant } = await openPeriod()
+    const twin = await prisma.participant.create({
+      data: { name: 'Jumelle', slug: `jumelle-${counter}`, email: participant.email!.toUpperCase(), gameLinks: { create: { gameId: game.id } } }
+    })
+    const response = await invite(period.id, { sessionId: session.id, participantIds: [participant.id, twin.id] })
+    expect(response.status).toBe(400)
+    expect((response.body as any).message).toContain('même adresse email')
+  })
+
+  it('le renvoi part à l’adresse de l’inscription', async () => {
+    const { session, period, participant } = await openPeriod()
+    await invite(period.id, { sessionId: session.id, participantIds: [participant.id] })
+    const registration = await prisma.registration.update({
+      where: { periodId_participantId: { periodId: period.id, participantId: participant.id } },
+      data: { email: `nouvelle-${counter}@example.test` }
+    })
+    expect((await api(alice, 'POST', `/api/registrations/${registration.id}/resend`)).status).toBe(200)
+    expect(emailsTo(`nouvelle-${counter}@example.test`)).toHaveLength(1)
+  })
+
+  it('une session dont les inscriptions sont toutes déclinées peut être retirée de la période', async () => {
+    const { game, session, period, participant } = await openPeriod()
+    const other = await prisma.session.create({ data: { name: 'Autre', slug: `autre-retrait-${counter}`, gameId: game.id } })
+    await invite(period.id, { sessionId: session.id, participantIds: [participant.id] })
+    await prisma.registration.updateMany({ where: { periodId: period.id }, data: { status: 'withdrawn' } })
+
+    const response = await api(alice, 'PUT', `/api/registration-periods/${period.id}`, { name: period.name, gameId: game.id, sessions: [{ sessionId: other.id, seats: 3 }] })
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+  })
+})
+
 describe('période qui a des inscriptions', () => {
   it('ne se supprime pas, et ne perd pas une session qui a des inscriptions', async () => {
     const { game, session, period, participant } = await openPeriod()

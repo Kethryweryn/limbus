@@ -64,7 +64,7 @@ async function getPaymentSession(sessionId: string) {
           participant: true
         }
       },
-      payments: true,
+      payments: { include: { participant: { select: { id: true, name: true, email: true } } } },
       participants: {
         include: {
           participant: true
@@ -103,6 +103,13 @@ export async function getSessionPaymentDashboard(sessionId: string) {
       }
     })
 
+  // Paiements reçus de personnes qui n'ont plus de personnage (désistement, retrait) : à rembourser ou
+  // garder à la main ; ils restent visibles, hors du décompte et des envois
+  const listed = new Set(rows.map((row) => row.participant.id))
+  const unassignedPayments = session.payments
+    .filter((payment) => payment.paidAt && !listed.has(payment.participantId))
+    .map((payment) => ({ participant: payment.participant, paidAt: payment.paidAt }))
+
   return {
     session: {
       id: session.id,
@@ -112,6 +119,7 @@ export async function getSessionPaymentDashboard(sessionId: string) {
       paymentLinkUrl: session.paymentLinkUrl,
       game: session.game
     },
+    unassignedPayments,
     sessionRoleRecipients: session.participants.map((sessionParticipant) => ({
       role: sessionParticipant.role,
       participant: sessionParticipant.participant

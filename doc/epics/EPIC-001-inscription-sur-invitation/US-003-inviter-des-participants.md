@@ -35,6 +35,14 @@ Précisions apportées pendant la réalisation :
 - Une session qui a des inscriptions ne peut pas être retirée de sa période.
 - Le lien personnel mène à `/inscription/<jeton>`, page qui arrive avec US-004 : d'ici là, il aboutit à une page introuvable.
 
+Après la revue de code du 2026-10-28 :
+
+- Une personne qui a décliné ou s'est désistée peut être réinvitée : son inscription repart au statut `invitée`, avec un nouveau lien, une nouvelle échéance et sans adhésion ni consentement ; ses réponses précédentes préremplissent le formulaire.
+- Deux fiches sélectionnées avec la même adresse email sont refusées (une seule doit être invitée).
+- Le renvoi part à l'adresse de l'inscription, celle que la personne a donnée (R12).
+- Les emails d'un envoi groupé partent sur une seule connexion SMTP, avec des délais bornés.
+- Une session dont toutes les inscriptions sont déclinées ou désistées peut être retirée de sa période.
+
 ## Notes techniques
 
 - Modèle : `Registration` ([ADR-0019](../../adr/ADR-0019-modele-des-inscriptions.md)) ; jeton selon [ADR-0018](../../adr/ADR-0018-jetons-des-liens-personnels.md).

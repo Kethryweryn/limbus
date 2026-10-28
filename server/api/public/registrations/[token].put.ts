@@ -3,6 +3,7 @@ import { registrationAnswerSchema } from '~/server/utils/registrationForms'
 import {
   answerFormDefinition,
   exposePublicRegistration,
+  frozenFormVersionId,
   guardPublicRegistrationRequest,
   requireRegistrationByToken,
   saveRegistrationAnswers,
@@ -18,7 +19,8 @@ export default defineEventHandler(async (event) => {
   const form = await answerFormDefinition(registration)
   const { charterAccepted: _charterAccepted, healthConsent: _healthConsent, ...answers } = await readZodBody(event, registrationAnswerSchema(form.definition))
 
-  const { accepted } = await saveRegistrationAnswers(registration, form.versionId, answers)
+  const versionId = await frozenFormVersionId(registration, form.versionId)
+  const { accepted } = await saveRegistrationAnswers(registration, versionId, answers)
   const emailSent = accepted ? await sendRegistrationConfirmationEmail(registration, answers, token) : null
 
   return { ...(await exposePublicRegistration(await requireRegistrationByToken(token))), emailSent }

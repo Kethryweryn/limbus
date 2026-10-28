@@ -99,9 +99,24 @@ describe('rethrowAlreadyRegistered', () => {
 
 describe('email de désistement aux organisateurs (US-006)', () => {
   it('distingue le désistement par la personne du retrait par une organisatrice', () => {
-    const base = { participantName: 'Zoé', gameTitle: 'Les Ombres', sessionName: 'Printemps' }
+    const base = { participantName: 'Zoé', gameTitle: 'Les Ombres', sessionName: 'Printemps', trombinoscopes: null }
     expect(registrationWithdrawalEmailText({ ...base, withdrawnBy: null })).toContain('Zoé s’est désisté·e de la session Printemps du jeu « Les Ombres ».')
     expect(registrationWithdrawalEmailText({ ...base, withdrawnBy: 'Alice' })).toContain('Alice a retiré Zoé de la session Printemps du jeu « Les Ombres ».')
     expect(registrationWithdrawalEmailText({ ...base, withdrawnBy: null })).toContain('à traiter à la main')
   })
 })
+
+describe('suites d’un désistement dans l’email', () => {
+  const base = { participantName: 'Zoé', gameTitle: 'Les Ombres', sessionName: 'Printemps', withdrawnBy: null }
+
+  it('signale les trombinoscopes régénérés, ou à relancer', () => {
+    expect(registrationWithdrawalEmailText({ ...base, trombinoscopes: 'regenerated' })).toContain('ont été régénérés sans elle')
+    expect(registrationWithdrawalEmailText({ ...base, trombinoscopes: 'failed' })).toContain('relancez leur génération')
+    expect(registrationWithdrawalEmailText({ ...base, trombinoscopes: null })).not.toContain('trombinoscopes')
+  })
+
+  it('dit que le paiement reste visible', () => {
+    expect(registrationWithdrawalEmailText({ ...base, trombinoscopes: null })).toContain('reste visible dans le tableau des paiements')
+  })
+})
+

@@ -4,6 +4,8 @@ set -euo pipefail
 APP_DIR="/var/www/limbus"
 BUILD_DIR="/tmp/limbus-build"
 ARTIFACT="/tmp/limbus-artifact.tar.gz"
+# Un build de Limbus fait moins de 10 Mo compressé : au-delà, l'envoi est anormal
+MAX_ARTIFACT_BYTES=$((200 * 1024 * 1024))
 SERVICE_NAME="limbus"
 
 # Construire avec le même Node que celui du service (paquet système), pas celui de nvm
@@ -28,12 +30,16 @@ fi
 
 cd "$APP_DIR"
 
+# Fichiers de travail effacés à la sortie, déploiement réussi ou non
+trap 'rm -rf "$BUILD_DIR" "$ARTIFACT"' EXIT
+
 # Depuis la CI (clé SSH à commande forcée), le build testé de la PR arrive sur l'entrée standard
 # (ADR-0023) : on le déploie tel quel. Lancé à la main, le script reconstruit sur le serveur (secours).
 rm -f "$ARTIFACT"
 if [ -n "${SSH_ORIGINAL_COMMAND:-}" ]; then
-  cat > "$ARTIFACT"
+  head -c "$((MAX_ARTIFACT_BYTES + 1))" > "$ARTIFACT"
   [ -s "$ARTIFACT" ] || { echo "Archive du build absente"; exit 1; }
+  [ "$(stat -c %s "$ARTIFACT")" -le "$MAX_ARTIFACT_BYTES" ] || { echo "Archive du build trop volumineuse"; exit 1; }
 fi
 
 # Depuis la CI, SSH_ORIGINAL_COMMAND porte le commit validé :
@@ -46,6 +52,14 @@ if [ -n "$DEPLOY_SHA" ]; then
   fi
   git fetch origin main
   git merge-base --is-ancestor "$DEPLOY_SHA" origin/main || { echo "$DEPLOY_SHA n'est pas sur main"; exit 1; }
+  if [ -s "$ARTIFACT" ]; then
+    # Vérifications avant de toucher au dépôt : un refus laisse le serveur exactement dans son état
+    # (le build vient du code exact de ce commit, et d'un Node de même version majeure que le service)
+    build_tree=$(tar -xzOf "$ARTIFACT" BUILD_TREE)
+    build_node=$(tar -xzOf "$ARTIFACT" BUILD_NODE)
+    [ "$build_tree" = "$(git rev-parse "$DEPLOY_SHA^{tree}")" ] || { echo "Le build reçu ne correspond pas au commit ${DEPLOY_SHA:0:7}"; exit 1; }
+    [ "$(echo "$build_node" | cut -d. -f1)" = "$(node --version | cut -d. -f1)" ] || { echo "Build fait avec Node $build_node, service sous $(node --version)"; exit 1; }
+  fi
   git merge --ff-only "$DEPLOY_SHA"
 else
   git pull --ff-only
@@ -84,13 +98,8 @@ else
 fi
 npx prisma generate
 if [ -s "$ARTIFACT" ]; then
-  tar -xzf "$ARTIFACT" -C "$BUILD_DIR" .output BUILD_TREE BUILD_NODE
-  # Le build doit venir du code exact de ce commit, et d'un Node de même version majeure que le service
-  expected_tree=$(git -C "$APP_DIR" rev-parse 'HEAD^{tree}')
-  [ "$(cat BUILD_TREE)" = "$expected_tree" ] || { echo "Le build reçu ne correspond pas au commit $(git -C "$APP_DIR" rev-parse --short HEAD)"; exit 1; }
-  build_node=$(cut -d. -f1 BUILD_NODE)
-  [ "$build_node" = "$(node --version | cut -d. -f1)" ] || { echo "Build fait avec Node $(cat BUILD_NODE), service sous $(node --version)"; exit 1; }
-  echo "Build testé reçu (Node $(cat BUILD_NODE))"
+  tar -xzf "$ARTIFACT" -C "$BUILD_DIR" .output
+  echo "Build testé reçu (Node $build_node)"
 else
   npm run build
 fi
@@ -106,7 +115,6 @@ mv .output-next .output
 
 rm -rf node_modules generated
 mv "$BUILD_DIR/node_modules" "$BUILD_DIR/generated" .
-rm -rf "$BUILD_DIR" "$ARTIFACT"
 
 systemctl restart "$SERVICE_NAME"
 systemctl status "$SERVICE_NAME" --no-pager

@@ -13,7 +13,7 @@
       <UCard v-else-if="registration?.status === REGISTRATION_STATUSES.withdrawn">
         <h1 class="text-xl font-semibold">{{ registration.game.title }}</h1>
         <p class="mt-2 text-sm text-gray-600">
-          {{ registration.withdrawnAfterConfirmation ? 'Vous vous êtes désisté·e.' : 'Vous avez décliné l’invitation.' }}
+          {{ withdrawalMessage }}
           Ce lien ne permet plus rien. Pour toute question, contactez l’équipe d’organisation du jeu.
         </p>
       </UCard>
@@ -130,6 +130,8 @@
 
 <script setup>
 import { REGISTRATION_STATUS_META, REGISTRATION_STATUSES } from '~/utils/domain'
+import { apiErrorMessage, apiFieldErrors } from '~/utils/apiErrors'
+import { REGISTRATION_FORM_INPUTS } from '~/utils/registrationForms'
 
 // Page du lien personnel d'une personne invitée (US-004), sans compte : le jeton de l'URL fait foi.
 // Chargée côté navigateur seulement, sans le cache hors ligne de l'application.
@@ -181,39 +183,34 @@ function apply(data) {
   if (data.answers) Object.assign(form, { ...data.answers })
 }
 
+const WITHDRAWAL_MESSAGES = {
+  declined: 'Vous avez décliné l’invitation.',
+  withdrawn: 'Vous vous êtes désisté·e.',
+  released: 'Sans réponse de votre part dans le délai, votre place a été réattribuée.',
+  removed: 'L’équipe d’organisation a annulé votre inscription.'
+}
+const withdrawalMessage = computed(() => WITHDRAWAL_MESSAGES[registration.value?.withdrawalReason] || WITHDRAWAL_MESSAGES.declined)
+
 const statusMeta = computed(() => REGISTRATION_STATUS_META[registration.value?.status] || { label: '', color: 'neutral' })
 const readOnly = computed(() => !registration.value?.canAccept && !registration.value?.canEdit)
 
 // Champs demandés, dans l'ordre de l'aperçu du formulaire (US-002)
 const textFields = computed(() => {
   const settings = registration.value?.definition.standardFields || {}
-  const fields = []
-  const add = (setting, key, label, extra = {}) => {
-    if (settings[setting]?.asked) fields.push({ key, label, required: settings[setting].required, ...extra })
-  }
-  add('lastName', 'lastName', 'Nom', { autocomplete: 'family-name' })
-  add('firstName', 'firstName', 'Prénom', { autocomplete: 'given-name' })
-  add('phone', 'phone', 'Téléphone', { type: 'tel', autocomplete: 'tel' })
-  add('facebookName', 'facebookName', 'Nom Facebook')
-  add('emergencyContact', 'emergencyContactName', 'Contact d’urgence : nom')
-  add('emergencyContact', 'emergencyContactPhone', 'Contact d’urgence : téléphone', { type: 'tel' })
-  add('dietary', 'dietary', 'Allergies et intolérances alimentaires', { wide: true, multiline: true })
-  return fields
+  return REGISTRATION_FORM_INPUTS
+    .filter((input) => settings[input.setting]?.asked)
+    .map((input) => ({ ...input, required: settings[input.setting].required }))
 })
 
 function fieldError(key) {
   return fieldErrors.value[key]
 }
 
-// Erreur de validation : h3 range le détail zod sous data.data
 function showError(err, fallback) {
-  const issues = err?.data?.data?.data
-  if (Array.isArray(issues)) {
-    fieldErrors.value = Object.fromEntries(issues.map((issue) => [issue.path, issue.message]))
-    errorMessage.value = 'Certaines informations sont manquantes ou incorrectes.'
-  } else {
-    errorMessage.value = err?.data?.message || fallback
-  }
+  fieldErrors.value = apiFieldErrors(err)
+  errorMessage.value = Object.keys(fieldErrors.value).length
+    ? 'Certaines informations sont manquantes ou incorrectes.'
+    : apiErrorMessage(err, fallback)
 }
 
 async function submit() {

@@ -89,7 +89,8 @@
 </template>
 
 <script setup>
-import { DEFAULT_REGISTRATION_FORM_DEFINITION, REGISTRATION_STANDARD_FIELDS } from '~/utils/registrationForms'
+import { DEFAULT_REGISTRATION_FORM_DEFINITION, REGISTRATION_FORM_INPUTS, REGISTRATION_STANDARD_FIELDS } from '~/utils/registrationForms'
+import { apiErrorMessage } from '~/utils/apiErrors'
 
 const open = defineModel('open', { type: Boolean, default: false })
 
@@ -120,21 +121,10 @@ const versionLabel = computed(() => version.value
   ? `Version ${version.value.number}, enregistrée le ${new Date(version.value.createdAt).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}.`
   : 'Formulaire par défaut, jamais enregistré.')
 
-// Champs affichés dans l'aperçu, dans l'ordre où l'inscrit les verra
-const previewFields = computed(() => {
-  const fields = []
-  const add = (key, label, extra = {}) => {
-    if (settings.value[key].asked) fields.push({ key: `${key}-${label}`, label, required: settings.value[key].required, ...extra })
-  }
-  add('lastName', 'Nom')
-  add('firstName', 'Prénom')
-  add('phone', 'Téléphone')
-  add('facebookName', 'Nom Facebook')
-  add('emergencyContact', 'Contact d’urgence : nom')
-  add('emergencyContact', 'Contact d’urgence : téléphone')
-  add('dietary', 'Allergies et intolérances alimentaires', { wide: true, multiline: true })
-  return fields
-})
+// Champs affichés dans l'aperçu, dans l'ordre où l'inscrit les verra (même liste que la page du lien)
+const previewFields = computed(() => REGISTRATION_FORM_INPUTS
+  .filter((input) => settings.value[input.setting].asked)
+  .map((input) => ({ ...input, required: settings.value[input.setting].required })))
 
 function cloneSettings(standardFields) {
   return Object.fromEntries(Object.entries(standardFields).map(([key, setting]) => [key, { ...setting }]))
@@ -160,13 +150,13 @@ async function save() {
     const previous = version.value?.number
     apply(await useApiFetch(`/api/games/${props.gameId}/registration-form`, {
       method: 'PUT',
-      body: { standardFields: settings.value }
+      body: { standardFields: settings.value, baseVersionNumber: previous ?? null }
     }))
     savedMessage.value = version.value?.number === previous
       ? 'Aucun changement : la version en vigueur est conservée.'
       : `Version ${version.value.number} enregistrée.`
   } catch (err) {
-    errorMessage.value = err?.data?.message || err?.message || 'Enregistrement impossible'
+    errorMessage.value = apiErrorMessage(err, 'Enregistrement impossible')
   } finally {
     saving.value = false
   }

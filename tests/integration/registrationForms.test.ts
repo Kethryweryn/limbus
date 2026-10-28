@@ -90,4 +90,19 @@ describe('formulaire d’inscription d’un jeu', () => {
     expect(await prisma.registrationForm.count({ where: { gameId: game.id } })).toBe(0)
     expect(await prisma.registrationFormVersion.count({ where: { form: { gameId: game.id } } })).toBe(0)
   })
+
+  it('refuse un enregistrement fait depuis une version dépassée', async () => {
+    const game = await aliceGame()
+    const settings = (asked: boolean) => Object.fromEntries(['lastName', 'firstName', 'facebookName', 'phone', 'emergencyContact', 'dietary']
+      .map((key) => [key, { asked, required: false }]))
+
+    expect((await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, { standardFields: settings(true), baseVersionNumber: null })).status).toBe(200)
+    // Une autre organisatrice a enregistré la version 2 entre-temps
+    expect((await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, { standardFields: settings(false), baseVersionNumber: 1 })).status).toBe(200)
+
+    const stale = await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, { standardFields: settings(true), baseVersionNumber: 1 })
+    expect(stale.status).toBe(409)
+    expect(await prisma.registrationFormVersion.count({ where: { form: { gameId: game.id } } })).toBe(2)
+  })
 })
+

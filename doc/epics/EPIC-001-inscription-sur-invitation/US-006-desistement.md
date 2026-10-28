@@ -30,6 +30,13 @@ Précisions apportées pendant la réalisation :
 - L'email part au propriétaire du jeu et à ses co-organisatrices. Un échec d'envoi n'annule pas le désistement.
 - La liste distingue « invitation déclinée », « désistée par la personne » et « retirée par <organisatrice> ». Ce dernier cas est prévu pour US-005.
 
+Après la revue de code du 2026-10-28 :
+
+- Le désistement libère tous les personnages de la personne dans la session, PJ et PNJ.
+- Les trombinoscopes déjà générés pour la session sont régénérés sans elle, et l'email aux organisateurs le signale.
+- Le paiement reçu reste visible dans le tableau des paiements de la session, dans un encadré « Paiements reçus de personnes sans personnage », hors du décompte et des envois.
+- Régénération et email partent après la réponse : la personne n'attend pas le serveur SMTP.
+
 ## Notes techniques
 
 - Route : `POST /api/public/registrations/:token/withdraw`, avec limitation de débit. Le retrait par une organisatrice réutilise la même fonction serveur.

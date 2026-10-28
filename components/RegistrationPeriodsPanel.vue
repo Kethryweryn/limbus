@@ -175,6 +175,7 @@
       :seats="inviteTarget.link.seats"
       :invited-count="invitedCount(inviteTarget.period, inviteTarget.link.sessionId)"
       :registered-participant-ids="registeredParticipantIds(inviteTarget.period)"
+      :withdrawn-participant-ids="withdrawnParticipantIds(inviteTarget.period)"
       @invited="invited"
     />
   </UCard>
@@ -191,7 +192,9 @@ import {
 // Bloc d'un jeu sur la page Inscriptions (R33) : ses périodes d'inscription et son formulaire (US-002)
 const props = defineProps({
   gameId: { type: String, required: true },
-  gameTitle: { type: String, required: true }
+  gameTitle: { type: String, required: true },
+  // Périodes déjà chargées par la page, avec leurs inscriptions
+  initialPeriods: { type: Array, default: null }
 })
 
 const periods = ref([])
@@ -205,13 +208,17 @@ const inviteTarget = ref(null)
 const infoMessage = ref('')
 const infoColor = ref('success')
 
-await refresh()
+if (props.initialPeriods) applyPeriods(props.initialPeriods)
+else await refresh()
+
+function applyPeriods(list) {
+  periods.value = list
+  registrationsByPeriod.value = Object.fromEntries(list.map((period) => [period.id, period.registrations || []]))
+}
 
 async function refresh() {
   try {
-    periods.value = await useApiFetch(`/api/registration-periods?gameId=${encodeURIComponent(props.gameId)}`)
-    const lists = await Promise.all(periods.value.map((period) => useApiFetch(`/api/registration-periods/${period.id}/registrations`)))
-    registrationsByPeriod.value = Object.fromEntries(periods.value.map((period, index) => [period.id, lists[index]]))
+    applyPeriods(await useApiFetch(`/api/registration-periods?gameId=${encodeURIComponent(props.gameId)}&include=registrations`))
     errorMessage.value = ''
   } catch (err) {
     errorMessage.value = err?.data?.message || err?.message || 'Impossible de charger les périodes d’inscription'
@@ -227,8 +234,17 @@ function invitedCount(period, sessionId) {
   return sessionRegistrations(period, sessionId).filter((registration) => registration.status !== REGISTRATION_STATUSES.withdrawn).length
 }
 
+// Une personne qui a décliné ou s'est désistée peut être réinvitée (erreur de sa part) ; les autres ont déjà leur inscription
 function registeredParticipantIds(period) {
-  return (registrationsByPeriod.value[period.id] || []).map((registration) => registration.participant.id)
+  return (registrationsByPeriod.value[period.id] || [])
+    .filter((registration) => registration.status !== REGISTRATION_STATUSES.withdrawn)
+    .map((registration) => registration.participant.id)
+}
+
+function withdrawnParticipantIds(period) {
+  return (registrationsByPeriod.value[period.id] || [])
+    .filter((registration) => registration.status === REGISTRATION_STATUSES.withdrawn)
+    .map((registration) => registration.participant.id)
 }
 
 // Refus d'une invitation, désistement par le lien, ou retrait par une organisatrice (US-005)

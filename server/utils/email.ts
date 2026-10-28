@@ -162,11 +162,21 @@ export async function upsertSmtpSettings(data: {
   })
 }
 
-export async function sendEmail(message: EmailMessage) {
+// Délais bornés : un serveur SMTP qui ne répond pas ne doit pas bloquer une requête indéfiniment
+const SMTP_TIMEOUTS = { connectionTimeout: 15_000, greetingTimeout: 15_000, socketTimeout: 30_000 }
+
+export type EmailTransport = {
+  send: (message: EmailMessage) => Promise<{ sent: true, messageId: string }>
+  close: () => void
+}
+
+/**
+ * Connexion SMTP réutilisable pour un envoi groupé (une seule connexion pour N emails).
+ * null si l'envoi d'emails est désactivé. Penser à appeler close().
+ */
+export async function openEmailTransport(): Promise<EmailTransport | null> {
   const settings = await getSmtpSettings()
-  if (!settings?.enabled) {
-    return { sent: false, reason: 'smtp_disabled' }
-  }
+  if (!settings?.enabled) return null
 
   if (!settings.host || !settings.fromEmail) {
     throw createError({ statusCode: 500, message: 'Configuration SMTP incomplète' })
@@ -178,6 +188,9 @@ export async function sendEmail(message: EmailMessage) {
     host: settings.host,
     port: settings.port,
     secure: settings.secure,
+    pool: true,
+    maxConnections: 1,
+    ...SMTP_TIMEOUTS,
     auth: settings.username
       ? {
           user: settings.username,
@@ -190,32 +203,49 @@ export async function sendEmail(message: EmailMessage) {
     ? `"${settings.fromName.replace(/"/g, '\\"')}" <${settings.fromEmail}>`
     : settings.fromEmail
 
-  let info
-  try {
-    info = await transporter.sendMail({
-      from,
-      to: message.to,
-      subject: message.subject,
-      text: message.text,
-      html: message.html,
-      attachments: message.attachments
-    })
-  } catch (error: any) {
-    // Trace côté serveur (journalctl -u limbus) : sans elle, la cause n'apparaît que dans le navigateur.
-    // Pas de destinataire ni de contenu : ce sont des données personnelles.
-    console.error(`[smtp] échec d'envoi via ${settings.host}:${settings.port}`, {
-      code: error?.code,
-      responseCode: error?.responseCode,
-      command: error?.command,
-      response: error?.response || error?.message
-    })
-    throw createError({
-      statusCode: 502,
-      message: smtpErrorMessage(error)
-    })
+  return {
+    async send(message: EmailMessage) {
+      try {
+        const info = await transporter.sendMail({
+          from,
+          to: message.to,
+          subject: message.subject,
+          text: message.text,
+          html: message.html,
+          attachments: message.attachments
+        })
+        return { sent: true as const, messageId: info.messageId }
+      } catch (error: any) {
+        // Trace côté serveur (journalctl -u limbus) : sans elle, la cause n'apparaît que dans le navigateur.
+        // Pas de destinataire ni de contenu : ce sont des données personnelles.
+        console.error(`[smtp] échec d'envoi via ${settings.host}:${settings.port}`, {
+          code: error?.code,
+          responseCode: error?.responseCode,
+          command: error?.command,
+          response: error?.response || error?.message
+        })
+        throw createError({
+          statusCode: 502,
+          message: smtpErrorMessage(error)
+        })
+      }
+    },
+    close() {
+      transporter.close?.()
+    }
   }
+}
 
-  return { sent: true, messageId: info.messageId }
+export async function sendEmail(message: EmailMessage) {
+  const transport = await openEmailTransport()
+  if (!transport) {
+    return { sent: false, reason: 'smtp_disabled' }
+  }
+  try {
+    return await transport.send(message)
+  } finally {
+    transport.close()
+  }
 }
 
 export async function sendGameInvitationEmail(params: {

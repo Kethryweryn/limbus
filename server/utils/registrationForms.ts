@@ -2,6 +2,8 @@ import { z } from 'zod'
 import { prisma } from '~/server/utils/prisma'
 import {
   DEFAULT_REGISTRATION_FORM_DEFINITION,
+  REGISTRATION_ANSWER_MAX_LENGTH,
+  REGISTRATION_DIETARY_MAX_LENGTH,
   normalizeRegistrationFormDefinition,
   sameRegistrationFormDefinition,
   type RegistrationFormDefinition,
@@ -28,9 +30,13 @@ export async function getCurrentRegistrationForm(gameId: string) {
  * Enregistre une définition : une nouvelle version immuable si elle diffère de la version en vigueur (R9),
  * sinon rien. Deux enregistrements simultanés se départagent sur l'unicité (formId, number) : 409.
  */
-export async function saveRegistrationFormDefinition(gameId: string, definition: RegistrationFormDefinition) {
+export async function saveRegistrationFormDefinition(gameId: string, definition: RegistrationFormDefinition, baseVersionNumber?: number | null) {
   const normalized = normalizeRegistrationFormDefinition(definition)
   const current = await getCurrentRegistrationForm(gameId)
+  // L'éditeur s'appuyait sur une version dépassée : enregistrer écraserait les changements d'une autre organisatrice
+  if (baseVersionNumber !== undefined && (current.version?.number ?? null) !== baseVersionNumber) {
+    throw createError({ statusCode: 409, message: 'Le formulaire a été modifié par quelqu’un d’autre depuis son ouverture : rechargez-le avant d’enregistrer.' })
+  }
   if (current.version && sameRegistrationFormDefinition(current.definition, normalized)) {
     return current
   }
@@ -56,14 +62,17 @@ export async function saveRegistrationFormDefinition(gameId: string, definition:
   return await getCurrentRegistrationForm(gameId)
 }
 
-const optionalAnswer = z.string().trim().max(500).optional().nullable().transform((value) => value || null)
+const tooLong = (label: string, max: number) => `${label} : ${max} caractères au plus`
+const optionalAnswer = (label: string, max: number) =>
+  z.string().trim().max(max, tooLong(label, max)).optional().nullable().transform((value) => value || null)
 // Un champ laissé vide arrive comme null : même message que pour une chaîne vide
-const requiredAnswer = (label: string) => z.string({ error: `${label} est obligatoire` }).trim().min(1, `${label} est obligatoire`).max(500)
+const requiredAnswer = (label: string, max: number) =>
+  z.string({ error: `${label} est obligatoire` }).trim().min(1, `${label} est obligatoire`).max(max, tooLong(label, max))
 
-function answerField(definition: RegistrationFormDefinition, key: RegistrationStandardFieldKey, label: string) {
+function answerField(definition: RegistrationFormDefinition, key: RegistrationStandardFieldKey, label: string, max = REGISTRATION_ANSWER_MAX_LENGTH) {
   const setting = definition.standardFields[key]
   if (!setting.asked) return z.unknown().optional().transform(() => null)
-  return setting.required ? requiredAnswer(label) : optionalAnswer
+  return setting.required ? requiredAnswer(label, max) : optionalAnswer(label, max)
 }
 
 /**
@@ -74,14 +83,14 @@ export function registrationAnswerSchema(rawDefinition: RegistrationFormDefiniti
   const definition = normalizeRegistrationFormDefinition(rawDefinition)
 
   return z.object({
-    email: z.string({ error: 'L’email est obligatoire' }).trim().toLowerCase().email('Email invalide'),
+    email: z.string({ error: 'L’email est obligatoire' }).trim().toLowerCase().max(254, 'Email trop long').email('Email invalide'),
     lastName: answerField(definition, 'lastName', 'Le nom'),
     firstName: answerField(definition, 'firstName', 'Le prénom'),
     facebookName: answerField(definition, 'facebookName', 'Le nom Facebook'),
     phone: answerField(definition, 'phone', 'Le téléphone'),
     emergencyContactName: answerField(definition, 'emergencyContact', 'Le nom du contact d’urgence'),
     emergencyContactPhone: answerField(definition, 'emergencyContact', 'Le téléphone du contact d’urgence'),
-    dietary: answerField(definition, 'dietary', 'Les allergies et intolérances'),
+    dietary: answerField(definition, 'dietary', 'Les allergies et intolérances', REGISTRATION_DIETARY_MAX_LENGTH),
     // Adhésion à la note d'intention : toujours obligatoire (R8)
     charterAccepted: z.literal(true, { error: 'L’adhésion à la note d’intention est obligatoire' }),
     healthConsent: z.boolean().optional().default(false)

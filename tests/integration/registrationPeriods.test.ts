@@ -85,14 +85,57 @@ describe('périodes d’inscription', () => {
     expect((await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: first.id }]))).status).toBe(200)
   })
 
-  it('une période ouverte dont la date de clôture est passée apparaît clôturée', async () => {
+  it('une période ouverte dont la date de clôture passe apparaît clôturée', async () => {
+    const { game, first } = await aliceGame()
+    const created = (await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: first.id }], {
+      state: 'open',
+      closesAt: '2099-01-01T00:00:00.000Z'
+    }))).body as any
+    // Le temps passe : la date de clôture est maintenant dans le passé
+    await prisma.registrationPeriod.update({ where: { id: created.id }, data: { closesAt: new Date('2020-01-01T00:00:00Z') } })
+
+    const response = await api(alice, 'GET', `/api/registration-periods/${created.id}`)
+    expect(response.body).toMatchObject({ state: 'open', effectiveState: 'closed' })
+  })
+
+  it('refuse d’ouvrir une période dont la date de clôture est passée', async () => {
     const { game, first } = await aliceGame()
     const response = await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: first.id }], {
       state: 'open',
       closesAt: '2020-01-01T00:00:00.000Z'
     }))
+    expect(response.status).toBe(400)
+    expect((response.body as any).message).toContain('date de clôture est passée')
+  })
 
-    expect(response.body).toMatchObject({ state: 'open', effectiveState: 'closed' })
+  it('une modification partielle garde l’état, la clôture et le délai', async () => {
+    const { game, first } = await aliceGame()
+    const created = (await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: first.id }], {
+      state: 'open',
+      closesAt: '2099-01-01T00:00:00.000Z',
+      responseDelayDays: 12
+    }))).body as any
+
+    const response = await api(alice, 'PUT', `/api/registration-periods/${created.id}`, { name: 'Renommée', gameId: game.id, sessions: [{ sessionId: first.id, seats: 4 }] })
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    expect(response.body).toMatchObject({ name: 'Renommée', state: 'open', closesAt: '2099-01-01T00:00:00.000Z', responseDelayDays: 12 })
+
+    // closesAt explicitement à null retire la date
+    const cleared = await api(alice, 'PUT', `/api/registration-periods/${created.id}`, { name: 'Renommée', gameId: game.id, closesAt: null, sessions: [{ sessionId: first.id, seats: 4 }] })
+    expect(cleared.body).toMatchObject({ closesAt: null, state: 'open' })
+  })
+
+  it('refuse d’ajouter une session annulée ou terminée, avec un message en français', async () => {
+    const { game, first, second } = await aliceGame()
+    await prisma.session.update({ where: { id: second.id }, data: { status: 'cancelled' } })
+
+    const response = await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: first.id }, { sessionId: second.id }]))
+    expect(response.status).toBe(400)
+    expect((response.body as any).message).toContain('« Avril »')
+
+    const invalid = await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: first.id, seats: 5000 }]))
+    expect(invalid.status).toBe(400)
+    expect(JSON.stringify(invalid.body)).toContain('Pas plus de 1000 places')
   })
 
   it('le contexte du jeu liste ses sessions avec leur période et le nombre de PJ', async () => {
