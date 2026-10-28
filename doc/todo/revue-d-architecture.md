@@ -1,6 +1,6 @@
 ---
 titre: Revue d'architecture comparée à l'état de l'art
-statut: à trancher
+statut: prête
 date: 2026-10-29
 ---
 
@@ -23,19 +23,19 @@ Axes envisagés :
 - **Tests et CI** : répartition unitaires / intégration / e2e, couverture des cas de droits.
 - **Exploitation** : déploiement, sauvegardes, journalisation.
 
-Livrable : un rapport dans `doc/` qui, pour chaque axe, dit ce qui est conforme, ce qui s'en écarte (avec la source), et une recommandation chiffrée en effort. Chaque recommandation retenue devient ensuite une fiche todo ou un ADR ; la revue elle-même ne modifie pas le code.
+Livrable : un rapport dans `doc/revues/AAAA-MM-JJ-architecture.md` (nouveau dossier, avec son index) qui, pour chaque axe, dit ce qui est conforme, ce qui s'en écarte (avec la source), et une recommandation chiffrée en effort. Chaque recommandation retenue devient ensuite une fiche todo ou un ADR ; la revue elle-même ne modifie pas le code.
 
 ## Découpage envisagé
 
 1. Recherche de l'état de l'art par axe, sources citées.
-2. Lecture du projet axe par axe et rapport.
-3. Tri des recommandations avec l'utilisatrice : fiches todo, ADR, ou abandon motivé.
+2. Lecture du projet axe par axe et rapport unique, en commençant par la sécurité et l'accès aux données, puis structure du code, hors ligne, tests et CI, exploitation.
+3. Tri des recommandations avec l'utilisatrice, une par une : fiche todo, ADR, ou abandon motivé noté dans le rapport.
 
-## Points à trancher
+## Décisions
 
-- Où ranger le rapport ? Recommandation : `doc/revues/AAAA-MM-JJ-architecture.md`, nouveau dossier avec son index, plutôt qu'un ADR (un ADR acte une décision, pas un constat).
-- Tous les axes, ou d'abord les plus risqués ? Recommandation : sécurité et accès aux données d'abord, puis le reste.
-- Les points déjà écartés volontairement sont-ils réexaminés ou simplement listés comme choix assumés ? Recommandation : listés, sans recommandation nouvelle sauf fait nouveau. À ce jour :
+- 2026-10-29 : rapport rangé dans `doc/revues/`, un constat daté distinct des décisions (ADR) et des specs.
+- 2026-10-29 : un seul rapport couvrant les six axes, risques d'abord (sécurité, accès aux données).
+- 2026-10-29 : les points déjà écartés sont réexaminés comme les autres, comparés à l'état de l'art, et peuvent être recommandés à nouveau, arguments et sources à l'appui. À ce jour :
   - consentement explicite des participants pour les photos ;
   - purge automatique des photos après une session ;
   - en-tête Content-Security-Policy ;
@@ -44,3 +44,5 @@ Livrable : un rapport dans `doc/` qui, pour chaque axe, dit ce qui est conforme,
   - rotation de `SMTP_ENCRYPTION_SECRET` ;
   - supervision (monitoring) de la production ;
   - listage du répertoire `/files/` du serveur.
+- 2026-10-29 : chaque recommandation est triée avec l'utilisatrice avant toute suite ; la revue elle-même ne modifie pas le code.
+- 2026-10-29 : pas de spec : une revue est un constat ponctuel, pas une fonctionnalité. La PR du rapport ajoute `revues/` à l'arborescence de `doc/README.md`, et archive cette fiche dans `archive/todo/` avec un lien vers le rapport.
