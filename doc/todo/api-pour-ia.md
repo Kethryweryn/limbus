@@ -21,7 +21,7 @@ Pistes, à départager :
 
 Dans les deux cas :
 
-- l'accès est révocable à tout moment depuis le compte, et une déconnexion partout le coupe aussi ;
+- l'accès est révocable à tout moment depuis le compte, et une déconnexion partout ou un changement de mot de passe le coupe aussi : les jetons de l'IA doivent donc être révoqués par `revokeUserSessions`, qui aujourd'hui n'invalide que les cookies de session ;
 - les actions faites par l'IA sont tracées (qui, quand, quoi) ;
 - les règles de sécurité existantes s'appliquent telles quelles (isolation par jeu, validation zod, fichiers du même jeu) ;
 - les actions irréversibles ou qui sortent de Limbus (envoi d'emails aux participants, suppression d'un jeu, legs, données personnelles) sont exclues au départ, ou demandent une confirmation dans l'interface.
@@ -39,5 +39,5 @@ Dans les deux cas :
 - MCP, REST + OpenAPI, ou les deux ? Recommandation : MCP d'abord, c'est ce que les assistants savent utiliser directement ; il peut s'appuyer sur les mêmes fonctions serveur qu'une future API REST.
 - Authentification : OAuth (recommandé par la spécification MCP pour un serveur distant) ou jetons personnels ? Recommandation : OAuth, pour que l'organisatrice autorise l'accès depuis Limbus sans copier de secret.
 - Quels droits par défaut : lecture seule, ou lecture et écriture du contenu ? Recommandation : l'organisatrice choisit à l'autorisation ; lecture seule par défaut.
-- Les données personnelles des participants (emails, téléphones, allergies) sont-elles accessibles à l'IA ? Recommandation : non au départ, pour ne pas les envoyer à un service tiers sans base légale claire.
+- Les données personnelles des participants (emails, téléphones, allergies) sont-elles accessibles à l'IA ? Recommandation : non au départ, pour ne pas les envoyer à un service tiers sans base légale claire. Le lot 4 (casting) en dépend : il a au moins besoin du nom des participants. Il faut donc décider avant ce lot quels champs le casting expose (par exemple le nom seul).
 - Faut-il une limite de débit propre aux accès par IA ? Recommandation : oui, distincte de celle de l'interface.

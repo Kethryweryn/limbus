@@ -35,4 +35,12 @@ Livrable : un rapport dans `doc/` qui, pour chaque axe, dit ce qui est conforme,
 
 - Où ranger le rapport ? Recommandation : `doc/revues/AAAA-MM-JJ-architecture.md`, nouveau dossier avec son index, plutôt qu'un ADR (un ADR acte une décision, pas un constat).
 - Tous les axes, ou d'abord les plus risqués ? Recommandation : sécurité et accès aux données d'abord, puis le reste.
-- Les points déjà écartés volontairement (CSP, supervision, etc.) sont-ils réexaminés ou simplement listés comme choix assumés ? Recommandation : listés, sans recommandation nouvelle sauf fait nouveau.
+- Les points déjà écartés volontairement sont-ils réexaminés ou simplement listés comme choix assumés ? Recommandation : listés, sans recommandation nouvelle sauf fait nouveau. À ce jour :
+  - consentement explicite des participants pour les photos ;
+  - purge automatique des photos après une session ;
+  - en-tête Content-Security-Policy ;
+  - lien magique pour que les participants consultent leurs données ;
+  - désactivation de l'authentification SSH par mot de passe sur le serveur ;
+  - rotation de `SMTP_ENCRYPTION_SECRET` ;
+  - supervision (monitoring) de la production ;
+  - listage du répertoire `/files/` du serveur.

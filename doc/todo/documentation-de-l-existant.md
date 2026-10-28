@@ -27,6 +27,8 @@ Domaines envisagés :
 7. Page publique d'un jeu.
 8. Hors ligne (PWA).
 
+Ce que SPEC-001 décrit déjà (inscrits confirmés dans le tableau des paiements, fiche allergies, périodes d'inscription) y reste : les nouvelles specs y renvoient par un lien, sans recopier ses règles.
+
 Au passage, les écarts constatés entre le code et ce qui semble voulu sont notés en fin de spec, sans être corrigés : chacun devient une fiche todo ou un correctif à part.
 
 ## Découpage envisagé
