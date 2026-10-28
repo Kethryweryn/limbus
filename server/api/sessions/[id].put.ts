@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
     where: { sessionId: existingSession.id },
     select: { photoUrl: true }
   })).map((assignment) => assignment.photoUrl)
-  await assertGameUploads(assignments.map((assignment) => assignment.photoUrl), gameId, { sessionFiles: true, keep: previousPhotoUrls })
+  await assertGameUploads(assignments.map((assignment) => assignment.photoUrl), gameId, { sessionFiles: true, keep: previousPhotoUrls, label: 'Photo d’attribution' })
 
   const session = await prisma.session.update({
     where: { id: existingSession.id },

@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
   } = body
   assertSameGame(existingCharacter.gameId, gameId)
   const targetGameId = existingCharacter.gameId
-  await assertGameUploads([trombinoscopePhotoUrl], targetGameId, { sessionFiles: false, keep: [existingCharacter.trombinoscopePhotoUrl] })
+  await assertGameUploads([trombinoscopePhotoUrl], targetGameId, { sessionFiles: false, keep: [existingCharacter.trombinoscopePhotoUrl], label: 'Photo de trombinoscope' })
   if (factionIds && targetGameId) {
     const matchingFactions = await prisma.faction.count({
       where: {

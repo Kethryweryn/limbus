@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
 
     const body = await readZodBody(event, createCharacterSchema)
     await requireGameAccess(event, body.gameId)
-    await assertGameUploads([body.trombinoscopePhotoUrl], body.gameId, { sessionFiles: false })
+    await assertGameUploads([body.trombinoscopePhotoUrl], body.gameId, { sessionFiles: false, label: 'Photo de trombinoscope' })
     const slug = await generateUniqueSlug('character', body.name)
 
     if (body.factionIds.length) {

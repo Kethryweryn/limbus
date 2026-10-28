@@ -175,9 +175,10 @@ export async function updateSessionPaymentSettings(sessionId: string, data: {
 }) {
   return await prisma.session.update({
     where: { id: sessionId },
+    // Un champ absent est conservé : modifier le lien de paiement ne retire pas le RIB
     data: {
-      paymentRibUrl: data.paymentRibUrl || null,
-      paymentLinkUrl: data.paymentLinkUrl || null
+      ...(data.paymentRibUrl !== undefined && { paymentRibUrl: data.paymentRibUrl || null }),
+      ...(data.paymentLinkUrl !== undefined && { paymentLinkUrl: data.paymentLinkUrl || null })
     },
     select: {
       id: true,

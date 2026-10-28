@@ -31,7 +31,7 @@ export function uploadFilePath(url: string | null | undefined) {
 export async function assertGameUploads(
   urls: Array<string | null | undefined>,
   gameId: string,
-  options: { sessionFiles: boolean, keep?: Array<string | null | undefined> }
+  options: { sessionFiles: boolean, keep?: Array<string | null | undefined>, label?: string }
 ) {
   const keep = new Set(options.keep ?? [])
   const candidates = [...new Set(urls)].filter((url): url is string => Boolean(uploadFilePath(url)) && !keep.has(url))
@@ -45,7 +45,7 @@ export async function assertGameUploads(
     }
   })
   if (owned !== candidates.length) {
-    throw createError({ statusCode: 400, message: 'Fichier inconnu pour ce jeu : téléversez-le depuis Limbus.' })
+    throw createError({ statusCode: 400, message: `${options.label ?? 'Fichier'} inconnu pour ce jeu : téléversez le fichier depuis Limbus.` })
   }
 }
 

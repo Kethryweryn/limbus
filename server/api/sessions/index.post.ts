@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   const participants = normalizeSessionParticipants(body.participants, assignments)
   await assertSessionCastRules(gameId, participants, assignments)
   await assertSessionLocation(gameId, locationId)
-  await assertGameUploads(assignments.map((assignment) => assignment.photoUrl), gameId, { sessionFiles: true })
+  await assertGameUploads(assignments.map((assignment) => assignment.photoUrl), gameId, { sessionFiles: true, label: 'Photo d’attribution' })
 
   return await prisma.session.create({
     data: {
