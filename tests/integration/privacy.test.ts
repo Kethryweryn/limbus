@@ -79,6 +79,38 @@ describe('export des données d’un participant', () => {
   })
 })
 
+describe('inscriptions d’un participant (US-003)', () => {
+  it('l’export contient ses inscriptions, limitées aux jeux de l’organisatrice', async () => {
+    const shared = await prisma.participant.create({
+      data: { name: 'Inscrit partout', slug: 'participant-inscrit-partout', email: 'partout@example.test', gameLinks: { create: [{ gameId: a.game.id }, { gameId: b.game.id }] } }
+    })
+    for (const w of [a, b]) {
+      await prisma.registration.create({
+        data: { periodId: w.registrationPeriod.id, sessionId: w.session.id, participantId: shared.id, status: 'confirmed', source: 'invitation', email: 'partout@example.test', dietary: `Allergie ${w.game.id}` }
+      })
+    }
+
+    const response = await api(alice, 'GET', `/api/participants/${shared.id}/export`)
+    expect(response.status).toBe(200)
+    const body = response.body as { registrations: Array<{ dietary: string }> }
+    expect(body.registrations).toHaveLength(1)
+    expect(body.registrations[0]!.dietary).toBe(`Allergie ${a.game.id}`)
+    expect(JSON.stringify(body)).not.toContain(b.game.id)
+  })
+
+  it('la suppression du participant efface ses inscriptions', async () => {
+    const participant = await prisma.participant.create({
+      data: { name: 'Inscrit effacé', slug: 'participant-inscrit-efface', email: 'inscrit-efface@example.test', gameLinks: { create: { gameId: a.game.id } } }
+    })
+    await prisma.registration.create({
+      data: { periodId: a.registrationPeriod.id, sessionId: a.session.id, participantId: participant.id, status: 'invited', source: 'invitation', email: 'inscrit-efface@example.test', phone: '0600000000' }
+    })
+
+    expect((await api(alice, 'DELETE', `/api/participants/${participant.id}`)).status).toBe(200)
+    expect(await prisma.registration.count({ where: { participantId: participant.id } })).toBe(0)
+  })
+})
+
 describe('suppression d’un participant', () => {
   it('efface ses photos (fichier compris) et les trombinoscopes qui les contiennent', async () => {
     const participant = await prisma.participant.create({

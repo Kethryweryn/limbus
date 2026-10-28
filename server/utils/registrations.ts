@@ -1,0 +1,315 @@
+import { createHash, randomBytes } from 'node:crypto'
+import { prisma } from '~/server/utils/prisma'
+import { absoluteAppUrl } from '~/server/utils/appUrl'
+import { sendEmail } from '~/server/utils/email'
+import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
+import { REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES } from '~/utils/domain'
+import { effectivePeriodState } from '~/utils/registrationPeriods'
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/**
+ * Jeton du lien personnel (ADR-0018) : 32 octets aléatoires dans l'URL, seul leur SHA-256 est stocké.
+ * Un hash sans sel suffit, le jeton étant aléatoire et long.
+ */
+export function createRegistrationToken() {
+  const token = randomBytes(32).toString('base64url')
+  return { token, tokenHash: hashRegistrationToken(token) }
+}
+
+export function hashRegistrationToken(token: string) {
+  return createHash('sha256').update(token).digest('hex')
+}
+
+export function registrationUrl(token: string) {
+  return absoluteAppUrl(`/inscription/${token}`)
+}
+
+export function registrationResponseDueAt(responseDelayDays: number, now = new Date()) {
+  return new Date(now.getTime() + responseDelayDays * DAY_MS)
+}
+
+/**
+ * Participants rapprochables par email (R12) : sans tenir compte de la casse, et seulement parmi
+ * les participants des jeux de la même propriétaire. Un jeu sans propriétaire ne regarde que lui-même.
+ */
+export function participantEmailMatchWhere(game: { id: string, ownerId: string | null }, email: string) {
+  return {
+    email: { equals: email.trim(), mode: 'insensitive' as const },
+    gameLinks: { some: game.ownerId ? { game: { ownerId: game.ownerId } } : { gameId: game.id } }
+  }
+}
+
+export async function findParticipantByEmail(game: { id: string, ownerId: string | null }, email: string) {
+  return await prisma.participant.findFirst({
+    where: participantEmailMatchWhere(game, email),
+    orderBy: { updatedAt: 'desc' },
+    select: { id: true, name: true, email: true }
+  })
+}
+
+// Un doublon (période, participant) n'a qu'une inscription : deux invitations simultanées donnent le même refus
+export function rethrowAlreadyRegistered(error: unknown): never {
+  const { code, meta } = (error || {}) as { code?: string, meta?: unknown }
+  if (code === 'P2002' && JSON.stringify(meta ?? {}).includes('participantId')) {
+    throw createError({ statusCode: 409, message: 'Cette personne a déjà une inscription dans cette période d’inscription' })
+  }
+  throw error
+}
+
+const formatDate = (value: Date) => value.toLocaleDateString('fr-FR', { dateStyle: 'long', timeZone: 'Europe/Paris' })
+
+export function registrationInvitationEmailText(params: {
+  participantName: string
+  gameTitle: string
+  sessionName: string | null
+  sessionDate: Date | null
+  responseDueAt: Date | null
+  inviterName: string | null
+  url: string
+}) {
+  const session = params.sessionName
+    ? `${params.sessionName}${params.sessionDate ? ` (${formatDate(params.sessionDate)})` : ''}`
+    : null
+
+  return [
+    `Bonjour ${params.participantName},`,
+    '',
+    `${params.inviterName || 'L’équipe d’organisation'} vous invite à jouer à « ${params.gameTitle} »${session ? `, session ${session}` : ''}.`,
+    '',
+    'Ce lien personnel vous permet de lire la note d’intention, de donner vos informations et de répondre à l’invitation :',
+    params.url,
+    '',
+    params.responseDueAt ? `Merci de répondre avant le ${formatDate(params.responseDueAt)}.` : null,
+    'Ce lien vous est propre : ne le transférez pas.'
+  ].filter((line) => line !== null).join('\n')
+}
+
+type InvitationEmailTarget = {
+  registrationId: string
+  token: string
+  to: string
+  participantName: string
+}
+
+type InvitationContext = {
+  gameTitle: string
+  sessionName: string | null
+  sessionDate: Date | null
+  responseDueAt: Date | null
+  inviterName: string | null
+}
+
+/**
+ * Envoie l'email d'invitation et note la date d'envoi. Un échec est rendu, pas levé :
+ * dans un envoi groupé, il ne doit pas empêcher les envois suivants.
+ */
+async function sendInvitationEmail(target: InvitationEmailTarget, context: InvitationContext) {
+  try {
+    const result = await sendEmail({
+      to: target.to,
+      subject: `Invitation : ${context.gameTitle}`,
+      text: registrationInvitationEmailText({ ...context, participantName: target.participantName, url: registrationUrl(target.token) })
+    })
+    if (!result.sent) {
+      return { sent: false, message: 'SMTP désactivé' }
+    }
+  } catch (error) {
+    return { sent: false, message: (error as { message?: string })?.message || 'Erreur SMTP' }
+  }
+
+  await prisma.registration.update({ where: { id: target.registrationId }, data: { invitationSentAt: new Date() } })
+  return { sent: true, message: null }
+}
+
+const periodForInvitationSelect = {
+  id: true,
+  gameId: true,
+  state: true,
+  closesAt: true,
+  responseDelayDays: true,
+  game: { select: { id: true, title: true, ownerId: true } },
+  sessions: { select: { sessionId: true, session: { select: { name: true, date: true } } } }
+} as const
+
+/**
+ * Invite des personnes à une session d'une période d'inscription ouverte (US-003) :
+ * des participants du jeu, et/ou une nouvelle personne rapprochée par email (R12).
+ * Les inscriptions sont créées ensemble, puis les emails partent un par un.
+ */
+export async function inviteToRegistrationPeriod(params: {
+  periodId: string
+  sessionId: string
+  participantIds: string[]
+  newParticipant?: { name: string, email: string } | null
+  inviter: { id: string, name?: string | null }
+}) {
+  const period = await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: params.periodId }, select: periodForInvitationSelect })
+  if (effectivePeriodState(period) !== REGISTRATION_PERIOD_STATES.open) {
+    throw createError({ statusCode: 409, message: 'La période d’inscription doit être ouverte pour inviter' })
+  }
+  const link = period.sessions.find((session) => session.sessionId === params.sessionId)
+  if (!link) {
+    throw createError({ statusCode: 400, message: 'Session hors de la période d’inscription' })
+  }
+
+  // Les participants invités doivent être liés au jeu de la période
+  const participants = await prisma.participant.findMany({
+    where: { id: { in: params.participantIds }, gameLinks: { some: { gameId: period.gameId } } },
+    select: { id: true, name: true, email: true }
+  })
+  if (participants.length !== params.participantIds.length) {
+    throw createError({ statusCode: 400, message: 'Participant invalide pour ce jeu' })
+  }
+  const withoutEmail = participants.filter((participant) => !participant.email?.trim())
+  if (withoutEmail.length) {
+    throw createError({
+      statusCode: 400,
+      message: `Une personne sans email ne peut pas être invitée : ${withoutEmail.map((participant) => participant.name).join(', ')}`
+    })
+  }
+
+  const matched = params.newParticipant ? await findParticipantByEmail(period.game, params.newParticipant.email) : null
+  const knownIds = [...new Set([...participants.map((participant) => participant.id), ...(matched ? [matched.id] : [])])]
+  const already = await prisma.registration.findMany({
+    where: { periodId: period.id, participantId: { in: knownIds } },
+    select: { participant: { select: { name: true } } }
+  })
+  if (already.length) {
+    throw createError({
+      statusCode: 409,
+      message: `Déjà inscrit dans cette période d’inscription : ${already.map((registration) => registration.participant.name).join(', ')}`
+    })
+  }
+
+  const responseDueAt = registrationResponseDueAt(period.responseDelayDays)
+  const newParticipant = params.newParticipant
+  const slug = newParticipant && !matched ? await generateUniqueSlug('participant', newParticipant.name) : null
+
+  const targets = await prisma.$transaction(async (tx) => {
+    const invited = participants.map((participant) => ({ id: participant.id, name: participant.name, email: participant.email!.trim() }))
+    if (newParticipant && matched) {
+      await tx.participantGame.upsert({
+        where: { participantId_gameId: { participantId: matched.id, gameId: period.gameId } },
+        update: {},
+        create: { participantId: matched.id, gameId: period.gameId }
+      })
+      // La fiche existante garde son email : on écrit à l'adresse saisie, qui ne diffère que par la casse
+      if (!invited.some((participant) => participant.id === matched.id)) {
+        invited.push({ id: matched.id, name: matched.name, email: newParticipant.email })
+      }
+    } else if (newParticipant) {
+      const created = await tx.participant.create({
+        data: {
+          name: newParticipant.name,
+          slug: slug!,
+          email: newParticipant.email,
+          gameLinks: { create: { gameId: period.gameId } }
+        },
+        select: { id: true, name: true }
+      })
+      invited.push({ id: created.id, name: created.name, email: newParticipant.email })
+    }
+
+    const created: InvitationEmailTarget[] = []
+    for (const participant of invited) {
+      const { token, tokenHash } = createRegistrationToken()
+      const registration = await tx.registration.create({
+        data: {
+          periodId: period.id,
+          sessionId: params.sessionId,
+          participantId: participant.id,
+          status: REGISTRATION_STATUSES.invited,
+          source: REGISTRATION_SOURCES.invitation,
+          invitedById: params.inviter.id,
+          email: participant.email,
+          tokenHash,
+          responseDueAt
+        },
+        select: { id: true }
+      })
+      created.push({ registrationId: registration.id, token, to: participant.email, participantName: participant.name })
+    }
+    return created
+  }).catch(rethrowAlreadyRegistered)
+
+  const context = {
+    gameTitle: period.game.title,
+    sessionName: link.session.name,
+    sessionDate: link.session.date,
+    responseDueAt,
+    inviterName: params.inviter.name ?? null
+  }
+  const results = []
+  for (const target of targets) {
+    const result = await sendInvitationEmail(target, context)
+    results.push({ registrationId: target.registrationId, participantName: target.participantName, ...result })
+  }
+
+  return {
+    invitedCount: results.length,
+    sentCount: results.filter((result) => result.sent).length,
+    failures: results.filter((result) => !result.sent).map(({ participantName, message }) => ({ participantName, message }))
+  }
+}
+
+export async function findRegistrationOr404(id: string | undefined) {
+  if (!id) {
+    throw createError({ statusCode: 400, message: 'ID manquant' })
+  }
+  const registration = await prisma.registration.findUnique({
+    where: { id },
+    select: { id: true, status: true, respondedAt: true, sessionId: true, period: { select: { id: true, gameId: true } } }
+  })
+  if (!registration) {
+    throw createError({ statusCode: 404, message: 'Inscription introuvable' })
+  }
+  return registration
+}
+
+export function assertUnansweredInvitation(registration: { status: string, respondedAt: Date | null }) {
+  if (registration.status !== REGISTRATION_STATUSES.invited || registration.respondedAt) {
+    throw createError({ statusCode: 409, message: 'Cette invitation a déjà reçu une réponse' })
+  }
+}
+
+/**
+ * Renvoie l'invitation avec un nouveau lien : l'ancien cesse de fonctionner (ADR-0018).
+ * L'échéance ne change pas : la prolonger est une action à part (US-005).
+ * L'email part à l'adresse actuelle de la fiche, pour qu'une adresse corrigée soit prise en compte.
+ */
+export async function resendRegistrationInvitation(registrationId: string, inviter: { name?: string | null }) {
+  const registration = await prisma.registration.findUniqueOrThrow({
+    where: { id: registrationId },
+    select: {
+      id: true,
+      status: true,
+      respondedAt: true,
+      email: true,
+      responseDueAt: true,
+      participant: { select: { name: true, email: true } },
+      session: { select: { name: true, date: true } },
+      period: { select: { game: { select: { title: true } } } }
+    }
+  })
+  assertUnansweredInvitation(registration)
+  const to = registration.participant.email?.trim() || registration.email
+
+  const { token, tokenHash } = createRegistrationToken()
+  await prisma.registration.update({ where: { id: registration.id }, data: { tokenHash, email: to } })
+
+  const result = await sendInvitationEmail(
+    { registrationId: registration.id, token, to, participantName: registration.participant.name },
+    {
+      gameTitle: registration.period.game.title,
+      sessionName: registration.session?.name ?? null,
+      sessionDate: registration.session?.date ?? null,
+      responseDueAt: registration.responseDueAt,
+      inviterName: inviter.name ?? null
+    }
+  )
+  if (!result.sent) {
+    throw createError({ statusCode: 502, message: `L’ancien lien est invalidé, mais l’email n’est pas parti : ${result.message}` })
+  }
+  return { sent: true }
+}

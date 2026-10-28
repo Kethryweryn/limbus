@@ -32,7 +32,7 @@ En tant qu'organisatrice d'un jeu, je veux ouvrir une période d'inscription pou
 Reporté aux US qui créent les inscriptions :
 
 - le nombre d'inscrits par statut dans la liste (US-003, US-005) ;
-- l'interdiction de supprimer une période qui a des inscriptions, au profit de sa clôture (US-003) ;
+- l'interdiction de supprimer une période qui a des inscriptions, au profit de sa clôture (faite par US-003) ;
 - le refus des modifications par les inscrits après la clôture (R6, R13 : US-004).
 
 > Depuis [US-009](US-009-page-inscriptions.md), cette section n'est plus sur la fiche du jeu, qui sert à l'écriture : elle est sur la page « Inscriptions » du menu Organisation (R33).

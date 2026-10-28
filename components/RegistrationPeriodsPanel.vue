@@ -26,6 +26,15 @@
       class="mb-4"
       :description="errorMessage"
     />
+    <UAlert
+      v-if="infoMessage"
+      :color="infoColor"
+      variant="soft"
+      class="mb-4"
+      :description="infoMessage"
+      :close="{ color: 'neutral', variant: 'link' }"
+      @update:open="infoMessage = ''"
+    />
 
     <div class="space-y-3">
       <div
@@ -87,6 +96,55 @@
             </UButton>
           </div>
         </div>
+
+        <div v-for="link in period.sessions" :key="`registrations-${link.sessionId}`" class="mt-4 space-y-2 border-t border-gray-100 pt-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-sm font-semibold text-gray-700">
+              {{ link.session.name }} · {{ invitedCount(period, link.sessionId) }} invitation{{ invitedCount(period, link.sessionId) > 1 ? 's' : '' }}
+              pour {{ link.seats }} place{{ link.seats > 1 ? 's' : '' }}
+            </h3>
+            <UButton
+              size="xs"
+              icon="i-heroicons-envelope"
+              color="primary"
+              variant="soft"
+              :disabled="period.effectiveState !== REGISTRATION_PERIOD_STATES.open"
+              :title="period.effectiveState === REGISTRATION_PERIOD_STATES.open ? undefined : 'Ouvrez la période pour inviter'"
+              @click="invite(period, link)"
+            >
+              Inviter
+            </UButton>
+          </div>
+          <p v-if="invitedCount(period, link.sessionId) > link.seats" class="text-xs text-warning-600">
+            Plus d’invitations que de places.
+          </p>
+          <ul v-if="sessionRegistrations(period, link.sessionId).length" class="divide-y divide-gray-100 text-sm">
+            <li
+              v-for="registration in sessionRegistrations(period, link.sessionId)"
+              :key="registration.id"
+              class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div class="min-w-0">
+                <span class="font-medium text-gray-800">{{ registration.participant.name }}</span>
+                <UBadge class="ml-2" size="sm" :color="statusMeta(registration).color" variant="subtle">{{ statusMeta(registration).label }}</UBadge>
+                <div class="text-xs text-gray-500">
+                  {{ registration.email }}
+                  <span v-if="registration.invitationSentAt"> · invitée le {{ formatDate(registration.invitationSentAt) }}</span>
+                  <span v-else class="text-warning-600"> · email non envoyé</span>
+                  <span v-if="registration.responseDueAt"> · réponse avant le {{ formatDate(registration.responseDueAt) }}</span>
+                </div>
+              </div>
+              <div v-if="registration.status === REGISTRATION_STATUSES.invited" class="flex shrink-0 gap-2">
+                <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-arrow-path" @click="resend(registration)">
+                  Renvoyer
+                </UButton>
+                <UButton size="xs" color="error" variant="soft" icon="i-heroicons-x-mark" @click="cancel(registration)">
+                  Annuler
+                </UButton>
+              </div>
+            </li>
+          </ul>
+        </div>
       </div>
 
       <p v-if="!periods.length" class="text-sm text-gray-500">
@@ -101,11 +159,28 @@
       @saved="refresh"
     />
     <RegistrationFormEditor v-model:open="showFormEditor" :game-id="gameId" :game-title="gameTitle" />
+    <RegistrationInviteForm
+      v-if="inviteTarget"
+      v-model:open="showInviteForm"
+      :game-id="gameId"
+      :period-id="inviteTarget.period.id"
+      :session-id="inviteTarget.link.sessionId"
+      :session-name="inviteTarget.link.session.name"
+      :seats="inviteTarget.link.seats"
+      :invited-count="invitedCount(inviteTarget.period, inviteTarget.link.sessionId)"
+      :registered-participant-ids="registeredParticipantIds(inviteTarget.period)"
+      @invited="invited"
+    />
   </UCard>
 </template>
 
 <script setup>
-import { REGISTRATION_PERIOD_STATE_META, REGISTRATION_PERIOD_STATES } from '~/utils/domain'
+import {
+  REGISTRATION_PERIOD_STATE_META,
+  REGISTRATION_PERIOD_STATES,
+  REGISTRATION_STATUS_META,
+  REGISTRATION_STATUSES
+} from '~/utils/domain'
 
 // Bloc d'un jeu sur la page Inscriptions (R33) : ses périodes d'inscription et son formulaire (US-002)
 const props = defineProps({
@@ -118,15 +193,80 @@ const errorMessage = ref('')
 const showForm = ref(false)
 const editedPeriod = ref(null)
 const showFormEditor = ref(false)
+const registrationsByPeriod = ref({})
+const showInviteForm = ref(false)
+const inviteTarget = ref(null)
+const infoMessage = ref('')
+const infoColor = ref('success')
 
 await refresh()
 
 async function refresh() {
   try {
     periods.value = await useApiFetch(`/api/registration-periods?gameId=${encodeURIComponent(props.gameId)}`)
+    const lists = await Promise.all(periods.value.map((period) => useApiFetch(`/api/registration-periods/${period.id}/registrations`)))
+    registrationsByPeriod.value = Object.fromEntries(periods.value.map((period, index) => [period.id, lists[index]]))
     errorMessage.value = ''
   } catch (err) {
     errorMessage.value = err?.data?.message || err?.message || 'Impossible de charger les périodes d’inscription'
+  }
+}
+
+function sessionRegistrations(period, sessionId) {
+  return (registrationsByPeriod.value[period.id] || []).filter((registration) => registration.sessionId === sessionId)
+}
+
+// Une personne désistée libère sa place : elle ne compte plus face aux places
+function invitedCount(period, sessionId) {
+  return sessionRegistrations(period, sessionId).filter((registration) => registration.status !== REGISTRATION_STATUSES.withdrawn).length
+}
+
+function registeredParticipantIds(period) {
+  return (registrationsByPeriod.value[period.id] || []).map((registration) => registration.participant.id)
+}
+
+function statusMeta(registration) {
+  return REGISTRATION_STATUS_META[registration.status] || { label: registration.status, color: 'neutral' }
+}
+
+function invite(period, link) {
+  inviteTarget.value = { period, link }
+  showInviteForm.value = true
+}
+
+const plural = (count, word) => `${count} ${word}${count > 1 ? 's' : ''}`
+
+async function invited(result) {
+  const failures = result.failures.map((failure) => `${failure.participantName} (${failure.message})`)
+  infoColor.value = failures.length ? 'warning' : 'success'
+  infoMessage.value = [
+    `${plural(result.invitedCount, 'invitation')}, ${plural(result.sentCount, 'email')} envoyé${result.sentCount > 1 ? 's' : ''}.`,
+    failures.length ? `Non envoyés : ${failures.join(', ')}. Utilisez « Renvoyer » une fois le problème réglé.` : ''
+  ].filter(Boolean).join(' ')
+  await refresh()
+}
+
+async function resend(registration) {
+  if (!confirm(`Renvoyer l’invitation à ${registration.participant.name} ? Le lien envoyé précédemment ne fonctionnera plus.`)) return
+  try {
+    await useApiFetch(`/api/registrations/${registration.id}/resend`, { method: 'POST' })
+    await refresh()
+    infoColor.value = 'success'
+    infoMessage.value = `Invitation renvoyée à ${registration.participant.name}.`
+  } catch (err) {
+    // Même en échec d'envoi, l'ancien lien est invalidé : on recharge avant d'afficher l'erreur
+    await refresh()
+    errorMessage.value = err?.data?.message || err?.message || 'Renvoi impossible'
+  }
+}
+
+async function cancel(registration) {
+  if (!confirm(`Annuler l’invitation de ${registration.participant.name} ? Son lien ne fonctionnera plus.`)) return
+  try {
+    await useApiFetch(`/api/registrations/${registration.id}`, { method: 'DELETE' })
+    await refresh()
+  } catch (err) {
+    errorMessage.value = err?.data?.message || err?.message || 'Annulation impossible'
   }
 }
 

@@ -139,3 +139,21 @@ export const REGISTRATION_PERIOD_STATE_META = {
 } as const
 
 export const REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS = 7
+
+// Statuts d'une inscription (R16). Le mode invitation n'utilise que ceux-ci ; les suivants arrivent avec la sélection.
+export const REGISTRATION_STATUSES = {
+  invited: 'invited',
+  confirmed: 'confirmed',
+  withdrawn: 'withdrawn'
+} as const
+
+export const REGISTRATION_STATUS_META = {
+  [REGISTRATION_STATUSES.invited]: { label: 'Invitée', color: 'info' },
+  [REGISTRATION_STATUSES.confirmed]: { label: 'Confirmée', color: 'success' },
+  [REGISTRATION_STATUSES.withdrawn]: { label: 'Désistée', color: 'neutral' }
+} as const
+
+export const REGISTRATION_SOURCES = {
+  invitation: 'invitation',
+  form: 'form'
+} as const

@@ -28,7 +28,7 @@ En tant qu'organisatrice, je veux voir où en est chaque inscription de ma péri
 
 ## Notes techniques
 
-- Routes : `GET /api/registration-periods/:id/registrations`, `POST /api/registrations/:id/remind`, `POST /api/registrations/:id/extend`, `POST /api/registrations/:id/release`.
+- Routes : `GET /api/registration-periods/:id/registrations` (créée par US-003, à enrichir des réponses et du statut effectif), `POST /api/registrations/:id/remind`, `POST /api/registrations/:id/extend`, `POST /api/registrations/:id/release`.
 - Statut « délai dépassé » calculé à la lecture ([ADR-0020](../../adr/ADR-0020-echeances-evaluees-a-la-lecture.md)).
 
 ## Tests

@@ -81,6 +81,22 @@ export function rethrowSessionAlreadyTaken(error: unknown): never {
   throw error
 }
 
+// Retirer d'une période une session qui a des inscriptions les laisserait hors de toute période
+export async function assertNoRegistrationsOnRemovedSessions(periodId: string, keptSessionIds: string[]) {
+  const orphaned = await prisma.registration.findMany({
+    where: { periodId, sessionId: { notIn: keptSessionIds } },
+    distinct: ['sessionId'],
+    select: { session: { select: { name: true } } }
+  })
+  const names = orphaned.map((registration) => registration.session?.name).filter(Boolean)
+  if (names.length) {
+    throw createError({
+      statusCode: 409,
+      message: `Une session qui a des inscriptions ne peut pas être retirée de la période : ${names.map((name) => `« ${name} »`).join(', ')}`
+    })
+  }
+}
+
 export function parseOptionalDate(value?: string | null) {
   return value ? new Date(value) : null
 }

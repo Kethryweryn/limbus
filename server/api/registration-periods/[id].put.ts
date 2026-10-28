@@ -4,6 +4,7 @@ import { readZodBody, registrationPeriodSchema } from '~/server/utils/schemas'
 import { assertSameGame, requireGameAccess } from '~/server/utils/gameAccess'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import {
+  assertNoRegistrationsOnRemovedSessions,
   exposeRegistrationPeriod,
   findRegistrationPeriodOr404,
   parseOptionalDate,
@@ -22,6 +23,7 @@ export default defineEventHandler(async (event) => {
   const body = await readZodBody(event, registrationPeriodSchema)
   assertSameGame(gameId, body.gameId)
   const sessions = await resolveRegistrationPeriodSessions(gameId, body.sessions, id)
+  await assertNoRegistrationsOnRemovedSessions(id, sessions.map((session) => session.sessionId))
 
   const period = await prisma.$transaction(async (tx) => {
     await tx.registrationPeriodSession.deleteMany({ where: { periodId: id } })
