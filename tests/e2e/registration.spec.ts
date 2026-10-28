@@ -43,6 +43,11 @@ test('une personne invitée accepte par son lien et rejoint la session', async (
     expect(JSON.stringify(participants)).toContain('Camille Invitée')
     await page.goto('/registrations')
     await expect(page.getByText('Confirmée', { exact: true })).toBeVisible()
+
+    // Elle entre dans le circuit de paiement sans attendre le casting (US-007, R22)
+    await page.goto('/sessions/session-printemps?tab=payments')
+    await expect(page.getByText('Camille Invitée').first()).toBeVisible()
+    await expect(page.getByText('Personnage à attribuer')).toBeVisible()
   } finally {
     await smtp.stop()
     await prisma.$disconnect()
