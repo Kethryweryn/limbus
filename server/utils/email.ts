@@ -272,3 +272,27 @@ export async function sendGameInvitationEmail(params: {
     `
   })
 }
+
+// Legs d'une copie à une organisatrice qui a déjà un compte (SPEC-002 R7)
+export function gameBequestEmailText(params: { gameTitle: string, ownerName: string, url: string }) {
+  return [
+    `${params.ownerName} vous lègue une copie de son jeu « ${params.gameTitle} » dans Limbus.`,
+    '',
+    'Cette copie vous appartient : vous pouvez la modifier librement et organiser vos propres sessions. Le jeu d’origine n’est pas touché.',
+    '',
+    `Ouvrir la copie : ${params.url}`
+  ].join('\n')
+}
+
+export async function sendGameBequestEmail(params: { to: string, gameTitle: string, ownerName: string, url: string }) {
+  return await sendEmail({
+    to: params.to,
+    subject: `Un jeu vous est légué : ${params.gameTitle}`,
+    text: gameBequestEmailText(params),
+    html: `
+      <p>${escapeHtml(params.ownerName)} vous lègue une copie de son jeu <strong>${escapeHtml(params.gameTitle)}</strong> dans Limbus.</p>
+      <p>Cette copie vous appartient : vous pouvez la modifier librement et organiser vos propres sessions. Le jeu d’origine n’est pas touché.</p>
+      <p><a href="${escapeHtml(params.url)}">Ouvrir la copie</a></p>
+    `
+  })
+}

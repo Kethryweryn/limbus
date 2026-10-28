@@ -1,7 +1,7 @@
 ---
 id: EPIC-002
 titre: Léguer une copie d'un jeu à une autre équipe
-statut: à faire
+statut: en cours
 spec: ../../specs/SPEC-002-copie-de-jeu.md
 date: 2026-10-28
 adr: [ADR-0025]
@@ -19,7 +19,7 @@ Règles couvertes : R1 à R14 de [SPEC-002](../../specs/SPEC-002-copie-de-jeu.md
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-010](US-010-leguer-a-un-compte-existant.md) | Léguer une copie à une organisatrice qui a un compte | à faire |
+| [US-010](US-010-leguer-a-un-compte-existant.md) | Léguer une copie à une organisatrice qui a un compte | terminée |
 | [US-011](US-011-leguer-sans-compte.md) | Léguer une copie à une personne sans compte | à faire |
 | [US-012](US-012-suivre-les-legs-en-attente.md) | Suivre et annuler les legs en attente | à faire |
 

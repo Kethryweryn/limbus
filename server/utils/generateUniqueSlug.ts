@@ -1,7 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { generateSlug } from '~/server/utils/generateSlug'
 
-type SlugModel = 'game' | 'character' | 'faction' | 'intrigue' | 'item' | 'timelineEvent' | 'participant' | 'location' | 'session' | 'document'
+export type SlugModel = 'game' | 'character' | 'faction' | 'intrigue' | 'item' | 'timelineEvent' | 'participant' | 'location' | 'session' | 'document'
 
 const slugFallbackByModel: Record<SlugModel, string> = {
   game: 'jeu',
@@ -56,15 +56,17 @@ async function findBySlug(model: SlugModel, slug: string): Promise<{ id: string 
   return prisma.document.findUnique({ where: { slug }, select: { id: true } })
 }
 
-export async function generateUniqueSlug(model: SlugModel, text: string, excludeId?: string): Promise<string> {
+// `taken` : slugs déjà réservés mais pas encore en base (copie d'un jeu, ADR-0025)
+export async function generateUniqueSlug(model: SlugModel, text: string, excludeId?: string, taken?: Set<string>): Promise<string> {
   const baseSlug = generateSlug(text) || slugFallbackByModel[model]
   let slug = baseSlug
   let suffix = 2
 
   while (true) {
-    const existing = await findBySlug(model, slug)
+    const existing = taken?.has(slug) ? { id: '' } : await findBySlug(model, slug)
 
     if (!existing || existing.id === excludeId) {
+      taken?.add(slug)
       return slug
     }
 

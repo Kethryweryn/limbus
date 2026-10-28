@@ -178,6 +178,7 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['DELETE', `/api/games/${b.game.id}/shares/${carol.id}`],
     ['POST', `/api/games/${b.game.id}/invitations`, { email: 'intrus@example.test' }],
     ['DELETE', `/api/games/${b.game.id}/invitations/${b.invitation.id}`],
+    ['POST', `/api/games/${b.game.id}/bequests`, { email: 'alice@example.test' }],
     ['GET', `/api/uploads/session-assignment-photos/${b.photo.filename}`],
     ['GET', `/api/uploads/session-payment-ribs/${b.rib.filename}`],
     ['GET', `/api/participants/${b.participant.id}/export`],
