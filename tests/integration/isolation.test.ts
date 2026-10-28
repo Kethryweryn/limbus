@@ -141,6 +141,9 @@ describe('références croisées vers le jeu de Bob', () => {
     ['PUT', `/api/sessions/${a.session.id}/timeline`, { assignments: [{ timelineEventId: a.timelineEvent.id, participantIds: [b.participant.id] }] }],
     ['PUT', `/api/characters/${a.character.id}/trombinoscope`, { entries: [{ targetCharacterId: b.character.id, included: true, faceKnown: true }] }],
     ['POST', '/api/registration-periods', { name: 'X', gameId: a.game.id, sessions: [{ sessionId: b.session.id }] }],
+    ['POST', '/api/characters', { name: 'X', gameId: a.game.id, trombinoscopePhotoUrl: b.photo.url }],
+    ['POST', '/api/sessions', { name: 'X', gameId: a.game.id, assignments: [{ characterId: a.character.id, photoUrl: b.photo.url }] }],
+    ['PUT', `/api/sessions/${a.session.id}/payments/settings`, { paymentRibUrl: b.rib.url }],
     ['PUT', `/api/registration-periods/${a.registrationPeriod.id}`, { name: 'X', gameId: a.game.id, sessions: [{ sessionId: b.session.id }] }],
     ['PUT', `/api/registration-periods/${a.registrationPeriod.id}`, { name: 'X', gameId: b.game.id, sessions: [{ sessionId: b.session.id }] }]
   ]

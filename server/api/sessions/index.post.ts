@@ -4,6 +4,7 @@ import { readZodBody, sessionSchema } from '~/server/utils/schemas'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { assertSessionCastRules, assertSessionLocation, normalizeAssignments, normalizeSessionParticipants } from '~/server/utils/sessionAssignments'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
+import { assertGameUploads } from '~/server/utils/uploads'
 
 function parseDate(value: unknown): Date | null {
   if (!value || typeof value !== 'string') return null
@@ -21,6 +22,7 @@ export default defineEventHandler(async (event) => {
   const participants = normalizeSessionParticipants(body.participants, assignments)
   await assertSessionCastRules(gameId, participants, assignments)
   await assertSessionLocation(gameId, locationId)
+  await assertGameUploads(assignments.map((assignment) => assignment.photoUrl), gameId, { sessionFiles: true })
 
   return await prisma.session.create({
     data: {

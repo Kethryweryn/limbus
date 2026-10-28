@@ -3,14 +3,14 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { createCharacterSchema, readZodBody } from '~/server/utils/schemas'
 import { requireGameAccess } from '~/server/utils/gameAccess'
-import { assertGameUpload } from '~/server/utils/uploads'
+import { assertGameUploads } from '~/server/utils/uploads'
 
 export default defineEventHandler(async (event) => {
     await requireOrganizer(event)
 
     const body = await readZodBody(event, createCharacterSchema)
     await requireGameAccess(event, body.gameId)
-    await assertGameUpload(body.trombinoscopePhotoUrl, body.gameId)
+    await assertGameUploads([body.trombinoscopePhotoUrl], body.gameId, { sessionFiles: false })
     const slug = await generateUniqueSlug('character', body.name)
 
     if (body.factionIds.length) {

@@ -2,6 +2,7 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { readZodBody, sessionPaymentSettingsSchema } from '~/server/utils/schemas'
 import { updateSessionPaymentSettings } from '~/server/utils/sessionPayments'
+import { assertGameUploads } from '~/server/utils/uploads'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
@@ -14,6 +15,7 @@ export default defineEventHandler(async (event) => {
   const previous = await prisma.session.findUniqueOrThrow({ where: { id: session.id }, select: { paymentRibUrl: true } })
 
   const body = await readZodBody(event, sessionPaymentSettingsSchema)
+  await assertGameUploads([body.paymentRibUrl], session.gameId, { sessionFiles: true, keep: [previous.paymentRibUrl] })
   const updated = await updateSessionPaymentSettings(session.id, body)
   // Ancien RIB remplacé ou retiré : effacé du disque
   await deleteUnusedUploads([previous.paymentRibUrl])
