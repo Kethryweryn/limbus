@@ -1,7 +1,7 @@
 ---
 id: ADR-0020
 titre: Échéances évaluées à la lecture, sans tâche planifiée
-statut: proposé
+statut: accepté
 date: 2026-10-27
 liens: [SPEC-001, EPIC-001, ADR-0013]
 ---

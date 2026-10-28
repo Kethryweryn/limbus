@@ -21,10 +21,10 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0015](ADR-0015-strategie-de-tests.md) | Trois niveaux de tests, contre l'application compilée et une base jetable | accepté | 2026-10-27 |
 | [ADR-0016](ADR-0016-mises-a-jour-des-dependances.md) | Mises à jour des dépendances par Dependabot, avec délai et majeures bloquées ignorées | accepté | 2026-10-27 |
 | [ADR-0017](ADR-0017-branches-et-pull-requests.md) | Travail par branches et pull requests, fusion dans `main` pour déployer | accepté | 2026-10-27 |
-| [ADR-0018](ADR-0018-jetons-des-liens-personnels.md) | Liens personnels des inscrits par jeton aléatoire stocké hashé | proposé | 2026-10-27 |
-| [ADR-0019](ADR-0019-modele-des-inscriptions.md) | Modèle des inscriptions, champs standards en colonnes, formulaire versionné | proposé | 2026-10-27 |
-| [ADR-0020](ADR-0020-echeances-evaluees-a-la-lecture.md) | Échéances évaluées à la lecture, sans tâche planifiée | proposé | 2026-10-27 |
-| [ADR-0021](ADR-0021-inscription-et-participation-de-session.md) | L'inscription crée la participation de session, la session reste la référence | proposé | 2026-10-27 |
+| [ADR-0018](ADR-0018-jetons-des-liens-personnels.md) | Liens personnels des inscrits par jeton aléatoire stocké hashé | accepté | 2026-10-27 |
+| [ADR-0019](ADR-0019-modele-des-inscriptions.md) | Modèle des inscriptions, champs standards en colonnes, formulaire versionné | accepté | 2026-10-27 |
+| [ADR-0020](ADR-0020-echeances-evaluees-a-la-lecture.md) | Échéances évaluées à la lecture, sans tâche planifiée | accepté | 2026-10-27 |
+| [ADR-0021](ADR-0021-inscription-et-participation-de-session.md) | L'inscription crée la participation de session, la session reste la référence | accepté | 2026-10-27 |
 | [ADR-0022](ADR-0022-pas-de-ci-pour-la-documentation.md) | Pas de CI ni de déploiement quand seule la documentation change | accepté, en partie remplacé par ADR-0023 | 2026-10-28 |
 | [ADR-0023](ADR-0023-deploiement-sans-ci-redondante.md) | Construire une fois dans la CI, tester ce build, le déployer tel quel | accepté | 2026-10-28 |
 | [ADR-0024](ADR-0024-migrations-compatibles-avec-le-build-en-service.md) | Migrations compatibles avec le build en service, vérifiées par la CI | accepté | 2026-10-28 |

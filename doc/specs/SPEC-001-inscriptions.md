@@ -195,7 +195,7 @@ Données personnelles :
 
 Chaque lot devient un epic, livrable seul :
 
-1. Période d'inscription et mode invitation (R1 à R3, R5, R6, R8 pour la note d'intention et les champs standards, R12 à R16, R20, R22, R33). Voir [EPIC-001](../epics/EPIC-001-inscription-sur-invitation/README.md).
+1. Période d'inscription et mode invitation (R1 à R3, R5, R6, R8 pour la note d'intention et les champs standards, R12 à R16, R20, R22, R33). Voir [EPIC-001](../archive/epics/EPIC-001-inscription-sur-invitation/README.md).
 2. Formulaire public, inscription permanente et lien de diffusion (R8 au complet, R9 à R11, R13, R30 à R32). L'epic 1 prévoit déjà la portée dans le modèle.
 3. Sélection (R4, R7, R17 à R21).
 4. Affinités (R23 à R25).
@@ -216,3 +216,4 @@ Chaque lot devient un epic, livrable seul :
 - 2026-10-28 : les inscriptions quittent la fiche du jeu pour une page « Inscriptions » dans la section Organisation du menu (R33) ; la fiche du jeu sert à l'écriture.
 - 2026-10-28 (revue de code) : l'email du formulaire fait foi et met à jour la fiche (R12) ; la date de consentement santé est celle du dernier enregistrement (R14) ; une personne qui a décliné ou s'est désistée peut être réinvitée (R16). Un désistement libère tous les personnages de la personne dans la session (PJ et PNJ), régénère les trombinoscopes déjà générés et prévient les orgas ; un paiement reçu reste visible dans le tableau des paiements.
 - 2026-10-28 (choix après EPIC-001) : la relance est un rappel sans lien, et l'ancien lien reste valable ; la prolongation se fait à une date choisie (R20). Les PNJ du cast entrent dans le suivi des paiements (R22). La fiche allergies compte toutes les personnes qui mangent, cast compris (R15).
+- 2026-10-28 : EPIC-001 (lot 1) terminé et archivé ; ADR-0018 à ADR-0021 acceptés.
