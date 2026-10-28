@@ -20,7 +20,7 @@ export async function getValidInvitation(token: string) {
   const invitation = await prisma.gameInvitation.findUnique({
     where: { token },
     include: {
-      game: { select: { id: true, title: true, slug: true, bequestPending: true, creditAuthorName: true } },
+      game: { select: { id: true, title: true, slug: true, bequestPending: true } },
       invitedBy: { select: { name: true, email: true } },
       acceptedBy: { select: { id: true, email: true, name: true } }
     }

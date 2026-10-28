@@ -314,6 +314,14 @@ describe('legs à une personne sans compte (US-011)', () => {
     expect(existsSync(join(PHOTOS, basename(photo)))).toBe(false)
   })
 
+  it('supprime les legs en attente avec le jeu source', async () => {
+    const { game, copy, token } = await pendingBequest()
+    expect((await api(bob, 'DELETE', `/api/games/${game.id}`)).status).toBe(200)
+    expect(await prisma.game.findUnique({ where: { id: copy.id } })).toBeNull()
+    expect(existsSync(join(PHOTOS, basename(copy.uploadedFiles[0]!.url)))).toBe(false)
+    expect((await api(null, 'GET', `/api/invitations/${token}`)).status).toBe(404)
+  })
+
   it('ne lègue rien quand l’invitation ne peut pas partir', async () => {
     const { game } = await sourceGame(bob)
     await smtp.disable()
