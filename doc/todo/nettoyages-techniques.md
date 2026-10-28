@@ -23,7 +23,7 @@ La [revue d'architecture](../revues/2026-10-29-architecture.md) relève trois pe
 
 ## Découpage envisagé
 
-Une PR `fix/…` par point, dans l'ordre R-12, R-07, R-11. Chacune passe la CI complète. Ces nettoyages ne changent pas le comportement : ils ne demandent ni spec ni US, mais chaque PR cite cette fiche et le numéro de recommandation.
+Une PR `fix/…` par point, dans l'ordre R-12, R-07, R-11. Chacune passe la CI complète. Ces nettoyages ne changent pas le comportement : ils ne demandent ni spec ni US, et chaque PR cite cette fiche et le numéro de recommandation, comme le permet l'exception de CLAUDE.md pour les correctifs sans changement de comportement.
 
 ## Décisions
 

@@ -30,4 +30,4 @@ La [revue d'architecture du 29 octobre 2026](../revues/2026-10-29-architecture.m
 
 - Nuxt Security (module tiers maintenu, nonce géré) ou en-têtes écrits à la main dans `routeRules` / un plugin Nitro ? Recommandation : Nuxt Security, pour le nonce en SSR.
 - Une période en `Content-Security-Policy-Report-Only` avant d'appliquer la CSP ? Recommandation : oui, une semaine, avec les violations journalisées par une route dédiée.
-- R-02 : où refuser une écriture sans `Sec-Fetch-Site`, `Origin` ni `Referer` (vieux navigateur, outil en ligne de commande) ? Recommandation : la refuser, sauf sur `auth/login`, pour ne pas gêner une future API pour IA (voir [API pour une IA](api-pour-ia.md)) qui aura sa propre authentification.
+- R-02 : faut-il refuser une écriture sans `Sec-Fetch-Site`, `Origin` ni `Referer` (vieux navigateur, outil en ligne de commande) ? Recommandation : oui, sans exception, connexion comprise : une connexion forcée depuis un autre site (« login CSRF ») ferait travailler la victime dans un compte de l'attaquant. Une future [API pour une IA](api-pour-ia.md) s'authentifiera par jeton, et non par cookie : elle n'aura pas besoin d'exception.

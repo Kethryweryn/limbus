@@ -198,7 +198,7 @@ Tri fait le 29 octobre 2026.
 
 | N° | Décision | Suite |
 |---|---|---|
-| R-05 | Faire maintenant | Opération serveur. La rotation par Claude a été bloquée (écriture d'un secret) : elle est laissée à l'utilisatrice, avec un script qui rechiffre le mot de passe SMTP sans l'afficher. Nouveau secret à sauvegarder dans Proton Pass. **En attente.** |
+| R-05 | Faire maintenant | Opération serveur. La rotation par Claude a été bloquée (écriture d'un secret) : elle est laissée à l'utilisatrice, avec [`scripts/rotate-smtp-secret.mjs`](../../scripts/rotate-smtp-secret.mjs), qui rechiffre le mot de passe SMTP sans l'afficher. Le nouveau secret est à sauvegarder dans Proton Pass. **En attente.** |
 | R-04 | Faire maintenant | Le compte `xargos` n'a pas de clé SSH : l'utilisatrice lui ajoute la sienne, la connexion par clé est testée, puis `PasswordAuthentication no`. **En attente.** |
 | R-06 | Faire maintenant | **Fait** le 29 octobre : `Options -Indexes` sur `/files/` dans le vhost jdmottot.fr. Le listage répond 403, les liens directs 200. |
 | R-01 | Fiche todo | [Durcissement web](../todo/durcissement-web.md) |

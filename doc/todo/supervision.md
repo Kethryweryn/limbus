@@ -13,7 +13,7 @@ Une panne de Limbus n'est découverte que lorsque quelqu'un ouvre le site (revue
 
 ## Proposition
 
-- Une route `GET /api/health`, publique, qui vérifie que la base répond et renvoie 200 ou 503, sans aucune donnée.
+- Une route `GET /api/public/health`, publique comme les autres routes de `public/` (CLAUDE.md), qui vérifie que la base répond et renvoie 200 ou 503, sans aucune donnée.
 - Un service externe gratuit de surveillance de disponibilité, qui interroge cette route toutes les 5 minutes et prévient par email en cas d'échec. Il peut aussi surveiller jdmottot.fr.
 - Plus tard, et seulement si la supervision le demande : des journaux structurés en JSON (Pino), pour alerter sur les erreurs serveur (R-16).
 

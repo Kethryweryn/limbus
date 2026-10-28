@@ -17,7 +17,7 @@ Une photo où une personne est reconnaissable est une donnée personnelle. La [r
 ## Proposition
 
 - **Durée de conservation** : réglage par jeu, par exemple « supprimer les photos 6 mois après la fin de la session ». Une échéance dépassée est traitée à la lecture, comme les autres échéances (ADR-0020). La suppression passe par `deleteUnusedUploads`, et les trombinoscopes concernés sont supprimés.
-- **Information** : un texte affiché au moment où la photo est demandée ou ajoutée, et dans le formulaire d'inscription. Il indique la finalité (trombinoscope de la session), les destinataires (organisation et joueurs de la session), la durée de conservation et le moyen d'en demander la suppression.
+- **Information** : les photos sont ajoutées par l'organisation, et les participants n'ont pas de compte. L'information doit donc leur parvenir directement : dans le formulaire d'inscription et l'email d'invitation, et dans l'email qui envoie le trombinoscope (RGPD article 14, données non collectées auprès de la personne). Elle indique la finalité (trombinoscope de la session), les destinataires (organisation et joueurs de la session), la durée de conservation et le moyen d'en demander la suppression.
 
 ## Découpage envisagé
 
