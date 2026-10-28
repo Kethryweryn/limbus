@@ -187,6 +187,9 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['GET', `/api/registration-periods/${b.registrationPeriod.id}/registrations`],
     ['POST', `/api/registrations/${b.registration.id}/resend`],
     ['DELETE', `/api/registrations/${b.registration.id}`],
+    ['GET', `/api/sessions/${b.session.id}/allergies`],
+    ['GET', `/api/sessions/${b.session.id}/allergies/pdf`],
+    ['POST', `/api/sessions/${b.session.id}/allergies/send`],
     ['GET', `/api/registrations/${b.registration.id}`],
     ['POST', `/api/registrations/${b.registration.id}/remind`],
     ['POST', `/api/registrations/${b.registration.id}/extend`, { days: 3 }],
@@ -214,6 +217,7 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/registration-context`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/registration-form`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/registration-periods/${a.registrationPeriod.id}/registrations`)).status).toBe(200)
+    expect((await api(alice, 'GET', `/api/sessions/${a.session.id}/allergies`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/registrations/${a.registration.id}`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/sessions/${a.session.id}/registrations/export`)).status).toBe(200)
     // Fichier référencé mais absent du disque : l'accès est accordé, puis 404

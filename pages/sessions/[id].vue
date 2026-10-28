@@ -92,6 +92,11 @@
       :on-refresh="refreshDocumentsData"
     />
 
+    <SessionAllergySheet
+      v-if="session && !isEditingDetails && activeTab === 'documents'"
+      :session-id="session.id"
+    />
+
     <SessionPaymentsManager
       v-if="session && !isEditingDetails && activeTab === 'payments' && paymentsData"
       :payments-data="paymentsData"
