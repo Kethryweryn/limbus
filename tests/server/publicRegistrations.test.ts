@@ -12,19 +12,20 @@ const period = (state: typeof open) => ({ ...state, gameId: 'g', game: { title: 
 
 describe('registrationPermissions (R13)', () => {
   it('une invitation s’accepte ou se décline, même après la clôture', () => {
-    expect(registrationPermissions({ status: 'invited', period: period(open) })).toEqual({ canAccept: true, canDecline: true, canEdit: false })
-    expect(registrationPermissions({ status: 'invited', period: period(closed) })).toEqual({ canAccept: true, canDecline: true, canEdit: false })
+    expect(registrationPermissions({ status: 'invited', period: period(open) })).toEqual({ canAccept: true, canDecline: true, canEdit: false, canWithdraw: false })
+    expect(registrationPermissions({ status: 'invited', period: period(closed) })).toEqual({ canAccept: true, canDecline: true, canEdit: false, canWithdraw: false })
   })
 
   it('une inscription confirmée se modifie jusqu’à la clôture seulement', () => {
-    expect(registrationPermissions({ status: 'confirmed', period: period(open) })).toMatchObject({ canEdit: true, canAccept: false })
-    expect(registrationPermissions({ status: 'confirmed', period: period(closed) })).toMatchObject({ canEdit: false })
+    expect(registrationPermissions({ status: 'confirmed', period: period(open) })).toMatchObject({ canEdit: true, canAccept: false, canWithdraw: true })
+    // Le désistement reste possible après la clôture (US-006)
+    expect(registrationPermissions({ status: 'confirmed', period: period(closed) })).toMatchObject({ canEdit: false, canWithdraw: true })
     const pastClosing = { state: 'open', closesAt: '2020-01-01T00:00:00Z' } as unknown as typeof open
     expect(registrationPermissions({ status: 'confirmed', period: period(pastClosing) })).toMatchObject({ canEdit: false })
   })
 
   it('une inscription désistée ne permet plus rien', () => {
-    expect(registrationPermissions({ status: 'withdrawn', period: period(open) })).toEqual({ canAccept: false, canDecline: false, canEdit: false })
+    expect(registrationPermissions({ status: 'withdrawn', period: period(open) })).toEqual({ canAccept: false, canDecline: false, canEdit: false, canWithdraw: false })
   })
 })
 

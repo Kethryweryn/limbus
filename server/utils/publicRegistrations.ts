@@ -78,16 +78,18 @@ export async function requireRegistrationByToken(token: string | undefined) {
  * Ce que permet le lien (R13, R20, ADR-0018) :
  * - une invitation sans réponse s'accepte ou se décline, même après l'échéance ou la clôture,
  *   tant que les orgas n'ont pas libéré la place (elle serait alors désistée) ;
- * - une inscription confirmée se modifie jusqu'à la clôture ;
+ * - une inscription confirmée se modifie jusqu'à la clôture, et se désiste même après (US-006) ;
  * - une inscription désistée ne permet plus rien.
  */
 export function registrationPermissions(registration: Pick<PublicRegistration, 'status' | 'period'>, now = new Date()) {
   const open = effectivePeriodState(registration.period, now) === REGISTRATION_PERIOD_STATES.open
   const invited = registration.status === REGISTRATION_STATUSES.invited
+  const confirmed = registration.status === REGISTRATION_STATUSES.confirmed
   return {
     canAccept: invited,
     canDecline: invited,
-    canEdit: registration.status === REGISTRATION_STATUSES.confirmed && open
+    canEdit: confirmed && open,
+    canWithdraw: confirmed
   }
 }
 
@@ -117,7 +119,8 @@ export async function registrationFormDefinition(registration: PublicRegistratio
 export async function exposePublicRegistration(registration: PublicRegistration, now = new Date()) {
   const game = { title: registration.period.game.title }
   if (registration.status === REGISTRATION_STATUSES.withdrawn) {
-    return { status: registration.status, game }
+    // Refus d'une invitation ou désistement après confirmation : seul le message de la page change
+    return { status: registration.status, game, withdrawnAfterConfirmation: Boolean(registration.confirmedAt) }
   }
 
   const prefill = splitParticipantName(registration.participant.name)

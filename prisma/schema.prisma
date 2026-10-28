@@ -324,6 +324,9 @@ model Registration {
   respondedAt           DateTime?
   confirmedAt           DateTime?
   withdrawnAt           DateTime?
+  // Organisatrice qui a retiré la personne (US-005) ; null pour un refus ou un désistement par le lien
+  withdrawnById         String?
+  withdrawnBy           User?                    @relation("RegistrationWithdrawals", fields: [withdrawnById], references: [id], onDelete: SetNull)
   createdAt             DateTime                 @default(now())
   updatedAt             DateTime                 @updatedAt
 
@@ -508,6 +511,7 @@ model User {
   sentInvitations GameInvitation[] @relation("SentGameInvitations")
   acceptedInvitations GameInvitation[] @relation("AcceptedGameInvitations")
   sentRegistrationInvitations Registration[] @relation("SentRegistrationInvitations")
+  registrationWithdrawals Registration[] @relation("RegistrationWithdrawals")
 }
 
 model GameShare {

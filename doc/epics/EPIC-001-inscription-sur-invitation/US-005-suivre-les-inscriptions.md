@@ -22,7 +22,7 @@ En tant qu'organisatrice, je veux voir où en est chaque inscription de ma péri
   - prolonger l'échéance d'un nombre de jours ;
   - libérer la place, ce qui la fait passer à `désistée` et invalide le lien.
 - [ ] Le détail d'une inscription montre les réponses au formulaire : contact, contact d'urgence, allergies avec la date du consentement.
-- [ ] Je peux retirer une personne confirmée, avec les mêmes effets qu'un désistement (US-006).
+- [ ] Je peux retirer une personne confirmée, avec les mêmes effets qu'un désistement (US-006 : `withdrawRegistration` avec l'organisatrice comme auteur).
 - [ ] Si une personne confirmée n'est plus participante de la session, parce qu'elle a été retirée à la main de l'écran de session, la liste le signale (ADR-0021).
 - [ ] Export CSV des inscriptions d'une session : nom, email, téléphone, statut. Les données de santé n'y figurent pas ; elles passent par la fiche allergies (US-008).
 

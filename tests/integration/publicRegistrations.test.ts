@@ -1,5 +1,8 @@
 // US-004 : répondre à une invitation par son lien personnel (SPEC-001, R8, R13, R14, R16, R20, R22)
 import { createHash, randomBytes } from 'node:crypto'
+import { existsSync } from 'node:fs'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
@@ -238,13 +241,13 @@ describe('décliner', () => {
     const response = await publicApi('POST', `${path}/decline`)
 
     expect(response.status, JSON.stringify(response.body)).toBe(200)
-    expect(response.body).toEqual({ status: 'withdrawn', game: { title: game.title } })
+    expect(response.body).toEqual({ status: 'withdrawn', game: { title: game.title }, withdrawnAfterConfirmation: false })
     const saved = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })
     expect(saved.status).toBe('withdrawn')
     expect(saved.withdrawnAt).not.toBeNull()
     expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(0)
 
-    expect((await publicApi('GET', path)).body).toEqual({ status: 'withdrawn', game: { title: game.title } })
+    expect((await publicApi('GET', path)).body).toEqual({ status: 'withdrawn', game: { title: game.title }, withdrawnAfterConfirmation: false })
     expect((await publicApi('PUT', path, answers())).status).toBe(409)
     expect((await publicApi('POST', `${path}/decline`)).status).toBe(409)
   })
@@ -253,6 +256,70 @@ describe('décliner', () => {
     const { path } = await invitation()
     await publicApi('PUT', path, answers())
     expect((await publicApi('POST', `${path}/decline`)).status).toBe(409)
+  })
+})
+
+describe('se désister (US-006)', () => {
+  const PHOTOS = join(process.cwd(), '.data', 'uploads', 'session-assignment-photos')
+
+  it('libère la session et le personnage, efface la photo, garde le paiement et prévient les orgas', async () => {
+    const { path, game, session, participant, registration } = await invitation()
+    expect((await publicApi('PUT', path, answers())).status).toBe(200)
+
+    // L'organisatrice a distribué un personnage avec une photo, un paiement est enregistré
+    const character = await prisma.character.create({ data: { name: 'Roméo', slug: `romeo-${counter}`, gameId: game.id } })
+    const filename = `photo-desistement-${counter}.png`
+    const url = `/api/uploads/session-assignment-photos/${filename}`
+    await mkdir(PHOTOS, { recursive: true })
+    await writeFile(join(PHOTOS, filename), 'png')
+    await prisma.uploadedFile.create({ data: { kind: 'session-assignment-photo', filename, url, gameId: game.id, sessionId: session.id } })
+    const assignment = await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id, photoUrl: url } })
+    await prisma.sessionPayment.create({ data: { sessionId: session.id, participantId: participant.id, paidAt: new Date() } })
+    await prisma.sessionTrombinoscope.create({ data: { sessionId: session.id, viewerCharacterId: character.id, participantId: participant.id, fileName: 't.pdf', contentHtml: url } })
+    const sentBefore = smtp.received.length
+
+    const response = await publicApi('POST', `${path}/withdraw`)
+
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    expect(response.body).toEqual({ status: 'withdrawn', game: { title: game.title }, withdrawnAfterConfirmation: true })
+    const saved = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })
+    expect(saved).toMatchObject({ status: 'withdrawn', withdrawnById: null })
+    expect(saved.withdrawnAt).not.toBeNull()
+
+    expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(0)
+    // Le personnage reste, sans joueur ni photo ; le fichier est effacé, les trombinoscopes sont à régénérer
+    expect(await prisma.sessionAssignment.findUniqueOrThrow({ where: { id: assignment.id } })).toMatchObject({ participantId: null, photoUrl: null })
+    expect(await prisma.uploadedFile.count({ where: { url } })).toBe(0)
+    expect(existsSync(join(PHOTOS, filename))).toBe(false)
+    expect(await prisma.sessionTrombinoscope.count({ where: { sessionId: session.id } })).toBe(0)
+    // Le paiement reçu est gardé, à traiter à la main (R22)
+    expect(await prisma.sessionPayment.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(1)
+
+    const notice = smtp.received.slice(sentBefore).find((message) => message.to.includes('alice@example.test'))
+    expect(notice?.text).toContain(`${participant.name} s’est désisté·e de la session ${session.name}`)
+
+    // L'organisatrice voit le désistement dans la liste
+    const list = await api(alice, 'GET', `/api/registration-periods/${saved.periodId}/registrations`)
+    expect(list.body).toMatchObject([{ status: 'withdrawn', withdrawnBy: null }])
+
+    // Le lien ne permet plus rien
+    expect((await publicApi('POST', `${path}/withdraw`)).status).toBe(409)
+    expect((await publicApi('PUT', path, answers())).status).toBe(409)
+  })
+
+  it('reste possible après la clôture (R13)', async () => {
+    const { path, period } = await invitation()
+    await publicApi('PUT', path, answers())
+    await prisma.registrationPeriod.update({ where: { id: period.id }, data: { state: 'closed' } })
+
+    expect((await publicApi('GET', path)).body).toMatchObject({ canEdit: false, canWithdraw: true })
+    expect((await publicApi('POST', `${path}/withdraw`)).status).toBe(200)
+  })
+
+  it('n’est pas possible sur une invitation sans réponse : elle se décline', async () => {
+    const { path, registration } = await invitation()
+    expect((await publicApi('POST', `${path}/withdraw`)).status).toBe(409)
+    expect((await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })).status).toBe('invited')
   })
 })
 
