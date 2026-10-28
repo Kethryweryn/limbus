@@ -3,11 +3,18 @@ import type { PrismaClient } from '~/generated/prisma/client'
 
 export type ReceivedEmail = { to: string[], raw: string, text: string }
 
-// Corps lisible : les emails partent en quoted-printable ou en base64 selon leur contenu
-function decodeBody(raw: string) {
+// Corps lisible : les emails partent en quoted-printable ou en base64 selon leur contenu.
+// Avec une pièce jointe (multipart), on lit la partie texte.
+function decodeBody(raw: string): string {
   const separator = raw.indexOf('\r\n\r\n')
   const headers = raw.slice(0, separator)
   const body = raw.slice(separator + 4)
+  const boundary = /content-type:\s*multipart\/[^;]+;\s*boundary="?([^"\r\n;]+)"?/i.exec(headers)?.[1]
+  if (boundary) {
+    const parts = body.split(`--${boundary}`).slice(1)
+    const text = parts.find((part) => /content-type:\s*text\/plain/i.test(part.slice(0, part.indexOf('\r\n\r\n'))))
+    return text ? decodeBody(text.replace(/^\r\n/, '').replace(/\r\n$/, '')) : body
+  }
   if (/content-transfer-encoding:\s*base64/i.test(headers)) {
     return Buffer.from(body.replace(/\s+/g, ''), 'base64').toString('utf8')
   }
