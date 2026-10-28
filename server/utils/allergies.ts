@@ -7,12 +7,16 @@ type AllergySheetSource = {
   name: string
   date: Date | null
   game: { title: string }
-  registrations: Array<{ dietary: string | null, participant: { name: string } }>
+  registrations: Array<{ dietary: string | null, participant: { id: string, name: string } }>
+  // Personnes du cast : rôles de session (participants, PNJ, orgas, cuisine) et joueurs d'un personnage
+  participants: Array<{ participantId: string }>
+  assignments: Array<{ participantId: string | null }>
 }
 
 /**
  * Fiche allergies d'une session (US-008, R15) : nom et allergies de chaque personne confirmée
- * qui en a déclaré, et le nombre de personnes confirmées. Jamais de téléphone ni de contact
+ * qui en a déclaré. Elle compte les personnes qui mangent (inscrits confirmés et tout le cast,
+ * chacun une fois) et, à part, les inscrits confirmés. Jamais de téléphone ni de contact
  * d'urgence. Construite à la demande et jamais stockée, pour ne pas multiplier les copies de
  * données de santé : une personne désistée en disparaît aussitôt.
  */
@@ -23,6 +27,11 @@ export function buildAllergySheet(session: AllergySheetSource) {
     .sort((left, right) => left.name.localeCompare(right.name, 'fr'))
   return {
     session: { name: session.name, date: session.date, gameTitle: session.game.title },
+    eaterCount: new Set([
+      ...session.registrations.map((registration) => registration.participant.id),
+      ...session.participants.map((participant) => participant.participantId),
+      ...session.assignments.map((assignment) => assignment.participantId).filter((id): id is string => Boolean(id))
+    ]).size,
     confirmedCount: session.registrations.length,
     people
   }
@@ -45,8 +54,10 @@ export async function getAllergySheet(sessionId: string) {
       game: { select: { title: true } },
       registrations: {
         where: { status: REGISTRATION_STATUSES.confirmed },
-        select: { dietary: true, participant: { select: { name: true } } }
-      }
+        select: { dietary: true, participant: { select: { id: true, name: true } } }
+      },
+      participants: { select: { participantId: true } },
+      assignments: { select: { participantId: true } }
     }
   })
   return buildAllergySheet(session)
@@ -57,9 +68,10 @@ const formatDate = (value: Date) => value.toLocaleDateString('fr-FR', { dateStyl
 const plural = (count: number) => (count > 1 ? 's' : '')
 
 export function allergySheetSummary(sheet: AllergySheet) {
-  const confirmed = sheet.confirmedCount
+  const { eaterCount: eaters, confirmedCount: confirmed } = sheet
   const declared = sheet.people.length
-  return `${confirmed} personne${plural(confirmed)} confirmée${plural(confirmed)}, dont ${declared} personne${plural(declared)} avec allergies ou intolérances`
+  return `${eaters} personne${plural(eaters)} à table (dont ${confirmed} inscrite${plural(confirmed)} confirmée${plural(confirmed)}), `
+    + `dont ${declared} avec allergies ou intolérances`
 }
 
 export async function renderAllergySheetPdf(sheet: AllergySheet) {

@@ -58,8 +58,8 @@ type PaymentRecord = { participantId: string, paidAt: Date | null, paymentEmailS
 
 /**
  * Lignes du tableau des paiements (R22, US-007) : une par personne, qu'elle joue un personnage
- * PJ ou PNJ de la session, ou qu'elle y ait le rôle « participant » sans personnage encore
- * (inscrit confirmé avant le casting : « personnage à attribuer »). Cuisine et orgas sans
+ * PJ ou PNJ de la session, ou qu'elle y ait sans personnage le rôle « participant » (inscrit
+ * confirmé avant le casting : « personnage à attribuer ») ou le rôle PNJ. Cuisine et orgas sans
  * personnage n'y sont pas. Les personnes avec personnage d'abord, par nom de personnage.
  */
 export function buildPaymentRows<P extends PaymentParticipant, C extends { name: string, type: string }>(
@@ -68,7 +68,7 @@ export function buildPaymentRows<P extends PaymentParticipant, C extends { name:
   payments: PaymentRecord[]
 ) {
   const paymentsByParticipantId = new Map(payments.map((payment) => [payment.participantId, payment]))
-  const byParticipant = new Map<string, { participant: P, characters: C[] }>()
+  const byParticipant = new Map<string, { participant: P, characters: C[], awaitingCharacter: boolean }>()
 
   const playable = assignments
     .filter((assignment) => assignment.participant && assignment.participantId && isPlayableCharacterType(assignment.character.type))
@@ -76,23 +76,28 @@ export function buildPaymentRows<P extends PaymentParticipant, C extends { name:
   for (const assignment of playable) {
     const entry = byParticipant.get(assignment.participantId!)
     if (entry) entry.characters.push(assignment.character)
-    else byParticipant.set(assignment.participantId!, { participant: assignment.participant!, characters: [assignment.character] })
+    else byParticipant.set(assignment.participantId!, { participant: assignment.participant!, characters: [assignment.character], awaitingCharacter: false })
   }
 
+  // Un inscrit confirmé attend un personnage ; un PNJ du cast est suivi sans cette mention
+  const tracked = [SESSION_ROLES.participant, SESSION_ROLES.npc] as string[]
   const withoutCharacter = sessionParticipants
-    .filter((sessionParticipant) => sessionParticipant.role === SESSION_ROLES.participant && !byParticipant.has(sessionParticipant.participant.id))
+    .filter((sessionParticipant) => tracked.includes(sessionParticipant.role) && !byParticipant.has(sessionParticipant.participant.id))
     .sort((left, right) => left.participant.name.localeCompare(right.participant.name, 'fr'))
   for (const sessionParticipant of withoutCharacter) {
-    byParticipant.set(sessionParticipant.participant.id, { participant: sessionParticipant.participant, characters: [] })
+    const awaitingCharacter = sessionParticipants.some((other) =>
+      other.participant.id === sessionParticipant.participant.id && other.role === SESSION_ROLES.participant)
+    byParticipant.set(sessionParticipant.participant.id, { participant: sessionParticipant.participant, characters: [], awaitingCharacter })
   }
 
-  return [...byParticipant.values()].map(({ participant, characters }) => {
+  return [...byParticipant.values()].map(({ participant, characters, awaitingCharacter }) => {
     const payment = paymentsByParticipantId.get(participant.id)
     return {
       participant,
-      // Premier personnage, pour l'affichage existant ; null : personnage à attribuer
+      // Premier personnage, pour l'affichage existant ; null sans personnage
       character: characters[0] ?? null,
       characters,
+      awaitingCharacter,
       paidAt: payment?.paidAt || null,
       paymentEmailSentAt: payment?.paymentEmailSentAt || null,
       paymentReminderSentAt: payment?.paymentReminderSentAt || null

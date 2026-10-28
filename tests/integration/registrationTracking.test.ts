@@ -62,57 +62,60 @@ async function confirm(registrationId: string, sessionId: string, participantId:
 }
 
 describe('relancer une invitation sans réponse', () => {
-  it('envoie un rappel avec un nouveau lien, invalide l’ancien et note la date de relance', async () => {
-    const { participant, registration, token } = await invited()
+  it('envoie un rappel sans lien ; le lien de l’invitation reste valable, et la date de relance est notée', async () => {
+    const { game, participant, registration, token } = await invited()
 
     const response = await api(alice, 'POST', `/api/registrations/${registration.id}/remind`)
     expect(response.status, JSON.stringify(response.body)).toBe(200)
 
     const reminder = smtp.received.filter((email) => email.to.includes(participant.email!)).at(-1)!
     expect(reminder.text).toContain('Nous n’avons pas encore reçu votre réponse')
-    const newToken = personalLinkToken(reminder)!
-    expect(newToken).not.toBe(token)
+    expect(reminder.text).toContain(`intitulé « Invitation : ${game.title} »`)
+    expect(personalLinkToken(reminder)).toBeFalsy()
     const saved = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })
-    expect(saved.tokenHash).toBe(sha256(newToken))
+    expect(saved.tokenHash).toBe(sha256(token))
     expect(saved.lastRemindedAt).not.toBeNull()
-    // La date d'invitation reste celle du premier envoi
     expect(saved.invitationSentAt).toEqual(registration.invitationSentAt)
     expect(saved.responseDueAt).toEqual(registration.responseDueAt)
+    expect((await publicGet(token)).body).toMatchObject({ status: 'invited', canAccept: true })
+  })
+
+  it('« Nouveau lien » invalide l’ancien, pour une personne qui a perdu son email', async () => {
+    const { participant, registration, token } = await invited()
+    expect((await api(alice, 'POST', `/api/registrations/${registration.id}/resend`)).status).toBe(200)
+    const newToken = personalLinkToken(smtp.received.filter((email) => email.to.includes(participant.email!)).at(-1)!)!
+    expect(newToken).not.toBe(token)
     expect((await publicGet(token)).status).toBe(404)
   })
 
-  it('refuse une inscription qui a répondu', async () => {
+  it('refuse une invitation dont l’email n’est jamais parti, ou qui a répondu', async () => {
     const { session, participant, registration } = await invited()
+    await prisma.registration.update({ where: { id: registration.id }, data: { invitationSentAt: null } })
+    expect((await api(alice, 'POST', `/api/registrations/${registration.id}/remind`)).status).toBe(409)
     await confirm(registration.id, session.id, participant.id)
     expect((await api(alice, 'POST', `/api/registrations/${registration.id}/remind`)).status).toBe(409)
   })
 })
 
 describe('prolonger l’échéance', () => {
-  it('ajoute des jours à l’échéance à venir', async () => {
-    const { registration } = await invited()
-    const response = await api(alice, 'POST', `/api/registrations/${registration.id}/extend`, { days: 3 })
-    expect(response.status, JSON.stringify(response.body)).toBe(200)
-    const saved = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })
-    expect(saved.responseDueAt!.getTime()).toBe(registration.responseDueAt!.getTime() + 3 * DAY_MS)
-  })
-
-  it('une échéance passée repart d’aujourd’hui : la personne n’est plus en retard', async () => {
+  it('fixe l’échéance à la date choisie ; une invitation en retard ne l’est plus', async () => {
     const { period, registration } = await invited()
     await prisma.registration.update({ where: { id: registration.id }, data: { responseDueAt: new Date(Date.now() - 2 * DAY_MS) } })
-    const before = Date.now()
-    expect((await api(alice, 'POST', `/api/registrations/${registration.id}/extend`, { days: 2 })).status).toBe(200)
-    const saved = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })
-    expect(saved.responseDueAt!.getTime()).toBeGreaterThanOrEqual(before + 2 * DAY_MS)
+    const responseDueAt = new Date(Date.now() + 5 * DAY_MS)
+    const response = await api(alice, 'POST', `/api/registrations/${registration.id}/extend`, { responseDueAt: responseDueAt.toISOString() })
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    expect((await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })).responseDueAt).toEqual(responseDueAt)
     const list = await api(alice, 'GET', `/api/registration-periods/${period.id}/registrations`)
     expect(new Date((list.body as any)[0].responseDueAt).getTime()).toBeGreaterThan(Date.now())
   })
 
-  it('refuse un nombre de jours invalide, avec un message en français', async () => {
+  it('refuse une date passée, invalide ou absente, avec un message en français', async () => {
     const { registration } = await invited()
-    const response = await api(alice, 'POST', `/api/registrations/${registration.id}/extend`, { days: 0 })
-    expect(response.status).toBe(400)
-    expect(JSON.stringify(response.body)).toContain('Prolongez d’au moins un jour')
+    const past = await api(alice, 'POST', `/api/registrations/${registration.id}/extend`, { responseDueAt: new Date(Date.now() - DAY_MS).toISOString() })
+    expect(past.status).toBe(400)
+    expect(JSON.stringify(past.body)).toContain('dans le futur')
+    expect((await api(alice, 'POST', `/api/registrations/${registration.id}/extend`, { responseDueAt: 'demain' })).status).toBe(400)
+    expect(JSON.stringify((await api(alice, 'POST', `/api/registrations/${registration.id}/extend`, {})).body)).toContain('La nouvelle échéance est obligatoire')
   })
 })
 

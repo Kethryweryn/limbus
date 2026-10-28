@@ -77,11 +77,17 @@ describe('lignes du tableau des paiements (US-007, R22)', () => {
       [{ role: 'participant', participant: ines }, { role: 'kitchen', participant: cook }, { role: 'organizer', participant: orga }],
       []
     )
-    expect(rows.map((row) => [row.participant.id, row.character?.name ?? null])).toEqual([
-      ['hugo', 'Aube'],
-      ['zoe', 'Brume'],
-      ['ines', null]
+    expect(rows.map((row) => [row.participant.id, row.character?.name ?? null, row.awaitingCharacter])).toEqual([
+      ['hugo', 'Aube', false],
+      ['zoe', 'Brume', false],
+      ['ines', null, true]
     ])
+  })
+
+  it('suit aussi les PNJ du cast sans personnage, sans « personnage à attribuer »', () => {
+    const npc = person('npc', 'Nina')
+    const rows = buildPaymentRows([], [{ role: 'npc', participant: npc }, { role: 'participant', participant: ines }], [])
+    expect(rows.map((row) => [row.participant.id, row.awaitingCharacter])).toEqual([['ines', true], ['npc', false]])
   })
 
   it('une personne n’apparaît qu’une fois, avec tous ses personnages', () => {

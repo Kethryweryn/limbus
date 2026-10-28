@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
 
   const registration = await findRegistrationOr404(getRouterParam(event, 'id'))
   await requireGameAccess(event, registration.period.gameId)
-  const { days } = await readZodBody(event, registrationExtensionSchema)
+  const { responseDueAt } = await readZodBody(event, registrationExtensionSchema)
 
-  return await extendRegistrationDeadline(registration.id, days)
+  return await extendRegistrationDeadline(registration.id, responseDueAt)
 })

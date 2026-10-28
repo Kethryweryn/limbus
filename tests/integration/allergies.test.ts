@@ -66,7 +66,8 @@ describe('fiche allergies', () => {
     const { session, zoe } = await sessionWithRegistrations()
     const response = await api(alice, 'GET', `/api/sessions/${session.id}/allergies`)
     expect(response.status).toBe(200)
-    expect(response.body).toMatchObject({ confirmedCount: 2, people: [{ name: zoe.name, dietary: 'Gluten' }] })
+    // À table : Zoé et Inès (confirmées, Zoé aussi au cast), la cuisine et le PNJ
+    expect(response.body).toMatchObject({ confirmedCount: 2, eaterCount: 4, people: [{ name: zoe.name, dietary: 'Gluten' }] })
     expect((response.body as any).people).toHaveLength(1)
     const json = JSON.stringify(response.body)
     expect(json).not.toContain('0612345678')

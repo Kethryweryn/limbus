@@ -4,10 +4,11 @@ import { runtimeConfig } from '../setup'
 import { registrationInvitationSchema } from '~/server/utils/schemas'
 import {
   createRegistrationToken,
-  extendedResponseDueAt,
+  assertNewResponseDueAt,
   hashRegistrationToken,
   participantEmailMatchWhere,
   registrationInvitationEmailText,
+  registrationReminderEmailText,
   registrationResponseDueAt,
   registrationUrl,
   registrationWithdrawalEmailText,
@@ -84,35 +85,46 @@ describe('email d’invitation', () => {
     expect(text).toContain('https://limbus.example/inscription/abc')
     expect(text).toContain('avant le 1 février 2027')
   })
-  it('une relance le dit, et prévient que les anciens liens ne marchent plus (US-005)', () => {
-    const base = { participantName: 'Zoé', gameTitle: 'Les Ombres', sessionName: null, sessionDate: null, responseDueAt: null, inviterName: null, url: 'https://x' }
-    expect(registrationInvitationEmailText(base)).not.toContain('pas encore reçu')
-    const text = registrationInvitationEmailText({ ...base, reminder: true })
-    expect(text).toContain('Nous n’avons pas encore reçu votre réponse')
-    expect(text).toContain('Les liens reçus précédemment ne fonctionnent plus')
+})
+
+describe('rappel d’une invitation (US-005, R20)', () => {
+  const now = new Date('2027-01-10T12:00:00Z')
+  const base = {
+    participantName: 'Zoé',
+    gameTitle: 'Les Ombres',
+    sessionName: 'Printemps',
+    invitationSentAt: new Date('2027-01-02T09:00:00Z'),
+    responseDueAt: new Date('2027-01-12T09:00:00Z')
+  }
+
+  it('sans lien : renvoie à l’email d’invitation, avec sa date et son objet', () => {
+    const text = registrationReminderEmailText(base, now)
+    expect(text).toContain('Nous n’avons pas encore reçu votre réponse à l’invitation à jouer à « Les Ombres », session Printemps.')
+    expect(text).toContain('email d’invitation envoyé le 2 janvier 2027, intitulé « Invitation : Les Ombres »')
+    expect(text).toContain('avant le 12 janvier 2027')
+    expect(text).toContain('elle vous enverra un nouveau lien')
+    expect(text).not.toMatch(/https?:/)
   })
 
-  it('une relance après l’échéance ne rappelle pas une date passée', () => {
-    const base = { participantName: 'Zoé', gameTitle: 'Les Ombres', sessionName: null, sessionDate: null, inviterName: null, url: 'https://x', reminder: true }
-    const late = registrationInvitationEmailText({ ...base, responseDueAt: new Date(Date.now() - 86_400_000) })
-    expect(late).not.toContain('avant le')
-    expect(late).toContain('dès que possible')
-    expect(registrationInvitationEmailText({ ...base, responseDueAt: new Date(Date.now() + 86_400_000) })).toContain('avant le')
+  it('après l’échéance, ne rappelle pas une date passée', () => {
+    const text = registrationReminderEmailText({ ...base, responseDueAt: new Date('2027-01-05T09:00:00Z') }, now)
+    expect(text).not.toContain('avant le')
+    expect(text).toContain('dès que possible')
   })
 })
 
-describe('prolongation de l’échéance (US-005)', () => {
+describe('nouvelle échéance choisie (US-005, R20)', () => {
   const now = new Date('2027-01-10T12:00:00Z')
   const day = 24 * 60 * 60 * 1000
 
-  it('part de l’échéance actuelle quand elle est à venir', () => {
-    const due = new Date('2027-01-12T12:00:00Z')
-    expect(extendedResponseDueAt(due, 3, now).getTime()).toBe(due.getTime() + 3 * day)
+  it('accepte une date future à moins d’un an', () => {
+    expect(() => assertNewResponseDueAt(new Date(now.getTime() + day), now)).not.toThrow()
+    expect(() => assertNewResponseDueAt(new Date(now.getTime() + 364 * day), now)).not.toThrow()
   })
 
-  it('part d’aujourd’hui quand l’échéance est passée ou absente', () => {
-    expect(extendedResponseDueAt(new Date('2027-01-01T00:00:00Z'), 3, now).getTime()).toBe(now.getTime() + 3 * day)
-    expect(extendedResponseDueAt(null, 3, now).getTime()).toBe(now.getTime() + 3 * day)
+  it('refuse une date passée ou trop lointaine', () => {
+    expect(() => assertNewResponseDueAt(new Date(now.getTime() - 1000), now)).toThrow('dans le futur')
+    expect(() => assertNewResponseDueAt(new Date(now.getTime() + 366 * day), now)).toThrow('moins d’un an')
   })
 })
 

@@ -192,7 +192,7 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['POST', `/api/sessions/${b.session.id}/allergies/send`],
     ['GET', `/api/registrations/${b.registration.id}`],
     ['POST', `/api/registrations/${b.registration.id}/remind`],
-    ['POST', `/api/registrations/${b.registration.id}/extend`, { days: 3 }],
+    ['POST', `/api/registrations/${b.registration.id}/extend`, { responseDueAt: new Date(Date.now() + 86_400_000).toISOString() }],
     ['POST', `/api/registrations/${b.registration.id}/release`],
     ['POST', `/api/registrations/${b.registration.id}/withdraw`],
     ['GET', `/api/sessions/${b.session.id}/registrations/export`],
