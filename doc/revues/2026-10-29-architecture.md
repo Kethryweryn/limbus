@@ -33,8 +33,10 @@ Les recommandations sont numérotées (R-01…) et récapitulées en fin de rapp
 ### Conforme
 
 - **Sessions** : JWT signé HS256 dans un cookie `HttpOnly`, `Secure`, `SameSite=Lax`, qui ne porte que l'identifiant et une version de session relue en base à chaque requête. Le rôle n'est jamais lu dans le jeton. C'est le point qui manque à la plupart des implémentations JWT : l'état est vérifié côté serveur, donc la révocation (déconnexion partout, changement de mot de passe) est immédiate. L'ASVS 5.0 (chapitre V7) demande surtout que le choix entre session avec ou sans état soit analysé et documenté : c'est fait dans ADR-0006.
-- **Mots de passe** : bcrypt avec un coût de 10, comparaison à temps constant même pour un email inconnu, limites de débit par IP et par email à la connexion. L'OWASP considère un coût de 10 comme le minimum pour bcrypt et préfère Argon2id pour un nouveau système ; ce n'est pas un écart qui justifie une migration.
-- **Autorisations** : toutes les routes sous `server/api` commencent par `requireOrganizer` ou `requireAdmin`, sauf les routes publiques prévues (`auth/*`, `invitations/*`, `public/*`), vérifié fichier par fichier. Les accès par jeu passent par des fonctions communes, et `tests/integration/isolation.test.ts` vérifie chaque route avec un témoin positif.
+- **Mots de passe** : bcrypt avec un coût de 10, comparaison à temps constant même pour un email inconnu, limites de débit par IP et par email à la connexion. L'OWASP (aide-mémoire sur le stockage des mots de passe) fixe un coût minimal de 10 pour bcrypt, et préfère Argon2id. Elle réserve bcrypt aux systèmes où Argon2 et scrypt ne sont pas disponibles. C'est un écart réel, mais faible : il ne justifie pas une migration tant qu'aucun autre chantier ne touche aux mots de passe.
+- **Autorisations** : toutes les routes sous `server/api` commencent par `requireOrganizer` ou `requireAdmin`, vérifié fichier par fichier. Les exceptions sont prévues :
+  - les routes publiques `auth/*`, `invitations/[token]` et `public/*` ;
+  - `invitations/accept`, qui demande une connexion (`requireAuthUser`) sans exiger le rôle d'organisatrice. Cela revient au même tant qu'il n'existe que les rôles `organizer` et `admin`, mais il faudra la revoir si un autre rôle apparaît. Les accès par jeu passent par des fonctions communes, et `tests/integration/isolation.test.ts` vérifie chaque route avec un témoin positif.
 - **Validation** : tous les corps de requête passent par un schéma zod (`readZodBody`) ; aucun `readBody` brut dans les routes.
 - **Fichiers téléversés** : type vérifié par signature, renommage en UUID, stockage hors de la racine web, service par une route qui vérifie les droits, référence limitée aux fichiers du même jeu. C'est ce que recommande l'aide-mémoire OWASP sur les téléversements.
 - **En-têtes** : HSTS, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` et `Permissions-Policy` sont envoyés par Apache, avec les valeurs de l'aide-mémoire OWASP. L'API ajoute une CSP `script-src 'none'; frame-ancestors 'none'`, et la page d'inscription par lien personnel coupe le `Referer` et le cache.
@@ -43,8 +45,8 @@ Les recommandations sont numérotées (R-01…) et récapitulées en fin de rapp
 ### Écarts
 
 - **Pas de CSP sur les pages HTML.** L'API en a une, l'application non. Une CSP est la protection de second rang contre une injection de script, que recommandent l'aide-mémoire OWASP sur les en-têtes et l'ASVS. ADR-0003 écarte une CSP **globale à Apache**, parce qu'elle s'appliquerait aux autres sites du serveur, et ce point reste vrai. Mais le module Nuxt Security (référencé dans l'annuaire des modules Nuxt, compatible Nuxt 4) pose la CSP depuis l'application, avec un nonce par réponse en SSR et des règles par route : elle ne touche que Limbus. Point déjà écarté, **réexaminé : recommandé** (R-01).
-- **Pas de vérification de l'origine sur les écritures.** `SameSite=Lax` empêche l'envoi du cookie sur un POST venu d'un autre site, ce qui couvre l'essentiel du risque CSRF. L'OWASP recommande d'y ajouter, en défense en profondeur, une vérification des en-têtes `Origin`/`Sec-Fetch-Site` sur les requêtes qui modifient des données. C'est un middleware serveur de quelques lignes (R-02).
-- **Cookie sans préfixe `__Host-`.** Le préfixe garantit que le cookie a été posé par le site lui-même, en HTTPS, sans attribut `Domain`. Recommandé par l'OWASP, il ne coûte qu'un renommage, qui déconnecte tout le monde une fois (R-03).
+- **Pas de vérification de l'origine sur les écritures.** `SameSite=Lax` empêche l'envoi du cookie sur un POST venu d'un autre site, ce qui couvre l'essentiel du risque CSRF. L'aide-mémoire OWASP sur le CSRF ne tient pourtant `SameSite` pour suffisant que si toutes ses conditions sont réunies, dont une vérification de l'origine des requêtes. Sinon, ce n'est qu'une couche de défense en profondeur. Il recommande de refuser les écritures dont l'en-tête `Sec-Fetch-Site` vaut `cross-site`, et de vérifier `Origin` (ou à défaut `Referer`) quand cet en-tête manque. C'est un middleware serveur de quelques lignes (R-02).
+- **Cookie sans préfixe `__Host-`.** Le préfixe garantit que le cookie a été posé par le site lui-même, en HTTPS, sans attribut `Domain`. L'aide-mémoire OWASP sur la gestion des sessions le recommande pour les identifiants de session. Il ne coûte qu'un renommage, qui déconnecte tout le monde une fois (R-03).
 - **`Cross-Origin-Opener-Policy` absent.** L'OWASP recommande `same-origin`. À ajouter avec la CSP (inclus dans R-01).
 - **Limites de débit en mémoire.** Elles repartent de zéro à chaque redémarrage et ne seraient pas partagées entre plusieurs processus. Avec un seul processus et des déploiements rares, c'est acceptable ; à revoir seulement si l'application passe à plusieurs instances. Pas de recommandation.
 
@@ -88,7 +90,7 @@ Ces points concernent le serveur partagé plutôt que le code ; ils sont réexam
 
 ### Écarts
 
-- **L'interface n'est pas typée.** 58 composants et pages sur 60 sont en `<script setup>` JavaScript. `npm run typecheck` (vue-tsc) ne vérifie donc que le serveur et les utilitaires. Une API qui change de forme ne casse pas la compilation de l'interface, seulement l'usage. La documentation Nuxt présente TypeScript comme la configuration par défaut. La migration peut être progressive : `lang="ts"` à chaque composant touché, en commençant par les plus gros (R-10).
+- **L'interface n'est pas typée.** 58 composants et pages sur 60 sont en `<script setup>` JavaScript. `npm run typecheck` (vue-tsc) ne vérifie donc que le serveur et les utilitaires. Une API qui change de forme ne casse pas la compilation de l'interface, seulement l'usage. La migration peut être progressive : `lang="ts"` à chaque composant touché, en commençant par les plus gros (R-10).
 - **Code répété en tête de chaque route.** 61 fichiers répètent la lecture du paramètre d'URL et son erreur 400, après `requireOrganizer`. Un utilitaire (`requireRouterParam(event, 'id')`) réduirait ce bruit sans changer le comportement. Ce n'est pas un risque, seulement de la lisibilité (R-11).
 - **Composants volumineux** : `pages/timeline/index.vue` (670 lignes), `SessionDocumentsManager.vue` (541), `RegistrationPeriodsPanel.vue` (531), `pages/sessions/index.vue` (494). À découper quand on y travaille, plutôt qu'en chantier à part (inclus dans R-10).
 - **Outils de build dans `dependencies`** : `eslint`, `@nuxt/eslint`, `typescript`, `nuxi`, `workbox-build` et `@vite-pwa/assets-generator` servent au développement et au build, pas à l'exécution. Le déploiement installe le build testé, donc l'effet est limité au poids de `node_modules` en production et au bruit des alertes de dépendances. À ranger en `devDependencies` en vérifiant que le build de la CI les installe toujours (R-12).
@@ -116,7 +118,7 @@ Ces points concernent le serveur partagé plutôt que le code ; ils sont réexam
   - 304 tests d'intégration contre l'application compilée et une vraie base PostgreSQL ;
   - 9 scénarios Playwright.
 
-  C'est la répartition « en trophée » souvent recommandée pour une application web : l'essentiel de la confiance vient des tests d'intégration, qui vérifient les droits route par route.
+  C'est la répartition du « Testing Trophy » de Kent C. Dodds : l'essentiel de la confiance vient des tests d'intégration, qui vérifient ici les droits route par route.
 - La CI construit une fois dans un conteneur identique au serveur, teste ce build, et c'est lui qui est déployé (ADR-0023) : ce qui est testé est ce qui tourne.
 - Les migrations incompatibles sont refusées automatiquement (ADR-0024).
 
@@ -136,7 +138,7 @@ Ces points concernent le serveur partagé plutôt que le code ; ils sont réexam
 ### Écarts
 
 - **Aucune supervision.** Une panne n'est découverte que lorsqu'on ouvre le site. L'état de l'art pour une petite application : une route de santé (`/api/health`, qui vérifie la base) interrogée toutes les quelques minutes par un service externe gratuit, qui prévient par email. Cela demande peu de travail et aucune infrastructure. La source qui recommande ce montage est un guide, pas une norme. Point déjà écarté, **réexaminé : recommandé** (R-15).
-- **Journaux non structurés.** Le serveur n'écrit que quelques `console.warn`/`console.error`, lus avec `journalctl`. Des journaux JSON (Pino, recommandé par l'architecture de référence Node.js d'IBM et Red Hat) permettraient d'alerter sur les erreurs. Ce n'est utile qu'avec la supervision ; priorité basse (R-16).
+- **Journaux non structurés.** Le serveur n'écrit que quelques `console.warn`/`console.error`, lus avec `journalctl`. Des journaux JSON (Pino, recommandé par l'architecture de référence Node.js, d'après un billet d'IBM) permettraient d'alerter sur les erreurs. Ce n'est utile qu'avec la supervision ; priorité basse (R-16).
 - **Anciennes sauvegardes non chiffrées sur Dedibackup.** Elles sont déjà suivies par une tâche planifiée le 3 novembre. Pas de nouvelle recommandation.
 
 ## Points déjà écartés : bilan du réexamen
@@ -177,7 +179,7 @@ Triées par priorité. Effort : S (moins d'une demi-journée), M (une à deux jo
 
 ## Sources
 
-- OWASP Cheat Sheet Series : [HTTP Security Response Headers](https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html), [File Upload](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html).
+- OWASP Cheat Sheet Series : [HTTP Security Response Headers](https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html), [File Upload](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html), [Password Storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html), [Cross-Site Request Forgery Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html), [Session Management](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html).
 - OWASP ASVS (5.0, chapitre V7 « Session Management ») : [dépôt officiel](https://github.com/OWASP/ASVS). Les exigences citées l'ont été à partir de sources secondaires, qui reprennent le texte de la V7.1.
 - Nuxt Security, module CSP avec nonce : [documentation](https://nuxt-security.vercel.app/), [aide-mémoire report-uri pour Nuxt](https://docs.report-uri.com/frameworks/nuxt/).
 - Prisma : [Query optimization](https://www.prisma.io/docs/orm/prisma-client/queries/query-optimization-performance).
@@ -185,6 +187,7 @@ Triées par priorité. Effort : S (moins d'une demi-journée), M (une à deux jo
 - ANSSI, [Recommandations pour un usage sécurisé d'(Open)SSH](https://cyber.gouv.fr/sites/default/files/2014/01/NT_OpenSSH.pdf) ; [IT-Connect, durcissement SSH](https://www.it-connect.fr/durcissement-de-config-comment-securiser-son-serveur-ssh/) pour les directives d'OpenSSH 9.
 - Droit à l'image : [CNIL, publication de photos](https://www.cnil.fr/fr/les-conseils-de-la-cnil-pour-mieux-maitriser-la-publication-de-photos-0), [CNPD, lignes directrices droit à l'image](https://cnpd.public.lu/content/dam/cnpd/fr/dossiers-thematiques/droit-image/CNPD-Lignes-directrices-droit-a-l-image-protection-donnees-personnelles.pdf).
 - Hors ligne : [LogRocket, offline-first 2025](https://blog.logrocket.com/offline-first-frontend-apps-2025-indexeddb-sqlite/), [stratégies de résolution de conflits](https://frontcore.vercel.app/docs/frontend/state-management-and-data-patterns/offline-conflict-resolution).
+- Tests : Kent C. Dodds, [The Testing Trophy and Testing Classifications](https://kentcdodds.com/blog/the-testing-trophy-and-testing-classifications).
 - Journaux : [IBM, Node.js reference architecture et Pino](https://developer.ibm.com/blogs/nodejs-reference-architectire-pino-for-logging).
 
 ## Suite
