@@ -10,7 +10,8 @@ Toute évolution passe par ces documents, de l'idée à l'archive. La base grand
 | [`specs/`](specs/README.md) | Spécifications validées : ce que fait la fonctionnalité | `SPEC-NNN-slug.md` |
 | [`epics/`](epics/README.md) | Découpage pour l'implémentation : un dossier par epic, une fiche par US | `EPIC-NNN-slug/README.md`, `EPIC-NNN-slug/US-NNN-slug.md` |
 | [`adr/`](adr/README.md) | Décisions techniques (Architecture Decision Records) | `ADR-NNNN-slug.md` |
-| `archive/` | Fiches todo transformées en specs, epics terminés | même nom, sous `archive/todo/` et `archive/epics/` |
+| [`revues/`](revues/README.md) | Constats datés sur l'ensemble du projet (architecture, sécurité), avec leurs recommandations | `AAAA-MM-JJ-sujet.md` |
+| `archive/` | Fiches todo transformées en specs ou en revues, epics terminés | même nom, sous `archive/todo/` et `archive/epics/` |
 | [`modeles/`](modeles/) | Gabarits de chaque type de fiche | |
 
 ## Cycle de vie
@@ -20,6 +21,8 @@ Toute évolution passe par ces documents, de l'idée à l'archive. La base grand
 3. **Découpage** : la spec est découpée en epics (un epic par lot livrable) et en US. Chaque décision technique prise en chemin fait l'objet d'un ADR.
 4. **Implémentation** : les commits citent l'US (`US-012 : …`). Une US passe de `à faire` à `en cours` puis `terminée`, avec ses critères d'acceptation cochés et ses tests nommés.
 5. **Archive** : un epic dont toutes les US sont terminées part dans `archive/epics/`. La spec reste dans `specs/` comme description à jour du fonctionnement ; on la modifie quand le comportement change.
+
+Une revue suit un chemin plus court : la fiche todo `prête` donne directement un rapport dans `revues/`, sans spec, et part dans `archive/todo/` avec un lien vers lui. Les recommandations triées deviennent des fiches todo ou des ADR.
 
 Un ADR n'est jamais supprimé ni archivé : s'il est remis en cause, un nouvel ADR le remplace et l'ancien passe au statut `remplacé par ADR-NNNN`.
 

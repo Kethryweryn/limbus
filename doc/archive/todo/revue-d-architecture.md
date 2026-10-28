@@ -1,6 +1,7 @@
 ---
 titre: Revue d'architecture comparée à l'état de l'art
 statut: prête
+revue: ../../revues/2026-10-29-architecture.md
 date: 2026-10-29
 ---
 
