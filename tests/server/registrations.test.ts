@@ -91,6 +91,14 @@ describe('email d’invitation', () => {
     expect(text).toContain('Nous n’avons pas encore reçu votre réponse')
     expect(text).toContain('Les liens reçus précédemment ne fonctionnent plus')
   })
+
+  it('une relance après l’échéance ne rappelle pas une date passée', () => {
+    const base = { participantName: 'Zoé', gameTitle: 'Les Ombres', sessionName: null, sessionDate: null, inviterName: null, url: 'https://x', reminder: true }
+    const late = registrationInvitationEmailText({ ...base, responseDueAt: new Date(Date.now() - 86_400_000) })
+    expect(late).not.toContain('avant le')
+    expect(late).toContain('dès que possible')
+    expect(registrationInvitationEmailText({ ...base, responseDueAt: new Date(Date.now() + 86_400_000) })).toContain('avant le')
+  })
 })
 
 describe('prolongation de l’échéance (US-005)', () => {

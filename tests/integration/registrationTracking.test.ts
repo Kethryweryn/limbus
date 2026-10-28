@@ -75,6 +75,8 @@ describe('relancer une invitation sans réponse', () => {
     const saved = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })
     expect(saved.tokenHash).toBe(sha256(newToken))
     expect(saved.lastRemindedAt).not.toBeNull()
+    // La date d'invitation reste celle du premier envoi
+    expect(saved.invitationSentAt).toEqual(registration.invitationSentAt)
     expect(saved.responseDueAt).toEqual(registration.responseDueAt)
     expect((await publicGet(token)).status).toBe(404)
   })

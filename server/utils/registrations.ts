@@ -89,7 +89,10 @@ export function registrationInvitationEmailText(params: {
     'Ce lien personnel vous permet de lire la note d’intention, de donner vos informations et de répondre à l’invitation :',
     params.url,
     '',
-    params.responseDueAt ? `Merci de répondre avant le ${formatDate(params.responseDueAt)}.` : null,
+    // Une relance après l'échéance ne rappelle pas une date passée (ADR-0020 : l'invitation reste ouverte)
+    params.responseDueAt && (!params.reminder || params.responseDueAt.getTime() > Date.now())
+      ? `Merci de répondre avant le ${formatDate(params.responseDueAt)}.`
+      : params.reminder ? 'Merci de répondre dès que possible.' : null,
     params.reminder ? 'Les liens reçus précédemment ne fonctionnent plus : utilisez celui-ci.' : null,
     'Ce lien vous est propre : ne le transférez pas.'
   ].filter((line) => line !== null).join('\n')
@@ -130,7 +133,11 @@ async function sendInvitationEmail(transport: EmailTransport | null, target: Inv
     return { sent: false, message: (error as { message?: string })?.message || 'Erreur SMTP' }
   }
 
-  await prisma.registration.update({ where: { id: target.registrationId }, data: { invitationSentAt: new Date() } })
+  // La date d'invitation reste celle du premier envoi : une relance a sa propre date
+  await prisma.registration.update({
+    where: { id: target.registrationId },
+    data: context.reminder ? { lastRemindedAt: new Date() } : { invitationSentAt: new Date() }
+  })
   return { sent: true, message: null }
 }
 
@@ -374,9 +381,6 @@ export async function resendRegistrationInvitation(registrationId: string, invit
   ).finally(() => transport?.close())
   if (!result.sent) {
     throw createError({ statusCode: 502, message: `L’ancien lien est invalidé, mais l’email n’est pas parti : ${result.message}` })
-  }
-  if (options.reminder) {
-    await prisma.registration.update({ where: { id: registration.id }, data: { lastRemindedAt: new Date() } })
   }
   return { sent: true }
 }
