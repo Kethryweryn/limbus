@@ -1,6 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { sendEmail } from '~/server/utils/email'
-import { CHARACTER_TYPES } from '~/utils/domain'
+import { CHARACTER_TYPES, SESSION_ROLES } from '~/utils/domain'
 import { readUpload } from '~/server/utils/uploads'
 import { isHttpUrl } from '~/utils/urls'
 
@@ -53,6 +53,53 @@ function paymentEmailText(params: {
   ])
 }
 
+type PaymentParticipant = { id: string, name: string, email: string | null }
+type PaymentRecord = { participantId: string, paidAt: Date | null, paymentEmailSentAt: Date | null, paymentReminderSentAt: Date | null }
+
+/**
+ * Lignes du tableau des paiements (R22, US-007) : une par personne, qu'elle joue un personnage
+ * PJ ou PNJ de la session, ou qu'elle y ait le rôle « participant » sans personnage encore
+ * (inscrit confirmé avant le casting : « personnage à attribuer »). Cuisine et orgas sans
+ * personnage n'y sont pas. Les personnes avec personnage d'abord, par nom de personnage.
+ */
+export function buildPaymentRows<P extends PaymentParticipant, C extends { name: string, type: string }>(
+  assignments: Array<{ participantId: string | null, participant: P | null, character: C }>,
+  sessionParticipants: Array<{ role: string, participant: P }>,
+  payments: PaymentRecord[]
+) {
+  const paymentsByParticipantId = new Map(payments.map((payment) => [payment.participantId, payment]))
+  const byParticipant = new Map<string, { participant: P, characters: C[] }>()
+
+  const playable = assignments
+    .filter((assignment) => assignment.participant && assignment.participantId && isPlayableCharacterType(assignment.character.type))
+    .sort((left, right) => left.character.name.localeCompare(right.character.name, 'fr'))
+  for (const assignment of playable) {
+    const entry = byParticipant.get(assignment.participantId!)
+    if (entry) entry.characters.push(assignment.character)
+    else byParticipant.set(assignment.participantId!, { participant: assignment.participant!, characters: [assignment.character] })
+  }
+
+  const withoutCharacter = sessionParticipants
+    .filter((sessionParticipant) => sessionParticipant.role === SESSION_ROLES.participant && !byParticipant.has(sessionParticipant.participant.id))
+    .sort((left, right) => left.participant.name.localeCompare(right.participant.name, 'fr'))
+  for (const sessionParticipant of withoutCharacter) {
+    byParticipant.set(sessionParticipant.participant.id, { participant: sessionParticipant.participant, characters: [] })
+  }
+
+  return [...byParticipant.values()].map(({ participant, characters }) => {
+    const payment = paymentsByParticipantId.get(participant.id)
+    return {
+      participant,
+      // Premier personnage, pour l'affichage existant ; null : personnage à attribuer
+      character: characters[0] ?? null,
+      characters,
+      paidAt: payment?.paidAt || null,
+      paymentEmailSentAt: payment?.paymentEmailSentAt || null,
+      paymentReminderSentAt: payment?.paymentReminderSentAt || null
+    }
+  })
+}
+
 async function getPaymentSession(sessionId: string) {
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
@@ -82,28 +129,9 @@ async function getPaymentSession(sessionId: string) {
 
 export async function getSessionPaymentDashboard(sessionId: string) {
   const session = await getPaymentSession(sessionId)
-  const paymentsByParticipantId = new Map(session.payments.map((payment) => [payment.participantId, payment]))
+  const rows = buildPaymentRows(session.assignments, session.participants, session.payments)
 
-  const rows = session.assignments
-    .filter((assignment) =>
-      assignment.participant
-      && assignment.participantId
-      && isPlayableCharacterType(assignment.character.type)
-    )
-    .sort((left, right) => left.character.name.localeCompare(right.character.name, 'fr'))
-    .map((assignment) => {
-      const payment = paymentsByParticipantId.get(assignment.participantId!)
-
-      return {
-        participant: assignment.participant!,
-        character: assignment.character,
-        paidAt: payment?.paidAt || null,
-        paymentEmailSentAt: payment?.paymentEmailSentAt || null,
-        paymentReminderSentAt: payment?.paymentReminderSentAt || null
-      }
-    })
-
-  // Paiements reçus de personnes qui n'ont plus de personnage (désistement, retrait) : à rembourser ou
+  // Paiements reçus de personnes qui ne sont plus dans le tableau (désistement, retrait) : à rembourser ou
   // garder à la main ; ils restent visibles, hors du décompte et des envois
   const listed = new Set(rows.map((row) => row.participant.id))
   const unassignedPayments = session.payments
@@ -149,10 +177,8 @@ export async function updateSessionPaymentSettings(sessionId: string, data: {
 
 export async function setSessionPaymentStatus(sessionId: string, participantId: string, paid: boolean) {
   const session = await getPaymentSession(sessionId)
-  const isPlayer = session.assignments.some((assignment) =>
-    assignment.participantId === participantId
-    && isPlayableCharacterType(assignment.character.type)
-  )
+  const isPlayer = buildPaymentRows(session.assignments, session.participants, session.payments)
+    .some((row) => row.participant.id === participantId)
 
   if (!isPlayer) {
     throw createError({ statusCode: 400, message: 'Participant invalide pour le suivi de paiement' })
