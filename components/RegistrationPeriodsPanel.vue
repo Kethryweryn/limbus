@@ -256,7 +256,7 @@
             description="La personne peut répondre jusqu’à la fin de ce jour."
             :error="extensionError || undefined"
           >
-            <UInput v-model="extensionDate" type="date" :min="todayIso()" required />
+            <UInput v-model="extensionDate" type="date" :min="todayIso()" :max="maxExtensionIso()" required />
           </UFormField>
           <div class="flex justify-end gap-2">
             <UButton color="neutral" variant="soft" @click="showExtension = false">Annuler</UButton>
@@ -363,6 +363,7 @@ function showDetail(registration) {
 
 // Actions d'une organisatrice sur une inscription (US-005) : on recharge la liste, réussite ou échec
 async function registrationAction(registration, action, body, success) {
+  infoMessage.value = ''
   try {
     await useApiFetch(`/api/registrations/${registration.id}/${action}`, { method: 'POST', body })
     await refresh()
@@ -400,6 +401,8 @@ const extending = ref(false)
 // Date du jour au format d'un champ date, en heure locale
 const isoDate = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 const todayIso = () => isoDate(new Date())
+// Le serveur refuse une échéance à plus d'un an (R20)
+const maxExtensionIso = () => isoDate(new Date(Date.now() + 364 * 24 * 60 * 60 * 1000))
 
 // Proposition : une semaine après l'échéance actuelle, ou après aujourd'hui si elle est passée
 function askExtension(registration) {

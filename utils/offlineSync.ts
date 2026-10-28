@@ -45,11 +45,19 @@ function apiEntityId(request: string) {
   return parts[0] === 'api' ? parts[2] || '' : ''
 }
 
+// Un POST sur une sous-route (/api/sessions/:id/payments/send…) est une action, souvent un envoi d'emails :
+// rejouée plus tard sans confirmation, elle partirait avec des données périmées. Seules les créations
+// (/api/<ressource>) et les modifications (PUT, DELETE) sont mises en file.
+function isActionRequest(request: string, method: string) {
+  return method === 'POST' && normalizedPath(request).split('/').length > 2
+}
+
 export function isQueueableApiWrite(request: string, options?: any) {
   const method = String(options?.method || 'GET').toUpperCase()
   const resource = apiResource(request)
   return ['POST', 'PUT', 'DELETE'].includes(method)
     && Boolean(STORE_BY_API_PREFIX[resource])
+    && !isActionRequest(request, method)
     && !(options?.body instanceof FormData)
 }
 

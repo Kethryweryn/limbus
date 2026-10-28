@@ -113,11 +113,23 @@ async function loadSourceGame(gameId: string) {
   return game
 }
 
-// Duplique les photos téléversées sous un nouveau nom (R6). Un fichier absent du disque n'est pas repris.
-async function duplicatePhotos(urls: Array<string | null>) {
+/**
+ * Duplique les photos téléversées sous un nouveau nom (R6). Seuls les fichiers du jeu source hors sessions
+ * sont repris : ni la photo d'un joueur (R5), ni le fichier d'un autre jeu. Un fichier écarté ou absent du
+ * disque n'est pas repris : le personnage arrive sans photo.
+ */
+async function duplicatePhotos(sourceGameId: string, urls: Array<string | null>) {
   const copies = new Map<string, string | null>()
-  for (const url of new Set(urls)) {
-    if (!url || !isUploadUrl(url, PHOTO_UPLOAD_PREFIX)) continue
+  const uploads = [...new Set(urls)].filter((url): url is string => Boolean(url) && isUploadUrl(url!, PHOTO_UPLOAD_PREFIX))
+  const owned = new Set((await prisma.uploadedFile.findMany({
+    where: { url: { in: uploads }, gameId: sourceGameId, sessionId: null },
+    select: { url: true }
+  })).map((file) => file.url))
+  for (const url of uploads) {
+    if (!owned.has(url)) {
+      copies.set(url, null)
+      continue
+    }
     const filename = `${randomUUID()}${extname(url)}`
     const newUrl = `${PHOTO_UPLOAD_PREFIX}${filename}`
     try {
@@ -173,7 +185,7 @@ export async function copyGame(sourceGameId: string, options: GameCopyOptions) {
   const documentSlugs = await slugsFor('document', source.documents.map((row) => row.title))
   const locationSlugs = await slugsFor('location', source.locations.map((row) => row.name))
 
-  const photoCopies = await duplicatePhotos(source.characters.map((row) => row.trombinoscopePhotoUrl))
+  const photoCopies = await duplicatePhotos(source.id, source.characters.map((row) => row.trombinoscopePhotoUrl))
   const copiedPhoto = (url: string | null) => (url && photoCopies.has(url) ? photoCopies.get(url)! : url)
 
   try {
@@ -196,7 +208,10 @@ export async function copyGame(sourceGameId: string, options: GameCopyOptions) {
 
       const newIds = new Map<string, string>()
       const mapped = (id: string | null) => (id ? newIds.get(id) ?? null : null)
-      const connect = (rows: Array<{ id: string }>) => ({ connect: rows.map((row) => ({ id: newIds.get(row.id)! })) })
+      // Un lien vers un élément créé pendant la lecture du jeu source (modification concurrente) est ignoré
+      const connect = (rows: Array<{ id: string }>) => ({
+        connect: rows.flatMap((row) => (newIds.has(row.id) ? [{ id: newIds.get(row.id)! }] : []))
+      })
 
       // Les slugs sont uniques : ils relient chaque ligne créée à sa ligne source
       const characters = await tx.character.createManyAndReturn({
@@ -212,7 +227,7 @@ export async function copyGame(sourceGameId: string, options: GameCopyOptions) {
       source.characters.forEach((row, index) => newIds.set(row.id, characterIdBySlug.get(characterSlugs[index]!)!))
 
       await tx.characterTrombinoscopeEntry.createMany({
-        data: source.characters.flatMap((row) => row.trombinoscopeViewerEntries.map((entry) => ({
+        data: source.characters.flatMap((row) => row.trombinoscopeViewerEntries.filter((entry) => newIds.has(entry.targetCharacterId)).map((entry) => ({
           ...pickCopied('CharacterTrombinoscopeEntry', entry),
           viewerCharacterId: newIds.get(entry.viewerCharacterId)!,
           targetCharacterId: newIds.get(entry.targetCharacterId)!
@@ -312,6 +327,10 @@ export async function copyGame(sourceGameId: string, options: GameCopyOptions) {
     }, { maxWait: 10_000, timeout: 120_000 })
   } catch (error) {
     await removeFiles([...photoCopies.values()])
+    // Un élément créé pendant le legs a pris l'un des slugs réservés : rien n'a été copié, on peut recommencer
+    if ((error as { code?: string })?.code === 'P2002') {
+      throw createError({ statusCode: 409, message: 'Le jeu a été modifié pendant le legs : rien n’a été copié, recommencez.' })
+    }
     throw error
   }
 }

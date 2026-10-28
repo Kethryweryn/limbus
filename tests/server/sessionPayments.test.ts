@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { sendEmail } from '~/server/utils/email'
+import { openEmailTransport } from '~/server/utils/email'
 import { readUpload } from '~/server/utils/uploads'
 import { prisma } from '~/server/utils/prisma'
 import { buildPaymentRows, sendSessionPaymentEmails } from '~/server/utils/sessionPayments'
 
-vi.mock('~/server/utils/email', () => ({ sendEmail: vi.fn() }))
+vi.mock('~/server/utils/email', () => ({ sendEmail: vi.fn(), openEmailTransport: vi.fn() }))
+
+const send = vi.fn()
 vi.mock('~/server/utils/uploads', () => ({ readUpload: vi.fn() }))
 
 const RIB_URL = '/api/uploads/session-payment-ribs/c3027e5d-2f9b-4619-8603-f8749c135cc3.pdf'
@@ -28,7 +30,8 @@ function sessionWith(paymentRibUrl: string | null) {
 }
 
 beforeEach(() => {
-  vi.mocked(sendEmail).mockReset().mockResolvedValue({ sent: true } as never)
+  send.mockReset().mockResolvedValue({ sent: true, messageId: 'm' })
+  vi.mocked(openEmailTransport).mockReset().mockResolvedValue({ send, close: vi.fn() })
   vi.mocked(readUpload).mockReset()
   Object.assign(prisma, { sessionPayment: { upsert: vi.fn() } })
 })
@@ -38,12 +41,36 @@ describe('sendSessionPaymentEmails', () => {
     Object.assign(prisma, { session: { findUnique: vi.fn().mockResolvedValue(sessionWith(RIB_URL)) } })
     vi.mocked(readUpload).mockResolvedValue(Buffer.from('%PDF-1.4'))
 
-    await expect(sendSessionPaymentEmails('session-1')).resolves.toEqual({ sentCount: 1, skippedCount: 0 })
+    await expect(sendSessionPaymentEmails('session-1')).resolves.toEqual({ sentCount: 1, skippedCount: 0, failures: [] })
 
-    const message = vi.mocked(sendEmail).mock.calls[0]![0]
+    const message = send.mock.calls[0]![0]
     expect(message.attachments).toEqual([{ filename: 'RIB.pdf', content: Buffer.from('%PDF-1.4'), contentType: 'application/pdf' }])
     expect(message.text).toContain('Le RIB est joint')
     expect(message.text).not.toContain('/api/uploads')
+  })
+
+  it('continue après un envoi en échec et le signale', async () => {
+    Object.assign(prisma, {
+      session: {
+        findUnique: vi.fn().mockResolvedValue({
+          ...sessionWith(null),
+          participants: [{ role: 'participant', participant: { id: 'p2', name: 'Inès Roy', email: 'ines@example.test' } }]
+        })
+      }
+    })
+    vi.mocked(readUpload).mockResolvedValue(null)
+    send.mockRejectedValueOnce(new Error('refusé'))
+
+    await expect(sendSessionPaymentEmails('session-1')).resolves.toEqual({ sentCount: 1, skippedCount: 0, failures: ['Camille Martin'] })
+    expect(send).toHaveBeenCalledTimes(2)
+  })
+
+  it('refuse quand aucun email n’est parti', async () => {
+    Object.assign(prisma, { session: { findUnique: vi.fn().mockResolvedValue(sessionWith(null)) } })
+    vi.mocked(readUpload).mockResolvedValue(null)
+    send.mockRejectedValue(new Error('refusé'))
+
+    await expect(sendSessionPaymentEmails('session-1')).rejects.toMatchObject({ statusCode: 502 })
   })
 
   it('garde le lien quand le RIB est une URL externe', async () => {
@@ -52,7 +79,7 @@ describe('sendSessionPaymentEmails', () => {
 
     await sendSessionPaymentEmails('session-1')
 
-    const message = vi.mocked(sendEmail).mock.calls[0]![0]
+    const message = send.mock.calls[0]![0]
     expect(message.attachments).toEqual([])
     expect(message.text).toContain('RIB : https://banque.example/rib.pdf')
   })
@@ -82,6 +109,11 @@ describe('lignes du tableau des paiements (US-007, R22)', () => {
       ['zoe', 'Brume', false],
       ['ines', null, true]
     ])
+  })
+
+  it('n’attend pas de personnage pour qui en a déjà un, même non jouable', () => {
+    const rows = buildPaymentRows([assignment(ines, 'Décor', 'orga')], [{ role: 'participant', participant: ines }], [])
+    expect(rows.map((row) => [row.participant.id, row.awaitingCharacter])).toEqual([['ines', false]])
   })
 
   it('suit aussi les PNJ du cast sans personnage, sans « personnage à attribuer »', () => {
@@ -120,8 +152,8 @@ describe('lignes du tableau des paiements (US-007, R22)', () => {
     })
     vi.mocked(readUpload).mockResolvedValue(null)
 
-    await expect(sendSessionPaymentEmails('session-1')).resolves.toEqual({ sentCount: 1, skippedCount: 0 })
-    const message = vi.mocked(sendEmail).mock.calls[0]![0]
+    await expect(sendSessionPaymentEmails('session-1')).resolves.toEqual({ sentCount: 1, skippedCount: 0, failures: [] })
+    const message = send.mock.calls[0]![0]
     expect(message.to).toBe('ines@example.test')
     expect(message.text).toContain('Bonjour Inès')
   })

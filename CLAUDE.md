@@ -49,7 +49,7 @@ On ne pousse jamais directement sur `main` (ADR-0017) : chaque chantier a sa bra
 - Nuxt UI v4 : le contenu d'un `UModal` va dans le slot `#body`, sinon il s'affiche dans la page.
 - Chaque page doit avoir un seul élément racine dans son template.
 - Hors ligne : la déconnexion efface tout ce qui est sur l'appareil (`clearOfflineData`), et la connexion d'un autre compte aussi (`claimOfflineData`). Seul un 401 renvoie à l'écran de connexion ; un 403 est un refus ponctuel.
-- Hors ligne : mode lecture d'abord. Les écritures hors ligne sont mises en file (`utils/offlineSync.ts`), mais la resynchronisation reste un chantier à part.
+- Hors ligne : mode lecture d'abord. Les écritures hors ligne sont mises en file (`utils/offlineSync.ts`), mais la resynchronisation reste un chantier à part. Un POST sur une sous-route (envoi d'emails, génération, legs…) est une action : jamais mis en file.
 
 ## Tests
 

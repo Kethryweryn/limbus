@@ -58,11 +58,23 @@ describe('URL saisies par les organisateurs', () => {
   })
 
   it('accepte les liens http(s) et les fichiers téléversés (témoin)', async () => {
+    const photo = await upload('photo', a.game.id)
     expect((await api(alice, 'PUT', `/api/games/${a.game.id}`, { teaserUrl: 'https://youtu.be/dQw4w9WgXcQ' })).status).toBe(200)
     expect((await api(alice, 'PUT', `/api/characters/${a.character.id}`, {
       backgroundDocumentUrl: 'https://docs.example/fiche',
-      trombinoscopePhotoUrl: '/api/uploads/session-assignment-photos/photo-a.png'
+      trombinoscopePhotoUrl: photo.url
     })).status).toBe(200)
+  })
+
+  it('refuse comme photo de personnage un fichier d’un autre jeu ou la photo d’un joueur', async () => {
+    const { game, session } = await aliceGame('photo-etrangere')
+    const playerPhoto = await upload('photo', game.id, session.id)
+    const otherGamePhoto = await upload('photo', world.b.game.id)
+    for (const url of [playerPhoto.url, otherGamePhoto.url]) {
+      expect((await api(alice, 'POST', '/api/characters', { name: 'Intrus', gameId: game.id, trombinoscopePhotoUrl: url })).status).toBe(400)
+    }
+    const character = await prisma.character.findFirstOrThrow({ where: { gameId: game.id } })
+    expect((await api(alice, 'PUT', `/api/characters/${character.id}`, { trombinoscopePhotoUrl: playerPhoto.url })).status).toBe(400)
   })
 })
 

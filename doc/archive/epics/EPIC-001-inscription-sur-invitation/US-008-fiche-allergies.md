@@ -25,6 +25,7 @@ En tant qu'organisatrice, je veux une fiche des allergies et intolérances des p
 - Routes : `GET /api/sessions/:id/allergies` (données de la fiche), `GET /api/sessions/:id/allergies/pdf`, `POST /api/sessions/:id/allergies/send`. Toutes en `no-store`.
 - Choix du 2026-10-28 : la fiche donne le nombre de personnes qui mangent, c'est-à-dire les inscrits confirmés et toutes les personnes du cast de la session (participants, PNJ, orgas, cuisine, joueurs d'un personnage), chacune comptée une fois, et à part le nombre d'inscrits confirmés. Les allergies listées restent celles déclarées dans les inscriptions confirmées. Le nom affiché est celui de la fiche participant.
 - L'envoi part à chaque membre de rôle « Cuisine » qui a un email, un email par personne, PDF en pièce jointe, avec le verrou d'envoi de session. L'email rappelle que ce sont des données de santé, à ne pas diffuser et à supprimer après le jeu. Sans équipe cuisine, ou sans email, l'envoi est refusé avec une explication.
+- Correctifs de la revue du 2026-10-28 : une confirmée retirée à la main de la session (ADR-0021) n'est plus sur la fiche ni dans le compte des personnes à table ; un envoi parti à personne est une erreur ; les adresses de la cuisine sont dédoublonnées sans tenir compte de la casse. Hors ligne ou serveur injoignable, l'envoi n'est jamais mis en file pour plus tard.
 
 ## Notes techniques
 

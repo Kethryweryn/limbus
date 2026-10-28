@@ -63,11 +63,12 @@ export async function generateUniqueSlug(model: SlugModel, text: string, exclude
   let suffix = 2
 
   while (true) {
-    const existing = taken?.has(slug) ? { id: '' } : await findBySlug(model, slug)
-
-    if (!existing || existing.id === excludeId) {
-      taken?.add(slug)
-      return slug
+    if (!taken?.has(slug)) {
+      const existing = await findBySlug(model, slug)
+      if (!existing || existing.id === excludeId) {
+        taken?.add(slug)
+        return slug
+      }
     }
 
     slug = `${baseSlug}-${suffix}`

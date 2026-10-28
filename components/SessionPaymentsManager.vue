@@ -95,7 +95,7 @@
               <div class="text-sm text-gray-500">
                 <template v-if="row.characters?.length">{{ row.characters.map((character) => character.name).join(', ') }}</template>
                 <span v-else-if="row.awaitingCharacter" class="text-warning-600">Personnage à attribuer</span>
-                <template v-else>PNJ</template>
+                <template v-else-if="row.npcRole">PNJ</template>
                 <span v-if="row.participant.email"> · {{ row.participant.email }}</span>
                 <span v-else> · email manquant</span>
               </div>
@@ -299,11 +299,13 @@ async function sendPaymentEmails() {
 
   sendingPaymentEmails.value = true
   try {
-    await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/send`, {
+    const result = await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/send`, {
       method: 'POST',
       body: {}
     })
-    serverError.value = ''
+    serverError.value = result?.failures?.length
+      ? `${result.sentCount} email(s) envoyé(s). Non envoyés : ${result.failures.join(', ')}.`
+      : ''
     await props.onRefresh()
   } catch (err) {
     serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'

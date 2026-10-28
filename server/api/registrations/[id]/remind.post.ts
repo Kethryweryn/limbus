@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const registration = await findRegistrationOr404(getRouterParam(event, 'id'))
   await requireGameAccess(event, registration.period.gameId)
   assertRateLimit(event, {
-    name: 'registration-resend',
+    name: 'registration-remind',
     limit: 30,
     windowMs: 10 * 60 * 1000,
     keyParts: [authUserRateLimitKey(event), registration.period.id]

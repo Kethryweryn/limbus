@@ -9,7 +9,7 @@ type AllergySheetSource = {
   game: { title: string }
   registrations: Array<{ dietary: string | null, participant: { id: string, name: string } }>
   // Personnes du cast : rôles de session (participants, PNJ, orgas, cuisine) et joueurs d'un personnage
-  participants: Array<{ participantId: string }>
+  participants: Array<{ participantId: string, role: string }>
   assignments: Array<{ participantId: string | null }>
 }
 
@@ -21,18 +21,23 @@ type AllergySheetSource = {
  * données de santé : une personne désistée en disparaît aussitôt.
  */
 export function buildAllergySheet(session: AllergySheetSource) {
-  const people = session.registrations
+  // Une confirmée retirée à la main de la session (ADR-0021) ne vient plus : ni ses allergies ni son couvert
+  const present = new Set(session.participants
+    .filter((participant) => participant.role === SESSION_ROLES.participant)
+    .map((participant) => participant.participantId))
+  const registrations = session.registrations.filter((registration) => present.has(registration.participant.id))
+  const people = registrations
     .filter((registration) => registration.dietary?.trim())
     .map((registration) => ({ name: registration.participant.name, dietary: registration.dietary!.trim() }))
     .sort((left, right) => left.name.localeCompare(right.name, 'fr'))
   return {
     session: { name: session.name, date: session.date, gameTitle: session.game.title },
     eaterCount: new Set([
-      ...session.registrations.map((registration) => registration.participant.id),
+      ...registrations.map((registration) => registration.participant.id),
       ...session.participants.map((participant) => participant.participantId),
       ...session.assignments.map((assignment) => assignment.participantId).filter((id): id is string => Boolean(id))
     ]).size,
-    confirmedCount: session.registrations.length,
+    confirmedCount: registrations.length,
     people
   }
 }
@@ -56,7 +61,7 @@ export async function getAllergySheet(sessionId: string) {
         where: { status: REGISTRATION_STATUSES.confirmed },
         select: { dietary: true, participant: { select: { id: true, name: true } } }
       },
-      participants: { select: { participantId: true } },
+      participants: { select: { participantId: true, role: true } },
       assignments: { select: { participantId: true } }
     }
   })
@@ -110,7 +115,7 @@ export async function sendAllergySheet(sessionId: string) {
     where: { sessionId, role: SESSION_ROLES.kitchen },
     select: { participant: { select: { name: true, email: true } } }
   })
-  const recipients = [...new Set(kitchen.map((member) => member.participant.email?.trim()).filter((email): email is string => Boolean(email)))]
+  const recipients = [...new Set(kitchen.map((member) => member.participant.email?.trim().toLowerCase()).filter((email): email is string => Boolean(email)))]
   if (!kitchen.length) {
     throw createError({ statusCode: 400, message: 'La session n’a pas d’équipe cuisine : ajoutez ses membres avec le rôle « Cuisine » dans le cast.' })
   }
@@ -120,9 +125,9 @@ export async function sendAllergySheet(sessionId: string) {
 
   const sheet = await getAllergySheet(sessionId)
   const pdf = await renderAllergySheetPdf(sheet)
-  const transport = await openEmailTransport()
+  const transport = await openEmailTransport().catch(() => null)
   if (!transport) {
-    throw createError({ statusCode: 500, message: 'SMTP désactivé' })
+    throw createError({ statusCode: 500, message: 'Envoi impossible : SMTP désactivé ou mal configuré. La fiche n’est partie à personne.' })
   }
 
   const failures: string[] = []
@@ -143,5 +148,8 @@ export async function sendAllergySheet(sessionId: string) {
     transport.close()
   }
 
+  if (failures.length === recipients.length) {
+    throw createError({ statusCode: 502, message: `La fiche n’est partie à personne : envoi refusé pour ${failures.join(', ')}.` })
+  }
   return { sentCount: recipients.length - failures.length, failures }
 }

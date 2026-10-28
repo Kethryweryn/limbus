@@ -24,6 +24,7 @@ En tant qu'organisatrice, je veux suivre le paiement des personnes confirmées d
 - Une personne qui joue plusieurs personnages n'a plus qu'une ligne, avec tous ses personnages : auparavant elle apparaissait (et recevait l'email) une fois par personnage.
 - L'email de paiement ne parlait déjà d'aucun personnage : il est inchangé.
 - Choix du 2026-10-28 : les personnes de rôle PNJ dans le cast sont aussi suivies, même sans personnage attribué, mais sans la mention « personnage à attribuer » (la ligne indique « PNJ »). Cuisine et orgas restent hors du suivi.
+- Correctifs de la revue du 2026-10-28 : l'envoi groupé passe par une seule connexion SMTP, continue après un échec et liste les personnes non jointes ; la mention « PNJ » ne s'affiche que pour une personne de rôle PNJ, et « Personnage à attribuer » jamais pour qui a déjà un personnage ; le tableau ne transmet plus que le nom et l'email des personnes.
 
 ## Notes techniques
 
