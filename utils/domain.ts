@@ -109,6 +109,12 @@ export const GAME_INVITATION_STATUSES = {
   revoked: 'revoked'
 } as const
 
+// Co-organisation d'un jeu, ou legs d'une copie à une personne sans compte (SPEC-002 R8, ADR-0025)
+export const GAME_INVITATION_KINDS = {
+  share: 'share',
+  bequest: 'bequest'
+} as const
+
 // Périodes d'inscription (SPEC-001)
 export const REGISTRATION_PERIOD_SCOPES = {
   sessions: 'sessions',

@@ -14,10 +14,12 @@ export async function canAccessAllGames(event: H3Event) {
   }
 }
 
+// Une copie léguée en attente d'attribution n'est visible par personne, même en mode administrateur (ADR-0025)
 export function accessibleGameWhere(userId: string, allGames = false) {
-  if (allGames) return {}
+  if (allGames) return { bequestPending: false }
 
   return {
+    bequestPending: false,
     OR: [
       { ownerId: userId },
       { shares: { some: { userId } } }
@@ -39,7 +41,7 @@ export async function accessibleGameIds(event: H3Event) {
 
 export async function accessibleGameModelWhere(event: H3Event, extraWhere: Record<string, any> = {}) {
   const { user, allGames } = await canAccessAllGames(event)
-  if (allGames) return extraWhere
+  if (allGames) return { AND: [extraWhere, accessibleGameWhere(user.id, true)] }
 
   return {
     AND: [
@@ -51,12 +53,11 @@ export async function accessibleGameModelWhere(event: H3Event, extraWhere: Recor
 
 export async function requireGameAccess(event: H3Event, gameId: string) {
   const { user, allGames } = await canAccessAllGames(event)
-  if (allGames) return { user, allGames }
 
   const game = await prisma.game.findFirst({
     where: {
       id: gameId,
-      ...accessibleGameWhere(user.id)
+      ...accessibleGameWhere(user.id, allGames)
     },
     select: { id: true }
   })
@@ -77,12 +78,12 @@ export function assertSameGame(currentGameId: string, requestedGameId?: string |
 
 export async function requireGameOwner(event: H3Event, gameId: string) {
   const { user, allGames } = await canAccessAllGames(event)
-  if (allGames) return { user, allGames }
 
   const game = await prisma.game.findFirst({
     where: {
       id: gameId,
-      ownerId: user.id
+      bequestPending: false,
+      ...(allGames ? {} : { ownerId: user.id })
     },
     select: { id: true }
   })
@@ -130,7 +131,8 @@ export async function requireParticipantAccess(event: H3Event, participantId: st
 
 export async function gameScopedWhere(event: H3Event, extraWhere: Record<string, any> = {}) {
   const gameIds = await accessibleGameIds(event)
-  if (gameIds === null) return extraWhere
+  // Mode administrateur : tout, sauf le contenu des copies léguées en attente
+  if (gameIds === null) return { AND: [extraWhere, { game: { bequestPending: false } }] }
 
   return {
     AND: [

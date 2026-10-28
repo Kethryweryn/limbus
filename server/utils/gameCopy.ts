@@ -3,7 +3,7 @@ import { copyFile, unlink } from 'node:fs/promises'
 import { extname } from 'node:path'
 import { prisma } from '~/server/utils/prisma'
 import { generateUniqueSlug, type SlugModel } from '~/server/utils/generateUniqueSlug'
-import { uploadFilePath } from '~/server/utils/uploads'
+import { collectUploadUrls, deleteUnusedUploads, uploadFilePath } from '~/server/utils/uploads'
 import { isUploadUrl, PHOTO_UPLOAD_PREFIX } from '~/utils/urls'
 
 /**
@@ -333,4 +333,15 @@ export async function copyGame(sourceGameId: string, options: GameCopyOptions) {
     }
     throw error
   }
+}
+
+/**
+ * Supprime une copie léguée encore en attente (invitation expirée ou annulée, R8), avec ses fichiers.
+ * La condition sur bequestPending protège une copie déjà attribuée entre-temps.
+ */
+export async function deletePendingCopy(gameId: string) {
+  const uploadUrls = await collectUploadUrls({ gameId })
+  const { count } = await prisma.game.deleteMany({ where: { id: gameId, bequestPending: true } })
+  if (count) await deleteUnusedUploads(uploadUrls)
+  return count > 0
 }

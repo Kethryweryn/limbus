@@ -22,8 +22,9 @@ export default defineEventHandler(async (event) => {
 
   const password = await bcrypt.hash(body.password, 10)
   const user = await createInvitedUser(email, body.name, password)
-  const game = await acceptInvitationForUser(body.token, user.id)
+  // Connectée dès la création : si l'acceptation échoue (legs annulé entre-temps…), elle n'a pas à recréer son compte
   setAuthCookie(event, { id: user.id, sessionVersion: 0 })
+  const game = await acceptInvitationForUser(body.token, user.id)
 
   return { success: true, user, game }
 })

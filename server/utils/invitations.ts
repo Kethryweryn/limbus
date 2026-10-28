@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
-import { GAME_SHARE_ROLES, GAME_INVITATION_STATUSES, USER_ROLES } from '~/utils/domain'
+import { GAME_INVITATION_KINDS, GAME_SHARE_ROLES, GAME_INVITATION_STATUSES, USER_ROLES } from '~/utils/domain'
+import { deletePendingCopy } from '~/server/utils/gameCopy'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
 
 export function normalizeInvitationEmail(email: string) {
@@ -19,7 +20,8 @@ export async function getValidInvitation(token: string) {
   const invitation = await prisma.gameInvitation.findUnique({
     where: { token },
     include: {
-      game: { select: { id: true, title: true, slug: true } },
+      game: { select: { id: true, title: true, slug: true, bequestPending: true } },
+      invitedBy: { select: { name: true, email: true } },
       acceptedBy: { select: { id: true, email: true, name: true } }
     }
   })
@@ -31,6 +33,11 @@ export async function getValidInvitation(token: string) {
     throw createError({ statusCode: 400, message: 'Invitation déjà utilisée ou annulée' })
   }
   if (invitation.expiresAt.getTime() < Date.now()) {
+    // Legs expiré : la copie en attente ne peut plus être attribuée, elle part avec ses fichiers (R8, ADR-0020)
+    if (invitation.kind === GAME_INVITATION_KINDS.bequest && invitation.game.bequestPending) {
+      await deletePendingCopy(invitation.gameId)
+      throw createError({ statusCode: 400, message: 'Invitation expirée : la copie léguée a été supprimée. Demandez à la personne qui vous l’a léguée de recommencer.' })
+    }
     throw createError({ statusCode: 400, message: 'Invitation expirée' })
   }
 
@@ -45,6 +52,11 @@ export async function acceptInvitationForUser(token: string, userId: string) {
   })
   if (!user) {
     throw createError({ statusCode: 404, message: 'Utilisateur introuvable' })
+  }
+
+  if (invitation.kind === GAME_INVITATION_KINDS.bequest) {
+    await acceptBequest(invitation, userId)
+    return { id: invitation.game.id, title: invitation.game.title, slug: invitation.game.slug }
   }
 
   await prisma.$transaction([
@@ -73,6 +85,30 @@ export async function acceptInvitationForUser(token: string, userId: string) {
   ])
 
   return invitation.game
+}
+
+/**
+ * Legs à une personne sans compte (US-011, R8) : la copie en attente reçoit sa propriétaire, sans GameShare.
+ * Les deux écritures sont conditionnelles : une invitation annulée ou une copie déjà attribuée entre-temps échoue.
+ */
+async function acceptBequest(invitation: { id: string, gameId: string, invitedById: string }, userId: string) {
+  // On ne se lègue pas son propre jeu (R2), même avec le lien en main
+  if (invitation.invitedById === userId) {
+    throw createError({ statusCode: 400, message: 'Vous ne pouvez pas recevoir votre propre legs.' })
+  }
+  await prisma.$transaction(async (tx) => {
+    const accepted = await tx.gameInvitation.updateMany({
+      where: { id: invitation.id, status: GAME_INVITATION_STATUSES.pending },
+      data: { status: GAME_INVITATION_STATUSES.accepted, acceptedById: userId, acceptedAt: new Date() }
+    })
+    const assigned = await tx.game.updateMany({
+      where: { id: invitation.gameId, bequestPending: true, ownerId: null },
+      data: { ownerId: userId, bequestPending: false }
+    })
+    if (!accepted.count || !assigned.count) {
+      throw createError({ statusCode: 409, message: 'Ce legs a déjà été accepté ou annulé.' })
+    }
+  })
 }
 
 export async function createInvitedUser(email: string, name: string, password: string) {

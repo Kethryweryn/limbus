@@ -546,6 +546,8 @@ model GameInvitation {
   email        String
   token        String    @unique
   status       String    @default("pending")
+  // share : co-organisation ; bequest : legs d'une copie en attente (gameId = la copie, ADR-0025)
+  kind         String    @default("share")
   invitedById  String
   acceptedById String?
   expiresAt    DateTime

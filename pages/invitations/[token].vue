@@ -3,8 +3,12 @@
     <UCard class="w-full max-w-xl">
       <template #header>
         <div>
-          <h1 class="text-xl font-semibold">Invitation Limbus</h1>
-          <p v-if="invitation" class="text-sm text-gray-500">
+          <h1 class="text-xl font-semibold">{{ isBequest ? 'Un jeu vous est légué' : 'Invitation Limbus' }}</h1>
+          <p v-if="invitation && isBequest" class="text-sm text-gray-500">
+            {{ invitation.inviterName }} vous lègue une copie de son jeu « {{ invitation.game.title }} ».
+            Elle vous appartiendra dès votre compte créé, et vous pourrez la modifier librement.
+          </p>
+          <p v-else-if="invitation" class="text-sm text-gray-500">
             Accès au jeu {{ invitation.game.title }}
           </p>
         </div>
@@ -33,7 +37,7 @@
             description="Cette invitation a été envoyée à une autre adresse email. Elle sera rattachée au compte actuellement connecté."
           />
           <UButton color="primary" :loading="saving" @click="acceptInvitation">
-            Accepter l’invitation
+            {{ isBequest ? 'Recevoir la copie' : 'Accepter l’invitation' }}
           </UButton>
         </div>
 
@@ -68,7 +72,7 @@
               <UInput v-model="form.password" type="password" required />
             </UFormField>
             <UButton type="submit" color="primary" :loading="saving">
-              Créer mon compte et accepter
+              {{ isBequest ? 'Créer mon compte et recevoir la copie' : 'Créer mon compte et accepter' }}
             </UButton>
           </form>
 
@@ -80,7 +84,7 @@
               <UInput v-model="loginForm.password" type="password" required />
             </UFormField>
             <UButton type="submit" color="primary" :loading="saving">
-              Me connecter et accepter
+              {{ isBequest ? 'Me connecter et recevoir la copie' : 'Me connecter et accepter' }}
             </UButton>
           </form>
         </div>
@@ -117,6 +121,8 @@ const { data: authState } = await useFetch('/api/auth/me')
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase()
 const normalizedAuthEmail = computed(() => normalizeEmail(authState.value?.user?.email))
 const normalizedInvitationEmail = computed(() => normalizeEmail(invitation.value?.email))
+// Legs d'une copie à une personne sans compte (US-011)
+const isBequest = computed(() => invitation.value?.kind === 'bequest')
 
 try {
   invitation.value = await $fetch(`/api/invitations/${token}`)
