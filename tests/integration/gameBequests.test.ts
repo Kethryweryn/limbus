@@ -237,22 +237,24 @@ describe('legs d’un jeu à une organisatrice qui a un compte', () => {
   })
 })
 
-describe('legs à une personne sans compte (US-011)', () => {
-  const tokenIn = (text: string) => text.match(/\/invitations\/([\w-]+)/)?.[1]
-  let counter = 0
+const tokenIn = (text: string) => text.match(/\/invitations\/([\w-]+)/)?.[1]
+let pendingCounter = 0
 
-  // Legs à une adresse sans compte : copie en attente et email d'invitation
-  async function pendingBequest() {
-    const { game } = await sourceGame(bob)
-    const email = `nouvelle-${++counter}@example.test`
-    const sent = smtp.received.length
-    const response = await api(bob, 'POST', `/api/games/${game.id}/bequests`, { email })
-    expect(response.status, JSON.stringify(response.body)).toBe(200)
-    expect(response.body).toMatchObject({ pending: true, recipient: { email } })
-    const message = smtp.received.slice(sent).find((received) => received.to.includes(email))!
-    const [copy] = await copiesOf(game.id)
-    return { game, email, copy: copy!, message, token: tokenIn(message.text)! }
-  }
+// Legs à une adresse sans compte : copie en attente et email d'invitation.
+// Bob lègue pour US-011, Carol pour US-012 : chaque compte est limité à 10 legs par heure.
+async function pendingBequest(owner: typeof bob = bob, source?: Awaited<ReturnType<typeof sourceGame>>['game']) {
+  const game = source || (await sourceGame(owner)).game
+  const email = `nouvelle-${++pendingCounter}@example.test`
+  const sent = smtp.received.length
+  const response = await api(owner, 'POST', `/api/games/${game.id}/bequests`, { email })
+  expect(response.status, JSON.stringify(response.body)).toBe(200)
+  expect(response.body).toMatchObject({ pending: true, recipient: { email } })
+  const message = smtp.received.slice(sent).find((received) => received.to.includes(email))!
+  const copy = (await copiesOf(game.id)).find((candidate) => candidate.invitations.some((invitation) => invitation.email === email))!
+  return { game, email, copy, message, token: tokenIn(message.text)!, invitation: copy.invitations[0]! }
+}
+
+describe('legs à une personne sans compte (US-011)', () => {
 
   it('crée une copie en attente, invisible pour tous, et envoie une invitation', async () => {
     const { game, copy, message, token } = await pendingBequest()
@@ -342,5 +344,97 @@ describe('legs à une personne sans compte (US-011)', () => {
     expect((await api(bob, 'POST', '/api/invitations/accept', { token })).status).toBe(200)
     expect(await prisma.gameShare.count({ where: { gameId: game.id, userId: bob.id } })).toBe(1)
     expect(await prisma.game.findUnique({ where: { id: game.id } })).toMatchObject({ ownerId: alice.id })
+  })
+})
+
+describe('suivi des legs en attente (US-012)', () => {
+  const list = async (gameId: string) => await api(carol, 'GET', `/api/games/${gameId}/bequests`)
+
+  it('liste les legs en attente du jeu, sans les legs attribués', async () => {
+    const first = await pendingBequest(carol)
+    const second = await pendingBequest(carol, first.game)
+    // Attribué : la copie appartient à sa destinataire, il quitte la liste
+    expect((await api(null, 'POST', '/api/auth/register', { token: second.token, email: second.email, name: 'Arrivée', password: 'mot-de-passe-solide' })).status).toBe(200)
+
+    const response = await list(first.game.id)
+    expect(response.status).toBe(200)
+    expect(response.body).toEqual([expect.objectContaining({ id: first.invitation.id, email: first.email, createdAt: expect.any(String), expiresAt: expect.any(String) })])
+    expect(JSON.stringify(response.body)).not.toContain(first.token)
+  })
+
+  it('annule un legs : copie et fichiers supprimés, invitation refusée ensuite', async () => {
+    const { game, copy, token, invitation } = await pendingBequest(carol)
+    const photo = copy.uploadedFiles[0]!.url
+
+    expect((await api(carol, 'DELETE', `/api/games/${game.id}/bequests/${invitation.id}`)).status).toBe(200)
+    expect(await prisma.game.findUnique({ where: { id: copy.id } })).toBeNull()
+    expect(existsSync(join(PHOTOS, basename(photo)))).toBe(false)
+    expect((await api(null, 'GET', `/api/invitations/${token}`)).status).toBe(404)
+    expect((await list(game.id)).body).toEqual([])
+    // Le jeu source est intact
+    expect(await prisma.game.findUnique({ where: { id: game.id } })).not.toBeNull()
+  })
+
+  it('renvoie l’invitation : nouvelle expiration, même lien, même copie', async () => {
+    const { game, email, copy, token, invitation } = await pendingBequest(carol)
+    await prisma.gameInvitation.update({ where: { id: invitation.id }, data: { expiresAt: new Date(Date.now() + 86_400_000) } })
+    // Le jeu source change après le legs : la copie n'en tient pas compte (R9)
+    await prisma.game.update({ where: { id: game.id }, data: { description: 'Réécrit après le legs' } })
+
+    const sent = smtp.received.length
+    const response = await api(carol, 'POST', `/api/games/${game.id}/bequests/${invitation.id}/resend`)
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    const renewed = await prisma.gameInvitation.findUniqueOrThrow({ where: { id: invitation.id } })
+    expect(renewed.expiresAt.getTime()).toBeGreaterThan(Date.now() + 13 * 86_400_000)
+    expect(renewed.token).toBe(token)
+    const message = smtp.received.slice(sent).find((received) => received.to.includes(email))!
+    expect(tokenIn(message.text)).toBe(token)
+    expect(await prisma.game.findUnique({ where: { id: copy.id } })).toMatchObject({ bequestPending: true, description: 'Un jeu' })
+  })
+
+  it('n’allonge pas l’expiration quand le renvoi ne part pas', async () => {
+    const { game, invitation } = await pendingBequest(carol)
+    await smtp.disable()
+    try {
+      expect((await api(carol, 'POST', `/api/games/${game.id}/bequests/${invitation.id}/resend`)).status).toBe(502)
+    } finally {
+      await smtp.enable()
+    }
+    expect((await prisma.gameInvitation.findUniqueOrThrow({ where: { id: invitation.id } })).expiresAt).toEqual(invitation.expiresAt)
+  })
+
+  it('supprime à la lecture de la liste un legs expiré, avec sa copie', async () => {
+    const { game, copy, invitation } = await pendingBequest(carol)
+    await prisma.gameInvitation.update({ where: { id: invitation.id }, data: { expiresAt: new Date(Date.now() - 1000) } })
+
+    expect((await list(game.id)).body).toEqual([])
+    expect(await prisma.game.findUnique({ where: { id: copy.id } })).toBeNull()
+    expect(existsSync(join(PHOTOS, basename(copy.uploadedFiles[0]!.url)))).toBe(false)
+    // Expiré : plus de renvoi possible
+    expect((await api(carol, 'POST', `/api/games/${game.id}/bequests/${invitation.id}/resend`)).status).toBe(404)
+  })
+
+  it('réservé à la propriétaire : ni co-organisatrice, ni mode administrateur', async () => {
+    const { game, copy, invitation } = await pendingBequest(carol)
+    await prisma.gameShare.create({ data: { gameId: game.id, userId: alice.id } })
+    const routes: Array<[string, string]> = [
+      ['GET', `/api/games/${game.id}/bequests`],
+      ['POST', `/api/games/${game.id}/bequests/${invitation.id}/resend`],
+      ['DELETE', `/api/games/${game.id}/bequests/${invitation.id}`]
+    ]
+    for (const [method, path] of routes) {
+      expect(DENIED).toContain((await api(alice, method, path)).status)
+      expect(DENIED).toContain((await api(admin, method, path, undefined, { adminMode: true })).status)
+    }
+    expect(await prisma.game.findUnique({ where: { id: copy.id } })).toMatchObject({ bequestPending: true })
+    // Témoin : la propriétaire y a accès
+    expect((await list(game.id)).status).toBe(200)
+  })
+
+  it('n’atteint pas le legs d’un autre jeu par son identifiant', async () => {
+    const { copy, invitation } = await pendingBequest(carol)
+    const other = await prisma.game.create({ data: { title: 'Autre jeu de Carol', slug: `autre-jeu-carol-${pendingCounter}`, description: 'Un jeu', ownerId: carol.id } })
+    expect((await api(carol, 'DELETE', `/api/games/${other.id}/bequests/${invitation.id}`)).status).toBe(404)
+    expect(await prisma.game.findUnique({ where: { id: copy.id } })).not.toBeNull()
   })
 })

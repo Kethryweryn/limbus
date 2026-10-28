@@ -50,6 +50,31 @@
 
         <UAlert v-if="message" color="success" variant="soft" :description="message" />
         <UAlert v-if="errorMessage" color="error" variant="soft" :description="errorMessage" />
+
+        <section v-if="pendingBequests.length" class="space-y-2 border-t border-gray-200 pt-4">
+          <h3 class="font-semibold">Legs en attente</h3>
+          <p class="text-sm text-gray-600">
+            Ces personnes n’ont pas encore créé leur compte. Une copie annulée ou expirée est supprimée.
+          </p>
+          <ul class="divide-y divide-gray-200 text-sm">
+            <li v-for="bequest in pendingBequests" :key="bequest.id" class="flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div class="font-medium">{{ bequest.email }}</div>
+                <div class="text-gray-600">
+                  Légué le {{ formatDate(bequest.createdAt) }}, expire le {{ formatDate(bequest.expiresAt) }}
+                </div>
+              </div>
+              <div class="flex gap-2">
+                <UButton size="xs" color="neutral" variant="soft" :loading="busyId === bequest.id" @click="resend(bequest)">
+                  Renvoyer
+                </UButton>
+                <UButton size="xs" color="error" variant="soft" :disabled="busyId === bequest.id" @click="cancel(bequest)">
+                  Annuler
+                </UButton>
+              </div>
+            </li>
+          </ul>
+        </section>
       </div>
     </template>
   </UModal>
@@ -74,6 +99,10 @@ const confirmed = ref(false)
 const sending = ref(false)
 const message = ref('')
 const errorMessage = ref('')
+const pendingBequests = ref([])
+const busyId = ref('')
+
+const formatDate = (value) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long' })
 
 watch(open, (value) => {
   if (!value) return
@@ -81,7 +110,49 @@ watch(open, (value) => {
   confirmed.value = false
   message.value = ''
   errorMessage.value = ''
+  loadPendingBequests()
 })
+
+// Legs à des personnes sans compte, pas encore attribués (US-012)
+async function loadPendingBequests() {
+  if (!props.game?.id) return
+  try {
+    pendingBequests.value = await useApiFetch(`/api/games/${props.game.id}/bequests`)
+  } catch (err) {
+    errorMessage.value = err?.data?.message || err?.message || 'Impossible de charger les legs en attente'
+  }
+}
+
+async function resend(bequest) {
+  busyId.value = bequest.id
+  message.value = ''
+  errorMessage.value = ''
+  try {
+    const result = await useApiFetch(`/api/games/${props.game.id}/bequests/${bequest.id}/resend`, { method: 'POST' })
+    message.value = `Invitation renvoyée à ${bequest.email}, valable jusqu’au ${formatDate(result.expiresAt)}.`
+  } catch (err) {
+    errorMessage.value = err?.data?.message || err?.message || 'Impossible de renvoyer l’invitation'
+  } finally {
+    busyId.value = ''
+    await loadPendingBequests()
+  }
+}
+
+async function cancel(bequest) {
+  if (!confirm(`Annuler le legs à ${bequest.email} ? La copie sera supprimée, et le lien de son invitation ne fonctionnera plus.`)) return
+  busyId.value = bequest.id
+  message.value = ''
+  errorMessage.value = ''
+  try {
+    await useApiFetch(`/api/games/${props.game.id}/bequests/${bequest.id}`, { method: 'DELETE' })
+    message.value = `Legs à ${bequest.email} annulé : la copie est supprimée.`
+  } catch (err) {
+    errorMessage.value = err?.data?.message || err?.message || 'Impossible d’annuler le legs'
+  } finally {
+    busyId.value = ''
+    await loadPendingBequests()
+  }
+}
 
 async function bequeath() {
   if (!props.game?.id || !email.value || !confirmed.value) return
@@ -102,6 +173,7 @@ async function bequeath() {
       : `Copie léguée à ${recipient}, mais l’email n’a pas pu être envoyé : prévenez-la vous-même.`
     email.value = ''
     confirmed.value = false
+    if (result.pending) await loadPendingBequests()
   } catch (err) {
     errorMessage.value = err?.data?.message || err?.message || 'Impossible de léguer le jeu'
   } finally {

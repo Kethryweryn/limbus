@@ -183,6 +183,9 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['POST', `/api/games/${b.game.id}/invitations`, { email: 'intrus@example.test' }],
     ['DELETE', `/api/games/${b.game.id}/invitations/${b.invitation.id}`],
     ['POST', `/api/games/${b.game.id}/bequests`, { email: 'alice@example.test' }],
+    ['GET', `/api/games/${b.game.id}/bequests`],
+    ['POST', `/api/games/${b.game.id}/bequests/${b.invitation.id}/resend`],
+    ['DELETE', `/api/games/${b.game.id}/bequests/${b.invitation.id}`],
     ['GET', `/api/uploads/session-assignment-photos/${b.photo.filename}`],
     ['GET', `/api/uploads/session-payment-ribs/${b.rib.filename}`],
     ['GET', `/api/participants/${b.participant.id}/export`],
@@ -218,6 +221,7 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect((await api(alice, 'GET', `/api/sessions/${a.session.id}/timeline`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/characters/${a.character.id}/trombinoscope`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/shares`)).status).toBe(200)
+    expect((await api(alice, 'GET', `/api/games/${a.game.id}/bequests`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/participants/${a.participant.id}/export`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/registration-context`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/registration-form`)).status).toBe(200)

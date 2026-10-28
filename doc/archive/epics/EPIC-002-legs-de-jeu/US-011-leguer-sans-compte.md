@@ -32,7 +32,7 @@ En tant que propriétaire d'un jeu, je veux pouvoir le léguer à une organisatr
 ## Notes techniques
 
 - `GameInvitation.kind` : `share` (par défaut, comportement actuel) ou `bequest`. Migration additive.
-- La copie en attente : `ownerId` nul, `bequestPending` vrai. `accessibleGameWhere` l'écarte, y compris en mode administrateur ([ADR-0025](../../adr/ADR-0025-legs-de-jeu.md)).
+- La copie en attente : `ownerId` nul, `bequestPending` vrai. `accessibleGameWhere` l'écarte, y compris en mode administrateur ([ADR-0025](../../../adr/ADR-0025-legs-de-jeu.md)).
 - `acceptInvitationForUser` attribue la copie pour `bequest`, dans une transaction, au lieu de créer un `GameShare`.
 - La page d'invitation (`/invitations/:token`) adapte son texte au legs.
 

@@ -1,7 +1,7 @@
 ---
 id: ADR-0025
 titre: Legs d'un jeu par copie en une transaction, copie en attente sans propriétaire
-statut: proposé
+statut: accepté
 date: 2026-10-28
 liens: [SPEC-002, EPIC-002, ADR-0007, ADR-0008, ADR-0020]
 ---
