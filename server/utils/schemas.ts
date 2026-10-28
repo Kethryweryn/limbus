@@ -384,6 +384,11 @@ export const gameInvitationCreateSchema = z.object({
   email: requiredText('Email').email('Invalid email')
 })
 
+// Legs d'une copie du jeu (SPEC-002)
+export const gameBequestSchema = z.object({
+  email: frenchText('L’email').toLowerCase().max(254, 'Email trop long').email('Email invalide')
+})
+
 export const invitationRegistrationSchema = z.object({
   token: requiredText('Token'),
   email: requiredText('Email').email('Invalid email'),

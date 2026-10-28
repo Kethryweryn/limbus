@@ -33,6 +33,15 @@
                     Partager
                 </UButton>
                 <UButton
+                    v-if="isOwner"
+                    icon="i-heroicons-gift"
+                    color="neutral"
+                    variant="soft"
+                    @click="showBequest = true"
+                >
+                    Léguer une copie
+                </UButton>
+                <UButton
                     v-if="game.published"
                     :icon="game.publicPage ? 'i-heroicons-eye-slash' : 'i-heroicons-globe-alt'"
                     :color="game.publicPage ? 'neutral' : 'primary'"
@@ -72,6 +81,7 @@
         </template>
 
         <GameShareModal v-model:open="showShares" :game="game" />
+        <GameBequestModal v-model:open="showBequest" :game="game" :owner-name="authState?.user?.name || authState?.user?.email || ''" />
     </div>
 </template>
 
@@ -96,6 +106,9 @@ const isCurrentGame = computed(() => currentGame?.value?.id === game.value?.id)
 const isEditing = ref(route.query.edit === '1')
 const editableGame = ref(game.value ? { ...game.value } : null)
 const showShares = ref(false)
+const showBequest = ref(false)
+// Léguer est réservé à la propriétaire, même en mode administrateur (SPEC-002 R1)
+const isOwner = computed(() => Boolean(game.value?.ownerId) && game.value?.ownerId === authState.value?.user?.id)
 const canManageShares = computed(() =>
     Boolean(game.value?.id)
     && (authState.value?.adminMode || game.value?.ownerId === authState.value?.user?.id)

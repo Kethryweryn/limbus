@@ -6,6 +6,7 @@
       </div>
       <div class="space-y-3">
         <h1 class="text-4xl font-bold tracking-normal">{{ game.title }}</h1>
+        <p v-if="creditText" class="text-sm italic text-gray-500" data-testid="game-credit">{{ creditText }}</p>
         <p class="max-w-4xl text-lg leading-8 text-gray-600 whitespace-pre-line">
           {{ game.description || 'Aucune description renseignée.' }}
         </p>
@@ -58,6 +59,7 @@
 
 <script setup>
 import { isHttpUrl, youtubeEmbedUrl } from '~/utils/urls'
+import { gameCreditText } from '~/utils/games'
 
 const props = defineProps({
   game: {
@@ -66,6 +68,7 @@ const props = defineProps({
   }
 })
 
+const creditText = computed(() => gameCreditText(props.game))
 const teaserEmbedUrl = computed(() => youtubeEmbedUrl(props.game.teaserUrl))
 const teaserLinkUrl = computed(() => props.game.teaserUrl && isHttpUrl(props.game.teaserUrl) ? props.game.teaserUrl : null)
 </script>
