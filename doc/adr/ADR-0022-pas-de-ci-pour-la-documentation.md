@@ -1,9 +1,9 @@
 ---
 id: ADR-0022
 titre: Pas de CI ni de déploiement quand seule la documentation change
-statut: accepté
+statut: accepté, en partie remplacé par ADR-0023 (filtre dans le workflow pour les PR)
 date: 2026-10-28
-liens: [ADR-0002, ADR-0017, ADR-0001]
+liens: [ADR-0002, ADR-0017, ADR-0001, ADR-0023]
 ---
 
 # ADR-0022 : Pas de CI ni de déploiement quand seule la documentation change

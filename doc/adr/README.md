@@ -5,7 +5,7 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | ADR | Décision | Statut | Date |
 |---|---|---|---|
 | [ADR-0001](ADR-0001-documentation-du-projet.md) | Documenter le projet dans `doc/` : fiches, specs, epics/US, ADR | accepté | 2026-10-27 |
-| [ADR-0002](ADR-0002-deploiement-continu.md) | Déploiement continu de `main` après une CI verte | accepté, en partie remplacé par ADR-0017 | 2026-10-27 |
+| [ADR-0002](ADR-0002-deploiement-continu.md) | Déploiement continu de `main` après une CI verte | accepté, en partie remplacé par ADR-0017 et ADR-0023 | 2026-10-27 |
 | [ADR-0003](ADR-0003-service-de-production.md) | Service systemd durci derrière Apache | accepté | 2026-10-27 |
 | [ADR-0004](ADR-0004-secrets-a-l-execution.md) | Secrets lus à l'exécution, jamais figés au build | accepté | 2026-10-27 |
 | [ADR-0005](ADR-0005-sauvegardes-chiffrees.md) | Sauvegardes quotidiennes chiffrées, clé privée hors du serveur | accepté | 2026-10-27 |
@@ -25,4 +25,5 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0019](ADR-0019-modele-des-inscriptions.md) | Modèle des inscriptions, champs standards en colonnes, formulaire versionné | proposé | 2026-10-27 |
 | [ADR-0020](ADR-0020-echeances-evaluees-a-la-lecture.md) | Échéances évaluées à la lecture, sans tâche planifiée | proposé | 2026-10-27 |
 | [ADR-0021](ADR-0021-inscription-et-participation-de-session.md) | L'inscription crée la participation de session, la session reste la référence | proposé | 2026-10-27 |
-| [ADR-0022](ADR-0022-pas-de-ci-pour-la-documentation.md) | Pas de CI ni de déploiement quand seule la documentation change | accepté | 2026-10-28 |
+| [ADR-0022](ADR-0022-pas-de-ci-pour-la-documentation.md) | Pas de CI ni de déploiement quand seule la documentation change | accepté, en partie remplacé par ADR-0023 | 2026-10-28 |
+| [ADR-0023](ADR-0023-deploiement-sans-ci-redondante.md) | Déployer à la fusion sans relancer la CI, et réutiliser les dépendances du serveur | accepté | 2026-10-28 |

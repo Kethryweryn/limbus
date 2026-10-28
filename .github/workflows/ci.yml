@@ -1,6 +1,8 @@
 name: CI
 
-# Documentation seule : ni CI ni déploiement (ADR-0022). Dès qu'un autre fichier change, tout tourne.
+# Les tests tournent sur les PR ; la fusion dans main ne fait que déployer (ADR-0023) : la protection
+# de main exige les vérifications `changes` et `check`, sur une branche à jour avec main.
+# Documentation seule : pas de déploiement (paths-ignore), et `check` est ignoré sur la PR (ADR-0022).
 on:
   push:
     branches: [main]
@@ -8,15 +10,39 @@ on:
       - 'doc/**'
       - '*.md'
   pull_request:
-    paths-ignore:
-      - 'doc/**'
-      - '*.md'
 
 permissions:
   contents: read
 
 jobs:
+  # Vérification obligatoire elle aussi : si elle échoue, `check` serait ignoré, donc compté comme réussi
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Autre chose que de la documentation ?
+        id: diff
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          files=$(git diff --name-only "$BASE...$HEAD")
+          echo "$files"
+          if echo "$files" | grep -qvE '^(doc/.*|[^/]+\.md)$'; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+
   check:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
@@ -62,8 +88,8 @@ jobs:
           path: test-results/
           retention-days: 7
 
+  # Le commit de main est celui que la CI de la PR a testé (branche à jour exigée) : pas de second passage
   deploy:
-    needs: check
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20

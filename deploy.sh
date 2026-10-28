@@ -60,7 +60,17 @@ rsync -a --delete \
 # .nuxt est exclu de la copie : il contient des chemins absolus vers $APP_DIR
 # qui cassent le prérendu (#internal/nuxt/paths introuvable)
 cd "$BUILD_DIR"
-npm ci --include=dev
+# Dépendances inchangées (même package-lock.json, même Node) : on reprend celles en place par liens
+# physiques, quasi instantanés (ADR-0023). Supprimer l'empreinte force une réinstallation complète.
+DEPS_STAMP="node_modules/.limbus-deps-stamp"
+deps_fingerprint="$(sha256sum package-lock.json | cut -d' ' -f1) $(node --version)"
+if [ -d "$APP_DIR/node_modules" ] && [ "$(cat "$APP_DIR/$DEPS_STAMP" 2>/dev/null)" = "$deps_fingerprint" ]; then
+  echo "Dépendances inchangées : reprise de node_modules"
+  cp -al "$APP_DIR/node_modules" node_modules
+else
+  npm ci --include=dev
+  echo "$deps_fingerprint" > "$DEPS_STAMP"
+fi
 npx prisma generate
 npm run build
 npx prisma migrate deploy
