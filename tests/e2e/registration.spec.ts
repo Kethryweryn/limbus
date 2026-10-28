@@ -42,7 +42,7 @@ test('une personne invitée accepte par son lien et rejoint la session', async (
     const participants = await (await page.request.get(`/api/sessions/${session.id}`)).json()
     expect(JSON.stringify(participants)).toContain('Camille Invitée')
     await page.goto('/registrations')
-    await expect(page.getByText('Confirmée')).toBeVisible()
+    await expect(page.getByText('Confirmée', { exact: true })).toBeVisible()
   } finally {
     await smtp.stop()
     await prisma.$disconnect()
