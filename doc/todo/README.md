@@ -4,6 +4,9 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 
 | Fiche | Statut | Créée le | Résumé |
 |---|---|---|---|
+| [Revue d'architecture](revue-d-architecture.md) | à trancher | 2026-10-29 | Revue du projet entier comparée à l'état de l'art, rapport et recommandations |
+| [Documentation de l'existant](documentation-de-l-existant.md) | à trancher | 2026-10-29 | Specs des fonctionnalités antérieures à la reprise, une par domaine |
+| [API pour une IA](api-pour-ia.md) | à trancher | 2026-10-29 | Accès d'une IA aux jeux d'une organisatrice connectée, avec ses droits (MCP ou REST) |
 
 ## Archivées
 
