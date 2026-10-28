@@ -1,0 +1,282 @@
+import type { H3Event } from 'h3'
+import { prisma } from '~/server/utils/prisma'
+import { assertRateLimit } from '~/server/utils/rateLimit'
+import { sendEmail } from '~/server/utils/email'
+import { hashRegistrationToken, registrationUrl } from '~/server/utils/registrations'
+import { getCurrentRegistrationForm, saveRegistrationFormDefinition } from '~/server/utils/registrationForms'
+import { REGISTRATION_PERIOD_STATES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
+import { effectivePeriodState } from '~/utils/registrationPeriods'
+import { isInvitationOverdue, registrationLinkExpired, splitParticipantName } from '~/utils/registrations'
+import {
+  DEFAULT_REGISTRATION_FORM_DEFINITION,
+  normalizeRegistrationFormDefinition,
+  type RegistrationFormDefinition
+} from '~/utils/registrationForms'
+
+// Même réponse pour un jeton inconnu, invalidé ou expiré : on ne dit pas pourquoi (ADR-0018)
+export const INVALID_LINK_MESSAGE = 'Ce lien n’est pas valide.'
+
+const TOKEN_PATTERN = /^[\w-]{43}$/
+
+const publicRegistrationSelect = {
+  id: true,
+  status: true,
+  sessionId: true,
+  participantId: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  facebookName: true,
+  phone: true,
+  emergencyContactName: true,
+  emergencyContactPhone: true,
+  dietary: true,
+  healthConsentAt: true,
+  charterAcceptedAt: true,
+  responseDueAt: true,
+  respondedAt: true,
+  confirmedAt: true,
+  formVersion: { select: { id: true, definition: true } },
+  participant: { select: { name: true } },
+  session: { select: { name: true, date: true, location: { select: { name: true, address: true } } } },
+  period: {
+    select: {
+      gameId: true,
+      state: true,
+      closesAt: true,
+      game: { select: { title: true, noteIntention: true } },
+      sessions: { select: { session: { select: { date: true } } } }
+    }
+  }
+} as const
+
+export type PublicRegistration = NonNullable<Awaited<ReturnType<typeof findRegistrationByToken>>>
+
+export async function findRegistrationByToken(token: string | undefined) {
+  if (!token || !TOKEN_PATTERN.test(token)) return null
+
+  const registration = await prisma.registration.findUnique({
+    where: { tokenHash: hashRegistrationToken(token) },
+    select: publicRegistrationSelect
+  })
+  if (!registration) return null
+
+  const sessionDates = [registration.session?.date, ...registration.period.sessions.map((link) => link.session.date)]
+  if (registrationLinkExpired(sessionDates)) return null
+  return registration
+}
+
+export async function requireRegistrationByToken(token: string | undefined) {
+  const registration = await findRegistrationByToken(token)
+  if (!registration) {
+    throw createError({ statusCode: 404, message: INVALID_LINK_MESSAGE })
+  }
+  return registration
+}
+
+/**
+ * Ce que permet le lien (R13, R20, ADR-0018) :
+ * - une invitation sans réponse s'accepte ou se décline, même après l'échéance ou la clôture,
+ *   tant que les orgas n'ont pas libéré la place (elle serait alors désistée) ;
+ * - une inscription confirmée se modifie jusqu'à la clôture ;
+ * - une inscription désistée ne permet plus rien.
+ */
+export function registrationPermissions(registration: Pick<PublicRegistration, 'status' | 'period'>, now = new Date()) {
+  const open = effectivePeriodState(registration.period, now) === REGISTRATION_PERIOD_STATES.open
+  const invited = registration.status === REGISTRATION_STATUSES.invited
+  return {
+    canAccept: invited,
+    canDecline: invited,
+    canEdit: registration.status === REGISTRATION_STATUSES.confirmed && open
+  }
+}
+
+/**
+ * Définition à remplir : celle que l'inscription a déjà remplie (R9), sinon la version en vigueur.
+ * Une première réponse fige la version : sans formulaire enregistré, la définition par défaut devient la version 1.
+ */
+async function formForRegistration(registration: PublicRegistration, freeze: boolean) {
+  if (registration.formVersion) {
+    return {
+      versionId: registration.formVersion.id,
+      definition: normalizeRegistrationFormDefinition(registration.formVersion.definition as RegistrationFormDefinition)
+    }
+  }
+  let current = await getCurrentRegistrationForm(registration.period.gameId)
+  if (!current.version && freeze) {
+    current = await saveRegistrationFormDefinition(registration.period.gameId, DEFAULT_REGISTRATION_FORM_DEFINITION)
+  }
+  return { versionId: current.version?.id ?? null, definition: current.definition }
+}
+
+export async function registrationFormDefinition(registration: PublicRegistration) {
+  return (await formForRegistration(registration, false)).definition
+}
+
+// Données montrées à la personne : les siennes et celles du jeu, jamais celles des autres inscrits
+export async function exposePublicRegistration(registration: PublicRegistration, now = new Date()) {
+  const game = { title: registration.period.game.title }
+  if (registration.status === REGISTRATION_STATUSES.withdrawn) {
+    return { status: registration.status, game }
+  }
+
+  const prefill = splitParticipantName(registration.participant.name)
+  const answered = Boolean(registration.respondedAt)
+  return {
+    status: registration.status,
+    game: { ...game, noteIntention: registration.period.game.noteIntention },
+    session: registration.session,
+    periodState: effectivePeriodState(registration.period, now),
+    closesAt: registration.period.closesAt,
+    responseDueAt: registration.responseDueAt,
+    overdue: isInvitationOverdue(registration, now),
+    confirmedAt: registration.confirmedAt,
+    ...registrationPermissions(registration, now),
+    definition: await registrationFormDefinition(registration),
+    answers: {
+      email: registration.email,
+      firstName: answered ? registration.firstName : registration.firstName ?? prefill.firstName,
+      lastName: answered ? registration.lastName : registration.lastName ?? prefill.lastName,
+      facebookName: registration.facebookName,
+      phone: registration.phone,
+      emergencyContactName: registration.emergencyContactName,
+      emergencyContactPhone: registration.emergencyContactPhone,
+      dietary: registration.dietary,
+      healthConsent: Boolean(registration.healthConsentAt),
+      charterAccepted: Boolean(registration.charterAcceptedAt)
+    }
+  }
+}
+
+export type RegistrationAnswers = {
+  email: string
+  firstName: string | null
+  lastName: string | null
+  facebookName: string | null
+  phone: string | null
+  emergencyContactName: string | null
+  emergencyContactPhone: string | null
+  dietary: string | null
+}
+
+export async function answerFormDefinition(registration: PublicRegistration) {
+  const { status } = registration
+  const permissions = registrationPermissions(registration)
+  if (status === REGISTRATION_STATUSES.invited ? !permissions.canAccept : !permissions.canEdit) {
+    throw createError({ statusCode: 409, message: 'Votre inscription ne peut plus être modifiée.' })
+  }
+  return await formForRegistration(registration, true)
+}
+
+/**
+ * Accepte l'invitation (statut confirmée) ou modifie une inscription confirmée.
+ * L'acceptation crée le SessionParticipant dans la même transaction (ADR-0021, R22).
+ * Les informations restent sur l'inscription et ne modifient pas la fiche du participant (R14).
+ */
+export async function saveRegistrationAnswers(registration: PublicRegistration, versionId: string | null, answers: RegistrationAnswers) {
+  const now = new Date()
+  const accepting = registration.status === REGISTRATION_STATUSES.invited
+  const data = {
+    ...answers,
+    // Le consentement santé n'a de sens qu'avec des allergies déclarées ; on garde sa première date
+    healthConsentAt: answers.dietary ? registration.healthConsentAt ?? now : null,
+    charterAcceptedAt: registration.charterAcceptedAt ?? now,
+    formVersionId: versionId,
+    ...(accepting ? { status: REGISTRATION_STATUSES.confirmed, respondedAt: now, confirmedAt: now } : {})
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // Le statut est revérifié dans l'écriture : une libération ou un désistement simultané l'emporte
+    const { count } = await tx.registration.updateMany({ where: { id: registration.id, status: registration.status }, data })
+    if (!count) {
+      throw createError({ statusCode: 409, message: 'Votre inscription a changé entre-temps : rechargez la page.' })
+    }
+    if (accepting && registration.sessionId) {
+      await tx.sessionParticipant.upsert({
+        where: {
+          sessionId_participantId_role: {
+            sessionId: registration.sessionId,
+            participantId: registration.participantId,
+            role: SESSION_ROLES.participant
+          }
+        },
+        update: {},
+        create: { sessionId: registration.sessionId, participantId: registration.participantId, role: SESSION_ROLES.participant }
+      })
+    }
+  })
+
+  return { accepted: accepting }
+}
+
+// Décliner une invitation sans réponse : l'inscription passe à désistée, sans formulaire (R16)
+export async function declineRegistration(registration: PublicRegistration) {
+  if (!registrationPermissions(registration).canDecline) {
+    throw createError({ statusCode: 409, message: 'Cette invitation a déjà reçu une réponse.' })
+  }
+  const now = new Date()
+  const { count } = await prisma.registration.updateMany({
+    where: { id: registration.id, status: REGISTRATION_STATUSES.invited },
+    data: { status: REGISTRATION_STATUSES.withdrawn, respondedAt: now, withdrawnAt: now }
+  })
+  if (!count) {
+    throw createError({ statusCode: 409, message: 'Votre inscription a changé entre-temps : rechargez la page.' })
+  }
+}
+
+const formatDate = (value: Date) => value.toLocaleDateString('fr-FR', { dateStyle: 'long', timeZone: 'Europe/Paris' })
+
+export function registrationConfirmationEmailText(params: {
+  firstName: string | null
+  gameTitle: string
+  sessionName: string | null
+  sessionDate: Date | null
+  url: string
+}) {
+  const session = params.sessionName
+    ? ` pour la session ${params.sessionName}${params.sessionDate ? ` (${formatDate(params.sessionDate)})` : ''}`
+    : ''
+  return [
+    `Bonjour${params.firstName ? ` ${params.firstName}` : ''},`,
+    '',
+    `Votre inscription à « ${params.gameTitle} »${session} est confirmée.`,
+    '',
+    'Ce lien personnel vous permet de consulter et de modifier vos informations jusqu’à la clôture des inscriptions :',
+    params.url,
+    '',
+    'Ce lien vous est propre : ne le transférez pas.'
+  ].join('\n')
+}
+
+// L'email de confirmation n'empêche pas la confirmation : un échec est seulement signalé
+export async function sendRegistrationConfirmationEmail(registration: PublicRegistration, answers: RegistrationAnswers, token: string) {
+  try {
+    const result = await sendEmail({
+      to: answers.email,
+      subject: `Inscription confirmée : ${registration.period.game.title}`,
+      text: registrationConfirmationEmailText({
+        firstName: answers.firstName,
+        gameTitle: registration.period.game.title,
+        sessionName: registration.session?.name ?? null,
+        sessionDate: registration.session?.date ?? null,
+        url: registrationUrl(token)
+      })
+    })
+    return result.sent
+  } catch {
+    return false
+  }
+}
+
+/**
+ * En-têtes et débit des routes du lien personnel : pas de cache ni d'indexation, pas de jeton dans
+ * le Referer (ADR-0018), et une limite par IP (ADR-0013 : compteur en mémoire, un seul processus).
+ */
+export function guardPublicRegistrationRequest(event: H3Event, kind: 'read' | 'write') {
+  setHeader(event, 'Cache-Control', 'no-store')
+  setHeader(event, 'Referrer-Policy', 'no-referrer')
+  setHeader(event, 'X-Robots-Tag', 'noindex')
+  assertRateLimit(event, kind === 'read'
+    ? { name: 'public-registration-read', limit: 60, windowMs: 10 * 60 * 1000 }
+    : { name: 'public-registration-write', limit: 20, windowMs: 10 * 60 * 1000 })
+}

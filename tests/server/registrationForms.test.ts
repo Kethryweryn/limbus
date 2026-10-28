@@ -57,6 +57,11 @@ describe('réponses d’un inscrit', () => {
     expect(schema.safeParse({ ...answers, email: 'pas-un-email' }).success).toBe(false)
   })
 
+  it('un champ obligatoire laissé vide (null) a un message en français', () => {
+    const result = registrationAnswerSchema(DEFAULT_REGISTRATION_FORM_DEFINITION).safeParse({ ...answers, phone: null, email: null })
+    expect(result.error?.issues.map((issue) => issue.message)).toEqual(['L’email est obligatoire', 'Le téléphone est obligatoire'])
+  })
+
   it('exige le consentement quand des allergies sont déclarées', () => {
     const schema = registrationAnswerSchema(DEFAULT_REGISTRATION_FORM_DEFINITION)
     const refused = schema.safeParse({ ...answers, dietary: 'Arachides' })

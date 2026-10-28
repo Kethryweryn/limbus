@@ -1,0 +1,25 @@
+import { readZodBody } from '~/server/utils/schemas'
+import { registrationAnswerSchema } from '~/server/utils/registrationForms'
+import {
+  answerFormDefinition,
+  exposePublicRegistration,
+  guardPublicRegistrationRequest,
+  requireRegistrationByToken,
+  saveRegistrationAnswers,
+  sendRegistrationConfirmationEmail
+} from '~/server/utils/publicRegistrations'
+
+// Accepter l'invitation, ou modifier une inscription confirmée jusqu'à la clôture (US-004, R13)
+export default defineEventHandler(async (event) => {
+  guardPublicRegistrationRequest(event, 'write')
+
+  const token = getRouterParam(event, 'token')!
+  const registration = await requireRegistrationByToken(token)
+  const form = await answerFormDefinition(registration)
+  const { charterAccepted: _charterAccepted, healthConsent: _healthConsent, ...answers } = await readZodBody(event, registrationAnswerSchema(form.definition))
+
+  const { accepted } = await saveRegistrationAnswers(registration, form.versionId, answers)
+  const emailSent = accepted ? await sendRegistrationConfirmationEmail(registration, answers, token) : null
+
+  return { ...(await exposePublicRegistration(await requireRegistrationByToken(token))), emailSent }
+})
