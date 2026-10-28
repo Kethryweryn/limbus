@@ -32,7 +32,7 @@ Règles couvertes : R1 à R3, R5, R6, R8 (note d'intention et champs standards),
 | [US-005](US-005-suivre-les-inscriptions.md) | Suivre et gérer les inscriptions | terminée |
 | [US-006](US-006-desistement.md) | Désistement d'une personne confirmée | terminée |
 | [US-007](US-007-inscrits-dans-les-paiements.md) | Inscrits confirmés dans le tableau des paiements | terminée |
-| [US-008](US-008-fiche-allergies.md) | Fiche allergies de la session | à faire |
+| [US-008](US-008-fiche-allergies.md) | Fiche allergies de la session | terminée |
 | [US-009](US-009-page-inscriptions.md) | Page Inscriptions dans le menu Organisation | terminée |
 
 Ordre conseillé : US-001 → US-009 → US-002 → US-003 → US-004, puis US-005 à US-008 dans n'importe quel ordre. Chaque US fait l'objet d'une PR ([ADR-0017](../../adr/ADR-0017-branches-et-pull-requests.md)).

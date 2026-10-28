@@ -1,7 +1,7 @@
 ---
 id: US-008
 titre: Fiche allergies de la session
-statut: à faire
+statut: terminée
 epic: EPIC-001
 regles: [R14, R15]
 adr: []
@@ -13,11 +13,18 @@ En tant qu'organisatrice, je veux une fiche des allergies et intolérances des p
 
 ## Critères d'acceptation
 
-- [ ] Sur la session, une fiche liste, pour chaque inscription confirmée qui a déclaré des allergies ou intolérances, le nom de la personne et ce qu'elle a déclaré. Elle indique aussi le nombre de personnes confirmées.
-- [ ] Elle est téléchargeable en PDF.
-- [ ] Elle peut être envoyée par email aux membres de l'équipe cuisine de la session (rôle cuisine), avec le verrou d'envoi de session.
-- [ ] Une personne désistée disparaît de la fiche ; la fiche est générée à la demande, jamais stockée.
-- [ ] La fiche ne contient ni contact d'urgence ni téléphone.
+- [x] Sur la session, une fiche liste, pour chaque inscription confirmée qui a déclaré des allergies ou intolérances, le nom de la personne et ce qu'elle a déclaré. Elle indique aussi le nombre de personnes confirmées.
+- [x] Elle est téléchargeable en PDF.
+- [x] Elle peut être envoyée par email aux membres de l'équipe cuisine de la session (rôle cuisine), avec le verrou d'envoi de session.
+- [x] Une personne désistée disparaît de la fiche ; la fiche est générée à la demande, jamais stockée.
+- [x] La fiche ne contient ni contact d'urgence ni téléphone.
+
+## Réalisation
+
+- La fiche est dans l'onglet Documents de la session : liste à l'écran, bouton « PDF » et bouton « Envoyer à l'équipe cuisine ».
+- Routes : `GET /api/sessions/:id/allergies` (données de la fiche), `GET /api/sessions/:id/allergies/pdf`, `POST /api/sessions/:id/allergies/send`. Toutes en `no-store`.
+- Le nombre de personnes confirmées compte les inscriptions confirmées de la session ; une personne ajoutée à la main au cast, sans inscription, n'y figure pas.
+- L'envoi part à chaque membre de rôle « Cuisine » qui a un email, un email par personne, PDF en pièce jointe, avec le verrou d'envoi de session. L'email rappelle que ce sont des données de santé, à ne pas diffuser et à supprimer après le jeu. Sans équipe cuisine, ou sans email, l'envoi est refusé avec une explication.
 
 ## Notes techniques
 
