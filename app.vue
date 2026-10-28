@@ -1,6 +1,11 @@
 <template>
   <UApp>
-    <div v-if="authenticated">
+    <!-- Lien personnel d'inscription (US-004) : même rendu connecté ou non, sans bandeaux de synchronisation -->
+    <div v-if="isPersonalLinkRoute">
+      <NuxtLoadingIndicator />
+      <NuxtPage />
+    </div>
+    <div v-else-if="authenticated">
       <NuxtPwaAssets />
       <NuxtLoadingIndicator />
       <div
@@ -91,6 +96,7 @@ const pendingSyncCount = ref(0)
 const syncErrors = ref<string[]>([])
 const route = useRoute()
 const isPublicRoute = computed(() => route.path.startsWith('/public/') || route.path.startsWith('/invitations/'))
+const isPersonalLinkRoute = computed(() => route.path.startsWith('/inscription/'))
 let authCheckInProgress = false
 
 function hasValidOfflineAuth() {

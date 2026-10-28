@@ -57,7 +57,8 @@ export async function saveRegistrationFormDefinition(gameId: string, definition:
 }
 
 const optionalAnswer = z.string().trim().max(500).optional().nullable().transform((value) => value || null)
-const requiredAnswer = (label: string) => z.string().trim().min(1, `${label} est obligatoire`).max(500)
+// Un champ laissé vide arrive comme null : même message que pour une chaîne vide
+const requiredAnswer = (label: string) => z.string({ error: `${label} est obligatoire` }).trim().min(1, `${label} est obligatoire`).max(500)
 
 function answerField(definition: RegistrationFormDefinition, key: RegistrationStandardFieldKey, label: string) {
   const setting = definition.standardFields[key]
@@ -73,7 +74,7 @@ export function registrationAnswerSchema(rawDefinition: RegistrationFormDefiniti
   const definition = normalizeRegistrationFormDefinition(rawDefinition)
 
   return z.object({
-    email: z.string().trim().toLowerCase().email('Email invalide'),
+    email: z.string({ error: 'L’email est obligatoire' }).trim().toLowerCase().email('Email invalide'),
     lastName: answerField(definition, 'lastName', 'Le nom'),
     firstName: answerField(definition, 'firstName', 'Le prénom'),
     facebookName: answerField(definition, 'facebookName', 'Le nom Facebook'),

@@ -23,5 +23,18 @@ export default async function globalSetup() {
   await prisma.game.create({
     data: { title: 'Jeu piégé', slug: 'jeu-piege', description: '', publicPage: true, ownerId: users[0]!.id, teaserUrl: 'javascript:alert(document.domain)' }
   })
+  // Parcours d'inscription sur invitation (US-004) : une période ouverte et une participante avec email
+  const registrationGame = await prisma.game.create({
+    data: { title: 'Jeu des inscriptions', slug: 'jeu-inscriptions', description: '', noteIntention: 'Jouer ensemble, avec bienveillance.', ownerId: users[0]!.id }
+  })
+  const registrationSession = await prisma.session.create({
+    data: { name: 'Session de printemps', slug: 'session-printemps', gameId: registrationGame.id, date: new Date('2099-04-10T09:00:00Z') }
+  })
+  await prisma.registrationPeriod.create({
+    data: { name: 'Inscriptions de printemps', gameId: registrationGame.id, publicId: 'e2e-printemps', state: 'open', sessions: { create: { sessionId: registrationSession.id, seats: 3 } } }
+  })
+  await prisma.participant.create({
+    data: { name: 'Camille Invitée', slug: 'camille-invitee', email: 'camille.invitee@example.test', gameLinks: { create: { gameId: registrationGame.id } } }
+  })
   await prisma.$disconnect()
 }

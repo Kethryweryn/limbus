@@ -13,6 +13,13 @@ export default defineNuxtConfig({
     smtpEncryptionSecret: '',
     publicAppUrl: ''
   },
+  // Page du lien personnel d'inscription (ADR-0018) : le jeton est dans l'URL, il ne doit fuiter
+  // ni par le Referer, ni par un cache, ni par un moteur de recherche
+  routeRules: {
+    '/inscription/**': {
+      headers: { 'Referrer-Policy': 'no-referrer', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' }
+    }
+  },
   nitro: {
     preset: 'node-server', // 👈 force l'utilisation du serveur Node natif
     prerender: {

@@ -141,7 +141,7 @@ async function submit() {
     emit('invited', result)
     open.value = false
   } catch (err) {
-    const details = err?.data?.data?.map?.((issue) => issue.message).join(', ')
+    const details = err?.data?.data?.data?.map?.((issue) => issue.message).join(', ')
     serverError.value = err?.data?.message === 'Invalid request body' && details
       ? `Saisie invalide : ${details}`
       : err?.data?.message || err?.message || 'Invitation impossible'
