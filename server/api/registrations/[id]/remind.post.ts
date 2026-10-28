@@ -1,12 +1,12 @@
 import { requireOrganizer } from '~/server/utils/auth'
 import { requireGameAccess } from '~/server/utils/gameAccess'
-import { findRegistrationOr404, resendRegistrationInvitation } from '~/server/utils/registrations'
+import { findRegistrationOr404, remindRegistration } from '~/server/utils/registrations'
 import { withSessionSendLock } from '~/server/utils/sendLock'
 import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
 
-// Relance d'une invitation sans réponse (US-005) : email de rappel avec un nouveau lien (ADR-0018)
+// Relance d'une invitation sans réponse (US-005, R20) : rappel sans lien, celui de l'invitation reste valable
 export default defineEventHandler(async (event) => {
-  const user = await requireOrganizer(event)
+  await requireOrganizer(event)
 
   const registration = await findRegistrationOr404(getRouterParam(event, 'id'))
   await requireGameAccess(event, registration.period.gameId)
@@ -17,8 +17,5 @@ export default defineEventHandler(async (event) => {
     keyParts: [authUserRateLimitKey(event), registration.period.id]
   })
 
-  return await withSessionSendLock(
-    registration.sessionId || registration.id,
-    () => resendRegistrationInvitation(registration.id, user, { reminder: true })
-  )
+  return await withSessionSendLock(registration.sessionId || registration.id, () => remindRegistration(registration.id))
 })

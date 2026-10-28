@@ -28,8 +28,9 @@ En tant qu'organisatrice, je veux voir où en est chaque inscription de ma péri
 
 ## Réalisation
 
-- **Relance** : seul le hash du jeton est stocké (ADR-0018), on ne peut donc pas renvoyer le même lien. La relance envoie un email de rappel avec un nouveau lien, et l'ancien cesse de fonctionner (le rappel le dit). La date de la dernière relance est notée (`Registration.lastRemindedAt`). Une invitation dont l'email n'est jamais parti garde le bouton « Envoyer ».
-- **Prolongation** : de 1 à 90 jours, à partir de l'échéance actuelle, ou d'aujourd'hui si elle est passée.
+- **Relance** : seul le hash du jeton est stocké (ADR-0018), on ne peut donc pas renvoyer le même lien. Choix du 2026-10-28 : la relance est un rappel **sans lien**, qui invite à reprendre l'email d'invitation (date d'envoi rappelée) ; l'ancien lien reste valable. Si la personne a perdu l'email, elle prévient l'équipe, et « Nouveau lien » renvoie l'invitation avec un nouveau lien et invalide l'ancien. La date de la dernière relance est notée (`Registration.lastRemindedAt`). Une invitation dont l'email n'est jamais parti garde le bouton « Envoyer ».
+- **Prolongation** : l'organisatrice choisit la nouvelle date d'échéance (dans le futur, au plus un an après aujourd'hui).
+- **Délai dépassé** : simple signalement ; la personne peut encore répondre tant que sa place n'est pas libérée (ADR-0020).
 - **Libération** : l'inscription passe à `désistée`, avec l'organisatrice comme autrice. Le lien ne permet plus de répondre et affiche « Sans réponse de votre part dans le délai, votre place a été réattribuée. » La personne peut être réinvitée (R16). « Annuler » reste possible pour effacer une invitation faite par erreur.
 - **Retrait** d'une personne confirmée : `POST /api/registrations/:id/withdraw`, qui appelle `withdrawRegistration` avec l'organisatrice comme autrice.
 - **Détail** : `GET /api/registrations/:id`, ouvert depuis le bouton « Détail » de la liste.

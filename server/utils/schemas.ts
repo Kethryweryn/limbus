@@ -339,12 +339,11 @@ export const registrationInvitationSchema = z.object({
   }).optional().nullable()
 }).refine((body) => body.participantIds.length > 0 || body.newParticipant, 'Choisissez au moins une personne à inviter')
 
-// Prolongation de l'échéance d'une invitation sans réponse (US-005)
+// Prolongation de l'échéance d'une invitation sans réponse, à une date choisie (US-005, R20)
 export const registrationExtensionSchema = z.object({
-  days: z.number({ error: 'Le nombre de jours doit être un nombre entier' })
-    .int('Le nombre de jours doit être un nombre entier')
-    .min(1, 'Prolongez d’au moins un jour')
-    .max(90, 'Prolongez de 90 jours au plus')
+  responseDueAt: frenchText('La nouvelle échéance')
+    .refine((value) => !Number.isNaN(new Date(value).getTime()), 'Date d’échéance invalide')
+    .transform((value) => new Date(value))
 })
 
 const registrationFieldSetting = z.object({ asked: z.boolean(), required: z.boolean() })

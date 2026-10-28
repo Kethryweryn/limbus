@@ -94,7 +94,8 @@
               <div class="font-medium">{{ row.participant.name }}</div>
               <div class="text-sm text-gray-500">
                 <template v-if="row.characters?.length">{{ row.characters.map((character) => character.name).join(', ') }}</template>
-                <span v-else class="text-warning-600">Personnage à attribuer</span>
+                <span v-else-if="row.awaitingCharacter" class="text-warning-600">Personnage à attribuer</span>
+                <template v-else>PNJ</template>
                 <span v-if="row.participant.email"> · {{ row.participant.email }}</span>
                 <span v-else> · email manquant</span>
               </div>

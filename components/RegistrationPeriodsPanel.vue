@@ -186,8 +186,15 @@
                   >
                     Relancer
                   </UButton>
-                  <UButton v-else size="xs" color="neutral" variant="soft" icon="i-heroicons-arrow-path" @click="resend(registration)">
-                    Envoyer
+                  <UButton
+                    size="xs"
+                    color="neutral"
+                    variant="soft"
+                    icon="i-heroicons-arrow-path"
+                    :title="registration.invitationSentAt ? 'Pour une personne qui a perdu son email d’invitation' : undefined"
+                    @click="resend(registration)"
+                  >
+                    {{ registration.invitationSentAt ? 'Nouveau lien' : 'Envoyer' }}
                   </UButton>
                   <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-calendar-days" @click="askExtension(registration)">
                     Prolonger
@@ -245,11 +252,11 @@
       <template #body>
         <form class="space-y-4" @submit.prevent="extend">
           <UFormField
-            label="Nombre de jours"
-            description="À partir de l’échéance actuelle, ou d’aujourd’hui si elle est passée."
+            label="Nouvelle échéance"
+            description="La personne peut répondre jusqu’à la fin de ce jour."
             :error="extensionError || undefined"
           >
-            <UInput v-model.number="extensionDays" type="number" min="1" max="90" required />
+            <UInput v-model="extensionDate" type="date" :min="todayIso()" required />
           </UFormField>
           <div class="flex justify-end gap-2">
             <UButton color="neutral" variant="soft" @click="showExtension = false">Annuler</UButton>
@@ -370,7 +377,7 @@ async function registrationAction(registration, action, body, success) {
 }
 
 async function remind(registration) {
-  if (!confirm(`Relancer ${registration.participant.name} ? Un email de rappel part avec un nouveau lien ; le lien envoyé précédemment ne fonctionnera plus.`)) return
+  if (!confirm(`Relancer ${registration.participant.name} ? Un email de rappel l’invite à reprendre son email d’invitation, dont le lien reste valable.`)) return
   await registrationAction(registration, 'remind', undefined, `Rappel envoyé à ${registration.participant.name}.`)
 }
 
@@ -386,13 +393,20 @@ async function withdraw(registration) {
 
 const showExtension = ref(false)
 const extensionTarget = ref(null)
-const extensionDays = ref(7)
+const extensionDate = ref('')
 const extensionError = ref('')
 const extending = ref(false)
 
+// Date du jour au format d'un champ date, en heure locale
+const isoDate = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+const todayIso = () => isoDate(new Date())
+
+// Proposition : une semaine après l'échéance actuelle, ou après aujourd'hui si elle est passée
 function askExtension(registration) {
   extensionTarget.value = registration
-  extensionDays.value = 7
+  const current = registration.responseDueAt ? new Date(registration.responseDueAt) : null
+  const from = current && current.getTime() > Date.now() ? current : new Date()
+  extensionDate.value = isoDate(new Date(from.getTime() + 7 * 24 * 60 * 60 * 1000))
   extensionError.value = ''
   showExtension.value = true
 }
@@ -402,13 +416,15 @@ async function extend() {
   extending.value = true
   extensionError.value = ''
   try {
-    await useApiFetch(`/api/registrations/${registration.id}/extend`, { method: 'POST', body: { days: extensionDays.value } })
+    // Fin du jour choisi, en heure locale
+    const responseDueAt = new Date(`${extensionDate.value}T23:59:59`).toISOString()
+    await useApiFetch(`/api/registrations/${registration.id}/extend`, { method: 'POST', body: { responseDueAt } })
     showExtension.value = false
     await refresh()
     infoColor.value = 'success'
     infoMessage.value = `Échéance de ${registration.participant.name} prolongée.`
   } catch (err) {
-    extensionError.value = apiFieldErrors(err).days || apiErrorMessage(err, 'Prolongation impossible')
+    extensionError.value = apiFieldErrors(err).responseDueAt || apiErrorMessage(err, 'Prolongation impossible')
   } finally {
     extending.value = false
   }
@@ -426,13 +442,13 @@ async function invited(result) {
   infoColor.value = failures.length ? 'warning' : 'success'
   infoMessage.value = [
     `${plural(result.invitedCount, 'invitation')}, ${plural(result.sentCount, 'email')} envoyé${result.sentCount > 1 ? 's' : ''}.`,
-    failures.length ? `Non envoyés : ${failures.join(', ')}. Utilisez « Renvoyer » une fois le problème réglé.` : ''
+    failures.length ? `Non envoyés : ${failures.join(', ')}. Utilisez « Envoyer » une fois le problème réglé.` : ''
   ].filter(Boolean).join(' ')
   await refresh()
 }
 
 async function resend(registration) {
-  if (!confirm(`Renvoyer l’invitation à ${registration.participant.name} ? Le lien envoyé précédemment ne fonctionnera plus.`)) return
+  if (!confirm(`Envoyer un nouveau lien à ${registration.participant.name} ? Le lien envoyé précédemment ne fonctionnera plus.`)) return
   try {
     await useApiFetch(`/api/registrations/${registration.id}/resend`, { method: 'POST' })
     await refresh()

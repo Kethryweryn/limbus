@@ -73,7 +73,6 @@ export function registrationInvitationEmailText(params: {
   responseDueAt: Date | null
   inviterName: string | null
   url: string
-  reminder?: boolean
 }) {
   const session = params.sessionName
     ? `${params.sessionName}${params.sessionDate ? ` (${formatDate(params.sessionDate)})` : ''}`
@@ -82,20 +81,40 @@ export function registrationInvitationEmailText(params: {
   return [
     `Bonjour ${params.participantName},`,
     '',
-    params.reminder ? 'Nous n’avons pas encore reçu votre réponse à cette invitation.' : null,
-    params.reminder ? '' : null,
     `${params.inviterName || 'L’équipe d’organisation'} vous invite à jouer à « ${params.gameTitle} »${session ? `, session ${session}` : ''}.`,
     '',
     'Ce lien personnel vous permet de lire la note d’intention, de donner vos informations et de répondre à l’invitation :',
     params.url,
     '',
-    // Une relance après l'échéance ne rappelle pas une date passée (ADR-0020 : l'invitation reste ouverte)
-    params.responseDueAt && (!params.reminder || params.responseDueAt.getTime() > Date.now())
-      ? `Merci de répondre avant le ${formatDate(params.responseDueAt)}.`
-      : params.reminder ? 'Merci de répondre dès que possible.' : null,
-    params.reminder ? 'Les liens reçus précédemment ne fonctionnent plus : utilisez celui-ci.' : null,
+    params.responseDueAt ? `Merci de répondre avant le ${formatDate(params.responseDueAt)}.` : null,
     'Ce lien vous est propre : ne le transférez pas.'
   ].filter((line) => line !== null).join('\n')
+}
+
+/**
+ * Rappel d'une invitation sans réponse (US-005, R20) : sans lien, car seul le hash du jeton est
+ * stocké (ADR-0018). La personne reprend son email d'invitation, dont le lien reste valable.
+ */
+export function registrationReminderEmailText(params: {
+  participantName: string
+  gameTitle: string
+  sessionName: string | null
+  invitationSentAt: Date
+  responseDueAt: Date | null
+}, now = new Date()) {
+  return [
+    `Bonjour ${params.participantName},`,
+    '',
+    `Nous n’avons pas encore reçu votre réponse à l’invitation à jouer à « ${params.gameTitle} »${params.sessionName ? `, session ${params.sessionName}` : ''}.`,
+    '',
+    `Votre lien personnel se trouve dans l’email d’invitation envoyé le ${formatDate(params.invitationSentAt)}, intitulé « Invitation : ${params.gameTitle} ». Il permet de lire la note d’intention et de répondre.`,
+    // Une échéance passée n'est pas rappelée : l'invitation reste ouverte tant que la place n'est pas libérée (ADR-0020)
+    params.responseDueAt && params.responseDueAt.getTime() > now.getTime()
+      ? `Merci de répondre avant le ${formatDate(params.responseDueAt)}.`
+      : 'Merci de répondre dès que possible.',
+    '',
+    'Vous ne retrouvez pas cet email ? Prévenez l’équipe d’organisation : elle vous enverra un nouveau lien.'
+  ].join('\n')
 }
 
 type InvitationEmailTarget = {
@@ -111,7 +130,6 @@ type InvitationContext = {
   sessionDate: Date | null
   responseDueAt: Date | null
   inviterName: string | null
-  reminder?: boolean
 }
 
 /**
@@ -126,18 +144,14 @@ async function sendInvitationEmail(transport: EmailTransport | null, target: Inv
   try {
     await transport.send({
       to: target.to,
-      subject: `${context.reminder ? 'Rappel – invitation' : 'Invitation'} : ${context.gameTitle}`,
+      subject: `Invitation : ${context.gameTitle}`,
       text: registrationInvitationEmailText({ ...context, participantName: target.participantName, url: registrationUrl(target.token) })
     })
   } catch (error) {
     return { sent: false, message: (error as { message?: string })?.message || 'Erreur SMTP' }
   }
 
-  // La date d'invitation reste celle du premier envoi : une relance a sa propre date
-  await prisma.registration.update({
-    where: { id: target.registrationId },
-    data: context.reminder ? { lastRemindedAt: new Date() } : { invitationSentAt: new Date() }
-  })
+  await prisma.registration.update({ where: { id: target.registrationId }, data: { invitationSentAt: new Date() } })
   return { sent: true, message: null }
 }
 
@@ -336,10 +350,9 @@ export function assertUnansweredInvitation(registration: { status: string, respo
  * Renvoie l'invitation avec un nouveau lien : l'ancien cesse de fonctionner (ADR-0018).
  * L'échéance ne change pas : la prolonger est une action à part (US-005).
  * L'email part à l'adresse de l'inscription : c'est elle qui fait foi (R12).
- * Relance (US-005) : même envoi, avec un objet de rappel ; seul le hash du jeton étant stocké,
- * on ne peut pas renvoyer le lien précédent.
+ * Sert aussi quand la personne a perdu son email d'invitation (bouton « Nouveau lien », US-005).
  */
-export async function resendRegistrationInvitation(registrationId: string, inviter: { name?: string | null }, options: { reminder?: boolean } = {}) {
+export async function resendRegistrationInvitation(registrationId: string, inviter: { name?: string | null }) {
   const registration = await prisma.registration.findUniqueOrThrow({
     where: { id: registrationId },
     select: {
@@ -375,8 +388,7 @@ export async function resendRegistrationInvitation(registrationId: string, invit
       sessionName: registration.session?.name ?? null,
       sessionDate: registration.session?.date ?? null,
       responseDueAt: registration.responseDueAt,
-      inviterName: inviter.name ?? null,
-      reminder: Boolean(options.reminder)
+      inviterName: inviter.name ?? null
     }
   ).finally(() => transport?.close())
   if (!result.sent) {
@@ -386,21 +398,67 @@ export async function resendRegistrationInvitation(registrationId: string, invit
 }
 
 /**
- * Prolonge l'échéance d'une invitation sans réponse (US-005, R20). On part de l'échéance actuelle,
- * ou d'aujourd'hui si elle est déjà passée : prolonger de 3 jours donne toujours 3 jours pour répondre.
+ * Relance une invitation sans réponse par un rappel sans lien (US-005, R20) : le lien de
+ * l'invitation reste valable. Une invitation jamais partie s'envoie, elle ne se relance pas.
  */
-export function extendedResponseDueAt(current: Date | null, days: number, now = new Date()) {
-  const from = current && current.getTime() > now.getTime() ? current : now
-  return registrationResponseDueAt(days, from)
-}
-
-export async function extendRegistrationDeadline(registrationId: string, days: number) {
+export async function remindRegistration(registrationId: string) {
   const registration = await prisma.registration.findUniqueOrThrow({
     where: { id: registrationId },
-    select: { id: true, status: true, respondedAt: true, responseDueAt: true }
+    select: {
+      id: true,
+      status: true,
+      respondedAt: true,
+      email: true,
+      invitationSentAt: true,
+      responseDueAt: true,
+      participant: { select: { name: true } },
+      session: { select: { name: true } },
+      period: { select: { game: { select: { title: true } } } }
+    }
   })
   assertUnansweredInvitation(registration)
-  const responseDueAt = extendedResponseDueAt(registration.responseDueAt, days)
+  if (!registration.invitationSentAt) {
+    throw createError({ statusCode: 409, message: 'L’email d’invitation n’est jamais parti : envoyez-le plutôt que de relancer.' })
+  }
+
+  const result = await sendEmail({
+    to: registration.email,
+    subject: `Rappel – invitation : ${registration.period.game.title}`,
+    text: registrationReminderEmailText({
+      participantName: registration.participant.name,
+      gameTitle: registration.period.game.title,
+      sessionName: registration.session?.name ?? null,
+      invitationSentAt: registration.invitationSentAt,
+      responseDueAt: registration.responseDueAt
+    })
+  })
+  if (!result.sent) {
+    throw createError({ statusCode: 502, message: 'Le rappel n’est pas parti : envoi d’emails désactivé.' })
+  }
+  await prisma.registration.update({ where: { id: registration.id }, data: { lastRemindedAt: new Date() } })
+  return { sent: true }
+}
+
+const MAX_EXTENSION_DAYS = 365
+
+// Nouvelle échéance choisie par l'organisatrice (R20) : dans le futur, au plus un an après aujourd'hui
+export function assertNewResponseDueAt(responseDueAt: Date, now = new Date()) {
+  if (responseDueAt.getTime() <= now.getTime()) {
+    throw createError({ statusCode: 400, message: 'La nouvelle échéance doit être dans le futur.' })
+  }
+  if (responseDueAt.getTime() > now.getTime() + MAX_EXTENSION_DAYS * DAY_MS) {
+    throw createError({ statusCode: 400, message: 'La nouvelle échéance doit être à moins d’un an.' })
+  }
+}
+
+/** Prolonge l'échéance d'une invitation sans réponse jusqu'à la date choisie (US-005, R20). */
+export async function extendRegistrationDeadline(registrationId: string, responseDueAt: Date) {
+  assertNewResponseDueAt(responseDueAt)
+  const registration = await prisma.registration.findUniqueOrThrow({
+    where: { id: registrationId },
+    select: { id: true, status: true, respondedAt: true }
+  })
+  assertUnansweredInvitation(registration)
   const { count } = await prisma.registration.updateMany({
     where: { id: registration.id, status: REGISTRATION_STATUSES.invited, respondedAt: null },
     data: { responseDueAt }
