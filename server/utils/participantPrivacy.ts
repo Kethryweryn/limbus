@@ -3,7 +3,8 @@ import { deleteUnusedUploads } from '~/server/utils/uploads'
 
 /**
  * Efface un participant et tout ce qui le concerne (RGPD, droit à l'effacement) :
- * ses liens aux jeux et sessions, ses paiements et envois, et ses photos, fichiers compris.
+ * ses liens aux jeux et sessions, ses inscriptions, ses paiements et envois, et ses photos, fichiers compris.
+ * Les inscriptions (contacts, allergies) partent avec le participant, par cascade.
  * Les trombinoscopes générés des sessions où figurait sa photo sont supprimés : ils l'incluent
  * et devront être régénérés. Les assignations sont conservées, sans participant ni photo.
  */
@@ -39,6 +40,7 @@ export async function exportParticipantData(participantId: string, gameIds: stri
   const inGames = gameIds === null ? {} : { gameId: { in: gameIds } }
   const inSessions = gameIds === null ? {} : { session: { gameId: { in: gameIds } } }
   const session = { select: { name: true, date: true, game: { select: { title: true } } } }
+  const inPeriods = gameIds === null ? {} : { period: { gameId: { in: gameIds } } }
 
   const participant = await prisma.participant.findUniqueOrThrow({
     where: { id: participantId },
@@ -54,7 +56,32 @@ export async function exportParticipantData(participantId: string, gameIds: stri
       payments: { where: inSessions, select: { paidAt: true, paymentEmailSentAt: true, paymentReminderSentAt: true, session } },
       documentDeliveries: { where: inSessions, select: { kind: true, sentAt: true, document: { select: { title: true } }, character: { select: { name: true } }, session } },
       timelineResponsibilities: { where: inSessions, select: { timelineEvent: { select: { name: true, day: true, time: true } }, session } },
-      trombinoscopes: { where: inSessions, select: { generatedAt: true, viewerCharacter: { select: { name: true } }, session } }
+      trombinoscopes: { where: inSessions, select: { generatedAt: true, viewerCharacter: { select: { name: true } }, session } },
+      registrations: {
+        where: inPeriods,
+        select: {
+          status: true,
+          source: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          facebookName: true,
+          phone: true,
+          emergencyContactName: true,
+          emergencyContactPhone: true,
+          dietary: true,
+          healthConsentAt: true,
+          charterAcceptedAt: true,
+          invitationSentAt: true,
+          responseDueAt: true,
+          respondedAt: true,
+          confirmedAt: true,
+          withdrawnAt: true,
+          createdAt: true,
+          period: { select: { name: true, game: { select: { title: true } } } },
+          session: { select: { name: true, date: true } }
+        }
+      }
     }
   })
 

@@ -183,6 +183,10 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['GET', `/api/participants/${b.participant.id}/export`],
     ['GET', `/api/games/${b.game.id}/registration-context`],
     ['GET', `/api/games/${b.game.id}/registration-form`],
+    ['POST', `/api/registration-periods/${b.registrationPeriod.id}/invitations`, { sessionId: b.session.id, participantIds: [b.participant.id] }],
+    ['GET', `/api/registration-periods/${b.registrationPeriod.id}/registrations`],
+    ['POST', `/api/registrations/${b.registration.id}/resend`],
+    ['DELETE', `/api/registrations/${b.registration.id}`],
     ['PUT', `/api/games/${b.game.id}/registration-form`, {
       standardFields: Object.fromEntries(['lastName', 'firstName', 'facebookName', 'phone', 'emergencyContact', 'dietary']
         .map((key) => [key, { asked: false, required: false }]))
@@ -203,8 +207,35 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect((await api(alice, 'GET', `/api/participants/${a.participant.id}/export`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/registration-context`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/registration-form`)).status).toBe(200)
+    expect((await api(alice, 'GET', `/api/registration-periods/${a.registrationPeriod.id}/registrations`)).status).toBe(200)
     // Fichier référencé mais absent du disque : l'accès est accordé, puis 404
     expect((await api(alice, 'GET', `/api/uploads/session-assignment-photos/${a.photo.filename}`)).status).toBe(404)
+  })
+
+  it('les inscriptions de Bob sont intactes', async () => {
+    expect(await prisma.registration.findUnique({ where: { id: b.registration.id } })).toMatchObject({ status: 'invited', tokenHash: 'hash-b' })
+  })
+
+  it('inviter dans sa période un participant ou une session de Bob est refusé', async () => {
+    // Période ouverte d'Alice, sur une session à elle (celle des fixtures est déjà rattachée)
+    const session = await prisma.session.create({ data: { name: 'Session invitations', slug: 'session-invitations-isolation', gameId: a.game.id } })
+    const period = await prisma.registrationPeriod.create({
+      data: { name: 'Ouverte', gameId: a.game.id, publicId: 'isolation-ouverte', state: 'open', sessions: { create: { sessionId: session.id, seats: 5 } } }
+    })
+    // Participant dédié : les tests de ressources modifient celui des fixtures (email effacé)
+    const own = await prisma.participant.create({
+      data: { name: 'Invitée isolation', slug: 'invitee-isolation', email: 'invitee-isolation@example.test', gameLinks: { create: { gameId: a.game.id } } }
+    })
+    const path = `/api/registration-periods/${period.id}/invitations`
+
+    expect((await api(alice, 'POST', path, { sessionId: session.id, participantIds: [b.participant.id] })).status).toBe(400)
+    expect((await api(alice, 'POST', path, { sessionId: b.session.id, participantIds: [own.id] })).status).toBe(400)
+    expect(await prisma.registration.count({ where: { participantId: b.participant.id } })).toBe(1)
+
+    // Témoin : son propre participant, sur sa session
+    const response = await api(alice, 'POST', path, { sessionId: session.id, participantIds: [own.id] })
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    expect(response.body).toMatchObject({ invitedCount: 1 })
   })
 
   it('la liste filtrée sur le jeu de Bob est vide', async () => {

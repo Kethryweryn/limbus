@@ -303,6 +303,17 @@ export const registrationPeriodSchema = z.object({
     .refine((sessions) => new Set(sessions.map((session) => session.sessionId)).size === sessions.length, 'Duplicate session')
 })
 
+// Invitations d'une session de la période (US-003) : des participants du jeu et/ou une nouvelle personne
+export const registrationInvitationSchema = z.object({
+  sessionId: requiredId('Session'),
+  participantIds: z.array(requiredId('Participant')).optional().default([])
+    .refine((ids) => new Set(ids).size === ids.length, 'Duplicate participant'),
+  newParticipant: z.object({
+    name: requiredText('Name'),
+    email: requiredText('Email').toLowerCase().email('Invalid email')
+  }).optional().nullable()
+}).refine((body) => body.participantIds.length > 0 || body.newParticipant, 'Nobody to invite')
+
 const registrationFieldSetting = z.object({ asked: z.boolean(), required: z.boolean() })
 
 export const registrationFormDefinitionSchema = z.object({

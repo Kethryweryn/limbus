@@ -222,6 +222,7 @@ model Session {
   payments SessionPayment[]
   uploadedFiles UploadedFile[]
   registrationPeriodLink RegistrationPeriodSession?
+  registrations Registration[]
 }
 
 // Période d'inscription : recrutement des PJ de sessions précises (scope "sessions")
@@ -244,6 +245,7 @@ model RegistrationPeriod {
   updatedAt         DateTime @updatedAt
 
   sessions          RegistrationPeriodSession[]
+  registrations     Registration[]
 
   @@index([gameId])
 }
@@ -281,7 +283,53 @@ model RegistrationFormVersion {
   definition Json
   createdAt  DateTime         @default(now())
 
+  registrations Registration[]
+
   @@unique([formId, number])
+}
+
+// Inscription d'une personne à une période d'inscription (ADR-0019). Les champs standards sont
+// saisis à chaque inscription et ne modifient pas la fiche du participant (R14).
+model Registration {
+  id                    String                   @id @default(cuid())
+  periodId              String
+  period                RegistrationPeriod       @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  // Session attribuée ; l'inscription reste si la session est supprimée
+  sessionId             String?
+  session               Session?                 @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  participantId         String
+  participant           Participant              @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  status                String
+  source                String
+  invitedById           String?
+  invitedBy             User?                    @relation("SentRegistrationInvitations", fields: [invitedById], references: [id], onDelete: SetNull)
+  formVersionId         String?
+  formVersion           RegistrationFormVersion? @relation(fields: [formVersionId], references: [id], onDelete: SetNull)
+
+  email                 String
+  firstName             String?
+  lastName              String?
+  facebookName          String?
+  phone                 String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  dietary               String?
+  healthConsentAt       DateTime?
+  charterAcceptedAt     DateTime?
+
+  // SHA-256 du jeton du lien personnel (ADR-0018) ; null quand le lien est invalidé
+  tokenHash             String?                  @unique
+  invitationSentAt      DateTime?
+  responseDueAt         DateTime?
+  respondedAt           DateTime?
+  confirmedAt           DateTime?
+  withdrawnAt           DateTime?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  @@unique([periodId, participantId])
+  @@index([sessionId])
+  @@index([participantId])
 }
 
 model SessionAssignment {
@@ -342,6 +390,7 @@ model Participant {
   documentDeliveries SessionDocumentDelivery[]
   trombinoscopes SessionTrombinoscope[]
   payments SessionPayment[]
+  registrations Registration[]
 }
 
 model SessionPayment {
@@ -458,6 +507,7 @@ model User {
   gameShares GameShare[]
   sentInvitations GameInvitation[] @relation("SentGameInvitations")
   acceptedInvitations GameInvitation[] @relation("AcceptedGameInvitations")
+  sentRegistrationInvitations Registration[] @relation("SentRegistrationInvitations")
 }
 
 model GameShare {
