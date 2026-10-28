@@ -4,8 +4,8 @@ titre: Copie d'un jeu pour le léguer à une autre équipe
 statut: validée
 date: 2026-10-28
 origine: ../archive/todo/copie-de-jeu.md
-epics: []
-adr: [ADR-0007, ADR-0008, ADR-0020]
+epics: [EPIC-002]
+adr: [ADR-0007, ADR-0008, ADR-0020, ADR-0025]
 ---
 
 # SPEC-002 : Copie d'un jeu pour le léguer à une autre équipe
@@ -65,7 +65,7 @@ Permettre à une organisatrice de confier son jeu à une autre équipe d'organis
   - les participants et leurs liens au jeu ;
   - les co-organisateurs et les invitations en cours ;
   - les périodes d'inscription et les inscriptions, avec leurs réponses.
-- **R6** Les fichiers téléversés dans Limbus (fond de personnage ou de faction, document, photo de trombinoscope d'un personnage) sont dupliqués sous un nouveau nom. Supprimer un fichier d'un côté ne touche pas l'autre. Les liens externes (http/https) sont repris tels quels.
+- **R6** Les fichiers téléversés dans Limbus (aujourd'hui, les photos de trombinoscope des personnages) sont dupliqués sous un nouveau nom. Supprimer un fichier d'un côté ne touche pas l'autre. Les liens externes (http/https) sont repris tels quels.
 
 - **R14** Le formulaire d'inscription est copié dans sa version en vigueur, qui devient la version 1 du formulaire de la copie. Les versions précédentes ne sont pas copiées : elles ne servent qu'aux réponses des inscriptions du jeu source. Une question qui fait référence à un élément du jeu (personnage, faction…) pointe vers l'élément correspondant de la copie, jamais vers celui du jeu source.
 
@@ -90,7 +90,7 @@ Permettre à une organisatrice de confier son jeu à une autre équipe d'organis
 - La copie est un jeu comme un autre. Seul le crédit est nouveau : titre du jeu source et nom de son autrice au moment du legs.
 - Le crédit contient le nom d'une organisatrice, donné avec son accord quand elle lègue. Il n'est pas couvert par l'export ou la suppression des données des participants, car il ne concerne pas un participant.
 - La copie ne contient aucune donnée personnelle de participant (R5). Le contenu d'écriture peut citer des personnes réelles dans le texte libre : c'est sous la responsabilité de l'autrice, comme aujourd'hui.
-- La façon de garder une copie en attente d'attribution (R8) fera l'objet d'un ADR.
+- La copie en attente d'attribution (R8), le crédit et l'origine sont stockés comme le décrit [ADR-0025](../adr/ADR-0025-legs-de-jeu.md).
 
 ## Sécurité et droits
 
@@ -102,9 +102,11 @@ Permettre à une organisatrice de confier son jeu à une autre équipe d'organis
 
 ## Découpage
 
-1. Léguer une copie du contenu d'écriture et du formulaire d'inscription à un compte organisateur existant, avec les liens recréés et le crédit (R1 à R5, R7, R9 à R14).
-2. Dupliquer les fichiers téléversés (R6).
-3. Destinataire sans compte : invitation, copie en attente, attribution à la création du compte, expiration et annulation (R8).
+Voir [EPIC-002](../epics/EPIC-002-legs-de-jeu/README.md) :
+
+1. Léguer une copie à un compte organisateur existant : contenu d'écriture, formulaire d'inscription, fichiers dupliqués, liens recréés et crédit (R1 à R7, R9 à R14). Les fichiers ne peuvent pas venir dans un lot à part : leur accès dépend du jeu, et une copie qui pointerait vers les photos du jeu source ne pourrait pas les afficher.
+2. Destinataire sans compte : invitation, copie en attente et attribution à la création du compte (R8).
+3. Suivi des legs en attente : liste, renvoi, annulation et nettoyage des expirés (R8).
 
 ## Hors périmètre
 
@@ -116,3 +118,4 @@ Permettre à une organisatrice de confier son jeu à une autre équipe d'organis
 
 - 2026-10-28 : création à partir de la fiche todo. Choix de l'utilisatrice : attribution automatique, invitation puis attribution pour une destinataire sans compte, crédit visible, pas de copie pour soi-même.
 - 2026-10-28 : le formulaire d'inscription est copié avec le contenu d'écriture, dès le premier lot (R4, R14).
+- 2026-10-28 : découpage en EPIC-002 ; fichiers dupliqués dès le premier lot ; stockage décidé dans ADR-0025.
