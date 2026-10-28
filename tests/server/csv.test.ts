@@ -10,8 +10,13 @@ describe('export CSV', () => {
   })
 
   it('neutralise les cellules qu’un tableur prendrait pour une formule', () => {
-    const lines = toCsv(['A'], [['=HYPERLINK("x")'], ['+33 6'], ['-1'], ['@SUM']]).split('\r\n')
-    expect(lines.slice(1, 5)).toEqual([`"'=HYPERLINK(""x"")"`, `'+33 6`, `'-1`, `'@SUM`])
+    const lines = toCsv(['A'], [['=HYPERLINK("x")'], [' =1+1'], ['+1+cmd'], ['-1'], ['@SUM']]).split('\r\n')
+    expect(lines.slice(1, 6)).toEqual([`"'=HYPERLINK(""x"")"`, `' =1+1`, `'+1+cmd`, `'-1`, `'@SUM`])
+  })
+
+  it('laisse intact un numéro de téléphone international', () => {
+    const lines = toCsv(['Téléphone'], [['+33 6 12 34 56 78'], ['+33612345678']]).split('\r\n')
+    expect(lines.slice(1, 3)).toEqual(['+33 6 12 34 56 78', '+33612345678'])
   })
 
   it('nom de fichier sans accent ni caractère spécial', () => {

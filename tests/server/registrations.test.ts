@@ -80,10 +80,24 @@ describe('email d’invitation', () => {
       responseDueAt: new Date('2027-02-01T09:00:00Z'),
       inviterName: 'Alice',
       url: 'https://limbus.example/inscription/abc'
-    })
+    }, new Date('2027-01-10T12:00:00Z'))
     expect(text).toContain('Alice vous invite à jouer à « Les Ombres », session Printemps (10 mars 2027)')
     expect(text).toContain('https://limbus.example/inscription/abc')
     expect(text).toContain('avant le 1 février 2027')
+  })
+
+  it('ne rappelle pas une échéance passée, par exemple pour un nouveau lien envoyé après elle', () => {
+    const text = registrationInvitationEmailText({
+      participantName: 'Zoé',
+      gameTitle: 'Les Ombres',
+      sessionName: null,
+      sessionDate: null,
+      responseDueAt: new Date('2027-02-01T09:00:00Z'),
+      inviterName: null,
+      url: 'https://limbus.example/inscription/abc'
+    }, new Date('2027-02-05T12:00:00Z'))
+    expect(text).not.toContain('1 février')
+    expect(text).toContain('Merci de répondre dès que possible.')
   })
 })
 

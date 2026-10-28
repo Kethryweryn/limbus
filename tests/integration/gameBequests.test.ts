@@ -201,6 +201,25 @@ describe('legs d’un jeu à une organisatrice qui a un compte', () => {
     expect(new Set(copies.flatMap((copy) => copy.characters.map((character) => character.trombinoscopePhotoUrl))).size).toBe(3)
   })
 
+  it('ne copie ni la photo d’un joueur ni le fichier d’un autre jeu, même référencés par un personnage', async () => {
+    const { game } = await sourceGame()
+    const session = await prisma.session.findFirstOrThrow({ where: { gameId: game.id } })
+    const foreign = async (name: string, data: { gameId: string, sessionId?: string }) => {
+      const filename = `${name}-${game.id}.png`
+      await writeFile(join(PHOTOS, filename), 'photo')
+      const url = `/api/uploads/session-assignment-photos/${filename}`
+      await prisma.uploadedFile.create({ data: { kind: 'session-assignment-photo', filename, url, ...data } })
+      await prisma.character.create({ data: { name, slug: `${name}-${game.id}`, gameId: game.id, trombinoscopePhotoUrl: url } })
+    }
+    await foreign('joueur', { gameId: game.id, sessionId: session.id })
+    await foreign('etranger', { gameId: world.b.game.id })
+
+    expect((await api(alice, 'POST', `/api/games/${game.id}/bequests`, { email: 'bob@example.test' })).status).toBe(200)
+    const [copy] = await copiesOf(game.id)
+    expect(copy!.characters.filter((character) => ['joueur', 'etranger'].includes(character.name)).map((character) => character.trombinoscopePhotoUrl)).toEqual([null, null])
+    expect(copy!.uploadedFiles).toHaveLength(1)
+  })
+
   it('refuse de léguer à soi-même ou à un email sans compte, sans rien créer', async () => {
     const { game } = await sourceGame()
     const self = await api(alice, 'POST', `/api/games/${game.id}/bequests`, { email: 'alice@example.test' })

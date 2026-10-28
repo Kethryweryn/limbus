@@ -20,6 +20,19 @@ export function uploadFilePath(url: string | null | undefined) {
   return null
 }
 
+/**
+ * Un fichier téléversé référencé par un élément du jeu (photo de personnage) doit appartenir à ce jeu,
+ * et pas à une session : sinon une organisatrice pourrait s'approprier le fichier d'un autre jeu, ou
+ * faire passer la photo d'un joueur pour celle d'un personnage (puis la léguer, SPEC-002 R5).
+ */
+export async function assertGameUpload(url: string | null | undefined, gameId: string) {
+  if (!uploadFilePath(url)) return
+  const file = await prisma.uploadedFile.findFirst({ where: { url: url!, gameId, sessionId: null }, select: { id: true } })
+  if (!file) {
+    throw createError({ statusCode: 400, message: 'Photo inconnue pour ce jeu : téléversez-la depuis la fiche du personnage.' })
+  }
+}
+
 export async function readUpload(url: string | null | undefined) {
   const path = uploadFilePath(url)
   return path ? await readFile(path) : null

@@ -1,5 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
-import { sendEmail } from '~/server/utils/email'
+import { openEmailTransport, sendEmail } from '~/server/utils/email'
 import { CHARACTER_TYPES, SESSION_ROLES } from '~/utils/domain'
 import { readUpload } from '~/server/utils/uploads'
 import { isHttpUrl } from '~/utils/urls'
@@ -68,15 +68,17 @@ export function buildPaymentRows<P extends PaymentParticipant, C extends { name:
   payments: PaymentRecord[]
 ) {
   const paymentsByParticipantId = new Map(payments.map((payment) => [payment.participantId, payment]))
-  const byParticipant = new Map<string, { participant: P, characters: C[], awaitingCharacter: boolean }>()
+  const byParticipant = new Map<string, { participant: P, characters: C[], awaitingCharacter: boolean, npcRole: boolean }>()
 
+  // Une personne qui a déjà un personnage, même non jouable, n'attend pas d'attribution
+  const withCharacter = new Set(assignments.map((assignment) => assignment.participantId).filter(Boolean))
   const playable = assignments
     .filter((assignment) => assignment.participant && assignment.participantId && isPlayableCharacterType(assignment.character.type))
     .sort((left, right) => left.character.name.localeCompare(right.character.name, 'fr'))
   for (const assignment of playable) {
     const entry = byParticipant.get(assignment.participantId!)
     if (entry) entry.characters.push(assignment.character)
-    else byParticipant.set(assignment.participantId!, { participant: assignment.participant!, characters: [assignment.character], awaitingCharacter: false })
+    else byParticipant.set(assignment.participantId!, { participant: assignment.participant!, characters: [assignment.character], awaitingCharacter: false, npcRole: false })
   }
 
   // Un inscrit confirmé attend un personnage ; un PNJ du cast est suivi sans cette mention
@@ -85,12 +87,13 @@ export function buildPaymentRows<P extends PaymentParticipant, C extends { name:
     .filter((sessionParticipant) => tracked.includes(sessionParticipant.role) && !byParticipant.has(sessionParticipant.participant.id))
     .sort((left, right) => left.participant.name.localeCompare(right.participant.name, 'fr'))
   for (const sessionParticipant of withoutCharacter) {
-    const awaitingCharacter = sessionParticipants.some((other) =>
-      other.participant.id === sessionParticipant.participant.id && other.role === SESSION_ROLES.participant)
-    byParticipant.set(sessionParticipant.participant.id, { participant: sessionParticipant.participant, characters: [], awaitingCharacter })
+    const awaitingCharacter = !withCharacter.has(sessionParticipant.participant.id)
+      && sessionParticipants.some((other) => other.participant.id === sessionParticipant.participant.id && other.role === SESSION_ROLES.participant)
+    const npcRole = sessionParticipants.some((other) => other.participant.id === sessionParticipant.participant.id && other.role === SESSION_ROLES.npc)
+    byParticipant.set(sessionParticipant.participant.id, { participant: sessionParticipant.participant, characters: [], awaitingCharacter, npcRole })
   }
 
-  return [...byParticipant.values()].map(({ participant, characters, awaitingCharacter }) => {
+  return [...byParticipant.values()].map(({ participant, characters, awaitingCharacter, npcRole }) => {
     const payment = paymentsByParticipantId.get(participant.id)
     return {
       participant,
@@ -98,6 +101,8 @@ export function buildPaymentRows<P extends PaymentParticipant, C extends { name:
       character: characters[0] ?? null,
       characters,
       awaitingCharacter,
+      // PNJ du cast sans personnage attribué (choix du 2026-10-28)
+      npcRole,
       paidAt: payment?.paidAt || null,
       paymentEmailSentAt: payment?.paymentEmailSentAt || null,
       paymentReminderSentAt: payment?.paymentReminderSentAt || null
@@ -105,21 +110,24 @@ export function buildPaymentRows<P extends PaymentParticipant, C extends { name:
   })
 }
 
+const participantSelect = { id: true, name: true, email: true } as const
+
 async function getPaymentSession(sessionId: string) {
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
+    // Nom et email suffisent au tableau : ni notes ni téléphone des personnes
     include: {
-      game: true,
+      game: { select: { id: true, title: true } },
       assignments: {
         include: {
-          character: true,
-          participant: true
+          character: { select: { id: true, name: true, type: true } },
+          participant: { select: participantSelect }
         }
       },
-      payments: { include: { participant: { select: { id: true, name: true, email: true } } } },
+      payments: { include: { participant: { select: participantSelect } } },
       participants: {
         include: {
-          participant: true
+          participant: { select: participantSelect }
         }
       }
     }
@@ -207,69 +215,88 @@ export async function setSessionPaymentStatus(sessionId: string, participantId: 
   })
 }
 
+/**
+ * Envoie les emails de paiement (ou de relance) aux personnes du tableau qui n'ont pas payé, sur une seule
+ * connexion SMTP. Un échec n'arrête pas les envois suivants : il est rendu dans `failures`.
+ */
 export async function sendSessionPaymentEmails(sessionId: string, reminder = false, participantId?: string | null) {
   const dashboard = await getSessionPaymentDashboard(sessionId)
   const rib = await ribAttachment(dashboard.session.paymentRibUrl)
   const now = new Date()
   let sentCount = 0
-  let skippedCount = 0
+  const failures: string[] = []
 
   const rows = participantId
     ? dashboard.rows.filter((row) => row.participant.id === participantId)
     : dashboard.rows
+  const recipients = rows.filter((row) => !row.paidAt && row.participant.email)
+  const skippedCount = rows.length - recipients.length
+  if (!recipients.length) return { sentCount, skippedCount, failures }
 
-  for (const row of rows) {
-    if (row.paidAt || !row.participant.email) {
-      skippedCount++
-      continue
-    }
-    const isReminder = reminder || Boolean(row.paymentEmailSentAt)
-
-    const result = await sendEmail({
-      to: row.participant.email,
-      subject: `${isReminder ? 'Relance paiement' : 'Paiement'} - ${dashboard.session.name}`,
-      text: paymentEmailText({
-        participantName: row.participant.name,
-        sessionName: dashboard.session.name,
-        gameTitle: dashboard.session.game.title,
-        paymentLinkUrl: dashboard.session.paymentLinkUrl,
-        paymentRibUrl: externalRibUrl(dashboard.session.paymentRibUrl),
-        ribAttached: Boolean(rib),
-        reminder: isReminder
-      }),
-      attachments: rib ? [rib] : []
-    })
-    if (!result.sent) {
-      throw createError({ statusCode: 500, message: 'SMTP désactivé' })
-    }
-
-    await prisma.sessionPayment.upsert({
-      where: {
-        sessionId_participantId: {
-          sessionId,
-          participantId: row.participant.id
-        }
-      },
-      create: {
-        sessionId,
-        participantId: row.participant.id,
-        paymentEmailSentAt: isReminder ? row.paymentEmailSentAt || now : now,
-        paymentReminderSentAt: isReminder ? now : null
-      },
-      update: isReminder
-        ? { paymentReminderSentAt: now }
-        : { paymentEmailSentAt: now }
-    })
-    sentCount++
+  const transport = await openEmailTransport().catch(() => null)
+  if (!transport) {
+    throw createError({ statusCode: 500, message: 'SMTP désactivé ou mal configuré' })
   }
 
-  return { sentCount, skippedCount }
+  try {
+    for (const row of recipients) {
+      const isReminder = reminder || Boolean(row.paymentEmailSentAt)
+      try {
+        await transport.send({
+          to: row.participant.email!,
+          subject: `${isReminder ? 'Relance paiement' : 'Paiement'} - ${dashboard.session.name}`,
+          text: paymentEmailText({
+            participantName: row.participant.name,
+            sessionName: dashboard.session.name,
+            gameTitle: dashboard.session.game.title,
+            paymentLinkUrl: dashboard.session.paymentLinkUrl,
+            paymentRibUrl: externalRibUrl(dashboard.session.paymentRibUrl),
+            ribAttached: Boolean(rib),
+            reminder: isReminder
+          }),
+          attachments: rib ? [rib] : []
+        })
+      } catch {
+        failures.push(row.participant.name)
+        continue
+      }
+
+      await prisma.sessionPayment.upsert({
+        where: {
+          sessionId_participantId: {
+            sessionId,
+            participantId: row.participant.id
+          }
+        },
+        create: {
+          sessionId,
+          participantId: row.participant.id,
+          paymentEmailSentAt: isReminder ? row.paymentEmailSentAt || now : now,
+          paymentReminderSentAt: isReminder ? now : null
+        },
+        update: isReminder
+          ? { paymentReminderSentAt: now }
+          : { paymentEmailSentAt: now }
+      })
+      sentCount++
+    }
+  } finally {
+    transport.close()
+  }
+
+  if (!sentCount && failures.length) {
+    throw createError({ statusCode: 502, message: `Aucun email de paiement n’est parti (${failures.join(', ')}).` })
+  }
+  return { sentCount, skippedCount, failures }
 }
 
 export async function sendSessionPaymentTestEmails(sessionId: string, emails: string[], participantId?: string | null) {
   const dashboard = await getSessionPaymentDashboard(sessionId)
   const rib = await ribAttachment(dashboard.session.paymentRibUrl)
-  const sample = dashboard.rows.find((row) => row.participant.id === participantId) || dashboard.rows[0]
+  const sample = participantId ? dashboard.rows.find((row) => row.participant.id === participantId) : dashboard.rows[0]
+  if (participantId && !sample) {
+    throw createError({ statusCode: 400, message: 'Cette personne ne fait plus partie du tableau des paiements : rechargez la page.' })
+  }
   const reminder = Boolean(sample?.paymentEmailSentAt)
 
   const result = await sendEmail({

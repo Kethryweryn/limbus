@@ -11,8 +11,15 @@ const session = {
     { dietary: null, participant: { id: 'leo', name: 'Léo Blanc' } },
     { dietary: ' Arachides\nLactose ', participant: { id: 'ines', name: 'Inès Roy' } }
   ],
-  // Zoé est aussi au cast ; une cuisinière et un PNJ sans inscription ; un personnage sans joueur
-  participants: [{ participantId: 'zoe' }, { participantId: 'cook' }, { participantId: 'npc' }],
+  // Les confirmées sont participantes de la session ; une cuisinière et un PNJ sans inscription ; un personnage sans joueur
+  participants: [
+    { participantId: 'zoe', role: 'participant' },
+    { participantId: 'hugo', role: 'participant' },
+    { participantId: 'leo', role: 'participant' },
+    { participantId: 'ines', role: 'participant' },
+    { participantId: 'cook', role: 'kitchen' },
+    { participantId: 'npc', role: 'npc' }
+  ],
   assignments: [{ participantId: 'zoe' }, { participantId: 'npc' }, { participantId: null }]
 }
 
@@ -25,6 +32,13 @@ describe('fiche allergies (US-008)', () => {
       { name: 'Inès Roy', dietary: 'Arachides\nLactose' },
       { name: 'Zoé Martin', dietary: 'Gluten' }
     ])
+  })
+
+  it('écarte une confirmée retirée à la main de la session (ADR-0021)', () => {
+    const sheet = buildAllergySheet({ ...session, participants: session.participants.filter((participant) => participant.participantId !== 'ines') })
+    expect(sheet.confirmedCount).toBe(3)
+    expect(sheet.eaterCount).toBe(5)
+    expect(sheet.people.map((person) => person.name)).toEqual(['Zoé Martin'])
   })
 
   it('ne contient que le nom et les allergies : ni téléphone, ni contact d’urgence, ni email', () => {

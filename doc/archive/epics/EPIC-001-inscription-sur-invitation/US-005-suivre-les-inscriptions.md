@@ -36,6 +36,7 @@ En tant qu'organisatrice, je veux voir où en est chaque inscription de ma péri
 - **Détail** : `GET /api/registrations/:id`, ouvert depuis le bouton « Détail » de la liste.
 - **Compteur** : un badge par statut présent (invitée, délai dépassé, confirmée, désistée), sous le titre de la session.
 - **Export CSV** : `GET /api/sessions/:id/registrations/export`, séparateur point-virgule et BOM pour Excel ; une cellule qui commencerait par `=`, `+`, `-` ou `@` est neutralisée.
+- Correctifs de la revue du 2026-10-28 : un email d'invitation (premier envoi ou « Nouveau lien ») ne rappelle plus une échéance passée ; un rappel qui échoue côté SMTP le dit (502) ; relance et nouveau lien ont chacun leur limite de débit ; l'export CSV garde intacts les numéros de téléphone internationaux et neutralise aussi une formule précédée d'espaces ; le champ de prolongation est borné à un an.
 
 ## Notes techniques
 

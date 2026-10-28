@@ -65,6 +65,14 @@ export function rethrowAlreadyRegistered(error: unknown): never {
 
 const formatDate = (value: Date) => value.toLocaleDateString('fr-FR', { dateStyle: 'long', timeZone: 'Europe/Paris' })
 
+// Une échéance passée n'est jamais rappelée : l'invitation reste ouverte tant que la place n'est pas libérée (ADR-0020)
+function responseDueLine(responseDueAt: Date | null, now: Date) {
+  if (!responseDueAt) return null
+  return responseDueAt.getTime() > now.getTime()
+    ? `Merci de répondre avant le ${formatDate(responseDueAt)}.`
+    : 'Merci de répondre dès que possible.'
+}
+
 export function registrationInvitationEmailText(params: {
   participantName: string
   gameTitle: string
@@ -73,7 +81,7 @@ export function registrationInvitationEmailText(params: {
   responseDueAt: Date | null
   inviterName: string | null
   url: string
-}) {
+}, now = new Date()) {
   const session = params.sessionName
     ? `${params.sessionName}${params.sessionDate ? ` (${formatDate(params.sessionDate)})` : ''}`
     : null
@@ -86,7 +94,7 @@ export function registrationInvitationEmailText(params: {
     'Ce lien personnel vous permet de lire la note d’intention, de donner vos informations et de répondre à l’invitation :',
     params.url,
     '',
-    params.responseDueAt ? `Merci de répondre avant le ${formatDate(params.responseDueAt)}.` : null,
+    responseDueLine(params.responseDueAt, now),
     'Ce lien vous est propre : ne le transférez pas.'
   ].filter((line) => line !== null).join('\n')
 }
@@ -108,10 +116,7 @@ export function registrationReminderEmailText(params: {
     `Nous n’avons pas encore reçu votre réponse à l’invitation à jouer à « ${params.gameTitle} »${params.sessionName ? `, session ${params.sessionName}` : ''}.`,
     '',
     `Votre lien personnel se trouve dans l’email d’invitation envoyé le ${formatDate(params.invitationSentAt)}, intitulé « Invitation : ${params.gameTitle} ». Il permet de lire la note d’intention et de répondre.`,
-    // Une échéance passée n'est pas rappelée : l'invitation reste ouverte tant que la place n'est pas libérée (ADR-0020)
-    params.responseDueAt && params.responseDueAt.getTime() > now.getTime()
-      ? `Merci de répondre avant le ${formatDate(params.responseDueAt)}.`
-      : 'Merci de répondre dès que possible.',
+    responseDueLine(params.responseDueAt, now) ?? 'Merci de répondre dès que possible.',
     '',
     'Vous ne retrouvez pas cet email ? Prévenez l’équipe d’organisation : elle vous enverra un nouveau lien.'
   ].join('\n')
@@ -431,9 +436,10 @@ export async function remindRegistration(registrationId: string) {
       invitationSentAt: registration.invitationSentAt,
       responseDueAt: registration.responseDueAt
     })
-  })
+  }).catch((error: { message?: string }) => ({ sent: false, reason: error?.message || 'erreur SMTP' }))
   if (!result.sent) {
-    throw createError({ statusCode: 502, message: 'Le rappel n’est pas parti : envoi d’emails désactivé.' })
+    const reason = 'reason' in result && result.reason !== 'smtp_disabled' ? result.reason : 'envoi d’emails désactivé'
+    throw createError({ statusCode: 502, message: `Le rappel n’est pas parti : ${reason}.` })
   }
   await prisma.registration.update({ where: { id: registration.id }, data: { lastRemindedAt: new Date() } })
   return { sent: true }

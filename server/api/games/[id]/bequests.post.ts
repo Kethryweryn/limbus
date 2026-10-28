@@ -28,11 +28,12 @@ export default defineEventHandler(async (event) => {
   if (email === normalizeInvitationEmail(user.email)) {
     throw createError({ statusCode: 400, message: 'Vous ne pouvez pas vous léguer votre propre jeu : le legs donne une copie à une autre organisatrice.' })
   }
+  // Par compte, tous jeux confondus : la réponse dit si l'email a un compte, on limite les essais
   assertRateLimit(event, {
     name: 'game-bequest',
     limit: 10,
     windowMs: 60 * 60 * 1000,
-    keyParts: [authUserRateLimitKey(event), id]
+    keyParts: [authUserRateLimitKey(event)]
   })
 
   const recipient = await prisma.user.findUnique({ where: { email }, select: { id: true, name: true, email: true } })

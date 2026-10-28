@@ -41,6 +41,7 @@ En tant que propriétaire d'un jeu, je veux en donner une copie à une organisat
 - Une photo téléversée absente du disque n'est pas reprise : la copie garde le personnage sans photo.
 - Le formulaire d'inscription ne contient aujourd'hui que des réglages de champs standards, sans référence à un élément du jeu : sa définition est copiée telle quelle.
 - Le crédit s'affiche sous le titre, sur la fiche du jeu (`gameCreditText`, `utils/games.ts`). La page publique ne l'affiche pas.
+- Correctifs de la revue du 2026-10-28 : seules les photos rattachées au jeu source hors sessions sont dupliquées (jamais la photo d'un joueur, ni le fichier d'un autre jeu), et une photo de personnage doit désormais appartenir à son jeu ; la limite de débit du legs est par compte, tous jeux confondus ; un legs interrompu par une modification concurrente répond 409 sans rien laisser.
 
 ## Notes techniques
 

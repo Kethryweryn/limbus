@@ -55,7 +55,8 @@ async function sessionWithRegistrations() {
     data: [
       { sessionId: session.id, participantId: cook!.id, role: 'kitchen' },
       { sessionId: session.id, participantId: npc!.id, role: 'npc' },
-      { sessionId: session.id, participantId: zoe!.id, role: 'participant' }
+      { sessionId: session.id, participantId: zoe!.id, role: 'participant' },
+      { sessionId: session.id, participantId: ines!.id, role: 'participant' }
     ]
   })
   return { session, zoe: zoe!, ines: ines!, cook: cook!, npc: npc! }
@@ -66,7 +67,7 @@ describe('fiche allergies', () => {
     const { session, zoe } = await sessionWithRegistrations()
     const response = await api(alice, 'GET', `/api/sessions/${session.id}/allergies`)
     expect(response.status).toBe(200)
-    // À table : Zoé et Inès (confirmées, Zoé aussi au cast), la cuisine et le PNJ
+    // À table : Zoé et Inès (confirmées, participantes de la session), la cuisine et le PNJ
     expect(response.body).toMatchObject({ confirmedCount: 2, eaterCount: 4, people: [{ name: zoe.name, dietary: 'Gluten' }] })
     expect((response.body as any).people).toHaveLength(1)
     const json = JSON.stringify(response.body)
@@ -98,6 +99,13 @@ describe('fiche allergies', () => {
     expect(sent[0]!.raw).toContain('application/pdf')
     expect(sent[0]!.text).toContain('données de santé')
     expect(sent.some((message) => message.to.includes(zoe.email!) || message.to.includes(npc.email!))).toBe(false)
+  })
+
+  it('écarte une confirmée retirée à la main de la session', async () => {
+    const { session, zoe } = await sessionWithRegistrations()
+    await prisma.sessionParticipant.deleteMany({ where: { sessionId: session.id, participantId: zoe.id } })
+    const response = await api(alice, 'GET', `/api/sessions/${session.id}/allergies`)
+    expect(response.body).toMatchObject({ confirmedCount: 1, eaterCount: 3, people: [] })
   })
 
   it('refuse l’envoi sans équipe cuisine', async () => {
