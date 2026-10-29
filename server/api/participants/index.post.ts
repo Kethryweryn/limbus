@@ -4,6 +4,7 @@ import { accessibleGameIds } from '~/server/utils/gameAccess'
 import { participantCreateSchema, readZodBody } from '~/server/utils/schemas'
 import { exposeParticipantGames, participantGameLinksInclude } from '~/server/utils/participants'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
+import { accountIdForEmail } from '~/server/utils/participantAccounts'
 
 export default defineEventHandler(async (event) => {
   await requireUser(event)
@@ -23,6 +24,8 @@ export default defineEventHandler(async (event) => {
       slug: await generateUniqueSlug('participant', name),
       email: email || null,
       phone: phone || null,
+      // Rattachée au compte de son adresse (US-070)
+      userId: await accountIdForEmail(email),
       gameLinks: {
         create: uniqueGameIds.map((gameId) => ({ gameId, notes: gameNotes[gameId] || null }))
       }

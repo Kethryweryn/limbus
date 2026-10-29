@@ -1,8 +1,9 @@
 import type { H3Event } from 'h3'
 import { prisma } from '~/server/utils/prisma'
+import { accountIdForEmail } from '~/server/utils/participantAccounts'
 import { assertRateLimit } from '~/server/utils/rateLimit'
 import { sendEmail } from '~/server/utils/email'
-import { hashRegistrationToken, registrationUrl } from '~/server/utils/registrations'
+import { hashRegistrationToken } from '~/server/utils/registrations'
 import { getCurrentRegistrationForm, saveRegistrationFormDefinition } from '~/server/utils/registrationForms'
 import { REGISTRATION_PERIOD_STATES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
 import { effectivePeriodState } from '~/utils/registrationPeriods'
@@ -67,6 +68,20 @@ export async function findRegistrationByToken(token: string | undefined) {
   return registration
 }
 
+/**
+ * Inscription d'une fiche rattachée au compte (US-072, ADR-0041) : même sélection que le lien personnel,
+ * sans l'expiration du lien. Une inscription d'une autre fiche répond comme une inconnue.
+ */
+export async function requireMyRegistration(userId: string, id: string | undefined) {
+  const registration = id
+    ? await prisma.registration.findFirst({ where: { id, participant: { userId } }, select: publicRegistrationSelect })
+    : null
+  if (!registration) {
+    throw createError({ statusCode: 404, message: 'Inscription introuvable' })
+  }
+  return registration
+}
+
 export async function requireRegistrationByToken(token: string | undefined) {
   const registration = await findRegistrationByToken(token)
   if (!registration) {
@@ -82,7 +97,7 @@ export async function requireRegistrationByToken(token: string | undefined) {
  * - une inscription confirmée se modifie jusqu'à la clôture, et se désiste même après (US-006) ;
  * - une inscription désistée ne permet plus rien.
  */
-export function registrationPermissions(registration: Pick<PublicRegistration, 'status' | 'period'>, now = new Date()) {
+export function registrationPermissions(registration: { status: string, period: { state: string, closesAt: Date | null } }, now = new Date()) {
   const open = effectivePeriodState(registration.period, now) === REGISTRATION_PERIOD_STATES.open
   const invited = registration.status === REGISTRATION_STATUSES.invited
   const confirmed = registration.status === REGISTRATION_STATUSES.confirmed
@@ -212,7 +227,8 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
     if (!count) {
       throw createError({ statusCode: 409, message: 'Votre inscription a changé entre-temps : rechargez la page.' })
     }
-    await tx.participant.update({ where: { id: registration.participantId }, data: { email: answers.email } })
+    // L'adresse donnée fait foi ; le rattachement au compte la suit (US-070)
+    await tx.participant.update({ where: { id: registration.participantId }, data: { email: answers.email, userId: await accountIdForEmail(answers.email) } })
     if (accepting && registration.sessionId) {
       await tx.sessionParticipant.upsert({
         where: {
@@ -270,8 +286,9 @@ export function registrationConfirmationEmailText(params: {
   ].join('\n')
 }
 
-// L'email de confirmation n'empêche pas la confirmation : un échec est seulement signalé
-export async function sendRegistrationConfirmationEmail(registration: PublicRegistration, answers: RegistrationAnswers, token: string) {
+// L'email de confirmation n'empêche pas la confirmation : un échec est seulement signalé.
+// url : le lien personnel, ou l'espace « Je participe » pour une réponse faite depuis le compte (US-072)
+export async function sendRegistrationConfirmationEmail(registration: PublicRegistration, answers: RegistrationAnswers, url: string) {
   try {
     const result = await sendEmail({
       to: answers.email,
@@ -281,7 +298,7 @@ export async function sendRegistrationConfirmationEmail(registration: PublicRegi
         gameTitle: registration.period.game.title,
         sessionName: registration.session?.name ?? null,
         sessionDate: registration.session?.date ?? null,
-        url: registrationUrl(token)
+        url
       })
     })
     return result.sent

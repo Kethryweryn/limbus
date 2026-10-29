@@ -353,3 +353,22 @@ describe('notes d’une fiche commune', () => {
     expect(write.status).toBe(403)
   })
 })
+
+// Espace « Je participe » (US-071, US-072, ADR-0041) : tout part des fiches rattachées au compte
+describe('routes de l’espace participant', () => {
+  it('Alice n’atteint ni l’inscription ni le RIB d’une fiche de Bob ; témoin : la fiche rattachée à Alice', async () => {
+    expect((await api(alice, 'GET', `/api/me/registrations/${b.registration.id}`)).status).toBe(404)
+    expect((await api(alice, 'PUT', `/api/me/registrations/${b.registration.id}`, { email: 'x@example.test' })).status).toBe(404)
+    expect((await api(alice, 'POST', `/api/me/registrations/${b.registration.id}/decline`)).status).toBe(404)
+    expect((await api(alice, 'POST', `/api/me/registrations/${b.registration.id}/withdraw`)).status).toBe(404)
+    expect((await api(alice, 'GET', `/api/me/sessions/${b.session.id}/rib`)).status).toBe(404)
+    expect(JSON.stringify((await api(alice, 'GET', '/api/me/participations')).body)).not.toContain(b.game.id)
+
+    await prisma.participant.update({ where: { id: b.participant.id }, data: { userId: alice.id } })
+    try {
+      expect((await api(alice, 'GET', `/api/me/registrations/${b.registration.id}`)).status).toBe(200)
+    } finally {
+      await prisma.participant.update({ where: { id: b.participant.id }, data: { userId: null } })
+    }
+  })
+})

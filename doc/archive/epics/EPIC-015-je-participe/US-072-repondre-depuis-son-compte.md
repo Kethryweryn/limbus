@@ -1,7 +1,7 @@
 ---
 id: US-072
 titre: Répondre à une inscription et se désister depuis son compte
-statut: à faire
+statut: terminée
 epic: EPIC-015
 regles: [R15]
 adr: [ADR-0041, ADR-0018]
@@ -13,10 +13,10 @@ En tant que personne invitée à s'inscrire, je veux répondre depuis mon compte
 
 ## Critères d'acceptation
 
-- [ ] Depuis « Je participe », j'ouvre une inscription et j'y fais ce que permet le lien personnel : accepter en remplissant le formulaire, décliner, modifier jusqu'à la clôture, me désister.
-- [ ] Mêmes règles que le lien (statut, clôture, délai), même formulaire, même email de confirmation.
-- [ ] Le lien personnel marche toujours, sans connexion (R15).
-- [ ] Une inscription d'une fiche qui n'est pas la mienne répond 404.
+- [x] Depuis « Je participe », j'ouvre une inscription et j'y fais ce que permet le lien personnel : accepter en remplissant le formulaire, décliner, modifier jusqu'à la clôture, me désister.
+- [x] Mêmes règles que le lien (statut, clôture, délai), même formulaire, même email de confirmation.
+- [x] Le lien personnel marche toujours, sans connexion (R15).
+- [x] Une inscription d'une fiche qui n'est pas la mienne répond 404.
 
 ## Notes techniques
 
