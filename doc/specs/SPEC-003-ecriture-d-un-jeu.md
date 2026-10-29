@@ -3,14 +3,14 @@ id: SPEC-003
 titre: Écriture d'un jeu
 statut: validée
 date: 2026-10-29
-origine: ../todo/documentation-de-l-existant.md
+origine: ../archive/todo/documentation-de-l-existant.md
 epics: []
 adr: [ADR-0007, ADR-0008]
 ---
 
 # SPEC-003 : Écriture d'un jeu
 
-Cette spec décrit un comportement déjà en production, avant la reprise du développement ([Documentation de l'existant](../todo/documentation-de-l-existant.md)). Elle n'a ni epic ni US. Les écarts constatés entre le code et l'intention sont listés à la fin, sans être corrigés.
+Cette spec décrit un comportement déjà en production, avant la reprise du développement ([Documentation de l'existant](../archive/todo/documentation-de-l-existant.md)). Elle n'a ni epic ni US. Les écarts constatés entre le code et l'intention sont listés à la fin, sans être corrigés.
 
 ## Objectif
 
@@ -98,7 +98,7 @@ Ces sujets sont couverts par leurs propres specs :
 - participants et RGPD ([SPEC-007](SPEC-007-participants-et-rgpd.md)) ;
 - comptes et partage ([SPEC-008](SPEC-008-comptes-et-partage.md)) ;
 - page publique ([SPEC-009](SPEC-009-page-publique.md)) ;
-- hors ligne ;
+- hors ligne ([SPEC-010](SPEC-010-hors-ligne.md)) ;
 - legs d'une copie ([SPEC-002](SPEC-002-copie-de-jeu.md)) ;
 - inscriptions ([SPEC-001](SPEC-001-inscriptions.md)).
 

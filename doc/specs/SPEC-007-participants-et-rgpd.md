@@ -3,14 +3,14 @@ id: SPEC-007
 titre: Participants et données personnelles
 statut: validée
 date: 2026-10-29
-origine: ../todo/documentation-de-l-existant.md
+origine: ../archive/todo/documentation-de-l-existant.md
 epics: []
 adr: [ADR-0007, ADR-0008]
 ---
 
 # SPEC-007 : Participants et données personnelles
 
-Cette spec décrit un comportement déjà en production, avant la reprise du développement ([Documentation de l'existant](../todo/documentation-de-l-existant.md)). Elle n'a ni epic ni US. Les écarts constatés entre le code et l'intention sont listés à la fin, sans être corrigés.
+Cette spec décrit un comportement déjà en production, avant la reprise du développement ([Documentation de l'existant](../archive/todo/documentation-de-l-existant.md)). Elle n'a ni epic ni US. Les écarts constatés entre le code et l'intention sont listés à la fin, sans être corrigés.
 
 ## Objectif
 
