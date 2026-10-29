@@ -15,7 +15,7 @@ En tant qu'organisatrice, je veux savoir quand les trombinoscopes d'une session 
 
 - [x] Un trombinoscope est périmé quand ce qu'il afficherait aujourd'hui diffère de ce qu'il affiche : casting, photo, réglage, nom ou faction affichée ([ADR-0030](../../../adr/ADR-0030-empreinte-d-un-trombinoscope.md)).
 - [x] Le tableau des documents de la session affiche un seul avertissement quand des trombinoscopes sont périmés, avec leur nombre, et invite à les générer à nouveau.
-- [x] Tant qu'un trombinoscope à envoyer est périmé, « Envoyer trombinoscopes seuls » et « Envoyer fiches et trombinoscopes » sont désactivés, et le serveur refuse l'envoi (409).
+- [x] Tant qu'un trombinoscope à envoyer est périmé, « Envoyer trombinoscopes seuls » et « Envoyer fiches et trombinoscopes » sont désactivés, et le serveur refuse l'envoi (409), y compris l'envoi de test d'une fiche avec son trombinoscope.
 - [x] Un trombinoscope déjà envoyé qui devient périmé porte le badge « Trombi envoyé, périmé ». Il ne bloque pas les autres envois ; son renvoi relève de [SPEC-006](../../../specs/SPEC-006-emails-et-paiements.md).
 - [x] Générer à nouveau rend les trombinoscopes à jour.
 

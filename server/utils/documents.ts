@@ -541,6 +541,9 @@ export async function sendCharacterSheetBundleTestEmail(sessionId: string, chara
     throw createError({ statusCode: 404, message: 'Fiche personnage introuvable pour cette session' })
   }
 
+  // Le test montre ce qui partirait : un trombinoscope périmé ne part pas non plus (US-028)
+  if (sheet.trombinoscopeUrl) assertNoOutdatedTrombinoscope([sheet])
+
   const result = await sendEmail({
     to: emails,
     subject: `[Test] Fiche personnage - ${sheet.character.name}`,

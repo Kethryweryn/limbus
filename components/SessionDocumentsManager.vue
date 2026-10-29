@@ -130,7 +130,7 @@
               {{ sentTrombinoscopes.length }}/{{ characterSheets.length }} trombinoscope(s) envoyé(s)
             </p>
             <p v-if="outdatedTrombinoscopes.length" class="text-sm text-amber-600">
-              {{ outdatedTrombinoscopes.length }} trombinoscope(s) ne sont plus à jour (casting, photos ou réglages modifiés) : générez-les à nouveau avant de les envoyer.
+              {{ outdatedTrombinoscopes.length }} trombinoscope(s) ne sont plus à jour (casting, photos ou réglages modifiés) : générez-les à nouveau.
             </p>
             <p v-if="missingTrombinoscopePhotos" class="text-sm text-amber-600">
               {{ missingTrombinoscopePhotos }} photo(s) manquante(s) dans les trombinoscopes générés.

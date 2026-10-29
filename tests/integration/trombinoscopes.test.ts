@@ -73,7 +73,7 @@ describe('trombinoscopes périmés (US-028)', () => {
     expect((await generate(s.session.id)).status).toBe(200)
     expect((await sheet(s.session.id)).trombinoscopeOutdated).toBe(false)
 
-    await prisma.sessionAssignment.create({ data: { sessionId: s.session.id, characterId: s.other.id, photoUrl: 'https://example.test/noe.jpg' } })
+    await prisma.sessionAssignment.create({ data: { sessionId: s.session.id, characterId: s.other.id, photoUrl: '/api/uploads/session-assignment-photos/absente.png' } })
     expect((await sheet(s.session.id)).trombinoscopeOutdated).toBe(true)
 
     expect((await generate(s.session.id)).status).toBe(200)
@@ -94,6 +94,7 @@ describe('trombinoscopes périmés (US-028)', () => {
     const before = smtp.received.length
     expect((await api(alice, 'POST', `/api/sessions/${s.session.id}/documents/send-trombinoscopes`, {})).status).toBe(409)
     expect((await api(alice, 'POST', `/api/sessions/${s.session.id}/documents/send-character-sheets-and-trombinoscopes`, {})).status).toBe(409)
+    expect((await api(alice, 'POST', `/api/sessions/${s.session.id}/documents/test-character-sheet`, { characterId: s.viewer.id, emails: ['orga@example.test'] })).status).toBe(409)
     expect(smtp.received.length).toBe(before)
 
     expect((await generate(s.session.id)).status).toBe(200)
