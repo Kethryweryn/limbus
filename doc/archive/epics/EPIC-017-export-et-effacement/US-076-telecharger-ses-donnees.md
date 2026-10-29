@@ -1,7 +1,7 @@
 ---
 id: US-076
 titre: Télécharger toutes ses données depuis son compte
-statut: à faire
+statut: terminée
 epic: EPIC-017
 regles: [R13]
 adr: [ADR-0043]
@@ -13,9 +13,9 @@ En tant que personne qui a un compte, je veux télécharger tout ce que Limbus g
 
 ## Critères d'acceptation
 
-- [ ] « Mon compte » propose « Télécharger mes données » : un fichier JSON.
-- [ ] Il contient le compte (nom, email, rôle, dates, coordonnées et allergies, plafond et espace utilisé), les jeux possédés et partagés (titres), et, pour chaque fiche rattachée, tout ce que l'export d'une fiche contient, dans tous les jeux, notes des équipes comprises.
-- [ ] Rien d'autre que ses propres données : ni mot de passe, ni jeton, ni données d'autres personnes.
+- [x] « Mon compte » propose « Télécharger mes données » : un fichier JSON.
+- [x] Il contient le compte (nom, email, rôle, dates, coordonnées et allergies, plafond et espace utilisé), les jeux possédés et partagés (titres), et, pour chaque fiche rattachée, tout ce que l'export d'une fiche contient, dans tous les jeux, notes des équipes comprises.
+- [x] Rien d'autre que ses propres données : ni mot de passe, ni jeton, ni données d'autres personnes.
 
 ## Notes techniques
 
