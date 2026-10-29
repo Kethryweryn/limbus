@@ -49,9 +49,8 @@ export async function exportParticipantData(participantId: string, gameIds: stri
       name: true,
       email: true,
       phone: true,
-      notes: true,
       updatedAt: true,
-      gameLinks: { where: inGames, select: { createdAt: true, game: { select: { title: true } } } },
+      gameLinks: { where: inGames, select: { createdAt: true, notes: true, game: { select: { title: true } } } },
       sessionRoles: { where: inSessions, select: { role: true, session } },
       assignments: { where: inSessions, select: { photoUrl: true, notes: true, character: { select: { name: true } }, session } },
       payments: { where: inSessions, select: { paidAt: true, paymentEmailSentAt: true, paymentReminderSentAt: true, refundStatus: true, refundedAt: true, tariff: { select: { name: true, amountCents: true } }, instalments: { select: { amountCents: true, receivedAt: true } }, session } },
@@ -95,6 +94,7 @@ export async function exportParticipantData(participantId: string, gameIds: stri
   return {
     exportedAt: new Date().toISOString(),
     ...rest,
-    games: gameLinks.map((link) => ({ title: link.game.title, registeredAt: link.createdAt }))
+    // Notes de chaque jeu exporté (US-069)
+    games: gameLinks.map((link) => ({ title: link.game.title, registeredAt: link.createdAt, notes: link.notes }))
   }
 }

@@ -70,9 +70,9 @@
             <span class="text-gray-500">Téléphone</span>
             <div>{{ participant.phone }}</div>
           </div>
-          <div v-if="participant.notes">
-            <span class="text-gray-500">Notes</span>
-            <div>{{ participant.notes }}</div>
+          <div v-for="game in gamesWithNotes(participant)" :key="game.id">
+            <span class="text-gray-500">Notes — {{ game.title }}</span>
+            <div class="whitespace-pre-line">{{ participant.gameNotes[game.id] }}</div>
           </div>
         </div>
       </UCard>
@@ -166,6 +166,8 @@ const formatParticipantGames = (participant) => {
   return participant.games.map((game) => game.title).join(', ')
 }
 
+// Notes de chaque jeu accessible, s'il y en a (US-069)
+const gamesWithNotes = (participant) => (participant.games || []).filter((game) => participant.gameNotes?.[game.id])
 const visibleParticipantGames = (participant) => participant.games?.slice(0, 2) || []
 
 const hiddenParticipantGamesCount = (participant) => Math.max((participant.games?.length || 0) - visibleParticipantGames(participant).length, 0)
@@ -227,7 +229,7 @@ function startCreate() {
     name: '',
     email: '',
     phone: '',
-    notes: '',
+    gameNotes: {},
     gameIds: selectedGame.value?.id ? [selectedGame.value.id] : []
   }
   formMode.value = 'create'

@@ -129,7 +129,12 @@ function formatValue(value) {
   if (value === null || value === undefined || value === '') return '—'
   if (typeof value === 'boolean') return value ? 'Oui' : 'Non'
   if (Array.isArray(value)) return `${value.length} élément${value.length > 1 ? 's' : ''}`
-  if (typeof value === 'object') return value.name || value.title || JSON.stringify(value).slice(0, 120)
+  if (typeof value === 'object' && (value.name || value.title)) return value.name || value.title
+  // Textes rangés par identifiant (notes par jeu, US-069) : les textes seuls, sans les identifiants
+  if (typeof value === 'object' && Object.values(value).every((item) => item === null || typeof item === 'string')) {
+    return formatValue(Object.values(value).filter(Boolean).join(' / '))
+  }
+  if (typeof value === 'object') return JSON.stringify(value).slice(0, 120)
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value) && !Number.isNaN(new Date(value).getTime())) {
     return formatDate(value)
   }

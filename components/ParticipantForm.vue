@@ -29,8 +29,14 @@
         <UInput v-model="localParticipant.phone" size="lg" class="w-full" />
       </UFormField>
 
-      <UFormField label="Notes">
-        <UTextarea v-model="localParticipant.notes" :rows="8" size="lg" class="w-full" />
+      <!-- Une note par jeu (US-069) : chaque équipe ne voit que celles de ses jeux -->
+      <UFormField
+        v-for="game in selectedGames"
+        :key="game.value"
+        :label="`Notes — ${game.label}`"
+        help="Visibles par l’équipe de ce jeu seulement."
+      >
+        <UTextarea v-model="localParticipant.gameNotes[game.value]" :rows="5" size="lg" class="w-full" />
       </UFormField>
 
       <div class="flex flex-wrap gap-2 pt-2">
@@ -67,8 +73,11 @@ const gameOptions = computed(() => props.games.map((game) => ({
   value: game.id
 })))
 
+const selectedGames = computed(() => gameOptions.value.filter((game) => localParticipant.value.gameIds?.includes(game.value)))
+
 watch(() => props.participant, (newParticipant) => {
-  localParticipant.value = { ...newParticipant }
+  // Copie des notes : la fiche affichée ne change qu'à l'enregistrement
+  localParticipant.value = { ...newParticipant, gameNotes: { ...(newParticipant.gameNotes || {}) } }
   errors.value = {}
   serverError.value = ''
 }, { immediate: true })

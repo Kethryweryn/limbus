@@ -335,3 +335,21 @@ describe('sans authentification', () => {
     expect((await api(null, 'GET', `/api/${path}`)).status).toBe(401)
   })
 })
+
+// Notes par jeu sur une fiche partagée entre deux équipes (US-069, ADR-0040)
+describe('notes d’une fiche commune', () => {
+  it('Alice ne lit ni n’écrit la note du jeu de Bob ; témoin : la sienne', async () => {
+    const participant = await prisma.participant.create({
+      data: {
+        name: 'Fiche commune isolation',
+        slug: 'fiche-commune-isolation',
+        gameLinks: { create: [{ gameId: a.game.id, notes: 'Note A' }, { gameId: b.game.id, notes: 'Note B' }] }
+      }
+    })
+    const read = await api(alice, 'GET', `/api/participants/${participant.id}`)
+    expect(read.body).toMatchObject({ gameNotes: { [a.game.id]: 'Note A' } })
+    expect(JSON.stringify(read.body)).not.toContain('Note B')
+    const write = await api(alice, 'PUT', `/api/participants/${participant.id}`, { name: participant.name, gameIds: [a.game.id], gameNotes: { [b.game.id]: 'Intrusion' } })
+    expect(write.status).toBe(403)
+  })
+})

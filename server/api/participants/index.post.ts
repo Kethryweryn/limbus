@@ -9,10 +9,11 @@ export default defineEventHandler(async (event) => {
   await requireUser(event)
 
   const body = await readZodBody(event, participantCreateSchema)
-  const { name, email, phone, notes, gameIds } = body
+  const { name, email, phone, gameNotes, gameIds } = body
   const uniqueGameIds = [...new Set(gameIds)]
   const allowedGameIds = await accessibleGameIds(event)
-  if (allowedGameIds !== null && uniqueGameIds.some((gameId) => !allowedGameIds.includes(gameId))) {
+  // Jeux liés et notes par jeu (US-069) : tous doivent être accessibles
+  if (allowedGameIds !== null && [...uniqueGameIds, ...Object.keys(gameNotes)].some((gameId) => !allowedGameIds.includes(gameId))) {
     throw createError({ statusCode: 403, message: 'Jeu inaccessible' })
   }
 
@@ -22,9 +23,8 @@ export default defineEventHandler(async (event) => {
       slug: await generateUniqueSlug('participant', name),
       email: email || null,
       phone: phone || null,
-      notes: notes || null,
       gameLinks: {
-        create: uniqueGameIds.map((gameId) => ({ gameId }))
+        create: uniqueGameIds.map((gameId) => ({ gameId, notes: gameNotes[gameId] || null }))
       }
     },
     include: participantGameLinksInclude(allowedGameIds)
