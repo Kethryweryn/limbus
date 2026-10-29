@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildTrombinoscopeRows } from '~/server/utils/trombinoscopes'
+import { buildTrombinoscopeRows, isTrombinoscopeOutdated, trombinoscopeFingerprint } from '~/server/utils/trombinoscopes'
 
 const character = (id: string, extra: Record<string, unknown> = {}) => ({ id, name: id, type: 'pj', factions: [], ...extra })
 const noEntries = new Map()
@@ -29,5 +29,30 @@ describe('soi-même (US-027)', () => {
     const viewer = character('viewer')
     const entries = new Map([['viewer:viewer', { included: true, faceKnown: true }]])
     expect(buildTrombinoscopeRows(viewer, [viewer, character('lea')], entries, new Map()).map((row) => row.target.id)).toEqual(['lea'])
+  })
+})
+
+describe('empreinte d’un trombinoscope (US-028)', () => {
+  const viewer = character('viewer')
+  const fingerprint = (target: Record<string, unknown>, photoUrl: string | null = null) => trombinoscopeFingerprint({
+    gameTitle: 'Jeu',
+    sessionName: 'Session',
+    viewerName: 'viewer',
+    rows: buildTrombinoscopeRows(viewer, [character('lea', target)], noEntries, new Map([['lea', { photoUrl }]]))
+  })
+
+  it('est stable, et change avec une photo, un nom affiché ou un visage caché', () => {
+    const base = fingerprint({})
+    expect(fingerprint({})).toBe(base)
+    expect(fingerprint({}, '/photo.jpg')).not.toBe(base)
+    expect(fingerprint({ trombinoscopeDisplayName: 'Le Masque' })).not.toBe(base)
+    expect(fingerprint({ trombinoscopeFaceHidden: true })).not.toBe(base)
+  })
+
+  it('un trombinoscope sans empreinte ou d’empreinte différente est périmé', () => {
+    const fingerprints = new Map([['viewer:p1', 'abc']])
+    expect(isTrombinoscopeOutdated({ viewerCharacterId: 'viewer', participantId: 'p1', sourceHash: 'abc' }, fingerprints)).toBe(false)
+    expect(isTrombinoscopeOutdated({ viewerCharacterId: 'viewer', participantId: 'p1', sourceHash: 'def' }, fingerprints)).toBe(true)
+    expect(isTrombinoscopeOutdated({ viewerCharacterId: 'viewer', participantId: 'p1', sourceHash: null }, fingerprints)).toBe(true)
   })
 })

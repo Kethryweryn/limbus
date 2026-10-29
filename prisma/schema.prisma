@@ -449,6 +449,7 @@ model SessionTrombinoscope {
   contentHtml       String
   contentPdfBase64  String?
   missingPhotos     Int         @default(0)
+  sourceHash        String?
   generatedAt       DateTime    @default(now())
 
   session           Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)

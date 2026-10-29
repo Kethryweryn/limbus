@@ -2,7 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { sendEmail } from '~/server/utils/email'
 import { DOCUMENT_AUDIENCES, SESSION_ROLES } from '~/utils/domain'
 import { generatedPdfFileName, renderTextPdf } from '~/server/utils/generatedPdfs'
-import { getSessionTrombinoscope } from '~/server/utils/trombinoscopes'
+import { currentTrombinoscopeFingerprints, getSessionTrombinoscope, isTrombinoscopeOutdated } from '~/server/utils/trombinoscopes'
 
 export const documentInclude = {
   game: true,
@@ -66,7 +66,7 @@ export async function getSessionDocumentDashboard(sessionId: string) {
     throw createError({ statusCode: 404, message: 'Session introuvable' })
   }
 
-  const [documents, deliveries, trombinoscopes] = await Promise.all([
+  const [documents, deliveries, trombinoscopes, trombinoscopeFingerprints] = await Promise.all([
     prisma.document.findMany({
       where: { gameId: session.gameId },
       orderBy: [{ updatedAt: 'desc' }, { title: 'asc' }],
@@ -86,7 +86,8 @@ export async function getSessionDocumentDashboard(sessionId: string) {
         viewerCharacter: true,
         participant: true
       }
-    })
+    }),
+    currentTrombinoscopeFingerprints(session.id)
   ])
 
   const castByCharacterId = new Map(
@@ -228,6 +229,8 @@ export async function getSessionDocumentDashboard(sessionId: string) {
         bundleSentAt: bundleDelivery?.sentAt || inferredBundleSentAt,
         trombinoscopeGeneratedAt: generatedTrombinoscope?.generatedAt || null,
         trombinoscopeMissingPhotos: generatedTrombinoscope?.missingPhotos || 0,
+        // Ne correspond plus au casting, aux photos ou aux réglages (US-028, ADR-0030)
+        trombinoscopeOutdated: generatedTrombinoscope ? isTrombinoscopeOutdated(generatedTrombinoscope, trombinoscopeFingerprints) : false,
         characterSheetPdfUrl: `/api/sessions/${session.id}/documents/character-sheets/${assignment.characterId}/pdf`,
         trombinoscopeUrl: generatedTrombinoscope
           ? `/api/sessions/${session.id}/trombinoscopes/${assignment.characterId}`
@@ -387,9 +390,20 @@ async function upsertDelivery(data: {
   return true
 }
 
+// Un trombinoscope périmé n'est jamais envoyé : il faut d'abord le générer à nouveau (US-028)
+function assertNoOutdatedTrombinoscope(sheets: Array<{ trombinoscopeOutdated: boolean }>) {
+  const outdated = sheets.filter((sheet) => sheet.trombinoscopeOutdated).length
+  if (outdated) {
+    throw createError({ statusCode: 409, message: `${outdated} trombinoscope(s) ne sont plus à jour : générez-les à nouveau avant de les envoyer.` })
+  }
+}
+
 export async function markTrombinoscopeDeliveries(sessionId: string) {
   const dashboard = await getSessionDocumentDashboard(sessionId)
   let sentCount = 0
+  assertNoOutdatedTrombinoscope(dashboard.characterSheets.filter((sheet) =>
+    sheet.participant?.email && sheet.trombinoscopeGeneratedAt && !sheet.trombinoscopeSentAt
+  ))
 
   for (const sheet of dashboard.characterSheets) {
     if (!sheet.participant?.id || !sheet.character?.id || !sheet.trombinoscopeGeneratedAt || sheet.trombinoscopeSentAt) continue
@@ -427,6 +441,9 @@ export async function markCharacterSheetBundleDeliveries(sessionId: string) {
   let sheetSentCount = 0
   let trombinoscopeSentCount = 0
   let bundleSentCount = 0
+  assertNoOutdatedTrombinoscope(dashboard.characterSheets.filter((sheet) =>
+    sheet.participant?.email && sheet.readyToSend && sheet.trombinoscopeGeneratedAt && !sheet.bundleSentAt
+  ))
 
   for (const sheet of dashboard.characterSheets) {
     if (!sheet.participant?.id || !sheet.character?.id || !sheet.readyToSend || !sheet.trombinoscopeGeneratedAt) continue

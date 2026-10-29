@@ -3,7 +3,7 @@ id: ADR-0030
 titre: Une empreinte du contenu repère un trombinoscope périmé
 statut: accepté
 date: 2026-10-29
-liens: [../specs/SPEC-005-trombinoscopes-et-pdf.md, ../epics/EPIC-005-ecarts-trombinoscopes/US-028-trombinoscopes-perimes.md]
+liens: [../specs/SPEC-005-trombinoscopes-et-pdf.md, ../archive/epics/EPIC-005-ecarts-trombinoscopes/US-028-trombinoscopes-perimes.md]
 ---
 
 # ADR-0030 : Une empreinte du contenu repère un trombinoscope périmé
