@@ -22,6 +22,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-012](../archive/epics/EPIC-012-roles/README.md) | Rôles : un seul rôle global, quitter et transférer un jeu | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
 | [EPIC-013](../archive/epics/EPIC-013-inscription-et-compte/README.md) | Inscription libre et compte en libre-service | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
 | [EPIC-014](../archive/epics/EPIC-014-notes-par-jeu/README.md) | Notes d'organisation propres à chaque jeu | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
+| [EPIC-015](EPIC-015-je-participe/README.md) | Compte participant et espace « Je participe » | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | en cours |
 
 ## US
 
@@ -96,3 +97,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-067](../archive/epics/EPIC-013-inscription-et-compte/US-067-conversion-des-comptes-organisateur.md) | Conversion des anciens comptes « organisateur » | EPIC-013 | terminée |
 | [US-068](../archive/epics/EPIC-013-inscription-et-compte/US-068-prevenir-la-destinataire-d-un-transfert.md) | Prévenir la destinataire d'un transfert de jeu | EPIC-013 | terminée |
 | [US-069](../archive/epics/EPIC-014-notes-par-jeu/US-069-une-note-par-jeu.md) | Une note par jeu sur la fiche d'une personne | EPIC-014 | terminée |
+| [US-070](EPIC-015-je-participe/US-070-rattacher-les-fiches.md) | Rattacher les fiches participant au compte de leur adresse | EPIC-015 | à faire |
+| [US-071](EPIC-015-je-participe/US-071-espace-je-participe.md) | Espace « Je participe » : sessions, inscriptions, paiements | EPIC-015 | à faire |
+| [US-072](EPIC-015-je-participe/US-072-repondre-depuis-son-compte.md) | Répondre à une inscription et se désister depuis son compte | EPIC-015 | à faire |
+| [US-073](EPIC-015-je-participe/US-073-selecteur-d-espace.md) | Sélecteur d'espace « J'organise » / « Je participe » | EPIC-015 | à faire |
