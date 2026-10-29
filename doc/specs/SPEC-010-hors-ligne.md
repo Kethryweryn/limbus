@@ -48,7 +48,7 @@ Continuer à consulter un jeu sur le lieu du GN, où le réseau manque souvent, 
 
 ### Modifications hors ligne
 
-- **R5** Partent dans la file les créations, modifications et suppressions des jeux, du contenu d'un jeu, des participants, des lieux et des sessions. Une action (POST ou DELETE sur une sous-route : envoi d'emails, génération, legs, partage…) n'y part jamais : hors ligne, elle échoue. Un téléversement de fichier non plus. En revanche, une modification (PUT) sur une sous-route part dans la file : chronologie d'une session, statut ou réglages de paiement (voir les écarts).
+- **R5** Partent dans la file les créations, modifications et suppressions des jeux, du contenu d'un jeu, des participants, des lieux et des sessions. Une action (POST ou DELETE sur une sous-route : envoi d'emails, génération, legs, partage…) n'y part jamais : hors ligne, elle échoue. Un téléversement de fichier non plus. En revanche, une modification (PUT) sur une sous-route part dans la file : chronologie d'une session, statut ou réglages de paiement, trombinoscope d'un personnage (voir les écarts).
 - **R6** Une modification mise en file s'applique aussitôt au cache de l'appareil, marquée « en attente ». Un élément créé hors ligne reçoit un identifiant provisoire, remplacé par le vrai à l'envoi, y compris dans les modifications suivantes de la file.
 - **R7** La file est envoyée dans l'ordre quand le réseau revient (événement du navigateur), quand le serveur répond de nouveau, sur « Réessayer », ou au changement de page si le serveur était marqué indisponible. Elle n'est pas envoyée à la simple ouverture de l'application (voir les écarts). Si le réseau retombe pendant l'envoi, l'envoi s'arrête et reprend plus tard.
 - **R8** Une modification qui porte la date de la version lue est refusée si l'élément a été modifié entre-temps sur le serveur (409). Les suppressions ne sont pas contrôlées.
@@ -76,10 +76,10 @@ Continuer à consulter un jeu sur le lieu du GN, où le réseau manque souvent, 
 
 ## Écarts constatés
 
-Relevés le 29 octobre 2026 avec l'utilisatrice. Aucun n'est corrigé ici.
+Relevés le 29 octobre 2026. Les écarts 1 et 2 ont été confirmés par l'utilisatrice ; les écarts 3 à 5 viennent de la lecture du code et de la revue. Aucun n'est corrigé ici.
 
 1. **Page de session hors ligne (R1)** : sur le lieu du GN, il faut au moins la page de la session (casting, déroulé, fiche allergies, trombinoscopes) et les fiches des personnages. Aujourd'hui, elles ne s'ouvrent pas sans réseau.
 2. **Erreurs de resynchronisation (R8, R9)** : une modification refusée reste en erreur sans qu'on puisse la voir, la corriger ou l'abandonner, sauf en se déconnectant, ce qui efface tout. Les suppressions rejouées ne sont pas contrôlées ([revue](../revues/2026-10-29-architecture.md), R-13). Repris dans la fiche [Resynchronisation hors ligne](../todo/resynchronisation-hors-ligne.md).
 3. **Déconnexion sans réseau (R10)** : la page de déconnexion appelle le serveur avant d'effacer l'appareil. Sans réseau, cet appel échoue et l'effacement n'a sans doute pas lieu : les données resteraient sur l'appareil. Relevé en lisant le code, non vérifié sur un appareil.
-4. **Modifications de sous-routes en file (R5)** : un PUT sur une sous-route d'une session (chronologie, statut ou réglages de paiement) part dans la file, et son corps est fusionné par erreur dans l'entrée de la session en cache. Un paiement validé hors ligne reçoit la date de la resynchronisation. Relevé par la revue de code, non vérifié sur un appareil.
+4. **Modifications de sous-routes en file (R5)** : un PUT sur une sous-route part dans la file, et son corps est fusionné par erreur dans l'élément parent en cache : la session pour la chronologie, le statut ou les réglages de paiement ; le personnage pour son trombinoscope. Un paiement validé hors ligne reçoit la date de la resynchronisation. Relevé par la revue de code, non vérifié sur un appareil.
 5. **Envoi à l'ouverture (R7)** : des modifications laissées en attente ne partent pas quand on rouvre l'application avec le réseau. Elles attendent un changement de réseau ou « Réessayer », que rien ne propose tant que le serveur répond. Relevé par la revue de code, non vérifié sur un appareil.
