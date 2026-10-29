@@ -341,6 +341,10 @@ const testPreview = computed(() => {
   }
 })
 
+// Un échec n'arrête pas l'envoi : les personnes qui n'ont rien reçu sont listées (US-029)
+const sendFailuresMessage = (result) => result?.failures?.length
+  ? `${result.sentCount} email(s) envoyé(s). Non envoyés : ${result.failures.join(', ')}.`
+  : ''
 const sentRecipients = (document) => document.recipients.filter((recipient) => recipient.sentAt)
 const pendingRecipients = (document) => document.recipients.filter((recipient) => !recipient.sentAt)
 const audienceLabel = (audience) => DOCUMENT_AUDIENCE_LABELS[audience] || DOCUMENT_AUDIENCE_LABELS.targeted
@@ -360,11 +364,11 @@ async function sendDocuments(documentIds) {
 
   sendingDocumentId.value = documentIds[0]
   try {
-    await useApiFetch(`/api/sessions/${props.documentsData.session.id}/documents/send`, {
+    const result = await useApiFetch(`/api/sessions/${props.documentsData.session.id}/documents/send`, {
       method: 'POST',
       body: { documentIds }
     })
-    serverError.value = ''
+    serverError.value = sendFailuresMessage(result)
     await props.onRefresh()
   } catch (err) {
     serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
@@ -384,10 +388,10 @@ async function sendCharacterSheets() {
 
   sendingSheets.value = true
   try {
-    await useApiFetch(`/api/sessions/${props.documentsData.session.id}/documents/send-character-sheets`, {
+    const result = await useApiFetch(`/api/sessions/${props.documentsData.session.id}/documents/send-character-sheets`, {
       method: 'POST'
     })
-    serverError.value = ''
+    serverError.value = sendFailuresMessage(result)
     await props.onRefresh()
   } catch (err) {
     serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
@@ -402,10 +406,10 @@ async function sendTrombinoscopes() {
 
   sendingTrombinoscopes.value = true
   try {
-    await useApiFetch(`/api/sessions/${props.documentsData.session.id}/documents/send-trombinoscopes`, {
+    const result = await useApiFetch(`/api/sessions/${props.documentsData.session.id}/documents/send-trombinoscopes`, {
       method: 'POST'
     })
-    serverError.value = ''
+    serverError.value = sendFailuresMessage(result)
     await props.onRefresh()
   } catch (err) {
     serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
@@ -420,10 +424,10 @@ async function sendCharacterSheetsAndTrombinoscopes() {
 
   sendingBundle.value = true
   try {
-    await useApiFetch(`/api/sessions/${props.documentsData.session.id}/documents/send-character-sheets-and-trombinoscopes`, {
+    const result = await useApiFetch(`/api/sessions/${props.documentsData.session.id}/documents/send-character-sheets-and-trombinoscopes`, {
       method: 'POST'
     })
-    serverError.value = ''
+    serverError.value = sendFailuresMessage(result)
     await props.onRefresh()
   } catch (err) {
     serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'

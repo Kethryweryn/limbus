@@ -70,7 +70,7 @@ Remettre à chaque personne d'une session ce qui la concerne, par email : docume
 - **R10** Les fiches partent aux personnes castées dont le personnage, PJ ou PNJ, est « prêt à envoyer », avec le PDF de la fiche ([SPEC-005](SPEC-005-trombinoscopes-et-pdf.md), R11). Les trombinoscopes partent aux personnes dont le trombinoscope a été généré, avec son PDF.
 - **R11** L'envoi groupé « fiches et trombis » part aux personnes dont la fiche est prête et le trombinoscope généré, et qui n'ont pas déjà reçu les deux. Il note à la fois la fiche, le trombinoscope et l'ensemble comme envoyés. Une personne qui a reçu fiche et trombinoscope séparément compte comme ayant reçu l'ensemble.
 - **R12** Chaque envoi ne part qu'aux destinataires manquants. Un document, une fiche ou un trombinoscope déjà reçu n'est plus renvoyé à la même personne par son propre envoi (voir les écarts). Seule exception, l'envoi groupé (R11) : à une personne qui n'a reçu que la fiche ou que le trombinoscope, il renvoie les deux.
-- **R13** Un échec d'envoi à une personne arrête l'envoi en cours : les emails déjà partis restent notés, les suivants ne partent pas (voir les écarts).
+- **R13** Un échec d'envoi à une personne n'arrête pas les autres : les personnes qui n'ont rien reçu sont listées. Si aucun email n'est parti à cause d'échecs, l'envoi est en erreur ([US-029](../epics/EPIC-006-ecarts-envois-et-paiements/US-029-echecs-d-envoi-non-bloquants.md)).
 
 ### Paiements
 

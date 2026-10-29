@@ -28,4 +28,4 @@ En tant qu'organisatrice, je veux renvoyer la version corrigée d'un document, d
 ## Tests
 
 - Unitaires : empreintes d'un document et d'une fiche.
-- Intégration (`documentDeliveries.test.ts`) : version dépassée après modification, renvoi groupé aux seules personnes concernées, renvoi à une personne, objet « Mise à jour : ».
+- Intégration (`sessionDocuments.test.ts`) : version dépassée après modification, renvoi groupé aux seules personnes concernées, renvoi à une personne, objet « Mise à jour : ».

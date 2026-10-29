@@ -47,7 +47,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-026](../archive/epics/EPIC-005-ecarts-trombinoscopes/US-026-photo-de-la-session-d-abord.md) | La photo de la personne qui joue le rôle passe avant la photo par défaut | EPIC-005 | terminée |
 | [US-027](../archive/epics/EPIC-005-ecarts-trombinoscopes/US-027-jamais-dans-son-propre-trombinoscope.md) | Un personnage n'apparaît jamais dans son propre trombinoscope | EPIC-005 | terminée |
 | [US-028](../archive/epics/EPIC-005-ecarts-trombinoscopes/US-028-trombinoscopes-perimes.md) | Signaler les trombinoscopes périmés et bloquer leur envoi | EPIC-005 | terminée |
-| [US-029](EPIC-006-ecarts-envois-et-paiements/US-029-echecs-d-envoi-non-bloquants.md) | Un échec d'envoi n'arrête pas les autres | EPIC-006 | à faire |
+| [US-029](EPIC-006-ecarts-envois-et-paiements/US-029-echecs-d-envoi-non-bloquants.md) | Un échec d'envoi n'arrête pas les autres | EPIC-006 | terminée |
 | [US-030](EPIC-006-ecarts-envois-et-paiements/US-030-renvoyer-la-version-a-jour.md) | Renvoyer la version à jour d'un document, d'une fiche ou d'un trombinoscope | EPIC-006 | à faire |
 | [US-031](EPIC-006-ecarts-envois-et-paiements/US-031-tarifs-d-une-session.md) | Tarifs d'une session, attribués selon le rôle | EPIC-006 | à faire |
 | [US-032](EPIC-006-ecarts-envois-et-paiements/US-032-versements-et-etat-calcule.md) | Noter les versements, état de paiement calculé | EPIC-006 | à faire |

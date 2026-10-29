@@ -74,4 +74,28 @@ describe('envoi des documents d’une session', () => {
     expect(again.body).toMatchObject({ sentCount: 0 })
     expect(mailsTo()).toBe(1)
   })
+
+  it('continue après un échec et liste les personnes qui n’ont rien reçu (US-029)', async () => {
+    const key = 'envoi-echec'
+    const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
+    const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
+    const people = await Promise.all([['Ana', 'refuse-ana'], ['Bea', 'bea']].map(([name, local]) => prisma.participant.create({
+      data: { name: `${name} ${key}`, slug: `${local}-${key}`, email: `${local}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
+    })))
+    for (const [index, participant] of people.entries()) {
+      const character = await prisma.character.create({
+        data: { name: `Rôle ${index} ${key}`, slug: `role-${index}-${key}`, gameId: game.id, background: 'Histoire', sheetReadyToSend: true }
+      })
+      await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id } })
+    }
+
+    const response = await api(alice, 'POST', `/api/sessions/${session.id}/documents/send-character-sheets`, {})
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    expect(response.body).toEqual({ sentCount: 1, failures: [people[0]!.name] })
+    expect(smtp.received.some((received) => received.to.includes(people[1]!.email!))).toBe(true)
+    expect(await prisma.sessionDocumentDelivery.count({ where: { sessionId: session.id } })).toBe(1)
+
+    // Seule la personne refusée reste à envoyer : rien ne part, l'envoi est en erreur
+    expect((await api(alice, 'POST', `/api/sessions/${session.id}/documents/send-character-sheets`, {})).status).toBe(502)
+  })
 })
