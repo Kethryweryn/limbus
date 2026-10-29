@@ -151,7 +151,6 @@ export const intrigueSchema = z.object({
   gameId: requiredId('Game'),
   characterIds: z.array(requiredId('Character')).optional().default([]),
   factionIds: z.array(requiredId('Faction')).optional().default([]),
-  readyToSend: optionalBoolean,
   published: optionalBoolean
 })
 
