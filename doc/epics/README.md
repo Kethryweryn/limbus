@@ -16,6 +16,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-006](../archive/epics/EPIC-006-ecarts-envois-et-paiements/README.md) | Corriger les écarts des envois et des paiements | [SPEC-006](../specs/SPEC-006-emails-et-paiements.md) | terminé |
 | [EPIC-007](../archive/epics/EPIC-007-ecarts-participants/README.md) | Corriger les écarts des participants | [SPEC-007](../specs/SPEC-007-participants-et-rgpd.md) | terminé |
 | [EPIC-008](../archive/epics/EPIC-008-ecarts-comptes/README.md) | Corriger les écarts de sécurité des comptes | [SPEC-008](../specs/SPEC-008-comptes-et-partage.md) | terminé |
+| [EPIC-009](EPIC-009-ecarts-page-publique/README.md) | Corriger les écarts de la page publique | [SPEC-009](../specs/SPEC-009-page-publique.md) | en cours |
 
 ## US
 
@@ -64,3 +65,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-041](../archive/epics/EPIC-007-ecarts-participants/US-041-place-offerte.md) | Place offerte | EPIC-007 | terminée |
 | [US-042](../archive/epics/EPIC-008-ecarts-comptes/US-042-jeton-d-invitation-hache.md) | Le jeton d'une invitation est gardé haché | EPIC-008 | terminée |
 | [US-043](../archive/epics/EPIC-008-ecarts-comptes/US-043-jamais-sans-administratrice.md) | Limbus garde toujours une administratrice | EPIC-008 | terminée |
+| [US-044](EPIC-009-ecarts-page-publique/US-044-credit-sur-la-page-publique.md) | Le crédit d'une copie sur la page publique | EPIC-009 | à faire |
+| [US-045](EPIC-009-ecarts-page-publique/US-045-lien-stable-de-la-page-publique.md) | L'adresse de la page publique survit au renommage | EPIC-009 | à faire |
+| [US-046](EPIC-009-ecarts-page-publique/US-046-teaser-youtube-au-clic.md) | Teaser YouTube chargé seulement au clic | EPIC-009 | à faire |

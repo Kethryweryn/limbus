@@ -4,7 +4,7 @@ titre: Page publique d'un jeu
 statut: validée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
-epics: []
+epics: [EPIC-009]
 adr: [ADR-0007]
 ---
 
@@ -61,3 +61,11 @@ Relevés le 29 octobre 2026 avec l'utilisatrice. Aucun n'est corrigé ici.
 2. **Lien stable (R6)** : l'adresse de la page devrait rester valable quand le jeu est renommé, par un lien qui ne dépend pas du titre ou par une redirection depuis l'ancien slug. Aujourd'hui, renommer un jeu casse les liens déjà diffusés.
 3. **Contenu choisi par l'organisation (R1, R2)** : l'organisation devrait choisir ce que la page affiche en plus de la présentation : les sessions à venir (date et lieu), parmi celles marquées visibles sur la page publique ([SPEC-004](SPEC-004-sessions.md), R2b), et le lien d'inscription d'une période ouverte. Ce lien est déjà prévu en mode formulaire par [SPEC-001](SPEC-001-inscriptions.md) (parcours, R32), mais pas encore réalisé.
 4. **Teaser YouTube et cookies (R1)** : la vidéo est intégrée depuis `youtube.com`, qui dépose des traceurs chez le visiteur dès l'affichage de la page, sans information ni consentement. Le domaine `youtube-nocookie.com`, ou une vignette qui ne charge la vidéo qu'au clic, l'éviterait. Relevé en lisant le code.
+
+### Choix faits le 29 octobre 2026
+
+- Écart 1 : la page publique d'une copie affiche son crédit.
+- Écart 2 : l'adresse garde le slug du jeu ; chaque ancien slug redirige vers le nouveau après un renommage, et les adresses déjà diffusées continuent de marcher.
+- Écart 3 : l'organisation choisit ce que la page affiche (sessions à venir, lien d'inscription) ; traité avec le formulaire public des inscriptions.
+- Écart 4 : un teaser YouTube s'affiche en vignette ; rien n'est chargé depuis YouTube avant le clic.
+
