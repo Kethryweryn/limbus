@@ -20,7 +20,7 @@ En tant qu'administratrice, je veux qu'une copie de la base ne permette pas d'ac
 
 ## Notes techniques
 
-- Colonne `GameInvitation.tokenHash` unique ; `token` devient facultative et n'est plus écrite ([ADR-0034](../../adr/ADR-0034-jeton-d-invitation-hache.md)).
+- Colonne `GameInvitation.tokenHash` unique ; `token` devient facultative et n'est plus écrite ([ADR-0034](../../../adr/ADR-0034-jeton-d-invitation-hache.md)).
 - `createInvitationToken` rend le jeton et son empreinte ; `getValidInvitation` cherche par l'empreinte.
 
 ## Tests

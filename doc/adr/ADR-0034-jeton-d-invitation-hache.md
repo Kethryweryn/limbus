@@ -3,7 +3,7 @@ id: ADR-0034
 titre: Le jeton d'une invitation est gardé haché, comme les liens personnels
 statut: accepté
 date: 2026-10-29
-liens: [../specs/SPEC-008-comptes-et-partage.md, ADR-0018-jetons-des-liens-personnels.md, ../epics/EPIC-008-ecarts-comptes/US-042-jeton-d-invitation-hache.md]
+liens: [../specs/SPEC-008-comptes-et-partage.md, ADR-0018-jetons-des-liens-personnels.md, ../archive/epics/EPIC-008-ecarts-comptes/US-042-jeton-d-invitation-hache.md]
 ---
 
 # ADR-0034 : Le jeton d'une invitation est gardé haché
