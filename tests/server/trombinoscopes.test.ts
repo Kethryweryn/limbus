@@ -23,3 +23,11 @@ describe('photo d’une entrée (US-026)', () => {
     expect(rows.map((row) => [row.hidePhoto, row.missingPhoto])).toEqual([[true, false], [true, false]])
   })
 })
+
+describe('soi-même (US-027)', () => {
+  it('le personnage qui regarde n’est jamais une entrée, même inclus par un ancien réglage', () => {
+    const viewer = character('viewer')
+    const entries = new Map([['viewer:viewer', { included: true, faceKnown: true }]])
+    expect(buildTrombinoscopeRows(viewer, [viewer, character('lea')], entries, new Map()).map((row) => row.target.id)).toEqual(['lea'])
+  })
+})

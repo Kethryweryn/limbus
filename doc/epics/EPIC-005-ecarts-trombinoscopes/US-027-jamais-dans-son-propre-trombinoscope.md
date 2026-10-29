@@ -1,7 +1,7 @@
 ---
 id: US-027
 titre: Un personnage n'apparaît jamais dans son propre trombinoscope
-statut: à faire
+statut: terminée
 epic: EPIC-005
 regles: [R5b]
 adr: []
@@ -13,9 +13,9 @@ En tant qu'organisatrice, je veux qu'un personnage ne figure pas dans son propre
 
 ## Critères d'acceptation
 
-- [ ] La configuration du trombinoscope d'un personnage ne le liste pas lui-même.
-- [ ] La génération ne l'ajoute jamais à son propre trombinoscope, même si un ancien réglage l'y incluait.
-- [ ] Un enregistrement de configuration qui le contient quand même ignore cette entrée.
+- [x] La configuration du trombinoscope d'un personnage ne le liste pas lui-même.
+- [x] La génération ne l'ajoute jamais à son propre trombinoscope, même si un ancien réglage l'y incluait.
+- [x] Un enregistrement de configuration qui le contient quand même ignore cette entrée.
 
 ## Notes techniques
 

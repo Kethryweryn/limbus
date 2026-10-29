@@ -92,7 +92,7 @@ export async function getCharacterTrombinoscopeConfig(viewerCharacterId: string)
 
   return {
     viewer,
-    characters: characters.sort(characterSort).map((target) => ({
+    characters: characters.filter((target) => target.id !== viewerCharacterId).sort(characterSort).map((target) => ({
       ...target,
       trombinoscope: getEntryDefaults(target, entriesByTargetId.get(target.id))
     }))
@@ -118,6 +118,8 @@ export async function saveCharacterTrombinoscopeConfig(
     throw createError({ statusCode: 404, message: 'Personnage introuvable' })
   }
 
+  // Un personnage n'est jamais dans son propre trombinoscope : son entrée est ignorée (US-027)
+  entries = entries.filter((entry) => entry.targetCharacterId !== viewerCharacterId)
   const targetIds = [...new Set(entries.map((entry) => entry.targetCharacterId))]
   const matchingCharacters = await prisma.character.count({
     where: { id: { in: targetIds }, gameId: viewer.gameId }
@@ -167,6 +169,8 @@ export function buildTrombinoscopeRows(
   return [...characters]
     .sort(characterSort)
     .flatMap((target) => {
+      // Jamais soi-même, même si un ancien réglage l'incluait (US-027)
+      if (target.id === viewer.id) return []
       const config = getEntryDefaults(target, entriesByViewerAndTarget.get(`${viewer.id}:${target.id}`))
       if (!config.included || target.excludeFromTrombinoscope) return []
 
