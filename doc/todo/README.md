@@ -4,7 +4,7 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 
 | Fiche | Statut | Créée le | Résumé |
 |---|---|---|---|
-| [Documentation de l'existant](documentation-de-l-existant.md) | à trancher | 2026-10-29 | Specs des fonctionnalités antérieures à la reprise, une par domaine |
+| [Documentation de l'existant](documentation-de-l-existant.md) | prête | 2026-10-29 | Specs des fonctionnalités antérieures à la reprise, une par domaine |
 | [API pour une IA](api-pour-ia.md) | à trancher | 2026-10-29 | Accès d'une IA aux jeux d'une organisatrice connectée, avec ses droits (MCP ou REST) |
 | [Durcissement web](durcissement-web.md) | à trancher | 2026-10-29 | CSP et COOP sur les pages, origine des écritures, cookie `__Host-` (revue R-01 à R-03) |
 | [Supervision](supervision.md) | à trancher | 2026-10-29 | Route de santé et surveillance externe avec alerte email (revue R-15, R-16) |

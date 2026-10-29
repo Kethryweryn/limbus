@@ -22,6 +22,8 @@ Toute évolution passe par ces documents, de l'idée à l'archive. La base grand
 4. **Implémentation** : les commits citent l'US (`US-012 : …`). Une US passe de `à faire` à `en cours` puis `terminée`, avec ses critères d'acceptation cochés et ses tests nommés.
 5. **Archive** : un epic dont toutes les US sont terminées part dans `archive/epics/`. La spec reste dans `specs/` comme description à jour du fonctionnement ; on la modifie quand le comportement change.
 
+Une spec qui décrit un comportement déjà en production (documentation de l'existant) n'a ni epic ni US : elle est `validée` dès sa PR. Quand une fiche donne plusieurs specs de ce type, elle reste dans `todo/` jusqu'à la dernière, puis part dans `archive/todo/` avec un lien vers chacune.
+
 Une revue suit un chemin plus court : la fiche todo `prête` donne directement un rapport dans `revues/`, sans spec, et part dans `archive/todo/` avec un lien vers lui. Les recommandations triées deviennent des fiches todo ou des ADR.
 
 Un ADR n'est jamais supprimé ni archivé : s'il est remis en cause, un nouvel ADR le remplace et l'ancien passe au statut `remplacé par ADR-NNNN`.

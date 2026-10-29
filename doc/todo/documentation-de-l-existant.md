@@ -1,6 +1,6 @@
 ---
 titre: Documenter les fonctionnalités antérieures à la reprise
-statut: à trancher
+statut: prête
 date: 2026-10-29
 ---
 
@@ -33,10 +33,11 @@ Au passage, les écarts constatés entre le code et ce qui semble voulu sont not
 
 ## Découpage envisagé
 
-Une PR de documentation par domaine, dans l'ordre ci-dessus, ou dans l'ordre des prochains chantiers.
+Une PR de documentation par domaine, dans l'ordre ci-dessus.
 
-## Points à trancher
+## Décisions
 
-- Une spec par domaine, ou une seule spec « fonctionnement existant » ? Recommandation : une par domaine, pour que chaque évolution future touche une spec courte.
-- Faut-il aussi un guide utilisateur (comment faire X dans l'interface), ou seulement des specs ? Recommandation : specs seulement pour l'instant ; un guide utilisateur est un autre besoin.
-- Qui valide les règles déduites du code ? Recommandation : chaque spec est relue par l'utilisatrice dans sa PR, et les règles douteuses sont marquées « à confirmer ».
+- 2026-10-29 : une spec par domaine, huit au total, dans l'ordre de la proposition : écriture du jeu, sessions, trombinoscopes et PDF, emails et paiements, participants et RGPD, comptes et partage, page publique, hors ligne.
+- 2026-10-29 : des specs seulement, sans guide utilisateur. Un guide serait un autre besoin, avec sa propre fiche.
+- 2026-10-29 : les règles douteuses déduites du code sont posées en questions à l'utilisatrice pendant la rédaction, avant la PR de chaque spec. Les écarts entre le code et l'intention sont notés en fin de spec, sans être corrigés.
+- 2026-10-29 : chaque spec a le statut `validée` (elle décrit un comportement en production) et pas d'epic. La fiche part dans `archive/todo/` avec la dernière des huit specs.
