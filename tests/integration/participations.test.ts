@@ -119,9 +119,11 @@ describe('répondre depuis son compte (US-072)', () => {
     expect((await api(stranger, 'POST', `/api/me/registrations/${registration.id}/decline`)).status).toBe(404)
 
     const answers = { email: user.email, firstName: 'Camille', lastName: 'Invitée', phone: '0600000000', emergencyContactName: 'Proche', emergencyContactPhone: '0611111111', charterAccepted: true }
-    const accepted = await api(user, 'PUT', `/api/me/registrations/${registration.id}`, answers)
+    // Une autre adresse saisie ne détache pas la fiche : depuis le compte, c'est l'adresse du compte qui compte
+    const accepted = await api(user, 'PUT', `/api/me/registrations/${registration.id}`, { ...answers, email: 'ailleurs@example.test' })
     expect(accepted.status, JSON.stringify(accepted.body)).toBe(200)
-    expect(accepted.body).toMatchObject({ status: 'confirmed', canWithdraw: true })
+    expect(accepted.body).toMatchObject({ status: 'confirmed', canWithdraw: true, answers: { email: user.email } })
+    expect((await prisma.participant.findFirstOrThrow({ where: { registrations: { some: { id: registration.id } } } })).userId).toBe(user.id)
 
     expect((await api(user, 'POST', `/api/me/registrations/${registration.id}/withdraw`)).body).toMatchObject({ status: 'withdrawn' })
     expect((await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })).withdrawnAt).not.toBeNull()

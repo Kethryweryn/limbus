@@ -125,7 +125,8 @@ const loadError = ref('')
 onMounted(async () => {
   rememberSpace('participate')
   try {
-    participations.value = await $fetch('/api/me/participations')
+    // Gardée sur l'appareil : sur le lieu du jeu, sans réseau, on retrouve date et lieu
+    participations.value = await useApiFetch('/api/me/participations', { offlineCache: true })
   } catch (err) {
     loadError.value = err?.data?.message || 'Impossible de charger vos participations.'
   } finally {

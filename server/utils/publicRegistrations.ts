@@ -82,6 +82,12 @@ export async function requireMyRegistration(userId: string, id: string | undefin
   return registration
 }
 
+// Vue d'une inscription depuis le compte : l'adresse montrée est celle du compte, que la réponse enregistrera
+export async function exposeMyRegistration(registration: PublicRegistration, accountEmail: string) {
+  const exposed = await exposePublicRegistration(registration)
+  return 'answers' in exposed ? { ...exposed, answers: { ...exposed.answers, email: accountEmail } } : exposed
+}
+
 export async function requireRegistrationByToken(token: string | undefined) {
   const registration = await findRegistrationByToken(token)
   if (!registration) {

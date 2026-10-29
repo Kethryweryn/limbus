@@ -66,7 +66,7 @@
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <UFormField label="Email" required :error="fieldError('email')">
-                <UInput v-model="form.email" type="email" autocomplete="email" :disabled="readOnly" class="w-full" />
+                <UInput v-model="form.email" type="email" autocomplete="email" :disabled="readOnly || !personalLink" class="w-full" />
               </UFormField>
               <UFormField
                 v-for="field in textFields"

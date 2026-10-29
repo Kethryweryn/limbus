@@ -49,6 +49,7 @@ export async function exportParticipantData(participantId: string, gameIds: stri
       name: true,
       email: true,
       phone: true,
+      userId: true,
       updatedAt: true,
       gameLinks: { where: inGames, select: { createdAt: true, notes: true, game: { select: { title: true } } } },
       sessionRoles: { where: inSessions, select: { role: true, session } },
@@ -90,10 +91,12 @@ export async function exportParticipantData(participantId: string, gameIds: stri
     }
   })
 
-  const { gameLinks, ...rest } = participant
+  const { gameLinks, userId, ...rest } = participant
   return {
     exportedAt: new Date().toISOString(),
     ...rest,
+    // Fiche rattachée au compte Limbus de la personne (US-070, ADR-0041)
+    linkedToAccount: Boolean(userId),
     // Notes de chaque jeu exporté (US-069)
     games: gameLinks.map((link) => ({ title: link.game.title, registeredAt: link.createdAt, notes: link.notes }))
   }

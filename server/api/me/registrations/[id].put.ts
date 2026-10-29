@@ -4,7 +4,7 @@ import { registrationAnswerSchema } from '~/server/utils/registrationForms'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
 import {
   answerFormDefinition,
-  exposePublicRegistration,
+  exposeMyRegistration,
   frozenFormVersionId,
   requireMyRegistration,
   saveRegistrationAnswers,
@@ -17,12 +17,14 @@ export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
   const registration = await requireMyRegistration(user.id, id)
   const form = await answerFormDefinition(registration)
-  const { charterAccepted: _charterAccepted, healthConsent: _healthConsent, ...answers } = await readZodBody(event, registrationAnswerSchema(form.definition))
+  const { charterAccepted: _charterAccepted, healthConsent: _healthConsent, ...body } = await readZodBody(event, registrationAnswerSchema(form.definition))
+  // Depuis le compte, l'adresse est celle du compte : en changer détacherait la fiche en pleine réponse
+  const answers = { ...body, email: user.email }
 
   const versionId = await frozenFormVersionId(registration, form.versionId)
   const { accepted } = await saveRegistrationAnswers(registration, versionId, answers)
   // Le lien de l'email mène à l'espace « Je participe » : le jeton du lien personnel n'est pas connu ici
   const emailSent = accepted ? await sendRegistrationConfirmationEmail(registration, answers, absoluteAppUrl('/participer')) : null
 
-  return { ...(await exposePublicRegistration(await requireMyRegistration(user.id, id))), emailSent }
+  return { ...(await exposeMyRegistration(await requireMyRegistration(user.id, id), user.email)), emailSent }
 })

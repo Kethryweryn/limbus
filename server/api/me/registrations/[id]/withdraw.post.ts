@@ -1,6 +1,6 @@
 import { requireUser } from '~/server/utils/auth'
 import { withdrawRegistration } from '~/server/utils/registrations'
-import { exposePublicRegistration, registrationPermissions, requireMyRegistration } from '~/server/utils/publicRegistrations'
+import { exposeMyRegistration, registrationPermissions, requireMyRegistration } from '~/server/utils/publicRegistrations'
 
 // Se désister depuis le compte, comme par le lien personnel (US-072, US-006)
 export default defineEventHandler(async (event) => {
@@ -12,5 +12,5 @@ export default defineEventHandler(async (event) => {
   }
 
   await withdrawRegistration(registration.id, null)
-  return await exposePublicRegistration(await requireMyRegistration(user.id, id))
+  return await exposeMyRegistration(await requireMyRegistration(user.id, id), user.email)
 })

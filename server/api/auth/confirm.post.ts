@@ -44,7 +44,9 @@ export default defineEventHandler(async (event) => {
     if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002') throw taken()
     throw error
   }
-  // Les fiches à la nouvelle adresse se rattachent aussi ; celles déjà rattachées le restent (US-070)
+  // Les fiches rattachées prennent la nouvelle adresse, sinon une modification par l'équipe les détacherait ;
+  // celles qui portaient déjà la nouvelle adresse se rattachent (US-070, ADR-0041)
+  await prisma.participant.updateMany({ where: { userId: user.id }, data: { email: newEmail } })
   await linkParticipantsToUser({ id: user.id, email: newEmail })
   // L'ancienne adresse est prévenue ; un échec d'envoi n'annule pas le changement
   await sendEmailChangedNoticeEmail({ to: user.email, newEmail }).catch(() => undefined)
