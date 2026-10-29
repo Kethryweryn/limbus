@@ -80,7 +80,7 @@ La fiche [Numéros de version et notes de version](todo/versions-et-notes-de-ver
 
 ## Exploitation
 
-- Redémarrer le serveur (noyau 6.1.0-48 en service, 54 installé), au moment choisi par l'utilisatrice.
+- Redémarrer le serveur après les mises à jour en attente, au moment choisi par l'utilisatrice. Le détail reste hors du dépôt, qui est public.
 - Le 3 novembre 2026 : anciennes sauvegardes non chiffrées sur Dedibackup, à supprimer seulement avec son accord.
 
 ## Points à trancher
