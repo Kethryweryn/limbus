@@ -11,3 +11,4 @@ Fonctionnalités validées, décrites telles qu'elles marchent. Modèle : [`../m
 | [SPEC-005](SPEC-005-trombinoscopes-et-pdf.md) | Trombinoscopes et documents PDF (existant) | validée | aucun : décrit l'existant ([fiche](../todo/documentation-de-l-existant.md)) |
 | [SPEC-006](SPEC-006-emails-et-paiements.md) | Envois d'emails et suivi des paiements (existant) | validée | aucun : décrit l'existant ([fiche](../todo/documentation-de-l-existant.md)) |
 | [SPEC-007](SPEC-007-participants-et-rgpd.md) | Participants et données personnelles (existant) | validée | aucun : décrit l'existant ([fiche](../todo/documentation-de-l-existant.md)) |
+| [SPEC-008](SPEC-008-comptes-et-partage.md) | Comptes et partage d'un jeu (existant) | validée | aucun : décrit l'existant ([fiche](../todo/documentation-de-l-existant.md)) |

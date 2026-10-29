@@ -96,7 +96,7 @@ Ces sujets sont couverts par leurs propres specs :
 - trombinoscopes et fiches de personnage en PDF ;
 - envois d'emails et paiements ([SPEC-006](SPEC-006-emails-et-paiements.md)) ;
 - participants et RGPD ([SPEC-007](SPEC-007-participants-et-rgpd.md)) ;
-- comptes et partage ;
+- comptes et partage ([SPEC-008](SPEC-008-comptes-et-partage.md)) ;
 - page publique ;
 - hors ligne ;
 - legs d'une copie ([SPEC-002](SPEC-002-copie-de-jeu.md)) ;
