@@ -602,6 +602,14 @@ model User {
   disabledAt DateTime?
   // Plafond des fichiers téléversés dans les jeux du compte (US-066)
   storageQuotaMb Int @default(500)
+  // Coordonnées tenues par la personne, recopiées sur ses fiches et inscriptions (US-074, ADR-0042)
+  phone                 String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  dietary               String?
+  healthConsentAt       DateTime?
+  // Premier enregistrement des coordonnées : avant, rien n'est recopié
+  profileUpdatedAt      DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

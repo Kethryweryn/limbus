@@ -4,7 +4,7 @@ import { accessibleGameIds } from '~/server/utils/gameAccess'
 import { participantCreateSchema, readZodBody } from '~/server/utils/schemas'
 import { exposeParticipantGames, participantGameLinksInclude } from '~/server/utils/participants'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
-import { accountIdForEmail } from '~/server/utils/participantAccounts'
+import { accountIdForEmail, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 
 export default defineEventHandler(async (event) => {
   await requireUser(event)
@@ -33,7 +33,9 @@ export default defineEventHandler(async (event) => {
     include: participantGameLinksInclude(allowedGameIds)
   })
 
-  return exposeParticipantGames(participant)
+  // Fiche rattachée dès sa création : elle prend les coordonnées du compte (US-074)
+  if (participant.userId) await syncProfileToParticipants(participant.userId)
+  return exposeParticipantGames(participant.userId ? await prisma.participant.findUniqueOrThrow({ where: { id: participant.id }, include: participantGameLinksInclude(allowedGameIds) }) : participant)
 })
 
 

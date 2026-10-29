@@ -17,16 +17,24 @@
         />
       </UFormField>
 
-      <UFormField label="Nom" :error="errors.name">
-        <UInput v-model="localParticipant.name" required size="lg" class="w-full" />
+      <!-- Fiche rattachée à un compte (US-075) : nom et téléphone sont tenus par la personne -->
+      <UAlert
+        v-if="heldByPerson"
+        color="info"
+        variant="soft"
+        description="Cette personne a un compte Limbus : elle tient elle-même son nom, son téléphone et ses allergies."
+      />
+
+      <UFormField label="Nom" :error="errors.name" :help="heldByPerson ? 'Tenu par la personne depuis son compte.' : undefined">
+        <UInput v-model="localParticipant.name" required size="lg" class="w-full" :disabled="heldByPerson" />
       </UFormField>
 
-      <UFormField label="Email">
+      <UFormField label="Email" :help="heldByPerson ? 'Changer l’email détache la fiche de son compte : à faire seulement pour corriger une erreur.' : undefined">
         <UInput v-model="localParticipant.email" type="email" size="lg" class="w-full" />
       </UFormField>
 
-      <UFormField label="Téléphone">
-        <UInput v-model="localParticipant.phone" size="lg" class="w-full" />
+      <UFormField label="Téléphone" :help="heldByPerson ? 'Tenu par la personne depuis son compte.' : undefined">
+        <UInput v-model="localParticipant.phone" size="lg" class="w-full" :disabled="heldByPerson" />
       </UFormField>
 
       <!-- Une note par jeu (US-069) : chaque équipe ne voit que celles de ses jeux -->
@@ -73,6 +81,7 @@ const gameOptions = computed(() => props.games.map((game) => ({
   value: game.id
 })))
 
+const heldByPerson = computed(() => Boolean(props.participant.userId))
 const selectedGames = computed(() => gameOptions.value.filter((game) => localParticipant.value.gameIds?.includes(game.value)))
 
 watch(() => props.participant, (newParticipant) => {

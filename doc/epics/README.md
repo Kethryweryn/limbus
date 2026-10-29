@@ -23,6 +23,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-013](../archive/epics/EPIC-013-inscription-et-compte/README.md) | Inscription libre et compte en libre-service | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
 | [EPIC-014](../archive/epics/EPIC-014-notes-par-jeu/README.md) | Notes d'organisation propres à chaque jeu | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
 | [EPIC-015](../archive/epics/EPIC-015-je-participe/README.md) | Compte participant et espace « Je participe » | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
+| [EPIC-016](../archive/epics/EPIC-016-coordonnees-tenues-par-la-personne/README.md) | Coordonnées et allergies tenues par la personne | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
 
 ## US
 
@@ -101,3 +102,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-071](../archive/epics/EPIC-015-je-participe/US-071-espace-je-participe.md) | Espace « Je participe » : sessions, inscriptions, paiements | EPIC-015 | terminée |
 | [US-072](../archive/epics/EPIC-015-je-participe/US-072-repondre-depuis-son-compte.md) | Répondre à une inscription et se désister depuis son compte | EPIC-015 | terminée |
 | [US-073](../archive/epics/EPIC-015-je-participe/US-073-selecteur-d-espace.md) | Sélecteur d'espace « J'organise » / « Je participe » | EPIC-015 | terminée |
+| [US-074](../archive/epics/EPIC-016-coordonnees-tenues-par-la-personne/US-074-mes-coordonnees.md) | Tenir ses coordonnées et ses allergies dans son compte | EPIC-016 | terminée |
+| [US-075](../archive/epics/EPIC-016-coordonnees-tenues-par-la-personne/US-075-fiche-tenue-par-la-personne.md) | La fiche d'une personne qui a un compte n'est plus modifiable par l'équipe | EPIC-016 | terminée |

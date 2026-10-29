@@ -1,4 +1,5 @@
 import { z, type ZodError, type ZodType } from 'zod'
+import { REGISTRATION_DIETARY_MAX_LENGTH } from '~/utils/registrationForms'
 import type { H3Event } from 'h3'
 import {
   CHARACTER_TYPES,
@@ -452,6 +453,18 @@ export const accountUpdateSchema = z.object({
 export const accountEmailSchema = z.object({
   email: accountEmail(),
   password: requiredText('Password')
+})
+
+// Mes coordonnées (US-074) : consentement exigé dès qu'une allergie est déclarée, comme à l'inscription (R14)
+export const accountProfileSchema = z.object({
+  phone: optionalText,
+  emergencyContactName: optionalText,
+  emergencyContactPhone: optionalText,
+  dietary: z.string().trim().max(REGISTRATION_DIETARY_MAX_LENGTH, 'Texte trop long').optional().nullable(),
+  healthConsent: z.boolean().optional().default(false)
+}).refine((profile) => !profile.dietary || profile.healthConsent, {
+  message: 'Le consentement est nécessaire pour enregistrer des allergies ou intolérances',
+  path: ['healthConsent']
 })
 
 export const accountPasswordSchema = z.object({
