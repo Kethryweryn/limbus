@@ -4,8 +4,8 @@ titre: Un compte pour tout le monde, organiser et participer
 statut: validée
 date: 2026-10-29
 origine: ../todo/comptes-participants.md
-epics: [EPIC-012, EPIC-013]
-adr: [ADR-0006, ADR-0007, ADR-0038, ADR-0039]
+epics: [EPIC-012, EPIC-013, EPIC-014]
+adr: [ADR-0006, ADR-0007, ADR-0038, ADR-0039, ADR-0040]
 ---
 
 # SPEC-011 : Un compte pour tout le monde, organiser et participer
@@ -90,7 +90,7 @@ Un epic par lot, dans l'ordre :
 
 1. Rôles : un seul rôle global, quitter un jeu, transférer un jeu ([EPIC-012](../archive/epics/EPIC-012-roles/README.md)).
 2. Inscription libre, confirmation de l'adresse, protection contre les robots, compte en libre-service, mot de passe oublié, invitation par la bonne adresse, création par l'administratrice, plafond de stockage ([EPIC-013](../archive/epics/EPIC-013-inscription-et-compte/README.md)).
-3. Notes d'organisation propres à chaque équipe.
+3. Notes d'organisation propres à chaque équipe : une note par jeu ([EPIC-014](../epics/EPIC-014-notes-par-jeu/README.md)).
 4. Compte participant : rattachement des fiches, espace « Je participe » (sessions, inscriptions, paiement), sélecteur d'espace.
 5. Coordonnées et allergies tenues par la personne.
 6. Export et effacement depuis le compte.

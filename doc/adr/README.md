@@ -43,3 +43,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0037](ADR-0037-jeu-commun-des-tests-de-bout-en-bout.md) | Un jeu commun pour les tests de bout en bout | accepté | 2026-10-29 |
 | [ADR-0038](ADR-0038-un-seul-role-global.md) | Un seul rôle global ; les droits viennent des jeux | accepté | 2026-10-29 |
 | [ADR-0039](ADR-0039-comptes-en-libre-service.md) | Comptes en libre-service : liens de compte hachés, adresse confirmée, stockage compté par propriétaire | accepté | 2026-10-29 |
+| [ADR-0040](ADR-0040-notes-par-jeu.md) | Les notes sur une personne sont portées par son lien à chaque jeu | accepté | 2026-10-29 |
