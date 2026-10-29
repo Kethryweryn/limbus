@@ -33,7 +33,7 @@ Au passage, les écarts constatés entre le code et ce qui semble voulu sont not
 
 ## Découpage envisagé
 
-Une PR de documentation par domaine, dans l'ordre ci-dessus, ou dans l'ordre des prochains chantiers.
+Une PR de documentation par domaine, dans l'ordre ci-dessus.
 
 ## Décisions
 
