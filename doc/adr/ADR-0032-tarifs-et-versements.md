@@ -23,7 +23,7 @@ Le suivi des paiements n'a ni montant ni tarif : une case « payé » par person
   - **mode tarifs** : tout le monde de la session est dans le tableau, et l'état est calculé à la lecture (comme les échéances, [ADR-0020](ADR-0020-echeances-evaluees-a-la-lecture.md)) : payé quand le reçu atteint le dû, partiel entre zéro et le dû, non payé à zéro, rien à payer quand le dû est nul. Un `paidAt` coché en mode simple, sans versement, compte comme payé : passer aux tarifs ne fait pas perdre un paiement déjà validé.
 - **Solidarité** : un soutien apporte (montant − base) par personne, une place réduite coûte (base − montant). Le tableau calcule l'apport sur les tarifs attribués et sur l'argent encaissé (la part d'un versement au-delà de la base), le coût des réductions, et les deux soldes.
 - **« A payé quelque chose »**, utilisé par les remboursements et la suppression d'une session : `paidAt` renseigné ou au moins un versement.
-- **Report du paiement sur la nouvelle session** : il recopie `paidAt` comme aujourd'hui et, s'il y a des versements, un versement du total reçu, à la date du premier.
+- **Report d'une session** : ses tarifs passent sur la nouvelle session, avec leurs liens de base. Le report d'un paiement recopie `paidAt` (sinon la date du premier versement, pour qu'il compte aussi en mode simple) et, s'il y a des versements, un versement du total reçu, à la date du premier.
 
 ## Conséquences
 

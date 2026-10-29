@@ -208,6 +208,15 @@
                 Tester l'email
               </UButton>
               <UButton
+                v-if="tariffMode && row.paidAt && !row.instalments.length"
+                color="neutral"
+                variant="soft"
+                :loading="updatingParticipantId === row.participant.id"
+                @click="setPaid(row, false)"
+              >
+                Retirer l'ancienne validation
+              </UButton>
+              <UButton
                 v-if="!tariffMode"
                 :color="row.paidAt ? 'neutral' : 'success'"
                 :variant="row.paidAt ? 'soft' : 'solid'"

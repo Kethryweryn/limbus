@@ -176,3 +176,33 @@ describe('demandes et relances avec montants (US-034)', () => {
   })
 })
 
+describe('report d’une session avec tarifs (revue de la PR #61)', () => {
+  it('copie les tarifs et reporte un paiement fait de versements', async () => {
+    const t = await team()
+    const pj = (await api(alice, 'POST', `/api/sessions/${t.session.id}/tariffs`, { name: 'PJ', amount: 80, defaultRole: 'pj' })).body as { id: string }
+    await api(alice, 'POST', `/api/sessions/${t.session.id}/tariffs`, { name: 'Réduit', amount: 50, baseTariffId: pj.id })
+    await api(alice, 'POST', `/api/sessions/${t.session.id}/payments/${t.player.id}/instalments`, { amount: 80, receivedAt: '2026-10-01' })
+
+    const postponed = await api(alice, 'POST', `/api/sessions/${t.session.id}/postpone`, { name: `Report ${t.session.name}` })
+    expect(postponed.status, JSON.stringify(postponed.body)).toBe(200)
+    const newId = (postponed.body as { id: string }).id
+    const copies = await prisma.sessionTariff.findMany({ where: { sessionId: newId }, orderBy: { name: 'asc' } })
+    expect(copies.map((tariff) => [tariff.name, tariff.amountCents, tariff.defaultRole])).toEqual([['PJ', 8000, 'pj'], ['Réduit', 5000, null]])
+    expect(copies[1]!.baseTariffId).toBe(copies[0]!.id)
+
+    expect((await api(alice, 'PUT', `/api/sessions/${t.session.id}/payments/${t.player.id}/refund`, { status: 'carried_over' })).status).toBe(200)
+    const carried = await prisma.sessionPayment.findUniqueOrThrow({ where: { sessionId_participantId: { sessionId: newId, participantId: t.player.id } }, include: { instalments: true } })
+    expect(carried.paidAt).not.toBeNull()
+    expect(carried.instalments.map((instalment) => instalment.amountCents)).toEqual([8000])
+  })
+
+  it('retire une ancienne validation en mode tarifs, sans permettre d’en ajouter', async () => {
+    const t = await team()
+    expect((await api(alice, 'PUT', `/api/sessions/${t.session.id}/payments/${t.player.id}`, { paid: true })).status).toBe(200)
+    await api(alice, 'POST', `/api/sessions/${t.session.id}/tariffs`, { name: 'PJ', amount: 80, defaultRole: 'pj' })
+    expect((await t.row(t.player.id)).state).toBe('paid')
+    expect((await api(alice, 'PUT', `/api/sessions/${t.session.id}/payments/${t.player.id}`, { paid: false })).status).toBe(200)
+    expect((await t.row(t.player.id)).state).toBe('unpaid')
+  })
+})
+

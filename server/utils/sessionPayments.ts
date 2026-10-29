@@ -162,8 +162,9 @@ export async function setSessionPaymentRefund(sessionId: string, participantId: 
         // Le paiement reporté garde sa date ; ses versements passent en un seul, du total reçu (ADR-0032)
         const carried = await tx.sessionPayment.upsert({
           where: { sessionId_participantId: { sessionId: targetId, participantId } },
-          create: { sessionId: targetId, participantId, paidAt: payment.paidAt },
-          update: { paidAt: payment.paidAt }
+          // La date du premier versement tient lieu de date de paiement si la nouvelle session est en mode simple
+          create: { sessionId: targetId, participantId, paidAt: payment.paidAt || payment.instalments[0]?.receivedAt || null },
+          update: { paidAt: payment.paidAt || payment.instalments[0]?.receivedAt || null }
         })
         const total = receivedCents(payment)
         if (total) {
@@ -538,8 +539,9 @@ export async function updateSessionPaymentSettings(sessionId: string, data: {
 
 export async function setSessionPaymentStatus(sessionId: string, participantId: string, paid: boolean) {
   const session = await assertInPaymentTable(sessionId, participantId)
-  // En mode tarifs, l'état se calcule à partir des versements (ADR-0032)
-  if (session.tariffs.length) {
+  // En mode tarifs, l'état se calcule à partir des versements (ADR-0032) : on peut seulement retirer une
+  // validation faite en mode simple
+  if (session.tariffs.length && paid) {
     throw createError({ statusCode: 409, message: 'Cette session a des tarifs : notez un versement plutôt que de cocher « payé ».' })
   }
 

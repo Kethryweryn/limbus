@@ -22,7 +22,7 @@ function parseDate(value: string | null | undefined) {
 export async function postponeSession(sessionId: string, target: { name: string, date?: string | null, locationId?: string | null }) {
   const session = await prisma.session.findUniqueOrThrow({
     where: { id: sessionId },
-    include: { participants: true, assignments: true }
+    include: { participants: true, assignments: true, tariffs: true }
   })
   if (!POSTPONABLE_SESSION_STATUSES.includes(session.status)) {
     throw createError({ statusCode: 409, message: 'Seule une session prévue ou annulée peut être reportée.' })
@@ -55,6 +55,21 @@ export async function postponeSession(sessionId: string, target: { name: string,
       },
       select: { id: true, slug: true, name: true }
     })
+
+    // Les tarifs passent sur la nouvelle session, avec leurs liens de base (ADR-0032)
+    const copiedTariffIds = new Map<string, string>()
+    for (const tariff of [...session.tariffs].sort((left, right) => Number(Boolean(left.baseTariffId)) - Number(Boolean(right.baseTariffId)))) {
+      const copy = await tx.sessionTariff.create({
+        data: {
+          sessionId: created.id,
+          name: tariff.name,
+          amountCents: tariff.amountCents,
+          defaultRole: tariff.defaultRole,
+          baseTariffId: tariff.baseTariffId ? copiedTariffIds.get(tariff.baseTariffId) || null : null
+        }
+      })
+      copiedTariffIds.set(tariff.id, copy.id)
+    }
 
     // Conditionnel : deux reports simultanés de la même session ne passent pas tous les deux
     const updated = await tx.session.updateMany({
