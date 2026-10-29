@@ -93,6 +93,8 @@ if [ -d "$APP_DIR/node_modules" ] && [ "$(cat "$APP_DIR/$DEPS_STAMP" 2>/dev/null
   # Ce que npm ci ferait après l'installation : nuxt prepare crée .nuxt/tsconfig.json, que Prisma lit
   npm run postinstall
 else
+  # --include=dev obligatoire : NODE_ENV=production dans .env, et nuxt prepare (postinstall) comme le build
+  # ont besoin des devDependencies (@nuxt/eslint, typescript, workbox-build…)
   npm ci --include=dev
   echo "$deps_fingerprint" > "$DEPS_STAMP"
 fi
