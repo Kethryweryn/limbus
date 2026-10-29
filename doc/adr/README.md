@@ -29,3 +29,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0023](ADR-0023-deploiement-sans-ci-redondante.md) | Construire une fois dans la CI, tester ce build, le déployer tel quel | accepté | 2026-10-28 |
 | [ADR-0024](ADR-0024-migrations-compatibles-avec-le-build-en-service.md) | Migrations compatibles avec le build en service, vérifiées par la CI | accepté | 2026-10-28 |
 | [ADR-0025](ADR-0025-legs-de-jeu.md) | Legs d'un jeu par copie en une transaction, copie en attente sans propriétaire | accepté | 2026-10-28 |
+| [ADR-0026](ADR-0026-acces-ssh-au-serveur.md) | Accès SSH au serveur par clé uniquement, clé root sans phrase de passe acceptée | accepté | 2026-10-29 |

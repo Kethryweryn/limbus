@@ -199,7 +199,7 @@ Tri fait le 29 octobre 2026.
 | N° | Décision | Suite |
 |---|---|---|
 | R-05 | Faire maintenant | Opération serveur. La rotation par Claude a été bloquée (écriture d'un secret) : elle est laissée à l'utilisatrice, avec [`scripts/rotate-smtp-secret.mjs`](../../scripts/rotate-smtp-secret.mjs), qui rechiffre le mot de passe SMTP sans l'afficher. Le nouveau secret est à sauvegarder dans Proton Pass. **En attente.** |
-| R-04 | Faire maintenant | **Fait** le 29 octobre. `xargos` a reçu une clé dédiée, protégée par une phrase de passe, à conserver avec sa phrase de passe dans Proton Pass. Ensuite `PasswordAuthentication no` et `KbdInteractiveAuthentication no` (`/etc/ssh/sshd_config.d/50-cles-uniquement.conf`). Une tentative par mot de passe est refusée. |
+| R-04 | Faire maintenant | **Fait** le 29 octobre. `xargos` a reçu une clé dédiée avec phrase de passe, toutes deux à conserver dans Proton Pass. Ensuite `PasswordAuthentication no` et `KbdInteractiveAuthentication no` (`/etc/ssh/sshd_config.d/50-cles-uniquement.conf`). Une tentative par mot de passe est refusée. Décision : [ADR-0026](../adr/ADR-0026-acces-ssh-au-serveur.md). |
 | R-06 | Faire maintenant | **Fait** le 29 octobre : `Options -Indexes` sur `/files/` dans le vhost jdmottot.fr. Le listage répond 403, les liens directs 200. |
 | R-01 | Fiche todo | [Durcissement web](../todo/durcissement-web.md) |
 | R-02 | Fiche todo | [Durcissement web](../todo/durcissement-web.md) |
@@ -225,7 +225,7 @@ Un accès au PC donne donc un accès root au serveur sans autre effort. Deux par
 - n'autoriser root qu'au déploiement (`PermitRootLogin forced-commands-only`) et administrer via `xargos` et `sudo` ;
 - ajouter une phrase de passe à la clé et la déverrouiller dans l'agent SSH.
 
-L'utilisatrice a choisi de **laisser la situation en l'état**. Ce risque est accepté et doit être réexaminé à la prochaine revue.
+L'utilisatrice a choisi de **laisser la situation en l'état**. Ce risque est accepté ([ADR-0026](../adr/ADR-0026-acces-ssh-au-serveur.md)) et doit être réexaminé à la prochaine revue.
 
 ### Incident pendant le tri
 
