@@ -3,6 +3,7 @@ import { requireAdmin } from '~/server/utils/auth'
 import { readZodBody, userCreateSchema } from '~/server/utils/schemas'
 import { ACCOUNT_TOKEN_KINDS, ACCOUNT_TOKEN_TTL, assertEmailEnabled, createAccountToken, passwordUrl, unusablePassword } from '~/server/utils/accounts'
 import { sendPasswordLinkEmail } from '~/server/utils/email'
+import { linkParticipantsToUser } from '~/server/utils/participantAccounts'
 
 // Création par l'administratrice (US-065) : la personne choisit son mot de passe par le lien reçu
 export default defineEventHandler(async (event) => {
@@ -29,6 +30,8 @@ export default defineEventHandler(async (event) => {
       updatedAt: true
     }
   })
+  // Adresse choisie par l'administratrice, confirmée d'emblée (ADR-0039) : les fiches s'y rattachent (US-070)
+  await linkParticipantsToUser(user)
   const token = await createAccountToken(user.id, ACCOUNT_TOKEN_KINDS.password, ACCOUNT_TOKEN_TTL.passwordCreated)
   // Un échec d'envoi n'annule pas la création : « Envoyer un lien de mot de passe » le renvoie
   const emailSent = await sendPasswordLinkEmail({ to: user.email, url: passwordUrl(token), created: true, validity: '7 jours' })

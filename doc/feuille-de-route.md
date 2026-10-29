@@ -28,6 +28,7 @@ Le principe : rien n'est encore réellement utilisé en production, donc la séc
 - Refonte des comptes, lot 1 : un seul rôle global, quitter et transférer un jeu ([SPEC-011](specs/SPEC-011-un-compte-pour-tout-le-monde.md), [EPIC-012](archive/epics/EPIC-012-roles/README.md)).
 - Refonte des comptes, lot 2 : inscription libre (fermée en production), confirmation de l'adresse, compte en libre-service, mot de passe oublié, invitation par la bonne adresse, plafond de stockage ([EPIC-013](archive/epics/EPIC-013-inscription-et-compte/README.md)). Corrige l'écart 1 de SPEC-008.
 - Refonte des comptes, lot 3 : une note par jeu sur la fiche d'une personne ([EPIC-014](archive/epics/EPIC-014-notes-par-jeu/README.md)).
+- Refonte des comptes, lot 4 : fiches rattachées au compte, espace « Je participe » (sessions, inscriptions, paiements, réponse et désistement depuis le compte), sélecteur d'espace ([EPIC-015](archive/epics/EPIC-015-je-participe/README.md)).
 
 ## 1. Finir les écarts des specs de l'existant
 
@@ -43,7 +44,7 @@ Fait ([EPIC-011](archive/epics/EPIC-011-tests-e2e-des-parcours/README.md)) : ils
 
 ## 3. Refonte des comptes
 
-La fiche [Un compte pour tout le monde](todo/comptes-participants.md), tranchée dans [SPEC-011](specs/SPEC-011-un-compte-pour-tout-le-monde.md) ; ses lots, dans l'ordre (les lots 1 à 3 sont faits) :
+La fiche [Un compte pour tout le monde](todo/comptes-participants.md), tranchée dans [SPEC-011](specs/SPEC-011-un-compte-pour-tout-le-monde.md) ; ses lots, dans l'ordre (les lots 1 à 4 sont faits) :
 
 1. un seul rôle global (administrateur oui ou non), les droits venant des jeux ;
 2. inscription libre et compte en libre-service ;

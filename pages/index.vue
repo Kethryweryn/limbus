@@ -105,6 +105,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { isOfflineMode } from '~/utils/connection'
 import { getFromStore, saveToStore } from '~/utils/storage'
+import { initialSpace } from '~/utils/spaces'
 
 const dashboardData = ref<any>(null)
 const pending = ref(true)
@@ -152,7 +153,15 @@ const updateStatus = () => {
   }
 }
 
+// À l'ouverture, Limbus rouvre le dernier espace utilisé, ou « Je participe » pour qui n'organise rien (US-073)
+const { data: authState } = await useFetch('/api/auth/me')
+
 onMounted(() => {
+  const spaces = (authState.value as { spaces?: { organize: boolean, participate: boolean } } | null)?.spaces
+  if (spaces && initialSpace(spaces) === 'participate') {
+    navigateTo('/participer', { replace: true })
+    return
+  }
   updateStatus()
   window.addEventListener('online', updateStatus)
   window.addEventListener('offline', updateStatus)

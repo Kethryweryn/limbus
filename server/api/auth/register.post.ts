@@ -3,6 +3,7 @@ import { setAuthCookie } from '~/server/utils/auth'
 import { acceptInvitationForUser, createInvitedUser, getValidInvitation, normalizeInvitationEmail } from '~/server/utils/invitations'
 import { invitationRegistrationSchema, readZodBody } from '~/server/utils/schemas'
 import { hashPassword } from '~/server/utils/accounts'
+import { linkParticipantsToUser } from '~/server/utils/participantAccounts'
 
 export default defineEventHandler(async (event) => {
   const body = await readZodBody(event, invitationRegistrationSchema)
@@ -24,6 +25,7 @@ export default defineEventHandler(async (event) => {
 
   const password = await hashPassword(body.password)
   const user = await createInvitedUser(email, body.name, password)
+  await linkParticipantsToUser(user)
   // Connectée dès la création : si l'acceptation échoue (legs annulé entre-temps…), elle n'a pas à recréer son compte
   setAuthCookie(event, { id: user.id, sessionVersion: 0 })
   const game = await acceptInvitationForUser(body.token, user.id)

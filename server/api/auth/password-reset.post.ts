@@ -2,6 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { setAuthCookie } from '~/server/utils/auth'
 import { passwordResetSchema, readZodBody } from '~/server/utils/schemas'
 import { ACCOUNT_TOKEN_KINDS, consumeAccountToken, hashPassword } from '~/server/utils/accounts'
+import { linkParticipantsToUser } from '~/server/utils/participantAccounts'
 
 // Nouveau mot de passe par le lien reçu (US-062, US-065) : déconnecte tous les appareils, puis connecte celui-ci
 export default defineEventHandler(async (event) => {
@@ -16,8 +17,10 @@ export default defineEventHandler(async (event) => {
   const user = await prisma.user.update({
     where: { id: record.userId },
     data: { password: await hashPassword(body.password), sessionVersion: { increment: 1 }, emailConfirmedAt: current.emailConfirmedAt ?? new Date() },
-    select: { id: true, sessionVersion: true }
+    select: { id: true, email: true, sessionVersion: true }
   })
+  // Adresse confirmée par ce lien : ses fiches participant se rattachent (US-070)
+  await linkParticipantsToUser(user)
   setAuthCookie(event, user)
   return { success: true }
 })

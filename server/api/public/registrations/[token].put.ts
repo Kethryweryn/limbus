@@ -9,6 +9,7 @@ import {
   saveRegistrationAnswers,
   sendRegistrationConfirmationEmail
 } from '~/server/utils/publicRegistrations'
+import { registrationUrl } from '~/server/utils/registrations'
 
 // Accepter l'invitation, ou modifier une inscription confirmée jusqu'à la clôture (US-004, R13)
 export default defineEventHandler(async (event) => {
@@ -21,7 +22,7 @@ export default defineEventHandler(async (event) => {
 
   const versionId = await frozenFormVersionId(registration, form.versionId)
   const { accepted } = await saveRegistrationAnswers(registration, versionId, answers)
-  const emailSent = accepted ? await sendRegistrationConfirmationEmail(registration, answers, token) : null
+  const emailSent = accepted ? await sendRegistrationConfirmationEmail(registration, answers, registrationUrl(token)) : null
 
   return { ...(await exposePublicRegistration(await requireRegistrationByToken(token))), emailSent }
 })

@@ -15,6 +15,27 @@ icon="i-heroicons-bars-3" color="neutral" variant="ghost" class="md:hidden"
                     >
                 </NuxtLink>
             </div>
+            <!-- Sélecteur d'espace (US-073) : pour qui organise et participe -->
+            <div v-if="showSpaceSelector" class="flex rounded-md border border-gray-200 p-0.5 text-sm">
+                <UButton
+                    to="/"
+                    size="sm"
+                    :color="space === 'organize' ? 'primary' : 'neutral'"
+                    :variant="space === 'organize' ? 'solid' : 'ghost'"
+                    @click="rememberSpace('organize')"
+                >
+                    J’organise
+                </UButton>
+                <UButton
+                    to="/participer"
+                    size="sm"
+                    :color="space === 'participate' ? 'primary' : 'neutral'"
+                    :variant="space === 'participate' ? 'solid' : 'ghost'"
+                    @click="rememberSpace('participate')"
+                >
+                    Je participe
+                </UButton>
+            </div>
             <UDropdownMenu :items="userMenu" :content="{ align: 'end' }">
                 <UAvatar size="sm" icon="i-heroicons-user" />
             </UDropdownMenu>
@@ -116,6 +137,7 @@ icon="i-heroicons-bars-3" color="neutral" variant="ghost" class="md:hidden"
 </template>
 
 <script setup>
+import { rememberSpace, spaceOfPath } from '~/utils/spaces'
 import { navigateTo } from '#app'
 import { getOfflineQueue } from '~/utils/offlineSync'
 
@@ -125,9 +147,36 @@ const mobileOpen = ref(false)
 const { data: authState, refresh: refreshAuthState } = await useFetch('/api/auth/me')
 const isAdmin = computed(() => authState.value?.user?.role === 'admin')
 
-const dashboardLink = { label: 'Dashboard', to: '/', icon: 'i-heroicons-home' }
+// Espace affiché, déduit de l'adresse (US-073) ; le menu le suit
+const space = computed(() => spaceOfPath(route.path))
+const showSpaceSelector = computed(() => Boolean(authState.value?.spaces?.organize && authState.value?.spaces?.participate))
+watch(space, (value) => rememberSpace(value))
 
-const navSections = computed(() => [
+const dashboardLink = computed(() => space.value === 'participate'
+    ? { label: 'Mes jeux', to: '/participer', icon: 'i-heroicons-ticket' }
+    : { label: 'Dashboard', to: '/', icon: 'i-heroicons-home' })
+
+const adminSection = computed(() => isAdmin.value
+    ? [{
+        label: 'Administration',
+        icon: 'i-heroicons-shield-check',
+        links: [
+            { label: 'Utilisateurs', to: '/admin/users', icon: 'i-heroicons-user-circle' },
+            { label: 'SMTP', to: '/admin/smtp', icon: 'i-heroicons-envelope' }
+        ]
+    }]
+    : [])
+
+const navSections = computed(() => space.value === 'participate'
+    ? [
+        {
+            label: 'Organiser',
+            icon: 'i-heroicons-cube',
+            links: [{ label: 'Organiser un GN', to: '/games', icon: 'i-heroicons-plus' }]
+        },
+        ...adminSection.value
+    ]
+    : [
     {
         label: 'Écriture',
         icon: 'i-heroicons-pencil-square',
@@ -151,16 +200,7 @@ const navSections = computed(() => [
             { label: 'Sessions', to: '/sessions', icon: 'i-heroicons-calendar-days' }
         ]
     },
-    ...(isAdmin.value
-        ? [{
-            label: 'Administration',
-            icon: 'i-heroicons-shield-check',
-            links: [
-                { label: 'Utilisateurs', to: '/admin/users', icon: 'i-heroicons-user-circle' },
-                { label: 'SMTP', to: '/admin/smtp', icon: 'i-heroicons-envelope' }
-            ]
-        }]
-        : [])
+    ...adminSection.value
 ])
 
 const userMenu = computed(() => [

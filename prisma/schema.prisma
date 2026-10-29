@@ -412,6 +412,9 @@ model Participant {
   slug        String     @unique
   email       String?
   phone       String?
+  // Compte rattaché par l'adresse confirmée (US-070, ADR-0041)
+  userId      String?
+  user        User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
   // Vidé par la migration d'ADR-0040 : les notes vivent sur ParticipantGame. Colonne à supprimer
   notes       String?
   gameLinks   ParticipantGame[]
@@ -427,6 +430,8 @@ model Participant {
   receivedPaymentTransfers SessionPayment[] @relation("PaymentTransfers")
   registrations Registration[]
   attendances SessionAttendance[]
+
+  @@index([userId])
 }
 
 model SessionPayment {
@@ -601,6 +606,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   accountTokens AccountToken[]
+  participants Participant[]
   ownedGames Game[] @relation("OwnedGames")
   proposedTransfers Game[] @relation("GameTransfers")
   gameShares GameShare[]

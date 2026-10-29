@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
+import { accountIdForEmail } from '~/server/utils/participantAccounts'
 import { absoluteAppUrl, publicAppUrl } from '~/server/utils/appUrl'
 import { openEmailTransport, sendEmail, type EmailTransport } from '~/server/utils/email'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
@@ -260,6 +261,7 @@ export async function inviteToRegistrationPeriod(params: {
           name: newParticipant.name,
           slug: slug!,
           email: newParticipant.email,
+          userId: await accountIdForEmail(newParticipant.email),
           gameLinks: { create: { gameId: period.gameId } }
         },
         select: { id: true, name: true }

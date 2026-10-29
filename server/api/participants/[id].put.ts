@@ -7,6 +7,7 @@ import { eraseParticipant } from '~/server/utils/participantPrivacy'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { requireRouterParam } from '~/server/utils/routeParams'
+import { accountIdForEmail } from '~/server/utils/participantAccounts'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -54,6 +55,8 @@ export default defineEventHandler(async (event) => {
       slug: await generateUniqueSlug('participant', name, id),
       email: email || null,
       phone: phone || null,
+      // Le rattachement suit l'adresse : autre compte, ou aucun (US-070)
+      userId: await accountIdForEmail(email),
       gameLinks: {
         create: gameIdsToAdd.map((gameId) => ({ gameId, notes: gameNotes[gameId] || null })),
         // Note de chaque jeu déjà lié et reçu ; les notes des autres jeux ne bougent pas (US-069)
