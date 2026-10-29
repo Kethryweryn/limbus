@@ -45,3 +45,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0039](ADR-0039-comptes-en-libre-service.md) | Comptes en libre-service : liens de compte hachés, adresse confirmée, stockage compté par propriétaire | accepté | 2026-10-29 |
 | [ADR-0040](ADR-0040-notes-par-jeu.md) | Les notes sur une personne sont portées par son lien à chaque jeu | accepté | 2026-10-29 |
 | [ADR-0041](ADR-0041-fiches-rattachees-a-un-compte.md) | Fiches participant rattachées à un compte par l'adresse confirmée | accepté | 2026-10-29 |
+| [ADR-0042](ADR-0042-coordonnees-du-compte.md) | Les coordonnées d'une personne qui a un compte vivent sur le compte et sont recopiées sur ses fiches | accepté | 2026-10-29 |
