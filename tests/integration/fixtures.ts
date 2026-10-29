@@ -83,7 +83,7 @@ async function createGameWorld(prisma: PrismaClient, key: string, ownerId: strin
   const payment = await prisma.sessionPayment.create({ data: { sessionId: session.id, participantId: participant.id } })
   const instalment = await prisma.sessionPaymentInstalment.create({ data: { paymentId: payment.id, amountCents: 2000, receivedAt: new Date() } })
   const invitation = await prisma.gameInvitation.create({
-    data: { gameId, email: `invite-${key}@example.test`, token: `token-${key}`, invitedById: ownerId, expiresAt: new Date(Date.now() + 86_400_000) }
+    data: { gameId, email: `invite-${key}@example.test`, tokenHash: `empreinte-invitation-${key}`, invitedById: ownerId, expiresAt: new Date(Date.now() + 86_400_000) }
   })
 
   return { game, faction, character, intrigue, item, location, document, timelineEvent, participant, session, registrationPeriod, registration, photo, rib, invitation, tariff, instalment }

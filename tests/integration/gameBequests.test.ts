@@ -1,4 +1,5 @@
 // US-010 : léguer une copie d'un jeu à une organisatrice qui a un compte (SPEC-002, ADR-0025)
+import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
@@ -262,6 +263,10 @@ describe('legs à une personne sans compte (US-011)', () => {
     expect(copy.characters).toHaveLength(2)
     expect(message.text).toContain('vous lègue une copie')
     expect(token).toBeTruthy()
+    // Seule l'empreinte du jeton est gardée (US-042, ADR-0034)
+    const stored = await prisma.gameInvitation.findFirstOrThrow({ where: { gameId: copy.id } })
+    expect(stored.token).toBeNull()
+    expect(stored.tokenHash).toBe(createHash('sha256').update(token).digest('hex'))
 
     // Ni la propriétaire du jeu source (Bob ici), ni une autre organisatrice, ni le mode administrateur
     for (const [user, options] of [[bob, {}], [alice, {}], [admin, { adminMode: true }]] as const) {
@@ -307,7 +312,7 @@ describe('legs à une personne sans compte (US-011)', () => {
   it('supprime la copie et ses fichiers quand l’invitation a expiré', async () => {
     const { copy, token } = await pendingBequest()
     const photo = copy.uploadedFiles[0]!.url
-    await prisma.gameInvitation.updateMany({ where: { token }, data: { expiresAt: new Date(Date.now() - 1000) } })
+    await prisma.gameInvitation.updateMany({ where: { tokenHash: createHash('sha256').update(token).digest('hex') }, data: { expiresAt: new Date(Date.now() - 1000) } })
 
     const response = await api(null, 'GET', `/api/invitations/${token}`)
     expect(response.status).toBe(400)
@@ -386,9 +391,14 @@ describe('suivi des legs en attente (US-012)', () => {
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     const renewed = await prisma.gameInvitation.findUniqueOrThrow({ where: { id: invitation.id } })
     expect(renewed.expiresAt.getTime()).toBeGreaterThan(Date.now() + 13 * 86_400_000)
-    expect(renewed.token).toBe(token)
+    // Nouveau lien (ADR-0034) : seule son empreinte est gardée, l'ancien lien ne marche plus
     const message = smtp.received.slice(sent).find((received) => received.to.includes(email))!
-    expect(tokenIn(message.text)).toBe(token)
+    const newToken = tokenIn(message.text)!
+    expect(newToken).not.toBe(token)
+    expect(renewed.token).toBeNull()
+    expect(renewed.tokenHash).toBe(createHash('sha256').update(newToken).digest('hex'))
+    expect((await api(null, 'GET', `/api/invitations/${token}`)).status).toBe(404)
+    expect((await api(null, 'GET', `/api/invitations/${newToken}`)).status).toBe(200)
     expect(await prisma.game.findUnique({ where: { id: copy.id } })).toMatchObject({ bequestPending: true, description: 'Un jeu' })
   })
 

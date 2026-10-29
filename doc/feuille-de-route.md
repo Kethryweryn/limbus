@@ -21,14 +21,14 @@ Le principe : rien n'est encore réellement utilisé en production, donc la séc
 - Écarts de SPEC-005, trombinoscopes ([EPIC-005](archive/epics/EPIC-005-ecarts-trombinoscopes/README.md)).
 - Écarts de SPEC-006, envois et paiements ([EPIC-006](archive/epics/EPIC-006-ecarts-envois-et-paiements/README.md)).
 - Écarts 2, 4 et 5 de SPEC-007, participants, avec le désistement tardif et le remplaçant ([EPIC-007](archive/epics/EPIC-007-ecarts-participants/README.md)).
+- Écarts 5 et 6 de SPEC-008, sécurité des comptes ([EPIC-008](archive/epics/EPIC-008-ecarts-comptes/README.md)).
 
 ## 1. Finir les écarts des specs de l'existant
 
 On implémente tous les écarts d'une spec à la fois, dans l'ordre des specs :
 
-1. [SPEC-008](specs/SPEC-008-comptes-et-partage.md), écarts 5 et 6 : jeton d'invitation en clair, dernière administratrice.
-2. [SPEC-009](specs/SPEC-009-page-publique.md), écarts 1, 2 et 4 : crédit d'une copie, lien stable, traceurs YouTube.
-3. [SPEC-010](specs/SPEC-010-hors-ligne.md), hors ligne : déconnexion sans réseau, sous-routes mises en file, envoi de la file à l'ouverture, page de session hors ligne. L'écart 2 (resynchronisation) est le gros morceau : il reprend la fiche [Resynchronisation hors ligne](todo/resynchronisation-hors-ligne.md).
+1. [SPEC-009](specs/SPEC-009-page-publique.md), écarts 1, 2 et 4 : crédit d'une copie, lien stable, traceurs YouTube.
+2. [SPEC-010](specs/SPEC-010-hors-ligne.md), hors ligne : déconnexion sans réseau, sous-routes mises en file, envoi de la file à l'ouverture, page de session hors ligne. L'écart 2 (resynchronisation) est le gros morceau : il reprend la fiche [Resynchronisation hors ligne](todo/resynchronisation-hors-ligne.md).
 
 Ces écarts sont traités plus loin, dans le chantier qui les réécrit :
 

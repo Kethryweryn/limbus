@@ -41,13 +41,13 @@ export default defineEventHandler(async (event) => {
   if (!recipient) {
     const copy = await copyGame(id, { ...credit, ownerId: null, bequestPending: true })
     const expiresAt = bequestExpiresAt()
-    const invitation = await prisma.gameInvitation.create({
-      data: { gameId: copy.id, email, token: createInvitationToken(), kind: GAME_INVITATION_KINDS.bequest, invitedById: user.id, expiresAt },
-      select: { token: true }
+    const { token, tokenHash } = createInvitationToken()
+    await prisma.gameInvitation.create({
+      data: { gameId: copy.id, email, tokenHash, kind: GAME_INVITATION_KINDS.bequest, invitedById: user.id, expiresAt }
     })
     // Sans email, rien n'est légué
     try {
-      await sendBequestInvitation({ to: email, gameTitle: game.title, ownerName, url: invitationUrl(invitation.token), expiresAt }, ' : rien n’a été légué.')
+      await sendBequestInvitation({ to: email, gameTitle: game.title, ownerName, url: invitationUrl(token), expiresAt }, ' : rien n’a été légué.')
     } catch (error) {
       await deletePendingCopy(copy.id)
       throw error

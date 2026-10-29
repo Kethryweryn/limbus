@@ -22,6 +22,8 @@ export default defineEventHandler(async (event) => {
       // Les invitations de legs (US-011) se suivent à part (US-012)
       where: { gameId: id, kind: GAME_INVITATION_KINDS.share },
       orderBy: { createdAt: 'desc' },
+      // L'empreinte du jeton ne sort pas (ADR-0034)
+      omit: { token: true, tokenHash: true },
       include: {
         invitedBy: { select: { id: true, name: true, email: true } },
         acceptedBy: { select: { id: true, name: true, email: true } }

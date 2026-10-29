@@ -4,13 +4,13 @@ titre: Comptes et partage d'un jeu
 statut: validée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
-epics: []
+epics: [EPIC-008]
 adr: [ADR-0006, ADR-0007, ADR-0018]
 ---
 
 # SPEC-008 : Comptes et partage d'un jeu
 
-Cette spec décrit un comportement déjà en production, avant la reprise du développement ([Documentation de l'existant](../archive/todo/documentation-de-l-existant.md)). Elle n'a ni epic ni US. Les écarts constatés entre le code et l'intention sont listés à la fin, sans être corrigés.
+Cette spec décrit un comportement déjà en production, avant la reprise du développement ([Documentation de l'existant](../archive/todo/documentation-de-l-existant.md)). Les écarts 5 et 6, listés à la fin, sont corrigés par [EPIC-008](../archive/epics/EPIC-008-ecarts-comptes/README.md).
 
 ## Objectif
 
@@ -58,7 +58,7 @@ Il n'y a pas d'inscription libre.
 - **R2** Une connexion refusée ne dit pas si l'email existe : même message et même temps de réponse. Les tentatives sont limitées à 30 par adresse IP et 10 par email en 15 minutes.
 - **R3** La session dure 20 heures. Le jeton ne porte que l'identifiant du compte et sa version de session : le rôle et l'email sont relus à chaque requête ([ADR-0006](../adr/ADR-0006-sessions-et-revocation.md)).
 - **R4** « Déconnecter tous mes appareils » et tout changement de mot de passe par l'administratrice invalident toutes les sessions ouvertes du compte.
-- **R5** Seule l'administratrice crée, modifie (email, nom, rôle, mot de passe) et supprime un compte. Elle ne peut pas supprimer le sien. Un compte qui possède encore des jeux ne peut pas être supprimé.
+- **R5** Seule l'administratrice crée, modifie (email, nom, rôle, mot de passe) et supprime un compte. Elle ne peut pas supprimer le sien. Un compte qui possède encore des jeux ne peut pas être supprimé. Le rôle de la dernière administratrice ne peut pas lui être retiré : il faut d'abord en nommer une autre ([US-043](../archive/epics/EPIC-008-ecarts-comptes/US-043-jamais-sans-administratrice.md)).
 - **R6** Supprimer un compte retire ses partages et les invitations qu'il a envoyées. Les inscriptions qu'il a gérées restent, sans son nom.
 
 ### Mode administrateur
@@ -78,7 +78,7 @@ Il n'y a pas d'inscription libre.
 ## Données
 
 - `User` (compte), `GameShare` (partage) et `GameInvitation` (invitation, de partage ou de legs).
-- Le jeton d'une invitation est gardé tel quel en base (voir les écarts).
+- Une invitation ne garde que l'empreinte de son jeton, comme les liens personnels ; renvoyer un legs envoie un nouveau lien ([US-042](../archive/epics/EPIC-008-ecarts-comptes/US-042-jeton-d-invitation-hache.md), [ADR-0034](../adr/ADR-0034-jeton-d-invitation-hache.md)).
 - Un compte n'est supprimé qu'à la main par l'administratrice.
 
 ## Sécurité et droits
@@ -96,11 +96,9 @@ Il n'y a pas d'inscription libre.
 
 ## Écarts constatés
 
-Relevés le 29 octobre 2026 avec l'utilisatrice. Aucun n'est corrigé ici.
+Relevés le 29 octobre 2026 avec l'utilisatrice. Les écarts 5 (jeton d'invitation en clair) et 6 (dernière administratrice) sont corrigés par [EPIC-008](../archive/epics/EPIC-008-ecarts-comptes/README.md) ; les écarts 1 à 4 relèvent de la refonte des comptes.
 
 1. **Invitation acceptée par un autre compte (R12)** : seul le compte de l'adresse invitée devrait pouvoir accepter. Avec un autre compte connecté, ou en créant un compte avec une autre adresse, il faudrait une nouvelle invitation.
 2. **Libre-service (R5)** : chaque organisatrice devrait pouvoir changer elle-même son nom, son email et son mot de passe, et réinitialiser un mot de passe oublié par email. Aujourd'hui, seule l'administratrice le fait.
 3. **Quitter un jeu (R8)** : une co-organisatrice devrait pouvoir se retirer d'elle-même d'un jeu partagé.
 4. **Transférer un jeu (R5)** : la propriétaire devrait pouvoir donner son jeu, et non une copie, à une co-organisatrice. Le refus de supprimer un compte qui possède des jeux demande de « les transférer », ce qui n'existe pas.
-5. **Jeton d'invitation en clair (Données)** : contrairement aux liens personnels des inscriptions ([ADR-0018](../adr/ADR-0018-jetons-des-liens-personnels.md)), le jeton d'une invitation est gardé tel quel, et non son empreinte. Une copie de la base suffirait à accepter les invitations en attente.
-6. **Dernière administratrice (R5)** : rien n'empêche l'administratrice de retirer son propre rôle, et l'application de rester sans administratrice.
