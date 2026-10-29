@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import jwt from 'jsonwebtoken'
 import { JWT_SECRET } from '../integration/constants'
-import { E2E_PASSWORD } from './constants'
+import { E2E_PASSWORD, PARCOURS } from './constants'
 
 export async function login(page: Page, email: string, password = E2E_PASSWORD) {
   await page.goto('/')
@@ -45,7 +45,7 @@ type TestPrisma = ReturnType<typeof import('../integration/db').createTestPrisma
 // Jeu commun des parcours (ADR-0037) : ses personnages et participants, par nom
 export async function parcoursGame(prisma: TestPrisma) {
   const game = await prisma.game.findUniqueOrThrow({
-    where: { slug: 'jeu-des-parcours' },
+    where: { slug: PARCOURS.gameSlug },
     include: { characters: true, participantLinks: { include: { participant: true } } }
   })
   const character = (name: string) => game.characters.find((item) => item.name === name)!
@@ -53,10 +53,20 @@ export async function parcoursGame(prisma: TestPrisma) {
   return { game, character, participant }
 }
 
+// Nom propre à une tentative : une relance en CI (retries) ne retombe pas sur les données de la précédente
+export function uniqueName(base: string) {
+  return `${base} ${Date.now().toString(36)}`
+}
+
+export function slugOf(name: string) {
+  return name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-')
+}
+
 // Session du jeu commun, propre au test, avec son casting : [personnage, participant]
-export async function parcoursSession(prisma: TestPrisma, name: string, cast: Array<[string, string]> = []) {
+export async function parcoursSession(prisma: TestPrisma, base: string, cast: Array<[string, string]> = []) {
   const { game, character, participant } = await parcoursGame(prisma)
-  const slug = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-')
+  const name = uniqueName(base)
+  const slug = slugOf(name)
   const session = await prisma.session.create({
     data: {
       name,

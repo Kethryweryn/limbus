@@ -2,10 +2,11 @@
 import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS, PARCOURS } from './constants'
-import { choose, signIn } from './helpers'
+import { choose, signIn, uniqueName } from './helpers'
 
 test('une session créée depuis la liste se caste et garde son casting', async ({ page }) => {
   const prisma = createTestPrisma()
+  const name = uniqueName('Session casting e2e')
   try {
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/sessions')
@@ -14,11 +15,11 @@ test('une session créée depuis la liste se caste et garde son casting', async 
     await page.getByRole('button', { name: 'Créer une session' }).click()
     const form = page.locator('form').filter({ has: page.getByRole('button', { name: 'Créer', exact: true }) })
     await choose(page, form.getByRole('combobox').first(), PARCOURS.game)
-    await form.getByLabel('Nom').fill('Session casting e2e')
+    await form.getByLabel('Nom').fill(name)
     await form.getByRole('button', { name: 'Créer', exact: true }).click()
 
-    await expect.poll(() => prisma.session.count({ where: { name: 'Session casting e2e' } })).toBe(1)
-    const session = await prisma.session.findFirstOrThrow({ where: { name: 'Session casting e2e' } })
+    await expect.poll(() => prisma.session.count({ where: { name } })).toBe(1)
+    const session = await prisma.session.findFirstOrThrow({ where: { name } })
     await page.goto(`/sessions/${session.slug}?tab=cast`)
     await page.waitForLoadState('networkidle')
 

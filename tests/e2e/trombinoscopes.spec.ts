@@ -16,10 +16,14 @@ test('les trombinoscopes se génèrent et s’ouvrent en PDF', async ({ page }) 
     await page.getByRole('button', { name: 'Générer les trombinoscopes' }).click()
     await expect(page.getByText('Trombi généré')).toHaveCount(2)
 
-    // « Vérifier le trombi » ouvre un nouvel onglet et y charge le PDF, sans erreur dans la page
+    // « Vérifier le trombi » charge le PDF du trombinoscope et l'ouvre dans un nouvel onglet
     const popup = page.waitForEvent('popup')
+    const loaded = page.waitForResponse((response) => response.url().includes(`/api/sessions/${session.id}/trombinoscopes/`))
     await page.getByRole('button', { name: 'Vérifier le trombi' }).first().click()
     await popup
+    const response = await loaded
+    expect(response.status()).toBe(200)
+    expect(response.headers()['content-type']).toContain('application/pdf')
     await expect(page.getByRole('button', { name: 'Vérifier le trombi' }).first()).toBeEnabled()
     await expect(page.getByText('Impossible de charger le PDF')).toBeHidden()
 

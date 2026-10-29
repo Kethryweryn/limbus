@@ -90,14 +90,14 @@ test('une session consultée se rouvre et se modifie sans réseau, puis la modif
     await page.waitForLoadState('networkidle')
     await page.goto(`/sessions/${session.slug}?tab=cast`)
     await page.waitForLoadState('networkidle')
-    await expect(page.getByRole('heading', { name: 'Session hors ligne e2e' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: session.name })).toBeVisible()
 
     // Sans réseau : retour à la liste, puis la session se rouvre depuis l'appareil
     await context.setOffline(true)
     await page.getByRole('link', { name: 'Sessions' }).first().click()
     await page.waitForURL('**/sessions')
     await page.goBack()
-    await expect(page.getByRole('heading', { name: 'Session hors ligne e2e' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: session.name })).toBeVisible()
 
     const row = page.locator('form > div.grid').filter({ hasText: 'Aube' })
     await choose(page, row.getByRole('combobox'), /Léa Parcours/)
