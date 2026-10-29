@@ -4,8 +4,8 @@ titre: Envois d'emails et suivi des paiements
 statut: validée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
-epics: []
-adr: [ADR-0004, ADR-0008]
+epics: [EPIC-006]
+adr: [ADR-0004, ADR-0008, ADR-0031, ADR-0032]
 ---
 
 # SPEC-006 : Envois d'emails et suivi des paiements
