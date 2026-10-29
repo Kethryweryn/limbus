@@ -125,8 +125,10 @@ export async function saveCharacterTrombinoscopeConfig(
     throw createError({ statusCode: 400, message: 'Personnages invalides pour ce jeu' })
   }
 
-  for (const entry of entries) {
-    await prisma.characterTrombinoscopeEntry.upsert({
+  // Une seule transaction : un enregistrement interrompu ne laisse pas une configuration à moitié écrite.
+  // Prisma n'a pas d'upsert groupé : une requête par entrée reste nécessaire.
+  await prisma.$transaction(entries.map((entry) =>
+    prisma.characterTrombinoscopeEntry.upsert({
       where: {
         viewerCharacterId_targetCharacterId: {
           viewerCharacterId,
@@ -148,7 +150,7 @@ export async function saveCharacterTrombinoscopeConfig(
         note: entry.note
       }
     })
-  }
+  ))
 
   return await getCharacterTrombinoscopeConfig(viewerCharacterId)
 }
