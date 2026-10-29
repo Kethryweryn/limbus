@@ -4,7 +4,7 @@ titre: Participants et données personnelles
 statut: validée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
-epics: []
+epics: [EPIC-007]
 adr: [ADR-0007, ADR-0008]
 ---
 
