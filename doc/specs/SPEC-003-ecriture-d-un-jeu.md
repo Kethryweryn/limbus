@@ -61,7 +61,7 @@ Depuis la liste des jeux, la propriétaire ou une co-organisatrice archive un je
 - **R8** **Faction** : un nom, un pitch, une histoire (texte ou lien), des indications de costume et des membres (personnages). Elle est liée à des intrigues. Elle peut figurer sur les trombinoscopes.
 - **R9** **Intrigue** : un nom, un pitch, une description et un niveau. Les niveaux sont, du plus au moins important : trame principale scénario, trame principale personnage, intrigue majeure, intrigue mineure (par défaut). Elle relie des personnages, des factions et des objets.
 - **R10** **Objet** : un nom, une description, **une quantité**, et un emplacement : un texte libre ou un personnage qui le détient. Il est lié à des personnages et à des intrigues.
-- **R11** **Document** : un titre, et un contenu ou un lien vers un document externe (au moins l'un des deux). Son audience est un ciblage manuel (par défaut), tout le monde, les organisateurs, les PNJ ou l'équipe cuisine. En ciblage manuel, il vise un personnage (champ « Personnage »), des personnages et des factions. Il est marqué « prêt à envoyer » quand il peut partir aux participants. Les envois sont décrits dans la spec sur les emails et les paiements.
+- **R11** **Document** : un titre, et un contenu ou un lien vers un document externe (au moins l'un des deux). Son audience est un ciblage manuel (par défaut), tout le monde, les organisateurs, les PNJ ou l'équipe cuisine. En ciblage manuel, il vise un personnage (champ « Personnage »), des personnages et des factions. Il est marqué « prêt à envoyer » quand il peut partir aux participants. Les envois sont décrits dans [SPEC-006](SPEC-006-emails-et-paiements.md).
 - **R12** **Événement de chronologie** : un nom, une description, un jour (à partir de 1), une heure et un nombre de responsables requis. Il relie des personnages, des factions, des intrigues et des objets. La chronologie se lit par jour, puis par heure, puis par nom. L'affectation des responsables à une session est décrite dans la spec sur les sessions.
 - **R13** **Lieu** : un nom, une adresse et des notes. Une session se tient dans un lieu.
 - **R14** Supprimer un élément supprime ses liens, jamais les éléments liés. Exceptions :
@@ -94,7 +94,7 @@ Ces sujets sont couverts par leurs propres specs :
 
 - sessions, casting et chronologie de déroulé ;
 - trombinoscopes et fiches de personnage en PDF ;
-- envois d'emails et paiements ;
+- envois d'emails et paiements ([SPEC-006](SPEC-006-emails-et-paiements.md)) ;
 - participants et RGPD ;
 - comptes et partage ;
 - page publique ;

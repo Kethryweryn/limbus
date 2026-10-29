@@ -71,7 +71,7 @@ Donner à chaque joueuse et chaque joueur, pour une session, ce que son personna
 
 - **R11** La fiche de personnage d'une session est un PDF au nom du personnage. Elle contient son pitch, son histoire, le lien vers le document externe s'il y en a un, et ses indications de costume. Elle est « prête à envoyer » quand le personnage est marqué comme tel ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), R7).
 - **R12** Un document du jeu se télécharge en PDF pour une session : son titre, la session, son contenu, et son lien externe s'il y en a un.
-- **R13** Les PDF sont générés à la demande, sauf les trombinoscopes, enregistrés à la génération (R7). L'envoi de ces documents par email est décrit dans la spec sur les emails et les paiements.
+- **R13** Les PDF sont générés à la demande, sauf les trombinoscopes, enregistrés à la génération (R7). L'envoi de ces documents par email est décrit dans [SPEC-006](SPEC-006-emails-et-paiements.md).
 
 ## Données
 
@@ -85,7 +85,7 @@ Donner à chaque joueuse et chaque joueur, pour une session, ce que son personna
 
 ## Hors périmètre
 
-- Envoi des fiches, trombinoscopes et documents par email : spec sur les emails et les paiements.
+- Envoi des fiches, trombinoscopes et documents par email : [SPEC-006](SPEC-006-emails-et-paiements.md).
 - Photos d'attribution et casting : [SPEC-004](SPEC-004-sessions.md).
 
 ## Écarts constatés
