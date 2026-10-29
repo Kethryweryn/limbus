@@ -54,6 +54,8 @@ La fiche [Un compte pour tout le monde](todo/comptes-participants.md) : on tranc
 
 Elle passe avant la suite des inscriptions : le formulaire public devra rattacher une personne à son compte.
 
+Fusionner, c'est mettre en production : l'inscription libre (lot 2) reste fermée en production jusqu'à l'étape 5, qui l'ouvre avec les conditions d'utilisation et la politique de confidentialité que demande la fiche. L'effacement depuis le compte (lot 6) prévoit la durée de conservation, tranchée à l'étape 5, sans la figer.
+
 ## 4. Suite des inscriptions et du casting
 
 Les lots 2 à 6 de [SPEC-001](specs/SPEC-001-inscriptions.md), un epic chacun :
@@ -66,11 +68,12 @@ Les lots 2 à 6 de [SPEC-001](specs/SPEC-001-inscriptions.md), un epic chacun :
 
 ## 5. Fondations avant d'ouvrir Limbus
 
-L'inscription libre fera venir des personnes inconnues, avec leurs données. Avant d'annoncer l'ouverture :
+L'inscription libre fera venir des personnes inconnues, avec leurs données. Avant de l'ouvrir en production et d'annoncer l'ouverture :
 
 1. [Photos et RGPD](todo/photos-et-rgpd.md) : information des personnes et durée de conservation, après avoir confirmé la base légale auprès d'une source juridique.
 2. [Durcissement web](todo/durcissement-web.md) : CSP, origine des écritures, cookie.
 3. [Supervision](todo/supervision.md) : être alerté quand le site tombe.
+4. Conditions d'utilisation et politique de confidentialité ([fiche des comptes](todo/comptes-participants.md)), puis ouverture de l'inscription libre.
 
 ## 6. Première version publique
 
