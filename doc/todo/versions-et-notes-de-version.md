@@ -27,5 +27,6 @@ Limbus n'a ni numéro de version (`package.json` n'en déclare pas), ni étiquet
 - Quand faire la première version, et qu'est-ce qui doit être fait avant ?
 - Une version à chaque fusion déployée, ou des versions regroupées, publiées quand on le décide ? Avec le déploiement continu, une version regroupée veut dire que des changements sont en production avant d'être dans une note.
 - Qui rédige les notes, et quand : à chaque PR (une ligne dans un fichier « à venir »), ou au moment de la version ?
+- Comment une version passe par le circuit du projet : on ne pousse jamais sur `main` ([ADR-0017](../adr/ADR-0017-branches-et-pull-requests.md)), et changer `package.json` déclenche la CI et un déploiement ([ADR-0022](../adr/ADR-0022-pas-de-ci-pour-la-documentation.md), [ADR-0023](../adr/ADR-0023-deploiement-sans-ci-redondante.md)). Options : une PR de version qui change le numéro et les notes ; une étiquette posée par la CI sur le commit déployé ; ou un numéro tiré de l'étiquette, sans toucher `package.json`. À décider dans un ADR.
 - Où les publier : fichier du dépôt (`CHANGELOG.md`), page dans l'application, release GitHub, ou plusieurs ?
 - Faut-il prévenir les organisatrices d'une nouvelle version (bandeau à la connexion, email) ?
