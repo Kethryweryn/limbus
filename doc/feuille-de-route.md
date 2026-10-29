@@ -1,14 +1,14 @@
 ---
 titre: Feuille de route
 date: 2026-10-29
-statut: à trancher
+statut: en cours
 ---
 
 # Feuille de route
 
 L'ordre dans lequel on mène les chantiers, et pourquoi. Chaque étape suit le cycle habituel ([README](README.md)) : fiche, spec, epic et US. On met ce document à jour quand une étape se termine, ou quand l'ordre change.
 
-Le principe : d'abord sécuriser ce qui existe, puis poser les fondations nécessaires avant d'ouvrir Limbus à tout le monde, et seulement ensuite construire les grosses fonctionnalités, qui s'appuient sur ces fondations.
+Le principe : rien n'est encore réellement utilisé en production, donc la sécurité n'est pas prioritaire. On finit d'abord ce qui existe, puis on construit les grosses fonctionnalités, qui ont le plus de valeur pour un GN, et on pose les fondations de sécurité et d'exploitation juste avant d'ouvrir Limbus à tout le monde.
 
 ## Fait
 
@@ -21,29 +21,24 @@ Le principe : d'abord sécuriser ce qui existe, puis poser les fondations néces
 
 ## 1. Finir les écarts des specs de l'existant
 
-On implémente tous les écarts d'une spec à la fois. Ordre proposé : les défauts qui touchent la sécurité et les données personnelles d'abord.
+On implémente tous les écarts d'une spec à la fois, dans l'ordre des specs :
 
-1. [SPEC-010](specs/SPEC-010-hors-ligne.md), hors ligne : déconnexion sans réseau, sous-routes mises en file, envoi de la file à l'ouverture, page de session hors ligne. L'écart 2 (resynchronisation) est le gros morceau : il reprend la fiche [Resynchronisation hors ligne](todo/resynchronisation-hors-ligne.md).
-2. [SPEC-008](specs/SPEC-008-comptes-et-partage.md), écarts 5 et 6 : jeton d'invitation en clair, dernière administratrice.
-3. [SPEC-009](specs/SPEC-009-page-publique.md), écarts 1, 2 et 4 : crédit d'une copie, lien stable, traceurs YouTube.
-4. [SPEC-005](specs/SPEC-005-trombinoscopes-et-pdf.md) : ordre des photos, soi-même dans son trombinoscope, trombinoscopes périmés.
-5. [SPEC-006](specs/SPEC-006-emails-et-paiements.md) : renvoi d'une version à jour, échecs d'envoi, montant et paiement partiel.
-6. [SPEC-007](specs/SPEC-007-participants-et-rgpd.md), écarts 2, 4 et 5 : retrait complet d'un jeu, export complet, `Participant.published`.
+1. [SPEC-005](specs/SPEC-005-trombinoscopes-et-pdf.md) : ordre des photos, soi-même dans son trombinoscope, trombinoscopes périmés.
+2. [SPEC-006](specs/SPEC-006-emails-et-paiements.md) : renvoi d'une version à jour, échecs d'envoi, montant et paiement partiel.
+3. [SPEC-007](specs/SPEC-007-participants-et-rgpd.md), écarts 2, 4 et 5 : retrait complet d'un jeu, export complet, `Participant.published`.
+4. [SPEC-008](specs/SPEC-008-comptes-et-partage.md), écarts 5 et 6 : jeton d'invitation en clair, dernière administratrice.
+5. [SPEC-009](specs/SPEC-009-page-publique.md), écarts 1, 2 et 4 : crédit d'une copie, lien stable, traceurs YouTube.
+6. [SPEC-010](specs/SPEC-010-hors-ligne.md), hors ligne : déconnexion sans réseau, sous-routes mises en file, envoi de la file à l'ouverture, page de session hors ligne. L'écart 2 (resynchronisation) est le gros morceau : il reprend la fiche [Resynchronisation hors ligne](todo/resynchronisation-hors-ligne.md).
 
 Ces écarts sont traités plus loin, dans le chantier qui les réécrit :
 
 - SPEC-008, écarts 1 à 4 (invitation par la bonne adresse, libre-service, quitter et transférer un jeu), et SPEC-007, écart 1 (fiche commune entre équipes) : refonte des comptes (étape 3) ;
-- SPEC-007, écart 3 (durée de conservation) : fiche [Photos et RGPD](todo/photos-et-rgpd.md) (étape 2) ;
-- SPEC-009, écart 3 (sessions et lien d'inscription sur la page publique) : formulaire public des inscriptions (étape 4).
+- SPEC-009, écart 3 (sessions et lien d'inscription sur la page publique) : formulaire public des inscriptions (étape 4) ;
+- SPEC-007, écart 3 (durée de conservation) : fiche [Photos et RGPD](todo/photos-et-rgpd.md) (étape 5).
 
-## 2. Fondations avant d'ouvrir Limbus
+## 2. Tests de bout en bout des parcours
 
-L'inscription libre (étape 3) fera venir des personnes inconnues, avec leurs données. Avant cela :
-
-1. [Tests de bout en bout des parcours](todo/tests-e2e-des-parcours.md) : ils protègent les gros chantiers qui suivent.
-2. [Photos et RGPD](todo/photos-et-rgpd.md) : information des personnes et durée de conservation, après avoir confirmé la base légale auprès d'une source juridique.
-3. [Durcissement web](todo/durcissement-web.md) : CSP, origine des écritures, cookie.
-4. [Supervision](todo/supervision.md) : être alerté quand le site tombe.
+La fiche [Tests de bout en bout des parcours](todo/tests-e2e-des-parcours.md) : ils protègent les gros chantiers qui suivent.
 
 ## 3. Refonte des comptes
 
@@ -69,7 +64,15 @@ Les lots 2 à 6 de [SPEC-001](specs/SPEC-001-inscriptions.md), un epic chacun :
 4. relations entre personnages et questionnaire relié aux rôles ;
 5. assistant de casting.
 
-## 5. Première version publique
+## 5. Fondations avant d'ouvrir Limbus
+
+L'inscription libre fera venir des personnes inconnues, avec leurs données. Avant d'annoncer l'ouverture :
+
+1. [Photos et RGPD](todo/photos-et-rgpd.md) : information des personnes et durée de conservation, après avoir confirmé la base légale auprès d'une source juridique.
+2. [Durcissement web](todo/durcissement-web.md) : CSP, origine des écritures, cookie.
+3. [Supervision](todo/supervision.md) : être alerté quand le site tombe.
+
+## 6. Première version publique
 
 La fiche [Numéros de version et notes de version](todo/versions-et-notes-de-version.md) : publier la 1.0.0 et ses notes, puis annoncer l'ouverture.
 
@@ -82,8 +85,3 @@ La fiche [Numéros de version et notes de version](todo/versions-et-notes-de-ver
 
 - Redémarrer le serveur après les mises à jour en attente, au moment choisi par l'utilisatrice. Le détail reste hors du dépôt, qui est public.
 - Le 3 novembre 2026 : anciennes sauvegardes non chiffrées sur Dedibackup, à supprimer seulement avec son accord.
-
-## Points à trancher
-
-- L'ordre des écarts à l'étape 1 : sécurité d'abord (proposé ci-dessus) ou ordre numérique (SPEC-005 d'abord) ?
-- Les étapes 2 et 3 avant la suite des inscriptions (étape 4), ou l'inscription et le casting d'abord, parce qu'ils ont le plus de valeur pour un GN ?
