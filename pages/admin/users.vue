@@ -93,6 +93,7 @@
 
 <script setup>
 import { USER_ROLES, USER_ROLE_OPTIONS } from '~/utils/domain'
+import { formatMegabytes as formatMb } from '~/utils/fileSizes'
 
 const users = ref([])
 const saving = ref(false)
@@ -107,10 +108,6 @@ const newUser = ref({
   role: USER_ROLES.user
 })
 
-function formatMb(bytes) {
-  return `${((bytes || 0) / (1024 * 1024)).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} Mo`
-}
-
 async function fetchUsers() {
   users.value = await useApiFetch('/api/admin/users')
 }
@@ -119,11 +116,13 @@ async function createUser() {
   saving.value = true
   serverError.value = ''
   try {
-    await useApiFetch('/api/admin/users', {
+    const created = await useApiFetch('/api/admin/users', {
       method: 'POST',
       body: newUser.value
     })
-    notice.value = `Compte créé : ${newUser.value.email} a reçu un lien pour choisir son mot de passe.`
+    notice.value = created.emailSent
+      ? `Compte créé : ${created.email} a reçu un lien pour choisir son mot de passe.`
+      : `Compte créé, mais l’email n’est pas parti : utilisez « Envoyer un lien de mot de passe » sur la fiche de ${created.email}.`
     newUser.value = {
       name: '',
       email: '',
@@ -147,7 +146,8 @@ async function updateUser(user) {
         name: user.name,
         email: user.email,
         role: user.role,
-        storageQuotaMb: Number(user.storageQuotaMb)
+        // Champ vidé : le plafond ne change pas (v-model.number laisse une chaîne vide)
+        storageQuotaMb: Number.isFinite(user.storageQuotaMb) ? user.storageQuotaMb : undefined
       }
     })
     await fetchUsers()

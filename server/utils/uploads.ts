@@ -136,6 +136,26 @@ export async function storageUsedBytes(userId: string) {
   return total
 }
 
+// Espace utilisé de tous les comptes (page des comptes) : une requête par sorte de rattachement
+export async function storageUsedBytesByOwner() {
+  await prisma.uploadedFile.findMany({ where: { size: null }, select: { id: true, url: true } }).then(async (unsized) => {
+    for (const file of unsized) {
+      const path = uploadFilePath(file.url)
+      await prisma.uploadedFile.update({ where: { id: file.id }, data: { size: path ? await stat(path).then((info) => info.size, () => 0) : 0 } })
+    }
+  })
+  const files = await prisma.uploadedFile.findMany({
+    where: { size: { gt: 0 } },
+    select: { size: true, game: { select: { ownerId: true } }, session: { select: { game: { select: { ownerId: true } } } } }
+  })
+  const totals = new Map<string, number>()
+  for (const file of files) {
+    const ownerId = file.game?.ownerId ?? file.session?.game.ownerId
+    if (ownerId) totals.set(ownerId, (totals.get(ownerId) ?? 0) + (file.size ?? 0))
+  }
+  return totals
+}
+
 export async function storageUsage(user: { id: string, storageQuotaMb: number }) {
   return { usedBytes: await storageUsedBytes(user.id), quotaBytes: user.storageQuotaMb * MB }
 }

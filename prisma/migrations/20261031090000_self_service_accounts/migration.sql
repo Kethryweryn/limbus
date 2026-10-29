@@ -12,6 +12,7 @@ CREATE TABLE "AccountToken" (
     "kind" TEXT NOT NULL,
     "tokenHash" TEXT NOT NULL,
     "email" TEXT,
+    "passwordHash" TEXT,
     "expiresAt" TIMESTAMP(3) NOT NULL,
     "usedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

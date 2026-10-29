@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   }
 
   await assertEmailEnabled()
-  const token = await createAccountToken(id, ACCOUNT_TOKEN_KINDS.email, ACCOUNT_TOKEN_TTL.email, body.email)
+  const token = await createAccountToken(id, ACCOUNT_TOKEN_KINDS.email, ACCOUNT_TOKEN_TTL.email, { email: body.email })
   await sendEmailChangeConfirmationEmail({ to: body.email, url: confirmUrl(token) })
   return { success: true, pendingEmail: body.email }
 })

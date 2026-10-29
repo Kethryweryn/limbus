@@ -24,12 +24,15 @@ export default defineEventHandler(async (event) => {
     return { success: true }
   }
 
-  // Un compte non confirmé à cette adresse reçoit un nouveau lien ; son nom et son mot de passe ne changent pas
+  // Adresse déjà inscrite mais non confirmée : un nouveau lien, qui porte le mot de passe de CETTE inscription.
+  // Confirmer applique le mot de passe du lien cliqué : une inscription faite par un tiers avant la vraie
+  // personne ne lui impose pas son mot de passe
+  const passwordHash = await hashPassword(body.password)
   const user = existing ?? await prisma.user.create({
-    data: { email: body.email, name: body.name, password: await hashPassword(body.password), role: USER_ROLES.user, emailConfirmedAt: null },
+    data: { email: body.email, name: body.name, password: passwordHash, role: USER_ROLES.user, emailConfirmedAt: null },
     select: { id: true, emailConfirmedAt: true }
   })
-  const token = await createAccountToken(user.id, ACCOUNT_TOKEN_KINDS.confirm, ACCOUNT_TOKEN_TTL.confirm)
+  const token = await createAccountToken(user.id, ACCOUNT_TOKEN_KINDS.confirm, ACCOUNT_TOKEN_TTL.confirm, { passwordHash, keepOthers: true })
   await sendAccountConfirmationEmail({ to: body.email, url: confirmUrl(token) })
   return { success: true }
 })

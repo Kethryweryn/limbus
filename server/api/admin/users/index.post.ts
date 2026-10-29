@@ -30,6 +30,8 @@ export default defineEventHandler(async (event) => {
     }
   })
   const token = await createAccountToken(user.id, ACCOUNT_TOKEN_KINDS.password, ACCOUNT_TOKEN_TTL.passwordCreated)
-  await sendPasswordLinkEmail({ to: user.email, url: passwordUrl(token), created: true, validity: '7 jours' })
-  return user
+  // Un échec d'envoi n'annule pas la création : « Envoyer un lien de mot de passe » le renvoie
+  const emailSent = await sendPasswordLinkEmail({ to: user.email, url: passwordUrl(token), created: true, validity: '7 jours' })
+    .then((outcome) => outcome.sent, () => false)
+  return { ...user, emailSent }
 })

@@ -74,6 +74,8 @@
 
 <script setup>
 // Mon compte (US-063, US-066)
+import { formatMegabytes as formatMb } from '~/utils/fileSizes'
+
 const account = ref(null)
 const loadError = ref('')
 const error = ref('')
@@ -87,10 +89,6 @@ const storagePercent = computed(() => {
   const storage = account.value?.storage
   return storage?.quotaBytes ? Math.min(100, Math.round(storage.usedBytes / storage.quotaBytes * 100)) : 0
 })
-
-function formatMb(bytes) {
-  return `${(bytes / (1024 * 1024)).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} Mo`
-}
 
 async function load() {
   try {

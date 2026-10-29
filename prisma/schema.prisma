@@ -617,6 +617,8 @@ model AccountToken {
   tokenHash String    @unique
   // Nouvelle adresse, pour un changement d'email
   email     String?
+  // Mot de passe choisi à l'inscription : appliqué par ce lien seulement, pas par celui d'une autre inscription
+  passwordHash String?
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())

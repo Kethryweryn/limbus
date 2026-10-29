@@ -17,17 +17,30 @@ export default defineEventHandler(async (event) => {
   }
 
   if (record.kind === ACCOUNT_TOKEN_KINDS.confirm) {
-    if (!user.emailConfirmedAt) await prisma.user.update({ where: { id: user.id }, data: { emailConfirmedAt: new Date() } })
-    setAuthCookie(event, user)
+    // Le mot de passe de l'inscription dont c'est le lien ; les autres sessions et liens de confirmation tombent
+    const confirmed = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailConfirmedAt: user.emailConfirmedAt ?? new Date(),
+        ...(record.passwordHash && !user.emailConfirmedAt ? { password: record.passwordHash, sessionVersion: { increment: 1 } } : {})
+      },
+      select: { id: true, sessionVersion: true }
+    })
+    await prisma.accountToken.deleteMany({ where: { userId: user.id, kind: ACCOUNT_TOKEN_KINDS.confirm, usedAt: null } })
+    setAuthCookie(event, confirmed)
     return { success: true }
   }
 
-  // Changement d'adresse : elle a pu être prise depuis la demande (l'index unique tranche une course)
+  // Changement d'adresse : elle a pu être prise depuis la demande, ou à l'instant (index unique)
   const newEmail = record.email!
-  if (await prisma.user.findUnique({ where: { email: newEmail }, select: { id: true } })) {
-    throw createError({ statusCode: 409, message: 'Cette adresse est déjà utilisée par un autre compte.' })
+  const taken = () => createError({ statusCode: 409, message: 'Cette adresse est déjà utilisée par un autre compte.' })
+  if (await prisma.user.findUnique({ where: { email: newEmail }, select: { id: true } })) throw taken()
+  try {
+    await prisma.user.update({ where: { id: user.id }, data: { email: newEmail, emailConfirmedAt: new Date() } })
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002') throw taken()
+    throw error
   }
-  await prisma.user.update({ where: { id: user.id }, data: { email: newEmail, emailConfirmedAt: new Date() } })
   // L'ancienne adresse est prévenue ; un échec d'envoi n'annule pas le changement
   await sendEmailChangedNoticeEmail({ to: user.email, newEmail }).catch(() => undefined)
   setAuthCookie(event, user)

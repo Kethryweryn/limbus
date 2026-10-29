@@ -57,12 +57,22 @@ export async function assertEmailEnabled() {
   }
 }
 
-// Un nouveau lien remplace les liens non utilisés du même type
-export async function createAccountToken(userId: string, kind: AccountTokenKind, ttlMs: number, email?: string) {
+/**
+ * Un nouveau lien remplace les liens non utilisés du même type, sauf keepOthers : chaque inscription
+ * à une adresse non confirmée garde son lien, qui porte son propre mot de passe.
+ */
+export async function createAccountToken(
+  userId: string,
+  kind: AccountTokenKind,
+  ttlMs: number,
+  options: { email?: string, passwordHash?: string, keepOthers?: boolean } = {}
+) {
   const { token, tokenHash } = createRegistrationToken()
   await prisma.$transaction([
-    prisma.accountToken.deleteMany({ where: { userId, kind, usedAt: null } }),
-    prisma.accountToken.create({ data: { userId, kind, tokenHash, email: email ?? null, expiresAt: new Date(Date.now() + ttlMs) } })
+    ...(options.keepOthers ? [] : [prisma.accountToken.deleteMany({ where: { userId, kind, usedAt: null } })]),
+    prisma.accountToken.create({
+      data: { userId, kind, tokenHash, email: options.email ?? null, passwordHash: options.passwordHash ?? null, expiresAt: new Date(Date.now() + ttlMs) }
+    })
   ])
   return token
 }

@@ -1,6 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireAdmin } from '~/server/utils/auth'
-import { storageUsedBytes } from '~/server/utils/uploads'
+import { storageUsedBytesByOwner } from '~/server/utils/uploads'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
@@ -29,5 +29,6 @@ export default defineEventHandler(async (event) => {
     }
   })
   // Espace utilisé par compte (US-066)
-  return await Promise.all(users.map(async (user) => ({ ...user, storageUsedBytes: await storageUsedBytes(user.id) })))
+  const usage = await storageUsedBytesByOwner()
+  return users.map((user) => ({ ...user, storageUsedBytes: usage.get(user.id) ?? 0 }))
 })

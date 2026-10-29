@@ -86,6 +86,22 @@ describe('inscription libre et confirmation (US-061)', () => {
     expect((await prisma.user.findUniqueOrThrow({ where: { id: existing.id } })).name).toBe('deja-la')
   })
 
+  it('une inscription faite avant la vraie personne ne lui impose pas son mot de passe', async () => {
+    const email = unique('convoitee')
+    const sent = smtp.received.length
+    await signup(email, { password: 'mot-de-passe-du-tiers' })
+    await signup(email, { password: 'mot-de-passe-de-la-vraie' })
+    const links = smtp.received.slice(sent).filter((received) => received.to.includes(email)).map((received) => linkIn(received, 'acces/confirmer')!)
+    expect(links).toHaveLength(2)
+
+    // La vraie personne ouvre le lien de son inscription
+    expect((await api(null, 'POST', '/api/auth/confirm', { token: links[1] })).status).toBe(200)
+    expect((await login(email, 'mot-de-passe-du-tiers')).status).toBe(401)
+    expect((await login(email, 'mot-de-passe-de-la-vraie')).status).toBe(200)
+    // L'autre lien ne sert plus
+    expect((await api(null, 'POST', '/api/auth/confirm', { token: links[0] })).status).toBe(400)
+  })
+
   it('le champ piège fait semblant de réussir sans rien créer', async () => {
     const email = unique('robot')
     expect((await signup(email, { website: 'http://spam.example' })).status).toBe(200)
