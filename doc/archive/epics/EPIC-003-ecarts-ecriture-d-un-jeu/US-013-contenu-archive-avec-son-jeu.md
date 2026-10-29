@@ -17,7 +17,7 @@ En tant qu'organisatrice, je veux que le contenu d'un jeu archivé soit traité 
 - [x] Chaque liste a une case « Afficher les archives » (sans jeu actif) : cochée, elle montre aussi le contenu des jeux archivés, avec le badge « Archivé ».
 - [x] La chronologie montre un seul jeu à la fois, choisi explicitement : ses raccourcis ne proposent que des jeux en cours, la recherche trouve aussi les jeux archivés, marqués « (archivé) », et un jeu archivé choisi porte le badge « Jeu archivé ».
 - [x] Quand le jeu archivé est le jeu actif, ou celui choisi dans le filtre par jeu, son contenu est affiché, avec le badge, sans cocher la case.
-- [x] La fiche d'un personnage, d'une faction ou d'une intrigue d'un jeu archivé porte le badge « Archivé ».
+- [x] La fiche d'un personnage, d'une faction, d'une intrigue, d'un objet, d'un document ou d'un lieu d'un jeu archivé porte le badge « Archivé ».
 - [x] Restaurer le jeu fait revenir son contenu dans les listes, sans badge.
 - [x] L'API n'accepte plus `published` pour le contenu (personnages, factions, intrigues, objets, documents, événements, lieux) et ne l'écrit plus.
 
@@ -31,3 +31,4 @@ En tant qu'organisatrice, je veux que le contenu d'un jeu archivé soit traité 
 
 - Unitaires (`tests/utils/games.test.ts`) : `isInArchivedGame` et `isVisibleContent` (jeu archivé masqué, affiché avec la case, affiché quand il est le jeu actif ou filtré, élément créé hors ligne gardé visible).
 - Unitaires (`tests/server/contentSchemas.test.ts`) : les sept schémas de contenu ignorent `published`.
+- Intégration (`content.test.ts`) : un personnage modifié et une faction créée avec `published: false` gardent la colonne à vrai.

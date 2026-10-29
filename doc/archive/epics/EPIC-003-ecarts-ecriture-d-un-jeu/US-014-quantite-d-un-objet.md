@@ -16,7 +16,7 @@ En tant qu'organisatrice, je veux indiquer combien d'exemplaires d'un objet il f
 - [x] Le formulaire d'un objet a un champ « Quantité » : un entier d'au moins 1, 1 par défaut.
 - [x] La quantité est enregistrée à la création et à la modification ; une valeur absente garde 1 à la création et la valeur actuelle à la modification.
 - [x] Une quantité inférieure à 1, ou non entière, est refusée (400).
-- [x] La liste des objets affiche la quantité quand elle dépasse 1.
+- [x] La liste des objets et la fiche d'un objet affichent la quantité quand elle dépasse 1.
 
 ## Notes techniques
 

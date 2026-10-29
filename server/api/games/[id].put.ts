@@ -16,16 +16,12 @@ export default defineEventHandler(async (event) => {
   const body = await readZodBody(event, updateGameSchema)
   const { title, description, teaserUrl, noteIntention, published, publicPage } = body
 
-  // Un jeu archivé n'a pas de page publique, et ne la retrouve pas en étant restauré (US-016)
-  const current = await prisma.game.findUniqueOrThrow({ where: { id }, select: { published: true } })
-  const archived = !(published ?? current.published)
-
   const data: any = {
     description,
     teaserUrl,
     noteIntention,
     published,
-    publicPage: archived ? false : publicPage
+    publicPage: published === false ? false : publicPage
   }
 
   if (title) {
@@ -38,5 +34,11 @@ export default defineEventHandler(async (event) => {
     data
   })
 
+  // Un jeu archivé n'a pas de page publique, et ne la retrouve pas en étant restauré (US-016). Contrôle
+  // après l'écriture : une publication concurrente d'un archivage ne peut pas laisser la marque.
+  if (!game.published && game.publicPage) {
+    await prisma.game.updateMany({ where: { id, published: false }, data: { publicPage: false } })
+    return { ...game, publicPage: false }
+  }
   return game
 })

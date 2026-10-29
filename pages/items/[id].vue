@@ -29,8 +29,14 @@
       <div class="space-y-2">
         <div class="flex flex-wrap items-center gap-2">
           <h1 class="text-3xl font-bold">{{ item.name }}</h1>
+          <UBadge v-if="item.quantity > 1" color="neutral" variant="subtle">
+            Quantité : {{ item.quantity }}
+          </UBadge>
           <UBadge v-if="isUnassigned" color="warning" variant="soft">
             Non associé
+          </UBadge>
+          <UBadge v-if="isInArchivedGame(item)" color="neutral" variant="solid">
+            Archivé
           </UBadge>
         </div>
         <p class="text-sm text-gray-500">{{ item.game?.title || 'Jeu inconnu' }}</p>
@@ -90,6 +96,7 @@
 </template>
 
 <script setup>
+import { isInArchivedGame } from '~/utils/games'
 import ItemForm from '@/components/ItemForm.vue'
 
 const route = useRoute()

@@ -294,3 +294,15 @@ describe('quantité d’un objet (US-014)', () => {
     expect((sansQuantite.body as { quantity: number }).quantity).toBe(1)
   })
 })
+
+describe('contenu archivé avec son jeu (US-013)', () => {
+  it('l’API ignore published sur le contenu : l’état vient du jeu', async () => {
+    const { game, character } = await aliceGame('archive-contenu')
+    expect((await api(alice, 'PUT', `/api/characters/${character.id}`, { name: character.name, published: false })).status).toBe(200)
+    const faction = await api(alice, 'POST', '/api/factions', { name: 'Guilde', gameId: game.id, published: false })
+    expect(faction.status).toBe(200)
+
+    expect(await prisma.character.findUniqueOrThrow({ where: { id: character.id }, select: { published: true } })).toEqual({ published: true })
+    expect(await prisma.faction.findUniqueOrThrow({ where: { id: (faction.body as { id: string }).id }, select: { published: true } })).toEqual({ published: true })
+  })
+})

@@ -19,7 +19,7 @@ En tant qu'organisatrice, je veux qu'archiver un jeu dépublie sa page publique,
 
 ## Notes techniques
 
-- `PUT /api/games/:id` : quand le jeu résultant est archivé (`published` faux), `publicPage` est forcé à faux.
+- `PUT /api/games/:id` : archiver force `publicPage` à faux ; après l'écriture, un jeu archivé qui aurait gardé la marque (publication concurrente d'un archivage) la perd par une mise à jour conditionnelle.
 - La case « Publier la page publique » du formulaire reste ; elle n'a pas d'effet sur un jeu archivé.
 
 ## Tests
