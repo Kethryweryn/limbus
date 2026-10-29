@@ -244,12 +244,16 @@ export async function updateSessionPaymentSettings(sessionId: string, data: {
   paymentRibUrl?: string | null
   paymentLinkUrl?: string | null
 }) {
+  // Les paiements ne font pas partie de la version de la session (ADR-0028) : updatedAt est gardé,
+  // sinon le casting enregistré ensuite depuis la même page serait refusé comme un conflit
+  const { updatedAt } = await prisma.session.findUniqueOrThrow({ where: { id: sessionId }, select: { updatedAt: true } })
   return await prisma.session.update({
     where: { id: sessionId },
     // Un champ absent est conservé : modifier le lien de paiement ne retire pas le RIB
     data: {
       ...(data.paymentRibUrl !== undefined && { paymentRibUrl: data.paymentRibUrl || null }),
-      ...(data.paymentLinkUrl !== undefined && { paymentLinkUrl: data.paymentLinkUrl || null })
+      ...(data.paymentLinkUrl !== undefined && { paymentLinkUrl: data.paymentLinkUrl || null }),
+      updatedAt
     },
     select: {
       id: true,

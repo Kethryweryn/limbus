@@ -139,3 +139,39 @@ describe('demandes de confirmation de présence (US-024)', () => {
     expect(await prisma.sessionParticipant.count({ where: { sessionId: s.session.id, participantId: s.noe.id } })).toBe(2)
   })
 })
+
+describe('personnes ajoutées ou revenues après une place libérée (US-024)', () => {
+  it('sont comptées et sollicitées au prochain envoi', async () => {
+    const s = await postponedSession()
+    const { tokenOf } = await sendRequests(s)
+    await api(null, 'POST', `/api/public/attendance/${tokenOf(s.lea.email)}`, { answer: 'declined' })
+    expect((await api(alice, 'POST', `/api/sessions/${s.session.id}/attendance/${s.lea.id}/release`)).status).toBe(200)
+
+    // Léa revient dans l'équipe, et une remplaçante arrive
+    const extra = await prisma.participant.create({
+      data: { name: `Remplacante ${s.key}`, slug: `remplacante-${s.key}`, email: `remplacante-${s.key}@example.test`, gameLinks: { create: { gameId: s.game.id } } }
+    })
+    await prisma.sessionParticipant.createMany({
+      data: [{ sessionId: s.session.id, participantId: s.lea.id, role: 'participant' }, { sessionId: s.session.id, participantId: extra.id, role: 'participant' }]
+    })
+    const follow = (await api(alice, 'GET', `/api/sessions/${s.session.id}/attendance`)).body as { notAsked: number }
+    expect(follow.notAsked).toBe(2)
+
+    const again = await sendRequests(s)
+    expect(again.response.body).toMatchObject({ sentCount: 2 })
+    expect(again.emails.map((email) => email.to[0]).sort()).toEqual([s.lea.email, extra.email].sort())
+    expect(await prisma.sessionAttendance.findUniqueOrThrow({ where: { sessionId_participantId: { sessionId: s.session.id, participantId: s.lea.id } } }))
+      .toMatchObject({ status: 'pending', respondedAt: null })
+    expect((await api(null, 'GET', `/api/public/attendance/${again.tokenOf(s.lea.email)}`)).status).toBe(200)
+  })
+
+  it('libérer une place régénère les trombinoscopes déjà générés', async () => {
+    const s = await postponedSession()
+    expect((await api(alice, 'POST', `/api/sessions/${s.session.id}/trombinoscopes/generate`, {})).status).toBe(200)
+    const { tokenOf } = await sendRequests(s)
+    await api(null, 'POST', `/api/public/attendance/${tokenOf(s.lea.email)}`, { answer: 'declined' })
+    const released = await api(alice, 'POST', `/api/sessions/${s.session.id}/attendance/${s.lea.id}/release`)
+    expect(released.body).toMatchObject({ released: true, trombinoscopes: 'regenerated' })
+    expect(await prisma.sessionTrombinoscope.count({ where: { sessionId: s.session.id, participantId: s.lea.id } })).toBe(0)
+  })
+})

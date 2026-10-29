@@ -1,5 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
-import { absoluteAppUrl } from '~/server/utils/appUrl'
+import { absoluteAppUrl, publicAppUrl } from '~/server/utils/appUrl'
+import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
 import { openEmailTransport, sendEmail } from '~/server/utils/email'
 import { createRegistrationToken, hashRegistrationToken } from '~/server/utils/registrations'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
@@ -65,10 +66,17 @@ export async function getSessionAttendance(sessionId: string, now = new Date()) 
     roles.set(member.participant.id, [...(roles.get(member.participant.id) ?? []), member.role])
   }
 
+  const team = new Set(session.participants.map((member) => member.participant.id))
+  const asked = new Set(session.attendances
+    .filter((attendance) => attendance.status !== ATTENDANCE_STATUSES.released)
+    .map((attendance) => attendance.participantId))
+
   return {
     postponedFrom: session.postponedFrom,
     sent: session.attendances.length > 0,
-    team: [...new Map(session.participants.map((member) => [member.participant.id, member.participant])).values()].length,
+    team: team.size,
+    // Dans l'équipe sans demande en cours : jamais sollicité, ou revenu après une place libérée
+    notAsked: [...team].filter((participantId) => !asked.has(participantId)).length,
     rows: session.attendances
       .map((attendance) => ({
         participant: attendance.participant,
@@ -88,7 +96,8 @@ export async function getSessionAttendance(sessionId: string, now = new Date()) 
 /**
  * Demande de confirmation à toute l'équipe d'une session reportée (US-024) : une ligne et un lien
  * personnel par personne, sur une seule connexion SMTP. Une personne déjà sollicitée n'est pas
- * relancée ici ; une personne sans email a sa ligne, sans envoi. Un échec n'arrête pas les autres.
+ * relancée ici, sauf si elle est revenue dans l'équipe après une place libérée ; une personne sans
+ * email a sa ligne, sans envoi. Un échec n'arrête pas les autres.
  */
 export async function sendAttendanceRequests(sessionId: string, responseDueAt: Date) {
   const session = await attendanceSession(sessionId)
@@ -100,8 +109,10 @@ export async function sendAttendanceRequests(sessionId: string, responseDueAt: D
     where: { sessionId },
     select: { participant: { select: { id: true, name: true, email: true } } }
   })
-  const already = new Set((await prisma.sessionAttendance.findMany({ where: { sessionId }, select: { participantId: true } }))
-    .map((attendance) => attendance.participantId))
+  const already = new Set((await prisma.sessionAttendance.findMany({
+    where: { sessionId, status: { not: ATTENDANCE_STATUSES.released } },
+    select: { participantId: true }
+  })).map((attendance) => attendance.participantId))
   const people = [...new Map(members.map((member) => [member.participant.id, member.participant])).values()]
     .filter((person) => !already.has(person.id))
   if (!people.length) return { sentCount: 0, withoutEmail: [] as string[], failures: [] as string[] }
@@ -117,8 +128,12 @@ export async function sendAttendanceRequests(sessionId: string, responseDueAt: D
   try {
     for (const person of people) {
       const { token, tokenHash } = createRegistrationToken()
-      const attendance = await prisma.sessionAttendance.create({
-        data: { sessionId, participantId: person.id, tokenHash, responseDueAt }
+      // Une ligne « place libérée » repart de zéro, avec un nouveau lien
+      const fresh = { tokenHash, responseDueAt, status: ATTENDANCE_STATUSES.pending, invitationSentAt: null, lastRemindedAt: null, respondedAt: null }
+      const attendance = await prisma.sessionAttendance.upsert({
+        where: { sessionId_participantId: { sessionId, participantId: person.id } },
+        create: { sessionId, participantId: person.id, ...fresh },
+        update: fresh
       })
       if (!person.email) continue
       try {
@@ -229,7 +244,15 @@ export async function releaseAttendance(sessionId: string, participantId: string
     await tx.session.update({ where: { id: sessionId }, data: { updatedAt: now } })
   })
   await deleteUnusedUploads(photos.map((photo) => photo.photoUrl))
-  return { released: true }
+
+  // Les trombinoscopes déjà générés montrent encore la personne : on les refait, sans faire échouer la libération
+  let trombinoscopes: 'regenerated' | 'failed' | null = null
+  if (await prisma.sessionTrombinoscope.count({ where: { sessionId } })) {
+    trombinoscopes = await generateSessionTrombinoscopes(sessionId, publicAppUrl())
+      .then(() => 'regenerated' as const)
+      .catch(() => 'failed' as const)
+  }
+  return { released: true, trombinoscopes }
 }
 
 // --- Lien personnel (routes publiques) ---

@@ -12,7 +12,7 @@
     <div class="space-y-6">
       <section v-if="pendingTeam" class="space-y-3 rounded border border-gray-200 p-4">
         <h3 class="font-medium">
-          {{ data?.sent ? `Demander aux ${pendingTeam} personne(s) ajoutée(s) depuis` : `Demander à l’équipe (${data?.team || 0} personne(s))` }}
+          {{ data?.sent ? `Demander aux ${pendingTeam} personne(s) ajoutée(s) ou revenue(s) depuis` : `Demander à l’équipe (${data?.team || 0} personne(s))` }}
         </h3>
         <UFormField label="Date limite de réponse">
           <UInput v-model="dueDate" type="date" :min="tomorrow" class="w-full md:w-56" />
@@ -116,7 +116,7 @@ const message = ref('')
 const error = ref('')
 
 const rows = computed(() => data.value?.rows || [])
-const pendingTeam = computed(() => Math.max(0, (data.value?.team || 0) - rows.value.length))
+const pendingTeam = computed(() => data.value?.notAsked || 0)
 const counts = computed(() => rows.value.reduce((acc, row) => ({ ...acc, [row.displayStatus]: (acc[row.displayStatus] || 0) + 1 }), {}))
 
 const formatDate = (value) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long' })
@@ -172,7 +172,9 @@ async function act(row, action, confirmation) {
   message.value = ''
   error.value = ''
   try {
-    await useApiFetch(`/api/sessions/${props.session.id}/attendance/${row.participant.id}/${action}`, { method: 'POST' })
+    const result = await useApiFetch(`/api/sessions/${props.session.id}/attendance/${row.participant.id}/${action}`, { method: 'POST' })
+    if (result?.trombinoscopes === 'regenerated') message.value = 'Place libérée ; les trombinoscopes de la session ont été régénérés.'
+    if (result?.trombinoscopes === 'failed') message.value = 'Place libérée, mais les trombinoscopes n’ont pas pu être régénérés : générez-les à nouveau.'
     await load()
     // Une place libérée change l'équipe et le casting de la session
     if (action === 'release') emit('changed')

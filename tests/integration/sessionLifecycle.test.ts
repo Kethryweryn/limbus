@@ -233,3 +233,15 @@ describe('remboursements d’une session annulée ou reportée (US-023)', () => 
     expect((await api(alice, 'PUT', `/api/sessions/${s.session.id}/payments/${s.lea.id}/refund`, { status: 'to_refund' })).status).toBe(200)
   })
 })
+
+describe('les réglages de paiement ne changent pas la version (US-018, ADR-0028)', () => {
+  it('enregistrer le lien de paiement puis le casting avec la version lue passe', async () => {
+    const s = await aliceSession()
+    const read = await prisma.session.findUniqueOrThrow({ where: { id: s.session.id } })
+    expect((await api(alice, 'PUT', `/api/sessions/${s.session.id}/payments/settings`, { paymentLinkUrl: 'https://paiement.example.test' })).status).toBe(200)
+    expect((await prisma.session.findUniqueOrThrow({ where: { id: s.session.id } })).updatedAt.getTime()).toBe(read.updatedAt.getTime())
+
+    const since = { headers: { 'if-unmodified-since': read.updatedAt.toISOString() } }
+    expect((await api(alice, 'PUT', `/api/sessions/${s.session.id}`, castBody(s, [{ characterId: s.aube.id, participantId: s.lea.id }]), since)).status).toBe(200)
+  })
+})
