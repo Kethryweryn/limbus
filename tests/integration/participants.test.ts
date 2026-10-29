@@ -86,3 +86,14 @@ describe('une fiche a toujours un jeu (US-036)', () => {
   })
 })
 
+describe('`published` retiré des fiches (US-038)', () => {
+  it('n’est ni accepté ni renvoyé', async () => {
+    const created = await api(alice, 'POST', '/api/participants', { name: 'Sans published', gameIds: [world.a.game.id], published: false })
+    expect(created.status, JSON.stringify(created.body)).toBe(200)
+    expect(created.body).not.toHaveProperty('published')
+    const id = (created.body as { id: string }).id
+    expect((await prisma.participant.findUniqueOrThrow({ where: { id } })).published).toBe(true)
+    expect((await api(alice, 'GET', `/api/participants/${id}`)).body).not.toHaveProperty('published')
+  })
+})
+

@@ -50,7 +50,7 @@ Depuis la liste, « Supprimer » efface la fiche et ses données, après une con
 
 ### Fiche et liens aux jeux
 
-- **R1** Une fiche a un nom (obligatoire), un email, un téléphone et des notes, sans format imposé pour l'email ni le téléphone. Elle a un slug unique, qui suit le nom.
+- **R1** Une fiche a un nom (obligatoire), un email, un téléphone et des notes, sans format imposé pour l'email ni le téléphone. Elle a un slug unique, qui suit le nom. Elle n'a pas d'état « publié » ([US-038](../epics/EPIC-007-ecarts-participants/US-038-retirer-participant-published.md)).
 - **R2** Une fiche est commune à tous les jeux auxquels elle est liée : une modification se voit dans tous ces jeux.
 - **R3** Une organisatrice ne lie une fiche qu'à des jeux auxquels elle a accès. En modifiant une fiche, elle ne touche qu'aux liens de ces jeux : ceux des autres jeux restent.
 - **R3b** Une fiche a toujours au moins un jeu : la créer en demande un, et retirer son dernier lien la supprime avec ses données (R10), après une confirmation ; une fiche encore liée au jeu d'une autre équipe reste ([US-036](../epics/EPIC-007-ecarts-participants/US-036-une-fiche-a-toujours-un-jeu.md)).

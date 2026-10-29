@@ -159,8 +159,7 @@ export const participantSchema = z.object({
   email: optionalText,
   phone: optionalText,
   notes: optionalText,
-  gameIds: z.array(requiredId('Game')).optional().default([]),
-  published: optionalBoolean
+  gameIds: z.array(requiredId('Game')).optional().default([])
 })
 
 // Création d'une fiche : au moins un jeu (US-036)

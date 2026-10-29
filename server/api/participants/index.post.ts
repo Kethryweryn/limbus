@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
   const body = await readZodBody(event, participantCreateSchema)
-  const { name, email, phone, notes, gameIds, published } = body
+  const { name, email, phone, notes, gameIds } = body
   const uniqueGameIds = [...new Set(gameIds)]
   const allowedGameIds = await accessibleGameIds(event)
   if (allowedGameIds !== null && uniqueGameIds.some((gameId) => !allowedGameIds.includes(gameId))) {
@@ -25,8 +25,7 @@ export default defineEventHandler(async (event) => {
       notes: notes || null,
       gameLinks: {
         create: uniqueGameIds.map((gameId) => ({ gameId }))
-      },
-      published: published ?? true
+      }
     },
     include: participantGameLinksInclude(allowedGameIds)
   })

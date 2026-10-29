@@ -33,6 +33,8 @@ export function participantGameLinksInclude(gameIds: string[] | null = null) {
 
 export function exposeParticipantGames<T extends ParticipantWithGameLinks>(participant: T) {
   const { gameLinks, ...rest } = participant
+  // `published` n'a aucun effet sur une fiche : il n'est plus exposé (US-038)
+  delete (rest as { published?: unknown }).published
   return {
     ...rest,
     games: gameLinks?.map((link) => ({
