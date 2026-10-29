@@ -94,7 +94,7 @@ Ces sujets ont leur propre spec :
 - envois de documents ([SPEC-006](SPEC-006-emails-et-paiements.md)) ;
 - paiements ([SPEC-006](SPEC-006-emails-et-paiements.md)) ;
 - fiche allergies et inscriptions ([SPEC-001](SPEC-001-inscriptions.md)) ;
-- page publique.
+- page publique ([SPEC-009](SPEC-009-page-publique.md)).
 
 ## Écarts constatés
 

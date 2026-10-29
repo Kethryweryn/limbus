@@ -97,7 +97,7 @@ Ces sujets sont couverts par leurs propres specs :
 - envois d'emails et paiements ([SPEC-006](SPEC-006-emails-et-paiements.md)) ;
 - participants et RGPD ([SPEC-007](SPEC-007-participants-et-rgpd.md)) ;
 - comptes et partage ([SPEC-008](SPEC-008-comptes-et-partage.md)) ;
-- page publique ;
+- page publique ([SPEC-009](SPEC-009-page-publique.md)) ;
 - hors ligne ;
 - legs d'une copie ([SPEC-002](SPEC-002-copie-de-jeu.md)) ;
 - inscriptions ([SPEC-001](SPEC-001-inscriptions.md)).
