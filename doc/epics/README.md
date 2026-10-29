@@ -36,7 +36,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-017](EPIC-004-ecarts-sessions/US-017-un-seul-pj-par-participant.md) | Un seul PJ par participant, réglable par jeu | EPIC-004 | terminée |
 | [US-018](EPIC-004-ecarts-sessions/US-018-modifications-simultanees-d-une-session.md) | Modifications simultanées d’une session | EPIC-004 | terminée |
 | [US-019](EPIC-004-ecarts-sessions/US-019-session-visible-sur-la-page-publique.md) | Choisir si une session est visible sur la page publique | EPIC-004 | terminée |
-| [US-020](EPIC-004-ecarts-sessions/US-020-statuts-d-une-session.md) | Statuts réversibles et session terminée hors des listes courantes | EPIC-004 | à faire |
+| [US-020](EPIC-004-ecarts-sessions/US-020-statuts-d-une-session.md) | Statuts réversibles et session terminée hors des listes courantes | EPIC-004 | terminée |
 | [US-021](EPIC-004-ecarts-sessions/US-021-supprimer-oriente-vers-l-annulation.md) | Supprimer une session oriente vers l’annulation ou le report | EPIC-004 | à faire |
 | [US-022](EPIC-004-ecarts-sessions/US-022-reporter-une-session.md) | Reporter une session | EPIC-004 | à faire |
 | [US-023](EPIC-004-ecarts-sessions/US-023-suivre-les-remboursements.md) | Suivre les remboursements d’une session annulée ou reportée | EPIC-004 | à faire |

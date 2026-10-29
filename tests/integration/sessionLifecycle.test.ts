@@ -112,3 +112,23 @@ describe('visibilité d’une session sur la page publique (US-019)', () => {
     expect(await prisma.session.findUniqueOrThrow({ where: { id }, select: { published: true } })).toEqual({ published: true })
   })
 })
+
+describe('statuts d’une session (US-020)', () => {
+  it('une session terminée n’est plus la prochaine session ; repassée « Prévue », elle y revient', async () => {
+    const s = await aliceSession()
+    const future = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30)
+    await prisma.session.update({ where: { id: s.session.id }, data: { date: future } })
+    const nextOf = async () => {
+      const games = (await api(alice, 'GET', '/api/games')).body as Array<{ id: string, nextScheduledSession: { id: string } | null }>
+      return games.find((item) => item.id === s.game.id)!.nextScheduledSession?.id ?? null
+    }
+    expect(await nextOf()).toBe(s.session.id)
+
+    const body = { name: s.session.name, gameId: s.game.id, date: future.toISOString() }
+    expect((await api(alice, 'PUT', `/api/sessions/${s.session.id}`, { ...body, status: 'completed' })).status).toBe(200)
+    expect(await nextOf()).toBeNull()
+
+    expect((await api(alice, 'PUT', `/api/sessions/${s.session.id}`, { ...body, status: 'scheduled' })).status).toBe(200)
+    expect(await nextOf()).toBe(s.session.id)
+  })
+})

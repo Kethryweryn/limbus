@@ -1,7 +1,7 @@
 ---
 id: US-020
 titre: Statuts réversibles et session terminée hors des listes courantes
-statut: à faire
+statut: terminée
 epic: EPIC-004
 regles: [R2]
 adr: []
@@ -13,10 +13,10 @@ En tant qu'organisatrice, je veux que le statut d'une session agisse et puisse r
 
 ## Critères d'acceptation
 
-- [ ] Le statut se change librement : une session annulée peut redevenir prévue (« désannulée ») ou être reportée.
-- [ ] Une session « Terminée » sort du tableau de bord et des prochaines sessions affichées avec les jeux, comme une session annulée ; elle reste modifiable.
-- [ ] Dans la liste des sessions, une session terminée ou annulée est rangée avec les sessions passées, quelle que soit sa date.
-- [ ] Les règles existantes restent : « Annulée » et « Terminée » empêchent d'ajouter la session à une période d'inscription.
+- [x] Le statut se change librement : une session annulée peut redevenir prévue (« désannulée ») ou être reportée.
+- [x] Une session « Terminée » sort du tableau de bord et des prochaines sessions affichées avec les jeux, comme une session annulée ; elle reste modifiable.
+- [x] Dans la liste des sessions, une session terminée ou annulée est rangée avec les sessions passées, quelle que soit sa date.
+- [x] Les règles existantes restent : « Annulée » et « Terminée » empêchent d'ajouter la session à une période d'inscription.
 
 ## Notes techniques
 
@@ -25,4 +25,5 @@ En tant qu'organisatrice, je veux que le statut d'une session agisse et puisse r
 
 ## Tests
 
-- Intégration : une session terminée n'est plus la prochaine session du tableau de bord ; repassée « Prévue », elle y revient.
+- Unitaires (`tests/utils/domain.test.ts`) : `isClosedSessionStatus`.
+- Intégration (`sessionLifecycle.test.ts`) : une session terminée n'est plus la prochaine session de son jeu ; repassée « Prévue », elle y revient.

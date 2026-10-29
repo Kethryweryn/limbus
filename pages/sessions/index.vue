@@ -187,7 +187,7 @@ import GameContextBar from '@/components/GameContextBar.vue'
 import SessionForm from '@/components/SessionForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import { isOfflineMode } from '~/utils/connection'
-import { CHARACTER_TYPES, SESSION_ROLES, SESSION_STATUSES, SESSION_STATUS_META } from '~/utils/domain'
+import { CHARACTER_TYPES, SESSION_ROLES, SESSION_STATUSES, SESSION_STATUS_META, isClosedSessionStatus } from '~/utils/domain'
 import { getFromStore, saveToStore } from '~/utils/storage'
 
 const sessions = ref([])
@@ -237,13 +237,14 @@ const nowTime = computed(() => Date.now())
 
 const futureSessions = computed(() =>
   filteredSessions.value
-    .filter((session) => !session.date || sessionTime(session) >= nowTime.value)
+    .filter((session) => !isClosedSessionStatus(session.status) && (!session.date || sessionTime(session) >= nowTime.value))
     .sort((a, b) => sessionTime(a) - sessionTime(b))
 )
 
 const pastSessions = computed(() =>
   filteredSessions.value
-    .filter((session) => session.date && sessionTime(session) < nowTime.value)
+    // Annulée ou terminée : rangée avec les passées, quelle que soit sa date (US-020)
+    .filter((session) => isClosedSessionStatus(session.status) || (session.date && sessionTime(session) < nowTime.value))
     .sort((a, b) => sessionTime(b) - sessionTime(a))
 )
 

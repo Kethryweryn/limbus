@@ -15,6 +15,13 @@ export const SESSION_STATUSES = {
   completed: 'completed'
 } as const
 
+// Annulée ou terminée : hors du tableau de bord, des prochaines sessions et de la section « à venir » (US-020)
+export const CLOSED_SESSION_STATUSES: string[] = [SESSION_STATUSES.cancelled, SESSION_STATUSES.completed]
+
+export function isClosedSessionStatus(status: string | null | undefined) {
+  return CLOSED_SESSION_STATUSES.includes(status ?? '')
+}
+
 export const SESSION_STATUS_OPTIONS = [
   { label: 'Prévue', value: SESSION_STATUSES.scheduled },
   { label: 'Reportée', value: SESSION_STATUSES.postponed },
