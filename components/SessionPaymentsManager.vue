@@ -142,6 +142,36 @@
         </article>
       </section>
 
+      <section v-if="refunds.length" class="space-y-3 rounded border border-gray-200 p-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h3 class="font-medium">Remboursements</h3>
+          <UBadge :color="refundsToDo ? 'warning' : 'success'" variant="subtle" size="xs">
+            {{ refundsToDo ? `${refundsToDo} à traiter` : 'Tout est traité' }}
+          </UBadge>
+        </div>
+        <p class="text-sm text-gray-600">
+          Session {{ isPostponed ? 'reportée' : 'annulée' }} : pour chaque personne qui a payé, choisissez
+          {{ isPostponed ? 'le remboursement ou le report du paiement sur la nouvelle session' : 'le remboursement' }}.
+        </p>
+        <article v-for="refund in refunds" :key="refund.participant.id" class="flex flex-col gap-2 border-t border-gray-100 pt-2 md:flex-row md:items-center md:justify-between">
+          <div class="text-sm">
+            <div class="font-medium">{{ refund.participant.name }}</div>
+            <div class="text-gray-500">
+              Payé le {{ formatDate(refund.paidAt) }}
+              <span v-if="refund.refundedAt"> · remboursé le {{ formatDate(refund.refundedAt) }}</span>
+            </div>
+          </div>
+          <USelect
+            :model-value="refund.refundStatus || ''"
+            :items="refundOptions"
+            value-key="value"
+            :disabled="updatingRefundId === refund.participant.id"
+            class="w-full md:w-72"
+            @update:model-value="(value) => setRefund(refund, value)"
+          />
+        </article>
+      </section>
+
       <section v-if="unassignedPayments.length" class="space-y-2 rounded border border-warning-200 bg-warning-50 p-4">
         <h3 class="font-medium text-warning-800">Paiements reçus de personnes sans personnage</h3>
         <p class="text-sm text-warning-700">
@@ -173,6 +203,7 @@
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
+import { REFUND_STATUSES, SESSION_STATUSES } from '~/utils/domain'
 
 const props = defineProps({
   paymentsData: { type: Object, required: true },
@@ -200,6 +231,36 @@ const serverError = ref('')
 
 const rows = computed(() => props.paymentsData.rows || [])
 const unassignedPayments = computed(() => props.paymentsData.unassignedPayments || [])
+
+// Session annulée ou reportée : suivi des remboursements (US-023)
+const refunds = computed(() => props.paymentsData.refunds || [])
+const isPostponed = computed(() => props.paymentsData.session?.status === SESSION_STATUSES.postponed)
+const refundsToDo = computed(() => refunds.value.filter((refund) => !refund.refundStatus || refund.refundStatus === REFUND_STATUSES.toRefund).length)
+const refundOptions = computed(() => [
+  { label: 'À décider', value: '' },
+  { label: 'À rembourser', value: REFUND_STATUSES.toRefund },
+  { label: 'Remboursé', value: REFUND_STATUSES.refunded },
+  ...(isPostponed.value && props.paymentsData.session?.postponedToSessionId
+    ? [{ label: 'Reporté sur la nouvelle session', value: REFUND_STATUSES.carriedOver }]
+    : [])
+])
+const updatingRefundId = ref('')
+
+async function setRefund(refund, value) {
+  updatingRefundId.value = refund.participant.id
+  try {
+    await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/${refund.participant.id}/refund`, {
+      method: 'PUT',
+      body: { status: value || null }
+    })
+    serverError.value = ''
+    await props.onRefresh()
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+  } finally {
+    updatingRefundId.value = ''
+  }
+}
 const paidRows = computed(() => rows.value.filter((row) => row.paidAt))
 const unpaidRows = computed(() => rows.value.filter((row) => !row.paidAt))
 const emailedRows = computed(() => rows.value.filter((row) => row.paymentEmailSentAt))

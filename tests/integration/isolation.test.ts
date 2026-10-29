@@ -170,6 +170,7 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['GET', `/api/sessions/${session}/payments`],
     ['PUT', `/api/sessions/${session}/payments/settings`, { paymentLinkUrl: 'https://example.test' }],
     ['PUT', `/api/sessions/${session}/payments/${b.participant.id}`, { paid: true }],
+    ['PUT', `/api/sessions/${session}/payments/${b.participant.id}/refund`, { status: 'to_refund' }],
     ['POST', `/api/sessions/${session}/payments/send`, {}],
     ['POST', `/api/sessions/${session}/payments/test-email`, { emails: ['x@example.test'] }],
     ['GET', `/api/sessions/${session}/timeline`],

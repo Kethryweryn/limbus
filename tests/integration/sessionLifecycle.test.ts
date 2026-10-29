@@ -192,3 +192,44 @@ describe('reporter une session (US-022)', () => {
     expect((await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, { name: `Encore ${s.key}` })).status).toBe(409)
   })
 })
+
+describe('remboursements d’une session annulée ou reportée (US-023)', () => {
+  it('suit à rembourser et remboursé, et reporte un paiement sur la nouvelle session', async () => {
+    const s = await aliceSession()
+    await prisma.sessionParticipant.createMany({ data: [{ sessionId: s.session.id, participantId: s.lea.id, role: 'participant' }, { sessionId: s.session.id, participantId: s.noe.id, role: 'participant' }] })
+    const paidAt = new Date('2026-09-01T10:00:00.000Z')
+    await prisma.sessionPayment.createMany({ data: [{ sessionId: s.session.id, participantId: s.lea.id, paidAt }, { sessionId: s.session.id, participantId: s.noe.id, paidAt }] })
+    const refund = (participantId: string, status: string | null) => api(alice, 'PUT', `/api/sessions/${s.session.id}/payments/${participantId}/refund`, { status })
+
+    // Session prévue : rien à rembourser
+    expect((await refund(s.lea.id, 'to_refund')).status).toBe(409)
+
+    const postponed = await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, { name: `Report ${s.key}` })
+    const target = (postponed.body as { id: string }).id
+
+    expect((await refund(s.lea.id, 'refunded')).status).toBe(200)
+    expect(await prisma.sessionPayment.findUniqueOrThrow({ where: { sessionId_participantId: { sessionId: s.session.id, participantId: s.lea.id } } }))
+      .toMatchObject({ refundStatus: 'refunded', refundedAt: expect.any(Date) })
+
+    expect((await refund(s.noe.id, 'carried_over')).status).toBe(200)
+    expect(await prisma.sessionPayment.findUniqueOrThrow({ where: { sessionId_participantId: { sessionId: target, participantId: s.noe.id } } }))
+      .toMatchObject({ paidAt })
+
+    const dashboard = (await api(alice, 'GET', `/api/sessions/${s.session.id}/payments`)).body as { refunds: Array<{ refundStatus: string }> }
+    expect(dashboard.refunds.map((item) => item.refundStatus).sort()).toEqual(['carried_over', 'refunded'])
+
+    // Export : le choix de remboursement fait partie des données de la personne
+    const exported = (await api(alice, 'GET', `/api/participants/${s.lea.id}/export`)).body as { payments: Array<{ refundStatus: string | null }> }
+    expect(exported.payments.map((item) => item.refundStatus)).toContain('refunded')
+  })
+
+  it('refuse le report d’un paiement sans session de report, ou pour quelqu’un qui n’a pas payé', async () => {
+    const s = await aliceSession()
+    await prisma.sessionParticipant.create({ data: { sessionId: s.session.id, participantId: s.lea.id, role: 'participant' } })
+    await prisma.sessionPayment.create({ data: { sessionId: s.session.id, participantId: s.lea.id, paidAt: new Date() } })
+    await prisma.session.update({ where: { id: s.session.id }, data: { status: 'cancelled' } })
+    expect((await api(alice, 'PUT', `/api/sessions/${s.session.id}/payments/${s.lea.id}/refund`, { status: 'carried_over' })).status).toBe(400)
+    expect((await api(alice, 'PUT', `/api/sessions/${s.session.id}/payments/${s.noe.id}/refund`, { status: 'to_refund' })).status).toBe(400)
+    expect((await api(alice, 'PUT', `/api/sessions/${s.session.id}/payments/${s.lea.id}/refund`, { status: 'to_refund' })).status).toBe(200)
+  })
+})

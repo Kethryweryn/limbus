@@ -230,6 +230,7 @@ model Session {
   postponedToSessionId String?   @unique
   postponedTo          Session?  @relation("SessionPostponements", fields: [postponedToSessionId], references: [id], onDelete: SetNull)
   postponedFrom        Session?  @relation("SessionPostponements")
+  carriedOverPayments  SessionPayment[] @relation("PaymentCarryOvers")
 
   assignments SessionAssignment[]
   participants SessionParticipant[]
@@ -422,11 +423,16 @@ model SessionPayment {
   paidAt              DateTime?
   paymentEmailSentAt  DateTime?
   paymentReminderSentAt DateTime?
+  // Session annulée ou reportée (US-023, ADR-0029) : to_refund, refunded ou carried_over
+  refundStatus        String?
+  refundedAt          DateTime?
+  carriedOverToSessionId String?
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
   session             Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   participant         Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  carriedOverTo       Session?    @relation("PaymentCarryOvers", fields: [carriedOverToSessionId], references: [id], onDelete: SetNull)
 
   @@unique([sessionId, participantId])
   @@index([participantId])

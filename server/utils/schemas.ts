@@ -7,6 +7,7 @@ import {
   REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS,
   REGISTRATION_ENTRY_MODES,
   REGISTRATION_PERIOD_STATES,
+  REFUND_STATUSES,
   SESSION_ROLES,
   SESSION_STATUSES,
   USER_ROLES
@@ -239,6 +240,11 @@ export const emailTestSchema = z.object({
 export const sessionPaymentSettingsSchema = z.object({
   paymentRibUrl: uploadOrExternalUrl(RIB_UPLOAD_PREFIX),
   paymentLinkUrl: externalUrl
+})
+
+// Remboursement d'un paiement (US-023) : null efface le choix
+export const sessionPaymentRefundSchema = z.object({
+  status: z.enum([REFUND_STATUSES.toRefund, REFUND_STATUSES.refunded, REFUND_STATUSES.carriedOver]).nullable()
 })
 
 export const sessionPaymentStatusSchema = z.object({

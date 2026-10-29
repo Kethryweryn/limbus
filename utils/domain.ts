@@ -15,6 +15,13 @@ export const SESSION_STATUSES = {
   completed: 'completed'
 } as const
 
+// Suivi du remboursement d'un paiement d'une session annulée ou reportée (US-023)
+export const REFUND_STATUSES = {
+  toRefund: 'to_refund',
+  refunded: 'refunded',
+  carriedOver: 'carried_over'
+} as const
+
 // Annulée ou terminée : hors du tableau de bord, des prochaines sessions et de la section « à venir » (US-020)
 export const CLOSED_SESSION_STATUSES: string[] = [SESSION_STATUSES.cancelled, SESSION_STATUSES.completed]
 

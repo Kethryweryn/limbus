@@ -53,7 +53,7 @@ export async function exportParticipantData(participantId: string, gameIds: stri
       gameLinks: { where: inGames, select: { createdAt: true, game: { select: { title: true } } } },
       sessionRoles: { where: inSessions, select: { role: true, session } },
       assignments: { where: inSessions, select: { photoUrl: true, notes: true, character: { select: { name: true } }, session } },
-      payments: { where: inSessions, select: { paidAt: true, paymentEmailSentAt: true, paymentReminderSentAt: true, session } },
+      payments: { where: inSessions, select: { paidAt: true, paymentEmailSentAt: true, paymentReminderSentAt: true, refundStatus: true, refundedAt: true, session } },
       documentDeliveries: { where: inSessions, select: { kind: true, sentAt: true, document: { select: { title: true } }, character: { select: { name: true } }, session } },
       timelineResponsibilities: { where: inSessions, select: { timelineEvent: { select: { name: true, day: true, time: true } }, session } },
       trombinoscopes: { where: inSessions, select: { generatedAt: true, viewerCharacter: { select: { name: true } }, session } },
