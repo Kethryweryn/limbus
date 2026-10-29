@@ -1,7 +1,7 @@
 ---
 id: US-036
 titre: Une fiche a toujours au moins un jeu
-statut: à faire
+statut: terminée
 epic: EPIC-007
 regles: [R3, R9]
 adr: []
@@ -13,9 +13,9 @@ En tant qu'organisatrice, je veux qu'aucune fiche ne reste en base sans jeu, inv
 
 ## Critères d'acceptation
 
-- [ ] Créer une fiche demande au moins un jeu (400 sinon), et le formulaire l'exige.
-- [ ] Retirer le dernier lien d'une fiche la supprime, avec ses données (`eraseParticipant`), après une confirmation qui le dit. Une fiche encore liée au jeu d'une autre équipe n'est pas supprimée.
-- [ ] La migration supprime les fiches qui n'ont aucun jeu ; leurs personnages restent au casting, sans joueur ni photo.
+- [x] Créer une fiche demande au moins un jeu (400 sinon), et le formulaire l'exige.
+- [x] Retirer le dernier lien d'une fiche la supprime, avec ses données (`eraseParticipant`), après une confirmation qui le dit. Une fiche encore liée au jeu d'une autre équipe n'est pas supprimée.
+- [x] La migration supprime les fiches qui n'ont aucun jeu ; leurs personnages restent au casting, sans joueur ni photo.
 
 ## Notes techniques
 

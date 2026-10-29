@@ -19,7 +19,7 @@ Les écarts 1 (fiche commune) et 3 (durée de conservation) sont traités par la
 | US | Titre | Statut |
 |---|---|---|
 | [US-035](US-035-retrait-d-un-jeu-et-de-ses-sessions.md) | Retirer une personne d'un jeu la retire de ses sessions | terminée |
-| [US-036](US-036-une-fiche-a-toujours-un-jeu.md) | Une fiche a toujours au moins un jeu | à faire |
+| [US-036](US-036-une-fiche-a-toujours-un-jeu.md) | Une fiche a toujours au moins un jeu | terminée |
 | [US-037](US-037-export-complet-des-inscriptions.md) | Export complet des inscriptions | à faire |
 | [US-038](US-038-retirer-participant-published.md) | Retirer `Participant.published` | à faire |
 | [US-039](US-039-paiement-d-une-personne-qui-part.md) | Paiement d'une personne qui part : rembourser, garder ou transférer | à faire |

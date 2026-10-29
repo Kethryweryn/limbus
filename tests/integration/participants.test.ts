@@ -62,3 +62,27 @@ describe('retrait d’un jeu (US-035)', () => {
     expect((await prisma.registration.findFirstOrThrow({ where: kept })).status).toBe('confirmed')
   })
 })
+
+describe('une fiche a toujours un jeu (US-036)', () => {
+  it('refuse une création sans jeu', async () => {
+    expect((await api(alice, 'POST', '/api/participants', { name: 'Sans jeu' })).status).toBe(400)
+  })
+
+  it('retirer le dernier jeu supprime la fiche, mais pas si un jeu d’une autre équipe la garde', async () => {
+    const p = await personInTwoGames()
+    expect((await p.update([p.games[0]!.id])).status).toBe(200)
+    const last = await p.update([])
+    expect(last.status, JSON.stringify(last.body)).toBe(200)
+    expect(last.body).toEqual({ deleted: true })
+    expect(await prisma.participant.count({ where: { id: p.participant.id } })).toBe(0)
+
+    // Une fiche liée aussi au jeu de Bob : Alice retire son dernier jeu, la fiche reste
+    const shared = await personInTwoGames()
+    await prisma.participantGame.create({ data: { participantId: shared.participant.id, gameId: world.b.game.id } })
+    const response = await shared.update([])
+    expect(response.status).toBe(200)
+    expect(response.body).not.toEqual({ deleted: true })
+    expect(await prisma.participant.count({ where: { id: shared.participant.id } })).toBe(1)
+  })
+})
+

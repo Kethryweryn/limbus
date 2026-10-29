@@ -163,6 +163,11 @@ export const participantSchema = z.object({
   published: optionalBoolean
 })
 
+// Création d'une fiche : au moins un jeu (US-036)
+export const participantCreateSchema = participantSchema.extend({
+  gameIds: z.array(requiredId('Game')).min(1, 'Choisissez au moins un jeu')
+})
+
 export const locationSchema = z.object({
   name: requiredText('Name'),
   address: optionalText,
