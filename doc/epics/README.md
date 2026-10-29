@@ -31,4 +31,4 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-013](EPIC-003-ecarts-ecriture-d-un-jeu/US-013-contenu-archive-avec-son-jeu.md) | Le contenu d'un jeu archivé est archivé avec lui | EPIC-003 | à faire |
 | [US-014](EPIC-003-ecarts-ecriture-d-un-jeu/US-014-quantite-d-un-objet.md) | Saisir la quantité d'un objet | EPIC-003 | à faire |
 | [US-015](EPIC-003-ecarts-ecriture-d-un-jeu/US-015-intrigue-sans-pret-a-envoyer.md) | Retirer « prête à envoyer » des intrigues | EPIC-003 | terminée |
-| [US-016](EPIC-003-ecarts-ecriture-d-un-jeu/US-016-archiver-depublie-la-page.md) | Archiver un jeu dépublie sa page publique | EPIC-003 | à faire |
+| [US-016](EPIC-003-ecarts-ecriture-d-un-jeu/US-016-archiver-depublie-la-page.md) | Archiver un jeu dépublie sa page publique | EPIC-003 | terminée |

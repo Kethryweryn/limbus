@@ -255,3 +255,25 @@ describe('trombinoscopes après un changement de distribution', () => {
       .toEqual([{ participantId: remplacant.id }])
   })
 })
+
+describe('archivage d’un jeu (US-016)', () => {
+  it('archiver dépublie la page publique, et la restauration ne la republie pas', async () => {
+    const { game } = await aliceGame('archivage')
+    expect((await api(alice, 'PUT', `/api/games/${game.id}`, { publicPage: true })).status).toBe(200)
+    expect((await api(null, 'GET', `/api/public/games/${game.slug}`)).status).toBe(200)
+
+    expect((await api(alice, 'PUT', `/api/games/${game.id}`, { published: false })).status).toBe(200)
+    expect(await prisma.game.findUniqueOrThrow({ where: { id: game.id }, select: { publicPage: true } })).toEqual({ publicPage: false })
+
+    // Jeu archivé : la marque demandée est ignorée
+    expect((await api(alice, 'PUT', `/api/games/${game.id}`, { publicPage: true })).status).toBe(200)
+    expect(await prisma.game.findUniqueOrThrow({ where: { id: game.id }, select: { publicPage: true } })).toEqual({ publicPage: false })
+
+    expect((await api(alice, 'PUT', `/api/games/${game.id}`, { published: true })).status).toBe(200)
+    expect((await api(null, 'GET', `/api/public/games/${game.slug}`)).status).toBe(404)
+
+    // Témoin : republier à la main fonctionne
+    expect((await api(alice, 'PUT', `/api/games/${game.id}`, { publicPage: true })).status).toBe(200)
+    expect((await api(null, 'GET', `/api/public/games/${game.slug}`)).status).toBe(200)
+  })
+})

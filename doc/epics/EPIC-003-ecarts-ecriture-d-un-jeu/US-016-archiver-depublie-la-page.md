@@ -1,7 +1,7 @@
 ---
 id: US-016
 titre: Archiver un jeu dépublie sa page publique
-statut: à faire
+statut: terminée
 epic: EPIC-003
 regles: [R3]
 adr: []
@@ -13,9 +13,9 @@ En tant qu'organisatrice, je veux qu'archiver un jeu dépublie sa page publique,
 
 ## Critères d'acceptation
 
-- [ ] Quand j'archive un jeu, sa marque « page publique » est retirée, quelle que soit la requête.
-- [ ] Quand je restaure le jeu, sa page reste dépubliée ; je la republie à la main si je le veux.
-- [ ] Un jeu archivé ne peut pas recevoir la marque « page publique » : la requête qui la demande sur un jeu archivé l'ignore.
+- [x] Quand j'archive un jeu, sa marque « page publique » est retirée, quelle que soit la requête.
+- [x] Quand je restaure le jeu, sa page reste dépubliée ; je la republie à la main si je le veux.
+- [x] Un jeu archivé ne peut pas recevoir la marque « page publique » : la requête qui la demande sur un jeu archivé l'ignore.
 
 ## Notes techniques
 

@@ -16,12 +16,16 @@ export default defineEventHandler(async (event) => {
   const body = await readZodBody(event, updateGameSchema)
   const { title, description, teaserUrl, noteIntention, published, publicPage } = body
 
+  // Un jeu archivé n'a pas de page publique, et ne la retrouve pas en étant restauré (US-016)
+  const current = await prisma.game.findUniqueOrThrow({ where: { id }, select: { published: true } })
+  const archived = !(published ?? current.published)
+
   const data: any = {
     description,
     teaserUrl,
     noteIntention,
     published,
-    publicPage
+    publicPage: archived ? false : publicPage
   }
 
   if (title) {
