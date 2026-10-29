@@ -16,7 +16,7 @@ Corriger les écarts 5 (jeton d'invitation en clair) et 6 (dernière administrat
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-042](US-042-jeton-d-invitation-hache.md) | Le jeton d'une invitation est gardé haché | à faire |
+| [US-042](US-042-jeton-d-invitation-hache.md) | Le jeton d'une invitation est gardé haché | terminée |
 | [US-043](US-043-jamais-sans-administratrice.md) | Limbus garde toujours une administratrice | à faire |
 
 ## Définition de terminé

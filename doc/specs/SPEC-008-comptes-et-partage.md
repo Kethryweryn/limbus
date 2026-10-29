@@ -78,7 +78,7 @@ Il n'y a pas d'inscription libre.
 ## Données
 
 - `User` (compte), `GameShare` (partage) et `GameInvitation` (invitation, de partage ou de legs).
-- Le jeton d'une invitation est gardé tel quel en base (voir les écarts).
+- Une invitation ne garde que l'empreinte de son jeton, comme les liens personnels ; renvoyer un legs envoie un nouveau lien ([US-042](../archive/epics/EPIC-008-ecarts-comptes/US-042-jeton-d-invitation-hache.md), [ADR-0034](../adr/ADR-0034-jeton-d-invitation-hache.md)).
 - Un compte n'est supprimé qu'à la main par l'administratrice.
 
 ## Sécurité et droits

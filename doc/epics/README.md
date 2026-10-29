@@ -62,5 +62,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-039](../archive/epics/EPIC-007-ecarts-participants/US-039-paiement-d-une-personne-qui-part.md) | Paiement d'une personne qui part : rembourser, garder ou transférer | EPIC-007 | terminée |
 | [US-040](../archive/epics/EPIC-007-ecarts-participants/US-040-date-limite-de-desistement.md) | Date limite de désistement | EPIC-007 | terminée |
 | [US-041](../archive/epics/EPIC-007-ecarts-participants/US-041-place-offerte.md) | Place offerte | EPIC-007 | terminée |
-| [US-042](EPIC-008-ecarts-comptes/US-042-jeton-d-invitation-hache.md) | Le jeton d'une invitation est gardé haché | EPIC-008 | à faire |
+| [US-042](EPIC-008-ecarts-comptes/US-042-jeton-d-invitation-hache.md) | Le jeton d'une invitation est gardé haché | EPIC-008 | terminée |
 | [US-043](EPIC-008-ecarts-comptes/US-043-jamais-sans-administratrice.md) | Limbus garde toujours une administratrice | EPIC-008 | à faire |

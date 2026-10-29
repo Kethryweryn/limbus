@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
 import { GAME_INVITATION_KINDS, GAME_SHARE_ROLES, GAME_INVITATION_STATUSES, USER_ROLES } from '~/utils/domain'
 import { deletePendingCopy } from '~/server/utils/gameCopy'
@@ -8,8 +8,14 @@ export function normalizeInvitationEmail(email: string) {
   return email.trim().toLowerCase()
 }
 
+// Seule l'empreinte du jeton est gardée (ADR-0034) : le jeton n'existe que dans le lien envoyé
 export function createInvitationToken() {
-  return randomBytes(32).toString('base64url')
+  const token = randomBytes(32).toString('base64url')
+  return { token, tokenHash: hashInvitationToken(token) }
+}
+
+export function hashInvitationToken(token: string) {
+  return createHash('sha256').update(token).digest('hex')
 }
 
 export function invitationUrl(token: string) {
@@ -18,7 +24,7 @@ export function invitationUrl(token: string) {
 
 export async function getValidInvitation(token: string) {
   const invitation = await prisma.gameInvitation.findUnique({
-    where: { token },
+    where: { tokenHash: hashInvitationToken(token) },
     include: {
       game: { select: { id: true, title: true, slug: true, bequestPending: true } },
       invitedBy: { select: { name: true, email: true } },

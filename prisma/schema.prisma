@@ -608,7 +608,10 @@ model GameInvitation {
   id           String    @id @default(cuid())
   gameId       String
   email        String
-  token        String    @unique
+  // Jeton en clair des invitations d'avant ADR-0034 : plus écrit, vide après la migration
+  token        String?   @unique
+  // Empreinte SHA-256 du jeton du lien (ADR-0034) : le jeton lui-même n'est pas gardé
+  tokenHash    String?   @unique
   status       String    @default("pending")
   // share : co-organisation ; bequest : legs d'une copie en attente (gameId = la copie, ADR-0025)
   kind         String    @default("share")

@@ -60,11 +60,12 @@ export default defineEventHandler(async (event) => {
     }
   })
 
+  const { token, tokenHash } = createInvitationToken()
   const invitation = await prisma.gameInvitation.create({
     data: {
       gameId: id,
       email,
-      token: createInvitationToken(),
+      tokenHash,
       invitedById: user.id,
       expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14)
     },
@@ -73,7 +74,7 @@ export default defineEventHandler(async (event) => {
       acceptedBy: { select: { id: true, name: true, email: true } }
     }
   })
-  const url = invitationUrl(invitation.token)
+  const url = invitationUrl(token)
   let emailDelivery: Awaited<ReturnType<typeof sendGameInvitationEmail>> | { sent: false, reason: string }
 
   try {
@@ -96,8 +97,10 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // L'empreinte du jeton ne sort pas : le lien suffit à l'organisatrice
+  const { tokenHash: _tokenHash, token: _token, ...exposed } = invitation
   return {
-    ...invitation,
+    ...exposed,
     invitationUrl: url,
     emailDelivery
   }

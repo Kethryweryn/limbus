@@ -1,7 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { bequestExpiresAt, findPendingBequest, purgeExpiredBequests, requireBequestOwner, sendBequestInvitation } from '~/server/utils/bequests'
-import { invitationUrl } from '~/server/utils/invitations'
+import { createInvitationToken, invitationUrl } from '~/server/utils/invitations'
 import { GAME_INVITATION_STATUSES } from '~/utils/domain'
 import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
 import { requireRouterParam } from '~/server/utils/routeParams'
@@ -24,18 +24,20 @@ export default defineEventHandler(async (event) => {
   const invitation = await findPendingBequest(id, invitationId)
 
   const expiresAt = bequestExpiresAt()
-  // Sans email parti, l'expiration ne bouge pas : la destinataire n'a reçu aucune nouvelle date
+  // Le jeton n'est pas gardé (ADR-0034) : le renvoi porte un nouveau lien. Sans email parti, rien ne change :
+  // l'ancien lien reste valable et la destinataire n'a reçu aucune nouvelle date
+  const { token, tokenHash } = createInvitationToken()
   await sendBequestInvitation({
     to: invitation.email,
     gameTitle: game.title,
     ownerName: user.name || user.email,
-    url: invitationUrl(invitation.token),
+    url: invitationUrl(token),
     expiresAt
   }, '.')
 
   await prisma.gameInvitation.updateMany({
     where: { id: invitation.id, status: GAME_INVITATION_STATUSES.pending },
-    data: { expiresAt }
+    data: { expiresAt, tokenHash }
   })
 
   return { id: invitation.id, email: invitation.email, expiresAt }

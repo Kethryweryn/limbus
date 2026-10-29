@@ -67,7 +67,7 @@ export async function findPendingBequest(sourceGameId: string, invitationId: str
       status: GAME_INVITATION_STATUSES.pending,
       game: { copiedFromGameId: sourceGameId, bequestPending: true }
     },
-    select: { id: true, gameId: true, email: true, token: true }
+    select: { id: true, gameId: true, email: true }
   })
   if (!invitation) {
     throw createError({ statusCode: 404, message: 'Legs en attente introuvable' })
