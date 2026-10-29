@@ -256,7 +256,11 @@ export const sessionPaymentRefundSchema = z.object({
 })
 
 export const sessionPaymentStatusSchema = z.object({
-  paid: z.boolean()
+  paid: z.boolean(),
+  // Date du clic (US-048) : un paiement validé hors ligne garde sa date ; jamais dans le futur
+  paidAt: z.string().optional()
+    .refine((value) => !value || (!Number.isNaN(new Date(value).getTime()) && new Date(value).getTime() <= Date.now() + 5 * 60 * 1000), 'Date de paiement invalide')
+    .transform((value) => value ? new Date(value) : undefined)
 })
 
 // Renvoi de la version à jour (US-030) : à une personne, ou à celles dont la version est dépassée

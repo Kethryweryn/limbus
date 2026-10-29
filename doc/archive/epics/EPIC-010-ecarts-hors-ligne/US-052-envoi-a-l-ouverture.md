@@ -1,7 +1,7 @@
 ---
 id: US-052
 titre: La file part à l'ouverture de l'application
-statut: à faire
+statut: terminée
 epic: EPIC-010
 regles: [R7]
 adr: []
@@ -13,7 +13,7 @@ En tant qu'organisatrice, je veux que mes modifications en attente partent dès 
 
 ## Critères d'acceptation
 
-- [ ] À l'ouverture de l'application, si le serveur répond, la file en attente est envoyée sans autre action.
+- [x] À l'ouverture de l'application, si le serveur répond, la file en attente est envoyée sans autre action.
 
 ## Notes techniques
 

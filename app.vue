@@ -19,18 +19,22 @@
           </UButton>
         </div>
       </div>
+      <!-- Modifications faites hors ligne (US-049) : le bandeau ouvre leur liste -->
       <div
-        v-if="pendingSyncCount"
-        class="bg-blue-50 border-b border-blue-200 px-4 py-2 text-sm text-blue-900"
+        v-if="pendingSyncCount || syncErrorCount"
+        class="border-b px-4 py-2 text-sm"
+        :class="syncErrorCount ? 'bg-red-50 border-red-200 text-red-900' : 'bg-blue-50 border-blue-200 text-blue-900'"
       >
-        {{ pendingSyncCount }} modification(s) hors ligne en attente de synchronisation.
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <span>
+            Modifications faites hors ligne : {{ syncSummary }}.
+          </span>
+          <UButton size="xs" :color="syncErrorCount ? 'error' : 'info'" variant="soft" @click="showSyncPanel = true">
+            Voir les modifications
+          </UButton>
+        </div>
       </div>
-      <div
-        v-if="syncErrors.length"
-        class="bg-red-50 border-b border-red-200 px-4 py-2 text-sm text-red-900"
-      >
-        {{ syncErrors.length }} modification(s) n’ont pas pu être synchronisées. Vérifiez les conflits avant de continuer.
-      </div>
+      <OfflineQueuePanel v-model:open="showSyncPanel" @sync="syncPendingChanges" />
       <NuxtLayout>
         <NuxtPage />
       </NuxtLayout>
@@ -72,8 +76,9 @@
 import { onUnmounted, useHead, useRoute } from '#imports'
 import LoginScreen from '~/components/LoginScreen.vue'
 import { isOfflineMode, isServerUnavailableError, setServerUnavailable } from '~/utils/connection'
-import { claimOfflineData, getOfflineAuth, rememberOfflineAuth } from '~/utils/storage'
+import { claimOfflineData, clearPendingLogout, getOfflineAuth, hasPendingLogout, rememberOfflineAuth } from '~/utils/storage'
 import { getOfflineQueue, processOfflineQueue } from '~/utils/offlineSync'
+import OfflineQueuePanel from '~/components/OfflineQueuePanel.vue'
 
 useHead({
   title: 'Limbus',
@@ -93,7 +98,13 @@ const authReady = ref(false)
 const serverUnavailable = ref(false)
 const syncing = ref(false)
 const pendingSyncCount = ref(0)
-const syncErrors = ref<string[]>([])
+const syncErrorCount = ref(0)
+const showSyncPanel = ref(false)
+const syncSummary = computed(() => [
+  pendingSyncCount.value && `${pendingSyncCount.value} en attente`,
+  syncErrorCount.value && `${syncErrorCount.value} ${syncErrorCount.value > 1 ? 'erreurs' : 'erreur'}`
+].filter(Boolean).join(', '))
+const toast = useToast()
 const route = useRoute()
 const isPublicRoute = computed(() => route.path.startsWith('/public/') || route.path.startsWith('/invitations/'))
 // Liens personnels d'inscription (US-004) et de confirmation de présence (US-024)
@@ -116,6 +127,23 @@ const checkAuth = async (forceServerCheck = false) => {
   }
 
   serverUnavailable.value = isOfflineMode()
+
+  // Déconnexion faite sans réseau (US-051) : elle part avant tout, sinon la session se rouvrirait
+  if (hasPendingLogout()) {
+    authenticated.value = false
+    if (navigator.onLine) {
+      try {
+        await $fetch('/api/auth/logout', { method: 'POST' })
+        clearPendingLogout()
+      } catch (error) {
+        if (!isServerUnavailableError(error)) clearPendingLogout()
+      }
+    }
+    if (hasPendingLogout()) {
+      finishAuthCheck()
+      return
+    }
+  }
 
   if (!forceServerCheck && isOfflineMode()) {
     authenticated.value = hasValidOfflineAuth()
@@ -176,7 +204,7 @@ const checkAuthFromEvent = async () => {
 const refreshQueueState = async () => {
   const queue = await getOfflineQueue()
   pendingSyncCount.value = queue.filter((operation) => operation.status === 'pending' || operation.status === 'syncing').length
-  syncErrors.value = queue.filter((operation) => operation.status === 'error').map((operation) => operation.error || 'Erreur de synchronisation')
+  syncErrorCount.value = queue.filter((operation) => operation.status === 'error' || operation.status === 'conflict').length
 }
 
 const syncPendingChanges = async () => {
@@ -197,22 +225,41 @@ const syncPendingChanges = async () => {
       return
     }
 
-    syncErrors.value = results.filter((result) => !result.ok).map((result) => result.error || 'Erreur de synchronisation')
     await refreshQueueState()
-    if (!syncErrors.value.length) {
+    // Tout est passé : la page reprend les données du serveur. Sinon, le panneau montre ce qui reste
+    if (results.every((result) => result.ok)) {
       window.location.reload()
+      return
     }
+    if (results.some((result) => result.ok)) showSyncPanel.value = true
   } finally {
     syncing.value = false
   }
 }
 
-onMounted(() => {
-  checkAuth()
+const notifyOfflineQueued = () => {
+  toast.add({
+    title: 'Enregistré sur l’appareil',
+    description: 'La modification partira au retour du réseau.',
+    color: 'info'
+  })
+}
+
+// Déconnexion (US-051) : l'écran de connexion s'affiche sans recharger l'application, même sans réseau
+const checkAuthAfterLogout = () => checkAuth(true)
+
+onMounted(async () => {
   refreshQueueState()
   window.addEventListener('online', checkAuthFromEvent)
   window.addEventListener('limbus:connection-change', checkAuthFromEvent)
   window.addEventListener('limbus:sync-queue-change', refreshQueueState)
+  window.addEventListener('limbus:offline-queued', notifyOfflineQueued)
+  window.addEventListener('limbus:auth-change', checkAuthAfterLogout)
+  await checkAuth()
+  // Modifications laissées en attente : elles partent dès l'ouverture, si le serveur répond (US-052)
+  if (authenticated.value && navigator.onLine && !serverUnavailable.value) {
+    await syncPendingChanges()
+  }
 })
 
 watch(() => route.fullPath, () => {
@@ -225,5 +272,7 @@ onUnmounted(() => {
   window.removeEventListener('online', checkAuthFromEvent)
   window.removeEventListener('limbus:connection-change', checkAuthFromEvent)
   window.removeEventListener('limbus:sync-queue-change', refreshQueueState)
+  window.removeEventListener('limbus:offline-queued', notifyOfflineQueued)
+  window.removeEventListener('limbus:auth-change', checkAuthAfterLogout)
 })
 </script>

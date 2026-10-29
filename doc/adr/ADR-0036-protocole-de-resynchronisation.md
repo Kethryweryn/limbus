@@ -3,7 +3,7 @@ id: ADR-0036
 titre: Protocole de resynchronisation : version lue sur toute écriture rejouée, retenue par élément
 statut: accepté
 date: 2026-10-29
-liens: [../specs/SPEC-010-hors-ligne.md, ../epics/EPIC-010-ecarts-hors-ligne/US-050-conflit-a-la-resynchronisation.md, ADR-0028-version-d-une-session.md]
+liens: [../specs/SPEC-010-hors-ligne.md, ../archive/epics/EPIC-010-ecarts-hors-ligne/US-050-conflit-a-la-resynchronisation.md, ADR-0028-version-d-une-session.md]
 ---
 
 # ADR-0036 : Protocole de resynchronisation : version lue sur toute écriture rejouée, retenue par élément

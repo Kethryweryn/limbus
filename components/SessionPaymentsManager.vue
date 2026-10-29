@@ -360,6 +360,7 @@
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
+import { NO_VERSION } from '~/utils/offlineSync'
 import { REFUND_STATUSES, SESSION_STATUSES } from '~/utils/domain'
 import { PAYMENT_STATE_DISPLAY, PAYMENT_STATES, TARIFF_ROLE_LABELS, formatEuros, paymentAmountLines, withdrawalDeadlineLine } from '~/utils/sessionTariffs'
 
@@ -423,7 +424,12 @@ const transferTargetOptions = computed(() => [
 async function saveDeparture(payment, body) {
   updatingRefundId.value = payment.participant.id
   try {
-    await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/${payment.participant.id}/departure`, { method: 'PUT', body })
+    // Version lue de la ligne de paiement (ADR-0036)
+    await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/${payment.participant.id}/departure`, {
+      method: 'PUT',
+      body: { ...body, updatedAt: payment.paymentUpdatedAt || NO_VERSION },
+      offlineLabel: payment.participant.name
+    })
     pendingTransferId.value = ''
     serverError.value = ''
     await props.onRefresh()
@@ -454,7 +460,11 @@ function transferPayment(payment, targetId) {
 async function setOffered(row, offered) {
   updatingParticipantId.value = row.participant.id
   try {
-    await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/${row.participant.id}/offered`, { method: 'PUT', body: { offered } })
+    await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/${row.participant.id}/offered`, {
+      method: 'PUT',
+      body: { offered, updatedAt: row.paymentUpdatedAt || NO_VERSION },
+      offlineLabel: row.participant.name
+    })
     serverError.value = ''
     await props.onRefresh()
   } catch (err) {
@@ -469,7 +479,8 @@ async function setRefund(refund, value) {
   try {
     await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/${refund.participant.id}/refund`, {
       method: 'PUT',
-      body: { status: value || null }
+      body: { status: value || null, updatedAt: refund.paymentUpdatedAt || NO_VERSION },
+      offlineLabel: refund.participant.name
     })
     serverError.value = ''
     await props.onRefresh()
@@ -532,7 +543,7 @@ const defaultRoleOptions = [
   { label: 'Aucun rôle', value: '' },
   ...Object.entries(TARIFF_ROLE_LABELS).map(([value, label]) => ({ label, value }))
 ]
-const emptyTariffForm = () => ({ id: '', name: '', amount: '', defaultRole: '', baseTariffId: '' })
+const emptyTariffForm = () => ({ id: '', name: '', amount: '', defaultRole: '', baseTariffId: '', updatedAt: '' })
 const tariffForm = reactive(emptyTariffForm())
 const savingTariff = ref(false)
 const deletingTariffId = ref('')
@@ -562,7 +573,8 @@ function editTariff(tariff) {
     name: tariff.name,
     amount: String(tariff.amountCents / 100),
     defaultRole: tariff.defaultRole || '',
-    baseTariffId: tariff.baseTariffId || ''
+    baseTariffId: tariff.baseTariffId || '',
+    updatedAt: tariff.updatedAt
   })
 }
 
@@ -576,7 +588,8 @@ async function saveTariff() {
         name: tariffForm.name,
         amount: Number(tariffForm.amount),
         defaultRole: tariffForm.defaultRole || null,
-        baseTariffId: tariffForm.baseTariffId || null
+        baseTariffId: tariffForm.baseTariffId || null,
+        ...(tariffForm.id && { updatedAt: tariffForm.updatedAt })
       }
     })
     resetTariffForm()
@@ -618,7 +631,8 @@ async function setTariff(row, value) {
   try {
     await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/${row.participant.id}/tariff`, {
       method: 'PUT',
-      body: { tariffId: value || null }
+      body: { tariffId: value || null, updatedAt: row.paymentUpdatedAt || NO_VERSION },
+      offlineLabel: row.participant.name
     })
     serverError.value = ''
     await props.onRefresh()
@@ -684,7 +698,11 @@ async function saveSettings() {
   try {
     await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/settings`, {
       method: 'PUT',
-      body: { ...settings, withdrawalDeadline: settings.withdrawalDeadline || null }
+      body: {
+        ...settings,
+        withdrawalDeadline: settings.withdrawalDeadline || null,
+        updatedAt: props.paymentsData.session.paymentSettingsUpdatedAt || NO_VERSION
+      }
     })
     serverError.value = ''
     await props.onRefresh()
@@ -806,7 +824,9 @@ async function setPaid(row, paid) {
   try {
     await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/${row.participant.id}`, {
       method: 'PUT',
-      body: { paid }
+      // Date du clic : validé hors ligne, le paiement la garde (US-048)
+      body: { paid, ...(paid && { paidAt: new Date().toISOString() }), updatedAt: row.paymentUpdatedAt || NO_VERSION },
+      offlineLabel: row.participant.name
     })
     serverError.value = ''
     await props.onRefresh()

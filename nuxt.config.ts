@@ -75,7 +75,8 @@ export default defineNuxtConfig({
       clientsClaim: true,
       runtimeCaching: [
         {
-          urlPattern: /^\/api\/uploads\/session-assignment-photos\/.+/,
+          // Workbox compare l'URL complète (https://…) : le motif ne commence donc pas par ^
+          urlPattern: /\/api\/uploads\/session-assignment-photos\/.+/,
           handler: 'CacheFirst',
           options: {
             cacheName: 'session-assignment-photos',
@@ -85,6 +86,22 @@ export default defineNuxtConfig({
             },
             cacheableResponse: {
               statuses: [0, 200]
+            }
+          }
+        },
+        {
+          // PDF d'une session consultés avec le réseau : trombinoscopes, fiches de personnage, fiche allergies (US-047)
+          urlPattern: /\/api\/sessions\/[^/]+\/(?:trombinoscopes\/[^/?]+|allergies\/pdf|documents\/(?:[^/]+|character-sheets\/[^/]+)\/pdf)(?:\?.*)?$/,
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'session-documents',
+            networkTimeoutSeconds: 10,
+            expiration: {
+              maxEntries: 200,
+              maxAgeSeconds: 60 * 60 * 24 * 30
+            },
+            cacheableResponse: {
+              statuses: [200]
             }
           }
         }

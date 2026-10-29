@@ -3,12 +3,15 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { collectUploadUrls, deleteUnusedUploads } from '~/server/utils/uploads'
 import { requireRouterParam } from '~/server/utils/routeParams'
+import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
   const id = requireRouterParam(event, 'id')
   const session = await requireSessionAccess(event, id)
+  // Suppression rejouée hors ligne : refusée si l'élément a changé depuis sa lecture (ADR-0036)
+  await assertUnmodifiedSince(event, 'session', session.id)
 
   // Paiements reçus ou inscriptions : on annule ou on reporte, on ne supprime pas (US-021)
   const [paidCount, registrationCount] = await Promise.all([

@@ -1,21 +1,21 @@
 ---
 titre: Resynchronisation hors ligne
-statut: tranchée
+statut: archivée
 date: 2026-10-29
-revue: ../revues/2026-10-29-architecture.md
+revue: ../../revues/2026-10-29-architecture.md
 ---
 
 # Resynchronisation hors ligne
 
 ## Besoin
 
-Les modifications faites hors ligne sont rejouées au retour du réseau ([SPEC-010](../specs/SPEC-010-hors-ligne.md)). Quand l'une d'elles est refusée (conflit avec une modification faite ailleurs, élément supprimé, droits retirés), elle reste en erreur :
+Les modifications faites hors ligne sont rejouées au retour du réseau ([SPEC-010](../../specs/SPEC-010-hors-ligne.md)). Quand l'une d'elles est refusée (conflit avec une modification faite ailleurs, élément supprimé, droits retirés), elle reste en erreur :
 
 - l'organisatrice voit seulement le nombre d'erreurs, sans savoir lesquelles ;
 - elle ne peut ni corriger, ni réessayer, ni abandonner ces modifications ;
 - seule la déconnexion les fait disparaître, en effaçant tout l'appareil.
 
-De plus, le contrôle de conflit est partiel : il n'a lieu que si la requête porte la date de la version lue, et jamais pour une suppression ([revue d'architecture](../revues/2026-10-29-architecture.md), R-13). Une suppression rejouée peut effacer un élément modifié entre-temps par une co-organisatrice.
+De plus, le contrôle de conflit est partiel : il n'a lieu que si la requête porte la date de la version lue, et jamais pour une suppression ([revue d'architecture](../../revues/2026-10-29-architecture.md), R-13). Une suppression rejouée peut effacer un élément modifié entre-temps par une co-organisatrice.
 
 ## Proposition
 
@@ -32,9 +32,13 @@ De plus, le contrôle de conflit est partiel : il n'a lieu que si la requête po
 
 ## Décisions
 
-Le 29 octobre 2026, avec l'utilisatrice ([SPEC-010](../specs/SPEC-010-hors-ligne.md), choix de l'écart 2) :
+Le 29 octobre 2026, avec l'utilisatrice ([SPEC-010](../../specs/SPEC-010-hors-ligne.md), choix de l'écart 2) :
 
 - la comparaison montre les seuls champs qui diffèrent, côte à côte ; on garde sa version ou celle du serveur ;
 - une modification en erreur retient les suivantes du même élément ; celles des autres éléments partent ;
 - la liste s'ouvre depuis le bandeau hors ligne ;
 - le protocole de conflit (version par date de modification, contrôle des suppressions) fait l'objet d'un ADR.
+
+## Suite
+
+- 2026-10-29 : réalisée par [EPIC-010](../epics/EPIC-010-ecarts-hors-ligne/README.md) ([ADR-0036](../../adr/ADR-0036-protocole-de-resynchronisation.md)). Fiche archivée.

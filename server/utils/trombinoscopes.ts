@@ -68,6 +68,12 @@ function getEntryDefaults(target: CharacterLike, entry?: TrombinoscopeEntryLike)
   }
 }
 
+// Version du trombinoscope d'un personnage (ADR-0036) : la date de sa dernière entrée, null sans entrée
+export async function trombinoscopeConfigVersion(viewerCharacterId: string) {
+  const { _max } = await prisma.characterTrombinoscopeEntry.aggregate({ where: { viewerCharacterId }, _max: { updatedAt: true } })
+  return _max.updatedAt
+}
+
 export async function getCharacterTrombinoscopeConfig(viewerCharacterId: string) {
   const viewer = await prisma.character.findUnique({
     where: { id: viewerCharacterId },
@@ -93,6 +99,8 @@ export async function getCharacterTrombinoscopeConfig(viewerCharacterId: string)
 
   return {
     viewer,
+    // Version lue, renvoyée à l'enregistrement (ADR-0036)
+    updatedAt: entries.reduce<Date | null>((latest, entry) => !latest || entry.updatedAt > latest ? entry.updatedAt : latest, null),
     characters: characters.filter((target) => target.id !== viewerCharacterId).sort(characterSort).map((target) => ({
       ...target,
       trombinoscope: getEntryDefaults(target, entriesByTargetId.get(target.id))

@@ -13,4 +13,4 @@ Fonctionnalités validées, décrites telles qu'elles marchent. Modèle : [`../m
 | [SPEC-007](SPEC-007-participants-et-rgpd.md) | Participants et données personnelles (existant) | validée | aucun : décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
 | [SPEC-008](SPEC-008-comptes-et-partage.md) | Comptes et partage d'un jeu (existant) | validée | aucun : décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
 | [SPEC-009](SPEC-009-page-publique.md) | Page publique d'un jeu (existant) | validée | aucun : décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
-| [SPEC-010](SPEC-010-hors-ligne.md) | Mode hors ligne (existant) | validée | aucun : décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
+| [SPEC-010](SPEC-010-hors-ligne.md) | Mode hors ligne (existant) | validée | [EPIC-010](../archive/epics/EPIC-010-ecarts-hors-ligne/README.md) (écarts) |

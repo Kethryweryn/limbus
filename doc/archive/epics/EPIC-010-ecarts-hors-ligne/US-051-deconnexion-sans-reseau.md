@@ -1,7 +1,7 @@
 ---
 id: US-051
 titre: Se déconnecter sans réseau
-statut: à faire
+statut: terminée
 epic: EPIC-010
 regles: [R10]
 adr: [ADR-0012]
@@ -13,8 +13,8 @@ En tant qu'organisatrice sur un appareil prêté, je veux que la déconnexion ef
 
 ## Critères d'acceptation
 
-- [ ] Sans réseau, la déconnexion efface aussitôt tout le cache de l'appareil et ramène à l'écran de connexion.
-- [ ] La déconnexion est envoyée au serveur dès que le réseau revient, avant toute autre requête : la session ne se rouvre pas toute seule.
+- [x] Sans réseau, la déconnexion efface aussitôt tout le cache de l'appareil et ramène à l'écran de connexion.
+- [x] La déconnexion est envoyée au serveur dès que le réseau revient, avant toute autre requête : la session ne se rouvre pas toute seule.
 
 ## Notes techniques
 

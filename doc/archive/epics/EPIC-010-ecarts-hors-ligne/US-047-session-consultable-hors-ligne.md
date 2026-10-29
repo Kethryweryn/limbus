@@ -1,7 +1,7 @@
 ---
 id: US-047
 titre: Une session consultée reste disponible hors ligne
-statut: à faire
+statut: terminée
 epic: EPIC-010
 regles: [R1]
 adr: [ADR-0012]
@@ -13,11 +13,11 @@ En tant qu'organisatrice sur le lieu du GN, je veux rouvrir sans réseau une ses
 
 ## Critères d'acceptation
 
-- [ ] Une session ouverte avec le réseau est gardée sur l'appareil, telle qu'elle a été vue : détails, équipe, casting, déroulé, envois, paiements, présence, fiche allergies.
-- [ ] Sans réseau, la page de cette session s'ouvre depuis l'appareil. Une session jamais ouverte avec le réseau affiche « Cette session n'a pas été consultée avec le réseau sur cet appareil ».
-- [ ] La fiche d'un personnage consultée avec le réseau s'ouvre aussi sans réseau.
-- [ ] Les PDF consultés avec le réseau (trombinoscopes, fiches de personnage, fiche allergies) se rouvrent sans réseau.
-- [ ] La déconnexion efface tout cela, comme le reste du cache de l'appareil.
+- [x] Une session ouverte avec le réseau est gardée sur l'appareil, telle qu'elle a été vue : détails, équipe, casting, déroulé, envois, paiements, présence, fiche allergies.
+- [x] Sans réseau, la page de cette session s'ouvre depuis l'appareil. Une session jamais ouverte avec le réseau affiche « Cette session n'a pas été consultée avec le réseau sur cet appareil ».
+- [x] La fiche d'un personnage consultée avec le réseau s'ouvre aussi sans réseau.
+- [x] Les PDF consultés avec le réseau (trombinoscopes, fiches de personnage, fiche allergies) se rouvrent sans réseau.
+- [x] La déconnexion efface tout cela, comme le reste du cache de l'appareil.
 
 ## Notes techniques
 

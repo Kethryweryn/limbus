@@ -5,12 +5,12 @@ statut: validée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
 epics: [EPIC-010]
-adr: [ADR-0006, ADR-0012]
+adr: [ADR-0006, ADR-0012, ADR-0036]
 ---
 
 # SPEC-010 : Mode hors ligne
 
-Cette spec décrit un comportement déjà en production, avant la reprise du développement ([Documentation de l'existant](../archive/todo/documentation-de-l-existant.md)). Elle n'a ni epic ni US. Les écarts constatés entre le code et l'intention sont listés à la fin, sans être corrigés.
+Cette spec décrit un comportement déjà en production, avant la reprise du développement ([Documentation de l'existant](../archive/todo/documentation-de-l-existant.md)). Les écarts, listés à la fin, sont corrigés par [EPIC-010](../archive/epics/EPIC-010-ecarts-hors-ligne/README.md).
 
 ## Objectif
 
@@ -27,36 +27,36 @@ Continuer à consulter un jeu sur le lieu du GN, où le réseau manque souvent, 
 
 ### Consulter hors ligne
 
-1. Avec le réseau, l'organisatrice ouvre les pages qu'elle voudra consulter : chacune garde sa dernière version sur l'appareil.
+1. Avec le réseau, l'organisatrice ouvre les pages qu'elle voudra consulter : listes, sessions, fiches de personnages, PDF. Chacune garde sa dernière version sur l'appareil.
 2. Sans réseau, un bandeau signale que le serveur est indisponible. Les listes s'affichent depuis le cache de l'appareil.
 3. Elle clique « Réessayer » pour revérifier la connexion.
 
 ### Modifier hors ligne
 
 1. Elle crée, modifie ou supprime un élément. La modification s'affiche aussitôt et part dans la file d'attente ; un bandeau en donne le nombre.
-2. Au retour du réseau, la file est envoyée (R7). Une fenêtre bloque l'écran pendant l'envoi, puis la page se recharge si tout est passé.
-3. Si des modifications échouent, un bandeau en donne le nombre.
+2. Au retour du réseau, ou à l'ouverture de l'application, la file est envoyée (R7). Une fenêtre bloque l'écran pendant l'envoi, puis la page se recharge si tout est passé.
+3. Si des modifications échouent, le bandeau en donne le nombre (« 3 en attente, 1 erreur ») et ouvre leur liste : elle y renvoie, abandonne ou tranche chaque conflit (R9).
 
 ## Règles métier
 
 ### Consultation
 
-- **R1** Le cache de l'appareil contient le tableau de bord et les listes des jeux, personnages, factions, intrigues, objets, documents, événements de chronologie, participants, lieux et sessions, telles qu'elles ont été chargées la dernière fois. Les pages de détail (une session, un personnage) ne sont pas en cache (voir les écarts).
+- **R1** Le cache de l'appareil contient le tableau de bord et les listes des jeux, personnages, factions, intrigues, objets, documents, événements de chronologie, participants, lieux et sessions, telles qu'elles ont été chargées la dernière fois. Il garde aussi chaque session ouverte avec le réseau (détails, équipe, casting, déroulé, envois, paiements, présence, fiche allergies), chaque fiche de personnage consultée, et les PDF consultés (trombinoscopes, fiches, fiche allergies). Une page jamais consultée avec le réseau le dit ([US-047](../archive/epics/EPIC-010-ecarts-hors-ligne/US-047-session-consultable-hors-ligne.md)).
 - **R2** Les photos d'attribution déjà affichées sont gardées dans le cache du navigateur : 300 au plus, 30 jours au plus.
 - **R3** Sans réseau, l'application reste ouverte pour le dernier compte connecté sur l'appareil pendant 7 jours après sa dernière connexion au serveur. Passé ce délai, elle demande de se connecter. Cette identité locale n'ouvre aucun droit sur le serveur.
 - **R4** Un 401 du serveur (session expirée ou révoquée) oublie l'identité locale et ramène à l'écran de connexion, en gardant le cache : le même compte le retrouve en se reconnectant. Un 403 est un refus ponctuel, qui ne déconnecte pas.
 
 ### Modifications hors ligne
 
-- **R5** Partent dans la file les créations, modifications et suppressions des jeux, du contenu d'un jeu, des participants, des lieux et des sessions. Une action (POST ou DELETE sur une sous-route : envoi d'emails, génération, legs, partage…) n'y part jamais : hors ligne, elle échoue. Un téléversement de fichier non plus. En revanche, une modification (PUT) sur une sous-route part dans la file : chronologie d'une session, statut ou réglages de paiement, trombinoscope d'un personnage (voir les écarts).
-- **R6** Une modification mise en file s'applique aussitôt au cache de l'appareil, marquée « en attente ». Un élément créé hors ligne reçoit un identifiant provisoire, remplacé par le vrai à l'envoi, y compris dans les modifications suivantes de la file.
-- **R7** La file est envoyée dans l'ordre quand le réseau revient (événement du navigateur), quand le serveur répond de nouveau, sur « Réessayer », ou au changement de page si le serveur était marqué indisponible. Elle n'est pas envoyée à la simple ouverture de l'application (voir les écarts). Si le réseau retombe pendant l'envoi, l'envoi s'arrête et reprend plus tard.
-- **R8** Une modification qui porte la date de la version lue est refusée si l'élément a été modifié entre-temps sur le serveur (409). Les suppressions ne sont pas contrôlées.
-- **R9** Une modification refusée reste en erreur dans la file ; les suivantes sont envoyées quand même. Le bandeau donne le nombre d'erreurs, sans le détail (voir les écarts).
+- **R5** Partent dans la file les créations, modifications et suppressions des jeux, du contenu d'un jeu, des participants, des lieux et des sessions. Une action (POST ou DELETE sur une sous-route : envoi d'emails, génération, legs, partage…) n'y part jamais : hors ligne, elle échoue. Un téléversement de fichier non plus. En revanche, une modification (PUT) sur une sous-route part dans la file : déroulé d'une session, paiement d'une personne, réglages de paiement, tarif, trombinoscope d'un personnage. Elle ne touche pas l'élément parent en cache. Un paiement validé hors ligne garde la date du clic ([US-048](../archive/epics/EPIC-010-ecarts-hors-ligne/US-048-modifier-une-session-hors-ligne.md)).
+- **R6** Une modification mise en file s'applique aussitôt au cache de l'appareil, marquée « en attente », en gardant la version lue de l'élément. Sur la page d'une session, les détails, l'équipe, le casting et le déroulé s'affichent aussitôt modifiés ; les paiements et le trombinoscope se mettent à jour à l'envoi. Un élément créé hors ligne reçoit un identifiant provisoire, remplacé par le vrai à l'envoi, y compris dans les modifications suivantes de la file.
+- **R7** La file est envoyée dans l'ordre quand le réseau revient (événement du navigateur), quand le serveur répond de nouveau, sur « Réessayer », au changement de page si le serveur était marqué indisponible, et à l'ouverture de l'application quand le serveur répond ([US-052](../archive/epics/EPIC-010-ecarts-hors-ligne/US-052-envoi-a-l-ouverture.md)). Si le réseau retombe pendant l'envoi, l'envoi s'arrête et reprend plus tard.
+- **R8** Toute écriture mise en file porte la version lue de l'élément, suppressions et sous-routes comprises ; elle est refusée (409, conflit) si l'élément a été modifié entre-temps sur le serveur. Deux modifications du même élément passent l'une après l'autre : la seconde reprend la version laissée par la première ([ADR-0036](../adr/ADR-0036-protocole-de-resynchronisation.md)).
+- **R9** Une modification refusée reste dans la file, en erreur ou en conflit ; elle retient les suivantes du même élément, et les autres partent. Le panneau des modifications liste chacune (élément, action, date, cause du refus). On renvoie une modification en erreur ; face à un conflit, on voit côte à côte les seuls champs qui diffèrent, puis on garde sa version (elle remplace celle du serveur) ou celle du serveur. On abandonne une modification, ou toute la file, sans se déconnecter ([US-049](../archive/epics/EPIC-010-ecarts-hors-ligne/US-049-panneau-des-modifications-en-attente.md), [US-050](../archive/epics/EPIC-010-ecarts-hors-ligne/US-050-conflit-a-la-resynchronisation.md)).
 
 ### Appareil partagé
 
-- **R10** La déconnexion efface tout le cache de l'appareil : données, file d'attente, photos et identité locale. S'il reste des modifications en attente, elle demande d'abord de confirmer leur perte.
+- **R10** La déconnexion efface tout le cache de l'appareil : données, file d'attente, photos et identité locale. S'il reste des modifications en attente, elle demande d'abord de confirmer leur perte. Sans réseau, l'appareil est effacé aussitôt, et la déconnexion part au serveur dès son retour, avant toute autre requête ([US-051](../archive/epics/EPIC-010-ecarts-hors-ligne/US-051-deconnexion-sans-reseau.md)).
 - **R11** À la connexion d'un autre compte, le cache laissé par le précédent est effacé, file d'attente comprise, pour que ses modifications ne partent pas sous le nouveau compte.
 
 ## Données
@@ -72,14 +72,13 @@ Continuer à consulter un jeu sur le lieu du GN, où le réseau manque souvent, 
 ## Hors périmètre
 
 - Installation de l'application (PWA) et mise à jour du service worker : comportement standard de `@vite-pwa/nuxt`.
-- Contrôle de conflit et traitement des erreurs de resynchronisation : fiche [Resynchronisation hors ligne](../todo/resynchronisation-hors-ligne.md).
 
 ## Écarts constatés
 
-Relevés le 29 octobre 2026. Les écarts 1 et 2 ont été confirmés par l'utilisatrice ; les écarts 3 à 5 viennent de la lecture du code et de la revue. Aucun n'est corrigé ici.
+Relevés le 29 octobre 2026. Les écarts 1 et 2 ont été confirmés par l'utilisatrice ; les écarts 3 à 5 viennent de la lecture du code et de la revue. Tous sont corrigés par [EPIC-010](../archive/epics/EPIC-010-ecarts-hors-ligne/README.md).
 
 1. **Page de session hors ligne (R1)** : sur le lieu du GN, il faut au moins la page de la session (casting, déroulé, fiche allergies, trombinoscopes) et les fiches des personnages. Aujourd'hui, elles ne s'ouvrent pas sans réseau.
-2. **Erreurs de resynchronisation (R8, R9)** : une modification refusée reste en erreur sans qu'on puisse la voir, la corriger ou l'abandonner, sauf en se déconnectant, ce qui efface tout. Les suppressions rejouées ne sont pas contrôlées ([revue](../revues/2026-10-29-architecture.md), R-13). Repris dans la fiche [Resynchronisation hors ligne](../todo/resynchronisation-hors-ligne.md).
+2. **Erreurs de resynchronisation (R8, R9)** : une modification refusée reste en erreur sans qu'on puisse la voir, la corriger ou l'abandonner, sauf en se déconnectant, ce qui efface tout. Les suppressions rejouées ne sont pas contrôlées ([revue](../revues/2026-10-29-architecture.md), R-13). Repris dans la fiche [Resynchronisation hors ligne](../archive/todo/resynchronisation-hors-ligne.md).
 3. **Déconnexion sans réseau (R10)** : la page de déconnexion appelle le serveur avant d'effacer l'appareil. Sans réseau, cet appel échoue et l'effacement n'a sans doute pas lieu : les données resteraient sur l'appareil. Relevé en lisant le code, non vérifié sur un appareil.
 4. **Modifications de sous-routes en file (R5)** : un PUT sur une sous-route part dans la file, et son corps est fusionné par erreur dans l'élément parent en cache : la session pour la chronologie, le statut ou les réglages de paiement ; le personnage pour son trombinoscope. Un paiement validé hors ligne reçoit la date de la resynchronisation. Relevé par la revue de code, non vérifié sur un appareil.
 5. **Envoi à l'ouverture (R7)** : des modifications laissées en attente ne partent pas quand on rouvre l'application avec le réseau. Elles attendent un changement de réseau ou « Réessayer », que rien ne propose tant que le serveur répond. Relevé par la revue de code, non vérifié sur un appareil.

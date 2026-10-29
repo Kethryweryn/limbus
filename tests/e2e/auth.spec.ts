@@ -32,7 +32,7 @@ test('à la connexion, les écritures hors ligne d’un autre compte sont effac�
   await page.evaluate(async () => {
     localStorage.setItem('offlineOwner', 'autre-compte')
     await new Promise<void>((resolve, reject) => {
-      const request = indexedDB.open('limbus-db', 11)
+      const request = indexedDB.open('limbus-db')
       request.onupgradeneeded = () => request.result.createObjectStore('syncQueue')
       request.onerror = () => reject(request.error)
       request.onsuccess = () => {

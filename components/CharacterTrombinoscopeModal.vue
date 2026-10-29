@@ -87,6 +87,7 @@
 
 <script setup>
 import { CHARACTER_TYPES } from '~/utils/domain'
+import { NO_VERSION } from '~/utils/offlineSync'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -102,6 +103,8 @@ const isOpen = computed({
 const loading = ref(false)
 const saving = ref(false)
 const entries = ref([])
+// Version lue du trombinoscope, renvoyée à l'enregistrement (ADR-0036)
+const version = ref(NO_VERSION)
 const serverError = ref('')
 
 watch(() => props.open, async (value) => {
@@ -117,7 +120,8 @@ async function loadConfig() {
   serverError.value = ''
 
   try {
-    const data = await useApiFetch(`/api/characters/${props.character.id}/trombinoscope`)
+    const data = await useApiFetch(`/api/characters/${props.character.id}/trombinoscope`, { offlineCache: true })
+    version.value = data.updatedAt || NO_VERSION
     entries.value = (data.characters || []).map((target) => ({
       targetCharacterId: target.id,
       character: target,
@@ -155,7 +159,8 @@ async function saveConfig() {
           faceKnown: Boolean(entry.faceKnown) && !entry.character.trombinoscopeFaceHidden,
           displayName: entry.displayName,
           note: entry.note
-        }))
+        })),
+        updatedAt: version.value
       }
     })
     isOpen.value = false

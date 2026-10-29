@@ -3,6 +3,7 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { collectUploadUrls, deleteUnusedUploads } from '~/server/utils/uploads'
 import { requireRouterParam } from '~/server/utils/routeParams'
+import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
@@ -16,6 +17,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Personnage introuvable' })
   }
   await requireGameAccess(event, character.gameId)
+  // Suppression rejouée hors ligne : refusée si l'élément a changé depuis sa lecture (ADR-0036)
+  await assertUnmodifiedSince(event, 'character', id)
 
   // Ses assignations de session partent avec lui, photos comprises
   const uploadUrls = await collectUploadUrls({ characterId: id })
