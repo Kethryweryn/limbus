@@ -4,16 +4,14 @@ import { bequestExpiresAt, findPendingBequest, purgeExpiredBequests, requireBequ
 import { invitationUrl } from '~/server/utils/invitations'
 import { GAME_INVITATION_STATUSES } from '~/utils/domain'
 import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 // Renvoie l'invitation d'un legs en attente et prolonge son expiration ; la copie reste celle du legs (US-012, R9)
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
-  const id = getRouterParam(event, 'id')
-  const invitationId = getRouterParam(event, 'invitationId')
-  if (!id || !invitationId) {
-    throw createError({ statusCode: 400, message: 'Paramètre manquant' })
-  }
+  const id = requireRouterParam(event, 'id')
+  const invitationId = requireRouterParam(event, 'invitationId')
   const { user, game } = await requireBequestOwner(event, id)
   assertRateLimit(event, {
     name: 'game-bequest-resend',

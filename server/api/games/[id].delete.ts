@@ -3,14 +3,12 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { requireGameOwner } from '~/server/utils/gameAccess'
 import { collectUploadUrls, deleteUnusedUploads } from '~/server/utils/uploads'
 import { deletePendingCopy } from '~/server/utils/gameCopy'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'ID manquant' })
-  }
+  const id = requireRouterParam(event, 'id')
   await requireGameOwner(event, id)
 
   // Ses legs en attente partent avec lui : sans jeu source, plus personne ne pourrait les suivre ni les annuler (R8)

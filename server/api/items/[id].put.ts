@@ -5,14 +5,12 @@ import { itemSchema, readZodBody } from '~/server/utils/schemas'
 import { itemInclude, validateItemRelations } from '~/server/utils/items'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'ID manquant' })
-  }
+  const id = requireRouterParam(event, 'id')
   const item = await prisma.item.findUnique({ where: { id }, select: { gameId: true } })
   if (!item) {
     throw createError({ statusCode: 404, message: 'Objet introuvable' })

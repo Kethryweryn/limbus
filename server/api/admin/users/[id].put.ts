@@ -2,14 +2,12 @@ import bcrypt from 'bcrypt'
 import { prisma } from '~/server/utils/prisma'
 import { requireAdmin } from '~/server/utils/auth'
 import { readZodBody, userUpdateSchema } from '~/server/utils/schemas'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'ID manquant' })
-  }
+  const id = requireRouterParam(event, 'id')
 
   const body = await readZodBody(event, userUpdateSchema)
   const data: Record<string, unknown> = {

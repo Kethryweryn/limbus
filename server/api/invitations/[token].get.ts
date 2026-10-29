@@ -1,10 +1,8 @@
 import { getValidInvitation } from '~/server/utils/invitations'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
-  const token = getRouterParam(event, 'token')
-  if (!token) {
-    throw createError({ statusCode: 400, message: 'Token manquant' })
-  }
+  const token = requireRouterParam(event, 'token')
 
   const invitation = await getValidInvitation(token)
   return {

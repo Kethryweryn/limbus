@@ -3,14 +3,12 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { readZodBody, sessionTimelineSchema } from '~/server/utils/schemas'
 import { requireGameAccess, requireSessionAccess } from '~/server/utils/gameAccess'
 import { SESSION_ROLES } from '~/utils/domain'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'ID manquant' })
-  }
+  const id = requireRouterParam(event, 'id')
 
   const body = await readZodBody(event, sessionTimelineSchema)
   const accessibleSession = await requireSessionAccess(event, id)

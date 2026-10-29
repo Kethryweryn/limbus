@@ -3,14 +3,12 @@ import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { readZodBody, sessionPaymentSettingsSchema } from '~/server/utils/schemas'
 import { updateSessionPaymentSettings } from '~/server/utils/sessionPayments'
 import { assertGameUploads } from '~/server/utils/uploads'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'ID manquant' })
-  }
+  const id = requireRouterParam(event, 'id')
   const session = await requireSessionAccess(event, id)
   const previous = await prisma.session.findUniqueOrThrow({ where: { id: session.id }, select: { paymentRibUrl: true } })
 
