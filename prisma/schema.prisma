@@ -221,6 +221,8 @@ model Session {
   location    Location?  @relation(fields: [locationId], references: [id])
   paymentRibUrl String?
   paymentLinkUrl String?
+  // Date limite de désistement (US-040, ADR-0033) : après elle, une place n'est remboursée qu'au choix des orgas
+  withdrawalDeadline DateTime?
   status      String     @default("scheduled")
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -415,6 +417,7 @@ model Participant {
   documentDeliveries SessionDocumentDelivery[]
   trombinoscopes SessionTrombinoscope[]
   payments SessionPayment[]
+  receivedPaymentTransfers SessionPayment[] @relation("PaymentTransfers")
   registrations Registration[]
   attendances SessionAttendance[]
 }
@@ -432,11 +435,16 @@ model SessionPayment {
   carriedOverToSessionId String?
   // Tarif choisi par l'organisatrice ; sinon celui du rôle de la personne (US-031, ADR-0032)
   tariffId            String?
+  // Place offerte : rien à payer, sans tarif (US-041)
+  offered             Boolean     @default(false)
+  // Paiement d'une personne partie, transféré au remplaçant (US-039, ADR-0033)
+  transferredToParticipantId String?
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
   session             Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   participant         Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  transferredTo       Participant? @relation("PaymentTransfers", fields: [transferredToParticipantId], references: [id], onDelete: SetNull)
   carriedOverTo       Session?    @relation("PaymentCarryOvers", fields: [carriedOverToSessionId], references: [id], onDelete: SetNull)
   tariff              SessionTariff? @relation(fields: [tariffId], references: [id], onDelete: SetNull)
   instalments         SessionPaymentInstalment[]

@@ -58,6 +58,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-036](EPIC-007-ecarts-participants/US-036-une-fiche-a-toujours-un-jeu.md) | Une fiche a toujours au moins un jeu | EPIC-007 | terminée |
 | [US-037](EPIC-007-ecarts-participants/US-037-export-complet-des-inscriptions.md) | Export complet des inscriptions | EPIC-007 | terminée |
 | [US-038](EPIC-007-ecarts-participants/US-038-retirer-participant-published.md) | Retirer `Participant.published` | EPIC-007 | terminée |
-| [US-039](EPIC-007-ecarts-participants/US-039-paiement-d-une-personne-qui-part.md) | Paiement d'une personne qui part : rembourser, garder ou transférer | EPIC-007 | à faire |
-| [US-040](EPIC-007-ecarts-participants/US-040-date-limite-de-desistement.md) | Date limite de désistement | EPIC-007 | à faire |
-| [US-041](EPIC-007-ecarts-participants/US-041-place-offerte.md) | Place offerte | EPIC-007 | à faire |
+| [US-039](EPIC-007-ecarts-participants/US-039-paiement-d-une-personne-qui-part.md) | Paiement d'une personne qui part : rembourser, garder ou transférer | EPIC-007 | terminée |
+| [US-040](EPIC-007-ecarts-participants/US-040-date-limite-de-desistement.md) | Date limite de désistement | EPIC-007 | terminée |
+| [US-041](EPIC-007-ecarts-participants/US-041-place-offerte.md) | Place offerte | EPIC-007 | terminée |

@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { buildTariffPaymentRows } from '~/server/utils/sessionPayments'
-import { paymentAmountLines, paymentState, solidarityBalance, tariffForPerson } from '~/utils/sessionTariffs'
+import { paymentAmountLines, paymentState, solidarityBalance, suggestedDepartureStatus, tariffForPerson } from '~/utils/sessionTariffs'
 
 const tariff = (id: string, amountCents: number, defaultRole: string | null = null, baseTariffId: string | null = null) =>
   ({ id, name: id, amountCents, defaultRole, baseTariffId })
 const person = (id: string) => ({ id, name: id, email: `${id}@example.test` })
 const payment = (participantId: string, extra: Record<string, unknown> = {}) => ({
-  participantId, paidAt: null, paymentEmailSentAt: null, paymentReminderSentAt: null, tariffId: null, instalments: [], ...extra
+  participantId, paidAt: null, paymentEmailSentAt: null, paymentReminderSentAt: null, tariffId: null, offered: false, instalments: [], ...extra
 })
 
 describe('tarif d’une personne (US-031)', () => {
@@ -93,6 +93,26 @@ describe('montants des emails de paiement (US-034)', () => {
     expect(partial).toMatch(/Déjà reçu : 30,00\s€/)
     expect(partial).toMatch(/Reste à payer : 50,00\s€/)
     expect(paymentAmountLines(null)).toEqual([])
+  })
+})
+
+describe('personne partie et place offerte (US-039 à US-041)', () => {
+  it('propose « à rembourser » avant la date limite, « gardé » après, rien sans date', () => {
+    const now = new Date('2026-11-10T12:00:00.000Z')
+    expect(suggestedDepartureStatus(new Date('2026-11-11'), now)).toBe('to_refund')
+    expect(suggestedDepartureStatus(new Date('2026-11-09'), now)).toBe('kept')
+    expect(suggestedDepartureStatus(null, now)).toBeNull()
+  })
+
+  it('une place offerte ne doit rien, quel que soit son tarif', () => {
+    expect(paymentState({ dueCents: 0, receivedCents: 0, legacyPaid: false, offered: true })).toBe('offered')
+    const [row] = buildTariffPaymentRows(
+      [{ participantId: 'lea', participant: person('lea'), character: { name: 'Aube', type: 'pj' } }],
+      [],
+      [payment('lea', { offered: true })],
+      [tariff('pj', 8000, 'pj')]
+    )
+    expect(row).toMatchObject({ dueCents: 0, remainingCents: 0, state: 'offered' })
   })
 })
 

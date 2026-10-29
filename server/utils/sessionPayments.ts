@@ -3,7 +3,7 @@ import { openEmailTransport, sendEmail } from '~/server/utils/email'
 import { CHARACTER_TYPES, REFUND_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
 import { readUpload } from '~/server/utils/uploads'
 import { isHttpUrl } from '~/utils/urls'
-import { PAYMENT_STATES, TARIFF_ROLES, TARIFF_ROLE_ORDER, eurosToCents, paymentAmountLines, type PaymentAmounts, paymentState, solidarityBalance, tariffForPerson } from '~/utils/sessionTariffs'
+import { PAYMENT_STATES, TARIFF_ROLES, TARIFF_ROLE_ORDER, eurosToCents, paymentAmountLines, type PaymentAmounts, paymentState, solidarityBalance, suggestedDepartureStatus, tariffForPerson, withdrawalDeadlineLine } from '~/utils/sessionTariffs'
 
 function compactLines(lines: Array<string | null | undefined>) {
   return lines.filter((line) => typeof line === 'string' && line.trim()).join('\n')
@@ -33,7 +33,7 @@ const rowAmounts = (row: { tariff: { name: string } | null, dueCents: number, re
 
 // Doit encore quelque chose : reste dû en mode tarifs (paiement partiel compris), case non cochée en mode simple
 const owesPayment = (mode: string, row: { paidAt: Date | null, remainingCents: number, state: string }) =>
-  mode === 'tariffs' ? row.remainingCents > 0 && row.state !== PAYMENT_STATES.paid : !row.paidAt
+  row.state !== PAYMENT_STATES.offered && (mode === 'tariffs' ? row.remainingCents > 0 && row.state !== PAYMENT_STATES.paid : !row.paidAt)
 
 function paymentEmailText(params: {
   participantName: string
@@ -44,6 +44,7 @@ function paymentEmailText(params: {
   ribAttached?: boolean
   reminder?: boolean
   amounts?: PaymentAmounts | null
+  withdrawalDeadline?: Date | null
 }) {
   const intro = params.reminder
     ? `Petit rappel pour le paiement de ta participation à ${params.sessionName}.`
@@ -58,6 +59,7 @@ function paymentEmailText(params: {
     params.paymentLinkUrl ? `Lien de paiement : ${params.paymentLinkUrl}` : null,
     params.paymentRibUrl ? `RIB : ${params.paymentRibUrl}` : null,
     params.ribAttached ? 'Le RIB est joint à cet email.' : null,
+    withdrawalDeadlineLine(params.withdrawalDeadline),
     '',
     'Merci !'
   ])
@@ -205,6 +207,7 @@ async function getPaymentSession(sessionId: string) {
       payments: {
         include: {
           participant: { select: participantSelect },
+          transferredTo: { select: { id: true, name: true } },
           instalments: { orderBy: { receivedAt: 'asc' } }
         }
       },
@@ -227,6 +230,7 @@ async function getPaymentSession(sessionId: string) {
 type TariffRecord = { id: string, name: string, amountCents: number, defaultRole: string | null, baseTariffId: string | null }
 type TariffPaymentRecord = PaymentRecord & {
   tariffId: string | null
+  offered: boolean
   instalments: Array<{ id: string, amountCents: number, receivedAt: Date }>
 }
 
@@ -273,7 +277,9 @@ export function buildTariffPaymentRows<P extends PaymentParticipant, C extends {
     const payment = paymentsByParticipantId.get(row.participant.id)
     const roles = tariffRolesOf(row.participant.id, assignments, sessionParticipants)
     const { tariff, chosen } = tariffForPerson(roles, tariffs, payment?.tariffId)
-    const dueCents = tariff?.amountCents ?? 0
+    // Place offerte : rien à payer, quel que soit le tarif (US-041)
+    const offered = Boolean(payment?.offered)
+    const dueCents = offered ? 0 : tariff?.amountCents ?? 0
     const received = receivedCents(payment)
     return {
       ...row,
@@ -287,7 +293,8 @@ export function buildTariffPaymentRows<P extends PaymentParticipant, C extends {
       receivedCents: received,
       remainingCents: Math.max(dueCents - received, 0),
       instalments: payment?.instalments || [],
-      state: paymentState({ dueCents, receivedCents: received, legacyPaid: Boolean(payment?.paidAt) })
+      offered,
+      state: paymentState({ dueCents, receivedCents: received, legacyPaid: Boolean(payment?.paidAt), offered })
     }
   })
 }
@@ -318,8 +325,10 @@ type PaymentSession = Awaited<ReturnType<typeof getPaymentSession>>
 // Lignes du tableau selon le mode : simple sans tarif, tarifs dès qu'il y en a un (ADR-0032)
 function paymentRowsOf(session: PaymentSession) {
   if (!session.tariffs.length) {
+    const offeredIds = new Set(session.payments.filter((payment) => payment.offered).map((payment) => payment.participantId))
     return buildPaymentRows(session.assignments, session.participants, session.payments).map((row) => ({
       ...row,
+      offered: offeredIds.has(row.participant.id),
       roles: [] as string[],
       tariff: null as TariffRecord | null,
       tariffChosen: false,
@@ -327,7 +336,7 @@ function paymentRowsOf(session: PaymentSession) {
       receivedCents: 0,
       remainingCents: 0,
       instalments: [] as Array<{ id: string, amountCents: number, receivedAt: Date }>,
-      state: row.paidAt ? PAYMENT_STATES.paid : PAYMENT_STATES.unpaid
+      state: offeredIds.has(row.participant.id) ? PAYMENT_STATES.offered : row.paidAt ? PAYMENT_STATES.paid : PAYMENT_STATES.unpaid
     }))
   }
   return buildTariffPaymentRows(session.assignments, session.participants, session.payments, session.tariffs)
@@ -465,9 +474,19 @@ export async function getSessionPaymentDashboard(sessionId: string) {
   // Paiements reçus de personnes qui ne sont plus dans le tableau (désistement, retrait) : à rembourser ou
   // garder à la main ; ils restent visibles, hors du décompte et des envois
   const listed = new Set(rows.map((row) => row.participant.id))
+  const suggestion = suggestedDepartureStatus(session.withdrawalDeadline)
   const unassignedPayments = session.payments
     .filter((payment) => hasPaidSomething(payment) && !listed.has(payment.participantId))
-    .map((payment) => ({ participant: payment.participant, paidAt: payment.paidAt || payment.instalments[0]?.receivedAt || null, receivedCents: receivedCents(payment) }))
+    .map((payment) => ({
+      participant: payment.participant,
+      paidAt: payment.paidAt || payment.instalments[0]?.receivedAt || null,
+      receivedCents: receivedCents(payment),
+      // Décision sur le paiement d'une personne partie (US-039, ADR-0033) ; sans décision, la proposition (US-040)
+      refundStatus: payment.refundStatus,
+      refundedAt: payment.refundedAt,
+      transferredTo: payment.transferredTo,
+      suggestedStatus: payment.refundStatus ? null : suggestion
+    }))
 
   // Session annulée ou reportée : chaque paiement reçu se rembourse ou passe sur la nouvelle session (US-023)
   const refunds = REFUNDABLE_SESSION_STATUSES.includes(session.status)
@@ -492,6 +511,7 @@ export async function getSessionPaymentDashboard(sessionId: string) {
       postponedToSessionId: session.postponedToSessionId,
       paymentRibUrl: session.paymentRibUrl,
       paymentLinkUrl: session.paymentLinkUrl,
+      withdrawalDeadline: session.withdrawalDeadline,
       game: session.game
     },
     // Mode simple sans tarif, mode tarifs dès qu'il y en a un (ADR-0032)
@@ -502,7 +522,7 @@ export async function getSessionPaymentDashboard(sessionId: string) {
       receivedCents: rows.reduce((total, row) => total + row.receivedCents, 0),
       remainingCents: rows.reduce((total, row) => total + row.remainingCents, 0)
     },
-    solidarity: solidarityBalance(rows, session.tariffs),
+    solidarity: solidarityBalance(rows.filter((row) => !row.offered), session.tariffs),
     unassignedPayments,
     refunds,
     sessionRoleRecipients: session.participants.map((sessionParticipant) => ({
@@ -516,6 +536,7 @@ export async function getSessionPaymentDashboard(sessionId: string) {
 export async function updateSessionPaymentSettings(sessionId: string, data: {
   paymentRibUrl?: string | null
   paymentLinkUrl?: string | null
+  withdrawalDeadline?: Date | null
 }) {
   // Les paiements ne font pas partie de la version de la session (ADR-0028) : updatedAt est gardé,
   // sinon le casting enregistré ensuite depuis la même page serait refusé comme un conflit
@@ -526,12 +547,14 @@ export async function updateSessionPaymentSettings(sessionId: string, data: {
     data: {
       ...(data.paymentRibUrl !== undefined && { paymentRibUrl: data.paymentRibUrl || null }),
       ...(data.paymentLinkUrl !== undefined && { paymentLinkUrl: data.paymentLinkUrl || null }),
+      ...(data.withdrawalDeadline !== undefined && { withdrawalDeadline: data.withdrawalDeadline }),
       updatedAt
     },
     select: {
       id: true,
       paymentRibUrl: true,
       paymentLinkUrl: true,
+      withdrawalDeadline: true,
       updatedAt: true
     }
   })
@@ -601,7 +624,8 @@ export async function sendSessionPaymentEmails(sessionId: string, reminder = fal
             paymentRibUrl: externalRibUrl(dashboard.session.paymentRibUrl),
             ribAttached: Boolean(rib),
             reminder: isReminder,
-            amounts: rowAmounts(row)
+            amounts: rowAmounts(row),
+            withdrawalDeadline: dashboard.session.withdrawalDeadline
           }),
           attachments: rib ? [rib] : []
         })
@@ -659,7 +683,8 @@ export async function sendSessionPaymentTestEmails(sessionId: string, emails: st
       paymentRibUrl: externalRibUrl(dashboard.session.paymentRibUrl),
       ribAttached: Boolean(rib),
       reminder,
-      amounts: sample ? rowAmounts(sample) : null
+      amounts: sample ? rowAmounts(sample) : null,
+      withdrawalDeadline: dashboard.session.withdrawalDeadline
     }),
     attachments: rib ? [rib] : []
   })
@@ -669,3 +694,64 @@ export async function sendSessionPaymentTestEmails(sessionId: string, emails: st
 
   return { sentCount: emails.length }
 }
+
+// Place offerte (US-041) : rien à payer, sans créer de tarif
+export async function setSessionPaymentOffered(sessionId: string, participantId: string, offered: boolean) {
+  await assertInPaymentTable(sessionId, participantId)
+  return await prisma.sessionPayment.upsert({
+    where: { sessionId_participantId: { sessionId, participantId } },
+    create: { sessionId, participantId, offered },
+    update: { offered }
+  })
+}
+
+const DEPARTURE_STATUSES: string[] = [REFUND_STATUSES.toRefund, REFUND_STATUSES.refunded, REFUND_STATUSES.kept, REFUND_STATUSES.transferred]
+
+/**
+ * Décision sur le paiement d'une personne partie (US-039, ADR-0033). « Transféré » compte le montant reçu
+ * comme payé par le remplaçant : un versement en mode tarifs, la case « payé » en mode simple. Revenir sur
+ * un transfert ne retire rien chez le remplaçant : on le corrige depuis sa ligne.
+ */
+export async function setDepartedPaymentStatus(sessionId: string, participantId: string, status: string | null, transferToParticipantId?: string | null) {
+  if (status && !DEPARTURE_STATUSES.includes(status)) {
+    throw createError({ statusCode: 400, message: 'Décision invalide' })
+  }
+  const session = await getPaymentSession(sessionId)
+  const rows = paymentRowsOf(session)
+  const payment = session.payments.find((item) => item.participantId === participantId)
+  if (!payment || !hasPaidSomething(payment) || rows.some((row) => row.participant.id === participantId)) {
+    throw createError({ statusCode: 400, message: 'Cette personne n’a pas de paiement à traiter : elle est encore dans le tableau, ou n’a rien payé.' })
+  }
+
+  if (status !== REFUND_STATUSES.transferred) {
+    return await prisma.sessionPayment.update({
+      where: { id: payment.id },
+      data: {
+        refundStatus: status,
+        refundedAt: status === REFUND_STATUSES.refunded ? new Date() : null,
+        transferredToParticipantId: null
+      }
+    })
+  }
+
+  if (!transferToParticipantId || !rows.some((row) => row.participant.id === transferToParticipantId)) {
+    throw createError({ statusCode: 400, message: 'Choisissez une personne du tableau des paiements pour reprendre ce paiement.' })
+  }
+  const paidAt = payment.paidAt || payment.instalments[0]?.receivedAt || new Date()
+  const total = receivedCents(payment)
+  return await prisma.$transaction(async (tx) => {
+    const target = await tx.sessionPayment.upsert({
+      where: { sessionId_participantId: { sessionId, participantId: transferToParticipantId } },
+      create: { sessionId, participantId: transferToParticipantId, paidAt: session.tariffs.length ? null : paidAt },
+      update: session.tariffs.length ? {} : { paidAt }
+    })
+    if (session.tariffs.length && total) {
+      await tx.sessionPaymentInstalment.create({ data: { paymentId: target.id, amountCents: total, receivedAt: paidAt } })
+    }
+    return await tx.sessionPayment.update({
+      where: { id: payment.id },
+      data: { refundStatus: status, refundedAt: null, transferredToParticipantId: transferToParticipantId }
+    })
+  })
+}
+

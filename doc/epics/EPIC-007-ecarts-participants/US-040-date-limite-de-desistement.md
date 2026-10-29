@@ -1,7 +1,7 @@
 ---
 id: US-040
 titre: Date limite de désistement
-statut: à faire
+statut: terminée
 epic: EPIC-007
 regles: [R16, R17]
 adr: [ADR-0033]
@@ -13,9 +13,9 @@ En tant qu'organisatrice, je veux fixer une date après laquelle une place n'est
 
 ## Critères d'acceptation
 
-- [ ] L'onglet Paiements règle une date limite de désistement, facultative.
-- [ ] Pour le paiement d'une personne partie, sans décision, Limbus propose « à rembourser » avant la date et « gardé, non remboursé » après ; l'organisatrice décide.
-- [ ] L'email de paiement, et son aperçu, donnent la date et disent qu'après elle, le remboursement est laissé à l'appréciation de l'organisation.
+- [x] L'onglet Paiements règle une date limite de désistement, facultative.
+- [x] Pour le paiement d'une personne partie, sans décision, Limbus propose « à rembourser » avant la date et « gardé, non remboursé » après ; l'organisatrice décide.
+- [x] L'email de paiement, et son aperçu, donnent la date et disent qu'après elle, le remboursement est laissé à l'appréciation de l'organisation.
 
 ## Notes techniques
 

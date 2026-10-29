@@ -206,3 +206,54 @@ describe('report d’une session avec tarifs (revue de la PR #61)', () => {
   })
 })
 
+describe('personne partie, date limite et place offerte (US-039 à US-041)', () => {
+  it('transfère le paiement d’une personne partie au remplaçant, en mode tarifs et en mode simple', async () => {
+    for (const withTariffs of [true, false]) {
+      const t = await team()
+      if (withTariffs) await api(alice, 'POST', `/api/sessions/${t.session.id}/tariffs`, { name: 'PJ', amount: 80, defaultRole: 'pj' })
+      if (withTariffs) await api(alice, 'POST', `/api/sessions/${t.session.id}/payments/${t.player.id}/instalments`, { amount: 80 })
+      else await api(alice, 'PUT', `/api/sessions/${t.session.id}/payments/${t.player.id}`, { paid: true })
+
+      // Encore dans le tableau : pas de décision possible
+      expect((await api(alice, 'PUT', `/api/sessions/${t.session.id}/payments/${t.player.id}/departure`, { status: 'kept' })).status).toBe(400)
+
+      // La joueuse part, le PNJ reprend sa place
+      await prisma.sessionAssignment.updateMany({ where: { sessionId: t.session.id, participantId: t.player.id }, data: { participantId: null } })
+      const departed = (await t.dashboard() as unknown as { unassignedPayments: Array<{ participant: { id: string } }> }).unassignedPayments
+      expect(departed.map((payment) => payment.participant.id)).toEqual([t.player.id])
+
+      const transfer = await api(alice, 'PUT', `/api/sessions/${t.session.id}/payments/${t.player.id}/departure`, { status: 'transferred', transferToParticipantId: t.npc.id })
+      expect(transfer.status, JSON.stringify(transfer.body)).toBe(200)
+      const target = await prisma.sessionPayment.findUniqueOrThrow({ where: { sessionId_participantId: { sessionId: t.session.id, participantId: t.npc.id } }, include: { instalments: true } })
+      if (withTariffs) expect(target.instalments.map((instalment) => instalment.amountCents)).toEqual([8000])
+      else expect(target.paidAt).not.toBeNull()
+      expect((await prisma.sessionPayment.findUniqueOrThrow({ where: { sessionId_participantId: { sessionId: t.session.id, participantId: t.player.id } } })).refundStatus).toBe('transferred')
+    }
+  })
+
+  it('propose selon la date limite, et la date figure dans l’email de paiement', async () => {
+    const t = await team()
+    const settings = await api(alice, 'PUT', `/api/sessions/${t.session.id}/payments/settings`, { withdrawalDeadline: '2020-01-15' })
+    expect(settings.status, JSON.stringify(settings.body)).toBe(200)
+    await api(alice, 'PUT', `/api/sessions/${t.session.id}/payments/${t.player.id}`, { paid: true })
+    await prisma.sessionAssignment.updateMany({ where: { sessionId: t.session.id, participantId: t.player.id }, data: { participantId: null } })
+    const departed = (await t.dashboard() as unknown as { unassignedPayments: Array<{ suggestedStatus: string | null }> }).unassignedPayments
+    expect(departed[0]!.suggestedStatus).toBe('kept')
+
+    expect((await api(alice, 'POST', `/api/sessions/${t.session.id}/payments/send`, { participantId: t.npc.id })).status).toBe(200)
+    const text = smtp.received.filter((received) => received.to.includes(t.npc.email!)).at(-1)!.text
+    expect(text).toContain('Date limite de désistement : 15 janvier 2020')
+  })
+
+  it('une place offerte ne doit rien et ne reçoit pas de demande', async () => {
+    const t = await team()
+    await api(alice, 'POST', `/api/sessions/${t.session.id}/tariffs`, { name: 'PJ', amount: 80, defaultRole: 'pj' })
+    expect((await api(alice, 'PUT', `/api/sessions/${t.session.id}/payments/${t.player.id}/offered`, { offered: true })).status).toBe(200)
+    expect(await t.row(t.player.id)).toMatchObject({ dueCents: 0, state: 'offered' })
+
+    const before = smtp.received.filter((received) => received.to.includes(t.player.email!)).length
+    await api(alice, 'POST', `/api/sessions/${t.session.id}/payments/send`, {})
+    expect(smtp.received.filter((received) => received.to.includes(t.player.email!))).toHaveLength(before)
+  })
+})
+

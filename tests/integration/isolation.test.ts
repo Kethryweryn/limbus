@@ -176,6 +176,8 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['PUT', `/api/sessions/${session}/tariffs/${b.tariff.id}`, { name: 'Intrus', amount: 10 }],
     ['DELETE', `/api/sessions/${session}/tariffs/${b.tariff.id}`],
     ['PUT', `/api/sessions/${session}/payments/${b.participant.id}/tariff`, { tariffId: null }],
+    ['PUT', `/api/sessions/${session}/payments/${b.participant.id}/departure`, { status: 'kept' }],
+    ['PUT', `/api/sessions/${session}/payments/${b.participant.id}/offered`, { offered: true }],
     ['POST', `/api/sessions/${session}/payments/${b.participant.id}/instalments`, { amount: 10 }],
     ['DELETE', `/api/sessions/${session}/payments/${b.participant.id}/instalments/${b.instalment.id}`],
     ['POST', `/api/sessions/${session}/payments/send`, {}],

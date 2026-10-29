@@ -22,9 +22,9 @@ Les écarts 1 (fiche commune) et 3 (durée de conservation) sont traités par la
 | [US-036](US-036-une-fiche-a-toujours-un-jeu.md) | Une fiche a toujours au moins un jeu | terminée |
 | [US-037](US-037-export-complet-des-inscriptions.md) | Export complet des inscriptions | terminée |
 | [US-038](US-038-retirer-participant-published.md) | Retirer `Participant.published` | terminée |
-| [US-039](US-039-paiement-d-une-personne-qui-part.md) | Paiement d'une personne qui part : rembourser, garder ou transférer | à faire |
-| [US-040](US-040-date-limite-de-desistement.md) | Date limite de désistement | à faire |
-| [US-041](US-041-place-offerte.md) | Place offerte | à faire |
+| [US-039](US-039-paiement-d-une-personne-qui-part.md) | Paiement d'une personne qui part : rembourser, garder ou transférer | terminée |
+| [US-040](US-040-date-limite-de-desistement.md) | Date limite de désistement | terminée |
+| [US-041](US-041-place-offerte.md) | Place offerte | terminée |
 
 ## Définition de terminé
 

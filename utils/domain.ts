@@ -19,7 +19,10 @@ export const SESSION_STATUSES = {
 export const REFUND_STATUSES = {
   toRefund: 'to_refund',
   refunded: 'refunded',
-  carriedOver: 'carried_over'
+  carriedOver: 'carried_over',
+  // Personne partie (désistement, retrait) : paiement gardé, ou transféré au remplaçant (US-039, ADR-0033)
+  kept: 'kept',
+  transferred: 'transferred'
 } as const
 
 // Annulée ou terminée : hors du tableau de bord, des prochaines sessions et de la section « à venir » (US-020)
