@@ -13,18 +13,18 @@ En tant qu'organisatrice, je veux reporter une session sur une nouvelle date en 
 
 ## Critères d'acceptation
 
-- [ ] Depuis une session prévue ou annulée, « Reporter » demande soit une nouvelle session (nom, date, lieu), soit une session existante du même jeu.
-- [ ] L'équipe (avec ses rôles) et le casting (personnages, participants, notes et photos) sont recopiés sur la session cible. Sur une session existante, ils s'ajoutent à ce qui y est déjà, sans doublon.
+- [ ] Depuis une session prévue ou annulée, « Reporter » crée une nouvelle session : nom, date et lieu, pré-remplis depuis l'ancienne. On ne reporte pas vers une session existante (choix du 29 octobre 2026).
+- [ ] L'équipe (avec ses rôles) et le casting (personnages, participants, notes et photos) sont recopiés sur la nouvelle session.
 - [ ] L'ancienne session passe « Reportée » et indique vers quelle session ; la nouvelle indique d'où elle vient.
 - [ ] Les photos recopiées restent disponibles même si l'une des deux sessions est supprimée.
 - [ ] Le report propose ensuite d'envoyer les demandes de confirmation de présence (US-024).
 
 ## Notes techniques
 
-- Route `POST /api/sessions/:id/postpone` (action, jamais mise en file hors ligne), dans une transaction ; contrôle d'accès au jeu et sessions du même jeu.
+- Route `POST /api/sessions/:id/postpone` (action, jamais mise en file hors ligne), dans une transaction ; contrôle d'accès au jeu de la session.
 - `Session.postponedToSessionId` (self-relation, `SetNull`). Photos : `UploadedFile.sessionId` passe à `null` ([ADR-0029](../../adr/ADR-0029-cycle-de-vie-d-une-session.md)).
 - Route ajoutée à `isolation.test.ts`.
 
 ## Tests
 
-- Intégration : report vers une nouvelle session et vers une existante (équipe, casting, photos) ; refus vers une session d'un autre jeu ; isolation.
+- Intégration : report vers une nouvelle session (équipe, casting, photos recopiés, ancienne session « Reportée » et liée) ; photo gardée après suppression de l'ancienne session ; refus d'une session déjà reportée ; isolation.

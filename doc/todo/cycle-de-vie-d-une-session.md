@@ -40,4 +40,6 @@ Aucun : tranchés le 29 octobre 2026 (voir les décisions).
   - pour une session reportée, l'organisation choisit pour chaque personne qui a payé : report du paiement sur la nouvelle session, remboursement à faire, ou remboursé ;
   - une personne qui ne confirme pas avant la date limite est signalée « délai dépassé » ; l'organisation libère sa place ou prolonge le délai ([ADR-0020](../adr/ADR-0020-echeances-evaluees-a-la-lecture.md)) ;
   - à l'annulation et au report, Limbus propose un email, que l'organisation relit et envoie à la main ;
-  - supprimer une session qui a des paiements ou des inscriptions est refusé : Limbus oriente vers l'annulation ou le report.
+  - supprimer une session qui a des paiements ou des inscriptions est refusé : Limbus oriente vers l'annulation ou le report ;
+  - un report crée toujours une nouvelle session, sans choisir une session existante ; la confirmation de présence va à toute l'équipe, avec une date limite choisie au report (7 jours par défaut) ;
+  - les sessions existantes ne sont pas visibles sur la page publique ; une session terminée ou annulée est rangée avec les sessions passées.
