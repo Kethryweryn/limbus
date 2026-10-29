@@ -20,7 +20,7 @@ En tant qu'organisatrice, je veux que les liens déjà diffusés vers la page pu
 
 ## Notes techniques
 
-- Table `GameSlugRedirect` (ancien slug, jeu), remplie par `PUT /api/games/:id` ([ADR-0035](../../adr/ADR-0035-anciens-slugs-d-un-jeu.md)).
+- Table `GameSlugRedirect` (ancien slug, jeu), remplie par `PUT /api/games/:id` ([ADR-0035](../../../adr/ADR-0035-anciens-slugs-d-un-jeu.md)).
 - La route publique renvoie le slug actuel ; la page redirige avec `navigateTo(…, { redirectCode: 301 })`.
 
 ## Tests

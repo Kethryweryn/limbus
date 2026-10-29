@@ -1,8 +1,8 @@
 ---
 id: EPIC-009
 titre: Corriger les écarts de la page publique
-statut: en cours
-spec: ../../specs/SPEC-009-page-publique.md
+statut: terminé
+spec: ../../../specs/SPEC-009-page-publique.md
 date: 2026-10-29
 ---
 
@@ -10,7 +10,7 @@ date: 2026-10-29
 
 ## Objectif
 
-Corriger les écarts 1 (crédit), 2 (lien stable) et 4 (teaser YouTube) de [SPEC-009](../../specs/SPEC-009-page-publique.md), avec les choix faits par l'utilisatrice le 29 octobre 2026. L'écart 3 (contenu choisi par l'organisation) vient avec le formulaire public des inscriptions ([feuille de route](../../feuille-de-route.md)).
+Corriger les écarts 1 (crédit), 2 (lien stable) et 4 (teaser YouTube) de [SPEC-009](../../../specs/SPEC-009-page-publique.md), avec les choix faits par l'utilisatrice le 29 octobre 2026. L'écart 3 (contenu choisi par l'organisation) vient avec le formulaire public des inscriptions ([feuille de route](../../../feuille-de-route.md)).
 
 ## US
 
@@ -24,4 +24,4 @@ Corriger les écarts 1 (crédit), 2 (lien stable) et 4 (teaser YouTube) de [SPEC
 
 - Toutes les US terminées ; `npm run lint`, `npm run typecheck`, `npm test` et la CI passent.
 - SPEC-009 à jour.
-- [ADR-0035](../../adr/ADR-0035-anciens-slugs-d-un-jeu.md).
+- [ADR-0035](../../../adr/ADR-0035-anciens-slugs-d-un-jeu.md).

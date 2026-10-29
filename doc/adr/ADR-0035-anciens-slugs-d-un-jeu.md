@@ -3,7 +3,7 @@ id: ADR-0035
 titre: Les anciens slugs d'un jeu redirigent vers sa page publique
 statut: accepté
 date: 2026-10-29
-liens: [../specs/SPEC-009-page-publique.md, ../epics/EPIC-009-ecarts-page-publique/US-045-lien-stable-de-la-page-publique.md]
+liens: [../specs/SPEC-009-page-publique.md, ../archive/epics/EPIC-009-ecarts-page-publique/US-045-lien-stable-de-la-page-publique.md]
 ---
 
 # ADR-0035 : Les anciens slugs d'un jeu redirigent vers sa page publique
