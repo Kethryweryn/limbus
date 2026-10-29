@@ -8,15 +8,13 @@ import { sendGameBequestEmail } from '~/server/utils/email'
 import { GAME_INVITATION_KINDS } from '~/utils/domain'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
 import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 // Lègue une copie du jeu à une autre organisatrice, avec ou sans compte (SPEC-002, US-010, US-011)
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'ID manquant' })
-  }
+  const id = requireRouterParam(event, 'id')
   const { user, game } = await requireBequestOwner(event, id)
 
   const body = await readZodBody(event, gameBequestSchema)

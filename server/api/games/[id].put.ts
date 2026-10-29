@@ -4,14 +4,12 @@ import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { readZodBody, updateGameSchema } from '~/server/utils/schemas'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'ID manquant' })
-  }
+  const id = requireRouterParam(event, 'id')
   await requireGameAccess(event, id)
   await assertUnmodifiedSince(event, 'game', id)
 

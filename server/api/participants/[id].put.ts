@@ -5,14 +5,12 @@ import { participantSchema, readZodBody } from '~/server/utils/schemas'
 import { exposeParticipantGames, participantGameLinksInclude } from '~/server/utils/participants'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'ID manquant' })
-  }
+  const id = requireRouterParam(event, 'id')
   await requireParticipantAccess(event, id)
 
   const body = await readZodBody(event, participantSchema)

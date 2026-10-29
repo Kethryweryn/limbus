@@ -5,14 +5,12 @@ import { requireGameAccess, assertSameGame } from '~/server/utils/gameAccess'
 import { readZodBody, updateCharacterSchema } from '~/server/utils/schemas'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { assertGameUploads, deleteUnusedUploads } from '~/server/utils/uploads'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'ID manquant' })
-  }
+  const id = requireRouterParam(event, 'id')
 
   const existingCharacter = await prisma.character.findUnique({
     where: { id },

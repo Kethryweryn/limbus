@@ -6,14 +6,12 @@ import { GAME_INVITATION_KINDS, GAME_INVITATION_STATUSES } from '~/utils/domain'
 import { createInvitationToken, invitationUrl, normalizeInvitationEmail } from '~/server/utils/invitations'
 import { sendGameInvitationEmail } from '~/server/utils/email'
 import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'ID manquant' })
-  }
+  const id = requireRouterParam(event, 'id')
   const { user } = await requireGameOwner(event, id)
   const body = await readZodBody(event, gameInvitationCreateSchema)
   const email = normalizeInvitationEmail(body.email)

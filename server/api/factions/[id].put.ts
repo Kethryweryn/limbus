@@ -4,14 +4,12 @@ import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { requireGameAccess, assertSameGame } from '~/server/utils/gameAccess'
 import { factionSchema, readZodBody } from '~/server/utils/schemas'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'ID manquant' })
-  }
+  const id = requireRouterParam(event, 'id')
   const faction = await prisma.faction.findUnique({ where: { id }, select: { gameId: true } })
   if (!faction) {
     throw createError({ statusCode: 404, message: 'Groupe introuvable' })

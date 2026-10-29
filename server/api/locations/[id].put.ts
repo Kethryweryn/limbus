@@ -4,14 +4,12 @@ import { locationSchema, readZodBody } from '~/server/utils/schemas'
 import { requireGameAccess, assertSameGame } from '~/server/utils/gameAccess'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'ID manquant' })
-  }
+  const id = requireRouterParam(event, 'id')
   const location = await prisma.location.findUnique({ where: { id }, select: { gameId: true } })
   if (!location) {
     throw createError({ statusCode: 404, message: 'Lieu introuvable' })

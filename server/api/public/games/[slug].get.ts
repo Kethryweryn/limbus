@@ -1,10 +1,8 @@
 import { prisma } from '~/server/utils/prisma'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
-  const slug = getRouterParam(event, 'slug')
-  if (!slug) {
-    throw createError({ statusCode: 400, message: 'Slug manquant' })
-  }
+  const slug = requireRouterParam(event, 'slug')
 
   const game = await prisma.game.findFirst({
     where: {

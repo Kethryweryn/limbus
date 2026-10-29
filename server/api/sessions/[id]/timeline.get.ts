@@ -2,14 +2,12 @@ import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { requireGameAccess, requireSessionAccess } from '~/server/utils/gameAccess'
 import { timelineEventInclude, withTimelineConflicts } from '~/server/utils/timelineEvents'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'ID manquant' })
-  }
+  const id = requireRouterParam(event, 'id')
 
   const accessibleSession = await requireSessionAccess(event, id)
 

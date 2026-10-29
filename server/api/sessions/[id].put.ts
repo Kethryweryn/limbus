@@ -6,6 +6,7 @@ import { assertSessionCastRules, assertSessionLocation, normalizeAssignments, no
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { assertGameUploads, deleteUnusedUploads } from '~/server/utils/uploads'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 function parseDate(value: unknown): Date | null {
   if (!value || typeof value !== 'string') return null
@@ -16,10 +17,7 @@ function parseDate(value: unknown): Date | null {
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'ID manquant' })
-  }
+  const id = requireRouterParam(event, 'id')
   const existingSession = await requireSessionAccess(event, id)
   await assertUnmodifiedSince(event, 'session', existingSession.id)
 

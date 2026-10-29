@@ -1,14 +1,12 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { gameScopedWhere } from '~/server/utils/gameAccess'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
-  const slug = getRouterParam(event, 'slug')
-  if (!slug) {
-    throw createError({ statusCode: 400, message: 'Slug manquant' })
-  }
+  const slug = requireRouterParam(event, 'slug')
 
   const record = await prisma.intrigue.findFirst({
     where: await gameScopedWhere(event, { slug }),

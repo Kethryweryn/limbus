@@ -3,14 +3,12 @@ import { prisma } from '~/server/utils/prisma'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { characterTrombinoscopeSchema, readZodBody } from '~/server/utils/schemas'
 import { saveCharacterTrombinoscopeConfig } from '~/server/utils/trombinoscopes'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'ID manquant' })
-  }
+  const id = requireRouterParam(event, 'id')
   const character = await prisma.character.findUnique({ where: { id }, select: { gameId: true } })
   if (!character) {
     throw createError({ statusCode: 404, message: 'Personnage introuvable' })

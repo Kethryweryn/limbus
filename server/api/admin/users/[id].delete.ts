@@ -1,13 +1,11 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireAdmin } from '~/server/utils/auth'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
   const currentUser = await requireAdmin(event)
 
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, message: 'ID manquant' })
-  }
+  const id = requireRouterParam(event, 'id')
   if (id === currentUser.id) {
     throw createError({ statusCode: 400, message: 'Impossible de supprimer son propre utilisateur' })
   }

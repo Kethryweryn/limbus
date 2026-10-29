@@ -1,15 +1,13 @@
 import { requireOrganizer } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { buildDocumentPdf } from '~/server/utils/documents'
+import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
-  const id = getRouterParam(event, 'id')
-  const documentId = getRouterParam(event, 'documentId')
-  if (!id || !documentId) {
-    throw createError({ statusCode: 400, message: 'Paramètres manquants' })
-  }
+  const id = requireRouterParam(event, 'id')
+  const documentId = requireRouterParam(event, 'documentId')
 
   const session = await requireSessionAccess(event, id)
 
