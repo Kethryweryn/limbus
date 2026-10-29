@@ -66,7 +66,7 @@ function paymentEmailText(params: {
 }
 
 type PaymentParticipant = { id: string, name: string, email: string | null }
-type PaymentRecord = { participantId: string, paidAt: Date | null, paymentEmailSentAt: Date | null, paymentReminderSentAt: Date | null }
+type PaymentRecord = { participantId: string, paidAt: Date | null, paymentEmailSentAt: Date | null, paymentReminderSentAt: Date | null, updatedAt?: Date }
 
 /**
  * Lignes du tableau des paiements (R22, US-007) : une par personne, qu'elle joue un personnage
@@ -117,7 +117,9 @@ export function buildPaymentRows<P extends PaymentParticipant, C extends { name:
       npcRole,
       paidAt: payment?.paidAt || null,
       paymentEmailSentAt: payment?.paymentEmailSentAt || null,
-      paymentReminderSentAt: payment?.paymentReminderSentAt || null
+      paymentReminderSentAt: payment?.paymentReminderSentAt || null,
+      // Version de la ligne, renvoyée à chaque modification (ADR-0036) ; null tant qu'elle n'existe pas
+      paymentUpdatedAt: payment?.updatedAt || null
     }
   })
 }
@@ -269,7 +271,8 @@ export function buildTariffPaymentRows<P extends PaymentParticipant, C extends {
       npcRole: false,
       paidAt: null as Date | null,
       paymentEmailSentAt: null as Date | null,
-      paymentReminderSentAt: null as Date | null
+      paymentReminderSentAt: null as Date | null,
+      paymentUpdatedAt: null as Date | null
     }))
   const paymentsByParticipantId = new Map(payments.map((payment) => [payment.participantId, payment]))
 
@@ -286,6 +289,8 @@ export function buildTariffPaymentRows<P extends PaymentParticipant, C extends {
       paidAt: payment?.paidAt || null,
       paymentEmailSentAt: payment?.paymentEmailSentAt || null,
       paymentReminderSentAt: payment?.paymentReminderSentAt || null,
+      // Version de la ligne, renvoyée à chaque modification (ADR-0036) ; null tant qu'elle n'existe pas
+      paymentUpdatedAt: payment?.updatedAt || null,
       roles,
       tariff,
       tariffChosen: chosen,
@@ -485,6 +490,7 @@ export async function getSessionPaymentDashboard(sessionId: string) {
       refundStatus: payment.refundStatus,
       refundedAt: payment.refundedAt,
       transferredTo: payment.transferredTo,
+      paymentUpdatedAt: payment.updatedAt,
       suggestedStatus: payment.refundStatus ? null : suggestion
     }))
 
@@ -497,7 +503,8 @@ export async function getSessionPaymentDashboard(sessionId: string) {
         paidAt: payment.paidAt || payment.instalments[0]?.receivedAt || null,
         receivedCents: receivedCents(payment),
         refundStatus: payment.refundStatus,
-        refundedAt: payment.refundedAt
+        refundedAt: payment.refundedAt,
+        paymentUpdatedAt: payment.updatedAt
       }))
       .sort((left, right) => left.participant.name.localeCompare(right.participant.name, 'fr'))
     : []
@@ -512,6 +519,7 @@ export async function getSessionPaymentDashboard(sessionId: string) {
       paymentRibUrl: session.paymentRibUrl,
       paymentLinkUrl: session.paymentLinkUrl,
       withdrawalDeadline: session.withdrawalDeadline,
+      paymentSettingsUpdatedAt: session.paymentSettingsUpdatedAt,
       game: session.game
     },
     // Mode simple sans tarif, mode tarifs dès qu'il y en a un (ADR-0032)
@@ -548,6 +556,8 @@ export async function updateSessionPaymentSettings(sessionId: string, data: {
       ...(data.paymentRibUrl !== undefined && { paymentRibUrl: data.paymentRibUrl || null }),
       ...(data.paymentLinkUrl !== undefined && { paymentLinkUrl: data.paymentLinkUrl || null }),
       ...(data.withdrawalDeadline !== undefined && { withdrawalDeadline: data.withdrawalDeadline }),
+      // Version des réglages (ADR-0036)
+      paymentSettingsUpdatedAt: new Date(),
       updatedAt
     },
     select: {
@@ -555,12 +565,13 @@ export async function updateSessionPaymentSettings(sessionId: string, data: {
       paymentRibUrl: true,
       paymentLinkUrl: true,
       withdrawalDeadline: true,
+      paymentSettingsUpdatedAt: true,
       updatedAt: true
     }
   })
 }
 
-export async function setSessionPaymentStatus(sessionId: string, participantId: string, paid: boolean) {
+export async function setSessionPaymentStatus(sessionId: string, participantId: string, paid: boolean, paidAt?: Date) {
   const session = await assertInPaymentTable(sessionId, participantId)
   // En mode tarifs, l'état se calcule à partir des versements (ADR-0032) : on peut seulement retirer une
   // validation faite en mode simple
@@ -578,10 +589,10 @@ export async function setSessionPaymentStatus(sessionId: string, participantId: 
     create: {
       sessionId,
       participantId,
-      paidAt: paid ? new Date() : null
+      paidAt: paid ? paidAt || new Date() : null
     },
     update: {
-      paidAt: paid ? new Date() : null
+      paidAt: paid ? paidAt || new Date() : null
     }
   })
 }

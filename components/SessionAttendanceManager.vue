@@ -133,7 +133,7 @@ const preview = computed(() => attendanceInvitationEmailText({
 }))
 
 async function load() {
-  data.value = await useApiFetch(`/api/sessions/${props.session.id}/attendance`)
+  data.value = await useApiFetch(`/api/sessions/${props.session.id}/attendance`, { offlineCache: true })
 }
 
 onMounted(load)

@@ -23,7 +23,7 @@ Deux organisatrices peuvent modifier en même temps l'équipe, le casting ou les
 
 - Enregistrer le casting puis le déroulé depuis la même page fonctionne : la page reprend la version renvoyée par chaque enregistrement.
 - Une modification des paiements, des envois ou des trombinoscopes ne change pas la version : elle n'entre pas en conflit avec le casting. Les réglages de paiement, qui sont des colonnes de `Session`, gardent explicitement son `updatedAt`.
-- Le contrôle reste facultatif pour les autres clients (requête sans version) ; le rendre obligatoire relève de la fiche [Resynchronisation hors ligne](../todo/resynchronisation-hors-ligne.md).
+- Le contrôle reste facultatif pour les autres clients (requête sans version) ; le rendre obligatoire relève de la fiche [Resynchronisation hors ligne](../archive/todo/resynchronisation-hors-ligne.md) : voir [ADR-0036](ADR-0036-protocole-de-resynchronisation.md).
 
 ## Options écartées
 

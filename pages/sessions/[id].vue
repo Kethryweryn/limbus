@@ -148,7 +148,7 @@
     />
 
     <UCard v-if="!session">
-      Chargement...
+      {{ loadError || 'Chargement...' }}
     </UCard>
     <SessionPostponeModal v-model:open="showPostpone" :session="session" :locations="locations" @postponed="onPostponed" />
     <SessionCancellationModal v-model:open="showCancellation" :session="session" :default-email="currentUserEmail" />
@@ -163,6 +163,8 @@ import SessionTimelineForm from '@/components/SessionTimelineForm.vue'
 import SessionDocumentsManager from '@/components/SessionDocumentsManager.vue'
 import SessionPaymentsManager from '@/components/SessionPaymentsManager.vue'
 import { SESSION_ROLES, SESSION_STATUSES, SESSION_STATUS_META } from '~/utils/domain'
+import { projectOfflineSession, projectOfflineTimeline } from '~/utils/sessionOffline'
+import { saveCachedResponse } from '~/utils/storage'
 
 const route = useRoute()
 const router = useRouter()
@@ -175,6 +177,7 @@ const timelineData = ref(null)
 const documentsData = ref(null)
 const paymentsData = ref(null)
 const currentUserEmail = ref('')
+const loadError = ref('')
 const sessionTabs = ['timeline', 'documents', 'payments', 'cast', 'presence']
 const activeTab = ref(sessionTabs.includes(route.query.tab) ? route.query.tab : 'cast')
 const isEditingDetails = ref(route.query.edit === 'details')
@@ -201,18 +204,41 @@ const formatDate = (value) => new Date(value).toLocaleString('fr-FR', {
   minute: '2-digit'
 })
 
+// Toutes les lectures de la page passent par l'adresse de la page : sans réseau, la session se rouvre telle
+// qu'elle a été vue (US-047)
+const sessionApi = (path = '') => `/api/sessions/${route.params.id}${path}`
+const offlineRead = (request) => useApiFetch(request, { offlineCache: true })
+
+// Modification partie en file hors ligne : la page et sa copie sur l'appareil montrent aussitôt le résultat (US-048)
+async function keepOffline(request, value) {
+  await saveCachedResponse(request, value)
+  return value
+}
+
+const offlineLookup = () => ({ characters: characters.value, participants: participants.value, locations: locations.value })
+
 async function loadData() {
-  const [sessionData, gamesData, charactersData, locationsData, participantsData, timelineSessionData, sessionDocumentsData, sessionPaymentsData, authData] = await Promise.all([
-    useApiFetch(`/api/sessions/${route.params.id}`),
-    useApiFetch('/api/games'),
-    useApiFetch('/api/characters'),
-    useApiFetch('/api/locations'),
-    useApiFetch('/api/participants'),
-    useApiFetch(`/api/sessions/${route.params.id}/timeline`),
-    useApiFetch(`/api/sessions/${route.params.id}/documents`),
-    useApiFetch(`/api/sessions/${route.params.id}/payments`),
-    useApiFetch('/api/auth/me')
-  ])
+  loadError.value = ''
+  let loaded
+  try {
+    loaded = await Promise.all([
+      offlineRead(sessionApi()),
+      offlineRead('/api/games'),
+      offlineRead('/api/characters'),
+      offlineRead('/api/locations'),
+      offlineRead('/api/participants'),
+      offlineRead(sessionApi('/timeline')),
+      offlineRead(sessionApi('/documents')),
+      offlineRead(sessionApi('/payments')),
+      offlineRead('/api/auth/me')
+    ])
+  } catch (err) {
+    loadError.value = err?.offlineMissing
+      ? 'Cette session n’a pas été consultée avec le réseau sur cet appareil : elle n’est pas disponible hors ligne.'
+      : err?.data?.message || err?.message || 'Erreur inconnue'
+    return
+  }
+  const [sessionData, gamesData, charactersData, locationsData, participantsData, timelineSessionData, sessionDocumentsData, sessionPaymentsData, authData] = loaded
 
   session.value = sessionData
   games.value = gamesData
@@ -229,24 +255,25 @@ async function loadData() {
 async function saveCast(assignments) {
   if (!session.value) return
 
-  session.value = await useApiFetch(`/api/sessions/${session.value.id}`, {
-    method: 'PUT',
-    body: {
-      name: session.value.name,
-      gameId: session.value.gameId,
-      date: toDatetimeLocal(session.value.date),
-      locationId: session.value.locationId || '',
-      status: session.value.status || SESSION_STATUSES.scheduled,
-      published: session.value.published,
-      // Version lue : refus si la session a changé entre-temps (US-018, ADR-0028)
-      updatedAt: session.value.updatedAt,
-      participants: session.value.participants?.map((participant) => ({
-        participantId: participant.participantId || participant.participant?.id,
-        role: participant.role
-      })) || [],
-      assignments
-    }
-  })
+  const body = {
+    name: session.value.name,
+    gameId: session.value.gameId,
+    date: toDatetimeLocal(session.value.date),
+    locationId: session.value.locationId || '',
+    status: session.value.status || SESSION_STATUSES.scheduled,
+    published: session.value.published,
+    // Version lue : refus si la session a changé entre-temps (US-018, ADR-0028)
+    updatedAt: session.value.updatedAt,
+    participants: session.value.participants?.map((participant) => ({
+      participantId: participant.participantId || participant.participant?.id,
+      role: participant.role
+    })) || [],
+    assignments
+  }
+  const saved = await useApiFetch(`/api/sessions/${session.value.id}`, { method: 'PUT', body })
+  session.value = saved?.__offlineQueued
+    ? await keepOffline(sessionApi(), projectOfflineSession(session.value, body, offlineLookup()))
+    : saved
 }
 
 async function saveTimeline(assignments) {
@@ -256,20 +283,25 @@ async function saveTimeline(assignments) {
     method: 'PUT',
     body: { assignments, updatedAt: session.value.updatedAt }
   })
+  if (saved?.__offlineQueued) {
+    // La version reste celle lue : la file la reprendra à l'envoi (ADR-0036)
+    timelineData.value = await keepOffline(sessionApi('/timeline'), projectOfflineTimeline(timelineData.value, assignments, offlineLookup()))
+    return
+  }
   // Le déroulé change la version de la session : la garder pour les enregistrements suivants
   session.value = { ...session.value, updatedAt: saved.updatedAt }
   if (editableSession.value) editableSession.value.updatedAt = saved.updatedAt
-  timelineData.value = await useApiFetch(`/api/sessions/${session.value.id}/timeline`)
+  timelineData.value = await offlineRead(sessionApi('/timeline'))
 }
 
 async function refreshDocumentsData() {
   if (!session.value) return
-  documentsData.value = await useApiFetch(`/api/sessions/${session.value.id}/documents`)
+  documentsData.value = await offlineRead(sessionApi('/documents'))
 }
 
 async function refreshPaymentsData() {
   if (!session.value) return
-  paymentsData.value = await useApiFetch(`/api/sessions/${session.value.id}/payments`)
+  paymentsData.value = await offlineRead(sessionApi('/payments'))
 }
 
 function toDatetimeLocal(value) {
@@ -346,12 +378,13 @@ async function saveDetails() {
   if (!editableSession.value?.id) return
 
   const previousStatus = session.value?.status
-  session.value = await useApiFetch(`/api/sessions/${editableSession.value.id}`, {
-    method: 'PUT',
-    body: editableSession.value
-  })
+  const body = editableSession.value
+  const saved = await useApiFetch(`/api/sessions/${editableSession.value.id}`, { method: 'PUT', body })
+  session.value = saved?.__offlineQueued
+    ? await keepOffline(sessionApi(), projectOfflineSession(session.value, body, offlineLookup()))
+    : saved
   editableSession.value = normalizeSessionForForm(session.value)
-  timelineData.value = await useApiFetch(`/api/sessions/${session.value.id}/timeline`)
+  timelineData.value = await offlineRead(sessionApi('/timeline'))
   await refreshDocumentsData()
   await refreshPaymentsData()
   if (previousStatus !== SESSION_STATUSES.cancelled && session.value?.status === SESSION_STATUSES.cancelled) {

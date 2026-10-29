@@ -23,14 +23,11 @@ Le principe : rien n'est encore réellement utilisé en production, donc la séc
 - Écarts 2, 4 et 5 de SPEC-007, participants, avec le désistement tardif et le remplaçant ([EPIC-007](archive/epics/EPIC-007-ecarts-participants/README.md)).
 - Écarts 5 et 6 de SPEC-008, sécurité des comptes ([EPIC-008](archive/epics/EPIC-008-ecarts-comptes/README.md)).
 - Écarts 1, 2 et 4 de SPEC-009, page publique ([EPIC-009](archive/epics/EPIC-009-ecarts-page-publique/README.md)).
+- Écarts de SPEC-010, hors ligne, avec la resynchronisation ([EPIC-010](archive/epics/EPIC-010-ecarts-hors-ligne/README.md)).
 
 ## 1. Finir les écarts des specs de l'existant
 
-On implémente tous les écarts d'une spec à la fois, dans l'ordre des specs :
-
-1. [SPEC-010](specs/SPEC-010-hors-ligne.md), hors ligne : déconnexion sans réseau, sous-routes mises en file, envoi de la file à l'ouverture, page de session hors ligne. L'écart 2 (resynchronisation) est le gros morceau : il reprend la fiche [Resynchronisation hors ligne](todo/resynchronisation-hors-ligne.md).
-
-Ces écarts sont traités plus loin, dans le chantier qui les réécrit :
+Les écarts de SPEC-003 à SPEC-010 sont corrigés, sauf ceux traités plus loin, dans le chantier qui les réécrit :
 
 - SPEC-008, écarts 1 à 4 (invitation par la bonne adresse, libre-service, quitter et transférer un jeu), et SPEC-007, écart 1 (fiche commune entre équipes) : refonte des comptes (étape 3) ;
 - SPEC-009, écart 3 (sessions et lien d'inscription sur la page publique) : formulaire public des inscriptions (étape 4) ;

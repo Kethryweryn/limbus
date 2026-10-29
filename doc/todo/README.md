@@ -11,7 +11,6 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Interface en TypeScript](interface-en-typescript.md) | à trancher | 2026-10-29 | Composants et pages en `lang="ts"`, réponses d'API typées (revue R-10) |
 | [Tests de bout en bout des parcours](tests-e2e-des-parcours.md) | à trancher | 2026-10-29 | Playwright pour le casting, les trombinoscopes, les envois et les inscriptions (revue R-14) |
 | [Un compte pour tout le monde](comptes-participants.md) | à trancher | 2026-10-29 | Inscription libre, administrateur seul rôle global, espaces « J'organise » et « Je participe », coordonnées et RGPD en libre-service (SPEC-007, écart 1) |
-| [Resynchronisation hors ligne](resynchronisation-hors-ligne.md) | à trancher | 2026-10-29 | Voir, corriger ou abandonner les modifications hors ligne refusées ; contrôle de conflit sur toutes les écritures rejouées (SPEC-010, écart 2 ; revue R-13) |
 | [Numéros de version et notes de version](versions-et-notes-de-version.md) | à trancher | 2026-10-29 | Version sémantique, étiquettes git et notes de version à partir de la première version publiée |
 
 ## Archivées
@@ -24,3 +23,4 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Nettoyages techniques](../archive/todo/nettoyages-techniques.md) | PR [#40](https://github.com/Kethryweryn/limbus/pull/40), [#41](https://github.com/Kethryweryn/limbus/pull/41), [#42](https://github.com/Kethryweryn/limbus/pull/42) | 2026-10-29 |
 | [Documentation de l'existant](../archive/todo/documentation-de-l-existant.md) | [SPEC-003](../specs/SPEC-003-ecriture-d-un-jeu.md) à [SPEC-010](../specs/SPEC-010-hors-ligne.md) | 2026-10-29 |
 | [Cycle de vie d'une session](../archive/todo/cycle-de-vie-d-une-session.md) | [SPEC-004](../specs/SPEC-004-sessions.md) ([EPIC-004](../archive/epics/EPIC-004-ecarts-sessions/README.md)) | 2026-10-29 |
+| [Resynchronisation hors ligne](../archive/todo/resynchronisation-hors-ligne.md) | [SPEC-010](../specs/SPEC-010-hors-ligne.md) ([EPIC-010](../archive/epics/EPIC-010-ecarts-hors-ligne/README.md)) | 2026-10-29 |

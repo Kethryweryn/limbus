@@ -73,7 +73,7 @@ const plural = (count, word) => `${count} ${word}${count > 1 ? 's' : ''}`
 
 async function load() {
   try {
-    sheet.value = await useApiFetch(`/api/sessions/${props.sessionId}/allergies`)
+    sheet.value = await useApiFetch(`/api/sessions/${props.sessionId}/allergies`, { offlineCache: true })
     errorMessage.value = ''
   } catch (err) {
     errorMessage.value = apiErrorMessage(err, 'Impossible de charger la fiche allergies')

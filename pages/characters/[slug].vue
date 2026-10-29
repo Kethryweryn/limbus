@@ -193,14 +193,20 @@ import { CHARACTER_TYPES } from '~/utils/domain'
 const route = useRoute()
 const router = useRouter()
 const slug = route.params.slug
-const { data: character, error, refresh } = await useFetch(`/api/characters/slug/${slug}`)
-const { data: games } = await useFetch('/api/games')
-const { data: factions } = await useFetch('/api/factions')
-const { data: intrigues, refresh: refreshIntrigues } = await useFetch('/api/intrigues')
+// Fiche consultée avec le réseau : elle se rouvre sans réseau (US-047)
+const { data: character, error, refresh } = await useOfflineFetch(`/api/characters/slug/${slug}`)
+const { data: games } = await useOfflineFetch('/api/games')
+const { data: factions } = await useOfflineFetch('/api/factions')
+const { data: intrigues, refresh: refreshIntrigues } = await useOfflineFetch('/api/intrigues')
 
 if (error.value) {
     handleApiAuthError(error.value)
-    throw createError({ statusCode: 404, message: 'Personnage introuvable' })
+    throw createError({
+        statusCode: 404,
+        message: error.value.offlineMissing || error.value.cause?.offlineMissing
+            ? 'Cette fiche n’a pas été consultée avec le réseau sur cet appareil : elle n’est pas disponible hors ligne.'
+            : 'Personnage introuvable'
+    })
 }
 
 const isEditing = ref(route.query.edit === '1')

@@ -2,7 +2,8 @@ import { requireOrganizer } from '~/server/utils/auth'
 import { prisma } from '~/server/utils/prisma'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { characterTrombinoscopeSchema, readZodBody } from '~/server/utils/schemas'
-import { saveCharacterTrombinoscopeConfig } from '~/server/utils/trombinoscopes'
+import { saveCharacterTrombinoscopeConfig, trombinoscopeConfigVersion } from '~/server/utils/trombinoscopes'
+import { assertVersion } from '~/server/utils/concurrency'
 import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
@@ -16,5 +17,6 @@ export default defineEventHandler(async (event) => {
   await requireGameAccess(event, character.gameId)
 
   const body = await readZodBody(event, characterTrombinoscopeSchema)
+  assertVersion(event, await trombinoscopeConfigVersion(id))
   return await saveCharacterTrombinoscopeConfig(id, body.entries)
 })
