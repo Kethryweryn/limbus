@@ -31,7 +31,7 @@ Une session peut être annulée, reportée, ou « désannulée » quand une solu
 ## Points à trancher
 
 - Que doit faire une session « Terminée » : passer en lecture seule, sortir des listes courantes, les deux, ou rien de plus ?
-- La confirmation de présence passe-t-elle par un lien personnel par email, comme les inscriptions ([SPEC-001](../specs/SPEC-001-inscriptions.md), ADR-0018) ? Recommandation : oui, en réutilisant ce mécanisme.
+- La confirmation de présence passe-t-elle par un lien personnel par email, comme les inscriptions ([SPEC-001](../specs/SPEC-001-inscriptions.md), [ADR-0018](../adr/ADR-0018-jetons-des-liens-personnels.md)) ? Recommandation : oui, en réutilisant ce mécanisme.
 - Un report garde-t-il les paiements tels quels (la place est reportée), ou faut-il les rattacher explicitement à la nouvelle session ?
-- Que devient une personne qui ne confirme pas avant une date limite ? Sa place est-elle libérée, comme pour une inscription sans réponse (ADR-0020) ?
+- Que devient une personne qui ne confirme pas avant une date limite ? Sa place est-elle libérée, comme pour une inscription sans réponse ([ADR-0020](../adr/ADR-0020-echeances-evaluees-a-la-lecture.md)) ?
 - Faut-il prévenir les participants par email à l'annulation et au report ?

@@ -69,7 +69,7 @@ Organiser une représentation d'un jeu : une session réunit une date, un lieu, 
 - **R8** Un personnage PNJ ne peut être attribué qu'à un membre de l'équipe qui a le rôle organisateur ou PNJ.
 - **R9** Un participant casté sur un PJ sans aucun rôle dans l'équipe reçoit automatiquement le rôle « participant ».
 - **R10** Chaque attribution peut avoir sa propre photo, qui sert aux trombinoscopes de la session. Une photo téléversée appartient au jeu et à la session. Elle est supprimée quand plus rien ne l'utilise ([ADR-0008](../adr/ADR-0008-fichiers-televerses.md)).
-- **R11** Enregistrer une session remplace en une fois son équipe et son casting. Si la session a été modifiée ailleurs entre-temps, l'enregistrement est refusé (409) au lieu d'écraser ces changements, notamment au retour du mode hors ligne.
+- **R11** Enregistrer une session remplace en une fois son équipe et son casting. Quand la requête porte la date de la version lue, une session modifiée ailleurs entre-temps n'est pas écrasée : l'enregistrement est refusé (409). C'est le cas du formulaire de la liste des sessions et des modifications rejouées au retour du mode hors ligne, mais pas de la page de la session, où se font l'équipe et le casting (voir les écarts).
 
 ### Chronologie de déroulé
 
@@ -106,4 +106,5 @@ Relevés le 29 octobre 2026 avec l'utilisatrice. Aucun n'est corrigé ici.
    - pour une session reportée, il faut reprendre le casting sur la nouvelle session, et faire confirmer leur présence à tout le monde (participants, organisateurs, cuisine, PNJ), avec un suivi pour l'organisation ;
    - supprimer une session ne propose aujourd'hui ni remboursement ni report.
 2. **Plusieurs rôles par participant (R7)** : rien ne permet de dire, pour un jeu donné, qu'un participant ne joue qu'un PJ.
-3. **`Session.published`** : le champ existe et est enregistré, mais aucune action ne le change et il n'a aucun effet, comme pour le contenu d'un jeu ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), écart 1).
+3. **Modifications simultanées (R11)** : la page d'une session n'envoie pas la date de la version lue. Si deux organisatrices modifient l'équipe ou le casting en même temps, le dernier enregistrement écrase le premier sans prévenir. La chronologie de déroulé (R13) n'a pas non plus de contrôle.
+4. **`Session.published`** : le champ existe et est enregistré, mais aucune action ne le change et il n'a aucun effet, comme pour le contenu d'un jeu ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), écart 1).
