@@ -17,7 +17,7 @@ Corriger les écarts 1 (crédit), 2 (lien stable) et 4 (teaser YouTube) de [SPEC
 | US | Titre | Statut |
 |---|---|---|
 | [US-044](US-044-credit-sur-la-page-publique.md) | Le crédit d'une copie sur la page publique | terminée |
-| [US-045](US-045-lien-stable-de-la-page-publique.md) | L'adresse de la page publique survit au renommage | à faire |
+| [US-045](US-045-lien-stable-de-la-page-publique.md) | L'adresse de la page publique survit au renommage | terminée |
 | [US-046](US-046-teaser-youtube-au-clic.md) | Teaser YouTube chargé seulement au clic | à faire |
 
 ## Définition de terminé

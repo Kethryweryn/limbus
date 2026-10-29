@@ -25,3 +25,37 @@ describe('crédit sur la page publique (US-044)', () => {
     expect((await api(null, 'GET', `/api/public/games/${original.slug}`)).body).toMatchObject({ creditSourceTitle: null, creditAuthorName: null })
   })
 })
+
+describe('adresse stable de la page publique (US-045)', () => {
+  it('redirige un ancien slug vers le nouveau, sauf s’il est repris ou si la page n’existe plus', async () => {
+    const game = await publicGame()
+    const oldSlug = game.slug
+    const renamed = await api(alice, 'PUT', `/api/games/${game.id}`, { title: `Renommé ${game.id}` })
+    expect(renamed.status, JSON.stringify(renamed.body)).toBe(200)
+    const newSlug = (renamed.body as { slug: string }).slug
+    expect(newSlug).not.toBe(oldSlug)
+
+    expect((await api(null, 'GET', `/api/public/games/${oldSlug}`)).body).toEqual({ redirectSlug: newSlug })
+    expect((await api(null, 'GET', `/api/public/games/${newSlug}`)).body).toMatchObject({ slug: newSlug })
+
+    // Revenir à l'ancien titre reprend l'ancien slug, sans boucle
+    const back = await api(alice, 'PUT', `/api/games/${game.id}`, { title: game.title })
+    expect((back.body as { slug: string }).slug).toBe(oldSlug)
+    expect((await api(null, 'GET', `/api/public/games/${oldSlug}`)).body).toMatchObject({ slug: oldSlug })
+    expect((await api(null, 'GET', `/api/public/games/${newSlug}`)).body).toEqual({ redirectSlug: oldSlug })
+
+    // Dépublié : l'ancienne adresse répond comme une page absente
+    await api(alice, 'PUT', `/api/games/${game.id}`, { publicPage: false })
+    expect((await api(null, 'GET', `/api/public/games/${newSlug}`)).status).toBe(404)
+  })
+
+  it('un ancien slug repris par un autre jeu sert ce jeu', async () => {
+    const game = await publicGame()
+    const oldSlug = game.slug
+    await api(alice, 'PUT', `/api/games/${game.id}`, { title: `Autre titre ${game.id}` })
+    await prisma.game.update({ where: { id: game.id }, data: { slug: `${oldSlug}-ailleurs` } })
+    const other = await publicGame({ slug: oldSlug, title: 'Le nouveau venu' })
+    expect((await api(null, 'GET', `/api/public/games/${oldSlug}`)).body).toMatchObject({ title: other.title })
+  })
+})
+

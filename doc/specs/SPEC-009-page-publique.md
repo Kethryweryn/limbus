@@ -34,7 +34,7 @@ Présenter un jeu à des personnes qui n'ont pas de compte, par un lien à diffu
 - **R3** La page n'existe que si le jeu a la marque « page publique » et qu'il est actif (non archivé). Archiver un jeu retire cette marque, et la restauration ne la remet pas ; sur un jeu archivé, la case du formulaire est sans effet ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), R3). Une page absente répond « Jeu non publié » (404), que le jeu existe ou non.
 - **R4** Un jeu est dépublié par défaut, à la création comme à la copie ([SPEC-002](SPEC-002-copie-de-jeu.md)).
 - **R5** La propriétaire et les co-organisatrices publient et dépublient ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), R16).
-- **R6** L'adresse suit le slug du jeu : renommer le jeu change l'adresse, et l'ancienne ne répond plus (voir les écarts).
+- **R6** L'adresse suit le slug du jeu. Après un renommage, l'ancienne adresse redirige (301) vers la nouvelle, tant qu'aucun autre jeu n'a repris l'ancien slug ([US-045](../archive/epics/EPIC-009-ecarts-page-publique/US-045-lien-stable-de-la-page-publique.md), [ADR-0035](../adr/ADR-0035-anciens-slugs-d-un-jeu.md)).
 - **R7** La page s'affiche toujours en thème clair, sans le menu de l'application.
 
 ## Données
