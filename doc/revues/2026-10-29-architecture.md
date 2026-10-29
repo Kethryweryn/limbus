@@ -198,7 +198,7 @@ Tri fait le 29 octobre 2026.
 
 | N° | Décision | Suite |
 |---|---|---|
-| R-05 | Faire maintenant | Opération serveur. La rotation par Claude a été bloquée (écriture d'un secret) : elle est laissée à l'utilisatrice, avec [`scripts/rotate-smtp-secret.mjs`](../../scripts/rotate-smtp-secret.mjs), qui rechiffre le mot de passe SMTP sans l'afficher. Le nouveau secret est à sauvegarder dans Proton Pass. **En attente.** |
+| R-05 | Faire maintenant | Opération serveur. La rotation par Claude a été bloquée (écriture d'un secret) : elle est laissée à l'utilisatrice, avec [`scripts/rotate-smtp-secret.mjs`](../../scripts/rotate-smtp-secret.mjs), qui rechiffre le mot de passe SMTP sans l'afficher. **Fait** le 29 octobre par l'utilisatrice. Le secret a changé, le service a redémarré, et le mot de passe SMTP se déchiffre avec le nouveau secret (vérifié sans l'afficher). Il doit être sauvegardé dans Proton Pass, ce que fait l'utilisatrice. |
 | R-04 | Faire maintenant | **Fait** le 29 octobre. `xargos` a reçu une clé dédiée avec phrase de passe, toutes deux à conserver dans Proton Pass. Ensuite `PasswordAuthentication no` et `KbdInteractiveAuthentication no` (`/etc/ssh/sshd_config.d/50-cles-uniquement.conf`). Une tentative par mot de passe est refusée. Décision : [ADR-0026](../adr/ADR-0026-acces-ssh-au-serveur.md). |
 | R-06 | Faire maintenant | **Fait** le 29 octobre : `Options -Indexes` sur `/files/` dans le vhost jdmottot.fr. Le listage répond 403, les liens directs 200. |
 | R-01 | Fiche todo | [Durcissement web](../todo/durcissement-web.md) |
@@ -211,9 +211,9 @@ Tri fait le 29 octobre 2026.
 | R-10 | Fiche todo | [Interface en TypeScript](../todo/interface-en-typescript.md), en chantier dédié |
 | R-14 | Fiche todo | [Tests de bout en bout des parcours](../todo/tests-e2e-des-parcours.md) |
 | R-13 | Avec la resynchronisation | À traiter dans le chantier de resynchronisation hors ligne déjà prévu (CLAUDE.md), sans fiche à part |
-| R-07 | Fiche todo | [Nettoyages techniques](../todo/nettoyages-techniques.md) |
-| R-11 | Fiche todo | [Nettoyages techniques](../todo/nettoyages-techniques.md) |
-| R-12 | Fiche todo | [Nettoyages techniques](../todo/nettoyages-techniques.md) |
+| R-07 | Fiche todo | **Fait** : [Nettoyages techniques](../archive/todo/nettoyages-techniques.md) |
+| R-11 | Fiche todo | **Fait** : [Nettoyages techniques](../archive/todo/nettoyages-techniques.md) |
+| R-12 | Fiche todo | **Fait** : [Nettoyages techniques](../archive/todo/nettoyages-techniques.md) |
 
 ### Risque accepté : clé root sans phrase de passe
 

@@ -2,14 +2,14 @@
 titre: Nettoyages techniques issus de la revue d'architecture
 statut: prête
 date: 2026-10-29
-revue: ../revues/2026-10-29-architecture.md
+revue: ../../revues/2026-10-29-architecture.md
 ---
 
 # Nettoyages techniques issus de la revue d'architecture
 
 ## Besoin
 
-La [revue d'architecture](../revues/2026-10-29-architecture.md) relève trois petits écarts. Aucun ne change le comportement de l'application :
+La [revue d'architecture](../../revues/2026-10-29-architecture.md) relève trois petits écarts. Aucun ne change le comportement de l'application :
 
 - R-07 : deux requêtes en base dans des boucles (motif N+1) : `server/utils/documents.ts`, une recherche par destinataire, et `server/utils/trombinoscopes.ts`, un `upsert` par entrée ;
 - R-11 : 61 routes répètent la lecture d'un paramètre d'URL et l'erreur 400 qui va avec ;
@@ -28,3 +28,7 @@ Une PR `fix/…` par point, dans l'ordre R-12, R-07, R-11. Chacune passe la CI c
 ## Décisions
 
 - 2026-10-29 : pas de spec : ces nettoyages ne changent pas le comportement. La fiche est archivée quand les trois PR sont fusionnées.
+- 2026-10-29 : les trois PR sont fusionnées et déployées :
+  - R-12 : [#40](https://github.com/Kethryweryn/limbus/pull/40). La CI audite aussi les dépendances de développement, au niveau *high*.
+  - R-07 : [#41](https://github.com/Kethryweryn/limbus/pull/41). La recherche par destinataire est aussi retirée de l'envoi des fiches de personnage. Deux tests d'intégration couvrent le renvoi.
+  - R-11 : [#42](https://github.com/Kethryweryn/limbus/pull/42). 70 routes adoptent `requireRouterParam`. Les 22 autres passent le paramètre à une fonction qui gère déjà son absence (`findRegistrationOr404(getRouterParam(...))`…), et restent volontairement inchangées.

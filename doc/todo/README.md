@@ -11,7 +11,6 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Photos et RGPD](photos-et-rgpd.md) | à trancher | 2026-10-29 | Durée de conservation des photos et information des participants (revue R-08, R-09) |
 | [Interface en TypeScript](interface-en-typescript.md) | à trancher | 2026-10-29 | Composants et pages en `lang="ts"`, réponses d'API typées (revue R-10) |
 | [Tests de bout en bout des parcours](tests-e2e-des-parcours.md) | à trancher | 2026-10-29 | Playwright pour le casting, les trombinoscopes, les envois et les inscriptions (revue R-14) |
-| [Nettoyages techniques](nettoyages-techniques.md) | prête | 2026-10-29 | Requêtes en boucle, lecture des paramètres d'URL, outils de build en devDependencies (revue R-07, R-11, R-12) |
 
 ## Archivées
 
@@ -20,3 +19,4 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Inscriptions](../archive/todo/inscriptions.md) | [SPEC-001](../specs/SPEC-001-inscriptions.md) | 2026-10-27 |
 | [Copie d'un jeu](../archive/todo/copie-de-jeu.md) | [SPEC-002](../specs/SPEC-002-copie-de-jeu.md) | 2026-10-28 |
 | [Revue d'architecture](../archive/todo/revue-d-architecture.md) | [Revue du 2026-10-29](../revues/2026-10-29-architecture.md) | 2026-10-29 |
+| [Nettoyages techniques](../archive/todo/nettoyages-techniques.md) | PR [#40](https://github.com/Kethryweryn/limbus/pull/40), [#41](https://github.com/Kethryweryn/limbus/pull/41), [#42](https://github.com/Kethryweryn/limbus/pull/42) | 2026-10-29 |
