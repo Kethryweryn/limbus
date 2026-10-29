@@ -91,8 +91,8 @@ Organiser une représentation d'un jeu : une session réunit une date, un lieu, 
 Ces sujets ont leur propre spec :
 
 - trombinoscopes et fiches de personnage en PDF ;
-- envois de documents ;
-- paiements ;
+- envois de documents ([SPEC-006](SPEC-006-emails-et-paiements.md)) ;
+- paiements ([SPEC-006](SPEC-006-emails-et-paiements.md)) ;
 - fiche allergies et inscriptions ([SPEC-001](SPEC-001-inscriptions.md)) ;
 - page publique.
 

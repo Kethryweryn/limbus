@@ -9,3 +9,4 @@ Fonctionnalités validées, décrites telles qu'elles marchent. Modèle : [`../m
 | [SPEC-003](SPEC-003-ecriture-d-un-jeu.md) | Écriture d'un jeu (existant) | validée | aucun : décrit l'existant ([fiche](../todo/documentation-de-l-existant.md)) |
 | [SPEC-004](SPEC-004-sessions.md) | Sessions, casting et chronologie de déroulé (existant) | validée | aucun : décrit l'existant ([fiche](../todo/documentation-de-l-existant.md)) |
 | [SPEC-005](SPEC-005-trombinoscopes-et-pdf.md) | Trombinoscopes et documents PDF (existant) | validée | aucun : décrit l'existant ([fiche](../todo/documentation-de-l-existant.md)) |
+| [SPEC-006](SPEC-006-emails-et-paiements.md) | Envois d'emails et suivi des paiements (existant) | validée | aucun : décrit l'existant ([fiche](../todo/documentation-de-l-existant.md)) |
