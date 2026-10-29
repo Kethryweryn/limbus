@@ -111,3 +111,24 @@ Relevés le 29 octobre 2026 avec l'utilisatrice. Aucun n'est corrigé ici.
 1. **Renvoi (R12)** : il faut pouvoir renvoyer la version à jour d'un document, d'une fiche ou d'un trombinoscope, par exemple après une correction ou après la régénération des trombinoscopes qui suit un désistement. Aujourd'hui, une personne qui a reçu un envoi n'est plus jamais destinataire de ce type d'envoi.
 2. **Échecs d'envoi (R13)** : la règle voulue est celle des paiements (R19) : continuer avec les personnes suivantes, et lister celles qui n'ont rien reçu. Pour les documents, fiches et trombinoscopes, un échec arrête tout l'envoi, et l'interface ne dit pas qui a déjà reçu.
 3. **Montant (R15)** : un tarif, par session ou par personne, et le montant reçu devraient apparaître, dans le tableau comme dans l'email. Il faut aussi pouvoir noter un paiement partiel, et relancer la personne pour le reste dû.
+
+### Choix faits le 29 octobre 2026
+
+Pour l'écart 1 (renvoi) :
+
+- Deux façons de renvoyer : un bouton « Renvoyer » par personne, et un « Renvoyer la version à jour » groupé par document, pour les fiches et pour les trombinoscopes.
+- Le renvoi groupé ne part qu'aux personnes dont la version reçue est plus ancienne que l'actuelle : document ou fiche modifié après l'envoi, trombinoscope généré à nouveau ou périmé.
+- L'email renvoyé a un objet préfixé « Mise à jour : » et une phrase qui dit que cette version remplace la précédente.
+
+Pour l'écart 2 (échecs d'envoi) : la règle des paiements (R19) s'applique à tous les envois.
+
+Pour l'écart 3 (montant), d'après les usages des PAF (tarif PJ, tarif PNJ, gratuité de la cuisine et parfois des orgas, places solidaires) :
+
+- **Tarifs nommés** : une session a une liste de tarifs (nom, montant en euros). Chaque tarif peut s'appliquer par défaut à un rôle (PJ, PNJ, orga, cuisine) ; chaque personne reçoit le tarif de son rôle, et l'organisatrice peut le changer (réduit, soutien…).
+- **Tout le monde dans le tableau** : orgas et cuisine y figurent aussi. Un dû de 0 € s'affiche « rien à payer » et n'est jamais destinataire d'une demande ni d'une relance. Une PAF orga payante devient possible.
+- **Places solidaires** : un tarif de soutien ou réduit désigne son tarif de base (par exemple PJ). Un soutien apporte (soutien − base) par personne, une place réduite coûte (base − réduit). Le tableau montre l'apport, le coût et le solde, à la fois pour les tarifs attribués et pour l'argent déjà encaissé ; l'organisatrice décide des places réduites. La demande d'une place réduite dans le formulaire d'inscription relève de la suite des inscriptions ([SPEC-001](SPEC-001-inscriptions.md), lot 2).
+- **Versements** : chaque versement est noté (montant, date) ; le reçu est leur somme.
+- **État calculé** : payé quand le reçu atteint le dû, partiel entre les deux, non payé à zéro. Il n'y a plus de case « payé » à cocher.
+- **Relance** : elle rappelle le dû, le déjà reçu et le reste à payer. Demandes et relances partent à toute personne qui doit encore quelque chose.
+- **Session sans tarif** : le tableau garde le mode simple d'aujourd'hui (case « payé ») ; dès qu'un tarif existe, on passe aux montants calculés.
+
