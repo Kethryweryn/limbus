@@ -91,7 +91,7 @@ Il n'y a pas d'inscription libre.
 
 - Legs d'une copie : [SPEC-002](SPEC-002-copie-de-jeu.md).
 - Configuration SMTP : [SPEC-006](SPEC-006-emails-et-paiements.md).
-- Comptes des participants : fiche [Comptes participants](../todo/comptes-participants.md).
+- Comptes des participants : fiche [Un compte pour tout le monde](../todo/comptes-participants.md).
 - Durcissement du cookie et des en-têtes : fiche [Durcissement web](../todo/durcissement-web.md).
 
 ## Écarts constatés
