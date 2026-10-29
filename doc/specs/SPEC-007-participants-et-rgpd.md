@@ -106,3 +106,20 @@ Relevés le 29 octobre 2026 avec l'utilisatrice. Aucun n'est corrigé ici.
 3. **Durée de conservation (R13)** : il faut une durée de conservation des données des participants, pas seulement des photos. Elle est à fixer dans la fiche [Photos et RGPD](../todo/photos-et-rgpd.md).
 4. **Export incomplet (R7)** : quelques champs des inscriptions ne sont pas exportés : la date de la dernière relance, et l'organisatrice qui a invité ou retiré la personne. Le droit d'accès porte sur toutes les données.
 5. **`Participant.published`** : le champ existe et vaut toujours vrai ; il n'a aucun effet, comme l'était celui du contenu d'un jeu avant [ADR-0027](../adr/ADR-0027-archivage-porte-par-le-jeu.md).
+
+### Choix faits le 29 octobre 2026
+
+Pour l'écart 2 (retrait d'un jeu) :
+
+- **Retrait complet** : retirer une personne d'un jeu la retire aussi des sessions de ce jeu (équipe, casting, présence).
+- **Inscriptions** : ses inscriptions aux périodes de ce jeu restent dans le suivi, au statut « retirée », comme un retrait par l'organisation.
+- **Jeu obligatoire** : créer une fiche demande au moins un jeu ; retirer le dernier lien supprime la fiche, après confirmation. Les fiches sans jeu qui existent déjà sont supprimées par la migration.
+- **Paiements**, d'après l'usage des GN : une date limite de désistement après laquelle la place n'est remboursée qu'au bon vouloir des orgas, et un remplaçant à qui la place peut être offerte. Cela touche aussi les paiements ([SPEC-006](SPEC-006-emails-et-paiements.md)) :
+  - le paiement d'une personne qui se désiste ou est retirée reste affiché à part ; l'organisatrice choisit « à rembourser », « remboursé », « gardé, non remboursé » ou « transféré au remplaçant » : le montant compte alors comme payé par la personne qui reprend la place ;
+  - une date limite de désistement se règle par session, dans l'onglet Paiements : avant elle, un désistement propose « à rembourser » ; après, « gardé, non remboursé », et l'organisatrice décide. La date figure dans l'email de paiement ;
+  - une case « place offerte » par personne met son dû à 0 € et affiche « place offerte », sans créer de tarif.
+
+Pour l'écart 4 (export) : la date de la dernière relance d'une inscription et le nom de l'organisatrice qui a invité ou retiré la personne sont exportés.
+
+Pour l'écart 5 : `Participant.published` est retiré de l'API et de l'interface ; la colonne reste en base, sans usage.
+
