@@ -60,7 +60,7 @@ Depuis la liste, « Supprimer » efface la fiche et ses données, après une con
 
 ### Droit d'accès
 
-- **R7** L'export contient la fiche et, pour chaque session, les rôles, le casting (personnage, notes et adresse de la photo), les paiements (avec leur remboursement), les envois, les responsabilités, les confirmations de présence et les trombinoscopes générés pour la personne, ainsi que ses inscriptions avec toutes leurs réponses. Les fichiers eux-mêmes (photos) n'y sont pas joints.
+- **R7** L'export contient la fiche et, pour chaque session, les rôles, le casting (personnage, notes et adresse de la photo), les paiements (avec leur remboursement), les envois, les responsabilités, les confirmations de présence et les trombinoscopes générés pour la personne, ainsi que ses inscriptions avec toutes leurs réponses, leurs dates (relance comprise) et le nom de l'organisatrice qui a invité ou retiré la personne ([US-037](../epics/EPIC-007-ecarts-participants/US-037-export-complet-des-inscriptions.md)). Les fichiers eux-mêmes (photos) n'y sont pas joints.
 - **R8** L'export est limité aux jeux de l'organisatrice qui exporte : une personne inscrite chez une autre équipe ne révèle pas les jeux de celle-ci. En mode administrateur, l'export est complet.
 
 ### Droit à l'effacement

@@ -98,6 +98,28 @@ describe('inscriptions d’un participant (US-003)', () => {
     expect(JSON.stringify(body)).not.toContain(b.game.id)
   })
 
+  it('l’export d’une inscription contient sa dernière relance, et qui a invité ou retiré la personne (US-037)', async () => {
+    const person = await prisma.participant.create({
+      data: { name: 'Relancée', slug: 'participant-relancee', email: 'relancee@example.test', gameLinks: { create: [{ gameId: a.game.id }] } }
+    })
+    const remindedAt = new Date('2026-10-20T10:00:00.000Z')
+    await prisma.registration.create({
+      data: {
+        periodId: a.registrationPeriod.id, participantId: person.id, status: 'withdrawn', source: 'invitation', email: 'relancee@example.test',
+        lastRemindedAt: remindedAt, invitedById: alice.id, withdrawnById: alice.id, withdrawnAt: new Date()
+      }
+    })
+
+    const body = (await api(alice, 'GET', `/api/participants/${person.id}/export`)).body as {
+      registrations: Array<{ lastRemindedAt: string, invitedBy: { name: string }, withdrawnBy: { name: string } }>
+    }
+    expect(body.registrations[0]).toMatchObject({
+      lastRemindedAt: remindedAt.toISOString(),
+      invitedBy: { name: alice.name },
+      withdrawnBy: { name: alice.name }
+    })
+  })
+
   it('la suppression du participant efface ses inscriptions', async () => {
     const participant = await prisma.participant.create({
       data: { name: 'Inscrit effacé', slug: 'participant-inscrit-efface', email: 'inscrit-efface@example.test', gameLinks: { create: { gameId: a.game.id } } }

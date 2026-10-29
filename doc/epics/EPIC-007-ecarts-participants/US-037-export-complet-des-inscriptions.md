@@ -1,7 +1,7 @@
 ---
 id: US-037
 titre: Export complet des inscriptions
-statut: à faire
+statut: terminée
 epic: EPIC-007
 regles: [R7]
 adr: []
@@ -13,8 +13,8 @@ En tant que participant, je veux que l'export de mes données contienne tout ce 
 
 ## Critères d'acceptation
 
-- [ ] L'export de chaque inscription contient la date de la dernière relance.
-- [ ] Il contient le nom de l'organisatrice qui a invité la personne, et de celle qui l'a retirée.
+- [x] L'export de chaque inscription contient la date de la dernière relance.
+- [x] Il contient le nom de l'organisatrice qui a invité la personne, et de celle qui l'a retirée.
 
 ## Notes techniques
 
