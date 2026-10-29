@@ -1,7 +1,9 @@
-// EPIC-010 : déconnexion sans réseau (US-051) et envoi de la file à l'ouverture (US-052)
+// EPIC-010 : déconnexion sans réseau (US-051), envoi de la file à l'ouverture (US-052) ;
+// EPIC-011 : page de session hors ligne (US-057)
 import { expect, test, type Page } from '@playwright/test'
+import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { expectLoggedIn, login, offlineRecordCount, openUserMenu } from './helpers'
+import { choose, expectLoggedIn, login, offlineRecordCount, openUserMenu, parcoursSession, signIn } from './helpers'
 
 // File d'attente de l'appareil, lue ou écrite directement dans IndexedDB
 async function writeQueue(page: Page, operations: unknown[]) {
@@ -77,3 +79,40 @@ test('les modifications en attente partent à l’ouverture de l’application',
   }).toBe(true)
   await expect.poll(() => readQueue(page)).toEqual([])
 })
+
+test('une session consultée se rouvre et se modifie sans réseau, puis la modification part', async ({ page, context }) => {
+  const prisma = createTestPrisma()
+  try {
+    const { session, character, participant } = await parcoursSession(prisma, 'Session hors ligne e2e')
+    await signIn(page, prisma, E2E_USERS.orga)
+    // Avec le réseau : la liste puis la session, gardées sur l'appareil
+    await page.goto('/sessions')
+    await page.waitForLoadState('networkidle')
+    await page.goto(`/sessions/${session.slug}?tab=cast`)
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByRole('heading', { name: 'Session hors ligne e2e' })).toBeVisible()
+
+    // Sans réseau : retour à la liste, puis la session se rouvre depuis l'appareil
+    await context.setOffline(true)
+    await page.getByRole('link', { name: 'Sessions' }).first().click()
+    await page.waitForURL('**/sessions')
+    await page.goBack()
+    await expect(page.getByRole('heading', { name: 'Session hors ligne e2e' })).toBeVisible()
+
+    const row = page.locator('form > div.grid').filter({ hasText: 'Aube' })
+    await choose(page, row.getByRole('combobox'), /Léa Parcours/)
+    await page.getByRole('button', { name: 'Enregistrer le cast' }).click()
+    await expect(page.getByText('Modifications faites hors ligne : 1 en attente.')).toBeVisible()
+    await expect(row.getByRole('combobox')).toContainText('Léa Parcours')
+
+    // Retour du réseau : la modification part
+    await context.setOffline(false)
+    await expect.poll(() => prisma.sessionAssignment.findFirst({
+      where: { sessionId: session.id, characterId: character('Aube').id },
+      select: { participantId: true }
+    })).toEqual({ participantId: participant('Léa Parcours').id })
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+

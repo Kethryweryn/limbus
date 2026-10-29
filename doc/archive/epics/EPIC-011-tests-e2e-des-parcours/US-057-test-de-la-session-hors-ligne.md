@@ -1,7 +1,7 @@
 ---
 id: US-057
 titre: Test de bout en bout de la session hors ligne
-statut: à faire
+statut: terminée
 epic: EPIC-011
 regles: []
 adr: [ADR-0037]
@@ -13,13 +13,13 @@ En tant qu'organisatrice, je veux qu'un test automatique vérifie la page de ses
 
 ## Critères d'acceptation
 
-- [ ] Le test ouvre une session avec le réseau, coupe le réseau et la rouvre depuis l'appareil.
-- [ ] Il modifie le casting sans réseau : le bandeau indique une modification en attente.
-- [ ] Au retour du réseau, la modification part et le serveur l'enregistre.
+- [x] Le test ouvre une session avec le réseau, coupe le réseau et la rouvre depuis l'appareil.
+- [x] Il modifie le casting sans réseau : le bandeau indique une modification en attente.
+- [x] Au retour du réseau, la modification part et le serveur l'enregistre.
 
 ## Notes techniques
 
-- Playwright (`tests/e2e/`), sur le jeu commun préparé par `globalSetup.ts` ([ADR-0037](../../adr/ADR-0037-jeu-commun-des-tests-de-bout-en-bout.md)).
+- Playwright (`tests/e2e/`), sur le jeu commun préparé par `globalSetup.ts` ([ADR-0037](../../../adr/ADR-0037-jeu-commun-des-tests-de-bout-en-bout.md)).
 
 ## Tests
 

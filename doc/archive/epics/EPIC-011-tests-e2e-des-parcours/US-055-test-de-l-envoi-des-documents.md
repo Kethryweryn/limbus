@@ -1,7 +1,7 @@
 ---
 id: US-055
 titre: Test de bout en bout de l'envoi des documents
-statut: à faire
+statut: terminée
 epic: EPIC-011
 regles: []
 adr: [ADR-0037]
@@ -13,12 +13,12 @@ En tant qu'organisatrice, je veux qu'un test automatique vérifie l'envoi des do
 
 ## Critères d'acceptation
 
-- [ ] Le test envoie un document à la session depuis l'onglet « Documents ».
-- [ ] Le serveur SMTP de test reçoit un email par personne castée, avec le document en pièce jointe.
+- [x] Le test envoie un document à la session depuis l'onglet « Documents ».
+- [x] Le serveur SMTP de test reçoit un email par personne castée, avec le document en pièce jointe.
 
 ## Notes techniques
 
-- Playwright (`tests/e2e/`), sur le jeu commun préparé par `globalSetup.ts` ([ADR-0037](../../adr/ADR-0037-jeu-commun-des-tests-de-bout-en-bout.md)).
+- Playwright (`tests/e2e/`), sur le jeu commun préparé par `globalSetup.ts` ([ADR-0037](../../../adr/ADR-0037-jeu-commun-des-tests-de-bout-en-bout.md)).
 
 ## Tests
 

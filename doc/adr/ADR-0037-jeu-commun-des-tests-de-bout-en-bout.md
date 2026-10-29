@@ -3,7 +3,7 @@ id: ADR-0037
 titre: Un jeu commun pour les tests de bout en bout
 statut: accepté
 date: 2026-10-29
-liens: [../todo/tests-e2e-des-parcours.md, ../epics/EPIC-011-tests-e2e-des-parcours/README.md]
+liens: [../archive/todo/tests-e2e-des-parcours.md, ../archive/epics/EPIC-011-tests-e2e-des-parcours/README.md]
 ---
 
 # ADR-0037 : Un jeu commun pour les tests de bout en bout
@@ -17,6 +17,7 @@ Les tests de bout en bout des parcours (casting, trombinoscopes, envois, paiemen
 - `tests/e2e/globalSetup.ts` prépare, directement en base, un jeu commun : personnages PJ et PNJ, participants avec email, lieu.
 - Chaque test crée par l'interface ce qu'il vérifie (session, casting, tarif…) et prépare en base ce dont il a seulement besoin comme point de départ, sous un nom qui lui est propre. Un test ne modifie pas ce qu'un autre utilise.
 - Les tests tournent l'un après l'autre (un seul worker), contre la base de test vidée au démarrage.
+- Les tests des parcours ouvrent la session par cookie (`signIn`), sans l'écran de connexion : il a ses propres tests, et chaque connexion par l'écran compte dans la limite de 10 tentatives par email en 15 minutes.
 - Pas de plafond de durée : la durée de la CI est surveillée.
 
 ## Conséquences

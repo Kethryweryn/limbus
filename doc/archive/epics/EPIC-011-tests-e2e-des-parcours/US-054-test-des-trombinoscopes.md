@@ -1,7 +1,7 @@
 ---
 id: US-054
 titre: Test de bout en bout des trombinoscopes
-statut: à faire
+statut: terminée
 epic: EPIC-011
 regles: []
 adr: [ADR-0037]
@@ -13,12 +13,12 @@ En tant qu'organisatrice, je veux qu'un test automatique vérifie la génératio
 
 ## Critères d'acceptation
 
-- [ ] Le test génère les trombinoscopes d'une session castée depuis l'onglet « Documents ».
-- [ ] Il ouvre le trombinoscope d'un personnage et vérifie que c'est un PDF.
+- [x] Le test génère les trombinoscopes d'une session castée depuis l'onglet « Documents ».
+- [x] Il ouvre le trombinoscope d'un personnage et vérifie que c'est un PDF.
 
 ## Notes techniques
 
-- Playwright (`tests/e2e/`), sur le jeu commun préparé par `globalSetup.ts` ([ADR-0037](../../adr/ADR-0037-jeu-commun-des-tests-de-bout-en-bout.md)).
+- Playwright (`tests/e2e/`), sur le jeu commun préparé par `globalSetup.ts` ([ADR-0037](../../../adr/ADR-0037-jeu-commun-des-tests-de-bout-en-bout.md)).
 
 ## Tests
 

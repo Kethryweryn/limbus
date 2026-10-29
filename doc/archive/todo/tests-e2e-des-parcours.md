@@ -1,8 +1,8 @@
 ---
 titre: Tests de bout en bout des parcours principaux
-statut: tranchée
+statut: archivée
 date: 2026-10-29
-revue: ../revues/2026-10-29-architecture.md
+revue: ../../revues/2026-10-29-architecture.md
 ---
 
 # Tests de bout en bout des parcours principaux
@@ -28,8 +28,12 @@ Une PR par scénario, ou deux PR (sessions, inscriptions).
 
 Le 29 octobre 2026, avec l'utilisatrice :
 
-- un jeu de test commun, préparé une fois au démarrage des tests ; chaque test y ajoute ce dont il a besoin ([ADR-0037](../adr/ADR-0037-jeu-commun-des-tests-de-bout-en-bout.md)) ;
+- un jeu de test commun, préparé une fois au démarrage des tests ; chaque test y ajoute ce dont il a besoin ([ADR-0037](../../adr/ADR-0037-jeu-commun-des-tests-de-bout-en-bout.md)) ;
 - pas de plafond de durée : la durée de la CI est surveillée ;
 - parcours couverts : casting, trombinoscopes, envoi des documents, paiements, et la page de session hors ligne. Le parcours d'inscription sur invitation a déjà son test (`registration.spec.ts`).
 
 Réalisée par [EPIC-011](../epics/EPIC-011-tests-e2e-des-parcours/README.md).
+
+## Suite
+
+- 2026-10-29 : réalisée par [EPIC-011](../epics/EPIC-011-tests-e2e-des-parcours/README.md). Fiche archivée.

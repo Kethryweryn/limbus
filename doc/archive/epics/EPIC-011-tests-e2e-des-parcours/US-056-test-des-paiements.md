@@ -1,7 +1,7 @@
 ---
 id: US-056
 titre: Test de bout en bout des paiements
-statut: à faire
+statut: terminée
 epic: EPIC-011
 regles: []
 adr: [ADR-0037]
@@ -13,12 +13,12 @@ En tant qu'organisatrice, je veux qu'un test automatique vérifie les paiements 
 
 ## Critères d'acceptation
 
-- [ ] Le test crée un tarif, note un versement, offre une place depuis l'onglet « Paiements ».
-- [ ] Il envoie l'email de paiement : le serveur SMTP de test le reçoit pour les personnes qui doivent encore payer, et pas pour la place offerte.
+- [x] Le test crée un tarif, note un versement, offre une place depuis l'onglet « Paiements ».
+- [x] Il envoie l'email de paiement : le serveur SMTP de test le reçoit pour les personnes qui doivent encore payer, et pas pour la place offerte.
 
 ## Notes techniques
 
-- Playwright (`tests/e2e/`), sur le jeu commun préparé par `globalSetup.ts` ([ADR-0037](../../adr/ADR-0037-jeu-commun-des-tests-de-bout-en-bout.md)).
+- Playwright (`tests/e2e/`), sur le jeu commun préparé par `globalSetup.ts` ([ADR-0037](../../../adr/ADR-0037-jeu-commun-des-tests-de-bout-en-bout.md)).
 
 ## Tests
 

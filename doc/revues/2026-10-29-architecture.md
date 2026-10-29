@@ -209,7 +209,7 @@ Tri fait le 29 octobre 2026.
 | R-08 | Fiche todo | [Photos et RGPD](../todo/photos-et-rgpd.md) |
 | R-09 | Fiche todo | [Photos et RGPD](../todo/photos-et-rgpd.md) |
 | R-10 | Fiche todo | [Interface en TypeScript](../todo/interface-en-typescript.md), en chantier dédié |
-| R-14 | Fiche todo | [Tests de bout en bout des parcours](../todo/tests-e2e-des-parcours.md) |
+| R-14 | Fait | Fiche [Tests de bout en bout des parcours](../archive/todo/tests-e2e-des-parcours.md), réalisée par [EPIC-011](../archive/epics/EPIC-011-tests-e2e-des-parcours/README.md) |
 | R-13 | Fait | Fiche [Resynchronisation hors ligne](../archive/todo/resynchronisation-hors-ligne.md), réalisée par [EPIC-010](../archive/epics/EPIC-010-ecarts-hors-ligne/README.md) ([ADR-0036](../adr/ADR-0036-protocole-de-resynchronisation.md)) |
 | R-07 | Fiche todo | **Fait** : [Nettoyages techniques](../archive/todo/nettoyages-techniques.md) |
 | R-11 | Fiche todo | **Fait** : [Nettoyages techniques](../archive/todo/nettoyages-techniques.md) |

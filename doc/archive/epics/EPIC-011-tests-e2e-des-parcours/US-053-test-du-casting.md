@@ -1,7 +1,7 @@
 ---
 id: US-053
 titre: Test de bout en bout du casting
-statut: à faire
+statut: terminée
 epic: EPIC-011
 regles: []
 adr: [ADR-0037]
@@ -13,12 +13,12 @@ En tant qu'organisatrice, je veux qu'un test automatique vérifie le casting d'u
 
 ## Critères d'acceptation
 
-- [ ] Le test crée une session depuis la liste des sessions, avec son équipe.
-- [ ] Il affecte des participants aux personnages depuis l'onglet « Cast », enregistre, recharge la page et retrouve le casting.
+- [x] Le test crée une session depuis la liste des sessions, avec son équipe.
+- [x] Il affecte des participants aux personnages depuis l'onglet « Cast », enregistre, recharge la page et retrouve le casting.
 
 ## Notes techniques
 
-- Playwright (`tests/e2e/`), sur le jeu commun préparé par `globalSetup.ts` ([ADR-0037](../../adr/ADR-0037-jeu-commun-des-tests-de-bout-en-bout.md)).
+- Playwright (`tests/e2e/`), sur le jeu commun préparé par `globalSetup.ts` ([ADR-0037](../../../adr/ADR-0037-jeu-commun-des-tests-de-bout-en-bout.md)).
 
 ## Tests
 
