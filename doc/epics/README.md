@@ -51,5 +51,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-030](EPIC-006-ecarts-envois-et-paiements/US-030-renvoyer-la-version-a-jour.md) | Renvoyer la version à jour d'un document, d'une fiche ou d'un trombinoscope | EPIC-006 | terminée |
 | [US-031](EPIC-006-ecarts-envois-et-paiements/US-031-tarifs-d-une-session.md) | Tarifs d'une session, attribués selon le rôle | EPIC-006 | terminée |
 | [US-032](EPIC-006-ecarts-envois-et-paiements/US-032-versements-et-etat-calcule.md) | Noter les versements, état de paiement calculé | EPIC-006 | terminée |
-| [US-033](EPIC-006-ecarts-envois-et-paiements/US-033-places-solidaires.md) | Places solidaires : soutien et réductions | EPIC-006 | à faire |
+| [US-033](EPIC-006-ecarts-envois-et-paiements/US-033-places-solidaires.md) | Places solidaires : soutien et réductions | EPIC-006 | terminée |
 | [US-034](EPIC-006-ecarts-envois-et-paiements/US-034-demandes-et-relances-avec-montants.md) | Demandes et relances avec le montant et le reste dû | EPIC-006 | à faire |

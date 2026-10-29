@@ -119,3 +119,34 @@ describe('versements et état calculé (US-032)', () => {
     expect(JSON.stringify(exported.body)).toContain('"amountCents":2000')
   })
 })
+
+describe('places solidaires (US-033)', () => {
+  it('rattache soutien et réduit à un tarif de base, et calcule le solde', async () => {
+    const t = await team()
+    const id = (response: { body: unknown }) => (response.body as { id: string }).id
+    const pj = id(await api(alice, 'POST', `/api/sessions/${t.session.id}/tariffs`, { name: 'PJ', amount: 80, defaultRole: 'pj' }))
+    const support = await api(alice, 'POST', `/api/sessions/${t.session.id}/tariffs`, { name: 'Soutien', amount: 120, baseTariffId: pj })
+    expect(support.status, JSON.stringify(support.body)).toBe(200)
+    const reduced = id(await api(alice, 'POST', `/api/sessions/${t.session.id}/tariffs`, { name: 'Réduit', amount: 50, baseTariffId: pj }))
+    // Pas de chaîne : un tarif solidaire ne sert pas de base
+    expect((await api(alice, 'POST', `/api/sessions/${t.session.id}/tariffs`, { name: 'Chaîne', amount: 10, baseTariffId: id(support) })).status).toBe(400)
+
+    await api(alice, 'PUT', `/api/sessions/${t.session.id}/payments/${t.player.id}/tariff`, { tariffId: id(support) })
+    await api(alice, 'PUT', `/api/sessions/${t.session.id}/payments/${t.npc.id}/tariff`, { tariffId: reduced })
+    await api(alice, 'POST', `/api/sessions/${t.session.id}/payments/${t.player.id}/instalments`, { amount: 100 })
+
+    const dashboard = (await api(alice, 'GET', `/api/sessions/${t.session.id}/payments`)).body as { solidarity: Record<string, number> }
+    expect(dashboard.solidarity).toEqual({
+      contributionAssigned: 4000,
+      contributionReceived: 2000,
+      reductionCost: 3000,
+      balanceAssigned: 1000,
+      balanceReceived: -1000
+    })
+
+    // Supprimer la base retire le lien des tarifs solidaires
+    expect((await api(alice, 'DELETE', `/api/sessions/${t.session.id}/tariffs/${pj}`)).status).toBe(200)
+    expect(await prisma.sessionTariff.count({ where: { sessionId: t.session.id, baseTariffId: { not: null } } })).toBe(0)
+  })
+})
+
