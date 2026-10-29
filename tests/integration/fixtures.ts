@@ -78,11 +78,15 @@ async function createGameWorld(prisma: PrismaClient, key: string, ownerId: strin
       tokenHash: `hash-${key}`
     }
   })
+  // Tarif et versement (US-031, US-032) : la session est en mode tarifs
+  const tariff = await prisma.sessionTariff.create({ data: { sessionId: session.id, name: `PJ ${key}`, amountCents: 8000, defaultRole: 'pj' } })
+  const payment = await prisma.sessionPayment.create({ data: { sessionId: session.id, participantId: participant.id } })
+  const instalment = await prisma.sessionPaymentInstalment.create({ data: { paymentId: payment.id, amountCents: 2000, receivedAt: new Date() } })
   const invitation = await prisma.gameInvitation.create({
     data: { gameId, email: `invite-${key}@example.test`, token: `token-${key}`, invitedById: ownerId, expiresAt: new Date(Date.now() + 86_400_000) }
   })
 
-  return { game, faction, character, intrigue, item, location, document, timelineEvent, participant, session, registrationPeriod, registration, photo, rib, invitation }
+  return { game, faction, character, intrigue, item, location, document, timelineEvent, participant, session, registrationPeriod, registration, photo, rib, invitation, tariff, instalment }
 }
 
 export async function createWorld(prisma: PrismaClient) {

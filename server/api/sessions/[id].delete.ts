@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
 
   // Paiements reçus ou inscriptions : on annule ou on reporte, on ne supprime pas (US-021)
   const [paidCount, registrationCount] = await Promise.all([
-    prisma.sessionPayment.count({ where: { sessionId: session.id, paidAt: { not: null } } }),
+    prisma.sessionPayment.count({ where: { sessionId: session.id, OR: [{ paidAt: { not: null } }, { instalments: { some: {} } }] } }),
     prisma.registration.count({ where: { sessionId: session.id } })
   ])
   if (paidCount || registrationCount) {

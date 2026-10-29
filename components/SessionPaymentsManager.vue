@@ -5,7 +5,7 @@
         <div>
           <h2 class="font-semibold">Paiements</h2>
           <p class="text-sm text-gray-500">
-            {{ paidRows.length }}/{{ rows.length }} paiement(s) validé(s)
+            {{ paidRows.length }}/{{ payingRows.length }} paiement(s) validé(s)
           </p>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -64,7 +64,80 @@
         </UButton>
       </section>
 
-      <section class="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <section class="space-y-3 rounded border border-gray-200 p-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h3 class="font-medium">Tarifs</h3>
+          <UBadge color="neutral" variant="subtle" size="xs">
+            {{ tariffMode ? 'Montants calculés' : 'Mode simple : case « payé »' }}
+          </UBadge>
+        </div>
+        <p v-if="!tariffMode" class="text-sm text-gray-500">
+          Sans tarif, on coche simplement qui a payé. Créez un tarif pour suivre les montants, les versements et les places solidaires.
+        </p>
+        <ul v-if="tariffs.length" class="space-y-1 text-sm">
+          <li v-for="tariff in tariffs" :key="tariff.id" class="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-1">
+            <span>
+              <span class="font-medium">{{ tariff.name }}</span> · {{ formatEuros(tariff.amountCents) }}
+              <span v-if="tariff.defaultRole" class="text-gray-500"> · par défaut : {{ TARIFF_ROLE_LABELS[tariff.defaultRole] }}</span>
+              <span v-if="tariff.baseTariffId" class="text-gray-500"> · {{ solidarityLabel(tariff) }}</span>
+            </span>
+            <span class="flex gap-1">
+              <UButton color="neutral" variant="ghost" size="xs" @click="editTariff(tariff)">Modifier</UButton>
+              <UButton color="error" variant="ghost" size="xs" :loading="deletingTariffId === tariff.id" @click="deleteTariff(tariff)">Supprimer</UButton>
+            </span>
+          </li>
+        </ul>
+        <form class="grid grid-cols-1 md:grid-cols-[1fr_8rem_10rem_12rem_auto] gap-2 items-end" @submit.prevent="saveTariff">
+          <UFormField :label="tariffForm.id ? 'Modifier le tarif' : 'Nouveau tarif'">
+            <UInput v-model="tariffForm.name" placeholder="PJ, PNJ, réduit, soutien…" />
+          </UFormField>
+          <UFormField label="Montant (€)">
+            <UInput v-model="tariffForm.amount" type="number" min="0" step="0.01" />
+          </UFormField>
+          <UFormField label="Par défaut pour">
+            <USelect v-model="tariffForm.defaultRole" :items="defaultRoleOptions" value-key="value" />
+          </UFormField>
+          <UFormField label="Tarif de base (solidaire)">
+            <USelect v-model="tariffForm.baseTariffId" :items="baseTariffOptions" value-key="value" />
+          </UFormField>
+          <div class="flex gap-1">
+            <UButton type="submit" color="primary" variant="soft" :loading="savingTariff" :disabled="!tariffForm.name.trim() || tariffForm.amount === ''">
+              {{ tariffForm.id ? 'Enregistrer' : 'Ajouter' }}
+            </UButton>
+            <UButton v-if="tariffForm.id" color="neutral" variant="ghost" @click="resetTariffForm">Annuler</UButton>
+          </div>
+        </form>
+      </section>
+
+      <section v-if="tariffMode" class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div class="rounded border border-gray-200 p-3">
+          <div class="text-xs uppercase text-gray-500">Dû</div>
+          <div class="text-xl font-semibold">{{ formatEuros(totals.dueCents) }}</div>
+        </div>
+        <div class="rounded border border-gray-200 p-3">
+          <div class="text-xs uppercase text-gray-500">Reçu</div>
+          <div class="text-xl font-semibold">{{ formatEuros(totals.receivedCents) }}</div>
+        </div>
+        <div class="rounded border border-gray-200 p-3">
+          <div class="text-xs uppercase text-gray-500">Reste à recevoir</div>
+          <div class="text-xl font-semibold">{{ formatEuros(totals.remainingCents) }}</div>
+        </div>
+        <div class="rounded border border-gray-200 p-3">
+          <div class="text-xs uppercase text-gray-500">Payés</div>
+          <div class="text-xl font-semibold">{{ paidRows.length }}/{{ payingRows.length }}</div>
+        </div>
+      </section>
+
+      <section v-if="hasSolidarity" class="space-y-1 rounded border border-gray-200 p-4 text-sm">
+        <h3 class="font-medium">Places solidaires</h3>
+        <p>Apport des soutiens : {{ formatEuros(solidarity.contributionAssigned) }} attribué, dont {{ formatEuros(solidarity.contributionReceived) }} encaissé.</p>
+        <p>Coût des réductions attribuées : {{ formatEuros(solidarity.reductionCost) }}.</p>
+        <p :class="solidarity.balanceAssigned < 0 ? 'text-warning-700' : 'text-gray-700'">
+          Solde : {{ formatEuros(solidarity.balanceAssigned) }} sur les tarifs attribués, {{ formatEuros(solidarity.balanceReceived) }} sur l'argent encaissé.
+        </p>
+      </section>
+
+      <section v-else-if="!tariffMode" class="grid grid-cols-1 md:grid-cols-4 gap-3">
         <div class="rounded border border-gray-200 p-3">
           <div class="text-xs uppercase text-gray-500">À suivre</div>
           <div class="text-xl font-semibold">{{ rows.length }}</div>
@@ -96,11 +169,16 @@
                 <template v-if="row.characters?.length">{{ row.characters.map((character) => character.name).join(', ') }}</template>
                 <span v-else-if="row.awaitingCharacter" class="text-warning-600">Personnage à attribuer</span>
                 <template v-else-if="row.npcRole">PNJ</template>
+                <template v-else-if="row.roles?.length">{{ row.roles.map((role) => TARIFF_ROLE_LABELS[role]).join(', ') }}</template>
                 <span v-if="row.participant.email"> · {{ row.participant.email }}</span>
                 <span v-else> · email manquant</span>
               </div>
               <div class="mt-2 flex flex-wrap gap-1">
-                <UBadge :color="row.paidAt ? 'success' : 'warning'" variant="subtle" size="xs">
+                <UBadge v-if="tariffMode" :color="PAYMENT_STATE_DISPLAY[row.state].color" variant="subtle" size="xs">
+                  {{ PAYMENT_STATE_DISPLAY[row.state].label }}
+                  <template v-if="row.state === 'partial'"> · reste {{ formatEuros(row.remainingCents) }}</template>
+                </UBadge>
+                <UBadge v-else :color="row.paidAt ? 'success' : 'warning'" variant="subtle" size="xs">
                   {{ row.paidAt ? `Payé le ${formatDate(row.paidAt)}` : 'Non payé' }}
                 </UBadge>
                 <UBadge :color="row.paymentEmailSentAt ? 'success' : 'neutral'" variant="subtle" size="xs">
@@ -116,7 +194,7 @@
                 color="primary"
                 variant="soft"
                 :loading="sendingPaymentParticipantId === row.participant.id"
-                :disabled="row.paidAt || !row.participant.email || sendingPaymentParticipantId === row.participant.id || paymentParticipantSendCooldownId === row.participant.id"
+                :disabled="!owes(row) || !row.participant.email || sendingPaymentParticipantId === row.participant.id || paymentParticipantSendCooldownId === row.participant.id"
                 @click="sendPaymentEmail(row)"
               >
                 {{ row.paymentEmailSentAt ? 'Relancer' : 'Envoyer' }}
@@ -130,6 +208,7 @@
                 Tester l'email
               </UButton>
               <UButton
+                v-if="!tariffMode"
                 :color="row.paidAt ? 'neutral' : 'success'"
                 :variant="row.paidAt ? 'soft' : 'solid'"
                 :loading="updatingParticipantId === row.participant.id"
@@ -138,6 +217,39 @@
                 {{ row.paidAt ? 'Annuler le paiement' : 'Valider le paiement' }}
               </UButton>
             </div>
+          </div>
+
+          <div v-if="tariffMode" class="mt-3 space-y-2 border-t border-gray-100 pt-3 text-sm">
+            <div class="flex flex-wrap items-center gap-2">
+              <USelect
+                :model-value="row.tariffChosen ? row.tariff?.id : ''"
+                :items="personTariffOptions(row)"
+                value-key="value"
+                :disabled="updatingParticipantId === row.participant.id"
+                class="w-full md:w-72"
+                @update:model-value="(value) => setTariff(row, value)"
+              />
+              <span>Dû {{ formatEuros(row.dueCents) }} · reçu {{ formatEuros(row.receivedCents) }} · reste {{ formatEuros(row.remainingCents) }}</span>
+            </div>
+            <ul v-if="row.instalments.length" class="space-y-1">
+              <li v-for="instalment in row.instalments" :key="instalment.id" class="flex flex-wrap items-center gap-2 text-gray-600">
+                Versement de {{ formatEuros(instalment.amountCents) }} le {{ formatDay(instalment.receivedAt) }}
+                <UButton color="neutral" variant="link" size="xs" :loading="deletingInstalmentId === instalment.id" @click="deleteInstalment(row, instalment)">
+                  Supprimer
+                </UButton>
+              </li>
+            </ul>
+            <form v-if="row.dueCents > 0" class="flex flex-wrap items-end gap-2" @submit.prevent="addInstalment(row)">
+              <UFormField label="Versement (€)">
+                <UInput v-model="instalmentForms[row.participant.id].amount" type="number" min="0.01" step="0.01" class="w-28" />
+              </UFormField>
+              <UFormField label="Reçu le">
+                <UInput v-model="instalmentForms[row.participant.id].receivedAt" type="date" />
+              </UFormField>
+              <UButton type="submit" color="success" variant="soft" :loading="updatingParticipantId === row.participant.id" :disabled="!Number(instalmentForms[row.participant.id].amount)">
+                Noter le versement
+              </UButton>
+            </form>
           </div>
         </article>
       </section>
@@ -157,7 +269,7 @@
           <div class="text-sm">
             <div class="font-medium">{{ refund.participant.name }}</div>
             <div class="text-gray-500">
-              Payé le {{ formatDate(refund.paidAt) }}
+              Payé le {{ formatDate(refund.paidAt) }}<template v-if="refund.receivedCents"> · {{ formatEuros(refund.receivedCents) }} reçu(s)</template>
               <span v-if="refund.refundedAt"> · remboursé le {{ formatDate(refund.refundedAt) }}</span>
             </div>
           </div>
@@ -179,7 +291,7 @@
         </p>
         <ul class="text-sm text-gray-700">
           <li v-for="payment in unassignedPayments" :key="payment.participant.id">
-            {{ payment.participant.name }} · payé le {{ formatDate(payment.paidAt) }}
+            {{ payment.participant.name }} · payé le {{ formatDate(payment.paidAt) }}<template v-if="payment.receivedCents"> · {{ formatEuros(payment.receivedCents) }}</template>
             <span v-if="payment.participant.email"> · {{ payment.participant.email }}</span>
           </li>
         </ul>
@@ -204,6 +316,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { REFUND_STATUSES, SESSION_STATUSES } from '~/utils/domain'
+import { PAYMENT_STATE_DISPLAY, PAYMENT_STATES, TARIFF_ROLE_LABELS, formatEuros } from '~/utils/sessionTariffs'
 
 const props = defineProps({
   paymentsData: { type: Object, required: true },
@@ -261,8 +374,17 @@ async function setRefund(refund, value) {
     updatingRefundId.value = ''
   }
 }
-const paidRows = computed(() => rows.value.filter((row) => row.paidAt))
-const unpaidRows = computed(() => rows.value.filter((row) => !row.paidAt))
+// Mode tarifs dès qu'un tarif existe (US-031, ADR-0032) ; sinon mode simple, avec la case « payé »
+const tariffMode = computed(() => props.paymentsData.mode === 'tariffs')
+const tariffs = computed(() => props.paymentsData.tariffs || [])
+const totals = computed(() => props.paymentsData.totals || { dueCents: 0, receivedCents: 0, remainingCents: 0 })
+const solidarity = computed(() => props.paymentsData.solidarity || {})
+const hasSolidarity = computed(() => tariffs.value.some((tariff) => tariff.baseTariffId))
+// Qui doit encore quelque chose : reste dû en mode tarifs, case non cochée en mode simple
+const owes = (row) => tariffMode.value ? row.remainingCents > 0 && row.state !== PAYMENT_STATES.paid : !row.paidAt
+const payingRows = computed(() => tariffMode.value ? rows.value.filter((row) => row.dueCents > 0) : rows.value)
+const paidRows = computed(() => tariffMode.value ? rows.value.filter((row) => row.state === PAYMENT_STATES.paid) : rows.value.filter((row) => row.paidAt))
+const unpaidRows = computed(() => rows.value.filter(owes))
 const emailedRows = computed(() => rows.value.filter((row) => row.paymentEmailSentAt))
 const remindedRows = computed(() => rows.value.filter((row) => row.paymentReminderSentAt))
 const organizerEmails = computed(() =>
@@ -291,6 +413,151 @@ watch(() => props.paymentsData.session, (session) => {
   settings.paymentRibUrl = session?.paymentRibUrl || ''
   settings.paymentLinkUrl = session?.paymentLinkUrl || ''
 }, { immediate: true })
+
+const formatDay = (value) => new Date(value).toLocaleDateString('fr-FR')
+
+const defaultRoleOptions = [
+  { label: 'Aucun rôle', value: '' },
+  ...Object.entries(TARIFF_ROLE_LABELS).map(([value, label]) => ({ label, value }))
+]
+const emptyTariffForm = () => ({ id: '', name: '', amount: '', defaultRole: '', baseTariffId: '' })
+const tariffForm = reactive(emptyTariffForm())
+const savingTariff = ref(false)
+const deletingTariffId = ref('')
+const baseTariffOptions = computed(() => [
+  { label: 'Aucun (tarif normal)', value: '' },
+  ...tariffs.value
+    .filter((tariff) => tariff.id !== tariffForm.id && !tariff.baseTariffId)
+    .map((tariff) => ({ label: `${tariff.name} (${formatEuros(tariff.amountCents)})`, value: tariff.id }))
+])
+
+function solidarityLabel(tariff) {
+  const base = tariffs.value.find((item) => item.id === tariff.baseTariffId)
+  if (!base) return ''
+  const difference = tariff.amountCents - base.amountCents
+  return difference >= 0
+    ? `soutien : +${formatEuros(difference)} par rapport à ${base.name}`
+    : `réduit : ${formatEuros(difference)} par rapport à ${base.name}`
+}
+
+function resetTariffForm() {
+  Object.assign(tariffForm, emptyTariffForm())
+}
+
+function editTariff(tariff) {
+  Object.assign(tariffForm, {
+    id: tariff.id,
+    name: tariff.name,
+    amount: String(tariff.amountCents / 100),
+    defaultRole: tariff.defaultRole || '',
+    baseTariffId: tariff.baseTariffId || ''
+  })
+}
+
+async function saveTariff() {
+  savingTariff.value = true
+  try {
+    const sessionId = props.paymentsData.session.id
+    await useApiFetch(tariffForm.id ? `/api/sessions/${sessionId}/tariffs/${tariffForm.id}` : `/api/sessions/${sessionId}/tariffs`, {
+      method: tariffForm.id ? 'PUT' : 'POST',
+      body: {
+        name: tariffForm.name,
+        amount: Number(tariffForm.amount),
+        defaultRole: tariffForm.defaultRole || null,
+        baseTariffId: tariffForm.baseTariffId || null
+      }
+    })
+    resetTariffForm()
+    serverError.value = ''
+    await props.onRefresh()
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+  } finally {
+    savingTariff.value = false
+  }
+}
+
+async function deleteTariff(tariff) {
+  if (!confirm(`Supprimer le tarif « ${tariff.name} » ? Les personnes qui l’avaient reprennent le tarif de leur rôle.`)) return
+  deletingTariffId.value = tariff.id
+  try {
+    await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/tariffs/${tariff.id}`, { method: 'DELETE' })
+    if (tariffForm.id === tariff.id) resetTariffForm()
+    serverError.value = ''
+    await props.onRefresh()
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+  } finally {
+    deletingTariffId.value = ''
+  }
+}
+
+// Tarif d'une personne : celui de son rôle par défaut, ou un autre choisi (US-031)
+function personTariffOptions(row) {
+  const roleTariff = row.tariffChosen ? null : row.tariff
+  return [
+    { label: roleTariff ? `Tarif du rôle : ${roleTariff.name}` : 'Tarif du rôle', value: '' },
+    ...tariffs.value.map((tariff) => ({ label: `${tariff.name} (${formatEuros(tariff.amountCents)})`, value: tariff.id }))
+  ]
+}
+
+async function setTariff(row, value) {
+  updatingParticipantId.value = row.participant.id
+  try {
+    await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/${row.participant.id}/tariff`, {
+      method: 'PUT',
+      body: { tariffId: value || null }
+    })
+    serverError.value = ''
+    await props.onRefresh()
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+  } finally {
+    updatingParticipantId.value = ''
+  }
+}
+
+// Versements (US-032) : un formulaire par personne, la date du jour par défaut
+const today = () => new Date().toISOString().slice(0, 10)
+const instalmentForms = reactive({})
+const deletingInstalmentId = ref('')
+watch(rows, (current) => {
+  for (const row of current) {
+    if (!instalmentForms[row.participant.id]) instalmentForms[row.participant.id] = { amount: '', receivedAt: today() }
+  }
+}, { immediate: true })
+
+async function addInstalment(row) {
+  const form = instalmentForms[row.participant.id]
+  updatingParticipantId.value = row.participant.id
+  try {
+    await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/${row.participant.id}/instalments`, {
+      method: 'POST',
+      body: { amount: Number(form.amount), receivedAt: form.receivedAt || null }
+    })
+    Object.assign(form, { amount: '', receivedAt: today() })
+    serverError.value = ''
+    await props.onRefresh()
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+  } finally {
+    updatingParticipantId.value = ''
+  }
+}
+
+async function deleteInstalment(row, instalment) {
+  if (!confirm(`Supprimer le versement de ${formatEuros(instalment.amountCents)} ?`)) return
+  deletingInstalmentId.value = instalment.id
+  try {
+    await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/${row.participant.id}/instalments/${instalment.id}`, { method: 'DELETE' })
+    serverError.value = ''
+    await props.onRefresh()
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+  } finally {
+    deletingInstalmentId.value = ''
+  }
+}
 
 const formatDate = (value) => new Date(value).toLocaleString('fr-FR', {
   day: '2-digit',

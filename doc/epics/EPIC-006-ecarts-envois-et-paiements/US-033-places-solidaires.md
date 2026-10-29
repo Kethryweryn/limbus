@@ -23,4 +23,4 @@ En tant qu'organisatrice, je veux proposer des tarifs de soutien qui financent d
 
 ## Tests
 
-- Unitaires : apport, coût et soldes, avec un soutien payé en partie.
+- Unitaires (`tests/server/sessionTariffs.test.ts`) : apport, coût et soldes, avec un soutien payé en partie.

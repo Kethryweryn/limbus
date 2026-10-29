@@ -3,6 +3,7 @@ import { openEmailTransport, sendEmail } from '~/server/utils/email'
 import { CHARACTER_TYPES, REFUND_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
 import { readUpload } from '~/server/utils/uploads'
 import { isHttpUrl } from '~/utils/urls'
+import { PAYMENT_STATES, TARIFF_ROLES, TARIFF_ROLE_ORDER, eurosToCents, paymentState, solidarityBalance, tariffForPerson } from '~/utils/sessionTariffs'
 
 function compactLines(lines: Array<string | null | undefined>) {
   return lines.filter((line) => typeof line === 'string' && line.trim()).join('\n')
@@ -124,8 +125,11 @@ export async function setSessionPaymentRefund(sessionId: string, participantId: 
   if (!REFUNDABLE_SESSION_STATUSES.includes(session.status)) {
     throw createError({ statusCode: 409, message: 'Le remboursement ne se suit que pour une session annulée ou reportée.' })
   }
-  const payment = await prisma.sessionPayment.findUnique({ where: { sessionId_participantId: { sessionId, participantId } } })
-  if (!payment?.paidAt) {
+  const payment = await prisma.sessionPayment.findUnique({
+    where: { sessionId_participantId: { sessionId, participantId } },
+    include: { instalments: { orderBy: { receivedAt: 'asc' } } }
+  })
+  if (!payment || !hasPaidSomething(payment)) {
     throw createError({ statusCode: 400, message: 'Cette personne n’a pas payé cette session.' })
   }
 
@@ -135,20 +139,29 @@ export async function setSessionPaymentRefund(sessionId: string, participantId: 
       throw createError({ statusCode: 400, message: 'Cette session n’a pas été reportée : le paiement ne peut pas passer sur une autre session.' })
     }
     const target = await getPaymentSession(targetId)
-    const inTarget = buildPaymentRows(target.assignments, target.participants, target.payments)
-      .some((row) => row.participant.id === participantId)
+    const inTarget = paymentRowsOf(target).some((row) => row.participant.id === participantId)
     if (!inTarget) {
       throw createError({ statusCode: 400, message: 'Cette personne ne fait pas partie du tableau des paiements de la nouvelle session.' })
     }
     return await prisma.$transaction(async (tx) => {
       // Un paiement déjà reçu sur la nouvelle session garde sa date
-      const existing = await tx.sessionPayment.findUnique({ where: { sessionId_participantId: { sessionId: targetId, participantId } } })
-      if (!existing?.paidAt) {
-        await tx.sessionPayment.upsert({
+      const existing = await tx.sessionPayment.findUnique({
+        where: { sessionId_participantId: { sessionId: targetId, participantId } },
+        include: { instalments: true }
+      })
+      if (!existing || !hasPaidSomething(existing)) {
+        // Le paiement reporté garde sa date ; ses versements passent en un seul, du total reçu (ADR-0032)
+        const carried = await tx.sessionPayment.upsert({
           where: { sessionId_participantId: { sessionId: targetId, participantId } },
           create: { sessionId: targetId, participantId, paidAt: payment.paidAt },
           update: { paidAt: payment.paidAt }
         })
+        const total = receivedCents(payment)
+        if (total) {
+          await tx.sessionPaymentInstalment.create({
+            data: { paymentId: carried.id, amountCents: total, receivedAt: payment.instalments[0]!.receivedAt }
+          })
+        }
       }
       return await tx.sessionPayment.update({
         where: { id: payment.id },
@@ -179,7 +192,13 @@ async function getPaymentSession(sessionId: string) {
           participant: { select: participantSelect }
         }
       },
-      payments: { include: { participant: { select: participantSelect } } },
+      payments: {
+        include: {
+          participant: { select: participantSelect },
+          instalments: { orderBy: { receivedAt: 'asc' } }
+        }
+      },
+      tariffs: { orderBy: { createdAt: 'asc' } },
       participants: {
         include: {
           participant: { select: participantSelect }
@@ -195,24 +214,259 @@ async function getPaymentSession(sessionId: string) {
   return session
 }
 
+type TariffRecord = { id: string, name: string, amountCents: number, defaultRole: string | null, baseTariffId: string | null }
+type TariffPaymentRecord = PaymentRecord & {
+  tariffId: string | null
+  instalments: Array<{ id: string, amountCents: number, receivedAt: Date }>
+}
+
+// A payé quelque chose : case cochée en mode simple, ou au moins un versement (ADR-0032)
+export function hasPaidSomething(payment: { paidAt: Date | null, instalments?: Array<unknown> } | null | undefined) {
+  return Boolean(payment?.paidAt || payment?.instalments?.length)
+}
+
+const receivedCents = (payment: { instalments?: Array<{ amountCents: number }> } | null | undefined) =>
+  (payment?.instalments || []).reduce((total, instalment) => total + instalment.amountCents, 0)
+
+/**
+ * Tableau en mode tarifs (US-031, ADR-0032) : toute l'équipe de la session, orgas et cuisine compris, avec son
+ * tarif (choisi, ou celui de son rôle), le dû, le reçu, le reste et l'état calculé.
+ */
+export function buildTariffPaymentRows<P extends PaymentParticipant, C extends { name: string, type: string }>(
+  assignments: Array<{ participantId: string | null, participant: P | null, character: C }>,
+  sessionParticipants: Array<{ role: string, participant: P }>,
+  payments: TariffPaymentRecord[],
+  tariffs: TariffRecord[]
+) {
+  const baseRows = buildPaymentRows(assignments, sessionParticipants, payments)
+  const listed = new Set(baseRows.map((row) => row.participant.id))
+  const staff = new Map<string, P>()
+  for (const sessionParticipant of sessionParticipants) {
+    if (sessionParticipant.role !== SESSION_ROLES.organizer && sessionParticipant.role !== SESSION_ROLES.kitchen) continue
+    if (!listed.has(sessionParticipant.participant.id)) staff.set(sessionParticipant.participant.id, sessionParticipant.participant)
+  }
+  const staffRows = [...staff.values()]
+    .sort((left, right) => left.name.localeCompare(right.name, 'fr'))
+    .map((participant) => ({
+      participant,
+      character: null,
+      characters: [] as C[],
+      awaitingCharacter: false,
+      npcRole: false,
+      paidAt: null as Date | null,
+      paymentEmailSentAt: null as Date | null,
+      paymentReminderSentAt: null as Date | null
+    }))
+  const paymentsByParticipantId = new Map(payments.map((payment) => [payment.participantId, payment]))
+
+  return [...baseRows, ...staffRows].map((row) => {
+    const payment = paymentsByParticipantId.get(row.participant.id)
+    const roles = tariffRolesOf(row.participant.id, assignments, sessionParticipants)
+    const { tariff, chosen } = tariffForPerson(roles, tariffs, payment?.tariffId)
+    const dueCents = tariff?.amountCents ?? 0
+    const received = receivedCents(payment)
+    return {
+      ...row,
+      paidAt: payment?.paidAt || null,
+      paymentEmailSentAt: payment?.paymentEmailSentAt || null,
+      paymentReminderSentAt: payment?.paymentReminderSentAt || null,
+      roles,
+      tariff,
+      tariffChosen: chosen,
+      dueCents,
+      receivedCents: received,
+      remainingCents: Math.max(dueCents - received, 0),
+      instalments: payment?.instalments || [],
+      state: paymentState({ dueCents, receivedCents: received, legacyPaid: Boolean(payment?.paidAt) })
+    }
+  })
+}
+
+// Rôles de tarif d'une personne : PJ ou PNJ selon les personnages qu'elle joue, inscrite sans personnage = PJ
+function tariffRolesOf(
+  participantId: string,
+  assignments: Array<{ participantId: string | null, character: { type: string } }>,
+  sessionParticipants: Array<{ role: string, participant: { id: string } }>
+) {
+  const roles = new Set<string>()
+  const playable = assignments.filter((assignment) => assignment.participantId === participantId && isPlayableCharacterType(assignment.character.type))
+  for (const assignment of playable) {
+    roles.add(assignment.character.type === CHARACTER_TYPES.pj ? TARIFF_ROLES.pj : TARIFF_ROLES.pnj)
+  }
+  for (const sessionParticipant of sessionParticipants) {
+    if (sessionParticipant.participant.id !== participantId) continue
+    if (sessionParticipant.role === SESSION_ROLES.participant && !playable.length) roles.add(TARIFF_ROLES.pj)
+    if (sessionParticipant.role === SESSION_ROLES.npc) roles.add(TARIFF_ROLES.pnj)
+    if (sessionParticipant.role === SESSION_ROLES.organizer) roles.add(TARIFF_ROLES.organizer)
+    if (sessionParticipant.role === SESSION_ROLES.kitchen) roles.add(TARIFF_ROLES.kitchen)
+  }
+  return TARIFF_ROLE_ORDER.filter((role) => roles.has(role))
+}
+
+type PaymentSession = Awaited<ReturnType<typeof getPaymentSession>>
+
+// Lignes du tableau selon le mode : simple sans tarif, tarifs dès qu'il y en a un (ADR-0032)
+function paymentRowsOf(session: PaymentSession) {
+  if (!session.tariffs.length) {
+    return buildPaymentRows(session.assignments, session.participants, session.payments).map((row) => ({
+      ...row,
+      roles: [] as string[],
+      tariff: null as TariffRecord | null,
+      tariffChosen: false,
+      dueCents: 0,
+      receivedCents: 0,
+      remainingCents: 0,
+      instalments: [] as Array<{ id: string, amountCents: number, receivedAt: Date }>,
+      state: row.paidAt ? PAYMENT_STATES.paid : PAYMENT_STATES.unpaid
+    }))
+  }
+  return buildTariffPaymentRows(session.assignments, session.participants, session.payments, session.tariffs)
+}
+
+async function assertInPaymentTable(sessionId: string, participantId: string) {
+  const session = await getPaymentSession(sessionId)
+  if (!paymentRowsOf(session).some((row) => row.participant.id === participantId)) {
+    throw createError({ statusCode: 400, message: 'Participant invalide pour le suivi de paiement' })
+  }
+  return session
+}
+
+async function assertTariffMode(sessionId: string) {
+  const count = await prisma.sessionTariff.count({ where: { sessionId } })
+  if (!count) {
+    throw createError({ statusCode: 409, message: 'Créez d’abord un tarif pour cette session.' })
+  }
+}
+
+// Un tarif de base est un tarif de la session, sans tarif de base lui-même : pas de chaîne (US-033)
+async function assertBaseTariff(sessionId: string, baseTariffId: string | null | undefined, tariffId?: string) {
+  if (!baseTariffId) return
+  if (baseTariffId === tariffId) {
+    throw createError({ statusCode: 400, message: 'Un tarif ne peut pas être sa propre base.' })
+  }
+  const base = await prisma.sessionTariff.findFirst({ where: { id: baseTariffId, sessionId }, select: { baseTariffId: true } })
+  if (!base) {
+    throw createError({ statusCode: 400, message: 'Tarif de base invalide pour cette session.' })
+  }
+  if (base.baseTariffId || (tariffId && await prisma.sessionTariff.count({ where: { baseTariffId: tariffId } }))) {
+    throw createError({ statusCode: 400, message: 'Un tarif solidaire ne peut pas servir de base, ni en avoir une s’il en sert.' })
+  }
+}
+
+function isUniqueRoleConflict(error: unknown) {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002'
+}
+
+type TariffInput = { name: string, amount: number, defaultRole?: string | null, baseTariffId?: string | null }
+
+export async function createSessionTariff(sessionId: string, input: TariffInput) {
+  await assertBaseTariff(sessionId, input.baseTariffId)
+  try {
+    return await prisma.sessionTariff.create({
+      data: {
+        sessionId,
+        name: input.name,
+        amountCents: eurosToCents(input.amount),
+        defaultRole: input.defaultRole || null,
+        baseTariffId: input.baseTariffId || null
+      }
+    })
+  } catch (error) {
+    if (isUniqueRoleConflict(error)) {
+      throw createError({ statusCode: 409, message: 'Un autre tarif s’applique déjà à ce rôle.' })
+    }
+    throw error
+  }
+}
+
+export async function updateSessionTariff(sessionId: string, tariffId: string, input: TariffInput) {
+  const existing = await prisma.sessionTariff.findFirst({ where: { id: tariffId, sessionId }, select: { id: true } })
+  if (!existing) {
+    throw createError({ statusCode: 404, message: 'Tarif introuvable' })
+  }
+  await assertBaseTariff(sessionId, input.baseTariffId, tariffId)
+  try {
+    return await prisma.sessionTariff.update({
+      where: { id: tariffId },
+      data: {
+        name: input.name,
+        amountCents: eurosToCents(input.amount),
+        defaultRole: input.defaultRole || null,
+        baseTariffId: input.baseTariffId || null
+      }
+    })
+  } catch (error) {
+    if (isUniqueRoleConflict(error)) {
+      throw createError({ statusCode: 409, message: 'Un autre tarif s’applique déjà à ce rôle.' })
+    }
+    throw error
+  }
+}
+
+// Supprimer un tarif remet ses personnes au tarif de leur rôle et retire le lien des tarifs solidaires (SetNull)
+export async function deleteSessionTariff(sessionId: string, tariffId: string) {
+  const { count } = await prisma.sessionTariff.deleteMany({ where: { id: tariffId, sessionId } })
+  if (!count) {
+    throw createError({ statusCode: 404, message: 'Tarif introuvable' })
+  }
+  return { success: true }
+}
+
+export async function setSessionPaymentTariff(sessionId: string, participantId: string, tariffId: string | null) {
+  await assertTariffMode(sessionId)
+  await assertInPaymentTable(sessionId, participantId)
+  if (tariffId && !await prisma.sessionTariff.count({ where: { id: tariffId, sessionId } })) {
+    throw createError({ statusCode: 400, message: 'Tarif invalide pour cette session.' })
+  }
+  return await prisma.sessionPayment.upsert({
+    where: { sessionId_participantId: { sessionId, participantId } },
+    create: { sessionId, participantId, tariffId },
+    update: { tariffId }
+  })
+}
+
+export async function addSessionPaymentInstalment(sessionId: string, participantId: string, input: { amount: number, receivedAt?: Date | null }) {
+  await assertTariffMode(sessionId)
+  await assertInPaymentTable(sessionId, participantId)
+  const payment = await prisma.sessionPayment.upsert({
+    where: { sessionId_participantId: { sessionId, participantId } },
+    create: { sessionId, participantId },
+    update: {}
+  })
+  return await prisma.sessionPaymentInstalment.create({
+    data: { paymentId: payment.id, amountCents: eurosToCents(input.amount), receivedAt: input.receivedAt || new Date() }
+  })
+}
+
+export async function deleteSessionPaymentInstalment(sessionId: string, participantId: string, instalmentId: string) {
+  const { count } = await prisma.sessionPaymentInstalment.deleteMany({
+    where: { id: instalmentId, payment: { sessionId, participantId } }
+  })
+  if (!count) {
+    throw createError({ statusCode: 404, message: 'Versement introuvable' })
+  }
+  return { success: true }
+}
+
 export async function getSessionPaymentDashboard(sessionId: string) {
   const session = await getPaymentSession(sessionId)
-  const rows = buildPaymentRows(session.assignments, session.participants, session.payments)
+  const rows = paymentRowsOf(session)
 
   // Paiements reçus de personnes qui ne sont plus dans le tableau (désistement, retrait) : à rembourser ou
   // garder à la main ; ils restent visibles, hors du décompte et des envois
   const listed = new Set(rows.map((row) => row.participant.id))
   const unassignedPayments = session.payments
-    .filter((payment) => payment.paidAt && !listed.has(payment.participantId))
-    .map((payment) => ({ participant: payment.participant, paidAt: payment.paidAt }))
+    .filter((payment) => hasPaidSomething(payment) && !listed.has(payment.participantId))
+    .map((payment) => ({ participant: payment.participant, paidAt: payment.paidAt || payment.instalments[0]?.receivedAt || null, receivedCents: receivedCents(payment) }))
 
   // Session annulée ou reportée : chaque paiement reçu se rembourse ou passe sur la nouvelle session (US-023)
   const refunds = REFUNDABLE_SESSION_STATUSES.includes(session.status)
     ? session.payments
-      .filter((payment) => payment.paidAt)
+      .filter((payment) => hasPaidSomething(payment))
       .map((payment) => ({
         participant: payment.participant,
-        paidAt: payment.paidAt,
+        paidAt: payment.paidAt || payment.instalments[0]?.receivedAt || null,
+        receivedCents: receivedCents(payment),
         refundStatus: payment.refundStatus,
         refundedAt: payment.refundedAt
       }))
@@ -230,6 +484,15 @@ export async function getSessionPaymentDashboard(sessionId: string) {
       paymentLinkUrl: session.paymentLinkUrl,
       game: session.game
     },
+    // Mode simple sans tarif, mode tarifs dès qu'il y en a un (ADR-0032)
+    mode: session.tariffs.length ? 'tariffs' : 'simple',
+    tariffs: session.tariffs,
+    totals: {
+      dueCents: rows.reduce((total, row) => total + row.dueCents, 0),
+      receivedCents: rows.reduce((total, row) => total + row.receivedCents, 0),
+      remainingCents: rows.reduce((total, row) => total + row.remainingCents, 0)
+    },
+    solidarity: solidarityBalance(rows, session.tariffs),
     unassignedPayments,
     refunds,
     sessionRoleRecipients: session.participants.map((sessionParticipant) => ({
@@ -265,12 +528,10 @@ export async function updateSessionPaymentSettings(sessionId: string, data: {
 }
 
 export async function setSessionPaymentStatus(sessionId: string, participantId: string, paid: boolean) {
-  const session = await getPaymentSession(sessionId)
-  const isPlayer = buildPaymentRows(session.assignments, session.participants, session.payments)
-    .some((row) => row.participant.id === participantId)
-
-  if (!isPlayer) {
-    throw createError({ statusCode: 400, message: 'Participant invalide pour le suivi de paiement' })
+  const session = await assertInPaymentTable(sessionId, participantId)
+  // En mode tarifs, l'état se calcule à partir des versements (ADR-0032)
+  if (session.tariffs.length) {
+    throw createError({ statusCode: 409, message: 'Cette session a des tarifs : notez un versement plutôt que de cocher « payé ».' })
   }
 
   return await prisma.sessionPayment.upsert({

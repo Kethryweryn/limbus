@@ -239,6 +239,7 @@ model Session {
   documentDeliveries SessionDocumentDelivery[]
   trombinoscopes SessionTrombinoscope[]
   payments SessionPayment[]
+  tariffs SessionTariff[]
   uploadedFiles UploadedFile[]
   registrationPeriodLink RegistrationPeriodSession?
   registrations Registration[]
@@ -429,15 +430,53 @@ model SessionPayment {
   refundStatus        String?
   refundedAt          DateTime?
   carriedOverToSessionId String?
+  // Tarif choisi par l'organisatrice ; sinon celui du rôle de la personne (US-031, ADR-0032)
+  tariffId            String?
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
   session             Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   participant         Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
   carriedOverTo       Session?    @relation("PaymentCarryOvers", fields: [carriedOverToSessionId], references: [id], onDelete: SetNull)
+  tariff              SessionTariff? @relation(fields: [tariffId], references: [id], onDelete: SetNull)
+  instalments         SessionPaymentInstalment[]
 
   @@unique([sessionId, participantId])
   @@index([participantId])
+}
+
+// Tarif de la PAF d'une session (US-031, ADR-0032) : montant en centimes d'euro
+model SessionTariff {
+  id           String   @id @default(cuid())
+  sessionId    String
+  name         String
+  amountCents  Int
+  // pj, pnj, organizer ou kitchen : tarif appliqué par défaut à ce rôle
+  defaultRole  String?
+  // Tarif solidaire : de soutien s'il est plus cher que sa base, réduit s'il l'est moins (US-033)
+  baseTariffId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  session            Session          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  baseTariff         SessionTariff?   @relation("TariffBase", fields: [baseTariffId], references: [id], onDelete: SetNull)
+  solidarityTariffs  SessionTariff[]  @relation("TariffBase")
+  payments           SessionPayment[]
+
+  @@unique([sessionId, defaultRole])
+}
+
+// Versement reçu pour un paiement (US-032) : le reçu est la somme des versements
+model SessionPaymentInstalment {
+  id          String   @id @default(cuid())
+  paymentId   String
+  amountCents Int
+  receivedAt  DateTime
+  createdAt   DateTime @default(now())
+
+  payment     SessionPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
 }
 
 model SessionTrombinoscope {

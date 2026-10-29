@@ -463,3 +463,25 @@ export const smtpSettingsSchema = z.object({
 export const smtpTestSchema = z.object({
   to: requiredText('Recipient').email('Invalid recipient email')
 })
+
+// Tarifs d'une session et versements (US-031 à US-033, ADR-0032) : montants en euros, stockés en centimes
+const euros = (label: string) => z.number({ error: `${label} est obligatoire` }).finite().max(100_000, `${label} est trop élevé`)
+
+export const sessionTariffSchema = z.object({
+  name: frenchText('Le nom').max(120),
+  amount: euros('Le montant').min(0, 'Le montant ne peut pas être négatif'),
+  defaultRole: z.enum(['pj', 'pnj', 'organizer', 'kitchen']).optional().nullable(),
+  baseTariffId: optionalText
+})
+
+export const sessionPaymentTariffSchema = z.object({
+  tariffId: z.string().trim().min(1).nullable()
+})
+
+export const sessionPaymentInstalmentSchema = z.object({
+  amount: euros('Le montant').positive('Le montant doit être positif'),
+  receivedAt: optionalText
+    .refine((value) => !value || !Number.isNaN(new Date(value).getTime()), 'Date de versement invalide')
+    .transform((value) => value ? new Date(value) : null)
+})
+

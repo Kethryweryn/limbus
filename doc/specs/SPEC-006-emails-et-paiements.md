@@ -75,9 +75,11 @@ Remettre à chaque personne d'une session ce qui la concerne, par email : docume
 
 ### Paiements
 
-- **R14** Le tableau des paiements liste les personnes qui jouent un personnage PJ ou PNJ dans la session, les inscrits confirmés sans personnage (« personnage à attribuer ») et les membres de rôle PNJ, même sans personnage ([SPEC-001](SPEC-001-inscriptions.md), R22). La cuisine et les organisateurs sans personnage n'y sont pas.
-- **R15** Un paiement est « payé » avec sa date, ou « non payé ». L'organisatrice le valide ou annule la validation à la main ; seules les personnes du tableau peuvent l'être. Il n'y a ni montant, ni tarif, ni moyen de paiement (voir les écarts).
-- **R16** Un paiement reçu d'une personne qui n'est plus dans le tableau (désistement, rôle retiré) reste affiché à part, hors du décompte et des envois, pour être remboursé ou gardé à la main.
+- **R14** Sans tarif (mode simple), le tableau des paiements liste les personnes qui jouent un personnage PJ ou PNJ dans la session, les inscrits confirmés sans personnage (« personnage à attribuer ») et les membres de rôle PNJ, même sans personnage ([SPEC-001](SPEC-001-inscriptions.md), R22) ; la cuisine et les organisateurs sans personnage n'y sont pas. Dès qu'un tarif existe (mode tarifs), toute l'équipe de la session y est, orgas et cuisine compris ([US-031](../epics/EPIC-006-ecarts-envois-et-paiements/US-031-tarifs-d-une-session.md)).
+- **R15** En mode simple, un paiement est « payé » avec sa date, ou « non payé » : l'organisatrice le valide ou annule la validation à la main ; seules les personnes du tableau peuvent l'être.
+- **R15b** Une session a des tarifs nommés, en euros ([ADR-0032](../adr/ADR-0032-tarifs-et-versements.md)). Un tarif peut s'appliquer par défaut à un rôle (PJ, PNJ, orga, cuisine), un seul tarif par rôle ; chaque personne reçoit le tarif du premier de ses rôles qui en a un, dans cet ordre, et l'organisatrice peut lui en choisir un autre. Sans tarif, la personne n'a rien à payer.
+- **R15c** En mode tarifs, l'organisatrice note chaque versement (montant, date) ; le reçu est leur somme. L'état est calculé : payé quand le reçu atteint le dû, partiel entre les deux, non payé à zéro, rien à payer quand le dû est nul. Un paiement validé en mode simple, sans versement, reste payé. Le tableau donne le dû, le reçu et le reste de chaque personne et de la session ([US-032](../epics/EPIC-006-ecarts-envois-et-paiements/US-032-versements-et-etat-calcule.md)). Il n'y a pas de moyen de paiement.
+- **R16** Un paiement reçu (case cochée ou versement) d'une personne qui n'est plus dans le tableau (désistement, rôle retiré) reste affiché à part, hors du décompte et des envois, pour être remboursé ou gardé à la main.
 - **R17** La demande de paiement part aux personnes du tableau qui n'ont pas payé. Elle donne le nom de la session et du jeu, le lien de paiement et le lien du RIB s'ils existent ; un RIB téléversé est joint en PDF.
 - **R18** La première demande est un « Paiement ». Tout envoi suivant à la même personne est une « Relance », avec une autre formule. Le tableau garde la date de la première demande et celle de la dernière relance.
 - **R19** Un échec d'envoi à une personne n'arrête pas les autres : les personnes qui n'ont rien reçu sont listées. Si aucun email n'est parti, l'envoi est en erreur.
@@ -87,7 +89,8 @@ Remettre à chaque personne d'une session ce qui la concerne, par email : docume
 
 - `SmtpSettings` : une seule ligne pour toute l'application.
 - `SessionDocumentDelivery` : le dernier envoi d'un type à une personne (session, participant, type, document ou personnage, date, empreinte de la version envoyée).
-- `SessionPayment` : l'état du paiement d'un participant pour une session (date de paiement, de la première demande, de la dernière relance).
+- `SessionPayment` : le paiement d'un participant pour une session (date de paiement en mode simple, tarif choisi, date de la première demande et de la dernière relance) ; `SessionPaymentInstalment` : ses versements.
+- `SessionTariff` : un tarif de la session (nom, montant en centimes, rôle par défaut, tarif de base).
 - `Session.paymentRibUrl` et `Session.paymentLinkUrl`.
 - Envois et paiements sont des données personnelles du participant : ils sont couverts par l'export et la suppression RGPD (`participantPrivacy.ts`), décrits dans [SPEC-007](SPEC-007-participants-et-rgpd.md). Ils sont supprimés avec la session ([SPEC-004](SPEC-004-sessions.md), R3), sans proposer de remboursement, et avec le participant. Un envoi est aussi supprimé avec son document ou son personnage : leur historique d'envoi disparaît.
 - Le contenu des emails n'est pas conservé.
