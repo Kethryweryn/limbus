@@ -210,7 +210,7 @@ Tri fait le 29 octobre 2026.
 | R-09 | Fiche todo | [Photos et RGPD](../todo/photos-et-rgpd.md) |
 | R-10 | Fiche todo | [Interface en TypeScript](../todo/interface-en-typescript.md), en chantier dédié |
 | R-14 | Fiche todo | [Tests de bout en bout des parcours](../todo/tests-e2e-des-parcours.md) |
-| R-13 | Avec la resynchronisation | À traiter dans le chantier de resynchronisation hors ligne déjà prévu (CLAUDE.md), sans fiche à part |
+| R-13 | Avec la resynchronisation | Fiche [Resynchronisation hors ligne](../todo/resynchronisation-hors-ligne.md), créée avec [SPEC-010](../specs/SPEC-010-hors-ligne.md) |
 | R-07 | Fiche todo | **Fait** : [Nettoyages techniques](../archive/todo/nettoyages-techniques.md) |
 | R-11 | Fiche todo | **Fait** : [Nettoyages techniques](../archive/todo/nettoyages-techniques.md) |
 | R-12 | Fiche todo | **Fait** : [Nettoyages techniques](../archive/todo/nettoyages-techniques.md) |
