@@ -265,20 +265,14 @@ export async function markDocumentDeliveries(sessionId: string, documentIds: str
   const selectedIds = new Set(documentIds)
   const documents = dashboard.documents.filter((document) => selectedIds.has(document.id) && document.readyToSend)
   const created: Array<{ documentId: string, participantId: string }> = []
+  // Les envois déjà faits sont dans le tableau de bord, chargé sous le verrou d'envoi de la session.
+  // Reste à ne pas écrire deux fois au même participant dans cet envoi (plusieurs personnages par participant).
+  const sentNow = new Set<string>()
 
   for (const document of documents) {
     for (const recipient of document.recipients) {
-      if (recipient.sentAt) continue
-
-      const exists = await prisma.sessionDocumentDelivery.findFirst({
-        where: {
-          sessionId,
-          documentId: document.id,
-          participantId: recipient.participant.id,
-          kind: 'document'
-        }
-      })
-      if (exists) continue
+      const key = `${document.id}:${recipient.participant.id}`
+      if (recipient.sentAt || sentNow.has(key)) continue
       if (!recipient.participant.email) continue
 
       const result = await sendEmail({
@@ -304,6 +298,7 @@ export async function markDocumentDeliveries(sessionId: string, documentIds: str
           kind: 'document'
         }
       })
+      sentNow.add(key)
       created.push({ documentId: document.id, participantId: recipient.participant.id })
     }
   }
@@ -314,20 +309,14 @@ export async function markDocumentDeliveries(sessionId: string, documentIds: str
 export async function markCharacterSheetDeliveries(sessionId: string) {
   const dashboard = await getSessionDocumentDashboard(sessionId)
   let sentCount = 0
+  // Comme pour les documents : les envois déjà faits sont dans le tableau de bord, chargé sous le verrou
+  const sentNow = new Set<string>()
 
   for (const sheet of dashboard.characterSheets) {
     if (!sheet.participant?.id || !sheet.character?.id || !sheet.readyToSend || sheet.sentAt) continue
     if (!sheet.participant.email) continue
-
-    const exists = await prisma.sessionDocumentDelivery.findFirst({
-      where: {
-        sessionId,
-        participantId: sheet.participant.id,
-        characterId: sheet.character.id,
-        kind: 'character_sheet'
-      }
-    })
-    if (exists) continue
+    const key = `${sheet.participant.id}:${sheet.character.id}`
+    if (sentNow.has(key)) continue
 
     const result = await sendEmail({
       to: sheet.participant.email,
@@ -356,6 +345,7 @@ export async function markCharacterSheetDeliveries(sessionId: string) {
         kind: 'character_sheet'
       }
     })
+    sentNow.add(key)
     sentCount++
   }
 
