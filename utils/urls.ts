@@ -18,7 +18,8 @@ export const PHOTO_UPLOAD_PREFIX = '/api/uploads/session-assignment-photos/'
 export const RIB_UPLOAD_PREFIX = '/api/uploads/session-payment-ribs/'
 
 // Seules les vidéos YouTube sont intégrées dans la page : toute autre URL reste un simple lien
-export function youtubeEmbedUrl(url: string | null | undefined) {
+// Identifiant d'une vidéo YouTube, vérifié : seul lui sert à construire une adresse YouTube
+export function youtubeVideoId(url: string | null | undefined) {
   if (!url || !isHttpUrl(url)) return null
   const { hostname, pathname, searchParams } = new URL(url)
   const host = hostname.replace(/^(www\.|m\.)/, '')
@@ -27,5 +28,10 @@ export function youtubeEmbedUrl(url: string | null | undefined) {
     : host === 'youtube.com'
       ? searchParams.get('v') || pathname.match(/^\/(?:embed|shorts)\/([^/]+)/)?.[1]
       : null
-  return id && /^[\w-]{6,20}$/.test(id) ? `https://www.youtube.com/embed/${id}` : null
+  return id && /^[\w-]{6,20}$/.test(id) ? id : null
+}
+
+export function youtubeEmbedUrl(url: string | null | undefined) {
+  const id = youtubeVideoId(url)
+  return id ? `https://www.youtube.com/embed/${id}` : null
 }

@@ -1,7 +1,7 @@
 ---
 id: US-046
 titre: Teaser YouTube chargé seulement au clic
-statut: à faire
+statut: terminée
 epic: EPIC-009
 regles: [R1, R9]
 adr: []
@@ -13,10 +13,10 @@ En tant que visiteuse de la page publique, je veux que YouTube ne dépose rien c
 
 ## Critères d'acceptation
 
-- [ ] Un teaser YouTube s'affiche d'abord en vignette, avec un bouton « Lire la vidéo (YouTube) » ; rien n'est chargé depuis YouTube avant le clic.
-- [ ] La vignette est servie par Limbus, qui la récupère lui-même depuis YouTube ; sans vignette disponible, un fond neutre la remplace.
-- [ ] Au clic, le lecteur YouTube se charge et lit la vidéo.
-- [ ] La même règle vaut sur la fiche du jeu dans l'application.
+- [x] Un teaser YouTube s'affiche d'abord en vignette, avec un bouton « Lire la vidéo (YouTube) » ; rien n'est chargé depuis YouTube avant le clic.
+- [x] La vignette est servie par Limbus, qui la récupère lui-même depuis YouTube ; sans vignette disponible, un fond neutre la remplace.
+- [x] Au clic, le lecteur YouTube se charge et lit la vidéo.
+- [x] La même règle vaut sur la fiche du jeu dans l'application.
 
 ## Notes techniques
 

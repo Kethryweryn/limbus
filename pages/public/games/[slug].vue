@@ -1,7 +1,7 @@
 <template>
   <main v-if="game && !game.redirectSlug" class="light min-h-screen bg-gray-50 text-gray-900" style="color-scheme: light;">
     <div class="p-6 max-w-7xl mx-auto">
-      <GamePageContent :game="game" />
+      <GamePageContent :game="game" :thumbnail-url="`/api/public/games/${game.slug}/teaser-thumbnail`" />
     </div>
   </main>
 </template>

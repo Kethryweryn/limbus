@@ -17,11 +17,32 @@
       <section class="xl:col-span-8 space-y-6">
         <div v-if="teaserEmbedUrl" class="w-full aspect-video overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
           <iframe
-            :src="teaserEmbedUrl"
+            v-if="teaserPlaying"
+            :src="`${teaserEmbedUrl}?autoplay=1`"
             class="w-full h-full"
             frameborder="0"
+            allow="autoplay; fullscreen"
             allowfullscreen
           />
+          <!-- Rien n'est chargé depuis YouTube avant le clic (US-046) : la vignette est servie par Limbus -->
+          <button
+            v-else
+            type="button"
+            class="relative w-full h-full grid place-items-center bg-gradient-to-br from-gray-200 to-gray-400"
+            @click="teaserPlaying = true"
+          >
+            <img
+              v-if="thumbnailUrl && !thumbnailFailed"
+              :src="thumbnailUrl"
+              alt=""
+              class="absolute inset-0 w-full h-full object-cover"
+              @error="thumbnailFailed = true"
+            >
+            <span class="relative flex items-center gap-2 rounded-full bg-black/70 px-4 py-2 text-white">
+              <UIcon name="i-heroicons-play" class="size-5" />
+              Lire la vidéo (YouTube)
+            </span>
+          </button>
         </div>
         <UButton
           v-else-if="teaserLinkUrl"
@@ -65,8 +86,16 @@ const props = defineProps({
   game: {
     type: Object,
     required: true
+  },
+  // Vignette du teaser servie par Limbus (page publique) ; sans elle, un fond neutre
+  thumbnailUrl: {
+    type: String,
+    default: ''
   }
 })
+
+const teaserPlaying = ref(false)
+const thumbnailFailed = ref(false)
 
 const creditText = computed(() => gameCreditText(props.game))
 const teaserEmbedUrl = computed(() => youtubeEmbedUrl(props.game.teaserUrl))

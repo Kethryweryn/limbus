@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isHttpUrl, isUploadUrl, PHOTO_UPLOAD_PREFIX, youtubeEmbedUrl } from '~/utils/urls'
+import { isHttpUrl, isUploadUrl, PHOTO_UPLOAD_PREFIX, youtubeEmbedUrl, youtubeVideoId } from '~/utils/urls'
 
 describe('isHttpUrl', () => {
   it.each(['https://example.com/doc', 'http://example.com', 'HTTPS://EXAMPLE.COM/a?b=c'])('accepte %s', (url) => {
@@ -51,3 +51,12 @@ describe('youtubeEmbedUrl', () => {
     expect(youtubeEmbedUrl(url)).toBeNull()
   })
 })
+
+describe('youtubeVideoId (US-046)', () => {
+  it('rend l’identifiant vérifié d’une vidéo, sinon null', () => {
+    expect(youtubeVideoId('https://youtu.be/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ')
+    expect(youtubeVideoId('https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ')).toBeNull()
+    expect(youtubeVideoId('https://www.youtube.com/watch?v=../../x')).toBeNull()
+  })
+})
+

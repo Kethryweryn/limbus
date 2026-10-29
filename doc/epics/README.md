@@ -67,4 +67,4 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-043](../archive/epics/EPIC-008-ecarts-comptes/US-043-jamais-sans-administratrice.md) | Limbus garde toujours une administratrice | EPIC-008 | terminée |
 | [US-044](EPIC-009-ecarts-page-publique/US-044-credit-sur-la-page-publique.md) | Le crédit d'une copie sur la page publique | EPIC-009 | terminée |
 | [US-045](EPIC-009-ecarts-page-publique/US-045-lien-stable-de-la-page-publique.md) | L'adresse de la page publique survit au renommage | EPIC-009 | terminée |
-| [US-046](EPIC-009-ecarts-page-publique/US-046-teaser-youtube-au-clic.md) | Teaser YouTube chargé seulement au clic | EPIC-009 | à faire |
+| [US-046](EPIC-009-ecarts-page-publique/US-046-teaser-youtube-au-clic.md) | Teaser YouTube chargé seulement au clic | EPIC-009 | terminée |
