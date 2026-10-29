@@ -38,3 +38,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0032](ADR-0032-tarifs-et-versements.md) | Tarifs de session, versements et état de paiement calculé | accepté | 2026-10-29 |
 | [ADR-0033](ADR-0033-paiement-d-une-personne-qui-part.md) | Paiement d'une personne qui part : décision sur le paiement, transfert par versement, proposition à la lecture | accepté | 2026-10-29 |
 | [ADR-0034](ADR-0034-jeton-d-invitation-hache.md) | Le jeton d'une invitation est gardé haché, comme les liens personnels | accepté | 2026-10-29 |
+| [ADR-0035](ADR-0035-anciens-slugs-d-un-jeu.md) | Les anciens slugs d'un jeu redirigent vers sa page publique | accepté | 2026-10-29 |

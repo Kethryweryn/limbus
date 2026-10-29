@@ -1,7 +1,7 @@
 <template>
-  <main v-if="game" class="light min-h-screen bg-gray-50 text-gray-900" style="color-scheme: light;">
+  <main v-if="game && !game.redirectSlug" class="light min-h-screen bg-gray-50 text-gray-900" style="color-scheme: light;">
     <div class="p-6 max-w-7xl mx-auto">
-      <GamePageContent :game="game" />
+      <GamePageContent :game="game" :thumbnail-url="`/api/public/games/${game.slug}/teaser-thumbnail`" />
     </div>
   </main>
 </template>
@@ -17,6 +17,10 @@ const { data: game, error } = await useFetch(`/api/public/games/${route.params.s
 
 if (error.value) {
   throw createError({ statusCode: error.value.statusCode || 404, message: 'Jeu non publié' })
+}
+// Ancienne adresse d'un jeu renommé : redirection permanente vers la nouvelle (US-045)
+if (game.value?.redirectSlug) {
+  await navigateTo(`/public/games/${game.value.redirectSlug}`, { redirectCode: 301, replace: true })
 }
 
 useHead(() => ({

@@ -46,6 +46,7 @@ model Game {
   shares         GameShare[]
   invitations    GameInvitation[]
   registrationPeriods RegistrationPeriod[]
+  slugRedirects  GameSlugRedirect[]
   registrationForm RegistrationForm?
 
   @@index([ownerId])
@@ -602,6 +603,17 @@ model GameShare {
 
   @@unique([gameId, userId])
   @@index([userId])
+}
+
+// Ancien slug d'un jeu (US-045, ADR-0035) : l'ancienne adresse de la page publique redirige vers la nouvelle
+model GameSlugRedirect {
+  slug      String   @id
+  gameId    String
+  createdAt DateTime @default(now())
+
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([gameId])
 }
 
 model GameInvitation {

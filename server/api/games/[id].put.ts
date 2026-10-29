@@ -30,9 +30,20 @@ export default defineEventHandler(async (event) => {
     data.slug = await generateUniqueSlug('game', title, id)
   }
 
-  const game = await prisma.game.update({
-    where: { id },
-    data
+  const previous = await prisma.game.findUniqueOrThrow({ where: { id }, select: { slug: true } })
+  const game = await prisma.$transaction(async (tx) => {
+    const updated = await tx.game.update({ where: { id }, data })
+    // L'ancienne adresse de la page publique redirige vers la nouvelle (US-045, ADR-0035) ; le slug repris
+    // par le jeu n'a plus de redirection
+    if (updated.slug !== previous.slug) {
+      await tx.gameSlugRedirect.deleteMany({ where: { slug: updated.slug } })
+      await tx.gameSlugRedirect.upsert({
+        where: { slug: previous.slug },
+        create: { slug: previous.slug, gameId: id },
+        update: { gameId: id, createdAt: new Date() }
+      })
+    }
+    return updated
   })
 
   // Un jeu archivé n'a pas de page publique, et ne la retrouve pas en étant restauré (US-016). Contrôle

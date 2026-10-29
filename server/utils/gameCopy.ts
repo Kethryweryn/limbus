@@ -20,7 +20,7 @@ export const GAME_COPY_FIELDS = {
     remapped: [],
     relinked: ['characters', 'factions', 'intrigues', 'items', 'timelineEvents', 'documents', 'locations', 'uploadedFiles', 'registrationForm'],
     // La copie démarre active, sans page publique (R10), avec son propre crédit (R11 à R13)
-    omitted: ['id', 'slug', 'ownerId', 'createdAt', 'updatedAt', 'published', 'publicPage', 'creditSourceTitle', 'creditAuthorName', 'copiedFromGameId', 'bequestPending', 'owner', 'copiedFrom', 'copies', 'sessions', 'participantLinks', 'shares', 'invitations', 'registrationPeriods']
+    omitted: ['id', 'slug', 'ownerId', 'createdAt', 'updatedAt', 'published', 'publicPage', 'creditSourceTitle', 'creditAuthorName', 'copiedFromGameId', 'bequestPending', 'owner', 'copiedFrom', 'copies', 'sessions', 'participantLinks', 'shares', 'invitations', 'registrationPeriods', 'slugRedirects']
   },
   Character: {
     copied: ['name', 'type', 'pitch', 'background', 'backgroundDocumentUrl', 'sheetReadyToSend', 'costumeIndications', 'excludeFromTrombinoscope', 'trombinoscopeFaceHidden', 'trombinoscopeNote', 'trombinoscopeDisplayName', 'published'],
