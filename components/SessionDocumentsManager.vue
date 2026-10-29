@@ -91,6 +91,16 @@
                   color="neutral"
                   variant="soft"
                   size="sm"
+                  :loading="resendingKey === `document:${document.id}`"
+                  :disabled="Boolean(resendingKey) || !document.readyToSend || !outdatedRecipients(document).length"
+                  @click="resend({ kind: 'document', documentId: document.id }, `document:${document.id}`, `Renvoyer la version à jour de « ${document.title} » aux ${outdatedRecipients(document).length} personne(s) qui ont une version dépassée ?`)"
+                >
+                  Renvoyer la version à jour
+                </UButton>
+                <UButton
+                  color="neutral"
+                  variant="soft"
+                  size="sm"
                   :disabled="testingEmail || testEmailCooldownKey === `document:${document.id}`"
                   @click="openDocumentTest(document)"
                 >
@@ -110,7 +120,20 @@
                   {{ recipient.targetLabel || recipient.character?.name || 'Destinataire session' }}
                   <span v-if="recipient.sentAt"> · envoyé le {{ formatDate(recipient.sentAt) }}</span>
                   <span v-else> · à envoyer</span>
+                  <span v-if="recipient.versionOutdated" class="text-warning-600"> · version dépassée</span>
                 </div>
+                <UButton
+                  v-if="recipient.sentAt && recipient.participant.email && document.readyToSend"
+                  class="mt-1"
+                  color="neutral"
+                  variant="link"
+                  size="xs"
+                  :loading="resendingKey === `document:${document.id}:${recipient.participant.id}`"
+                  :disabled="Boolean(resendingKey)"
+                  @click="resend({ kind: 'document', documentId: document.id, participantId: recipient.participant.id }, `document:${document.id}:${recipient.participant.id}`, `Renvoyer « ${document.title} » à ${recipient.participant.name} ?`)"
+                >
+                  Renvoyer
+                </UButton>
               </div>
             </div>
 
@@ -148,6 +171,24 @@
             </UButton>
             <UButton color="neutral" variant="soft" :loading="sendingTrombinoscopes" :disabled="sendingTrombinoscopes || trombinoscopesSendCooldown || !pendingTrombinoscopes.length || trombinoscopesBlockedByOutdated" @click="sendTrombinoscopes">
               Envoyer trombinoscopes seuls
+            </UButton>
+            <UButton
+              color="neutral"
+              variant="soft"
+              :loading="resendingKey === 'character_sheet'"
+              :disabled="Boolean(resendingKey) || !outdatedSheets.length"
+              @click="resend({ kind: 'character_sheet' }, 'character_sheet', `Renvoyer la fiche à jour aux ${outdatedSheets.length} personne(s) qui ont une version dépassée ?`)"
+            >
+              Renvoyer les fiches à jour
+            </UButton>
+            <UButton
+              color="neutral"
+              variant="soft"
+              :loading="resendingKey === 'trombinoscope'"
+              :disabled="Boolean(resendingKey) || !outdatedSentTrombinoscopes.length || outdatedSentTrombinoscopes.some((sheet) => sheet.trombinoscopeOutdated)"
+              @click="resend({ kind: 'trombinoscope' }, 'trombinoscope', `Renvoyer le trombinoscope à jour aux ${outdatedSentTrombinoscopes.length} personne(s) qui ont une version dépassée ?`)"
+            >
+              Renvoyer les trombis à jour
             </UButton>
           </div>
         </div>
@@ -214,6 +255,34 @@
               >
                 Tester l'email
               </UButton>
+              <UButton
+                v-if="sheet.sentAt && sheet.readyToSend && sheet.participant.email"
+                color="neutral"
+                variant="soft"
+                size="xs"
+                :loading="resendingKey === `character_sheet:${sheet.character.id}`"
+                :disabled="Boolean(resendingKey)"
+                @click="resend({ kind: 'character_sheet', characterId: sheet.character.id }, `character_sheet:${sheet.character.id}`, `Renvoyer la fiche à ${sheet.participant.name} ?`)"
+              >
+                Renvoyer la fiche
+              </UButton>
+              <UButton
+                v-if="sheet.trombinoscopeSentAt && sheet.trombinoscopeGeneratedAt && sheet.participant.email"
+                color="neutral"
+                variant="soft"
+                size="xs"
+                :loading="resendingKey === `trombinoscope:${sheet.character.id}`"
+                :disabled="Boolean(resendingKey) || sheet.trombinoscopeOutdated"
+                @click="resend({ kind: 'trombinoscope', characterId: sheet.character.id }, `trombinoscope:${sheet.character.id}`, `Renvoyer le trombinoscope à ${sheet.participant.name} ?`)"
+              >
+                Renvoyer le trombi
+              </UButton>
+              <UBadge v-if="sheet.sheetVersionOutdated" color="warning" variant="subtle" size="xs">
+                Fiche à renvoyer
+              </UBadge>
+              <UBadge v-if="sheet.trombinoscopeVersionOutdated && !sheet.trombinoscopeOutdated" color="warning" variant="subtle" size="xs">
+                Trombi à renvoyer
+              </UBadge>
               <UBadge v-if="sheet.trombinoscopeMissingPhotos" color="warning" variant="subtle" size="xs">
                 {{ sheet.trombinoscopeMissingPhotos }} photo(s) manquante(s)
               </UBadge>
@@ -345,6 +414,28 @@ const testPreview = computed(() => {
 const sendFailuresMessage = (result) => result?.failures?.length
   ? `${result.sentCount} email(s) envoyé(s). Non envoyés : ${result.failures.join(', ')}.`
   : ''
+// Renvoi de la version à jour (US-030)
+const resendingKey = ref('')
+const outdatedRecipients = (document) => document.recipients.filter((recipient) => recipient.versionOutdated && recipient.participant.email)
+const outdatedSheets = computed(() => characterSheets.value.filter((sheet) => sheet.sheetVersionOutdated && sheet.readyToSend && sheet.participant.email))
+const outdatedSentTrombinoscopes = computed(() => characterSheets.value.filter((sheet) => sheet.trombinoscopeVersionOutdated && sheet.participant.email))
+
+async function resend(body, key, question) {
+  if (!confirm(question)) return
+  resendingKey.value = key
+  try {
+    const result = await useApiFetch(`/api/sessions/${props.documentsData.session.id}/documents/resend`, {
+      method: 'POST',
+      body
+    })
+    serverError.value = sendFailuresMessage(result)
+    await props.onRefresh()
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+  } finally {
+    resendingKey.value = ''
+  }
+}
 const sentRecipients = (document) => document.recipients.filter((recipient) => recipient.sentAt)
 const pendingRecipients = (document) => document.recipients.filter((recipient) => !recipient.sentAt)
 const audienceLabel = (audience) => DOCUMENT_AUDIENCE_LABELS[audience] || DOCUMENT_AUDIENCE_LABELS.targeted

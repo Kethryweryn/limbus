@@ -17,7 +17,7 @@ Aligner le code sur [SPEC-006](../../specs/SPEC-006-emails-et-paiements.md) : co
 | US | Titre | Statut |
 |---|---|---|
 | [US-029](US-029-echecs-d-envoi-non-bloquants.md) | Un échec d'envoi n'arrête pas les autres | terminée |
-| [US-030](US-030-renvoyer-la-version-a-jour.md) | Renvoyer la version à jour d'un document, d'une fiche ou d'un trombinoscope | à faire |
+| [US-030](US-030-renvoyer-la-version-a-jour.md) | Renvoyer la version à jour d'un document, d'une fiche ou d'un trombinoscope | terminée |
 | [US-031](US-031-tarifs-d-une-session.md) | Tarifs d'une session, attribués selon le rôle | à faire |
 | [US-032](US-032-versements-et-etat-calcule.md) | Noter les versements, état de paiement calculé | à faire |
 | [US-033](US-033-places-solidaires.md) | Places solidaires : soutien et réductions | à faire |

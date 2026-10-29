@@ -69,7 +69,8 @@ Remettre à chaque personne d'une session ce qui la concerne, par email : docume
 - **R9** L'email d'un document reprend son contenu et son lien externe, avec le PDF du document en pièce jointe ([SPEC-005](SPEC-005-trombinoscopes-et-pdf.md), R12).
 - **R10** Les fiches partent aux personnes castées dont le personnage, PJ ou PNJ, est « prêt à envoyer », avec le PDF de la fiche ([SPEC-005](SPEC-005-trombinoscopes-et-pdf.md), R11). Les trombinoscopes partent aux personnes dont le trombinoscope a été généré, avec son PDF.
 - **R11** L'envoi groupé « fiches et trombis » part aux personnes dont la fiche est prête et le trombinoscope généré, et qui n'ont pas déjà reçu les deux. Il note à la fois la fiche, le trombinoscope et l'ensemble comme envoyés. Une personne qui a reçu fiche et trombinoscope séparément compte comme ayant reçu l'ensemble.
-- **R12** Chaque envoi ne part qu'aux destinataires manquants. Un document, une fiche ou un trombinoscope déjà reçu n'est plus renvoyé à la même personne par son propre envoi (voir les écarts). Seule exception, l'envoi groupé (R11) : à une personne qui n'a reçu que la fiche ou que le trombinoscope, il renvoie les deux.
+- **R12** Chaque envoi ne part qu'aux destinataires manquants. Seule exception, l'envoi groupé (R11) : à une personne qui n'a reçu que la fiche ou que le trombinoscope, il renvoie les deux.
+- **R12b** Un envoi garde l'empreinte de la version envoyée ([ADR-0031](../adr/ADR-0031-version-d-un-envoi.md)) : le tableau signale une version dépassée. « Renvoyer » renvoie la version actuelle à une personne qui l'a déjà reçue ; « Renvoyer la version à jour », par document, pour les fiches ou pour les trombinoscopes, la renvoie aux seules personnes dont la version est dépassée. L'email renvoyé a un objet préfixé « Mise à jour : » et dit qu'il remplace le précédent. Un trombinoscope périmé doit être généré à nouveau avant d'être renvoyé ([US-030](../epics/EPIC-006-ecarts-envois-et-paiements/US-030-renvoyer-la-version-a-jour.md)).
 - **R13** Un échec d'envoi à une personne n'arrête pas les autres : les personnes qui n'ont rien reçu sont listées. Si aucun email n'est parti à cause d'échecs, l'envoi est en erreur ([US-029](../epics/EPIC-006-ecarts-envois-et-paiements/US-029-echecs-d-envoi-non-bloquants.md)).
 
 ### Paiements
@@ -85,7 +86,7 @@ Remettre à chaque personne d'une session ce qui la concerne, par email : docume
 ## Données
 
 - `SmtpSettings` : une seule ligne pour toute l'application.
-- `SessionDocumentDelivery` : un envoi (session, participant, type, document ou personnage, date).
+- `SessionDocumentDelivery` : le dernier envoi d'un type à une personne (session, participant, type, document ou personnage, date, empreinte de la version envoyée).
 - `SessionPayment` : l'état du paiement d'un participant pour une session (date de paiement, de la première demande, de la dernière relance).
 - `Session.paymentRibUrl` et `Session.paymentLinkUrl`.
 - Envois et paiements sont des données personnelles du participant : ils sont couverts par l'export et la suppression RGPD (`participantPrivacy.ts`), décrits dans [SPEC-007](SPEC-007-participants-et-rgpd.md). Ils sont supprimés avec la session ([SPEC-004](SPEC-004-sessions.md), R3), sans proposer de remboursement, et avec le participant. Un envoi est aussi supprimé avec son document ou son personnage : leur historique d'envoi disparaît.

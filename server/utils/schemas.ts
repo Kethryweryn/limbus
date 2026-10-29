@@ -251,6 +251,14 @@ export const sessionPaymentStatusSchema = z.object({
   paid: z.boolean()
 })
 
+// Renvoi de la version à jour (US-030) : à une personne, ou à celles dont la version est dépassée
+export const documentResendSchema = z.object({
+  kind: z.enum(['document', 'character_sheet', 'trombinoscope']),
+  documentId: optionalText,
+  participantId: optionalText,
+  characterId: optionalText
+})
+
 export const sessionPaymentSendSchema = z.object({
   reminder: z.boolean().optional().default(false),
   participantId: optionalText

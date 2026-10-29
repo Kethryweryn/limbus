@@ -467,6 +467,7 @@ model SessionDocumentDelivery {
   documentId    String?
   characterId   String?
   kind          String      @default("document")
+  contentHash   String?
   sentAt        DateTime    @default(now())
 
   session       Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)

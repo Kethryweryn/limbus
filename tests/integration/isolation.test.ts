@@ -165,6 +165,7 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['POST', `/api/sessions/${session}/documents/send-character-sheets`, {}],
     ['POST', `/api/sessions/${session}/documents/send-trombinoscopes`, {}],
     ['POST', `/api/sessions/${session}/documents/send-character-sheets-and-trombinoscopes`, {}],
+    ['POST', `/api/sessions/${session}/documents/resend`, { kind: 'document', documentId: b.document.id }],
     ['POST', `/api/sessions/${session}/documents/test-email`, { emails: ['x@example.test'] }],
     ['POST', `/api/sessions/${session}/documents/test-character-sheet`, { emails: ['x@example.test'], characterId: b.character.id }],
     ['GET', `/api/sessions/${session}/payments`],
