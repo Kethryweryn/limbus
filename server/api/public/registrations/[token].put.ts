@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   const { charterAccepted: _charterAccepted, healthConsent: _healthConsent, ...answers } = await readZodBody(event, registrationAnswerSchema(form.definition))
 
   const versionId = await frozenFormVersionId(registration, form.versionId)
-  const { accepted } = await saveRegistrationAnswers(registration, versionId, answers)
+  const { accepted } = await saveRegistrationAnswers(registration, versionId, answers, form.definition)
   const emailSent = accepted ? await sendRegistrationConfirmationEmail(registration, answers, registrationUrl(token)) : null
 
   return { ...(await exposePublicRegistration(await requireRegistrationByToken(token))), emailSent }

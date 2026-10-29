@@ -7,7 +7,7 @@ import { eraseParticipant } from '~/server/utils/participantPrivacy'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { requireRouterParam } from '~/server/utils/routeParams'
-import { accountIdForEmail } from '~/server/utils/participantAccounts'
+import { accountIdForEmail, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
@@ -48,15 +48,20 @@ export default defineEventHandler(async (event) => {
     return { deleted: true }
   }
 
+  // Fiche qui reste rattachée : nom et téléphone sont tenus par la personne, l'envoi de l'équipe est ignoré (US-075)
+  const userId = await accountIdForEmail(email)
+  const current = await prisma.participant.findUniqueOrThrow({ where: { id }, select: { name: true, phone: true, userId: true } })
+  const heldByPerson = Boolean(userId && userId === current.userId)
+  const effectiveName = heldByPerson ? current.name : name
   const participant = await prisma.participant.update({
     where: { id },
     data: {
-      name,
-      slug: await generateUniqueSlug('participant', name, id),
+      name: effectiveName,
+      slug: await generateUniqueSlug('participant', effectiveName, id),
       email: email || null,
-      phone: phone || null,
+      phone: heldByPerson ? current.phone : phone || null,
       // Le rattachement suit l'adresse : autre compte, ou aucun (US-070)
-      userId: await accountIdForEmail(email),
+      userId,
       gameLinks: {
         create: gameIdsToAdd.map((gameId) => ({ gameId, notes: gameNotes[gameId] || null })),
         // Note de chaque jeu déjà lié et reçu ; les notes des autres jeux ne bougent pas (US-069)
@@ -68,6 +73,11 @@ export default defineEventHandler(async (event) => {
     include: participantGameLinksInclude(allowedGameIds)
   })
 
+  // Rattachée par ce changement d'email : elle prend les coordonnées du compte (US-074)
+  if (userId && !heldByPerson) {
+    await syncProfileToParticipants(userId)
+    return exposeParticipantGames(await prisma.participant.findUniqueOrThrow({ where: { id }, include: participantGameLinksInclude(allowedGameIds) }))
+  }
   return exposeParticipantGames(participant)
 })
 

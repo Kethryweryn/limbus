@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
 import { prisma } from '~/server/utils/prisma'
-import { accountIdForEmail } from '~/server/utils/participantAccounts'
+import { accountIdForEmail, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 import { assertRateLimit } from '~/server/utils/rateLimit'
 import { sendEmail } from '~/server/utils/email'
 import { hashRegistrationToken } from '~/server/utils/registrations'
@@ -39,7 +39,14 @@ const publicRegistrationSelect = {
   confirmedAt: true,
   withdrawnById: true,
   formVersion: { select: { id: true, definition: true } },
-  participant: { select: { name: true } },
+  participant: {
+    select: {
+      name: true,
+      userId: true,
+      // Coordonnées du compte, pour préremplir une invitation (US-074)
+      user: { select: { phone: true, emergencyContactName: true, emergencyContactPhone: true, dietary: true, healthConsentAt: true, profileUpdatedAt: true } }
+    }
+  },
   session: { select: { name: true, date: true, location: { select: { name: true, address: true } } } },
   period: {
     select: {
@@ -162,6 +169,8 @@ export async function exposePublicRegistration(registration: PublicRegistration,
 
   const prefill = splitParticipantName(registration.participant.name)
   const answered = Boolean(registration.respondedAt)
+  // Invitation sans réponse d'une personne qui a enregistré ses coordonnées : elles préremplissent le formulaire
+  const profile = !answered && registration.participant.user?.profileUpdatedAt ? registration.participant.user : null
   return {
     status: registration.status,
     game: { ...game, noteIntention: registration.period.game.noteIntention },
@@ -178,11 +187,11 @@ export async function exposePublicRegistration(registration: PublicRegistration,
       firstName: answered ? registration.firstName : registration.firstName ?? prefill.firstName,
       lastName: answered ? registration.lastName : registration.lastName ?? prefill.lastName,
       facebookName: registration.facebookName,
-      phone: registration.phone,
-      emergencyContactName: registration.emergencyContactName,
-      emergencyContactPhone: registration.emergencyContactPhone,
-      dietary: registration.dietary,
-      healthConsent: Boolean(registration.healthConsentAt),
+      phone: registration.phone ?? profile?.phone ?? null,
+      emergencyContactName: registration.emergencyContactName ?? profile?.emergencyContactName ?? null,
+      emergencyContactPhone: registration.emergencyContactPhone ?? profile?.emergencyContactPhone ?? null,
+      dietary: registration.dietary ?? profile?.dietary ?? null,
+      healthConsent: Boolean(registration.healthConsentAt ?? profile?.healthConsentAt),
       charterAccepted: Boolean(registration.charterAcceptedAt)
     }
   }
@@ -215,7 +224,7 @@ export async function answerFormDefinition(registration: PublicRegistration) {
  * Les informations restent sur l'inscription (R14) ; seul l'email remonte sur la fiche du participant :
  * c'est l'adresse donnée par la personne qui fait foi pour tous les envois (R12).
  */
-export async function saveRegistrationAnswers(registration: PublicRegistration, versionId: string, answers: RegistrationAnswers) {
+export async function saveRegistrationAnswers(registration: PublicRegistration, versionId: string, answers: RegistrationAnswers, definition: RegistrationFormDefinition) {
   const now = new Date()
   const accepting = registration.status === REGISTRATION_STATUSES.invited
   const data = {
@@ -249,6 +258,26 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
       })
     }
   })
+
+  // Fiche rattachée à un compte (après la réponse, qui a pu changer l'email) : la réponse met aussi à jour ses
+  // coordonnées, recopiées ensuite partout (US-074). Un champ que ce formulaire ne demande pas ne les touche pas
+  const linked = await prisma.participant.findUnique({ where: { id: registration.participantId }, select: { userId: true } })
+  if (linked?.userId) {
+    const now = new Date()
+    const asked = normalizeRegistrationFormDefinition(definition).standardFields
+    const answeredName = [answers.firstName, answers.lastName].filter(Boolean).join(' ').trim()
+    await prisma.user.update({
+      where: { id: linked.userId },
+      data: {
+        ...(answeredName ? { name: answeredName } : {}),
+        ...(asked.phone.asked ? { phone: answers.phone } : {}),
+        ...(asked.emergencyContact.asked ? { emergencyContactName: answers.emergencyContactName, emergencyContactPhone: answers.emergencyContactPhone } : {}),
+        ...(asked.dietary.asked ? { dietary: answers.dietary, healthConsentAt: answers.dietary ? now : null } : {}),
+        profileUpdatedAt: now
+      }
+    })
+    await syncProfileToParticipants(linked.userId)
+  }
 
   return { accepted: accepting }
 }

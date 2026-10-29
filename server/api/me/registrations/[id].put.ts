@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   const answers = { ...body, email: user.email }
 
   const versionId = await frozenFormVersionId(registration, form.versionId)
-  const { accepted } = await saveRegistrationAnswers(registration, versionId, answers)
+  const { accepted } = await saveRegistrationAnswers(registration, versionId, answers, form.definition)
   // Le lien de l'email mène à l'espace « Je participe » : le jeton du lien personnel n'est pas connu ici
   const emailSent = accepted ? await sendRegistrationConfirmationEmail(registration, answers, absoluteAppUrl('/participer')) : null
 

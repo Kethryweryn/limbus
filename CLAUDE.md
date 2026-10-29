@@ -20,7 +20,7 @@ On ne pousse jamais directement sur `main` (ADR-0017) : chaque chantier a sa bra
 ## Sécurité des routes API
 
 - Toute route sous `server/api` commence par `requireUser(event)` (ou `requireAdmin`), sauf les routes volontairement publiques : `auth/*`, `invitations/[token]` et `public/*`. Il n'y a qu'un rôle global, administratrice ou non : les droits sur un jeu viennent de sa propriété ou de son partage (ADR-0038). `requireUser` refuse un compte désactivé et un compte dont l'adresse n'est pas confirmée ; seules `auth/me`, la déconnexion et le renvoi du lien passent `allowUnconfirmed` (ADR-0039).
-- Espace « Je participe » (`server/api/me/*`) : tout part des fiches participant rattachées au compte (`Participant.userId`, `myParticipantIds`), jamais d'un identifiant de jeu ; une ressource d'une autre fiche répond 404 (ADR-0041). Une fiche suit le compte confirmé de son adresse : toute création ou modification de son email recalcule `userId` (`accountIdForEmail`).
+- Espace « Je participe » (`server/api/me/*`) : tout part des fiches participant rattachées au compte (`Participant.userId`, `myParticipantIds`), jamais d'un identifiant de jeu ; une ressource d'une autre fiche répond 404 (ADR-0041). Une fiche suit le compte confirmé de son adresse : toute création ou modification de son email recalcule `userId` (`accountIdForEmail`). Ses coordonnées (nom, téléphone, contact d'urgence, allergies) viennent alors du compte : `syncProfileToParticipants` les recopie sur ses fiches et inscriptions, et l'équipe ne les modifie plus (ADR-0042).
 - Toute donnée rattachée à un jeu est filtrée par accès au jeu :
   - `requireGameAccess(event, gameId)` pour une ressource précise ;
   - `requireSessionAccess(event, id)` pour une session ;

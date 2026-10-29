@@ -92,7 +92,7 @@ Un epic par lot, dans l'ordre :
 2. Inscription libre, confirmation de l'adresse, protection contre les robots, compte en libre-service, mot de passe oublié, invitation par la bonne adresse, création par l'administratrice, plafond de stockage ([EPIC-013](../archive/epics/EPIC-013-inscription-et-compte/README.md)).
 3. Notes d'organisation propres à chaque équipe : une note par jeu ([EPIC-014](../archive/epics/EPIC-014-notes-par-jeu/README.md)).
 4. Compte participant : rattachement des fiches, espace « Je participe » (sessions, inscriptions, paiement), sélecteur d'espace ([EPIC-015](../archive/epics/EPIC-015-je-participe/README.md)).
-5. Coordonnées et allergies tenues par la personne ([EPIC-016](../epics/EPIC-016-coordonnees-tenues-par-la-personne/README.md)).
+5. Coordonnées et allergies tenues par la personne ([EPIC-016](../archive/epics/EPIC-016-coordonnees-tenues-par-la-personne/README.md)).
 6. Export et effacement depuis le compte.
 7. Documents et trombinoscopes dans le compte.
 

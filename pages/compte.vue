@@ -58,6 +58,39 @@
         <p v-if="messages.password" class="mt-2 text-sm text-green-700">{{ messages.password }}</p>
       </UCard>
 
+      <!-- Mes coordonnées (US-074) : une seule version, recopiée pour chaque équipe -->
+      <UCard>
+        <template #header>
+          <h2 class="font-semibold">Mes coordonnées</h2>
+          <p class="text-sm text-gray-500">Les équipes des jeux auxquels vous participez les voient pour leurs jeux seulement. Vous seul·e les modifiez.</p>
+        </template>
+        <form class="grid grid-cols-1 sm:grid-cols-2 gap-3" @submit.prevent="saveProfile">
+          <UFormField label="Téléphone">
+            <UInput v-model="profileForm.phone" type="tel" autocomplete="tel" class="w-full" />
+          </UFormField>
+          <div />
+          <UFormField label="Contact d’urgence : nom">
+            <UInput v-model="profileForm.emergencyContactName" class="w-full" />
+          </UFormField>
+          <UFormField label="Contact d’urgence : téléphone">
+            <UInput v-model="profileForm.emergencyContactPhone" type="tel" class="w-full" />
+          </UFormField>
+          <UFormField label="Régime, allergies et intolérances" class="sm:col-span-2">
+            <UTextarea v-model="profileForm.dietary" :rows="3" class="w-full" />
+          </UFormField>
+          <UFormField v-if="profileForm.dietary?.trim()" class="sm:col-span-2">
+            <UCheckbox
+              v-model="profileForm.healthConsent"
+              label="J’accepte que ces informations de santé soient transmises aux équipes d’organisation et de cuisine de mes jeux"
+            />
+          </UFormField>
+          <div class="sm:col-span-2">
+            <UButton type="submit" color="primary" :loading="saving === 'profile'">Enregistrer mes coordonnées</UButton>
+          </div>
+        </form>
+        <p v-if="messages.profile" class="mt-2 text-sm text-green-700">{{ messages.profile }}</p>
+      </UCard>
+
       <UCard>
         <template #header><h2 class="font-semibold">Stockage</h2></template>
         <p class="text-sm text-gray-600">
@@ -83,7 +116,8 @@ const saving = ref('')
 const name = ref('')
 const emailForm = ref({ email: '', password: '' })
 const passwordForm = ref({ currentPassword: '', password: '' })
-const messages = ref({ name: '', password: '' })
+const profileForm = ref({ phone: '', emergencyContactName: '', emergencyContactPhone: '', dietary: '', healthConsent: false })
+const messages = ref({ name: '', password: '', profile: '' })
 
 const storagePercent = computed(() => {
   const storage = account.value?.storage
@@ -94,6 +128,7 @@ async function load() {
   try {
     account.value = await useApiFetch('/api/account')
     name.value = account.value.name
+    profileForm.value = { ...profileForm.value, ...Object.fromEntries(Object.entries(account.value.profile).filter(([key, value]) => key !== 'updatedAt' && value !== null)) }
   } catch (err) {
     loadError.value = err?.data?.message || 'Impossible de charger le compte.'
   }
@@ -102,7 +137,7 @@ async function load() {
 async function run(key, action) {
   saving.value = key
   error.value = ''
-  messages.value = { name: '', password: '' }
+  messages.value = { name: '', password: '', profile: '' }
   try {
     await action()
   } catch (err) {
@@ -128,6 +163,11 @@ const changePassword = () => run('password', async () => {
   await useApiFetch('/api/account/password', { method: 'PUT', body: passwordForm.value })
   passwordForm.value = { currentPassword: '', password: '' }
   messages.value.password = 'Mot de passe changé. Vos autres appareils sont déconnectés.'
+})
+
+const saveProfile = () => run('profile', async () => {
+  await useApiFetch('/api/account/profile', { method: 'PUT', body: profileForm.value })
+  messages.value.profile = 'Coordonnées enregistrées : vos fiches et inscriptions sont à jour.'
 })
 
 await load()
