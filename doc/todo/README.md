@@ -13,6 +13,7 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Cycle de vie d'une session](cycle-de-vie-d-une-session.md) | à trancher | 2026-10-29 | Annulation, report avec reprise du casting et confirmation de présence, remboursements (SPEC-004, écart 1) |
 | [Un compte pour tout le monde](comptes-participants.md) | à trancher | 2026-10-29 | Inscription libre, administrateur seul rôle global, espaces « J'organise » et « Je participe », coordonnées et RGPD en libre-service (SPEC-007, écart 1) |
 | [Resynchronisation hors ligne](resynchronisation-hors-ligne.md) | à trancher | 2026-10-29 | Voir, corriger ou abandonner les modifications hors ligne refusées ; contrôle de conflit sur toutes les écritures rejouées (SPEC-010, écart 2 ; revue R-13) |
+| [Numéros de version et notes de version](versions-et-notes-de-version.md) | à trancher | 2026-10-29 | Version sémantique, étiquettes git et notes de version à partir de la première version publiée |
 
 ## Archivées
 
