@@ -6,10 +6,13 @@ import { fakeEvent } from '../helpers'
 import { runtimeConfig } from '../setup'
 
 const SECRET = 'secret-jwt-de-test'
-const USER = { id: 'user-1', email: 'orga@example.test', name: 'Orga', role: 'organizer' }
+const USER = { id: 'user-1', email: 'orga@example.test', name: 'Orga', role: 'user' }
+const AUTH_USER = { ...USER, emailConfirmed: true }
 const findUnique = vi.fn()
 let sessionVersion = 0
 let role = USER.role
+let emailConfirmedAt: Date | null = new Date()
+let disabledAt: Date | null = null
 
 function eventWithToken(token: string) {
   return fakeEvent({ headers: { cookie: `limbus_token=${token}` } }).event
@@ -18,15 +21,17 @@ function eventWithToken(token: string) {
 beforeEach(() => {
   sessionVersion = 0
   role = USER.role
+  emailConfirmedAt = new Date()
+  disabledAt = null
   runtimeConfig.jwtSecret = SECRET
-  findUnique.mockReset().mockImplementation(async ({ where }) => (where.id === USER.id ? { ...USER, role, sessionVersion } : null))
+  findUnique.mockReset().mockImplementation(async ({ where }) => (where.id === USER.id ? { ...USER, role, sessionVersion, emailConfirmedAt, disabledAt } : null))
   Object.assign(prisma, { user: { findUnique } })
 })
 
 describe('requireAuthUser', () => {
   it('accepte un jeton valide et relit l’utilisateur en base', async () => {
     const token = signAuthToken({ id: USER.id, role: 'admin' })
-    await expect(requireAuthUser(eventWithToken(token))).resolves.toEqual(USER)
+    await expect(requireAuthUser(eventWithToken(token))).resolves.toEqual(AUTH_USER)
   })
 
   it('refuse une requête sans cookie', async () => {
@@ -59,7 +64,7 @@ describe('requireAuthUser', () => {
     sessionVersion = 2
     const token = signAuthToken({ id: USER.id, v: 2 })
     const user = await requireAuthUser(eventWithToken(token))
-    expect(user).toEqual(USER)
+    expect(user).toEqual(AUTH_USER)
     expect(user).not.toHaveProperty('sessionVersion')
   })
 
@@ -67,10 +72,21 @@ describe('requireAuthUser', () => {
     const token = signAuthToken({ id: 'utilisateur-supprime' })
     await expect(requireAuthUser(eventWithToken(token))).rejects.toMatchObject({ statusCode: 401 })
   })
+
+  it('refuse un compte désactivé (US-065)', async () => {
+    disabledAt = new Date()
+    await expect(requireAuthUser(eventWithToken(signAuthToken({ id: USER.id })))).rejects.toMatchObject({ statusCode: 401 })
+  })
+
+  it('refuse une adresse non confirmée, sauf aux routes qui l’acceptent (US-061, R5)', async () => {
+    emailConfirmedAt = null
+    await expect(requireUser(eventWithToken(signAuthToken({ id: USER.id })))).rejects.toMatchObject({ statusCode: 403, data: { unconfirmed: true } })
+    await expect(requireAuthUser(eventWithToken(signAuthToken({ id: USER.id })), { allowUnconfirmed: true })).resolves.toMatchObject({ emailConfirmed: false })
+  })
 })
 
 describe('un seul rôle global (US-058, ADR-0038)', () => {
-  it.each(['organizer', 'user', 'admin'])('requireUser accepte un compte « %s »', async (value) => {
+  it.each(['user', 'admin'])('requireUser accepte un compte « %s »', async (value) => {
     role = value
     await expect(requireUser(eventWithToken(signAuthToken({ id: USER.id })))).resolves.toMatchObject({ role: value })
   })

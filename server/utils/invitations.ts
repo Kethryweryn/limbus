@@ -52,6 +52,14 @@ export async function acceptInvitationForUser(token: string, userId: string) {
   if (!user) {
     throw createError({ statusCode: 404, message: 'Utilisateur introuvable' })
   }
+  // Seul le compte de l'adresse invitée accepte, invitation comme legs (US-064, R8)
+  if (normalizeInvitationEmail(user.email) !== normalizeInvitationEmail(invitation.email)) {
+    throw createError({
+      statusCode: 403,
+      message: 'Cette invitation a été envoyée à une autre adresse : demandez une nouvelle invitation pour votre compte.',
+      data: { wrongAccount: true }
+    })
+  }
 
   if (invitation.kind === GAME_INVITATION_KINDS.bequest) {
     await acceptBequest(invitation, userId)

@@ -31,11 +31,11 @@ describe('révocation des sessions', () => {
     expect((await api(dave, 'GET', '/api/auth/me')).body).toEqual({ authenticated: false })
   })
 
-  it('un changement de mot de passe par un admin déconnecte le compte', async () => {
+  it('la désactivation par un admin déconnecte le compte (US-065)', async () => {
     const erin = await createUser('erin')
     expect((await api(erin, 'GET', '/api/games')).status).toBe(200)
 
-    expect((await api(admin, 'PUT', `/api/admin/users/${erin.id}`, { password: 'nouveau-mot-de-passe' })).status).toBe(200)
+    expect((await api(admin, 'PUT', `/api/admin/users/${erin.id}`, { disabled: true })).status).toBe(200)
 
     expect((await api(erin, 'GET', '/api/games')).status).toBe(401)
   })

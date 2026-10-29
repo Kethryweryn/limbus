@@ -19,7 +19,7 @@ On ne pousse jamais directement sur `main` (ADR-0017) : chaque chantier a sa bra
 
 ## Sécurité des routes API
 
-- Toute route sous `server/api` commence par `requireUser(event)` (ou `requireAdmin`), sauf les routes volontairement publiques : `auth/*`, `invitations/[token]` et `public/*`. Il n'y a qu'un rôle global, administratrice ou non : les droits sur un jeu viennent de sa propriété ou de son partage (ADR-0038).
+- Toute route sous `server/api` commence par `requireUser(event)` (ou `requireAdmin`), sauf les routes volontairement publiques : `auth/*`, `invitations/[token]` et `public/*`. Il n'y a qu'un rôle global, administratrice ou non : les droits sur un jeu viennent de sa propriété ou de son partage (ADR-0038). `requireUser` refuse un compte désactivé et un compte dont l'adresse n'est pas confirmée ; seules `auth/me`, la déconnexion et le renvoi du lien passent `allowUnconfirmed` (ADR-0039).
 - Toute donnée rattachée à un jeu est filtrée par accès au jeu :
   - `requireGameAccess(event, gameId)` pour une ressource précise ;
   - `requireSessionAccess(event, id)` pour une session ;
@@ -29,7 +29,7 @@ On ne pousse jamais directement sur `main` (ADR-0017) : chaque chantier a sa bra
 - Le JWT ne porte que l'`id` et la version de session `v` : rôle et email sont relus en base à chaque requête, et un jeton dont `v` ne correspond plus à `User.sessionVersion` est refusé. Pour déconnecter un compte partout (changement de mot de passe…), appeler `revokeUserSessions`.
 - Données personnelles des participants : la suppression passe par `eraseParticipant` (photos et fichiers compris), l'export par `exportParticipantData`, limité aux jeux de l'organisateur. Toute nouvelle donnée liée à un participant doit être couverte par ces deux fonctions (`server/utils/participantPrivacy.ts`).
 - Les fichiers uploadés sont servis par des routes qui vérifient les droits, jamais en statique. On vérifie le type réel (signature) et on renomme avec un UUID.
-- Fichiers téléversés (`server/utils/uploads.ts`) : toute modification ou suppression qui retire une référence à une photo ou à un RIB appelle ensuite `deleteUnusedUploads` (relever les URL avec `collectUploadUrls` avant une suppression). Les participants n'ont pas de compte : un fichier qui leur est destiné part en pièce jointe, jamais en lien vers l'API. Une URL de fichier téléversé reçue dans un corps de requête doit désigner un fichier du même jeu : `assertGameUploads`.
+- Fichiers téléversés (`server/utils/uploads.ts`) : tout nouveau téléversement vérifie `assertStorageQuota` (plafond de la propriétaire du jeu) et enregistre la taille du fichier (ADR-0039). Toute modification ou suppression qui retire une référence à une photo ou à un RIB appelle ensuite `deleteUnusedUploads` (relever les URL avec `collectUploadUrls` avant une suppression). Les participants n'ont pas de compte : un fichier qui leur est destiné part en pièce jointe, jamais en lien vers l'API. Une URL de fichier téléversé reçue dans un corps de requête doit désigner un fichier du même jeu : `assertGameUploads`.
 - URL saisies par les utilisateurs : schémas `externalUrl` / `uploadOrExternalUrl` (http(s) ou fichier téléversé uniquement), sinon un `javascript:` s'exécuterait dans un lien ou une iframe. Seul YouTube est intégré en iframe (`youtubeEmbedUrl`). Le serveur ne télécharge une image externe que via `fetchPublicImage` (hôte public, délai et taille bornés).
 - Une ressource ne change jamais de jeu (`assertSameGame`).
 - Les liens absolus (emails, PDF) passent par `absoluteAppUrl()`, jamais par les en-têtes Host.

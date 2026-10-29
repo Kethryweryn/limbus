@@ -48,6 +48,9 @@ v-model="searchQuery" placeholder="Rechercher un jeu..." icon="i-heroicons-magni
                 <UBadge v-if="game.publicPage" color="primary" variant="subtle" size="xs">
                   Publié
                 </UBadge>
+                <UBadge v-if="game.transferProposedToMe" color="warning" variant="subtle" size="xs">
+                  Transfert proposé
+                </UBadge>
               </div>
             </div>
           </div>

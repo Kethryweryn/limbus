@@ -3,7 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { requireUser } from '~/server/utils/auth'
 import { prisma } from '~/server/utils/prisma'
-import { uploadDir, UPLOAD_DIRS } from '~/server/utils/uploads'
+import { assertStorageQuota, uploadDir, UPLOAD_DIRS } from '~/server/utils/uploads'
 import { requireGameAccess, requireSessionAccess } from '~/server/utils/gameAccess'
 
 const ALLOWED_TYPES = new Map([
@@ -69,6 +69,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Contexte de jeu ou de session requis' })
   }
   await requireGameAccess(event, linkedGameId)
+  await assertStorageQuota(linkedGameId, file.data.length)
 
   await mkdir(targetDir, { recursive: true })
   await writeFile(join(targetDir, filename), file.data)
@@ -77,6 +78,7 @@ export default defineEventHandler(async (event) => {
     data: {
       kind: 'session-assignment-photo',
       filename,
+      size: file.data.length,
       url: photoUrl,
       gameId: linkedGameId,
       sessionId: session?.id || null

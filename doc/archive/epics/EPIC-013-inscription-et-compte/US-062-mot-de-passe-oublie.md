@@ -1,7 +1,7 @@
 ---
 id: US-062
 titre: Réinitialiser un mot de passe oublié
-statut: à faire
+statut: terminée
 epic: EPIC-013
 regles: []
 adr: [ADR-0039]
@@ -13,11 +13,11 @@ En tant que personne qui a un compte, je veux choisir un nouveau mot de passe de
 
 ## Critères d'acceptation
 
-- [ ] L'écran de connexion propose « Mot de passe oublié ? » : on saisit son email, et la réponse est la même que le compte existe ou non.
-- [ ] Le lien reçu est valable 1 heure et ne sert qu'une fois ; un nouveau lien remplace le précédent.
-- [ ] Le nouveau mot de passe déconnecte tous les appareils, puis connecte la personne. Il confirme aussi l'adresse d'un compte qui ne l'était pas.
-- [ ] Un compte désactivé ne reçoit pas de lien.
-- [ ] Demandes limitées : 5 par quart d'heure et par adresse IP, 3 par email.
+- [x] L'écran de connexion propose « Mot de passe oublié ? » : on saisit son email, et la réponse est la même que le compte existe ou non.
+- [x] Le lien reçu est valable 1 heure et ne sert qu'une fois ; un nouveau lien remplace le précédent.
+- [x] Le nouveau mot de passe déconnecte tous les appareils, puis connecte la personne. Il confirme aussi l'adresse d'un compte qui ne l'était pas.
+- [x] Un compte désactivé ne reçoit pas de lien.
+- [x] Demandes limitées : 5 par quart d'heure et par adresse IP, 3 par email.
 
 ## Notes techniques
 

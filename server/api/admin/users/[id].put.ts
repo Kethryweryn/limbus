@@ -1,4 +1,3 @@
-import bcrypt from 'bcrypt'
 import { prisma } from '~/server/utils/prisma'
 import { requireAdmin } from '~/server/utils/auth'
 import { readZodBody, userUpdateSchema } from '~/server/utils/schemas'
@@ -6,7 +5,7 @@ import { requireRouterParam } from '~/server/utils/routeParams'
 import { USER_ROLES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  const currentUser = await requireAdmin(event)
 
   const id = requireRouterParam(event, 'id')
 
@@ -14,17 +13,26 @@ export default defineEventHandler(async (event) => {
   const data: Record<string, unknown> = {
     email: body.email,
     name: body.name,
-    role: body.role
+    role: body.role,
+    storageQuotaMb: body.storageQuotaMb
   }
 
-  // Un nouveau mot de passe déconnecte toutes les sessions ouvertes de ce compte
-  if (body.password) {
-    data.password = await bcrypt.hash(body.password, 10)
-    data.sessionVersion = { increment: 1 }
+  // Désactiver déconnecte le compte partout (US-065) ; on ne se désactive pas soi-même
+  if (body.disabled !== undefined) {
+    if (body.disabled && id === currentUser.id) {
+      throw createError({ statusCode: 400, message: 'Vous ne pouvez pas désactiver votre propre compte.' })
+    }
+    const current = await prisma.user.findUnique({ where: { id }, select: { disabledAt: true } })
+    if (body.disabled && !current?.disabledAt) {
+      data.disabledAt = new Date()
+      data.sessionVersion = { increment: 1 }
+    } else if (!body.disabled && current?.disabledAt) {
+      data.disabledAt = null
+    }
   }
 
-  const select = { id: true, email: true, name: true, role: true, createdAt: true, updatedAt: true }
-  if (!body.role || body.role === USER_ROLES.admin) {
+  const select = { id: true, email: true, name: true, role: true, disabledAt: true, storageQuotaMb: true, createdAt: true, updatedAt: true }
+  if ((!body.role || body.role === USER_ROLES.admin) && !data.disabledAt) {
     return await prisma.user.update({ where: { id }, data, select })
   }
 
@@ -33,8 +41,9 @@ export default defineEventHandler(async (event) => {
   try {
     return await prisma.$transaction(async (tx) => {
       const updated = await tx.user.update({ where: { id }, data, select })
-      if (!await tx.user.count({ where: { role: USER_ROLES.admin } })) {
-        throw createError({ statusCode: 409, message: 'C’est la dernière administratrice : nommez-en une autre avant de lui retirer ce rôle.' })
+      // Une administratrice désactivée ne compte pas : elle ne peut plus se connecter
+      if (!await tx.user.count({ where: { role: USER_ROLES.admin, disabledAt: null } })) {
+        throw createError({ statusCode: 409, message: 'C’est la dernière administratrice active : nommez-en une autre avant de lui retirer ce rôle ou de la désactiver.' })
       }
       return updated
     }, { isolationLevel: 'Serializable' })

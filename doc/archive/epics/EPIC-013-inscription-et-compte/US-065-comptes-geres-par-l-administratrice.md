@@ -1,7 +1,7 @@
 ---
 id: US-065
 titre: L'administratrice crée, désactive et supprime les comptes
-statut: à faire
+statut: terminée
 epic: EPIC-013
 regles: [R9]
 adr: [ADR-0039]
@@ -13,11 +13,11 @@ En tant qu'administratrice, je veux créer un compte sans choisir de mot de pass
 
 ## Critères d'acceptation
 
-- [ ] La création demande nom, email et rôle ; la personne reçoit un lien pour choisir son mot de passe, valable 7 jours. Plus de champ mot de passe sur la page des comptes.
-- [ ] « Envoyer un lien de mot de passe » renvoie ce lien à un compte existant.
-- [ ] « Désactiver » déconnecte le compte et lui refuse la connexion ; « Réactiver » le rétablit. Ses jeux restent accessibles à leurs co-organisatrices. On ne se désactive pas soi-même, ni la dernière administratrice active.
-- [ ] La suppression reste refusée tant que le compte possède des jeux.
-- [ ] L'envoi d'emails désactivé, la création est refusée avec un message clair.
+- [x] La création demande nom, email et rôle ; la personne reçoit un lien pour choisir son mot de passe, valable 7 jours. Plus de champ mot de passe sur la page des comptes.
+- [x] « Envoyer un lien de mot de passe » renvoie ce lien à un compte existant.
+- [x] « Désactiver » déconnecte le compte et lui refuse la connexion ; « Réactiver » le rétablit. Ses jeux restent accessibles à leurs co-organisatrices. On ne se désactive pas soi-même, ni la dernière administratrice active.
+- [x] La suppression reste refusée tant que le compte possède des jeux.
+- [x] L'envoi d'emails désactivé, la création est refusée avec un message clair.
 
 ## Notes techniques
 

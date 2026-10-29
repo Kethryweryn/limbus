@@ -3,6 +3,7 @@ import { prisma } from '~/server/utils/prisma'
 import { setAuthCookie } from '~/server/utils/auth'
 import { loginSchema, readZodBody } from '~/server/utils/schemas'
 import { assertRateLimit } from '~/server/utils/rateLimit'
+import { purgeUnconfirmedAccounts } from '~/server/utils/accounts'
 
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync('mot-de-passe-factice', 10)
 
@@ -21,6 +22,7 @@ export default defineEventHandler(async (event) => {
     keyParts: [email]
   })
 
+  await purgeUnconfirmedAccounts()
   const user = await prisma.user.findUnique({
     where: { email }
   })
@@ -31,6 +33,10 @@ export default defineEventHandler(async (event) => {
   // 401 et non 200 { success: false } : l'écran de connexion n'affiche l'erreur que si la requête échoue
   if (!user || !passwordMatch) {
     throw createError({ statusCode: 401, message: 'Email ou mot de passe incorrect' })
+  }
+  // Compte désactivé par l'administratrice (US-065). Une adresse non confirmée se connecte, pour renvoyer le lien (R5)
+  if (user.disabledAt) {
+    throw createError({ statusCode: 403, message: 'Ce compte est désactivé. Contactez l’administratrice de Limbus.' })
   }
 
   setAuthCookie(event, user)

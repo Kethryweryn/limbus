@@ -106,7 +106,7 @@ export const VIRTUAL_CHARACTER_GROUP_OPTIONS = [
   { label: 'Tous les participants', value: VIRTUAL_CHARACTER_GROUPS.allCharacters }
 ]
 
-// Seul rôle global : administratrice ou non (ADR-0038). « organizer », valeur des comptes d'avant, vaut « user »
+// Seul rôle global : administratrice ou non (ADR-0038)
 // jusqu'à la conversion des données
 export const USER_ROLES = {
   admin: 'admin',

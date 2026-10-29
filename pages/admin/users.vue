@@ -12,15 +12,13 @@
         <h2 class="font-semibold">Créer un utilisateur</h2>
       </template>
 
-      <form class="grid grid-cols-1 lg:grid-cols-5 gap-3 items-end" autocomplete="off" @submit.prevent="createUser">
+      <p class="text-sm text-gray-500 mb-3">La personne reçoit un lien pour choisir son mot de passe, valable 7 jours.</p>
+      <form class="grid grid-cols-1 lg:grid-cols-4 gap-3 items-end" autocomplete="off" @submit.prevent="createUser">
         <UFormField label="Nom">
           <UInput v-model="newUser.name" required autocomplete="off" name="new-user-display-name" />
         </UFormField>
         <UFormField label="Email">
           <UInput v-model="newUser.email" type="email" required autocomplete="off" name="new-user-contact-email" />
-        </UFormField>
-        <UFormField label="Mot de passe">
-          <UInput v-model="newUser.password" type="password" required autocomplete="new-password" name="new-user-initial-password" />
         </UFormField>
         <UFormField label="Rôle">
           <USelect v-model="newUser.role" :items="USER_ROLE_OPTIONS" value-key="value" />
@@ -39,9 +37,13 @@
               <h2 class="font-semibold">{{ user.name }}</h2>
               <p class="text-sm text-gray-500">{{ user.email }}</p>
             </div>
-            <UBadge :color="user.role === USER_ROLES.admin ? 'warning' : 'primary'" variant="subtle">
-              {{ user.role === USER_ROLES.admin ? 'Administratrice' : 'Compte' }}
-            </UBadge>
+            <div class="flex flex-wrap justify-end gap-1">
+              <UBadge v-if="user.disabledAt" color="error" variant="solid">Désactivé</UBadge>
+              <UBadge v-else-if="!user.emailConfirmedAt" color="neutral" variant="subtle">Adresse non confirmée</UBadge>
+              <UBadge :color="user.role === USER_ROLES.admin ? 'warning' : 'primary'" variant="subtle">
+                {{ user.role === USER_ROLES.admin ? 'Administratrice' : 'Compte' }}
+              </UBadge>
+            </div>
           </div>
         </template>
 
@@ -56,14 +58,8 @@
             <UFormField label="Rôle">
               <USelect v-model="user.role" :items="USER_ROLE_OPTIONS" value-key="value" />
             </UFormField>
-            <UFormField label="Nouveau mot de passe">
-              <UInput
-                v-model="user.password"
-                type="password"
-                placeholder="Laisser vide pour ne pas changer"
-                autocomplete="new-password"
-                :name="`managed-user-new-password-${user.id}`"
-              />
+            <UFormField label="Plafond de stockage (Mo)" :help="`${formatMb(user.storageUsedBytes)} utilisés`">
+              <UInput v-model.number="user.storageQuotaMb" type="number" min="0" />
             </UFormField>
           </div>
 
@@ -76,6 +72,12 @@
             <UButton color="primary" size="sm" :loading="savingUserId === user.id" @click="updateUser(user)">
               Enregistrer
             </UButton>
+            <UButton color="neutral" variant="soft" size="sm" :disabled="Boolean(user.disabledAt)" @click="sendPasswordLink(user)">
+              Envoyer un lien de mot de passe
+            </UButton>
+            <UButton color="warning" variant="soft" size="sm" :disabled="authState?.user?.id === user.id" @click="toggleDisabled(user)">
+              {{ user.disabledAt ? 'Réactiver' : 'Désactiver' }}
+            </UButton>
             <UButton color="error" variant="soft" size="sm" :disabled="authState?.user?.id === user.id" @click="deleteUser(user)">
               Supprimer
             </UButton>
@@ -84,6 +86,7 @@
       </UCard>
     </div>
 
+    <p v-if="notice" class="text-sm text-green-700">{{ notice }}</p>
     <p v-if="serverError" class="text-sm text-red-500">{{ serverError }}</p>
   </div>
 </template>
@@ -95,21 +98,21 @@ const users = ref([])
 const saving = ref(false)
 const savingUserId = ref('')
 const serverError = ref('')
+const notice = ref('')
 const { data: authState } = await useFetch('/api/auth/me')
 
 const newUser = ref({
   name: '',
   email: '',
-  password: '',
   role: USER_ROLES.user
 })
 
+function formatMb(bytes) {
+  return `${((bytes || 0) / (1024 * 1024)).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} Mo`
+}
+
 async function fetchUsers() {
-  // Comptes d'avant ADR-0038 (« organizer ») : des comptes simples
-  users.value = (await useApiFetch('/api/admin/users')).map((user) => ({
-    ...user,
-    role: user.role === USER_ROLES.admin ? USER_ROLES.admin : USER_ROLES.user
-  }))
+  users.value = await useApiFetch('/api/admin/users')
 }
 
 async function createUser() {
@@ -120,10 +123,10 @@ async function createUser() {
       method: 'POST',
       body: newUser.value
     })
+    notice.value = `Compte créé : ${newUser.value.email} a reçu un lien pour choisir son mot de passe.`
     newUser.value = {
       name: '',
       email: '',
-      password: '',
       role: USER_ROLES.user
     }
     await fetchUsers()
@@ -144,15 +147,39 @@ async function updateUser(user) {
         name: user.name,
         email: user.email,
         role: user.role,
-        password: user.password || undefined
+        storageQuotaMb: Number(user.storageQuotaMb)
       }
     })
-    user.password = ''
     await fetchUsers()
   } catch (err) {
     serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
   } finally {
     savingUserId.value = ''
+  }
+}
+
+async function sendPasswordLink(user) {
+  serverError.value = ''
+  notice.value = ''
+  try {
+    await useApiFetch(`/api/admin/users/${user.id}/password-link`, { method: 'POST' })
+    notice.value = `Lien envoyé à ${user.email}, valable 7 jours.`
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+  }
+}
+
+// Désactiver déconnecte le compte et bloque sa connexion ; ses jeux restent à leurs co-organisatrices (US-065)
+async function toggleDisabled(user) {
+  const disabled = !user.disabledAt
+  if (disabled && !confirm(`Désactiver ${user.name} ? Le compte sera déconnecté et ne pourra plus se connecter.`)) return
+  serverError.value = ''
+  notice.value = ''
+  try {
+    await useApiFetch(`/api/admin/users/${user.id}`, { method: 'PUT', body: { disabled } })
+    await fetchUsers()
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
   }
 }
 

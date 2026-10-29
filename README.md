@@ -55,6 +55,7 @@ Sous Windows, `npm run build` échoue à l'étape de prérendu (« File URL path
 | `JWT_SECRET` | Signature des cookies de session. Le changer déconnecte tout le monde |
 | `SMTP_ENCRYPTION_SECRET` | Chiffrement du mot de passe SMTP stocké en base (repli sur `JWT_SECRET`). Le changer oblige à ressaisir le mot de passe SMTP |
 | `PUBLIC_APP_URL` | URL publique, obligatoire en production. Sert aux liens absolus dans les emails et PDF ; on ne se fie jamais aux en-têtes Host |
+| `SIGNUP_OPEN` | `1` ouvre l'inscription libre (ADR-0039). Absente : fermée, l'écran de connexion ne propose pas de créer un compte |
 
 ## Production
 

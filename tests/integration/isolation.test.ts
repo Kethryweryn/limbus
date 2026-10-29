@@ -305,8 +305,10 @@ describe('droits de propriétaire', () => {
 describe('routes d’administration', () => {
   const adminRoutes: Array<[string, string, unknown?]> = [
     ['GET', '/api/admin/users'],
-    ['POST', '/api/admin/users', { email: 'nouveau@example.test', name: 'N', password: 'motdepasse123' }],
+    ['POST', '/api/admin/users', { email: 'nouveau@example.test', name: 'N' }],
     ['PUT', `/api/admin/users/${alice.id}`, { role: 'admin' }],
+    ['PUT', `/api/admin/users/${carol.id}`, { disabled: true }],
+    ['POST', `/api/admin/users/${carol.id}/password-link`],
     ['DELETE', `/api/admin/users/${carol.id}`],
     ['GET', '/api/admin/smtp'],
     ['PUT', '/api/admin/smtp', { enabled: false }],
