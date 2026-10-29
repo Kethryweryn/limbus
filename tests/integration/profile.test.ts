@@ -1,4 +1,5 @@
 // EPIC-016 : coordonnées tenues par la personne (US-074) et fiche verrouillée côté équipe (US-075)
+import { createHash } from 'node:crypto'
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
@@ -10,6 +11,10 @@ let counter = 0
 afterAll(async () => {
   await prisma.$disconnect()
 })
+
+// Formulaire du jeu d'Alice : tout est demandé ; celui de Bob ne demande pas les allergies
+const FULL_FORM = { standardFields: { lastName: { asked: true, required: true }, firstName: { asked: true, required: true }, facebookName: { asked: false, required: false }, phone: { asked: true, required: true }, emergencyContact: { asked: true, required: true }, dietary: { asked: true, required: false } } }
+const NO_DIETARY_FORM = { standardFields: { ...FULL_FORM.standardFields, dietary: { asked: false, required: false } } }
 
 // Une personne avec un compte, inscrite et confirmée dans un jeu d'Alice et un jeu de Bob
 async function personInTwoTeams() {
@@ -24,8 +29,19 @@ async function personInTwoTeams() {
       data: { name: 'Nom saisi par l’équipe', slug: `fiche-${k}`, email: user.email, phone: '0100000000', userId: user.id, gameLinks: { create: { gameId: game.id } } }
     })
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: `Période ${k}`, publicId: `periode-${k}`, state: 'open' } })
+    const definition = owner.id === alice.id ? FULL_FORM : NO_DIETARY_FORM
+    const form = await prisma.registrationForm.create({ data: { gameId: game.id, versions: { create: { number: 1, definition } } }, include: { versions: true } })
     await prisma.registration.create({
-      data: { periodId: period.id, sessionId: session.id, participantId: participant.id, status: 'confirmed', source: 'invitation', email: user.email, dietary: 'Ancienne allergie', healthConsentAt: new Date() }
+      data: {
+        periodId: period.id,
+        sessionId: session.id,
+        participantId: participant.id,
+        status: 'confirmed',
+        source: 'invitation',
+        email: user.email,
+        formVersionId: form.versions[0]!.id,
+        ...(owner.id === alice.id ? { dietary: 'Ancienne allergie', healthConsentAt: new Date() } : {})
+      }
     })
     await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
     teams.push({ owner, game, session, participant })
@@ -36,18 +52,22 @@ async function personInTwoTeams() {
 const profile = { phone: '0612345678', emergencyContactName: 'Dominique', emergencyContactPhone: '0698765432', dietary: 'Sans gluten', healthConsent: true }
 
 describe('mes coordonnées (US-074)', () => {
-  it('se recopient sur les fiches, les inscriptions et la fiche allergies de chaque équipe', async () => {
+  it('se recopient sur les fiches et les inscriptions de chaque équipe, champs demandés seulement', async () => {
     const { user, teams } = await personInTwoTeams()
     expect((await api(user, 'PUT', '/api/account/profile', profile)).status).toBe(200)
 
-    for (const { owner, session, participant } of teams) {
+    for (const { participant } of teams) {
       expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id } })).toMatchObject({ name: 'Camille Dupont', phone: '0612345678' })
       expect(await prisma.registration.findFirstOrThrow({ where: { participantId: participant.id } })).toMatchObject({
-        firstName: 'Camille', lastName: 'Dupont', phone: '0612345678', emergencyContactName: 'Dominique', dietary: 'Sans gluten'
+        firstName: 'Camille', lastName: 'Dupont', phone: '0612345678', emergencyContactName: 'Dominique'
       })
-      const sheet = await api(owner, 'GET', `/api/sessions/${session.id}/allergies`)
-      expect(JSON.stringify(sheet.body)).toContain('Sans gluten')
     }
+    // Allergies : chez Alice, qui les demande ; jamais chez Bob, dont le formulaire ne les demande pas
+    const [aliceTeam, bobTeam] = teams
+    expect((await prisma.registration.findFirstOrThrow({ where: { participantId: aliceTeam!.participant.id } })).dietary).toBe('Sans gluten')
+    expect((await prisma.registration.findFirstOrThrow({ where: { participantId: bobTeam!.participant.id } })).dietary).toBeNull()
+    expect(JSON.stringify((await api(alice, 'GET', `/api/sessions/${aliceTeam!.session.id}/allergies`)).body)).toContain('Sans gluten')
+    expect(JSON.stringify((await api(bob, 'GET', `/api/sessions/${bobTeam!.session.id}/allergies`)).body)).not.toContain('Sans gluten')
     expect((await api(user, 'GET', '/api/account')).body).toMatchObject({ profile: { phone: '0612345678', dietary: 'Sans gluten', healthConsent: true } })
   })
 
@@ -87,6 +107,35 @@ describe('inscriptions et coordonnées (US-074)', () => {
     expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({ name: 'Camille Martin', phone: '0611111111', dietary: null })
     // Recopié aussi dans l'autre équipe
     expect(await prisma.registration.findFirstOrThrow({ where: { participantId: teams[1]!.participant.id } })).toMatchObject({ lastName: 'Martin', phone: '0611111111', dietary: null })
+  })
+})
+
+describe('allergies du cast (US-074)', () => {
+  it('une personne du cast sans inscription figure avec les allergies de son compte', async () => {
+    const { user, teams } = await personInTwoTeams()
+    await api(user, 'PUT', '/api/account/profile', profile)
+    const { game } = teams[0]!
+    const npc = await prisma.participant.create({ data: { name: 'PNJ du cast', slug: `pnj-${++counter}`, email: user.email, userId: user.id, gameLinks: { create: { gameId: game.id } } } })
+    const other = await prisma.session.create({ data: { name: `Autre session ${counter}`, slug: `autre-session-${counter}`, gameId: game.id } })
+    await prisma.sessionParticipant.create({ data: { sessionId: other.id, participantId: npc.id, role: 'npc' } })
+    expect(JSON.stringify((await api(alice, 'GET', `/api/sessions/${other.id}/allergies`)).body)).toContain('Sans gluten')
+  })
+})
+
+describe('lien personnel (US-074)', () => {
+  it('une réponse par le lien personnel ne modifie pas le compte', async () => {
+    const { user, teams } = await personInTwoTeams()
+    await api(user, 'PUT', '/api/account/profile', profile)
+    const { game, participant } = teams[0]!
+    const token = `${'x'.repeat(30)}${String(++counter).padStart(13, '0')}`
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: `Lien ${counter}`, publicId: `lien-profil-${counter}`, state: 'open' } })
+    await prisma.registration.create({
+      data: { periodId: period.id, participantId: participant.id, status: 'invited', source: 'invitation', email: user.email, tokenHash: createHash('sha256').update(token).digest('hex'), responseDueAt: new Date(Date.now() + 86_400_000) }
+    })
+    const answers = { email: user.email, firstName: 'Quelqu’un', lastName: 'D’autre', phone: '0799999999', emergencyContactName: 'X', emergencyContactPhone: '0700000000', charterAccepted: true }
+    const response = await api(null, 'PUT', `/api/public/registrations/${token}`, answers)
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({ name: 'Camille Dupont', phone: '0612345678' })
   })
 })
 

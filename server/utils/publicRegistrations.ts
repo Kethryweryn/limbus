@@ -224,7 +224,8 @@ export async function answerFormDefinition(registration: PublicRegistration) {
  * Les informations restent sur l'inscription (R14) ; seul l'email remonte sur la fiche du participant :
  * c'est l'adresse donnée par la personne qui fait foi pour tous les envois (R12).
  */
-export async function saveRegistrationAnswers(registration: PublicRegistration, versionId: string, answers: RegistrationAnswers, definition: RegistrationFormDefinition) {
+// updateAccount : réponse faite connecté au compte rattaché (US-072) ; par le lien personnel, le compte ne change pas
+export async function saveRegistrationAnswers(registration: PublicRegistration, versionId: string, answers: RegistrationAnswers, definition: RegistrationFormDefinition, updateAccount = false) {
   const now = new Date()
   const accepting = registration.status === REGISTRATION_STATUSES.invited
   const data = {
@@ -259,9 +260,9 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
     }
   })
 
-  // Fiche rattachée à un compte (après la réponse, qui a pu changer l'email) : la réponse met aussi à jour ses
-  // coordonnées, recopiées ensuite partout (US-074). Un champ que ce formulaire ne demande pas ne les touche pas
-  const linked = await prisma.participant.findUnique({ where: { id: registration.participantId }, select: { userId: true } })
+  // Réponse depuis le compte : elle met aussi à jour ses coordonnées, recopiées ensuite partout (US-074). Pas par
+  // le lien personnel, qui peut avoir été transmis. Un champ que ce formulaire ne demande pas ne les touche pas
+  const linked = updateAccount ? await prisma.participant.findUnique({ where: { id: registration.participantId }, select: { userId: true } }) : null
   if (linked?.userId) {
     const now = new Date()
     const asked = normalizeRegistrationFormDefinition(definition).standardFields

@@ -11,6 +11,8 @@ type AllergySheetSource = {
   // Personnes du cast : rôles de session (participants, PNJ, orgas, cuisine) et joueurs d'un personnage
   participants: Array<{ participantId: string, role: string }>
   assignments: Array<{ participantId: string | null }>
+  // Allergies tenues dans le compte des personnes du cast (US-074) : PNJ, orgas, cuisine sans inscription
+  accountDietaries?: Array<{ participantId: string, name: string, dietary: string }>
 }
 
 /**
@@ -26,10 +28,19 @@ export function buildAllergySheet(session: AllergySheetSource) {
     .filter((participant) => participant.role === SESSION_ROLES.participant)
     .map((participant) => participant.participantId))
   const registrations = session.registrations.filter((registration) => present.has(registration.participant.id))
-  const people = registrations
-    .filter((registration) => registration.dietary?.trim())
-    .map((registration) => ({ name: registration.participant.name, dietary: registration.dietary!.trim() }))
-    .sort((left, right) => left.name.localeCompare(right.name, 'fr'))
+  const castIds = new Set([
+    ...session.participants.map((participant) => participant.participantId),
+    ...session.assignments.map((assignment) => assignment.participantId).filter((id): id is string => Boolean(id))
+  ])
+  const registered = new Set(registrations.map((registration) => registration.participant.id))
+  const people = [
+    ...registrations
+      .filter((registration) => registration.dietary?.trim())
+      .map((registration) => ({ name: registration.participant.name, dietary: registration.dietary!.trim() })),
+    ...(session.accountDietaries ?? [])
+      .filter((entry) => castIds.has(entry.participantId) && !registered.has(entry.participantId) && entry.dietary.trim())
+      .map((entry) => ({ name: entry.name, dietary: entry.dietary.trim() }))
+  ].sort((left, right) => left.name.localeCompare(right.name, 'fr'))
   return {
     session: { name: session.name, date: session.date, gameTitle: session.game.title },
     eaterCount: new Set([
@@ -61,11 +72,15 @@ export async function getAllergySheet(sessionId: string) {
         where: { status: REGISTRATION_STATUSES.confirmed },
         select: { dietary: true, participant: { select: { id: true, name: true } } }
       },
-      participants: { select: { participantId: true, role: true } },
-      assignments: { select: { participantId: true } }
+      participants: { select: { participantId: true, role: true, participant: { select: { name: true, user: { select: { dietary: true, healthConsentAt: true } } } } } },
+      assignments: { select: { participantId: true, participant: { select: { name: true, user: { select: { dietary: true, healthConsentAt: true } } } } } }
     }
   })
-  return buildAllergySheet(session)
+  // Allergies déclarées dans le compte, avec consentement, des personnes du cast (US-074)
+  const accountDietaries = [...session.participants, ...session.assignments]
+    .filter((entry) => entry.participantId && entry.participant?.user?.dietary && entry.participant.user.healthConsentAt)
+    .map((entry) => ({ participantId: entry.participantId!, name: entry.participant!.name, dietary: entry.participant!.user!.dietary! }))
+  return buildAllergySheet({ ...session, accountDietaries: [...new Map(accountDietaries.map((entry) => [entry.participantId, entry])).values()] })
 }
 
 const formatDate = (value: Date) => value.toLocaleDateString('fr-FR', { dateStyle: 'long', timeZone: 'Europe/Paris' })

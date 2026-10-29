@@ -14,9 +14,9 @@ En tant que personne qui joue, je veux tenir à jour une seule fois mon téléph
 ## Critères d'acceptation
 
 - [x] « Mon compte » a une section « Mes coordonnées » : téléphone, contact d'urgence (nom, téléphone), régime et allergies, avec le consentement santé exigé dès qu'une allergie est déclarée.
-- [x] À l'enregistrement, le nom du compte, le téléphone et ces informations passent sur toutes mes fiches participant et mes inscriptions non désistées : chaque équipe voit la version à jour pour ses jeux (fiche, inscription, fiche allergies).
+- [x] À l'enregistrement, le nom du compte, le téléphone et ces informations passent sur toutes mes fiches participant et mes inscriptions non désistées, pour les champs que chaque formulaire a demandés : chaque équipe voit la version à jour pour ses jeux (fiche, inscription, fiche allergies). Une personne du cast sans inscription figure sur la fiche allergies avec les allergies de son compte.
 - [x] Une fiche rattachée plus tard reçoit aussitôt mes coordonnées, si je les ai déjà enregistrées une fois.
-- [x] Répondre à une inscription (lien personnel ou compte) met aussi à jour mes coordonnées ; le formulaire d'une invitation est prérempli avec elles.
+- [x] Répondre à une inscription depuis mon compte met aussi à jour mes coordonnées (pas par le lien personnel, qui peut avoir été transmis) ; le formulaire d'une invitation est prérempli avec elles.
 - [x] Aucune équipe n'est prévenue par email.
 
 ## Notes techniques
