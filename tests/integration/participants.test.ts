@@ -97,3 +97,57 @@ describe('`published` retiré des fiches (US-038)', () => {
   })
 })
 
+
+// EPIC-014 : une note par jeu (US-069, ADR-0040)
+describe('notes propres à chaque jeu (US-069)', () => {
+  const { bob } = world.users
+
+  async function sharedPerson() {
+    const key = `notes-${++counter}`
+    const [aliceGame, bobGame] = await Promise.all([alice, bob].map((owner) =>
+      prisma.game.create({ data: { title: `Jeu ${owner.id} ${key}`, slug: `jeu-${owner.id}-${key}`.toLowerCase(), description: '', ownerId: owner.id } })
+    ))
+    const participant = await prisma.participant.create({
+      data: {
+        name: `Noé ${key}`,
+        slug: `noe-${key}`,
+        gameLinks: { create: [{ gameId: aliceGame!.id, notes: 'Note d’Alice' }, { gameId: bobGame!.id, notes: 'Note de Bob' }] }
+      }
+    })
+    return { aliceGame: aliceGame!, bobGame: bobGame!, participant }
+  }
+
+  it('chaque équipe ne lit que la note de son jeu', async () => {
+    const { aliceGame, bobGame, participant } = await sharedPerson()
+    const forAlice = await api(alice, 'GET', `/api/participants/${participant.id}`)
+    expect(forAlice.body).toMatchObject({ gameNotes: { [aliceGame.id]: 'Note d’Alice' } })
+    expect(JSON.stringify(forAlice.body)).not.toContain('Note de Bob')
+    // Témoin : Bob lit la sienne
+    expect((await api(bob, 'GET', `/api/participants/${participant.id}`)).body).toMatchObject({ gameNotes: { [bobGame.id]: 'Note de Bob' } })
+    const list = await api(alice, 'GET', '/api/participants')
+    expect(JSON.stringify(list.body)).not.toContain('Note de Bob')
+    const exported = await api(alice, 'GET', `/api/participants/${participant.id}/export`)
+    expect(JSON.stringify(exported.body)).toContain('Note d’Alice')
+    expect(JSON.stringify(exported.body)).not.toContain('Note de Bob')
+  })
+
+  it('modifier sa note ne touche pas celle de l’autre équipe ; écrire la sienne est refusé', async () => {
+    const { aliceGame, bobGame, participant } = await sharedPerson()
+    const updated = await api(alice, 'PUT', `/api/participants/${participant.id}`, { name: participant.name, gameIds: [aliceGame.id], gameNotes: { [aliceGame.id]: 'Nouvelle note' } })
+    expect(updated.status).toBe(200)
+    const links = await prisma.participantGame.findMany({ where: { participantId: participant.id }, select: { gameId: true, notes: true } })
+    expect(Object.fromEntries(links.map((link) => [link.gameId, link.notes]))).toEqual({ [aliceGame.id]: 'Nouvelle note', [bobGame.id]: 'Note de Bob' })
+
+    const refused = await api(alice, 'PUT', `/api/participants/${participant.id}`, { name: participant.name, gameIds: [aliceGame.id], gameNotes: { [bobGame.id]: 'Intrusion' } })
+    expect(refused.status).toBe(403)
+    expect((await prisma.participantGame.findFirstOrThrow({ where: { participantId: participant.id, gameId: bobGame.id } })).notes).toBe('Note de Bob')
+  })
+
+  it('une fiche créée reçoit la note de chacun de ses jeux', async () => {
+    const game = await prisma.game.create({ data: { title: 'Jeu créé', slug: `jeu-cree-${++counter}`, description: '', ownerId: alice.id } })
+    const created = await api(alice, 'POST', '/api/participants', { name: `Créée ${counter}`, gameIds: [game.id], gameNotes: { [game.id]: 'Première note' } })
+    expect(created.status).toBe(200)
+    expect(created.body).toMatchObject({ gameNotes: { [game.id]: 'Première note' } })
+    expect(created.body).not.toHaveProperty('notes')
+  })
+})

@@ -64,9 +64,10 @@
         </UCard>
       </div>
 
-      <div v-if="participant.notes">
-        <h2 class="text-xl font-semibold mb-2">Notes</h2>
-        <p class="whitespace-pre-line">{{ participant.notes }}</p>
+      <!-- Une note par jeu, des seuls jeux accessibles (US-069) -->
+      <div v-for="game in gamesWithNotes" :key="game.id">
+        <h2 class="text-xl font-semibold mb-2">Notes — {{ game.title }}</h2>
+        <p class="whitespace-pre-line">{{ participant.gameNotes[game.id] }}</p>
       </div>
     </template>
   </div>
@@ -92,6 +93,8 @@ watch(() => route.query.edit, (value) => {
     editableParticipant.value = normalizeParticipantForForm(participant.value)
   }
 })
+
+const gamesWithNotes = computed(() => (participant.value?.games || []).filter((game) => participant.value?.gameNotes?.[game.id]))
 
 function normalizeParticipantForForm(value) {
   return {

@@ -7,6 +7,7 @@ import { REGISTRATION_STATUSES } from '~/utils/domain'
 type ParticipantWithGameLinks = {
   gameLinks?: Array<{
     createdAt: Date
+    notes?: string | null
     game: {
       id: string
       title: string
@@ -33,14 +34,24 @@ export function participantGameLinksInclude(gameIds: string[] | null = null) {
 
 export function exposeParticipantGames<T extends ParticipantWithGameLinks>(participant: T) {
   const { gameLinks, ...rest } = participant
-  // `published` n'a aucun effet sur une fiche : il n'est plus exposé (US-038)
+  // `published` n'a aucun effet sur une fiche : il n'est plus exposé (US-038). L'ancienne note commune non plus (ADR-0040)
   delete (rest as { published?: unknown }).published
+  delete (rest as { notes?: unknown }).notes
   return {
     ...rest,
     games: gameLinks?.map((link) => ({
       ...link.game,
       registeredAt: link.createdAt
-    })) || []
+    })) || [],
+    // Notes des seuls jeux accessibles : gameLinks est déjà filtré (US-069)
+    gameNotes: Object.fromEntries((gameLinks || []).map((link) => [link.game.id, link.notes ?? null]))
+  }
+}
+
+// Notes reçues pour des jeux inaccessibles : refusées, comme les jeux eux-mêmes (US-069)
+export function assertNotesForAllowedGames(gameNotes: Record<string, string | null>, allowedGameIds: string[] | null) {
+  if (allowedGameIds !== null && Object.keys(gameNotes).some((gameId) => !allowedGameIds.includes(gameId))) {
+    throw createError({ statusCode: 403, message: 'Jeu inaccessible' })
   }
 }
 

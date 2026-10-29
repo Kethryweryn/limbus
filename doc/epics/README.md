@@ -21,7 +21,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-011](../archive/epics/EPIC-011-tests-e2e-des-parcours/README.md) | Tests de bout en bout des parcours | [fiche](../archive/todo/tests-e2e-des-parcours.md) | terminé |
 | [EPIC-012](../archive/epics/EPIC-012-roles/README.md) | Rôles : un seul rôle global, quitter et transférer un jeu | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
 | [EPIC-013](../archive/epics/EPIC-013-inscription-et-compte/README.md) | Inscription libre et compte en libre-service | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
-| [EPIC-014](EPIC-014-notes-par-jeu/README.md) | Notes d'organisation propres à chaque jeu | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | en cours |
+| [EPIC-014](../archive/epics/EPIC-014-notes-par-jeu/README.md) | Notes d'organisation propres à chaque jeu | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
 
 ## US
 
@@ -95,4 +95,4 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-066](../archive/epics/EPIC-013-inscription-et-compte/US-066-plafond-de-stockage.md) | Plafond de stockage par compte | EPIC-013 | terminée |
 | [US-067](../archive/epics/EPIC-013-inscription-et-compte/US-067-conversion-des-comptes-organisateur.md) | Conversion des anciens comptes « organisateur » | EPIC-013 | terminée |
 | [US-068](../archive/epics/EPIC-013-inscription-et-compte/US-068-prevenir-la-destinataire-d-un-transfert.md) | Prévenir la destinataire d'un transfert de jeu | EPIC-013 | terminée |
-| [US-069](EPIC-014-notes-par-jeu/US-069-une-note-par-jeu.md) | Une note par jeu sur la fiche d'une personne | EPIC-014 | à faire |
+| [US-069](../archive/epics/EPIC-014-notes-par-jeu/US-069-une-note-par-jeu.md) | Une note par jeu sur la fiche d'une personne | EPIC-014 | terminée |

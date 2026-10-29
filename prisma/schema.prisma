@@ -412,6 +412,7 @@ model Participant {
   slug        String     @unique
   email       String?
   phone       String?
+  // Vidé par la migration d'ADR-0040 : les notes vivent sur ParticipantGame. Colonne à supprimer
   notes       String?
   gameLinks   ParticipantGame[]
   published   Boolean    @default(true)
@@ -552,6 +553,8 @@ model ParticipantGame {
   id        String   @id @default(cuid())
   participantId String
   gameId    String
+  // Notes de l'équipe de ce jeu sur la personne (US-069, ADR-0040)
+  notes     String?
   createdAt DateTime @default(now())
 
   participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)

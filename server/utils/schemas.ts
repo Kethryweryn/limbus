@@ -158,7 +158,8 @@ export const participantSchema = z.object({
   name: requiredText('Name'),
   email: optionalText,
   phone: optionalText,
-  notes: optionalText,
+  // Une note par jeu (US-069) : { idDuJeu: texte }, pour les seuls jeux accessibles
+  gameNotes: z.record(z.string(), z.string().nullable()).optional().default({}),
   gameIds: z.array(requiredId('Game')).optional().default([])
 })
 

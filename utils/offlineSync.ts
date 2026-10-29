@@ -327,7 +327,8 @@ const FIELD_LABELS: Record<string, string> = {
   withdrawalDeadline: 'Date limite de désistement',
   email: 'Email',
   phone: 'Téléphone',
-  notes: 'Notes'
+  notes: 'Notes',
+  gameNotes: 'Notes'
 }
 const IGNORED_FIELDS = new Set(['id', 'updatedAt', 'createdAt', 'paidAt', 'slug', '__offlinePending', '__offlineQueued'])
 

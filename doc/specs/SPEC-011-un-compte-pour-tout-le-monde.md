@@ -90,7 +90,7 @@ Un epic par lot, dans l'ordre :
 
 1. Rôles : un seul rôle global, quitter un jeu, transférer un jeu ([EPIC-012](../archive/epics/EPIC-012-roles/README.md)).
 2. Inscription libre, confirmation de l'adresse, protection contre les robots, compte en libre-service, mot de passe oublié, invitation par la bonne adresse, création par l'administratrice, plafond de stockage ([EPIC-013](../archive/epics/EPIC-013-inscription-et-compte/README.md)).
-3. Notes d'organisation propres à chaque équipe : une note par jeu ([EPIC-014](../epics/EPIC-014-notes-par-jeu/README.md)).
+3. Notes d'organisation propres à chaque équipe : une note par jeu ([EPIC-014](../archive/epics/EPIC-014-notes-par-jeu/README.md)).
 4. Compte participant : rattachement des fiches, espace « Je participe » (sessions, inscriptions, paiement), sélecteur d'espace.
 5. Coordonnées et allergies tenues par la personne.
 6. Export et effacement depuis le compte.
