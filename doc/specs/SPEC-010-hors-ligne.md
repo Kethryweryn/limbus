@@ -4,7 +4,7 @@ titre: Mode hors ligne
 statut: validée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
-epics: []
+epics: [EPIC-010]
 adr: [ADR-0006, ADR-0012]
 ---
 

@@ -17,6 +17,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-007](../archive/epics/EPIC-007-ecarts-participants/README.md) | Corriger les écarts des participants | [SPEC-007](../specs/SPEC-007-participants-et-rgpd.md) | terminé |
 | [EPIC-008](../archive/epics/EPIC-008-ecarts-comptes/README.md) | Corriger les écarts de sécurité des comptes | [SPEC-008](../specs/SPEC-008-comptes-et-partage.md) | terminé |
 | [EPIC-009](../archive/epics/EPIC-009-ecarts-page-publique/README.md) | Corriger les écarts de la page publique | [SPEC-009](../specs/SPEC-009-page-publique.md) | terminé |
+| [EPIC-010](EPIC-010-ecarts-hors-ligne/README.md) | Corriger les écarts du mode hors ligne | [SPEC-010](../specs/SPEC-010-hors-ligne.md) | en cours |
 
 ## US
 
@@ -68,3 +69,9 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-044](../archive/epics/EPIC-009-ecarts-page-publique/US-044-credit-sur-la-page-publique.md) | Le crédit d'une copie sur la page publique | EPIC-009 | terminée |
 | [US-045](../archive/epics/EPIC-009-ecarts-page-publique/US-045-lien-stable-de-la-page-publique.md) | L'adresse de la page publique survit au renommage | EPIC-009 | terminée |
 | [US-046](../archive/epics/EPIC-009-ecarts-page-publique/US-046-teaser-youtube-au-clic.md) | Teaser YouTube chargé seulement au clic | EPIC-009 | terminée |
+| [US-047](EPIC-010-ecarts-hors-ligne/US-047-session-consultable-hors-ligne.md) | Une session consultée reste disponible hors ligne | EPIC-010 | à faire |
+| [US-048](EPIC-010-ecarts-hors-ligne/US-048-modifier-une-session-hors-ligne.md) | Modifier une session hors ligne | EPIC-010 | à faire |
+| [US-049](EPIC-010-ecarts-hors-ligne/US-049-panneau-des-modifications-en-attente.md) | Le panneau des modifications en attente | EPIC-010 | à faire |
+| [US-050](EPIC-010-ecarts-hors-ligne/US-050-conflit-a-la-resynchronisation.md) | Contrôler et résoudre les conflits à la resynchronisation | EPIC-010 | à faire |
+| [US-051](EPIC-010-ecarts-hors-ligne/US-051-deconnexion-sans-reseau.md) | Se déconnecter sans réseau | EPIC-010 | à faire |
+| [US-052](EPIC-010-ecarts-hors-ligne/US-052-envoi-a-l-ouverture.md) | La file part à l'ouverture de l'application | EPIC-010 | à faire |
