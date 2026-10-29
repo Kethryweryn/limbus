@@ -467,6 +467,11 @@ export const accountProfileSchema = z.object({
   path: ['healthConsent']
 })
 
+// Effacer son compte (US-077) : le mot de passe est redemandé
+export const accountDeleteSchema = z.object({
+  password: requiredText('Password')
+})
+
 export const accountPasswordSchema = z.object({
   currentPassword: requiredText('Password'),
   password: newPassword()

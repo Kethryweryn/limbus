@@ -99,6 +99,29 @@
         </p>
         <UProgress class="mt-3" :model-value="storagePercent" :color="storagePercent >= 90 ? 'error' : 'primary'" />
       </UCard>
+      <!-- Mes données (US-076, US-077) -->
+      <UCard>
+        <template #header><h2 class="font-semibold">Mes données</h2></template>
+        <div class="space-y-4">
+          <div>
+            <UButton to="/api/account/export" external download="mes-donnees-limbus.json" color="neutral" variant="soft" icon="i-heroicons-arrow-down-tray">
+              Télécharger mes données
+            </UButton>
+            <p class="mt-1 text-sm text-gray-500">Votre compte, vos coordonnées et tout ce que les équipes de vos jeux gardent sur vous, dans un fichier.</p>
+          </div>
+          <form class="space-y-2 border-t border-gray-100 pt-4" @submit.prevent="deleteAccount">
+            <h3 class="font-medium text-red-700">Effacer mon compte</h3>
+            <p class="text-sm text-gray-600">
+              Effacement immédiat et définitif : votre compte, vos coordonnées et toutes vos fiches chez les équipes (inscriptions, photos, paiements).
+              Chaque équipe est prévenue par email que vos places sont libérées. Si vous possédez des jeux, transférez-les ou supprimez-les d’abord.
+            </p>
+            <UFormField label="Mot de passe">
+              <UInput v-model="deletePassword" type="password" required autocomplete="current-password" class="w-full sm:w-80" />
+            </UFormField>
+            <UButton type="submit" color="error" variant="soft" :loading="saving === 'delete'">Effacer mon compte</UButton>
+          </form>
+        </div>
+      </UCard>
     </template>
 
     <UAlert v-if="error" color="error" variant="soft" :description="error" />
@@ -108,6 +131,7 @@
 <script setup>
 // Mon compte (US-063, US-066)
 import { formatMegabytes as formatMb } from '~/utils/fileSizes'
+import { clearOfflineData } from '~/utils/storage'
 
 const account = ref(null)
 const loadError = ref('')
@@ -169,6 +193,21 @@ const saveProfile = () => run('profile', async () => {
   await useApiFetch('/api/account/profile', { method: 'PUT', body: profileForm.value })
   messages.value.profile = 'Coordonnées enregistrées : vos fiches et inscriptions sont à jour.'
 })
+
+const deletePassword = ref('')
+const deleteAccount = () => {
+  if (!confirm('Effacer définitivement votre compte et toutes vos données ? Cette action ne peut pas être annulée.')) return
+  return run('delete', async () => {
+    const result = await useApiFetch('/api/account/delete', { method: 'POST', body: { password: deletePassword.value } })
+    // Équipes non prévenues (envoi d'emails coupé…) : la personne le sait avant de quitter la page
+    if (result.teamsNotified < result.teams) {
+      alert(`Votre compte est effacé, mais ${result.teams - result.teamsNotified} équipe(s) n’ont pas pu être prévenue(s) par email. Prévenez-les vous-même que vos places sont libérées.`)
+    }
+    // Compte effacé et cookie retiré : rien ne reste non plus sur l'appareil
+    await clearOfflineData()
+    window.location.replace('/')
+  })
+}
 
 await load()
 </script>
