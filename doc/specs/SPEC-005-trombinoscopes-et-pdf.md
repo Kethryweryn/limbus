@@ -4,13 +4,13 @@ titre: Trombinoscopes et documents PDF
 statut: validée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
-epics: []
-adr: [ADR-0008]
+epics: [EPIC-005]
+adr: [ADR-0008, ADR-0030]
 ---
 
 # SPEC-005 : Trombinoscopes et documents PDF
 
-Cette spec décrit un comportement déjà en production, avant la reprise du développement ([Documentation de l'existant](../archive/todo/documentation-de-l-existant.md)). Elle n'a ni epic ni US. Les écarts constatés entre le code et l'intention sont listés à la fin, sans être corrigés.
+Cette spec décrit un comportement déjà en production, avant la reprise du développement ([Documentation de l'existant](../archive/todo/documentation-de-l-existant.md)). Les écarts constatés entre le code et l'intention, listés à la fin, sont corrigés par [EPIC-005](../archive/epics/EPIC-005-ecarts-trombinoscopes/README.md).
 
 ## Objectif
 
@@ -55,17 +55,17 @@ Donner à chaque joueuse et chaque joueur, pour une session, ce que son personna
 ### Trombinoscope d'un personnage
 
 - **R3** Chaque personnage a son propre trombinoscope. Pour chaque autre personnage du jeu, il fixe : l'inclusion, l'affichage de la photo (visage connu ou non), le nom affiché et une note. Le nom affiché peut être différent du nom de la fiche, pour gérer les identités multiples.
-- **R4** Sans réglage particulier, un personnage regardé est inclus, avec son visage connu, son nom d'affichage par défaut (sinon son nom) et sa note par défaut. Cela vaut pour tous les personnages du jeu, castés ou non dans la session. C'est la configuration du personnage qui regarde qui choisit qui y figure.
+- **R4** Sans réglage particulier, un personnage regardé est inclus, avec son visage connu, son nom d'affichage par défaut (sinon son nom) et sa note par défaut. Cela vaut pour tous les autres personnages du jeu, castés ou non dans la session. C'est la configuration du personnage qui regarde qui choisit qui y figure.
 - **R5** Un personnage exclu des trombinoscopes (R1) n'apparaît jamais, quel que soit le réglage du personnage qui regarde. Un « visage caché » (R1) l'emporte sur « visage connu ».
-- **R5b** Un personnage n'apparaît jamais dans son propre trombinoscope (confirmé par l'utilisatrice le 29 octobre 2026). Aujourd'hui, il y figure par défaut : voir les écarts.
+- **R5b** Un personnage n'apparaît jamais dans son propre trombinoscope : sa configuration ne le liste pas, et la génération l'ignore même si un ancien réglage l'incluait ([US-027](../archive/epics/EPIC-005-ecarts-trombinoscopes/US-027-jamais-dans-son-propre-trombinoscope.md)).
 - **R6** Les entrées sont triées : les PJ d'abord, puis les PNJ, et par nom.
 
 ### Génération pour une session
 
 - **R7** La génération produit un trombinoscope par attribution qui a un participant (personnage qui regarde × participant), en HTML et en PDF, enregistré en base.
-- **R8** La photo d'une entrée vient aujourd'hui de la photo par défaut du personnage regardé, sinon de la photo de son attribution dans la session (voir les écarts : l'ordre voulu est l'inverse). Une photo téléversée est lue dans les fichiers du jeu, une photo externe est téléchargée par `fetchPublicImage`. Une entrée dont la photo devrait être affichée mais n'existe pas compte comme « photo manquante ».
+- **R8** La photo d'une entrée est celle de la personne qui joue le personnage regardé dans la session (photo de son attribution), sinon la photo par défaut du personnage ([US-026](../archive/epics/EPIC-005-ecarts-trombinoscopes/US-026-photo-de-la-session-d-abord.md)). Une photo téléversée est lue dans les fichiers du jeu, une photo externe est téléchargée par `fetchPublicImage`. Une entrée dont la photo devrait être affichée mais n'existe pas compte comme « photo manquante ».
 - **R9** Générer à nouveau remplace les trombinoscopes de la session. Ceux d'une attribution qui n'existe plus, parce que le rôle a été retiré ou donné à quelqu'un d'autre, sont supprimés.
-- **R10** Un trombinoscope n'est pas mis à jour tout seul : après un changement de casting, de photo ou de réglage, il faut le générer à nouveau.
+- **R10** Un trombinoscope n'est pas mis à jour tout seul : après un changement de casting, de photo ou de réglage, il faut le générer à nouveau. Un trombinoscope dont le contenu ne correspond plus est périmé ([ADR-0030](../adr/ADR-0030-empreinte-d-un-trombinoscope.md)) : le tableau des documents l'annonce par un avertissement pour la session, et l'envoi, test compris, est refusé tant qu'un trombinoscope à envoyer est périmé. Un trombinoscope déjà envoyé qui devient périmé porte le badge « Trombi envoyé, périmé » ; son renvoi relève de [SPEC-006](SPEC-006-emails-et-paiements.md) ([US-028](../archive/epics/EPIC-005-ecarts-trombinoscopes/US-028-trombinoscopes-perimes.md)).
 
 ### Documents PDF
 
@@ -76,7 +76,7 @@ Donner à chaque joueuse et chaque joueur, pour une session, ce que son personna
 ## Données
 
 - `CharacterTrombinoscopeEntry` : réglage d'un personnage regardé dans le trombinoscope d'un personnage, valable pour toutes les sessions.
-- `SessionTrombinoscope` : trombinoscope généré pour une attribution (HTML, PDF en base64, nombre de photos manquantes, date). Il est supprimé avec la session, le personnage ou le participant.
+- `SessionTrombinoscope` : trombinoscope généré pour une attribution (HTML, PDF en base64, nombre de photos manquantes, empreinte du contenu, date). Il est supprimé avec la session, le personnage ou le participant.
 - Les trombinoscopes contiennent les photos des participants, qui sont des données personnelles. Supprimer un participant supprime les trombinoscopes des sessions où figurait sa photo ; il faut les générer à nouveau ([SPEC-004](SPEC-004-sessions.md), [SPEC-007](SPEC-007-participants-et-rgpd.md)).
 
 ## Sécurité et droits
@@ -90,8 +90,4 @@ Donner à chaque joueuse et chaque joueur, pour une session, ce que son personna
 
 ## Écarts constatés
 
-Relevés le 29 octobre 2026 avec l'utilisatrice. Aucun n'est corrigé ici.
-
-1. **Ordre des photos (R8)** : la règle voulue est la photo de la personne qui joue le rôle dans la session d'abord, et la photo par défaut du personnage seulement si elle manque. Le code fait l'inverse : dès qu'un personnage a une photo par défaut, la photo de la personne qui le joue n'apparaît jamais.
-2. **Soi-même (R5b)** : la configuration et la génération listent aussi le personnage qui regarde. Par défaut, il apparaît donc dans son propre trombinoscope, sauf si on le décoche à la main.
-3. **Trombinoscopes périmés (R10)** : rien n'indique qu'un trombinoscope généré ne correspond plus au casting, aux photos ou aux réglages actuels. Seul le nombre de photos manquantes est affiché.
+Relevés le 29 octobre 2026 avec l'utilisatrice, tous corrigés par [EPIC-005](../archive/epics/EPIC-005-ecarts-trombinoscopes/README.md) : ordre des photos (R8), soi-même (R5b), trombinoscopes périmés (R10).

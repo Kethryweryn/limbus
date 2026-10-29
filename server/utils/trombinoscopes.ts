@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import { CHARACTER_TYPES } from '~/utils/domain'
@@ -49,12 +50,14 @@ function characterSort(a: CharacterLike, b: CharacterLike) {
   return a.name.localeCompare(b.name)
 }
 
-function getEntryDefaults(target: CharacterLike, entry?: {
+type TrombinoscopeEntryLike = {
   included: boolean
   faceKnown: boolean
   displayName?: string | null
   note?: string | null
-}) {
+}
+
+function getEntryDefaults(target: CharacterLike, entry?: TrombinoscopeEntryLike) {
   const globallyHidden = Boolean(target.trombinoscopeFaceHidden)
 
   return {
@@ -90,7 +93,7 @@ export async function getCharacterTrombinoscopeConfig(viewerCharacterId: string)
 
   return {
     viewer,
-    characters: characters.sort(characterSort).map((target) => ({
+    characters: characters.filter((target) => target.id !== viewerCharacterId).sort(characterSort).map((target) => ({
       ...target,
       trombinoscope: getEntryDefaults(target, entriesByTargetId.get(target.id))
     }))
@@ -116,6 +119,8 @@ export async function saveCharacterTrombinoscopeConfig(
     throw createError({ statusCode: 404, message: 'Personnage introuvable' })
   }
 
+  // Un personnage n'est jamais dans son propre trombinoscope : son entrée est ignorée (US-027)
+  entries = entries.filter((entry) => entry.targetCharacterId !== viewerCharacterId)
   const targetIds = [...new Set(entries.map((entry) => entry.targetCharacterId))]
   const matchingCharacters = await prisma.character.count({
     where: { id: { in: targetIds }, gameId: viewer.gameId }
@@ -155,7 +160,37 @@ export async function saveCharacterTrombinoscopeConfig(
   return await getCharacterTrombinoscopeConfig(viewerCharacterId)
 }
 
-export async function generateSessionTrombinoscopes(sessionId: string, publicBaseUrl = '') {
+// Entrées du trombinoscope d'un personnage : partagé par la génération et le calcul de l'empreinte (ADR-0030)
+export function buildTrombinoscopeRows(
+  viewer: { id: string },
+  characters: CharacterLike[],
+  entriesByViewerAndTarget: Map<string, TrombinoscopeEntryLike>,
+  castByCharacterId: Map<string, { photoUrl?: string | null }>
+): TrombinoscopeRow[] {
+  return [...characters]
+    .sort(characterSort)
+    .flatMap((target) => {
+      // Jamais soi-même, même si un ancien réglage l'incluait (US-027)
+      if (target.id === viewer.id) return []
+      const config = getEntryDefaults(target, entriesByViewerAndTarget.get(`${viewer.id}:${target.id}`))
+      if (!config.included || target.excludeFromTrombinoscope) return []
+
+      // La personne qui joue le rôle dans la session d'abord, la photo par défaut du personnage en repli (US-026)
+      const photoUrl = castByCharacterId.get(target.id)?.photoUrl || target.trombinoscopePhotoUrl || ''
+      const hidePhoto = Boolean(target.trombinoscopeFaceHidden) || !config.faceKnown
+
+      return [{
+        target,
+        displayName: config.displayName,
+        note: config.note,
+        photoUrl,
+        hidePhoto,
+        missingPhoto: !hidePhoto && !photoUrl
+      }]
+    })
+}
+
+async function loadTrombinoscopeSources(sessionId: string) {
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
     include: {
@@ -186,12 +221,60 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
     })
   ])
 
-  const castByCharacterId = new Map(
-    session.assignments.map((assignment) => [assignment.characterId, assignment])
-  )
-  const entriesByViewerAndTarget = new Map(
-    entries.map((entry) => [`${entry.viewerCharacterId}:${entry.targetCharacterId}`, entry])
-  )
+  return {
+    session,
+    characters,
+    castByCharacterId: new Map(session.assignments.map((assignment) => [assignment.characterId, assignment])),
+    entriesByViewerAndTarget: new Map(entries.map((entry) => [`${entry.viewerCharacterId}:${entry.targetCharacterId}`, entry]))
+  }
+}
+
+// Empreinte de ce qu'affiche un trombinoscope, sans les images : elle change avec son contenu (ADR-0030)
+export function trombinoscopeFingerprint(params: { gameTitle: string, sessionName: string, viewerName: string, rows: TrombinoscopeRow[] }) {
+  return createHash('sha256').update(JSON.stringify([
+    params.gameTitle,
+    params.sessionName,
+    params.viewerName,
+    params.rows.map((row) => [
+      row.target.id,
+      row.displayName,
+      row.note,
+      row.photoUrl,
+      row.hidePhoto,
+      (row.target.factions || []).filter((faction) => faction.showInTrombinoscope).map((faction) => faction.name)
+    ])
+  ])).digest('hex')
+}
+
+const trombinoscopeKey = (viewerCharacterId: string, participantId: string) => `${viewerCharacterId}:${participantId}`
+
+// Empreinte actuelle de chaque trombinoscope d'une session, par personnage qui regarde et participant
+export async function currentTrombinoscopeFingerprints(sessionId: string) {
+  const { session, characters, castByCharacterId, entriesByViewerAndTarget } = await loadTrombinoscopeSources(sessionId)
+  const fingerprints = new Map<string, string>()
+  for (const assignment of session.assignments) {
+    if (!assignment.participantId) continue
+    fingerprints.set(trombinoscopeKey(assignment.characterId, assignment.participantId), trombinoscopeFingerprint({
+      gameTitle: session.game.title,
+      sessionName: session.name,
+      viewerName: assignment.character.name,
+      rows: buildTrombinoscopeRows(assignment.character, characters, entriesByViewerAndTarget, castByCharacterId)
+    }))
+  }
+  return fingerprints
+}
+
+// Périmé quand son contenu actuel diffère de celui généré, ou sans empreinte (généré avant ADR-0030)
+export function isTrombinoscopeOutdated(
+  trombinoscope: { viewerCharacterId: string, participantId: string, sourceHash: string | null },
+  fingerprints: Map<string, string>
+) {
+  return !trombinoscope.sourceHash
+    || trombinoscope.sourceHash !== fingerprints.get(trombinoscopeKey(trombinoscope.viewerCharacterId, trombinoscope.participantId))
+}
+
+export async function generateSessionTrombinoscopes(sessionId: string, publicBaseUrl = '') {
+  const { session, characters, castByCharacterId, entriesByViewerAndTarget } = await loadTrombinoscopeSources(sessionId)
 
   let generatedCount = 0
   let missingPhotosCount = 0
@@ -208,32 +291,14 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
     if (!assignment.participantId || !assignment.participant) continue
 
     const viewer = assignment.character
-    const rows = characters
-      .sort(characterSort)
-      .map((target) => {
-        const entry = entriesByViewerAndTarget.get(`${viewer.id}:${target.id}`)
-        const config = getEntryDefaults(target, entry)
-        if (!config.included || target.excludeFromTrombinoscope) return null
-
-        const targetAssignment = castByCharacterId.get(target.id)
-        const sourcePhotoUrl = target.trombinoscopePhotoUrl || targetAssignment?.photoUrl || ''
-        const photoUrl = uploadFilePath(sourcePhotoUrl)
-          ? sourcePhotoUrl
-          : toPublicUrl(sourcePhotoUrl, publicBaseUrl)
-        const hidePhoto = target.trombinoscopeFaceHidden || !config.faceKnown
-        const missingPhoto = !hidePhoto && !sourcePhotoUrl
-        if (missingPhoto) missingPhotosCount++
-
-        return {
-          target,
-          displayName: config.displayName,
-          note: config.note,
-          photoUrl,
-          hidePhoto,
-          missingPhoto
-        }
-      })
-      .filter(Boolean) as TrombinoscopeRow[]
+    const sourceRows = buildTrombinoscopeRows(viewer, characters, entriesByViewerAndTarget, castByCharacterId)
+    const sourceHash = trombinoscopeFingerprint({ gameTitle: session.game.title, sessionName: session.name, viewerName: viewer.name, rows: sourceRows })
+    const rows = sourceRows
+      .map((row) => ({
+        ...row,
+        photoUrl: uploadFilePath(row.photoUrl) ? row.photoUrl : toPublicUrl(row.photoUrl, publicBaseUrl)
+      }))
+    missingPhotosCount += rows.filter((row) => row.missingPhoto).length
 
     const html = renderTrombinoscopeHtml({
       sessionName: session.name,
@@ -262,6 +327,7 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
         contentHtml: html,
         contentPdfBase64: Buffer.from(pdfBytes).toString('base64'),
         missingPhotos: rows.filter((row) => row.missingPhoto).length,
+        sourceHash,
         generatedAt: new Date()
       },
       create: {
@@ -271,7 +337,8 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
         fileName,
         contentHtml: html,
         contentPdfBase64: Buffer.from(pdfBytes).toString('base64'),
-        missingPhotos: rows.filter((row) => row.missingPhoto).length
+        missingPhotos: rows.filter((row) => row.missingPhoto).length,
+        sourceHash
       }
     })
 

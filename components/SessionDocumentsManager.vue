@@ -129,6 +129,9 @@
               {{ sentCharacterSheets.length }}/{{ characterSheets.length }} fiche(s) envoyée(s) ·
               {{ sentTrombinoscopes.length }}/{{ characterSheets.length }} trombinoscope(s) envoyé(s)
             </p>
+            <p v-if="outdatedTrombinoscopes.length" class="text-sm text-amber-600">
+              {{ outdatedTrombinoscopes.length }} trombinoscope(s) ne sont plus à jour (casting, photos ou réglages modifiés) : générez-les à nouveau.
+            </p>
             <p v-if="missingTrombinoscopePhotos" class="text-sm text-amber-600">
               {{ missingTrombinoscopePhotos }} photo(s) manquante(s) dans les trombinoscopes générés.
             </p>
@@ -137,13 +140,13 @@
             <UButton color="neutral" variant="soft" :loading="generatingTrombinoscopes" @click="generateTrombinoscopes">
               Générer les trombinoscopes
             </UButton>
-            <UButton color="primary" :loading="sendingBundle" :disabled="sendingBundle || bundleSendCooldown || !bundleReadySheets.length" @click="sendCharacterSheetsAndTrombinoscopes">
+            <UButton color="primary" :loading="sendingBundle" :disabled="sendingBundle || bundleSendCooldown || !bundleReadySheets.length || bundleBlockedByOutdated" @click="sendCharacterSheetsAndTrombinoscopes">
               Envoyer fiches et trombis
             </UButton>
             <UButton color="neutral" variant="soft" :loading="sendingSheets" :disabled="sendingSheets || sheetsSendCooldown || !pendingCharacterSheets.length" @click="sendCharacterSheets">
               Envoyer fiches seules
             </UButton>
-            <UButton color="neutral" variant="soft" :loading="sendingTrombinoscopes" :disabled="sendingTrombinoscopes || trombinoscopesSendCooldown || !pendingTrombinoscopes.length" @click="sendTrombinoscopes">
+            <UButton color="neutral" variant="soft" :loading="sendingTrombinoscopes" :disabled="sendingTrombinoscopes || trombinoscopesSendCooldown || !pendingTrombinoscopes.length || trombinoscopesBlockedByOutdated" @click="sendTrombinoscopes">
               Envoyer trombinoscopes seuls
             </UButton>
           </div>
@@ -163,7 +166,10 @@
                 <UBadge :color="sheet.sentAt ? 'success' : 'warning'" variant="subtle" size="xs">
                   Fiche {{ sheet.sentAt ? 'envoyée' : sheet.readyToSend ? 'prête' : 'brouillon' }}
                 </UBadge>
-                <UBadge :color="sheet.trombinoscopeSentAt ? 'success' : sheet.trombinoscopeGeneratedAt ? 'warning' : 'neutral'" variant="subtle" size="xs">
+                <UBadge v-if="sheet.trombinoscopeSentAt && sheet.trombinoscopeOutdated" color="warning" variant="subtle" size="xs">
+                  Trombi envoyé, périmé
+                </UBadge>
+                <UBadge v-else :color="sheet.trombinoscopeSentAt ? 'success' : sheet.trombinoscopeGeneratedAt ? 'warning' : 'neutral'" variant="subtle" size="xs">
                   Trombi {{ sheet.trombinoscopeSentAt ? 'envoyé' : sheet.trombinoscopeGeneratedAt ? 'généré' : 'à générer' }}
                 </UBadge>
                 <UBadge :color="sheet.bundleSentAt ? 'success' : 'neutral'" variant="subtle" size="xs">
@@ -281,6 +287,14 @@ const organizerEmails = computed(() =>
 const pendingCharacterSheets = computed(() => characterSheets.value.filter((sheet) => sheet.readyToSend && !sheet.sentAt))
 const pendingTrombinoscopes = computed(() => characterSheets.value.filter((sheet) => sheet.trombinoscopeGeneratedAt && !sheet.trombinoscopeSentAt))
 const bundleReadySheets = computed(() => characterSheets.value.filter((sheet) => sheet.readyToSend && sheet.trombinoscopeGeneratedAt))
+// Un trombinoscope périmé bloque l'envoi jusqu'à la prochaine génération (US-028)
+const outdatedTrombinoscopes = computed(() => characterSheets.value.filter((sheet) => sheet.trombinoscopeOutdated))
+const trombinoscopesBlockedByOutdated = computed(() =>
+  pendingTrombinoscopes.value.some((sheet) => sheet.participant.email && sheet.trombinoscopeOutdated)
+)
+const bundleBlockedByOutdated = computed(() =>
+  bundleReadySheets.value.some((sheet) => !sheet.bundleSentAt && sheet.participant.email && sheet.trombinoscopeOutdated)
+)
 const sentCharacterSheets = computed(() => characterSheets.value.filter((sheet) => sheet.sentAt))
 const sentTrombinoscopes = computed(() => characterSheets.value.filter((sheet) => sheet.trombinoscopeSentAt))
 const missingTrombinoscopePhotos = computed(() =>
