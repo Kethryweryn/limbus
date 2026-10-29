@@ -132,3 +132,23 @@ describe('statuts d’une session (US-020)', () => {
     expect(await nextOf()).toBe(s.session.id)
   })
 })
+
+describe('supprimer une session oriente vers l’annulation (US-021)', () => {
+  it('refuse avec un paiement reçu ou une inscription, accepte sinon', async () => {
+    const paid = await aliceSession()
+    await prisma.sessionPayment.create({ data: { sessionId: paid.session.id, participantId: paid.lea.id, paidAt: new Date() } })
+    const refused = await api(alice, 'DELETE', `/api/sessions/${paid.session.id}`)
+    expect(refused.status).toBe(409)
+    expect(JSON.stringify(refused.body)).toContain('Annulez-la ou reportez-la')
+
+    const registered = await aliceSession()
+    const period = await prisma.registrationPeriod.create({ data: { gameId: registered.game.id, name: `Période ${registered.key}`, publicId: `periode-${registered.key}` } })
+    await prisma.registration.create({ data: { periodId: period.id, participantId: registered.lea.id, sessionId: registered.session.id, status: 'confirmed', source: 'invitation', email: 'lea@example.test' } })
+    expect((await api(alice, 'DELETE', `/api/sessions/${registered.session.id}`)).status).toBe(409)
+
+    // Témoin : un paiement envoyé mais pas reçu n'empêche pas la suppression
+    const free = await aliceSession()
+    await prisma.sessionPayment.create({ data: { sessionId: free.session.id, participantId: free.lea.id, paymentEmailSentAt: new Date() } })
+    expect((await api(alice, 'DELETE', `/api/sessions/${free.session.id}`)).status).toBe(200)
+  })
+})

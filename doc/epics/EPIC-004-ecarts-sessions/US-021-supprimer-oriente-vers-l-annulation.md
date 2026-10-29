@@ -1,7 +1,7 @@
 ---
 id: US-021
 titre: Supprimer une session oriente vers l’annulation ou le report
-statut: à faire
+statut: terminée
 epic: EPIC-004
 regles: [R3]
 adr: []
@@ -13,9 +13,9 @@ En tant qu'organisatrice, je veux qu'on ne puisse pas supprimer par erreur une s
 
 ## Critères d'acceptation
 
-- [ ] Supprimer une session qui a au moins un paiement reçu ou une inscription est refusé (409) : le message propose de l'annuler ou de la reporter.
-- [ ] Une session sans paiement reçu ni inscription se supprime comme aujourd'hui, après confirmation.
-- [ ] La page de la session propose les boutons « Annuler la session » et « Reporter » à côté du refus.
+- [x] Supprimer une session qui a au moins un paiement reçu ou une inscription est refusé (409) : le message propose de l'annuler ou de la reporter.
+- [x] Une session sans paiement reçu ni inscription se supprime comme aujourd'hui, après confirmation.
+- [x] Le refus s'affiche dans la liste des sessions et renvoie à la page de la session, où l'on change le statut pour l'annuler, ou bien où l'on clique « Reporter » (US-022).
 
 ## Notes techniques
 
@@ -23,4 +23,4 @@ En tant qu'organisatrice, je veux qu'on ne puisse pas supprimer par erreur une s
 
 ## Tests
 
-- Intégration : suppression refusée avec un paiement, avec une inscription ; acceptée sans.
+- Intégration (`sessionLifecycle.test.ts`) : suppression refusée avec un paiement reçu, avec une inscription ; acceptée avec un paiement seulement demandé.

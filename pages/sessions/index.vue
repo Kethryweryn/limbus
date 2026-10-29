@@ -10,6 +10,8 @@
       </UButton>
     </div>
 
+    <UAlert v-if="deleteError" color="error" variant="soft" :description="deleteError" class="mb-4" />
+
     <div class="flex flex-col md:flex-row gap-4 mb-4">
       <UInput v-model="searchQuery" placeholder="Rechercher une session..." icon="i-heroicons-magnifying-glass" />
       <USelect
@@ -196,6 +198,7 @@ const characters = ref([])
 const locations = ref([])
 const participants = ref([])
 const searchQuery = ref('')
+const deleteError = ref('')
 const gameFilter = ref('all')
 const periodFilter = ref('future')
 const isOffline = ref(false)
@@ -492,7 +495,14 @@ async function handleSessionFormSubmit() {
 async function deleteSession(id) {
   if (!confirm('Supprimer cette session ?')) return
 
-  await useApiFetch(`/api/sessions/${id}`, { method: 'DELETE' })
+  deleteError.value = ''
+  try {
+    await useApiFetch(`/api/sessions/${id}`, { method: 'DELETE' })
+  } catch (error) {
+    // Paiements ou inscriptions : refus qui oriente vers l'annulation ou le report (US-021)
+    deleteError.value = error?.data?.message || error?.message || 'Impossible de supprimer la session'
+    return
+  }
   await fetchSessions()
 }
 </script>
