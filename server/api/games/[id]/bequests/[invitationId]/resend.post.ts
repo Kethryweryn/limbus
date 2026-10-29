@@ -1,5 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { bequestExpiresAt, findPendingBequest, purgeExpiredBequests, requireBequestOwner, sendBequestInvitation } from '~/server/utils/bequests'
 import { createInvitationToken, invitationUrl } from '~/server/utils/invitations'
 import { GAME_INVITATION_STATUSES } from '~/utils/domain'
@@ -8,7 +8,7 @@ import { requireRouterParam } from '~/server/utils/routeParams'
 
 // Renvoie l'invitation d'un legs en attente et prolonge son expiration ; la copie reste celle du legs (US-012, R9)
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const id = requireRouterParam(event, 'id')
   const invitationId = requireRouterParam(event, 'invitationId')

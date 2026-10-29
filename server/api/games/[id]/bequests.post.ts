@@ -1,5 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { bequestExpiresAt, purgeExpiredBequests, requireBequestOwner, sendBequestInvitation } from '~/server/utils/bequests'
 import { gameBequestSchema, readZodBody } from '~/server/utils/schemas'
 import { createInvitationToken, invitationUrl, normalizeInvitationEmail } from '~/server/utils/invitations'
@@ -12,7 +12,7 @@ import { requireRouterParam } from '~/server/utils/routeParams'
 
 // Lègue une copie du jeu à une autre organisatrice, avec ou sans compte (SPEC-002, US-010, US-011)
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const id = requireRouterParam(event, 'id')
   const { user, game } = await requireBequestOwner(event, id)

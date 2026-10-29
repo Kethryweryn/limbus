@@ -115,12 +115,10 @@ export async function requireRole(event: H3Event, allowedRoles: string[]): Promi
   return allowedRoles.includes(user.role)
 }
 
-export async function requireOrganizer(event: H3Event): Promise<AuthUser> {
-  const user = await requireAuthUser(event)
-  if (!([USER_ROLES.organizer, USER_ROLES.admin] as string[]).includes(user.role)) {
-    throw createError({ statusCode: 403, message: 'Forbidden' })
-  }
-  return user
+// Un compte connecté, quel que soit son rôle : les droits sur un jeu viennent de sa propriété ou de son partage
+// (ADR-0038), vérifiés ensuite route par route
+export async function requireUser(event: H3Event): Promise<AuthUser> {
+  return await requireAuthUser(event)
 }
 
 export async function requireAdmin(event: H3Event): Promise<AuthUser> {

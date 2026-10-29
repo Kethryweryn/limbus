@@ -82,6 +82,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-055](../archive/epics/EPIC-011-tests-e2e-des-parcours/US-055-test-de-l-envoi-des-documents.md) | Test de bout en bout de l'envoi des documents | EPIC-011 | terminée |
 | [US-056](../archive/epics/EPIC-011-tests-e2e-des-parcours/US-056-test-des-paiements.md) | Test de bout en bout des paiements | EPIC-011 | terminée |
 | [US-057](../archive/epics/EPIC-011-tests-e2e-des-parcours/US-057-test-de-la-session-hors-ligne.md) | Test de bout en bout de la session hors ligne | EPIC-011 | terminée |
-| [US-058](EPIC-012-roles/US-058-un-seul-role-global.md) | Un seul rôle global : administrateur ou non | EPIC-012 | à faire |
+| [US-058](EPIC-012-roles/US-058-un-seul-role-global.md) | Un seul rôle global : administrateur ou non | EPIC-012 | terminée |
 | [US-059](EPIC-012-roles/US-059-quitter-un-jeu.md) | Quitter un jeu partagé | EPIC-012 | à faire |
 | [US-060](EPIC-012-roles/US-060-transferer-un-jeu.md) | Transférer un jeu à une co-organisatrice | EPIC-012 | à faire |

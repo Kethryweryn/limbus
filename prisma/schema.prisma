@@ -579,7 +579,8 @@ model User {
   email     String   @unique
   name      String
   password  String
-  role      String   @default("organizer")
+  // admin ou user (ADR-0038) ; « organizer », valeur d'avant, vaut user
+  role      String   @default("user")
   // Incrémenté pour invalider toutes les sessions ouvertes (déconnexion partout, changement de mot de passe)
   sessionVersion Int @default(0)
   createdAt DateTime @default(now())

@@ -1,5 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { requireGameOwner } from '~/server/utils/gameAccess'
 import { collectUploadUrls, deleteUnusedUploads } from '~/server/utils/uploads'
 import { deletePendingCopy } from '~/server/utils/gameCopy'
@@ -7,7 +7,7 @@ import { requireRouterParam } from '~/server/utils/routeParams'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const id = requireRouterParam(event, 'id')
   await requireGameOwner(event, id)

@@ -16,7 +16,7 @@ Plusieurs organisatrices utilisent la même instance. Chacune ne doit voir que s
 
 ## Décision
 
-- Toute route sous `server/api` commence par `requireOrganizer` (ou `requireAdmin`), sauf les routes volontairement publiques : `auth/*`, `invitations/[token]` et `public/*`.
+- Toute route sous `server/api` commence par `requireOrganizer` (`requireUser` depuis [ADR-0038](ADR-0038-un-seul-role-global.md)) (ou `requireAdmin`), sauf les routes volontairement publiques : `auth/*`, `invitations/[token]` et `public/*`.
 - Une ressource précise est contrôlée par `requireGameAccess(event, gameId)` ou `requireSessionAccess(event, id)` ; une liste est filtrée par `gameScopedWhere` / `accessibleGameIds`.
 - Une ressource ne change jamais de jeu : `assertSameGame` renvoie 400 si une modification demande un autre `gameId`. Les références vers d'autres entités (factions, lieu, participants, personnages) doivent appartenir au même jeu.
 - Les corps de requête sont validés par un schéma zod de `server/utils/schemas.ts`, via `readZodBody`.

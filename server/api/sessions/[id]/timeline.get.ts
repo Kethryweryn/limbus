@@ -1,11 +1,11 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { requireGameAccess, requireSessionAccess } from '~/server/utils/gameAccess'
 import { timelineEventInclude, withTimelineConflicts } from '~/server/utils/timelineEvents'
 import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const id = requireRouterParam(event, 'id')
 

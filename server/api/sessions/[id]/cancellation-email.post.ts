@@ -1,4 +1,4 @@
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { requireRouterParam } from '~/server/utils/routeParams'
 import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
@@ -8,7 +8,7 @@ import { withSessionSendLock } from '~/server/utils/sendLock'
 
 // Email d'annulation à l'équipe, relu et envoyé à la main (US-025) : une action, jamais mise en file
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const id = requireRouterParam(event, 'id')
   const session = await requireSessionAccess(event, id)

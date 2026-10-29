@@ -1,10 +1,10 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { gameScopedWhere } from '~/server/utils/gameAccess'
 import { timelineEventInclude, withTimelineConflicts } from '~/server/utils/timelineEvents'
 
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const gameId = getQuery(event).gameId?.toString()
   const events = await prisma.timelineEvent.findMany({

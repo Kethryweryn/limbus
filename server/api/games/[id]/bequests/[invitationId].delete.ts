@@ -1,11 +1,11 @@
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { findPendingBequest, requireBequestOwner } from '~/server/utils/bequests'
 import { deletePendingCopy } from '~/server/utils/gameCopy'
 import { requireRouterParam } from '~/server/utils/routeParams'
 
 // Annule un legs en attente : la copie part avec ses fichiers, et son invitation avec elle (US-012, R8)
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const id = requireRouterParam(event, 'id')
   const invitationId = requireRouterParam(event, 'invitationId')

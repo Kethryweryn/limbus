@@ -1,5 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { readZodBody, registrationPeriodUpdateSchema } from '~/server/utils/schemas'
 import { assertSameGame, requireGameAccess } from '~/server/utils/gameAccess'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
@@ -15,7 +15,7 @@ import {
 } from '~/server/utils/registrationPeriods'
 
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const { id, gameId } = await findRegistrationPeriodOr404(getRouterParam(event, 'id'))
   await requireGameAccess(event, gameId)

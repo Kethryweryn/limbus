@@ -1,5 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { countPlayableCharacters } from '~/server/utils/registrationPeriods'
 import { requireRouterParam } from '~/server/utils/routeParams'
@@ -7,7 +7,7 @@ import { requireRouterParam } from '~/server/utils/routeParams'
 // De quoi remplir le formulaire d'une période d'inscription : les sessions du jeu, avec la période
 // qui les couvre déjà, et le nombre de personnages PJ (places proposées par défaut, R5)
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const gameId = requireRouterParam(event, 'id')
   await requireGameAccess(event, gameId)

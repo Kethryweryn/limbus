@@ -1,11 +1,11 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { assertUnansweredInvitation, findRegistrationOr404 } from '~/server/utils/registrations'
 
 // Annule une invitation sans réponse : l'inscription disparaît, et son lien avec elle
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const registration = await findRegistrationOr404(getRouterParam(event, 'id'))
   await requireGameAccess(event, registration.period.gameId)

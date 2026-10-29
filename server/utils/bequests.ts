@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { deletePendingCopy } from '~/server/utils/gameCopy'
 import { sendGameBequestInvitationEmail } from '~/server/utils/email'
 import { GAME_INVITATION_KINDS, GAME_INVITATION_STATUSES } from '~/utils/domain'
@@ -20,7 +20,7 @@ export function bequestExpiresAt(from = Date.now()) {
  * le crédit porte son nom, et les invitations sont envoyées en son nom.
  */
 export async function requireBequestOwner(event: H3Event, gameId: string) {
-  const user = await requireOrganizer(event)
+  const user = await requireUser(event)
   const game = await prisma.game.findFirst({ where: { id: gameId, ownerId: user.id, bequestPending: false }, select: { title: true } })
   if (!game) {
     throw createError({ statusCode: 403, message: 'Seule la propriétaire du jeu peut gérer ses legs' })

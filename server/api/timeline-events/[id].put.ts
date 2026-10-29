@@ -1,5 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { requireGameAccess, assertSameGame } from '~/server/utils/gameAccess'
 import { readZodBody, timelineEventSchema } from '~/server/utils/schemas'
 import { timelineEventInclude, validateTimelineEventRelations } from '~/server/utils/timelineEvents'
@@ -8,7 +8,7 @@ import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const id = requireRouterParam(event, 'id')
   const timelineEvent = await prisma.timelineEvent.findUnique({ where: { id }, select: { gameId: true } })

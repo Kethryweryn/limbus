@@ -34,8 +34,9 @@ async function main() {
   const existing = await prisma.user.findUnique({ where: { email }, select: { id: true, role: true } })
 
   const name = existing ? '' : await ask('Nom : ')
-  const roleAnswer = existing ? existing.role : (await ask('Rôle (admin/organizer) [organizer] : ')) || USER_ROLES.organizer
-  if (!([USER_ROLES.admin, USER_ROLES.organizer] as string[]).includes(roleAnswer)) throw new Error('Rôle invalide')
+  // Un seul rôle global (ADR-0038) : admin ou user ; un compte existant garde le sien
+  const roleAnswer = existing ? existing.role : (await ask('Rôle (admin/user) [user] : ')) || USER_ROLES.user
+  if (!existing && !([USER_ROLES.admin, USER_ROLES.user] as string[]).includes(roleAnswer)) throw new Error('Rôle invalide')
 
   const password = await ask('Mot de passe : ', true)
   if (password.length < MIN_PASSWORD_LENGTH) {

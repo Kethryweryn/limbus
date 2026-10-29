@@ -1,5 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { gameScopedWhere } from '~/server/utils/gameAccess'
 import { exposeRegistrationPeriod, registrationListSelect, registrationPeriodInclude } from '~/server/utils/registrationPeriods'
 import { withSessionPresence } from '~/server/utils/registrations'
@@ -7,7 +7,7 @@ import { withSessionPresence } from '~/server/utils/registrations'
 // ?gameId= filtre sur un jeu ; ?include=registrations ajoute les inscriptions de chaque période,
 // pour que la page Inscriptions charge tout en une requête
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const { gameId, include } = getQuery(event)
   const where = await gameScopedWhere(event, typeof gameId === 'string' && gameId ? { gameId } : {})

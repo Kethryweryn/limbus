@@ -19,7 +19,7 @@ On ne pousse jamais directement sur `main` (ADR-0017) : chaque chantier a sa bra
 
 ## Sécurité des routes API
 
-- Toute route sous `server/api` commence par `requireOrganizer(event)` (ou `requireAdmin`), sauf les routes volontairement publiques : `auth/*`, `invitations/[token]` et `public/*`.
+- Toute route sous `server/api` commence par `requireUser(event)` (ou `requireAdmin`), sauf les routes volontairement publiques : `auth/*`, `invitations/[token]` et `public/*`. Il n'y a qu'un rôle global, administratrice ou non : les droits sur un jeu viennent de sa propriété ou de son partage (ADR-0038).
 - Toute donnée rattachée à un jeu est filtrée par accès au jeu :
   - `requireGameAccess(event, gameId)` pour une ressource précise ;
   - `requireSessionAccess(event, id)` pour une session ;

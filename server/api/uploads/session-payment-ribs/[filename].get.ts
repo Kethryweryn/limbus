@@ -1,13 +1,13 @@
 import { createReadStream } from 'node:fs'
 import { access } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { prisma } from '~/server/utils/prisma'
 import { uploadDir, UPLOAD_DIRS } from '~/server/utils/uploads'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
 
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const rawFilename = getRouterParam(event, 'filename')
   const filename = basename(rawFilename || '')

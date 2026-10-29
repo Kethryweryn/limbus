@@ -16,7 +16,7 @@ Lot 1 de [SPEC-011](../../specs/SPEC-011-un-compte-pour-tout-le-monde.md) : le s
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-058](US-058-un-seul-role-global.md) | Un seul rôle global : administrateur ou non | à faire |
+| [US-058](US-058-un-seul-role-global.md) | Un seul rôle global : administrateur ou non | terminée |
 | [US-059](US-059-quitter-un-jeu.md) | Quitter un jeu partagé | à faire |
 | [US-060](US-060-transferer-un-jeu.md) | Transférer un jeu à une co-organisatrice | à faire |
 

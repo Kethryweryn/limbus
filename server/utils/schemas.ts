@@ -54,7 +54,7 @@ const documentAudience = z.enum([
   DOCUMENT_AUDIENCES.kitchen
 ])
 const timelineTime = z.string().trim().regex(/^\d{2}:\d{2}$/, 'Time must use HH:mm format')
-const userRole = z.enum([USER_ROLES.admin, USER_ROLES.organizer])
+const userRole = z.enum([USER_ROLES.admin, USER_ROLES.user])
 const optionalEmail = z.string().trim().default('').refine(
   (value) => !value || z.string().email().safeParse(value).success,
   'Invalid email'
@@ -410,7 +410,7 @@ export const userCreateSchema = z.object({
   email: accountEmail(),
   name: requiredText('Name'),
   password: requiredText('Password').min(8, 'Password must contain at least 8 characters'),
-  role: userRole.default(USER_ROLES.organizer)
+  role: userRole.default(USER_ROLES.user)
 })
 
 export const userUpdateSchema = z.object({

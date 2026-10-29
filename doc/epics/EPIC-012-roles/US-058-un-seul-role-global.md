@@ -1,7 +1,7 @@
 ---
 id: US-058
 titre: Un seul rôle global : administrateur ou non
-statut: à faire
+statut: terminée
 epic: EPIC-012
 regles: [R1, R17]
 adr: [ADR-0038]
@@ -13,9 +13,9 @@ En tant qu'utilisatrice de Limbus, je veux que mon compte me permette d'organise
 
 ## Critères d'acceptation
 
-- [ ] Toute route de l'API demande un compte connecté (`requireUser`), quel que soit son rôle ; l'accès à chaque jeu reste vérifié comme avant.
-- [ ] L'administration des comptes propose « Administratrice » oui ou non, et plus le rôle « Organisateur ».
-- [ ] Les nouveaux comptes ont le rôle de compte simple ; les comptes « organisateur » existants gardent les mêmes droits.
+- [x] Toute route de l'API demande un compte connecté (`requireUser`), quel que soit son rôle ; l'accès à chaque jeu reste vérifié comme avant.
+- [x] L'administration des comptes propose « Administratrice » oui ou non, et plus le rôle « Organisateur ».
+- [x] Les nouveaux comptes ont le rôle de compte simple ; les comptes « organisateur » existants gardent les mêmes droits.
 
 ## Notes techniques
 
