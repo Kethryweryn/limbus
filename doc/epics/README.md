@@ -20,6 +20,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-010](../archive/epics/EPIC-010-ecarts-hors-ligne/README.md) | Corriger les écarts du mode hors ligne | [SPEC-010](../specs/SPEC-010-hors-ligne.md) | terminé |
 | [EPIC-011](../archive/epics/EPIC-011-tests-e2e-des-parcours/README.md) | Tests de bout en bout des parcours | [fiche](../archive/todo/tests-e2e-des-parcours.md) | terminé |
 | [EPIC-012](../archive/epics/EPIC-012-roles/README.md) | Rôles : un seul rôle global, quitter et transférer un jeu | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
+| [EPIC-013](EPIC-013-inscription-et-compte/README.md) | Inscription libre et compte en libre-service | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | en cours |
 
 ## US
 
@@ -85,3 +86,11 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-058](../archive/epics/EPIC-012-roles/US-058-un-seul-role-global.md) | Un seul rôle global : administrateur ou non | EPIC-012 | terminée |
 | [US-059](../archive/epics/EPIC-012-roles/US-059-quitter-un-jeu.md) | Quitter un jeu partagé | EPIC-012 | terminée |
 | [US-060](../archive/epics/EPIC-012-roles/US-060-transferer-un-jeu.md) | Transférer un jeu à une co-organisatrice | EPIC-012 | terminée |
+| [US-061](EPIC-013-inscription-et-compte/US-061-creer-son-compte.md) | Créer son compte et confirmer son adresse | EPIC-013 | à faire |
+| [US-062](EPIC-013-inscription-et-compte/US-062-mot-de-passe-oublie.md) | Réinitialiser un mot de passe oublié | EPIC-013 | à faire |
+| [US-063](EPIC-013-inscription-et-compte/US-063-gerer-son-compte.md) | Gérer son compte : nom, email, mot de passe | EPIC-013 | à faire |
+| [US-064](EPIC-013-inscription-et-compte/US-064-invitation-par-la-bonne-adresse.md) | Une invitation n'est acceptée que par l'adresse invitée | EPIC-013 | à faire |
+| [US-065](EPIC-013-inscription-et-compte/US-065-comptes-geres-par-l-administratrice.md) | L'administratrice crée, désactive et supprime les comptes | EPIC-013 | à faire |
+| [US-066](EPIC-013-inscription-et-compte/US-066-plafond-de-stockage.md) | Plafond de stockage par compte | EPIC-013 | à faire |
+| [US-067](EPIC-013-inscription-et-compte/US-067-conversion-des-comptes-organisateur.md) | Conversion des anciens comptes « organisateur » | EPIC-013 | à faire |
+| [US-068](EPIC-013-inscription-et-compte/US-068-prevenir-la-destinataire-d-un-transfert.md) | Prévenir la destinataire d'un transfert de jeu | EPIC-013 | à faire |
