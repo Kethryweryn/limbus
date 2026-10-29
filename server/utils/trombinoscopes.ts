@@ -49,12 +49,14 @@ function characterSort(a: CharacterLike, b: CharacterLike) {
   return a.name.localeCompare(b.name)
 }
 
-function getEntryDefaults(target: CharacterLike, entry?: {
+type TrombinoscopeEntryLike = {
   included: boolean
   faceKnown: boolean
   displayName?: string | null
   note?: string | null
-}) {
+}
+
+function getEntryDefaults(target: CharacterLike, entry?: TrombinoscopeEntryLike) {
   const globallyHidden = Boolean(target.trombinoscopeFaceHidden)
 
   return {
@@ -155,6 +157,34 @@ export async function saveCharacterTrombinoscopeConfig(
   return await getCharacterTrombinoscopeConfig(viewerCharacterId)
 }
 
+// Entrées du trombinoscope d'un personnage : partagé par la génération et le calcul de l'empreinte (ADR-0030)
+export function buildTrombinoscopeRows(
+  viewer: { id: string },
+  characters: CharacterLike[],
+  entriesByViewerAndTarget: Map<string, TrombinoscopeEntryLike>,
+  castByCharacterId: Map<string, { photoUrl?: string | null }>
+): TrombinoscopeRow[] {
+  return [...characters]
+    .sort(characterSort)
+    .flatMap((target) => {
+      const config = getEntryDefaults(target, entriesByViewerAndTarget.get(`${viewer.id}:${target.id}`))
+      if (!config.included || target.excludeFromTrombinoscope) return []
+
+      // La personne qui joue le rôle dans la session d'abord, la photo par défaut du personnage en repli (US-026)
+      const photoUrl = castByCharacterId.get(target.id)?.photoUrl || target.trombinoscopePhotoUrl || ''
+      const hidePhoto = Boolean(target.trombinoscopeFaceHidden) || !config.faceKnown
+
+      return [{
+        target,
+        displayName: config.displayName,
+        note: config.note,
+        photoUrl,
+        hidePhoto,
+        missingPhoto: !hidePhoto && !photoUrl
+      }]
+    })
+}
+
 export async function generateSessionTrombinoscopes(sessionId: string, publicBaseUrl = '') {
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
@@ -208,32 +238,12 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
     if (!assignment.participantId || !assignment.participant) continue
 
     const viewer = assignment.character
-    const rows = characters
-      .sort(characterSort)
-      .map((target) => {
-        const entry = entriesByViewerAndTarget.get(`${viewer.id}:${target.id}`)
-        const config = getEntryDefaults(target, entry)
-        if (!config.included || target.excludeFromTrombinoscope) return null
-
-        const targetAssignment = castByCharacterId.get(target.id)
-        const sourcePhotoUrl = target.trombinoscopePhotoUrl || targetAssignment?.photoUrl || ''
-        const photoUrl = uploadFilePath(sourcePhotoUrl)
-          ? sourcePhotoUrl
-          : toPublicUrl(sourcePhotoUrl, publicBaseUrl)
-        const hidePhoto = target.trombinoscopeFaceHidden || !config.faceKnown
-        const missingPhoto = !hidePhoto && !sourcePhotoUrl
-        if (missingPhoto) missingPhotosCount++
-
-        return {
-          target,
-          displayName: config.displayName,
-          note: config.note,
-          photoUrl,
-          hidePhoto,
-          missingPhoto
-        }
-      })
-      .filter(Boolean) as TrombinoscopeRow[]
+    const rows = buildTrombinoscopeRows(viewer, characters, entriesByViewerAndTarget, castByCharacterId)
+      .map((row) => ({
+        ...row,
+        photoUrl: uploadFilePath(row.photoUrl) ? row.photoUrl : toPublicUrl(row.photoUrl, publicBaseUrl)
+      }))
+    missingPhotosCount += rows.filter((row) => row.missingPhoto).length
 
     const html = renderTrombinoscopeHtml({
       sessionName: session.name,

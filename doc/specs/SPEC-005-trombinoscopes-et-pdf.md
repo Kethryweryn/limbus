@@ -63,7 +63,7 @@ Donner à chaque joueuse et chaque joueur, pour une session, ce que son personna
 ### Génération pour une session
 
 - **R7** La génération produit un trombinoscope par attribution qui a un participant (personnage qui regarde × participant), en HTML et en PDF, enregistré en base.
-- **R8** La photo d'une entrée vient aujourd'hui de la photo par défaut du personnage regardé, sinon de la photo de son attribution dans la session (voir les écarts : l'ordre voulu est l'inverse). Une photo téléversée est lue dans les fichiers du jeu, une photo externe est téléchargée par `fetchPublicImage`. Une entrée dont la photo devrait être affichée mais n'existe pas compte comme « photo manquante ».
+- **R8** La photo d'une entrée est celle de la personne qui joue le personnage regardé dans la session (photo de son attribution), sinon la photo par défaut du personnage ([US-026](../epics/EPIC-005-ecarts-trombinoscopes/US-026-photo-de-la-session-d-abord.md)). Une photo téléversée est lue dans les fichiers du jeu, une photo externe est téléchargée par `fetchPublicImage`. Une entrée dont la photo devrait être affichée mais n'existe pas compte comme « photo manquante ».
 - **R9** Générer à nouveau remplace les trombinoscopes de la session. Ceux d'une attribution qui n'existe plus, parce que le rôle a été retiré ou donné à quelqu'un d'autre, sont supprimés.
 - **R10** Un trombinoscope n'est pas mis à jour tout seul : après un changement de casting, de photo ou de réglage, il faut le générer à nouveau.
 
@@ -92,6 +92,5 @@ Donner à chaque joueuse et chaque joueur, pour une session, ce que son personna
 
 Relevés le 29 octobre 2026 avec l'utilisatrice. Aucun n'est corrigé ici.
 
-1. **Ordre des photos (R8)** : la règle voulue est la photo de la personne qui joue le rôle dans la session d'abord, et la photo par défaut du personnage seulement si elle manque. Le code fait l'inverse : dès qu'un personnage a une photo par défaut, la photo de la personne qui le joue n'apparaît jamais.
 2. **Soi-même (R5b)** : la configuration et la génération listent aussi le personnage qui regarde. Par défaut, il apparaît donc dans son propre trombinoscope, sauf si on le décoche à la main.
 3. **Trombinoscopes périmés (R10)** : rien n'indique qu'un trombinoscope généré ne correspond plus au casting, aux photos ou aux réglages actuels. Seul le nombre de photos manquantes est affiché.

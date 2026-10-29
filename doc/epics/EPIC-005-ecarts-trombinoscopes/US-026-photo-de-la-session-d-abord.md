@@ -1,7 +1,7 @@
 ---
 id: US-026
 titre: La photo de la personne qui joue le rôle passe avant la photo par défaut
-statut: à faire
+statut: terminée
 epic: EPIC-005
 regles: [R8]
 adr: []
@@ -13,10 +13,10 @@ En tant qu'organisatrice, je veux que le trombinoscope montre le visage de la pe
 
 ## Critères d'acceptation
 
-- [ ] Une entrée affiche la photo de l'attribution du personnage regardé dans la session quand elle existe.
-- [ ] Sans photo d'attribution, elle affiche la photo par défaut du personnage.
-- [ ] Sans l'une ni l'autre, l'entrée compte comme photo manquante, comme avant.
-- [ ] « Visage caché » et « visage inconnu » l'emportent toujours sur les deux photos.
+- [x] Une entrée affiche la photo de l'attribution du personnage regardé dans la session quand elle existe.
+- [x] Sans photo d'attribution, elle affiche la photo par défaut du personnage.
+- [x] Sans l'une ni l'autre, l'entrée compte comme photo manquante, comme avant.
+- [x] « Visage caché » et « visage inconnu » l'emportent toujours sur les deux photos.
 
 ## Notes techniques
 

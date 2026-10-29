@@ -16,7 +16,7 @@ Aligner le code sur [SPEC-005](../../specs/SPEC-005-trombinoscopes-et-pdf.md) : 
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-026](US-026-photo-de-la-session-d-abord.md) | La photo de la personne qui joue le rôle passe avant la photo par défaut | à faire |
+| [US-026](US-026-photo-de-la-session-d-abord.md) | La photo de la personne qui joue le rôle passe avant la photo par défaut | terminée |
 | [US-027](US-027-jamais-dans-son-propre-trombinoscope.md) | Un personnage n'apparaît jamais dans son propre trombinoscope | à faire |
 | [US-028](US-028-trombinoscopes-perimes.md) | Signaler les trombinoscopes périmés et bloquer leur envoi | à faire |
 

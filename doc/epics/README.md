@@ -43,6 +43,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-023](../archive/epics/EPIC-004-ecarts-sessions/US-023-suivre-les-remboursements.md) | Suivre les remboursements d’une session annulée ou reportée | EPIC-004 | terminée |
 | [US-024](../archive/epics/EPIC-004-ecarts-sessions/US-024-confirmer-sa-presence.md) | Confirmer sa présence à une session reportée | EPIC-004 | terminée |
 | [US-025](../archive/epics/EPIC-004-ecarts-sessions/US-025-prevenir-de-l-annulation.md) | Prévenir l’équipe de l’annulation d’une session | EPIC-004 | terminée |
-| [US-026](EPIC-005-ecarts-trombinoscopes/US-026-photo-de-la-session-d-abord.md) | La photo de la personne qui joue le rôle passe avant la photo par défaut | EPIC-005 | à faire |
+| [US-026](EPIC-005-ecarts-trombinoscopes/US-026-photo-de-la-session-d-abord.md) | La photo de la personne qui joue le rôle passe avant la photo par défaut | EPIC-005 | terminée |
 | [US-027](EPIC-005-ecarts-trombinoscopes/US-027-jamais-dans-son-propre-trombinoscope.md) | Un personnage n'apparaît jamais dans son propre trombinoscope | EPIC-005 | à faire |
 | [US-028](EPIC-005-ecarts-trombinoscopes/US-028-trombinoscopes-perimes.md) | Signaler les trombinoscopes périmés et bloquer leur envoi | EPIC-005 | à faire |
