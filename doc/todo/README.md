@@ -11,7 +11,7 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Interface en TypeScript](interface-en-typescript.md) | à trancher | 2026-10-29 | Composants et pages en `lang="ts"`, réponses d'API typées (revue R-10) |
 | [Tests de bout en bout des parcours](tests-e2e-des-parcours.md) | à trancher | 2026-10-29 | Playwright pour le casting, les trombinoscopes, les envois et les inscriptions (revue R-14) |
 | [Cycle de vie d'une session](cycle-de-vie-d-une-session.md) | à trancher | 2026-10-29 | Annulation, report avec reprise du casting et confirmation de présence, remboursements (SPEC-004, écart 1) |
-| [Comptes participants](comptes-participants.md) | à trancher | 2026-10-29 | Vrai compte pour les participants : coordonnées et RGPD en libre-service, notes propres à chaque équipe (SPEC-007, écart 1) |
+| [Un compte pour tout le monde](comptes-participants.md) | à trancher | 2026-10-29 | Inscription libre, administrateur seul rôle global, espaces « J'organise » et « Je participe », coordonnées et RGPD en libre-service (SPEC-007, écart 1) |
 | [Resynchronisation hors ligne](resynchronisation-hors-ligne.md) | à trancher | 2026-10-29 | Voir, corriger ou abandonner les modifications hors ligne refusées ; contrôle de conflit sur toutes les écritures rejouées (SPEC-010, écart 2 ; revue R-13) |
 
 ## Archivées

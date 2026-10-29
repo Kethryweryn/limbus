@@ -1,10 +1,10 @@
 ---
-titre: Comptes participants
+titre: Un compte pour tout le monde, organiser et participer
 statut: à trancher
 date: 2026-10-29
 ---
 
-# Comptes participants
+# Un compte pour tout le monde, organiser et participer
 
 ## Besoin
 
@@ -12,8 +12,15 @@ Les participants n'ont pas de compte : leur fiche est tenue par l'organisation (
 
 Plutôt que de faire une fiche complète par jeu, l'utilisatrice veut unifier la personne pour de bon : un vrai compte, avec lequel elle gère ses jeux et ses données personnelles.
 
+Côté organisation, les comptes ne sont aujourd'hui créés que par l'administratrice ou sur invitation ([SPEC-008](../specs/SPEC-008-comptes-et-partage.md)). L'utilisatrice veut ouvrir Limbus à toutes celles et tous ceux qui voudraient organiser un GN.
+
+Enfin, le rôle global « organisateur » n'a pas vraiment de sens : on peut organiser un jeu et participer à un autre. Le seul rôle global est celui d'administrateur, oui ou non (précisé par l'utilisatrice le 29 octobre 2026).
+
 ## Proposition
 
+- **Inscription libre** : une page d'inscription permet à chacun de créer son compte, sans invitation, pour organiser ses propres jeux ou participer à ceux des autres.
+- **Rôles par jeu** : le seul rôle global est « administrateur » (oui ou non). Le reste dépend du jeu : propriétaire ou co-organisatrice d'un jeu, participant d'un autre. Le rôle global « organisateur » disparaît.
+- **Deux espaces dans un même compte** : la personne retrouve les jeux qu'elle organise et ceux auxquels elle participe, avec une bascule entre les deux dans l'interface. Une personne qui ne fait que participer ne voit que son espace de participation.
 - **Compte participant** : une personne crée son compte, ou l'active depuis un lien reçu par email (inscription, invitation). Elle y retrouve ses jeux et ses sessions.
 - **Coordonnées tenues par la personne** : nom, email, téléphone, contact d'urgence, régime et allergies. Elle les met à jour elle-même, et chaque équipe les lit pour ses jeux seulement.
 - **Données propres à l'équipe** : les notes d'organisation restent à l'équipe qui les écrit, et ne se voient pas d'une équipe à l'autre.
@@ -23,16 +30,21 @@ Plutôt que de faire une fiche complète par jeu, l'utilisatrice veut unifier la
 
 ## Découpage envisagé
 
-1. Notes d'organisation propres à chaque équipe, séparées de la fiche commune.
-2. Compte participant : création, connexion, rattachement des fiches existantes par email vérifié.
-3. Coordonnées et allergies tenues par la personne.
-4. Export et effacement depuis le compte.
-5. Documents et trombinoscopes consultables dans le compte.
+1. Rôles : un seul rôle global (administrateur oui ou non), les droits d'organisation venant des jeux possédés ou partagés.
+2. Inscription libre, avec vérification de l'adresse email et protection contre les inscriptions automatiques.
+3. Notes d'organisation propres à chaque équipe, séparées de la fiche commune.
+4. Compte participant : rattachement des fiches existantes par email vérifié, espace « Je participe » et bascule entre les deux espaces.
+5. Coordonnées et allergies tenues par la personne.
+6. Export et effacement depuis le compte.
+7. Documents et trombinoscopes consultables dans le compte.
 
 ## Points à trancher
 
-- Un compte participant et un compte d'organisatrice sont-ils le même compte, avec des rôles, ou deux espaces séparés ? Recommandation : un seul compte, pour qu'une organisatrice qui joue ailleurs n'en ait pas deux.
+- Inscription libre : vérification de l'email avant de pouvoir créer un jeu ? Protection contre les robots (limite par adresse IP, défi) ? Faut-il des limites par compte (nombre de jeux, de participants, place des fichiers) sur un serveur partagé ?
+- Conditions d'utilisation et politique de confidentialité à publier avant d'ouvrir les inscriptions : qui les rédige, et qui est responsable de traitement pour les données des participants d'un jeu (l'équipe qui organise, ou l'hébergeur) ?
+- Bascule entre les deux espaces : un sélecteur dans l'en-tête, ou deux entrées séparées dans le menu ? Que montre le tableau de bord d'une personne qui fait les deux ?
 - Fusion des doublons : comment rattacher plusieurs fiches à un même compte (email vérifié, choix de la personne, validation par l'équipe) ?
 - Qui fait foi quand la personne et l'équipe modifient la même coordonnée ? Recommandation : la personne, dès qu'elle a un compte.
 - Effacement demandé depuis le compte : immédiat, ou validé par chaque équipe (paiements à régler, session en cours) ?
-- Les règles actuelles qui supposent l'absence de compte (fichiers en pièce jointe, jamais en lien vers l'API ; liens personnels d'inscription, [ADR-0018](../adr/ADR-0018-jetons-des-liens-personnels.md)) changent-elles, et faut-il un ADR pour le modèle de comptes ?
+- Les règles actuelles qui supposent l'absence de compte (fichiers en pièce jointe, jamais en lien vers l'API ; liens personnels d'inscription, [ADR-0018](../adr/ADR-0018-jetons-des-liens-personnels.md)) changent-elles ? Le modèle de comptes et de rôles demande un ADR.
+- Tranché le 29 octobre 2026 : un seul compte pour organiser et participer, avec l'administrateur comme seul rôle global.
