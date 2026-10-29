@@ -15,6 +15,9 @@
         <UBadge color="neutral" variant="outline">
           {{ audienceLabel(documentItem.audience) }}
         </UBadge>
+        <UBadge v-if="isInArchivedGame(documentItem)" color="neutral" variant="solid">
+          Archivé
+        </UBadge>
         <UButton icon="i-heroicons-pencil-square" color="primary" @click="startEdit">
           Modifier
         </UButton>
@@ -120,6 +123,7 @@
 </template>
 
 <script setup>
+import { isInArchivedGame } from '~/utils/games'
 import { computed, onMounted, ref, watch } from 'vue'
 import DocumentForm from '@/components/DocumentForm.vue'
 import { DOCUMENT_AUDIENCE_LABELS } from '~/utils/domain'

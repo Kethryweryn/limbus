@@ -42,7 +42,7 @@
           <UBadge color="neutral" variant="outline">
             {{ faction.characters?.length || 0 }} personnage{{ (faction.characters?.length || 0) > 1 ? 's' : '' }}
           </UBadge>
-          <UBadge v-if="!faction.published" color="neutral" variant="solid">
+          <UBadge v-if="isInArchivedGame(faction)" color="neutral" variant="solid">
             Archivé
           </UBadge>
         </div>
@@ -191,6 +191,7 @@
 </template>
 
 <script setup>
+import { isInArchivedGame } from '~/utils/games'
 const route = useRoute()
 const router = useRouter()
 const slug = route.params.slug
@@ -307,8 +308,7 @@ async function saveFactionIntrigues() {
         level: intrigue.level,
         gameId: intrigue.gameId,
         characterIds: intrigue.characters?.map((character) => character.id) || [],
-        factionIds: Array.from(factionIds),
-        published: intrigue.published
+        factionIds: Array.from(factionIds)
       }
     })
   }))

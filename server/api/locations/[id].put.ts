@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readZodBody(event, locationSchema)
   assertSameGame(location.gameId, body.gameId)
-  const { name, address, notes, gameId, published } = body
+  const { name, address, notes, gameId } = body
   await requireGameAccess(event, gameId)
 
   return await prisma.location.update({
@@ -29,8 +29,7 @@ export default defineEventHandler(async (event) => {
       slug: await generateUniqueSlug('location', name, id),
       address: address || null,
       notes: notes || null,
-      gameId,
-      published: published ?? true
+      gameId
     },
     include: {
       game: true

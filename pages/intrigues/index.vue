@@ -19,6 +19,7 @@
         value-key="value"
         class="w-full md:w-64"
       />
+      <AppCheckboxRow v-if="!selectedGame" v-model="showArchived" label="Afficher les archives" />
       <USelect v-model="levelFilter" :items="levelFilterOptions" value-key="value" class="w-full md:w-72" />
       <USelect v-model="sortOption" :items="sortOptions" value-key="value" class="w-full md:w-64" />
     </div>
@@ -50,7 +51,7 @@
               <UBadge color="primary" variant="subtle" size="xs">
                 {{ formatIntrigueLevel(intrigue.level) }}
               </UBadge>
-              <UBadge v-if="!intrigue.published" color="neutral" variant="solid" size="xs">
+              <UBadge v-if="isInArchivedGame(intrigue)" color="neutral" variant="solid" size="xs">
                 Archivée
               </UBadge>
             </div>
@@ -135,6 +136,7 @@
 </template>
 
 <script setup>
+import { isInArchivedGame, isVisibleContent } from '~/utils/games'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import IntrigueForm from '@/components/IntrigueForm.vue'
@@ -150,6 +152,7 @@ const characters = ref([])
 const factions = ref([])
 const searchQuery = ref('')
 const gameFilter = ref('all')
+const showArchived = ref(false)
 const levelFilter = ref('all')
 const sortOption = ref('updated-desc')
 const isOffline = ref(false)
@@ -182,6 +185,7 @@ const filteredIntrigues = computed(() => {
 
   const result = intrigues.value
     .filter((intrigue) => !gameId || intrigue.gameId === gameId)
+    .filter((intrigue) => isVisibleContent(intrigue, gameId, showArchived.value))
     .filter((intrigue) => levelFilter.value === 'all' || intrigue.level === levelFilter.value)
     .filter((intrigue) =>
       [
@@ -323,8 +327,7 @@ function startCreate() {
     level: INTRIGUE_LEVELS.minor,
     gameId: selectedGame.value?.id || games.value[0]?.id || '',
     characterIds: [],
-    factionIds: [],
-    published: true
+    factionIds: []
   }
   formMode.value = 'create'
   showFormSlideover.value = true

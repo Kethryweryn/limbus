@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
     teaserUrl,
     noteIntention,
     published,
-    publicPage
+    publicPage: published === false ? false : publicPage
   }
 
   if (title) {
@@ -34,5 +34,11 @@ export default defineEventHandler(async (event) => {
     data
   })
 
+  // Un jeu archivé n'a pas de page publique, et ne la retrouve pas en étant restauré (US-016). Contrôle
+  // après l'écriture : une publication concurrente d'un archivage ne peut pas laisser la marque.
+  if (!game.published && game.publicPage) {
+    await prisma.game.updateMany({ where: { id, published: false }, data: { publicPage: false } })
+    return { ...game, publicPage: false }
+  }
   return game
 })

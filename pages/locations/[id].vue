@@ -24,7 +24,12 @@
     />
 
     <template v-else>
-      <h1 class="text-3xl font-bold">{{ location.name }}</h1>
+      <div class="flex flex-wrap items-center gap-2">
+        <h1 class="text-3xl font-bold">{{ location.name }}</h1>
+        <UBadge v-if="isInArchivedGame(location)" color="neutral" variant="solid">
+          Archivé
+        </UBadge>
+      </div>
 
       <UCard>
         <template #header>Détails du lieu</template>
@@ -48,6 +53,7 @@
 </template>
 
 <script setup>
+import { isInArchivedGame } from '~/utils/games'
 const route = useRoute()
 const router = useRouter()
 const { data: location, error, refresh } = await useFetch(`/api/locations/${route.params.id}`)

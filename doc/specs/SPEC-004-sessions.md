@@ -107,4 +107,4 @@ Relevés le 29 octobre 2026 avec l'utilisatrice. Aucun n'est corrigé ici.
    - supprimer une session ne propose aujourd'hui ni remboursement ni report.
 2. **Plusieurs rôles par participant (R7)** : rien ne permet de dire, pour un jeu donné, qu'un participant ne joue qu'un PJ.
 3. **Modifications simultanées (R11)** : la page d'une session n'envoie pas la date de la version lue. Si deux organisatrices modifient l'équipe ou le casting en même temps, le dernier enregistrement écrase le premier sans prévenir. La chronologie de déroulé (R13) n'a pas non plus de contrôle.
-4. **`Session.published`** : le champ existe et est enregistré, mais aucune action ne le change et il n'a aucun effet, comme pour le contenu d'un jeu ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), écart 1).
+4. **`Session.published`** : le champ existe et est enregistré, mais aucune action ne le change et il n'a aucun effet, comme l'était celui du contenu d'un jeu avant [ADR-0027](../adr/ADR-0027-archivage-porte-par-le-jeu.md).

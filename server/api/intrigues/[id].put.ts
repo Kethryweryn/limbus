@@ -31,7 +31,6 @@ export default defineEventHandler(async (event) => {
       description: body.description,
       level: body.level,
       gameId: body.gameId,
-      published: body.published,
       characters: {
         set: body.characterIds.map((characterId) => ({ id: characterId }))
       },

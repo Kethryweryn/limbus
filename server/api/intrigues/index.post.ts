@@ -19,7 +19,6 @@ export default defineEventHandler(async (event) => {
       description: body.description,
       level: body.level,
       gameId: body.gameId,
-      published: body.published ?? true,
       characters: {
         connect: body.characterIds.map((id) => ({ id }))
       },

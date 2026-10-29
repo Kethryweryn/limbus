@@ -45,7 +45,6 @@ export default defineEventHandler(async (event) => {
       costumeIndications: body.costumeIndications,
       showInTrombinoscope: body.showInTrombinoscope ?? false,
       gameId: body.gameId,
-      published: body.published,
       characters: {
         set: body.characterIds.map((characterId) => ({ id: characterId }))
       }

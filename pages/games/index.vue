@@ -233,7 +233,7 @@ function startCreate() {
 }
 
 const archiveGame = async (id) => {
-  if (confirm('Archiver ce jeu ?')) {
+  if (confirm('Archiver ce jeu ? Sa page publique sera dépubliée, et ne sera pas republiée à la restauration.')) {
     await useApiFetch(`/api/games/${id}`, {
       method: 'PUT',
       body: { published: false }

@@ -37,7 +37,6 @@ export default defineEventHandler(async (event) => {
       time: body.time,
       requiredResponsibles: body.requiredResponsibles,
       gameId: body.gameId,
-      published: body.published ?? true,
       characters: { set: characterIds.map((characterId) => ({ id: characterId })) },
       factions: { set: factionIds.map((factionId) => ({ id: factionId })) },
       intrigues: { set: intrigueIds.map((intrigueId) => ({ id: intrigueId })) },

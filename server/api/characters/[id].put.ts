@@ -37,8 +37,7 @@ export default defineEventHandler(async (event) => {
     trombinoscopeNote,
     trombinoscopeDisplayName,
     gameId,
-    factionIds,
-    published
+    factionIds
   } = body
   assertSameGame(existingCharacter.gameId, gameId)
   const targetGameId = existingCharacter.gameId
@@ -67,8 +66,7 @@ export default defineEventHandler(async (event) => {
     trombinoscopeFaceHidden,
     trombinoscopePhotoUrl,
     trombinoscopeNote,
-    trombinoscopeDisplayName,
-    published
+    trombinoscopeDisplayName
   }
 
   if (name) {

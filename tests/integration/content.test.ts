@@ -255,3 +255,54 @@ describe('trombinoscopes après un changement de distribution', () => {
       .toEqual([{ participantId: remplacant.id }])
   })
 })
+
+describe('archivage d’un jeu (US-016)', () => {
+  it('archiver dépublie la page publique, et la restauration ne la republie pas', async () => {
+    const { game } = await aliceGame('archivage')
+    expect((await api(alice, 'PUT', `/api/games/${game.id}`, { publicPage: true })).status).toBe(200)
+    expect((await api(null, 'GET', `/api/public/games/${game.slug}`)).status).toBe(200)
+
+    expect((await api(alice, 'PUT', `/api/games/${game.id}`, { published: false })).status).toBe(200)
+    expect(await prisma.game.findUniqueOrThrow({ where: { id: game.id }, select: { publicPage: true } })).toEqual({ publicPage: false })
+
+    // Jeu archivé : la marque demandée est ignorée
+    expect((await api(alice, 'PUT', `/api/games/${game.id}`, { publicPage: true })).status).toBe(200)
+    expect(await prisma.game.findUniqueOrThrow({ where: { id: game.id }, select: { publicPage: true } })).toEqual({ publicPage: false })
+
+    expect((await api(alice, 'PUT', `/api/games/${game.id}`, { published: true })).status).toBe(200)
+    expect((await api(null, 'GET', `/api/public/games/${game.slug}`)).status).toBe(404)
+
+    // Témoin : republier à la main fonctionne
+    expect((await api(alice, 'PUT', `/api/games/${game.id}`, { publicPage: true })).status).toBe(200)
+    expect((await api(null, 'GET', `/api/public/games/${game.slug}`)).status).toBe(200)
+  })
+})
+
+describe('quantité d’un objet (US-014)', () => {
+  it('est enregistrée à la création et gardée quand la modification n’en porte pas', async () => {
+    const { game } = await aliceGame('quantite')
+    const created = await api(alice, 'POST', '/api/items', { name: 'Flèche', gameId: game.id, quantity: 12 })
+    expect(created.status).toBe(200)
+    const id = (created.body as { id: string }).id
+    expect((created.body as { quantity: number }).quantity).toBe(12)
+
+    expect((await api(alice, 'PUT', `/api/items/${id}`, { name: 'Flèche', gameId: game.id })).status).toBe(200)
+    expect(await prisma.item.findUniqueOrThrow({ where: { id }, select: { quantity: true } })).toEqual({ quantity: 12 })
+
+    expect((await api(alice, 'PUT', `/api/items/${id}`, { name: 'Flèche', gameId: game.id, quantity: 0 })).status).toBe(400)
+    const sansQuantite = await api(alice, 'POST', '/api/items', { name: 'Arc', gameId: game.id })
+    expect((sansQuantite.body as { quantity: number }).quantity).toBe(1)
+  })
+})
+
+describe('contenu archivé avec son jeu (US-013)', () => {
+  it('l’API ignore published sur le contenu : l’état vient du jeu', async () => {
+    const { game, character } = await aliceGame('archive-contenu')
+    expect((await api(alice, 'PUT', `/api/characters/${character.id}`, { name: character.name, published: false })).status).toBe(200)
+    const faction = await api(alice, 'POST', '/api/factions', { name: 'Guilde', gameId: game.id, published: false })
+    expect(faction.status).toBe(200)
+
+    expect(await prisma.character.findUniqueOrThrow({ where: { id: character.id }, select: { published: true } })).toEqual({ published: true })
+    expect(await prisma.faction.findUniqueOrThrow({ where: { id: (faction.body as { id: string }).id }, select: { published: true } })).toEqual({ published: true })
+  })
+})

@@ -19,6 +19,7 @@
         value-key="value"
         class="w-full md:w-64"
       />
+      <AppCheckboxRow v-if="!selectedGame" v-model="showArchived" label="Afficher les archives" />
       <USelect
         v-model="sortOption"
         :items="sortOptions"
@@ -50,7 +51,7 @@
                 <UBadge color="neutral" variant="outline" size="xs">
                   {{ faction.characters?.length || 0 }} personnage{{ (faction.characters?.length || 0) > 1 ? 's' : '' }}
                 </UBadge>
-                <UBadge v-if="!faction.published" color="neutral" variant="solid" size="xs">
+                <UBadge v-if="isInArchivedGame(faction)" color="neutral" variant="solid" size="xs">
                   Archivé
                 </UBadge>
               </div>
@@ -118,6 +119,7 @@
 </template>
 
 <script setup>
+import { isInArchivedGame, isVisibleContent } from '~/utils/games'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import FactionForm from '@/components/FactionForm.vue'
@@ -130,6 +132,7 @@ const games = ref([])
 const characters = ref([])
 const searchQuery = ref('')
 const gameFilter = ref('all')
+const showArchived = ref(false)
 const sortOption = ref('updated-desc')
 const isOffline = ref(false)
 const showFormSlideover = ref(false)
@@ -155,6 +158,7 @@ const filteredFactions = computed(() => {
 
   const result = factions.value
     .filter((faction) => !gameId || faction.gameId === gameId)
+    .filter((faction) => isVisibleContent(faction, gameId, showArchived.value))
     .filter((faction) =>
       [
         faction.name,
@@ -277,8 +281,7 @@ function startCreate() {
     backgroundDocumentUrl: '',
     costumeIndications: '',
     gameId: selectedGame.value?.id || games.value[0]?.id || '',
-    characterIds: [],
-    published: true
+    characterIds: []
   }
   formMode.value = 'create'
   showFormSlideover.value = true

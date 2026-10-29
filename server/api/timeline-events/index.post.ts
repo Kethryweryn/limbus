@@ -25,7 +25,6 @@ export default defineEventHandler(async (event) => {
       time: body.time,
       requiredResponsibles: body.requiredResponsibles,
       gameId: body.gameId,
-      published: body.published ?? true,
       characters: { connect: characterIds.map((id) => ({ id })) },
       factions: { connect: factionIds.map((id) => ({ id })) },
       intrigues: { connect: intrigueIds.map((id) => ({ id })) },

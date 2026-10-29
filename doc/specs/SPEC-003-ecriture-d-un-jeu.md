@@ -50,7 +50,7 @@ Depuis la liste des jeux, la propriétaire ou une co-organisatrice archive un je
 
 - **R1** Un jeu a un titre, une description, une note d'intention et un lien de teaser (facultatifs, sauf le titre). Un teaser YouTube est intégré dans la fiche ; tout autre lien est affiché comme lien.
 - **R2** La personne qui crée un jeu en est la propriétaire.
-- **R3** Un jeu est actif ou archivé. **Archiver un jeu archive tout son contenu** : il n'y a pas d'archivage élément par élément. Un jeu archivé n'a pas de page publique, même si elle était publiée.
+- **R3** Un jeu est actif ou archivé. **Archiver un jeu archive tout son contenu** : il n'y a pas d'archivage élément par élément, l'état du contenu est celui de son jeu ([ADR-0027](../adr/ADR-0027-archivage-porte-par-le-jeu.md)). Le contenu d'un jeu archivé est masqué des listes, sauf si l'on coche « Afficher les archives » ou si l'on choisit ce jeu ; il porte alors le badge « Archivé ». Archiver un jeu dépublie sa page publique, et la restauration ne la republie pas.
 - **R4** Supprimer un jeu supprime tout ce qui lui appartient : contenu, sessions, inscriptions, partages, invitations, fichiers téléversés ([ADR-0008](../adr/ADR-0008-fichiers-televerses.md)), et ses legs encore en attente ([SPEC-002](SPEC-002-copie-de-jeu.md)). Les participants, qui peuvent être liés à plusieurs jeux, restent.
 
 ### Contenu
@@ -59,8 +59,8 @@ Depuis la liste des jeux, la propriétaire ou une co-organisatrice archive un je
 - **R6** Chaque jeu et chaque élément a un slug unique sur toute l'application, tiré de son nom ou de son titre. Le slug change quand le nom change. Les pages utilisent le slug, et l'API utilise les identifiants stables.
 - **R7** **Personnage** : un nom, un type (PJ ou PNJ, PJ par défaut), un pitch, une histoire (texte, ou lien vers un document externe) et des indications de costume. Il appartient à des factions et participe à des intrigues. Ses réglages de trombinoscope et de fiche sont décrits dans la spec sur les trombinoscopes et les PDF.
 - **R8** **Faction** : un nom, un pitch, une histoire (texte ou lien), des indications de costume et des membres (personnages). Elle est liée à des intrigues. Elle peut figurer sur les trombinoscopes.
-- **R9** **Intrigue** : un nom, un pitch, une description et un niveau. Les niveaux sont, du plus au moins important : trame principale scénario, trame principale personnage, intrigue majeure, intrigue mineure (par défaut). Elle relie des personnages, des factions et des objets.
-- **R10** **Objet** : un nom, une description, **une quantité**, et un emplacement : un texte libre ou un personnage qui le détient. Il est lié à des personnages et à des intrigues.
+- **R9** **Intrigue** : un nom, un pitch, une description et un niveau. Elle n'est envoyée à personne. Les niveaux sont, du plus au moins important : trame principale scénario, trame principale personnage, intrigue majeure, intrigue mineure (par défaut). Elle relie des personnages, des factions et des objets.
+- **R10** **Objet** : un nom, une description, une quantité (un entier d'au moins 1, 1 par défaut), et un emplacement : un texte libre ou un personnage qui le détient. Il est lié à des personnages et à des intrigues.
 - **R11** **Document** : un titre, et un contenu ou un lien vers un document externe (au moins l'un des deux). Son audience est un ciblage manuel (par défaut), tout le monde, les organisateurs, les PNJ ou l'équipe cuisine. En ciblage manuel, il vise un personnage (champ « Personnage »), des personnages et des factions. Il est marqué « prêt à envoyer » quand il peut partir aux participants. Les envois sont décrits dans [SPEC-006](SPEC-006-emails-et-paiements.md).
 - **R12** **Événement de chronologie** : un nom, une description, un jour (à partir de 1), une heure et un nombre de responsables requis. Il relie des personnages, des factions, des intrigues et des objets. La chronologie se lit par jour, puis par heure, puis par nom. L'affectation des responsables à une session est décrite dans la spec sur les sessions.
 - **R13** **Lieu** : un nom, une adresse et des notes. Une session se tient dans un lieu.
@@ -104,9 +104,9 @@ Ces sujets sont couverts par leurs propres specs :
 
 ## Écarts constatés
 
-Relevés le 29 octobre 2026 en comparant le code aux règles ci-dessus. Aucun n'est corrigé ici : chacun deviendra une fiche todo s'il est retenu.
+Relevés le 29 octobre 2026 en comparant le code aux règles ci-dessus. Les quatre écarts relevés sont corrigés par [EPIC-003](../archive/epics/EPIC-003-ecarts-ecriture-d-un-jeu/README.md) :
 
-1. **Archivage (R3)** : archiver un jeu ne marque que le jeu (`Game.published`). Personnages, factions, intrigues, objets, documents, événements et lieux ont aussi un champ `published` et un badge « Archivé », mais aucune action ne le change. Leur état reste donc toujours « actif », même dans un jeu archivé.
-2. **Quantité d'un objet (R10)** : `Item.quantity` existe, mais vaut toujours 1. Le formulaire ne propose pas de la saisir, et l'API ne l'accepte pas.
-3. **Intrigue « prête à envoyer »** : le schéma de validation d'une intrigue accepte `readyToSend`, qui n'existe pas dans la table et n'est jamais enregistré. Le champ est sans effet.
-4. **Jeu archivé et page publique (R3)** : archiver un jeu ne retire pas sa marque « page publique » ; la page n'est masquée que parce que la route publique exige un jeu actif. Restaurer le jeu republie donc sa page sans qu'on le demande.
+1. **Archivage (R3)** : le contenu d'un jeu archivé restait affiché comme actif ; son état est maintenant celui du jeu (US-013). Les colonnes `published` du contenu restent en base, inutilisées, jusqu'à une migration qui les supprimera.
+2. **Quantité d'un objet (R10)** : elle se saisit maintenant (US-014).
+3. **Intrigue « prête à envoyer » (R9)** : le champ sans effet est retiré (US-015).
+4. **Jeu archivé et page publique (R3)** : restaurer un jeu republiait sa page ; archiver la dépublie maintenant (US-016).

@@ -42,6 +42,9 @@
                 <UBadge :color="character.sheetReadyToSend ? 'success' : 'neutral'" variant="subtle">
                     {{ character.sheetReadyToSend ? 'Fiche prête' : 'Fiche brouillon' }}
                 </UBadge>
+                <UBadge v-if="isInArchivedGame(character)" color="neutral" variant="solid">
+                    Archivé
+                </UBadge>
             </div>
 
             <div v-if="character.factions?.length" class="flex flex-wrap gap-2">
@@ -184,6 +187,7 @@
 </template>
 
 <script setup>
+import { isInArchivedGame } from '~/utils/games'
 import { CHARACTER_TYPES } from '~/utils/domain'
 
 const route = useRoute()
@@ -295,8 +299,7 @@ async function saveCharacterIntrigues() {
                 level: intrigue.level,
                 gameId: intrigue.gameId,
                 characterIds: Array.from(characterIds),
-                factionIds: intrigue.factions?.map((faction) => faction.id) || [],
-                published: intrigue.published
+                factionIds: intrigue.factions?.map((faction) => faction.id) || []
             }
         })
     }))

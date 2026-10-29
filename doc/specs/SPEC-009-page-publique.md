@@ -31,7 +31,7 @@ Présenter un jeu à des personnes qui n'ont pas de compte, par un lien à diffu
 
 - **R1** La page montre seulement la présentation du jeu : son titre, sa description, sa note d'intention et son teaser. Un teaser YouTube est intégré en vidéo ; tout autre lien http(s) est un bouton qui ouvre le lien ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), R1).
 - **R2** Rien d'autre n'en sort : ni contenu d'écriture, ni sessions, ni participants, ni organisatrices, ni crédit d'une copie (voir les écarts).
-- **R3** La page n'existe que si le jeu a la marque « page publique » et qu'il est actif (non archivé). Un jeu archivé n'a pas de page publique, même s'il garde cette marque, que la case du formulaire permet encore de cocher ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), R3 et écart 4). Une page absente répond « Jeu non publié » (404), que le jeu existe ou non.
+- **R3** La page n'existe que si le jeu a la marque « page publique » et qu'il est actif (non archivé). Archiver un jeu retire cette marque, et la restauration ne la remet pas ; sur un jeu archivé, la case du formulaire est sans effet ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), R3). Une page absente répond « Jeu non publié » (404), que le jeu existe ou non.
 - **R4** Un jeu est dépublié par défaut, à la création comme à la copie ([SPEC-002](SPEC-002-copie-de-jeu.md)).
 - **R5** La propriétaire et les co-organisatrices publient et dépublient ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), R16).
 - **R6** L'adresse suit le slug du jeu : renommer le jeu change l'adresse, et l'ancienne ne répond plus (voir les écarts).

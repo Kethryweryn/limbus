@@ -31,10 +31,10 @@ export default defineEventHandler(async (event) => {
       name: body.name,
       slug: await generateUniqueSlug('item', body.name, id),
       description: body.description,
+      quantity: body.quantity,
       locationText: body.locationCharacterId ? null : body.locationText,
       locationCharacterId: body.locationCharacterId || null,
       gameId: body.gameId,
-      published: body.published ?? true,
       characters: {
         set: characterIds.map((characterId) => ({ id: characterId }))
       },

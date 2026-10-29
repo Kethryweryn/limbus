@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
   const body = await readZodBody(event, locationSchema)
-  const { name, address, notes, gameId, published } = body
+  const { name, address, notes, gameId } = body
   await requireGameAccess(event, gameId)
 
   return await prisma.location.create({
@@ -17,8 +17,7 @@ export default defineEventHandler(async (event) => {
       slug: await generateUniqueSlug('location', name),
       address: address || null,
       notes: notes || null,
-      gameId,
-      published: published ?? true
+      gameId
     },
     include: {
       game: true
