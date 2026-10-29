@@ -4,8 +4,8 @@ titre: Trombinoscopes et documents PDF
 statut: validée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
-epics: []
-adr: [ADR-0008]
+epics: [EPIC-005]
+adr: [ADR-0008, ADR-0030]
 ---
 
 # SPEC-005 : Trombinoscopes et documents PDF
