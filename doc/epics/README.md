@@ -14,7 +14,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-004](../archive/epics/EPIC-004-ecarts-sessions/README.md) | Corriger les écarts des sessions | [SPEC-004](../specs/SPEC-004-sessions.md) | terminé |
 | [EPIC-005](../archive/epics/EPIC-005-ecarts-trombinoscopes/README.md) | Corriger les écarts des trombinoscopes | [SPEC-005](../specs/SPEC-005-trombinoscopes-et-pdf.md) | terminé |
 | [EPIC-006](../archive/epics/EPIC-006-ecarts-envois-et-paiements/README.md) | Corriger les écarts des envois et des paiements | [SPEC-006](../specs/SPEC-006-emails-et-paiements.md) | terminé |
-| [EPIC-007](EPIC-007-ecarts-participants/README.md) | Corriger les écarts des participants | [SPEC-007](../specs/SPEC-007-participants-et-rgpd.md) | en cours |
+| [EPIC-007](../archive/epics/EPIC-007-ecarts-participants/README.md) | Corriger les écarts des participants | [SPEC-007](../specs/SPEC-007-participants-et-rgpd.md) | terminé |
 
 ## US
 
@@ -54,10 +54,10 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-032](../archive/epics/EPIC-006-ecarts-envois-et-paiements/US-032-versements-et-etat-calcule.md) | Noter les versements, état de paiement calculé | EPIC-006 | terminée |
 | [US-033](../archive/epics/EPIC-006-ecarts-envois-et-paiements/US-033-places-solidaires.md) | Places solidaires : soutien et réductions | EPIC-006 | terminée |
 | [US-034](../archive/epics/EPIC-006-ecarts-envois-et-paiements/US-034-demandes-et-relances-avec-montants.md) | Demandes et relances avec le montant et le reste dû | EPIC-006 | terminée |
-| [US-035](EPIC-007-ecarts-participants/US-035-retrait-d-un-jeu-et-de-ses-sessions.md) | Retirer une personne d'un jeu la retire de ses sessions | EPIC-007 | terminée |
-| [US-036](EPIC-007-ecarts-participants/US-036-une-fiche-a-toujours-un-jeu.md) | Une fiche a toujours au moins un jeu | EPIC-007 | terminée |
-| [US-037](EPIC-007-ecarts-participants/US-037-export-complet-des-inscriptions.md) | Export complet des inscriptions | EPIC-007 | terminée |
-| [US-038](EPIC-007-ecarts-participants/US-038-retirer-participant-published.md) | Retirer `Participant.published` | EPIC-007 | terminée |
-| [US-039](EPIC-007-ecarts-participants/US-039-paiement-d-une-personne-qui-part.md) | Paiement d'une personne qui part : rembourser, garder ou transférer | EPIC-007 | terminée |
-| [US-040](EPIC-007-ecarts-participants/US-040-date-limite-de-desistement.md) | Date limite de désistement | EPIC-007 | terminée |
-| [US-041](EPIC-007-ecarts-participants/US-041-place-offerte.md) | Place offerte | EPIC-007 | terminée |
+| [US-035](../archive/epics/EPIC-007-ecarts-participants/US-035-retrait-d-un-jeu-et-de-ses-sessions.md) | Retirer une personne d'un jeu la retire de ses sessions | EPIC-007 | terminée |
+| [US-036](../archive/epics/EPIC-007-ecarts-participants/US-036-une-fiche-a-toujours-un-jeu.md) | Une fiche a toujours au moins un jeu | EPIC-007 | terminée |
+| [US-037](../archive/epics/EPIC-007-ecarts-participants/US-037-export-complet-des-inscriptions.md) | Export complet des inscriptions | EPIC-007 | terminée |
+| [US-038](../archive/epics/EPIC-007-ecarts-participants/US-038-retirer-participant-published.md) | Retirer `Participant.published` | EPIC-007 | terminée |
+| [US-039](../archive/epics/EPIC-007-ecarts-participants/US-039-paiement-d-une-personne-qui-part.md) | Paiement d'une personne qui part : rembourser, garder ou transférer | EPIC-007 | terminée |
+| [US-040](../archive/epics/EPIC-007-ecarts-participants/US-040-date-limite-de-desistement.md) | Date limite de désistement | EPIC-007 | terminée |
+| [US-041](../archive/epics/EPIC-007-ecarts-participants/US-041-place-offerte.md) | Place offerte | EPIC-007 | terminée |

@@ -19,7 +19,7 @@ En tant qu'organisatrice, je veux fixer une date après laquelle une place n'est
 
 ## Notes techniques
 
-- Colonne `Session.withdrawalDeadline DateTime?`, réglée avec le RIB et le lien ; elle ne change pas la version de la session ([ADR-0028](../../adr/ADR-0028-version-d-une-session.md)).
+- Colonne `Session.withdrawalDeadline DateTime?`, réglée avec le RIB et le lien ; elle ne change pas la version de la session ([ADR-0028](../../../adr/ADR-0028-version-d-une-session.md)).
 
 ## Tests
 

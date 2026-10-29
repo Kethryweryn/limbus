@@ -1,8 +1,8 @@
 ---
 id: EPIC-007
 titre: Corriger les écarts des participants
-statut: en cours
-spec: ../../specs/SPEC-007-participants-et-rgpd.md
+statut: terminé
+spec: ../../../specs/SPEC-007-participants-et-rgpd.md
 date: 2026-10-29
 ---
 
@@ -10,9 +10,9 @@ date: 2026-10-29
 
 ## Objectif
 
-Aligner le code sur [SPEC-007](../../specs/SPEC-007-participants-et-rgpd.md) : corriger ses écarts 2 (retrait d'un jeu), 4 (export) et 5 (`published`), avec les choix faits par l'utilisatrice le 29 octobre 2026. Le retrait d'un jeu a fait apparaître le cas du désistement tardif et du remplaçant, qui touche les paiements ([SPEC-006](../../specs/SPEC-006-emails-et-paiements.md)) : US-039 à US-041.
+Aligner le code sur [SPEC-007](../../../specs/SPEC-007-participants-et-rgpd.md) : corriger ses écarts 2 (retrait d'un jeu), 4 (export) et 5 (`published`), avec les choix faits par l'utilisatrice le 29 octobre 2026. Le retrait d'un jeu a fait apparaître le cas du désistement tardif et du remplaçant, qui touche les paiements ([SPEC-006](../../../specs/SPEC-006-emails-et-paiements.md)) : US-039 à US-041.
 
-Les écarts 1 (fiche commune) et 3 (durée de conservation) sont traités par la refonte des comptes et la fiche Photos et RGPD ([feuille de route](../../feuille-de-route.md)).
+Les écarts 1 (fiche commune) et 3 (durée de conservation) sont traités par la refonte des comptes et la fiche Photos et RGPD ([feuille de route](../../../feuille-de-route.md)).
 
 ## US
 
@@ -30,4 +30,4 @@ Les écarts 1 (fiche commune) et 3 (durée de conservation) sont traités par la
 
 - Toutes les US terminées ; `npm run lint`, `npm run typecheck`, `npm test` et la CI passent.
 - SPEC-007 et SPEC-006 à jour.
-- [ADR-0033](../../adr/ADR-0033-paiement-d-une-personne-qui-part.md).
+- [ADR-0033](../../../adr/ADR-0033-paiement-d-une-personne-qui-part.md).

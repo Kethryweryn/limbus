@@ -3,7 +3,7 @@ id: ADR-0033
 titre: "Paiement d'une personne qui part : décision sur le paiement, transfert par versement, proposition à la lecture"
 statut: accepté
 date: 2026-10-29
-liens: [../specs/SPEC-006-emails-et-paiements.md, ../specs/SPEC-007-participants-et-rgpd.md, ../epics/EPIC-007-ecarts-participants/US-039-paiement-d-une-personne-qui-part.md]
+liens: [../specs/SPEC-006-emails-et-paiements.md, ../specs/SPEC-007-participants-et-rgpd.md, ../archive/epics/EPIC-007-ecarts-participants/US-039-paiement-d-une-personne-qui-part.md]
 ---
 
 # ADR-0033 : Paiement d'une personne qui part

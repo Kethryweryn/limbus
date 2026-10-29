@@ -17,7 +17,7 @@ En tant qu'organisatrice, je veux que retirer une personne d'un jeu la retire au
 - [x] Ses inscriptions aux périodes de ce jeu passent au statut « retirée », avec l'organisatrice comme autrice ; celles déjà retirées ne changent pas.
 - [x] Ses paiements restent, affichés à part dans le tableau des paiements ([US-039](US-039-paiement-d-une-personne-qui-part.md)).
 - [x] Les photos qui ne servent plus sont supprimées ; les trombinoscopes déjà générés des sessions concernées sont refaits sans elle, sans faire échouer le retrait.
-- [x] La version des sessions concernées change ([ADR-0028](../../adr/ADR-0028-version-d-une-session.md)).
+- [x] La version des sessions concernées change ([ADR-0028](../../../adr/ADR-0028-version-d-une-session.md)).
 - [x] Seuls les liens aux jeux de l'organisatrice sont retirés, comme aujourd'hui.
 
 ## Notes techniques

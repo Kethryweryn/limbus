@@ -20,7 +20,7 @@ En tant qu'organisatrice, je veux décider du paiement d'une personne qui se dé
 
 ## Notes techniques
 
-- Statuts `kept` et `transferred` ajoutés à `REFUND_STATUSES` ; colonne `SessionPayment.transferredToParticipantId` ([ADR-0033](../../adr/ADR-0033-paiement-d-une-personne-qui-part.md)).
+- Statuts `kept` et `transferred` ajoutés à `REFUND_STATUSES` ; colonne `SessionPayment.transferredToParticipantId` ([ADR-0033](../../../adr/ADR-0033-paiement-d-une-personne-qui-part.md)).
 - Route `PUT /api/sessions/:id/payments/:participantId/departure` ; ajoutée à `isolation.test.ts`.
 
 ## Tests

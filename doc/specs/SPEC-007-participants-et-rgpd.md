@@ -103,7 +103,7 @@ Depuis la liste, « Supprimer » efface la fiche et ses données, après une con
 Relevés le 29 octobre 2026 avec l'utilisatrice. Les écarts 2, 4 et 5 sont corrigés par [EPIC-007](../archive/epics/EPIC-007-ecarts-participants/README.md) (R3b, R4, R7, R1) ; restent les écarts 1 et 3.
 
 1. **Fiche commune entre équipes (R2)** : une fiche liée à des jeux de deux équipes (par un jeu partagé) montre à chacune les coordonnées et les notes saisies par l'autre, et chacune peut les modifier. Plutôt qu'une fiche par jeu, l'utilisatrice veut unifier vraiment la personne, avec un compte qui lui permette de gérer elle-même ses jeux et ses données : fiche [Un compte pour tout le monde](../todo/comptes-participants.md).
-2. **Durée de conservation (R13)** : il faut une durée de conservation des données des participants, pas seulement des photos. Elle est à fixer dans la fiche [Photos et RGPD](../todo/photos-et-rgpd.md).
+3. **Durée de conservation (R13)** : il faut une durée de conservation des données des participants, pas seulement des photos. Elle est à fixer dans la fiche [Photos et RGPD](../todo/photos-et-rgpd.md).
 
 ### Choix faits le 29 octobre 2026
 

@@ -14,7 +14,7 @@ En tant que développeuse, je veux retirer un champ qui n'a aucun effet, afin qu
 ## Critères d'acceptation
 
 - [x] L'API n'accepte ni ne renvoie plus `published` pour une fiche ; l'interface ne l'envoie plus.
-- [x] La colonne reste en base, sans usage ([ADR-0024](../../adr/ADR-0024-migrations-compatibles-avec-le-build-en-service.md)).
+- [x] La colonne reste en base, sans usage ([ADR-0024](../../../adr/ADR-0024-migrations-compatibles-avec-le-build-en-service.md)).
 
 ## Notes techniques
 
