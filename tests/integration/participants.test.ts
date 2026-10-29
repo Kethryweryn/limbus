@@ -1,0 +1,64 @@
+// EPIC-007 : retrait d'un jeu et fiches toujours liées à un jeu
+import { afterAll, describe, expect, inject, it } from 'vitest'
+import { api } from './api'
+import { createTestPrisma } from './db'
+
+const world = inject('world')
+const { alice } = world.users
+const prisma = createTestPrisma()
+let counter = 0
+
+afterAll(async () => {
+  await prisma.$disconnect()
+})
+
+// Une personne liée à deux jeux d'Alice, avec une session dans chacun
+async function personInTwoGames() {
+  const key = `retrait-${++counter}`
+  const games = await Promise.all(['Un', 'Deux'].map((name) =>
+    prisma.game.create({ data: { title: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, description: '', ownerId: alice.id } })
+  ))
+  const participant = await prisma.participant.create({
+    data: { name: `Léa ${key}`, slug: `lea-${key}`, email: `lea-${key}@example.test`, gameLinks: { create: games.map((game) => ({ gameId: game.id })) } }
+  })
+  const sessions = []
+  for (const game of games) {
+    const character = await prisma.character.create({ data: { name: `Rôle ${game.slug}`, slug: `role-${game.slug}`, gameId: game.id } })
+    const session = await prisma.session.create({ data: { name: `Session ${game.slug}`, slug: `session-${game.slug}`, gameId: game.id } })
+    await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
+    await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id } })
+    await prisma.sessionAttendance.create({ data: { sessionId: session.id, participantId: participant.id, responseDueAt: new Date(Date.now() + 86_400_000) } })
+    const period = await prisma.registrationPeriod.create({ data: { name: `Inscriptions ${game.slug}`, gameId: game.id, publicId: `periode-${game.slug}` } })
+    await prisma.registration.create({
+      data: { periodId: period.id, sessionId: session.id, participantId: participant.id, status: 'confirmed', source: 'invitation', email: participant.email! }
+    })
+    sessions.push(session)
+  }
+  const update = (gameIds: string[]) => api(alice, 'PUT', `/api/participants/${participant.id}`, { name: participant.name, gameIds })
+  return { games, participant, sessions, update }
+}
+
+describe('retrait d’un jeu (US-035)', () => {
+  it('retire la personne des sessions du jeu et marque ses inscriptions « retirée », sans toucher l’autre jeu', async () => {
+    const p = await personInTwoGames()
+    await prisma.sessionPayment.create({ data: { sessionId: p.sessions[0]!.id, participantId: p.participant.id, paidAt: new Date() } })
+
+    const response = await p.update([p.games[1]!.id])
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+
+    const removed = { sessionId: p.sessions[0]!.id, participantId: p.participant.id }
+    expect(await prisma.sessionParticipant.count({ where: removed })).toBe(0)
+    expect(await prisma.sessionAssignment.count({ where: removed })).toBe(0)
+    expect(await prisma.sessionAssignment.count({ where: { sessionId: p.sessions[0]!.id } })).toBe(1)
+    expect(await prisma.sessionAttendance.count({ where: removed })).toBe(0)
+    const registration = await prisma.registration.findFirstOrThrow({ where: removed })
+    expect(registration).toMatchObject({ status: 'withdrawn', withdrawnById: alice.id })
+    // Le paiement reste, à traiter à part
+    expect(await prisma.sessionPayment.count({ where: removed })).toBe(1)
+
+    const kept = { sessionId: p.sessions[1]!.id, participantId: p.participant.id }
+    expect(await prisma.sessionParticipant.count({ where: kept })).toBe(1)
+    expect(await prisma.sessionAssignment.count({ where: kept })).toBe(1)
+    expect((await prisma.registration.findFirstOrThrow({ where: kept })).status).toBe('confirmed')
+  })
+})

@@ -117,10 +117,16 @@ function cancelEdit() {
 async function saveParticipant() {
   if (!editableParticipant.value?.id) return
 
-  participant.value = await useApiFetch(`/api/participants/${editableParticipant.value.id}`, {
+  const saved = await useApiFetch(`/api/participants/${editableParticipant.value.id}`, {
     method: 'PUT',
     body: editableParticipant.value
   })
+  // Fiche sans aucun jeu : supprimée par le serveur (US-036)
+  if (saved?.deleted) {
+    await router.replace('/participants')
+    return
+  }
+  participant.value = saved
   if (participant.value?.slug && participant.value.slug !== route.params.id) {
     const query = { ...route.query }
     delete query.edit

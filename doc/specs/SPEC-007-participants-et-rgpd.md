@@ -53,7 +53,7 @@ Depuis la liste, « Supprimer » efface la fiche et ses données, après une con
 - **R1** Une fiche a un nom (obligatoire), un email, un téléphone et des notes, sans format imposé pour l'email ni le téléphone. Elle a un slug unique, qui suit le nom.
 - **R2** Une fiche est commune à tous les jeux auxquels elle est liée : une modification se voit dans tous ces jeux.
 - **R3** Une organisatrice ne lie une fiche qu'à des jeux auxquels elle a accès. En modifiant une fiche, elle ne touche qu'aux liens de ces jeux : ceux des autres jeux restent.
-- **R4** Retirer le lien à un jeu ne retire pas la personne des sessions de ce jeu, ni de leur casting (voir les écarts).
+- **R4** Retirer le lien à un jeu retire aussi la personne des sessions de ce jeu : équipe, casting (le personnage reste sans joueur ni photo), déroulé et présence. Ses inscriptions à ce jeu passent au statut « retirée » ; ses paiements restent, affichés à part ([US-035](../epics/EPIC-007-ecarts-participants/US-035-retrait-d-un-jeu-et-de-ses-sessions.md)).
 - **R5** À l'inscription, une personne est rapprochée d'une fiche existante par son email, parmi les jeux de la même propriétaire seulement ([SPEC-001](SPEC-001-inscriptions.md), R12). Hors inscription, rien ne rapproche deux fiches : la même personne peut en avoir plusieurs.
 - **R6** Deux organisatrices qui modifient la même fiche en même temps ne s'écrasent pas : la seconde est refusée (409).
 
