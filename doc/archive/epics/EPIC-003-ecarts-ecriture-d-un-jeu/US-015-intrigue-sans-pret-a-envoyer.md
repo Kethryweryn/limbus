@@ -13,7 +13,7 @@ En tant qu'organisatrice, je veux que l'API d'une intrigue ne propose que des ch
 
 ## Critères d'acceptation
 
-- [x] Le schéma d'une intrigue n'a plus `readyToSend`. Une intrigue n'est envoyée à personne : seuls les documents et les fiches le sont ([SPEC-006](../../specs/SPEC-006-emails-et-paiements.md)).
+- [x] Le schéma d'une intrigue n'a plus `readyToSend`. Une intrigue n'est envoyée à personne : seuls les documents et les fiches le sont ([SPEC-006](../../../specs/SPEC-006-emails-et-paiements.md)).
 - [x] Une requête qui envoie encore `readyToSend` n'échoue pas : le champ est ignoré, comme aujourd'hui.
 
 ## Notes techniques

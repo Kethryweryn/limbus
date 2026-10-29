@@ -23,7 +23,6 @@ export default defineEventHandler(async (event) => {
       locationText: body.locationCharacterId ? null : body.locationText,
       locationCharacterId: body.locationCharacterId || null,
       gameId: body.gameId,
-      published: body.published ?? true,
       characters: {
         connect: characterIds.map((characterId) => ({ id: characterId }))
       },

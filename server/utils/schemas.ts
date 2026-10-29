@@ -127,8 +127,7 @@ export const updateCharacterSchema = z.object({
   trombinoscopeNote: optionalText,
   trombinoscopeDisplayName: optionalText,
   gameId: requiredId('Game').optional(),
-  factionIds: z.array(requiredId('Faction')).optional(),
-  published: optionalBoolean
+  factionIds: z.array(requiredId('Faction')).optional()
 })
 
 export const factionSchema = z.object({
@@ -139,8 +138,7 @@ export const factionSchema = z.object({
   costumeIndications: optionalText,
   showInTrombinoscope: optionalBoolean,
   gameId: requiredId('Game'),
-  characterIds: z.array(requiredId('Character')).optional().default([]),
-  published: optionalBoolean
+  characterIds: z.array(requiredId('Character')).optional().default([])
 })
 
 export const intrigueSchema = z.object({
@@ -150,8 +148,7 @@ export const intrigueSchema = z.object({
   level: intrigueLevel.default(INTRIGUE_LEVELS.minor),
   gameId: requiredId('Game'),
   characterIds: z.array(requiredId('Character')).optional().default([]),
-  factionIds: z.array(requiredId('Faction')).optional().default([]),
-  published: optionalBoolean
+  factionIds: z.array(requiredId('Faction')).optional().default([])
 })
 
 export const participantSchema = z.object({
@@ -167,8 +164,7 @@ export const locationSchema = z.object({
   name: requiredText('Name'),
   address: optionalText,
   notes: optionalText,
-  gameId: requiredId('Game'),
-  published: optionalBoolean
+  gameId: requiredId('Game')
 })
 
 export const itemSchema = z.object({
@@ -180,8 +176,7 @@ export const itemSchema = z.object({
   locationCharacterId: optionalText,
   gameId: requiredId('Game'),
   characterIds: z.array(requiredId('Character')).optional().default([]),
-  intrigueIds: z.array(requiredId('Intrigue')).optional().default([]),
-  published: optionalBoolean
+  intrigueIds: z.array(requiredId('Intrigue')).optional().default([])
 })
 
 export const documentSchema = z.object({
@@ -193,8 +188,7 @@ export const documentSchema = z.object({
   gameId: requiredId('Game'),
   characterId: optionalText,
   characterIds: z.array(requiredId('Character')).optional().default([]),
-  factionIds: z.array(requiredId('Faction')).optional().default([]),
-  published: optionalBoolean
+  factionIds: z.array(requiredId('Faction')).optional().default([])
 }).refine((value) => Boolean(value.content?.trim() || value.documentUrl?.trim()), {
   message: 'Content or document URL is required',
   path: ['content']
@@ -210,8 +204,7 @@ export const timelineEventSchema = z.object({
   characterIds: z.array(requiredId('Character')).optional().default([]),
   factionIds: z.array(requiredId('Faction')).optional().default([]),
   intrigueIds: z.array(requiredId('Intrigue')).optional().default([]),
-  itemIds: z.array(requiredId('Item')).optional().default([]),
-  published: optionalBoolean
+  itemIds: z.array(requiredId('Item')).optional().default([])
 })
 
 export const sessionTimelineSchema = z.object({

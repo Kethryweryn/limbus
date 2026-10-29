@@ -10,7 +10,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 |---|---|---|---|
 | [EPIC-001](../archive/epics/EPIC-001-inscription-sur-invitation/README.md) | Période d'inscription et mode invitation | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 | [EPIC-002](../archive/epics/EPIC-002-legs-de-jeu/README.md) | Léguer une copie d'un jeu à une autre équipe | [SPEC-002](../specs/SPEC-002-copie-de-jeu.md) | terminé |
-| [EPIC-003](EPIC-003-ecarts-ecriture-d-un-jeu/README.md) | Corriger les écarts de l'écriture d'un jeu | [SPEC-003](../specs/SPEC-003-ecriture-d-un-jeu.md) | en cours |
+| [EPIC-003](../archive/epics/EPIC-003-ecarts-ecriture-d-un-jeu/README.md) | Corriger les écarts de l'écriture d'un jeu | [SPEC-003](../specs/SPEC-003-ecriture-d-un-jeu.md) | terminé |
 
 ## US
 
@@ -28,7 +28,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-010](../archive/epics/EPIC-002-legs-de-jeu/US-010-leguer-a-un-compte-existant.md) | Léguer une copie à une organisatrice qui a un compte | EPIC-002 | terminée |
 | [US-011](../archive/epics/EPIC-002-legs-de-jeu/US-011-leguer-sans-compte.md) | Léguer une copie à une personne sans compte | EPIC-002 | terminée |
 | [US-012](../archive/epics/EPIC-002-legs-de-jeu/US-012-suivre-les-legs-en-attente.md) | Suivre et annuler les legs en attente | EPIC-002 | terminée |
-| [US-013](EPIC-003-ecarts-ecriture-d-un-jeu/US-013-contenu-archive-avec-son-jeu.md) | Le contenu d'un jeu archivé est archivé avec lui | EPIC-003 | à faire |
-| [US-014](EPIC-003-ecarts-ecriture-d-un-jeu/US-014-quantite-d-un-objet.md) | Saisir la quantité d'un objet | EPIC-003 | terminée |
-| [US-015](EPIC-003-ecarts-ecriture-d-un-jeu/US-015-intrigue-sans-pret-a-envoyer.md) | Retirer « prête à envoyer » des intrigues | EPIC-003 | terminée |
-| [US-016](EPIC-003-ecarts-ecriture-d-un-jeu/US-016-archiver-depublie-la-page.md) | Archiver un jeu dépublie sa page publique | EPIC-003 | terminée |
+| [US-013](../archive/epics/EPIC-003-ecarts-ecriture-d-un-jeu/US-013-contenu-archive-avec-son-jeu.md) | Le contenu d'un jeu archivé est archivé avec lui | EPIC-003 | terminée |
+| [US-014](../archive/epics/EPIC-003-ecarts-ecriture-d-un-jeu/US-014-quantite-d-un-objet.md) | Saisir la quantité d'un objet | EPIC-003 | terminée |
+| [US-015](../archive/epics/EPIC-003-ecarts-ecriture-d-un-jeu/US-015-intrigue-sans-pret-a-envoyer.md) | Retirer « prête à envoyer » des intrigues | EPIC-003 | terminée |
+| [US-016](../archive/epics/EPIC-003-ecarts-ecriture-d-un-jeu/US-016-archiver-depublie-la-page.md) | Archiver un jeu dépublie sa page publique | EPIC-003 | terminée |

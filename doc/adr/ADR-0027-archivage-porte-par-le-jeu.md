@@ -3,7 +3,7 @@ id: ADR-0027
 titre: L'état archivé du contenu est celui de son jeu
 statut: accepté
 date: 2026-10-29
-liens: [../specs/SPEC-003-ecriture-d-un-jeu.md, ../epics/EPIC-003-ecarts-ecriture-d-un-jeu/US-013-contenu-archive-avec-son-jeu.md, ADR-0024]
+liens: [../specs/SPEC-003-ecriture-d-un-jeu.md, ../archive/epics/EPIC-003-ecarts-ecriture-d-un-jeu/US-013-contenu-archive-avec-son-jeu.md, ADR-0024]
 ---
 
 # ADR-0027 : L'état archivé du contenu est celui de son jeu

@@ -19,6 +19,7 @@
         value-key="value"
         class="w-full md:w-64"
       />
+      <AppCheckboxRow v-if="!selectedGame" v-model="showArchived" label="Afficher les archives" />
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -53,6 +54,9 @@
               </UBadge>
               <UBadge :color="document.readyToSend ? 'success' : 'neutral'" variant="subtle" size="xs">
                 {{ document.readyToSend ? 'Prêt' : 'Brouillon' }}
+              </UBadge>
+              <UBadge v-if="isInArchivedGame(document)" color="neutral" variant="solid" size="xs">
+                Archivé
               </UBadge>
             </div>
           </div>
@@ -129,6 +133,7 @@
 </template>
 
 <script setup>
+import { isInArchivedGame, isVisibleContent } from '~/utils/games'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import DocumentForm from '@/components/DocumentForm.vue'
 import GameContextBar from '@/components/GameContextBar.vue'
@@ -143,6 +148,7 @@ const characters = ref([])
 const factions = ref([])
 const searchQuery = ref('')
 const gameFilter = ref('all')
+const showArchived = ref(false)
 const isOffline = ref(false)
 const showFormSlideover = ref(false)
 const activeFormDocument = ref(null)
@@ -164,6 +170,7 @@ const filteredDocuments = computed(() => {
 
   return documents.value
     .filter((document) => !gameId || document.gameId === gameId)
+    .filter((document) => isVisibleContent(document, gameId, showArchived.value))
     .filter((document) =>
       [
         document.title,
@@ -296,8 +303,7 @@ function startCreate() {
     gameId: selectedGame.value?.id || games.value[0]?.id || '',
     characterId: '',
     characterIds: [],
-    factionIds: [],
-    published: true
+    factionIds: []
   }
   formMode.value = 'create'
   showFormSlideover.value = true

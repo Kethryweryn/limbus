@@ -37,7 +37,7 @@
           <UBadge v-if="isUnassigned" color="warning" variant="soft">
             Non associée
           </UBadge>
-          <UBadge v-if="!intrigue.published" color="neutral" variant="solid">
+          <UBadge v-if="isInArchivedGame(intrigue)" color="neutral" variant="solid">
             Archivée
           </UBadge>
         </div>
@@ -139,6 +139,7 @@
 </template>
 
 <script setup>
+import { isInArchivedGame } from '~/utils/games'
 import { formatIntrigueLevel } from '~/utils/intrigueLevels'
 
 const route = useRoute()

@@ -19,6 +19,7 @@
         value-key="value"
         class="w-full md:w-64"
       />
+      <AppCheckboxRow v-if="!selectedGame" v-model="showArchived" label="Afficher les archives" />
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -29,7 +30,10 @@
               <NuxtLink :to="`/locations/${location.slug || location.id}`" class="font-semibold truncate hover:underline">
                 {{ location.name }}
               </NuxtLink>
-              <p class="text-sm text-gray-500 truncate">{{ location.game?.title || 'Jeu inconnu' }}</p>
+              <p class="text-sm text-gray-500 truncate">
+                {{ location.game?.title || 'Jeu inconnu' }}
+                <UBadge v-if="isInArchivedGame(location)" color="neutral" variant="solid" size="xs" class="ml-1">Archivé</UBadge>
+              </p>
             </div>
             <div class="flex gap-2">
               <UButton size="xs" color="primary" @click="startEdit(location)">Modifier</UButton>
@@ -77,6 +81,7 @@
 </template>
 
 <script setup>
+import { isInArchivedGame, isVisibleContent } from '~/utils/games'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import LocationForm from '@/components/LocationForm.vue'
@@ -88,6 +93,7 @@ const locations = ref([])
 const games = ref([])
 const searchQuery = ref('')
 const gameFilter = ref('all')
+const showArchived = ref(false)
 const isOffline = ref(false)
 const showFormSlideover = ref(false)
 const activeFormLocation = ref(null)
@@ -105,6 +111,7 @@ const filteredLocations = computed(() => {
 
   return locations.value
     .filter((location) => !gameId || location.gameId === gameId)
+    .filter((location) => isVisibleContent(location, gameId, showArchived.value))
     .filter((location) =>
       [location.name, location.address, location.notes, location.game?.title].some((field) =>
         field?.toLowerCase().includes(term)
@@ -191,8 +198,7 @@ function startCreate() {
     name: '',
     address: '',
     notes: '',
-    gameId: selectedGame.value?.id || games.value[0]?.id || '',
-    published: true
+    gameId: selectedGame.value?.id || games.value[0]?.id || ''
   }
   formMode.value = 'create'
   showFormSlideover.value = true

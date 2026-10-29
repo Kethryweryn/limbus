@@ -10,3 +10,14 @@ export function gameCreditText(game: { creditSourceTitle?: string | null, credit
     ? `D’après « ${game.creditSourceTitle} », de ${game.creditAuthorName}`
     : `D’après « ${game.creditSourceTitle} »`
 }
+
+// Le contenu d'un jeu est archivé avec lui (US-013, ADR-0027). Un élément créé hors ligne n'a pas encore
+// son jeu en cache : on le tient pour actif plutôt que de le faire disparaître de la liste.
+export function isInArchivedGame(item: { game?: { published?: boolean | null } | null }) {
+  return Boolean(item.game) && isArchivedGame(item.game!)
+}
+
+// Le contenu d'un jeu archivé n'apparaît que si l'on affiche les archives, ou si l'on a choisi ce jeu
+export function isVisibleContent(item: { gameId?: string, game?: { published?: boolean | null } | null }, selectedGameId: string, showArchived: boolean) {
+  return showArchived || !isInArchivedGame(item) || (Boolean(selectedGameId) && item.gameId === selectedGameId)
+}

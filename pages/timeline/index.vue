@@ -30,12 +30,16 @@
             @click="selectTimelineGame(game)"
           >
             {{ game.title }}
+            <span v-if="isArchivedGame(game)" class="text-gray-500">(archivé)</span>
           </button>
           <div v-if="!filteredSelectableGames.length" class="px-3 py-2 text-sm text-gray-500">
             Aucun jeu trouvé.
           </div>
         </div>
       </div>
+      <UBadge v-if="selectedTimelineGame && isArchivedGame(selectedTimelineGame)" color="neutral" variant="solid" class="self-center">
+        Jeu archivé
+      </UBadge>
       <UInput
         v-if="selectedTimelineGameId"
         v-model="searchQuery"
@@ -323,6 +327,7 @@ import TimelineEventForm from '@/components/TimelineEventForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import { isOfflineMode } from '~/utils/connection'
 import { getFromStore, saveToStore } from '~/utils/storage'
+import { isArchivedGame } from '~/utils/games'
 
 const timelineEvents = ref([])
 const games = ref([])
@@ -355,8 +360,11 @@ const filteredSelectableGames = computed(() => {
     .slice(0, 10)
 })
 
+// Raccourcis : jeux en cours seulement ; un jeu archivé se choisit par la recherche (US-013)
+const activeGames = computed(() => games.value.filter((game) => !isArchivedGame(game)))
+
 const latestWritingGame = computed(() =>
-  [...games.value]
+  [...activeGames.value]
     .filter((game) => game.lastWritingActivityAt || game.lastActivityAt || game.updatedAt)
     .sort((a, b) =>
       new Date(b.lastWritingActivityAt || b.lastActivityAt || b.updatedAt).getTime()
@@ -365,7 +373,7 @@ const latestWritingGame = computed(() =>
 )
 
 const nextSessionGame = computed(() =>
-  [...games.value]
+  [...activeGames.value]
     .filter((game) => game.nextScheduledSessionAt)
     .sort((a, b) =>
       new Date(a.nextScheduledSessionAt).getTime() - new Date(b.nextScheduledSessionAt).getTime()
@@ -575,8 +583,7 @@ function startCreate() {
     characterIds: [],
     factionIds: [],
     intrigueIds: [],
-    itemIds: [],
-    published: true
+    itemIds: []
   }
   formMode.value = 'create'
   showFormSlideover.value = true

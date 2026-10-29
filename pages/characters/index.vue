@@ -15,6 +15,7 @@
                     value-key="value"
                     class="w-full md:w-64"
                 />
+                <AppCheckboxRow v-if="!selectedGame" v-model="showArchived" label="Afficher les archives" />
                 <USelect
                     v-model="sortOption"
                     :items="sortOptions"
@@ -59,7 +60,7 @@
                                 >
                                     {{ faction.name }}
                                 </UBadge>
-                                <UBadge v-if="!char.published" color="neutral" variant="solid" size="xs">
+                                <UBadge v-if="isInArchivedGame(char)" color="neutral" variant="solid" size="xs">
                                     Archivé
                                 </UBadge>
                             </div>
@@ -138,6 +139,7 @@
 </template>
 
 <script setup>
+import { isInArchivedGame, isVisibleContent } from '~/utils/games'
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { isOfflineMode } from '~/utils/connection'
@@ -149,6 +151,7 @@ const characters = ref([])
 const search = ref('')
 const sortOption = ref('updated-desc')
 const gameFilter = ref('all')
+const showArchived = ref(false)
 const games = ref([])
 const factions = ref([])
 const router = useRouter()
@@ -257,6 +260,7 @@ const filteredCharacters = computed(() => {
 
     const result = characters.value
         .filter(c => !gameId || c.gameId === gameId)
+        .filter((c) => isVisibleContent(c, gameId, showArchived.value))
         .filter(c =>
             c.name.toLowerCase().includes(term) ||
             (c.pitch?.toLowerCase().includes(term)) ||

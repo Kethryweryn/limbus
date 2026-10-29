@@ -35,7 +35,6 @@ export default defineEventHandler(async (event) => {
       locationText: body.locationCharacterId ? null : body.locationText,
       locationCharacterId: body.locationCharacterId || null,
       gameId: body.gameId,
-      published: body.published ?? true,
       characters: {
         set: characterIds.map((characterId) => ({ id: characterId }))
       },
