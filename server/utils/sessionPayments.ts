@@ -117,7 +117,9 @@ export function buildPaymentRows<P extends PaymentParticipant, C extends { name:
       npcRole,
       paidAt: payment?.paidAt || null,
       paymentEmailSentAt: payment?.paymentEmailSentAt || null,
-      paymentReminderSentAt: payment?.paymentReminderSentAt || null
+      paymentReminderSentAt: payment?.paymentReminderSentAt || null,
+      // Version de la ligne, renvoyée à chaque modification (ADR-0036) ; null tant qu'elle n'existe pas
+      paymentUpdatedAt: payment?.updatedAt || null
     }
   })
 }
@@ -269,7 +271,8 @@ export function buildTariffPaymentRows<P extends PaymentParticipant, C extends {
       npcRole: false,
       paidAt: null as Date | null,
       paymentEmailSentAt: null as Date | null,
-      paymentReminderSentAt: null as Date | null
+      paymentReminderSentAt: null as Date | null,
+      paymentUpdatedAt: null as Date | null
     }))
   const paymentsByParticipantId = new Map(payments.map((payment) => [payment.participantId, payment]))
 

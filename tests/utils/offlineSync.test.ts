@@ -4,6 +4,7 @@ import {
   conflictFields,
   enqueueOfflineOperation,
   getOfflineQueue,
+  type OfflineSyncOperation,
   heldOperationIds,
   isQueueableApiWrite,
   NO_VERSION,
@@ -24,6 +25,9 @@ vi.mock('~/utils/storage', () => ({
 }))
 
 const fetchMock = vi.fn()
+
+// File lue dans un test : les éléments attendus sont là (sinon le test échoue de toute façon)
+const readQueue = async () => await getOfflineQueue() as unknown as [OfflineSyncOperation, OfflineSyncOperation, OfflineSyncOperation]
 
 beforeEach(() => {
   stores.clear()
@@ -59,7 +63,7 @@ describe('cache de l’appareil (US-048)', () => {
 
     expect(store('sessions').get('list')).toEqual([{ id: 's1', name: 'Samedi', updatedAt: READ }])
     expect(response).toMatchObject({ __offlineQueued: true })
-    const [operation] = await getOfflineQueue()
+    const [operation] = await readQueue()
     expect(operation).toMatchObject({ entityKey: 'sessions/s1', baseVersion: READ, label: 'Samedi' })
   })
 
@@ -77,7 +81,7 @@ describe('cache de l’appareil (US-048)', () => {
     store('factions').set('list', [{ id: 'f1', name: 'Loups', updatedAt: READ }])
     await enqueueOfflineOperation('/api/factions/f1', { method: 'DELETE' })
 
-    const [operation] = await getOfflineQueue()
+    const [operation] = await readQueue()
     expect(operation.headers).toEqual({ 'if-unmodified-since': READ })
     expect(store('factions').get('list')).toEqual([])
   })
@@ -91,7 +95,7 @@ describe('resynchronisation (US-049, US-050, ADR-0036)', () => {
 
     const { results } = await processOfflineQueue()
     expect(results.every((result) => result.ok)).toBe(true)
-    expect(fetchMock.mock.calls[1][1].headers).toEqual({ 'if-unmodified-since': '2026-10-30T12:00:00.000Z' })
+    expect(fetchMock.mock.calls[1]?.[1].headers).toEqual({ 'if-unmodified-since': '2026-10-30T12:00:00.000Z' })
   })
 
   it('un conflit retient les modifications suivantes du même élément, pas celles des autres', async () => {
@@ -106,7 +110,7 @@ describe('resynchronisation (US-049, US-050, ADR-0036)', () => {
     const { results } = await processOfflineQueue()
     expect(results.map((result) => [result.ok, Boolean(result.held)])).toEqual([[false, false], [false, true], [true, false]])
 
-    const queue = await getOfflineQueue()
+    const queue = await readQueue()
     expect(queue).toHaveLength(2)
     expect(queue[0].status).toBe('conflict')
     expect(heldOperationIds(queue)).toEqual(new Set([queue[1].id]))
@@ -119,7 +123,7 @@ describe('resynchronisation (US-049, US-050, ADR-0036)', () => {
     fetchMock.mockRejectedValueOnce(conflict()).mockResolvedValueOnce({ id: 'f1', name: 'Ours' })
     await processOfflineQueue()
 
-    const [operation] = await getOfflineQueue()
+    const [operation] = await readQueue()
     await retryOperation(operation.id, true)
     fetchMock.mockResolvedValueOnce({ id: 'f1', updatedAt: '2026-10-30T12:00:00.000Z' })
     await processOfflineQueue()
@@ -134,7 +138,7 @@ describe('resynchronisation (US-049, US-050, ADR-0036)', () => {
     await enqueueOfflineOperation('/api/items/i1', { method: 'PUT', body: { name: 'Épée', factionId: created.id, updatedAt: READ } })
     await enqueueOfflineOperation('/api/items/i2', { method: 'PUT', body: { name: 'Bouclier', updatedAt: READ } })
 
-    const [creation] = await getOfflineQueue()
+    const [creation] = await readQueue()
     expect(await abandonOperation(creation.id)).toBe(3)
     expect((await getOfflineQueue()).map((operation) => operation.request)).toEqual(['/api/items/i2'])
   })
@@ -144,7 +148,7 @@ describe('resynchronisation (US-049, US-050, ADR-0036)', () => {
     await enqueueOfflineOperation('/api/sessions/s1/payments/p1', { method: 'PUT', body: { paid: true, updatedAt: NO_VERSION }, offlineLabel: 'Léa' })
     await enqueueOfflineOperation('/api/sessions/s1', { method: 'DELETE' })
 
-    const [payment, deletion] = await getOfflineQueue()
+    const [payment, deletion] = await readQueue()
     expect(operationSummary(payment)).toEqual({ element: 'Session « Samedi »', action: 'Paiement : Léa' })
     expect(operationSummary(deletion)).toEqual({ element: 'Session « Samedi »', action: 'Suppression' })
   })

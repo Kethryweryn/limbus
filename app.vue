@@ -211,7 +211,8 @@ const syncPendingChanges = async () => {
   if (!import.meta.client || syncing.value || !navigator.onLine) return
 
   const queue = await getOfflineQueue()
-  const pending = queue.filter((operation) => operation.status === 'pending')
+  // Une modification restée « en cours d'envoi » (page fermée pendant l'envoi) repart aussi
+  const pending = queue.filter((operation) => operation.status === 'pending' || operation.status === 'syncing')
   if (!pending.length) {
     await refreshQueueState()
     return

@@ -59,6 +59,18 @@ describe('paiement d’une personne (US-048, US-050)', () => {
     expect((await api(alice, 'PUT', url, { paid: false }, since(row.updatedAt))).status).toBe(200)
   })
 
+  it('la version renvoyée par le tableau, en mode simple, permet la modification suivante', async () => {
+    const s = await aliceSession()
+    const url = `/api/sessions/${s.session.id}/payments/${s.lea.id}`
+    expect((await api(alice, 'PUT', url, { paid: true }, since(NO_VERSION))).status).toBe(200)
+
+    const dashboard = (await api(alice, 'GET', `/api/sessions/${s.session.id}/payments`)).body as { mode: string, rows: Array<{ participant: { id: string }, paymentUpdatedAt: string | null }> }
+    expect(dashboard.mode).toBe('simple')
+    const version = dashboard.rows.find((row) => row.participant.id === s.lea.id)?.paymentUpdatedAt
+    expect(version).toBeTruthy()
+    expect((await api(alice, 'PUT', url, { paid: false }, since(version!))).status).toBe(200)
+  })
+
   it('refuse une date de paiement dans le futur', async () => {
     const s = await aliceSession()
     const future = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
