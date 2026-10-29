@@ -6,4 +6,4 @@ Nom des fichiers : `AAAA-MM-JJ-sujet.md`.
 
 | Revue | Date | Origine | Statut |
 |---|---|---|---|
-| [Architecture comparée à l'état de l'art](2026-10-29-architecture.md) | 2026-10-29 | [fiche todo](../archive/todo/revue-d-architecture.md) | recommandations à trier |
+| [Architecture comparée à l'état de l'art](2026-10-29-architecture.md) | 2026-10-29 | [fiche todo](../archive/todo/revue-d-architecture.md) | triée ; R-04 et R-05 en attente |

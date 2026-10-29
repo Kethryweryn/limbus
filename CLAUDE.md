@@ -8,7 +8,7 @@ Toute évolution suit le cycle décrit dans `doc/README.md` : fiche `doc/todo/` 
 
 - Une nouvelle idée ou demande de fonctionnalité devient d'abord une fiche todo (modèles dans `doc/modeles/`).
 - Toute décision technique (modèle de données, algorithme, bibliothèque, sécurité) fait l'objet d'un ADR dans `doc/adr/`. On ne supprime pas un ADR, on le remplace.
-- Les commits d'implémentation citent l'US ; l'US et l'index sont mis à jour dans le même commit.
+- Les commits d'implémentation citent l'US ; l'US et l'index sont mis à jour dans le même commit. Exception : un correctif ou un nettoyage sans changement de comportement (revue de code, recommandation d'une revue, dépendances) n'a pas d'US ; il cite sa source (fiche, revue, PR).
 - Avant de travailler sur une fonctionnalité, lire sa spec et les ADR liés. Chaque dossier a un index `README.md` : le tenir à jour.
 
 ## Avant de considérer un changement terminé
