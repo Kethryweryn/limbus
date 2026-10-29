@@ -182,6 +182,8 @@ async function saveCast(assignments) {
       locationId: session.value.locationId || '',
       status: session.value.status || SESSION_STATUSES.scheduled,
       published: session.value.published,
+      // Version lue : refus si la session a changé entre-temps (US-018, ADR-0028)
+      updatedAt: session.value.updatedAt,
       participants: session.value.participants?.map((participant) => ({
         participantId: participant.participantId || participant.participant?.id,
         role: participant.role
@@ -194,10 +196,13 @@ async function saveCast(assignments) {
 async function saveTimeline(assignments) {
   if (!session.value) return
 
-  await useApiFetch(`/api/sessions/${session.value.id}/timeline`, {
+  const saved = await useApiFetch(`/api/sessions/${session.value.id}/timeline`, {
     method: 'PUT',
-    body: { assignments }
+    body: { assignments, updatedAt: session.value.updatedAt }
   })
+  // Le déroulé change la version de la session : la garder pour les enregistrements suivants
+  session.value = { ...session.value, updatedAt: saved.updatedAt }
+  if (editableSession.value) editableSession.value.updatedAt = saved.updatedAt
   timelineData.value = await useApiFetch(`/api/sessions/${session.value.id}/timeline`)
 }
 

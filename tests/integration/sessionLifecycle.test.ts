@@ -65,3 +65,32 @@ describe('un seul PJ par participant (US-017)', () => {
     expect(await prisma.game.findUniqueOrThrow({ where: { id: s.game.id }, select: { singlePjPerParticipant: true } })).toEqual({ singlePjPerParticipant: false })
   })
 })
+
+describe('modifications simultanées d’une session (US-018)', () => {
+  const since = (date: Date | string) => ({ headers: { 'if-unmodified-since': new Date(date).toISOString() } })
+
+  it('refuse le second enregistrement fait sur la même version', async () => {
+    const s = await aliceSession()
+    const read = await prisma.session.findUniqueOrThrow({ where: { id: s.session.id } })
+    const body = castBody(s, [{ characterId: s.aube.id, participantId: s.lea.id }])
+
+    expect((await api(alice, 'PUT', `/api/sessions/${s.session.id}`, body, since(read.updatedAt))).status).toBe(200)
+    const second = await api(alice, 'PUT', `/api/sessions/${s.session.id}`, { ...body, assignments: [] }, since(read.updatedAt))
+    expect(second.status).toBe(409)
+    expect(JSON.stringify(second.body)).not.toContain('hors ligne')
+
+    const timeline = await api(alice, 'PUT', `/api/sessions/${s.session.id}/timeline`, { assignments: [] }, since(read.updatedAt))
+    expect(timeline.status).toBe(409)
+  })
+
+  it('déroulé puis casting avec la version renvoyée (témoin)', async () => {
+    const s = await aliceSession()
+    const read = await prisma.session.findUniqueOrThrow({ where: { id: s.session.id } })
+    const timeline = await api(alice, 'PUT', `/api/sessions/${s.session.id}/timeline`, { assignments: [] }, since(read.updatedAt))
+    expect(timeline.status).toBe(200)
+    const { updatedAt } = timeline.body as { updatedAt: string }
+    expect(new Date(updatedAt).getTime()).toBeGreaterThan(read.updatedAt.getTime())
+
+    expect((await api(alice, 'PUT', `/api/sessions/${s.session.id}`, castBody(s, [{ characterId: s.aube.id, participantId: s.lea.id }]), since(updatedAt))).status).toBe(200)
+  })
+})

@@ -17,7 +17,8 @@ export async function assertUnmodifiedSince(event: any, model: string, id: strin
   if (new Date(record.updatedAt).getTime() > since.getTime()) {
     throw createError({
       statusCode: 409,
-      message: 'Cet élément a été modifié par quelqu’un d’autre pendant que vous étiez hors ligne. La synchronisation automatique a été arrêtée pour éviter d’écraser ses changements.'
+      // En ligne comme au retour du mode hors ligne : la version lue n'est plus la dernière (ADR-0028)
+      message: 'Cet élément a été modifié par quelqu’un d’autre entre-temps. Rechargez la page pour voir ses changements ; les vôtres n’ont pas été enregistrés.'
     })
   }
 }

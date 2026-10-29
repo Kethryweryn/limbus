@@ -4,6 +4,7 @@ import { readZodBody, sessionTimelineSchema } from '~/server/utils/schemas'
 import { requireGameAccess, requireSessionAccess } from '~/server/utils/gameAccess'
 import { SESSION_ROLES } from '~/utils/domain'
 import { requireRouterParam } from '~/server/utils/routeParams'
+import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
@@ -12,6 +13,8 @@ export default defineEventHandler(async (event) => {
 
   const body = await readZodBody(event, sessionTimelineSchema)
   const accessibleSession = await requireSessionAccess(event, id)
+  // Le déroulé fait partie de la version de la session (ADR-0028)
+  await assertUnmodifiedSince(event, 'session', accessibleSession.id)
   const session = await prisma.session.findUnique({
     where: { id: accessibleSession.id },
     include: {
@@ -61,7 +64,7 @@ export default defineEventHandler(async (event) => {
     }))
   })
 
-  await prisma.$transaction(async (tx) => {
+  const { updatedAt } = await prisma.$transaction(async (tx) => {
     await tx.timelineEventResponsible.deleteMany({
       where: { sessionId: session.id }
     })
@@ -72,7 +75,10 @@ export default defineEventHandler(async (event) => {
         skipDuplicates: true
       })
     }
+
+    // Nouvelle version de la session, renvoyée pour l'enregistrement suivant
+    return await tx.session.update({ where: { id: session.id }, data: { updatedAt: new Date() }, select: { updatedAt: true } })
   })
 
-  return { ok: true }
+  return { ok: true, updatedAt }
 })
