@@ -83,7 +83,7 @@ Il n'y a pas d'inscription libre.
 
 ## Sécurité et droits
 
-- **R15** Toute route de l'API demande une organisatrice connectée, sauf la connexion, l'inscription par invitation, la lecture d'une invitation et les routes publiques ([ADR-0007](../adr/ADR-0007-isolation-par-jeu.md)).
+- **R15** Toute route de l'API demande une organisatrice connectée, sauf les routes de connexion (`auth/*` : connexion, inscription par invitation, déconnexion, état de la connexion), la lecture d'une invitation et les routes publiques ([ADR-0007](../adr/ADR-0007-isolation-par-jeu.md)). Accepter une invitation et « déconnecter tous mes appareils » demandent seulement un compte connecté.
 - **R16** Le cookie de session est `httpOnly`, `secure` et `SameSite=Lax`. Celui du mode administrateur aussi.
 - **R17** Une organisatrice n'atteint que ses jeux et ceux qu'on lui a partagés (`tests/integration/isolation.test.ts`).
 
