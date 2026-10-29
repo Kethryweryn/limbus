@@ -4,8 +4,8 @@ titre: Un compte pour tout le monde, organiser et participer
 statut: validée
 date: 2026-10-29
 origine: ../todo/comptes-participants.md
-epics: [EPIC-012, EPIC-013, EPIC-014, EPIC-015, EPIC-016]
-adr: [ADR-0006, ADR-0007, ADR-0038, ADR-0039, ADR-0040, ADR-0041, ADR-0042]
+epics: [EPIC-012, EPIC-013, EPIC-014, EPIC-015, EPIC-016, EPIC-017]
+adr: [ADR-0006, ADR-0007, ADR-0038, ADR-0039, ADR-0040, ADR-0041, ADR-0042, ADR-0043]
 ---
 
 # SPEC-011 : Un compte pour tout le monde, organiser et participer
@@ -93,7 +93,7 @@ Un epic par lot, dans l'ordre :
 3. Notes d'organisation propres à chaque équipe : une note par jeu ([EPIC-014](../archive/epics/EPIC-014-notes-par-jeu/README.md)).
 4. Compte participant : rattachement des fiches, espace « Je participe » (sessions, inscriptions, paiement), sélecteur d'espace ([EPIC-015](../archive/epics/EPIC-015-je-participe/README.md)).
 5. Coordonnées et allergies tenues par la personne ([EPIC-016](../archive/epics/EPIC-016-coordonnees-tenues-par-la-personne/README.md)).
-6. Export et effacement depuis le compte.
+6. Export et effacement depuis le compte ([EPIC-017](../epics/EPIC-017-export-et-effacement/README.md)).
 7. Documents et trombinoscopes dans le compte.
 
 ## Hors périmètre

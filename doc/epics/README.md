@@ -24,6 +24,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-014](../archive/epics/EPIC-014-notes-par-jeu/README.md) | Notes d'organisation propres à chaque jeu | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
 | [EPIC-015](../archive/epics/EPIC-015-je-participe/README.md) | Compte participant et espace « Je participe » | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
 | [EPIC-016](../archive/epics/EPIC-016-coordonnees-tenues-par-la-personne/README.md) | Coordonnées et allergies tenues par la personne | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
+| [EPIC-017](EPIC-017-export-et-effacement/README.md) | Export et effacement depuis le compte | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | en cours |
 
 ## US
 
@@ -104,3 +105,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-073](../archive/epics/EPIC-015-je-participe/US-073-selecteur-d-espace.md) | Sélecteur d'espace « J'organise » / « Je participe » | EPIC-015 | terminée |
 | [US-074](../archive/epics/EPIC-016-coordonnees-tenues-par-la-personne/US-074-mes-coordonnees.md) | Tenir ses coordonnées et ses allergies dans son compte | EPIC-016 | terminée |
 | [US-075](../archive/epics/EPIC-016-coordonnees-tenues-par-la-personne/US-075-fiche-tenue-par-la-personne.md) | La fiche d'une personne qui a un compte n'est plus modifiable par l'équipe | EPIC-016 | terminée |
+| [US-076](EPIC-017-export-et-effacement/US-076-telecharger-ses-donnees.md) | Télécharger toutes ses données depuis son compte | EPIC-017 | à faire |
+| [US-077](EPIC-017-export-et-effacement/US-077-effacer-son-compte.md) | Effacer son compte, équipes prévenues | EPIC-017 | à faire |
