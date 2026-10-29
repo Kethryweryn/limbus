@@ -25,6 +25,7 @@ Le principe : rien n'est encore réellement utilisé en production, donc la séc
 - Écarts 1, 2 et 4 de SPEC-009, page publique ([EPIC-009](archive/epics/EPIC-009-ecarts-page-publique/README.md)).
 - Écarts de SPEC-010, hors ligne, avec la resynchronisation ([EPIC-010](archive/epics/EPIC-010-ecarts-hors-ligne/README.md)).
 - Tests de bout en bout des parcours : casting, trombinoscopes, envoi des documents, paiements, session hors ligne ([EPIC-011](archive/epics/EPIC-011-tests-e2e-des-parcours/README.md)).
+- Refonte des comptes, lot 1 : un seul rôle global, quitter et transférer un jeu ([SPEC-011](specs/SPEC-011-un-compte-pour-tout-le-monde.md), [EPIC-012](archive/epics/EPIC-012-roles/README.md)).
 
 ## 1. Finir les écarts des specs de l'existant
 
@@ -40,7 +41,7 @@ Fait ([EPIC-011](archive/epics/EPIC-011-tests-e2e-des-parcours/README.md)) : ils
 
 ## 3. Refonte des comptes
 
-La fiche [Un compte pour tout le monde](todo/comptes-participants.md) : on tranche ses points ouverts, puis on réalise ses lots dans l'ordre :
+La fiche [Un compte pour tout le monde](todo/comptes-participants.md), tranchée dans [SPEC-011](specs/SPEC-011-un-compte-pour-tout-le-monde.md) ; ses lots, dans l'ordre (le lot 1 est fait) :
 
 1. un seul rôle global (administrateur oui ou non), les droits venant des jeux ;
 2. inscription libre et compte en libre-service ;

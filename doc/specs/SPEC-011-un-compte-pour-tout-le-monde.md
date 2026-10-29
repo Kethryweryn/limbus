@@ -88,7 +88,7 @@ Comme aujourd'hui ([SPEC-008](SPEC-008-comptes-et-partage.md)). En plus, une co-
 
 Un epic par lot, dans l'ordre :
 
-1. Rôles : un seul rôle global, quitter un jeu, transférer un jeu ([EPIC-012](../epics/EPIC-012-roles/README.md)).
+1. Rôles : un seul rôle global, quitter un jeu, transférer un jeu ([EPIC-012](../archive/epics/EPIC-012-roles/README.md)).
 2. Inscription libre, confirmation de l'adresse, protection contre les robots, compte en libre-service, mot de passe oublié, invitation par la bonne adresse, création par l'administratrice, plafond de stockage.
 3. Notes d'organisation propres à chaque équipe.
 4. Compte participant : rattachement des fiches, espace « Je participe » (sessions, inscriptions, paiement), sélecteur d'espace.

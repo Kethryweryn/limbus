@@ -1,7 +1,7 @@
 ---
 id: US-059
 titre: Quitter un jeu partagé
-statut: à faire
+statut: terminée
 epic: EPIC-012
 regles: [R2]
 adr: []
@@ -13,9 +13,9 @@ En tant que co-organisatrice, je veux me retirer moi-même d'un jeu partagé.
 
 ## Critères d'acceptation
 
-- [ ] Sur la fiche d'un jeu partagé, une co-organisatrice voit « Quitter ce jeu » ; après confirmation, elle n'y a plus accès et revient à la liste de ses jeux.
-- [ ] Ce qu'elle a écrit dans le jeu reste.
-- [ ] La propriétaire ne peut pas quitter son propre jeu.
+- [x] Sur la fiche d'un jeu partagé, une co-organisatrice voit « Quitter ce jeu » ; après confirmation, elle n'y a plus accès et revient à la liste de ses jeux.
+- [x] Ce qu'elle a écrit dans le jeu reste.
+- [x] La propriétaire ne peut pas quitter son propre jeu.
 
 ## Notes techniques
 

@@ -420,6 +420,11 @@ export const userUpdateSchema = z.object({
   role: userRole.optional()
 })
 
+// Transfert d'un jeu à une co-organisatrice (US-060)
+export const gameTransferSchema = z.object({
+  userId: requiredId('User')
+})
+
 export const adminModeSchema = z.object({
   enabled: z.boolean()
 })

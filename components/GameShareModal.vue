@@ -38,9 +38,32 @@
               <div class="font-medium">{{ share.user?.name }}</div>
               <div class="text-sm text-gray-500">{{ share.user?.email }}</div>
             </div>
-            <UButton color="error" variant="soft" size="xs" @click="removeShare(share.userId)">
-              Retirer
-            </UButton>
+            <div class="flex flex-wrap justify-end gap-2">
+              <!-- Transfert du jeu (US-060) : seule la propriétaire le propose -->
+              <template v-if="isOwner">
+                <UButton
+                  v-if="game?.transferToUserId === share.userId"
+                  color="neutral"
+                  variant="soft"
+                  size="xs"
+                  @click="cancelTransfer"
+                >
+                  Retirer la proposition de transfert
+                </UButton>
+                <UButton
+                  v-else
+                  color="neutral"
+                  variant="soft"
+                  size="xs"
+                  @click="proposeTransfer(share)"
+                >
+                  Proposer le transfert
+                </UButton>
+              </template>
+              <UButton color="error" variant="soft" size="xs" @click="removeShare(share.userId)">
+                Retirer
+              </UButton>
+            </div>
           </div>
           <p v-if="!shares.length" class="text-sm text-gray-500">Aucun partage pour ce jeu.</p>
         </div>
@@ -88,8 +111,36 @@ const props = defineProps({
   game: {
     type: Object,
     default: null
+  },
+  isOwner: {
+    type: Boolean,
+    default: false
   }
 })
+const emit = defineEmits(['changed'])
+
+async function proposeTransfer(share) {
+  if (!confirm(`Proposer à ${share.user?.name} de devenir propriétaire de « ${props.game.title} » ? Vous en resterez co-organisatrice.`)) return
+  try {
+    await useApiFetch(`/api/games/${props.game.id}/transfer`, { method: 'POST', body: { userId: share.userId } })
+    shareMessage.value = `Transfert proposé à ${share.user?.name} : il prendra effet quand elle l’acceptera.`
+    shareError.value = ''
+    emit('changed')
+  } catch (err) {
+    shareError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+  }
+}
+
+async function cancelTransfer() {
+  try {
+    await useApiFetch(`/api/games/${props.game.id}/transfer`, { method: 'DELETE' })
+    shareMessage.value = 'Proposition de transfert retirée.'
+    shareError.value = ''
+    emit('changed')
+  } catch (err) {
+    shareError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+  }
+}
 
 const shares = ref([])
 const invitations = ref([])
@@ -166,6 +217,8 @@ async function removeShare(userId) {
     resetMessages()
     await useApiFetch(`/api/games/${props.game.id}/shares/${userId}`, { method: 'DELETE' })
     await refreshShares()
+    // Un transfert proposé à cette personne tombe avec son partage
+    emit('changed')
   } catch (err) {
     shareError.value = err?.data?.message || err?.message || 'Impossible de retirer le partage'
   }

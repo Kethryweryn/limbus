@@ -19,7 +19,7 @@ En tant qu'utilisatrice de Limbus, je veux que mon compte me permette d'organise
 
 ## Notes techniques
 
-- `requireOrganizer` devient `requireUser` ; `USER_ROLES.user` remplace `USER_ROLES.organizer`, la valeur ancienne restant acceptée jusqu'à la migration des données ([ADR-0038](../../adr/ADR-0038-un-seul-role-global.md)).
+- `requireOrganizer` devient `requireUser` ; `USER_ROLES.user` remplace `USER_ROLES.organizer`, la valeur ancienne restant acceptée jusqu'à la migration des données ([ADR-0038](../../../adr/ADR-0038-un-seul-role-global.md)).
 
 ## Tests
 

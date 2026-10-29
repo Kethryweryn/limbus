@@ -1,7 +1,7 @@
 ---
 id: US-060
 titre: Transférer un jeu à une co-organisatrice
-statut: à faire
+statut: terminée
 epic: EPIC-012
 regles: [R3]
 adr: [ADR-0038]
@@ -13,10 +13,10 @@ En tant que propriétaire, je veux donner mon jeu (et non une copie) à une co-o
 
 ## Critères d'acceptation
 
-- [ ] Sur la fiche du jeu, la propriétaire propose le transfert à l'une de ses co-organisatrices ; elle peut retirer sa proposition.
-- [ ] La co-organisatrice voit la proposition sur la fiche du jeu et l'accepte ou la refuse.
-- [ ] À l'acceptation, elle devient propriétaire ; l'ancienne propriétaire devient co-organisatrice.
-- [ ] Une copie léguée en attente ne se transfère pas ; le message de suppression d'un compte qui possède des jeux renvoie au transfert.
+- [x] Sur la fiche du jeu, la propriétaire propose le transfert à l'une de ses co-organisatrices ; elle peut retirer sa proposition.
+- [x] La co-organisatrice voit la proposition sur la fiche du jeu et l'accepte ou la refuse.
+- [x] À l'acceptation, elle devient propriétaire ; l'ancienne propriétaire devient co-organisatrice.
+- [x] Une copie léguée en attente ne se transfère pas ; le message de suppression d'un compte qui possède des jeux renvoie au transfert.
 
 ## Notes techniques
 

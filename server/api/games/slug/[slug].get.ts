@@ -13,11 +13,17 @@ export default defineEventHandler(async (event) => {
     where: {
       slug,
       ...accessibleGameWhere(user.id, allGames)
+    },
+    include: {
+      // Transfert proposé (US-060) et partage de la personne connectée, pour « Quitter ce jeu » (US-059)
+      transferTo: { select: { id: true, name: true } },
+      shares: { where: { userId: user.id }, select: { id: true } }
     }
   })
   if (!game) {
     throw createError({ statusCode: 404, message: 'Jeu non trouvé' })
   }
 
-  return game
+  const { shares, ...rest } = game
+  return { ...rest, sharedWithMe: shares.length > 0 }
 })
