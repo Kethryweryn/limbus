@@ -309,14 +309,12 @@ export async function markDocumentDeliveries(sessionId: string, documentIds: str
 export async function markCharacterSheetDeliveries(sessionId: string) {
   const dashboard = await getSessionDocumentDashboard(sessionId)
   let sentCount = 0
-  // Comme pour les documents : les envois déjà faits sont dans le tableau de bord, chargé sous le verrou
-  const sentNow = new Set<string>()
+  // Les envois déjà faits sont dans le tableau de bord (sheet.sentAt), chargé sous le verrou d'envoi.
+  // Une fiche par personnage de la session (@@unique sessionId, characterId) : pas de doublon possible.
 
   for (const sheet of dashboard.characterSheets) {
     if (!sheet.participant?.id || !sheet.character?.id || !sheet.readyToSend || sheet.sentAt) continue
     if (!sheet.participant.email) continue
-    const key = `${sheet.participant.id}:${sheet.character.id}`
-    if (sentNow.has(key)) continue
 
     const result = await sendEmail({
       to: sheet.participant.email,
@@ -345,7 +343,6 @@ export async function markCharacterSheetDeliveries(sessionId: string) {
         kind: 'character_sheet'
       }
     })
-    sentNow.add(key)
     sentCount++
   }
 

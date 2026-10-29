@@ -26,7 +26,7 @@ describe('envoi des documents d’une session', () => {
     const participant = await prisma.participant.create({
       data: { name: `Zoé ${key}`, slug: `zoe-${key}`, email: `zoe-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
     })
-    const [first, second] = await Promise.all(['Héraut', 'Espion'].map((name) =>
+    const [first, second] = await Promise.all(['Heraut', 'Espion'].map((name) =>
       prisma.character.create({ data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, gameId: game.id } })
     ))
     await prisma.sessionAssignment.createMany({
@@ -48,6 +48,29 @@ describe('envoi des documents d’une session', () => {
 
     // Renvoi : le document est déjà parti, rien n'est renvoyé
     const again = await api(alice, 'POST', `/api/sessions/${session.id}/documents/send`, { documentIds: [document.id] })
+    expect(again.body).toMatchObject({ sentCount: 0 })
+    expect(mailsTo()).toBe(1)
+  })
+
+  it('envoie une fiche de personnage une seule fois, et pas au renvoi', async () => {
+    const key = 'envoi-fiches'
+    const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
+    const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
+    const participant = await prisma.participant.create({
+      data: { name: `Léo ${key}`, slug: `leo-${key}`, email: `leo-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
+    })
+    const character = await prisma.character.create({
+      data: { name: `Héraut ${key}`, slug: `heraut-${key}`, gameId: game.id, background: 'Histoire', sheetReadyToSend: true }
+    })
+    await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id } })
+    const mailsTo = () => smtp.received.filter((received) => received.to.includes(participant.email!)).length
+
+    const response = await api(alice, 'POST', `/api/sessions/${session.id}/documents/send-character-sheets`, {})
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    expect(response.body).toMatchObject({ sentCount: 1 })
+    expect(mailsTo()).toBe(1)
+
+    const again = await api(alice, 'POST', `/api/sessions/${session.id}/documents/send-character-sheets`, {})
     expect(again.body).toMatchObject({ sentCount: 0 })
     expect(mailsTo()).toBe(1)
   })
