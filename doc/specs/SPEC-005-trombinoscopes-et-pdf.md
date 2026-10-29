@@ -57,6 +57,7 @@ Donner à chaque joueuse et chaque joueur, pour une session, ce que son personna
 - **R3** Chaque personnage a son propre trombinoscope. Pour chaque autre personnage du jeu, il fixe : l'inclusion, l'affichage de la photo (visage connu ou non), le nom affiché et une note. Le nom affiché peut être différent du nom de la fiche, pour gérer les identités multiples.
 - **R4** Sans réglage particulier, un personnage regardé est inclus, avec son visage connu, son nom d'affichage par défaut (sinon son nom) et sa note par défaut. Cela vaut pour tous les personnages du jeu, castés ou non dans la session. C'est la configuration du personnage qui regarde qui choisit qui y figure.
 - **R5** Un personnage exclu des trombinoscopes (R1) n'apparaît jamais, quel que soit le réglage du personnage qui regarde. Un « visage caché » (R1) l'emporte sur « visage connu ».
+- **R5b** Un personnage n'apparaît jamais dans son propre trombinoscope (confirmé par l'utilisatrice le 29 octobre 2026). Aujourd'hui, il y figure par défaut : voir les écarts.
 - **R6** Les entrées sont triées : les PJ d'abord, puis les PNJ, et par nom.
 
 ### Génération pour une session
@@ -92,4 +93,5 @@ Donner à chaque joueuse et chaque joueur, pour une session, ce que son personna
 Relevés le 29 octobre 2026 avec l'utilisatrice. Aucun n'est corrigé ici.
 
 1. **Ordre des photos (R8)** : la règle voulue est la photo de la personne qui joue le rôle dans la session d'abord, et la photo par défaut du personnage seulement si elle manque. Le code fait l'inverse : dès qu'un personnage a une photo par défaut, la photo de la personne qui le joue n'apparaît jamais.
-2. **Trombinoscopes périmés (R10)** : rien n'indique qu'un trombinoscope généré ne correspond plus au casting, aux photos ou aux réglages actuels. Seul le nombre de photos manquantes est affiché.
+2. **Soi-même (R5b)** : la configuration et la génération listent aussi le personnage qui regarde. Par défaut, il apparaît donc dans son propre trombinoscope, sauf si on le décoche à la main.
+3. **Trombinoscopes périmés (R10)** : rien n'indique qu'un trombinoscope généré ne correspond plus au casting, aux photos ou aux réglages actuels. Seul le nombre de photos manquantes est affiché.
