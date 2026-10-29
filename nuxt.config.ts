@@ -13,9 +13,12 @@ export default defineNuxtConfig({
     smtpEncryptionSecret: '',
     publicAppUrl: ''
   },
-  // Page du lien personnel d'inscription (ADR-0018) : le jeton est dans l'URL, il ne doit fuiter
+  // Pages des liens personnels, d'inscription et de présence (ADR-0018) : le jeton est dans l'URL, il ne doit fuiter
   // ni par le Referer, ni par un cache, ni par un moteur de recherche
   routeRules: {
+    '/presence/**': {
+      headers: { 'Referrer-Policy': 'no-referrer', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' }
+    },
     '/inscription/**': {
       headers: { 'Referrer-Policy': 'no-referrer', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' }
     }

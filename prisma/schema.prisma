@@ -231,6 +231,7 @@ model Session {
   postponedTo          Session?  @relation("SessionPostponements", fields: [postponedToSessionId], references: [id], onDelete: SetNull)
   postponedFrom        Session?  @relation("SessionPostponements")
   carriedOverPayments  SessionPayment[] @relation("PaymentCarryOvers")
+  attendances          SessionAttendance[]
 
   assignments SessionAssignment[]
   participants SessionParticipant[]
@@ -414,6 +415,7 @@ model Participant {
   trombinoscopes SessionTrombinoscope[]
   payments SessionPayment[]
   registrations Registration[]
+  attendances SessionAttendance[]
 }
 
 model SessionPayment {
@@ -589,4 +591,27 @@ model SmtpSettings {
   fromName          String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+// Confirmation de présence à une session reportée (US-024, ADR-0029)
+model SessionAttendance {
+  id             String      @id @default(cuid())
+  sessionId      String
+  participantId  String
+  // pending, confirmed, declined ou released ; le délai dépassé s'évalue à la lecture (ADR-0020)
+  status         String      @default("pending")
+  // SHA-256 du jeton du lien personnel (ADR-0018) ; null quand le lien est invalidé
+  tokenHash      String?     @unique
+  responseDueAt  DateTime
+  invitationSentAt DateTime?
+  lastRemindedAt DateTime?
+  respondedAt    DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  session        Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  participant    Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, participantId])
+  @@index([participantId])
 }

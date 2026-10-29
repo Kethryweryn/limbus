@@ -355,6 +355,11 @@ export const registrationExtensionSchema = z.object({
     .transform((value) => new Date(value))
 })
 
+// Réponse au lien de confirmation de présence (US-024)
+export const attendanceAnswerSchema = z.object({
+  answer: z.enum(['confirmed', 'declined'], { error: 'Réponse invalide' })
+})
+
 const registrationFieldSetting = z.object({ asked: z.boolean(), required: z.boolean() })
 
 export const registrationFormDefinitionSchema = z.object({

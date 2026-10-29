@@ -40,5 +40,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-021](EPIC-004-ecarts-sessions/US-021-supprimer-oriente-vers-l-annulation.md) | Supprimer une session oriente vers l’annulation ou le report | EPIC-004 | terminée |
 | [US-022](EPIC-004-ecarts-sessions/US-022-reporter-une-session.md) | Reporter une session | EPIC-004 | terminée |
 | [US-023](EPIC-004-ecarts-sessions/US-023-suivre-les-remboursements.md) | Suivre les remboursements d’une session annulée ou reportée | EPIC-004 | terminée |
-| [US-024](EPIC-004-ecarts-sessions/US-024-confirmer-sa-presence.md) | Confirmer sa présence à une session reportée | EPIC-004 | à faire |
+| [US-024](EPIC-004-ecarts-sessions/US-024-confirmer-sa-presence.md) | Confirmer sa présence à une session reportée | EPIC-004 | terminée |
 | [US-025](EPIC-004-ecarts-sessions/US-025-prevenir-de-l-annulation.md) | Prévenir l’équipe de l’annulation d’une session | EPIC-004 | à faire |

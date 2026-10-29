@@ -176,6 +176,12 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['GET', `/api/sessions/${session}/timeline`],
     ['PUT', `/api/sessions/${session}/timeline`, { assignments: [] }],
     ['POST', `/api/sessions/${session}/postpone`, { name: 'Report intrus' }],
+    ['GET', `/api/sessions/${session}/attendance`],
+    ['POST', `/api/sessions/${session}/attendance/send`, { responseDueAt: new Date(Date.now() + 86_400_000).toISOString() }],
+    ['POST', `/api/sessions/${session}/attendance/${b.participant.id}/remind`],
+    ['POST', `/api/sessions/${session}/attendance/${b.participant.id}/resend`],
+    ['POST', `/api/sessions/${session}/attendance/${b.participant.id}/extend`, { responseDueAt: new Date(Date.now() + 86_400_000).toISOString() }],
+    ['POST', `/api/sessions/${session}/attendance/${b.participant.id}/release`],
     ['GET', `/api/sessions/${session}/trombinoscopes/${b.character.id}`],
     ['POST', `/api/sessions/${session}/trombinoscopes/generate`, {}],
     ['GET', `/api/characters/${b.character.id}/trombinoscope`],
@@ -221,6 +227,7 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect((await api(alice, 'GET', `/api/sessions/${a.session.id}/documents`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/sessions/${a.session.id}/payments`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/sessions/${a.session.id}/timeline`)).status).toBe(200)
+    expect((await api(alice, 'GET', `/api/sessions/${a.session.id}/attendance`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/characters/${a.character.id}/trombinoscope`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/shares`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/bequests`)).status).toBe(200)

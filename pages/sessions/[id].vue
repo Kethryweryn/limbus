@@ -89,7 +89,21 @@
       >
         Cast
       </UButton>
+      <UButton
+        v-if="session?.postponedFrom"
+        :color="activeTab === 'presence' ? 'primary' : 'neutral'"
+        :variant="activeTab === 'presence' ? 'solid' : 'soft'"
+        @click="setTab('presence')"
+      >
+        Présence
+      </UButton>
     </div>
+
+    <SessionAttendanceManager
+      v-if="session && !isEditingDetails && activeTab === 'presence' && session.postponedFrom"
+      :session="session"
+      @changed="loadData"
+    />
 
     <SessionCastForm
       v-if="session && !isEditingDetails && activeTab === 'cast'"
@@ -151,7 +165,7 @@ const timelineData = ref(null)
 const documentsData = ref(null)
 const paymentsData = ref(null)
 const currentUserEmail = ref('')
-const sessionTabs = ['timeline', 'documents', 'payments', 'cast']
+const sessionTabs = ['timeline', 'documents', 'payments', 'cast', 'presence']
 const activeTab = ref(sessionTabs.includes(route.query.tab) ? route.query.tab : 'cast')
 const isEditingDetails = ref(route.query.edit === 'details')
 const editableSession = ref(null)
@@ -161,7 +175,8 @@ const showPostpone = ref(false)
 const canPostpone = computed(() => [SESSION_STATUSES.scheduled, SESSION_STATUSES.cancelled].includes(session.value?.status))
 
 async function onPostponed(created) {
-  await router.push({ path: `/sessions/${created.slug}` })
+  // Nouvelle session : on y demande aussitôt la confirmation de présence (US-024)
+  await router.push({ path: `/sessions/${created.slug}`, query: { tab: 'presence' } })
 }
 
 const statusMeta = (status) => SESSION_STATUS_META[status] || SESSION_STATUS_META[SESSION_STATUSES.scheduled]

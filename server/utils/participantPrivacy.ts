@@ -3,7 +3,8 @@ import { deleteUnusedUploads } from '~/server/utils/uploads'
 
 /**
  * Efface un participant et tout ce qui le concerne (RGPD, droit à l'effacement) :
- * ses liens aux jeux et sessions, ses inscriptions, ses paiements et envois, et ses photos, fichiers compris.
+ * ses liens aux jeux et sessions, ses inscriptions, ses paiements et envois, ses confirmations de présence,
+ * et ses photos, fichiers compris.
  * Les inscriptions (contacts, allergies) partent avec le participant, par cascade.
  * Les trombinoscopes générés des sessions où figurait sa photo sont supprimés : ils l'incluent
  * et devront être régénérés. Les assignations sont conservées, sans participant ni photo.
@@ -57,6 +58,7 @@ export async function exportParticipantData(participantId: string, gameIds: stri
       documentDeliveries: { where: inSessions, select: { kind: true, sentAt: true, document: { select: { title: true } }, character: { select: { name: true } }, session } },
       timelineResponsibilities: { where: inSessions, select: { timelineEvent: { select: { name: true, day: true, time: true } }, session } },
       trombinoscopes: { where: inSessions, select: { generatedAt: true, viewerCharacter: { select: { name: true } }, session } },
+      attendances: { where: inSessions, select: { status: true, responseDueAt: true, invitationSentAt: true, lastRemindedAt: true, respondedAt: true, session } },
       registrations: {
         where: inPeriods,
         select: {
