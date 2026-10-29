@@ -174,6 +174,7 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['POST', `/api/sessions/${session}/payments/test-email`, { emails: ['x@example.test'] }],
     ['GET', `/api/sessions/${session}/timeline`],
     ['PUT', `/api/sessions/${session}/timeline`, { assignments: [] }],
+    ['POST', `/api/sessions/${session}/postpone`, { name: 'Report intrus' }],
     ['GET', `/api/sessions/${session}/trombinoscopes/${b.character.id}`],
     ['POST', `/api/sessions/${session}/trombinoscopes/generate`, {}],
     ['GET', `/api/characters/${b.character.id}/trombinoscope`],

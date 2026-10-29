@@ -11,6 +11,14 @@
           <span v-if="session?.date"> · {{ formatDate(session.date) }}</span>
           <span v-if="session?.location"> · {{ session.location.name }}</span>
         </p>
+        <p v-if="session?.postponedTo" class="text-sm">
+          Reportée sur
+          <NuxtLink :to="`/sessions/${session.postponedTo.slug}`" class="font-medium underline">{{ session.postponedTo.name }}</NuxtLink>
+        </p>
+        <p v-if="session?.postponedFrom" class="text-sm">
+          Report de
+          <NuxtLink :to="`/sessions/${session.postponedFrom.slug}`" class="font-medium underline">{{ session.postponedFrom.name }}</NuxtLink>
+        </p>
       </div>
       <div v-if="session" class="flex flex-wrap items-center gap-2">
         <UBadge :color="statusMeta(session.status).color" variant="subtle">
@@ -26,6 +34,15 @@
           @click="startEditDetails"
         >
           Modifier
+        </UButton>
+        <UButton
+          v-if="!isEditingDetails && canPostpone"
+          icon="i-heroicons-calendar-days"
+          color="neutral"
+          variant="soft"
+          @click="showPostpone = true"
+        >
+          Reporter
         </UButton>
       </div>
     </div>
@@ -110,6 +127,7 @@
     <UCard v-if="!session">
       Chargement...
     </UCard>
+    <SessionPostponeModal v-model:open="showPostpone" :session="session" :locations="locations" @postponed="onPostponed" />
   </div>
 </template>
 
@@ -137,6 +155,14 @@ const sessionTabs = ['timeline', 'documents', 'payments', 'cast']
 const activeTab = ref(sessionTabs.includes(route.query.tab) ? route.query.tab : 'cast')
 const isEditingDetails = ref(route.query.edit === 'details')
 const editableSession = ref(null)
+
+// Report (US-022) : depuis une session prévue ou annulée
+const showPostpone = ref(false)
+const canPostpone = computed(() => [SESSION_STATUSES.scheduled, SESSION_STATUSES.cancelled].includes(session.value?.status))
+
+async function onPostponed(created) {
+  await router.push({ path: `/sessions/${created.slug}` })
+}
 
 const statusMeta = (status) => SESSION_STATUS_META[status] || SESSION_STATUS_META[SESSION_STATUSES.scheduled]
 
@@ -261,6 +287,11 @@ watch(() => route.query.edit, (value) => {
 
 watch(() => route.query.tab, (value) => {
   activeTab.value = sessionTabs.includes(value) ? value : 'cast'
+})
+
+// Passage à une autre session sur la même page (lien de report, US-022) : on recharge ses données
+watch(() => route.params.id, (value, previous) => {
+  if (value && value !== previous && value !== session.value?.slug) loadData()
 })
 
 function startEditDetails() {

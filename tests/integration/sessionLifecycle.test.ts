@@ -152,3 +152,43 @@ describe('supprimer une session oriente vers l’annulation (US-021)', () => {
     expect((await api(alice, 'DELETE', `/api/sessions/${free.session.id}`)).status).toBe(200)
   })
 })
+
+describe('reporter une session (US-022)', () => {
+  async function withCast() {
+    const s = await aliceSession()
+    const photoUrl = `/api/uploads/session-assignment-photos/report-${s.key}.png`
+    await prisma.uploadedFile.create({ data: { kind: 'session-assignment-photo', filename: `report-${s.key}.png`, url: photoUrl, gameId: s.game.id, sessionId: s.session.id } })
+    await prisma.sessionParticipant.createMany({ data: [{ sessionId: s.session.id, participantId: s.lea.id, role: 'participant' }, { sessionId: s.session.id, participantId: s.noe.id, role: 'npc' }] })
+    await prisma.sessionAssignment.createMany({
+      data: [
+        { sessionId: s.session.id, characterId: s.aube.id, participantId: s.lea.id, photoUrl, notes: 'Arrive tard' },
+        { sessionId: s.session.id, characterId: s.garde.id, participantId: s.noe.id }
+      ]
+    })
+    return { ...s, photoUrl }
+  }
+
+  it('recopie l’équipe et le casting sur une nouvelle session, et lie les deux', async () => {
+    const s = await withCast()
+    const response = await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, { name: `Report ${s.key}`, date: '2027-03-01T10:00:00.000Z' })
+    expect(response.status).toBe(200)
+    const created = response.body as { id: string }
+
+    const old = await prisma.session.findUniqueOrThrow({ where: { id: s.session.id } })
+    expect(old).toMatchObject({ status: 'postponed', postponedToSessionId: created.id })
+    const copy = await prisma.session.findUniqueOrThrow({ where: { id: created.id }, include: { participants: true, assignments: true } })
+    expect(copy).toMatchObject({ gameId: s.game.id, status: 'scheduled' })
+    expect(copy.participants.map((p) => [p.participantId, p.role]).sort()).toEqual([[s.lea.id, 'participant'], [s.noe.id, 'npc']].sort())
+    expect(copy.assignments.find((a) => a.characterId === s.aube.id)).toMatchObject({ participantId: s.lea.id, photoUrl: s.photoUrl, notes: 'Arrive tard' })
+
+    // La photo survit à la suppression de l'ancienne session
+    expect((await api(alice, 'DELETE', `/api/sessions/${s.session.id}`)).status).toBe(200)
+    expect(await prisma.uploadedFile.findUnique({ where: { url: s.photoUrl } })).not.toBeNull()
+  })
+
+  it('refuse de reporter une session déjà reportée', async () => {
+    const s = await withCast()
+    expect((await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, { name: `Report ${s.key}` })).status).toBe(200)
+    expect((await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, { name: `Encore ${s.key}` })).status).toBe(409)
+  })
+})

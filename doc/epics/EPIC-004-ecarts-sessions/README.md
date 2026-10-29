@@ -21,7 +21,7 @@ Aligner le code sur [SPEC-004](../../specs/SPEC-004-sessions.md) : corriger ses 
 | [US-019](US-019-session-visible-sur-la-page-publique.md) | Choisir si une session est visible sur la page publique | terminée |
 | [US-020](US-020-statuts-d-une-session.md) | Statuts réversibles et session terminée hors des listes courantes | terminée |
 | [US-021](US-021-supprimer-oriente-vers-l-annulation.md) | Supprimer une session oriente vers l’annulation ou le report | terminée |
-| [US-022](US-022-reporter-une-session.md) | Reporter une session | à faire |
+| [US-022](US-022-reporter-une-session.md) | Reporter une session | terminée |
 | [US-023](US-023-suivre-les-remboursements.md) | Suivre les remboursements d’une session annulée ou reportée | à faire |
 | [US-024](US-024-confirmer-sa-presence.md) | Confirmer sa présence à une session reportée | à faire |
 | [US-025](US-025-prevenir-de-l-annulation.md) | Prévenir l’équipe de l’annulation d’une session | à faire |

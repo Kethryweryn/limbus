@@ -209,6 +209,13 @@ export const timelineEventSchema = z.object({
   itemIds: z.array(requiredId('Item')).optional().default([])
 })
 
+// Report d'une session sur une nouvelle session (US-022)
+export const sessionPostponeSchema = z.object({
+  name: requiredText('Name'),
+  date: optionalText,
+  locationId: optionalText
+})
+
 export const sessionTimelineSchema = z.object({
   assignments: z.array(z.object({
     timelineEventId: requiredId('TimelineEvent'),

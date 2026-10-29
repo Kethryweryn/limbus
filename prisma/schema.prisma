@@ -226,6 +226,10 @@ model Session {
   updatedAt   DateTime   @updatedAt
   // Visible sur la page publique du jeu (US-019) ; non visible par défaut
   published   Boolean    @default(false)
+  // Session sur laquelle celle-ci a été reportée (US-022, ADR-0029)
+  postponedToSessionId String?   @unique
+  postponedTo          Session?  @relation("SessionPostponements", fields: [postponedToSessionId], references: [id], onDelete: SetNull)
+  postponedFrom        Session?  @relation("SessionPostponements")
 
   assignments SessionAssignment[]
   participants SessionParticipant[]
