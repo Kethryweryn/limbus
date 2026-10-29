@@ -198,7 +198,7 @@ Tri fait le 29 octobre 2026.
 
 | N° | Décision | Suite |
 |---|---|---|
-| R-05 | Faire maintenant | Opération serveur. La rotation par Claude a été bloquée (écriture d'un secret) : elle est laissée à l'utilisatrice, avec [`scripts/rotate-smtp-secret.mjs`](../../scripts/rotate-smtp-secret.mjs), qui rechiffre le mot de passe SMTP sans l'afficher. **Fait** le 29 octobre par l'utilisatrice. Le secret a changé, le service a redémarré, et le mot de passe SMTP se déchiffre avec le nouveau secret (vérifié sans l'afficher). Il doit être sauvegardé dans Proton Pass, ce que fait l'utilisatrice. |
+| R-05 | Faire maintenant | Opération serveur. La rotation par Claude a été bloquée (écriture d'un secret) : elle est laissée à l'utilisatrice, avec [`scripts/rotate-smtp-secret.mjs`](../../scripts/rotate-smtp-secret.mjs), qui rechiffre le mot de passe SMTP sans l'afficher. **Fait** le 29 octobre par l'utilisatrice. Le secret a changé, le service a redémarré, et le mot de passe SMTP se déchiffre avec le nouveau secret (vérifié sans l'afficher). Sa sauvegarde dans Proton Pass est faite par l'utilisatrice et n'a pas été vérifiée ici. |
 | R-04 | Faire maintenant | **Fait** le 29 octobre. `xargos` a reçu une clé dédiée avec phrase de passe, toutes deux à conserver dans Proton Pass. Ensuite `PasswordAuthentication no` et `KbdInteractiveAuthentication no` (`/etc/ssh/sshd_config.d/50-cles-uniquement.conf`). Une tentative par mot de passe est refusée. Décision : [ADR-0026](../adr/ADR-0026-acces-ssh-au-serveur.md). |
 | R-06 | Faire maintenant | **Fait** le 29 octobre : `Options -Indexes` sur `/files/` dans le vhost jdmottot.fr. Le listage répond 403, les liens directs 200. |
 | R-01 | Fiche todo | [Durcissement web](../todo/durcissement-web.md) |
