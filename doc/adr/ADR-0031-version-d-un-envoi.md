@@ -3,7 +3,7 @@ id: ADR-0031
 titre: Un envoi garde l'empreinte de la version envoyée
 statut: accepté
 date: 2026-10-29
-liens: [../specs/SPEC-006-emails-et-paiements.md, ../epics/EPIC-006-ecarts-envois-et-paiements/US-030-renvoyer-la-version-a-jour.md]
+liens: [../specs/SPEC-006-emails-et-paiements.md, ../archive/epics/EPIC-006-ecarts-envois-et-paiements/US-030-renvoyer-la-version-a-jour.md]
 ---
 
 # ADR-0031 : Un envoi garde l'empreinte de la version envoyée

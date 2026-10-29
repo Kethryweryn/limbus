@@ -10,7 +10,7 @@ adr: [ADR-0004, ADR-0008, ADR-0031, ADR-0032]
 
 # SPEC-006 : Envois d'emails et suivi des paiements
 
-Cette spec décrit un comportement déjà en production, avant la reprise du développement ([Documentation de l'existant](../archive/todo/documentation-de-l-existant.md)). Elle n'a ni epic ni US. Les écarts constatés entre le code et l'intention sont listés à la fin, sans être corrigés.
+Cette spec décrit un comportement déjà en production, avant la reprise du développement ([Documentation de l'existant](../archive/todo/documentation-de-l-existant.md)). Les écarts constatés entre le code et l'intention, listés à la fin, sont corrigés par [EPIC-006](../archive/epics/EPIC-006-ecarts-envois-et-paiements/README.md).
 
 ## Objectif
 
@@ -70,20 +70,20 @@ Remettre à chaque personne d'une session ce qui la concerne, par email : docume
 - **R10** Les fiches partent aux personnes castées dont le personnage, PJ ou PNJ, est « prêt à envoyer », avec le PDF de la fiche ([SPEC-005](SPEC-005-trombinoscopes-et-pdf.md), R11). Les trombinoscopes partent aux personnes dont le trombinoscope a été généré, avec son PDF.
 - **R11** L'envoi groupé « fiches et trombis » part aux personnes dont la fiche est prête et le trombinoscope généré, et qui n'ont pas déjà reçu les deux. Il note à la fois la fiche, le trombinoscope et l'ensemble comme envoyés. Une personne qui a reçu fiche et trombinoscope séparément compte comme ayant reçu l'ensemble.
 - **R12** Chaque envoi ne part qu'aux destinataires manquants. Seule exception, l'envoi groupé (R11) : à une personne qui n'a reçu que la fiche ou que le trombinoscope, il renvoie les deux.
-- **R12b** Un envoi garde l'empreinte de la version envoyée ([ADR-0031](../adr/ADR-0031-version-d-un-envoi.md)) : le tableau signale une version dépassée. « Renvoyer » renvoie la version actuelle à une personne qui l'a déjà reçue ; « Renvoyer la version à jour », par document, pour les fiches ou pour les trombinoscopes, la renvoie aux seules personnes dont la version est dépassée. L'email renvoyé a un objet préfixé « Mise à jour : » et dit qu'il remplace le précédent. Un trombinoscope périmé doit être généré à nouveau avant d'être renvoyé ([US-030](../epics/EPIC-006-ecarts-envois-et-paiements/US-030-renvoyer-la-version-a-jour.md)).
-- **R13** Un échec d'envoi à une personne n'arrête pas les autres : les personnes qui n'ont rien reçu sont listées. Si aucun email n'est parti à cause d'échecs, l'envoi est en erreur ([US-029](../epics/EPIC-006-ecarts-envois-et-paiements/US-029-echecs-d-envoi-non-bloquants.md)).
+- **R12b** Un envoi garde l'empreinte de la version envoyée ([ADR-0031](../adr/ADR-0031-version-d-un-envoi.md)) : le tableau signale une version dépassée. « Renvoyer » renvoie la version actuelle à une personne qui l'a déjà reçue ; « Renvoyer la version à jour », par document, pour les fiches ou pour les trombinoscopes, la renvoie aux seules personnes dont la version est dépassée. L'email renvoyé a un objet préfixé « Mise à jour : » et dit qu'il remplace le précédent. Un trombinoscope périmé doit être généré à nouveau avant d'être renvoyé ([US-030](../archive/epics/EPIC-006-ecarts-envois-et-paiements/US-030-renvoyer-la-version-a-jour.md)).
+- **R13** Un échec d'envoi à une personne n'arrête pas les autres : les personnes qui n'ont rien reçu sont listées. Si aucun email n'est parti à cause d'échecs, l'envoi est en erreur ([US-029](../archive/epics/EPIC-006-ecarts-envois-et-paiements/US-029-echecs-d-envoi-non-bloquants.md)).
 
 ### Paiements
 
-- **R14** Sans tarif (mode simple), le tableau des paiements liste les personnes qui jouent un personnage PJ ou PNJ dans la session, les inscrits confirmés sans personnage (« personnage à attribuer ») et les membres de rôle PNJ, même sans personnage ([SPEC-001](SPEC-001-inscriptions.md), R22) ; la cuisine et les organisateurs sans personnage n'y sont pas. Dès qu'un tarif existe (mode tarifs), toute l'équipe de la session y est, orgas et cuisine compris ([US-031](../epics/EPIC-006-ecarts-envois-et-paiements/US-031-tarifs-d-une-session.md)).
+- **R14** Sans tarif (mode simple), le tableau des paiements liste les personnes qui jouent un personnage PJ ou PNJ dans la session, les inscrits confirmés sans personnage (« personnage à attribuer ») et les membres de rôle PNJ, même sans personnage ([SPEC-001](SPEC-001-inscriptions.md), R22) ; la cuisine et les organisateurs sans personnage n'y sont pas. Dès qu'un tarif existe (mode tarifs), toute l'équipe de la session y est, orgas et cuisine compris ([US-031](../archive/epics/EPIC-006-ecarts-envois-et-paiements/US-031-tarifs-d-une-session.md)).
 - **R15** En mode simple, un paiement est « payé » avec sa date, ou « non payé » : l'organisatrice le valide ou annule la validation à la main ; seules les personnes du tableau peuvent l'être.
 - **R15b** Une session a des tarifs nommés, en euros ([ADR-0032](../adr/ADR-0032-tarifs-et-versements.md)). Un tarif peut s'appliquer par défaut à un rôle (PJ, PNJ, orga, cuisine), un seul tarif par rôle ; chaque personne reçoit le tarif du premier de ses rôles qui en a un, dans cet ordre, et l'organisatrice peut lui en choisir un autre. Sans tarif, la personne n'a rien à payer.
-- **R15c** En mode tarifs, l'organisatrice note chaque versement (montant, date) ; le reçu est leur somme. L'état est calculé : payé quand le reçu atteint le dû, partiel entre les deux, non payé à zéro, rien à payer quand le dû est nul. Un paiement validé en mode simple, sans versement, reste payé. Le tableau donne le dû, le reçu et le reste de chaque personne et de la session ([US-032](../epics/EPIC-006-ecarts-envois-et-paiements/US-032-versements-et-etat-calcule.md)). Il n'y a pas de moyen de paiement.
-- **R15d** Places solidaires : un tarif peut désigner un tarif de base ; il est de soutien s'il est plus cher, réduit s'il l'est moins. Le tableau affiche l'apport des soutiens (attribué et encaissé, soit la part des versements au-delà de la base), le coût des réductions attribuées et les deux soldes. L'organisatrice attribue les réductions à la main ([US-033](../epics/EPIC-006-ecarts-envois-et-paiements/US-033-places-solidaires.md)).
+- **R15c** En mode tarifs, l'organisatrice note chaque versement (montant, date) ; le reçu est leur somme. L'état est calculé : payé quand le reçu atteint le dû, partiel entre les deux, non payé à zéro, rien à payer quand le dû est nul. Un paiement validé en mode simple, sans versement, reste payé. Le tableau donne le dû, le reçu et le reste de chaque personne et de la session ([US-032](../archive/epics/EPIC-006-ecarts-envois-et-paiements/US-032-versements-et-etat-calcule.md)). Il n'y a pas de moyen de paiement.
+- **R15d** Places solidaires : un tarif peut désigner un tarif de base ; il est de soutien s'il est plus cher, réduit s'il l'est moins. Le tableau affiche l'apport des soutiens (attribué et encaissé, soit la part des versements au-delà de la base), le coût des réductions attribuées et les deux soldes. L'organisatrice attribue les réductions à la main ([US-033](../archive/epics/EPIC-006-ecarts-envois-et-paiements/US-033-places-solidaires.md)).
 - **R16** Un paiement reçu (case cochée ou versement) d'une personne qui n'est plus dans le tableau (désistement, rôle retiré) reste affiché à part, hors du décompte et des envois, pour être remboursé ou gardé à la main.
-- **R17** La demande de paiement part aux personnes du tableau qui n'ont pas payé. Elle donne le nom de la session et du jeu, le lien de paiement et le lien du RIB s'ils existent ; un RIB téléversé est joint en PDF.
-- **R18** La première demande est un « Paiement ». Tout envoi suivant à la même personne est une « Relance », avec une autre formule. Le tableau garde la date de la première demande et celle de la dernière relance.
-- **R19** Un échec d'envoi à une personne n'arrête pas les autres : les personnes qui n'ont rien reçu sont listées. Si aucun email n'est parti, l'envoi est en erreur.
+- **R17** La demande de paiement part aux personnes du tableau qui doivent encore quelque chose : non payées en mode simple ; avec un reste dû en mode tarifs, paiement partiel compris, jamais une personne qui n'a rien à payer. Elle donne le nom de la session et du jeu, le lien de paiement et le lien du RIB s'ils existent ; un RIB téléversé est joint en PDF. En mode tarifs, elle donne aussi le tarif et le montant ([US-034](../archive/epics/EPIC-006-ecarts-envois-et-paiements/US-034-demandes-et-relances-avec-montants.md)).
+- **R18** La première demande est un « Paiement ». Tout envoi suivant à la même personne est une « Relance », avec une autre formule. Après un versement, l'email rappelle le dû, le déjà reçu et le reste à payer. Le tableau garde la date de la première demande et celle de la dernière relance.
+- **R19** Comme pour les autres envois (R13), un échec à une personne n'arrête pas les autres : les personnes qui n'ont rien reçu sont listées. Si aucun email n'est parti, l'envoi est en erreur.
 - **R20** Le RIB est un PDF (signature vérifiée, 10 Mo au plus) rattaché à la session, ou un lien http(s). Remplacé ou retiré, l'ancien fichier est supprimé ([ADR-0008](../adr/ADR-0008-fichiers-televerses.md)).
 
 ## Données
@@ -111,13 +111,11 @@ Remettre à chaque personne d'une session ce qui la concerne, par email : docume
 
 ## Écarts constatés
 
-Relevés le 29 octobre 2026 avec l'utilisatrice. Aucun n'est corrigé ici.
-
-1. **Renvoi (R12)** : il faut pouvoir renvoyer la version à jour d'un document, d'une fiche ou d'un trombinoscope, par exemple après une correction ou après la régénération des trombinoscopes qui suit un désistement. Aujourd'hui, une personne qui a reçu un envoi n'est plus jamais destinataire de ce type d'envoi.
-2. **Échecs d'envoi (R13)** : la règle voulue est celle des paiements (R19) : continuer avec les personnes suivantes, et lister celles qui n'ont rien reçu. Pour les documents, fiches et trombinoscopes, un échec arrête tout l'envoi, et l'interface ne dit pas qui a déjà reçu.
-3. **Montant (R15)** : un tarif, par session ou par personne, et le montant reçu devraient apparaître, dans le tableau comme dans l'email. Il faut aussi pouvoir noter un paiement partiel, et relancer la personne pour le reste dû.
+Relevés le 29 octobre 2026 avec l'utilisatrice, tous corrigés par [EPIC-006](../archive/epics/EPIC-006-ecarts-envois-et-paiements/README.md) : renvoi d'une version à jour (R12b), échecs d'envoi (R13), montant, tarifs et paiement partiel (R15b à R15d, R17, R18).
 
 ### Choix faits le 29 octobre 2026
+
+Gardés pour mémoire ; les règles ci-dessus les décrivent.
 
 Pour l'écart 1 (renvoi) :
 

@@ -20,7 +20,7 @@ En tant qu'organisatrice, je veux définir les tarifs de la PAF d'une session et
 
 ## Notes techniques
 
-- Table `SessionTariff`, colonne `SessionPayment.tariffId` ([ADR-0032](../../adr/ADR-0032-tarifs-et-versements.md)).
+- Table `SessionTariff`, colonne `SessionPayment.tariffId` ([ADR-0032](../../../adr/ADR-0032-tarifs-et-versements.md)).
 - Routes `POST /api/sessions/:id/tariffs`, `PUT` et `DELETE /api/sessions/:id/tariffs/:tariffId`, et le choix du tarif par `PUT /api/sessions/:id/payments/:participantId/tariff` ; ajoutées à `isolation.test.ts`.
 
 ## Tests

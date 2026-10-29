@@ -3,7 +3,7 @@ id: ADR-0032
 titre: Tarifs de session, versements et état de paiement calculé
 statut: accepté
 date: 2026-10-29
-liens: [../specs/SPEC-006-emails-et-paiements.md, ../epics/EPIC-006-ecarts-envois-et-paiements/README.md]
+liens: [../specs/SPEC-006-emails-et-paiements.md, ../archive/epics/EPIC-006-ecarts-envois-et-paiements/README.md]
 ---
 
 # ADR-0032 : Tarifs de session, versements et état de paiement calculé

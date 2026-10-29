@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildTariffPaymentRows } from '~/server/utils/sessionPayments'
-import { paymentState, solidarityBalance, tariffForPerson } from '~/utils/sessionTariffs'
+import { paymentAmountLines, paymentState, solidarityBalance, tariffForPerson } from '~/utils/sessionTariffs'
 
 const tariff = (id: string, amountCents: number, defaultRole: string | null = null, baseTariffId: string | null = null) =>
   ({ id, name: id, amountCents, defaultRole, baseTariffId })
@@ -85,3 +85,14 @@ describe('places solidaires (US-033)', () => {
     })
   })
 })
+
+describe('montants des emails de paiement (US-034)', () => {
+  it('donne le montant, puis le dû, le reçu et le reste après un versement', () => {
+    expect(paymentAmountLines({ tariffName: 'PJ', dueCents: 8000, receivedCents: 0, remainingCents: 8000 }).join(' ')).toMatch(/Montant : 80,00\s€ \(tarif PJ\)/)
+    const partial = paymentAmountLines({ tariffName: 'PJ', dueCents: 8000, receivedCents: 3000, remainingCents: 5000 }).join(' ')
+    expect(partial).toMatch(/Déjà reçu : 30,00\s€/)
+    expect(partial).toMatch(/Reste à payer : 50,00\s€/)
+    expect(paymentAmountLines(null)).toEqual([])
+  })
+})
+

@@ -150,3 +150,29 @@ describe('places solidaires (US-033)', () => {
   })
 })
 
+describe('demandes et relances avec montants (US-034)', () => {
+  it('relance un paiement partiel avec le reste dû, jamais une personne qui n’a rien à payer ou a tout payé', async () => {
+    const t = await team()
+    await api(alice, 'POST', `/api/sessions/${t.session.id}/tariffs`, { name: 'PJ', amount: 80, defaultRole: 'pj' })
+    await api(alice, 'POST', `/api/sessions/${t.session.id}/tariffs`, { name: 'PNJ', amount: 30, defaultRole: 'pnj' })
+    const mailsTo = (email: string) => smtp.received.filter((received) => received.to.includes(email))
+
+    const first = await api(alice, 'POST', `/api/sessions/${t.session.id}/payments/send`, {})
+    expect(first.status, JSON.stringify(first.body)).toBe(200)
+    expect(first.body).toMatchObject({ sentCount: 2 })
+    expect(mailsTo(t.player.email!).at(-1)!.text).toMatch(/Montant : 80,00\s€ \(tarif PJ\)/)
+    expect(mailsTo(t.orga.email!)).toHaveLength(0)
+    expect(mailsTo(t.cook.email!)).toHaveLength(0)
+
+    await api(alice, 'POST', `/api/sessions/${t.session.id}/payments/${t.player.id}/instalments`, { amount: 30 })
+    await api(alice, 'POST', `/api/sessions/${t.session.id}/payments/${t.npc.id}/instalments`, { amount: 30 })
+
+    const reminder = await api(alice, 'POST', `/api/sessions/${t.session.id}/payments/send`, {})
+    expect(reminder.body).toMatchObject({ sentCount: 1 })
+    const text = mailsTo(t.player.email!).at(-1)!.text
+    expect(text).toContain('Petit rappel')
+    expect(text).toMatch(/Reste à payer : 50,00\s€/)
+    expect(mailsTo(t.npc.email!)).toHaveLength(1)
+  })
+})
+

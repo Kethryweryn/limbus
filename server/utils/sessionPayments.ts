@@ -3,7 +3,7 @@ import { openEmailTransport, sendEmail } from '~/server/utils/email'
 import { CHARACTER_TYPES, REFUND_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
 import { readUpload } from '~/server/utils/uploads'
 import { isHttpUrl } from '~/utils/urls'
-import { PAYMENT_STATES, TARIFF_ROLES, TARIFF_ROLE_ORDER, eurosToCents, paymentState, solidarityBalance, tariffForPerson } from '~/utils/sessionTariffs'
+import { PAYMENT_STATES, TARIFF_ROLES, TARIFF_ROLE_ORDER, eurosToCents, paymentAmountLines, type PaymentAmounts, paymentState, solidarityBalance, tariffForPerson } from '~/utils/sessionTariffs'
 
 function compactLines(lines: Array<string | null | undefined>) {
   return lines.filter((line) => typeof line === 'string' && line.trim()).join('\n')
@@ -28,6 +28,13 @@ function isPlayableCharacterType(type: string) {
   return type === CHARACTER_TYPES.pj || type === CHARACTER_TYPES.pnj
 }
 
+const rowAmounts = (row: { tariff: { name: string } | null, dueCents: number, receivedCents: number, remainingCents: number }) =>
+  row.tariff ? { tariffName: row.tariff.name, dueCents: row.dueCents, receivedCents: row.receivedCents, remainingCents: row.remainingCents } : null
+
+// Doit encore quelque chose : reste dû en mode tarifs (paiement partiel compris), case non cochée en mode simple
+const owesPayment = (mode: string, row: { paidAt: Date | null, remainingCents: number, state: string }) =>
+  mode === 'tariffs' ? row.remainingCents > 0 && row.state !== PAYMENT_STATES.paid : !row.paidAt
+
 function paymentEmailText(params: {
   participantName: string
   sessionName: string
@@ -36,6 +43,7 @@ function paymentEmailText(params: {
   paymentRibUrl?: string | null
   ribAttached?: boolean
   reminder?: boolean
+  amounts?: PaymentAmounts | null
 }) {
   const intro = params.reminder
     ? `Petit rappel pour le paiement de ta participation à ${params.sessionName}.`
@@ -46,6 +54,7 @@ function paymentEmailText(params: {
     '',
     intro,
     `Jeu : ${params.gameTitle}`,
+    ...paymentAmountLines(params.amounts),
     params.paymentLinkUrl ? `Lien de paiement : ${params.paymentLinkUrl}` : null,
     params.paymentRibUrl ? `RIB : ${params.paymentRibUrl}` : null,
     params.ribAttached ? 'Le RIB est joint à cet email.' : null,
@@ -566,7 +575,7 @@ export async function sendSessionPaymentEmails(sessionId: string, reminder = fal
   const rows = participantId
     ? dashboard.rows.filter((row) => row.participant.id === participantId)
     : dashboard.rows
-  const recipients = rows.filter((row) => !row.paidAt && row.participant.email)
+  const recipients = rows.filter((row) => owesPayment(dashboard.mode, row) && row.participant.email)
   const skippedCount = rows.length - recipients.length
   if (!recipients.length) return { sentCount, skippedCount, failures }
 
@@ -589,7 +598,8 @@ export async function sendSessionPaymentEmails(sessionId: string, reminder = fal
             paymentLinkUrl: dashboard.session.paymentLinkUrl,
             paymentRibUrl: externalRibUrl(dashboard.session.paymentRibUrl),
             ribAttached: Boolean(rib),
-            reminder: isReminder
+            reminder: isReminder,
+            amounts: rowAmounts(row)
           }),
           attachments: rib ? [rib] : []
         })
@@ -646,7 +656,8 @@ export async function sendSessionPaymentTestEmails(sessionId: string, emails: st
       paymentLinkUrl: dashboard.session.paymentLinkUrl,
       paymentRibUrl: externalRibUrl(dashboard.session.paymentRibUrl),
       ribAttached: Boolean(rib),
-      reminder
+      reminder,
+      amounts: sample ? rowAmounts(sample) : null
     }),
     attachments: rib ? [rib] : []
   })

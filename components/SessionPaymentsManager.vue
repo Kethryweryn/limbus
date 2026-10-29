@@ -316,7 +316,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { REFUND_STATUSES, SESSION_STATUSES } from '~/utils/domain'
-import { PAYMENT_STATE_DISPLAY, PAYMENT_STATES, TARIFF_ROLE_LABELS, formatEuros } from '~/utils/sessionTariffs'
+import { PAYMENT_STATE_DISPLAY, PAYMENT_STATES, TARIFF_ROLE_LABELS, formatEuros, paymentAmountLines } from '~/utils/sessionTariffs'
 
 const props = defineProps({
   paymentsData: { type: Object, required: true },
@@ -392,6 +392,10 @@ const organizerEmails = computed(() =>
     .filter((recipient) => recipient.role === 'organizer' && recipient.participant?.email)
     .map((recipient) => recipient.participant.email)
 )
+// Montants de l'aperçu, comme dans l'email (US-034)
+const testAmountLines = (row) => tariffMode.value && row?.tariff
+  ? paymentAmountLines({ tariffName: row.tariff.name, dueCents: row.dueCents, receivedCents: row.receivedCents, remainingCents: row.remainingCents })
+  : []
 const testPreview = computed(() => ({
   subject: `[Test] ${testRow.value?.paymentEmailSentAt ? 'Relance paiement' : 'Paiement'} - ${props.paymentsData.session.name}`,
   body: [
@@ -401,6 +405,7 @@ const testPreview = computed(() => ({
       ? `Petit rappel pour le paiement de ta participation à ${props.paymentsData.session.name}.`
       : `Tu peux maintenant régler ta participation à ${props.paymentsData.session.name}.`,
     `Jeu : ${props.paymentsData.session.game?.title || ''}`,
+    ...testAmountLines(testRow.value),
     settings.paymentLinkUrl ? `Lien de paiement : ${settings.paymentLinkUrl}` : '',
     settings.paymentRibUrl ? 'Le RIB est joint à cet email.' : '',
     '',
@@ -623,7 +628,7 @@ function releaseCooldown(target) {
 }
 
 async function sendPaymentEmails() {
-  if (!confirm('Envoyer les emails de paiement aux participants impayés ?')) return
+  if (!confirm('Envoyer les demandes et relances de paiement aux personnes qui doivent encore quelque chose ?')) return
 
   sendingPaymentEmails.value = true
   try {

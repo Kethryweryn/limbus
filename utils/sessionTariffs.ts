@@ -90,3 +90,16 @@ export function solidarityBalance(rows: Array<{ tariff: TariffLike | null, recei
     balanceReceived: contributionReceived - reductionCost
   }
 }
+
+// Montants d'une demande ou d'une relance en mode tarifs (US-034) : la relance d'un paiement partiel rappelle le reste
+export type PaymentAmounts = { tariffName: string, dueCents: number, receivedCents: number, remainingCents: number }
+
+export function paymentAmountLines(amounts: PaymentAmounts | null | undefined) {
+  if (!amounts) return []
+  if (!amounts.receivedCents) return [`Montant : ${formatEuros(amounts.dueCents)} (tarif ${amounts.tariffName}).`]
+  return [
+    `Montant dû : ${formatEuros(amounts.dueCents)} (tarif ${amounts.tariffName}).`,
+    `Déjà reçu : ${formatEuros(amounts.receivedCents)}.`,
+    `Reste à payer : ${formatEuros(amounts.remainingCents)}.`
+  ]
+}

@@ -1,7 +1,7 @@
 ---
 id: US-034
 titre: Demandes et relances avec le montant et le reste dû
-statut: à faire
+statut: terminée
 epic: EPIC-006
 regles: [R17, R18]
 adr: [ADR-0032]
@@ -13,10 +13,10 @@ En tant qu'organisatrice, je veux que la demande de paiement et la relance donne
 
 ## Critères d'acceptation
 
-- [ ] En mode tarifs, la demande donne le tarif et le montant ; la relance rappelle le dû, le déjà reçu et le reste à payer.
-- [ ] Demandes et relances partent à toute personne qui doit encore quelque chose, paiement partiel compris ; une personne qui n'a rien à payer ou a tout payé n'en reçoit pas.
-- [ ] L'aperçu de l'email de test montre les montants de la personne choisie.
-- [ ] En mode simple, l'email reste celui d'aujourd'hui.
+- [x] En mode tarifs, la demande donne le tarif et le montant ; la relance rappelle le dû, le déjà reçu et le reste à payer.
+- [x] Demandes et relances partent à toute personne qui doit encore quelque chose, paiement partiel compris ; une personne qui n'a rien à payer ou a tout payé n'en reçoit pas.
+- [x] L'aperçu de l'email de test montre les montants de la personne choisie.
+- [x] En mode simple, l'email reste celui d'aujourd'hui.
 
 ## Notes techniques
 

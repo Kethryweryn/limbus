@@ -13,7 +13,7 @@ En tant qu'organisatrice, je veux renvoyer la version corrigée d'un document, d
 
 ## Critères d'acceptation
 
-- [x] Chaque envoi garde l'empreinte de la version envoyée ([ADR-0031](../../adr/ADR-0031-version-d-un-envoi.md)) ; le tableau des documents signale « version dépassée » pour une personne qui a reçu une version plus ancienne.
+- [x] Chaque envoi garde l'empreinte de la version envoyée ([ADR-0031](../../../adr/ADR-0031-version-d-un-envoi.md)) ; le tableau des documents signale « version dépassée » pour une personne qui a reçu une version plus ancienne.
 - [x] Un bouton « Renvoyer » sur chaque envoi déjà fait renvoie la version actuelle à cette personne.
 - [x] Un bouton « Renvoyer la version à jour » par document, pour les fiches et pour les trombinoscopes, renvoie aux seules personnes dont la version est dépassée.
 - [x] L'email renvoyé a un objet préfixé « Mise à jour : » et dit que cette version remplace la précédente.
@@ -22,7 +22,7 @@ En tant qu'organisatrice, je veux renvoyer la version corrigée d'un document, d
 
 ## Notes techniques
 
-- Colonne `SessionDocumentDelivery.contentHash String?` : ajout seul ([ADR-0024](../../adr/ADR-0024-migrations-compatibles-avec-le-build-en-service.md)).
+- Colonne `SessionDocumentDelivery.contentHash String?` : ajout seul ([ADR-0024](../../../adr/ADR-0024-migrations-compatibles-avec-le-build-en-service.md)).
 - Route `POST /api/sessions/:id/documents/resend` (type, document, personne facultative), schéma zod, verrou d'envoi et limite de fréquence ; ajoutée à `isolation.test.ts`.
 
 ## Tests
