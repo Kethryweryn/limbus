@@ -7,3 +7,4 @@ Fonctionnalités validées, décrites telles qu'elles marchent. Modèle : [`../m
 | [SPEC-001](SPEC-001-inscriptions.md) | Inscriptions, sélection et aide au casting | validée | [EPIC-001](../archive/epics/EPIC-001-inscription-sur-invitation/README.md) ; lots 2 à 6 à découper |
 | [SPEC-002](SPEC-002-copie-de-jeu.md) | Copie d'un jeu pour le léguer à une autre équipe | validée | [EPIC-002](../archive/epics/EPIC-002-legs-de-jeu/README.md) |
 | [SPEC-003](SPEC-003-ecriture-d-un-jeu.md) | Écriture d'un jeu (existant) | validée | aucun : décrit l'existant ([fiche](../todo/documentation-de-l-existant.md)) |
+| [SPEC-004](SPEC-004-sessions.md) | Sessions, casting et chronologie de déroulé (existant) | validée | aucun : décrit l'existant ([fiche](../todo/documentation-de-l-existant.md)) |
