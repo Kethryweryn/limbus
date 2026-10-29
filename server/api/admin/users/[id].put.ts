@@ -11,13 +11,6 @@ export default defineEventHandler(async (event) => {
   const id = requireRouterParam(event, 'id')
 
   const body = await readZodBody(event, userUpdateSchema)
-  // Limbus garde toujours une administratrice (US-043) : la dernière ne perd pas son rôle
-  if (body.role && body.role !== USER_ROLES.admin) {
-    const target = await prisma.user.findUnique({ where: { id }, select: { role: true } })
-    if (target?.role === USER_ROLES.admin && await prisma.user.count({ where: { role: USER_ROLES.admin } }) <= 1) {
-      throw createError({ statusCode: 409, message: 'C’est la dernière administratrice : nommez-en une autre avant de lui retirer ce rôle.' })
-    }
-  }
   const data: Record<string, unknown> = {
     email: body.email,
     name: body.name,
@@ -30,16 +23,25 @@ export default defineEventHandler(async (event) => {
     data.sessionVersion = { increment: 1 }
   }
 
-  return await prisma.user.update({
-    where: { id },
-    data,
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-      createdAt: true,
-      updatedAt: true
+  const select = { id: true, email: true, name: true, role: true, createdAt: true, updatedAt: true }
+  if (!body.role || body.role === USER_ROLES.admin) {
+    return await prisma.user.update({ where: { id }, data, select })
+  }
+
+  // Limbus garde toujours une administratrice (US-043). En transaction sérialisable : deux administratrices
+  // qui se retirent leur rôle en même temps ne passent pas toutes les deux
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({ where: { id }, data, select })
+      if (!await tx.user.count({ where: { role: USER_ROLES.admin } })) {
+        throw createError({ statusCode: 409, message: 'C’est la dernière administratrice : nommez-en une autre avant de lui retirer ce rôle.' })
+      }
+      return updated
+    }, { isolationLevel: 'Serializable' })
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2034') {
+      throw createError({ statusCode: 409, message: 'Un autre changement de rôle est en cours : réessayez.' })
     }
-  })
+    throw error
+  }
 })
