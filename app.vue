@@ -96,7 +96,8 @@ const pendingSyncCount = ref(0)
 const syncErrors = ref<string[]>([])
 const route = useRoute()
 const isPublicRoute = computed(() => route.path.startsWith('/public/') || route.path.startsWith('/invitations/'))
-const isPersonalLinkRoute = computed(() => route.path.startsWith('/inscription/'))
+// Liens personnels d'inscription (US-004) et de confirmation de présence (US-024)
+const isPersonalLinkRoute = computed(() => route.path.startsWith('/inscription/') || route.path.startsWith('/presence/'))
 let authCheckInProgress = false
 
 function hasValidOfflineAuth() {

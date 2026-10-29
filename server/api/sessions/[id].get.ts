@@ -18,6 +18,9 @@ export default defineEventHandler(async (event) => {
     include: {
       game: true,
       location: true,
+      // Report (US-022) : session de destination et d'origine
+      postponedTo: { select: { id: true, slug: true, name: true, date: true } },
+      postponedFrom: { select: { id: true, slug: true, name: true, date: true } },
       participants: {
         include: {
           participant: true

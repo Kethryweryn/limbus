@@ -1,6 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { openEmailTransport, sendEmail } from '~/server/utils/email'
-import { CHARACTER_TYPES, SESSION_ROLES } from '~/utils/domain'
+import { CHARACTER_TYPES, REFUND_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
 import { readUpload } from '~/server/utils/uploads'
 import { isHttpUrl } from '~/utils/urls'
 
@@ -112,6 +112,61 @@ export function buildPaymentRows<P extends PaymentParticipant, C extends { name:
 
 const participantSelect = { id: true, name: true, email: true } as const
 
+export const REFUNDABLE_SESSION_STATUSES: string[] = [SESSION_STATUSES.cancelled, SESSION_STATUSES.postponed]
+
+/**
+ * Remboursement d'un paiement d'une session annulée ou reportée (US-023, ADR-0029). « Reporté » marque la
+ * personne comme ayant payé sur la nouvelle session, à la date d'origine, si elle est dans son tableau.
+ * Revenir sur un report ne retire pas le paiement de la nouvelle session : on le corrige depuis celle-ci.
+ */
+export async function setSessionPaymentRefund(sessionId: string, participantId: string, status: string | null) {
+  const session = await prisma.session.findUniqueOrThrow({ where: { id: sessionId }, select: { status: true, postponedToSessionId: true } })
+  if (!REFUNDABLE_SESSION_STATUSES.includes(session.status)) {
+    throw createError({ statusCode: 409, message: 'Le remboursement ne se suit que pour une session annulée ou reportée.' })
+  }
+  const payment = await prisma.sessionPayment.findUnique({ where: { sessionId_participantId: { sessionId, participantId } } })
+  if (!payment?.paidAt) {
+    throw createError({ statusCode: 400, message: 'Cette personne n’a pas payé cette session.' })
+  }
+
+  if (status === REFUND_STATUSES.carriedOver) {
+    const targetId = session.postponedToSessionId
+    if (!targetId) {
+      throw createError({ statusCode: 400, message: 'Cette session n’a pas été reportée : le paiement ne peut pas passer sur une autre session.' })
+    }
+    const target = await getPaymentSession(targetId)
+    const inTarget = buildPaymentRows(target.assignments, target.participants, target.payments)
+      .some((row) => row.participant.id === participantId)
+    if (!inTarget) {
+      throw createError({ statusCode: 400, message: 'Cette personne ne fait pas partie du tableau des paiements de la nouvelle session.' })
+    }
+    return await prisma.$transaction(async (tx) => {
+      // Un paiement déjà reçu sur la nouvelle session garde sa date
+      const existing = await tx.sessionPayment.findUnique({ where: { sessionId_participantId: { sessionId: targetId, participantId } } })
+      if (!existing?.paidAt) {
+        await tx.sessionPayment.upsert({
+          where: { sessionId_participantId: { sessionId: targetId, participantId } },
+          create: { sessionId: targetId, participantId, paidAt: payment.paidAt },
+          update: { paidAt: payment.paidAt }
+        })
+      }
+      return await tx.sessionPayment.update({
+        where: { id: payment.id },
+        data: { refundStatus: status, refundedAt: null, carriedOverToSessionId: targetId }
+      })
+    })
+  }
+
+  return await prisma.sessionPayment.update({
+    where: { id: payment.id },
+    data: {
+      refundStatus: status,
+      refundedAt: status === REFUND_STATUSES.refunded ? new Date() : null,
+      carriedOverToSessionId: null
+    }
+  })
+}
+
 async function getPaymentSession(sessionId: string) {
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
@@ -151,16 +206,32 @@ export async function getSessionPaymentDashboard(sessionId: string) {
     .filter((payment) => payment.paidAt && !listed.has(payment.participantId))
     .map((payment) => ({ participant: payment.participant, paidAt: payment.paidAt }))
 
+  // Session annulée ou reportée : chaque paiement reçu se rembourse ou passe sur la nouvelle session (US-023)
+  const refunds = REFUNDABLE_SESSION_STATUSES.includes(session.status)
+    ? session.payments
+      .filter((payment) => payment.paidAt)
+      .map((payment) => ({
+        participant: payment.participant,
+        paidAt: payment.paidAt,
+        refundStatus: payment.refundStatus,
+        refundedAt: payment.refundedAt
+      }))
+      .sort((left, right) => left.participant.name.localeCompare(right.participant.name, 'fr'))
+    : []
+
   return {
     session: {
       id: session.id,
       name: session.name,
       date: session.date,
+      status: session.status,
+      postponedToSessionId: session.postponedToSessionId,
       paymentRibUrl: session.paymentRibUrl,
       paymentLinkUrl: session.paymentLinkUrl,
       game: session.game
     },
     unassignedPayments,
+    refunds,
     sessionRoleRecipients: session.participants.map((sessionParticipant) => ({
       role: sessionParticipant.role,
       participant: sessionParticipant.participant
@@ -173,12 +244,16 @@ export async function updateSessionPaymentSettings(sessionId: string, data: {
   paymentRibUrl?: string | null
   paymentLinkUrl?: string | null
 }) {
+  // Les paiements ne font pas partie de la version de la session (ADR-0028) : updatedAt est gardé,
+  // sinon le casting enregistré ensuite depuis la même page serait refusé comme un conflit
+  const { updatedAt } = await prisma.session.findUniqueOrThrow({ where: { id: sessionId }, select: { updatedAt: true } })
   return await prisma.session.update({
     where: { id: sessionId },
     // Un champ absent est conservé : modifier le lien de paiement ne retire pas le RIB
     data: {
       ...(data.paymentRibUrl !== undefined && { paymentRibUrl: data.paymentRibUrl || null }),
-      ...(data.paymentLinkUrl !== undefined && { paymentLinkUrl: data.paymentLinkUrl || null })
+      ...(data.paymentLinkUrl !== undefined && { paymentLinkUrl: data.paymentLinkUrl || null }),
+      updatedAt
     },
     select: {
       id: true,

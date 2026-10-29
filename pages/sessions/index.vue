@@ -10,6 +10,8 @@
       </UButton>
     </div>
 
+    <UAlert v-if="deleteError" color="error" variant="soft" :description="deleteError" class="mb-4" />
+
     <div class="flex flex-col md:flex-row gap-4 mb-4">
       <UInput v-model="searchQuery" placeholder="Rechercher une session..." icon="i-heroicons-magnifying-glass" />
       <USelect
@@ -49,6 +51,9 @@
                 <div>
                   <UBadge :color="statusMeta(session.status).color" variant="subtle" size="xs">
                     {{ statusMeta(session.status).label }}
+                  </UBadge>
+                  <UBadge v-if="session.published" color="primary" variant="outline" size="xs" class="ml-1">
+                    Visible sur la page publique
                   </UBadge>
                 </div>
                 <div class="flex flex-wrap gap-2">
@@ -184,7 +189,7 @@ import GameContextBar from '@/components/GameContextBar.vue'
 import SessionForm from '@/components/SessionForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import { isOfflineMode } from '~/utils/connection'
-import { CHARACTER_TYPES, SESSION_ROLES, SESSION_STATUSES, SESSION_STATUS_META } from '~/utils/domain'
+import { CHARACTER_TYPES, SESSION_ROLES, SESSION_STATUSES, SESSION_STATUS_META, isClosedSessionStatus } from '~/utils/domain'
 import { getFromStore, saveToStore } from '~/utils/storage'
 
 const sessions = ref([])
@@ -193,6 +198,7 @@ const characters = ref([])
 const locations = ref([])
 const participants = ref([])
 const searchQuery = ref('')
+const deleteError = ref('')
 const gameFilter = ref('all')
 const periodFilter = ref('future')
 const isOffline = ref(false)
@@ -234,13 +240,14 @@ const nowTime = computed(() => Date.now())
 
 const futureSessions = computed(() =>
   filteredSessions.value
-    .filter((session) => !session.date || sessionTime(session) >= nowTime.value)
+    .filter((session) => !isClosedSessionStatus(session.status) && (!session.date || sessionTime(session) >= nowTime.value))
     .sort((a, b) => sessionTime(a) - sessionTime(b))
 )
 
 const pastSessions = computed(() =>
   filteredSessions.value
-    .filter((session) => session.date && sessionTime(session) < nowTime.value)
+    // Annulée ou terminée : rangée avec les passées, quelle que soit sa date (US-020)
+    .filter((session) => isClosedSessionStatus(session.status) || (session.date && sessionTime(session) < nowTime.value))
     .sort((a, b) => sessionTime(b) - sessionTime(a))
 )
 
@@ -446,7 +453,7 @@ function startCreate() {
     date: '',
     locationId: '',
     status: SESSION_STATUSES.scheduled,
-    published: true,
+    published: false,
     organizerIds: [],
     npcIds: [],
     kitchenIds: [],
@@ -488,7 +495,14 @@ async function handleSessionFormSubmit() {
 async function deleteSession(id) {
   if (!confirm('Supprimer cette session ?')) return
 
-  await useApiFetch(`/api/sessions/${id}`, { method: 'DELETE' })
+  deleteError.value = ''
+  try {
+    await useApiFetch(`/api/sessions/${id}`, { method: 'DELETE' })
+  } catch (error) {
+    // Paiements ou inscriptions : refus qui oriente vers l'annulation ou le report (US-021)
+    deleteError.value = error?.data?.message || error?.message || 'Impossible de supprimer la session'
+    return
+  }
   await fetchSessions()
 }
 </script>

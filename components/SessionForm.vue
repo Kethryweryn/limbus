@@ -35,6 +35,12 @@
         <UInput v-model="localSession.date" type="datetime-local" size="lg" class="w-full" />
       </UFormField>
 
+      <AppCheckboxRow
+        v-model="localSession.published"
+        label="Visible sur la page publique"
+        description="La session pourra apparaître sur la page publique du jeu, quand celle-ci montrera les sessions à venir."
+      />
+
       <UFormField label="Lieu">
         <USelect
           v-model="localSession.locationId"

@@ -11,6 +11,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-001](../archive/epics/EPIC-001-inscription-sur-invitation/README.md) | Période d'inscription et mode invitation | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 | [EPIC-002](../archive/epics/EPIC-002-legs-de-jeu/README.md) | Léguer une copie d'un jeu à une autre équipe | [SPEC-002](../specs/SPEC-002-copie-de-jeu.md) | terminé |
 | [EPIC-003](../archive/epics/EPIC-003-ecarts-ecriture-d-un-jeu/README.md) | Corriger les écarts de l'écriture d'un jeu | [SPEC-003](../specs/SPEC-003-ecriture-d-un-jeu.md) | terminé |
+| [EPIC-004](../archive/epics/EPIC-004-ecarts-sessions/README.md) | Corriger les écarts des sessions | [SPEC-004](../specs/SPEC-004-sessions.md) | terminé |
 
 ## US
 
@@ -32,3 +33,12 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-014](../archive/epics/EPIC-003-ecarts-ecriture-d-un-jeu/US-014-quantite-d-un-objet.md) | Saisir la quantité d'un objet | EPIC-003 | terminée |
 | [US-015](../archive/epics/EPIC-003-ecarts-ecriture-d-un-jeu/US-015-intrigue-sans-pret-a-envoyer.md) | Retirer « prête à envoyer » des intrigues | EPIC-003 | terminée |
 | [US-016](../archive/epics/EPIC-003-ecarts-ecriture-d-un-jeu/US-016-archiver-depublie-la-page.md) | Archiver un jeu dépublie sa page publique | EPIC-003 | terminée |
+| [US-017](../archive/epics/EPIC-004-ecarts-sessions/US-017-un-seul-pj-par-participant.md) | Un seul PJ par participant, réglable par jeu | EPIC-004 | terminée |
+| [US-018](../archive/epics/EPIC-004-ecarts-sessions/US-018-modifications-simultanees-d-une-session.md) | Modifications simultanées d’une session | EPIC-004 | terminée |
+| [US-019](../archive/epics/EPIC-004-ecarts-sessions/US-019-session-visible-sur-la-page-publique.md) | Choisir si une session est visible sur la page publique | EPIC-004 | terminée |
+| [US-020](../archive/epics/EPIC-004-ecarts-sessions/US-020-statuts-d-une-session.md) | Statuts réversibles et session terminée hors des listes courantes | EPIC-004 | terminée |
+| [US-021](../archive/epics/EPIC-004-ecarts-sessions/US-021-supprimer-oriente-vers-l-annulation.md) | Supprimer une session oriente vers l’annulation ou le report | EPIC-004 | terminée |
+| [US-022](../archive/epics/EPIC-004-ecarts-sessions/US-022-reporter-une-session.md) | Reporter une session | EPIC-004 | terminée |
+| [US-023](../archive/epics/EPIC-004-ecarts-sessions/US-023-suivre-les-remboursements.md) | Suivre les remboursements d’une session annulée ou reportée | EPIC-004 | terminée |
+| [US-024](../archive/epics/EPIC-004-ecarts-sessions/US-024-confirmer-sa-presence.md) | Confirmer sa présence à une session reportée | EPIC-004 | terminée |
+| [US-025](../archive/epics/EPIC-004-ecarts-sessions/US-025-prevenir-de-l-annulation.md) | Prévenir l’équipe de l’annulation d’une session | EPIC-004 | terminée |

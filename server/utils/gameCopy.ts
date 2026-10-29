@@ -16,7 +16,7 @@ import { isUploadUrl, PHOTO_UPLOAD_PREFIX } from '~/utils/urls'
  */
 export const GAME_COPY_FIELDS = {
   Game: {
-    copied: ['title', 'description', 'noteIntention', 'teaserUrl'],
+    copied: ['title', 'description', 'noteIntention', 'teaserUrl', 'singlePjPerParticipant'],
     remapped: [],
     relinked: ['characters', 'factions', 'intrigues', 'items', 'timelineEvents', 'documents', 'locations', 'uploadedFiles', 'registrationForm'],
     // La copie démarre active, sans page publique (R10), avec son propre crédit (R11 à R13)

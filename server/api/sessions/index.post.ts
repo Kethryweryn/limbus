@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
       date: parseDate(body.date),
       locationId: locationId || null,
       status,
-      published: published ?? true,
+      published: published ?? false,
       participants: {
         create: participants
       },

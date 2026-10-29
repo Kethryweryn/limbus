@@ -226,6 +226,7 @@ function startCreate() {
     description: '',
     noteIntention: '',
     publicPage: false,
+    singlePjPerParticipant: true,
     published: false
   }
   formMode.value = 'create'

@@ -102,7 +102,7 @@ Remettre à chaque personne d'une session ce qui la concerne, par email : docume
 - Emails de legs : [SPEC-002](SPEC-002-copie-de-jeu.md).
 - Invitations à co-organiser et comptes : [SPEC-008](SPEC-008-comptes-et-partage.md).
 - Paiement en ligne : Limbus donne un lien, mais n'encaisse rien.
-- Remboursement d'une session annulée ou reportée : fiche [Cycle de vie d'une session](../todo/cycle-de-vie-d-une-session.md).
+- Remboursement d'une session annulée ou reportée : [SPEC-004](SPEC-004-sessions.md), R16.
 
 ## Écarts constatés
 

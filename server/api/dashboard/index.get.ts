@@ -1,7 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { accessibleGameModelWhere, gameScopedWhere } from '~/server/utils/gameAccess'
-import { CHARACTER_TYPES, SESSION_STATUSES } from '~/utils/domain'
+import { CHARACTER_TYPES, CLOSED_SESSION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
@@ -55,7 +55,7 @@ export default defineEventHandler(async (event) => {
       where: {
         ...sessionWhere,
         date: { gte: now },
-        status: { not: SESSION_STATUSES.cancelled }
+        status: { notIn: CLOSED_SESSION_STATUSES }
       },
       orderBy: { date: 'asc' },
       include: {

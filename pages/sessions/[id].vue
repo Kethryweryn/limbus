@@ -11,10 +11,21 @@
           <span v-if="session?.date"> · {{ formatDate(session.date) }}</span>
           <span v-if="session?.location"> · {{ session.location.name }}</span>
         </p>
+        <p v-if="session?.postponedTo" class="text-sm">
+          Reportée sur
+          <NuxtLink :to="`/sessions/${session.postponedTo.slug}`" class="font-medium underline">{{ session.postponedTo.name }}</NuxtLink>
+        </p>
+        <p v-if="session?.postponedFrom" class="text-sm">
+          Report de
+          <NuxtLink :to="`/sessions/${session.postponedFrom.slug}`" class="font-medium underline">{{ session.postponedFrom.name }}</NuxtLink>
+        </p>
       </div>
       <div v-if="session" class="flex flex-wrap items-center gap-2">
         <UBadge :color="statusMeta(session.status).color" variant="subtle">
           {{ statusMeta(session.status).label }}
+        </UBadge>
+        <UBadge v-if="session.published" color="primary" variant="outline">
+          Visible sur la page publique
         </UBadge>
         <UButton
           v-if="!isEditingDetails"
@@ -23,6 +34,24 @@
           @click="startEditDetails"
         >
           Modifier
+        </UButton>
+        <UButton
+          v-if="!isEditingDetails && canPostpone"
+          icon="i-heroicons-calendar-days"
+          color="neutral"
+          variant="soft"
+          @click="showPostpone = true"
+        >
+          Reporter
+        </UButton>
+        <UButton
+          v-if="!isEditingDetails && session.status === SESSION_STATUSES.cancelled"
+          icon="i-heroicons-envelope"
+          color="neutral"
+          variant="soft"
+          @click="showCancellation = true"
+        >
+          Prévenir l’équipe
         </UButton>
       </div>
     </div>
@@ -69,7 +98,21 @@
       >
         Cast
       </UButton>
+      <UButton
+        v-if="session?.postponedFrom"
+        :color="activeTab === 'presence' ? 'primary' : 'neutral'"
+        :variant="activeTab === 'presence' ? 'solid' : 'soft'"
+        @click="setTab('presence')"
+      >
+        Présence
+      </UButton>
     </div>
+
+    <SessionAttendanceManager
+      v-if="session && !isEditingDetails && activeTab === 'presence' && session.postponedFrom"
+      :session="session"
+      @changed="loadData"
+    />
 
     <SessionCastForm
       v-if="session && !isEditingDetails && activeTab === 'cast'"
@@ -107,6 +150,8 @@
     <UCard v-if="!session">
       Chargement...
     </UCard>
+    <SessionPostponeModal v-model:open="showPostpone" :session="session" :locations="locations" @postponed="onPostponed" />
+    <SessionCancellationModal v-model:open="showCancellation" :session="session" :default-email="currentUserEmail" />
   </div>
 </template>
 
@@ -130,10 +175,21 @@ const timelineData = ref(null)
 const documentsData = ref(null)
 const paymentsData = ref(null)
 const currentUserEmail = ref('')
-const sessionTabs = ['timeline', 'documents', 'payments', 'cast']
+const sessionTabs = ['timeline', 'documents', 'payments', 'cast', 'presence']
 const activeTab = ref(sessionTabs.includes(route.query.tab) ? route.query.tab : 'cast')
 const isEditingDetails = ref(route.query.edit === 'details')
 const editableSession = ref(null)
+
+// Report (US-022) : depuis une session prévue ou annulée
+const showPostpone = ref(false)
+// Session qui vient d'être annulée : on propose l'email à l'équipe (US-025)
+const showCancellation = ref(false)
+const canPostpone = computed(() => [SESSION_STATUSES.scheduled, SESSION_STATUSES.cancelled].includes(session.value?.status))
+
+async function onPostponed(created) {
+  // Nouvelle session : on y demande aussitôt la confirmation de présence (US-024)
+  await router.push({ path: `/sessions/${created.slug}`, query: { tab: 'presence' } })
+}
 
 const statusMeta = (status) => SESSION_STATUS_META[status] || SESSION_STATUS_META[SESSION_STATUSES.scheduled]
 
@@ -182,6 +238,8 @@ async function saveCast(assignments) {
       locationId: session.value.locationId || '',
       status: session.value.status || SESSION_STATUSES.scheduled,
       published: session.value.published,
+      // Version lue : refus si la session a changé entre-temps (US-018, ADR-0028)
+      updatedAt: session.value.updatedAt,
       participants: session.value.participants?.map((participant) => ({
         participantId: participant.participantId || participant.participant?.id,
         role: participant.role
@@ -194,10 +252,13 @@ async function saveCast(assignments) {
 async function saveTimeline(assignments) {
   if (!session.value) return
 
-  await useApiFetch(`/api/sessions/${session.value.id}/timeline`, {
+  const saved = await useApiFetch(`/api/sessions/${session.value.id}/timeline`, {
     method: 'PUT',
-    body: { assignments }
+    body: { assignments, updatedAt: session.value.updatedAt }
   })
+  // Le déroulé change la version de la session : la garder pour les enregistrements suivants
+  session.value = { ...session.value, updatedAt: saved.updatedAt }
+  if (editableSession.value) editableSession.value.updatedAt = saved.updatedAt
   timelineData.value = await useApiFetch(`/api/sessions/${session.value.id}/timeline`)
 }
 
@@ -255,6 +316,11 @@ watch(() => route.query.tab, (value) => {
   activeTab.value = sessionTabs.includes(value) ? value : 'cast'
 })
 
+// Passage à une autre session sur la même page (lien de report, US-022) : on recharge ses données
+watch(() => route.params.id, (value, previous) => {
+  if (value && value !== previous && value !== session.value?.slug) loadData()
+})
+
 function startEditDetails() {
   if (!session.value) return
 
@@ -279,6 +345,7 @@ function setTab(tab) {
 async function saveDetails() {
   if (!editableSession.value?.id) return
 
+  const previousStatus = session.value?.status
   session.value = await useApiFetch(`/api/sessions/${editableSession.value.id}`, {
     method: 'PUT',
     body: editableSession.value
@@ -287,6 +354,9 @@ async function saveDetails() {
   timelineData.value = await useApiFetch(`/api/sessions/${session.value.id}/timeline`)
   await refreshDocumentsData()
   await refreshPaymentsData()
+  if (previousStatus !== SESSION_STATUSES.cancelled && session.value?.status === SESSION_STATUSES.cancelled) {
+    showCancellation.value = true
+  }
   if (session.value?.slug && session.value.slug !== route.params.id) {
     const query = { ...route.query }
     delete query.edit

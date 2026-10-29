@@ -7,6 +7,7 @@ import {
   REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS,
   REGISTRATION_ENTRY_MODES,
   REGISTRATION_PERIOD_STATES,
+  REFUND_STATUSES,
   SESSION_ROLES,
   SESSION_STATUSES,
   USER_ROLES
@@ -84,7 +85,8 @@ export const createGameSchema = z.object({
   description: optionalText,
   teaserUrl: externalUrl,
   noteIntention: optionalText,
-  publicPage: optionalBoolean
+  publicPage: optionalBoolean,
+  singlePjPerParticipant: optionalBoolean
 })
 
 export const updateGameSchema = z.object({
@@ -93,7 +95,8 @@ export const updateGameSchema = z.object({
   teaserUrl: externalUrl,
   noteIntention: optionalText,
   published: optionalBoolean,
-  publicPage: optionalBoolean
+  publicPage: optionalBoolean,
+  singlePjPerParticipant: optionalBoolean
 })
 
 export const createCharacterSchema = z.object({
@@ -207,6 +210,13 @@ export const timelineEventSchema = z.object({
   itemIds: z.array(requiredId('Item')).optional().default([])
 })
 
+// Report d'une session sur une nouvelle session (US-022)
+export const sessionPostponeSchema = z.object({
+  name: requiredText('Name'),
+  date: optionalText,
+  locationId: optionalText
+})
+
 export const sessionTimelineSchema = z.object({
   assignments: z.array(z.object({
     timelineEventId: requiredId('TimelineEvent'),
@@ -230,6 +240,11 @@ export const emailTestSchema = z.object({
 export const sessionPaymentSettingsSchema = z.object({
   paymentRibUrl: uploadOrExternalUrl(RIB_UPLOAD_PREFIX),
   paymentLinkUrl: externalUrl
+})
+
+// Remboursement d'un paiement (US-023) : null efface le choix
+export const sessionPaymentRefundSchema = z.object({
+  status: z.enum([REFUND_STATUSES.toRefund, REFUND_STATUSES.refunded, REFUND_STATUSES.carriedOver]).nullable()
 })
 
 export const sessionPaymentStatusSchema = z.object({
@@ -338,6 +353,21 @@ export const registrationExtensionSchema = z.object({
   responseDueAt: frenchText('La nouvelle échéance')
     .refine((value) => !Number.isNaN(new Date(value).getTime()), 'Date d’échéance invalide')
     .transform((value) => new Date(value))
+})
+
+// Email d'annulation relu par l'organisation (US-025) ; « emails » pour un test
+export const cancellationEmailSchema = z.object({
+  subject: requiredText('Subject').max(200),
+  text: requiredText('Text').max(10_000)
+})
+
+export const cancellationEmailTestSchema = cancellationEmailSchema.extend({
+  emails: z.array(requiredText('Email').email('Invalid email')).min(1).max(10)
+})
+
+// Réponse au lien de confirmation de présence (US-024)
+export const attendanceAnswerSchema = z.object({
+  answer: z.enum(['confirmed', 'declined'], { error: 'Réponse invalide' })
 })
 
 const registrationFieldSetting = z.object({ asked: z.boolean(), required: z.boolean() })
