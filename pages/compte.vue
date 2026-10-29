@@ -198,7 +198,11 @@ const deletePassword = ref('')
 const deleteAccount = () => {
   if (!confirm('Effacer définitivement votre compte et toutes vos données ? Cette action ne peut pas être annulée.')) return
   return run('delete', async () => {
-    await useApiFetch('/api/account/delete', { method: 'POST', body: { password: deletePassword.value } })
+    const result = await useApiFetch('/api/account/delete', { method: 'POST', body: { password: deletePassword.value } })
+    // Équipes non prévenues (envoi d'emails coupé…) : la personne le sait avant de quitter la page
+    if (result.teamsNotified < result.teams) {
+      alert(`Votre compte est effacé, mais ${result.teams - result.teamsNotified} équipe(s) n’ont pas pu être prévenue(s) par email. Prévenez-les vous-même que vos places sont libérées.`)
+    }
     // Compte effacé et cookie retiré : rien ne reste non plus sur l'appareil
     await clearOfflineData()
     window.location.replace('/')

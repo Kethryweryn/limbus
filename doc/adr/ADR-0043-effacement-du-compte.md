@@ -15,7 +15,7 @@ liens: [../specs/SPEC-011-un-compte-pour-tout-le-monde.md, ADR-0041-fiches-ratta
 ## Décision
 
 - L'effacement efface chaque fiche rattachée par `eraseParticipant` (inscriptions, photos, paiements, envois, notes), puis le compte (partages, liens de compte, invitations envoyées, par cascade).
-- Avant d'effacer, Limbus relève pour chaque jeu concerné les sessions où la personne avait une place et les paiements reçus (montant par session), puis écrit à la propriétaire et aux co-organisatrices. L'email part avant l'effacement des données qu'il cite ; un échec d'envoi n'empêche pas l'effacement, qui reste la demande de la personne.
+- Avant d'effacer, Limbus relève pour chaque jeu concerné les sessions où la personne avait une place et les paiements reçus (montant par session) ; une fois tout effacé, il écrit à la propriétaire et aux co-organisatrices. Un effacement interrompu ne prévient donc personne à tort. Un échec d'envoi n'annule pas l'effacement, qui reste la demande de la personne : la page lui dit quelles équipes n'ont pas été prévenues.
 - Refus tant que la personne possède un jeu, ou si elle est la dernière administratrice active : rien ne disparaît par surprise pour une co-organisatrice. Une copie léguée en attente qu'elle avait envoyée est supprimée avec ses fichiers, sinon elle resterait sans propriétaire ni invitation.
 - Le mot de passe est redemandé.
 - L'export (`GET /api/account/export`) assemble le compte et, pour chaque fiche, `exportParticipantData` sans limite de jeux : ce sont ses données, notes des équipes comprises.

@@ -84,7 +84,7 @@ async function teamNotices(participantIds: string[]) {
   return [...games.values()].filter((game) => game.recipients.size)
 }
 
-function accountDeletionEmailText(personName: string, game: { title: string, sessions: Set<string>, payments: string[] }) {
+export function accountDeletionEmailText(personName: string, game: { title: string, sessions: Set<string>, payments: string[] }) {
   return [
     `${personName} a effacé son compte Limbus. Comme demandé, sa fiche et toutes ses données ont été effacées du jeu « ${game.title} » : inscriptions, coordonnées, photos, paiements et vos notes.`,
     '',
@@ -99,8 +99,8 @@ function accountDeletionEmailText(personName: string, game: { title: string, ses
 
 /**
  * Effacement demandé par la personne (US-077, ADR-0043) : refusé tant qu'elle possède un jeu, ou si elle est
- * la dernière administratrice active. Les équipes sont prévenues avant l'effacement des données qu'on leur cite ;
- * un échec d'envoi n'empêche pas l'effacement.
+ * la dernière administratrice active. Ce qu'on dira aux équipes est relevé avant l'effacement, et l'email ne part
+ * qu'une fois tout effacé ; un échec d'envoi n'annule pas l'effacement.
  */
 export async function deleteOwnAccount(userId: string) {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { name: true, email: true, role: true } })
@@ -113,15 +113,6 @@ export async function deleteOwnAccount(userId: string) {
 
   const participantIds = await myParticipantIds(userId)
   const notices = participantIds.length ? await teamNotices(participantIds) : []
-  let emailsSent = 0
-  for (const game of notices) {
-    const sent = await sendEmail({
-      to: [...game.recipients],
-      subject: `${user.name} a effacé ses données : ${game.title}`,
-      text: accountDeletionEmailText(user.name, game)
-    }).then((outcome) => outcome.sent, () => false)
-    if (sent) emailsSent += 1
-  }
 
   for (const participantId of participantIds) {
     await eraseParticipant(participantId)
@@ -134,6 +125,22 @@ export async function deleteOwnAccount(userId: string) {
   for (const { gameId } of pendingBequests) {
     await deletePendingCopy(gameId)
   }
-  await prisma.user.delete({ where: { id: userId } })
+  // Revérifié au dernier moment : un transfert accepté entre-temps laisserait un jeu sans propriétaire
+  await prisma.$transaction(async (tx) => {
+    if (await tx.game.count({ where: { ownerId: userId } })) {
+      throw createError({ statusCode: 409, message: 'Vous possédez désormais un jeu : transférez-le ou supprimez-le avant d’effacer votre compte.' })
+    }
+    await tx.user.delete({ where: { id: userId } })
+  }, { isolationLevel: 'Serializable' })
+
+  let emailsSent = 0
+  for (const game of notices) {
+    const sent = await sendEmail({
+      to: [...game.recipients],
+      subject: `${user.name} a effacé ses données : ${game.title}`,
+      text: accountDeletionEmailText(user.name, game)
+    }).then((outcome) => outcome.sent, () => false)
+    if (sent) emailsSent += 1
+  }
   return { erasedParticipants: participantIds.length, teamsNotified: emailsSent, teams: notices.length }
 }
