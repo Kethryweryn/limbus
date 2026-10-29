@@ -74,12 +74,17 @@ Depuis la liste des jeux, la propriétaire ou une co-organisatrice archive un je
 ## Données
 
 - Tables `Game`, `Character`, `Faction`, `Intrigue`, `Item`, `Document`, `TimelineEvent` et `Location`, rattachées au jeu par `gameId`, avec suppression en cascade.
-- Le contenu d'écriture ne contient pas de données personnelles de participants. Il n'entre ni dans l'export ni dans la suppression RGPD, qui concernent les participants.
+- Le contenu d'écriture n'est rattaché à aucun participant. Il n'entre donc ni dans l'export ni dans la suppression RGPD des participants (`exportParticipantData`, `eraseParticipant`).
+- Il peut pourtant contenir des données personnelles :
+  - la photo de trombinoscope par défaut d'un personnage peut montrer une personne réelle, par exemple la personne qui joue un PNJ ;
+  - les textes libres peuvent nommer des personnes.
+
+  Ces données ne sont supprimées qu'avec le personnage ou le jeu. La fiche [Photos et RGPD](../todo/photos-et-rgpd.md) doit en tenir compte.
 - Le contenu d'un jeu est conservé tant que le jeu existe.
 
 ## Sécurité et droits
 
-- **R16** La propriétaire, les co-organisatrices et l'administratrice en mode administrateur lisent et modifient tout le contenu du jeu, et peuvent l'archiver ou le restaurer.
+- **R16** La propriétaire, les co-organisatrices et l'administratrice en mode administrateur lisent et modifient tout le contenu du jeu. Elles peuvent aussi archiver ou restaurer le jeu (confirmé par l'utilisatrice le 29 octobre 2026), même si cela masque le jeu de la liste de la propriétaire et coupe sa page publique.
 - **R17** Seule la propriétaire, ou l'administratrice en mode administrateur, supprime le jeu et gère ses partages. Seule la propriétaire le lègue ([SPEC-002](SPEC-002-copie-de-jeu.md)).
 - **R18** Une organisatrice n'atteint rien d'un jeu auquel elle n'a pas accès : ni lecture, ni écriture, ni lien depuis son propre contenu ([ADR-0007](../adr/ADR-0007-isolation-par-jeu.md), `tests/integration/isolation.test.ts`).
 
