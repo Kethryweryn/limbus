@@ -13,6 +13,7 @@ Toute évolution passe par ces documents, de l'idée à l'archive. La base grand
 | [`revues/`](revues/README.md) | Constats datés sur l'ensemble du projet (architecture, sécurité), avec leurs recommandations | `AAAA-MM-JJ-sujet.md` |
 | `archive/` | Fiches todo transformées en specs ou en revues, epics terminés | même nom, sous `archive/todo/` et `archive/epics/` |
 | [`modeles/`](modeles/) | Gabarits de chaque type de fiche | |
+| [`feuille-de-route.md`](feuille-de-route.md) | L'ordre des chantiers à venir, et pourquoi | |
 
 ## Cycle de vie
 
