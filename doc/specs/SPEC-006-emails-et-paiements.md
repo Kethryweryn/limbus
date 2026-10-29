@@ -52,11 +52,11 @@ Remettre à chaque personne d'une session ce qui la concerne, par email : docume
 
 ### Configuration et envoi
 
-- **R1** Un seul serveur SMTP sert toute l'application, et seule l'administratrice le configure. Tant que l'envoi est désactivé, aucun email ne part : les envois et les tests sont refusés.
+- **R1** Un seul serveur SMTP sert toute l'application, et seule l'administratrice le configure. Tant que l'envoi est désactivé, aucun email ne part : un envoi qui a des destinataires, et tout test, est refusé. Un envoi sans destinataire manquant répond simplement que rien n'est parti.
 - **R2** Le mot de passe SMTP est chiffré en base, avec un secret lu à l'exécution ([ADR-0004](../adr/ADR-0004-secrets-a-l-execution.md)). Il n'est jamais renvoyé à l'interface, qui sait seulement s'il est renseigné. Le laisser vide conserve l'ancien.
-- **R3** La connexion au serveur SMTP a des délais bornés. Un échec est noté dans le journal du serveur, sans destinataire ni contenu, et l'interface reçoit un message qui en donne la cause probable (authentification, connexion, refus du serveur).
+- **R3** La connexion au serveur SMTP a des délais bornés. Un échec est noté dans le journal du serveur, sans destinataire ni contenu, et l'interface reçoit un message qui en donne la cause probable (authentification, connexion, refus du serveur). Pour les demandes de paiement, un échec à l'ouverture de la connexion (configuration incomplète, mot de passe indéchiffrable) ne donne que « SMTP désactivé ou mal configuré ».
 - **R4** Une personne sans adresse email est ignorée par les envois, sans erreur.
-- **R5** Un seul envoi à la fois par session : un deuxième, lancé pendant le premier (double clic, deuxième onglet), est refusé. Chaque type d'envoi est aussi limité à 10 par organisatrice et par session en 10 minutes, et les emails de test à 20 en 15 minutes.
+- **R5** Un seul envoi à la fois par session : un deuxième, lancé pendant le premier (double clic, deuxième onglet), est refusé. Chaque type d'envoi est aussi limité à 10 par organisatrice et par session en 10 minutes, et les emails de test d'une session à 20 en 15 minutes. Le test SMTP de l'administration n'est pas limité.
 - **R6** Un email de test part à 1 à 10 adresses, avec un contenu « [Test] » et les mêmes pièces jointes que le vrai. Il ne compte pas comme un envoi.
 
 ### Documents, fiches et trombinoscopes
@@ -69,7 +69,7 @@ Remettre à chaque personne d'une session ce qui la concerne, par email : docume
 - **R9** L'email d'un document reprend son contenu et son lien externe, avec le PDF du document en pièce jointe ([SPEC-005](SPEC-005-trombinoscopes-et-pdf.md), R12).
 - **R10** Les fiches partent aux personnes castées dont le personnage, PJ ou PNJ, est « prêt à envoyer », avec le PDF de la fiche ([SPEC-005](SPEC-005-trombinoscopes-et-pdf.md), R11). Les trombinoscopes partent aux personnes dont le trombinoscope a été généré, avec son PDF.
 - **R11** L'envoi groupé « fiches et trombis » part aux personnes dont la fiche est prête et le trombinoscope généré, et qui n'ont pas déjà reçu les deux. Il note à la fois la fiche, le trombinoscope et l'ensemble comme envoyés. Une personne qui a reçu fiche et trombinoscope séparément compte comme ayant reçu l'ensemble.
-- **R12** Chaque envoi ne part qu'aux destinataires manquants. Un document, une fiche ou un trombinoscope déjà reçu n'est plus jamais renvoyé à la même personne (voir les écarts).
+- **R12** Chaque envoi ne part qu'aux destinataires manquants. Un document, une fiche ou un trombinoscope déjà reçu n'est plus renvoyé à la même personne par son propre envoi (voir les écarts). Seule exception, l'envoi groupé (R11) : à une personne qui n'a reçu que la fiche ou que le trombinoscope, il renvoie les deux.
 - **R13** Un échec d'envoi à une personne arrête l'envoi en cours : les emails déjà partis restent notés, les suivants ne partent pas (voir les écarts).
 
 ### Paiements
@@ -88,7 +88,7 @@ Remettre à chaque personne d'une session ce qui la concerne, par email : docume
 - `SessionDocumentDelivery` : un envoi (session, participant, type, document ou personnage, date).
 - `SessionPayment` : l'état du paiement d'un participant pour une session (date de paiement, de la première demande, de la dernière relance).
 - `Session.paymentRibUrl` et `Session.paymentLinkUrl`.
-- Envois et paiements sont des données personnelles du participant : ils sont couverts par l'export et la suppression RGPD (`participantPrivacy.ts`), décrits dans la spec sur les participants. Ils sont supprimés avec la session ([SPEC-004](SPEC-004-sessions.md), R3), sans proposer de remboursement.
+- Envois et paiements sont des données personnelles du participant : ils sont couverts par l'export et la suppression RGPD (`participantPrivacy.ts`), décrits dans la spec sur les participants. Ils sont supprimés avec la session ([SPEC-004](SPEC-004-sessions.md), R3), sans proposer de remboursement, et avec le participant. Un envoi est aussi supprimé avec son document ou son personnage : leur historique d'envoi disparaît.
 - Le contenu des emails n'est pas conservé.
 
 ## Sécurité et droits
