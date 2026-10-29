@@ -100,6 +100,8 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm audit --omit=dev --audit-level=high
+      # Les outils de build (devDependencies) tournent ici avec les secrets de la CI : alerte critique bloquante
+      - run: npm audit --audit-level=critical
       - run: npm run build
       - run: npm run test:integration
       - run: npx playwright install --with-deps chromium
