@@ -1,6 +1,6 @@
 ---
 titre: Resynchronisation hors ligne
-statut: à trancher
+statut: tranchée
 date: 2026-10-29
 revue: ../revues/2026-10-29-architecture.md
 ---
@@ -30,8 +30,11 @@ De plus, le contrôle de conflit est partiel : il n'a lieu que si la requête po
 2. Contrôle de conflit sur toutes les écritures rejouées, suppressions comprises (R-13).
 3. Résolution d'un conflit par comparaison.
 
-## Points à trancher
+## Décisions
 
-- La comparaison se fait-elle champ par champ, ou version entière contre version entière ? Recommandation : version entière d'abord, plus simple, quitte à affiner.
-- Une modification en erreur bloque-t-elle les suivantes qui portent sur le même élément ? Aujourd'hui, elles partent quand même.
-- Faut-il un ADR pour le protocole de conflit (date de version, ou numéro de version incrémenté) ?
+Le 29 octobre 2026, avec l'utilisatrice ([SPEC-010](../specs/SPEC-010-hors-ligne.md), choix de l'écart 2) :
+
+- la comparaison montre les seuls champs qui diffèrent, côte à côte ; on garde sa version ou celle du serveur ;
+- une modification en erreur retient les suivantes du même élément ; celles des autres éléments partent ;
+- la liste s'ouvre depuis le bandeau hors ligne ;
+- le protocole de conflit (version par date de modification, contrôle des suppressions) fait l'objet d'un ADR.

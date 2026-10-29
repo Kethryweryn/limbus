@@ -83,3 +83,17 @@ Relevés le 29 octobre 2026. Les écarts 1 et 2 ont été confirmés par l'utili
 3. **Déconnexion sans réseau (R10)** : la page de déconnexion appelle le serveur avant d'effacer l'appareil. Sans réseau, cet appel échoue et l'effacement n'a sans doute pas lieu : les données resteraient sur l'appareil. Relevé en lisant le code, non vérifié sur un appareil.
 4. **Modifications de sous-routes en file (R5)** : un PUT sur une sous-route part dans la file, et son corps est fusionné par erreur dans l'élément parent en cache : la session pour la chronologie, le statut ou les réglages de paiement ; le personnage pour son trombinoscope. Un paiement validé hors ligne reçoit la date de la resynchronisation. Relevé par la revue de code, non vérifié sur un appareil.
 5. **Envoi à l'ouverture (R7)** : des modifications laissées en attente ne partent pas quand on rouvre l'application avec le réseau. Elles attendent un changement de réseau ou « Réessayer », que rien ne propose tant que le serveur répond. Relevé par la revue de code, non vérifié sur un appareil.
+
+### Choix faits le 29 octobre 2026
+
+- **Écart 1, page de session hors ligne** : toute session ouverte avec le réseau est gardée sur l'appareil, telle qu'elle a été vue, avec ce qu'on y a consulté (fiches des personnages, trombinoscopes, fiche allergies). Hors ligne, elle reste modifiable : les modifications partent dans la file et sont rejouées au retour du réseau, avec le contrôle de conflit.
+- **Écart 2, resynchronisation** :
+  - le bandeau hors ligne (« 3 en attente, 1 erreur ») ouvre un panneau qui liste les modifications en attente et en erreur, avec l'élément, l'action, la date et la cause du refus ;
+  - face à un conflit, l'organisatrice voit côte à côte les seuls champs qui diffèrent entre sa version et celle du serveur, puis garde la sienne (elle remplace celle du serveur) ou celle du serveur (sa modification est abandonnée) ;
+  - une modification en erreur retient les suivantes qui portent sur le même élément, jusqu'à sa résolution ; celles des autres éléments partent ;
+  - toutes les écritures rejouées sont contrôlées, suppressions comprises (revue, R-13) ;
+  - une modification, ou toute la file, s'abandonne sans se déconnecter.
+- **Écart 3, déconnexion sans réseau** : l'appareil est effacé tout de suite ; la déconnexion est envoyée au serveur dès que le réseau revient.
+- **Écart 4, sous-routes** : les modifications sur une sous-route (déroulé, paiement validé, réglages de paiement, trombinoscope d'un personnage) partent en file sans fausser le cache, et un paiement validé hors ligne garde sa date réelle.
+- **Écart 5** : la file en attente part aussi à l'ouverture de l'application, quand le réseau est là.
+
