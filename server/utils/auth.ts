@@ -9,6 +9,8 @@ export type AuthUser = {
   email: string
   name?: string
   role: string
+  // Adresse confirmée (ADR-0039) : sinon le compte ne fait que renvoyer le lien
+  emailConfirmed: boolean
 }
 
 const AUTH_COOKIE = 'limbus_token'
@@ -46,9 +48,16 @@ export function getAuthUser(event: H3Event): AuthTokenPayload | null {
   }
 }
 
-export async function requireAuthUser(event: H3Event): Promise<AuthUser> {
-  if (event.context.authUser) return event.context.authUser
+// allowUnconfirmed : routes ouvertes à un compte dont l'adresse n'est pas confirmée (me, renvoi du lien)
+export async function requireAuthUser(event: H3Event, options: { allowUnconfirmed?: boolean } = {}): Promise<AuthUser> {
+  const user = event.context.authUser ?? await loadAuthUser(event)
+  if (!user.emailConfirmed && !options.allowUnconfirmed) {
+    throw createError({ statusCode: 403, message: 'Confirmez d’abord votre adresse email.', data: { unconfirmed: true } })
+  }
+  return user
+}
 
+async function loadAuthUser(event: H3Event): Promise<AuthUser> {
   // Le jeton n'est qu'une référence : rôle et email sont relus en base à chaque requête
   const payload = getAuthUser(event)
   const id = payload?.id
@@ -63,17 +72,20 @@ export async function requireAuthUser(event: H3Event): Promise<AuthUser> {
       email: true,
       name: true,
       role: true,
-      sessionVersion: true
+      sessionVersion: true,
+      emailConfirmedAt: true,
+      disabledAt: true
     }
   })
 
-  // Un jeton émis avant la dernière révocation n'est plus valable (jeton sans version : 0)
+  // Un jeton émis avant la dernière révocation n'est plus valable (jeton sans version : 0) ; un compte désactivé non plus
   const tokenVersion = payload?.v ?? 0
-  if (!record || tokenVersion !== record.sessionVersion) {
+  if (!record || tokenVersion !== record.sessionVersion || record.disabledAt) {
     throw createError({ statusCode: 401, message: 'Unauthorized' })
   }
 
-  const { sessionVersion: _sessionVersion, ...user } = record
+  const { sessionVersion: _sessionVersion, emailConfirmedAt, disabledAt: _disabledAt, ...fields } = record
+  const user = { ...fields, emailConfirmed: Boolean(emailConfirmedAt) }
   event.context.authUser = user
   return user
 }

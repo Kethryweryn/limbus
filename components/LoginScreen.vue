@@ -8,6 +8,8 @@ const error = ref('')
 const isOffline = ref(false)
 const browserOnline = ref(true)
 const offlineMessage = computed(() => browserOnline.value ? 'Le serveur ne répond pas.' : 'Vous êtes hors ligne.')
+// « Créer un compte » seulement quand l'inscription libre est ouverte (US-061)
+const signupOpen = ref(false)
 
 const updateStatus = () => {
     browserOnline.value = navigator.onLine
@@ -41,6 +43,7 @@ const login = async () => {
 
 onMounted(() => {
     updateStatus()
+    $fetch('/api/auth/signup').then((result) => { signupOpen.value = result.open }, () => undefined)
     window.addEventListener('online', updateStatus)
     window.addEventListener('offline', updateStatus)
     window.addEventListener('limbus:connection-change', updateStatus)
@@ -111,6 +114,15 @@ onUnmounted(() => {
                     variant="soft"
                     :description="error"
                 />
+
+                <div class="flex flex-wrap justify-between gap-2 text-sm">
+                    <NuxtLink to="/acces/mot-de-passe-oublie" class="text-primary hover:underline">
+                        Mot de passe oublié ?
+                    </NuxtLink>
+                    <NuxtLink v-if="signupOpen" to="/acces/inscription" class="text-primary hover:underline">
+                        Créer un compte
+                    </NuxtLink>
+                </div>
             </form>
         </UCard>
     </div>

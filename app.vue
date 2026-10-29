@@ -5,6 +5,11 @@
       <NuxtLoadingIndicator />
       <NuxtPage />
     </div>
+    <!-- Adresse pas encore confirmée (R5) : seul le renvoi du lien est possible -->
+    <div v-else-if="unconfirmedEmail && !isPublicRoute">
+      <NuxtPwaAssets />
+      <UnconfirmedAccountScreen :email="unconfirmedEmail" />
+    </div>
     <div v-else-if="authenticated">
       <NuxtPwaAssets />
       <NuxtLoadingIndicator />
@@ -75,6 +80,7 @@
 <script setup lang="ts">
 import { onUnmounted, useHead, useRoute } from '#imports'
 import LoginScreen from '~/components/LoginScreen.vue'
+import UnconfirmedAccountScreen from '~/components/UnconfirmedAccountScreen.vue'
 import { isOfflineMode, isServerUnavailableError, setServerUnavailable } from '~/utils/connection'
 import { claimOfflineData, clearPendingLogout, getOfflineAuth, hasPendingLogout, rememberOfflineAuth } from '~/utils/storage'
 import { getOfflineQueue, processOfflineQueue } from '~/utils/offlineSync'
@@ -94,6 +100,7 @@ useHead({
 })
 
 const authenticated = ref(false)
+const unconfirmedEmail = ref('')
 const authReady = ref(false)
 const serverUnavailable = ref(false)
 const syncing = ref(false)
@@ -106,7 +113,8 @@ const syncSummary = computed(() => [
 ].filter(Boolean).join(', '))
 const toast = useToast()
 const route = useRoute()
-const isPublicRoute = computed(() => route.path.startsWith('/public/') || route.path.startsWith('/invitations/'))
+// /acces/ : inscription, confirmation et mot de passe, ouverts sans connexion (EPIC-013)
+const isPublicRoute = computed(() => ['/public/', '/invitations/', '/acces/'].some((prefix) => route.path.startsWith(prefix)))
 // Liens personnels d'inscription (US-004) et de confirmation de présence (US-024)
 const isPersonalLinkRoute = computed(() => route.path.startsWith('/inscription/') || route.path.startsWith('/presence/'))
 let authCheckInProgress = false
@@ -171,6 +179,14 @@ const checkAuth = async (forceServerCheck = false) => {
       return
     }
     authenticated.value = false
+    finishAuthCheck()
+    return
+  }
+
+  unconfirmedEmail.value = ''
+  if (authData?.authenticated && 'user' in authData && authData.user && !authData.user.emailConfirmed) {
+    authenticated.value = false
+    unconfirmedEmail.value = authData.user.email
     finishAuthCheck()
     return
   }

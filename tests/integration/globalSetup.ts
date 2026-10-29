@@ -51,6 +51,8 @@ export default async function setup(project: TestProject) {
       NODE_ENV: 'production',
       DATABASE_URL: databaseUrl,
       JWT_SECRET,
+      // Inscription libre ouverte : ses tests en ont besoin (US-061)
+      SIGNUP_OPEN: '1',
       PUBLIC_APP_URL: `http://127.0.0.1:${PORT}`,
       HOST: '127.0.0.1',
       PORT: String(PORT)

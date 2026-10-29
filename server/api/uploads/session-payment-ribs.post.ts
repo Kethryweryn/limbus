@@ -3,7 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { requireUser } from '~/server/utils/auth'
 import { prisma } from '~/server/utils/prisma'
-import { uploadDir, UPLOAD_DIRS } from '~/server/utils/uploads'
+import { assertStorageQuota, uploadDir, UPLOAD_DIRS } from '~/server/utils/uploads'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
 
 const MAX_SIZE = 10 * 1024 * 1024
@@ -40,6 +40,7 @@ export default defineEventHandler(async (event) => {
   const filename = `${randomUUID()}.pdf`
   const targetDir = uploadDir(UPLOAD_DIRS.ribs)
   const session = await requireSessionAccess(event, sessionId)
+  await assertStorageQuota(session.gameId, file.data.length)
 
   await mkdir(targetDir, { recursive: true })
   await writeFile(join(targetDir, filename), file.data)
@@ -48,6 +49,7 @@ export default defineEventHandler(async (event) => {
     data: {
       kind: 'session-payment-rib',
       filename,
+      size: file.data.length,
       url: ribUrl,
       gameId: session.gameId,
       sessionId: session.id

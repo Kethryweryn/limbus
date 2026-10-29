@@ -4,8 +4,8 @@ titre: Un compte pour tout le monde, organiser et participer
 statut: validée
 date: 2026-10-29
 origine: ../todo/comptes-participants.md
-epics: [EPIC-012]
-adr: [ADR-0006, ADR-0007, ADR-0038]
+epics: [EPIC-012, EPIC-013]
+adr: [ADR-0006, ADR-0007, ADR-0038, ADR-0039]
 ---
 
 # SPEC-011 : Un compte pour tout le monde, organiser et participer
@@ -52,14 +52,14 @@ Comme aujourd'hui ([SPEC-008](SPEC-008-comptes-et-partage.md)). En plus, une co-
 
 - **R1** Le seul rôle global est administrateur, oui ou non. Tout compte peut créer un jeu et en devenir propriétaire ; les droits sur un jeu viennent de la propriété ou du partage ([ADR-0038](../adr/ADR-0038-un-seul-role-global.md)).
 - **R2** Une co-organisatrice quitte un jeu partagé sans l'accord de la propriétaire ; ce qu'elle y a écrit reste.
-- **R3** La propriétaire propose le transfert de son jeu à une co-organisatrice. Le jeu change de main quand celle-ci accepte ; l'ancienne propriétaire reste co-organisatrice. Une proposition se retire tant qu'elle n'est pas acceptée.
+- **R3** La propriétaire propose le transfert de son jeu à une co-organisatrice. Le jeu change de main quand celle-ci accepte ; l'ancienne propriétaire reste co-organisatrice. Une proposition se retire tant qu'elle n'est pas acceptée. La destinataire reçoit un email, et le jeu porte « Transfert proposé » dans sa liste.
 
 ### Inscription et compte (lot 2)
 
-- **R4** L'inscription libre est ouverte par un réglage du serveur ; elle reste fermée en production jusqu'à la publication des conditions d'utilisation et de la politique de confidentialité ([feuille de route](../feuille-de-route.md), étape 5).
-- **R5** Un compte dont l'adresse n'est pas confirmée ne permet rien d'autre que renvoyer le lien de confirmation.
+- **R4** L'inscription libre est ouverte par un réglage du serveur ; elle reste fermée en production jusqu'à la publication des conditions d'utilisation et de la politique de confidentialité ([feuille de route](../feuille-de-route.md), étape 5). Fermée, l'écran de connexion ne propose pas de créer un compte.
+- **R5** Un compte dont l'adresse n'est pas confirmée ne permet rien d'autre que renvoyer le lien de confirmation. Jamais confirmé, il est supprimé au bout de 7 jours. Un changement d'email prévient l'ancienne adresse.
 - **R6** Contre les robots : un nombre d'inscriptions limité par adresse IP, et un champ invisible que seuls les robots remplissent. Aucun service externe.
-- **R7** Chaque compte a un plafond de stockage (photos, RIB, documents téléversés), de 500 Mo par défaut, modifiable par l'administratrice. Aucune limite sur le nombre de jeux ou de participants.
+- **R7** Chaque compte a un plafond de stockage (photos, RIB, documents téléversés), de 500 Mo par défaut, modifiable par l'administratrice. Les fichiers d'un jeu comptent pour sa propriétaire, quelle que soit la personne qui les téléverse. Aucune limite sur le nombre de jeux ou de participants.
 - **R8** Seul le compte dont l'adresse confirmée est celle invitée accepte une invitation à co-organiser ; un autre compte connecté voit un message, et il faut une nouvelle invitation ([SPEC-008](SPEC-008-comptes-et-partage.md), écart 1).
 - **R9** L'administratrice crée encore un compte : la personne reçoit un lien pour choisir son mot de passe (plus de mot de passe provisoire). Elle désactive ou supprime un compte et change son plafond de stockage.
 
@@ -89,7 +89,7 @@ Comme aujourd'hui ([SPEC-008](SPEC-008-comptes-et-partage.md)). En plus, une co-
 Un epic par lot, dans l'ordre :
 
 1. Rôles : un seul rôle global, quitter un jeu, transférer un jeu ([EPIC-012](../archive/epics/EPIC-012-roles/README.md)).
-2. Inscription libre, confirmation de l'adresse, protection contre les robots, compte en libre-service, mot de passe oublié, invitation par la bonne adresse, création par l'administratrice, plafond de stockage.
+2. Inscription libre, confirmation de l'adresse, protection contre les robots, compte en libre-service, mot de passe oublié, invitation par la bonne adresse, création par l'administratrice, plafond de stockage ([EPIC-013](../archive/epics/EPIC-013-inscription-et-compte/README.md)).
 3. Notes d'organisation propres à chaque équipe.
 4. Compte participant : rattachement des fiches, espace « Je participe » (sessions, inscriptions, paiement), sélecteur d'espace.
 5. Coordonnées et allergies tenues par la personne.

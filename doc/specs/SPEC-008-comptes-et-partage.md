@@ -10,7 +10,7 @@ adr: [ADR-0006, ADR-0007, ADR-0018]
 
 # SPEC-008 : Comptes et partage d'un jeu
 
-Cette spec décrit un comportement déjà en production, avant la reprise du développement ([Documentation de l'existant](../archive/todo/documentation-de-l-existant.md)). Les écarts 5 et 6, listés à la fin, sont corrigés par [EPIC-008](../archive/epics/EPIC-008-ecarts-comptes/README.md), les écarts 3 et 4 par [EPIC-012](../archive/epics/EPIC-012-roles/README.md) ; les écarts 1 et 2 viennent avec la suite de [SPEC-011](SPEC-011-un-compte-pour-tout-le-monde.md).
+Cette spec décrit un comportement déjà en production, avant la reprise du développement ([Documentation de l'existant](../archive/todo/documentation-de-l-existant.md)). Les écarts 5 et 6, listés à la fin, sont corrigés par [EPIC-008](../archive/epics/EPIC-008-ecarts-comptes/README.md), les écarts 3 et 4 par [EPIC-012](../archive/epics/EPIC-012-roles/README.md), les écarts 1 et 2 par [EPIC-013](../archive/epics/EPIC-013-inscription-et-compte/README.md).
 
 ## Objectif
 
@@ -39,7 +39,7 @@ Donner un compte aux organisatrices, et leur permettre de travailler à plusieur
 
 ### Créer un compte
 
-- L'administratrice crée un compte dans l'administration : email, nom, mot de passe provisoire et rôle.
+- L'administratrice crée un compte dans l'administration : email, nom et rôle ; la personne reçoit un lien pour choisir son mot de passe ([US-065](../archive/epics/EPIC-013-inscription-et-compte/US-065-comptes-geres-par-l-administratrice.md)). Avec l'inscription libre ouverte, chacun crée son compte ([SPEC-011](SPEC-011-un-compte-pour-tout-le-monde.md)).
 - Ou une personne invitée à co-organiser, ou à recevoir un legs ([SPEC-002](SPEC-002-copie-de-jeu.md)), crée son compte depuis le lien reçu.
 
 Il n'y a pas d'inscription libre.
@@ -57,8 +57,8 @@ Il n'y a pas d'inscription libre.
 - **R1** Un email ne sert qu'à un compte, sans tenir compte de la casse. Le mot de passe compte au moins 8 caractères ; il est haché (bcrypt).
 - **R2** Une connexion refusée ne dit pas si l'email existe : même message et même temps de réponse. Les tentatives sont limitées à 30 par adresse IP et 10 par email en 15 minutes.
 - **R3** La session dure 20 heures. Le jeton ne porte que l'identifiant du compte et sa version de session : le rôle et l'email sont relus à chaque requête ([ADR-0006](../adr/ADR-0006-sessions-et-revocation.md)).
-- **R4** « Déconnecter tous mes appareils » et tout changement de mot de passe par l'administratrice invalident toutes les sessions ouvertes du compte.
-- **R5** Seule l'administratrice crée, modifie (email, nom, rôle, mot de passe) et supprime un compte. Elle ne peut pas supprimer le sien. Un compte qui possède encore des jeux ne peut pas être supprimé. Le rôle de la dernière administratrice ne peut pas lui être retiré : il faut d'abord en nommer une autre ([US-043](../archive/epics/EPIC-008-ecarts-comptes/US-043-jamais-sans-administratrice.md)).
+- **R4** « Déconnecter tous mes appareils », tout changement de mot de passe et la désactivation d'un compte invalident toutes les sessions ouvertes du compte.
+- **R5** Chacun change lui-même son nom, son email (après confirmation de la nouvelle adresse) et son mot de passe, et réinitialise un mot de passe oublié par email ([US-062](../archive/epics/EPIC-013-inscription-et-compte/US-062-mot-de-passe-oublie.md), [US-063](../archive/epics/EPIC-013-inscription-et-compte/US-063-gerer-son-compte.md)). L'administratrice crée, modifie (email, nom, rôle, plafond de stockage), désactive et supprime un compte, et lui envoie un lien de mot de passe ; elle ne fixe jamais de mot de passe. Elle ne peut ni supprimer ni désactiver le sien. Un compte qui possède encore des jeux ne peut pas être supprimé. Le rôle de la dernière administratrice ne peut pas lui être retiré : il faut d'abord en nommer une autre ([US-043](../archive/epics/EPIC-008-ecarts-comptes/US-043-jamais-sans-administratrice.md)).
 - **R6** Supprimer un compte retire ses partages et les invitations qu'il a envoyées. Les inscriptions qu'il a gérées restent, sans son nom.
 
 ### Mode administrateur
@@ -71,7 +71,7 @@ Il n'y a pas d'inscription libre.
 - **R9** Il n'y a qu'un niveau de partage : la co-organisatrice lit et modifie tout le contenu et les sessions du jeu, et peut l'archiver ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), R16).
 - **R10** On n'invite ni la propriétaire, ni une personne qui a déjà accès. Une nouvelle invitation à la même adresse annule la précédente. Les invitations sont limitées à 10 par propriétaire et par jeu en une heure.
 - **R11** Une invitation vaut 14 jours et ne sert qu'une fois. Le lien est un jeton aléatoire ; une invitation annulée, acceptée ou expirée est refusée.
-- **R12** L'invitation peut être acceptée par le compte connecté, quel que soit son email : la page signale seulement que l'invitation a été envoyée à une autre adresse (voir les écarts). Créer un compte depuis le lien permet aussi de choisir une autre adresse que celle invitée.
+- **R12** Seul le compte de l'adresse invitée accepte une invitation ; un autre compte connecté voit un message et il faut une nouvelle invitation. Créer un compte depuis le lien prend l'adresse invitée, confirmée d'emblée ([US-064](../archive/epics/EPIC-013-inscription-et-compte/US-064-invitation-par-la-bonne-adresse.md)).
 - **R13** Si l'email d'invitation ne part pas, l'invitation est quand même créée, et la propriétaire reçoit le lien et la cause de l'échec.
 - **R14** Retirer un partage coupe l'accès dès la requête suivante. Ce que la co-organisatrice a écrit reste dans le jeu.
 
@@ -96,7 +96,7 @@ Il n'y a pas d'inscription libre.
 
 ## Écarts constatés
 
-Relevés le 29 octobre 2026 avec l'utilisatrice. Les écarts 5 (jeton d'invitation en clair) et 6 (dernière administratrice) sont corrigés par [EPIC-008](../archive/epics/EPIC-008-ecarts-comptes/README.md), les écarts 3 et 4 par [EPIC-012](../archive/epics/EPIC-012-roles/README.md) ; les écarts 1 et 2 relèvent de la suite de la refonte des comptes ([SPEC-011](SPEC-011-un-compte-pour-tout-le-monde.md)).
+Relevés le 29 octobre 2026 avec l'utilisatrice. Les écarts 5 (jeton d'invitation en clair) et 6 (dernière administratrice) sont corrigés par [EPIC-008](../archive/epics/EPIC-008-ecarts-comptes/README.md), les écarts 3 et 4 par [EPIC-012](../archive/epics/EPIC-012-roles/README.md), les écarts 1 et 2 par [EPIC-013](../archive/epics/EPIC-013-inscription-et-compte/README.md).
 
 1. **Invitation acceptée par un autre compte (R12)** : seul le compte de l'adresse invitée devrait pouvoir accepter. Avec un autre compte connecté, ou en créant un compte avec une autre adresse, il faudrait une nouvelle invitation.
 2. **Libre-service (R5)** : chaque organisatrice devrait pouvoir changer elle-même son nom, son email et son mot de passe, et réinitialiser un mot de passe oublié par email. Aujourd'hui, seule l'administratrice le fait.

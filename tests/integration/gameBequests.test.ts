@@ -305,7 +305,8 @@ describe('legs à une personne sans compte (US-011)', () => {
 
   it('refuse que la propriétaire du jeu source reçoive son propre legs', async () => {
     const { copy, token } = await pendingBequest()
-    expect((await api(bob, 'POST', '/api/invitations/accept', { token })).status).toBe(400)
+    // Refusé dès l'adresse : le legs part à une autre adresse que la sienne (US-064)
+    expect((await api(bob, 'POST', '/api/invitations/accept', { token })).status).toBe(403)
     expect(await prisma.game.findUnique({ where: { id: copy.id } })).toMatchObject({ ownerId: null, bequestPending: true })
   })
 

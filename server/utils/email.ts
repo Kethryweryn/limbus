@@ -324,3 +324,85 @@ export async function sendGameBequestInvitationEmail(params: { to: string, gameT
       .join('\n')
   })
 }
+
+// Emails du compte (EPIC-013) : un paragraphe, un lien, une précision éventuelle
+async function sendAccountEmail(params: { to: string, subject: string, intro: string, linkLabel?: string, url?: string, outro?: string }) {
+  const link = params.url && params.linkLabel ? params.url : null
+  return await sendEmail({
+    to: params.to,
+    subject: params.subject,
+    text: [params.intro, ...(link ? ['', `${params.linkLabel} : ${link}`] : []), ...(params.outro ? ['', params.outro] : [])].join('\n'),
+    html: [
+      `<p>${escapeHtml(params.intro)}</p>`,
+      link ? `<p><a href="${escapeHtml(link)}">${escapeHtml(params.linkLabel!)}</a></p>` : '',
+      params.outro ? `<p>${escapeHtml(params.outro)}</p>` : ''
+    ].join('\n')
+  })
+}
+
+export async function sendAccountConfirmationEmail(params: { to: string, url: string }) {
+  return await sendAccountEmail({
+    to: params.to,
+    subject: 'Confirmez votre adresse pour Limbus',
+    intro: 'Bienvenue sur Limbus ! Confirmez votre adresse pour activer votre compte.',
+    linkLabel: 'Confirmer mon adresse',
+    url: params.url,
+    outro: 'Le lien est valable 48 heures. Si vous n’avez pas créé de compte, ignorez ce message : sans confirmation, il sera supprimé dans 7 jours.'
+  })
+}
+
+// Inscription avec une adresse déjà prise : on ne le révèle pas à l'écran, mais la personne est prévenue (US-061)
+export async function sendAccountExistsEmail(params: { to: string, url: string }) {
+  return await sendAccountEmail({
+    to: params.to,
+    subject: 'Vous avez déjà un compte Limbus',
+    intro: 'Quelqu’un (sans doute vous) a voulu créer un compte Limbus avec cette adresse, qui en a déjà un. Connectez-vous, ou choisissez un nouveau mot de passe si vous l’avez oublié.',
+    linkLabel: 'Mot de passe oublié',
+    url: params.url,
+    outro: 'Si ce n’était pas vous, ignorez ce message : votre compte n’a pas changé.'
+  })
+}
+
+export async function sendPasswordLinkEmail(params: { to: string, url: string, created: boolean, validity: string }) {
+  return await sendAccountEmail({
+    to: params.to,
+    subject: params.created ? 'Votre compte Limbus' : 'Choisir un nouveau mot de passe Limbus',
+    intro: params.created
+      ? 'Un compte Limbus vient d’être créé pour vous. Choisissez votre mot de passe pour vous connecter.'
+      : 'Vous avez demandé à choisir un nouveau mot de passe pour Limbus.',
+    linkLabel: 'Choisir mon mot de passe',
+    url: params.url,
+    outro: `Le lien est valable ${params.validity} et ne sert qu’une fois.${params.created ? '' : ' Si vous n’avez rien demandé, ignorez ce message.'}`
+  })
+}
+
+export async function sendEmailChangeConfirmationEmail(params: { to: string, url: string }) {
+  return await sendAccountEmail({
+    to: params.to,
+    subject: 'Confirmez votre nouvelle adresse pour Limbus',
+    intro: 'Vous avez demandé à utiliser cette adresse pour votre compte Limbus.',
+    linkLabel: 'Confirmer cette adresse',
+    url: params.url,
+    outro: 'Le lien est valable 48 heures. Tant qu’il n’est pas utilisé, votre compte garde son ancienne adresse.'
+  })
+}
+
+export async function sendEmailChangedNoticeEmail(params: { to: string, newEmail: string }) {
+  return await sendAccountEmail({
+    to: params.to,
+    subject: 'L’adresse de votre compte Limbus a changé',
+    intro: `L’adresse de votre compte Limbus est désormais ${params.newEmail}. Ce message part à votre ancienne adresse.`,
+    outro: 'Si vous n’êtes pas à l’origine de ce changement, prévenez l’administratrice de Limbus.'
+  })
+}
+
+// Transfert d'un jeu proposé à une co-organisatrice (US-068)
+export async function sendGameTransferEmail(params: { to: string, gameTitle: string, ownerName: string, url: string }) {
+  return await sendAccountEmail({
+    to: params.to,
+    subject: `${params.ownerName} vous propose le jeu ${params.gameTitle}`,
+    intro: `${params.ownerName} vous propose de devenir propriétaire du jeu « ${params.gameTitle} » dans Limbus. Elle en resterait co-organisatrice.`,
+    linkLabel: 'Accepter ou refuser',
+    url: params.url
+  })
+}

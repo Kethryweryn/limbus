@@ -215,12 +215,6 @@ describe('connexion', () => {
     expect(response.status).toBe(401)
     expect(response.body).toMatchObject({ message: 'Email ou mot de passe incorrect' })
   })
-
-  it('un compte créé par un admin avec des majuscules est enregistré en minuscules', async () => {
-    const response = await api(world.users.admin, 'POST', '/api/admin/users', { email: 'Nouveau.Compte@Example.test', name: 'Nouveau', password: 'mot-de-passe-solide' })
-    expect(response.status).toBe(200)
-    expect(response.body).toMatchObject({ email: 'nouveau.compte@example.test' })
-  })
 })
 
 describe('créations simultanées du même nom', () => {

@@ -181,6 +181,9 @@ const userMenu = computed(() => [
         ]]
         : []),
     [
+        { label: 'Mon compte', icon: 'i-heroicons-user', to: '/compte' }
+    ],
+    [
         {
             label: 'Déconnexion',
             icon: 'i-heroicons-arrow-left-on-rectangle',

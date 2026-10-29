@@ -406,18 +406,56 @@ export const loginSchema = z.object({
   password: requiredText('Password')
 })
 
+// Plus de mot de passe choisi par l'administratrice : la personne reçoit un lien (US-065)
 export const userCreateSchema = z.object({
   email: accountEmail(),
   name: requiredText('Name'),
-  password: requiredText('Password').min(8, 'Password must contain at least 8 characters'),
   role: userRole.default(USER_ROLES.user)
 })
 
 export const userUpdateSchema = z.object({
   email: accountEmail().optional(),
   name: requiredText('Name').optional(),
-  password: requiredText('Password').min(8, 'Password must contain at least 8 characters').optional(),
-  role: userRole.optional()
+  role: userRole.optional(),
+  disabled: z.boolean().optional(),
+  storageQuotaMb: z.number().int().min(0).max(1_000_000).optional()
+})
+
+const newPassword = () => requiredText('Password').min(8, 'Le mot de passe doit faire au moins 8 caractères')
+
+// Inscription libre (US-061) : website est le champ piège, invisible pour une personne
+export const signupSchema = z.object({
+  name: requiredText('Name'),
+  email: accountEmail(),
+  password: newPassword(),
+  website: z.string().optional()
+})
+
+export const accountTokenSchema = z.object({
+  token: requiredText('Token')
+})
+
+export const passwordForgottenSchema = z.object({
+  email: accountEmail()
+})
+
+export const passwordResetSchema = z.object({
+  token: requiredText('Token'),
+  password: newPassword()
+})
+
+export const accountUpdateSchema = z.object({
+  name: requiredText('Name')
+})
+
+export const accountEmailSchema = z.object({
+  email: accountEmail(),
+  password: requiredText('Password')
+})
+
+export const accountPasswordSchema = z.object({
+  currentPassword: requiredText('Password'),
+  password: newPassword()
 })
 
 // Transfert d'un jeu à une co-organisatrice (US-060)
@@ -438,9 +476,9 @@ export const gameBequestSchema = z.object({
   email: frenchText('L’email').toLowerCase().max(254, 'Email trop long').email('Email invalide')
 })
 
+// L'adresse est celle de l'invitation (US-064) : un email envoyé est ignoré
 export const invitationRegistrationSchema = z.object({
   token: requiredText('Token'),
-  email: requiredText('Email').email('Invalid email'),
   name: requiredText('Name'),
   password: requiredText('Password').min(8, 'Password must contain at least 8 characters')
 })

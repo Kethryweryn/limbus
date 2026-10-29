@@ -62,6 +62,8 @@ export default defineEventHandler(async (event) => {
                 ownerId: game.ownerId,
                 owner: game.owner,
                 shares: game.shares,
+                // Transfert proposé à la personne connectée (US-068)
+                transferProposedToMe: game.transferToUserId === user.id,
                 lastActivityAt,
                 lastWritingActivityAt: lastActivityAt,
                 nextScheduledSession: game.sessions[0] || null,

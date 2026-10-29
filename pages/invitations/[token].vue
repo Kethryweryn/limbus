@@ -31,12 +31,12 @@
             Vous êtes connecté avec {{ authState.user.email }}.
           </p>
           <UAlert
-            v-if="normalizedAuthEmail !== normalizedInvitationEmail"
+            v-if="wrongAccount"
             color="warning"
             variant="soft"
-            description="Cette invitation a été envoyée à une autre adresse email. Elle sera rattachée au compte actuellement connecté."
+            description="Cette invitation a été envoyée à une autre adresse : seul le compte de cette adresse peut l’accepter. Demandez une nouvelle invitation pour votre compte, ou déconnectez-vous."
           />
-          <UButton color="primary" :loading="saving" @click="acceptInvitation">
+          <UButton v-else color="primary" :loading="saving" @click="acceptInvitation">
             {{ isBequest ? 'Recevoir la copie' : 'Accepter l’invitation' }}
           </UButton>
         </div>
@@ -65,11 +65,11 @@
             <UFormField label="Nom">
               <UInput v-model="form.name" required />
             </UFormField>
-            <UFormField label="Email">
-              <UInput v-model="form.email" type="email" required />
+            <UFormField label="Email" help="L’adresse de l’invitation.">
+              <UInput :model-value="invitation.email" type="email" disabled />
             </UFormField>
-            <UFormField label="Mot de passe">
-              <UInput v-model="form.password" type="password" required />
+            <UFormField label="Mot de passe" help="8 caractères au moins.">
+              <UInput v-model="form.password" type="password" required minlength="8" autocomplete="new-password" />
             </UFormField>
             <UButton type="submit" color="primary" :loading="saving">
               {{ isBequest ? 'Créer mon compte et recevoir la copie' : 'Créer mon compte et accepter' }}
@@ -109,7 +109,6 @@ const serverError = ref('')
 const saving = ref(false)
 const mode = ref('register')
 const form = ref({
-  email: '',
   name: '',
   password: ''
 })
@@ -121,12 +120,13 @@ const { data: authState } = await useFetch('/api/auth/me')
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase()
 const normalizedAuthEmail = computed(() => normalizeEmail(authState.value?.user?.email))
 const normalizedInvitationEmail = computed(() => normalizeEmail(invitation.value?.email))
+// Seul le compte de l'adresse invitée accepte (US-064)
+const wrongAccount = computed(() => normalizedAuthEmail.value !== normalizedInvitationEmail.value)
 // Legs d'une copie à une personne sans compte (US-011)
 const isBequest = computed(() => invitation.value?.kind === 'bequest')
 
 try {
   invitation.value = await $fetch(`/api/invitations/${token}`)
-  form.value.email = invitation.value.email
   loginForm.value.email = invitation.value.email
 } catch (err) {
   loadError.value = err?.data?.message || err?.statusMessage || 'Invitation introuvable'
@@ -174,7 +174,6 @@ async function register() {
       method: 'POST',
       body: {
         token,
-        email: form.value.email,
         name: form.value.name,
         password: form.value.password
       }

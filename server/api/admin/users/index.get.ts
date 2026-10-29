@@ -1,16 +1,20 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireAdmin } from '~/server/utils/auth'
+import { storageUsedBytesByOwner } from '~/server/utils/uploads'
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
-  return await prisma.user.findMany({
+  const users = await prisma.user.findMany({
     orderBy: [{ role: 'asc' }, { email: 'asc' }],
     select: {
       id: true,
       email: true,
       name: true,
       role: true,
+      emailConfirmedAt: true,
+      disabledAt: true,
+      storageQuotaMb: true,
       createdAt: true,
       updatedAt: true,
       ownedGames: {
@@ -24,4 +28,7 @@ export default defineEventHandler(async (event) => {
       }
     }
   })
+  // Espace utilisé par compte (US-066)
+  const usage = await storageUsedBytesByOwner()
+  return users.map((user) => ({ ...user, storageUsedBytes: usage.get(user.id) ?? 0 }))
 })

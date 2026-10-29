@@ -570,6 +570,8 @@ model UploadedFile {
   game      Game?    @relation(fields: [gameId], references: [id], onDelete: Cascade)
   sessionId String?
   session   Session? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  // Octets ; vide pour un fichier d'avant US-066, relevé sur le disque au premier calcul
+  size      Int?
   createdAt DateTime @default(now())
 
   @@index([kind])
@@ -582,13 +584,20 @@ model User {
   email     String   @unique
   name      String
   password  String
-  // admin ou user (ADR-0038) ; « organizer », valeur d'avant, vaut user
+  // admin ou user (ADR-0038)
   role      String   @default("user")
   // Incrémenté pour invalider toutes les sessions ouvertes (déconnexion partout, changement de mot de passe)
   sessionVersion Int @default(0)
+  // Adresse confirmée (ADR-0039) : vide seulement après une inscription libre, jusqu'au lien de confirmation
+  emailConfirmedAt DateTime? @default(now())
+  // Compte désactivé par l'administratrice : plus de connexion
+  disabledAt DateTime?
+  // Plafond des fichiers téléversés dans les jeux du compte (US-066)
+  storageQuotaMb Int @default(500)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  accountTokens AccountToken[]
   ownedGames Game[] @relation("OwnedGames")
   proposedTransfers Game[] @relation("GameTransfers")
   gameShares GameShare[]
@@ -596,6 +605,25 @@ model User {
   acceptedInvitations GameInvitation[] @relation("AcceptedGameInvitations")
   sentRegistrationInvitations Registration[] @relation("SentRegistrationInvitations")
   registrationWithdrawals Registration[] @relation("RegistrationWithdrawals")
+}
+
+// Lien à usage unique envoyé par email : confirmation, changement d'adresse, mot de passe (ADR-0039)
+model AccountToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // confirm | email | password
+  kind      String
+  tokenHash String    @unique
+  // Nouvelle adresse, pour un changement d'email
+  email     String?
+  // Mot de passe choisi à l'inscription : appliqué par ce lien seulement, pas par celui d'une autre inscription
+  passwordHash String?
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, kind])
 }
 
 model GameShare {

@@ -1,4 +1,4 @@
-import { readFile, unlink } from 'node:fs/promises'
+import { readFile, stat, unlink } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { prisma } from '~/server/utils/prisma'
 import { isUploadUrl, PHOTO_UPLOAD_PREFIX, RIB_UPLOAD_PREFIX } from '~/utils/urls'
@@ -112,4 +112,64 @@ export async function collectUploadUrls(where: { gameId?: string, sessionId?: st
     ...characters.map((row) => row.trombinoscopePhotoUrl),
     ...sessions.map((row) => row.paymentRibUrl)
   ]
+}
+
+const MB = 1024 * 1024
+
+/**
+ * Espace utilisé par un compte (US-066) : les fichiers des jeux qu'il possède, qui que soit la personne
+ * qui les a téléversés. Un fichier d'avant US-066 n'a pas de taille : elle est relevée sur le disque et gardée.
+ */
+export async function storageUsedBytes(userId: string) {
+  const ownedGame = { ownerId: userId }
+  const [{ _sum }, unsized] = await Promise.all([
+    prisma.uploadedFile.aggregate({ where: { size: { not: null }, OR: [{ game: ownedGame }, { session: { game: ownedGame } }] }, _sum: { size: true } }),
+    prisma.uploadedFile.findMany({ where: { size: null, OR: [{ game: ownedGame }, { session: { game: ownedGame } }] }, select: { id: true, url: true } })
+  ])
+  let total = _sum.size ?? 0
+  for (const file of unsized) {
+    const path = uploadFilePath(file.url)
+    const size = path ? await stat(path).then((info) => info.size, () => 0) : 0
+    await prisma.uploadedFile.update({ where: { id: file.id }, data: { size } })
+    total += size
+  }
+  return total
+}
+
+// Espace utilisé de tous les comptes (page des comptes) : une requête par sorte de rattachement
+export async function storageUsedBytesByOwner() {
+  await prisma.uploadedFile.findMany({ where: { size: null }, select: { id: true, url: true } }).then(async (unsized) => {
+    for (const file of unsized) {
+      const path = uploadFilePath(file.url)
+      await prisma.uploadedFile.update({ where: { id: file.id }, data: { size: path ? await stat(path).then((info) => info.size, () => 0) : 0 } })
+    }
+  })
+  const files = await prisma.uploadedFile.findMany({
+    where: { size: { gt: 0 } },
+    select: { size: true, game: { select: { ownerId: true } }, session: { select: { game: { select: { ownerId: true } } } } }
+  })
+  const totals = new Map<string, number>()
+  for (const file of files) {
+    const ownerId = file.game?.ownerId ?? file.session?.game.ownerId
+    if (ownerId) totals.set(ownerId, (totals.get(ownerId) ?? 0) + (file.size ?? 0))
+  }
+  return totals
+}
+
+export async function storageUsage(user: { id: string, storageQuotaMb: number }) {
+  return { usedBytes: await storageUsedBytes(user.id), quotaBytes: user.storageQuotaMb * MB }
+}
+
+// Refuse un téléversement qui dépasserait le plafond de la propriétaire du jeu ; une copie léguée en attente n'en a pas
+export async function assertStorageQuota(gameId: string, incomingBytes: number) {
+  const game = await prisma.game.findUnique({ where: { id: gameId }, select: { owner: { select: { id: true, storageQuotaMb: true } } } })
+  if (!game?.owner) return
+  const { usedBytes, quotaBytes } = await storageUsage(game.owner)
+  if (usedBytes + incomingBytes > quotaBytes) {
+    const mb = (bytes: number) => Math.ceil(bytes / MB)
+    throw createError({
+      statusCode: 413,
+      message: `L’espace de stockage de la propriétaire du jeu est plein (${mb(usedBytes)} Mo sur ${mb(quotaBytes)} Mo).`
+    })
+  }
 }

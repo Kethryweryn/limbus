@@ -8,7 +8,8 @@ export default defineEventHandler(async (event) => {
     }
 
     try {
-        const user = await requireAuthUser(event)
+        // Un compte non confirmé est connecté : l'application lui montre l'écran de confirmation (R5)
+        const user = await requireAuthUser(event, { allowUnconfirmed: true })
         return {
             authenticated: true,
             user,
