@@ -4,7 +4,7 @@ titre: Comptes et partage d'un jeu
 statut: validée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
-epics: []
+epics: [EPIC-008]
 adr: [ADR-0006, ADR-0007, ADR-0018]
 ---
 

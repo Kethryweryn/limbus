@@ -15,6 +15,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-005](../archive/epics/EPIC-005-ecarts-trombinoscopes/README.md) | Corriger les écarts des trombinoscopes | [SPEC-005](../specs/SPEC-005-trombinoscopes-et-pdf.md) | terminé |
 | [EPIC-006](../archive/epics/EPIC-006-ecarts-envois-et-paiements/README.md) | Corriger les écarts des envois et des paiements | [SPEC-006](../specs/SPEC-006-emails-et-paiements.md) | terminé |
 | [EPIC-007](../archive/epics/EPIC-007-ecarts-participants/README.md) | Corriger les écarts des participants | [SPEC-007](../specs/SPEC-007-participants-et-rgpd.md) | terminé |
+| [EPIC-008](EPIC-008-ecarts-comptes/README.md) | Corriger les écarts de sécurité des comptes | [SPEC-008](../specs/SPEC-008-comptes-et-partage.md) | en cours |
 
 ## US
 
@@ -61,3 +62,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-039](../archive/epics/EPIC-007-ecarts-participants/US-039-paiement-d-une-personne-qui-part.md) | Paiement d'une personne qui part : rembourser, garder ou transférer | EPIC-007 | terminée |
 | [US-040](../archive/epics/EPIC-007-ecarts-participants/US-040-date-limite-de-desistement.md) | Date limite de désistement | EPIC-007 | terminée |
 | [US-041](../archive/epics/EPIC-007-ecarts-participants/US-041-place-offerte.md) | Place offerte | EPIC-007 | terminée |
+| [US-042](EPIC-008-ecarts-comptes/US-042-jeton-d-invitation-hache.md) | Le jeton d'une invitation est gardé haché | EPIC-008 | à faire |
+| [US-043](EPIC-008-ecarts-comptes/US-043-jamais-sans-administratrice.md) | Limbus garde toujours une administratrice | EPIC-008 | à faire |
