@@ -2,7 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
 import { accessibleGameIds, requireParticipantAccess } from '~/server/utils/gameAccess'
 import { participantSchema, readZodBody } from '~/server/utils/schemas'
-import { assertNotesForAllowedGames, exposeParticipantGames, participantGameLinksInclude, removeParticipantFromGames } from '~/server/utils/participants'
+import { exposeParticipantGames, participantGameLinksInclude, removeParticipantFromGames } from '~/server/utils/participants'
 import { eraseParticipant } from '~/server/utils/participantPrivacy'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
@@ -18,10 +18,10 @@ export default defineEventHandler(async (event) => {
   const { name, email, phone, gameNotes, gameIds } = body
   const uniqueGameIds = [...new Set(gameIds)]
   const allowedGameIds = await accessibleGameIds(event)
-  if (allowedGameIds !== null && uniqueGameIds.some((gameId) => !allowedGameIds.includes(gameId))) {
+  // Jeux liés et notes par jeu (US-069) : tous doivent être accessibles
+  if (allowedGameIds !== null && [...uniqueGameIds, ...Object.keys(gameNotes)].some((gameId) => !allowedGameIds.includes(gameId))) {
     throw createError({ statusCode: 403, message: 'Jeu inaccessible' })
   }
-  assertNotesForAllowedGames(gameNotes, allowedGameIds)
 
   await assertUnmodifiedSince(event, 'participant', id)
 

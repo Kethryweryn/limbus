@@ -48,13 +48,6 @@ export function exposeParticipantGames<T extends ParticipantWithGameLinks>(parti
   }
 }
 
-// Notes reçues pour des jeux inaccessibles : refusées, comme les jeux eux-mêmes (US-069)
-export function assertNotesForAllowedGames(gameNotes: Record<string, string | null>, allowedGameIds: string[] | null) {
-  if (allowedGameIds !== null && Object.keys(gameNotes).some((gameId) => !allowedGameIds.includes(gameId))) {
-    throw createError({ statusCode: 403, message: 'Jeu inaccessible' })
-  }
-}
-
 export function exposeParticipantsGames<T extends ParticipantWithGameLinks>(participants: T[]) {
   return participants.map(exposeParticipantGames)
 }
