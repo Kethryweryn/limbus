@@ -1,8 +1,8 @@
 ---
 id: EPIC-004
 titre: Corriger les écarts des sessions
-statut: en cours
-spec: ../../specs/SPEC-004-sessions.md
+statut: terminé
+spec: ../../../specs/SPEC-004-sessions.md
 date: 2026-10-29
 ---
 
@@ -10,7 +10,7 @@ date: 2026-10-29
 
 ## Objectif
 
-Aligner le code sur [SPEC-004](../../specs/SPEC-004-sessions.md) : corriger ses quatre écarts, dont le cycle de vie d'une session décrit par la fiche [Cycle de vie d'une session](../../todo/cycle-de-vie-d-une-session.md), avec les choix faits par l'utilisatrice le 29 octobre 2026.
+Aligner le code sur [SPEC-004](../../../specs/SPEC-004-sessions.md) : corriger ses quatre écarts, dont le cycle de vie d'une session décrit par la fiche [Cycle de vie d'une session](../../todo/cycle-de-vie-d-une-session.md), avec les choix faits par l'utilisatrice le 29 octobre 2026.
 
 ## US
 
@@ -30,4 +30,4 @@ Aligner le code sur [SPEC-004](../../specs/SPEC-004-sessions.md) : corriger ses 
 
 - Toutes les US terminées ; `npm run lint`, `npm run typecheck`, `npm test` et la CI passent.
 - SPEC-004 à jour : les écarts corrigés sortent de la liste, les règles décrivent le nouveau comportement ; la fiche Cycle de vie part dans `archive/todo/`.
-- [ADR-0028](../../adr/ADR-0028-version-d-une-session.md) et [ADR-0029](../../adr/ADR-0029-cycle-de-vie-d-une-session.md).
+- [ADR-0028](../../../adr/ADR-0028-version-d-une-session.md) et [ADR-0029](../../../adr/ADR-0029-cycle-de-vie-d-une-session.md).

@@ -22,7 +22,7 @@ En tant qu'organisatrice, je veux reporter une session sur une nouvelle date en 
 ## Notes techniques
 
 - Route `POST /api/sessions/:id/postpone` (action, jamais mise en file hors ligne), dans une transaction ; contrôle d'accès au jeu de la session.
-- `Session.postponedToSessionId` (self-relation, `SetNull`). Photos : `UploadedFile.sessionId` passe à `null` ([ADR-0029](../../adr/ADR-0029-cycle-de-vie-d-une-session.md)).
+- `Session.postponedToSessionId` (self-relation, `SetNull`). Photos : `UploadedFile.sessionId` passe à `null` ([ADR-0029](../../../adr/ADR-0029-cycle-de-vie-d-une-session.md)).
 - Route ajoutée à `isolation.test.ts`.
 
 ## Tests

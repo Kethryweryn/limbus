@@ -20,7 +20,7 @@ En tant qu'organisatrice, je veux être prévenue quand une autre a modifié la 
 
 ## Notes techniques
 
-- Version = `Session.updatedAt` ([ADR-0028](../../adr/ADR-0028-version-d-une-session.md)). `PUT /api/sessions/:id/timeline` appelle `assertUnmodifiedSince` et met à jour `updatedAt` dans sa transaction ; il renvoie la nouvelle version.
+- Version = `Session.updatedAt` ([ADR-0028](../../../adr/ADR-0028-version-d-une-session.md)). `PUT /api/sessions/:id/timeline` appelle `assertUnmodifiedSince` et met à jour `updatedAt` dans sa transaction ; il renvoie la nouvelle version.
 - `pages/sessions/[id].vue` : `saveCast` et `saveTimeline` envoient `updatedAt` et gardent celui de la réponse.
 - `server/utils/concurrency.ts` : message générique.
 

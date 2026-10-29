@@ -3,14 +3,14 @@ id: ADR-0029
 titre: Cycle de vie d'une session : report lié, présence par lien personnel, remboursements suivis par paiement
 statut: accepté
 date: 2026-10-29
-liens: [../specs/SPEC-004-sessions.md, ../todo/cycle-de-vie-d-une-session.md, ADR-0008, ADR-0018, ADR-0020, ADR-0024]
+liens: [../specs/SPEC-004-sessions.md, ../archive/todo/cycle-de-vie-d-une-session.md, ADR-0008, ADR-0018, ADR-0020, ADR-0024]
 ---
 
 # ADR-0029 : Cycle de vie d'une session : report lié, présence par lien personnel, remboursements suivis par paiement
 
 ## Contexte
 
-Une session peut être annulée, reportée ou « désannulée ». Il faut alors rembourser ou reporter les paiements, reprendre l'équipe et le casting sur la nouvelle date, et faire confirmer sa présence à chacun ([fiche](../todo/cycle-de-vie-d-une-session.md), décisions du 29 octobre 2026). Les participants n'ont pas de compte.
+Une session peut être annulée, reportée ou « désannulée ». Il faut alors rembourser ou reporter les paiements, reprendre l'équipe et le casting sur la nouvelle date, et faire confirmer sa présence à chacun ([fiche](../archive/todo/cycle-de-vie-d-une-session.md), décisions du 29 octobre 2026). Les participants n'ont pas de compte.
 
 ## Décision
 

@@ -22,7 +22,7 @@ En tant qu'organisatrice, je veux que chaque personne de l'équipe d'une session
 
 ## Notes techniques
 
-- Table `SessionAttendance` ([ADR-0029](../../adr/ADR-0029-cycle-de-vie-d-une-session.md)) ; jeton comme [ADR-0018](../../adr/ADR-0018-jetons-des-liens-personnels.md).
+- Table `SessionAttendance` ([ADR-0029](../../../adr/ADR-0029-cycle-de-vie-d-une-session.md)) ; jeton comme [ADR-0018](../../../adr/ADR-0018-jetons-des-liens-personnels.md).
 - Routes organisatrice sous `/api/sessions/:id/attendance` (envoi, relance, prolongation, libération) ; routes publiques `/api/public/attendance/:token` (lecture, réponse), limitées par IP ; page `/presence/[token]` sans référent ni cache.
 - `exportParticipantData`, `isolation.test.ts`, verrou d'envoi de la session.
 

@@ -20,7 +20,7 @@ En tant qu'organisatrice, je veux envoyer un email à toute l'équipe quand une 
 
 ## Notes techniques
 
-- Route `POST /api/sessions/:id/cancellation-email` (action), verrou d'envoi et limite de débit comme les autres envois ([SPEC-006](../../specs/SPEC-006-emails-et-paiements.md)) ; `isolation.test.ts`.
+- Route `POST /api/sessions/:id/cancellation-email` (action), verrou d'envoi et limite de débit comme les autres envois ([SPEC-006](../../../specs/SPEC-006-emails-et-paiements.md)) ; `isolation.test.ts`.
 
 ## Tests
 

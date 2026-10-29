@@ -21,7 +21,7 @@ En tant qu'organisatrice, je veux qu'un participant ne joue qu'un PJ par session
 
 ## Notes techniques
 
-- Colonne `Game.singlePjPerParticipant Boolean @default(true)` : ajout seul ([ADR-0024](../../adr/ADR-0024-migrations-compatibles-avec-le-build-en-service.md)).
+- Colonne `Game.singlePjPerParticipant Boolean @default(true)` : ajout seul ([ADR-0024](../../../adr/ADR-0024-migrations-compatibles-avec-le-build-en-service.md)).
 - Contrôle dans `assertSessionCastRules` (`server/utils/sessionAssignments.ts`), qui sert à la création et à la modification d'une session.
 - Schémas `createGameSchema` et `updateGameSchema`, formulaire du jeu (`GameForm.vue`), `gameCopy.ts`.
 

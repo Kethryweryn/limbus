@@ -3,7 +3,7 @@ id: ADR-0028
 titre: La date de modification de la session sert de version à son équipe, son casting et son déroulé
 statut: accepté
 date: 2026-10-29
-liens: [../specs/SPEC-004-sessions.md, ../epics/EPIC-004-ecarts-sessions/US-018-modifications-simultanees-d-une-session.md]
+liens: [../specs/SPEC-004-sessions.md, ../archive/epics/EPIC-004-ecarts-sessions/US-018-modifications-simultanees-d-une-session.md]
 ---
 
 # ADR-0028 : La date de modification de la session sert de version à son équipe, son casting et son déroulé
