@@ -99,9 +99,8 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
-      - run: npm audit --omit=dev --audit-level=high
-      # Les outils de build (devDependencies) produisent le build déployé, et tournent aussi sur le serveur : alerte critique bloquante
-      - run: npm audit --audit-level=critical
+      # Toutes les dépendances, outils de build compris : ils produisent le build déployé et tournent aussi sur le serveur
+      - run: npm audit --audit-level=high
       - run: npm run build
       - run: npm run test:integration
       - run: npx playwright install --with-deps chromium
