@@ -124,7 +124,7 @@ if (error.value) {
     throw createError({ statusCode: error.value.statusCode || 404, message: 'Jeu introuvable' })
 }
 
-const { selectGame, game: currentGame } = useGameFocus()
+const { selectGame, clearGame, game: currentGame } = useGameFocus()
 
 const isCurrentGame = computed(() => currentGame?.value?.id === game.value?.id)
 const isEditing = ref(route.query.edit === '1')
@@ -142,6 +142,8 @@ async function leaveGame() {
     if (!confirm(`Quitter « ${game.value.title} » ? Vous n’y aurez plus accès ; ce que vous y avez écrit reste.`)) return
     try {
         await useApiFetch(`/api/games/${game.value.id}/shares/${authState.value.user.id}`, { method: 'DELETE' })
+        // Plus d'accès : le jeu ne reste pas le jeu actif
+        if (isCurrentGame.value) clearGame()
         await navigateTo('/games')
     } catch (err) {
         actionError.value = err?.data?.message || err?.message || 'Erreur inconnue'

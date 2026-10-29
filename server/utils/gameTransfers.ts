@@ -12,11 +12,15 @@ async function requireOwnGame(gameId: string, userId: string) {
 
 export async function proposeGameTransfer(gameId: string, ownerId: string, userId: string) {
   await requireOwnGame(gameId, ownerId)
-  const share = await prisma.gameShare.findUnique({ where: { gameId_userId: { gameId, userId } }, select: { id: true } })
-  if (!share) {
+  // Une seule requête : la destinataire doit être co-organisatrice au moment même de l'écriture
+  const { count } = await prisma.game.updateMany({
+    where: { id: gameId, ownerId, shares: { some: { userId } } },
+    data: { transferToUserId: userId }
+  })
+  if (!count) {
     throw createError({ statusCode: 400, message: 'Le jeu ne se transfère qu’à l’une de ses co-organisatrices' })
   }
-  return await prisma.game.update({ where: { id: gameId }, data: { transferToUserId: userId }, select: { id: true, transferToUserId: true } })
+  return { id: gameId, transferToUserId: userId }
 }
 
 // Retirer la proposition (la propriétaire) ou la refuser (la destinataire)
