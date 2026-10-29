@@ -83,6 +83,13 @@ export async function removeParticipantFromGames(participantId: string, gameIds:
   })
 
   await deleteUnusedUploads(assignments.map((assignment) => assignment.photoUrl))
+  // Après la réponse, comme pour un désistement : l'enregistrement de la fiche n'attend pas les PDF
+  regenerateTrombinoscopes(sessionIds).catch((error) =>
+    console.error('[retrait d’un jeu] trombinoscopes non régénérés', { error: (error as Error)?.message })
+  )
+}
+
+async function regenerateTrombinoscopes(sessionIds: string[]) {
   const withTrombinoscopes = await prisma.sessionTrombinoscope.groupBy({ by: ['sessionId'], where: { sessionId: { in: sessionIds } } })
   for (const { sessionId } of withTrombinoscopes) {
     await generateSessionTrombinoscopes(sessionId, publicAppUrl()).catch((error) =>

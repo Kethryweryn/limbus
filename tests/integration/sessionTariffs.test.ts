@@ -228,6 +228,10 @@ describe('personne partie, date limite et place offerte (US-039 à US-041)', () 
       if (withTariffs) expect(target.instalments.map((instalment) => instalment.amountCents)).toEqual([8000])
       else expect(target.paidAt).not.toBeNull()
       expect((await prisma.sessionPayment.findUniqueOrThrow({ where: { sessionId_participantId: { sessionId: t.session.id, participantId: t.player.id } } })).refundStatus).toBe('transferred')
+      // Un second transfert ne crédite pas deux fois
+      await api(alice, 'PUT', `/api/sessions/${t.session.id}/payments/${t.player.id}/departure`, { status: 'kept' })
+      expect((await api(alice, 'PUT', `/api/sessions/${t.session.id}/payments/${t.player.id}/departure`, { status: 'transferred', transferToParticipantId: t.npc.id })).status).toBe(200)
+      expect(await prisma.sessionPaymentInstalment.count({ where: { paymentId: target.id } })).toBe(withTariffs ? 1 : 0)
     }
   })
 

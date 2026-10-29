@@ -111,7 +111,9 @@ export function paymentAmountLines(amounts: PaymentAmounts | null | undefined) {
 // « gardé » après ; rien sans date limite. Calculé à la lecture : c'est la date de la décision qui compte.
 export function suggestedDepartureStatus(withdrawalDeadline: Date | string | null | undefined, now = new Date()) {
   if (!withdrawalDeadline) return null
-  return new Date(withdrawalDeadline).getTime() >= now.getTime() ? 'to_refund' : 'kept'
+  // La date limite est un jour : il compte en entier
+  const endOfDeadline = new Date(withdrawalDeadline).getTime() + 24 * 60 * 60 * 1000
+  return now.getTime() < endOfDeadline ? 'to_refund' : 'kept'
 }
 
 export function withdrawalDeadlineLine(withdrawalDeadline: Date | string | null | undefined) {

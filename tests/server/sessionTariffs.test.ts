@@ -101,6 +101,8 @@ describe('personne partie et place offerte (US-039 à US-041)', () => {
     const now = new Date('2026-11-10T12:00:00.000Z')
     expect(suggestedDepartureStatus(new Date('2026-11-11'), now)).toBe('to_refund')
     expect(suggestedDepartureStatus(new Date('2026-11-09'), now)).toBe('kept')
+    // Le jour de la date limite compte encore
+    expect(suggestedDepartureStatus(new Date('2026-11-10'), now)).toBe('to_refund')
     expect(suggestedDepartureStatus(null, now)).toBeNull()
   })
 

@@ -723,19 +723,26 @@ export async function setDepartedPaymentStatus(sessionId: string, participantId:
     throw createError({ statusCode: 400, message: 'Cette personne n’a pas de paiement à traiter : elle est encore dans le tableau, ou n’a rien payé.' })
   }
 
+  // Le remplaçant déjà crédité reste noté : revenir sur un transfert ne retire rien chez lui (ADR-0033)
   if (status !== REFUND_STATUSES.transferred) {
     return await prisma.sessionPayment.update({
       where: { id: payment.id },
       data: {
         refundStatus: status,
-        refundedAt: status === REFUND_STATUSES.refunded ? new Date() : null,
-        transferredToParticipantId: null
+        refundedAt: status === REFUND_STATUSES.refunded ? new Date() : null
       }
     })
   }
 
   if (!transferToParticipantId || !rows.some((row) => row.participant.id === transferToParticipantId)) {
     throw createError({ statusCode: 400, message: 'Choisissez une personne du tableau des paiements pour reprendre ce paiement.' })
+  }
+  // Un paiement ne se transfère qu'une fois : sinon le remplaçant serait crédité deux fois
+  if (payment.transferredToParticipantId) {
+    if (payment.transferredToParticipantId !== transferToParticipantId) {
+      throw createError({ statusCode: 409, message: 'Ce paiement a déjà été transféré à une autre personne : corrigez d’abord sa ligne.' })
+    }
+    return await prisma.sessionPayment.update({ where: { id: payment.id }, data: { refundStatus: status, refundedAt: null } })
   }
   const paidAt = payment.paidAt || payment.instalments[0]?.receivedAt || new Date()
   const total = receivedCents(payment)

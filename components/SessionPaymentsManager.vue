@@ -307,7 +307,7 @@
         </article>
       </section>
 
-      <section v-if="unassignedPayments.length" class="space-y-2 rounded border border-warning-200 bg-warning-50 p-4">
+      <section v-if="unassignedPayments.length && !refunds.length" class="space-y-2 rounded border border-warning-200 bg-warning-50 p-4">
         <h3 class="font-medium text-warning-800">Paiements de personnes parties</h3>
         <p class="text-sm text-warning-700">
           Ces personnes ont payé puis se sont désistées ou ont été retirées : remboursez, gardez, ou transférez le paiement à la personne qui reprend la place.

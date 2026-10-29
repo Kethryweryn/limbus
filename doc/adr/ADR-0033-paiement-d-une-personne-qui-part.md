@@ -16,8 +16,8 @@ Une personne qui a payé peut quitter une session : désistement, retrait d'un j
 
 - La décision porte sur le paiement (`SessionPayment.refundStatus`), comme pour une session annulée ou reportée ([ADR-0029](ADR-0029-cycle-de-vie-d-une-session.md)). Deux statuts s'ajoutent : `kept` (gardé, non remboursé) et `transferred` (transféré au remplaçant), avec `transferredToParticipantId`.
 - Une personne « partie » est une personne qui a payé (case cochée ou versement, [ADR-0032](ADR-0032-tarifs-et-versements.md)) et n'est plus dans le tableau. On ne garde pas la date de son départ : elle part par plusieurs chemins (équipe, désistement, retrait d'un jeu).
-- Tant qu'aucune décision n'est prise, la proposition est calculée à la lecture ([ADR-0020](ADR-0020-echeances-evaluees-a-la-lecture.md)) : « à rembourser » si la date limite de désistement de la session (`Session.withdrawalDeadline`) n'est pas passée, « gardé » sinon ; rien sans date limite.
-- Le transfert crée chez le remplaçant ce qui compte comme payé dans le mode de la session : un versement du montant reçu en mode tarifs, la case « payé » en mode simple. Revenir sur un transfert ne retire rien chez le remplaçant.
+- Tant qu'aucune décision n'est prise, la proposition est calculée à la lecture ([ADR-0020](ADR-0020-echeances-evaluees-a-la-lecture.md)) : « à rembourser » si la date limite de désistement de la session (`Session.withdrawalDeadline`) n'est pas passée, « gardé » sinon (le jour de la date limite compte encore) ; rien sans date limite.
+- Le transfert crée chez le remplaçant ce qui compte comme payé dans le mode de la session : un versement du montant reçu en mode tarifs, la case « payé » en mode simple. Revenir sur un transfert ne retire rien chez le remplaçant, qui reste noté : un paiement ne se transfère qu'une fois, à une seule personne.
 - Une place offerte (`SessionPayment.offered`) met le dû à zéro et l'état à « place offerte », dans les deux modes.
 
 ## Conséquences
