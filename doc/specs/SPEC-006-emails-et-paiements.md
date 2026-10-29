@@ -88,7 +88,7 @@ Remettre à chaque personne d'une session ce qui la concerne, par email : docume
 - `SessionDocumentDelivery` : un envoi (session, participant, type, document ou personnage, date).
 - `SessionPayment` : l'état du paiement d'un participant pour une session (date de paiement, de la première demande, de la dernière relance).
 - `Session.paymentRibUrl` et `Session.paymentLinkUrl`.
-- Envois et paiements sont des données personnelles du participant : ils sont couverts par l'export et la suppression RGPD (`participantPrivacy.ts`), décrits dans la spec sur les participants. Ils sont supprimés avec la session ([SPEC-004](SPEC-004-sessions.md), R3), sans proposer de remboursement, et avec le participant. Un envoi est aussi supprimé avec son document ou son personnage : leur historique d'envoi disparaît.
+- Envois et paiements sont des données personnelles du participant : ils sont couverts par l'export et la suppression RGPD (`participantPrivacy.ts`), décrits dans [SPEC-007](SPEC-007-participants-et-rgpd.md). Ils sont supprimés avec la session ([SPEC-004](SPEC-004-sessions.md), R3), sans proposer de remboursement, et avec le participant. Un envoi est aussi supprimé avec son document ou son personnage : leur historique d'envoi disparaît.
 - Le contenu des emails n'est pas conservé.
 
 ## Sécurité et droits

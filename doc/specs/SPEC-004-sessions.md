@@ -79,7 +79,7 @@ Organiser une représentation d'un jeu : une session réunit une date, un lieu, 
 ## Données
 
 - Tables `Session`, `SessionParticipant` (équipe et rôles), `SessionAssignment` (casting, photo, notes) et `TimelineEventResponsible`.
-- La photo d'une attribution est une donnée personnelle du participant. Elle est couverte par l'export et la suppression RGPD (`participantPrivacy.ts`), décrits dans la spec sur les participants.
+- La photo d'une attribution est une donnée personnelle du participant. Elle est couverte par l'export et la suppression RGPD (`participantPrivacy.ts`), décrits dans [SPEC-007](SPEC-007-participants-et-rgpd.md).
 - Supprimer un participant supprime sa place dans les équipes et ses affectations de responsable. Ses attributions perdent leur participant, et leurs photos sont supprimées.
 
 ## Sécurité et droits

@@ -95,7 +95,7 @@ Ces sujets sont couverts par leurs propres specs :
 - sessions, casting et chronologie de déroulé ;
 - trombinoscopes et fiches de personnage en PDF ;
 - envois d'emails et paiements ([SPEC-006](SPEC-006-emails-et-paiements.md)) ;
-- participants et RGPD ;
+- participants et RGPD ([SPEC-007](SPEC-007-participants-et-rgpd.md)) ;
 - comptes et partage ;
 - page publique ;
 - hors ligne ;

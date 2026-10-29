@@ -77,7 +77,7 @@ Donner à chaque joueuse et chaque joueur, pour une session, ce que son personna
 
 - `CharacterTrombinoscopeEntry` : réglage d'un personnage regardé dans le trombinoscope d'un personnage, valable pour toutes les sessions.
 - `SessionTrombinoscope` : trombinoscope généré pour une attribution (HTML, PDF en base64, nombre de photos manquantes, date). Il est supprimé avec la session, le personnage ou le participant.
-- Les trombinoscopes contiennent les photos des participants, qui sont des données personnelles. Supprimer un participant supprime les trombinoscopes des sessions où figurait sa photo ; il faut les générer à nouveau ([SPEC-004](SPEC-004-sessions.md), spec sur les participants).
+- Les trombinoscopes contiennent les photos des participants, qui sont des données personnelles. Supprimer un participant supprime les trombinoscopes des sessions où figurait sa photo ; il faut les générer à nouveau ([SPEC-004](SPEC-004-sessions.md), [SPEC-007](SPEC-007-participants-et-rgpd.md)).
 
 ## Sécurité et droits
 
