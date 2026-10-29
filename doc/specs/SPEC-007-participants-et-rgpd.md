@@ -95,13 +95,13 @@ Depuis la liste, « Supprimer » efface la fiche et ses données, après une con
 - Inscriptions, allergies et consentement santé : [SPEC-001](SPEC-001-inscriptions.md).
 - Photos de session et trombinoscopes : [SPEC-004](SPEC-004-sessions.md), [SPEC-005](SPEC-005-trombinoscopes-et-pdf.md).
 - Information des participants sur l'usage de leurs photos : fiche [Photos et RGPD](../todo/photos-et-rgpd.md).
-- Comptes des participants : fiche [Comptes participants](../todo/comptes-participants.md).
+- Comptes des participants : fiche [Un compte pour tout le monde](../todo/comptes-participants.md).
 
 ## Écarts constatés
 
 Relevés le 29 octobre 2026 avec l'utilisatrice. Aucun n'est corrigé ici.
 
-1. **Fiche commune entre équipes (R2)** : une fiche liée à des jeux de deux équipes (par un jeu partagé) montre à chacune les coordonnées et les notes saisies par l'autre, et chacune peut les modifier. Plutôt qu'une fiche par jeu, l'utilisatrice veut unifier vraiment la personne, avec un compte qui lui permette de gérer elle-même ses jeux et ses données : fiche [Comptes participants](../todo/comptes-participants.md).
+1. **Fiche commune entre équipes (R2)** : une fiche liée à des jeux de deux équipes (par un jeu partagé) montre à chacune les coordonnées et les notes saisies par l'autre, et chacune peut les modifier. Plutôt qu'une fiche par jeu, l'utilisatrice veut unifier vraiment la personne, avec un compte qui lui permette de gérer elle-même ses jeux et ses données : fiche [Un compte pour tout le monde](../todo/comptes-participants.md).
 2. **Retrait d'un jeu (R4)** : retirer une personne d'un jeu devrait aussi la retirer des sessions de ce jeu. Une fiche qui n'est plus liée à aucun jeu reste en base, invisible pour toutes les organisatrices ; c'est aussi le cas d'une fiche créée sans jeu. Retirer le dernier lien devrait proposer de supprimer la fiche.
 3. **Durée de conservation (R13)** : il faut une durée de conservation des données des participants, pas seulement des photos. Elle est à fixer dans la fiche [Photos et RGPD](../todo/photos-et-rgpd.md).
 4. **Export incomplet (R7)** : quelques champs des inscriptions ne sont pas exportés : la date de la dernière relance, et l'organisatrice qui a invité ou retiré la personne. Le droit d'accès porte sur toutes les données.

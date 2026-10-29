@@ -19,7 +19,8 @@ Enfin, le rôle global « organisateur » n'a pas vraiment de sens : on peut org
 ## Proposition
 
 - **Inscription libre** : une page d'inscription permet à chacun de créer son compte, sans invitation, pour organiser ses propres jeux ou participer à ceux des autres.
-- **Rôles par jeu** : le seul rôle global est « administrateur » (oui ou non). Le reste dépend du jeu : propriétaire ou co-organisatrice d'un jeu, participant d'un autre. Le rôle global « organisateur » disparaît.
+- **Rôles par jeu** : le seul rôle global est « administrateur » (oui ou non). Le reste dépend du jeu : propriétaire ou co-organisatrice d'un jeu, participant d'un autre. Le rôle global « organisateur » disparaît. Le contrôle `requireOrganizer`, en tête de toutes les routes de l'API (CLAUDE.md), devient « compte connecté », l'accès à chaque jeu restant vérifié comme aujourd'hui ; la règle de CLAUDE.md change avec lui.
+- **Compte en libre-service** : avec des comptes ouverts, chacun change lui-même son nom, son email et son mot de passe, et réinitialise un mot de passe oublié par email ([SPEC-008](../specs/SPEC-008-comptes-et-partage.md), écart 2).
 - **Deux espaces dans un même compte** : la personne retrouve les jeux qu'elle organise et ceux auxquels elle participe, avec une bascule entre les deux dans l'interface. Une personne qui ne fait que participer ne voit que son espace de participation.
 - **Compte participant** : une personne crée son compte, ou l'active depuis un lien reçu par email (inscription, invitation). Elle y retrouve ses jeux et ses sessions.
 - **Coordonnées tenues par la personne** : nom, email, téléphone, contact d'urgence, régime et allergies. Elle les met à jour elle-même, et chaque équipe les lit pour ses jeux seulement.
@@ -31,7 +32,7 @@ Enfin, le rôle global « organisateur » n'a pas vraiment de sens : on peut org
 ## Découpage envisagé
 
 1. Rôles : un seul rôle global (administrateur oui ou non), les droits d'organisation venant des jeux possédés ou partagés.
-2. Inscription libre, avec vérification de l'adresse email et protection contre les inscriptions automatiques.
+2. Inscription libre, avec vérification de l'adresse email et protection contre les inscriptions automatiques, et compte en libre-service (changer ses informations, mot de passe oublié).
 3. Notes d'organisation propres à chaque équipe, séparées de la fiche commune.
 4. Compte participant : rattachement des fiches existantes par email vérifié, espace « Je participe » et bascule entre les deux espaces.
 5. Coordonnées et allergies tenues par la personne.
@@ -47,4 +48,7 @@ Enfin, le rôle global « organisateur » n'a pas vraiment de sens : on peut org
 - Qui fait foi quand la personne et l'équipe modifient la même coordonnée ? Recommandation : la personne, dès qu'elle a un compte.
 - Effacement demandé depuis le compte : immédiat, ou validé par chaque équipe (paiements à régler, session en cours) ?
 - Les règles actuelles qui supposent l'absence de compte (fichiers en pièce jointe, jamais en lien vers l'API ; liens personnels d'inscription, [ADR-0018](../adr/ADR-0018-jetons-des-liens-personnels.md)) changent-elles ? Le modèle de comptes et de rôles demande un ADR.
-- Tranché le 29 octobre 2026 : un seul compte pour organiser et participer, avec l'administrateur comme seul rôle global.
+
+## Décisions
+
+- 2026-10-29 : un seul compte pour organiser et participer, avec l'administrateur comme seul rôle global. Inscription libre, ouverte à toutes celles et tous ceux qui veulent organiser. Bascule dans l'interface entre les jeux qu'on organise et ceux auxquels on participe.
