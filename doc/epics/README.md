@@ -18,6 +18,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-008](../archive/epics/EPIC-008-ecarts-comptes/README.md) | Corriger les écarts de sécurité des comptes | [SPEC-008](../specs/SPEC-008-comptes-et-partage.md) | terminé |
 | [EPIC-009](../archive/epics/EPIC-009-ecarts-page-publique/README.md) | Corriger les écarts de la page publique | [SPEC-009](../specs/SPEC-009-page-publique.md) | terminé |
 | [EPIC-010](../archive/epics/EPIC-010-ecarts-hors-ligne/README.md) | Corriger les écarts du mode hors ligne | [SPEC-010](../specs/SPEC-010-hors-ligne.md) | terminé |
+| [EPIC-011](../archive/epics/EPIC-011-tests-e2e-des-parcours/README.md) | Tests de bout en bout des parcours | [fiche](../archive/todo/tests-e2e-des-parcours.md) | terminé |
 
 ## US
 
@@ -75,3 +76,8 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-050](../archive/epics/EPIC-010-ecarts-hors-ligne/US-050-conflit-a-la-resynchronisation.md) | Contrôler et résoudre les conflits à la resynchronisation | EPIC-010 | terminée |
 | [US-051](../archive/epics/EPIC-010-ecarts-hors-ligne/US-051-deconnexion-sans-reseau.md) | Se déconnecter sans réseau | EPIC-010 | terminée |
 | [US-052](../archive/epics/EPIC-010-ecarts-hors-ligne/US-052-envoi-a-l-ouverture.md) | La file part à l'ouverture de l'application | EPIC-010 | terminée |
+| [US-053](../archive/epics/EPIC-011-tests-e2e-des-parcours/US-053-test-du-casting.md) | Test de bout en bout du casting | EPIC-011 | terminée |
+| [US-054](../archive/epics/EPIC-011-tests-e2e-des-parcours/US-054-test-des-trombinoscopes.md) | Test de bout en bout des trombinoscopes | EPIC-011 | terminée |
+| [US-055](../archive/epics/EPIC-011-tests-e2e-des-parcours/US-055-test-de-l-envoi-des-documents.md) | Test de bout en bout de l'envoi des documents | EPIC-011 | terminée |
+| [US-056](../archive/epics/EPIC-011-tests-e2e-des-parcours/US-056-test-des-paiements.md) | Test de bout en bout des paiements | EPIC-011 | terminée |
+| [US-057](../archive/epics/EPIC-011-tests-e2e-des-parcours/US-057-test-de-la-session-hors-ligne.md) | Test de bout en bout de la session hors ligne | EPIC-011 | terminée |

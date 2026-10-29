@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import bcrypt from 'bcrypt'
 import { createTestPrisma, testDatabaseUrl } from '../integration/db'
-import { E2E_PASSWORD, E2E_USERS } from './constants'
+import { E2E_PASSWORD, E2E_USERS, PARCOURS } from './constants'
 
 export default async function globalSetup() {
   execFileSync('npx', ['prisma', 'migrate', 'reset', '--force'], {
@@ -36,5 +36,19 @@ export default async function globalSetup() {
   await prisma.participant.create({
     data: { name: 'Camille Invitée', slug: 'camille-invitee', email: 'camille.invitee@example.test', gameLinks: { create: { gameId: registrationGame.id } } }
   })
+  // Jeu commun des parcours (ADR-0037) : chaque test y crée sa session, sous un nom qui lui est propre
+  const parcours = await prisma.game.create({
+    data: { title: PARCOURS.game, slug: PARCOURS.gameSlug, description: '', ownerId: users[0]!.id }
+  })
+  for (const character of PARCOURS.characters) {
+    await prisma.character.create({
+      data: { name: character.name, slug: character.slug, type: character.type, gameId: parcours.id, background: `Histoire de ${character.name}.`, sheetReadyToSend: true }
+    })
+  }
+  for (const person of PARCOURS.participants) {
+    await prisma.participant.create({
+      data: { name: person.name, slug: person.slug, email: person.email, gameLinks: { create: { gameId: parcours.id } } }
+    })
+  }
   await prisma.$disconnect()
 }

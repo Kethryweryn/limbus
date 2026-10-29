@@ -9,7 +9,6 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Supervision](supervision.md) | à trancher | 2026-10-29 | Route de santé et surveillance externe avec alerte email (revue R-15, R-16) |
 | [Photos et RGPD](photos-et-rgpd.md) | à trancher | 2026-10-29 | Durée de conservation des photos et information des participants (revue R-08, R-09) |
 | [Interface en TypeScript](interface-en-typescript.md) | à trancher | 2026-10-29 | Composants et pages en `lang="ts"`, réponses d'API typées (revue R-10) |
-| [Tests de bout en bout des parcours](tests-e2e-des-parcours.md) | à trancher | 2026-10-29 | Playwright pour le casting, les trombinoscopes, les envois et les inscriptions (revue R-14) |
 | [Un compte pour tout le monde](comptes-participants.md) | à trancher | 2026-10-29 | Inscription libre, administrateur seul rôle global, espaces « J'organise » et « Je participe », coordonnées et RGPD en libre-service (SPEC-007, écart 1) |
 | [Numéros de version et notes de version](versions-et-notes-de-version.md) | à trancher | 2026-10-29 | Version sémantique, étiquettes git et notes de version à partir de la première version publiée |
 
@@ -24,3 +23,4 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Documentation de l'existant](../archive/todo/documentation-de-l-existant.md) | [SPEC-003](../specs/SPEC-003-ecriture-d-un-jeu.md) à [SPEC-010](../specs/SPEC-010-hors-ligne.md) | 2026-10-29 |
 | [Cycle de vie d'une session](../archive/todo/cycle-de-vie-d-une-session.md) | [SPEC-004](../specs/SPEC-004-sessions.md) ([EPIC-004](../archive/epics/EPIC-004-ecarts-sessions/README.md)) | 2026-10-29 |
 | [Resynchronisation hors ligne](../archive/todo/resynchronisation-hors-ligne.md) | [SPEC-010](../specs/SPEC-010-hors-ligne.md) ([EPIC-010](../archive/epics/EPIC-010-ecarts-hors-ligne/README.md)) | 2026-10-29 |
+| [Tests de bout en bout des parcours](../archive/todo/tests-e2e-des-parcours.md) | [EPIC-011](../archive/epics/EPIC-011-tests-e2e-des-parcours/README.md) | 2026-10-29 |

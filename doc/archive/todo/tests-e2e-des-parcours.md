@@ -1,8 +1,8 @@
 ---
 titre: Tests de bout en bout des parcours principaux
-statut: à trancher
+statut: archivée
 date: 2026-10-29
-revue: ../revues/2026-10-29-architecture.md
+revue: ../../revues/2026-10-29-architecture.md
 ---
 
 # Tests de bout en bout des parcours principaux
@@ -24,7 +24,16 @@ Un scénario Playwright par parcours, contre l'application compilée et la base 
 
 Une PR par scénario, ou deux PR (sessions, inscriptions).
 
-## Points à trancher
+## Décisions
 
-- Faut-il des données de départ communes (un jeu complet préparé une fois), ou chaque scénario crée-t-il les siennes ? Recommandation : un jeu commun créé par une fonction de préparation, chaque scénario ajoutant ce qui lui est propre.
-- La durée de la CI : chaque scénario ajoute quelques secondes. Faut-il un plafond ?
+Le 29 octobre 2026, avec l'utilisatrice :
+
+- un jeu de test commun, préparé une fois au démarrage des tests ; chaque test y ajoute ce dont il a besoin ([ADR-0037](../../adr/ADR-0037-jeu-commun-des-tests-de-bout-en-bout.md)) ;
+- pas de plafond de durée : la durée de la CI est surveillée ;
+- parcours couverts : casting, trombinoscopes, envoi des documents, paiements, et la page de session hors ligne. Le parcours d'inscription sur invitation a déjà son test (`registration.spec.ts`).
+
+Réalisée par [EPIC-011](../epics/EPIC-011-tests-e2e-des-parcours/README.md).
+
+## Suite
+
+- 2026-10-29 : réalisée par [EPIC-011](../epics/EPIC-011-tests-e2e-des-parcours/README.md). Fiche archivée.

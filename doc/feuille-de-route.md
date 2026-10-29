@@ -24,6 +24,7 @@ Le principe : rien n'est encore réellement utilisé en production, donc la séc
 - Écarts 5 et 6 de SPEC-008, sécurité des comptes ([EPIC-008](archive/epics/EPIC-008-ecarts-comptes/README.md)).
 - Écarts 1, 2 et 4 de SPEC-009, page publique ([EPIC-009](archive/epics/EPIC-009-ecarts-page-publique/README.md)).
 - Écarts de SPEC-010, hors ligne, avec la resynchronisation ([EPIC-010](archive/epics/EPIC-010-ecarts-hors-ligne/README.md)).
+- Tests de bout en bout des parcours : casting, trombinoscopes, envoi des documents, paiements, session hors ligne ([EPIC-011](archive/epics/EPIC-011-tests-e2e-des-parcours/README.md)).
 
 ## 1. Finir les écarts des specs de l'existant
 
@@ -35,7 +36,7 @@ Les écarts de SPEC-003 à SPEC-010 sont corrigés, sauf ceux traités plus loin
 
 ## 2. Tests de bout en bout des parcours
 
-La fiche [Tests de bout en bout des parcours](todo/tests-e2e-des-parcours.md) : ils protègent les gros chantiers qui suivent.
+Fait ([EPIC-011](archive/epics/EPIC-011-tests-e2e-des-parcours/README.md)) : ils protègent les gros chantiers qui suivent.
 
 ## 3. Refonte des comptes
 
