@@ -355,6 +355,16 @@ export const registrationExtensionSchema = z.object({
     .transform((value) => new Date(value))
 })
 
+// Email d'annulation relu par l'organisation (US-025) ; « emails » pour un test
+export const cancellationEmailSchema = z.object({
+  subject: requiredText('Subject').max(200),
+  text: requiredText('Text').max(10_000)
+})
+
+export const cancellationEmailTestSchema = cancellationEmailSchema.extend({
+  emails: z.array(requiredText('Email').email('Invalid email')).min(1).max(10)
+})
+
 // Réponse au lien de confirmation de présence (US-024)
 export const attendanceAnswerSchema = z.object({
   answer: z.enum(['confirmed', 'declined'], { error: 'Réponse invalide' })

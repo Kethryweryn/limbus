@@ -1,7 +1,7 @@
 ---
 id: US-025
 titre: Prévenir l’équipe de l’annulation d’une session
-statut: à faire
+statut: terminée
 epic: EPIC-004
 regles: [R2]
 adr: []
@@ -13,10 +13,10 @@ En tant qu'organisatrice, je veux envoyer un email à toute l'équipe quand une 
 
 ## Critères d'acceptation
 
-- [ ] Quand une session passe à « Annulée », Limbus propose un email d'annulation : un aperçu modifiable (objet et texte), envoyé à toutes les personnes de l'équipe qui ont un email.
-- [ ] L'organisation peut l'envoyer, ou fermer sans rien envoyer ; elle peut aussi le proposer à nouveau depuis la session.
-- [ ] Un échec d'envoi à une personne n'arrête pas les autres : les personnes qui n'ont rien reçu sont listées.
-- [ ] Un email de test est possible, comme pour les autres envois.
+- [x] Quand une session passe à « Annulée » depuis sa page, Limbus propose un email d'annulation : un aperçu modifiable (objet et texte), envoyé une fois à chaque personne de l'équipe qui a un email ; les personnes sans email sont listées.
+- [x] L'organisation peut l'envoyer, ou fermer sans rien envoyer ; le bouton « Prévenir l'équipe » d'une session annulée le propose à nouveau.
+- [x] Un échec d'envoi à une personne n'arrête pas les autres : les personnes qui n'ont rien reçu sont listées.
+- [x] Un email de test est possible, comme pour les autres envois.
 
 ## Notes techniques
 
@@ -24,4 +24,5 @@ En tant qu'organisatrice, je veux envoyer un email à toute l'équipe quand une 
 
 ## Tests
 
-- Intégration : envoi à l'équipe, échecs listés, refus sur une session non annulée, isolation.
+- Intégration (`sessionCancellation.test.ts`) : envoi une fois par personne de l'équipe avec le texte relu, personnes sans email listées, refus sur une session non annulée, test aux adresses choisies.
+- Isolation (`isolation.test.ts`) : envoi et test refusés sur une session de Bob.

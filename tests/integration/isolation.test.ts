@@ -182,6 +182,8 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['POST', `/api/sessions/${session}/attendance/${b.participant.id}/resend`],
     ['POST', `/api/sessions/${session}/attendance/${b.participant.id}/extend`, { responseDueAt: new Date(Date.now() + 86_400_000).toISOString() }],
     ['POST', `/api/sessions/${session}/attendance/${b.participant.id}/release`],
+    ['POST', `/api/sessions/${session}/cancellation-email`, { subject: 'Annulation', text: 'Texte' }],
+    ['POST', `/api/sessions/${session}/cancellation-email/test`, { subject: 'Annulation', text: 'Texte', emails: ['x@example.test'] }],
     ['GET', `/api/sessions/${session}/trombinoscopes/${b.character.id}`],
     ['POST', `/api/sessions/${session}/trombinoscopes/generate`, {}],
     ['GET', `/api/characters/${b.character.id}/trombinoscope`],

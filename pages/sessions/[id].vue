@@ -44,6 +44,15 @@
         >
           Reporter
         </UButton>
+        <UButton
+          v-if="!isEditingDetails && session.status === SESSION_STATUSES.cancelled"
+          icon="i-heroicons-envelope"
+          color="neutral"
+          variant="soft"
+          @click="showCancellation = true"
+        >
+          Prévenir l’équipe
+        </UButton>
       </div>
     </div>
 
@@ -142,6 +151,7 @@
       Chargement...
     </UCard>
     <SessionPostponeModal v-model:open="showPostpone" :session="session" :locations="locations" @postponed="onPostponed" />
+    <SessionCancellationModal v-model:open="showCancellation" :session="session" :default-email="currentUserEmail" />
   </div>
 </template>
 
@@ -172,6 +182,8 @@ const editableSession = ref(null)
 
 // Report (US-022) : depuis une session prévue ou annulée
 const showPostpone = ref(false)
+// Session qui vient d'être annulée : on propose l'email à l'équipe (US-025)
+const showCancellation = ref(false)
 const canPostpone = computed(() => [SESSION_STATUSES.scheduled, SESSION_STATUSES.cancelled].includes(session.value?.status))
 
 async function onPostponed(created) {
@@ -333,6 +345,7 @@ function setTab(tab) {
 async function saveDetails() {
   if (!editableSession.value?.id) return
 
+  const previousStatus = session.value?.status
   session.value = await useApiFetch(`/api/sessions/${editableSession.value.id}`, {
     method: 'PUT',
     body: editableSession.value
@@ -341,6 +354,9 @@ async function saveDetails() {
   timelineData.value = await useApiFetch(`/api/sessions/${session.value.id}/timeline`)
   await refreshDocumentsData()
   await refreshPaymentsData()
+  if (previousStatus !== SESSION_STATUSES.cancelled && session.value?.status === SESSION_STATUSES.cancelled) {
+    showCancellation.value = true
+  }
   if (session.value?.slug && session.value.slug !== route.params.id) {
     const query = { ...route.query }
     delete query.edit

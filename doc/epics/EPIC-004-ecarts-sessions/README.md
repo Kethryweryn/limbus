@@ -24,7 +24,7 @@ Aligner le code sur [SPEC-004](../../specs/SPEC-004-sessions.md) : corriger ses 
 | [US-022](US-022-reporter-une-session.md) | Reporter une session | terminée |
 | [US-023](US-023-suivre-les-remboursements.md) | Suivre les remboursements d’une session annulée ou reportée | terminée |
 | [US-024](US-024-confirmer-sa-presence.md) | Confirmer sa présence à une session reportée | terminée |
-| [US-025](US-025-prevenir-de-l-annulation.md) | Prévenir l’équipe de l’annulation d’une session | à faire |
+| [US-025](US-025-prevenir-de-l-annulation.md) | Prévenir l’équipe de l’annulation d’une session | terminée |
 
 ## Définition de terminé
 
