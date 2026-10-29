@@ -23,7 +23,7 @@ Présenter un jeu à des personnes qui n'ont pas de compte, par un lien à diffu
 
 ## Parcours
 
-1. Sur la fiche du jeu, l'organisatrice clique « Publier ». Elle peut aussi cocher « Publier la page publique » dans le formulaire du jeu, à la création comme à la modification.
+1. Sur la fiche d'un jeu actif, l'organisatrice clique « Publier » ; le bouton n'apparaît pas sur un jeu archivé. Elle peut aussi cocher « Publier la page publique » dans le formulaire du jeu, à la création comme à la modification.
 2. Le bouton « Page publique » ouvre la page, dont elle copie l'adresse pour ses annonces.
 3. « Dépublier » retire la page.
 
@@ -31,7 +31,7 @@ Présenter un jeu à des personnes qui n'ont pas de compte, par un lien à diffu
 
 - **R1** La page montre seulement la présentation du jeu : son titre, sa description, sa note d'intention et son teaser. Un teaser YouTube est intégré en vidéo ; tout autre lien http(s) est un bouton qui ouvre le lien ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), R1).
 - **R2** Rien d'autre n'en sort : ni contenu d'écriture, ni sessions, ni participants, ni organisatrices, ni crédit d'une copie (voir les écarts).
-- **R3** La page n'existe que si le jeu est publié et actif. Un jeu archivé n'a pas de page publique, même s'il garde sa marque « publié » ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), R3 et écart 4). Une page absente répond « Jeu non publié » (404), que le jeu existe ou non.
+- **R3** La page n'existe que si le jeu a la marque « page publique » et qu'il est actif (non archivé). Un jeu archivé n'a pas de page publique, même s'il garde cette marque, que la case du formulaire permet encore de cocher ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), R3 et écart 4). Une page absente répond « Jeu non publié » (404), que le jeu existe ou non.
 - **R4** Un jeu est dépublié par défaut, à la création comme à la copie ([SPEC-002](SPEC-002-copie-de-jeu.md)).
 - **R5** La propriétaire et les co-organisatrices publient et dépublient ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), R16).
 - **R6** L'adresse suit le slug du jeu : renommer le jeu change l'adresse, et l'ancienne ne répond plus (voir les écarts).
@@ -44,7 +44,7 @@ Présenter un jeu à des personnes qui n'ont pas de compte, par un lien à diffu
 
 ## Sécurité et droits
 
-- **R8** La route publique (`/api/public/games/:slug`) ne demande aucune connexion et ne renvoie que les champs de R1 ([ADR-0007](../adr/ADR-0007-isolation-par-jeu.md)).
+- **R8** La route publique (`/api/public/games/:slug`) ne demande aucune connexion. Elle ne renvoie que les champs de R1, plus le slug et la date de dernière modification du jeu ([ADR-0007](../adr/ADR-0007-isolation-par-jeu.md)).
 - **R9** Le teaser n'est intégré en iframe que pour YouTube, à partir d'un identifiant de vidéo vérifié ; un lien saisi n'est accepté qu'en http(s).
 - **R10** La page est indexable par les moteurs de recherche (`robots.txt` autorise tout).
 
