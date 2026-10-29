@@ -17,7 +17,7 @@ Aligner le code sur [SPEC-003](../../specs/SPEC-003-ecriture-d-un-jeu.md) : corr
 | US | Titre | Statut |
 |---|---|---|
 | [US-013](US-013-contenu-archive-avec-son-jeu.md) | Le contenu d'un jeu archivé est archivé avec lui | à faire |
-| [US-014](US-014-quantite-d-un-objet.md) | Saisir la quantité d'un objet | à faire |
+| [US-014](US-014-quantite-d-un-objet.md) | Saisir la quantité d'un objet | terminée |
 | [US-015](US-015-intrigue-sans-pret-a-envoyer.md) | Retirer « prête à envoyer » des intrigues | terminée |
 | [US-016](US-016-archiver-depublie-la-page.md) | Archiver un jeu dépublie sa page publique | terminée |
 

@@ -25,6 +25,10 @@
         <UTextarea v-model="localItem.description" :rows="8" size="lg" class="w-full" />
       </UFormField>
 
+      <UFormField label="Quantité" :error="errors.quantity">
+        <UInput v-model.number="localItem.quantity" type="number" :min="1" step="1" size="lg" class="w-full md:w-40" />
+      </UFormField>
+
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <UFormField label="Localisation chez un personnage">
           <USelect
@@ -183,6 +187,10 @@ function validate() {
   }
   if (!localItem.value.gameId) {
     errors.value.gameId = 'Le jeu est requis.'
+  }
+  const quantity = localItem.value.quantity ?? 1
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    errors.value.quantity = 'La quantité doit être un nombre entier d’au moins 1.'
   }
   return Object.keys(errors.value).length === 0
 }

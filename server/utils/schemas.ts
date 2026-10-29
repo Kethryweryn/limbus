@@ -174,6 +174,8 @@ export const locationSchema = z.object({
 export const itemSchema = z.object({
   name: requiredText('Name'),
   description: optionalText,
+  // Absente : 1 à la création, valeur actuelle à la modification (US-014)
+  quantity: z.coerce.number().int('La quantité doit être un nombre entier').min(1, 'La quantité doit être d’au moins 1').optional(),
   locationText: optionalText,
   locationCharacterId: optionalText,
   gameId: requiredId('Game'),

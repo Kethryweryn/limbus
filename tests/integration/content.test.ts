@@ -277,3 +277,20 @@ describe('archivage d’un jeu (US-016)', () => {
     expect((await api(null, 'GET', `/api/public/games/${game.slug}`)).status).toBe(200)
   })
 })
+
+describe('quantité d’un objet (US-014)', () => {
+  it('est enregistrée à la création et gardée quand la modification n’en porte pas', async () => {
+    const { game } = await aliceGame('quantite')
+    const created = await api(alice, 'POST', '/api/items', { name: 'Flèche', gameId: game.id, quantity: 12 })
+    expect(created.status).toBe(200)
+    const id = (created.body as { id: string }).id
+    expect((created.body as { quantity: number }).quantity).toBe(12)
+
+    expect((await api(alice, 'PUT', `/api/items/${id}`, { name: 'Flèche', gameId: game.id })).status).toBe(200)
+    expect(await prisma.item.findUniqueOrThrow({ where: { id }, select: { quantity: true } })).toEqual({ quantity: 12 })
+
+    expect((await api(alice, 'PUT', `/api/items/${id}`, { name: 'Flèche', gameId: game.id, quantity: 0 })).status).toBe(400)
+    const sansQuantite = await api(alice, 'POST', '/api/items', { name: 'Arc', gameId: game.id })
+    expect((sansQuantite.body as { quantity: number }).quantity).toBe(1)
+  })
+})

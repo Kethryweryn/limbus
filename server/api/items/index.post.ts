@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
       name: body.name,
       slug: await generateUniqueSlug('item', body.name),
       description: body.description,
-      quantity: 1,
+      quantity: body.quantity ?? 1,
       locationText: body.locationCharacterId ? null : body.locationText,
       locationCharacterId: body.locationCharacterId || null,
       gameId: body.gameId,

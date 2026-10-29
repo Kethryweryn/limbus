@@ -34,7 +34,10 @@
         <template #header>
           <div class="space-y-2">
             <div class="flex items-start justify-between gap-3">
-              <h2 class="text-lg font-semibold leading-tight">{{ item.name }}</h2>
+              <h2 class="text-lg font-semibold leading-tight">
+                {{ item.name }}
+                <span v-if="item.quantity > 1" class="text-gray-500 font-normal">× {{ item.quantity }}</span>
+              </h2>
               <UBadge v-if="isUnassigned(item)" color="warning" variant="soft" size="xs">
                 Non associé
               </UBadge>
@@ -283,6 +286,7 @@ function startCreate() {
   activeFormItem.value = {
     name: '',
     description: '',
+    quantity: 1,
     locationText: '',
     locationCharacterId: '',
     gameId: selectedGame.value?.id || games.value[0]?.id || '',
