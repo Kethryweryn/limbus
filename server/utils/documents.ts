@@ -1,5 +1,6 @@
+import { createHash } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
-import { sendEmail } from '~/server/utils/email'
+import { openEmailTransport, sendEmail, type EmailTransport } from '~/server/utils/email'
 import { DOCUMENT_AUDIENCES, SESSION_ROLES } from '~/utils/domain'
 import { generatedPdfFileName, renderTextPdf } from '~/server/utils/generatedPdfs'
 import { currentTrombinoscopeFingerprints, getSessionTrombinoscope, isTrombinoscopeOutdated } from '~/server/utils/trombinoscopes'
@@ -43,6 +44,34 @@ export async function validateDocumentRelations(gameId: string, characterId?: st
       throw createError({ statusCode: 400, message: 'Groupes invalides pour ce jeu' })
     }
   }
+}
+
+// Empreinte de ce qu'un envoi contient (ADR-0031) : elle dit si la version reçue est dépassée
+const contentHash = (parts: unknown[]) => createHash('sha256').update(JSON.stringify(parts)).digest('hex')
+
+export function documentContentHash(
+  session: { name: string, game: { title: string } },
+  document: { title: string, content: string | null, documentUrl: string | null }
+) {
+  return contentHash([session.game.title, session.name, document.title, document.content || '', document.documentUrl || ''])
+}
+
+export function characterSheetContentHash(
+  session: { name: string },
+  character: { name: string, pitch: string | null, background: string | null, backgroundDocumentUrl: string | null, costumeIndications: string | null }
+) {
+  return contentHash([session.name, character.name, character.pitch || '', character.background || '', character.backgroundDocumentUrl || '', character.costumeIndications || ''])
+}
+
+// Version reçue dépassée : empreinte différente, ou, pour un envoi sans empreinte, source modifiée depuis l'envoi
+export function isSentVersionOutdated(
+  delivery: { sentAt: Date, contentHash: string | null } | null | undefined,
+  currentHash: string | null | undefined,
+  changedAt: Date | null | undefined
+) {
+  if (!delivery) return false
+  if (delivery.contentHash) return delivery.contentHash !== currentHash
+  return Boolean(changedAt && changedAt.getTime() > delivery.sentAt.getTime())
 }
 
 export async function getSessionDocumentDashboard(sessionId: string) {
@@ -173,6 +202,7 @@ export async function getSessionDocumentDashboard(sessionId: string) {
       })
     })()
 
+    const currentHash = documentContentHash(session, document)
     const recipients = baseRecipients.map((recipient) => {
       const delivery = deliveries.find((item) =>
         item.kind === 'document'
@@ -182,12 +212,14 @@ export async function getSessionDocumentDashboard(sessionId: string) {
 
       return {
         ...recipient,
-        sentAt: delivery?.sentAt || null
+        sentAt: delivery?.sentAt || null,
+        versionOutdated: isSentVersionOutdated(delivery, currentHash, document.updatedAt)
       }
     })
 
     return {
       ...document,
+      contentHash: currentHash,
       recipients,
       pdfUrl: `/api/sessions/${session.id}/documents/${document.id}/pdf`
     }
@@ -215,13 +247,15 @@ export async function getSessionDocumentDashboard(sessionId: string) {
         item.viewerCharacterId === assignment.characterId
         && item.participantId === assignment.participantId
       )
+      const sheetContentHash = characterSheetContentHash(session, assignment.character)
       const inferredBundleSentAt = delivery?.sentAt && trombinoscopeDelivery?.sentAt
         ? new Date(Math.max(new Date(delivery.sentAt).getTime(), new Date(trombinoscopeDelivery.sentAt).getTime()))
         : null
 
       return {
         character: assignment.character,
-        participant: assignment.participant,
+        // Filtré plus haut : chaque fiche a son participant
+        participant: assignment.participant!,
         hasExternalDocument: Boolean(assignment.character.backgroundDocumentUrl),
         readyToSend: Boolean(assignment.character.sheetReadyToSend),
         sentAt: delivery?.sentAt || null,
@@ -231,6 +265,13 @@ export async function getSessionDocumentDashboard(sessionId: string) {
         trombinoscopeMissingPhotos: generatedTrombinoscope?.missingPhotos || 0,
         // Ne correspond plus au casting, aux photos ou aux réglages (US-028, ADR-0030)
         trombinoscopeOutdated: generatedTrombinoscope ? isTrombinoscopeOutdated(generatedTrombinoscope, trombinoscopeFingerprints) : false,
+        // Version reçue plus ancienne que l'actuelle : à renvoyer (US-030, ADR-0031)
+        sheetContentHash,
+        sheetVersionOutdated: isSentVersionOutdated(delivery, sheetContentHash, assignment.character.updatedAt),
+        trombinoscopeContentHash: generatedTrombinoscope?.sourceHash ?? null,
+        trombinoscopeVersionOutdated: generatedTrombinoscope
+          ? isSentVersionOutdated(trombinoscopeDelivery, generatedTrombinoscope.sourceHash, generatedTrombinoscope.generatedAt)
+          : false,
         characterSheetPdfUrl: `/api/sessions/${session.id}/documents/character-sheets/${assignment.characterId}/pdf`,
         trombinoscopeUrl: generatedTrombinoscope
           ? `/api/sessions/${session.id}/trombinoscopes/${assignment.characterId}`
@@ -257,107 +298,162 @@ export async function getSessionDocumentDashboard(sessionId: string) {
   }
 }
 
-function assertSent(result: Awaited<ReturnType<typeof sendEmail>>) {
-  if (!result.sent) {
-    throw createError({ statusCode: 500, message: 'SMTP désactivé' })
+type EmailMessage = Parameters<EmailTransport['send']>[0]
+
+/**
+ * Envoie un email à chaque destinataire sur une seule connexion SMTP (US-029). Un échec, ou un PDF impossible
+ * à produire, n'arrête pas les suivants : la personne est rendue dans `failures`. Si rien n'est parti à cause
+ * d'échecs, l'envoi est en erreur, comme pour les paiements (R19).
+ */
+async function sendToEach<Target extends { participant: { name: string, email: string | null } }>(
+  targets: Target[],
+  buildMessage: (target: Target) => Promise<Omit<EmailMessage, 'to'>>,
+  record: (target: Target) => Promise<void>
+) {
+  const failures: string[] = []
+  let sentCount = 0
+  if (!targets.length) return { sentCount, failures }
+
+  const transport = await openEmailTransport().catch(() => null)
+  if (!transport) {
+    throw createError({ statusCode: 500, message: 'SMTP désactivé ou mal configuré' })
   }
+
+  try {
+    for (const target of targets) {
+      try {
+        await transport.send({ ...await buildMessage(target), to: target.participant.email! })
+      } catch {
+        failures.push(target.participant.name)
+        continue
+      }
+      await record(target)
+      sentCount++
+    }
+  } finally {
+    transport.close()
+  }
+
+  if (!sentCount && failures.length) {
+    throw createError({ statusCode: 502, message: `Aucun email n’est parti (${failures.join(', ')}).` })
+  }
+  return { sentCount, failures }
+}
+
+type Dashboard = Awaited<ReturnType<typeof getSessionDocumentDashboard>>
+type DashboardDocument = Dashboard['documents'][number]
+type DashboardSheet = Dashboard['characterSheets'][number]
+type Recipient = { name: string, email: string | null }
+
+const greeting = (participant: Recipient) => `Bonjour ${participant.name.split(/\s+/)[0] || participant.name},`
+
+// Renvoi d'une version à jour (US-030) : l'objet le dit, et le texte rappelle qu'elle remplace la précédente
+function asUpdate(message: Omit<EmailMessage, 'to'>, update: boolean): Omit<EmailMessage, 'to'> {
+  if (!update) return message
+  const [first = '', ...rest] = (message.text || '').split('\n')
+  return {
+    ...message,
+    subject: `Mise à jour : ${message.subject}`,
+    text: [first, '', 'Voici une version mise à jour : elle remplace celle que tu as reçue.', ...rest].join('\n')
+  }
+}
+
+async function documentMessage(dashboard: Dashboard, document: DashboardDocument, participant: Recipient, update = false) {
+  return asUpdate({
+    subject: document.title,
+    text: [
+      greeting(participant),
+      '',
+      document.content || '',
+      document.documentUrl ? `Document lié : ${document.documentUrl}` : ''
+    ].filter(Boolean).join('\n'),
+    attachments: [await buildDocumentPdfAttachment(dashboard.session, document)]
+  }, update)
+}
+
+async function characterSheetMessage(dashboard: Dashboard, sheet: DashboardSheet, update = false) {
+  return asUpdate({
+    subject: `Fiche personnage - ${sheet.character.name}`,
+    text: [
+      greeting(sheet.participant),
+      '',
+      `Voici ta fiche pour ${dashboard.session.name}.`,
+      '',
+      `Personnage : ${sheet.character.name}`,
+      sheet.character.backgroundDocumentUrl
+        ? `Fiche liée : ${sheet.character.backgroundDocumentUrl}`
+        : sheet.character.background || ''
+    ].filter(Boolean).join('\n'),
+    attachments: [await buildCharacterSheetPdfAttachment(dashboard.session, sheet.character)]
+  }, update)
+}
+
+async function trombinoscopeMessage(dashboard: Dashboard, sheet: DashboardSheet, update = false) {
+  return asUpdate({
+    subject: `Trombinoscope - ${dashboard.session.name}`,
+    text: [
+      greeting(sheet.participant),
+      '',
+      `Voici ton trombinoscope pour ${dashboard.session.name}.`,
+      'Le PDF est joint à cet email.'
+    ].join('\n'),
+    attachments: [await buildTrombinoscopePdfAttachment(dashboard.session.id, sheet.character.id)]
+  }, update)
+}
+
+async function recordDocumentDelivery(sessionId: string, documentId: string, participantId: string, contentHash: string) {
+  const existing = await prisma.sessionDocumentDelivery.findFirst({
+    where: { sessionId, documentId, participantId, kind: 'document' },
+    orderBy: { sentAt: 'desc' }
+  })
+  if (existing) {
+    await prisma.sessionDocumentDelivery.update({ where: { id: existing.id }, data: { sentAt: new Date(), contentHash } })
+    return
+  }
+  await prisma.sessionDocumentDelivery.create({ data: { sessionId, documentId, participantId, kind: 'document', contentHash } })
 }
 
 export async function markDocumentDeliveries(sessionId: string, documentIds: string[]) {
   const dashboard = await getSessionDocumentDashboard(sessionId)
   const selectedIds = new Set(documentIds)
   const documents = dashboard.documents.filter((document) => selectedIds.has(document.id) && document.readyToSend)
-  const created: Array<{ documentId: string, participantId: string }> = []
   // Les envois déjà faits sont dans le tableau de bord, chargé sous le verrou d'envoi de la session.
   // Reste à ne pas écrire deux fois au même participant dans cet envoi (plusieurs personnages par participant).
-  const sentNow = new Set<string>()
+  const seen = new Set<string>()
+  const targets = documents.flatMap((document) => document.recipients.flatMap((recipient) => {
+    const key = `${document.id}:${recipient.participant.id}`
+    if (recipient.sentAt || seen.has(key) || !recipient.participant.email) return []
+    seen.add(key)
+    return [{ document, participant: recipient.participant }]
+  }))
 
-  for (const document of documents) {
-    for (const recipient of document.recipients) {
-      const key = `${document.id}:${recipient.participant.id}`
-      if (recipient.sentAt || sentNow.has(key)) continue
-      if (!recipient.participant.email) continue
-
-      const result = await sendEmail({
-        to: recipient.participant.email,
-        subject: document.title,
-        text: [
-          `Bonjour ${recipient.participant.name.split(/\s+/)[0] || recipient.participant.name},`,
-          '',
-          document.content || '',
-          document.documentUrl ? `Document lié : ${document.documentUrl}` : ''
-        ].filter(Boolean).join('\n'),
-        attachments: [
-          await buildDocumentPdfAttachment(dashboard.session, document)
-        ]
-      })
-      assertSent(result)
-
-      await prisma.sessionDocumentDelivery.create({
-        data: {
-          sessionId,
-          documentId: document.id,
-          participantId: recipient.participant.id,
-          kind: 'document'
-        }
-      })
-      sentNow.add(key)
-      created.push({ documentId: document.id, participantId: recipient.participant.id })
-    }
-  }
-
-  return { sentCount: created.length }
+  return await sendToEach(
+    targets,
+    ({ document, participant }) => documentMessage(dashboard, document, participant),
+    ({ document, participant }) => recordDocumentDelivery(sessionId, document.id, participant.id, document.contentHash)
+  )
 }
 
 export async function markCharacterSheetDeliveries(sessionId: string) {
   const dashboard = await getSessionDocumentDashboard(sessionId)
-  let sentCount = 0
   // Les envois déjà faits sont dans le tableau de bord (sheet.sentAt), chargé sous le verrou d'envoi.
   // Une fiche par personnage de la session (@@unique sessionId, characterId) : pas de doublon possible.
+  const targets = dashboard.characterSheets.filter((sheet) => sheet.readyToSend && !sheet.sentAt && sheet.participant.email)
 
-  for (const sheet of dashboard.characterSheets) {
-    if (!sheet.participant?.id || !sheet.character?.id || !sheet.readyToSend || sheet.sentAt) continue
-    if (!sheet.participant.email) continue
-
-    const result = await sendEmail({
-      to: sheet.participant.email,
-      subject: `Fiche personnage - ${sheet.character.name}`,
-      text: [
-        `Bonjour ${sheet.participant.name.split(/\s+/)[0] || sheet.participant.name},`,
-        '',
-        `Voici ta fiche pour ${dashboard.session.name}.`,
-        '',
-        `Personnage : ${sheet.character.name}`,
-        sheet.character.backgroundDocumentUrl
-          ? `Fiche liée : ${sheet.character.backgroundDocumentUrl}`
-          : sheet.character.background || ''
-      ].filter(Boolean).join('\n'),
-      attachments: [
-        await buildCharacterSheetPdfAttachment(dashboard.session, sheet.character)
-      ]
-    })
-    assertSent(result)
-
-    await prisma.sessionDocumentDelivery.create({
-      data: {
-        sessionId,
-        participantId: sheet.participant.id,
-        characterId: sheet.character.id,
-        kind: 'character_sheet'
-      }
-    })
-    sentCount++
-  }
-
-  return { sentCount }
+  return await sendToEach(
+    targets,
+    (sheet) => characterSheetMessage(dashboard, sheet),
+    (sheet) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'character_sheet', contentHash: sheet.sheetContentHash })
+  )
 }
 
+// Dernier envoi d'un type à une personne pour un personnage : un renvoi met à jour sa date et son empreinte (ADR-0031)
 async function upsertDelivery(data: {
   sessionId: string
   participantId: string
   characterId: string
   kind: string
-  force?: boolean
+  contentHash: string | null
 }) {
   const existing = await prisma.sessionDocumentDelivery.findFirst({
     where: {
@@ -370,24 +466,14 @@ async function upsertDelivery(data: {
   })
 
   if (existing) {
-    if (!data.force) return false
-
     await prisma.sessionDocumentDelivery.update({
       where: { id: existing.id },
-      data: { sentAt: new Date() }
+      data: { sentAt: new Date(), contentHash: data.contentHash }
     })
-    return true
+    return
   }
 
-  await prisma.sessionDocumentDelivery.create({
-    data: {
-      sessionId: data.sessionId,
-      participantId: data.participantId,
-      characterId: data.characterId,
-      kind: data.kind
-    }
-  })
-  return true
+  await prisma.sessionDocumentDelivery.create({ data })
 }
 
 // Un trombinoscope périmé n'est jamais envoyé : il faut d'abord le générer à nouveau (US-028)
@@ -400,106 +486,105 @@ function assertNoOutdatedTrombinoscope(sheets: Array<{ trombinoscopeOutdated: bo
 
 export async function markTrombinoscopeDeliveries(sessionId: string) {
   const dashboard = await getSessionDocumentDashboard(sessionId)
-  let sentCount = 0
-  assertNoOutdatedTrombinoscope(dashboard.characterSheets.filter((sheet) =>
-    sheet.participant?.email && sheet.trombinoscopeGeneratedAt && !sheet.trombinoscopeSentAt
-  ))
+  const targets = dashboard.characterSheets.filter((sheet) => sheet.trombinoscopeGeneratedAt && !sheet.trombinoscopeSentAt && sheet.participant.email)
+  assertNoOutdatedTrombinoscope(targets)
 
-  for (const sheet of dashboard.characterSheets) {
-    if (!sheet.participant?.id || !sheet.character?.id || !sheet.trombinoscopeGeneratedAt || sheet.trombinoscopeSentAt) continue
-    if (!sheet.participant.email) continue
-
-    const result = await sendEmail({
-      to: sheet.participant.email,
-      subject: `Trombinoscope - ${dashboard.session.name}`,
-      text: [
-        `Bonjour ${sheet.participant.name.split(/\s+/)[0] || sheet.participant.name},`,
-        '',
-        `Voici ton trombinoscope pour ${dashboard.session.name}.`,
-        'Le PDF est joint à cet email.'
-      ].filter(Boolean).join('\n'),
-      attachments: [
-        await buildTrombinoscopePdfAttachment(sessionId, sheet.character.id)
-      ]
-    })
-    assertSent(result)
-
-    const sent = await upsertDelivery({
-      sessionId,
-      participantId: sheet.participant.id,
-      characterId: sheet.character.id,
-      kind: 'trombinoscope'
-    })
-    if (sent) sentCount++
-  }
-
-  return { sentCount }
+  return await sendToEach(
+    targets,
+    (sheet) => trombinoscopeMessage(dashboard, sheet),
+    (sheet) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'trombinoscope', contentHash: sheet.trombinoscopeContentHash })
+  )
 }
 
 export async function markCharacterSheetBundleDeliveries(sessionId: string) {
   const dashboard = await getSessionDocumentDashboard(sessionId)
-  let sheetSentCount = 0
-  let trombinoscopeSentCount = 0
-  let bundleSentCount = 0
-  assertNoOutdatedTrombinoscope(dashboard.characterSheets.filter((sheet) =>
-    sheet.participant?.email && sheet.readyToSend && sheet.trombinoscopeGeneratedAt && !sheet.bundleSentAt
-  ))
+  // Comme les autres envois : seulement aux destinataires qui n'ont pas encore reçu fiche et trombinoscope
+  const targets = dashboard.characterSheets.filter((sheet) =>
+    sheet.readyToSend && sheet.trombinoscopeGeneratedAt && !sheet.bundleSentAt && sheet.participant.email
+  )
+  assertNoOutdatedTrombinoscope(targets)
 
-  for (const sheet of dashboard.characterSheets) {
-    if (!sheet.participant?.id || !sheet.character?.id || !sheet.readyToSend || !sheet.trombinoscopeGeneratedAt) continue
-    // Comme les autres envois : seulement aux destinataires qui n'ont pas encore reçu fiche et trombinoscope
-    if (sheet.bundleSentAt || !sheet.participant.email) continue
+  return await sendToEach(targets, async (sheet) => ({
+    subject: `Fiche personnage et trombinoscope - ${dashboard.session.name}`,
+    text: [
+      greeting(sheet.participant),
+      '',
+      `Voici ta fiche et ton trombinoscope pour ${dashboard.session.name}.`,
+      '',
+      `Personnage : ${sheet.character.name}`,
+      sheet.character.backgroundDocumentUrl
+        ? `Fiche liée : ${sheet.character.backgroundDocumentUrl}`
+        : sheet.character.background || '',
+      'Les PDF sont joints à cet email.'
+    ].filter(Boolean).join('\n'),
+    attachments: [
+      await buildCharacterSheetPdfAttachment(dashboard.session, sheet.character),
+      await buildTrombinoscopePdfAttachment(sessionId, sheet.character.id)
+    ]
+  }), async (sheet) => {
+    const base = { sessionId, participantId: sheet.participant.id, characterId: sheet.character.id }
+    await upsertDelivery({ ...base, kind: 'character_sheet', contentHash: sheet.sheetContentHash })
+    await upsertDelivery({ ...base, kind: 'trombinoscope', contentHash: sheet.trombinoscopeContentHash })
+    await upsertDelivery({ ...base, kind: 'character_sheet_bundle', contentHash: null })
+  })
+}
 
-    const result = await sendEmail({
-      to: sheet.participant.email,
-      subject: `Fiche personnage et trombinoscope - ${dashboard.session.name}`,
-      text: [
-        `Bonjour ${sheet.participant.name.split(/\s+/)[0] || sheet.participant.name},`,
-        '',
-        `Voici ta fiche et ton trombinoscope pour ${dashboard.session.name}.`,
-        '',
-        `Personnage : ${sheet.character.name}`,
-        sheet.character.backgroundDocumentUrl
-          ? `Fiche liée : ${sheet.character.backgroundDocumentUrl}`
-          : sheet.character.background || '',
-        'Les PDF sont joints à cet email.'
-      ].filter(Boolean).join('\n'),
-      attachments: [
-        await buildCharacterSheetPdfAttachment(dashboard.session, sheet.character),
-        await buildTrombinoscopePdfAttachment(sessionId, sheet.character.id)
-      ]
+/**
+ * Renvoi de la version à jour (US-030, ADR-0031). Avec une personne (`participantId` pour un document,
+ * `characterId` pour une fiche ou un trombinoscope), il part à elle si elle a déjà reçu l'envoi ; sinon il
+ * part à toutes les personnes dont la version reçue est dépassée.
+ */
+export async function resendDeliveries(sessionId: string, request: {
+  kind: 'document' | 'character_sheet' | 'trombinoscope'
+  documentId?: string | null
+  participantId?: string | null
+  characterId?: string | null
+}) {
+  const dashboard = await getSessionDocumentDashboard(sessionId)
+
+  if (request.kind === 'document') {
+    const document = dashboard.documents.find((item) => item.id === request.documentId)
+    if (!document) {
+      throw createError({ statusCode: 404, message: 'Document introuvable pour cette session' })
+    }
+    if (!document.readyToSend) {
+      throw createError({ statusCode: 409, message: 'Ce document n’est pas prêt à envoyer.' })
+    }
+    const seen = new Set<string>()
+    const targets = document.recipients.filter((recipient) => {
+      if (!recipient.sentAt || !recipient.participant.email || seen.has(recipient.participant.id)) return false
+      if (request.participantId ? recipient.participant.id !== request.participantId : !recipient.versionOutdated) return false
+      seen.add(recipient.participant.id)
+      return true
     })
-    assertSent(result)
-
-    const sheetSent = await upsertDelivery({
-      sessionId,
-      participantId: sheet.participant.id,
-      characterId: sheet.character.id,
-      kind: 'character_sheet',
-      force: true
-    })
-    if (sheetSent) sheetSentCount++
-
-    const trombinoscopeSent = await upsertDelivery({
-      sessionId,
-      participantId: sheet.participant.id,
-      characterId: sheet.character.id,
-      kind: 'trombinoscope',
-      force: true
-    })
-    if (trombinoscopeSent) trombinoscopeSentCount++
-
-    const bundleSent = await upsertDelivery({
-      sessionId,
-      participantId: sheet.participant.id,
-      characterId: sheet.character.id,
-      kind: 'character_sheet_bundle',
-      force: true
-    })
-    if (bundleSent) bundleSentCount++
+    return await sendToEach(
+      targets,
+      (recipient) => documentMessage(dashboard, document, recipient.participant, true),
+      (recipient) => recordDocumentDelivery(sessionId, document.id, recipient.participant.id, document.contentHash)
+    )
   }
 
-  return { sheetSentCount, trombinoscopeSentCount, bundleSentCount }
+  const selected = (sheet: DashboardSheet, outdated: boolean) =>
+    Boolean(sheet.participant.email) && (request.characterId ? sheet.character.id === request.characterId : outdated)
+
+  if (request.kind === 'character_sheet') {
+    const targets = dashboard.characterSheets.filter((sheet) => sheet.sentAt && sheet.readyToSend && selected(sheet, sheet.sheetVersionOutdated))
+    return await sendToEach(
+      targets,
+      (sheet) => characterSheetMessage(dashboard, sheet, true),
+      (sheet) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'character_sheet', contentHash: sheet.sheetContentHash })
+    )
+  }
+
+  const targets = dashboard.characterSheets.filter((sheet) =>
+    sheet.trombinoscopeSentAt && sheet.trombinoscopeGeneratedAt && selected(sheet, sheet.trombinoscopeVersionOutdated)
+  )
+  assertNoOutdatedTrombinoscope(targets)
+  return await sendToEach(
+    targets,
+    (sheet) => trombinoscopeMessage(dashboard, sheet, true),
+    (sheet) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'trombinoscope', contentHash: sheet.trombinoscopeContentHash })
+  )
 }
 
 export async function sendDocumentTestEmails(sessionId: string, documentIds: string[], emails: string[]) {

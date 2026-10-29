@@ -61,7 +61,13 @@ export async function startTestSmtp(prisma: PrismaClient) {
 
         if (command === 'EHLO' || command === 'HELO') socket.write('250 smtp.test\r\n')
         else if (command === 'RCPT') {
-          recipients.push(line.match(/<([^>]+)>/)?.[1] || '')
+          const recipient = line.match(/<([^>]+)>/)?.[1] || ''
+          // Une adresse « refuse… » est rejetée, pour tester un échec d'envoi à une personne
+          if (recipient.startsWith('refuse')) {
+            socket.write('550 Destinataire refusé\r\n')
+            continue
+          }
+          recipients.push(recipient)
           socket.write('250 OK\r\n')
         } else if (command === 'DATA') {
           inData = true

@@ -13,6 +13,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-003](../archive/epics/EPIC-003-ecarts-ecriture-d-un-jeu/README.md) | Corriger les écarts de l'écriture d'un jeu | [SPEC-003](../specs/SPEC-003-ecriture-d-un-jeu.md) | terminé |
 | [EPIC-004](../archive/epics/EPIC-004-ecarts-sessions/README.md) | Corriger les écarts des sessions | [SPEC-004](../specs/SPEC-004-sessions.md) | terminé |
 | [EPIC-005](../archive/epics/EPIC-005-ecarts-trombinoscopes/README.md) | Corriger les écarts des trombinoscopes | [SPEC-005](../specs/SPEC-005-trombinoscopes-et-pdf.md) | terminé |
+| [EPIC-006](../archive/epics/EPIC-006-ecarts-envois-et-paiements/README.md) | Corriger les écarts des envois et des paiements | [SPEC-006](../specs/SPEC-006-emails-et-paiements.md) | terminé |
 
 ## US
 
@@ -46,3 +47,9 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-026](../archive/epics/EPIC-005-ecarts-trombinoscopes/US-026-photo-de-la-session-d-abord.md) | La photo de la personne qui joue le rôle passe avant la photo par défaut | EPIC-005 | terminée |
 | [US-027](../archive/epics/EPIC-005-ecarts-trombinoscopes/US-027-jamais-dans-son-propre-trombinoscope.md) | Un personnage n'apparaît jamais dans son propre trombinoscope | EPIC-005 | terminée |
 | [US-028](../archive/epics/EPIC-005-ecarts-trombinoscopes/US-028-trombinoscopes-perimes.md) | Signaler les trombinoscopes périmés et bloquer leur envoi | EPIC-005 | terminée |
+| [US-029](../archive/epics/EPIC-006-ecarts-envois-et-paiements/US-029-echecs-d-envoi-non-bloquants.md) | Un échec d'envoi n'arrête pas les autres | EPIC-006 | terminée |
+| [US-030](../archive/epics/EPIC-006-ecarts-envois-et-paiements/US-030-renvoyer-la-version-a-jour.md) | Renvoyer la version à jour d'un document, d'une fiche ou d'un trombinoscope | EPIC-006 | terminée |
+| [US-031](../archive/epics/EPIC-006-ecarts-envois-et-paiements/US-031-tarifs-d-une-session.md) | Tarifs d'une session, attribués selon le rôle | EPIC-006 | terminée |
+| [US-032](../archive/epics/EPIC-006-ecarts-envois-et-paiements/US-032-versements-et-etat-calcule.md) | Noter les versements, état de paiement calculé | EPIC-006 | terminée |
+| [US-033](../archive/epics/EPIC-006-ecarts-envois-et-paiements/US-033-places-solidaires.md) | Places solidaires : soutien et réductions | EPIC-006 | terminée |
+| [US-034](../archive/epics/EPIC-006-ecarts-envois-et-paiements/US-034-demandes-et-relances-avec-montants.md) | Demandes et relances avec le montant et le reste dû | EPIC-006 | terminée |

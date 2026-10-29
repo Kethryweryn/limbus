@@ -20,6 +20,7 @@ function sessionWith(paymentRibUrl: string | null) {
     paymentLinkUrl: null,
     game: { title: 'Jeu' },
     payments: [],
+    tariffs: [],
     participants: [],
     assignments: [{
       participantId: 'p1',

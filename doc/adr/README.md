@@ -34,3 +34,5 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0028](ADR-0028-version-d-une-session.md) | La date de modification de la session sert de version à son équipe, son casting et son déroulé | accepté | 2026-10-29 |
 | [ADR-0029](ADR-0029-cycle-de-vie-d-une-session.md) | Cycle de vie d'une session : report lié, présence par lien personnel, remboursements suivis par paiement | accepté | 2026-10-29 |
 | [ADR-0030](ADR-0030-empreinte-d-un-trombinoscope.md) | Une empreinte du contenu repère un trombinoscope périmé | accepté | 2026-10-29 |
+| [ADR-0031](ADR-0031-version-d-un-envoi.md) | Un envoi garde l'empreinte de la version envoyée | accepté | 2026-10-29 |
+| [ADR-0032](ADR-0032-tarifs-et-versements.md) | Tarifs de session, versements et état de paiement calculé | accepté | 2026-10-29 |
