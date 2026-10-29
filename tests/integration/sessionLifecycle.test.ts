@@ -94,3 +94,21 @@ describe('modifications simultanées d’une session (US-018)', () => {
     expect((await api(alice, 'PUT', `/api/sessions/${s.session.id}`, castBody(s, [{ characterId: s.aube.id, participantId: s.lea.id }]), since(updatedAt))).status).toBe(200)
   })
 })
+
+describe('visibilité d’une session sur la page publique (US-019)', () => {
+  it('n’est pas visible par défaut, et la case est enregistrée', async () => {
+    const s = await aliceSession()
+    const created = await api(alice, 'POST', '/api/sessions', { name: `Nouvelle ${s.key}`, gameId: s.game.id })
+    expect(created.status).toBe(200)
+    const id = (created.body as { id: string }).id
+    expect(await prisma.session.findUniqueOrThrow({ where: { id }, select: { published: true } })).toEqual({ published: false })
+
+    const body = { name: `Nouvelle ${s.key}`, gameId: s.game.id, status: 'scheduled' }
+    expect((await api(alice, 'PUT', `/api/sessions/${id}`, { ...body, published: true })).status).toBe(200)
+    expect(await prisma.session.findUniqueOrThrow({ where: { id }, select: { published: true } })).toEqual({ published: true })
+
+    // Une modification qui ne porte pas le champ ne change pas la visibilité
+    expect((await api(alice, 'PUT', `/api/sessions/${id}`, body)).status).toBe(200)
+    expect(await prisma.session.findUniqueOrThrow({ where: { id }, select: { published: true } })).toEqual({ published: true })
+  })
+})

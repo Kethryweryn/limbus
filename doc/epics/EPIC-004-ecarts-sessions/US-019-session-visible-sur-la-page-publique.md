@@ -1,7 +1,7 @@
 ---
 id: US-019
 titre: Choisir si une session est visible sur la page publique
-statut: à faire
+statut: terminée
 epic: EPIC-004
 regles: [R1]
 adr: []
@@ -13,10 +13,10 @@ En tant qu'organisatrice, je veux choisir quelles sessions pourront apparaître 
 
 ## Critères d'acceptation
 
-- [ ] Le champ `published` d'une session devient « Visible sur la page publique », une case du formulaire de session.
-- [ ] Une nouvelle session n'est pas visible par défaut. Les sessions existantes passent à « non visible », pour que rien ne devienne public sans qu'on le décide.
-- [ ] La page publique n'affiche pas encore les sessions ([SPEC-009](../../specs/SPEC-009-page-publique.md), écart 3) : le réglage servira quand elle les montrera.
-- [ ] Le badge « Visible sur la page publique » apparaît sur la session quand la case est cochée.
+- [x] Le champ `published` d'une session devient « Visible sur la page publique », une case du formulaire de session.
+- [x] Une nouvelle session n'est pas visible par défaut. Les sessions existantes passent à « non visible », pour que rien ne devienne public sans qu'on le décide.
+- [x] La page publique n'affiche pas encore les sessions ([SPEC-009](../../specs/SPEC-009-page-publique.md), écart 3) : le réglage servira quand elle les montrera.
+- [x] Le badge « Visible sur la page publique » apparaît sur la session (liste et page) quand la case est cochée. Une modification qui ne porte pas le champ ne change pas la visibilité.
 
 ## Notes techniques
 
@@ -25,4 +25,4 @@ En tant qu'organisatrice, je veux choisir quelles sessions pourront apparaître 
 
 ## Tests
 
-- Intégration : une session créée sans le champ n'est pas visible ; cocher puis décocher la case est enregistré.
+- Intégration (`sessionLifecycle.test.ts`) : une session créée sans le champ n'est pas visible ; la case est enregistrée ; une modification sans le champ ne change pas la visibilité.

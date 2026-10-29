@@ -50,6 +50,9 @@
                   <UBadge :color="statusMeta(session.status).color" variant="subtle" size="xs">
                     {{ statusMeta(session.status).label }}
                   </UBadge>
+                  <UBadge v-if="session.published" color="primary" variant="outline" size="xs" class="ml-1">
+                    Visible sur la page publique
+                  </UBadge>
                 </div>
                 <div class="flex flex-wrap gap-2">
                   <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.slug || session.id}?tab=timeline`">
@@ -446,7 +449,7 @@ function startCreate() {
     date: '',
     locationId: '',
     status: SESSION_STATUSES.scheduled,
-    published: true,
+    published: false,
     organizerIds: [],
     npcIds: [],
     kitchenIds: [],

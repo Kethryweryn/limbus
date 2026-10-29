@@ -224,7 +224,8 @@ model Session {
   status      String     @default("scheduled")
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  published   Boolean    @default(true)
+  // Visible sur la page publique du jeu (US-019) ; non visible par défaut
+  published   Boolean    @default(false)
 
   assignments SessionAssignment[]
   participants SessionParticipant[]

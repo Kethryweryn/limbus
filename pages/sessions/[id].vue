@@ -16,6 +16,9 @@
         <UBadge :color="statusMeta(session.status).color" variant="subtle">
           {{ statusMeta(session.status).label }}
         </UBadge>
+        <UBadge v-if="session.published" color="primary" variant="outline">
+          Visible sur la page publique
+        </UBadge>
         <UButton
           v-if="!isEditingDetails"
           icon="i-heroicons-pencil-square"

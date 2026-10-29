@@ -46,7 +46,8 @@ export default defineEventHandler(async (event) => {
       date: parseDate(body.date),
       locationId: locationId || null,
       status,
-      published: published ?? true,
+      // Absent : la visibilité ne change pas (US-019)
+      published,
       participants: {
         deleteMany: {},
         create: participants
