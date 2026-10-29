@@ -228,8 +228,7 @@ function startCreate() {
     email: '',
     phone: '',
     notes: '',
-    gameIds: selectedGame.value?.id ? [selectedGame.value.id] : [],
-    published: true
+    gameIds: selectedGame.value?.id ? [selectedGame.value.id] : []
   }
   formMode.value = 'create'
   showFormSlideover.value = true

@@ -1,15 +1,15 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireOrganizer } from '~/server/utils/auth'
 import { accessibleGameIds } from '~/server/utils/gameAccess'
-import { participantSchema, readZodBody } from '~/server/utils/schemas'
+import { participantCreateSchema, readZodBody } from '~/server/utils/schemas'
 import { exposeParticipantGames, participantGameLinksInclude } from '~/server/utils/participants'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
 export default defineEventHandler(async (event) => {
   await requireOrganizer(event)
 
-  const body = await readZodBody(event, participantSchema)
-  const { name, email, phone, notes, gameIds, published } = body
+  const body = await readZodBody(event, participantCreateSchema)
+  const { name, email, phone, notes, gameIds } = body
   const uniqueGameIds = [...new Set(gameIds)]
   const allowedGameIds = await accessibleGameIds(event)
   if (allowedGameIds !== null && uniqueGameIds.some((gameId) => !allowedGameIds.includes(gameId))) {
@@ -25,8 +25,7 @@ export default defineEventHandler(async (event) => {
       notes: notes || null,
       gameLinks: {
         create: uniqueGameIds.map((gameId) => ({ gameId }))
-      },
-      published: published ?? true
+      }
     },
     include: participantGameLinksInclude(allowedGameIds)
   })

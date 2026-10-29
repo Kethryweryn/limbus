@@ -21,14 +21,16 @@ export const PAYMENT_STATES = {
   paid: 'paid',
   partial: 'partial',
   unpaid: 'unpaid',
-  nothingDue: 'nothing_due'
+  nothingDue: 'nothing_due',
+  offered: 'offered'
 } as const
 
 export const PAYMENT_STATE_DISPLAY: Record<string, { label: string, color: 'success' | 'warning' | 'error' | 'neutral' }> = {
   paid: { label: 'Payé', color: 'success' },
   partial: { label: 'Partiel', color: 'warning' },
   unpaid: { label: 'Non payé', color: 'error' },
-  nothing_due: { label: 'Rien à payer', color: 'neutral' }
+  nothing_due: { label: 'Rien à payer', color: 'neutral' },
+  offered: { label: 'Place offerte', color: 'neutral' }
 }
 
 export function formatEuros(cents: number) {
@@ -56,7 +58,8 @@ export function tariffForPerson<T extends TariffLike>(roles: string[], tariffs: 
 }
 
 // État calculé à la lecture (ADR-0032) ; un paiement validé en mode simple, sans versement, reste payé
-export function paymentState(params: { dueCents: number, receivedCents: number, legacyPaid: boolean }) {
+export function paymentState(params: { dueCents: number, receivedCents: number, legacyPaid: boolean, offered?: boolean }) {
+  if (params.offered) return PAYMENT_STATES.offered
   if (params.dueCents <= 0) return PAYMENT_STATES.nothingDue
   if (params.receivedCents >= params.dueCents || (params.legacyPaid && params.receivedCents === 0)) return PAYMENT_STATES.paid
   if (params.receivedCents > 0) return PAYMENT_STATES.partial
@@ -102,4 +105,19 @@ export function paymentAmountLines(amounts: PaymentAmounts | null | undefined) {
     `Déjà reçu : ${formatEuros(amounts.receivedCents)}.`,
     `Reste à payer : ${formatEuros(amounts.remainingCents)}.`
   ]
+}
+
+// Personne partie sans décision (US-040, ADR-0033) : « à rembourser » avant la date limite de désistement,
+// « gardé » après ; rien sans date limite. Calculé à la lecture : c'est la date de la décision qui compte.
+export function suggestedDepartureStatus(withdrawalDeadline: Date | string | null | undefined, now = new Date()) {
+  if (!withdrawalDeadline) return null
+  // La date limite est un jour : il compte en entier
+  const endOfDeadline = new Date(withdrawalDeadline).getTime() + 24 * 60 * 60 * 1000
+  return now.getTime() < endOfDeadline ? 'to_refund' : 'kept'
+}
+
+export function withdrawalDeadlineLine(withdrawalDeadline: Date | string | null | undefined) {
+  if (!withdrawalDeadline) return null
+  const date = new Date(withdrawalDeadline).toLocaleDateString('fr-FR', { dateStyle: 'long', timeZone: 'Europe/Paris' })
+  return `Date limite de désistement : ${date}. Après cette date, le remboursement est laissé à l’appréciation de l’organisation.`
 }

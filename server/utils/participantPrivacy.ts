@@ -75,10 +75,14 @@ export async function exportParticipantData(participantId: string, gameIds: stri
           healthConsentAt: true,
           charterAcceptedAt: true,
           invitationSentAt: true,
+          lastRemindedAt: true,
           responseDueAt: true,
           respondedAt: true,
           confirmedAt: true,
           withdrawnAt: true,
+          // Qui a invité ou retiré la personne : le droit d'accès porte sur toutes ses données (US-037)
+          invitedBy: { select: { name: true } },
+          withdrawnBy: { select: { name: true } },
           createdAt: true,
           period: { select: { name: true, game: { select: { title: true } } } },
           session: { select: { name: true, date: true } }

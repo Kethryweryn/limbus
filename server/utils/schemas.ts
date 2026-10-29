@@ -159,8 +159,12 @@ export const participantSchema = z.object({
   email: optionalText,
   phone: optionalText,
   notes: optionalText,
-  gameIds: z.array(requiredId('Game')).optional().default([]),
-  published: optionalBoolean
+  gameIds: z.array(requiredId('Game')).optional().default([])
+})
+
+// Création d'une fiche : au moins un jeu (US-036)
+export const participantCreateSchema = participantSchema.extend({
+  gameIds: z.array(requiredId('Game')).min(1, 'Choisissez au moins un jeu')
 })
 
 export const locationSchema = z.object({
@@ -239,7 +243,11 @@ export const emailTestSchema = z.object({
 
 export const sessionPaymentSettingsSchema = z.object({
   paymentRibUrl: uploadOrExternalUrl(RIB_UPLOAD_PREFIX),
-  paymentLinkUrl: externalUrl
+  paymentLinkUrl: externalUrl,
+  // Date limite de désistement (US-040) : absente, elle est gardée ; vide, elle est retirée
+  withdrawalDeadline: z.string().trim().nullable().optional()
+    .refine((value) => !value || !Number.isNaN(new Date(value).getTime()), 'Date limite invalide')
+    .transform((value) => value === undefined ? undefined : value ? new Date(value) : null)
 })
 
 // Remboursement d'un paiement (US-023) : null efface le choix
@@ -483,5 +491,15 @@ export const sessionPaymentInstalmentSchema = z.object({
   receivedAt: optionalText
     .refine((value) => !value || !Number.isNaN(new Date(value).getTime()), 'Date de versement invalide')
     .transform((value) => value ? new Date(value) : null)
+})
+
+// Paiement d'une personne partie (US-039) et place offerte (US-041)
+export const sessionPaymentDepartureSchema = z.object({
+  status: z.enum(['to_refund', 'refunded', 'kept', 'transferred']).nullable(),
+  transferToParticipantId: optionalText
+})
+
+export const sessionPaymentOfferedSchema = z.object({
+  offered: z.boolean()
 })
 

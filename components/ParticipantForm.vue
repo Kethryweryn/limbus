@@ -5,7 +5,7 @@
     </template>
 
     <form class="w-full space-y-6" @submit.prevent="submit">
-      <UFormField label="Jeux">
+      <UFormField label="Jeux" :error="errors.gameIds">
         <USelectMenu
           v-model="localParticipant.gameIds"
           :items="gameOptions"
@@ -78,11 +78,28 @@ function validate() {
   if (!localParticipant.value.name?.trim()) {
     errors.value.name = 'Le nom est requis.'
   }
+  // Une fiche a toujours au moins un jeu (US-036)
+  if (props.mode !== 'edit' && !localParticipant.value.gameIds?.length) {
+    errors.value.gameIds = 'Choisissez au moins un jeu.'
+  }
   return Object.keys(errors.value).length === 0
+}
+
+// Retirer un jeu retire la personne de ses sessions (US-035) ; retirer le dernier supprime la fiche (US-036)
+function confirmGameRemoval() {
+  if (props.mode !== 'edit') return true
+  const next = new Set(localParticipant.value.gameIds || [])
+  const removed = (props.participant.gameIds || []).filter((gameId) => !next.has(gameId))
+  if (!removed.length) return true
+  if (!next.size) {
+    return confirm('Retirer le dernier jeu supprime définitivement la fiche et ses données (coordonnées, photos, paiements, envois), sauf si elle est liée au jeu d’une autre équipe. Continuer ?')
+  }
+  return confirm(`Retirer ${removed.length} jeu(x) retire aussi la personne de leurs sessions (équipe, casting, présence), et ses inscriptions à ces jeux passent à « retirée ». Ses paiements restent, à traiter à part. Continuer ?`)
 }
 
 async function submit() {
   if (!validate()) return
+  if (!confirmGameRemoval()) return
 
   try {
     emit('update:participant', localParticipant.value)

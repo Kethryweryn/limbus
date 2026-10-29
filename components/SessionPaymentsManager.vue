@@ -18,7 +18,10 @@
 
     <div class="space-y-6">
       <section class="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-end">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <UFormField label="Date limite de désistement" help="Après elle, une place n'est remboursée qu'au choix de l'organisation.">
+            <UInput v-model="settings.withdrawalDeadline" type="date" />
+          </UFormField>
           <UFormField label="Lien de paiement">
             <UInput v-model="settings.paymentLinkUrl" placeholder="https://..." />
           </UFormField>
@@ -178,6 +181,9 @@
                   {{ PAYMENT_STATE_DISPLAY[row.state].label }}
                   <template v-if="row.state === 'partial'"> · reste {{ formatEuros(row.remainingCents) }}</template>
                 </UBadge>
+                <UBadge v-else-if="row.offered" color="neutral" variant="subtle" size="xs">
+                  Place offerte
+                </UBadge>
                 <UBadge v-else :color="row.paidAt ? 'success' : 'warning'" variant="subtle" size="xs">
                   {{ row.paidAt ? `Payé le ${formatDate(row.paidAt)}` : 'Non payé' }}
                 </UBadge>
@@ -208,6 +214,14 @@
                 Tester l'email
               </UButton>
               <UButton
+                color="neutral"
+                variant="soft"
+                :loading="updatingParticipantId === row.participant.id"
+                @click="setOffered(row, !row.offered)"
+              >
+                {{ row.offered ? 'Ne plus offrir la place' : 'Offrir la place' }}
+              </UButton>
+              <UButton
                 v-if="tariffMode && row.paidAt && !row.instalments.length"
                 color="neutral"
                 variant="soft"
@@ -217,7 +231,7 @@
                 Retirer l'ancienne validation
               </UButton>
               <UButton
-                v-if="!tariffMode"
+                v-if="!tariffMode && !row.offered"
                 :color="row.paidAt ? 'neutral' : 'success'"
                 :variant="row.paidAt ? 'soft' : 'solid'"
                 :loading="updatingParticipantId === row.participant.id"
@@ -293,17 +307,39 @@
         </article>
       </section>
 
-      <section v-if="unassignedPayments.length" class="space-y-2 rounded border border-warning-200 bg-warning-50 p-4">
-        <h3 class="font-medium text-warning-800">Paiements reçus de personnes sans personnage</h3>
+      <section v-if="unassignedPayments.length && !refunds.length" class="space-y-2 rounded border border-warning-200 bg-warning-50 p-4">
+        <h3 class="font-medium text-warning-800">Paiements de personnes parties</h3>
         <p class="text-sm text-warning-700">
-          Ces personnes ont payé puis se sont désistées ou ont été retirées : à rembourser, ou à garder, selon votre décision.
+          Ces personnes ont payé puis se sont désistées ou ont été retirées : remboursez, gardez, ou transférez le paiement à la personne qui reprend la place.
         </p>
-        <ul class="text-sm text-gray-700">
-          <li v-for="payment in unassignedPayments" :key="payment.participant.id">
-            {{ payment.participant.name }} · payé le {{ formatDate(payment.paidAt) }}<template v-if="payment.receivedCents"> · {{ formatEuros(payment.receivedCents) }}</template>
-            <span v-if="payment.participant.email"> · {{ payment.participant.email }}</span>
-          </li>
-        </ul>
+        <article v-for="payment in unassignedPayments" :key="payment.participant.id" class="flex flex-col gap-2 border-t border-warning-100 pt-2 text-sm md:flex-row md:items-center md:justify-between">
+          <div class="text-gray-700">
+            <div class="font-medium">{{ payment.participant.name }}</div>
+            <div>
+              Payé le {{ formatDate(payment.paidAt) }}<template v-if="payment.receivedCents"> · {{ formatEuros(payment.receivedCents) }}</template>
+              <span v-if="payment.participant.email"> · {{ payment.participant.email }}</span>
+              <span v-if="payment.transferredTo"> · transféré à {{ payment.transferredTo.name }}</span>
+              <span v-if="payment.suggestedStatus" class="text-warning-700"> · proposé : {{ departureLabel(payment.suggestedStatus) }}</span>
+            </div>
+          </div>
+          <div class="flex flex-col gap-1 md:w-72">
+            <USelect
+              :model-value="pendingTransferId === payment.participant.id ? 'transferred' : payment.refundStatus || ''"
+              :items="departureOptions"
+              value-key="value"
+              :disabled="updatingRefundId === payment.participant.id"
+              @update:model-value="(value) => setDeparture(payment, value)"
+            />
+            <USelect
+              v-if="pendingTransferId === payment.participant.id"
+              :model-value="''"
+              :items="transferTargetOptions"
+              value-key="value"
+              placeholder="Remplaçant…"
+              @update:model-value="(value) => transferPayment(payment, value)"
+            />
+          </div>
+        </article>
       </section>
 
       <p v-if="!rows.length" class="text-sm text-gray-500">
@@ -325,7 +361,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { REFUND_STATUSES, SESSION_STATUSES } from '~/utils/domain'
-import { PAYMENT_STATE_DISPLAY, PAYMENT_STATES, TARIFF_ROLE_LABELS, formatEuros, paymentAmountLines } from '~/utils/sessionTariffs'
+import { PAYMENT_STATE_DISPLAY, PAYMENT_STATES, TARIFF_ROLE_LABELS, formatEuros, paymentAmountLines, withdrawalDeadlineLine } from '~/utils/sessionTariffs'
 
 const props = defineProps({
   paymentsData: { type: Object, required: true },
@@ -335,7 +371,8 @@ const props = defineProps({
 
 const settings = reactive({
   paymentRibUrl: '',
-  paymentLinkUrl: ''
+  paymentLinkUrl: '',
+  withdrawalDeadline: ''
 })
 const savingSettings = ref(false)
 const uploadingRib = ref(false)
@@ -367,6 +404,65 @@ const refundOptions = computed(() => [
     : [])
 ])
 const updatingRefundId = ref('')
+
+// Paiement d'une personne partie (US-039) : décision, ou transfert au remplaçant
+const departureOptions = [
+  { label: 'À décider', value: '' },
+  { label: 'À rembourser', value: REFUND_STATUSES.toRefund },
+  { label: 'Remboursé', value: REFUND_STATUSES.refunded },
+  { label: 'Gardé, non remboursé', value: REFUND_STATUSES.kept },
+  { label: 'Transféré au remplaçant', value: REFUND_STATUSES.transferred }
+]
+const departureLabel = (status) => departureOptions.find((option) => option.value === status)?.label || ''
+const pendingTransferId = ref('')
+const transferTargetOptions = computed(() => [
+  { label: 'Remplaçant…', value: '' },
+  ...rows.value.map((row) => ({ label: row.participant.name, value: row.participant.id }))
+])
+
+async function saveDeparture(payment, body) {
+  updatingRefundId.value = payment.participant.id
+  try {
+    await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/${payment.participant.id}/departure`, { method: 'PUT', body })
+    pendingTransferId.value = ''
+    serverError.value = ''
+    await props.onRefresh()
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+  } finally {
+    updatingRefundId.value = ''
+  }
+}
+
+function setDeparture(payment, value) {
+  if (value === REFUND_STATUSES.transferred) {
+    pendingTransferId.value = payment.participant.id
+    return
+  }
+  pendingTransferId.value = ''
+  return saveDeparture(payment, { status: value || null })
+}
+
+function transferPayment(payment, targetId) {
+  if (!targetId) return
+  const target = rows.value.find((row) => row.participant.id === targetId)
+  if (!confirm(`Transférer le paiement de ${payment.participant.name} à ${target?.participant.name} ? Il comptera comme payé par cette personne.`)) return
+  return saveDeparture(payment, { status: REFUND_STATUSES.transferred, transferToParticipantId: targetId })
+}
+
+// Place offerte (US-041)
+async function setOffered(row, offered) {
+  updatingParticipantId.value = row.participant.id
+  try {
+    await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/${row.participant.id}/offered`, { method: 'PUT', body: { offered } })
+    serverError.value = ''
+    await props.onRefresh()
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+  } finally {
+    updatingParticipantId.value = ''
+  }
+}
 
 async function setRefund(refund, value) {
   updatingRefundId.value = refund.participant.id
@@ -417,6 +513,7 @@ const testPreview = computed(() => ({
     ...testAmountLines(testRow.value),
     settings.paymentLinkUrl ? `Lien de paiement : ${settings.paymentLinkUrl}` : '',
     settings.paymentRibUrl ? 'Le RIB est joint à cet email.' : '',
+    withdrawalDeadlineLine(settings.withdrawalDeadline) || '',
     '',
     'Merci !'
   ].filter(Boolean).join('\n'),
@@ -426,6 +523,7 @@ const testPreview = computed(() => ({
 watch(() => props.paymentsData.session, (session) => {
   settings.paymentRibUrl = session?.paymentRibUrl || ''
   settings.paymentLinkUrl = session?.paymentLinkUrl || ''
+  settings.withdrawalDeadline = session?.withdrawalDeadline ? new Date(session.withdrawalDeadline).toISOString().slice(0, 10) : ''
 }, { immediate: true })
 
 const formatDay = (value) => new Date(value).toLocaleDateString('fr-FR')
@@ -586,7 +684,7 @@ async function saveSettings() {
   try {
     await useApiFetch(`/api/sessions/${props.paymentsData.session.id}/payments/settings`, {
       method: 'PUT',
-      body: settings
+      body: { ...settings, withdrawalDeadline: settings.withdrawalDeadline || null }
     })
     serverError.value = ''
     await props.onRefresh()
