@@ -145,4 +145,31 @@ export async function assertSessionCastRules(
       })
     }
   }
+
+  // Un seul PJ par participant, sauf jeu en plusieurs actes (US-017) ; les PNJ ne sont pas limités
+  const game = await prisma.game.findUnique({ where: { id: gameId }, select: { singlePjPerParticipant: true } })
+  if (game?.singlePjPerParticipant) {
+    const participantId = participantWithSeveralPjs(assignments, charactersById)
+    if (participantId) {
+      const participant = await prisma.participant.findUnique({ where: { id: participantId }, select: { name: true } })
+      throw createError({
+        statusCode: 400,
+        message: `${participant?.name ?? 'Un participant'} joue plusieurs PJ dans cette session : ce jeu n’en permet qu’un par participant (réglage du jeu).`
+      })
+    }
+  }
+}
+
+// Premier participant qui joue plus d'un PJ dans la session, ou null
+export function participantWithSeveralPjs(
+  assignments: Array<{ characterId: string, participantId: string | null }>,
+  charactersById: Map<string, { type: string }>
+) {
+  const seen = new Set<string>()
+  for (const assignment of assignments) {
+    if (!assignment.participantId || charactersById.get(assignment.characterId)?.type === CHARACTER_TYPES.pnj) continue
+    if (seen.has(assignment.participantId)) return assignment.participantId
+    seen.add(assignment.participantId)
+  }
+  return null
 }

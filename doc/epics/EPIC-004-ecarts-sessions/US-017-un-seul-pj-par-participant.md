@@ -1,7 +1,7 @@
 ---
 id: US-017
 titre: Un seul PJ par participant, réglable par jeu
-statut: à faire
+statut: terminée
 epic: EPIC-004
 regles: [R7]
 adr: []
@@ -13,11 +13,11 @@ En tant qu'organisatrice, je veux qu'un participant ne joue qu'un PJ par session
 
 ## Critères d'acceptation
 
-- [ ] La fiche d'un jeu a une case « Un seul PJ par participant et par session », cochée par défaut, y compris pour les jeux existants.
-- [ ] Quand elle est cochée, enregistrer un casting qui donne deux PJ ou plus au même participant dans une session est refusé (400), avec le nom du participant.
-- [ ] Quand elle est décochée (jeu en plusieurs actes), plusieurs PJ par participant sont acceptés.
-- [ ] Les PNJ ne sont jamais limités.
-- [ ] La copie d'un jeu (legs) recopie ce réglage.
+- [x] La fiche d'un jeu a une case « Un seul PJ par participant et par session », cochée par défaut, y compris pour les jeux existants.
+- [x] Quand elle est cochée, enregistrer un casting qui donne deux PJ ou plus au même participant dans une session est refusé (400), avec le nom du participant.
+- [x] Quand elle est décochée (jeu en plusieurs actes), plusieurs PJ par participant sont acceptés.
+- [x] Les PNJ ne sont jamais limités.
+- [x] La copie d'un jeu (legs) recopie ce réglage.
 
 ## Notes techniques
 
@@ -27,4 +27,5 @@ En tant qu'organisatrice, je veux qu'un participant ne joue qu'un PJ par session
 
 ## Tests
 
-- Unitaires ou intégration : casting refusé avec deux PJ quand la case est cochée, accepté quand elle est décochée, PNJ multiples acceptés.
+- Unitaires (`tests/server/sessionAssignments.test.ts`) : `participantWithSeveralPjs`.
+- Intégration (`sessionLifecycle.test.ts`) : casting refusé avec deux PJ quand la case est cochée, accepté quand elle est décochée, PNJ multiples acceptés, réglage enregistré.

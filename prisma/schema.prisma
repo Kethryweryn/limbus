@@ -21,6 +21,8 @@ model Game {
   updatedAt      DateTime   @updatedAt
   published      Boolean    @default(true)
   publicPage     Boolean    @default(false)
+  // Un seul PJ par participant et par session (US-017) ; décoché pour un jeu en plusieurs actes
+  singlePjPerParticipant Boolean @default(true)
   // Crédit d'une copie léguée, figé au moment du legs (SPEC-002 R11, R12, ADR-0025)
   creditSourceTitle String?
   creditAuthorName  String?

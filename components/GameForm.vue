@@ -22,6 +22,11 @@
       </UFormField>
 
       <AppCheckboxRow v-model="localGame.publicPage" label="Publier la page publique" />
+      <AppCheckboxRow
+        v-model="localGame.singlePjPerParticipant"
+        label="Un seul PJ par participant et par session"
+        description="Décochez pour un jeu en plusieurs actes, où un participant joue un rôle par acte."
+      />
 
 
       <div class="flex flex-wrap gap-2 pt-2">

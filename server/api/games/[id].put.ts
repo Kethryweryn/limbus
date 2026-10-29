@@ -14,14 +14,15 @@ export default defineEventHandler(async (event) => {
   await assertUnmodifiedSince(event, 'game', id)
 
   const body = await readZodBody(event, updateGameSchema)
-  const { title, description, teaserUrl, noteIntention, published, publicPage } = body
+  const { title, description, teaserUrl, noteIntention, published, publicPage, singlePjPerParticipant } = body
 
   const data: any = {
     description,
     teaserUrl,
     noteIntention,
     published,
-    publicPage: published === false ? false : publicPage
+    publicPage: published === false ? false : publicPage,
+    singlePjPerParticipant
   }
 
   if (title) {

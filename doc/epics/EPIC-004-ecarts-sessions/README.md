@@ -16,7 +16,7 @@ Aligner le code sur [SPEC-004](../../specs/SPEC-004-sessions.md) : corriger ses 
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-017](US-017-un-seul-pj-par-participant.md) | Un seul PJ par participant, réglable par jeu | à faire |
+| [US-017](US-017-un-seul-pj-par-participant.md) | Un seul PJ par participant, réglable par jeu | terminée |
 | [US-018](US-018-modifications-simultanees-d-une-session.md) | Modifications simultanées d’une session | à faire |
 | [US-019](US-019-session-visible-sur-la-page-publique.md) | Choisir si une session est visible sur la page publique | à faire |
 | [US-020](US-020-statuts-d-une-session.md) | Statuts réversibles et session terminée hors des listes courantes | à faire |
