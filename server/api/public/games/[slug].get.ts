@@ -15,6 +15,9 @@ export default defineEventHandler(async (event) => {
       description: true,
       noteIntention: true,
       teaserUrl: true,
+      // Crédit d'une copie léguée, comme sur sa fiche (US-044)
+      creditSourceTitle: true,
+      creditAuthorName: true,
       slug: true,
       updatedAt: true
     }

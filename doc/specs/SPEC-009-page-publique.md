@@ -30,7 +30,7 @@ Présenter un jeu à des personnes qui n'ont pas de compte, par un lien à diffu
 ## Règles métier
 
 - **R1** La page montre seulement la présentation du jeu : son titre, sa description, sa note d'intention et son teaser. Un teaser YouTube est intégré en vidéo ; tout autre lien http(s) est un bouton qui ouvre le lien ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), R1).
-- **R2** Rien d'autre n'en sort : ni contenu d'écriture, ni sessions, ni participants, ni organisatrices, ni crédit d'une copie (voir les écarts).
+- **R2** Une copie léguée affiche aussi son crédit, comme sur sa fiche ([US-044](../archive/epics/EPIC-009-ecarts-page-publique/US-044-credit-sur-la-page-publique.md)). Rien d'autre n'en sort : ni contenu d'écriture, ni sessions, ni participants, ni organisatrices.
 - **R3** La page n'existe que si le jeu a la marque « page publique » et qu'il est actif (non archivé). Archiver un jeu retire cette marque, et la restauration ne la remet pas ; sur un jeu archivé, la case du formulaire est sans effet ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), R3). Une page absente répond « Jeu non publié » (404), que le jeu existe ou non.
 - **R4** Un jeu est dépublié par défaut, à la création comme à la copie ([SPEC-002](SPEC-002-copie-de-jeu.md)).
 - **R5** La propriétaire et les co-organisatrices publient et dépublient ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), R16).
@@ -44,7 +44,7 @@ Présenter un jeu à des personnes qui n'ont pas de compte, par un lien à diffu
 
 ## Sécurité et droits
 
-- **R8** La route publique (`/api/public/games/:slug`) ne demande aucune connexion. Elle ne renvoie que les champs de R1, plus le slug et la date de dernière modification du jeu ([ADR-0007](../adr/ADR-0007-isolation-par-jeu.md)).
+- **R8** La route publique (`/api/public/games/:slug`) ne demande aucune connexion. Elle ne renvoie que les champs de R1 et le crédit d'une copie, plus le slug et la date de dernière modification du jeu ([ADR-0007](../adr/ADR-0007-isolation-par-jeu.md)).
 - **R9** Le teaser n'est intégré en iframe que pour YouTube, à partir d'un identifiant de vidéo vérifié ; un lien saisi n'est accepté qu'en http(s).
 - **R10** La page est indexable par les moteurs de recherche (`robots.txt` autorise tout).
 
