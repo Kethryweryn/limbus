@@ -1,4 +1,4 @@
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { requireRouterParam } from '~/server/utils/routeParams'
 import { remindAttendance } from '~/server/utils/attendance'
@@ -6,7 +6,7 @@ import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
 
 // Confirmation de présence (US-024) : une action, jamais mise en file hors ligne
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const id = requireRouterParam(event, 'id')
   const participantId = requireRouterParam(event, 'participantId')

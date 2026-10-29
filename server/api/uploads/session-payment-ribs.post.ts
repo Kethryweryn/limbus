@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { prisma } from '~/server/utils/prisma'
 import { uploadDir, UPLOAD_DIRS } from '~/server/utils/uploads'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
@@ -13,7 +13,7 @@ function hasPdfSignature(data: Buffer) {
 }
 
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const parts = await readMultipartFormData(event)
   const file = parts?.find((part) => part.name === 'rib')

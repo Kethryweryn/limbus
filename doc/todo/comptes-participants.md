@@ -1,6 +1,6 @@
 ---
 titre: Un compte pour tout le monde, organiser et participer
-statut: à trancher
+statut: tranchée
 date: 2026-10-29
 ---
 
@@ -39,16 +39,21 @@ Enfin, le rôle global « organisateur » n'a pas vraiment de sens : on peut org
 6. Export et effacement depuis le compte.
 7. Documents et trombinoscopes consultables dans le compte.
 
-## Points à trancher
-
-- Inscription libre : vérification de l'email avant de pouvoir créer un jeu ? Protection contre les robots (limite par adresse IP, défi) ? Faut-il des limites par compte (nombre de jeux, de participants, place des fichiers) sur un serveur partagé ?
-- Conditions d'utilisation et politique de confidentialité à publier avant d'ouvrir les inscriptions : qui les rédige, et qui est responsable de traitement pour les données des participants d'un jeu (l'équipe qui organise, ou l'hébergeur) ?
-- Bascule entre les deux espaces : un sélecteur dans l'en-tête, ou deux entrées séparées dans le menu ? Que montre le tableau de bord d'une personne qui fait les deux ?
-- Fusion des doublons : comment rattacher plusieurs fiches à un même compte (email vérifié, choix de la personne, validation par l'équipe) ?
-- Qui fait foi quand la personne et l'équipe modifient la même coordonnée ? Recommandation : la personne, dès qu'elle a un compte.
-- Effacement demandé depuis le compte : immédiat, ou validé par chaque équipe (paiements à régler, session en cours) ?
-- Les règles actuelles qui supposent l'absence de compte (fichiers en pièce jointe, jamais en lien vers l'API ; liens personnels d'inscription, [ADR-0018](../adr/ADR-0018-jetons-des-liens-personnels.md)) changent-elles ? Le modèle de comptes et de rôles demande un ADR.
-
 ## Décisions
 
 - 2026-10-29 : un seul compte pour organiser et participer, avec l'administrateur comme seul rôle global. Inscription libre, ouverte à toutes celles et tous ceux qui veulent organiser. Bascule dans l'interface entre les jeux qu'on organise et ceux auxquels on participe.
+- 2026-10-29, points ouverts tranchés avec l'utilisatrice (détail dans [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md)) :
+  - adresse email confirmée avant de pouvoir faire quoi que ce soit ;
+  - contre les robots : limite par adresse IP et champ piège, sans service externe ;
+  - plafond de stockage par compte (500 Mo par défaut, modifiable par l'administratrice), pas de limite de jeux ni de participants ;
+  - sélecteur « J'organise » / « Je participe » dans l'en-tête ; le dernier espace utilisé se rouvre ;
+  - fiches rattachées au compte par l'email confirmé, automatiquement ;
+  - la personne fait foi sur ses coordonnées dès qu'elle a un compte ;
+  - effacement immédiat depuis le compte, équipes prévenues par email ;
+  - « Je participe » : sessions et inscriptions, documents reçus, paiement, fiche allergies ;
+  - documents en pièce jointe et dans le compte ;
+  - invitation à co-organiser acceptée par le seul compte de l'adresse invitée ;
+  - transfert d'un jeu accepté par la co-organisatrice, l'ancienne propriétaire restant co-organisatrice ;
+  - le lien personnel d'inscription marche toujours sans connexion ;
+  - l'administratrice crée encore des comptes, par un lien pour choisir le mot de passe.
+- Conditions d'utilisation, politique de confidentialité et responsable de traitement : tranchés à l'étape 5 de la feuille de route, avant d'ouvrir l'inscription en production.

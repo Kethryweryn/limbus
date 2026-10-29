@@ -1,10 +1,10 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { canAccessAllGames, accessibleGameWhere } from '~/server/utils/gameAccess'
 import { CLOSED_SESSION_STATUSES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
-    await requireOrganizer(event)
+    await requireUser(event)
     const { user, allGames } = await canAccessAllGames(event)
 
     const games = await prisma.game.findMany({

@@ -9,7 +9,7 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Supervision](supervision.md) | à trancher | 2026-10-29 | Route de santé et surveillance externe avec alerte email (revue R-15, R-16) |
 | [Photos et RGPD](photos-et-rgpd.md) | à trancher | 2026-10-29 | Durée de conservation des photos et information des participants (revue R-08, R-09) |
 | [Interface en TypeScript](interface-en-typescript.md) | à trancher | 2026-10-29 | Composants et pages en `lang="ts"`, réponses d'API typées (revue R-10) |
-| [Un compte pour tout le monde](comptes-participants.md) | à trancher | 2026-10-29 | Inscription libre, administrateur seul rôle global, espaces « J'organise » et « Je participe », coordonnées et RGPD en libre-service (SPEC-007, écart 1) |
+| [Un compte pour tout le monde](comptes-participants.md) | tranchée ([SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md)) | 2026-10-29 | Inscription libre, administrateur seul rôle global, espaces « J'organise » et « Je participe », coordonnées et RGPD en libre-service (SPEC-007, écart 1) |
 | [Numéros de version et notes de version](versions-et-notes-de-version.md) | à trancher | 2026-10-29 | Version sémantique, étiquettes git et notes de version à partir de la première version publiée |
 
 ## Archivées

@@ -1,10 +1,10 @@
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { getSessionTrombinoscope } from '~/server/utils/trombinoscopes'
 import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const id = requireRouterParam(event, 'id')
   const characterId = requireRouterParam(event, 'characterId')

@@ -1,5 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { readZodBody, registrationPeriodSchema } from '~/server/utils/schemas'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import {
@@ -14,7 +14,7 @@ import {
 import { REGISTRATION_PERIOD_SCOPES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const body = await readZodBody(event, registrationPeriodSchema)
   await requireGameAccess(event, body.gameId)

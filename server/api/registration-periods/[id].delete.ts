@@ -1,11 +1,11 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { findRegistrationPeriodOr404 } from '~/server/utils/registrationPeriods'
 
 // Une période qui a des inscriptions ne se supprime pas : on la clôture, pour garder la trace du recrutement
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const { id, gameId } = await findRegistrationPeriodOr404(getRouterParam(event, 'id'))
   await requireGameAccess(event, gameId)

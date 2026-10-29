@@ -1,4 +1,4 @@
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { readZodBody, sessionPaymentRefundSchema } from '~/server/utils/schemas'
 import { setSessionPaymentRefund } from '~/server/utils/sessionPayments'
@@ -7,7 +7,7 @@ import { assertPaymentUnmodifiedSince } from '~/server/utils/concurrency'
 
 // Remboursement d'un paiement d'une session annulée ou reportée (US-023)
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const id = requireRouterParam(event, 'id')
   const participantId = requireRouterParam(event, 'participantId')

@@ -116,7 +116,7 @@ export async function createInvitedUser(email: string, name: string, password: s
       email: normalizeInvitationEmail(email),
       name,
       password,
-      role: USER_ROLES.organizer
+      role: USER_ROLES.user
     },
     select: {
       id: true,

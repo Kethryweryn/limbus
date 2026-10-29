@@ -40,7 +40,7 @@
               <p class="text-sm text-gray-500">{{ user.email }}</p>
             </div>
             <UBadge :color="user.role === USER_ROLES.admin ? 'warning' : 'primary'" variant="subtle">
-              {{ user.role === USER_ROLES.admin ? 'Administrateur' : 'Organisateur' }}
+              {{ user.role === USER_ROLES.admin ? 'Administratrice' : 'Compte' }}
             </UBadge>
           </div>
         </template>
@@ -101,11 +101,15 @@ const newUser = ref({
   name: '',
   email: '',
   password: '',
-  role: USER_ROLES.organizer
+  role: USER_ROLES.user
 })
 
 async function fetchUsers() {
-  users.value = await useApiFetch('/api/admin/users')
+  // Comptes d'avant ADR-0038 (« organizer ») : des comptes simples
+  users.value = (await useApiFetch('/api/admin/users')).map((user) => ({
+    ...user,
+    role: user.role === USER_ROLES.admin ? USER_ROLES.admin : USER_ROLES.user
+  }))
 }
 
 async function createUser() {
@@ -120,7 +124,7 @@ async function createUser() {
       name: '',
       email: '',
       password: '',
-      role: USER_ROLES.organizer
+      role: USER_ROLES.user
     }
     await fetchUsers()
   } catch (err) {

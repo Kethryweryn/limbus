@@ -1,12 +1,12 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { createCharacterSchema, readZodBody } from '~/server/utils/schemas'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { assertGameUploads } from '~/server/utils/uploads'
 
 export default defineEventHandler(async (event) => {
-    await requireOrganizer(event)
+    await requireUser(event)
 
     const body = await readZodBody(event, createCharacterSchema)
     await requireGameAccess(event, body.gameId)

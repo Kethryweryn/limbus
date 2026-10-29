@@ -1,10 +1,10 @@
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { getAllergySheet, renderAllergySheetPdf } from '~/server/utils/allergies'
 
 // Fiche allergies en PDF, générée à la demande et jamais stockée (US-008)
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const session = await requireSessionAccess(event, getRouterParam(event, 'id') || '')
   const pdf = await renderAllergySheetPdf(await getAllergySheet(session.id))

@@ -41,3 +41,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0035](ADR-0035-anciens-slugs-d-un-jeu.md) | Les anciens slugs d'un jeu redirigent vers sa page publique | accepté | 2026-10-29 |
 | [ADR-0036](ADR-0036-protocole-de-resynchronisation.md) | Protocole de resynchronisation : version lue sur toute écriture rejouée, retenue par élément | accepté | 2026-10-29 |
 | [ADR-0037](ADR-0037-jeu-commun-des-tests-de-bout-en-bout.md) | Un jeu commun pour les tests de bout en bout | accepté | 2026-10-29 |
+| [ADR-0038](ADR-0038-un-seul-role-global.md) | Un seul rôle global ; les droits viennent des jeux | accepté | 2026-10-29 |

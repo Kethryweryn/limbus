@@ -1,5 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { accessibleGameIds, requireParticipantAccess } from '~/server/utils/gameAccess'
 import { participantSchema, readZodBody } from '~/server/utils/schemas'
 import { exposeParticipantGames, participantGameLinksInclude, removeParticipantFromGames } from '~/server/utils/participants'
@@ -9,7 +9,7 @@ import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
-  const user = await requireOrganizer(event)
+  const user = await requireUser(event)
 
   const id = requireRouterParam(event, 'id')
   await requireParticipantAccess(event, id)

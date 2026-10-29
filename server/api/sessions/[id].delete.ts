@@ -1,12 +1,12 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { collectUploadUrls, deleteUnusedUploads } from '~/server/utils/uploads'
 import { requireRouterParam } from '~/server/utils/routeParams'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const id = requireRouterParam(event, 'id')
   const session = await requireSessionAccess(event, id)

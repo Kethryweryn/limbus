@@ -1,10 +1,10 @@
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { accessibleGameIds, requireParticipantAccess } from '~/server/utils/gameAccess'
 import { exportParticipantData } from '~/server/utils/participantPrivacy'
 import { requireRouterParam } from '~/server/utils/routeParams'
 
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const id = requireRouterParam(event, 'id')
   await requireParticipantAccess(event, id)

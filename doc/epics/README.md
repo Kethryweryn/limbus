@@ -19,6 +19,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-009](../archive/epics/EPIC-009-ecarts-page-publique/README.md) | Corriger les écarts de la page publique | [SPEC-009](../specs/SPEC-009-page-publique.md) | terminé |
 | [EPIC-010](../archive/epics/EPIC-010-ecarts-hors-ligne/README.md) | Corriger les écarts du mode hors ligne | [SPEC-010](../specs/SPEC-010-hors-ligne.md) | terminé |
 | [EPIC-011](../archive/epics/EPIC-011-tests-e2e-des-parcours/README.md) | Tests de bout en bout des parcours | [fiche](../archive/todo/tests-e2e-des-parcours.md) | terminé |
+| [EPIC-012](../archive/epics/EPIC-012-roles/README.md) | Rôles : un seul rôle global, quitter et transférer un jeu | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
 
 ## US
 
@@ -81,3 +82,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-055](../archive/epics/EPIC-011-tests-e2e-des-parcours/US-055-test-de-l-envoi-des-documents.md) | Test de bout en bout de l'envoi des documents | EPIC-011 | terminée |
 | [US-056](../archive/epics/EPIC-011-tests-e2e-des-parcours/US-056-test-des-paiements.md) | Test de bout en bout des paiements | EPIC-011 | terminée |
 | [US-057](../archive/epics/EPIC-011-tests-e2e-des-parcours/US-057-test-de-la-session-hors-ligne.md) | Test de bout en bout de la session hors ligne | EPIC-011 | terminée |
+| [US-058](../archive/epics/EPIC-012-roles/US-058-un-seul-role-global.md) | Un seul rôle global : administrateur ou non | EPIC-012 | terminée |
+| [US-059](../archive/epics/EPIC-012-roles/US-059-quitter-un-jeu.md) | Quitter un jeu partagé | EPIC-012 | terminée |
+| [US-060](../archive/epics/EPIC-012-roles/US-060-transferer-un-jeu.md) | Transférer un jeu à une co-organisatrice | EPIC-012 | terminée |

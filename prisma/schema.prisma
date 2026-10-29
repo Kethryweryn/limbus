@@ -32,6 +32,9 @@ model Game {
   copies            Game[]     @relation("GameCopies")
   // Copie léguée dont la destinataire n'a pas encore de compte : invisible pour tous (R8)
   bequestPending    Boolean    @default(false)
+  // Transfert proposé à une co-organisatrice (US-060, ADR-0038) : le jeu change de main quand elle accepte
+  transferToUserId  String?
+  transferTo        User?      @relation("GameTransfers", fields: [transferToUserId], references: [id], onDelete: SetNull)
 
   characters     Character[]
   factions       Faction[]
@@ -579,13 +582,15 @@ model User {
   email     String   @unique
   name      String
   password  String
-  role      String   @default("organizer")
+  // admin ou user (ADR-0038) ; « organizer », valeur d'avant, vaut user
+  role      String   @default("user")
   // Incrémenté pour invalider toutes les sessions ouvertes (déconnexion partout, changement de mot de passe)
   sessionVersion Int @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   ownedGames Game[] @relation("OwnedGames")
+  proposedTransfers Game[] @relation("GameTransfers")
   gameShares GameShare[]
   sentInvitations GameInvitation[] @relation("SentGameInvitations")
   acceptedInvitations GameInvitation[] @relation("AcceptedGameInvitations")

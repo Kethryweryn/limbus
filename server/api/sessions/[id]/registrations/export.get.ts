@@ -1,5 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { csvFilename, toCsv } from '~/server/utils/csv'
 import { REGISTRATION_DISPLAY_STATUS_META, registrationDisplayStatus } from '~/utils/registrations'
@@ -7,7 +7,7 @@ import { REGISTRATION_DISPLAY_STATUS_META, registrationDisplayStatus } from '~/u
 // Export CSV des inscriptions d'une session (US-005) : nom, email, téléphone, statut.
 // Jamais de données de santé ni de contact d'urgence : la fiche allergies a son propre circuit (US-008).
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const session = await requireSessionAccess(event, getRouterParam(event, 'id') || '')
   const { name } = await prisma.session.findUniqueOrThrow({ where: { id: session.id }, select: { name: true } })

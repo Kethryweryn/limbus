@@ -1,4 +1,4 @@
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { readZodBody, sessionPaymentStatusSchema } from '~/server/utils/schemas'
 import { setSessionPaymentStatus } from '~/server/utils/sessionPayments'
@@ -6,7 +6,7 @@ import { requireRouterParam } from '~/server/utils/routeParams'
 import { assertPaymentUnmodifiedSince } from '~/server/utils/concurrency'
 
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const id = requireRouterParam(event, 'id')
   const participantId = requireRouterParam(event, 'participantId')

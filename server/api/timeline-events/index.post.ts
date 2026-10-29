@@ -1,12 +1,12 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { readZodBody, timelineEventSchema } from '~/server/utils/schemas'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { timelineEventInclude, validateTimelineEventRelations } from '~/server/utils/timelineEvents'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const body = await readZodBody(event, timelineEventSchema)
   await requireGameAccess(event, body.gameId)

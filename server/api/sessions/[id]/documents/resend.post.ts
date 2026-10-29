@@ -1,4 +1,4 @@
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { withSessionSendLock } from '~/server/utils/sendLock'
 import { resendDeliveries } from '~/server/utils/documents'
@@ -8,7 +8,7 @@ import { requireRouterParam } from '~/server/utils/routeParams'
 
 // Renvoi de la version à jour d'un document, d'une fiche ou d'un trombinoscope (US-030)
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const id = requireRouterParam(event, 'id')
   const session = await requireSessionAccess(event, id)

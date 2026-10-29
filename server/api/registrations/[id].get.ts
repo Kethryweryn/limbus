@@ -1,5 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
-import { requireOrganizer } from '~/server/utils/auth'
+import { requireUser } from '~/server/utils/auth'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { findRegistrationOr404, withSessionPresence } from '~/server/utils/registrations'
 import { registrationListSelect } from '~/server/utils/registrationPeriods'
@@ -7,7 +7,7 @@ import { registrationListSelect } from '~/server/utils/registrationPeriods'
 // Détail d'une inscription pour les organisatrices du jeu (US-005) : réponses au formulaire comprises,
 // allergies et date du consentement (données de santé, R14)
 export default defineEventHandler(async (event) => {
-  await requireOrganizer(event)
+  await requireUser(event)
 
   const { id, period } = await findRegistrationOr404(getRouterParam(event, 'id'))
   await requireGameAccess(event, period.gameId)
