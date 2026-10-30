@@ -167,4 +167,35 @@ describe('copies effacées après la session (US-080)', () => {
     await purge()
     expect((await deliveryOf(participant.id, 'document')).copySize).toBeNull()
   })
+
+  it('une session reportée garde ses copies jusqu’au lendemain de celle qui la remplace', async () => {
+    const { owner, session, participant, document } = await world()
+    expect((await api(owner, 'POST', `/api/sessions/${session.id}/documents/send`, { documentIds: [document.id] })).status).toBe(200)
+    const postponed = await api(owner, 'POST', `/api/sessions/${session.id}/postpone`, { name: `${session.name} reportée`, date: new Date(Date.now() + 30 * DAY).toISOString() })
+    expect(postponed.status, JSON.stringify(postponed.body)).toBe(200)
+    const replacement = postponed.body as { id: string }
+
+    await prisma.session.update({ where: { id: session.id }, data: { date: new Date(Date.now() - 2 * DAY) } })
+    await purge()
+    expect((await deliveryOf(participant.id, 'document')).copySize).not.toBeNull()
+
+    await prisma.session.update({ where: { id: replacement.id }, data: { date: new Date(Date.now() - 2 * DAY) } })
+    await purge()
+    expect((await deliveryOf(participant.id, 'document')).copySize).toBeNull()
+  })
+
+  it('une fiche n’est plus lisible, sans copie, quand le rôle est distribué à quelqu’un d’autre', async () => {
+    const { k, owner, player, game, session, participant } = await world()
+    const character = await prisma.character.create({ data: { name: `Role ${k}`, slug: `role-${k}`, gameId: game.id, background: 'Pour la joueuse', sheetReadyToSend: true } })
+    await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id } })
+    expect((await api(owner, 'POST', `/api/sessions/${session.id}/documents/send-character-sheets`, {})).body).toMatchObject({ sentCount: 1 })
+    const { id } = await deliveryOf(participant.id, 'character_sheet')
+
+    await prisma.session.update({ where: { id: session.id }, data: { date: new Date(Date.now() - 2 * DAY) } })
+    expect((await read(player, id)).source).toBe('current')
+
+    const other = await prisma.participant.create({ data: { name: 'Autre', slug: `autre-role-${k}`, gameLinks: { create: { gameId: game.id } } } })
+    await prisma.sessionAssignment.update({ where: { sessionId_characterId: { sessionId: session.id, characterId: character.id } }, data: { participantId: other.id } })
+    expect((await read(player, id)).source).toBeNull()
+  })
 })

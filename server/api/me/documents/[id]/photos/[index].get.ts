@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   if (!Number.isInteger(index) || index < 0) {
     throw createError({ statusCode: 404, message: 'Photo introuvable' })
   }
-  const photo = await myDeliveryPhoto(delivery, index)
+  const photo = await myDeliveryPhoto(delivery, index, String(getQuery(event).source || ''))
 
   setHeader(event, 'Content-Type', photo.contentType)
   setHeader(event, 'X-Content-Type-Options', 'nosniff')

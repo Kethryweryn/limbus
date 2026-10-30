@@ -4,7 +4,7 @@ import { openEmailTransport, sendEmail, type EmailTransport } from '~/server/uti
 import { DOCUMENT_AUDIENCES, SESSION_ROLES } from '~/utils/domain'
 import { generatedPdfFileName, renderTextPdf, type TextPdfInput } from '~/server/utils/generatedPdfs'
 import { currentTrombinoscopeFingerprints, getSessionTrombinoscope, isTrombinoscopeOutdated } from '~/server/utils/trombinoscopes'
-import { copyData, purgeExpiredCopies, textCopy, trombinoscopeCopy, type DeliveryCopy } from '~/server/utils/deliveryCopies'
+import { copyData, expiredSessionIds, purgeExpiredCopies, textCopy, trombinoscopeCopy, type DeliveryCopy } from '~/server/utils/deliveryCopies'
 
 export const documentInclude = {
   game: true,
@@ -295,7 +295,9 @@ export async function getSessionDocumentDashboard(sessionId: string) {
     session,
     documents: documentsWithRecipients,
     characterSheets,
-    sessionRoleRecipients
+    sessionRoleRecipients,
+    // Photos lues une fois par envoi pour les copies des trombinoscopes (ADR-0044)
+    photoCache: new Map<string, Promise<Uint8Array | null>>()
   }
 }
 
@@ -310,6 +312,7 @@ type OutgoingMessage = Omit<EmailMessage, 'to'> & { copies: Copies }
  * copie (US-078, ADR-0044).
  */
 async function sendToEach<Target extends { participant: { name: string, email: string | null } }>(
+  sessionId: string,
   targets: Target[],
   buildMessage: (target: Target) => Promise<OutgoingMessage>,
   record: (target: Target, copies: Copies) => Promise<void>
@@ -317,8 +320,9 @@ async function sendToEach<Target extends { participant: { name: string, email: s
   const failures: string[] = []
   let sentCount = 0
   if (!targets.length) return { sentCount, failures }
-  // Les copies des sessions passées s'effacent avant d'en ajouter (US-080)
+  // Les copies des sessions passées s'effacent avant d'en ajouter (US-080) ; une session déjà passée n'en garde pas
   await purgeExpiredCopies()
+  const keepCopies = !(await expiredSessionIds([sessionId])).size
 
   const transport = await openEmailTransport().catch(() => null)
   if (!transport) {
@@ -336,7 +340,7 @@ async function sendToEach<Target extends { participant: { name: string, email: s
         failures.push(target.participant.name)
         continue
       }
-      await record(target, copies)
+      await record(target, keepCopies ? copies : {})
       sentCount++
     }
   } finally {
@@ -402,7 +406,7 @@ async function characterSheetMessage(dashboard: Dashboard, sheet: DashboardSheet
 }
 
 async function trombinoscopeMessage(dashboard: Dashboard, sheet: DashboardSheet, update = false) {
-  const pdf = await buildTrombinoscopePdfAttachment(dashboard.session, sheet.character.id)
+  const pdf = await buildTrombinoscopePdfAttachment(dashboard.session, sheet.character.id, dashboard.photoCache)
   return asUpdate({
     subject: `Trombinoscope - ${dashboard.session.name}`,
     text: [
@@ -444,6 +448,7 @@ export async function markDocumentDeliveries(sessionId: string, documentIds: str
   }))
 
   return await sendToEach(
+    sessionId,
     targets,
     ({ document, participant }) => documentMessage(dashboard, document, participant),
     ({ document, participant }, copies) => recordDocumentDelivery(sessionId, document.id, participant.id, document.contentHash, copies.document)
@@ -457,6 +462,7 @@ export async function markCharacterSheetDeliveries(sessionId: string) {
   const targets = dashboard.characterSheets.filter((sheet) => sheet.readyToSend && !sheet.sentAt && sheet.participant.email)
 
   return await sendToEach(
+    sessionId,
     targets,
     (sheet) => characterSheetMessage(dashboard, sheet),
     (sheet, copies) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'character_sheet', contentHash: sheet.sheetContentHash }, copies.character_sheet)
@@ -507,6 +513,7 @@ export async function markTrombinoscopeDeliveries(sessionId: string) {
   assertNoOutdatedTrombinoscope(targets)
 
   return await sendToEach(
+    sessionId,
     targets,
     (sheet) => trombinoscopeMessage(dashboard, sheet),
     (sheet, copies) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'trombinoscope', contentHash: sheet.trombinoscopeContentHash }, copies.trombinoscope)
@@ -521,9 +528,9 @@ export async function markCharacterSheetBundleDeliveries(sessionId: string) {
   )
   assertNoOutdatedTrombinoscope(targets)
 
-  return await sendToEach(targets, async (sheet) => {
+  return await sendToEach(sessionId, targets, async (sheet) => {
     const characterSheet = await buildCharacterSheetPdfAttachment(dashboard.session, sheet.character)
-    const trombinoscope = await buildTrombinoscopePdfAttachment(dashboard.session, sheet.character.id)
+    const trombinoscope = await buildTrombinoscopePdfAttachment(dashboard.session, sheet.character.id, dashboard.photoCache)
     return {
       subject: `Fiche personnage et trombinoscope - ${dashboard.session.name}`,
     text: [
@@ -577,6 +584,7 @@ export async function resendDeliveries(sessionId: string, request: {
       return true
     })
     return await sendToEach(
+    sessionId,
       targets,
       (recipient) => documentMessage(dashboard, document, recipient.participant, true),
       (recipient, copies) => recordDocumentDelivery(sessionId, document.id, recipient.participant.id, document.contentHash, copies.document)
@@ -589,6 +597,7 @@ export async function resendDeliveries(sessionId: string, request: {
   if (request.kind === 'character_sheet') {
     const targets = dashboard.characterSheets.filter((sheet) => sheet.sentAt && sheet.readyToSend && selected(sheet, sheet.sheetVersionOutdated))
     return await sendToEach(
+    sessionId,
       targets,
       (sheet) => characterSheetMessage(dashboard, sheet, true),
       (sheet, copies) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'character_sheet', contentHash: sheet.sheetContentHash }, copies.character_sheet)
@@ -600,6 +609,7 @@ export async function resendDeliveries(sessionId: string, request: {
   )
   assertNoOutdatedTrombinoscope(targets)
   return await sendToEach(
+    sessionId,
     targets,
     (sheet) => trombinoscopeMessage(dashboard, sheet, true),
     (sheet, copies) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'trombinoscope', contentHash: sheet.trombinoscopeContentHash }, copies.trombinoscope)
@@ -662,7 +672,7 @@ export async function sendCharacterSheetBundleTestEmail(sessionId: string, chara
     ].filter(Boolean).join('\n'),
     attachments: [
       (await buildCharacterSheetPdfAttachment(dashboard.session, sheet.character)).attachment,
-      ...(sheet.trombinoscopeUrl ? [(await buildTrombinoscopePdfAttachment(dashboard.session, sheet.character.id)).attachment] : [])
+      ...(sheet.trombinoscopeUrl ? [(await buildTrombinoscopePdfAttachment(dashboard.session, sheet.character.id, null)).attachment] : [])
     ]
   })
   if (!result.sent) {
@@ -749,7 +759,8 @@ async function buildCharacterSheetPdfAttachment(session: { id: string }, charact
   }
 }
 
-async function buildTrombinoscopePdfAttachment(session: { id: string, name: string }, characterId: string) {
+// photoCache null : pas de copie (email de test)
+async function buildTrombinoscopePdfAttachment(session: { id: string, name: string }, characterId: string, photoCache: Map<string, Promise<Uint8Array | null>> | null) {
   const trombinoscope = await getSessionTrombinoscope(session.id, characterId)
   if (!trombinoscope.contentPdfBase64) {
     throw createError({ statusCode: 404, message: 'Trombinoscope PDF introuvable' })
@@ -761,7 +772,7 @@ async function buildTrombinoscopePdfAttachment(session: { id: string, name: stri
       content: Buffer.from(trombinoscope.contentPdfBase64, 'base64'),
       contentType: 'application/pdf'
     },
-    copy: await trombinoscopeCopy(trombinoscope, trombinoscopeHeading(session))
+    copy: photoCache ? await trombinoscopeCopy(trombinoscope, trombinoscopeHeading(session), photoCache) : undefined
   }
 }
 

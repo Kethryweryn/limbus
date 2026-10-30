@@ -50,10 +50,22 @@ async function currentTrombinoscope(delivery: MyDelivery) {
   })
 }
 
-function currentText(delivery: MyDelivery): TextPdfInput | null {
+// Une fiche n'est lisible que tant que la personne joue encore ce rôle : après un nouveau casting, elle est à une autre
+async function currentText(delivery: MyDelivery): Promise<TextPdfInput | null> {
   if (delivery.kind === 'document' && delivery.document?.readyToSend) return documentPdfContent(delivery.session, delivery.document)
-  if (delivery.kind === 'character_sheet' && delivery.character?.sheetReadyToSend) return characterSheetPdfContent(delivery.session, delivery.character)
+  if (delivery.kind === 'character_sheet' && delivery.character?.sheetReadyToSend && await stillCast(delivery)) {
+    return characterSheetPdfContent(delivery.session, delivery.character)
+  }
   return null
+}
+
+async function stillCast(delivery: { sessionId: string, characterId: string | null, participantId: string }) {
+  if (!delivery.characterId) return false
+  const assignment = await prisma.sessionAssignment.findUnique({
+    where: { sessionId_characterId: { sessionId: delivery.sessionId, characterId: delivery.characterId } },
+    select: { participantId: true }
+  })
+  return assignment?.participantId === delivery.participantId
 }
 
 // La copie, si elle existe et que la session n'est pas passée ; sinon null
@@ -63,7 +75,8 @@ async function liveCopy(delivery: MyDelivery) {
   return await prisma.sessionDocumentDelivery.findUnique({ where: { id: delivery.id }, select: { copyPdf: true, copyContent: true } })
 }
 
-const photoUrl = (deliveryId: string, index: number) => `/api/me/documents/${deliveryId}/photos/${index}`
+// La source fait partie de l'adresse : une page lue sur la copie ne reçoit jamais une photo de la version actuelle
+const photoUrl = (deliveryId: string, index: number, source: 'copy' | 'current') => `/api/me/documents/${deliveryId}/photos/${index}?source=${source}`
 
 export async function readMyDelivery(delivery: MyDelivery) {
   const base = {
@@ -77,7 +90,7 @@ export async function readMyDelivery(delivery: MyDelivery) {
   if (copy) {
     const content = copy.copyContent as CopyContent | null
     if (content?.kind === 'trombinoscope') {
-      return { ...base, source: 'copy' as const, text: null, cards: content.cards.map(({ photo, ...card }, index) => ({ ...card, photoUrl: photo === null ? null : photoUrl(delivery.id, index) })) }
+      return { ...base, source: 'copy' as const, text: null, cards: content.cards.map(({ photo, ...card }, index) => ({ ...card, photoUrl: photo === null ? null : photoUrl(delivery.id, index, 'copy') })) }
     }
     return { ...base, source: 'copy' as const, text: content?.kind === 'text' ? { title: content.title, subtitle: content.subtitle ?? null, sections: content.sections } : null, cards: null }
   }
@@ -86,9 +99,9 @@ export async function readMyDelivery(delivery: MyDelivery) {
     const trombinoscope = await currentTrombinoscope(delivery)
     if (!trombinoscope) return { ...base, source: null, text: null, cards: null }
     const cards = trombinoscopeCards(trombinoscope.contentJson)
-    return { ...base, source: 'current' as const, text: null, cards: cards?.map(({ photoUrl: url, ...card }, index) => ({ ...card, photoUrl: url ? photoUrl(delivery.id, index) : null })) ?? null }
+    return { ...base, source: 'current' as const, text: null, cards: cards?.map(({ photoUrl: url, ...card }, index) => ({ ...card, photoUrl: url ? photoUrl(delivery.id, index, 'current') : null })) ?? null }
   }
-  const text = currentText(delivery)
+  const text = await currentText(delivery)
   return { ...base, source: text ? 'current' as const : null, text, cards: null }
 }
 
@@ -103,20 +116,20 @@ export async function myDeliveryPdf(delivery: MyDelivery) {
     const trombinoscope = await currentTrombinoscope(delivery)
     if (trombinoscope?.contentPdfBase64) return { filename, bytes: Buffer.from(trombinoscope.contentPdfBase64, 'base64') }
   } else {
-    const text = currentText(delivery)
+    const text = await currentText(delivery)
     if (text) return { filename, bytes: await renderTextPdf(text) }
   }
   throw createError({ statusCode: 404, message: 'Ce document n’est plus disponible.' })
 }
 
-export async function myDeliveryPhoto(delivery: MyDelivery, index: number) {
-  const copy = await liveCopy(delivery)
+export async function myDeliveryPhoto(delivery: MyDelivery, index: number, source: string) {
+  const copy = source === 'copy' ? await liveCopy(delivery) : null
   let bytes: Uint8Array | null = null
   if (copy) {
     const content = copy.copyContent as CopyContent | null
     const photo = content?.kind === 'trombinoscope' ? content.cards[index]?.photo : null
     bytes = typeof photo === 'number' && content?.kind === 'trombinoscope' && content.photos[photo] ? Buffer.from(content.photos[photo]!, 'base64') : null
-  } else if (delivery.kind === 'trombinoscope') {
+  } else if (source === 'current' && delivery.kind === 'trombinoscope' && !await liveCopy(delivery)) {
     const url = trombinoscopeCards((await currentTrombinoscope(delivery))?.contentJson)?.[index]?.photoUrl
     bytes = url ? await loadImageBytes(url) : null
   }
@@ -132,21 +145,42 @@ export async function myDeliveriesBySession(participantIds: string[]) {
   const deliveries = await prisma.sessionDocumentDelivery.findMany({
     where: { participantId: { in: participantIds }, kind: { in: [...COPY_KINDS] } },
     orderBy: { sentAt: 'desc' },
-    select: deliverySelect
+    select: {
+      id: true,
+      kind: true,
+      sentAt: true,
+      sessionId: true,
+      participantId: true,
+      characterId: true,
+      copySize: true,
+      document: { select: { title: true, readyToSend: true } },
+      character: { select: { name: true, sheetReadyToSend: true } }
+    }
   })
   const expired = await expiredSessionIds([...new Set(deliveries.filter((delivery) => delivery.copySize !== null).map((delivery) => delivery.sessionId))])
-  const trombinoscopes = await prisma.sessionTrombinoscope.findMany({
-    where: { participantId: { in: participantIds }, sessionId: { in: deliveries.filter((delivery) => delivery.kind === 'trombinoscope').map((delivery) => delivery.sessionId) } },
-    select: { sessionId: true, viewerCharacterId: true, participantId: true }
-  })
+  const sessionIds = [...new Set(deliveries.map((delivery) => delivery.sessionId))]
+  const [trombinoscopes, assignments] = await Promise.all([
+    prisma.sessionTrombinoscope.findMany({
+      where: { participantId: { in: participantIds }, sessionId: { in: sessionIds } },
+      select: { sessionId: true, viewerCharacterId: true, participantId: true }
+    }),
+    prisma.sessionAssignment.findMany({
+      where: { participantId: { in: participantIds }, sessionId: { in: sessionIds } },
+      select: { sessionId: true, characterId: true, participantId: true }
+    })
+  ])
   const generated = new Set(trombinoscopes.map((item) => `${item.sessionId}:${item.viewerCharacterId}:${item.participantId}`))
+  const cast = new Set(assignments.map((item) => `${item.sessionId}:${item.characterId}:${item.participantId}`))
 
   const bySession = new Map<string, Array<{ id: string, kind: string, title: string, sentAt: Date, available: boolean }>>()
   for (const delivery of deliveries) {
     const hasCopy = delivery.copySize !== null && !expired.has(delivery.sessionId)
+    const key = `${delivery.sessionId}:${delivery.characterId}:${delivery.participantId}`
     const current = delivery.kind === 'trombinoscope'
-      ? generated.has(`${delivery.sessionId}:${delivery.characterId}:${delivery.participantId}`)
-      : Boolean(currentText(delivery))
+      ? generated.has(key)
+      : delivery.kind === 'document'
+        ? Boolean(delivery.document?.readyToSend)
+        : Boolean(delivery.character?.sheetReadyToSend) && cast.has(key)
     const list = bySession.get(delivery.sessionId) ?? []
     list.push({ id: delivery.id, kind: delivery.kind, title: deliveryTitle(delivery), sentAt: delivery.sentAt, available: hasCopy || current })
     bySession.set(delivery.sessionId, list)
