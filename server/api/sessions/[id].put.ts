@@ -7,6 +7,7 @@ import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { assertGameUploads, deleteUnusedUploads } from '~/server/utils/uploads'
 import { requireRouterParam } from '~/server/utils/routeParams'
+import { SESSION_STATUSES } from '~/utils/domain'
 
 function parseDate(value: unknown): Date | null {
   if (!value || typeof value !== 'string') return null
@@ -37,6 +38,7 @@ export default defineEventHandler(async (event) => {
   })).map((assignment) => assignment.photoUrl)
   await assertGameUploads(assignments.map((assignment) => assignment.photoUrl), gameId, { sessionFiles: true, keep: previousPhotoUrls, label: 'Photo d’attribution' })
 
+  const { cancelledAt } = await prisma.session.findUniqueOrThrow({ where: { id: existingSession.id }, select: { cancelledAt: true } })
   const session = await prisma.session.update({
     where: { id: existingSession.id },
     data: {
@@ -46,6 +48,8 @@ export default defineEventHandler(async (event) => {
       date: parseDate(body.date),
       locationId: locationId || null,
       status,
+      // Date d'annulation, gardée tant que la session reste annulée (US-080)
+      cancelledAt: status === SESSION_STATUSES.cancelled ? cancelledAt ?? new Date() : null,
       // Absent : la visibilité ne change pas (US-019)
       published,
       participants: {

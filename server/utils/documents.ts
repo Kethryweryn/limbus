@@ -2,8 +2,9 @@ import { createHash } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
 import { openEmailTransport, sendEmail, type EmailTransport } from '~/server/utils/email'
 import { DOCUMENT_AUDIENCES, SESSION_ROLES } from '~/utils/domain'
-import { generatedPdfFileName, renderTextPdf } from '~/server/utils/generatedPdfs'
+import { generatedPdfFileName, renderTextPdf, type TextPdfInput } from '~/server/utils/generatedPdfs'
 import { currentTrombinoscopeFingerprints, getSessionTrombinoscope, isTrombinoscopeOutdated } from '~/server/utils/trombinoscopes'
+import { copyData, purgeExpiredCopies, textCopy, trombinoscopeCopy, type DeliveryCopy } from '~/server/utils/deliveryCopies'
 
 export const documentInclude = {
   game: true,
@@ -299,20 +300,25 @@ export async function getSessionDocumentDashboard(sessionId: string) {
 }
 
 type EmailMessage = Parameters<EmailTransport['send']>[0]
+type Copies = { document?: DeliveryCopy, character_sheet?: DeliveryCopy, trombinoscope?: DeliveryCopy }
+type OutgoingMessage = Omit<EmailMessage, 'to'> & { copies: Copies }
 
 /**
  * Envoie un email à chaque destinataire sur une seule connexion SMTP (US-029). Un échec, ou un PDF impossible
  * à produire, n'arrête pas les suivants : la personne est rendue dans `failures`. Si rien n'est parti à cause
- * d'échecs, l'envoi est en erreur, comme pour les paiements (R19).
+ * d'échecs, l'envoi est en erreur, comme pour les paiements (R19). Ce qui est parti est enregistré avec sa
+ * copie (US-078, ADR-0044).
  */
 async function sendToEach<Target extends { participant: { name: string, email: string | null } }>(
   targets: Target[],
-  buildMessage: (target: Target) => Promise<Omit<EmailMessage, 'to'>>,
-  record: (target: Target) => Promise<void>
+  buildMessage: (target: Target) => Promise<OutgoingMessage>,
+  record: (target: Target, copies: Copies) => Promise<void>
 ) {
   const failures: string[] = []
   let sentCount = 0
   if (!targets.length) return { sentCount, failures }
+  // Les copies des sessions passées s'effacent avant d'en ajouter (US-080)
+  await purgeExpiredCopies()
 
   const transport = await openEmailTransport().catch(() => null)
   if (!transport) {
@@ -321,13 +327,16 @@ async function sendToEach<Target extends { participant: { name: string, email: s
 
   try {
     for (const target of targets) {
+      let copies: Copies
       try {
-        await transport.send({ ...await buildMessage(target), to: target.participant.email! })
+        const { copies: built, ...message } = await buildMessage(target)
+        copies = built
+        await transport.send({ ...message, to: target.participant.email! })
       } catch {
         failures.push(target.participant.name)
         continue
       }
-      await record(target)
+      await record(target, copies)
       sentCount++
     }
   } finally {
@@ -348,7 +357,7 @@ type Recipient = { name: string, email: string | null }
 const greeting = (participant: Recipient) => `Bonjour ${participant.name.split(/\s+/)[0] || participant.name},`
 
 // Renvoi d'une version à jour (US-030) : l'objet le dit, et le texte rappelle qu'elle remplace la précédente
-function asUpdate(message: Omit<EmailMessage, 'to'>, update: boolean): Omit<EmailMessage, 'to'> {
+function asUpdate(message: OutgoingMessage, update: boolean): OutgoingMessage {
   if (!update) return message
   const [first = '', ...rest] = (message.text || '').split('\n')
   return {
@@ -359,6 +368,7 @@ function asUpdate(message: Omit<EmailMessage, 'to'>, update: boolean): Omit<Emai
 }
 
 async function documentMessage(dashboard: Dashboard, document: DashboardDocument, participant: Recipient, update = false) {
+  const pdf = await buildDocumentPdfAttachment(dashboard.session, document)
   return asUpdate({
     subject: document.title,
     text: [
@@ -367,11 +377,13 @@ async function documentMessage(dashboard: Dashboard, document: DashboardDocument
       document.content || '',
       document.documentUrl ? `Document lié : ${document.documentUrl}` : ''
     ].filter(Boolean).join('\n'),
-    attachments: [await buildDocumentPdfAttachment(dashboard.session, document)]
+    attachments: [pdf.attachment],
+    copies: { document: pdf.copy }
   }, update)
 }
 
 async function characterSheetMessage(dashboard: Dashboard, sheet: DashboardSheet, update = false) {
+  const pdf = await buildCharacterSheetPdfAttachment(dashboard.session, sheet.character)
   return asUpdate({
     subject: `Fiche personnage - ${sheet.character.name}`,
     text: [
@@ -384,11 +396,13 @@ async function characterSheetMessage(dashboard: Dashboard, sheet: DashboardSheet
         ? `Fiche liée : ${sheet.character.backgroundDocumentUrl}`
         : sheet.character.background || ''
     ].filter(Boolean).join('\n'),
-    attachments: [await buildCharacterSheetPdfAttachment(dashboard.session, sheet.character)]
+    attachments: [pdf.attachment],
+    copies: { character_sheet: pdf.copy }
   }, update)
 }
 
 async function trombinoscopeMessage(dashboard: Dashboard, sheet: DashboardSheet, update = false) {
+  const pdf = await buildTrombinoscopePdfAttachment(dashboard.session, sheet.character.id)
   return asUpdate({
     subject: `Trombinoscope - ${dashboard.session.name}`,
     text: [
@@ -397,20 +411,22 @@ async function trombinoscopeMessage(dashboard: Dashboard, sheet: DashboardSheet,
       `Voici ton trombinoscope pour ${dashboard.session.name}.`,
       'Le PDF est joint à cet email.'
     ].join('\n'),
-    attachments: [await buildTrombinoscopePdfAttachment(dashboard.session.id, sheet.character.id)]
+    attachments: [pdf.attachment],
+    copies: { trombinoscope: pdf.copy }
   }, update)
 }
 
-async function recordDocumentDelivery(sessionId: string, documentId: string, participantId: string, contentHash: string) {
+// Un renvoi remplace la copie : seule la dernière version reçue est gardée (US-078)
+async function recordDocumentDelivery(sessionId: string, documentId: string, participantId: string, contentHash: string, copy?: DeliveryCopy) {
   const existing = await prisma.sessionDocumentDelivery.findFirst({
     where: { sessionId, documentId, participantId, kind: 'document' },
     orderBy: { sentAt: 'desc' }
   })
   if (existing) {
-    await prisma.sessionDocumentDelivery.update({ where: { id: existing.id }, data: { sentAt: new Date(), contentHash } })
+    await prisma.sessionDocumentDelivery.update({ where: { id: existing.id }, data: { sentAt: new Date(), contentHash, ...copyData(copy) } })
     return
   }
-  await prisma.sessionDocumentDelivery.create({ data: { sessionId, documentId, participantId, kind: 'document', contentHash } })
+  await prisma.sessionDocumentDelivery.create({ data: { sessionId, documentId, participantId, kind: 'document', contentHash, ...copyData(copy) } })
 }
 
 export async function markDocumentDeliveries(sessionId: string, documentIds: string[]) {
@@ -430,7 +446,7 @@ export async function markDocumentDeliveries(sessionId: string, documentIds: str
   return await sendToEach(
     targets,
     ({ document, participant }) => documentMessage(dashboard, document, participant),
-    ({ document, participant }) => recordDocumentDelivery(sessionId, document.id, participant.id, document.contentHash)
+    ({ document, participant }, copies) => recordDocumentDelivery(sessionId, document.id, participant.id, document.contentHash, copies.document)
   )
 }
 
@@ -443,18 +459,19 @@ export async function markCharacterSheetDeliveries(sessionId: string) {
   return await sendToEach(
     targets,
     (sheet) => characterSheetMessage(dashboard, sheet),
-    (sheet) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'character_sheet', contentHash: sheet.sheetContentHash })
+    (sheet, copies) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'character_sheet', contentHash: sheet.sheetContentHash }, copies.character_sheet)
   )
 }
 
-// Dernier envoi d'un type à une personne pour un personnage : un renvoi met à jour sa date et son empreinte (ADR-0031)
+// Dernier envoi d'un type à une personne pour un personnage : un renvoi met à jour sa date, son empreinte (ADR-0031)
+// et sa copie (ADR-0044)
 async function upsertDelivery(data: {
   sessionId: string
   participantId: string
   characterId: string
   kind: string
   contentHash: string | null
-}) {
+}, copy?: DeliveryCopy) {
   const existing = await prisma.sessionDocumentDelivery.findFirst({
     where: {
       sessionId: data.sessionId,
@@ -468,12 +485,12 @@ async function upsertDelivery(data: {
   if (existing) {
     await prisma.sessionDocumentDelivery.update({
       where: { id: existing.id },
-      data: { sentAt: new Date(), contentHash: data.contentHash }
+      data: { sentAt: new Date(), contentHash: data.contentHash, ...copyData(copy) }
     })
     return
   }
 
-  await prisma.sessionDocumentDelivery.create({ data })
+  await prisma.sessionDocumentDelivery.create({ data: { ...data, ...copyData(copy) } })
 }
 
 // Un trombinoscope périmé n'est jamais envoyé : il faut d'abord le générer à nouveau (US-028)
@@ -492,7 +509,7 @@ export async function markTrombinoscopeDeliveries(sessionId: string) {
   return await sendToEach(
     targets,
     (sheet) => trombinoscopeMessage(dashboard, sheet),
-    (sheet) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'trombinoscope', contentHash: sheet.trombinoscopeContentHash })
+    (sheet, copies) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'trombinoscope', contentHash: sheet.trombinoscopeContentHash }, copies.trombinoscope)
   )
 }
 
@@ -504,8 +521,11 @@ export async function markCharacterSheetBundleDeliveries(sessionId: string) {
   )
   assertNoOutdatedTrombinoscope(targets)
 
-  return await sendToEach(targets, async (sheet) => ({
-    subject: `Fiche personnage et trombinoscope - ${dashboard.session.name}`,
+  return await sendToEach(targets, async (sheet) => {
+    const characterSheet = await buildCharacterSheetPdfAttachment(dashboard.session, sheet.character)
+    const trombinoscope = await buildTrombinoscopePdfAttachment(dashboard.session, sheet.character.id)
+    return {
+      subject: `Fiche personnage et trombinoscope - ${dashboard.session.name}`,
     text: [
       greeting(sheet.participant),
       '',
@@ -517,14 +537,13 @@ export async function markCharacterSheetBundleDeliveries(sessionId: string) {
         : sheet.character.background || '',
       'Les PDF sont joints à cet email.'
     ].filter(Boolean).join('\n'),
-    attachments: [
-      await buildCharacterSheetPdfAttachment(dashboard.session, sheet.character),
-      await buildTrombinoscopePdfAttachment(sessionId, sheet.character.id)
-    ]
-  }), async (sheet) => {
+      attachments: [characterSheet.attachment, trombinoscope.attachment],
+      copies: { character_sheet: characterSheet.copy, trombinoscope: trombinoscope.copy }
+    }
+  }, async (sheet, copies) => {
     const base = { sessionId, participantId: sheet.participant.id, characterId: sheet.character.id }
-    await upsertDelivery({ ...base, kind: 'character_sheet', contentHash: sheet.sheetContentHash })
-    await upsertDelivery({ ...base, kind: 'trombinoscope', contentHash: sheet.trombinoscopeContentHash })
+    await upsertDelivery({ ...base, kind: 'character_sheet', contentHash: sheet.sheetContentHash }, copies.character_sheet)
+    await upsertDelivery({ ...base, kind: 'trombinoscope', contentHash: sheet.trombinoscopeContentHash }, copies.trombinoscope)
     await upsertDelivery({ ...base, kind: 'character_sheet_bundle', contentHash: null })
   })
 }
@@ -560,7 +579,7 @@ export async function resendDeliveries(sessionId: string, request: {
     return await sendToEach(
       targets,
       (recipient) => documentMessage(dashboard, document, recipient.participant, true),
-      (recipient) => recordDocumentDelivery(sessionId, document.id, recipient.participant.id, document.contentHash)
+      (recipient, copies) => recordDocumentDelivery(sessionId, document.id, recipient.participant.id, document.contentHash, copies.document)
     )
   }
 
@@ -572,7 +591,7 @@ export async function resendDeliveries(sessionId: string, request: {
     return await sendToEach(
       targets,
       (sheet) => characterSheetMessage(dashboard, sheet, true),
-      (sheet) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'character_sheet', contentHash: sheet.sheetContentHash })
+      (sheet, copies) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'character_sheet', contentHash: sheet.sheetContentHash }, copies.character_sheet)
     )
   }
 
@@ -583,7 +602,7 @@ export async function resendDeliveries(sessionId: string, request: {
   return await sendToEach(
     targets,
     (sheet) => trombinoscopeMessage(dashboard, sheet, true),
-    (sheet) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'trombinoscope', contentHash: sheet.trombinoscopeContentHash })
+    (sheet, copies) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'trombinoscope', contentHash: sheet.trombinoscopeContentHash }, copies.trombinoscope)
   )
 }
 
@@ -607,7 +626,7 @@ export async function sendDocumentTestEmails(sessionId: string, documentIds: str
         document.documentUrl ? `Document lié : ${document.documentUrl}` : ''
       ].filter(Boolean).join('\n'),
       attachments: [
-        await buildDocumentPdfAttachment(dashboard.session, document)
+        (await buildDocumentPdfAttachment(dashboard.session, document)).attachment
       ]
     })
     if (!result.sent) {
@@ -642,8 +661,8 @@ export async function sendCharacterSheetBundleTestEmail(sessionId: string, chara
       sheet.trombinoscopeUrl ? 'Trombinoscope joint à cet email.' : 'Trombinoscope non généré.'
     ].filter(Boolean).join('\n'),
     attachments: [
-      await buildCharacterSheetPdfAttachment(dashboard.session, sheet.character),
-      ...(sheet.trombinoscopeUrl ? [await buildTrombinoscopePdfAttachment(sessionId, sheet.character.id)] : [])
+      (await buildCharacterSheetPdfAttachment(dashboard.session, sheet.character)).attachment,
+      ...(sheet.trombinoscopeUrl ? [(await buildTrombinoscopePdfAttachment(dashboard.session, sheet.character.id)).attachment] : [])
     ]
   })
   if (!result.sent) {
@@ -653,6 +672,37 @@ export async function sendCharacterSheetBundleTestEmail(sessionId: string, chara
   return { sentCount: emails.length }
 }
 
+// Ce que montre le PDF d'un document : repris tel quel dans sa copie (US-078) et pour sa lecture (US-079)
+export function documentPdfContent(
+  session: { name: string, game: { title: string } },
+  document: { title: string, content: string | null, documentUrl: string | null }
+): TextPdfInput {
+  return {
+    title: document.title,
+    subtitle: `${session.name} - ${session.game.title}`,
+    sections: [
+      { title: 'Contenu', body: document.content || 'Aucun corps de document renseigné.' },
+      ...(document.documentUrl ? [{ title: 'Document lié', body: document.documentUrl }] : [])
+    ]
+  }
+}
+
+export function characterSheetPdfContent(
+  session: { name: string },
+  character: { name: string, pitch: string | null, background: string | null, backgroundDocumentUrl: string | null, costumeIndications: string | null }
+): TextPdfInput {
+  return {
+    title: character.name,
+    subtitle: `Fiche personnage - ${session.name}`,
+    sections: [
+      { title: 'Pitch', body: character.pitch || '' },
+      { title: 'Background', body: character.background || '' },
+      ...(character.backgroundDocumentUrl ? [{ title: 'Document lié', body: character.backgroundDocumentUrl }] : []),
+      { title: 'Indications costume', body: character.costumeIndications || '' }
+    ]
+  }
+}
+
 export async function buildDocumentPdf(sessionId: string, documentId: string) {
   const dashboard = await getSessionDocumentDashboard(sessionId)
   const document = dashboard.documents.find((item) => item.id === documentId)
@@ -660,16 +710,11 @@ export async function buildDocumentPdf(sessionId: string, documentId: string) {
     throw createError({ statusCode: 404, message: 'Document introuvable pour cette session' })
   }
 
+  const content = documentPdfContent(dashboard.session, document)
   return {
     filename: generatedPdfFileName([dashboard.session.name, document.title]),
-    bytes: await renderTextPdf({
-      title: document.title,
-      subtitle: `${dashboard.session.name} - ${dashboard.session.game.title}`,
-      sections: [
-        { title: 'Contenu', body: document.content || 'Aucun corps de document renseigné.' },
-        ...(document.documentUrl ? [{ title: 'Document lié', body: document.documentUrl }] : [])
-      ]
-    })
+    content,
+    bytes: await renderTextPdf(content)
   }
 }
 
@@ -680,48 +725,46 @@ export async function buildCharacterSheetPdf(sessionId: string, characterId: str
     throw createError({ statusCode: 404, message: 'Fiche personnage introuvable pour cette session' })
   }
 
+  const content = characterSheetPdfContent(dashboard.session, sheet.character)
   return {
     filename: generatedPdfFileName([dashboard.session.name, sheet.character.name, 'fiche-personnage']),
-    bytes: await renderTextPdf({
-      title: sheet.character.name,
-      subtitle: `Fiche personnage - ${dashboard.session.name}`,
-      sections: [
-        { title: 'Pitch', body: sheet.character.pitch || '' },
-        { title: 'Background', body: sheet.character.background || '' },
-        ...(sheet.character.backgroundDocumentUrl ? [{ title: 'Document lié', body: sheet.character.backgroundDocumentUrl }] : []),
-        { title: 'Indications costume', body: sheet.character.costumeIndications || '' }
-      ]
-    })
+    content,
+    bytes: await renderTextPdf(content)
   }
 }
 
 async function buildDocumentPdfAttachment(session: { id: string }, document: { id: string }) {
   const pdf = await buildDocumentPdf(session.id, document.id)
   return {
-    filename: pdf.filename,
-    content: Buffer.from(pdf.bytes),
-    contentType: 'application/pdf'
+    attachment: { filename: pdf.filename, content: Buffer.from(pdf.bytes), contentType: 'application/pdf' },
+    copy: textCopy(pdf.content, pdf.bytes)
   }
 }
 
 async function buildCharacterSheetPdfAttachment(session: { id: string }, character: { id: string }) {
   const pdf = await buildCharacterSheetPdf(session.id, character.id)
   return {
-    filename: pdf.filename,
-    content: Buffer.from(pdf.bytes),
-    contentType: 'application/pdf'
+    attachment: { filename: pdf.filename, content: Buffer.from(pdf.bytes), contentType: 'application/pdf' },
+    copy: textCopy(pdf.content, pdf.bytes)
   }
 }
 
-async function buildTrombinoscopePdfAttachment(sessionId: string, characterId: string) {
-  const trombinoscope = await getSessionTrombinoscope(sessionId, characterId)
+async function buildTrombinoscopePdfAttachment(session: { id: string, name: string }, characterId: string) {
+  const trombinoscope = await getSessionTrombinoscope(session.id, characterId)
   if (!trombinoscope.contentPdfBase64) {
     throw createError({ statusCode: 404, message: 'Trombinoscope PDF introuvable' })
   }
 
   return {
-    filename: trombinoscope.fileName,
-    content: Buffer.from(trombinoscope.contentPdfBase64, 'base64'),
-    contentType: 'application/pdf'
+    attachment: {
+      filename: trombinoscope.fileName,
+      content: Buffer.from(trombinoscope.contentPdfBase64, 'base64'),
+      contentType: 'application/pdf'
+    },
+    copy: await trombinoscopeCopy(trombinoscope, trombinoscopeHeading(session))
   }
+}
+
+export function trombinoscopeHeading(session: { name: string }) {
+  return { title: 'Trombinoscope', subtitle: session.name }
 }

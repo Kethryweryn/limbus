@@ -58,3 +58,31 @@ test('qui organise et participe passe d’un espace à l’autre, et retrouve le
     await prisma.$disconnect()
   }
 })
+
+// US-079 : un document reçu se retrouve dans « Je participe » et se lit dans la page
+test('un document reçu s’ouvre depuis « Je participe »', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const email = `${uniqueName('lectrice').toLowerCase().replace(/[^a-z0-9]+/g, '-')}@example.test`
+    const user = await prisma.user.create({ data: { email, name: 'Lectrice e2e', password: 'non-utilise' } })
+    const { session, game } = await parcoursSession(prisma, 'Session avec une lettre')
+    const participant = await prisma.participant.create({
+      data: { name: 'Lectrice e2e', slug: email.replace(/[^a-z0-9]+/g, '-'), email, userId: user.id, gameLinks: { create: { gameId: game.id } }, sessionRoles: { create: { sessionId: session.id, role: 'npc' } } }
+    })
+    const document = await prisma.document.create({ data: { title: `Lettre ${email}`, slug: `lettre-${participant.slug}`, gameId: game.id, content: 'Brouillon', readyToSend: true } })
+    const copyContent = { kind: 'text', title: document.title, subtitle: session.name, sections: [{ title: 'Contenu', body: 'Rendez-vous à la taverne.' }] }
+    await prisma.sessionDocumentDelivery.create({
+      data: { sessionId: session.id, participantId: participant.id, documentId: document.id, kind: 'document', copyPdf: Buffer.from('%PDF-1.4'), copyContent, copySize: 100 }
+    })
+
+    await signIn(page, prisma, email)
+    await expect(page).toHaveURL(/\/participer$/)
+    await page.getByRole('link', { name: document.title }).click()
+    await expect(page.getByRole('heading', { name: document.title })).toBeVisible()
+    await expect(page.getByText('Rendez-vous à la taverne.')).toBeVisible()
+    await expect(page.getByText('Brouillon')).toBeHidden()
+    await expect(page.getByRole('link', { name: 'PDF' })).toBeVisible()
+  } finally {
+    await prisma.$disconnect()
+  }
+})

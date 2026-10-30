@@ -230,6 +230,8 @@ model Session {
   // Version des réglages de paiement (ADR-0036), à part de celle de la session
   paymentSettingsUpdatedAt DateTime?
   status      String     @default("scheduled")
+  // Passage à « Annulée » : les copies des envois s'effacent un mois après (US-080, ADR-0044)
+  cancelledAt DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   // Visible sur la page publique du jeu (US-019) ; non visible par défaut
@@ -509,6 +511,8 @@ model SessionTrombinoscope {
   contentPdfBase64  String?
   missingPhotos     Int         @default(0)
   sourceHash        String?
+  // Cartes du trombinoscope, pour le lire dans « Je participe » (US-079, ADR-0044)
+  contentJson       Json?
   generatedAt       DateTime    @default(now())
 
   session           Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
@@ -528,6 +532,10 @@ model SessionDocumentDelivery {
   kind          String      @default("document")
   contentHash   String?
   sentAt        DateTime    @default(now())
+  // Copie de ce qui est parti (US-078, ADR-0044) : PDF joint, ce qui se lit dans la page, et leur taille
+  copyPdf       Bytes?
+  copyContent   Json?
+  copySize      Int?
 
   session       Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)

@@ -14,4 +14,4 @@ Fonctionnalités validées, décrites telles qu'elles marchent. Modèle : [`../m
 | [SPEC-008](SPEC-008-comptes-et-partage.md) | Comptes et partage d'un jeu (existant) | validée | aucun : décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
 | [SPEC-009](SPEC-009-page-publique.md) | Page publique d'un jeu (existant) | validée | aucun : décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
 | [SPEC-010](SPEC-010-hors-ligne.md) | Mode hors ligne (existant) | validée | [EPIC-010](../archive/epics/EPIC-010-ecarts-hors-ligne/README.md) (écarts) |
-| [SPEC-011](SPEC-011-un-compte-pour-tout-le-monde.md) | Un compte pour tout le monde, organiser et participer | validée | [EPIC-012](../archive/epics/EPIC-012-roles/README.md) (lot 1) ; lots 2 à 7 à venir |
+| [SPEC-011](SPEC-011-un-compte-pour-tout-le-monde.md) | Un compte pour tout le monde, organiser et participer | validée | [EPIC-012](../archive/epics/EPIC-012-roles/README.md) à [EPIC-018](../archive/epics/EPIC-018-documents-dans-le-compte/README.md) (lots 1 à 7) |

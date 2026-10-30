@@ -1,5 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
+import { NO_COPY } from '~/server/utils/deliveryCopies'
 
 /**
  * Efface un participant et tout ce qui le concerne (RGPD, droit à l'effacement) :
@@ -7,7 +8,8 @@ import { deleteUnusedUploads } from '~/server/utils/uploads'
  * et ses photos, fichiers compris.
  * Les inscriptions (contacts, allergies) partent avec le participant, par cascade.
  * Les trombinoscopes générés des sessions où figurait sa photo sont supprimés : ils l'incluent
- * et devront être régénérés. Les assignations sont conservées, sans participant ni photo.
+ * et devront être régénérés ; les copies envoyées de ces trombinoscopes aussi (ADR-0044).
+ * Les assignations sont conservées, sans participant ni photo.
  */
 export async function eraseParticipant(participantId: string) {
   const assignments = await prisma.sessionAssignment.findMany({
@@ -24,6 +26,7 @@ export async function eraseParticipant(participantId: string) {
     })
     if (sessionsWithPhoto.length) {
       await tx.sessionTrombinoscope.deleteMany({ where: { sessionId: { in: sessionsWithPhoto } } })
+      await tx.sessionDocumentDelivery.updateMany({ where: { sessionId: { in: sessionsWithPhoto }, kind: 'trombinoscope', copySize: { not: null } }, data: NO_COPY })
     }
     await tx.participant.delete({ where: { id: participantId } })
   })
@@ -55,7 +58,7 @@ export async function exportParticipantData(participantId: string, gameIds: stri
       sessionRoles: { where: inSessions, select: { role: true, session } },
       assignments: { where: inSessions, select: { photoUrl: true, notes: true, character: { select: { name: true } }, session } },
       payments: { where: inSessions, select: { paidAt: true, paymentEmailSentAt: true, paymentReminderSentAt: true, refundStatus: true, refundedAt: true, tariff: { select: { name: true, amountCents: true } }, instalments: { select: { amountCents: true, receivedAt: true } }, session } },
-      documentDeliveries: { where: inSessions, select: { kind: true, sentAt: true, document: { select: { title: true } }, character: { select: { name: true } }, session } },
+      documentDeliveries: { where: inSessions, select: { kind: true, sentAt: true, copyContent: true, document: { select: { title: true } }, character: { select: { name: true } }, session } },
       timelineResponsibilities: { where: inSessions, select: { timelineEvent: { select: { name: true, day: true, time: true } }, session } },
       trombinoscopes: { where: inSessions, select: { generatedAt: true, viewerCharacter: { select: { name: true } }, session } },
       attendances: { where: inSessions, select: { status: true, responseDueAt: true, invitationSentAt: true, lastRemindedAt: true, respondedAt: true, session } },
@@ -91,10 +94,15 @@ export async function exportParticipantData(participantId: string, gameIds: stri
     }
   })
 
-  const { gameLinks, userId, ...rest } = participant
+  const { gameLinks, userId, documentDeliveries, ...rest } = participant
   return {
     exportedAt: new Date().toISOString(),
     ...rest,
+    // Texte des copies reçues (ADR-0044) ; pas celles des trombinoscopes, qui montrent d'autres personnes
+    documentDeliveries: documentDeliveries.map(({ copyContent, ...delivery }) => ({
+      ...delivery,
+      copy: delivery.kind === 'trombinoscope' ? null : copyContent
+    })),
     // Fiche rattachée au compte Limbus de la personne (US-070, ADR-0041)
     linkedToAccount: Boolean(userId),
     // Notes de chaque jeu exporté (US-069)

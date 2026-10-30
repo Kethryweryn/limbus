@@ -5,6 +5,7 @@ import { requireGameAccess } from '~/server/utils/gameAccess'
 import { assertSessionCastRules, assertSessionLocation, normalizeAssignments, normalizeSessionParticipants } from '~/server/utils/sessionAssignments'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { assertGameUploads } from '~/server/utils/uploads'
+import { SESSION_STATUSES } from '~/utils/domain'
 
 function parseDate(value: unknown): Date | null {
   if (!value || typeof value !== 'string') return null
@@ -32,6 +33,7 @@ export default defineEventHandler(async (event) => {
       date: parseDate(body.date),
       locationId: locationId || null,
       status,
+      cancelledAt: status === SESSION_STATUSES.cancelled ? new Date() : null,
       published: published ?? false,
       participants: {
         create: participants
