@@ -69,7 +69,7 @@ Comme aujourd'hui ([SPEC-008](SPEC-008-comptes-et-partage.md)). En plus, une co-
 - **R11** À la confirmation de l'adresse, toutes les fiches participant qui portent cette adresse se rattachent au compte, automatiquement.
 - **R12** Dès qu'une personne a un compte, elle seule modifie ses coordonnées (nom, email, téléphone, contact d'urgence, régime et allergies) ; chaque équipe les lit pour ses jeux seulement.
 - **R13** L'effacement demandé depuis le compte est immédiat ; chaque équipe concernée reçoit un email (place libérée, paiement à régler à la main).
-- **R14** Les documents envoyés gardent leur pièce jointe dans l'email, et sont aussi consultables dans le compte.
+- **R14** Les documents envoyés gardent leur pièce jointe dans l'email, et sont aussi consultables dans le compte. Limbus garde une copie de chaque envoi (la dernière version reçue), pour toute personne, avec ou sans compte : elle se lit dans la page ou en PDF, trombinoscope compris avec ses photos. Les copies comptent dans le stockage de la propriétaire du jeu sans bloquer un envoi, et s'effacent le lendemain de la session (session reportée : celle qui la remplace ; annulée : un mois après l'annulation) ; la personne lit ensuite la dernière version validée ([ADR-0044](../adr/ADR-0044-copies-des-envois.md)).
 - **R15** Le lien personnel d'une invitation à s'inscrire marche toujours sans connexion ; l'inscription apparaît ensuite dans le compte.
 - **R16** Une personne sans compte reste gérée par l'organisation, comme aujourd'hui.
 
@@ -94,7 +94,7 @@ Un epic par lot, dans l'ordre :
 4. Compte participant : rattachement des fiches, espace « Je participe » (sessions, inscriptions, paiement), sélecteur d'espace ([EPIC-015](../archive/epics/EPIC-015-je-participe/README.md)).
 5. Coordonnées et allergies tenues par la personne ([EPIC-016](../archive/epics/EPIC-016-coordonnees-tenues-par-la-personne/README.md)).
 6. Export et effacement depuis le compte ([EPIC-017](../archive/epics/EPIC-017-export-et-effacement/README.md)).
-7. Documents et trombinoscopes dans le compte.
+7. Documents et trombinoscopes dans le compte ([EPIC-018](../archive/epics/EPIC-018-documents-dans-le-compte/README.md)).
 
 ## Hors périmètre
 

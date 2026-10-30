@@ -25,6 +25,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-015](../archive/epics/EPIC-015-je-participe/README.md) | Compte participant et espace « Je participe » | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
 | [EPIC-016](../archive/epics/EPIC-016-coordonnees-tenues-par-la-personne/README.md) | Coordonnées et allergies tenues par la personne | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
 | [EPIC-017](../archive/epics/EPIC-017-export-et-effacement/README.md) | Export et effacement depuis le compte | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
+| [EPIC-018](../archive/epics/EPIC-018-documents-dans-le-compte/README.md) | Documents et trombinoscopes dans le compte | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
 
 ## US
 
@@ -107,3 +108,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-075](../archive/epics/EPIC-016-coordonnees-tenues-par-la-personne/US-075-fiche-tenue-par-la-personne.md) | La fiche d'une personne qui a un compte n'est plus modifiable par l'équipe | EPIC-016 | terminée |
 | [US-076](../archive/epics/EPIC-017-export-et-effacement/US-076-telecharger-ses-donnees.md) | Télécharger toutes ses données depuis son compte | EPIC-017 | terminée |
 | [US-077](../archive/epics/EPIC-017-export-et-effacement/US-077-effacer-son-compte.md) | Effacer son compte, équipes prévenues | EPIC-017 | terminée |
+| [US-078](../archive/epics/EPIC-018-documents-dans-le-compte/US-078-copie-de-chaque-envoi.md) | Garder une copie de ce qui est envoyé | EPIC-018 | terminée |
+| [US-079](../archive/epics/EPIC-018-documents-dans-le-compte/US-079-mes-documents.md) | Retrouver ses documents dans « Je participe » | EPIC-018 | terminée |
+| [US-080](../archive/epics/EPIC-018-documents-dans-le-compte/US-080-nettoyage-des-copies.md) | Effacer les copies après la session | EPIC-018 | terminée |

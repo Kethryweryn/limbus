@@ -17,6 +17,15 @@ type CharacterLike = {
   factions?: Array<{ id: string, name: string, showInTrombinoscope?: boolean | null }>
 }
 
+// Ce qu'une carte du trombinoscope affiche, gardé avec lui pour le lire dans « Je participe » (US-079)
+export type TrombinoscopeCard = {
+  displayName: string
+  tags: string[]
+  note: string
+  // null : visage caché ou photo manquante
+  photoUrl: string | null
+}
+
 type TrombinoscopeRow = {
   target: CharacterLike
   displayName: string
@@ -321,6 +330,7 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
       entries: rows
     })
     const fileName = `${slugFilePart(session.name)}-${slugFilePart(viewer.name)}-trombinoscope.pdf`
+    const contentJson = rows.map(trombinoscopeCard)
 
     await prisma.sessionTrombinoscope.upsert({
       where: {
@@ -336,6 +346,7 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
         contentPdfBase64: Buffer.from(pdfBytes).toString('base64'),
         missingPhotos: rows.filter((row) => row.missingPhoto).length,
         sourceHash,
+        contentJson,
         generatedAt: new Date()
       },
       create: {
@@ -346,7 +357,8 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
         contentHtml: html,
         contentPdfBase64: Buffer.from(pdfBytes).toString('base64'),
         missingPhotos: rows.filter((row) => row.missingPhoto).length,
-        sourceHash
+        sourceHash,
+        contentJson
       }
     })
 
@@ -379,6 +391,15 @@ export async function getSessionTrombinoscope(sessionId: string, characterId: st
   }
 
   return trombinoscope
+}
+
+function trombinoscopeCard(entry: TrombinoscopeRow): TrombinoscopeCard {
+  return {
+    displayName: entry.displayName,
+    tags: (entry.target.factions || []).filter((faction) => faction.showInTrombinoscope).map((faction) => faction.name),
+    note: entry.note,
+    photoUrl: entry.hidePhoto || entry.missingPhoto ? null : entry.photoUrl
+  }
 }
 
 function renderTrombinoscopeHtml({
@@ -639,7 +660,7 @@ async function drawPhoto(pdf: PDFDocument, page: any, entry: TrombinoscopeRow, b
   }
 }
 
-async function loadImageBytes(photoUrl: string) {
+export async function loadImageBytes(photoUrl: string) {
   if (uploadFilePath(photoUrl)) {
     return await readUpload(photoUrl).catch(() => null)
   }

@@ -105,6 +105,18 @@
                 </div>
               </template>
             </div>
+
+            <div v-if="session.documents?.length" class="space-y-1">
+              <div class="font-medium text-gray-700">Documents reçus</div>
+              <div v-for="document in session.documents" :key="document.id" class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <NuxtLink v-if="document.available" :to="`/participer/documents/${document.id}`" class="text-primary-600 hover:underline">{{ document.title }}</NuxtLink>
+                  <span v-else>{{ document.title }}</span>
+                  <span class="text-gray-500"> · reçu le {{ formatDate(document.sentAt) }}</span>
+                </div>
+                <span v-if="!document.available" class="text-xs text-gray-500">Plus disponible ici : voir l’email</span>
+              </div>
+            </div>
           </div>
         </section>
       </div>

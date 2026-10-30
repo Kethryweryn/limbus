@@ -1,5 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { myParticipantIds } from '~/server/utils/participantAccounts'
+import { myDeliveriesBySession } from '~/server/utils/myDocuments'
 import { getSessionPaymentDashboard } from '~/server/utils/sessionPayments'
 import { registrationPermissions } from '~/server/utils/publicRegistrations'
 import { SESSION_ROLES } from '~/utils/domain'
@@ -68,7 +69,7 @@ export async function myParticipations(userId: string, now = new Date()) {
   if (!ids.length) return []
   const inMine = { participantId: { in: ids } }
 
-  const [links, roles, assignments, registrations, attendances, payments] = await Promise.all([
+  const [links, roles, assignments, registrations, attendances, payments, deliveries, documents] = await Promise.all([
     prisma.participantGame.findMany({ where: inMine, select: { game: { select: { id: true, title: true, slug: true } } } }),
     prisma.sessionParticipant.findMany({ where: inMine, select: { role: true, session: { select: sessionSelect } } }),
     // Le casting compte comme un rôle de PJ, sans le personnage (choix du lot 4)
@@ -86,7 +87,10 @@ export async function myParticipations(userId: string, now = new Date()) {
       }
     }),
     prisma.sessionAttendance.findMany({ where: inMine, select: { sessionId: true, status: true, responseDueAt: true } }),
-    prisma.sessionPayment.findMany({ where: inMine, select: { session: { select: sessionSelect } } })
+    prisma.sessionPayment.findMany({ where: inMine, select: { session: { select: sessionSelect } } }),
+    // Une session d'où la personne est partie garde ce qu'elle y a reçu (US-079)
+    prisma.sessionDocumentDelivery.findMany({ where: inMine, distinct: ['sessionId'], select: { session: { select: sessionSelect } } }),
+    myDeliveriesBySession(ids)
   ])
 
   const sessions = new Map<string, MySession & { roles: Set<string> }>()
@@ -98,6 +102,7 @@ export async function myParticipations(userId: string, now = new Date()) {
   for (const item of roles) addSession(item.session, item.role)
   for (const item of assignments) addSession(item.session, SESSION_ROLES.participant)
   for (const item of payments) addSession(item.session)
+  for (const item of deliveries) addSession(item.session)
   const attendanceBySession = new Map(attendances.map((item) => [item.sessionId, item]))
   const participantIds = new Set(ids)
 
@@ -110,7 +115,8 @@ export async function myParticipations(userId: string, now = new Date()) {
     location: session.location,
     roles: [...session.roles],
     attendance: attendanceBySession.get(session.id) ?? null,
-    payment: await myPayment(session, participantIds)
+    payment: await myPayment(session, participantIds),
+    documents: documents.get(session.id) ?? []
   })))
 
   const games = new Map<string, { id: string, title: string, slug: string }>()

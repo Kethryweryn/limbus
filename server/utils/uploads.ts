@@ -119,14 +119,16 @@ const MB = 1024 * 1024
 /**
  * Espace utilisé par un compte (US-066) : les fichiers des jeux qu'il possède, qui que soit la personne
  * qui les a téléversés. Un fichier d'avant US-066 n'a pas de taille : elle est relevée sur le disque et gardée.
+ * Les copies des envois de ses jeux comptent aussi (US-078, ADR-0044).
  */
 export async function storageUsedBytes(userId: string) {
   const ownedGame = { ownerId: userId }
-  const [{ _sum }, unsized] = await Promise.all([
+  const [{ _sum }, unsized, copies] = await Promise.all([
     prisma.uploadedFile.aggregate({ where: { size: { not: null }, OR: [{ game: ownedGame }, { session: { game: ownedGame } }] }, _sum: { size: true } }),
-    prisma.uploadedFile.findMany({ where: { size: null, OR: [{ game: ownedGame }, { session: { game: ownedGame } }] }, select: { id: true, url: true } })
+    prisma.uploadedFile.findMany({ where: { size: null, OR: [{ game: ownedGame }, { session: { game: ownedGame } }] }, select: { id: true, url: true } }),
+    prisma.sessionDocumentDelivery.aggregate({ where: { copySize: { not: null }, session: { game: ownedGame } }, _sum: { copySize: true } })
   ])
-  let total = _sum.size ?? 0
+  let total = (_sum.size ?? 0) + (copies._sum.copySize ?? 0)
   for (const file of unsized) {
     const path = uploadFilePath(file.url)
     const size = path ? await stat(path).then((info) => info.size, () => 0) : 0
@@ -144,15 +146,19 @@ export async function storageUsedBytesByOwner() {
       await prisma.uploadedFile.update({ where: { id: file.id }, data: { size: path ? await stat(path).then((info) => info.size, () => 0) : 0 } })
     }
   })
-  const files = await prisma.uploadedFile.findMany({
-    where: { size: { gt: 0 } },
-    select: { size: true, game: { select: { ownerId: true } }, session: { select: { game: { select: { ownerId: true } } } } }
-  })
+  const [files, copies] = await Promise.all([
+    prisma.uploadedFile.findMany({
+      where: { size: { gt: 0 } },
+      select: { size: true, game: { select: { ownerId: true } }, session: { select: { game: { select: { ownerId: true } } } } }
+    }),
+    prisma.sessionDocumentDelivery.findMany({ where: { copySize: { gt: 0 } }, select: { copySize: true, session: { select: { game: { select: { ownerId: true } } } } } })
+  ])
   const totals = new Map<string, number>()
-  for (const file of files) {
-    const ownerId = file.game?.ownerId ?? file.session?.game.ownerId
-    if (ownerId) totals.set(ownerId, (totals.get(ownerId) ?? 0) + (file.size ?? 0))
+  const add = (ownerId: string | null | undefined, size: number | null) => {
+    if (ownerId) totals.set(ownerId, (totals.get(ownerId) ?? 0) + (size ?? 0))
   }
+  for (const file of files) add(file.game?.ownerId ?? file.session?.game.ownerId, file.size)
+  for (const copy of copies) add(copy.session.game.ownerId, copy.copySize)
   return totals
 }
 

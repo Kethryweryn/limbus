@@ -4,6 +4,7 @@ import { setAuthCookie } from '~/server/utils/auth'
 import { loginSchema, readZodBody } from '~/server/utils/schemas'
 import { assertRateLimit } from '~/server/utils/rateLimit'
 import { purgeUnconfirmedAccounts } from '~/server/utils/accounts'
+import { purgeExpiredCopies } from '~/server/utils/deliveryCopies'
 
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync('mot-de-passe-factice', 10)
 
@@ -23,6 +24,8 @@ export default defineEventHandler(async (event) => {
   })
 
   await purgeUnconfirmedAccounts()
+  // Copies des envois des sessions passées (US-080, ADR-0044)
+  await purgeExpiredCopies()
   const user = await prisma.user.findUnique({
     where: { email }
   })

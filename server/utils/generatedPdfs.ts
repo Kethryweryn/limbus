@@ -7,7 +7,7 @@ type TextPdfSection = {
   body?: string | null
 }
 
-type TextPdfInput = {
+export type TextPdfInput = {
   title: string
   subtitle?: string | null
   sections: TextPdfSection[]
