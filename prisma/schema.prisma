@@ -239,6 +239,8 @@ model Session {
   updatedAt   DateTime   @updatedAt
   // Visible sur la page publique du jeu (US-019) ; non visible par défaut
   published   Boolean    @default(false)
+  // Places d'une session recrutée par l'inscription permanente (US-090, ADR-0047) ; vide : le nombre de PJ
+  poolSeats   Int?
   // Session sur laquelle celle-ci a été reportée (US-022, ADR-0029)
   postponedToSessionId String?   @unique
   postponedTo          Session?  @relation("SessionPostponements", fields: [postponedToSessionId], references: [id], onDelete: SetNull)
@@ -257,6 +259,7 @@ model Session {
   registrationPeriodLink RegistrationPeriodSession?
   registrations Registration[]
   registrationAvailabilities RegistrationAvailability[]
+  registrationWaitlist RegistrationWaitlistEntry[]
 }
 
 // Période d'inscription : recrutement des PJ de sessions précises (scope "sessions")
@@ -277,6 +280,8 @@ model RegistrationPeriod {
   responseDelayDays Int      @default(7)
   // Prévenir l'équipe de chaque inscription reçue par le formulaire (US-083)
   notifyTeam        Boolean  @default(false)
+  // Rejoueurs (R7) : allowed, flagged ou excluded (US-087, ADR-0047)
+  replayPolicy      String   @default("allowed")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -369,11 +374,16 @@ model Registration {
   // Organisatrice qui a retiré la personne (US-005) ; null pour un refus ou un désistement par le lien
   withdrawnById         String?
   withdrawnBy           User?                    @relation("RegistrationWithdrawals", fields: [withdrawnById], references: [id], onDelete: SetNull)
+  // Dernière décision de sélection annoncée à la personne (US-088, ADR-0047) : une décision qui en diffère est à annoncer
+  announcedStatus       String?
+  announcedSessionId    String?
+  announcedAt           DateTime?
   createdAt             DateTime                 @default(now())
   updatedAt             DateTime                 @updatedAt
 
   affinities            RegistrationAffinity[]
   availabilities        RegistrationAvailability[]
+  waitlistEntries       RegistrationWaitlistEntry[]
 
   @@unique([periodId, participantId])
   @@index([sessionId])
@@ -406,6 +416,20 @@ model RegistrationAvailability {
   registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
   sessionId      String
   session        Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([registrationId, sessionId])
+  @@index([sessionId])
+}
+
+// Place dans la liste d'attente d'une session (US-087, ADR-0047) : une inscription attend dans une ou plusieurs sessions
+model RegistrationWaitlistEntry {
+  id             String       @id @default(cuid())
+  registrationId String
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  sessionId      String
+  session        Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  position       Int
+  createdAt      DateTime     @default(now())
 
   @@unique([registrationId, sessionId])
   @@index([sessionId])

@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
-import { CHARACTER_TYPES, REGISTRATION_PERIOD_SCOPES, REGISTRATION_PERIOD_STATES, REGISTRATION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
+import { CHARACTER_TYPES, REGISTRATION_PERIOD_SCOPES, REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
 import { effectivePeriodState } from '~/utils/registrationPeriods'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
 
@@ -28,6 +28,12 @@ export const registrationListSelect = {
   confirmedAt: true,
   withdrawnAt: true,
   createdAt: true,
+  // Sélection (ADR-0047) : décision annoncée, files d'attente, session pour le retour au vivier
+  announcedStatus: true,
+  announcedSessionId: true,
+  announcedAt: true,
+  waitlistEntries: { select: { sessionId: true, position: true } },
+  session: { select: { status: true } },
   participant: { select: { id: true, name: true, slug: true } },
   // Sessions où une personne inscrite par le formulaire est disponible (R10)
   availabilities: { select: { sessionId: true } },
@@ -98,14 +104,66 @@ export async function resolveRegistrationPeriodSessions(
     })
   }
 
+  await assertNoPoolSelectionOnSessions(gameId, sessionIds)
+
   const defaultSeats = requested.some((session) => session.seats == null)
     ? await countPlayableCharacters(gameId)
     : 0
 
-  return requested.map((session) => ({
+  const resolved = requested.map((session) => ({
     sessionId: session.sessionId,
     seats: session.seats ?? defaultSeats
   }))
+  await assertSeatsCoverRetained(resolved)
+  return resolved
+}
+
+// Places prises dans des sessions (R5, US-087) : les inscriptions retenues ou confirmées par la sélection ;
+// le mode invitation peut dépasser ses places, il n'est qu'averti
+export function takenSeatsWhere(sessionIds: string[]) {
+  return {
+    sessionId: { in: sessionIds },
+    source: REGISTRATION_SOURCES.form,
+    status: { in: [REGISTRATION_STATUSES.retained, REGISTRATION_STATUSES.confirmed] }
+  }
+}
+
+// Rattacher une session à une période dédiée la retire de l'inscription permanente (R31) : refusé si des
+// personnes du vivier y sont retenues, confirmées ou en attente (US-090)
+async function assertNoPoolSelectionOnSessions(gameId: string, sessionIds: string[]) {
+  const permanent = { gameId, scope: REGISTRATION_PERIOD_SCOPES.game }
+  const [selected, waiting] = await Promise.all([
+    prisma.registration.findMany({
+      where: { period: permanent, sessionId: { in: sessionIds }, status: { in: [REGISTRATION_STATUSES.retained, REGISTRATION_STATUSES.confirmed] } },
+      distinct: ['sessionId'],
+      select: { session: { select: { name: true } } }
+    }),
+    prisma.registrationWaitlistEntry.findMany({
+      where: { sessionId: { in: sessionIds }, registration: { period: permanent } },
+      distinct: ['sessionId'],
+      select: { session: { select: { name: true } } }
+    })
+  ])
+  const names = [...new Set([...selected.map((row) => row.session?.name), ...waiting.map((row) => row.session.name)].filter(Boolean))]
+  if (names.length) {
+    throw createError({
+      statusCode: 409,
+      message: `Des personnes de l’inscription permanente sont retenues ou en attente pour ${names.map((name) => `« ${name} »`).join(', ')} : retirez-les d’abord de cette session.`
+    })
+  }
+}
+
+// On ne descend pas sous le nombre de personnes retenues ou confirmées par la sélection (US-087)
+async function assertSeatsCoverRetained(sessions: Array<{ sessionId: string, seats: number }>) {
+  const taken = await prisma.registration.groupBy({
+    by: ['sessionId'],
+    where: takenSeatsWhere(sessions.map((session) => session.sessionId)),
+    _count: { _all: true }
+  })
+  const takenBySession = new Map(taken.map((row) => [row.sessionId, row._count._all]))
+  if (sessions.some((session) => session.seats < (takenBySession.get(session.sessionId) ?? 0))) {
+    throw createError({ statusCode: 409, message: 'Une session a plus de personnes retenues ou confirmées que de places : retirez-en avant de baisser le nombre de places.' })
+  }
 }
 
 // Une période ouverte dont la date de clôture est passée resterait clôturée (ADR-0020) : on le dit plutôt

@@ -23,6 +23,14 @@
           label="Me prévenir de chaque inscription reçue"
           description="La propriétaire et les co-organisatrices reçoivent un email pour chaque inscription dont l’adresse est confirmée."
         />
+        <!-- Rejoueurs (R7, US-087) : personnes qui ont déjà joué une session terminée du jeu -->
+        <UFormField
+          v-if="form.entryMode === REGISTRATION_ENTRY_MODES.form"
+          label="Personnes qui ont déjà joué le jeu"
+          description="Signalées dans la sélection, ou exclues du tirage et du vivier ; on peut toujours les retenir à la main dans une période ordinaire."
+        >
+          <USelect v-model="form.replayPolicy" :items="REPLAY_POLICY_ITEMS" value-key="value" class="w-full" />
+        </UFormField>
 
         <UFormField v-if="!permanent" label="Sessions" :error="errors.sessions" description="Une session ne peut appartenir qu’à une seule période d’inscription.">
           <div class="space-y-2">
@@ -85,13 +93,21 @@
 </template>
 
 <script setup>
-import { REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS, REGISTRATION_ENTRY_MODES, REGISTRATION_PERIOD_SCOPES, REGISTRATION_PERIOD_STATES } from '~/utils/domain'
+import {
+  REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS,
+  REGISTRATION_ENTRY_MODES,
+  REGISTRATION_PERIOD_SCOPES,
+  REGISTRATION_PERIOD_STATES,
+  REGISTRATION_REPLAY_POLICIES,
+  REGISTRATION_REPLAY_POLICY_OPTIONS
+} from '~/utils/domain'
 import { apiErrorMessage } from '~/utils/apiErrors'
 
 const ENTRY_MODE_ITEMS = [
   { value: REGISTRATION_ENTRY_MODES.invitation, label: 'Sur invitation' },
   { value: REGISTRATION_ENTRY_MODES.form, label: 'Formulaire public' }
 ]
+const REPLAY_POLICY_ITEMS = [...REGISTRATION_REPLAY_POLICY_OPTIONS]
 const SCOPE_ITEMS = [
   { value: REGISTRATION_PERIOD_SCOPES.sessions, label: 'Des sessions précises' },
   { value: REGISTRATION_PERIOD_SCOPES.game, label: 'Tout le jeu (inscription permanente)' }
@@ -139,6 +155,7 @@ function emptyForm() {
     entryMode: REGISTRATION_ENTRY_MODES.invitation,
     scope: REGISTRATION_PERIOD_SCOPES.sessions,
     notifyTeam: false,
+    replayPolicy: REGISTRATION_REPLAY_POLICIES.allowed,
     closesAt: '',
     responseDelayDays: REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS,
     state: REGISTRATION_PERIOD_STATES.draft,
@@ -159,6 +176,7 @@ function resetForm() {
     entryMode: period.entryMode,
     scope: period.scope,
     notifyTeam: Boolean(period.notifyTeam),
+    replayPolicy: period.replayPolicy || REGISTRATION_REPLAY_POLICIES.allowed,
     closesAt: toDateTimeLocal(period.closesAt),
     responseDelayDays: period.responseDelayDays,
     state: period.state,
@@ -225,6 +243,7 @@ async function submit() {
       gameId: props.gameId,
       ...(props.period?.id ? {} : { entryMode: form.value.entryMode, scope: form.value.scope }),
       notifyTeam: form.value.entryMode === REGISTRATION_ENTRY_MODES.form && form.value.notifyTeam,
+      replayPolicy: form.value.replayPolicy,
       state: form.value.state,
       closesAt: !permanent.value && form.value.closesAt ? new Date(form.value.closesAt).toISOString() : null,
       responseDelayDays: Number(form.value.responseDelayDays),

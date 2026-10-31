@@ -5,6 +5,7 @@ import { getSessionPaymentDashboard } from '~/server/utils/sessionPayments'
 import { registrationPermissions } from '~/server/utils/publicRegistrations'
 import { SESSION_ROLES } from '~/utils/domain'
 import { effectivePeriodState } from '~/utils/registrationPeriods'
+import { announcedRegistrationStatus, isAnnouncementPending } from '~/utils/registrations'
 
 const sessionSelect = {
   id: true,
@@ -80,6 +81,9 @@ export async function myParticipations(userId: string, now = new Date()) {
       select: {
         id: true,
         status: true,
+        sessionId: true,
+        announcedStatus: true,
+        announcedSessionId: true,
         responseDueAt: true,
         confirmedAt: true,
         session: { select: { name: true, date: true } },
@@ -133,10 +137,11 @@ export async function myParticipations(userId: string, now = new Date()) {
         .filter((registration) => registration.period.gameId === game.id)
         .map((registration) => ({
           id: registration.id,
-          status: registration.status,
+          // Une décision de sélection pas encore annoncée ne se voit pas (ADR-0047)
+          status: announcedRegistrationStatus(registration),
           periodName: registration.period.name,
           periodState: effectivePeriodState(registration.period, now),
-          session: registration.session,
+          session: isAnnouncementPending(registration) ? null : registration.session,
           responseDueAt: registration.responseDueAt,
           confirmedAt: registration.confirmedAt,
           ...registrationPermissions(registration, now)

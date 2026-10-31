@@ -185,3 +185,52 @@ test('une personne s’inscrit par le lien de diffusion et confirme son adresse'
     await prisma.$disconnect()
   }
 })
+
+// EPIC-021 : l'équipe retient une inscription reçue, annonce, et la personne confirme sa place par le lien reçu
+test('l’équipe retient une inscription, l’annonce, et la personne confirme sa place', async ({ page, browser }) => {
+  const prisma = createTestPrisma()
+  const smtp = await startTestSmtp(prisma)
+  try {
+    const key = `selection-${Date.now()}`
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+    const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
+    const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-06-01T09:00:00Z') } })
+    const period = await prisma.registrationPeriod.create({
+      data: { name: 'Été', gameId: game.id, publicId: `s${Date.now().toString(36)}`, entryMode: 'form', state: 'open', sessions: { create: { sessionId: session.id, seats: 2 } } }
+    })
+    const email = `noa-${key}@example.test`
+    const participant = await prisma.participant.create({ data: { name: 'Noa Selection', slug: `noa-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
+    const registration = await prisma.registration.create({
+      data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, tokenHash: `hash-${key}` }
+    })
+
+    await signIn(page, prisma, E2E_USERS.orga)
+    await page.goto('/registrations')
+    await page.waitForLoadState('networkidle')
+    const panel = page.locator('div')
+      .filter({ has: page.getByRole('heading', { name: game.title, exact: true }) })
+      .filter({ has: page.getByRole('button', { name: /Annoncer les résultats/ }) })
+      .last()
+    await panel.getByRole('button', { name: 'Décider' }).click()
+    await page.getByRole('menuitem', { name: `Retenir pour ${session.name}` }).click()
+    await expect(panel.getByText('À annoncer')).toBeVisible()
+
+    page.once('dialog', (dialog) => dialog.accept())
+    await panel.getByRole('button', { name: 'Annoncer les résultats (1)' }).click()
+    await expect(panel.getByText('1 personne prévenue.')).toBeVisible()
+
+    await expect.poll(() => smtp.received.filter((message) => message.to.includes(email)).length).toBe(1)
+    const token = personalLinkToken(smtp.received.find((message) => message.to.includes(email))!)
+    const guest = await (await browser.newContext()).newPage()
+    await guest.goto(`/inscription/${token}`)
+    await guest.waitForLoadState('networkidle')
+    await guest.getByRole('button', { name: 'Je confirme ma place' }).click()
+    await expect(guest.getByText('Votre place est confirmée.')).toBeVisible()
+
+    expect(await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { status: true } })).toEqual({ status: 'confirmed' })
+    expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(1)
+  } finally {
+    await smtp.stop()
+    await prisma.$disconnect()
+  }
+})

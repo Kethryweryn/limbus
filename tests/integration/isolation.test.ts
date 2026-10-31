@@ -226,6 +226,12 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['POST', `/api/registrations/${b.registration.id}/release`],
     ['POST', `/api/registrations/${b.registration.id}/withdraw`],
     ['GET', `/api/sessions/${b.session.id}/registrations/export`],
+    // Sélection (US-087 à US-090)
+    ['POST', `/api/registrations/${b.registration.id}/selection`, { action: 'retain', sessionId: b.session.id }],
+    ['GET', `/api/registration-periods/${b.registrationPeriod.id}/selection`],
+    ['PUT', `/api/registration-periods/${b.registrationPeriod.id}/waitlist`, { sessionId: b.session.id, registrationIds: [] }],
+    ['PUT', `/api/registration-periods/${b.registrationPeriod.id}/pool-seats`, { sessionId: b.session.id, seats: 3 }],
+    ['POST', `/api/registration-periods/${b.registrationPeriod.id}/announce`],
     ['PUT', `/api/games/${b.game.id}/registration-form`, {
       standardFields: Object.fromEntries(['lastName', 'firstName', 'facebookName', 'phone', 'emergencyContact', 'dietary']
         .map((key) => [key, { asked: false, required: false }]))
@@ -252,6 +258,7 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect((await api(alice, 'GET', `/api/sessions/${a.session.id}/allergies`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/registrations/${a.registration.id}`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/sessions/${a.session.id}/registrations/export`)).status).toBe(200)
+    expect((await api(alice, 'GET', `/api/registration-periods/${a.registrationPeriod.id}/selection`)).status).toBe(200)
     // Fichier référencé mais absent du disque : l'accès est accordé, puis 404
     expect((await api(alice, 'GET', `/api/uploads/session-assignment-photos/${a.photo.filename}`)).status).toBe(404)
   })
@@ -368,6 +375,7 @@ describe('routes de l’espace participant', () => {
     expect((await api(alice, 'PUT', `/api/me/registrations/${b.registration.id}`, { email: 'x@example.test' })).status).toBe(404)
     expect((await api(alice, 'POST', `/api/me/registrations/${b.registration.id}/decline`)).status).toBe(404)
     expect((await api(alice, 'POST', `/api/me/registrations/${b.registration.id}/withdraw`)).status).toBe(404)
+    expect((await api(alice, 'POST', `/api/me/registrations/${b.registration.id}/accept`)).status).toBe(404)
     expect((await api(alice, 'GET', `/api/me/sessions/${b.session.id}/rib`)).status).toBe(404)
     expect(JSON.stringify((await api(alice, 'GET', '/api/me/participations')).body)).not.toContain(b.game.id)
 

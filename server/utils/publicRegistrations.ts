@@ -3,12 +3,12 @@ import { prisma } from '~/server/utils/prisma'
 import { accountIdForEmail, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 import { assertRateLimit } from '~/server/utils/rateLimit'
 import { sendEmail } from '~/server/utils/email'
-import { hashRegistrationToken } from '~/server/utils/registrations'
+import { hashRegistrationToken, WITHDRAWABLE_STATUSES } from '~/server/utils/registrations'
 import { asksAvailability } from '~/server/utils/registrationAvailability'
 import { getCurrentRegistrationForm, saveRegistrationFormDefinition, type AffinityAnswers, type QuestionAnswers } from '~/server/utils/registrationForms'
 import { REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES, isClosedSessionStatus } from '~/utils/domain'
 import { effectivePeriodState } from '~/utils/registrationPeriods'
-import { isInvitationOverdue, registrationLinkExpired, splitParticipantName } from '~/utils/registrations'
+import { announcedRegistrationStatus, canConfirmPlace, isAnnouncementPending, isResponseOverdue, registrationLinkExpired, splitParticipantName } from '~/utils/registrations'
 import {
   DEFAULT_REGISTRATION_FORM_DEFINITION,
   REGISTRATION_AFFINITIES,
@@ -44,6 +44,9 @@ const publicRegistrationSelect = {
   respondedAt: true,
   confirmedAt: true,
   withdrawnById: true,
+  announcedStatus: true,
+  announcedSessionId: true,
+  waitlistEntries: { orderBy: { session: { date: 'asc' as const } }, select: { session: { select: { name: true, date: true } } } },
   formVersion: { select: { id: true, definition: true } },
   participant: {
     select: {
@@ -116,17 +119,25 @@ export async function requireRegistrationByToken(token: string | undefined) {
  *   tant que les orgas n'ont pas libéré la place (elle serait alors désistée) ;
  * - une inscription confirmée se modifie jusqu'à la clôture, et se désiste même après (US-006) ;
  * - une inscription reçue par le formulaire aussi : modifiable jusqu'à la clôture, retirée à tout moment (US-085) ;
+ * - une place retenue et annoncée se confirme d'un bouton, même après l'échéance tant qu'elle n'est pas libérée (US-089) ;
+ * - retenue, en attente ou non retenue, on peut se désister (ADR-0047) ;
  * - une inscription désistée ne permet plus rien.
  */
-export function registrationPermissions(registration: { status: string, period: { state: string, closesAt: Date | null } }, now = new Date()) {
+export function registrationPermissions(
+  registration: { status: string, sessionId: string | null, announcedStatus: string | null, announcedSessionId: string | null, period: { state: string, closesAt: Date | null } },
+  now = new Date()
+) {
   const open = effectivePeriodState(registration.period, now) === REGISTRATION_PERIOD_STATES.open
   const invited = registration.status === REGISTRATION_STATUSES.invited
-  const active = registration.status === REGISTRATION_STATUSES.confirmed || registration.status === REGISTRATION_STATUSES.received
+  // Une décision pas encore annoncée ne change rien pour la personne : elle modifie encore son inscription « reçue »
+  const visible = announcedRegistrationStatus(registration)
+  const editable = visible === REGISTRATION_STATUSES.confirmed || visible === REGISTRATION_STATUSES.received
   return {
     canAccept: invited,
     canDecline: invited,
-    canEdit: active && open,
-    canWithdraw: active
+    canConfirmPlace: canConfirmPlace(registration),
+    canEdit: editable && open,
+    canWithdraw: WITHDRAWABLE_STATUSES.includes(registration.status)
   }
 }
 
@@ -165,8 +176,10 @@ export async function freezeFormVersion(gameId: string, versionId: string | null
 }
 
 // Ce que la page dit d'une inscription désistée, selon qui y a mis fin et quand
-export function withdrawalReason(registration: Pick<PublicRegistration, 'confirmedAt' | 'withdrawnById'> & { source?: string }) {
+export function withdrawalReason(registration: Pick<PublicRegistration, 'confirmedAt' | 'withdrawnById'> & { source?: string, announcedStatus?: string | null }) {
   if (registration.confirmedAt) return registration.withdrawnById ? 'removed' : 'withdrawn'
+  // Place retenue et annoncée, libérée par l'équipe faute de confirmation (US-089)
+  if (registration.withdrawnById && registration.announcedStatus === REGISTRATION_STATUSES.retained) return 'released'
   // Inscription par le formulaire, retirée avant toute sélection (US-085)
   if (registration.source === REGISTRATION_SOURCES.form) return registration.withdrawnById ? 'removed' : 'retracted'
   return registration.withdrawnById ? 'released' : 'declined'
@@ -184,19 +197,23 @@ export async function exposePublicRegistration(registration: PublicRegistration,
   const answered = Boolean(registration.respondedAt)
   // Invitation sans réponse d'une personne qui a enregistré ses coordonnées : elles préremplissent le formulaire
   const profile = !answered && registration.participant.user?.profileUpdatedAt ? registration.participant.user : null
+  // Une décision de sélection pas encore annoncée ne se voit pas : la personne voit la dernière annoncée (ADR-0047)
+  const status = announcedRegistrationStatus(registration)
   return {
-    status: registration.status,
+    status,
     game: { ...game, noteIntention: registration.period.game.noteIntention },
-    session: registration.session,
+    session: isAnnouncementPending(registration) ? null : registration.session,
+    // Sessions où la personne attend une place (US-088)
+    waitlistSessions: status === REGISTRATION_STATUSES.waitlisted ? registration.waitlistEntries.map((entry) => entry.session) : [],
     periodState: effectivePeriodState(registration.period, now),
     closesAt: registration.period.closesAt,
     responseDueAt: registration.responseDueAt,
-    overdue: isInvitationOverdue(registration, now),
+    overdue: isResponseOverdue(registration, now),
     confirmedAt: registration.confirmedAt,
     ...registrationPermissions(registration, now),
     definition: await registrationFormDefinition(registration),
     // Disponibilités d'une inscription par le formulaire à plusieurs sessions (R10)
-    availability: registration.status === REGISTRATION_STATUSES.received && asksAvailability(registration.period)
+    availability: status === REGISTRATION_STATUSES.received && asksAvailability(registration.period)
       ? { sessions: registration.period.sessions.map((link) => link.session).filter((session) => !isClosedSessionStatus(session.status)) }
       : null,
     answers: {

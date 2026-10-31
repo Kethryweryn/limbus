@@ -28,6 +28,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-018](../archive/epics/EPIC-018-documents-dans-le-compte/README.md) | Documents et trombinoscopes dans le compte | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
 | [EPIC-019](../archive/epics/EPIC-019-formulaire-complet/README.md) | Formulaire complet : questions propres au jeu et affinités | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 | [EPIC-020](../archive/epics/EPIC-020-formulaire-public/README.md) | Formulaire public, lien de diffusion et inscription permanente | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
+| [EPIC-021](../archive/epics/EPIC-021-selection-a-la-main/README.md) | Sélection à la main : retenues, liste d'attente, confirmation et vivier | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 
 ## US
 
@@ -119,3 +120,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-084](../archive/epics/EPIC-020-formulaire-public/US-084-formulaire-public.md) | S'inscrire par le lien de diffusion | EPIC-020 | terminée |
 | [US-085](../archive/epics/EPIC-020-formulaire-public/US-085-confirmer-son-email.md) | Confirmer son email, puis suivre son inscription | EPIC-020 | terminée |
 | [US-086](../archive/epics/EPIC-020-formulaire-public/US-086-page-publique-sessions-et-inscription.md) | Sessions à venir et lien d'inscription sur la page publique | EPIC-020 | terminée |
+| [US-087](../archive/epics/EPIC-021-selection-a-la-main/US-087-trier-les-inscriptions.md) | Retenir, mettre en attente ou écarter une inscription | EPIC-021 | terminée |
+| [US-088](../archive/epics/EPIC-021-selection-a-la-main/US-088-annoncer-les-resultats.md) | Annoncer les résultats | EPIC-021 | terminée |
+| [US-089](../archive/epics/EPIC-021-selection-a-la-main/US-089-confirmer-sa-place.md) | Confirmer sa place, et proposer la suivante quand une place se libère | EPIC-021 | terminée |
+| [US-090](../archive/epics/EPIC-021-selection-a-la-main/US-090-vivier-de-l-inscription-permanente.md) | Choisir dans le vivier de l'inscription permanente | EPIC-021 | terminée |

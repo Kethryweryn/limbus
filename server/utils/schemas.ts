@@ -12,7 +12,9 @@ import {
   SESSION_ROLES,
   SESSION_STATUSES,
   USER_ROLES,
-  REGISTRATION_PERIOD_SCOPES
+  REGISTRATION_PERIOD_SCOPES,
+  REGISTRATION_REPLAY_POLICIES,
+  REGISTRATION_SELECTION_ACTIONS
 } from '~/utils/domain'
 import { isHttpUrl, isUploadUrl, PHOTO_UPLOAD_PREFIX, RIB_UPLOAD_PREFIX } from '~/utils/urls'
 import {
@@ -356,6 +358,11 @@ const registrationPeriodSessions = z.array(registrationPeriodSessionSchema)
   .refine((sessions) => new Set(sessions.map((session) => session.sessionId)).size === sessions.length, 'Une session est choisie deux fois')
   .default([])
 
+const registrationReplayPolicy = z.enum(
+  [REGISTRATION_REPLAY_POLICIES.allowed, REGISTRATION_REPLAY_POLICIES.flagged, REGISTRATION_REPLAY_POLICIES.excluded],
+  { error: 'Réglage des rejoueurs inconnu' }
+)
+
 export const registrationPeriodSchema = z.object({
   name: frenchText('Le nom'),
   gameId: frenchText('Le jeu'),
@@ -366,6 +373,7 @@ export const registrationPeriodSchema = z.object({
   closesAt: registrationClosesAt,
   responseDelayDays: registrationResponseDelay.default(REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS),
   notifyTeam: z.boolean().default(false),
+  replayPolicy: registrationReplayPolicy.default(REGISTRATION_REPLAY_POLICIES.allowed),
   sessions: registrationPeriodSessions
 }).superRefine((period, context) => {
   if (period.scope === REGISTRATION_PERIOD_SCOPES.game) {
@@ -388,7 +396,26 @@ export const registrationPeriodUpdateSchema = z.object({
   closesAt: registrationClosesAt,
   responseDelayDays: registrationResponseDelay.optional(),
   notifyTeam: z.boolean().optional(),
+  replayPolicy: registrationReplayPolicy.optional(),
   sessions: registrationPeriodSessions
+})
+
+// Décision de sélection sur une inscription (US-087) ; la session est demandée pour retenir et la liste d'attente
+export const registrationSelectionSchema = z.object({
+  action: z.enum(REGISTRATION_SELECTION_ACTIONS, { error: 'Décision inconnue' }),
+  sessionId: z.string().min(1).nullable().optional()
+}).refine((body) => !['retain', 'waitlist', 'unwaitlist'].includes(body.action) || body.sessionId, { path: ['sessionId'], message: 'Choisissez la session' })
+
+// Nouvel ordre de la liste d'attente d'une session (R19)
+export const registrationWaitlistOrderSchema = z.object({
+  sessionId: frenchText('La session'),
+  registrationIds: z.array(z.string().min(1)).max(1000)
+})
+
+// Places d'une session de l'inscription permanente (US-090) ; null : le nombre de personnages PJ
+export const registrationPoolSeatsSchema = z.object({
+  sessionId: frenchText('La session'),
+  seats: z.number().int('Nombre de places invalide').min(0, 'Nombre de places invalide').max(1000, 'Nombre de places invalide').nullable()
 })
 
 // Invitations d'une session de la période (US-003) : des participants du jeu et/ou une nouvelle personne

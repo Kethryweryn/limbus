@@ -45,7 +45,33 @@
           v-if="registration.overdue"
           color="warning"
           variant="soft"
-          description="Le délai de réponse est dépassé. Vous pouvez encore accepter tant que l’équipe d’organisation n’a pas attribué votre place à quelqu’un d’autre."
+          :description="`Le délai de réponse est dépassé. Vous pouvez encore ${registration.canConfirmPlace ? 'confirmer' : 'accepter'} tant que l’équipe d’organisation n’a pas attribué votre place à quelqu’un d’autre.`"
+        />
+
+        <!-- Place retenue par la sélection, à confirmer d'un bouton (US-089) -->
+        <UCard v-if="registration.canConfirmPlace">
+          <h2 class="font-semibold">Votre place est retenue</h2>
+          <p class="mt-2 text-sm text-gray-600">
+            Confirmez votre place<span v-if="registration.responseDueAt"> avant le {{ formatDate(registration.responseDueAt) }}</span> : vous rejoindrez alors la session.
+            Vos réponses au formulaire restent celles que vous avez données.
+          </p>
+          <UAlert v-if="confirmError" class="mt-3" color="error" variant="soft" :description="confirmError" />
+          <UButton class="mt-3" color="primary" icon="i-heroicons-check" :loading="confirming" @click="confirmPlace">
+            Je confirme ma place
+          </UButton>
+        </UCard>
+        <UAlert
+          v-else-if="registration.status === REGISTRATION_STATUSES.waitlisted"
+          color="info"
+          variant="soft"
+          title="Vous êtes sur liste d’attente"
+          :description="`${registration.waitlistSessions.length ? `Session${registration.waitlistSessions.length > 1 ? 's' : ''} : ${registration.waitlistSessions.map(sessionLabel).join(', ')}. ` : ''}Si une place se libère, l’équipe d’organisation vous écrira.`"
+        />
+        <UAlert
+          v-else-if="registration.status === REGISTRATION_STATUSES.rejected"
+          color="neutral"
+          variant="soft"
+          description="Votre inscription n’a pas été retenue cette fois-ci. Merci de votre intérêt pour le jeu."
         />
         <UAlert
           v-if="registration.status === REGISTRATION_STATUSES.confirmed && !registration.canEdit"
@@ -140,9 +166,12 @@
             Retirer mon inscription
           </UButton>
         </UCard>
-        <UCard v-else-if="registration.canWithdraw">
+        <UCard v-else-if="registration.canWithdraw && registration.status !== REGISTRATION_STATUSES.rejected">
           <h2 class="font-semibold">Me désister</h2>
-          <p class="mt-2 text-sm text-gray-600">
+          <p v-if="registration.status === REGISTRATION_STATUSES.waitlisted" class="mt-2 text-sm text-gray-600">
+            Si vous ne souhaitez plus participer, désistez-vous : vous quitterez la liste d’attente.
+          </p>
+          <p v-else class="mt-2 text-sm text-gray-600">
             Si vous ne pouvez plus venir, prévenez l’équipe d’organisation en vous désistant : votre place sera libérée.
             Pour un paiement déjà effectué, voyez directement avec elle.
           </p>
@@ -177,6 +206,8 @@ const errorMessage = ref('')
 const fieldErrors = ref({})
 const successMessage = ref('')
 const successDetail = ref('')
+const confirming = ref(false)
+const confirmError = ref('')
 
 onMounted(load)
 
@@ -277,6 +308,22 @@ async function decline() {
   }
 }
 
+async function confirmPlace() {
+  confirming.value = true
+  confirmError.value = ''
+  successMessage.value = ''
+  try {
+    apply(await $fetch(`${props.endpoint}/accept`, { method: 'POST' }))
+    successMessage.value = 'Votre place est confirmée.'
+    successDetail.value = 'L’équipe d’organisation vous retrouvera parmi les participants de la session.'
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  } catch (err) {
+    confirmError.value = apiErrorMessage(err, 'Confirmation impossible. Réessayez dans quelques minutes.')
+  } finally {
+    confirming.value = false
+  }
+}
+
 async function withdraw() {
   const received = registration.value.status === REGISTRATION_STATUSES.received
   if (!confirm(received
@@ -294,4 +341,5 @@ async function withdraw() {
 }
 
 const formatDate = (value) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long' })
+const sessionLabel = (session) => session.date ? `${session.name} (${formatDate(session.date)})` : session.name
 </script>

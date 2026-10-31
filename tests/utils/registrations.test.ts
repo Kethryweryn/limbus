@@ -1,18 +1,52 @@
 import { describe, expect, it } from 'vitest'
-import { countRegistrationsByStatus, isInvitationOverdue, registrationDisplayStatus, registrationLinkExpired, splitParticipantName } from '~/utils/registrations'
+import {
+  announcedRegistrationStatus,
+  countRegistrationsByStatus,
+  isAnnouncementPending,
+  isResponseOverdue,
+  registrationDisplayStatus,
+  registrationLinkExpired,
+  splitParticipantName
+} from '~/utils/registrations'
 
 const now = new Date('2027-01-10T12:00:00Z')
 
-describe('isInvitationOverdue (R20)', () => {
+describe('isResponseOverdue (R20)', () => {
   it('une invitation sans réponse dont l’échéance est passée', () => {
-    expect(isInvitationOverdue({ status: 'invited', responseDueAt: '2027-01-10T11:59:00Z' }, now)).toBe(true)
-    expect(isInvitationOverdue({ status: 'invited', responseDueAt: '2027-01-10T12:01:00Z' }, now)).toBe(false)
+    expect(isResponseOverdue({ status: 'invited', responseDueAt: '2027-01-10T11:59:00Z' }, now)).toBe(true)
+    expect(isResponseOverdue({ status: 'invited', responseDueAt: '2027-01-10T12:01:00Z' }, now)).toBe(false)
   })
 
   it('jamais pour une inscription qui a répondu, ni sans échéance', () => {
-    expect(isInvitationOverdue({ status: 'confirmed', responseDueAt: '2027-01-01' }, now)).toBe(false)
-    expect(isInvitationOverdue({ status: 'withdrawn', responseDueAt: '2027-01-01' }, now)).toBe(false)
-    expect(isInvitationOverdue({ status: 'invited', responseDueAt: null }, now)).toBe(false)
+    expect(isResponseOverdue({ status: 'confirmed', responseDueAt: '2027-01-01' }, now)).toBe(false)
+    expect(isResponseOverdue({ status: 'withdrawn', responseDueAt: '2027-01-01' }, now)).toBe(false)
+    expect(isResponseOverdue({ status: 'invited', responseDueAt: null }, now)).toBe(false)
+  })
+
+  it('une place retenue annoncée dont l’échéance est passée (US-089)', () => {
+    expect(isResponseOverdue({ status: 'retained', responseDueAt: '2027-01-09' }, now)).toBe(true)
+    // Pas encore annoncée : pas d'échéance
+    expect(isResponseOverdue({ status: 'retained', responseDueAt: null }, now)).toBe(false)
+  })
+})
+
+describe('décisions à annoncer (US-088, ADR-0047)', () => {
+  it('une décision de sélection qui diffère de l’annonce est à annoncer', () => {
+    expect(isAnnouncementPending({ status: 'retained', sessionId: 's1', announcedStatus: null, announcedSessionId: null })).toBe(true)
+    expect(isAnnouncementPending({ status: 'retained', sessionId: 's1', announcedStatus: 'retained', announcedSessionId: 's1' })).toBe(false)
+    // Changée de session : à annoncer de nouveau
+    expect(isAnnouncementPending({ status: 'retained', sessionId: 's2', announcedStatus: 'retained', announcedSessionId: 's1' })).toBe(true)
+    expect(isAnnouncementPending({ status: 'waitlisted', sessionId: null, announcedStatus: 'waitlisted', announcedSessionId: null })).toBe(false)
+    // Reçue, confirmée ou désistée : rien à annoncer
+    expect(isAnnouncementPending({ status: 'received', announcedStatus: 'waitlisted' })).toBe(false)
+    expect(isAnnouncementPending({ status: 'confirmed', announcedStatus: 'retained' })).toBe(false)
+  })
+
+  it('la personne voit la dernière décision annoncée, ou « reçue »', () => {
+    expect(announcedRegistrationStatus({ status: 'retained', sessionId: 's1', announcedStatus: null })).toBe('received')
+    expect(announcedRegistrationStatus({ status: 'retained', sessionId: 's1', announcedStatus: 'waitlisted' })).toBe('waitlisted')
+    expect(announcedRegistrationStatus({ status: 'rejected', announcedStatus: 'rejected' })).toBe('rejected')
+    expect(announcedRegistrationStatus({ status: 'confirmed', announcedStatus: 'retained' })).toBe('confirmed')
   })
 })
 

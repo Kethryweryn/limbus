@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const token = getRouterParam(event, 'token')
   const registration = await requireRegistrationByToken(token)
   if (!registrationPermissions(registration).canWithdraw) {
-    throw createError({ statusCode: 409, message: 'Seule une inscription confirmée ou reçue peut faire l’objet d’un désistement.' })
+    throw createError({ statusCode: 409, message: 'Cette inscription ne peut pas faire l’objet d’un désistement.' })
   }
 
   await withdrawRegistration(registration.id, null)

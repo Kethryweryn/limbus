@@ -110,46 +110,19 @@
           </div>
         </div>
 
-        <!-- Mode formulaire : les inscriptions reçues, en attente de la sélection (lot 3) -->
-        <div v-if="isFormPeriod(period)" class="mt-4 space-y-2 border-t border-gray-100 pt-3">
-          <h3 class="text-sm font-semibold text-gray-700">
-            Inscriptions reçues : {{ receivedCount(period) }}
-          </h3>
-          <ul v-if="(registrationsByPeriod[period.id] || []).length" class="divide-y divide-gray-100 text-sm">
-            <li
-              v-for="registration in registrationsByPeriod[period.id]"
-              :key="registration.id"
-              class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div class="min-w-0">
-                <span class="font-medium text-gray-800">{{ registration.participant.name }}</span>
-                <UBadge class="ml-2" size="sm" :color="statusMeta(registration).color" variant="subtle">{{ statusMeta(registration).label }}</UBadge>
-                <div class="text-xs text-gray-500">
-                  {{ registration.email }}
-                  <span v-if="registration.respondedAt"> · le {{ formatDate(registration.respondedAt) }}</span>
-                  <span v-if="availabilityLabel(period, registration)"> · disponible : {{ availabilityLabel(period, registration) }}</span>
-                  <template v-if="registration.status === REGISTRATION_STATUSES.withdrawn"> · {{ withdrawalLabel(registration) }}</template>
-                </div>
-              </div>
-              <div class="flex shrink-0 flex-wrap gap-2">
-                <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="showDetail(registration)">
-                  Détail
-                </UButton>
-                <UButton
-                  v-if="registration.status === REGISTRATION_STATUSES.received || registration.status === REGISTRATION_STATUSES.confirmed"
-                  size="xs"
-                  color="error"
-                  variant="soft"
-                  icon="i-heroicons-user-minus"
-                  @click="withdraw(registration)"
-                >
-                  Retirer
-                </UButton>
-              </div>
-            </li>
-          </ul>
-          <p v-else class="text-sm text-gray-500">Aucune inscription pour l’instant : partagez le lien de diffusion.</p>
-        </div>
+        <!-- Mode formulaire : la sélection des inscriptions reçues (US-087 à US-090) -->
+        <RegistrationSelection
+          v-if="isFormPeriod(period)"
+          :period="period"
+          :registrations="registrationsByPeriod[period.id] || []"
+          @changed="refresh"
+          @detail="showDetail"
+          @remind="remind"
+          @resend="resend"
+          @extend="askExtension"
+          @release="release"
+          @withdraw="withdraw"
+        />
 
         <div v-for="link in (isFormPeriod(period) ? [] : period.sessions)" :key="`registrations-${link.sessionId}`" class="mt-4 space-y-2 border-t border-gray-100 pt-3">
           <div class="flex flex-wrap items-center justify-between gap-2">
@@ -377,14 +350,6 @@ const isFormPeriod = (period) => period.entryMode === REGISTRATION_ENTRY_MODES.f
 const isPermanent = (period) => period.scope === REGISTRATION_PERIOD_SCOPES.game
 // Calculé par le serveur avec l'adresse de l'application (absoluteAppUrl)
 const diffusionUrl = (period) => period.diffusionUrl
-const receivedCount = (period) => (registrationsByPeriod.value[period.id] || []).filter((registration) => registration.status === REGISTRATION_STATUSES.received).length
-
-// Disponibilités d'une inscription par le formulaire (R10), dans l'ordre des sessions de la période
-function availabilityLabel(period, registration) {
-  const ids = new Set((registration.availabilities || []).map((availability) => availability.sessionId))
-  return period.sessions.filter((link) => ids.has(link.sessionId)).map((link) => link.session.name).join(', ')
-}
-
 async function copyDiffusionUrl(period) {
   try {
     await navigator.clipboard.writeText(diffusionUrl(period))
@@ -457,23 +422,28 @@ async function registrationAction(registration, action, body, success) {
   }
 }
 
+// Une place retenue se relance, se prolonge et se libère comme une invitation (US-089)
+const isRetained = (registration) => registration.status === REGISTRATION_STATUSES.retained
+
 async function remind(registration) {
-  if (!confirm(`Relancer ${registration.participant.name} ? Un email de rappel l’invite à reprendre son email d’invitation, dont le lien reste valable.`)) return
+  if (!confirm(`Relancer ${registration.participant.name} ? Un email de rappel l’invite à reprendre ${isRetained(registration) ? 'l’email qui annonce sa place' : 'son email d’invitation'}, dont le lien reste valable.`)) return
   await registrationAction(registration, 'remind', undefined, `Rappel envoyé à ${registration.participant.name}.`)
 }
 
 async function release(registration) {
-  if (!confirm(`Libérer la place de ${registration.participant.name} ? Son lien indiquera que, sans réponse dans le délai, sa place a été réattribuée. Vous pourrez la réinviter.`)) return
+  if (!confirm(isRetained(registration)
+    ? `Libérer la place de ${registration.participant.name} ? Son lien indiquera que, sans confirmation dans le délai, sa place a été réattribuée. La liste d’attente vous proposera la personne suivante.`
+    : `Libérer la place de ${registration.participant.name} ? Son lien indiquera que, sans réponse dans le délai, sa place a été réattribuée. Vous pourrez la réinviter.`)) return
   await registrationAction(registration, 'release', undefined, `Place de ${registration.participant.name} libérée.`)
 }
 
 async function withdraw(registration) {
-  // Inscription reçue par le formulaire : pas encore de session ni de personnage
-  const received = registration.status === REGISTRATION_STATUSES.received
+  // Inscription pas encore confirmée : pas encore de session ni de personnage
+  const received = registration.status !== REGISTRATION_STATUSES.confirmed
   if (!confirm(received
     ? `Retirer l’inscription de ${registration.participant.name} ? L’équipe sera prévenue par email.`
     : `Retirer ${registration.participant.name} de la session ? Ses personnages (PJ et PNJ) seront libérés, les trombinoscopes régénérés et l’équipe prévenue par email.`)) return
-  await registrationAction(registration, 'withdraw', undefined, `${registration.participant.name} a été retirée de la session.`)
+  await registrationAction(registration, 'withdraw', undefined, received ? `Inscription de ${registration.participant.name} retirée.` : `${registration.participant.name} a été retirée de la session.`)
 }
 
 const showExtension = ref(false)
@@ -540,7 +510,7 @@ async function resend(registration) {
     await useApiFetch(`/api/registrations/${registration.id}/resend`, { method: 'POST' })
     await refresh()
     infoColor.value = 'success'
-    infoMessage.value = `Invitation renvoyée à ${registration.participant.name}.`
+    infoMessage.value = `Nouveau lien envoyé à ${registration.participant.name}.`
   } catch (err) {
     // Même en échec d'envoi, l'ancien lien est invalidé : on recharge avant d'afficher l'erreur
     await refresh()

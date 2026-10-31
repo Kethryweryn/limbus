@@ -32,18 +32,18 @@
               <div v-if="registration.session" class="text-gray-500">
                 Session {{ registration.session.name }}<span v-if="registration.session.date"> · {{ formatDate(registration.session.date) }}</span>
               </div>
-              <div v-if="registration.canAccept && registration.responseDueAt" class="text-gray-500">
+              <div v-if="(registration.canAccept || registration.canConfirmPlace) && registration.responseDueAt" class="text-gray-500">
                 Réponse attendue avant le {{ formatDate(registration.responseDueAt) }}
               </div>
             </div>
             <UButton
-              v-if="registration.canAccept || registration.canEdit || registration.canWithdraw"
+              v-if="registration.canAccept || registration.canConfirmPlace || registration.canEdit || registration.canWithdraw"
               :to="`/participer/inscriptions/${registration.id}`"
               size="sm"
-              :color="registration.canAccept ? 'primary' : 'neutral'"
-              :variant="registration.canAccept ? 'solid' : 'soft'"
+              :color="registration.canAccept || registration.canConfirmPlace ? 'primary' : 'neutral'"
+              :variant="registration.canAccept || registration.canConfirmPlace ? 'solid' : 'soft'"
             >
-              {{ registration.canAccept ? 'Répondre' : 'Voir ou modifier' }}
+              {{ registration.canAccept ? 'Répondre' : registration.canConfirmPlace ? 'Confirmer ma place' : 'Voir ou modifier' }}
             </UButton>
           </div>
         </section>
