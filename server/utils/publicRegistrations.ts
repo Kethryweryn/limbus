@@ -129,7 +129,9 @@ export function registrationPermissions(
 ) {
   const open = effectivePeriodState(registration.period, now) === REGISTRATION_PERIOD_STATES.open
   const invited = registration.status === REGISTRATION_STATUSES.invited
-  const editable = registration.status === REGISTRATION_STATUSES.confirmed || registration.status === REGISTRATION_STATUSES.received
+  // Une décision pas encore annoncée ne change rien pour la personne : elle modifie encore son inscription « reçue »
+  const visible = announcedRegistrationStatus(registration)
+  const editable = visible === REGISTRATION_STATUSES.confirmed || visible === REGISTRATION_STATUSES.received
   return {
     canAccept: invited,
     canDecline: invited,
@@ -174,8 +176,10 @@ export async function freezeFormVersion(gameId: string, versionId: string | null
 }
 
 // Ce que la page dit d'une inscription désistée, selon qui y a mis fin et quand
-export function withdrawalReason(registration: Pick<PublicRegistration, 'confirmedAt' | 'withdrawnById'> & { source?: string }) {
+export function withdrawalReason(registration: Pick<PublicRegistration, 'confirmedAt' | 'withdrawnById'> & { source?: string, announcedStatus?: string | null }) {
   if (registration.confirmedAt) return registration.withdrawnById ? 'removed' : 'withdrawn'
+  // Place retenue et annoncée, libérée par l'équipe faute de confirmation (US-089)
+  if (registration.withdrawnById && registration.announcedStatus === REGISTRATION_STATUSES.retained) return 'released'
   // Inscription par le formulaire, retirée avant toute sélection (US-085)
   if (registration.source === REGISTRATION_SOURCES.form) return registration.withdrawnById ? 'removed' : 'retracted'
   return registration.withdrawnById ? 'released' : 'declined'
@@ -209,7 +213,7 @@ export async function exposePublicRegistration(registration: PublicRegistration,
     ...registrationPermissions(registration, now),
     definition: await registrationFormDefinition(registration),
     // Disponibilités d'une inscription par le formulaire à plusieurs sessions (R10)
-    availability: registration.status === REGISTRATION_STATUSES.received && asksAvailability(registration.period)
+    availability: status === REGISTRATION_STATUSES.received && asksAvailability(registration.period)
       ? { sessions: registration.period.sessions.map((link) => link.session).filter((session) => !isClosedSessionStatus(session.status)) }
       : null,
     answers: {

@@ -164,8 +164,8 @@
 </template>
 
 <script setup>
-import { CLOSED_SESSION_STATUSES, REGISTRATION_PERIOD_SCOPES, REGISTRATION_REPLAY_POLICIES, REGISTRATION_STATUSES } from '~/utils/domain'
-import { canConfirmPlace, isAnnouncementPending } from '~/utils/registrations'
+import { REGISTRATION_PERIOD_SCOPES, REGISTRATION_REPLAY_POLICIES, REGISTRATION_STATUSES } from '~/utils/domain'
+import { canConfirmPlace, isAnnouncementPending, isBackInPool } from '~/utils/registrations'
 import { apiErrorMessage } from '~/utils/apiErrors'
 
 const props = defineProps({
@@ -188,7 +188,8 @@ async function loadOverview() {
     message.value = apiErrorMessage(err, 'Impossible de charger la sélection')
   }
 }
-await loadOverview()
+// Chargée après le montage : une période créée plus tard monte ce bloc sans attente asynchrone
+onMounted(loadOverview)
 watch(() => props.registrations, loadOverview)
 
 const permanent = computed(() => props.period.scope === REGISTRATION_PERIOD_SCOPES.game)
@@ -200,9 +201,7 @@ const pendingCount = computed(() => props.registrations.filter(isAnnouncementPen
 const activeCount = computed(() => props.registrations.filter((registration) => registration.status !== REGISTRATION_STATUSES.withdrawn).length)
 
 // Une place retenue ou confirmée dans une session passée ou annulée remet la personne dans le vivier (ADR-0047)
-const backInPool = (registration) => permanent.value
-  && [REGISTRATION_STATUSES.retained, REGISTRATION_STATUSES.confirmed].includes(registration.status)
-  && (!registration.session || CLOSED_SESSION_STATUSES.includes(registration.session.status))
+const backInPool = (registration) => permanent.value && isBackInPool(registration)
 // En attente seulement dans des sessions passées : de nouveau à trier
 const waitingNowhere = (registration) => registration.status === REGISTRATION_STATUSES.waitlisted
   && !(registration.waitlistEntries || []).some((entry) => sessionIds.value.has(entry.sessionId))

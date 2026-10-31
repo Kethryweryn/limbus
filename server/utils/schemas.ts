@@ -13,7 +13,8 @@ import {
   SESSION_STATUSES,
   USER_ROLES,
   REGISTRATION_PERIOD_SCOPES,
-  REGISTRATION_REPLAY_POLICIES
+  REGISTRATION_REPLAY_POLICIES,
+  REGISTRATION_SELECTION_ACTIONS
 } from '~/utils/domain'
 import { isHttpUrl, isUploadUrl, PHOTO_UPLOAD_PREFIX, RIB_UPLOAD_PREFIX } from '~/utils/urls'
 import {
@@ -401,7 +402,7 @@ export const registrationPeriodUpdateSchema = z.object({
 
 // Décision de sélection sur une inscription (US-087) ; la session est demandée pour retenir et la liste d'attente
 export const registrationSelectionSchema = z.object({
-  action: z.enum(['retain', 'waitlist', 'unwaitlist', 'reject', 'reset'], { error: 'Décision inconnue' }),
+  action: z.enum(REGISTRATION_SELECTION_ACTIONS, { error: 'Décision inconnue' }),
   sessionId: z.string().min(1).nullable().optional()
 }).refine((body) => !['retain', 'waitlist', 'unwaitlist'].includes(body.action) || body.sessionId, { path: ['sessionId'], message: 'Choisissez la session' })
 

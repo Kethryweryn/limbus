@@ -118,6 +118,16 @@ export async function resolveRegistrationPeriodSessions(
   return resolved
 }
 
+// Places prises dans des sessions (R5, US-087) : les inscriptions retenues ou confirmées par la sélection ;
+// le mode invitation peut dépasser ses places, il n'est qu'averti
+export function takenSeatsWhere(sessionIds: string[]) {
+  return {
+    sessionId: { in: sessionIds },
+    source: REGISTRATION_SOURCES.form,
+    status: { in: [REGISTRATION_STATUSES.retained, REGISTRATION_STATUSES.confirmed] }
+  }
+}
+
 // Rattacher une session à une période dédiée la retire de l'inscription permanente (R31) : refusé si des
 // personnes du vivier y sont retenues, confirmées ou en attente (US-090)
 async function assertNoPoolSelectionOnSessions(gameId: string, sessionIds: string[]) {
@@ -143,12 +153,11 @@ async function assertNoPoolSelectionOnSessions(gameId: string, sessionIds: strin
   }
 }
 
-// On ne descend pas sous le nombre de personnes retenues ou confirmées par la sélection (US-087) ; le mode
-// invitation peut dépasser ses places, il n'est qu'averti
+// On ne descend pas sous le nombre de personnes retenues ou confirmées par la sélection (US-087)
 async function assertSeatsCoverRetained(sessions: Array<{ sessionId: string, seats: number }>) {
   const taken = await prisma.registration.groupBy({
     by: ['sessionId'],
-    where: { sessionId: { in: sessions.map((session) => session.sessionId) }, source: REGISTRATION_SOURCES.form, status: { in: [REGISTRATION_STATUSES.retained, REGISTRATION_STATUSES.confirmed] } },
+    where: takenSeatsWhere(sessions.map((session) => session.sessionId)),
     _count: { _all: true }
   })
   const takenBySession = new Map(taken.map((row) => [row.sessionId, row._count._all]))

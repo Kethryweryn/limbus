@@ -1,6 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { openEmailTransport } from '~/server/utils/email'
-import { countPlayableCharacters } from '~/server/utils/registrationPeriods'
+import { countPlayableCharacters, takenSeatsWhere } from '~/server/utils/registrationPeriods'
 import { createRegistrationToken, registrationResponseDueAt, registrationUrl, selectionAnnouncementEmail } from '~/server/utils/registrations'
 import {
   CLOSED_SESSION_STATUSES,
@@ -12,15 +12,13 @@ import {
   SESSION_ROLES,
   SESSION_STATUSES
 } from '~/utils/domain'
-import { canConfirmPlace, isAnnouncementPending } from '~/utils/registrations'
+import type { REGISTRATION_SELECTION_ACTIONS } from '~/utils/domain'
+import { canConfirmPlace, isAnnouncementPending, isBackInPool } from '~/utils/registrations'
 
-export const SELECTION_ACTIONS = ['retain', 'waitlist', 'unwaitlist', 'reject', 'reset'] as const
-export type SelectionAction = typeof SELECTION_ACTIONS[number]
+export type SelectionAction = typeof REGISTRATION_SELECTION_ACTIONS[number]
 
 // Statuts qu'une décision de sélection peut changer (US-087) ; confirmée ou désistée, on passe par le désistement
 const SORTABLE_STATUSES: string[] = [REGISTRATION_STATUSES.received, ...REGISTRATION_SELECTION_STATUSES]
-// Retenues et confirmées occupent une place (R5)
-const SEAT_STATUSES: string[] = [REGISTRATION_STATUSES.retained, REGISTRATION_STATUSES.confirmed]
 
 const selectionPeriodSelect = {
   id: true,
@@ -80,16 +78,6 @@ export async function replayerParticipantIds(gameId: string, participantIds: str
 }
 
 /**
- * Vivier de l'inscription permanente (R30, ADR-0047), calculé à la lecture : une inscription reçue, ou
- * retenue ou confirmée pour une session depuis annulée ou terminée, y est (de nouveau). Une personne qui a joué
- * n'y revient pas si les rejoueurs sont exclus.
- */
-export function isBackInPool(registration: { status: string, session: { status: string } | null }) {
-  return SEAT_STATUSES.includes(registration.status)
-    && (!registration.session || CLOSED_SESSION_STATUSES.includes(registration.session.status))
-}
-
-/**
  * Ce que l'écran de sélection ajoute à la liste des inscriptions (US-087, US-090) : les sessions à remplir avec
  * leurs places et les places prises, et les personnes qui ont déjà joué le jeu, quand la période les signale.
  */
@@ -98,7 +86,7 @@ export async function selectionOverview(periodId: string) {
   const sessions = await selectableSessions(period)
   const taken = await prisma.registration.groupBy({
     by: ['sessionId'],
-    where: { sessionId: { in: sessions.map((session) => session.id) }, status: { in: SEAT_STATUSES } },
+    where: takenSeatsWhere(sessions.map((session) => session.id)),
     _count: { _all: true }
   })
   const takenBySession = new Map(taken.map((row) => [row.sessionId, row._count._all]))
@@ -139,6 +127,8 @@ export async function applySelection(registrationId: string, action: SelectionAc
       sessionId: true,
       periodId: true,
       participantId: true,
+      announcedStatus: true,
+      announcedSessionId: true,
       session: { select: { status: true } },
       availabilities: { select: { sessionId: true } },
       waitlistEntries: { select: { sessionId: true } }
@@ -175,8 +165,8 @@ export async function applySelection(registrationId: string, action: SelectionAc
   }
 
   const unchanged = { id: registration.id, status: registration.status, sessionId: registration.sessionId }
-  // Une place retenue n'a d'échéance qu'une fois annoncée (ADR-0047)
-  const cleared = { responseDueAt: null, respondedAt: null, confirmedAt: null, lastRemindedAt: null }
+  // Une place retenue revenue au vivier repart sans réponse
+  const cleared = { respondedAt: null, confirmedAt: null }
   await prisma.$transaction(async (tx) => {
     const write = async (data: Record<string, unknown>) => {
       const { count } = await tx.registration.updateMany({ where: unchanged, data })
@@ -187,16 +177,21 @@ export async function applySelection(registrationId: string, action: SelectionAc
 
     if (action === 'retain') {
       await lockSession(tx, session!.id)
-      const taken = await tx.registration.count({
-        where: { sessionId: session!.id, status: { in: SEAT_STATUSES }, id: { not: registration.id } }
-      })
+      const taken = await tx.registration.count({ where: { ...takenSeatsWhere([session!.id]), id: { not: registration.id } } })
       if (taken >= session!.seats) {
         throw createError({
           statusCode: 409,
           message: `La session « ${session!.name} » est complète (${session!.seats} place${session!.seats > 1 ? 's' : ''}) : augmentez le nombre de places pour retenir une personne de plus.`
         })
       }
-      await write({ status: REGISTRATION_STATUSES.retained, sessionId: session!.id, ...cleared })
+      // Une place retenue n'a d'échéance qu'une fois annoncée (ADR-0047) ; revenir à la place déjà annoncée garde la sienne
+      const announced = registration.announcedStatus === REGISTRATION_STATUSES.retained && registration.announcedSessionId === session!.id
+      await write({
+        status: REGISTRATION_STATUSES.retained,
+        sessionId: session!.id,
+        ...cleared,
+        ...(announced ? {} : { responseDueAt: null, lastRemindedAt: null })
+      })
       await tx.registrationWaitlistEntry.deleteMany({ where: { registrationId: registration.id } })
     } else if (action === 'waitlist') {
       if (!registration.waitlistEntries.some((entry) => entry.sessionId === session!.id)) {
@@ -247,10 +242,11 @@ export async function setPoolSeats(periodId: string, sessionId: string, seats: n
   }
   const playable = seats ?? await countPlayableCharacters(period.gameId)
   // On ne descend pas sous le nombre de personnes retenues ou confirmées (US-087)
-  if (playable < await prisma.registration.count({ where: { sessionId, status: { in: SEAT_STATUSES } } })) {
+  if (playable < await prisma.registration.count({ where: takenSeatsWhere([sessionId]) })) {
     throw createError({ statusCode: 409, message: 'Cette session a plus de personnes retenues ou confirmées que de places : retirez-en avant de baisser le nombre de places.' })
   }
-  await prisma.session.update({ where: { id: sessionId }, data: { poolSeats: seats } })
+  // Sans toucher à updatedAt, version de la session pour ses écritures hors ligne (ADR-0028, ADR-0036)
+  await prisma.$executeRaw`UPDATE "Session" SET "poolSeats" = ${seats} WHERE "id" = ${sessionId}`
   return { success: true }
 }
 
@@ -274,9 +270,11 @@ export async function announceSelection(periodId: string) {
       announcedSessionId: true,
       participant: { select: { name: true } },
       session: { select: { name: true, date: true } },
-      waitlistEntries: { orderBy: { session: { date: 'asc' } }, select: { session: { select: { name: true, date: true } } } }
+      waitlistEntries: { orderBy: { session: { date: 'asc' } }, select: { sessionId: true, session: { select: { name: true, date: true } } } }
     }
   })).filter(isAnnouncementPending)
+  // L'email d'attente ne cite que les sessions encore à remplir
+  const openSessionIds = new Set((await selectableSessions(period)).map((session) => session.id))
 
   const results: Array<{ participantName: string, sent: boolean, message: string | null }> = []
   const transport = await openEmailTransport().catch(() => null)
@@ -290,7 +288,9 @@ export async function announceSelection(periodId: string) {
         status: registration.status,
         participantName: registration.participant.name,
         gameTitle: period.game.title,
-        sessions: retained ? [registration.session!] : registration.waitlistEntries.map((entry) => entry.session),
+        sessions: retained
+          ? [registration.session!]
+          : registration.waitlistEntries.filter((entry) => openSessionIds.has(entry.sessionId)).map((entry) => entry.session),
         responseDueAt,
         url: registrationUrl(token)
       })

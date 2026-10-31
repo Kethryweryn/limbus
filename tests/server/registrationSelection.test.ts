@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isBackInPool } from '~/server/utils/registrationSelection'
+import { isBackInPool } from '~/utils/registrations'
 import { selectionAnnouncementEmail } from '~/server/utils/registrations'
 
 const base = { participantName: 'Lou', gameTitle: 'Le Bal', url: 'https://limbus.test/inscription/x' }

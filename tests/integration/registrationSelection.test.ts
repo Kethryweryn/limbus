@@ -1,4 +1,5 @@
 // EPIC-021 : trier les inscriptions (US-087), annoncer (US-088), confirmer sa place (US-089), vivier (US-090)
+import { createHash, randomBytes } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
@@ -245,6 +246,9 @@ describe('annoncer les résultats (US-088) et confirmer sa place (US-089)', () =
 
     expect((await api(alice, 'POST', `/api/registrations/${lou.id}/release`)).status).toBe(200)
     expect(await statusOf(lou.id)).toBe('withdrawn')
+    // Son lien dit que la place a été réattribuée faute de réponse
+    const louToken = personalLinkToken(smtp.received.find((email) => email.to.includes(lou.email))!)!
+    expect((await publicApi('GET', `/api/public/registrations/${louToken}`)).body.withdrawalReason).toBe('released')
     // La place est libre : la première de la file se retient, et reste à annoncer
     expect((await select(max.id, 'retain', sessions[0]!.id)).status).toBe(200)
     expect(await prisma.registration.findUniqueOrThrow({ where: { id: max.id } })).toMatchObject({ status: 'retained', announcedStatus: 'waitlisted' })
@@ -257,6 +261,30 @@ describe('annoncer les résultats (US-088) et confirmer sa place (US-089)', () =
     expect((await api(alice, 'POST', `/api/registrations/${lou.id}/remind`)).status).toBe(409)
     expect((await api(alice, 'POST', `/api/registrations/${lou.id}/withdraw`)).status).toBe(200)
     expect(await statusOf(lou.id)).toBe('withdrawn')
+  })
+})
+
+describe('revue de la PR #76', () => {
+  it('une décision pas encore annoncée laisse la personne modifier son inscription reçue', async () => {
+    const { game, sessions, period } = await aliceGame()
+    const lou = await received(game, period, 'Lou', [sessions[0]!.id])
+    const token = randomBytes(32).toString('base64url')
+    await prisma.registration.update({ where: { id: lou.id }, data: { tokenHash: createHash('sha256').update(token).digest('hex') } })
+    await select(lou.id, 'waitlist', sessions[0]!.id)
+    const view = await publicApi('GET', `/api/public/registrations/${token}`)
+    expect(view.body).toMatchObject({ status: 'received', canEdit: true })
+    expect(view.body.availability).not.toBeNull()
+  })
+
+  it('revenir à la place déjà annoncée garde son échéance', async () => {
+    const { game, sessions, period } = await aliceGame({ sessions: 1 })
+    const lou = await received(game, period, 'Lou')
+    await select(lou.id, 'retain', sessions[0]!.id)
+    await api(alice, 'POST', `/api/registration-periods/${period.id}/announce`)
+    const { responseDueAt } = await prisma.registration.findUniqueOrThrow({ where: { id: lou.id } })
+    await select(lou.id, 'waitlist', sessions[0]!.id)
+    await select(lou.id, 'retain', sessions[0]!.id)
+    expect(await prisma.registration.findUniqueOrThrow({ where: { id: lou.id } })).toMatchObject({ status: 'retained', responseDueAt })
   })
 })
 

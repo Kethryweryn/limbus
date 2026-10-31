@@ -195,6 +195,9 @@ export const REGISTRATION_SELECTION_STATUSES: string[] = [
   REGISTRATION_STATUSES.rejected
 ]
 
+// Décisions de sélection sur une inscription (US-087)
+export const REGISTRATION_SELECTION_ACTIONS = ['retain', 'waitlist', 'unwaitlist', 'reject', 'reset'] as const
+
 // Rejoueurs (R7) : personne qui a participé à une session terminée du jeu
 export const REGISTRATION_REPLAY_POLICIES = {
   allowed: 'allowed',

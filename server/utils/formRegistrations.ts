@@ -248,6 +248,10 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
       confirmedAt: null,
       withdrawnAt: null,
       withdrawnById: null,
+      // Une nouvelle inscription : rien ne lui a encore été annoncé (ADR-0047)
+      announcedStatus: null,
+      announcedSessionId: null,
+      announcedAt: null,
       ...(tokenHash ? { tokenHash } : {})
     }
     let registrationId: string

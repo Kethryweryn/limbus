@@ -1,4 +1,4 @@
-import { REGISTRATION_SELECTION_STATUSES, REGISTRATION_STATUSES } from './domain'
+import { CLOSED_SESSION_STATUSES, REGISTRATION_SELECTION_STATUSES, REGISTRATION_STATUSES } from './domain'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -55,6 +55,15 @@ export function canConfirmPlace(registration: { status: string, sessionId: strin
     && Boolean(registration.sessionId)
     && registration.announcedStatus === REGISTRATION_STATUSES.retained
     && registration.announcedSessionId === registration.sessionId
+}
+
+/**
+ * Vivier de l'inscription permanente (R30, ADR-0047), calculé à la lecture : une inscription retenue ou confirmée
+ * pour une session depuis annulée, terminée ou supprimée y est de nouveau.
+ */
+export function isBackInPool(registration: { status: string, session?: { status: string } | null }) {
+  return (registration.status === REGISTRATION_STATUSES.retained || registration.status === REGISTRATION_STATUSES.confirmed)
+    && (!registration.session || CLOSED_SESSION_STATUSES.includes(registration.session.status))
 }
 
 // Statut que voit la personne : une décision pas encore annoncée ne se voit pas (ADR-0047)
