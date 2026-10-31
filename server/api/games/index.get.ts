@@ -58,6 +58,8 @@ export default defineEventHandler(async (event) => {
                 updatedAt: game.updatedAt,
                 published: game.published,
                 publicPage: game.publicPage,
+                publicShowSessions: game.publicShowSessions,
+                publicShowRegistration: game.publicShowRegistration,
                 singlePjPerParticipant: game.singlePjPerParticipant,
                 ownerId: game.ownerId,
                 owner: game.owner,

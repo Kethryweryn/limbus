@@ -1,7 +1,8 @@
 import { randomBytes } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
-import { CHARACTER_TYPES, REGISTRATION_PERIOD_STATES, REGISTRATION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
+import { CHARACTER_TYPES, REGISTRATION_PERIOD_SCOPES, REGISTRATION_PERIOD_STATES, REGISTRATION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
 import { effectivePeriodState } from '~/utils/registrationPeriods'
+import { absoluteAppUrl } from '~/server/utils/appUrl'
 
 export const registrationPeriodInclude = {
   sessions: {
@@ -28,6 +29,8 @@ export const registrationListSelect = {
   withdrawnAt: true,
   createdAt: true,
   participant: { select: { id: true, name: true, slug: true } },
+  // Sessions où une personne inscrite par le formulaire est disponible (R10)
+  availabilities: { select: { sessionId: true } },
   invitedBy: { select: { name: true } },
   withdrawnBy: { select: { name: true } }
 } as const
@@ -37,8 +40,9 @@ export function createRegistrationPeriodPublicId() {
   return randomBytes(6).toString('base64url')
 }
 
-export function exposeRegistrationPeriod<T extends { state: string, closesAt: Date | null }>(period: T) {
-  return { ...period, effectiveState: effectivePeriodState(period) }
+// diffusionUrl : le lien de diffusion à copier (R32), par absoluteAppUrl, jamais d'après la requête
+export function exposeRegistrationPeriod<T extends { state: string, closesAt: Date | null, publicId: string }>(period: T) {
+  return { ...period, effectiveState: effectivePeriodState(period), diffusionUrl: absoluteAppUrl(`/i/${period.publicId}`) }
 }
 
 export async function countPlayableCharacters(gameId: string) {
@@ -149,6 +153,18 @@ export async function assertNoRegistrationsOnRemovedSessions(periodId: string, k
       statusCode: 409,
       message: `Une session qui a des inscriptions ne peut pas être retirée de la période : ${names.map((name) => `« ${name} »`).join(', ')}`
     })
+  }
+}
+
+// Un jeu n'a qu'une inscription permanente ouverte à la fois (R30)
+export async function assertSinglePermanentOpen(gameId: string, scope: string, state: string, periodId?: string) {
+  if (scope !== REGISTRATION_PERIOD_SCOPES.game || state !== REGISTRATION_PERIOD_STATES.open) return
+  const other = await prisma.registrationPeriod.findFirst({
+    where: { gameId, scope: REGISTRATION_PERIOD_SCOPES.game, state: REGISTRATION_PERIOD_STATES.open, ...(periodId ? { id: { not: periodId } } : {}) },
+    select: { name: true }
+  })
+  if (other) {
+    throw createError({ statusCode: 409, message: `Ce jeu a déjà une inscription permanente ouverte (« ${other.name} ») : clôturez-la d’abord.` })
   }
 }
 

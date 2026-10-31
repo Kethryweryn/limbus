@@ -27,6 +27,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-017](../archive/epics/EPIC-017-export-et-effacement/README.md) | Export et effacement depuis le compte | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
 | [EPIC-018](../archive/epics/EPIC-018-documents-dans-le-compte/README.md) | Documents et trombinoscopes dans le compte | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
 | [EPIC-019](../archive/epics/EPIC-019-formulaire-complet/README.md) | Formulaire complet : questions propres au jeu et affinités | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
+| [EPIC-020](../archive/epics/EPIC-020-formulaire-public/README.md) | Formulaire public, lien de diffusion et inscription permanente | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 
 ## US
 
@@ -114,3 +115,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-080](../archive/epics/EPIC-018-documents-dans-le-compte/US-080-nettoyage-des-copies.md) | Effacer les copies après la session | EPIC-018 | terminée |
 | [US-081](../archive/epics/EPIC-019-formulaire-complet/US-081-questions-propres-au-jeu.md) | Poser des questions propres au jeu | EPIC-019 | terminée |
 | [US-082](../archive/epics/EPIC-019-formulaire-complet/US-082-affinites.md) | Demander les affinités | EPIC-019 | terminée |
+| [US-083](../archive/epics/EPIC-020-formulaire-public/US-083-periode-en-mode-formulaire.md) | Ouvrir une période en mode formulaire, ou l'inscription permanente | EPIC-020 | terminée |
+| [US-084](../archive/epics/EPIC-020-formulaire-public/US-084-formulaire-public.md) | S'inscrire par le lien de diffusion | EPIC-020 | terminée |
+| [US-085](../archive/epics/EPIC-020-formulaire-public/US-085-confirmer-son-email.md) | Confirmer son email, puis suivre son inscription | EPIC-020 | terminée |
+| [US-086](../archive/epics/EPIC-020-formulaire-public/US-086-page-publique-sessions-et-inscription.md) | Sessions à venir et lien d'inscription sur la page publique | EPIC-020 | terminée |

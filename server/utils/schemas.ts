@@ -11,7 +11,8 @@ import {
   REFUND_STATUSES,
   SESSION_ROLES,
   SESSION_STATUSES,
-  USER_ROLES
+  USER_ROLES,
+  REGISTRATION_PERIOD_SCOPES
 } from '~/utils/domain'
 import { isHttpUrl, isUploadUrl, PHOTO_UPLOAD_PREFIX, RIB_UPLOAD_PREFIX } from '~/utils/urls'
 import {
@@ -97,6 +98,9 @@ export const createGameSchema = z.object({
   teaserUrl: externalUrl,
   noteIntention: optionalText,
   publicPage: optionalBoolean,
+  // Ce que la page publique montre en plus de la présentation (US-086)
+  publicShowSessions: optionalBoolean,
+  publicShowRegistration: optionalBoolean,
   singlePjPerParticipant: optionalBoolean
 })
 
@@ -107,6 +111,9 @@ export const updateGameSchema = z.object({
   noteIntention: optionalText,
   published: optionalBoolean,
   publicPage: optionalBoolean,
+  // Ce que la page publique montre en plus de la présentation (US-086)
+  publicShowSessions: optionalBoolean,
+  publicShowRegistration: optionalBoolean,
   singlePjPerParticipant: optionalBoolean
 })
 
@@ -344,19 +351,33 @@ const registrationResponseDelay = z.number({ error: 'Le délai de réponse doit 
   .int('Le délai de réponse doit être un nombre entier de jours')
   .min(1, 'Le délai de réponse est d’au moins 1 jour')
   .max(90, 'Le délai de réponse est de 90 jours au plus')
+// Au moins une session pour une période de sessions précises, aucune pour l'inscription permanente (R1, R30)
 const registrationPeriodSessions = z.array(registrationPeriodSessionSchema)
-  .min(1, 'Choisissez au moins une session')
   .refine((sessions) => new Set(sessions.map((session) => session.sessionId)).size === sessions.length, 'Une session est choisie deux fois')
+  .default([])
 
 export const registrationPeriodSchema = z.object({
   name: frenchText('Le nom'),
   gameId: frenchText('Le jeu'),
-  // Le formulaire public et l'inscription permanente arrivent avec EPIC-002
-  entryMode: z.enum([REGISTRATION_ENTRY_MODES.invitation], { error: 'Seul le mode invitation est disponible' }).default(REGISTRATION_ENTRY_MODES.invitation),
+  // Formulaire public et inscription permanente (US-083) ; le mode ne change plus après la création
+  entryMode: z.enum([REGISTRATION_ENTRY_MODES.invitation, REGISTRATION_ENTRY_MODES.form], { error: 'Mode d’entrée inconnu' }).default(REGISTRATION_ENTRY_MODES.invitation),
+  scope: z.enum([REGISTRATION_PERIOD_SCOPES.sessions, REGISTRATION_PERIOD_SCOPES.game], { error: 'Portée inconnue' }).default(REGISTRATION_PERIOD_SCOPES.sessions),
   state: registrationPeriodState.default(REGISTRATION_PERIOD_STATES.draft),
   closesAt: registrationClosesAt,
   responseDelayDays: registrationResponseDelay.default(REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS),
+  notifyTeam: z.boolean().default(false),
   sessions: registrationPeriodSessions
+}).superRefine((period, context) => {
+  if (period.scope === REGISTRATION_PERIOD_SCOPES.game) {
+    if (period.entryMode !== REGISTRATION_ENTRY_MODES.form) {
+      context.addIssue({ code: 'custom', path: ['entryMode'], message: 'L’inscription permanente est toujours en mode formulaire' })
+    }
+    if (period.sessions.length) {
+      context.addIssue({ code: 'custom', path: ['sessions'], message: 'L’inscription permanente couvre tout le jeu : ne choisissez pas de session' })
+    }
+  } else if (!period.sessions.length) {
+    context.addIssue({ code: 'custom', path: ['sessions'], message: 'Choisissez au moins une session' })
+  }
 })
 
 // Modification : un champ absent est conservé, jamais remis à sa valeur par défaut ; closesAt à null retire la date
@@ -366,6 +387,7 @@ export const registrationPeriodUpdateSchema = z.object({
   state: registrationPeriodState.optional(),
   closesAt: registrationClosesAt,
   responseDelayDays: registrationResponseDelay.optional(),
+  notifyTeam: z.boolean().optional(),
   sessions: registrationPeriodSessions
 })
 

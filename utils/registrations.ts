@@ -22,6 +22,7 @@ export const REGISTRATION_OVERDUE = 'overdue'
 
 export const REGISTRATION_DISPLAY_STATUS_META: Record<string, { label: string, color: 'info' | 'success' | 'neutral' | 'warning' }> = {
   [REGISTRATION_STATUSES.invited]: { label: 'Invitée', color: 'info' },
+  [REGISTRATION_STATUSES.received]: { label: 'Reçue', color: 'info' },
   [REGISTRATION_OVERDUE]: { label: 'Délai dépassé', color: 'warning' },
   [REGISTRATION_STATUSES.confirmed]: { label: 'Confirmée', color: 'success' },
   [REGISTRATION_STATUSES.withdrawn]: { label: 'Désistée', color: 'neutral' }

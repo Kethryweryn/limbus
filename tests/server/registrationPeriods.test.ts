@@ -25,7 +25,10 @@ describe('registrationPeriodSchema', () => {
     ['places négatives', { ...valid, sessions: [{ sessionId: 's', seats: -1 }] }],
     ['délai nul', { ...valid, responseDelayDays: 0 }],
     ['date invalide', { ...valid, closesAt: 'demain' }],
-    ['formulaire public, pas encore disponible', { ...valid, entryMode: 'form' }],
+    ['mode inconnu', { ...valid, entryMode: 'tirage' }],
+    ['inscription permanente sur invitation', { ...valid, scope: 'game', sessions: [] }],
+    ['inscription permanente avec des sessions', { ...valid, scope: 'game', entryMode: 'form' }],
+    ['sessions précises sans session', { ...valid, sessions: [] }],
     ['état inconnu', { ...valid, state: 'archived' }]
   ])('refuse : %s', (_label, body) => {
     expect(registrationPeriodSchema.safeParse(body).success).toBe(false)

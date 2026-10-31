@@ -1,4 +1,5 @@
 import { readZodBody } from '~/server/utils/schemas'
+import { readAvailability } from '~/server/utils/registrationAvailability'
 import { registrationAnswerSchema } from '~/server/utils/registrationForms'
 import {
   answerFormDefinition,
@@ -20,8 +21,10 @@ export default defineEventHandler(async (event) => {
   const form = await answerFormDefinition(registration)
   const { charterAccepted: _charterAccepted, healthConsent: _healthConsent, ...answers } = await readZodBody(event, registrationAnswerSchema(form.definition))
 
+  const availableSessionIds = await readAvailability(event, registration)
+
   const versionId = await frozenFormVersionId(registration, form.versionId)
-  const { accepted } = await saveRegistrationAnswers(registration, versionId, answers, form.definition)
+  const { accepted } = await saveRegistrationAnswers(registration, versionId, { ...answers, availableSessionIds }, form.definition)
   const emailSent = accepted ? await sendRegistrationConfirmationEmail(registration, answers, registrationUrl(token)) : null
 
   return { ...(await exposePublicRegistration(await requireRegistrationByToken(token))), emailSent }

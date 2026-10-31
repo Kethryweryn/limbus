@@ -81,6 +81,16 @@
               </UFormField>
             </div>
 
+            <UFormField
+              v-if="registration.availability"
+              label="Sessions où vous êtes disponible"
+              required
+              :error="fieldError('availableSessionIds')"
+            >
+              <!-- Un groupe, pas des cases isolées : dans un champ, chaque case prendrait le libellé du champ -->
+              <UCheckboxGroup v-model="form.availableSessionIds" :items="sessionItems" :disabled="readOnly" />
+            </UFormField>
+
             <RegistrationExtraFields
               v-model:affinities="form.affinities"
               v-model:answers="form.questionAnswers"
@@ -120,7 +130,17 @@
           </form>
         </UCard>
 
-        <UCard v-if="registration.canWithdraw">
+        <UCard v-if="registration.canWithdraw && registration.status === REGISTRATION_STATUSES.received">
+          <h2 class="font-semibold">Retirer mon inscription</h2>
+          <p class="mt-2 text-sm text-gray-600">
+            Votre inscription est reçue par l’équipe d’organisation, qui n’a pas encore choisi les personnes retenues.
+            Si vous ne souhaitez plus participer, retirez-la.
+          </p>
+          <UButton class="mt-3" color="error" variant="soft" :loading="withdrawing" @click="withdraw">
+            Retirer mon inscription
+          </UButton>
+        </UCard>
+        <UCard v-else-if="registration.canWithdraw">
           <h2 class="font-semibold">Me désister</h2>
           <p class="mt-2 text-sm text-gray-600">
             Si vous ne pouvez plus venir, prévenez l’équipe d’organisation en vous désistant : votre place sera libérée.
@@ -164,11 +184,24 @@ async function load() {
   try {
     apply(await $fetch(props.endpoint))
   } catch {
-    invalid.value = true
+    // Lien reçu après le formulaire public (US-085) : l'ouvrir confirme l'adresse, puis l'inscription s'affiche
+    const confirmed = props.personalLink ? await $fetch(`${props.endpoint}/confirm`, { method: 'POST' }).catch(() => null) : null
+    if (confirmed) {
+      apply(confirmed)
+      successMessage.value = 'Votre adresse est confirmée : votre inscription est reçue.'
+      successDetail.value = 'Gardez l’email reçu : son lien vous permet de revenir modifier ou retirer votre inscription.'
+    } else {
+      invalid.value = true
+    }
   } finally {
     loading.value = false
   }
 }
+
+const sessionItems = computed(() => (registration.value?.availability?.sessions || []).map((session) => ({
+  value: session.id,
+  label: session.date ? `${session.name} · ${formatDate(session.date)}` : session.name
+})))
 
 function apply(data) {
   registration.value = data
@@ -179,7 +212,8 @@ const WITHDRAWAL_MESSAGES = {
   declined: 'Vous avez décliné l’invitation.',
   withdrawn: 'Vous vous êtes désisté·e.',
   released: 'Sans réponse de votre part dans le délai, votre place a été réattribuée.',
-  removed: 'L’équipe d’organisation a annulé votre inscription.'
+  removed: 'L’équipe d’organisation a annulé votre inscription.',
+  retracted: 'Vous avez retiré votre inscription.'
 }
 const withdrawalMessage = computed(() => WITHDRAWAL_MESSAGES[registration.value?.withdrawalReason] || WITHDRAWAL_MESSAGES.declined)
 
@@ -244,7 +278,10 @@ async function decline() {
 }
 
 async function withdraw() {
-  if (!confirm('Vous désister ? Votre place sera libérée et vous ne pourrez plus revenir sur votre inscription.')) return
+  const received = registration.value.status === REGISTRATION_STATUSES.received
+  if (!confirm(received
+    ? 'Retirer votre inscription ? Vous pourrez vous réinscrire par le formulaire tant que les inscriptions sont ouvertes.'
+    : 'Vous désister ? Votre place sera libérée et vous ne pourrez plus revenir sur votre inscription.')) return
   withdrawing.value = true
   errorMessage.value = ''
   try {

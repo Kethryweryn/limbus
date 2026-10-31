@@ -22,6 +22,18 @@
       </UFormField>
 
       <AppCheckboxRow v-model="localGame.publicPage" label="Publier la page publique" />
+      <div v-if="localGame.publicPage" class="space-y-2 pl-6">
+        <AppCheckboxRow
+          v-model="localGame.publicShowSessions"
+          label="Afficher les sessions à venir"
+          description="Les sessions marquées visibles sur la page publique, avec leur date et leur lieu."
+        />
+        <AppCheckboxRow
+          v-model="localGame.publicShowRegistration"
+          label="Afficher le lien d’inscription"
+          description="Un bouton vers le formulaire de chaque période d’inscription ouverte en mode formulaire."
+        />
+      </div>
       <AppCheckboxRow
         v-model="localGame.singlePjPerParticipant"
         label="Un seul PJ par participant et par session"

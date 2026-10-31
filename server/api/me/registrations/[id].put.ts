@@ -1,5 +1,6 @@
 import { requireUser } from '~/server/utils/auth'
 import { readZodBody } from '~/server/utils/schemas'
+import { readAvailability } from '~/server/utils/registrationAvailability'
 import { registrationAnswerSchema } from '~/server/utils/registrationForms'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
 import {
@@ -19,7 +20,7 @@ export default defineEventHandler(async (event) => {
   const form = await answerFormDefinition(registration)
   const { charterAccepted: _charterAccepted, healthConsent: _healthConsent, ...body } = await readZodBody(event, registrationAnswerSchema(form.definition))
   // Depuis le compte, l'adresse est celle du compte : en changer détacherait la fiche en pleine réponse
-  const answers = { ...body, email: user.email }
+  const answers = { ...body, email: user.email, availableSessionIds: await readAvailability(event, registration) }
 
   const versionId = await frozenFormVersionId(registration, form.versionId)
   const { accepted } = await saveRegistrationAnswers(registration, versionId, answers, form.definition, true)

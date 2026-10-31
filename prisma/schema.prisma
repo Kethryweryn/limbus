@@ -21,6 +21,9 @@ model Game {
   updatedAt      DateTime   @updatedAt
   published      Boolean    @default(true)
   publicPage     Boolean    @default(false)
+  // Ce que la page publique montre en plus de la présentation (US-086, ADR-0046)
+  publicShowSessions     Boolean @default(false)
+  publicShowRegistration Boolean @default(false)
   // Un seul PJ par participant et par session (US-017) ; décoché pour un jeu en plusieurs actes
   singlePjPerParticipant Boolean @default(true)
   // Crédit d'une copie léguée, figé au moment du legs (SPEC-002 R11, R12, ADR-0025)
@@ -253,6 +256,7 @@ model Session {
   uploadedFiles UploadedFile[]
   registrationPeriodLink RegistrationPeriodSession?
   registrations Registration[]
+  registrationAvailabilities RegistrationAvailability[]
 }
 
 // Période d'inscription : recrutement des PJ de sessions précises (scope "sessions")
@@ -271,11 +275,14 @@ model RegistrationPeriod {
   state             String   @default("draft")
   closesAt          DateTime?
   responseDelayDays Int      @default(7)
+  // Prévenir l'équipe de chaque inscription reçue par le formulaire (US-083)
+  notifyTeam        Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   sessions          RegistrationPeriodSession[]
   registrations     Registration[]
+  requests          RegistrationRequest[]
 
   @@index([gameId])
 }
@@ -314,6 +321,7 @@ model RegistrationFormVersion {
   createdAt  DateTime         @default(now())
 
   registrations Registration[]
+  requests      RegistrationRequest[]
 
   @@unique([formId, number])
 }
@@ -365,10 +373,42 @@ model Registration {
   updatedAt             DateTime                 @updatedAt
 
   affinities            RegistrationAffinity[]
+  availabilities        RegistrationAvailability[]
 
   @@unique([periodId, participantId])
   @@index([sessionId])
   @@index([participantId])
+}
+
+// Formulaire public envoyé, en attente de la confirmation de l'email (US-084, US-085, ADR-0046) : ni fiche ni
+// inscription avant la confirmation ; supprimé à la confirmation, ou au bout de 7 jours
+model RegistrationRequest {
+  id            String             @id @default(cuid())
+  periodId      String
+  period        RegistrationPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  email         String
+  // Réponses validées : champs standards, affinités, questions et disponibilités
+  answers       Json
+  formVersionId String?
+  formVersion   RegistrationFormVersion? @relation(fields: [formVersionId], references: [id], onDelete: SetNull)
+  // SHA-256 du jeton du lien envoyé, qui devient le lien personnel (ADR-0018)
+  tokenHash     String             @unique
+  createdAt     DateTime           @default(now())
+
+  @@index([periodId])
+  @@index([createdAt])
+}
+
+// Session où une personne inscrite par le formulaire est disponible (R10)
+model RegistrationAvailability {
+  id             String       @id @default(cuid())
+  registrationId String
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  sessionId      String
+  session        Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([registrationId, sessionId])
+  @@index([sessionId])
 }
 
 // Une personne ou une relation citée dans une affinité, une par ligne (US-082, ADR-0045)

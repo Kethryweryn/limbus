@@ -20,7 +20,7 @@ export const GAME_COPY_FIELDS = {
     remapped: [],
     relinked: ['characters', 'factions', 'intrigues', 'items', 'timelineEvents', 'documents', 'locations', 'uploadedFiles', 'registrationForm'],
     // La copie démarre active, sans page publique (R10), avec son propre crédit (R11 à R13), sans transfert en cours
-    omitted: ['id', 'slug', 'ownerId', 'createdAt', 'updatedAt', 'published', 'publicPage', 'creditSourceTitle', 'creditAuthorName', 'copiedFromGameId', 'bequestPending', 'owner', 'copiedFrom', 'copies', 'sessions', 'participantLinks', 'shares', 'invitations', 'registrationPeriods', 'slugRedirects', 'transferToUserId', 'transferTo']
+    omitted: ['id', 'slug', 'ownerId', 'createdAt', 'updatedAt', 'published', 'publicPage', 'publicShowSessions', 'publicShowRegistration', 'creditSourceTitle', 'creditAuthorName', 'copiedFromGameId', 'bequestPending', 'owner', 'copiedFrom', 'copies', 'sessions', 'participantLinks', 'shares', 'invitations', 'registrationPeriods', 'slugRedirects', 'transferToUserId', 'transferTo']
   },
   Character: {
     copied: ['name', 'type', 'pitch', 'background', 'backgroundDocumentUrl', 'sheetReadyToSend', 'costumeIndications', 'excludeFromTrombinoscope', 'trombinoscopeFaceHidden', 'trombinoscopeNote', 'trombinoscopeDisplayName', 'published'],
@@ -81,7 +81,7 @@ export const GAME_COPY_FIELDS = {
     copied: ['definition'],
     remapped: [],
     relinked: ['form'],
-    omitted: ['id', 'formId', 'number', 'createdAt', 'registrations']
+    omitted: ['id', 'formId', 'number', 'createdAt', 'registrations', 'requests']
   }
 } as const satisfies Record<string, { copied: readonly string[], remapped: readonly string[], relinked: readonly string[], omitted: readonly string[] }>
 

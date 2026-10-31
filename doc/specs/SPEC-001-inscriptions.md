@@ -4,8 +4,8 @@ titre: Inscriptions, sélection et aide au casting
 statut: validée
 date: 2026-10-27
 origine: ../archive/todo/inscriptions.md
-epics: [EPIC-001, EPIC-019]
-adr: [ADR-0007, ADR-0008, ADR-0011, ADR-0045]
+epics: [EPIC-001, EPIC-019, EPIC-020]
+adr: [ADR-0007, ADR-0008, ADR-0011, ADR-0045, ADR-0046]
 ---
 
 # SPEC-001 : Inscriptions, sélection et aide au casting
@@ -99,7 +99,7 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 
 ### Inscription et identité
 
-- **R11** Une inscription par formulaire n'est **reçue** qu'une fois l'email confirmé par le lien envoyé. Une inscription non confirmée sous 7 jours est supprimée.
+- **R11** Une inscription par formulaire n'est **reçue** qu'une fois l'email confirmé par le lien envoyé ; avant, rien n'est créé chez l'équipe. Une inscription non confirmée sous 7 jours est supprimée. Une personne connectée à son compte trouve le formulaire prérempli, et son inscription est reçue aussitôt, sans email de confirmation ([ADR-0046](../adr/ADR-0046-formulaire-public-des-inscriptions.md)). Si la période le demande, l'équipe est prévenue par email de chaque inscription reçue.
 - **R12** L'inscrit est rapproché d'un participant existant par son email, sans tenir compte de la casse, mais seulement parmi les participants liés aux jeux de la même propriétaire. Sinon, un nouveau participant est créé et lié au jeu. Un même email chez une autre équipe donne une fiche distincte. L'email donné par la personne dans le formulaire fait foi : il remplace celui de sa fiche, et tous les envois suivants (renvoi du lien, paiements, documents) partent à cette adresse.
 - **R13** Le lien personnel permet de consulter, modifier ou retirer l'inscription jusqu'à la clôture ; il permet ensuite seulement de confirmer sa place ou de se désister. Le jeton est aléatoire, stocké sous forme de hash, et propre à chaque inscription.
 - **R14** Allergies, intolérances et contact d'urgence sont rattachés à l'inscription, pas au participant. La saisie des allergies demande un consentement explicite, car ce sont des données de santé ; la date de consentement conservée est celle du dernier enregistrement des allergies.
@@ -107,7 +107,7 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 
 ### Sélection
 
-- **R16** Statuts d'une inscription :
+- **R16** Statuts d'une inscription (« en attente de confirmation d'email » n'est pas une inscription stockée, mais une demande, ADR-0046) :
   - `en attente de confirmation d'email` → `reçue` ;
   - après la sélection : `retenue`, `en attente` ou `non retenue` ;
   - une inscription retenue devient `confirmée`, ou `désistée` ;
@@ -148,11 +148,13 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
   - elle est toujours en mode formulaire et n'a pas de date de clôture : les orgas la clôturent à la main ;
   - les inscrits forment un vivier, sans disponibilités (R10). Pour chaque session, les orgas choisissent dans ce vivier les personnes à retenir (mode choix), qui confirment ensuite dans le délai (R20) ;
   - le réglage des rejoueurs (R7) s'applique au vivier : après avoir joué une session, un inscrit reste dans le vivier, y est signalé ou en est exclu, selon ce réglage.
-- **R31** Rattacher une session à une période d'inscription dédiée la retire de l'inscription permanente. C'est refusé si des inscrits du vivier ont déjà été retenus pour cette session.
+- **R31** Rattacher une session à une période d'inscription dédiée la retire de l'inscription permanente. C'est refusé si des inscrits du vivier ont déjà été retenus pour cette session (avec la sélection, lot 3).
 - **R32** Chaque période d'inscription en mode formulaire a un **lien de diffusion** : une URL publique, stable et courte, que les orgas copient pour leurs annonces (réseaux sociaux, email, site). Ce lien :
   - ouvre le formulaire, même si la page publique du jeu n'est pas activée ;
   - fournit un aperçu pour les réseaux sociaux (balises Open Graph : nom du jeu, sessions concernées et leurs dates, début de la note d'intention) ;
-  - affiche « inscriptions closes » une fois la période clôturée, au lieu d'une erreur.
+  - affiche « inscriptions closes » une fois la période clôturée, au lieu d'une erreur ; une période en brouillon répond comme un lien inconnu.
+
+  Une personne désistée qui remplit à nouveau le formulaire repart à « reçue », une fois son email confirmé.
 
 ### Place dans l'application
 
@@ -196,7 +198,7 @@ Données personnelles :
 Chaque lot devient un epic, livrable seul :
 
 1. Période d'inscription et mode invitation (R1 à R3, R5, R6, R8 pour la note d'intention et les champs standards, R12 à R16, R20, R22, R33). Voir [EPIC-001](../archive/epics/EPIC-001-inscription-sur-invitation/README.md).
-2. Formulaire public, inscription permanente et lien de diffusion (R8 au complet, R9 à R11, R13, R30 à R32), en deux epics : le formulaire complet, questions propres au jeu et affinités ([EPIC-019](../archive/epics/EPIC-019-formulaire-complet/README.md)), puis le formulaire public, le lien de diffusion et l'inscription permanente (EPIC-020). La question d'équilibre (R8, R17) arrive au lot 3, avec la sélection qui s'en sert.
+2. Formulaire public, inscription permanente et lien de diffusion (R8 au complet, R9 à R11, R13, R30 à R32), en deux epics : le formulaire complet, questions propres au jeu et affinités ([EPIC-019](../archive/epics/EPIC-019-formulaire-complet/README.md)), puis le formulaire public, le lien de diffusion et l'inscription permanente ([EPIC-020](../archive/epics/EPIC-020-formulaire-public/README.md)). La question d'équilibre (R8, R17) arrive au lot 3, avec la sélection qui s'en sert.
 3. Sélection (R4, R7, R17 à R21).
 4. Affinités (R23 à R25).
 5. Relations entre personnages et questionnaire relié aux rôles (R8, R26).
@@ -218,3 +220,4 @@ Chaque lot devient un epic, livrable seul :
 - 2026-10-28 (choix après EPIC-001) : la relance est un rappel sans lien, et l'ancien lien reste valable ; la prolongation se fait à une date choisie (R20). Les PNJ du cast entrent dans le suivi des paiements (R22). La fiche allergies compte toutes les personnes qui mangent, cast compris (R15).
 - 2026-10-28 : EPIC-001 (lot 1) terminé et archivé ; ADR-0018 à ADR-0021 acceptés.
 - 2026-10-31 (choix du lot 2) : affinités activables une à une, questions propres au jeu obligatoires au choix (R8). Une personne connectée trouve le formulaire prérempli par son compte et son inscription est reçue sans email de confirmation (R11) ; l'équipe est prévenue de chaque inscription reçue si la période le demande. Le formulaire de l'inscription permanente montre pour information les sessions à venir (R30) ; l'aperçu du lien de diffusion prend l'image du teaser du jeu (R32).
+- 2026-10-31 : EPIC-019 et EPIC-020 (lot 2) terminés et archivés ; ADR-0045 et ADR-0046 acceptés.
