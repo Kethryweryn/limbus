@@ -117,7 +117,7 @@ export function normalizeRegistrationFormDefinition(definition: RegistrationForm
     type: question.type,
     required: Boolean(question.required),
     options: REGISTRATION_CHOICE_TYPES.includes(question.type)
-      ? [...new Set(question.options.map((option) => option.trim()).filter(Boolean))]
+      ? [...new Set((question.options ?? []).map((option) => option.trim()).filter(Boolean))]
       : []
   }))
 

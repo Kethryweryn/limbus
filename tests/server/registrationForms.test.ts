@@ -118,5 +118,8 @@ describe('questions et affinités du formulaire', () => {
     expect(parsed.questionAnswers).toEqual({ 'q-texte': null, 'q-choix': 'Intrigue' })
     expect(schema.safeParse({ ...answers, affinities: { wantWith: ['Léa'] }, questionAnswers: { 'q-choix': 'Autre' } }).success).toBe(false)
     expect(schema.safeParse({ ...answers, questionAnswers: { 'q-choix': 'Combat' } }).success).toBe(false)
+    // Les lignes vides ne comptent pas dans la limite de 20
+    const lines = [...Array(18).fill('Nom'), '', '', '', '']
+    expect(schema.parse({ ...answers, affinities: { wantWith: lines }, questionAnswers: { 'q-choix': 'Intrigue' } }).affinities.wantWith).toHaveLength(18)
   })
 })

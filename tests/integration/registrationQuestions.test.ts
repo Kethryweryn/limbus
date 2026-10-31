@@ -89,6 +89,13 @@ describe('éditeur du formulaire (US-081, US-082)', () => {
     })
     expect((renamed.body as any).version.number).toBe(2)
     expect((renamed.body as any).definition.questions[0].id).toBe(definition.questions[0].id)
+
+
+    // Changer de sorte en fait une autre question
+    const retyped = await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, {
+      standardFields, affinities, questions: [{ ...definition.questions[1], type: 'text' }]
+    })
+    expect((retyped.body as any).definition.questions[0].id).not.toBe(definition.questions[1].id)
   })
 
   it('refuse une question à choix sans deux options, ou un identifiant en double', async () => {
@@ -118,7 +125,7 @@ describe('répondre aux questions et aux affinités (US-081, US-082)', () => {
     expect([403, 404]).toContain((await api(bob, 'GET', `/api/registrations/${registration.id}`)).status)
 
     const exported = await api(alice, 'GET', `/api/participants/${participant.id}/export`)
-    expect(JSON.stringify(exported.body)).toContain('Pour l’ambiance')
+    expect(JSON.stringify(exported.body)).toContain('{"question":"Pourquoi ce jeu ?","answer":"Pour l’ambiance"}')
     expect(JSON.stringify(exported.body)).toContain('Noé')
 
     // Une modification remplace les affinités

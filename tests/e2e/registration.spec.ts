@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { personalLinkToken, startTestSmtp } from '../integration/smtp'
 import { E2E_USERS } from './constants'
-import { expectLoggedIn, login } from './helpers'
+import { expectLoggedIn, login, signIn } from './helpers'
 
 // EPIC-001 : invitation par l'organisatrice → réponse par le lien personnel → présence dans la session
 test('une personne invitée accepte par son lien et rejoint la session', async ({ page, browser }) => {
@@ -99,6 +99,45 @@ test('la personne invitée répond aux questions du jeu et à ses affinités', a
     const saved = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { questionAnswers: true, affinities: { select: { text: true }, orderBy: { position: 'asc' } } } })
     expect(saved.questionAnswers).toEqual({ style: 'Intrigue' })
     expect(saved.affinities.map((affinity) => affinity.text)).toEqual(['Léa', 'Noé'])
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
+// EPIC-019 : l'éditeur ajoute une question à choix et active une affinité
+test('l’éditeur du formulaire ajoute une question et une affinité', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+    const title = `Jeu éditeur ${Date.now()}`
+    const game = await prisma.game.create({ data: { title, slug: `jeu-editeur-${Date.now()}`, description: '', ownerId: owner.id } })
+    await signIn(page, prisma, E2E_USERS.orga)
+    await page.goto('/registrations')
+    await page.waitForLoadState('networkidle')
+    // Le plus petit bloc qui porte à la fois le titre du jeu et son bouton « Formulaire »
+    const panel = page.locator('div')
+      .filter({ has: page.getByRole('heading', { name: title, exact: true }) })
+      .filter({ has: page.getByRole('button', { name: 'Formulaire' }) })
+      .last()
+    await panel.getByRole('button', { name: 'Formulaire' }).click()
+
+    const dialog = page.getByRole('dialog')
+    await dialog.getByRole('checkbox', { name: 'Demandée' }).first().check()
+    await dialog.getByRole('button', { name: 'Ajouter une question' }).click()
+    await dialog.getByLabel('Question', { exact: true }).fill('Ton style de jeu')
+    await dialog.getByRole('combobox').last().click()
+    await page.getByRole('option', { name: 'Choix unique' }).click()
+    await dialog.getByLabel('Options').fill('Combat\nIntrigue\n')
+    // L'aperçu montre la question avant l'enregistrement
+    await expect(dialog.getByText('Intrigue', { exact: true })).toBeVisible()
+    await dialog.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect(dialog.getByText('Version 1 enregistrée.')).toBeVisible()
+
+    const version = await prisma.registrationFormVersion.findFirstOrThrow({ where: { form: { gameId: game.id } } })
+    const definition = version.definition as { affinities: Record<string, { asked: boolean }>, questions: Array<{ id: string, label: string, type: string, options: string[] }> }
+    expect(definition.affinities.wantWith!.asked).toBe(true)
+    expect(definition.questions).toEqual([expect.objectContaining({ label: 'Ton style de jeu', type: 'single', options: ['Combat', 'Intrigue'] })])
+    expect(definition.questions[0]!.id).toBeTruthy()
   } finally {
     await prisma.$disconnect()
   }

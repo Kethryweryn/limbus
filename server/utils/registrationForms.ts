@@ -29,9 +29,7 @@ export async function getCurrentRegistrationForm(gameId: string) {
 
   return {
     version: version ? { id: version.id, number: version.number, createdAt: version.createdAt } : null,
-    definition: version
-      ? normalizeRegistrationFormDefinition(version.definition as RegistrationFormDefinition)
-      : DEFAULT_REGISTRATION_FORM_DEFINITION
+    definition: normalizeRegistrationFormDefinition(version ? version.definition as RegistrationFormDefinition : DEFAULT_REGISTRATION_FORM_DEFINITION)
   }
 }
 
@@ -40,12 +38,17 @@ export async function getCurrentRegistrationForm(gameId: string) {
  * sinon rien. Deux enregistrements simultanés se départagent sur l'unicité (formId, number) : 409.
  */
 export async function saveRegistrationFormDefinition(gameId: string, definition: RegistrationFormDefinition, baseVersionNumber?: number | null) {
-  // Une nouvelle question reçoit son identifiant, qui la suit d'une version à l'autre (ADR-0045)
+  const current = await getCurrentRegistrationForm(gameId)
+  // Une nouvelle question reçoit son identifiant, qui la suit d'une version à l'autre (ADR-0045) ; changer de sorte
+  // en fait une autre question : ses réponses d'avant n'ont plus le même sens
+  const currentTypes = new Map(current.definition.questions.map((question) => [question.id, question.type]))
   const normalized = normalizeRegistrationFormDefinition({
     ...definition,
-    questions: definition.questions?.map((question) => ({ ...question, id: question.id || randomUUID() }))
+    questions: definition.questions?.map((question) => {
+      const kept = question.id && (!currentTypes.has(question.id) || currentTypes.get(question.id) === question.type)
+      return { ...question, id: kept ? question.id : randomUUID() }
+    })
   })
-  const current = await getCurrentRegistrationForm(gameId)
   // L'éditeur s'appuyait sur une version dépassée : enregistrer écraserait les changements d'une autre organisatrice
   if (baseVersionNumber !== undefined && (current.version?.number ?? null) !== baseVersionNumber) {
     throw createError({ statusCode: 409, message: 'Le formulaire a été modifié par quelqu’un d’autre depuis son ouverture : rechargez-le avant d’enregistrer.' })
@@ -91,10 +94,12 @@ function answerField(definition: NormalizedRegistrationFormDefinition, key: Regi
 // Une affinité : une ligne par personne ou relation citée, lignes vides retirées (US-082)
 function affinityField(setting: RegistrationFieldSetting, label: string) {
   if (!setting.asked) return z.unknown().optional().transform((): string[] => [])
-  const lines = z.array(z.string().trim().max(REGISTRATION_AFFINITY_MAX_LENGTH, `${label} : ${REGISTRATION_AFFINITY_MAX_LENGTH} caractères au plus par ligne`))
-    .max(REGISTRATION_AFFINITY_MAX_LINES, `${label} : ${REGISTRATION_AFFINITY_MAX_LINES} lignes au plus`)
-    .optional().nullable()
-    .transform((values) => (values ?? []).filter(Boolean))
+  // Les lignes vides sont retirées avant de compter : une ligne laissée en fin de saisie ne compte pas
+  const lines = z.preprocess(
+    (values) => Array.isArray(values) ? values.filter((value) => typeof value !== 'string' || value.trim()) : values ?? [],
+    z.array(z.string().trim().max(REGISTRATION_AFFINITY_MAX_LENGTH, `${label} : ${REGISTRATION_AFFINITY_MAX_LENGTH} caractères au plus par ligne`))
+      .max(REGISTRATION_AFFINITY_MAX_LINES, `${label} : ${REGISTRATION_AFFINITY_MAX_LINES} lignes au plus`)
+  )
   return setting.required ? lines.refine((values) => values.length > 0, `${label} : réponse obligatoire`) : lines
 }
 
