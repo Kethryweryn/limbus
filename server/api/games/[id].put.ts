@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   await assertUnmodifiedSince(event, 'game', id)
 
   const body = await readZodBody(event, updateGameSchema)
-  const { title, description, teaserUrl, noteIntention, published, publicPage, singlePjPerParticipant } = body
+  const { title, description, teaserUrl, noteIntention, published, publicPage, publicShowSessions, publicShowRegistration, singlePjPerParticipant } = body
 
   const data: any = {
     description,
@@ -22,6 +22,8 @@ export default defineEventHandler(async (event) => {
     noteIntention,
     published,
     publicPage: published === false ? false : publicPage,
+    publicShowSessions,
+    publicShowRegistration,
     singlePjPerParticipant
   }
 

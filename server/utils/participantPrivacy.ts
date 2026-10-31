@@ -81,6 +81,8 @@ export async function exportParticipantData(participantId: string, gameIds: stri
           // Réponses aux questions et affinités (US-081, US-082)
           questionAnswers: true,
           formVersion: { select: { definition: true } },
+          // Sessions où la personne s'est dite disponible (R10)
+          availabilities: { select: { session: { select: { name: true, date: true } } } },
           affinities: { select: { kind: true, text: true }, orderBy: { position: 'asc' } },
           invitationSentAt: true,
           lastRemindedAt: true,

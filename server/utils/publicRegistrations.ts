@@ -4,8 +4,9 @@ import { accountIdForEmail, syncProfileToParticipants } from '~/server/utils/par
 import { assertRateLimit } from '~/server/utils/rateLimit'
 import { sendEmail } from '~/server/utils/email'
 import { hashRegistrationToken } from '~/server/utils/registrations'
+import { asksAvailability } from '~/server/utils/registrationAvailability'
 import { getCurrentRegistrationForm, saveRegistrationFormDefinition, type AffinityAnswers, type QuestionAnswers } from '~/server/utils/registrationForms'
-import { REGISTRATION_PERIOD_STATES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
+import { REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
 import { effectivePeriodState } from '~/utils/registrationPeriods'
 import { isInvitationOverdue, registrationLinkExpired, splitParticipantName } from '~/utils/registrations'
 import {
@@ -23,6 +24,7 @@ const TOKEN_PATTERN = /^[\w-]{43}$/
 const publicRegistrationSelect = {
   id: true,
   status: true,
+  source: true,
   sessionId: true,
   participantId: true,
   email: true,
@@ -37,6 +39,7 @@ const publicRegistrationSelect = {
   charterAcceptedAt: true,
   questionAnswers: true,
   affinities: { select: { kind: true, text: true }, orderBy: { position: 'asc' as const } },
+  availabilities: { select: { sessionId: true } },
   responseDueAt: true,
   respondedAt: true,
   confirmedAt: true,
@@ -56,8 +59,9 @@ const publicRegistrationSelect = {
       gameId: true,
       state: true,
       closesAt: true,
+      scope: true,
       game: { select: { title: true, noteIntention: true } },
-      sessions: { select: { session: { select: { date: true } } } }
+      sessions: { orderBy: { session: { date: 'asc' as const } }, select: { session: { select: { id: true, name: true, date: true } } } }
     }
   }
 } as const
@@ -111,17 +115,18 @@ export async function requireRegistrationByToken(token: string | undefined) {
  * - une invitation sans réponse s'accepte ou se décline, même après l'échéance ou la clôture,
  *   tant que les orgas n'ont pas libéré la place (elle serait alors désistée) ;
  * - une inscription confirmée se modifie jusqu'à la clôture, et se désiste même après (US-006) ;
+ * - une inscription reçue par le formulaire aussi : modifiable jusqu'à la clôture, retirée à tout moment (US-085) ;
  * - une inscription désistée ne permet plus rien.
  */
 export function registrationPermissions(registration: { status: string, period: { state: string, closesAt: Date | null } }, now = new Date()) {
   const open = effectivePeriodState(registration.period, now) === REGISTRATION_PERIOD_STATES.open
   const invited = registration.status === REGISTRATION_STATUSES.invited
-  const confirmed = registration.status === REGISTRATION_STATUSES.confirmed
+  const active = registration.status === REGISTRATION_STATUSES.confirmed || registration.status === REGISTRATION_STATUSES.received
   return {
     canAccept: invited,
     canDecline: invited,
-    canEdit: confirmed && open,
-    canWithdraw: confirmed
+    canEdit: active && open,
+    canWithdraw: active
   }
 }
 
@@ -146,8 +151,11 @@ export async function registrationFormDefinition(registration: PublicRegistratio
  * version 1. Deux premières réponses simultanées se partagent cette version au lieu de se gêner.
  */
 export async function frozenFormVersionId(registration: PublicRegistration, versionId: string | null) {
+  return await freezeFormVersion(registration.period.gameId, versionId)
+}
+
+export async function freezeFormVersion(gameId: string, versionId: string | null) {
   if (versionId) return versionId
-  const gameId = registration.period.gameId
   try {
     return (await saveRegistrationFormDefinition(gameId, DEFAULT_REGISTRATION_FORM_DEFINITION)).version!.id
   } catch (error) {
@@ -157,8 +165,10 @@ export async function frozenFormVersionId(registration: PublicRegistration, vers
 }
 
 // Ce que la page dit d'une inscription désistée, selon qui y a mis fin et quand
-export function withdrawalReason(registration: Pick<PublicRegistration, 'confirmedAt' | 'withdrawnById'>) {
+export function withdrawalReason(registration: Pick<PublicRegistration, 'confirmedAt' | 'withdrawnById'> & { source?: string }) {
   if (registration.confirmedAt) return registration.withdrawnById ? 'removed' : 'withdrawn'
+  // Inscription par le formulaire, retirée avant toute sélection (US-085)
+  if (registration.source === REGISTRATION_SOURCES.form) return registration.withdrawnById ? 'removed' : 'retracted'
   return registration.withdrawnById ? 'released' : 'declined'
 }
 
@@ -185,6 +195,10 @@ export async function exposePublicRegistration(registration: PublicRegistration,
     confirmedAt: registration.confirmedAt,
     ...registrationPermissions(registration, now),
     definition: await registrationFormDefinition(registration),
+    // Disponibilités d'une inscription par le formulaire à plusieurs sessions (R10)
+    availability: registration.status === REGISTRATION_STATUSES.received && asksAvailability(registration.period)
+      ? { sessions: registration.period.sessions.map((link) => link.session) }
+      : null,
     answers: {
       email: registration.email,
       firstName: answered ? registration.firstName : registration.firstName ?? prefill.firstName,
@@ -197,7 +211,8 @@ export async function exposePublicRegistration(registration: PublicRegistration,
       healthConsent: Boolean(registration.healthConsentAt ?? profile?.healthConsentAt),
       charterAccepted: Boolean(registration.charterAcceptedAt),
       affinities: groupAffinities(registration.affinities),
-      questionAnswers: (registration.questionAnswers ?? {}) as QuestionAnswers
+      questionAnswers: (registration.questionAnswers ?? {}) as QuestionAnswers,
+      availableSessionIds: registration.availabilities.map((availability) => availability.sessionId)
     }
   }
 }
@@ -212,6 +227,8 @@ export function groupAffinities(rows: Array<{ kind: string, text: string }>) {
 export type RegistrationAnswers = {
   affinities?: AffinityAnswers
   questionAnswers?: QuestionAnswers
+  // Inscription par le formulaire : sessions où la personne est disponible (R10) ; absent, rien ne change
+  availableSessionIds?: string[]
   email: string
   firstName: string | null
   lastName: string | null
@@ -242,7 +259,7 @@ export async function answerFormDefinition(registration: PublicRegistration) {
 export async function saveRegistrationAnswers(registration: PublicRegistration, versionId: string, allAnswers: RegistrationAnswers, definition: RegistrationFormDefinition, updateAccount = false) {
   const now = new Date()
   const accepting = registration.status === REGISTRATION_STATUSES.invited
-  const { affinities, questionAnswers, ...answers } = allAnswers
+  const { affinities, questionAnswers, availableSessionIds, ...answers } = allAnswers
   const data = {
     ...answers,
     // Réponses aux questions propres au jeu (US-081) ; les affinités sont rangées à part (US-082)
@@ -264,6 +281,12 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
     await tx.registrationAffinity.deleteMany({ where: { registrationId: registration.id } })
     const rows = Object.entries(affinities ?? {}).flatMap(([kind, lines]) => lines.map((text, position) => ({ registrationId: registration.id, kind, text, position })))
     if (rows.length) await tx.registrationAffinity.createMany({ data: rows })
+    if (availableSessionIds) {
+      await tx.registrationAvailability.deleteMany({ where: { registrationId: registration.id } })
+      if (availableSessionIds.length) {
+        await tx.registrationAvailability.createMany({ data: availableSessionIds.map((sessionId) => ({ registrationId: registration.id, sessionId })) })
+      }
+    }
     // L'adresse donnée fait foi ; le rattachement au compte la suit (US-070)
     await tx.participant.update({ where: { id: registration.participantId }, data: { email: answers.email, userId: await accountIdForEmail(answers.email) } })
     if (accepting && registration.sessionId) {
@@ -282,26 +305,29 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
   })
 
   // Réponse depuis le compte : elle met aussi à jour ses coordonnées, recopiées ensuite partout (US-074). Pas par
-  // le lien personnel, qui peut avoir été transmis. Un champ que ce formulaire ne demande pas ne les touche pas
+  // le lien personnel, qui peut avoir été transmis
   const linked = updateAccount ? await prisma.participant.findUnique({ where: { id: registration.participantId }, select: { userId: true } }) : null
-  if (linked?.userId) {
-    const now = new Date()
-    const asked = normalizeRegistrationFormDefinition(definition).standardFields
-    const answeredName = [answers.firstName, answers.lastName].filter(Boolean).join(' ').trim()
-    await prisma.user.update({
-      where: { id: linked.userId },
-      data: {
-        ...(answeredName ? { name: answeredName } : {}),
-        ...(asked.phone.asked ? { phone: answers.phone } : {}),
-        ...(asked.emergencyContact.asked ? { emergencyContactName: answers.emergencyContactName, emergencyContactPhone: answers.emergencyContactPhone } : {}),
-        ...(asked.dietary.asked ? { dietary: answers.dietary, healthConsentAt: answers.dietary ? now : null } : {}),
-        profileUpdatedAt: now
-      }
-    })
-    await syncProfileToParticipants(linked.userId)
-  }
+  if (linked?.userId) await updateProfileFromAnswers(linked.userId, answers, definition)
 
   return { accepted: accepting }
+}
+
+// Coordonnées du compte reprises d'une réponse faite connectée ; un champ que ce formulaire ne demande pas ne les touche pas
+export async function updateProfileFromAnswers(userId: string, answers: RegistrationAnswers, definition: RegistrationFormDefinition) {
+  const now = new Date()
+  const asked = normalizeRegistrationFormDefinition(definition).standardFields
+  const answeredName = [answers.firstName, answers.lastName].filter(Boolean).join(' ').trim()
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      ...(answeredName ? { name: answeredName } : {}),
+      ...(asked.phone.asked ? { phone: answers.phone } : {}),
+      ...(asked.emergencyContact.asked ? { emergencyContactName: answers.emergencyContactName, emergencyContactPhone: answers.emergencyContactPhone } : {}),
+      ...(asked.dietary.asked ? { dietary: answers.dietary, healthConsentAt: answers.dietary ? now : null } : {}),
+      profileUpdatedAt: now
+    }
+  })
+  await syncProfileToParticipants(userId)
 }
 
 // Décliner une invitation sans réponse : l'inscription passe à désistée, sans formulaire (R16)

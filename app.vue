@@ -115,8 +115,8 @@ const toast = useToast()
 const route = useRoute()
 // /acces/ : inscription, confirmation et mot de passe, ouverts sans connexion (EPIC-013)
 const isPublicRoute = computed(() => ['/public/', '/invitations/', '/acces/'].some((prefix) => route.path.startsWith(prefix)))
-// Liens personnels d'inscription (US-004) et de confirmation de présence (US-024)
-const isPersonalLinkRoute = computed(() => route.path.startsWith('/inscription/') || route.path.startsWith('/presence/'))
+// Liens personnels d'inscription (US-004) et de confirmation de présence (US-024), lien de diffusion (US-084)
+const isPersonalLinkRoute = computed(() => ['/inscription/', '/presence/', '/i/'].some((prefix) => route.path.startsWith(prefix)))
 let authCheckInProgress = false
 
 function hasValidOfflineAuth() {

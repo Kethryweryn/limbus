@@ -6,7 +6,7 @@ import { openEmailTransport, sendEmail, type EmailTransport } from '~/server/uti
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
 import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
-import { REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
+import { REGISTRATION_ENTRY_MODES, REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
 import { effectivePeriodState } from '~/utils/registrationPeriods'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -164,6 +164,7 @@ async function sendInvitationEmail(transport: EmailTransport | null, target: Inv
 const periodForInvitationSelect = {
   id: true,
   gameId: true,
+  entryMode: true,
   state: true,
   closesAt: true,
   responseDelayDays: true,
@@ -186,6 +187,9 @@ export async function inviteToRegistrationPeriod(params: {
   inviter: { id: string, name?: string | null }
 }) {
   const period = await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: params.periodId }, select: periodForInvitationSelect })
+  if (period.entryMode !== REGISTRATION_ENTRY_MODES.invitation) {
+    throw createError({ statusCode: 409, message: 'Cette période d’inscription est en mode formulaire : on s’y inscrit par son lien de diffusion.' })
+  }
   if (effectivePeriodState(period) !== REGISTRATION_PERIOD_STATES.open) {
     throw createError({ statusCode: 409, message: 'La période d’inscription doit être ouverte pour inviter' })
   }
@@ -542,7 +546,8 @@ export function registrationWithdrawalEmailText(params: {
 }
 
 // Prévient l'équipe du jeu (propriétaire et co-organisatrices) ; un échec d'envoi n'annule pas le désistement
-async function notifyOrganizersOfWithdrawal(gameId: string, text: string, subject: string) {
+// Email à la propriétaire et aux co-organisatrices du jeu ; un échec est seulement signalé
+export async function notifyGameTeam(gameId: string, text: string, subject: string) {
   const game = await prisma.game.findUniqueOrThrow({
     where: { id: gameId },
     select: { owner: { select: { email: true } }, shares: { select: { user: { select: { email: true } } } } }
@@ -581,11 +586,11 @@ export async function withdrawRegistration(registrationId: string, withdrawnBy: 
   const photoUrls = await prisma.$transaction(async (tx) => {
     // Le statut est revérifié dans l'écriture : deux désistements simultanés n'en font qu'un
     const { count } = await tx.registration.updateMany({
-      where: { id: registration.id, status: REGISTRATION_STATUSES.confirmed },
+      where: { id: registration.id, status: { in: [REGISTRATION_STATUSES.confirmed, REGISTRATION_STATUSES.received] } },
       data: { status: REGISTRATION_STATUSES.withdrawn, withdrawnAt: new Date(), withdrawnById: withdrawnBy?.id ?? null }
     })
     if (!count) {
-      throw createError({ statusCode: 409, message: 'Seule une inscription confirmée peut faire l’objet d’un désistement.' })
+      throw createError({ statusCode: 409, message: 'Seule une inscription confirmée ou reçue peut faire l’objet d’un désistement.' })
     }
     if (!registration.sessionId) return []
 
@@ -613,7 +618,7 @@ async function afterWithdrawal(
       .then(() => 'regenerated' as const)
       .catch(() => 'failed' as const)
   }
-  return await notifyOrganizersOfWithdrawal(
+  return await notifyGameTeam(
     registration.period.gameId,
     registrationWithdrawalEmailText({
       participantName: registration.participant.name,

@@ -6,7 +6,25 @@
           <UInput v-model="form.name" placeholder="Sessions du printemps" required class="w-full" />
         </UFormField>
 
-        <UFormField label="Sessions" :error="errors.sessions" description="Une session ne peut appartenir qu’à une seule période d’inscription.">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <UFormField label="Mode d’inscription" :description="period?.id ? 'Fixé à la création.' : undefined">
+            <USelect v-model="form.entryMode" :items="ENTRY_MODE_ITEMS" value-key="value" :disabled="Boolean(period?.id)" class="w-full" @update:model-value="onEntryModeChange" />
+          </UFormField>
+          <UFormField v-if="form.entryMode === REGISTRATION_ENTRY_MODES.form" label="Portée" :description="period?.id ? 'Fixée à la création.' : undefined">
+            <USelect v-model="form.scope" :items="SCOPE_ITEMS" value-key="value" :disabled="Boolean(period?.id)" class="w-full" />
+          </UFormField>
+        </div>
+        <p v-if="permanent" class="text-sm text-gray-600">
+          L’inscription permanente couvre toutes les sessions du jeu, présentes et futures, sauf celles qui ont leur propre période. Les personnes inscrites forment un vivier ; elle n’a pas de date de clôture : vous la clôturez à la main.
+        </p>
+        <AppCheckboxRow
+          v-if="form.entryMode === REGISTRATION_ENTRY_MODES.form"
+          v-model="form.notifyTeam"
+          label="Me prévenir de chaque inscription reçue"
+          description="La propriétaire et les co-organisatrices reçoivent un email pour chaque inscription dont l’adresse est confirmée."
+        />
+
+        <UFormField v-if="!permanent" label="Sessions" :error="errors.sessions" description="Une session ne peut appartenir qu’à une seule période d’inscription.">
           <div class="space-y-2">
             <div
               v-for="session in context.sessions"
@@ -38,10 +56,10 @@
         </UFormField>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <UFormField label="Clôture" description="Facultative : la période se clôture d’elle-même à cette date." :error="errors.closesAt">
+          <UFormField v-if="!permanent" label="Clôture" description="Facultative : la période se clôture d’elle-même à cette date." :error="errors.closesAt">
             <UInput v-model="form.closesAt" type="datetime-local" class="w-full" />
           </UFormField>
-          <UFormField label="Délai de réponse (jours)" description="Accordé à chaque personne invitée." :error="errors.responseDelayDays">
+          <UFormField label="Délai de réponse (jours)" description="Accordé à chaque personne invitée ou retenue." :error="errors.responseDelayDays">
             <UInput v-model.number="form.responseDelayDays" type="number" min="1" max="90" required class="w-full" />
           </UFormField>
         </div>
@@ -67,8 +85,17 @@
 </template>
 
 <script setup>
-import { REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS, REGISTRATION_PERIOD_STATES } from '~/utils/domain'
+import { REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS, REGISTRATION_ENTRY_MODES, REGISTRATION_PERIOD_SCOPES, REGISTRATION_PERIOD_STATES } from '~/utils/domain'
 import { apiErrorMessage } from '~/utils/apiErrors'
+
+const ENTRY_MODE_ITEMS = [
+  { value: REGISTRATION_ENTRY_MODES.invitation, label: 'Sur invitation' },
+  { value: REGISTRATION_ENTRY_MODES.form, label: 'Formulaire public' }
+]
+const SCOPE_ITEMS = [
+  { value: REGISTRATION_PERIOD_SCOPES.sessions, label: 'Des sessions précises' },
+  { value: REGISTRATION_PERIOD_SCOPES.game, label: 'Tout le jeu (inscription permanente)' }
+]
 
 const open = defineModel('open', { type: Boolean, default: false })
 
@@ -99,9 +126,19 @@ watch(open, async (value) => {
   resetForm()
 })
 
+// Inscription permanente : sans sessions ni date de clôture (R30)
+const permanent = computed(() => form.value.scope === REGISTRATION_PERIOD_SCOPES.game)
+
+function onEntryModeChange(mode) {
+  if (mode !== REGISTRATION_ENTRY_MODES.form) form.value.scope = REGISTRATION_PERIOD_SCOPES.sessions
+}
+
 function emptyForm() {
   return {
     name: '',
+    entryMode: REGISTRATION_ENTRY_MODES.invitation,
+    scope: REGISTRATION_PERIOD_SCOPES.sessions,
+    notifyTeam: false,
     closesAt: '',
     responseDelayDays: REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS,
     state: REGISTRATION_PERIOD_STATES.draft,
@@ -119,6 +156,9 @@ function resetForm() {
 
   form.value = {
     name: period.name,
+    entryMode: period.entryMode,
+    scope: period.scope,
+    notifyTeam: Boolean(period.notifyTeam),
     closesAt: toDateTimeLocal(period.closesAt),
     responseDelayDays: period.responseDelayDays,
     state: period.state,
@@ -162,7 +202,9 @@ function toDateTimeLocal(value) {
 function validate() {
   errors.value = {}
   if (!form.value.name?.trim()) errors.value.name = 'Le nom est requis.'
-  if (!Object.keys(seatsBySession.value).length) errors.value.sessions = 'Choisissez au moins une session.'
+  if (permanent.value) {
+    // Pas de sessions à vérifier
+  } else if (!Object.keys(seatsBySession.value).length) errors.value.sessions = 'Choisissez au moins une session.'
   // Un champ vidé n'est pas « nombre de PJ par défaut » : on demande une valeur explicite
   else if (Object.values(seatsBySession.value).some((seats) => !Number.isInteger(seats) || seats < 0 || seats > 1000)) {
     errors.value.sessions = 'Indiquez pour chaque session un nombre de places entre 0 et 1000.'
@@ -181,10 +223,12 @@ async function submit() {
     const body = {
       name: form.value.name,
       gameId: props.gameId,
+      ...(props.period?.id ? {} : { entryMode: form.value.entryMode, scope: form.value.scope }),
+      notifyTeam: form.value.entryMode === REGISTRATION_ENTRY_MODES.form && form.value.notifyTeam,
       state: form.value.state,
-      closesAt: form.value.closesAt ? new Date(form.value.closesAt).toISOString() : null,
+      closesAt: !permanent.value && form.value.closesAt ? new Date(form.value.closesAt).toISOString() : null,
       responseDelayDays: Number(form.value.responseDelayDays),
-      sessions: Object.entries(seatsBySession.value).map(([sessionId, seats]) => ({ sessionId, seats })),
+      sessions: permanent.value ? [] : Object.entries(seatsBySession.value).map(([sessionId, seats]) => ({ sessionId, seats })),
       updatedAt: form.value.updatedAt
     }
     const saved = props.period?.id

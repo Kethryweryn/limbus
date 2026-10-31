@@ -47,8 +47,12 @@
             <div class="flex flex-wrap items-center gap-2">
               <span class="font-medium">{{ period.name }}</span>
               <UBadge :color="stateMeta(period).color" variant="subtle">{{ stateMeta(period).label }}</UBadge>
+              <UBadge color="neutral" variant="outline">{{ isFormPeriod(period) ? 'Formulaire public' : 'Sur invitation' }}</UBadge>
             </div>
-            <ul class="text-sm text-gray-600">
+            <p v-if="isPermanent(period)" class="text-sm text-gray-600">
+              Inscription permanente : toutes les sessions du jeu sans période dédiée.
+            </p>
+            <ul v-else class="text-sm text-gray-600">
               <li v-for="link in period.sessions" :key="link.sessionId">
                 {{ link.session.name }}<span v-if="link.session.date"> · {{ formatDate(link.session.date) }}</span>
                 · {{ link.seats }} place{{ link.seats > 1 ? 's' : '' }}
@@ -57,7 +61,16 @@
             <p class="text-xs text-gray-500">
               Délai de réponse : {{ period.responseDelayDays }} jour{{ period.responseDelayDays > 1 ? 's' : '' }}
               <span v-if="period.closesAt"> · clôture le {{ formatDateTime(period.closesAt) }}</span>
+              <span v-if="period.notifyTeam"> · équipe prévenue de chaque inscription</span>
             </p>
+            <!-- Lien de diffusion à copier pour les annonces (R32) -->
+            <div v-if="isFormPeriod(period)" class="flex flex-wrap items-center gap-2 pt-1 text-sm">
+              <code class="rounded bg-gray-100 px-2 py-0.5 text-xs">{{ diffusionUrl(period) }}</code>
+              <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-clipboard" @click="copyDiffusionUrl(period)">
+                Copier le lien
+              </UButton>
+              <span v-if="period.effectiveState === REGISTRATION_PERIOD_STATES.draft" class="text-xs text-gray-500">actif une fois la période ouverte</span>
+            </div>
           </div>
 
           <div class="flex flex-wrap gap-2">
@@ -97,7 +110,48 @@
           </div>
         </div>
 
-        <div v-for="link in period.sessions" :key="`registrations-${link.sessionId}`" class="mt-4 space-y-2 border-t border-gray-100 pt-3">
+        <!-- Mode formulaire : les inscriptions reçues, en attente de la sélection (lot 3) -->
+        <div v-if="isFormPeriod(period)" class="mt-4 space-y-2 border-t border-gray-100 pt-3">
+          <h3 class="text-sm font-semibold text-gray-700">
+            Inscriptions reçues : {{ receivedCount(period) }}
+          </h3>
+          <ul v-if="(registrationsByPeriod[period.id] || []).length" class="divide-y divide-gray-100 text-sm">
+            <li
+              v-for="registration in registrationsByPeriod[period.id]"
+              :key="registration.id"
+              class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div class="min-w-0">
+                <span class="font-medium text-gray-800">{{ registration.participant.name }}</span>
+                <UBadge class="ml-2" size="sm" :color="statusMeta(registration).color" variant="subtle">{{ statusMeta(registration).label }}</UBadge>
+                <div class="text-xs text-gray-500">
+                  {{ registration.email }}
+                  <span v-if="registration.respondedAt"> · le {{ formatDate(registration.respondedAt) }}</span>
+                  <span v-if="availabilityLabel(period, registration)"> · disponible : {{ availabilityLabel(period, registration) }}</span>
+                  <template v-if="registration.status === REGISTRATION_STATUSES.withdrawn"> · {{ withdrawalLabel(registration) }}</template>
+                </div>
+              </div>
+              <div class="flex shrink-0 flex-wrap gap-2">
+                <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="showDetail(registration)">
+                  Détail
+                </UButton>
+                <UButton
+                  v-if="registration.status === REGISTRATION_STATUSES.received || registration.status === REGISTRATION_STATUSES.confirmed"
+                  size="xs"
+                  color="error"
+                  variant="soft"
+                  icon="i-heroicons-user-minus"
+                  @click="withdraw(registration)"
+                >
+                  Retirer
+                </UButton>
+              </div>
+            </li>
+          </ul>
+          <p v-else class="text-sm text-gray-500">Aucune inscription pour l’instant : partagez le lien de diffusion.</p>
+        </div>
+
+        <div v-for="link in (isFormPeriod(period) ? [] : period.sessions)" :key="`registrations-${link.sessionId}`" class="mt-4 space-y-2 border-t border-gray-100 pt-3">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h3 class="text-sm font-semibold text-gray-700">
@@ -270,6 +324,8 @@
 
 <script setup>
 import {
+  REGISTRATION_ENTRY_MODES,
+  REGISTRATION_PERIOD_SCOPES,
   REGISTRATION_PERIOD_STATE_META,
   REGISTRATION_PERIOD_STATES,
   REGISTRATION_STATUSES
@@ -317,6 +373,30 @@ async function refresh() {
   }
 }
 
+const isFormPeriod = (period) => period.entryMode === REGISTRATION_ENTRY_MODES.form
+const isPermanent = (period) => period.scope === REGISTRATION_PERIOD_SCOPES.game
+// Aussi au rendu côté serveur : l'origine vient de la requête, pas de window
+const appOrigin = useRequestURL().origin
+const diffusionUrl = (period) => `${appOrigin}/i/${period.publicId}`
+const receivedCount = (period) => (registrationsByPeriod.value[period.id] || []).filter((registration) => registration.status === REGISTRATION_STATUSES.received).length
+
+// Disponibilités d'une inscription par le formulaire (R10), dans l'ordre des sessions de la période
+function availabilityLabel(period, registration) {
+  const ids = new Set((registration.availabilities || []).map((availability) => availability.sessionId))
+  return period.sessions.filter((link) => ids.has(link.sessionId)).map((link) => link.session.name).join(', ')
+}
+
+async function copyDiffusionUrl(period) {
+  try {
+    await navigator.clipboard.writeText(diffusionUrl(period))
+    infoColor.value = 'success'
+    infoMessage.value = 'Lien de diffusion copié.'
+  } catch {
+    infoColor.value = 'warning'
+    infoMessage.value = `Copiez le lien à la main : ${diffusionUrl(period)}`
+  }
+}
+
 function sessionRegistrations(period, sessionId) {
   return (registrationsByPeriod.value[period.id] || []).filter((registration) => registration.sessionId === sessionId)
 }
@@ -345,7 +425,8 @@ function withdrawalLabel(registration) {
   if (registration.withdrawnBy) {
     return `${registration.confirmedAt ? 'retirée' : 'place libérée'} le ${date} par ${registration.withdrawnBy.name}`
   }
-  return registration.confirmedAt ? `désistée le ${date} par la personne` : `invitation déclinée le ${date}`
+  if (registration.confirmedAt) return `désistée le ${date} par la personne`
+  return registration.source === 'form' ? `retirée le ${date} par la personne` : `invitation déclinée le ${date}`
 }
 
 // « Délai dépassé » se lit sur l'échéance (R20, ADR-0020)
@@ -388,7 +469,11 @@ async function release(registration) {
 }
 
 async function withdraw(registration) {
-  if (!confirm(`Retirer ${registration.participant.name} de la session ? Ses personnages (PJ et PNJ) seront libérés, les trombinoscopes régénérés et l’équipe prévenue par email.`)) return
+  // Inscription reçue par le formulaire : pas encore de session ni de personnage
+  const received = registration.status === REGISTRATION_STATUSES.received
+  if (!confirm(received
+    ? `Retirer l’inscription de ${registration.participant.name} ? L’équipe sera prévenue par email.`
+    : `Retirer ${registration.participant.name} de la session ? Ses personnages (PJ et PNJ) seront libérés, les trombinoscopes régénérés et l’équipe prévenue par email.`)) return
   await registrationAction(registration, 'withdraw', undefined, `${registration.participant.name} a été retirée de la session.`)
 }
 

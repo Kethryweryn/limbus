@@ -142,3 +142,46 @@ test('l’éditeur du formulaire ajoute une question et une affinité', async ({
     await prisma.$disconnect()
   }
 })
+
+// EPIC-020 : s'inscrire par le lien de diffusion, puis confirmer son adresse par le lien reçu
+test('une personne s’inscrit par le lien de diffusion et confirme son adresse', async ({ browser }) => {
+  const prisma = createTestPrisma()
+  const smtp = await startTestSmtp(prisma)
+  try {
+    const key = `diffusion-${Date.now()}`
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+    const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id, noteIntention: 'Un jeu de diffusion.' } })
+    const sessions = await Promise.all([1, 2].map((index) => prisma.session.create({
+      data: { name: `Session ${index} ${key}`, slug: `session-${index}-${key}`, gameId: game.id, date: new Date(`2099-0${index}-15T09:00:00Z`) }
+    })))
+    const period = await prisma.registrationPeriod.create({
+      data: { name: 'Printemps', gameId: game.id, publicId: `d${Date.now().toString(36)}`, entryMode: 'form', state: 'open', sessions: { create: sessions.map((session) => ({ sessionId: session.id, seats: 3 })) } }
+    })
+
+    const guest = await (await browser.newContext()).newPage()
+    await guest.goto(`/i/${period.publicId}`)
+    await guest.waitForLoadState('networkidle')
+    await expect(guest.getByRole('heading', { name: game.title })).toBeVisible()
+    await guest.getByLabel('Email').fill(`marie-${key}@example.test`)
+    await guest.getByLabel('Prénom').fill('Marie')
+    await guest.getByLabel('Nom', { exact: true }).fill('Curie')
+    await guest.getByLabel('Téléphone', { exact: true }).fill('0612345678')
+    await guest.getByLabel('Contact d’urgence : nom').fill('Pierre')
+    await guest.getByLabel('Contact d’urgence : téléphone').fill('0698765432')
+    await guest.getByLabel(new RegExp(`^Session 2 ${key}`)).check()
+    await guest.getByLabel('J’ai lu la note d’intention et j’y adhère').check()
+    await guest.getByRole('button', { name: 'M’inscrire' }).click()
+    await expect(guest.getByText('Vérifiez votre boîte mail.')).toBeVisible()
+
+    await expect.poll(() => smtp.received.filter((message) => message.to.includes(`marie-${key}@example.test`)).length).toBe(1)
+    const token = personalLinkToken(smtp.received.find((message) => message.to.includes(`marie-${key}@example.test`))!)
+    await guest.goto(`/inscription/${token}`)
+    await expect(guest.getByText('Votre adresse est confirmée : votre inscription est reçue.')).toBeVisible()
+
+    const registration = await prisma.registration.findFirstOrThrow({ where: { periodId: period.id }, select: { status: true, availabilities: { select: { sessionId: true } } } })
+    expect(registration).toEqual({ status: 'received', availabilities: [{ sessionId: sessions[1]!.id }] })
+  } finally {
+    await smtp.stop()
+    await prisma.$disconnect()
+  }
+})

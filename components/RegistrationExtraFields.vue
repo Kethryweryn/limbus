@@ -44,16 +44,14 @@
           :disabled="disabled"
           @update:model-value="setAnswer(question.id, $event)"
         />
-        <div v-else-if="question.type === 'multiple'" class="space-y-1">
-          <UCheckbox
-            v-for="option in question.options"
-            :key="option"
-            :label="option"
-            :model-value="(answers[question.id] || []).includes(option)"
-            :disabled="disabled"
-            @update:model-value="toggleOption(question.id, option, $event)"
-          />
-        </div>
+        <!-- Un groupe, pas des cases isolées : dans un champ, chaque case prendrait le libellé du champ -->
+        <UCheckboxGroup
+          v-else-if="question.type === 'multiple'"
+          :model-value="answers[question.id] || []"
+          :items="question.options"
+          :disabled="disabled"
+          @update:model-value="setAnswer(question.id, $event)"
+        />
         <URadioGroup
           v-else
           :model-value="answers[question.id] ?? undefined"
@@ -93,10 +91,5 @@ function setAffinity(key, text) {
 
 function setAnswer(id, value) {
   answers.value = { ...answers.value, [id]: value }
-}
-
-function toggleOption(id, option, checked) {
-  const current = answers.value[id] || []
-  setAnswer(id, checked ? [...current, option] : current.filter((item) => item !== option))
 }
 </script>

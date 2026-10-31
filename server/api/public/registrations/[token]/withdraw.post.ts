@@ -6,14 +6,14 @@ import {
   requireRegistrationByToken
 } from '~/server/utils/publicRegistrations'
 
-// Désistement d'une personne confirmée par son lien, possible même après la clôture (US-006, R13)
+// Désistement d'une personne confirmée, ou retrait d'une inscription reçue, par son lien, même après la clôture (US-006, US-085, R13)
 export default defineEventHandler(async (event) => {
   guardPublicRegistrationRequest(event, 'write')
 
   const token = getRouterParam(event, 'token')
   const registration = await requireRegistrationByToken(token)
   if (!registrationPermissions(registration).canWithdraw) {
-    throw createError({ statusCode: 409, message: 'Seule une inscription confirmée peut faire l’objet d’un désistement.' })
+    throw createError({ statusCode: 409, message: 'Seule une inscription confirmée ou reçue peut faire l’objet d’un désistement.' })
   }
 
   await withdrawRegistration(registration.id, null)

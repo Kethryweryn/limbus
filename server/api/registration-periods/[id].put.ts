@@ -6,6 +6,7 @@ import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import {
   assertClosingDateAllowsState,
   assertNoRegistrationsOnRemovedSessions,
+  assertSinglePermanentOpen,
   exposeRegistrationPeriod,
   findRegistrationPeriodOr404,
   parseOptionalDate,
@@ -13,6 +14,7 @@ import {
   resolveRegistrationPeriodSessions,
   rethrowSessionAlreadyTaken
 } from '~/server/utils/registrationPeriods'
+import { REGISTRATION_PERIOD_SCOPES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
   await requireUser(event)
@@ -24,11 +26,16 @@ export default defineEventHandler(async (event) => {
   const body = await readZodBody(event, registrationPeriodUpdateSchema)
   assertSameGame(gameId, body.gameId)
   // Champs absents : valeurs actuelles (une modification partielle ne remet rien à zéro)
-  const current = await prisma.registrationPeriod.findUniqueOrThrow({ where: { id }, select: { state: true, closesAt: true, responseDelayDays: true } })
+  const current = await prisma.registrationPeriod.findUniqueOrThrow({ where: { id }, select: { state: true, closesAt: true, responseDelayDays: true, notifyTeam: true, scope: true } })
+  const permanent = current.scope === REGISTRATION_PERIOD_SCOPES.game
   const state = body.state ?? current.state
-  const closesAt = body.closesAt === undefined ? current.closesAt : parseOptionalDate(body.closesAt)
+  const closesAt = permanent ? null : body.closesAt === undefined ? current.closesAt : parseOptionalDate(body.closesAt)
   assertClosingDateAllowsState(state, closesAt)
-  const sessions = await resolveRegistrationPeriodSessions(gameId, body.sessions, id)
+  await assertSinglePermanentOpen(gameId, current.scope, state, id)
+  if (permanent ? body.sessions.length : !body.sessions.length) {
+    throw createError({ statusCode: 400, message: permanent ? 'L’inscription permanente couvre tout le jeu : ne choisissez pas de session' : 'Choisissez au moins une session' })
+  }
+  const sessions = permanent ? [] : await resolveRegistrationPeriodSessions(gameId, body.sessions, id)
   await assertNoRegistrationsOnRemovedSessions(id, sessions.map((session) => session.sessionId))
 
   const period = await prisma.$transaction(async (tx) => {
@@ -40,6 +47,7 @@ export default defineEventHandler(async (event) => {
         state,
         closesAt,
         responseDelayDays: body.responseDelayDays ?? current.responseDelayDays,
+        notifyTeam: body.notifyTeam ?? current.notifyTeam,
         sessions: { create: sessions }
       },
       include: registrationPeriodInclude
