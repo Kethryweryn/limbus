@@ -1,6 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
 import { NO_COPY } from '~/server/utils/deliveryCopies'
+import { normalizeRegistrationFormDefinition, type RegistrationFormDefinition } from '~/utils/registrationForms'
 
 /**
  * Efface un participant et tout ce qui le concerne (RGPD, droit à l'effacement) :
@@ -77,6 +78,10 @@ export async function exportParticipantData(participantId: string, gameIds: stri
           dietary: true,
           healthConsentAt: true,
           charterAcceptedAt: true,
+          // Réponses aux questions et affinités (US-081, US-082)
+          questionAnswers: true,
+          formVersion: { select: { definition: true } },
+          affinities: { select: { kind: true, text: true }, orderBy: { position: 'asc' } },
           invitationSentAt: true,
           lastRemindedAt: true,
           responseDueAt: true,
@@ -94,10 +99,19 @@ export async function exportParticipantData(participantId: string, gameIds: stri
     }
   })
 
-  const { gameLinks, userId, documentDeliveries, ...rest } = participant
+  const { gameLinks, userId, documentDeliveries, registrations, ...rest } = participant
   return {
     exportedAt: new Date().toISOString(),
     ...rest,
+    // Réponses aux questions avec leur libellé, lu dans la version remplie (US-081)
+    registrations: registrations.map(({ questionAnswers, formVersion, ...registration }) => ({
+      ...registration,
+      questionAnswers: formVersion
+        ? normalizeRegistrationFormDefinition(formVersion.definition as RegistrationFormDefinition).questions
+          .filter((question) => (questionAnswers as Record<string, unknown> | null)?.[question.id] !== undefined)
+          .map((question) => ({ question: question.label, answer: (questionAnswers as Record<string, unknown>)[question.id] }))
+        : []
+    })),
     // Texte des copies reçues (ADR-0044) ; pas celles des trombinoscopes, qui montrent d'autres personnes
     documentDeliveries: documentDeliveries.map(({ copyContent, ...delivery }) => ({
       ...delivery,

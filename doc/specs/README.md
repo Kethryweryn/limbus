@@ -4,7 +4,7 @@ Fonctionnalités validées, décrites telles qu'elles marchent. Modèle : [`../m
 
 | Spec | Titre | Statut | Epics |
 |---|---|---|---|
-| [SPEC-001](SPEC-001-inscriptions.md) | Inscriptions, sélection et aide au casting | validée | [EPIC-001](../archive/epics/EPIC-001-inscription-sur-invitation/README.md) ; lots 2 à 6 à découper |
+| [SPEC-001](SPEC-001-inscriptions.md) | Inscriptions, sélection et aide au casting | validée | [EPIC-001](../archive/epics/EPIC-001-inscription-sur-invitation/README.md), [EPIC-019](../archive/epics/EPIC-019-formulaire-complet/README.md) (lot 2, première moitié) ; suite du lot 2 et lots 3 à 6 à venir |
 | [SPEC-002](SPEC-002-copie-de-jeu.md) | Copie d'un jeu pour le léguer à une autre équipe | validée | [EPIC-002](../archive/epics/EPIC-002-legs-de-jeu/README.md) |
 | [SPEC-003](SPEC-003-ecriture-d-un-jeu.md) | Écriture d'un jeu (existant) | validée | [EPIC-003](../archive/epics/EPIC-003-ecarts-ecriture-d-un-jeu/README.md) (écarts) ; décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
 | [SPEC-004](SPEC-004-sessions.md) | Sessions, casting et chronologie de déroulé (existant) | validée | [EPIC-004](../archive/epics/EPIC-004-ecarts-sessions/README.md) (écarts, cycle de vie) ; décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |

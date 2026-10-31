@@ -4,8 +4,8 @@ titre: Inscriptions, sélection et aide au casting
 statut: validée
 date: 2026-10-27
 origine: ../archive/todo/inscriptions.md
-epics: [EPIC-001]
-adr: [ADR-0007, ADR-0008, ADR-0011]
+epics: [EPIC-001, EPIC-019]
+adr: [ADR-0007, ADR-0008, ADR-0011, ADR-0045]
 ---
 
 # SPEC-001 : Inscriptions, sélection et aide au casting
@@ -30,7 +30,7 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 ## Acteurs
 
 - **Organisateurs du jeu** : la propriétaire et les co-organisateurs (`GameShare`). Ils ont tous les mêmes droits sur les périodes d'inscription, les inscriptions, les affinités et les réponses.
-- **Inscrit** : une personne sans compte, qui agit uniquement par la page publique et son lien personnel.
+- **Inscrit** : une personne qui agit par la page publique et son lien personnel, ou depuis son compte ([SPEC-011](SPEC-011-un-compte-pour-tout-le-monde.md)) si elle en a un.
 - **Équipe cuisine** : elle reçoit la fiche allergies de sa session.
 
 ## Parcours
@@ -91,8 +91,8 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 - **R8** Le formulaire est défini au niveau du jeu et contient :
   - la note d'intention, suivie d'une case d'adhésion obligatoire ;
   - les champs standards, chacun activable et rendu obligatoire ou non : nom, prénom, email (toujours obligatoire), nom Facebook, téléphone, contact d'urgence (nom et téléphone), allergies et intolérances ;
-  - les affinités : avec qui je veux jouer, avec qui je ne veux pas jouer, les relations que je ne veux pas jouer, les personnes que je ne veux pas croiser ;
-  - des questions propres au jeu (texte libre, choix unique, choix multiple, échelle de 1 à 5), dont chaque option peut être reliée à des personnages, factions ou intrigues ;
+  - les affinités, chacune activable et rendue obligatoire ou non comme les champs standards : avec qui je veux jouer, avec qui je ne veux pas jouer, les relations que je ne veux pas jouer, les personnes que je ne veux pas croiser. La personne en écrit une par ligne ;
+  - des questions propres au jeu (texte libre, choix unique, choix multiple, échelle de 1 à 5), chacune obligatoire ou non, dont chaque option peut être reliée à des personnages, factions ou intrigues (lot 5) ;
   - une question d'équilibre facultative (R17).
 - **R9** Une inscription garde la version du formulaire qui a été remplie : modifier le formulaire ne change pas les réponses déjà données.
 - **R10** Dans une période d'inscription qui couvre plusieurs sessions précises, le formulaire liste ces sessions et l'inscrit indique celles où il est disponible (au moins une). L'inscription permanente ne demande pas de disponibilités.
@@ -196,7 +196,7 @@ Données personnelles :
 Chaque lot devient un epic, livrable seul :
 
 1. Période d'inscription et mode invitation (R1 à R3, R5, R6, R8 pour la note d'intention et les champs standards, R12 à R16, R20, R22, R33). Voir [EPIC-001](../archive/epics/EPIC-001-inscription-sur-invitation/README.md).
-2. Formulaire public, inscription permanente et lien de diffusion (R8 au complet, R9 à R11, R13, R30 à R32). L'epic 1 prévoit déjà la portée dans le modèle.
+2. Formulaire public, inscription permanente et lien de diffusion (R8 au complet, R9 à R11, R13, R30 à R32), en deux epics : le formulaire complet, questions propres au jeu et affinités ([EPIC-019](../archive/epics/EPIC-019-formulaire-complet/README.md)), puis le formulaire public, le lien de diffusion et l'inscription permanente (EPIC-020). La question d'équilibre (R8, R17) arrive au lot 3, avec la sélection qui s'en sert.
 3. Sélection (R4, R7, R17 à R21).
 4. Affinités (R23 à R25).
 5. Relations entre personnages et questionnaire relié aux rôles (R8, R26).
@@ -217,3 +217,4 @@ Chaque lot devient un epic, livrable seul :
 - 2026-10-28 (revue de code) : l'email du formulaire fait foi et met à jour la fiche (R12) ; la date de consentement santé est celle du dernier enregistrement (R14) ; une personne qui a décliné ou s'est désistée peut être réinvitée (R16). Un désistement libère tous les personnages de la personne dans la session (PJ et PNJ), régénère les trombinoscopes déjà générés et prévient les orgas ; un paiement reçu reste visible dans le tableau des paiements.
 - 2026-10-28 (choix après EPIC-001) : la relance est un rappel sans lien, et l'ancien lien reste valable ; la prolongation se fait à une date choisie (R20). Les PNJ du cast entrent dans le suivi des paiements (R22). La fiche allergies compte toutes les personnes qui mangent, cast compris (R15).
 - 2026-10-28 : EPIC-001 (lot 1) terminé et archivé ; ADR-0018 à ADR-0021 acceptés.
+- 2026-10-31 (choix du lot 2) : affinités activables une à une, questions propres au jeu obligatoires au choix (R8). Une personne connectée trouve le formulaire prérempli par son compte et son inscription est reçue sans email de confirmation (R11) ; l'équipe est prévenue de chaque inscription reçue si la période le demande. Le formulaire de l'inscription permanente montre pour information les sessions à venir (R30) ; l'aperçu du lien de diffusion prend l'image du teaser du jeu (R32).

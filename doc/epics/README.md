@@ -26,6 +26,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-016](../archive/epics/EPIC-016-coordonnees-tenues-par-la-personne/README.md) | Coordonnées et allergies tenues par la personne | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
 | [EPIC-017](../archive/epics/EPIC-017-export-et-effacement/README.md) | Export et effacement depuis le compte | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
 | [EPIC-018](../archive/epics/EPIC-018-documents-dans-le-compte/README.md) | Documents et trombinoscopes dans le compte | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) | terminé |
+| [EPIC-019](../archive/epics/EPIC-019-formulaire-complet/README.md) | Formulaire complet : questions propres au jeu et affinités | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 
 ## US
 
@@ -111,3 +112,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-078](../archive/epics/EPIC-018-documents-dans-le-compte/US-078-copie-de-chaque-envoi.md) | Garder une copie de ce qui est envoyé | EPIC-018 | terminée |
 | [US-079](../archive/epics/EPIC-018-documents-dans-le-compte/US-079-mes-documents.md) | Retrouver ses documents dans « Je participe » | EPIC-018 | terminée |
 | [US-080](../archive/epics/EPIC-018-documents-dans-le-compte/US-080-nettoyage-des-copies.md) | Effacer les copies après la session | EPIC-018 | terminée |
+| [US-081](../archive/epics/EPIC-019-formulaire-complet/US-081-questions-propres-au-jeu.md) | Poser des questions propres au jeu | EPIC-019 | terminée |
+| [US-082](../archive/epics/EPIC-019-formulaire-complet/US-082-affinites.md) | Demander les affinités | EPIC-019 | terminée |

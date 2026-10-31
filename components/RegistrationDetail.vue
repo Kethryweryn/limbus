@@ -36,6 +36,24 @@
           </p>
         </section>
 
+        <section v-if="registration.respondedAt && hasAffinities" class="space-y-2">
+          <h3 class="font-semibold text-gray-700">Affinités</h3>
+          <div v-for="affinity in REGISTRATION_AFFINITIES" v-show="registration.affinities[affinity.key]?.length" :key="affinity.key">
+            <p class="text-gray-600">{{ affinity.label }}</p>
+            <ul class="list-disc pl-5">
+              <li v-for="(line, index) in registration.affinities[affinity.key]" :key="index">{{ line }}</li>
+            </ul>
+          </div>
+        </section>
+
+        <section v-if="registration.respondedAt && registration.questions.length" class="space-y-2">
+          <h3 class="font-semibold text-gray-700">Questions</h3>
+          <div v-for="question in registration.questions" :key="question.id">
+            <p class="text-gray-600">{{ question.label }}</p>
+            <p class="whitespace-pre-line">{{ answerText(question) }}</p>
+          </div>
+        </section>
+
         <p v-if="!registration.respondedAt" class="text-gray-600">
           Pas encore de réponse au formulaire.
         </p>
@@ -56,6 +74,7 @@
 
 <script setup>
 import { REGISTRATION_STATUSES } from '~/utils/domain'
+import { REGISTRATION_AFFINITIES } from '~/utils/registrationForms'
 import { REGISTRATION_DISPLAY_STATUS_META, registrationDisplayStatus } from '~/utils/registrations'
 import { apiErrorMessage } from '~/utils/apiErrors'
 
@@ -81,6 +100,16 @@ watch([open, () => props.registrationId], async ([isOpen, id]) => {
     errorMessage.value = apiErrorMessage(err, 'Impossible de charger l’inscription')
   }
 }, { immediate: true })
+
+const hasAffinities = computed(() => Object.values(registration.value?.affinities || {}).some((lines) => lines.length))
+
+// Réponse à une question propre au jeu (US-081), lue avec la version du formulaire remplie
+function answerText(question) {
+  const answer = registration.value?.questionAnswers?.[question.id]
+  if (answer === null || answer === undefined || answer === '' || (Array.isArray(answer) && !answer.length)) return '—'
+  if (Array.isArray(answer)) return answer.join(', ')
+  return question.type === 'scale' ? `${answer} / 5` : String(answer)
+}
 
 const formatDateTime = (value) => new Date(value).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })
 </script>
