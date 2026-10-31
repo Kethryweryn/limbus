@@ -1,3 +1,4 @@
+import { createHash, randomBytes } from 'node:crypto'
 import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { personalLinkToken, startTestSmtp } from '../integration/smtp'
@@ -50,6 +51,55 @@ test('une personne invitée accepte par son lien et rejoint la session', async (
     await expect(page.getByText('Personnage à attribuer')).toBeVisible()
   } finally {
     await smtp.stop()
+    await prisma.$disconnect()
+  }
+})
+
+// EPIC-019 : questions propres au jeu et affinités, remplies par le lien personnel
+test('la personne invitée répond aux questions du jeu et à ses affinités', async ({ browser }) => {
+  const prisma = createTestPrisma()
+  try {
+    const key = `questions-e2e-${Date.now()}`
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+    const definition = {
+      standardFields: {
+        lastName: { asked: false, required: false },
+        firstName: { asked: true, required: false },
+        facebookName: { asked: false, required: false },
+        phone: { asked: false, required: false },
+        emergencyContact: { asked: false, required: false },
+        dietary: { asked: false, required: false }
+      },
+      affinities: { wantWith: { asked: true, required: true } },
+      questions: [{ id: 'style', label: 'Ton style de jeu', type: 'single', required: true, options: ['Combat', 'Intrigue'] }]
+    }
+    const game = await prisma.game.create({
+      data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id, noteIntention: 'Note', registrationForm: { create: { versions: { create: { number: 1, definition } } } } }
+    })
+    const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-05-01T09:00:00Z') } })
+    const period = await prisma.registrationPeriod.create({ data: { name: 'Période', gameId: game.id, publicId: `pub-${key}`, state: 'open', sessions: { create: { sessionId: session.id, seats: 3 } } } })
+    const participant = await prisma.participant.create({ data: { name: 'Lou Test', slug: `lou-${key}`, email: `lou-${key}@example.test`, gameLinks: { create: { gameId: game.id } } } })
+    const token = randomBytes(32).toString('base64url')
+    const registration = await prisma.registration.create({
+      data: {
+        periodId: period.id, sessionId: session.id, participantId: participant.id, status: 'invited', source: 'invitation',
+        email: participant.email!, tokenHash: createHash('sha256').update(token).digest('hex'), responseDueAt: new Date(Date.now() + 7 * 86_400_000)
+      }
+    })
+
+    const guest = await (await browser.newContext()).newPage()
+    await guest.goto(`/inscription/${token}`)
+    await guest.waitForLoadState('networkidle')
+    await guest.getByLabel('Avec qui je veux jouer').fill('Léa\nNoé')
+    await guest.getByLabel('Intrigue').check()
+    await guest.getByLabel('J’ai lu la note d’intention et j’y adhère').check()
+    await guest.getByRole('button', { name: 'Accepter l’invitation' }).click()
+    await expect(guest.getByText('Votre inscription est confirmée.')).toBeVisible()
+
+    const saved = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { questionAnswers: true, affinities: { select: { text: true }, orderBy: { position: 'asc' } } } })
+    expect(saved.questionAnswers).toEqual({ style: 'Intrigue' })
+    expect(saved.affinities.map((affinity) => affinity.text)).toEqual(['Léa', 'Noé'])
+  } finally {
     await prisma.$disconnect()
   }
 })

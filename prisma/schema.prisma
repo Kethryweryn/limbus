@@ -346,6 +346,8 @@ model Registration {
   dietary               String?
   healthConsentAt       DateTime?
   charterAcceptedAt     DateTime?
+  // Réponses aux questions propres au jeu, par identifiant de question (US-081, ADR-0045)
+  questionAnswers       Json?
 
   // SHA-256 du jeton du lien personnel (ADR-0018) ; null quand le lien est invalidé
   tokenHash             String?                  @unique
@@ -362,9 +364,24 @@ model Registration {
   createdAt             DateTime                 @default(now())
   updatedAt             DateTime                 @updatedAt
 
+  affinities            RegistrationAffinity[]
+
   @@unique([periodId, participantId])
   @@index([sessionId])
   @@index([participantId])
+}
+
+// Une personne ou une relation citée dans une affinité, une par ligne (US-082, ADR-0045)
+model RegistrationAffinity {
+  id             String       @id @default(cuid())
+  registrationId String
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  // wantWith, notWith, refusedRelations ou avoid
+  kind           String
+  text           String
+  position       Int
+
+  @@index([registrationId])
 }
 
 model SessionAssignment {

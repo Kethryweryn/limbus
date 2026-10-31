@@ -4,12 +4,13 @@ import { accountIdForEmail, syncProfileToParticipants } from '~/server/utils/par
 import { assertRateLimit } from '~/server/utils/rateLimit'
 import { sendEmail } from '~/server/utils/email'
 import { hashRegistrationToken } from '~/server/utils/registrations'
-import { getCurrentRegistrationForm, saveRegistrationFormDefinition } from '~/server/utils/registrationForms'
+import { getCurrentRegistrationForm, saveRegistrationFormDefinition, type AffinityAnswers, type QuestionAnswers } from '~/server/utils/registrationForms'
 import { REGISTRATION_PERIOD_STATES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
 import { effectivePeriodState } from '~/utils/registrationPeriods'
 import { isInvitationOverdue, registrationLinkExpired, splitParticipantName } from '~/utils/registrations'
 import {
   DEFAULT_REGISTRATION_FORM_DEFINITION,
+  REGISTRATION_AFFINITIES,
   normalizeRegistrationFormDefinition,
   type RegistrationFormDefinition
 } from '~/utils/registrationForms'
@@ -34,6 +35,8 @@ const publicRegistrationSelect = {
   dietary: true,
   healthConsentAt: true,
   charterAcceptedAt: true,
+  questionAnswers: true,
+  affinities: { select: { kind: true, text: true }, orderBy: { position: 'asc' as const } },
   responseDueAt: true,
   respondedAt: true,
   confirmedAt: true,
@@ -192,12 +195,23 @@ export async function exposePublicRegistration(registration: PublicRegistration,
       emergencyContactPhone: registration.emergencyContactPhone ?? profile?.emergencyContactPhone ?? null,
       dietary: registration.dietary ?? profile?.dietary ?? null,
       healthConsent: Boolean(registration.healthConsentAt ?? profile?.healthConsentAt),
-      charterAccepted: Boolean(registration.charterAcceptedAt)
+      charterAccepted: Boolean(registration.charterAcceptedAt),
+      affinities: groupAffinities(registration.affinities),
+      questionAnswers: (registration.questionAnswers ?? {}) as QuestionAnswers
     }
   }
 }
 
+// Affinités d'une inscription, une liste de lignes par sorte (US-082)
+export function groupAffinities(rows: Array<{ kind: string, text: string }>) {
+  const grouped = Object.fromEntries(REGISTRATION_AFFINITIES.map(({ key }) => [key, [] as string[]])) as AffinityAnswers
+  for (const row of rows) grouped[row.kind as keyof AffinityAnswers]?.push(row.text)
+  return grouped
+}
+
 export type RegistrationAnswers = {
+  affinities?: AffinityAnswers
+  questionAnswers?: QuestionAnswers
   email: string
   firstName: string | null
   lastName: string | null
@@ -225,11 +239,14 @@ export async function answerFormDefinition(registration: PublicRegistration) {
  * c'est l'adresse donnée par la personne qui fait foi pour tous les envois (R12).
  */
 // updateAccount : réponse faite connecté au compte rattaché (US-072) ; par le lien personnel, le compte ne change pas
-export async function saveRegistrationAnswers(registration: PublicRegistration, versionId: string, answers: RegistrationAnswers, definition: RegistrationFormDefinition, updateAccount = false) {
+export async function saveRegistrationAnswers(registration: PublicRegistration, versionId: string, allAnswers: RegistrationAnswers, definition: RegistrationFormDefinition, updateAccount = false) {
   const now = new Date()
   const accepting = registration.status === REGISTRATION_STATUSES.invited
+  const { affinities, questionAnswers, ...answers } = allAnswers
   const data = {
     ...answers,
+    // Réponses aux questions propres au jeu (US-081) ; les affinités sont rangées à part (US-082)
+    questionAnswers: questionAnswers ?? {},
     // Le consentement santé n'a de sens qu'avec des allergies déclarées ; il date du dernier enregistrement
     healthConsentAt: answers.dietary ? now : null,
     charterAcceptedAt: registration.charterAcceptedAt ?? now,
@@ -243,6 +260,10 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
     if (!count) {
       throw createError({ statusCode: 409, message: 'Votre inscription a changé entre-temps : rechargez la page.' })
     }
+    // Chaque enregistrement remplace les affinités : une ligne par personne ou relation citée (ADR-0045)
+    await tx.registrationAffinity.deleteMany({ where: { registrationId: registration.id } })
+    const rows = Object.entries(affinities ?? {}).flatMap(([kind, lines]) => lines.map((text, position) => ({ registrationId: registration.id, kind, text, position })))
+    if (rows.length) await tx.registrationAffinity.createMany({ data: rows })
     // L'adresse donnée fait foi ; le rattachement au compte la suit (US-070)
     await tx.participant.update({ where: { id: registration.participantId }, data: { email: answers.email, userId: await accountIdForEmail(answers.email) } })
     if (accepting && registration.sessionId) {

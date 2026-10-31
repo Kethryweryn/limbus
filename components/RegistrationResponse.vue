@@ -81,6 +81,14 @@
               </UFormField>
             </div>
 
+            <RegistrationExtraFields
+              v-model:affinities="form.affinities"
+              v-model:answers="form.questionAnswers"
+              :definition="registration.definition"
+              :disabled="readOnly"
+              :errors="fieldErrors"
+            />
+
             <UFormField v-if="registration.definition.standardFields.dietary.asked" :error="fieldError('healthConsent')">
               <UCheckbox
                 v-model="form.healthConsent"

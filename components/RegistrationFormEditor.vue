@@ -34,6 +34,57 @@
           </div>
         </section>
 
+        <section class="space-y-2">
+          <h3 class="font-semibold">Affinités</h3>
+          <p class="text-sm text-gray-500">La personne écrit une personne, ou une relation, par ligne.</p>
+          <div
+            v-for="affinity in REGISTRATION_AFFINITIES"
+            :key="affinity.key"
+            class="flex flex-col gap-2 rounded border border-gray-200 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div class="font-medium text-gray-800">{{ affinity.label }}</div>
+            <div class="flex shrink-0 gap-4">
+              <UCheckbox
+                :model-value="affinities[affinity.key].asked"
+                label="Demandée"
+                @update:model-value="setAffinityAsked(affinity.key, $event)"
+              />
+              <UCheckbox
+                v-model="affinities[affinity.key].required"
+                label="Obligatoire"
+                :disabled="!affinities[affinity.key].asked"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section class="space-y-2">
+          <h3 class="font-semibold">Questions propres au jeu</h3>
+          <p v-if="!questions.length" class="text-sm text-gray-500">Aucune question pour l’instant.</p>
+          <div v-for="(question, index) in questions" :key="question.key" class="space-y-2 rounded border border-gray-200 p-3">
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <UFormField label="Question" class="sm:col-span-2">
+                <UInput v-model="question.label" class="w-full" />
+              </UFormField>
+              <UFormField label="Sorte">
+                <USelect v-model="question.type" :items="REGISTRATION_QUESTION_TYPES" value-key="value" class="w-full" />
+              </UFormField>
+            </div>
+            <UFormField v-if="REGISTRATION_CHOICE_TYPES.includes(question.type)" label="Options" description="Une option par ligne, deux au moins.">
+              <UTextarea v-model="question.optionsText" :rows="3" class="w-full" />
+            </UFormField>
+            <div class="flex flex-wrap items-center gap-3">
+              <UCheckbox v-model="question.required" label="Obligatoire" />
+              <div class="ml-auto flex gap-1">
+                <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-arrow-up" :disabled="index === 0" aria-label="Monter" @click="moveQuestion(index, -1)" />
+                <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-arrow-down" :disabled="index === questions.length - 1" aria-label="Descendre" @click="moveQuestion(index, 1)" />
+                <UButton size="xs" color="error" variant="ghost" icon="i-heroicons-trash" aria-label="Retirer" @click="questions.splice(index, 1)" />
+              </div>
+            </div>
+          </div>
+          <UButton size="sm" color="neutral" variant="soft" icon="i-heroicons-plus" @click="addQuestion">Ajouter une question</UButton>
+        </section>
+
         <section class="space-y-3">
           <h3 class="font-semibold">Aperçu</h3>
           <div class="space-y-4 rounded border border-dashed border-gray-300 p-4">
@@ -58,6 +109,7 @@
                 <UInput v-else disabled class="w-full" />
               </UFormField>
             </div>
+            <RegistrationExtraFields :definition="previewDefinition" disabled />
             <UCheckbox
               v-if="settings.dietary.asked"
               disabled
@@ -89,7 +141,14 @@
 </template>
 
 <script setup>
-import { DEFAULT_REGISTRATION_FORM_DEFINITION, REGISTRATION_FORM_INPUTS, REGISTRATION_STANDARD_FIELDS } from '~/utils/registrationForms'
+import {
+  DEFAULT_REGISTRATION_FORM_DEFINITION,
+  REGISTRATION_AFFINITIES,
+  REGISTRATION_CHOICE_TYPES,
+  REGISTRATION_FORM_INPUTS,
+  REGISTRATION_QUESTION_TYPES,
+  REGISTRATION_STANDARD_FIELDS
+} from '~/utils/registrationForms'
 import { apiErrorMessage } from '~/utils/apiErrors'
 
 const open = defineModel('open', { type: Boolean, default: false })
@@ -100,6 +159,10 @@ const props = defineProps({
 })
 
 const settings = ref(cloneSettings(DEFAULT_REGISTRATION_FORM_DEFINITION.standardFields))
+const affinities = ref(cloneSettings({}, REGISTRATION_AFFINITIES))
+// Questions en cours d'édition : key sert au rendu, id (absent pour une nouvelle question) au serveur
+const questions = ref([])
+let nextKey = 0
 const version = ref(null)
 const noteIntention = ref('')
 const errorMessage = ref('')
@@ -126,12 +189,45 @@ const previewFields = computed(() => REGISTRATION_FORM_INPUTS
   .filter((input) => settings.value[input.setting].asked)
   .map((input) => ({ ...input, required: settings.value[input.setting].required })))
 
-function cloneSettings(standardFields) {
-  return Object.fromEntries(Object.entries(standardFields).map(([key, setting]) => [key, { ...setting }]))
+// Sans réglage enregistré (affinités d'un ancien formulaire), le champ n'est pas demandé
+function cloneSettings(values, fields = REGISTRATION_STANDARD_FIELDS) {
+  return Object.fromEntries(fields.map(({ key }) => [key, { ...(values[key] ?? { asked: false, required: false }) }]))
+}
+
+const editableQuestion = (question) => ({ key: nextKey++, id: question.id, label: question.label, type: question.type, required: question.required, optionsText: question.options.join('\n') })
+const questionOptions = (question) => REGISTRATION_CHOICE_TYPES.includes(question.type) ? question.optionsText.split('\n').map((option) => option.trim()).filter(Boolean) : []
+const definitionQuestions = () => questions.value.map((question) => ({
+  ...(question.id ? { id: question.id } : {}),
+  label: question.label,
+  type: question.type,
+  required: question.required,
+  options: questionOptions(question)
+}))
+
+// L'aperçu montre les questions telles qu'elles seront posées, même avant l'enregistrement
+const previewDefinition = computed(() => ({
+  affinities: affinities.value,
+  questions: definitionQuestions().filter((question) => question.label.trim()).map((question, index) => ({ ...question, id: question.id || `apercu-${index}` }))
+}))
+
+function addQuestion() {
+  questions.value.push(editableQuestion({ label: '', type: 'text', required: false, options: [] }))
+}
+
+function moveQuestion(index, offset) {
+  const [question] = questions.value.splice(index, 1)
+  questions.value.splice(index + offset, 0, question)
+}
+
+function setAffinityAsked(key, asked) {
+  affinities.value[key].asked = asked
+  if (!asked) affinities.value[key].required = false
 }
 
 function apply(data) {
   settings.value = cloneSettings(data.definition.standardFields)
+  affinities.value = cloneSettings(data.definition.affinities ?? {}, REGISTRATION_AFFINITIES)
+  questions.value = (data.definition.questions ?? []).map(editableQuestion)
   version.value = data.version
   if (data.game) noteIntention.value = data.game.noteIntention || ''
 }
@@ -150,7 +246,7 @@ async function save() {
     const previous = version.value?.number
     apply(await useApiFetch(`/api/games/${props.gameId}/registration-form`, {
       method: 'PUT',
-      body: { standardFields: settings.value, baseVersionNumber: previous ?? null }
+      body: { standardFields: settings.value, affinities: affinities.value, questions: definitionQuestions(), baseVersionNumber: previous ?? null }
     }))
     savedMessage.value = version.value?.number === previous
       ? 'Aucun changement : la version en vigueur est conservée.'

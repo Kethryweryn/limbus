@@ -86,3 +86,37 @@ describe('réponses d’un inscrit', () => {
     expect(schema.parse({ ...answers, facebookName: '' }).facebookName).toBeNull()
   })
 })
+
+// EPIC-019 : questions propres au jeu et affinités (US-081, US-082)
+describe('questions et affinités du formulaire', () => {
+  const withExtras: RegistrationFormDefinition = {
+    ...DEFAULT_REGISTRATION_FORM_DEFINITION,
+    affinities: { wantWith: { asked: true, required: true }, avoid: { asked: false, required: true } },
+    questions: [
+      { id: 'q-texte', label: ' Pourquoi ? ', type: 'text', required: false, options: ['ignorée'] },
+      { id: 'q-choix', label: 'Style', type: 'single', required: true, options: ['Combat', ' Combat ', 'Intrigue', ''] }
+    ]
+  }
+
+  it('lit une ancienne définition sans affinités ni questions', () => {
+    const normalized = normalizeRegistrationFormDefinition(DEFAULT_REGISTRATION_FORM_DEFINITION)
+    expect(normalized.questions).toEqual([])
+    expect(Object.values(normalized.affinities).every((setting) => !setting.asked)).toBe(true)
+  })
+
+  it('nettoie libellés et options, et rend facultative une affinité non demandée', () => {
+    const normalized = normalizeRegistrationFormDefinition(withExtras)
+    expect(normalized.questions[0]).toMatchObject({ label: 'Pourquoi ?', options: [] })
+    expect(normalized.questions[1]!.options).toEqual(['Combat', 'Intrigue'])
+    expect(normalized.affinities.avoid).toEqual({ asked: false, required: false })
+  })
+
+  it('valide les réponses selon la version', () => {
+    const schema = registrationAnswerSchema(withExtras)
+    const parsed = schema.parse({ ...answers, affinities: { wantWith: ['Léa', ''], avoid: ['ignorée'] }, questionAnswers: { 'q-choix': 'Intrigue', autre: 'x' } })
+    expect(parsed.affinities).toEqual({ wantWith: ['Léa'], notWith: [], refusedRelations: [], avoid: [] })
+    expect(parsed.questionAnswers).toEqual({ 'q-texte': null, 'q-choix': 'Intrigue' })
+    expect(schema.safeParse({ ...answers, affinities: { wantWith: ['Léa'] }, questionAnswers: { 'q-choix': 'Autre' } }).success).toBe(false)
+    expect(schema.safeParse({ ...answers, questionAnswers: { 'q-choix': 'Combat' } }).success).toBe(false)
+  })
+})

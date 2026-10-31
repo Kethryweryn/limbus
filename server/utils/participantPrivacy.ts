@@ -77,6 +77,9 @@ export async function exportParticipantData(participantId: string, gameIds: stri
           dietary: true,
           healthConsentAt: true,
           charterAcceptedAt: true,
+          // Réponses aux questions et affinités (US-081, US-082)
+          questionAnswers: true,
+          affinities: { select: { kind: true, text: true }, orderBy: { position: 'asc' } },
           invitationSentAt: true,
           lastRemindedAt: true,
           responseDueAt: true,

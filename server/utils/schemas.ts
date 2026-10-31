@@ -14,7 +14,17 @@ import {
   USER_ROLES
 } from '~/utils/domain'
 import { isHttpUrl, isUploadUrl, PHOTO_UPLOAD_PREFIX, RIB_UPLOAD_PREFIX } from '~/utils/urls'
-import { REGISTRATION_STANDARD_FIELDS, type RegistrationStandardFieldKey } from '~/utils/registrationForms'
+import {
+  REGISTRATION_AFFINITIES,
+  REGISTRATION_CHOICE_TYPES,
+  REGISTRATION_QUESTION_LABEL_MAX_LENGTH,
+  REGISTRATION_QUESTION_MAX,
+  REGISTRATION_QUESTION_OPTION_MAX,
+  REGISTRATION_STANDARD_FIELDS,
+  type RegistrationAffinityKey,
+  type RegistrationQuestionType,
+  type RegistrationStandardFieldKey
+} from '~/utils/registrationForms'
 
 const optionalText = z.string().trim().optional().nullable()
 const optionalBoolean = z.boolean().optional()
@@ -394,11 +404,33 @@ export const attendanceAnswerSchema = z.object({
 
 const registrationFieldSetting = z.object({ asked: z.boolean(), required: z.boolean() })
 
+// Question propre au jeu (US-081) : sans id, c'est une nouvelle question, et le serveur lui en donne un
+const registrationQuestion = z.object({
+  id: z.string().regex(/^[\w-]{1,64}$/, 'Question invalide').optional(),
+  label: z.string().trim().min(1, 'Le libellé de la question est obligatoire').max(REGISTRATION_QUESTION_LABEL_MAX_LENGTH, 'Libellé trop long'),
+  type: z.enum(['text', 'single', 'multiple', 'scale'] as const satisfies readonly RegistrationQuestionType[], { error: 'Sorte de question invalide' }),
+  required: z.boolean().default(false),
+  options: z.array(z.string().trim().max(REGISTRATION_QUESTION_LABEL_MAX_LENGTH, 'Option trop longue')).max(REGISTRATION_QUESTION_OPTION_MAX, 'Trop d’options').default([])
+}).refine((question) => !REGISTRATION_CHOICE_TYPES.includes(question.type) || question.options.filter(Boolean).length >= 2, {
+  message: 'Une question à choix demande au moins deux options',
+  path: ['options']
+})
+
 export const registrationFormDefinitionSchema = z.object({
   standardFields: z.object(
     Object.fromEntries(REGISTRATION_STANDARD_FIELDS.map(({ key }) => [key, registrationFieldSetting])) as
       Record<RegistrationStandardFieldKey, typeof registrationFieldSetting>
   ),
+  // Affinités et questions (US-081, US-082) ; absentes, rien n'est demandé
+  affinities: z.object(
+    Object.fromEntries(REGISTRATION_AFFINITIES.map(({ key }) => [key, registrationFieldSetting.optional()])) as
+      Record<RegistrationAffinityKey, z.ZodOptional<typeof registrationFieldSetting>>
+  ).optional(),
+  questions: z.array(registrationQuestion).max(REGISTRATION_QUESTION_MAX, 'Trop de questions').optional()
+    .refine((questions) => {
+      const ids = (questions ?? []).map((question) => question.id).filter(Boolean)
+      return new Set(ids).size === ids.length
+    }, { message: 'Question en double' }),
   // Version sur laquelle l'éditeur s'appuie (null : formulaire jamais enregistré) ; absente, pas de contrôle
   baseVersionNumber: z.number().int().min(1).nullable().optional()
 })
