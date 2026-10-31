@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   const body = await readZodBody(event, registrationPeriodUpdateSchema)
   assertSameGame(gameId, body.gameId)
   // Champs absents : valeurs actuelles (une modification partielle ne remet rien à zéro)
-  const current = await prisma.registrationPeriod.findUniqueOrThrow({ where: { id }, select: { state: true, closesAt: true, responseDelayDays: true, notifyTeam: true, scope: true } })
+  const current = await prisma.registrationPeriod.findUniqueOrThrow({ where: { id }, select: { state: true, closesAt: true, responseDelayDays: true, notifyTeam: true, replayPolicy: true, scope: true } })
   const permanent = current.scope === REGISTRATION_PERIOD_SCOPES.game
   const state = body.state ?? current.state
   const closesAt = permanent ? null : body.closesAt === undefined ? current.closesAt : parseOptionalDate(body.closesAt)
@@ -48,6 +48,7 @@ export default defineEventHandler(async (event) => {
         closesAt,
         responseDelayDays: body.responseDelayDays ?? current.responseDelayDays,
         notifyTeam: body.notifyTeam ?? current.notifyTeam,
+        replayPolicy: body.replayPolicy ?? current.replayPolicy,
         sessions: { create: sessions }
       },
       include: registrationPeriodInclude

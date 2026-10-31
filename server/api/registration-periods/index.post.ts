@@ -34,6 +34,7 @@ export default defineEventHandler(async (event) => {
       publicId,
       entryMode: body.entryMode,
       notifyTeam: body.notifyTeam,
+      replayPolicy: body.replayPolicy,
       state: body.state,
       closesAt,
       responseDelayDays: body.responseDelayDays,

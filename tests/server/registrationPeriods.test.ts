@@ -38,6 +38,9 @@ describe('registrationPeriodSchema', () => {
 describe('resolveRegistrationPeriodSessions', () => {
   function mockSessions(sessions: unknown[], playableCharacters = 12) {
     Object.assign(prisma, {
+      // Rien de retenu dans le vivier ni au-delà des places (R31, US-087)
+      registration: { findMany: vi.fn().mockResolvedValue([]), groupBy: vi.fn().mockResolvedValue([]) },
+      registrationWaitlistEntry: { findMany: vi.fn().mockResolvedValue([]) },
       session: { findMany: vi.fn().mockResolvedValue(sessions) },
       character: { count: vi.fn().mockResolvedValue(playableCharacters) }
     })
@@ -110,6 +113,9 @@ describe('règles ajoutées après la revue', () => {
     await expect(resolveRegistrationPeriodSessions('game-1', [{ sessionId: 's1' }])).rejects.toMatchObject({ statusCode: 400 })
 
     Object.assign(prisma, {
+      // Rien de retenu dans le vivier ni au-delà des places (R31, US-087)
+      registration: { findMany: vi.fn().mockResolvedValue([]), groupBy: vi.fn().mockResolvedValue([]) },
+      registrationWaitlistEntry: { findMany: vi.fn().mockResolvedValue([]) },
       session: { findMany: vi.fn().mockResolvedValue([{ id: 's1', name: 'Annulée', status: 'cancelled', registrationPeriodLink: { periodId: 'p', period: { name: 'P' } } }]) }
     })
     await expect(resolveRegistrationPeriodSessions('game-1', [{ sessionId: 's1', seats: 2 }], 'p')).resolves.toEqual([{ sessionId: 's1', seats: 2 }])

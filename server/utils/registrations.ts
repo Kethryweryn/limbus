@@ -6,8 +6,9 @@ import { openEmailTransport, sendEmail, type EmailTransport } from '~/server/uti
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
 import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
-import { REGISTRATION_ENTRY_MODES, REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
+import { REGISTRATION_ENTRY_MODES, REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
 import { effectivePeriodState } from '~/utils/registrationPeriods'
+import { canConfirmPlace } from '~/utils/registrations'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -110,17 +111,81 @@ export function registrationReminderEmailText(params: {
   sessionName: string | null
   invitationSentAt: Date
   responseDueAt: Date | null
+  // Place retenue à confirmer (US-089) plutôt qu'invitation
+  retained?: boolean
 }, now = new Date()) {
+  const session = params.sessionName ? `, session ${params.sessionName}` : ''
   return [
     `Bonjour ${params.participantName},`,
     '',
-    `Nous n’avons pas encore reçu votre réponse à l’invitation à jouer à « ${params.gameTitle} »${params.sessionName ? `, session ${params.sessionName}` : ''}.`,
+    params.retained
+      ? `Votre inscription à « ${params.gameTitle} »${session} est retenue, mais nous n’avons pas encore reçu la confirmation de votre place.`
+      : `Nous n’avons pas encore reçu votre réponse à l’invitation à jouer à « ${params.gameTitle} »${session}.`,
     '',
-    `Votre lien personnel se trouve dans l’email d’invitation envoyé le ${formatDate(params.invitationSentAt)}, intitulé « Invitation : ${params.gameTitle} ». Il permet de lire la note d’intention et de répondre.`,
+    params.retained
+      ? `Votre lien personnel se trouve dans l’email envoyé le ${formatDate(params.invitationSentAt)}, intitulé « Place retenue : ${params.gameTitle} ». Il permet de confirmer votre place ou de vous désister.`
+      : `Votre lien personnel se trouve dans l’email d’invitation envoyé le ${formatDate(params.invitationSentAt)}, intitulé « Invitation : ${params.gameTitle} ». Il permet de lire la note d’intention et de répondre.`,
     responseDueLine(params.responseDueAt, now) ?? 'Merci de répondre dès que possible.',
     '',
     'Vous ne retrouvez pas cet email ? Prévenez l’équipe d’organisation : elle vous enverra un nouveau lien.'
   ].join('\n')
+}
+
+// Emails de l'annonce des résultats (US-088), et du renvoi d'un lien à une personne retenue (US-089)
+function sessionLabel(session: { name: string, date: Date | null }) {
+  return `${session.name}${session.date ? ` (${formatDate(session.date)})` : ''}`
+}
+
+export function selectionAnnouncementEmail(params: {
+  status: string
+  participantName: string
+  gameTitle: string
+  sessions: Array<{ name: string, date: Date | null }>
+  responseDueAt: Date | null
+  url: string
+}) {
+  const greeting = [`Bonjour ${params.participantName},`, '']
+  const link = ['', 'Ce lien personnel remplace ceux des emails précédents ; il vous est propre, ne le transférez pas.']
+  if (params.status === REGISTRATION_STATUSES.retained) {
+    return {
+      subject: `Place retenue : ${params.gameTitle}`,
+      text: [
+        ...greeting,
+        `Bonne nouvelle : votre inscription à « ${params.gameTitle} » est retenue pour la session ${sessionLabel(params.sessions[0]!)}.`,
+        '',
+        `Confirmez votre place par ce lien${params.responseDueAt ? `, avant le ${formatDate(params.responseDueAt)}` : ''} :`,
+        params.url,
+        '',
+        'Sans confirmation à temps, l’équipe pourra proposer votre place à une autre personne. Vous pouvez aussi vous désister par ce lien.',
+        ...link
+      ].join('\n')
+    }
+  }
+  if (params.status === REGISTRATION_STATUSES.waitlisted) {
+    return {
+      subject: `Liste d’attente : ${params.gameTitle}`,
+      text: [
+        ...greeting,
+        `Votre inscription à « ${params.gameTitle} » est sur liste d’attente pour ${params.sessions.length > 1 ? 'les sessions' : 'la session'} ${params.sessions.map(sessionLabel).join(', ')}.`,
+        'Si une place se libère, l’équipe vous écrira.',
+        '',
+        'Ce lien vous permet de suivre votre inscription, ou de vous désister :',
+        params.url,
+        ...link
+      ].join('\n')
+    }
+  }
+  return {
+    subject: `Inscription : ${params.gameTitle}`,
+    text: [
+      ...greeting,
+      `Votre inscription à « ${params.gameTitle} » n’a pas été retenue cette fois-ci. Merci de votre intérêt pour le jeu.`,
+      '',
+      'Ce lien vous permet de consulter votre inscription :',
+      params.url,
+      ...link
+    ].join('\n')
+  }
 }
 
 type InvitationEmailTarget = {
@@ -343,13 +408,49 @@ export async function findRegistrationOr404(id: string | undefined) {
   }
   const registration = await prisma.registration.findUnique({
     where: { id },
-    select: { id: true, status: true, respondedAt: true, sessionId: true, period: { select: { id: true, gameId: true } } }
+    select: {
+      id: true,
+      status: true,
+      respondedAt: true,
+      sessionId: true,
+      announcedStatus: true,
+      announcedSessionId: true,
+      period: { select: { id: true, gameId: true } }
+    }
   })
   if (!registration) {
     throw createError({ statusCode: 404, message: 'Inscription introuvable' })
   }
   return registration
 }
+
+type AwaitingLike = { id: string, status: string, respondedAt: Date | null, sessionId: string | null, announcedStatus: string | null, announcedSessionId: string | null }
+
+// Une réponse est attendue (R20) : invitation sans réponse, ou place retenue annoncée pas encore confirmée (ADR-0047)
+export function isAwaitingResponse(registration: AwaitingLike) {
+  return (registration.status === REGISTRATION_STATUSES.invited && !registration.respondedAt) || canConfirmPlace(registration)
+}
+
+export function assertAwaitingResponse(registration: AwaitingLike) {
+  if (!isAwaitingResponse(registration)) {
+    throw createError({ statusCode: 409, message: 'Cette personne a déjà répondu, ou sa place n’est pas annoncée.' })
+  }
+}
+
+// Condition d'écriture qui revérifie l'attente : une réponse arrivée entre-temps l'emporte
+function awaitingResponseWhere(registration: AwaitingLike) {
+  return registration.status === REGISTRATION_STATUSES.invited
+    ? { id: registration.id, status: REGISTRATION_STATUSES.invited, respondedAt: null }
+    : {
+        id: registration.id,
+        status: REGISTRATION_STATUSES.retained,
+        sessionId: registration.sessionId,
+        announcedStatus: REGISTRATION_STATUSES.retained,
+        announcedSessionId: registration.sessionId
+      }
+}
+
+const awaitingSelect = { id: true, status: true, respondedAt: true, sessionId: true, announcedStatus: true, announcedSessionId: true } as const
 
 export function assertUnansweredInvitation(registration: { status: string, respondedAt: Date | null }) {
   if (registration.status !== REGISTRATION_STATUSES.invited || registration.respondedAt) {
@@ -367,9 +468,7 @@ export async function resendRegistrationInvitation(registrationId: string, invit
   const registration = await prisma.registration.findUniqueOrThrow({
     where: { id: registrationId },
     select: {
-      id: true,
-      status: true,
-      respondedAt: true,
+      ...awaitingSelect,
       email: true,
       responseDueAt: true,
       participant: { select: { name: true } },
@@ -377,17 +476,31 @@ export async function resendRegistrationInvitation(registrationId: string, invit
       period: { select: { game: { select: { title: true } } } }
     }
   })
-  assertUnansweredInvitation(registration)
+  assertAwaitingResponse(registration)
   const to = registration.email
 
   const { token, tokenHash } = createRegistrationToken()
   // Statut revérifié dans l'écriture : une réponse arrivée entre-temps garde son lien
-  const { count } = await prisma.registration.updateMany({
-    where: { id: registration.id, status: REGISTRATION_STATUSES.invited, respondedAt: null },
-    data: { tokenHash }
-  })
+  const { count } = await prisma.registration.updateMany({ where: awaitingResponseWhere(registration), data: { tokenHash } })
   if (!count) {
-    throw createError({ statusCode: 409, message: 'Cette invitation a déjà reçu une réponse' })
+    throw createError({ statusCode: 409, message: 'Cette personne a déjà répondu entre-temps.' })
+  }
+
+  // Place retenue : l'email de l'annonce, avec le nouveau lien (US-089)
+  if (registration.status === REGISTRATION_STATUSES.retained) {
+    const email = selectionAnnouncementEmail({
+      status: registration.status,
+      participantName: registration.participant.name,
+      gameTitle: registration.period.game.title,
+      sessions: [registration.session!],
+      responseDueAt: registration.responseDueAt,
+      url: registrationUrl(token)
+    })
+    const sent = await sendEmail({ to, ...email }).catch(() => ({ sent: false }))
+    if (!sent.sent) {
+      throw createError({ statusCode: 502, message: 'L’ancien lien est invalidé, mais l’email n’est pas parti.' })
+    }
+    return { sent: true }
   }
 
   const transport = await openEmailTransport().catch(() => null)
@@ -416,31 +529,34 @@ export async function remindRegistration(registrationId: string) {
   const registration = await prisma.registration.findUniqueOrThrow({
     where: { id: registrationId },
     select: {
-      id: true,
-      status: true,
-      respondedAt: true,
+      ...awaitingSelect,
       email: true,
       invitationSentAt: true,
+      announcedAt: true,
       responseDueAt: true,
       participant: { select: { name: true } },
       session: { select: { name: true } },
       period: { select: { game: { select: { title: true } } } }
     }
   })
-  assertUnansweredInvitation(registration)
-  if (!registration.invitationSentAt) {
+  assertAwaitingResponse(registration)
+  const retained = registration.status === REGISTRATION_STATUSES.retained
+  // Place retenue : le lien est dans l'email de l'annonce (US-089)
+  const sentAt = retained ? registration.announcedAt : registration.invitationSentAt
+  if (!sentAt) {
     throw createError({ statusCode: 409, message: 'L’email d’invitation n’est jamais parti : envoyez-le plutôt que de relancer.' })
   }
 
   const result = await sendEmail({
     to: registration.email,
-    subject: `Rappel – invitation : ${registration.period.game.title}`,
+    subject: retained ? `Rappel – place retenue : ${registration.period.game.title}` : `Rappel – invitation : ${registration.period.game.title}`,
     text: registrationReminderEmailText({
       participantName: registration.participant.name,
       gameTitle: registration.period.game.title,
       sessionName: registration.session?.name ?? null,
-      invitationSentAt: registration.invitationSentAt,
-      responseDueAt: registration.responseDueAt
+      invitationSentAt: sentAt,
+      responseDueAt: registration.responseDueAt,
+      retained
     })
   }).catch((error: { message?: string }) => ({ sent: false, reason: error?.message || 'erreur SMTP' }))
   if (!result.sent) {
@@ -463,20 +579,14 @@ export function assertNewResponseDueAt(responseDueAt: Date, now = new Date()) {
   }
 }
 
-/** Prolonge l'échéance d'une invitation sans réponse jusqu'à la date choisie (US-005, R20). */
+/** Prolonge l'échéance d'une invitation sans réponse, ou d'une place retenue, jusqu'à la date choisie (US-005, US-089, R20). */
 export async function extendRegistrationDeadline(registrationId: string, responseDueAt: Date) {
   assertNewResponseDueAt(responseDueAt)
-  const registration = await prisma.registration.findUniqueOrThrow({
-    where: { id: registrationId },
-    select: { id: true, status: true, respondedAt: true }
-  })
-  assertUnansweredInvitation(registration)
-  const { count } = await prisma.registration.updateMany({
-    where: { id: registration.id, status: REGISTRATION_STATUSES.invited, respondedAt: null },
-    data: { responseDueAt }
-  })
+  const registration = await prisma.registration.findUniqueOrThrow({ where: { id: registrationId }, select: awaitingSelect })
+  assertAwaitingResponse(registration)
+  const { count } = await prisma.registration.updateMany({ where: awaitingResponseWhere(registration), data: { responseDueAt } })
   if (!count) {
-    throw createError({ statusCode: 409, message: 'Cette invitation a déjà reçu une réponse' })
+    throw createError({ statusCode: 409, message: 'Cette personne a déjà répondu entre-temps.' })
   }
   return { responseDueAt }
 }
@@ -486,13 +596,14 @@ export async function extendRegistrationDeadline(registrationId: string, respons
  * avec l'organisatrice comme autrice. Le lien ne permet plus de répondre ; il affiche seulement
  * que la place a été réattribuée faute de réponse. La personne peut être réinvitée (R16).
  */
-export async function releaseRegistration(registrationId: string, releasedBy: { id: string }) {
+export async function releaseRegistration(registration: AwaitingLike, releasedBy: { id: string }) {
+  assertAwaitingResponse(registration)
   const { count } = await prisma.registration.updateMany({
-    where: { id: registrationId, status: REGISTRATION_STATUSES.invited, respondedAt: null },
+    where: awaitingResponseWhere(registration),
     data: { status: REGISTRATION_STATUSES.withdrawn, withdrawnAt: new Date(), withdrawnById: releasedBy.id }
   })
   if (!count) {
-    throw createError({ statusCode: 409, message: 'Cette invitation a déjà reçu une réponse' })
+    throw createError({ statusCode: 409, message: 'Cette personne a déjà répondu entre-temps.' })
   }
   return { success: true }
 }
@@ -563,38 +674,56 @@ export async function notifyGameTeam(gameId: string, text: string, subject: stri
 
 /**
  * Désistement d'une personne confirmée, par son lien ou par une organisatrice (US-006, ADR-0021) :
- * - l'inscription passe à désistée ;
+ * - l'inscription passe à désistée, et quitte ses listes d'attente (ADR-0047) ;
  * - la personne quitte la session et tous les personnages (PJ et PNJ) qu'elle y avait, qui restent sans joueur ;
  * - ses photos d'attribution partent avec, le fichier aussi s'il ne sert plus ;
  * - les trombinoscopes déjà générés pour la session sont régénérés sans elle ;
  * - un paiement éventuel est gardé, à traiter à la main (R22).
  * Régénération et email aux organisateurs se font après la réponse : la personne n'attend pas le serveur SMTP.
  */
+// Désistement possible (R13, R16) : tout sauf une invitation, qui se décline, et une inscription déjà désistée
+export const WITHDRAWABLE_STATUSES: string[] = [
+  REGISTRATION_STATUSES.received,
+  REGISTRATION_STATUSES.retained,
+  REGISTRATION_STATUSES.waitlisted,
+  REGISTRATION_STATUSES.rejected,
+  REGISTRATION_STATUSES.confirmed
+]
+
 export async function withdrawRegistration(registrationId: string, withdrawnBy: { id: string, name?: string | null } | null) {
   const registration = await prisma.registration.findUniqueOrThrow({
     where: { id: registrationId },
     select: {
       id: true,
+      status: true,
       sessionId: true,
       participantId: true,
       participant: { select: { name: true } },
-      session: { select: { name: true } },
+      session: { select: { name: true, status: true } },
       period: { select: { gameId: true, game: { select: { title: true } } } }
     }
   })
+  if (!WITHDRAWABLE_STATUSES.includes(registration.status)) {
+    throw createError({ statusCode: 409, message: 'Cette inscription ne peut pas faire l’objet d’un désistement.' })
+  }
 
   const photoUrls = await prisma.$transaction(async (tx) => {
     // Le statut est revérifié dans l'écriture : deux désistements simultanés n'en font qu'un
     const { count } = await tx.registration.updateMany({
-      where: { id: registration.id, status: { in: [REGISTRATION_STATUSES.confirmed, REGISTRATION_STATUSES.received] } },
+      where: { id: registration.id, status: registration.status },
       data: { status: REGISTRATION_STATUSES.withdrawn, withdrawnAt: new Date(), withdrawnById: withdrawnBy?.id ?? null }
     })
     if (!count) {
-      throw createError({ statusCode: 409, message: 'Seule une inscription confirmée ou reçue peut faire l’objet d’un désistement.' })
+      throw createError({ statusCode: 409, message: 'Cette inscription a changé entre-temps : rechargez la page.' })
     }
-    if (!registration.sessionId) return []
+    await tx.registrationWaitlistEntry.deleteMany({ where: { registrationId: registration.id } })
+    // Seule une personne confirmée est dans la session ; pas celle d'une session terminée, revenue au vivier (ADR-0047)
+    const sessionId = registration.status === REGISTRATION_STATUSES.confirmed && registration.session?.status !== SESSION_STATUSES.completed
+      ? registration.sessionId
+      : null
+    if (!sessionId) return []
 
-    const where = { sessionId: registration.sessionId, participantId: registration.participantId }
+    const where = { sessionId, participantId: registration.participantId }
     await tx.sessionParticipant.deleteMany({ where: { ...where, role: SESSION_ROLES.participant } })
     const assignments = await tx.sessionAssignment.findMany({ where, select: { photoUrl: true } })
     await tx.sessionAssignment.updateMany({ where, data: { participantId: null, photoUrl: null } })

@@ -165,11 +165,15 @@ export const REGISTRATION_PERIOD_STATE_META = {
 
 export const REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS = 7
 
-// Statuts d'une inscription (R16). Le mode invitation n'utilise que ceux-ci ; les suivants arrivent avec la sélection.
+// Statuts d'une inscription (R16).
 // received : inscription par le formulaire, email confirmé, en attente de la sélection (ADR-0046)
+// retained, waitlisted, rejected : décisions de la sélection, annoncées à part (ADR-0047)
 export const REGISTRATION_STATUSES = {
   invited: 'invited',
   received: 'received',
+  retained: 'retained',
+  waitlisted: 'waitlisted',
+  rejected: 'rejected',
   confirmed: 'confirmed',
   withdrawn: 'withdrawn'
 } as const
@@ -177,9 +181,32 @@ export const REGISTRATION_STATUSES = {
 export const REGISTRATION_STATUS_META = {
   [REGISTRATION_STATUSES.invited]: { label: 'Invitée', color: 'info' },
   [REGISTRATION_STATUSES.received]: { label: 'Reçue', color: 'info' },
+  [REGISTRATION_STATUSES.retained]: { label: 'Retenue', color: 'primary' },
+  [REGISTRATION_STATUSES.waitlisted]: { label: 'Liste d’attente', color: 'warning' },
+  [REGISTRATION_STATUSES.rejected]: { label: 'Non retenue', color: 'neutral' },
   [REGISTRATION_STATUSES.confirmed]: { label: 'Confirmée', color: 'success' },
   [REGISTRATION_STATUSES.withdrawn]: { label: 'Désistée', color: 'neutral' }
 } as const
+
+// Décisions de la sélection, annoncées par « Annoncer les résultats » (US-088)
+export const REGISTRATION_SELECTION_STATUSES: string[] = [
+  REGISTRATION_STATUSES.retained,
+  REGISTRATION_STATUSES.waitlisted,
+  REGISTRATION_STATUSES.rejected
+]
+
+// Rejoueurs (R7) : personne qui a participé à une session terminée du jeu
+export const REGISTRATION_REPLAY_POLICIES = {
+  allowed: 'allowed',
+  flagged: 'flagged',
+  excluded: 'excluded'
+} as const
+
+export const REGISTRATION_REPLAY_POLICY_OPTIONS = [
+  { label: 'Autorisés', value: REGISTRATION_REPLAY_POLICIES.allowed },
+  { label: 'Signalés', value: REGISTRATION_REPLAY_POLICIES.flagged },
+  { label: 'Exclus du tirage et du vivier', value: REGISTRATION_REPLAY_POLICIES.excluded }
+] as const
 
 export const REGISTRATION_SOURCES = {
   invitation: 'invitation',

@@ -84,6 +84,10 @@ export async function exportParticipantData(participantId: string, gameIds: stri
           // Sessions où la personne s'est dite disponible (R10)
           availabilities: { select: { session: { select: { name: true, date: true } } } },
           affinities: { select: { kind: true, text: true }, orderBy: { position: 'asc' } },
+          // Sélection (US-087, US-088) : listes d'attente et décision annoncée
+          waitlistEntries: { select: { position: true, session: { select: { name: true, date: true } } } },
+          announcedStatus: true,
+          announcedAt: true,
           invitationSentAt: true,
           lastRemindedAt: true,
           responseDueAt: true,
