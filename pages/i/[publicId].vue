@@ -35,9 +35,9 @@
           v-else-if="result"
           color="success"
           variant="soft"
-          :title="result.received ? 'Votre inscription est reçue.' : 'Vérifiez votre boîte mail.'"
-          :description="result.received
-            ? 'Vous la retrouvez dans votre espace « Je participe ».'
+          :title="result.received ? 'Votre inscription est reçue.' : result.alreadyRegistered ? 'Vous êtes déjà inscrit·e.' : 'Vérifiez votre boîte mail.'"
+          :description="result.received || result.alreadyRegistered
+            ? 'Vous retrouvez votre inscription dans votre espace « Je participe ».'
             : result.emailSent
               ? 'Un email vient de vous être envoyé : ouvrez le lien qu’il contient pour confirmer votre adresse. Sans confirmation, l’inscription n’est pas transmise à l’équipe.'
               : 'L’email de confirmation n’a pas pu partir. Réessayez dans quelques minutes.'"

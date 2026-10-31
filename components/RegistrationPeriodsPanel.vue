@@ -375,9 +375,8 @@ async function refresh() {
 
 const isFormPeriod = (period) => period.entryMode === REGISTRATION_ENTRY_MODES.form
 const isPermanent = (period) => period.scope === REGISTRATION_PERIOD_SCOPES.game
-// Aussi au rendu côté serveur : l'origine vient de la requête, pas de window
-const appOrigin = useRequestURL().origin
-const diffusionUrl = (period) => `${appOrigin}/i/${period.publicId}`
+// Calculé par le serveur avec l'adresse de l'application (absoluteAppUrl)
+const diffusionUrl = (period) => period.diffusionUrl
 const receivedCount = (period) => (registrationsByPeriod.value[period.id] || []).filter((registration) => registration.status === REGISTRATION_STATUSES.received).length
 
 // Disponibilités d'une inscription par le formulaire (R10), dans l'ordre des sessions de la période

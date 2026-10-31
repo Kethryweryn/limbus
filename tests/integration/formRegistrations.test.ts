@@ -83,6 +83,21 @@ describe('période en mode formulaire et inscription permanente (US-083)', () =>
     expect((await api(alice, 'POST', '/api/registration-periods', permanent)).status).toBe(409)
     expect((await api(alice, 'POST', '/api/registration-periods', { ...permanent, state: 'draft', entryMode: 'invitation' })).status).toBe(400)
     expect(DENIED_OR_NOT_FOUND).toContain((await api(bob, 'POST', '/api/registration-periods', { ...permanent, state: 'draft' })).status)
+    expect((first.body as { diffusionUrl: string }).diffusionUrl).toMatch(/\/i\/[\w-]+$/)
+  })
+
+  it('le formulaire permanent liste les sessions à venir sans période dédiée, sans disponibilités', async () => {
+    const { key, game, sessions } = await aliceGame()
+    const free = await prisma.session.create({ data: { name: `Libre ${key}`, slug: `libre-${key}`, gameId: game.id, date: new Date(Date.now() + 30 * DAY) } })
+    await prisma.session.create({ data: { name: `Passée ${key}`, slug: `passee-${key}`, gameId: game.id, date: new Date(Date.now() - 30 * DAY) } })
+    await prisma.session.create({ data: { name: `Annulée ${key}`, slug: `annulee-${key}`, gameId: game.id, status: 'cancelled', date: new Date(Date.now() + 40 * DAY) } })
+    const created = await api(alice, 'POST', '/api/registration-periods', { name: 'Vivier', gameId: game.id, entryMode: 'form', scope: 'game', state: 'open' })
+    const read = await publicApi('GET', `/api/public/periods/${(created.body as { publicId: string }).publicId}`)
+    expect(read.status, JSON.stringify(read.body)).toBe(200)
+    expect(read.body).toMatchObject({ permanent: true, asksAvailability: false })
+    // Les deux sessions de la période dédiée en sont exclues (R31), comme la passée et l'annulée
+    expect(read.body.sessions.map((session: { id: string }) => session.id)).toEqual([free.id])
+    expect(sessions.length).toBe(2)
   })
 
   it('on n’invite pas dans une période en mode formulaire', async () => {
@@ -141,6 +156,14 @@ describe('formulaire public (US-084)', () => {
     expect(await prisma.registrationRequest.count({ where: { email: `robot-${key}@example.test` } })).toBe(0)
   })
 
+  it('une session annulée de la période n’est plus proposée', async () => {
+    const { key, sessions, period } = await aliceGame()
+    await prisma.session.update({ where: { id: sessions[1]!.id }, data: { status: 'cancelled' } })
+    const read = await publicApi('GET', `/api/public/periods/${period.publicId}`)
+    expect(read.body.sessions.map((session: { id: string }) => session.id)).toEqual([sessions[0]!.id])
+    expect((await publicApi('POST', `/api/public/periods/${period.publicId}`, answers(`annulee-${key}@example.test`, [sessions[1]!.id]))).status).toBe(400)
+  })
+
   it('une personne connectée est inscrite aussitôt, avec l’adresse de son compte', async () => {
     const { key, sessions, period } = await aliceGame()
     const user = await prisma.user.create({ data: { email: `connectee-${key}@example.test`, name: 'Camille Connectée', password: 'non-utilise', phone: '0611111111' } })
@@ -153,6 +176,12 @@ describe('formulaire public (US-084)', () => {
     expect(registration).toMatchObject({ status: 'received', email: user.email, participant: { userId: user.id }, availabilities: [{ sessionId: sessions[1]!.id }] })
     expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).phone).toBe('0622222222')
     expect(await prisma.registrationRequest.count({ where: { periodId: period.id } })).toBe(0)
+
+    // Une inscription qui n'est plus « reçue » ne repart pas, et la page le dit
+    await prisma.registration.updateMany({ where: { periodId: period.id }, data: { status: 'confirmed' } })
+    const again = await publicApi('POST', `/api/public/periods/${period.publicId}`, answers('autre@example.test', [sessions[0]!.id], { phone: '0633333333' }), user)
+    expect(again.body).toEqual({ received: false, emailSent: false, alreadyRegistered: true })
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).phone).toBe('0622222222')
   })
 })
 
@@ -167,7 +196,7 @@ describe('confirmer son email et suivre son inscription (US-085)', () => {
 
     const participant = await prisma.participant.findFirstOrThrow({ where: { email }, select: { id: true, name: true, gameLinks: { select: { gameId: true } } } })
     expect(participant).toMatchObject({ name: 'Lou Dupont', gameLinks: [{ gameId: game.id }] })
-    expect(smtp.received.some((message) => message.to.includes('alice@example.test') && message.text.includes('Lou Dupont'))).toBe(true)
+    await expect.poll(() => smtp.received.some((message) => message.to.includes('alice@example.test') && message.text.includes('Lou Dupont'))).toBe(true)
 
     // Une seconde ouverture ne confirme rien de plus ; le lien personnel marche
     expect((await publicApi('POST', `/api/public/registrations/${token}/confirm`)).status).toBe(404)

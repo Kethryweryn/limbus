@@ -11,7 +11,7 @@ import { freezeFormVersion, updateProfileFromAnswers, type RegistrationAnswers }
 import { getCurrentRegistrationForm, registrationAnswerSchema, type AffinityAnswers, type QuestionAnswers } from '~/server/utils/registrationForms'
 import { readZodBody } from '~/server/utils/schemas'
 import { asksAvailability, availabilitySchema } from '~/server/utils/registrationAvailability'
-import { REGISTRATION_ENTRY_MODES, REGISTRATION_PERIOD_SCOPES, REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
+import { REGISTRATION_ENTRY_MODES, REGISTRATION_PERIOD_SCOPES, REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_STATUSES, isClosedSessionStatus } from '~/utils/domain'
 import { effectivePeriodState } from '~/utils/registrationPeriods'
 import { splitParticipantName } from '~/utils/registrations'
 import { youtubeVideoId } from '~/utils/urls'
@@ -23,7 +23,7 @@ export const REGISTRATION_REQUEST_TTL_MS = 7 * DAY_MS
 const PUBLIC_ID_PATTERN = /^[\w-]{1,32}$/
 const TOKEN_PATTERN = /^[\w-]{43}$/
 
-const sessionSelect = { id: true, name: true, date: true, location: { select: { name: true, address: true } } } as const
+const sessionSelect = { id: true, name: true, date: true, status: true, location: { select: { name: true, address: true } } } as const
 
 export const formPeriodSelect = {
   id: true,
@@ -62,7 +62,8 @@ export async function requireFormPeriod(publicId: string | undefined) {
  * les sessions à venir du jeu qui n'ont pas leur propre période (R30, R31)
  */
 export async function formPeriodSessions(period: Pick<FormPeriod, 'scope' | 'gameId' | 'sessions'>, now = new Date()) {
-  if (period.scope !== REGISTRATION_PERIOD_SCOPES.game) return period.sessions.map((link) => link.session)
+  // Une session annulée ou terminée n'est plus proposée
+  if (period.scope !== REGISTRATION_PERIOD_SCOPES.game) return period.sessions.map((link) => link.session).filter((session) => !isClosedSessionStatus(session.status))
   const today = new Date(now)
   today.setHours(0, 0, 0, 0)
   return await prisma.session.findMany({
@@ -144,7 +145,10 @@ function requestEmailText(params: { gameTitle: string, url: string }) {
  */
 export async function submitFormRegistration(event: H3Event, publicId: string | undefined) {
   setHeader(event, 'Cache-Control', 'no-store')
-  assertRateLimit(event, { name: 'public-form-submit', limit: 10, windowMs: 10 * 60 * 1000 })
+  // Par lien et par IP, avec un plafond large par IP : un groupe inscrit depuis le même wifi ne se bloque pas
+  const windowMs = 10 * 60 * 1000
+  assertRateLimit(event, { name: 'public-form-submit', limit: 10, windowMs, keyParts: [String(publicId).slice(0, 32)] })
+  assertRateLimit(event, { name: 'public-form-submit-ip', limit: 100, windowMs })
   const period = await requireFormPeriod(publicId)
   if (effectivePeriodState(period) !== REGISTRATION_PERIOD_STATES.open) {
     throw createError({ statusCode: 409, message: 'Les inscriptions sont closes.' })
@@ -163,7 +167,9 @@ export async function submitFormRegistration(event: H3Event, publicId: string | 
   const versionId = await freezeFormVersion(period.gameId, form.version?.id ?? null)
   if (account) {
     const stored = { ...answers, email: account.email, availableSessionIds }
-    await receiveRegistration(period, stored, versionId, null)
+    const result = await receiveRegistration(period, stored, versionId, null)
+    // Déjà inscrite à un autre statut : rien n'a changé, ni l'inscription ni ses coordonnées
+    if (!result?.applied) return { received: false, emailSent: false, alreadyRegistered: true }
     await updateProfileFromAnswers(account.id, stored, form.definition)
     return { received: true, emailSent: false }
   }
@@ -269,8 +275,9 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
     return { registrationId, applied, participantName: participant.name }
   })
 
+  // Après la réponse : la personne n'attend pas le serveur SMTP, et un échec ne change rien à son inscription
   if (result?.applied && period.notifyTeam) {
-    await notifyGameTeam(
+    void notifyGameTeam(
       period.gameId,
       [
         `${result.participantName} s’est inscrit·e à « ${period.game.title} » (période « ${period.name} »).`,
@@ -278,7 +285,7 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
         `Son inscription est reçue : retrouvez-la dans les inscriptions du jeu, ${absoluteAppUrl('/registrations')}.`
       ].join('\n'),
       `Nouvelle inscription : ${result.participantName} (${period.game.title})`
-    )
+    ).catch((error) => console.error('[inscription] équipe non prévenue', { periodId: period.id, error: (error as Error)?.message }))
   }
   return result
 }

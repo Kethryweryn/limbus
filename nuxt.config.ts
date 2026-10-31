@@ -21,6 +21,10 @@ export default defineNuxtConfig({
     },
     '/inscription/**': {
       headers: { 'Referrer-Policy': 'no-referrer', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' }
+    },
+    // Lien de diffusion (ADR-0046) : public et indexable, mais prérempli pour une personne connectée
+    '/i/**': {
+      headers: { 'Cache-Control': 'private, no-store' }
     }
   },
   nitro: {

@@ -6,7 +6,7 @@ import { sendEmail } from '~/server/utils/email'
 import { hashRegistrationToken } from '~/server/utils/registrations'
 import { asksAvailability } from '~/server/utils/registrationAvailability'
 import { getCurrentRegistrationForm, saveRegistrationFormDefinition, type AffinityAnswers, type QuestionAnswers } from '~/server/utils/registrationForms'
-import { REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
+import { REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES, isClosedSessionStatus } from '~/utils/domain'
 import { effectivePeriodState } from '~/utils/registrationPeriods'
 import { isInvitationOverdue, registrationLinkExpired, splitParticipantName } from '~/utils/registrations'
 import {
@@ -61,7 +61,7 @@ const publicRegistrationSelect = {
       closesAt: true,
       scope: true,
       game: { select: { title: true, noteIntention: true } },
-      sessions: { orderBy: { session: { date: 'asc' as const } }, select: { session: { select: { id: true, name: true, date: true } } } }
+      sessions: { orderBy: { session: { date: 'asc' as const } }, select: { session: { select: { id: true, name: true, date: true, status: true } } } }
     }
   }
 } as const
@@ -197,7 +197,7 @@ export async function exposePublicRegistration(registration: PublicRegistration,
     definition: await registrationFormDefinition(registration),
     // Disponibilités d'une inscription par le formulaire à plusieurs sessions (R10)
     availability: registration.status === REGISTRATION_STATUSES.received && asksAvailability(registration.period)
-      ? { sessions: registration.period.sessions.map((link) => link.session) }
+      ? { sessions: registration.period.sessions.map((link) => link.session).filter((session) => !isClosedSessionStatus(session.status)) }
       : null,
     answers: {
       email: registration.email,
