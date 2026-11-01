@@ -1,3 +1,4 @@
+import { purgeExpiredPhotos } from '~/server/utils/photoRetention'
 import bcrypt from 'bcrypt'
 import { prisma } from '~/server/utils/prisma'
 import { setAuthCookie } from '~/server/utils/auth'
@@ -45,6 +46,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Ce compte est désactivé. Contactez l’administratrice de Limbus.' })
   }
 
+  // Photos des sessions passées depuis plus longtemps que la durée de leur jeu (US-108, ADR-0054) : après une
+  // connexion réussie seulement, pour qu'une tentative refusée ne parcoure pas les sessions
+  await purgeExpiredPhotos()
   setAuthCookie(event, user)
 
   return { success: true }

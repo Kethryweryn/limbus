@@ -70,7 +70,11 @@
             </p>
           </div>
         </div>
-        <div class="lg:col-span-3 flex items-center gap-3">
+        <!-- Refus de l'usage de sa photo (US-109) : pas de photo pour cette personne -->
+        <p v-if="photoRefused(assignment)" class="lg:col-span-3 text-sm text-gray-500">
+          Photo refusée par la personne
+        </p>
+        <div v-else class="lg:col-span-3 flex items-center gap-3">
           <button
             type="button"
             class="size-20 shrink-0 overflow-hidden rounded border border-gray-200 bg-gray-50 flex items-center justify-center"
@@ -305,6 +309,10 @@ const pnjCastableIds = computed(() => new Set(
     .filter(Boolean) || []
 ))
 
+function photoRefused(assignment) {
+  return Boolean(assignment.participantId && props.participants.find((participant) => participant.id === assignment.participantId)?.photoRefusedAt)
+}
+
 function characterById(characterId) {
   return props.characters.find((character) => character.id === characterId)
 }
@@ -448,7 +456,10 @@ async function submit() {
 
   saving.value = true
   try {
-    await props.onSave(assignments.value.filter((assignment) => assignment.characterId))
+    // Une personne qui a refusé l'usage de sa photo ne garde pas celle de la ligne (US-109)
+    await props.onSave(assignments.value
+      .filter((assignment) => assignment.characterId)
+      .map((assignment) => photoRefused(assignment) ? { ...assignment, photoUrl: '' } : assignment))
     serverError.value = ''
   } catch (err) {
     serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'

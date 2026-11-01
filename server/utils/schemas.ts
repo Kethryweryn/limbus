@@ -1,4 +1,5 @@
 import { z, type ZodError, type ZodType } from 'zod'
+import { PHOTO_RETENTION_MAX_MONTHS, PHOTO_RETENTION_MIN_MONTHS } from '~/utils/photoInformation'
 import { REGISTRATION_DIETARY_MAX_LENGTH } from '~/utils/registrationForms'
 import { CHARACTER_RELATION_DESCRIPTION_MAX_LENGTH, CHARACTER_RELATION_LABEL_MAX_LENGTH, CHARACTER_RELATION_TYPE_VALUES } from '~/utils/characterRelations'
 import type { H3Event } from 'h3'
@@ -115,7 +116,10 @@ export const createGameSchema = z.object({
   publicShowRegistration: optionalBoolean,
   singlePjPerParticipant: optionalBoolean,
   balanceAttribute,
-  balanceValues
+  balanceValues,
+  // Photos des participants (US-107) : durée de conservation et adresse pour en demander le retrait
+  photoRetentionMonths: z.number().int().min(PHOTO_RETENTION_MIN_MONTHS).max(PHOTO_RETENTION_MAX_MONTHS).optional().nullable(),
+  contactEmail: z.union([z.literal(''), z.string().trim().toLowerCase().email('Adresse de contact invalide')]).optional().nullable()
 })
 
 export const updateGameSchema = z.object({
@@ -130,7 +134,10 @@ export const updateGameSchema = z.object({
   publicShowRegistration: optionalBoolean,
   singlePjPerParticipant: optionalBoolean,
   balanceAttribute,
-  balanceValues
+  balanceValues,
+  // Photos des participants (US-107) : durée de conservation et adresse pour en demander le retrait
+  photoRetentionMonths: z.number().int().min(PHOTO_RETENTION_MIN_MONTHS).max(PHOTO_RETENTION_MAX_MONTHS).optional().nullable(),
+  contactEmail: z.union([z.literal(''), z.string().trim().toLowerCase().email('Adresse de contact invalide')]).optional().nullable()
 })
 
 export const createCharacterSchema = z.object({
@@ -646,6 +653,11 @@ export const accountPasswordSchema = z.object({
 // Transfert d'un jeu à une co-organisatrice (US-060)
 export const gameTransferSchema = z.object({
   userId: requiredId('User')
+})
+
+// Refus de l'usage de sa photo (US-109)
+export const photoRefusalSchema = z.object({
+  refused: z.boolean()
 })
 
 export const adminModeSchema = z.object({

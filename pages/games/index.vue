@@ -164,6 +164,7 @@ v-model="searchQuery" placeholder="Rechercher un jeu..." icon="i-heroicons-magni
 
 <script setup>
 import { isArchivedGame } from '~/utils/games'
+import { PHOTO_RETENTION_DEFAULT_MONTHS } from '~/utils/photoInformation'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import GameContextBar from '@/components/GameContextBar.vue'
@@ -230,6 +231,8 @@ function startCreate() {
     noteIntention: '',
     publicPage: false,
     singlePjPerParticipant: true,
+    photoRetentionMonths: PHOTO_RETENTION_DEFAULT_MONTHS,
+    contactEmail: '',
     published: false
   }
   formMode.value = 'create'

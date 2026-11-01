@@ -1,3 +1,4 @@
+import { gamePhotoInformation } from '~/utils/photoInformation'
 import type { H3Event } from 'h3'
 import { prisma } from '~/server/utils/prisma'
 import { accountIdForEmail, syncProfileToParticipants } from '~/server/utils/participantAccounts'
@@ -66,7 +67,7 @@ const publicRegistrationSelect = {
       state: true,
       closesAt: true,
       scope: true,
-      game: { select: { title: true, noteIntention: true } },
+      game: { select: { title: true, noteIntention: true, photoRetentionMonths: true, contactEmail: true, owner: { select: { email: true } } } },
       sessions: { orderBy: { session: { date: 'asc' as const } }, select: { session: { select: { id: true, name: true, date: true, status: true } } } }
     }
   }
@@ -204,7 +205,7 @@ export async function exposePublicRegistration(registration: PublicRegistration,
   const status = announcedRegistrationStatus(registration)
   return {
     status,
-    game: { ...game, noteIntention: registration.period.game.noteIntention },
+    game: { ...game, noteIntention: registration.period.game.noteIntention, photoInformation: gamePhotoInformation(registration.period.game) },
     session: isAnnouncementPending(registration) ? null : registration.session,
     // Sessions où la personne attend une place (US-088)
     waitlistSessions: status === REGISTRATION_STATUSES.waitlisted ? registration.waitlistEntries.map((entry) => entry.session) : [],

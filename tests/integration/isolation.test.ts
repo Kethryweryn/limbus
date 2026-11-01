@@ -171,6 +171,7 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['POST', `/api/sessions/${session}/documents/test-character-sheet`, { emails: ['x@example.test'], characterId: b.character.id }],
     ['GET', `/api/sessions/${session}/payments`],
     ['POST', `/api/sessions/${session}/casting-assistant`, { assignments: [] }],
+    ['POST', `/api/participants/${b.participant.id}/photo-refusal`, { refused: true }],
     ['PUT', `/api/sessions/${session}/payments/settings`, { paymentLinkUrl: 'https://example.test' }],
     ['PUT', `/api/sessions/${session}/payments/${b.participant.id}`, { paid: true }],
     ['PUT', `/api/sessions/${session}/payments/${b.participant.id}/refund`, { status: 'to_refund' }],

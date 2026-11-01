@@ -1,15 +1,16 @@
 ---
 titre: Photos des participants : durée de conservation et information
-statut: à trancher
+statut: prête
+spec: ../../specs/SPEC-012-photos-des-participants.md
 date: 2026-10-29
-revue: ../revues/2026-10-29-architecture.md
+revue: ../../revues/2026-10-29-architecture.md
 ---
 
 # Photos des participants : durée de conservation et information
 
 ## Besoin
 
-Une photo où une personne est reconnaissable est une donnée personnelle. La [revue d'architecture](../revues/2026-10-29-architecture.md) relève deux écarts avec le RGPD :
+Une photo où une personne est reconnaissable est une donnée personnelle. La [revue d'architecture](../../revues/2026-10-29-architecture.md) relève deux écarts avec le RGPD :
 
 - R-08 : les photos de session sont gardées tant que la session existe, sans durée de conservation (article 5, 1, e) ;
 - R-09 : les participants ne sont pas informés de l'usage de leur photo : le trombinoscope remis à l'équipe et envoyé par email aux joueurs de la session (articles 13 et 14).

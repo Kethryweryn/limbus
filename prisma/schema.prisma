@@ -29,6 +29,10 @@ model Game {
   balanceValues    String[]  @default([])
   // Un seul PJ par participant et par session (US-017) ; décoché pour un jeu en plusieurs actes
   singlePjPerParticipant Boolean @default(true)
+  // Photos des participants (US-107, US-108, ADR-0054) : durée de conservation après la session, et adresse donnée
+  // pour en demander le retrait (à défaut, celle de la propriétaire)
+  photoRetentionMonths Int @default(6)
+  contactEmail   String?
   // Crédit d'une copie léguée, figé au moment du legs (SPEC-002 R11, R12, ADR-0025)
   creditSourceTitle String?
   creditAuthorName  String?
@@ -597,6 +601,8 @@ model Participant {
   // Compte rattaché par l'adresse confirmée (US-070, ADR-0041)
   userId      String?
   user        User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  // Photo refusée (US-109, ADR-0054) : aucune photo de la personne dans le cast ni les trombinoscopes
+  photoRefusedAt DateTime?
   // Vidé par la migration d'ADR-0040 : les notes vivent sur ParticipantGame. Colonne à supprimer
   notes       String?
   gameLinks   ParticipantGame[]

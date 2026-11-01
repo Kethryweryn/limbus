@@ -1,3 +1,4 @@
+import { gamePhotoInformation } from '~/utils/photoInformation'
 import { prisma } from '~/server/utils/prisma'
 import { myParticipantIds } from '~/server/utils/participantAccounts'
 import { myDeliveriesBySession } from '~/server/utils/myDocuments'
@@ -71,7 +72,7 @@ export async function myParticipations(userId: string, now = new Date()) {
   const inMine = { participantId: { in: ids } }
 
   const [links, roles, assignments, registrations, attendances, payments, deliveries, documents] = await Promise.all([
-    prisma.participantGame.findMany({ where: inMine, select: { game: { select: { id: true, title: true, slug: true } } } }),
+    prisma.participantGame.findMany({ where: inMine, select: { game: { select: { id: true, title: true, slug: true, photoRetentionMonths: true, contactEmail: true, owner: { select: { email: true } } } } } }),
     prisma.sessionParticipant.findMany({ where: inMine, select: { role: true, session: { select: sessionSelect } } }),
     // Le casting compte comme un rôle de PJ, sans le personnage (choix du lot 4)
     prisma.sessionAssignment.findMany({ where: inMine, select: { session: { select: sessionSelect } } }),
@@ -123,13 +124,14 @@ export async function myParticipations(userId: string, now = new Date()) {
     documents: documents.get(session.id) ?? []
   })))
 
-  const games = new Map<string, { id: string, title: string, slug: string }>()
+  const games = new Map<string, (typeof links)[number]['game']>()
   for (const link of links) games.set(link.game.id, link.game)
 
   return [...games.values()]
     .sort((left, right) => left.title.localeCompare(right.title, 'fr'))
     .map((game) => ({
-      game: { id: game.id, title: game.title },
+      // Usage des photos dans ce jeu (US-107)
+      game: { id: game.id, title: game.title, photoInformation: gamePhotoInformation(game) },
       sessions: sessionViews
         .filter((session) => session.gameId === game.id)
         .sort((left, right) => (left.date?.getTime() ?? Infinity) - (right.date?.getTime() ?? Infinity)),

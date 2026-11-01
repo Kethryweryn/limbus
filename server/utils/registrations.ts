@@ -1,3 +1,4 @@
+import { gamePhotoInformation } from '~/utils/photoInformation'
 import { createHash, randomBytes } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
 import { accountIdForEmail } from '~/server/utils/participantAccounts'
@@ -83,6 +84,8 @@ export function registrationInvitationEmailText(params: {
   responseDueAt: Date | null
   inviterName: string | null
   url: string
+  // Usage des photos (US-107)
+  photoInformation?: string | null
 }, now = new Date()) {
   const session = params.sessionName
     ? `${params.sessionName}${params.sessionDate ? ` (${formatDate(params.sessionDate)})` : ''}`
@@ -97,7 +100,8 @@ export function registrationInvitationEmailText(params: {
     params.url,
     '',
     responseDueLine(params.responseDueAt, now),
-    'Ce lien vous est propre : ne le transférez pas.'
+    'Ce lien vous est propre : ne le transférez pas.',
+    ...(params.photoInformation ? ['', params.photoInformation] : [])
   ].filter((line) => line !== null).join('\n')
 }
 
@@ -201,6 +205,7 @@ type InvitationContext = {
   sessionDate: Date | null
   responseDueAt: Date | null
   inviterName: string | null
+  photoInformation: string | null
 }
 
 /**
@@ -233,7 +238,7 @@ const periodForInvitationSelect = {
   state: true,
   closesAt: true,
   responseDelayDays: true,
-  game: { select: { id: true, title: true, ownerId: true } },
+  game: { select: { id: true, title: true, ownerId: true, photoRetentionMonths: true, contactEmail: true, owner: { select: { email: true } } } },
   sessions: { select: { sessionId: true, session: { select: { name: true, date: true } } } }
 } as const
 
@@ -382,7 +387,8 @@ export async function inviteToRegistrationPeriod(params: {
     sessionName: link.session.name,
     sessionDate: link.session.date,
     responseDueAt,
-    inviterName: params.inviter.name ?? null
+    inviterName: params.inviter.name ?? null,
+    photoInformation: gamePhotoInformation(period.game)
   }
   const results = []
   const transport = await openEmailTransport().catch(() => null)
@@ -473,7 +479,7 @@ export async function resendRegistrationInvitation(registrationId: string, invit
       responseDueAt: true,
       participant: { select: { name: true } },
       session: { select: { name: true, date: true } },
-      period: { select: { game: { select: { title: true } } } }
+      period: { select: { game: { select: { title: true, photoRetentionMonths: true, contactEmail: true, owner: { select: { email: true } } } } } }
     }
   })
   assertAwaitingResponse(registration)
@@ -512,7 +518,8 @@ export async function resendRegistrationInvitation(registrationId: string, invit
       sessionName: registration.session?.name ?? null,
       sessionDate: registration.session?.date ?? null,
       responseDueAt: registration.responseDueAt,
-      inviterName: inviter.name ?? null
+      inviterName: inviter.name ?? null,
+      photoInformation: gamePhotoInformation(registration.period.game)
     }
   ).finally(() => transport?.close())
   if (!result.sent) {

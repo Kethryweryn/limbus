@@ -35,6 +35,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-025](../archive/epics/EPIC-025-assistant-de-casting/README.md) | Assistant de casting | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 | [EPIC-026](../archive/epics/EPIC-026-supervision/README.md) | Supervision de la production | [fiche](../todo/supervision.md) | terminé |
 | [EPIC-027](../archive/epics/EPIC-027-durcissement-web/README.md) | Durcissement web : origine des écritures, cookie __Host-, CSP en mode rapport | [fiche](../todo/durcissement-web.md) | terminé |
+| [EPIC-028](../archive/epics/EPIC-028-photos-des-participants/README.md) | Photos des participants, information, durée de conservation et retrait | [SPEC-012](../specs/SPEC-012-photos-des-participants.md) | terminé |
 
 ## US
 
@@ -146,3 +147,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-104](../archive/epics/EPIC-027-durcissement-web/US-104-origine-des-ecritures.md) | Refuser les écritures venues d'un autre site | EPIC-027 | terminée |
 | [US-105](../archive/epics/EPIC-027-durcissement-web/US-105-cookie-host.md) | Cookies avec le préfixe __Host- | EPIC-027 | terminée |
 | [US-106](../archive/epics/EPIC-027-durcissement-web/US-106-csp-en-mode-rapport.md) | CSP et COOP sur les pages, d'abord en mode rapport | EPIC-027 | terminée |
+| [US-107](../archive/epics/EPIC-028-photos-des-participants/US-107-information-et-contact.md) | Informer les personnes de l'usage de leur photo | EPIC-028 | terminée |
+| [US-108](../archive/epics/EPIC-028-photos-des-participants/US-108-duree-et-purge.md) | Supprimer les photos d'une session après le délai du jeu | EPIC-028 | terminée |
+| [US-109](../archive/epics/EPIC-028-photos-des-participants/US-109-retrait-et-refus.md) | Retirer ses photos et refuser les suivantes | EPIC-028 | terminée |

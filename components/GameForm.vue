@@ -40,6 +40,16 @@
         description="Décochez pour un jeu en plusieurs actes, où un participant joue un rôle par acte."
       />
 
+      <!-- Photos des participants (US-107, SPEC-012) : données dans le texte d'information des personnes -->
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <UFormField label="Conservation des photos (mois après la session)" description="Les photos du cast et les trombinoscopes sont ensuite supprimés.">
+          <UInputNumber v-model="localGame.photoRetentionMonths" :min="PHOTO_RETENTION_MIN_MONTHS" :max="PHOTO_RETENTION_MAX_MONTHS" class="w-full" />
+        </UFormField>
+        <UFormField label="Adresse de contact" description="Pour demander le retrait d’une photo. Facultative : à défaut, l’adresse de la propriétaire du jeu.">
+          <UInput v-model="localGame.contactEmail" type="email" class="w-full" />
+        </UFormField>
+      </div>
+
       <!-- Attribut d'équilibre des personnages (US-091) : sert à la question d'équilibre et au tirage -->
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <UFormField label="Attribut d’équilibre" description="Facultatif, par exemple « Genre du personnage ».">
@@ -67,6 +77,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { PHOTO_RETENTION_MAX_MONTHS, PHOTO_RETENTION_MIN_MONTHS } from '~/utils/photoInformation'
 
 const props = defineProps({
   game: { type: Object, required: true },

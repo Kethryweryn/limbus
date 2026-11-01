@@ -77,7 +77,7 @@ Comme aujourd'hui ([SPEC-008](SPEC-008-comptes-et-partage.md)). En plus, une co-
 
 - `User` : un rôle administrateur oui ou non, l'adresse confirmée, le plafond de stockage.
 - Fiche participant rattachée à un compte ; notes d'organisation par équipe.
-- L'export et l'effacement depuis le compte couvrent tout ce qui est rattaché au compte ; la durée de conservation est fixée à l'étape 5 (fiche [Photos et RGPD](../todo/photos-et-rgpd.md)).
+- L'export et l'effacement depuis le compte couvrent tout ce qui est rattaché au compte ; la durée de conservation est fixée à l'étape 5 (fiche [Photos et RGPD](../archive/todo/photos-et-rgpd.md)).
 
 ## Sécurité et droits
 
@@ -99,4 +99,4 @@ Un epic par lot, dans l'ordre :
 ## Hors périmètre
 
 - Conditions d'utilisation, politique de confidentialité et responsable de traitement : étape 5 de la [feuille de route](../feuille-de-route.md), avant d'ouvrir l'inscription en production.
-- Durée de conservation des données : fiche [Photos et RGPD](../todo/photos-et-rgpd.md).
+- Durée de conservation des données : fiche [Photos et RGPD](../archive/todo/photos-et-rgpd.md).

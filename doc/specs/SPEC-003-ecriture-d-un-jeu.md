@@ -79,7 +79,7 @@ Depuis la liste des jeux, la propriétaire ou une co-organisatrice archive un je
   - la photo de trombinoscope par défaut d'un personnage peut montrer une personne réelle, par exemple la personne qui joue un PNJ ;
   - les textes libres peuvent nommer des personnes.
 
-  Ces données ne sont supprimées qu'avec le personnage ou le jeu. La fiche [Photos et RGPD](../todo/photos-et-rgpd.md) doit en tenir compte.
+  Ces données ne sont supprimées qu'avec le personnage ou le jeu. La fiche [Photos et RGPD](../archive/todo/photos-et-rgpd.md) doit en tenir compte.
 - Le contenu d'un jeu est conservé tant que le jeu existe.
 
 ## Sécurité et droits
