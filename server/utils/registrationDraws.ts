@@ -205,6 +205,11 @@ export async function cancelDraw(drawId: string, author: { id: string }) {
         where: { id: { in: session.retained }, status: REGISTRATION_STATUSES.retained, sessionId: session.sessionId, retainedById: null },
         data: back
       })
+      // Les personnages réservés aux personnes revenues à trier redeviennent libres (US-100)
+      await tx.sessionAssignment.updateMany({
+        where: { reservedRegistration: { id: { in: session.retained }, status: REGISTRATION_STATUSES.received } },
+        data: { reservedRegistrationId: null }
+      })
       await tx.registrationWaitlistEntry.deleteMany({ where: { registrationId: { in: session.waitlisted }, sessionId: session.sessionId } })
     }
     // En attente sans plus aucune file : de nouveau à trier

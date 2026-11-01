@@ -47,7 +47,7 @@ async function castingGame() {
   expect(links.status, JSON.stringify(links.body)).toBe(200)
   const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
   const period = await prisma.registrationPeriod.create({
-    data: { name: `Période ${key}`, gameId: game.id, publicId: `pub-${key}`, state: 'open', sessions: { create: { sessionId: session.id, seats: 5 } } }
+    data: { name: `Période ${key}`, gameId: game.id, publicId: `pub-${key}`, state: 'open', entryMode: 'form', sessions: { create: { sessionId: session.id, seats: 5 } } }
   })
   return { key, game, session, period, iseult: iseult!, bran: bran!, cy: cy!, style: style!.id, level: level!.id }
 }
@@ -116,6 +116,18 @@ describe('cadenas et réservation (US-100)', () => {
     expect(await prisma.sessionAssignment.findFirst({ where: { sessionId: game.session.id, characterId: game.cy.id }, select: { reservedRegistrationId: true } })).toEqual({ reservedRegistrationId: null })
   })
 
+  it('libérer la place ou changer la décision de sélection libère le personnage réservé', async () => {
+    const game = await castingGame()
+    const lou = await player(game, 'Lou', 'retained')
+    const noa = await player(game, 'Noa', 'retained')
+    expect((await saveCast(game, [{ characterId: game.cy.id, reservedRegistrationId: lou.registration.id }, { characterId: game.bran.id, reservedRegistrationId: noa.registration.id }])).status).toBe(200)
+    const released = await api(alice, 'POST', `/api/registrations/${lou.registration.id}/release`)
+    expect(released.status, JSON.stringify(released.body)).toBe(200)
+    const rejected = await api(alice, 'POST', `/api/registrations/${noa.registration.id}/selection`, { action: 'reject' })
+    expect(rejected.status, JSON.stringify(rejected.body)).toBe(200)
+    expect(await prisma.sessionAssignment.count({ where: { sessionId: game.session.id, reservedRegistrationId: { not: null } } })).toBe(0)
+  })
+
   it('« un seul PJ par participant » compte les réservations', async () => {
     const game = await castingGame()
     await prisma.game.update({ where: { id: game.game.id }, data: { singlePjPerParticipant: true } })
@@ -161,12 +173,21 @@ describe('assistant de casting (US-101, US-102)', () => {
       assignments: [{ characterId: game.bran.id, participantId: lea.participant.id, locked: true }]
     })
     expect(result.status, JSON.stringify(result.body)).toBe(200)
+    expect(body(result).avoidWarnings).toEqual([])
     const maxIseult = body(result).pairs[max.participant.id].find((pair: { characterId: string }) => pair.characterId === game.iseult.id)
     expect(maxIseult.blocks[0]).toContain('Relation directe avec Bran, joué par Léa')
     const proposal = new Map(body(result).proposal.map((line: { characterId: string, playerId: string }) => [line.characterId, line.playerId]))
     expect(proposal.get(game.bran.id)).toBe(lea.participant.id)
     expect(proposal.get(game.iseult.id)).not.toBe(max.participant.id)
     expect(proposal.get(game.cy.id)).toBe(max.participant.id)
+  })
+
+  it('rappelle « ne veut pas croiser » quand les deux personnes sont dans la session', async () => {
+    const game = await castingGame()
+    const lea = await player(game, 'Léa', 'confirmed')
+    await player(game, 'Max', 'retained', { affinities: [{ kind: 'avoid', text: 'Léa', targetParticipantId: lea.participant.id }] })
+    const result = await api(alice, 'POST', `/api/sessions/${game.session.id}/casting-assistant`, { assignments: [] })
+    expect(body(result).avoidWarnings).toEqual(['Max ne veut pas croiser Léa : les deux sont dans la session.'])
   })
 
   it('n’est ouvert qu’à l’équipe du jeu', async () => {

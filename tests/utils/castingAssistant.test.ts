@@ -100,6 +100,13 @@ describe('proposition de répartition (US-102)', () => {
     expect(locked.proposal.find((line) => line.characterId === 'X')!.playerId).toBeNull()
   })
 
+  it('n’échange pas deux personnes brouillées entre elles : sans autre place, l’une reste sans personnage', () => {
+    const characters = [character('X', { relations: [{ otherId: 'Y', otherName: 'Y', type: 'other' }] }), character('Y', { relations: [{ otherId: 'X', otherName: 'X', type: 'other' }] })]
+    const result = castingAssistant({ players: [player('A', { notWithIds: ['C'] }), player('C')], characters, questions, links: [], locked: new Map() })
+    expect(result.proposal.filter((line) => line.playerId)).toHaveLength(1)
+    expect(result.unplaced).toHaveLength(1)
+  })
+
   it('signale un conflit entre deux lignes verrouillées sans le défaire', () => {
     const characters = [character('X', { relations: [{ otherId: 'Y', otherName: 'Y', type: 'other' }] }), character('Y', { relations: [{ otherId: 'X', otherName: 'X', type: 'other' }] })]
     const result = castingAssistant({ players: [player('A'), player('B', { notWithIds: ['A'] })], characters, questions, links: [], locked: new Map([['X', 'A'], ['Y', 'B']]) })

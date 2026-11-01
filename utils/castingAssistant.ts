@@ -168,7 +168,8 @@ export function castingAssistant({ players, characters, questions, links, locked
     if (conflict) blocks.push(`Relation directe avec ${conflict.characterName}, joué par ${names.get(conflict.holderId) ?? '?'} : l'un ne veut pas jouer avec l'autre`)
     return { characterId: character.id, ...castingScore(player, character, questions, links), blocks }
   })]))
-  const pairOf = (playerId: string, characterId: string) => byPlayer.get(playerId)?.find((pair) => pair.characterId === characterId)
+  const pairIndex = new Map([...byPlayer].map(([playerId, list]) => [playerId, new Map(list.map((pair) => [pair.characterId, pair]))]))
+  const pairOf = (playerId: string, characterId: string) => pairIndex.get(playerId)?.get(characterId)
   const allowed = (playerId: string, characterId: string) => pairOf(playerId, characterId)?.blocks.length === 0
   const scoreOf = (playerId: string, characterId: string) => pairOf(playerId, characterId)?.score ?? 0
 
@@ -195,11 +196,9 @@ export function castingAssistant({ players, characters, questions, links, locked
 
   // Conflits « ne veut pas jouer avec » restants : déplacer ou échanger l'un des deux au moindre coût, sinon le retirer
   const characterOf = () => new Map([...holders].map(([characterId, playerId]) => [playerId, characterId]))
-  const fits = (playerId: string, characterId: string, without: string[] = []) => {
-    if (!allowed(playerId, characterId)) return false
-    const others = new Map([...holders].filter(([, holder]) => !without.includes(holder)))
-    return !conflictWith(playerId, charactersById.get(characterId)!, others, pairs)
-  }
+  // Le joueur peut-il tenir ce personnage dans la répartition envisagée, échange compris
+  const fits = (playerId: string, characterId: string, next: Holders) =>
+    allowed(playerId, characterId) && !conflictWith(playerId, charactersById.get(characterId)!, next, pairs)
   for (let guard = 0; guard < players.length * 2; guard++) {
     const held = characterOf()
     const conflict = [...holders].find(([characterId, playerId]) => !lockedPlayerIds.has(playerId) && conflictWith(playerId, charactersById.get(characterId)!, holders, pairs))
@@ -217,17 +216,17 @@ export function castingAssistant({ players, characters, questions, links, locked
       consider(-scoreOf(mover, current) - 2 * maxScore - 1, () => holders.delete(current))
       for (const character of freeCharacters) {
         const holder = holders.get(character.id)
-        if (!holder && fits(mover, character.id, [mover])) {
-          consider(scoreOf(mover, character.id) - scoreOf(mover, current), () => {
-            holders.delete(current)
-            holders.set(character.id, mover)
-          })
-        } else if (holder && holder !== mover && !lockedPlayerIds.has(holder) && fits(mover, character.id, [mover, holder]) && fits(holder, current, [mover, holder])) {
-          consider(scoreOf(mover, character.id) + scoreOf(holder, current) - scoreOf(mover, current) - scoreOf(holder, character.id), () => {
-            holders.set(character.id, mover)
-            holders.set(current, holder)
-          })
-        }
+        if (holder === mover || (holder && lockedPlayerIds.has(holder))) continue
+        const next = new Map(holders)
+        if (holder) next.set(current, holder)
+        else next.delete(current)
+        next.set(character.id, mover)
+        if (!fits(mover, character.id, next) || (holder && !fits(holder, current, next))) continue
+        const delta = scoreOf(mover, character.id) - scoreOf(mover, current) + (holder ? scoreOf(holder, current) - scoreOf(holder, character.id) : 0)
+        consider(delta, () => {
+          holders.clear()
+          for (const [characterId, playerId] of next) holders.set(characterId, playerId)
+        })
       }
     }
     (best as { apply: () => void } | null)?.apply()

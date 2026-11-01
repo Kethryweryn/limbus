@@ -251,6 +251,10 @@ export async function applySelection(registrationId: string, action: SelectionAc
       await write({ status: action === 'reject' ? REGISTRATION_STATUSES.rejected : REGISTRATION_STATUSES.received, sessionId: null, ...cleared })
       await tx.registrationWaitlistEntry.deleteMany({ where: { registrationId: registration.id } })
     }
+    // Plus retenue pour cette session : le personnage réservé redevient libre (US-100)
+    if (!(action === 'retain' && session!.id === registration.sessionId)) {
+      await tx.sessionAssignment.updateMany({ where: { reservedRegistrationId: registration.id }, data: { reservedRegistrationId: null } })
+    }
   })
   return { success: true }
 }

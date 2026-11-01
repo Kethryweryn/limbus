@@ -46,6 +46,7 @@
         </div>
         <div class="lg:col-span-3 flex items-start gap-2">
           <UButton
+            v-if="characterById(assignment.characterId)?.type !== CHARACTER_TYPES.pnj"
             type="button"
             size="sm"
             :color="assignment.locked ? 'primary' : 'neutral'"
@@ -322,10 +323,7 @@ const reservationOptions = computed(() => retainedRegistrations.value.map((regis
 
 function participantOptionsForAssignment(assignment) {
   const character = characterById(assignment.characterId)
-  if (character?.type !== CHARACTER_TYPES.pnj) {
-    const retainedIds = new Set(retainedRegistrations.value.map((registration) => registration.participantId))
-    return [...participantOptions.value.filter((participant) => !retainedIds.has(participant.value)), ...reservationOptions.value]
-  }
+  if (character?.type !== CHARACTER_TYPES.pnj) return [...participantOptions.value, ...reservationOptions.value]
 
   return participantOptions.value.filter((participant) => !participant.value || pnjCastableIds.value.has(participant.value))
 }
