@@ -106,6 +106,8 @@ else
   npm run build
 fi
 npx prisma migrate deploy
+# Version lue par la page de santé (US-103, ADR-0052)
+git -C "$APP_DIR" rev-parse HEAD > "$BUILD_DIR/.output/VERSION"
 
 cd "$APP_DIR"
 rm -rf .output-next .output-prev

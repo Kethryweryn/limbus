@@ -1,6 +1,6 @@
 ---
 titre: Supervision de la production
-statut: à trancher
+statut: en partie traitée
 date: 2026-10-29
 revue: ../revues/2026-10-29-architecture.md
 ---
@@ -22,6 +22,10 @@ Une panne de Limbus n'est découverte que lorsque quelqu'un ouvre le site (revue
 1. Route de santé (code, PR).
 2. Compte et sondes chez le service choisi : c'est l'utilisatrice qui crée le compte.
 3. Journaux structurés, si besoin (R-16).
+
+## Suivi
+
+- 2026-11-01 : choix de l'utilisatrice : Better Stack, version dans la réponse, site professionnel surveillé aussi. Route de santé faite ([EPIC-026](../archive/epics/EPIC-026-supervision/README.md), [ADR-0052](../adr/ADR-0052-page-de-sante.md)). Reste : les sondes (utilisatrice), puis les journaux structurés si besoin.
 
 ## Points à trancher
 

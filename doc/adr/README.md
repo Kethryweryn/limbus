@@ -55,3 +55,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0049](ADR-0049-rattachement-des-affinites.md) | Affinités rattachées à une fiche participant, suggestions et alertes calculées à la lecture | accepté | 2026-11-01 |
 | [ADR-0050](ADR-0050-relations-et-questionnaire-relie.md) | Relations orientées entre personnages, liens du questionnaire hors des versions du formulaire, relations refusées en lignes d'affinité | accepté | 2026-11-01 |
 | [ADR-0051](ADR-0051-assistant-de-casting.md) | Assistant de casting calculé à la demande, cadenas et réservation sur l'attribution | accepté | 2026-11-01 |
+| [ADR-0052](ADR-0052-page-de-sante.md) | Page de santé publique et surveillance par un service externe | accepté | 2026-11-01 |
