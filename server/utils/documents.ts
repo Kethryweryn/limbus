@@ -5,6 +5,7 @@ import { DOCUMENT_AUDIENCES, SESSION_ROLES } from '~/utils/domain'
 import { generatedPdfFileName, renderTextPdf, type TextPdfInput } from '~/server/utils/generatedPdfs'
 import { currentTrombinoscopeFingerprints, getSessionTrombinoscope, isTrombinoscopeOutdated } from '~/server/utils/trombinoscopes'
 import { copyData, expiredSessionIds, purgeExpiredCopies, textCopy, trombinoscopeCopy, type DeliveryCopy } from '~/server/utils/deliveryCopies'
+import { sheetRelationsInclude, withSheetRelationLines } from '~/server/utils/characterRelations'
 
 export const documentInclude = {
   game: true,
@@ -57,11 +58,11 @@ export function documentContentHash(
   return contentHash([session.game.title, session.name, document.title, document.content || '', document.documentUrl || ''])
 }
 
-export function characterSheetContentHash(
-  session: { name: string },
-  character: { name: string, pitch: string | null, background: string | null, backgroundDocumentUrl: string | null, costumeIndications: string | null }
-) {
-  return contentHash([session.name, character.name, character.pitch || '', character.background || '', character.backgroundDocumentUrl || '', character.costumeIndications || ''])
+// Relations visibles du joueur (US-097) : absentes, l'empreinte reste celle d'avant ADR-0050
+type SheetCharacter = { name: string, pitch: string | null, background: string | null, backgroundDocumentUrl: string | null, costumeIndications: string | null, relationLines?: string[] }
+
+export function characterSheetContentHash(session: { name: string }, character: SheetCharacter) {
+  return contentHash([session.name, character.name, character.pitch || '', character.background || '', character.backgroundDocumentUrl || '', character.costumeIndications || '', ...(character.relationLines ?? [])])
 }
 
 // Version reçue dépassée : empreinte différente, ou, pour un envoi sans empreinte, source modifiée depuis l'envoi
@@ -85,7 +86,8 @@ export async function getSessionDocumentDashboard(sessionId: string) {
       },
       assignments: {
         include: {
-          character: true,
+          // Relations visibles du joueur, pour sa fiche (US-097)
+          character: { include: sheetRelationsInclude },
           participant: true
         }
       }
@@ -248,13 +250,14 @@ export async function getSessionDocumentDashboard(sessionId: string) {
         item.viewerCharacterId === assignment.characterId
         && item.participantId === assignment.participantId
       )
-      const sheetContentHash = characterSheetContentHash(session, assignment.character)
+      const character = withSheetRelationLines(assignment.character)
+      const sheetContentHash = characterSheetContentHash(session, character)
       const inferredBundleSentAt = delivery?.sentAt && trombinoscopeDelivery?.sentAt
         ? new Date(Math.max(new Date(delivery.sentAt).getTime(), new Date(trombinoscopeDelivery.sentAt).getTime()))
         : null
 
       return {
-        character: assignment.character,
+        character,
         // Filtré plus haut : chaque fiche a son participant
         participant: assignment.participant!,
         hasExternalDocument: Boolean(assignment.character.backgroundDocumentUrl),
@@ -697,10 +700,7 @@ export function documentPdfContent(
   }
 }
 
-export function characterSheetPdfContent(
-  session: { name: string },
-  character: { name: string, pitch: string | null, background: string | null, backgroundDocumentUrl: string | null, costumeIndications: string | null }
-): TextPdfInput {
+export function characterSheetPdfContent(session: { name: string }, character: SheetCharacter): TextPdfInput {
   return {
     title: character.name,
     subtitle: `Fiche personnage - ${session.name}`,
@@ -708,7 +708,8 @@ export function characterSheetPdfContent(
       { title: 'Pitch', body: character.pitch || '' },
       { title: 'Background', body: character.background || '' },
       ...(character.backgroundDocumentUrl ? [{ title: 'Document lié', body: character.backgroundDocumentUrl }] : []),
-      { title: 'Indications costume', body: character.costumeIndications || '' }
+      { title: 'Indications costume', body: character.costumeIndications || '' },
+      ...(character.relationLines?.length ? [{ title: 'Relations', body: character.relationLines.join('\n') }] : [])
     ]
   }
 }

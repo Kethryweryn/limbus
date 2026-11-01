@@ -4,6 +4,7 @@ import { generatedPdfFileName, renderTextPdf, type TextPdfInput } from '~/server
 import { characterSheetPdfContent, documentPdfContent } from '~/server/utils/documents'
 import { COPY_KINDS, expiredSessionIds, imageContentType, trombinoscopeCards, type CopyContent } from '~/server/utils/deliveryCopies'
 import { loadImageBytes } from '~/server/utils/trombinoscopes'
+import { sheetRelationsInclude, withSheetRelationLines } from '~/server/utils/characterRelations'
 
 // Documents reçus, dans « Je participe » (US-079, ADR-0044) : tout part des envois aux fiches rattachées au compte
 
@@ -16,7 +17,7 @@ const deliverySelect = {
   characterId: true,
   copySize: true,
   document: { select: { title: true, content: true, documentUrl: true, readyToSend: true } },
-  character: { select: { name: true, pitch: true, background: true, backgroundDocumentUrl: true, costumeIndications: true, sheetReadyToSend: true } },
+  character: { select: { id: true, name: true, pitch: true, background: true, backgroundDocumentUrl: true, costumeIndications: true, sheetReadyToSend: true, ...sheetRelationsInclude } },
   session: { select: { name: true, game: { select: { title: true } } } }
 } as const
 
@@ -54,7 +55,7 @@ async function currentTrombinoscope(delivery: MyDelivery) {
 async function currentText(delivery: MyDelivery): Promise<TextPdfInput | null> {
   if (delivery.kind === 'document' && delivery.document?.readyToSend) return documentPdfContent(delivery.session, delivery.document)
   if (delivery.kind === 'character_sheet' && delivery.character?.sheetReadyToSend && await stillCast(delivery)) {
-    return characterSheetPdfContent(delivery.session, delivery.character)
+    return characterSheetPdfContent(delivery.session, withSheetRelationLines(delivery.character))
   }
   return null
 }

@@ -93,8 +93,8 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 - **R8** Le formulaire est défini au niveau du jeu et contient :
   - la note d'intention, suivie d'une case d'adhésion obligatoire ;
   - les champs standards, chacun activable et rendu obligatoire ou non : nom, prénom, email (toujours obligatoire), nom Facebook, téléphone, contact d'urgence (nom et téléphone), allergies et intolérances ;
-  - les affinités, chacune activable et rendue obligatoire ou non comme les champs standards : avec qui je veux jouer, avec qui je ne veux pas jouer, les relations que je ne veux pas jouer, les personnes que je ne veux pas croiser. La personne en écrit une par ligne ;
-  - des questions propres au jeu (texte libre, choix unique, choix multiple, échelle de 1 à 5), chacune obligatoire ou non, dont chaque option peut être reliée à des personnages, factions ou intrigues (lot 5) ;
+  - les affinités, chacune activable et rendue obligatoire ou non comme les champs standards : avec qui je veux jouer, avec qui je ne veux pas jouer, les relations que je ne veux pas jouer, les personnes que je ne veux pas croiser. La personne en écrit une par ligne. Pour les relations, elle coche aussi des types (romance, famille, rivalité, alliance, hiérarchie) ou « Aucune, tout me va » ;
+  - des questions propres au jeu (texte libre, choix unique, choix multiple, échelle de 1 à 5), chacune obligatoire ou non, dont chaque option d'une question à choix, et chaque question sur une échelle, peut être reliée à des personnages, factions ou intrigues ;
   - une question d'équilibre facultative (R17).
 - **R9** Une inscription garde la version du formulaire qui a été remplie : modifier le formulaire ne change pas les réponses déjà données.
 - **R10** Dans une période d'inscription qui couvre plusieurs sessions précises, le formulaire liste ces sessions et l'inscrit indique celles où il est disponible (au moins une). L'inscription permanente ne demande pas de disponibilités.
@@ -134,7 +134,7 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 - **R23** Les affinités sont saisies en texte libre ; les orgas les rapprochent des inscrits ou des participants, avec des suggestions par similarité de nom.
 - **R24** Affinités et réponses au questionnaire sont visibles par tous les organisateurs du jeu, jamais par les inscrits, et n'apparaissent dans aucun document envoyé.
 - **R25** Alertes : deux personnes dont l'une ne veut pas croiser l'autre, ou ne veut pas jouer avec elle, présentes dans la même session (retenues, confirmées ou dans le cast), font apparaître une alerte dans la sélection, qui fait aussi la répartition entre sessions. L'alerte prévient sans bloquer, et le tirage n'en tient pas compte. « Avec qui je veux jouer » donne un repère : la personne souhaitée est dans la même session, dans une autre, ou pas encore.
-- **R26** Les personnages peuvent être reliés entre eux par des relations typées (romance, famille, rivalité, alliance, hiérarchie, autre), avec une description.
+- **R26** Les personnages peuvent être reliés entre eux par des relations typées (romance, famille, rivalité, alliance, hiérarchie, autre), avec une description commune et un libellé par côté (« supérieure de », « subordonné de »). Chaque côté peut être rendu visible du joueur : la relation entre alors dans sa fiche personnage envoyée.
 - **R27** Pour chaque paire joueur ↔ personnage, l'assistant calcule un score dont chaque composante est affichée :
   - réponses au questionnaire reliées au personnage ;
   - affinités « veut jouer avec » satisfaites par des personnages liés (même faction, même intrigue, relation directe).
@@ -203,7 +203,7 @@ Chaque lot devient un epic, livrable seul :
 2. Formulaire public, inscription permanente et lien de diffusion (R8 au complet, R9 à R11, R13, R30 à R32), en deux epics : le formulaire complet, questions propres au jeu et affinités ([EPIC-019](../archive/epics/EPIC-019-formulaire-complet/README.md)), puis le formulaire public, le lien de diffusion et l'inscription permanente ([EPIC-020](../archive/epics/EPIC-020-formulaire-public/README.md)). La question d'équilibre (R8, R17) arrive au lot 3, avec la sélection qui s'en sert.
 3. Sélection (R4, R7, R17 à R21), en deux epics : la sélection à la main, la liste d'attente, la confirmation et le vivier de l'inscription permanente ([EPIC-021](../archive/epics/EPIC-021-selection-a-la-main/README.md)), puis le tirage au sort, le mode mixte, les pondérations et la question d'équilibre (R4, R8, R17, R18, [EPIC-022](../archive/epics/EPIC-022-tirage-au-sort/README.md)).
 4. Affinités (R23 à R25). Voir [EPIC-023](../archive/epics/EPIC-023-affinites/README.md).
-5. Relations entre personnages et questionnaire relié aux rôles (R8, R26).
+5. Relations entre personnages et questionnaire relié aux rôles (R8, R26). Voir [EPIC-024](../archive/epics/EPIC-024-relations-et-questionnaire/README.md).
 6. Assistant de casting (R27 à R29).
 
 ## Hors périmètre
@@ -229,3 +229,5 @@ Chaque lot devient un epic, livrable seul :
 - 2026-11-01 : EPIC-022 (lot 3, seconde moitié) terminé et archivé ; ADR-0048 accepté. Lot 3 terminé.
 - 2026-11-01 (choix du lot 4) : on rattache une affinité à n'importe quelle personne du jeu ; Limbus propose des noms proches sans rattacher seul ; une ligne peut être marquée « inconnue ». « Ne pas croiser » et « ne pas jouer avec » alertent, cast compris ; l'alerte prévient sans bloquer et le tirage l'ignore ; « veut jouer avec » donne un repère (R23, R25). L'export d'une personne ne contient pas les affinités des autres qui la visent.
 - 2026-11-01 : EPIC-023 (lot 4) terminé et archivé ; ADR-0049 accepté.
+- 2026-11-01 (choix du lot 5) : une relation a un côté par personnage, avec un libellé et une visibilité dans la fiche envoyée pour chacun (R26). Les options des questions à choix et les questions sur une échelle se relient aux personnages, factions et intrigues (R8). « Les relations que je ne veux pas jouer » propose des cases, dont « Aucune, tout me va », en plus du texte libre.
+- 2026-11-01 : EPIC-024 (lot 5) terminé et archivé ; ADR-0050 accepté.

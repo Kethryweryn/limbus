@@ -112,7 +112,7 @@ describe('répondre aux questions et aux affinités (US-081, US-082)', () => {
     const { game, registration, path, participant, ids } = await invitedWithForm()
     const saved = await publicApi('PUT', path, body(ids))
     expect(saved.status, JSON.stringify(saved.body)).toBe(200)
-    expect(saved.body.answers.affinities).toEqual({ wantWith: ['Léa', 'Noé'], notWith: [], refusedRelations: [], avoid: ['Max'] })
+    expect(saved.body.answers.affinities).toEqual({ wantWith: ['Léa', 'Noé'], notWith: [], refusedRelations: [], avoid: ['Max'], refusedRelationTypes: [] })
     expect(saved.body.answers.questionAnswers).toEqual({ [ids.text]: 'Pour l’ambiance', [ids.single]: 'Intrigue', [ids.multiple]: ['Romance', 'Mystère'], [ids.scale]: 4 })
     expect(await prisma.registrationAffinity.count({ where: { registrationId: registration.id } })).toBe(3)
 
@@ -149,6 +149,23 @@ describe('répondre aux questions et aux affinités (US-081, US-082)', () => {
     const unknown = await publicApi('PUT', path, body(ids, { questionAnswers: { [ids.text]: 'Oui', [ids.single]: 'Autre' } }))
     expect(unknown.status).toBe(400)
     expect(JSON.stringify(unknown.body)).toContain('option inconnue')
+  })
+
+  it('relations refusées : les cases cochées sont gardées, et l’obligation se satisfait d’une case (US-099)', async () => {
+    const { game, registration, path, ids, definition } = await invitedWithForm()
+    const withRefused = { ...affinities, refusedRelations: { asked: true, required: true } }
+    expect((await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, { standardFields, affinities: withRefused, questions: definition.questions, baseVersionNumber: 1 })).status).toBe(200)
+
+    const missing = await publicApi('PUT', path, body(ids, { affinities: { wantWith: ['Léa'] } }))
+    expect(missing.status).toBe(400)
+    expect((missing.body.data.data as Array<{ path: string }>).map((issue) => issue.path)).toContain('affinities.refusedRelations')
+    expect((await publicApi('PUT', path, body(ids, { affinities: { wantWith: ['Léa'], refusedRelationTypes: ['none', 'romance'] } }))).status).toBe(400)
+
+    const saved = await publicApi('PUT', path, body(ids, { affinities: { wantWith: ['Léa'], refusedRelationTypes: ['romance', 'family'], refusedRelations: ['Pas de trahison'] } }))
+    expect(saved.status, JSON.stringify(saved.body)).toBe(200)
+    expect(saved.body.answers.affinities.refusedRelationTypes).toEqual(['romance', 'family'])
+    const detail = (await api(alice, 'GET', `/api/registrations/${registration.id}`)).body as any
+    expect(detail.affinityLines.filter((line: { kind: string }) => line.kind === 'refusedRelationTypes').map((line: { text: string }) => line.text)).toEqual(['romance', 'family'])
   })
 
   it('l’inscription garde sa version du formulaire (R9)', async () => {

@@ -18,14 +18,14 @@ export const GAME_COPY_FIELDS = {
   Game: {
     copied: ['title', 'description', 'noteIntention', 'teaserUrl', 'singlePjPerParticipant', 'balanceAttribute', 'balanceValues'],
     remapped: [],
-    relinked: ['characters', 'factions', 'intrigues', 'items', 'timelineEvents', 'documents', 'locations', 'uploadedFiles', 'registrationForm'],
+    relinked: ['characters', 'factions', 'intrigues', 'items', 'timelineEvents', 'documents', 'locations', 'uploadedFiles', 'registrationForm', 'characterRelations', 'registrationQuestionLinks'],
     // La copie démarre active, sans page publique (R10), avec son propre crédit (R11 à R13), sans transfert en cours
     omitted: ['id', 'slug', 'ownerId', 'createdAt', 'updatedAt', 'published', 'publicPage', 'publicShowSessions', 'publicShowRegistration', 'creditSourceTitle', 'creditAuthorName', 'copiedFromGameId', 'bequestPending', 'owner', 'copiedFrom', 'copies', 'sessions', 'participantLinks', 'shares', 'invitations', 'registrationPeriods', 'slugRedirects', 'transferToUserId', 'transferTo']
   },
   Character: {
     copied: ['name', 'type', 'pitch', 'background', 'backgroundDocumentUrl', 'sheetReadyToSend', 'costumeIndications', 'excludeFromTrombinoscope', 'trombinoscopeFaceHidden', 'trombinoscopeNote', 'trombinoscopeDisplayName', 'balanceValue', 'published'],
     remapped: ['trombinoscopePhotoUrl'],
-    relinked: ['factions', 'intrigues', 'documents', 'targetedDocuments', 'items', 'locatedItems', 'timelineEvents', 'trombinoscopeViewerEntries', 'trombinoscopeTargetEntries'],
+    relinked: ['factions', 'intrigues', 'documents', 'targetedDocuments', 'items', 'locatedItems', 'timelineEvents', 'trombinoscopeViewerEntries', 'trombinoscopeTargetEntries', 'relationsFrom', 'relationsTo', 'questionLinks'],
     omitted: ['id', 'slug', 'gameId', 'createdAt', 'updatedAt', 'game', 'sessionAssignments', 'documentDeliveries', 'trombinoscopeDocuments']
   },
   CharacterTrombinoscopeEntry: {
@@ -37,14 +37,28 @@ export const GAME_COPY_FIELDS = {
   Faction: {
     copied: ['name', 'pitch', 'background', 'backgroundDocumentUrl', 'costumeIndications', 'showInTrombinoscope', 'published'],
     remapped: [],
-    relinked: ['characters', 'intrigues', 'timelineEvents', 'documents'],
+    relinked: ['characters', 'intrigues', 'timelineEvents', 'documents', 'questionLinks'],
     omitted: ['id', 'slug', 'gameId', 'createdAt', 'updatedAt', 'game']
   },
   Intrigue: {
     copied: ['name', 'pitch', 'description', 'level', 'published'],
     remapped: [],
-    relinked: ['characters', 'factions', 'items', 'timelineEvents'],
+    relinked: ['characters', 'factions', 'items', 'timelineEvents', 'questionLinks'],
     omitted: ['id', 'slug', 'gameId', 'createdAt', 'updatedAt', 'game']
+  },
+  // Relations entre personnages (US-097, ADR-0050)
+  CharacterRelation: {
+    copied: ['type', 'description', 'fromLabel', 'fromVisible', 'toLabel', 'toVisible'],
+    remapped: ['fromCharacterId', 'toCharacterId'],
+    relinked: ['fromCharacter', 'toCharacter'],
+    omitted: ['id', 'gameId', 'game', 'createdAt', 'updatedAt']
+  },
+  // Liens du questionnaire (US-098, ADR-0050) : la question garde son identifiant dans la version copiée
+  RegistrationQuestionLink: {
+    copied: ['questionId', 'option'],
+    remapped: ['characterId', 'factionId', 'intrigueId'],
+    relinked: ['character', 'faction', 'intrigue'],
+    omitted: ['id', 'gameId', 'game']
   },
   Item: {
     copied: ['name', 'description', 'quantity', 'locationText', 'published'],
@@ -104,7 +118,9 @@ async function loadSourceGame(gameId: string) {
       timelineEvents: { orderBy: { createdAt: 'asc' }, include: { characters: ids, factions: ids, intrigues: ids, items: ids } },
       documents: { orderBy: { createdAt: 'asc' }, include: { characters: ids, factions: ids } },
       locations: { orderBy: { createdAt: 'asc' } },
-      registrationForm: { include: { versions: { orderBy: { number: 'desc' }, take: 1 } } }
+      registrationForm: { include: { versions: { orderBy: { number: 'desc' }, take: 1 } } },
+      characterRelations: { orderBy: { createdAt: 'asc' } },
+      registrationQuestionLinks: true
     }
   })
   if (!game) {
@@ -301,6 +317,28 @@ export async function copyGame(sourceGameId: string, options: GameCopyOptions) {
       if (source.locations.length) {
         await tx.location.createMany({
           data: source.locations.map((row, index) => ({ ...pickCopied('Location', row), slug: locationSlugs[index]!, gameId }))
+        })
+      }
+
+      if (source.characterRelations.length) {
+        await tx.characterRelation.createMany({
+          data: source.characterRelations.map((row) => ({
+            ...pickCopied('CharacterRelation', row),
+            gameId,
+            fromCharacterId: newIds.get(row.fromCharacterId)!,
+            toCharacterId: newIds.get(row.toCharacterId)!
+          }))
+        })
+      }
+      if (source.registrationQuestionLinks.length) {
+        await tx.registrationQuestionLink.createMany({
+          data: source.registrationQuestionLinks.map((row) => ({
+            ...pickCopied('RegistrationQuestionLink', row),
+            gameId,
+            characterId: mapped(row.characterId),
+            factionId: mapped(row.factionId),
+            intrigueId: mapped(row.intrigueId)
+          }))
         })
       }
 

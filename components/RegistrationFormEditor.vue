@@ -94,6 +94,30 @@
             <UFormField v-if="REGISTRATION_CHOICE_TYPES.includes(question.type)" label="Options" description="Une option par ligne, deux au moins.">
               <UTextarea v-model="question.optionsText" :rows="3" class="w-full" />
             </UFormField>
+            <!-- Rôles que désigne chaque réponse (US-098) : jamais montrés à l'inscrit -->
+            <div v-if="hasLinkTargets && REGISTRATION_CHOICE_TYPES.includes(question.type) && questionOptions(question).length" class="space-y-1">
+              <p class="text-xs font-medium text-gray-600">Rôles désignés par chaque option (visibles de l’équipe seulement)</p>
+              <div v-for="(option, optionIndex) in questionOptions(question)" :key="optionIndex" class="grid grid-cols-1 items-center gap-1 sm:grid-cols-3">
+                <span class="truncate text-sm text-gray-700">{{ option }}</span>
+                <USelectMenu
+                  :model-value="question.optionLinks[optionIndex] || []"
+                  :items="linkItems"
+                  value-key="value"
+                  multiple
+                  size="sm"
+                  placeholder="Personnages, factions, intrigues…"
+                  class="sm:col-span-2"
+                  @update:model-value="question.optionLinks[optionIndex] = $event"
+                />
+              </div>
+            </div>
+            <UFormField
+              v-if="hasLinkTargets && question.type === 'scale'"
+              label="Rôles désignés"
+              description="Plus la note est haute, plus ces rôles conviennent. Visibles de l’équipe seulement."
+            >
+              <USelectMenu v-model="question.scaleLinks" :items="linkItems" value-key="value" multiple placeholder="Personnages, factions, intrigues…" class="w-full" />
+            </UFormField>
             <div class="flex flex-wrap items-center gap-3">
               <UCheckbox v-model="question.required" label="Obligatoire" />
               <div class="ml-auto flex gap-1">
@@ -199,6 +223,9 @@ watch(open, async (value) => {
   savedMessage.value = ''
   try {
     apply(await useApiFetch(`/api/games/${props.gameId}/registration-form`))
+    const linked = await useApiFetch(`/api/games/${props.gameId}/registration-question-links`)
+    linkTargets.value = linked.targets
+    applyLinks(linked.links)
   } catch (err) {
     errorMessage.value = err?.data?.message || err?.message || 'Impossible de charger le formulaire'
   }
@@ -218,7 +245,18 @@ function cloneSettings(values, fields = REGISTRATION_STANDARD_FIELDS) {
   return Object.fromEntries(fields.map(({ key }) => [key, { ...(values[key] ?? { asked: false, required: false }) }]))
 }
 
-const editableQuestion = (question) => ({ key: nextKey++, id: question.id, label: question.label, type: question.type, required: question.required, optionsText: question.options.join('\n') })
+// optionLinks : les rôles de chaque option, dans l'ordre des lignes (renommer une option garde ses rôles) ; scaleLinks : ceux
+// d'une question sur une échelle (US-098)
+const editableQuestion = (question) => ({
+  key: nextKey++,
+  id: question.id,
+  label: question.label,
+  type: question.type,
+  required: question.required,
+  optionsText: question.options.join('\n'),
+  optionLinks: [],
+  scaleLinks: []
+})
 const questionOptions = (question) => REGISTRATION_CHOICE_TYPES.includes(question.type) ? question.optionsText.split('\n').map((option) => option.trim()).filter(Boolean) : []
 const definitionQuestions = () => questions.value.map((question) => ({
   ...(question.id ? { id: question.id } : {}),
@@ -254,6 +292,41 @@ function setAffinityAsked(key, asked) {
   if (!asked) affinities.value[key].required = false
 }
 
+// Liens du questionnaire (US-098) : « character:id », « faction:id » ou « intrigue:id »
+const linkTargets = ref({ characters: [], factions: [], intrigues: [] })
+const hasLinkTargets = computed(() => Object.values(linkTargets.value).some((list) => list.length))
+const linkItems = computed(() => [
+  linkTargets.value.characters.map((entry) => ({ label: entry.name, value: `character:${entry.id}` })),
+  linkTargets.value.factions.map((entry) => ({ label: `${entry.name} (faction)`, value: `faction:${entry.id}` })),
+  linkTargets.value.intrigues.map((entry) => ({ label: `${entry.name} (intrigue)`, value: `intrigue:${entry.id}` }))
+].filter((group) => group.length))
+
+function applyLinks(links) {
+  for (const question of questions.value) {
+    const mine = links.filter((link) => link.questionId === question.id)
+    const value = (link) => `${link.target.kind}:${link.target.id}`
+    question.scaleLinks = mine.filter((link) => link.option === '').map(value)
+    question.optionLinks = questionOptions(question).map((option) => mine.filter((link) => link.option === option).map(value))
+  }
+}
+
+// Liens à enregistrer, question par question dans l'ordre : relus après l'enregistrement du formulaire, qui donne
+// leurs identifiants aux nouvelles questions
+function linkDrafts() {
+  return questions.value.map((question) => question.type === 'scale'
+    ? [{ option: '', values: question.scaleLinks }]
+    : REGISTRATION_CHOICE_TYPES.includes(question.type)
+      ? questionOptions(question).map((option, index) => ({ option, values: question.optionLinks[index] || [] }))
+      : [])
+}
+
+function linksPayload(drafts) {
+  return questions.value.flatMap((question, index) => (drafts[index] || []).flatMap(({ option, values }) => values.map((value) => {
+    const [kind, id] = value.split(':')
+    return { questionId: question.id, option, [`${kind}Id`]: id }
+  })))
+}
+
 function apply(data) {
   settings.value = cloneSettings(data.definition.standardFields)
   affinities.value = cloneSettings(data.definition.affinities ?? {}, REGISTRATION_AFFINITIES)
@@ -277,10 +350,14 @@ async function save() {
   savedMessage.value = ''
   try {
     const previous = version.value?.number
+    const drafts = linkDrafts()
     apply(await useApiFetch(`/api/games/${props.gameId}/registration-form`, {
       method: 'PUT',
       body: { standardFields: settings.value, affinities: affinities.value, balance: balance.value, questions: definitionQuestions(), baseVersionNumber: previous ?? null }
     }))
+    // Les questions reviennent dans le même ordre, avec leurs identifiants : les liens suivent (US-098)
+    const saved = await useApiFetch(`/api/games/${props.gameId}/registration-question-links`, { method: 'PUT', body: { links: linksPayload(drafts) } })
+    applyLinks(saved.links)
     savedMessage.value = version.value?.number === previous
       ? 'Aucun changement : la version en vigueur est conservée.'
       : `Version ${version.value.number} enregistrée.`

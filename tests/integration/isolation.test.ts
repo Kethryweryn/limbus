@@ -285,6 +285,26 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect((await api(alice, 'POST', `/api/registration-affinities/${aliceLine.id}/link`, { unknown: true })).status).toBe(200)
   })
 
+  it('Alice ne touche ni aux relations ni aux liens du questionnaire de Bob ; témoin : les siens', async () => {
+    const bobOther = await prisma.character.create({ data: { name: 'Autre de Bob', slug: 'autre-bob-isolation', gameId: b.game.id } })
+    const aliceOther = await prisma.character.create({ data: { name: 'Autre d’Alice', slug: 'autre-alice-isolation', gameId: a.game.id } })
+    const bobRelation = await prisma.characterRelation.create({ data: { gameId: b.game.id, type: 'family', fromCharacterId: b.character.id, toCharacterId: bobOther.id } })
+    const relationBody = (from: string, to: string) => ({ type: 'rivalry', fromCharacterId: from, toCharacterId: to })
+    expect(DENIED).toContain((await api(alice, 'GET', `/api/characters/${b.character.id}/relations`)).status)
+    expect(DENIED).toContain((await api(alice, 'PUT', `/api/character-relations/${bobRelation.id}`, relationBody(b.character.id, bobOther.id))).status)
+    expect(DENIED).toContain((await api(alice, 'DELETE', `/api/character-relations/${bobRelation.id}`)).status)
+    expect(DENIED).toContain((await api(alice, 'POST', '/api/character-relations', relationBody(b.character.id, bobOther.id))).status)
+    expect((await prisma.characterRelation.findUniqueOrThrow({ where: { id: bobRelation.id } })).type).toBe('family')
+    expect(DENIED).toContain((await api(alice, 'GET', `/api/games/${b.game.id}/registration-question-links`)).status)
+    expect(DENIED).toContain((await api(alice, 'PUT', `/api/games/${b.game.id}/registration-question-links`, { links: [] })).status)
+
+    const own = await api(alice, 'POST', '/api/character-relations', relationBody(a.character.id, aliceOther.id))
+    expect(own.status).toBe(200)
+    expect((await api(alice, 'GET', `/api/characters/${a.character.id}/relations`)).status).toBe(200)
+    expect((await api(alice, 'GET', `/api/games/${a.game.id}/registration-question-links`)).status).toBe(200)
+    expect((await api(alice, 'DELETE', `/api/character-relations/${(own.body as { id: string }).id}`)).status).toBe(200)
+  })
+
   it('les inscriptions de Bob sont intactes', async () => {
     expect(await prisma.registration.findUnique({ where: { id: b.registration.id } })).toMatchObject({ status: 'invited', tokenHash: 'hash-b', withdrawnById: null, lastRemindedAt: null })
   })

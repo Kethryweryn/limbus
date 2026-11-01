@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { prisma } from '~/server/utils/prisma'
+import { REFUSED_RELATION_NONE, REFUSED_RELATION_VALUES } from '~/utils/characterRelations'
 import {
   DEFAULT_REGISTRATION_FORM_DEFINITION,
   REGISTRATION_AFFINITIES,
@@ -111,6 +112,14 @@ function affinityField(setting: RegistrationFieldSetting, label: string) {
   return setting.required ? lines.refine((values) => values.length > 0, `${label} : réponse obligatoire`) : lines
 }
 
+// Cases des relations refusées (US-099) : types connus, sans doublon, « Aucune » seule
+function refusedRelationTypesField(asked: boolean) {
+  if (!asked) return z.unknown().optional().transform((): string[] => [])
+  return z.array(z.enum(REFUSED_RELATION_VALUES, { error: 'Type de relation inconnu' })).optional().default([])
+    .transform((values) => [...new Set(values)])
+    .refine((values) => !values.includes(REFUSED_RELATION_NONE) || values.length === 1, '« Aucune, tout me va » ne se coche pas avec un type de relation')
+}
+
 // Réponse à une question propre au jeu (US-081) : une option inconnue est refusée
 function questionField(question: RegistrationQuestion) {
   const label = `« ${question.label} »`
@@ -143,7 +152,8 @@ function balanceField(definition: NormalizedRegistrationFormDefinition) {
 }
 
 export type QuestionAnswers = Record<string, string | string[] | number | null>
-export type AffinityAnswers = Record<RegistrationAffinityKey, string[]>
+// refusedRelationTypes : cases cochées de « les relations que je ne veux pas jouer » (US-099, ADR-0050)
+export type AffinityAnswers = Record<RegistrationAffinityKey, string[]> & { refusedRelationTypes?: string[] }
 
 /**
  * Schéma des réponses d'un inscrit, construit à partir d'une version du formulaire.
@@ -155,9 +165,17 @@ export function registrationAnswerSchema(rawDefinition: RegistrationFormDefiniti
   // Le libellé et les valeurs de la question d'équilibre viennent du jeu (withGameBalanceQuestion) : on les garde
   const definition = { ...normalized, balance: { ...normalized.balance, label: rawDefinition.balance?.label, values: rawDefinition.balance?.values } }
   // Absents, ils valent un objet vide : une réponse obligatoire est alors bien refusée
-  const affinities = z.preprocess((value) => value ?? {}, z.object(Object.fromEntries(REGISTRATION_AFFINITIES.map(({ key, label }) =>
-    [key, affinityField(definition.affinities[key], label)]
-  )))).transform((value) => value as AffinityAnswers)
+  // Les relations refusées se répondent par des cases ou du texte : l'obligation porte sur l'ensemble (US-099)
+  const refused = definition.affinities.refusedRelations
+  const affinities = z.preprocess((value) => value ?? {}, z.object({
+    ...Object.fromEntries(REGISTRATION_AFFINITIES.map(({ key, label }) =>
+      [key, affinityField(key === 'refusedRelations' ? { ...refused, required: false } : definition.affinities[key], label)]
+    )),
+    refusedRelationTypes: refusedRelationTypesField(refused.asked)
+  }).refine((value) => !(refused.asked && refused.required) || (value as Record<string, string[]>).refusedRelations!.length > 0 || value.refusedRelationTypes.length > 0, {
+    path: ['refusedRelations'],
+    message: 'Les relations que je ne veux pas jouer : réponse obligatoire (cochez « Aucune, tout me va » si rien ne vous gêne)'
+  })).transform((value) => value as AffinityAnswers)
   const questionAnswers = z.preprocess((value) => value ?? {}, z.object(Object.fromEntries(definition.questions.map((question) => [question.id, questionField(question)]))))
     .transform((value) => value as QuestionAnswers)
 

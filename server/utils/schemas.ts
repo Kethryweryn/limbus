@@ -1,5 +1,6 @@
 import { z, type ZodError, type ZodType } from 'zod'
 import { REGISTRATION_DIETARY_MAX_LENGTH } from '~/utils/registrationForms'
+import { CHARACTER_RELATION_DESCRIPTION_MAX_LENGTH, CHARACTER_RELATION_LABEL_MAX_LENGTH, CHARACTER_RELATION_TYPE_VALUES } from '~/utils/characterRelations'
 import type { H3Event } from 'h3'
 import {
   CHARACTER_TYPES,
@@ -187,6 +188,31 @@ export const intrigueSchema = z.object({
   gameId: requiredId('Game'),
   characterIds: z.array(requiredId('Character')).optional().default([]),
   factionIds: z.array(requiredId('Faction')).optional().default([])
+})
+
+// Relation entre deux personnages (US-097, ADR-0050)
+const relationLabel = z.string().trim().max(CHARACTER_RELATION_LABEL_MAX_LENGTH, 'Libellé trop long').optional().nullable().transform((value) => value || null)
+export const characterRelationSchema = z.object({
+  type: z.enum(CHARACTER_RELATION_TYPE_VALUES, { error: 'Type de relation inconnu' }),
+  description: z.string().trim().max(CHARACTER_RELATION_DESCRIPTION_MAX_LENGTH, 'Description trop longue').optional().nullable().transform((value) => value || null),
+  fromCharacterId: requiredId('Character'),
+  fromLabel: relationLabel,
+  fromVisible: z.boolean().optional().default(false),
+  toCharacterId: requiredId('Character'),
+  toLabel: relationLabel,
+  toVisible: z.boolean().optional().default(false)
+}).refine((body) => body.fromCharacterId !== body.toCharacterId, { path: ['toCharacterId'], message: 'Un personnage ne peut pas être relié à lui-même' })
+
+// Liens du questionnaire vers les personnages, factions et intrigues (US-098, ADR-0050) : la liste complète du jeu
+export const registrationQuestionLinksSchema = z.object({
+  links: z.array(z.object({
+    questionId: requiredId('Question'),
+    option: z.string().trim().max(REGISTRATION_QUESTION_LABEL_MAX_LENGTH).optional().default(''),
+    characterId: z.string().min(1).nullable().optional(),
+    factionId: z.string().min(1).nullable().optional(),
+    intrigueId: z.string().min(1).nullable().optional()
+  }).refine((link) => [link.characterId, link.factionId, link.intrigueId].filter(Boolean).length === 1, 'Un lien vise un seul personnage, une faction ou une intrigue'))
+    .max(2000, 'Trop de liens')
 })
 
 export const participantSchema = z.object({

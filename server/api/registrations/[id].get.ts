@@ -4,6 +4,7 @@ import { requireGameAccess } from '~/server/utils/gameAccess'
 import { findRegistrationOr404, withSessionPresence } from '~/server/utils/registrations'
 import { registrationListSelect } from '~/server/utils/registrationPeriods'
 import { affinitiesForTeam } from '~/server/utils/registrationAffinities'
+import { currentQuestionLinks } from '~/server/utils/registrationQuestionLinks'
 import { normalizeRegistrationFormDefinition, type RegistrationFormDefinition } from '~/utils/registrationForms'
 
 // Détail d'une inscription pour les organisatrices du jeu (US-005) : réponses au formulaire comprises,
@@ -40,6 +41,8 @@ export default defineEventHandler(async (event) => {
   const { formVersion, ...rest } = withPresence!
   // Lignes d'affinité avec la personne rattachée et des suggestions (US-095)
   const affinities = await affinitiesForTeam({ id, participantId: registration.participant.id }, period.gameId)
+  // Personnages, factions et intrigues que désignent les réponses (US-098)
+  const questionLinks = await currentQuestionLinks(period.gameId)
   const definition = formVersion ? normalizeRegistrationFormDefinition(formVersion.definition as RegistrationFormDefinition) : null
   return {
     ...rest,
@@ -48,6 +51,7 @@ export default defineEventHandler(async (event) => {
     // Question d'équilibre demandée par la version remplie, avec le nom de l'attribut du jeu (US-091)
     balance: definition?.balance.asked && game?.balanceAttribute ? { label: game.balanceAttribute } : null,
     affinityLines: affinities.lines,
-    gamePeople: affinities.people
+    gamePeople: affinities.people,
+    questionLinks
   }
 })
