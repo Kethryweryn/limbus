@@ -276,6 +276,15 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect((await api(alice, 'GET', `/api/registration-periods/${a.registrationPeriod.id}/draws`)).status).toBe(200)
   })
 
+  it('Alice ne rattache pas une affinité de Bob, ni à une personne de Bob ; témoin : la sienne', async () => {
+    const bobLine = await prisma.registrationAffinity.create({ data: { registrationId: b.registration.id, kind: 'avoid', text: 'Quelqu’un', position: 0 } })
+    const aliceLine = await prisma.registrationAffinity.create({ data: { registrationId: a.registration.id, kind: 'avoid', text: 'Quelqu’un', position: 0 } })
+    expect(DENIED).toContain((await api(alice, 'POST', `/api/registration-affinities/${bobLine.id}/link`, { unknown: true })).status)
+    expect((await prisma.registrationAffinity.findUniqueOrThrow({ where: { id: bobLine.id } })).targetUnknown).toBe(false)
+    expect((await api(alice, 'POST', `/api/registration-affinities/${aliceLine.id}/link`, { targetParticipantId: b.participant.id })).status).toBe(400)
+    expect((await api(alice, 'POST', `/api/registration-affinities/${aliceLine.id}/link`, { unknown: true })).status).toBe(200)
+  })
+
   it('les inscriptions de Bob sont intactes', async () => {
     expect(await prisma.registration.findUnique({ where: { id: b.registration.id } })).toMatchObject({ status: 'invited', tokenHash: 'hash-b', withdrawnById: null, lastRemindedAt: null })
   })

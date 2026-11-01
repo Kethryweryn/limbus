@@ -444,6 +444,12 @@ export const registrationSelectionSchema = z.object({
   sessionId: z.string().min(1).nullable().optional()
 }).refine((body) => !['retain', 'waitlist', 'unwaitlist'].includes(body.action) || body.sessionId, { path: ['sessionId'], message: 'Choisissez la session' })
 
+// Rattachement d'une ligne d'affinité (US-095) : une personne du jeu, « inconnue », ou rien pour détacher
+export const affinityLinkSchema = z.object({
+  targetParticipantId: z.string().min(1).nullable().optional(),
+  unknown: z.boolean().optional()
+}).refine((body) => !(body.unknown && body.targetParticipantId), { path: ['unknown'], message: 'Une ligne inconnue ne vise personne' })
+
 // Nouvel ordre de la liste d'attente d'une session (R19)
 export const registrationWaitlistOrderSchema = z.object({
   sessionId: frenchText('La session'),

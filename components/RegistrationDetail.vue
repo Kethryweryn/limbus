@@ -36,12 +36,55 @@
           </p>
         </section>
 
-        <section v-if="registration.respondedAt && hasAffinities" class="space-y-2">
+        <!-- Affinités rattachées aux personnes du jeu (US-095) : visibles de l'équipe seulement (R24) -->
+        <section v-if="registration.respondedAt && registration.affinityLines.length" class="space-y-2">
           <h3 class="font-semibold text-gray-700">Affinités</h3>
-          <div v-for="affinity in REGISTRATION_AFFINITIES" v-show="registration.affinities[affinity.key]?.length" :key="affinity.key">
-            <p class="text-gray-600">{{ affinity.label }}</p>
-            <ul class="list-disc pl-5">
-              <li v-for="(line, index) in registration.affinities[affinity.key]" :key="index">{{ line }}</li>
+          <p class="text-xs text-gray-500">
+            Rattachez chaque personne citée à une personne du jeu : la sélection signale alors qui ne veut pas se croiser.
+          </p>
+          <UAlert v-if="linkError" color="error" variant="soft" :description="linkError" />
+          <div v-for="group in affinityGroups" :key="group.key" class="space-y-1">
+            <p class="text-gray-600">{{ group.label }}</p>
+            <ul class="space-y-2 pl-2">
+              <li v-for="line in group.lines" :key="line.id" class="space-y-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span>{{ line.text }}</span>
+                  <template v-if="line.linkable">
+                    <UBadge v-if="line.target" color="primary" variant="subtle" icon="i-heroicons-link">{{ line.target.name }}</UBadge>
+                    <UBadge v-else-if="line.targetUnknown" color="neutral" variant="outline">Hors du jeu</UBadge>
+                    <UBadge v-else color="warning" variant="outline">À rattacher</UBadge>
+                    <UButton v-if="line.target || line.targetUnknown" size="xs" color="neutral" variant="ghost" :disabled="linking" @click="link(line, {})">
+                      Détacher
+                    </UButton>
+                  </template>
+                </div>
+                <div v-if="line.linkable && !line.target && !line.targetUnknown" class="flex flex-wrap items-center gap-2">
+                  <UButton
+                    v-for="person in line.suggestions"
+                    :key="person.id"
+                    size="xs"
+                    color="primary"
+                    variant="soft"
+                    icon="i-heroicons-link"
+                    :disabled="linking"
+                    @click="link(line, { targetParticipantId: person.id })"
+                  >
+                    {{ person.name }}
+                  </UButton>
+                  <USelectMenu
+                    size="xs"
+                    class="w-48"
+                    :items="peopleItems"
+                    value-key="value"
+                    placeholder="Autre personne du jeu…"
+                    :disabled="linking"
+                    @update:model-value="(id) => id && link(line, { targetParticipantId: id })"
+                  />
+                  <UButton size="xs" color="neutral" variant="ghost" :disabled="linking" @click="link(line, { unknown: true })">
+                    Personne du jeu ne correspond
+                  </UButton>
+                </div>
+              </li>
             </ul>
           </div>
         </section>
@@ -89,6 +132,8 @@ const props = defineProps({
   registrationId: { type: String, default: null }
 })
 const open = defineModel('open', { type: Boolean, default: false })
+// Un rattachement change les alertes de la sélection (US-096)
+const emit = defineEmits(['changed'])
 
 const registration = ref(null)
 const errorMessage = ref('')
@@ -100,6 +145,7 @@ watch([open, () => props.registrationId], async ([isOpen, id]) => {
   if (!isOpen || !id) return
   registration.value = null
   errorMessage.value = ''
+  linkError.value = ''
   try {
     registration.value = await useApiFetch(`/api/registrations/${id}`)
   } catch (err) {
@@ -107,7 +153,29 @@ watch([open, () => props.registrationId], async ([isOpen, id]) => {
   }
 }, { immediate: true })
 
-const hasAffinities = computed(() => Object.values(registration.value?.affinities || {}).some((lines) => lines.length))
+// Lignes rangées par sorte d'affinité, dans l'ordre du formulaire
+const affinityGroups = computed(() => REGISTRATION_AFFINITIES
+  .map(({ key, label }) => ({ key, label, lines: (registration.value?.affinityLines || []).filter((line) => line.kind === key) }))
+  .filter((group) => group.lines.length))
+const peopleItems = computed(() => (registration.value?.gamePeople || []).map((person) => ({ label: person.name, value: person.id })))
+
+const linking = ref(false)
+const linkError = ref('')
+
+// Rattacher, marquer « personne du jeu ne correspond » ou détacher (US-095), puis relire les suggestions
+async function link(line, body) {
+  linking.value = true
+  linkError.value = ''
+  try {
+    await useApiFetch(`/api/registration-affinities/${line.id}/link`, { method: 'POST', body })
+    registration.value = await useApiFetch(`/api/registrations/${props.registrationId}`)
+    emit('changed')
+  } catch (err) {
+    linkError.value = apiErrorMessage(err, 'Rattachement impossible')
+  } finally {
+    linking.value = false
+  }
+}
 
 // Réponse à une question propre au jeu (US-081), lue avec la version du formulaire remplie
 function answerText(question) {

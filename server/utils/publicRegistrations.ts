@@ -5,6 +5,7 @@ import { assertRateLimit } from '~/server/utils/rateLimit'
 import { sendEmail } from '~/server/utils/email'
 import { hashRegistrationToken, WITHDRAWABLE_STATUSES } from '~/server/utils/registrations'
 import { asksAvailability } from '~/server/utils/registrationAvailability'
+import { replaceAffinities } from '~/server/utils/registrationAffinities'
 import { getCurrentRegistrationForm, saveRegistrationFormDefinition, withGameBalanceQuestion, type AffinityAnswers, type QuestionAnswers } from '~/server/utils/registrationForms'
 import { REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES, isClosedSessionStatus } from '~/utils/domain'
 import { effectivePeriodState } from '~/utils/registrationPeriods'
@@ -298,10 +299,9 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
     if (!count) {
       throw createError({ statusCode: 409, message: 'Votre inscription a changé entre-temps : rechargez la page.' })
     }
-    // Chaque enregistrement remplace les affinités : une ligne par personne ou relation citée (ADR-0045)
-    await tx.registrationAffinity.deleteMany({ where: { registrationId: registration.id } })
-    const rows = Object.entries(affinities ?? {}).flatMap(([kind, lines]) => lines.map((text, position) => ({ registrationId: registration.id, kind, text, position })))
-    if (rows.length) await tx.registrationAffinity.createMany({ data: rows })
+    // Chaque enregistrement remplace les affinités : une ligne par personne ou relation citée (ADR-0045) ; une ligne
+    // inchangée garde son rattachement (ADR-0049)
+    await replaceAffinities(tx, registration.id, affinities)
     if (availableSessionIds) {
       await tx.registrationAvailability.deleteMany({ where: { registrationId: registration.id } })
       if (availableSessionIds.length) {

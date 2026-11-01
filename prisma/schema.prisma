@@ -478,8 +478,14 @@ model RegistrationAffinity {
   kind           String
   text           String
   position       Int
+  // Personne du jeu rattachée par l'équipe (US-095, ADR-0049) ; effacer la fiche supprime la ligne
+  targetParticipantId String?
+  targetParticipant   Participant? @relation("AffinityTargets", fields: [targetParticipantId], references: [id], onDelete: Cascade)
+  // La ligne ne vise personne du jeu
+  targetUnknown  Boolean      @default(false)
 
   @@index([registrationId])
+  @@index([targetParticipantId])
 }
 
 model SessionAssignment {
@@ -547,6 +553,7 @@ model Participant {
   receivedPaymentTransfers SessionPayment[] @relation("PaymentTransfers")
   registrations Registration[]
   attendances SessionAttendance[]
+  affinityMentions RegistrationAffinity[] @relation("AffinityTargets")
 
   @@index([userId])
 }

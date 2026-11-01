@@ -8,6 +8,7 @@ import { accountIdForEmail } from '~/server/utils/participantAccounts'
 import { assertRateLimit } from '~/server/utils/rateLimit'
 import { createRegistrationToken, findParticipantByEmail, hashRegistrationToken, notifyGameTeam } from '~/server/utils/registrations'
 import { freezeFormVersion, updateProfileFromAnswers, type RegistrationAnswers } from '~/server/utils/publicRegistrations'
+import { replaceAffinities } from '~/server/utils/registrationAffinities'
 import { getCurrentRegistrationForm, registrationAnswerSchema, type AffinityAnswers, type QuestionAnswers } from '~/server/utils/registrationForms'
 import { readZodBody } from '~/server/utils/schemas'
 import { asksAvailability, availabilitySchema } from '~/server/utils/registrationAvailability'
@@ -270,9 +271,7 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
     }
 
     if (applied) {
-      await tx.registrationAffinity.deleteMany({ where: { registrationId } })
-      const rows = Object.entries(affinities ?? {}).flatMap(([kind, lines]) => lines.map((text, position) => ({ registrationId, kind, text, position })))
-      if (rows.length) await tx.registrationAffinity.createMany({ data: rows })
+      await replaceAffinities(tx, registrationId, affinities)
       await tx.registrationAvailability.deleteMany({ where: { registrationId } })
       if (availability.length) await tx.registrationAvailability.createMany({ data: availability.map((sessionId) => ({ registrationId, sessionId })) })
     }

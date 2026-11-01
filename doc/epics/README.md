@@ -30,6 +30,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-020](../archive/epics/EPIC-020-formulaire-public/README.md) | Formulaire public, lien de diffusion et inscription permanente | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 | [EPIC-021](../archive/epics/EPIC-021-selection-a-la-main/README.md) | Sélection à la main : retenues, liste d'attente, confirmation et vivier | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 | [EPIC-022](../archive/epics/EPIC-022-tirage-au-sort/README.md) | Tirage au sort, mode mixte, pondérations et équilibre | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
+| [EPIC-023](../archive/epics/EPIC-023-affinites/README.md) | Affinités rattachées, alertes et repères dans la sélection | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 
 ## US
 
@@ -129,3 +130,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-092](../archive/epics/EPIC-022-tirage-au-sort/US-092-mode-de-selection.md) | Mode de sélection, mode mixte et réglages du tirage | EPIC-022 | terminée |
 | [US-093](../archive/epics/EPIC-022-tirage-au-sort/US-093-tirer-au-sort.md) | Tirer au sort, avec pondérations et équilibre | EPIC-022 | terminée |
 | [US-094](../archive/epics/EPIC-022-tirage-au-sort/US-094-journal-des-tirages.md) | Journal des tirages, annuler et refaire | EPIC-022 | terminée |
+| [US-095](../archive/epics/EPIC-023-affinites/US-095-rattacher-les-affinites.md) | Rattacher les affinités à des personnes du jeu | EPIC-023 | terminée |
+| [US-096](../archive/epics/EPIC-023-affinites/US-096-alertes-et-reperes.md) | Alertes et repères d'affinités dans la sélection | EPIC-023 | terminée |

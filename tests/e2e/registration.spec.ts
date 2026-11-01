@@ -276,3 +276,47 @@ test('l’équipe tire au sort, voit le journal, puis annule le tirage', async (
   }
 })
 
+
+// EPIC-023 : l'équipe rattache une affinité à une personne suggérée, et la sélection affiche l'alerte
+test('l’équipe rattache une affinité et voit l’alerte de la session', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const key = `affinites-${Date.now()}`
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+    const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
+    const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-08-01T09:00:00Z') } })
+    const period = await prisma.registrationPeriod.create({
+      data: { name: 'Automne', gameId: game.id, publicId: `a${Date.now().toString(36)}`, entryMode: 'form', state: 'open', sessions: { create: { sessionId: session.id, seats: 5 } } }
+    })
+    const people = await Promise.all(['Lou Affinite', 'Max Durand'].map((name, index) => prisma.participant.create({
+      data: { name, slug: `${index}-${key}`, email: `${index}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
+    })))
+    for (const participant of people) {
+      await prisma.registration.create({
+        data: {
+          periodId: period.id, participantId: participant.id, status: 'retained', sessionId: session.id, source: 'form', email: participant.email!, respondedAt: new Date(),
+          affinities: participant.name.startsWith('Lou') ? { create: { kind: 'avoid', text: 'Max D.', position: 0 } } : undefined
+        }
+      })
+    }
+
+    await signIn(page, prisma, E2E_USERS.orga)
+    await page.goto('/registrations')
+    await page.waitForLoadState('networkidle')
+    const panel = page.locator('div')
+      .filter({ has: page.getByRole('heading', { name: game.title, exact: true }) })
+      .filter({ has: page.getByRole('button', { name: /Annoncer les résultats/ }) })
+      .last()
+    await expect(panel.getByText('1 affinité à rattacher')).toBeVisible()
+    await panel.locator('li').filter({ hasText: 'Lou Affinite' }).getByRole('button', { name: 'Détail' }).click()
+    const dialog = page.getByRole('dialog')
+    await dialog.getByRole('button', { name: 'Max Durand' }).click()
+    await expect(dialog.getByText('À rattacher')).toBeHidden()
+    await page.keyboard.press('Escape')
+
+    await expect(panel.getByText('Lou Affinite ne veut pas croiser Max Durand.')).toBeVisible()
+    await expect(panel.getByText('1 affinité à rattacher')).toBeHidden()
+  } finally {
+    await prisma.$disconnect()
+  }
+})
