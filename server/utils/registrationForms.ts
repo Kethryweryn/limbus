@@ -9,8 +9,10 @@ import {
   REGISTRATION_ANSWER_MAX_LENGTH,
   REGISTRATION_DIETARY_MAX_LENGTH,
   REGISTRATION_QUESTION_TEXT_MAX_LENGTH,
+  REGISTRATION_BALANCE_ANY,
   normalizeRegistrationFormDefinition,
   sameRegistrationFormDefinition,
+  withBalanceQuestion,
   type NormalizedRegistrationFormDefinition,
   type RegistrationAffinityKey,
   type RegistrationFieldSetting,
@@ -29,8 +31,14 @@ export async function getCurrentRegistrationForm(gameId: string) {
 
   return {
     version: version ? { id: version.id, number: version.number, createdAt: version.createdAt } : null,
-    definition: normalizeRegistrationFormDefinition(version ? version.definition as RegistrationFormDefinition : DEFAULT_REGISTRATION_FORM_DEFINITION)
+    definition: await withGameBalanceQuestion(gameId, normalizeRegistrationFormDefinition(version ? version.definition as RegistrationFormDefinition : DEFAULT_REGISTRATION_FORM_DEFINITION))
   }
+}
+
+// La question d'équilibre prend le nom et les valeurs de l'attribut du jeu en vigueur (US-091, ADR-0048)
+export async function withGameBalanceQuestion(gameId: string, definition: NormalizedRegistrationFormDefinition) {
+  const game = await prisma.game.findUnique({ where: { id: gameId }, select: { balanceAttribute: true, balanceValues: true } })
+  return withBalanceQuestion(definition, game ?? { balanceAttribute: null, balanceValues: [] })
 }
 
 /**
@@ -122,6 +130,18 @@ function questionField(question: RegistrationQuestion) {
   return question.required ? options.refine((values) => values.length > 0, missing) : options
 }
 
+// Réponse à la question d'équilibre (US-091) : une valeur du jeu, ou « peu importe » enregistré comme null
+function balanceField(definition: NormalizedRegistrationFormDefinition) {
+  const { asked, required, values } = definition.balance
+  if (!asked || !values?.length) return z.unknown().optional().transform(() => null)
+  const choice = z.enum([REGISTRATION_BALANCE_ANY, ...values] as [string, ...string[]], { error: 'Choix invalide' })
+  const field = required
+    ? choice
+    : choice.optional().nullable().or(z.literal('').transform(() => null))
+  return z.preprocess((value) => value === undefined && required ? null : value, field)
+    .transform((value) => (!value || value === REGISTRATION_BALANCE_ANY ? null : value))
+}
+
 export type QuestionAnswers = Record<string, string | string[] | number | null>
 export type AffinityAnswers = Record<RegistrationAffinityKey, string[]>
 
@@ -131,7 +151,9 @@ export type AffinityAnswers = Record<RegistrationAffinityKey, string[]>
  * Une réponse à une question absente de cette version est ignorée aussi (ADR-0045).
  */
 export function registrationAnswerSchema(rawDefinition: RegistrationFormDefinition) {
-  const definition = normalizeRegistrationFormDefinition(rawDefinition)
+  const normalized = normalizeRegistrationFormDefinition(rawDefinition)
+  // Le libellé et les valeurs de la question d'équilibre viennent du jeu (withGameBalanceQuestion) : on les garde
+  const definition = { ...normalized, balance: { ...normalized.balance, label: rawDefinition.balance?.label, values: rawDefinition.balance?.values } }
   // Absents, ils valent un objet vide : une réponse obligatoire est alors bien refusée
   const affinities = z.preprocess((value) => value ?? {}, z.object(Object.fromEntries(REGISTRATION_AFFINITIES.map(({ key, label }) =>
     [key, affinityField(definition.affinities[key], label)]
@@ -152,7 +174,8 @@ export function registrationAnswerSchema(rawDefinition: RegistrationFormDefiniti
     charterAccepted: z.literal(true, { error: 'L’adhésion à la note d’intention est obligatoire' }),
     healthConsent: z.boolean().optional().default(false),
     affinities,
-    questionAnswers
+    questionAnswers,
+    balancePreference: balanceField(definition)
   }).refine((answers) => !answers.dietary || answers.healthConsent, {
     // Données de santé (art. 9 RGPD) : pas d'allergies enregistrées sans consentement explicite (R14)
     message: 'Le consentement est nécessaire pour enregistrer des allergies ou intolérances',

@@ -234,3 +234,45 @@ test('l’équipe retient une inscription, l’annonce, et la personne confirme 
     await prisma.$disconnect()
   }
 })
+
+// EPIC-022 : l'équipe tire au sort une période en mode hasard ; le journal garde le tirage, qu'on annule
+test('l’équipe tire au sort, voit le journal, puis annule le tirage', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const key = `tirage-${Date.now()}`
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+    const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
+    const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-07-01T09:00:00Z') } })
+    const period = await prisma.registrationPeriod.create({
+      data: { name: 'Hiver', gameId: game.id, publicId: `t${Date.now().toString(36)}`, entryMode: 'form', state: 'open', selectionMode: 'random', waitlistSize: 1, sessions: { create: { sessionId: session.id, seats: 1 } } }
+    })
+    for (const name of ['Ana', 'Ben', 'Cy']) {
+      const participant = await prisma.participant.create({ data: { name: `${name} Tirage`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } } })
+      await prisma.registration.create({ data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: participant.email! } })
+    }
+
+    await signIn(page, prisma, E2E_USERS.orga)
+    await page.goto('/registrations')
+    await page.waitForLoadState('networkidle')
+    const panel = page.locator('div')
+      .filter({ has: page.getByRole('heading', { name: game.title, exact: true }) })
+      .filter({ has: page.getByRole('button', { name: 'Tirer au sort' }) })
+      .last()
+    page.once('dialog', (dialog) => dialog.accept())
+    await panel.getByRole('button', { name: 'Tirer au sort' }).click()
+    await expect(panel.getByText('Tirage effectué')).toBeVisible()
+    await expect(panel.getByRole('button', { name: 'Annoncer les résultats (3)' })).toBeVisible()
+    await expect(panel.getByRole('button', { name: 'Annuler ce tirage' })).toBeVisible()
+
+    const statuses = (await prisma.registration.findMany({ where: { periodId: period.id }, select: { status: true } })).map((row) => row.status).sort()
+    expect(statuses).toEqual(['rejected', 'retained', 'waitlisted'])
+
+    page.once('dialog', (dialog) => dialog.accept())
+    await panel.getByRole('button', { name: 'Annuler ce tirage' }).click()
+    await expect(panel.getByText(/Annulé le/)).toBeVisible()
+    expect((await prisma.registration.findMany({ where: { periodId: period.id }, select: { status: true } })).every((row) => row.status === 'received')).toBe(true)
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+

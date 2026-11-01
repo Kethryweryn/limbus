@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   await assertUnmodifiedSince(event, 'game', id)
 
   const body = await readZodBody(event, updateGameSchema)
-  const { title, description, teaserUrl, noteIntention, published, publicPage, publicShowSessions, publicShowRegistration, singlePjPerParticipant } = body
+  const { title, description, teaserUrl, noteIntention, published, publicPage, publicShowSessions, publicShowRegistration, singlePjPerParticipant, balanceAttribute, balanceValues } = body
 
   const data: any = {
     description,
@@ -24,7 +24,11 @@ export default defineEventHandler(async (event) => {
     publicPage: published === false ? false : publicPage,
     publicShowSessions,
     publicShowRegistration,
-    singlePjPerParticipant
+    singlePjPerParticipant,
+    // Attribut d'équilibre (US-091) : sans nom, pas de valeurs
+    ...(balanceAttribute !== undefined ? { balanceAttribute: balanceAttribute || null } : {}),
+    ...(balanceValues !== undefined ? { balanceValues } : {}),
+    ...(balanceAttribute === null || balanceAttribute === '' ? { balanceValues: [] } : {})
   }
 
   if (title) {

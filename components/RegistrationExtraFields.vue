@@ -20,8 +20,22 @@
       </UFormField>
     </section>
 
-    <section v-if="definition.questions.length" class="space-y-4">
+    <section v-if="definition.questions.length || balanceAsked" class="space-y-4">
       <h3 class="font-semibold">Questions</h3>
+      <!-- Question d'équilibre (US-091) : les valeurs de l'attribut du jeu, et « Peu importe » -->
+      <UFormField
+        v-if="balanceAsked"
+        :label="`${definition.balance.label} : ma préférence`"
+        :required="definition.balance.required"
+        :error="errors.balancePreference"
+      >
+        <URadioGroup
+          :model-value="balancePreference ?? undefined"
+          :items="balanceItems"
+          :disabled="disabled"
+          @update:model-value="balancePreference = $event"
+        />
+      </UFormField>
       <UFormField
         v-for="question in definition.questions"
         :key="question.id || question.label"
@@ -66,9 +80,9 @@
 </template>
 
 <script setup>
-import { REGISTRATION_AFFINITIES } from '~/utils/registrationForms'
+import { REGISTRATION_AFFINITIES, REGISTRATION_BALANCE_ANY } from '~/utils/registrationForms'
 
-// Affinités et questions propres au jeu d'un formulaire (US-081, US-082) : la page de réponse et l'aperçu de l'éditeur
+// Affinités, question d'équilibre et questions propres au jeu d'un formulaire (US-081, US-082, US-091) : la page de réponse et l'aperçu de l'éditeur
 const props = defineProps({
   // Définition normalisée (affinities, questions)
   definition: { type: Object, required: true },
@@ -77,6 +91,13 @@ const props = defineProps({
 })
 const affinities = defineModel('affinities', { type: Object, default: () => ({}) })
 const answers = defineModel('answers', { type: Object, default: () => ({}) })
+const balancePreference = defineModel('balancePreference', { type: String, default: null })
+
+const balanceAsked = computed(() => Boolean(props.definition.balance?.asked && props.definition.balance?.values?.length))
+const balanceItems = computed(() => [
+  ...(props.definition.balance?.values || []).map((value) => ({ label: value, value })),
+  { label: 'Peu importe', value: REGISTRATION_BALANCE_ANY }
+])
 
 const SCALE = [1, 2, 3, 4, 5].map((value) => ({ label: String(value), value }))
 

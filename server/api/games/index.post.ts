@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   const user = await requireCurrentUser(event)
 
   const body = await readZodBody(event, createGameSchema)
-  const { title, description, teaserUrl, noteIntention, publicPage, publicShowSessions, publicShowRegistration, singlePjPerParticipant } = body
+  const { title, description, teaserUrl, noteIntention, publicPage, publicShowSessions, publicShowRegistration, singlePjPerParticipant, balanceAttribute, balanceValues } = body
 
   const slug = await generateUniqueSlug('game', title)
 
@@ -24,6 +24,8 @@ export default defineEventHandler(async (event) => {
       publicPage: publicPage ?? false,
       publicShowSessions: publicShowSessions ?? false,
       publicShowRegistration: publicShowRegistration ?? false,
+      balanceAttribute: balanceAttribute || null,
+      balanceValues: balanceAttribute ? balanceValues ?? [] : [],
       singlePjPerParticipant: singlePjPerParticipant ?? true
     }
   })

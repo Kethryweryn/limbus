@@ -12,7 +12,7 @@ import {
   rethrowSessionAlreadyTaken,
   withFreshPublicId
 } from '~/server/utils/registrationPeriods'
-import { REGISTRATION_PERIOD_SCOPES } from '~/utils/domain'
+import { REGISTRATION_PERIOD_SCOPES, REGISTRATION_SELECTION_MODES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
   await requireUser(event)
@@ -35,6 +35,11 @@ export default defineEventHandler(async (event) => {
       entryMode: body.entryMode,
       notifyTeam: body.notifyTeam,
       replayPolicy: body.replayPolicy,
+      selectionMode: body.selectionMode,
+      organizerPicks: body.selectionMode === REGISTRATION_SELECTION_MODES.mixed ? body.organizerPicks ?? 0 : null,
+      weightNotDrawnBefore: body.weightNotDrawnBefore,
+      weightBalance: body.weightBalance,
+      waitlistSize: body.waitlistSize,
       state: body.state,
       closesAt,
       responseDelayDays: body.responseDelayDays,

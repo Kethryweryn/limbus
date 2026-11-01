@@ -6,6 +6,7 @@ import { readZodBody, updateCharacterSchema } from '~/server/utils/schemas'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { assertGameUploads, deleteUnusedUploads } from '~/server/utils/uploads'
 import { requireRouterParam } from '~/server/utils/routeParams'
+import { assertBalanceValue } from '~/server/utils/registrationDraws'
 
 export default defineEventHandler(async (event) => {
   await requireUser(event)
@@ -36,12 +37,14 @@ export default defineEventHandler(async (event) => {
     trombinoscopePhotoUrl,
     trombinoscopeNote,
     trombinoscopeDisplayName,
+    balanceValue,
     gameId,
     factionIds
   } = body
   assertSameGame(existingCharacter.gameId, gameId)
   const targetGameId = existingCharacter.gameId
   await assertGameUploads([trombinoscopePhotoUrl], targetGameId, { sessionFiles: false, keep: [existingCharacter.trombinoscopePhotoUrl], label: 'Photo de trombinoscope' })
+  await assertBalanceValue(targetGameId, balanceValue)
   if (factionIds && targetGameId) {
     const matchingFactions = await prisma.faction.count({
       where: {
@@ -66,7 +69,8 @@ export default defineEventHandler(async (event) => {
     trombinoscopeFaceHidden,
     trombinoscopePhotoUrl,
     trombinoscopeNote,
-    trombinoscopeDisplayName
+    trombinoscopeDisplayName,
+    ...(balanceValue !== undefined ? { balanceValue: balanceValue || null } : {})
   }
 
   if (name) {

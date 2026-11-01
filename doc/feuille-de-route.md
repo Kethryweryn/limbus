@@ -35,6 +35,7 @@ Le principe : rien n'est encore réellement utilisé en production, donc la séc
 - Suite des inscriptions, lot 2 (première moitié) : questions propres au jeu et affinités dans le formulaire ([EPIC-019](archive/epics/EPIC-019-formulaire-complet/README.md)).
 - Suite des inscriptions, lot 2 (seconde moitié) : formulaire public, lien de diffusion, inscription permanente et page publique qui montre sessions et inscription ([EPIC-020](archive/epics/EPIC-020-formulaire-public/README.md)). Corrige l'écart 3 de SPEC-009.
 - Suite des inscriptions, lot 3 (première moitié) : sélection à la main, annonce des résultats, liste d'attente par session, confirmation de sa place, vivier de l'inscription permanente ([EPIC-021](archive/epics/EPIC-021-selection-a-la-main/README.md)).
+- Suite des inscriptions, lot 3 (seconde moitié) : tirage au sort reproductible, mode mixte, priorité aux non retenus, équilibre selon un attribut des personnages, journal des tirages ([EPIC-022](archive/epics/EPIC-022-tirage-au-sort/README.md)).
 
 ## 1. Finir les écarts des specs de l'existant
 
@@ -68,7 +69,7 @@ Fusionner, c'est mettre en production : l'inscription libre (lot 2) reste fermé
 Les lots 2 à 6 de [SPEC-001](specs/SPEC-001-inscriptions.md), un epic chacun (le lot 2 en deux) :
 
 1. formulaire complet, formulaire public, inscription permanente et lien de diffusion, avec l'écart 3 de SPEC-009 (fait) ;
-2. sélection : retenus, liste d'attente (fait), puis tirage au sort, mode mixte et pondérations ;
+2. sélection : retenus, liste d'attente, tirage au sort, mode mixte et pondérations (fait) ;
 3. affinités ;
 4. relations entre personnages et questionnaire relié aux rôles ;
 5. assistant de casting.

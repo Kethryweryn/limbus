@@ -1,4 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
+import { assertBalanceValue } from '~/server/utils/registrationDraws'
 import { requireUser } from '~/server/utils/auth'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { createCharacterSchema, readZodBody } from '~/server/utils/schemas'
@@ -11,6 +12,7 @@ export default defineEventHandler(async (event) => {
     const body = await readZodBody(event, createCharacterSchema)
     await requireGameAccess(event, body.gameId)
     await assertGameUploads([body.trombinoscopePhotoUrl], body.gameId, { sessionFiles: false, label: 'Photo de trombinoscope' })
+    await assertBalanceValue(body.gameId, body.balanceValue)
     const slug = await generateUniqueSlug('character', body.name)
 
     if (body.factionIds.length) {
@@ -41,6 +43,7 @@ export default defineEventHandler(async (event) => {
             trombinoscopePhotoUrl: body.trombinoscopePhotoUrl,
             trombinoscopeNote: body.trombinoscopeNote,
             trombinoscopeDisplayName: body.trombinoscopeDisplayName,
+            balanceValue: body.balanceValue || null,
             gameId: body.gameId,
             factions: {
                 connect: body.factionIds.map((id) => ({ id }))

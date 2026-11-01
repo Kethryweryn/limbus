@@ -32,6 +32,38 @@
           <USelect v-model="form.replayPolicy" :items="REPLAY_POLICY_ITEMS" value-key="value" class="w-full" />
         </UFormField>
 
+        <!-- Mode de sélection et tirage (US-092) : périodes ordinaires en mode formulaire -->
+        <template v-if="form.entryMode === REGISTRATION_ENTRY_MODES.form && !permanent">
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <UFormField label="Sélection">
+              <USelect v-model="form.selectionMode" :items="SELECTION_MODE_ITEMS" value-key="value" class="w-full" />
+            </UFormField>
+            <UFormField
+              v-if="form.selectionMode === REGISTRATION_SELECTION_MODES.mixed"
+              label="Places choisies par organisatrice"
+              description="Par session, avant le tirage."
+              :error="errors.organizerPicks"
+            >
+              <UInput v-model.number="form.organizerPicks" type="number" min="0" max="1000" class="w-full" />
+            </UFormField>
+          </div>
+          <template v-if="form.selectionMode !== REGISTRATION_SELECTION_MODES.chosen">
+            <AppCheckboxRow
+              v-model="form.weightNotDrawnBefore"
+              label="Priorité aux personnes non retenues avant"
+              description="Chances doublées pour qui n’a pas été retenu, ou est resté en attente, lors d’une autre période du jeu."
+            />
+            <AppCheckboxRow
+              v-model="form.weightBalance"
+              label="Équilibre selon l’attribut des personnages"
+              description="Places réservées par valeur (par exemple le genre du personnage), au prorata des PJ, selon la question d’équilibre du formulaire."
+            />
+            <UFormField label="Liste d’attente après le tirage" description="Personnes mises en attente par session ; les suivantes sont non retenues." :error="errors.waitlistSize">
+              <UInput v-model.number="form.waitlistSize" type="number" min="0" max="1000" class="w-full sm:w-40" />
+            </UFormField>
+          </template>
+        </template>
+
         <UFormField v-if="!permanent" label="Sessions" :error="errors.sessions" description="Une session ne peut appartenir qu’à une seule période d’inscription.">
           <div class="space-y-2">
             <div
@@ -98,8 +130,11 @@ import {
   REGISTRATION_ENTRY_MODES,
   REGISTRATION_PERIOD_SCOPES,
   REGISTRATION_PERIOD_STATES,
+  REGISTRATION_DEFAULT_WAITLIST_SIZE,
   REGISTRATION_REPLAY_POLICIES,
-  REGISTRATION_REPLAY_POLICY_OPTIONS
+  REGISTRATION_REPLAY_POLICY_OPTIONS,
+  REGISTRATION_SELECTION_MODE_OPTIONS,
+  REGISTRATION_SELECTION_MODES
 } from '~/utils/domain'
 import { apiErrorMessage } from '~/utils/apiErrors'
 
@@ -108,6 +143,7 @@ const ENTRY_MODE_ITEMS = [
   { value: REGISTRATION_ENTRY_MODES.form, label: 'Formulaire public' }
 ]
 const REPLAY_POLICY_ITEMS = [...REGISTRATION_REPLAY_POLICY_OPTIONS]
+const SELECTION_MODE_ITEMS = [...REGISTRATION_SELECTION_MODE_OPTIONS]
 const SCOPE_ITEMS = [
   { value: REGISTRATION_PERIOD_SCOPES.sessions, label: 'Des sessions précises' },
   { value: REGISTRATION_PERIOD_SCOPES.game, label: 'Tout le jeu (inscription permanente)' }
@@ -144,6 +180,8 @@ watch(open, async (value) => {
 
 // Inscription permanente : sans sessions ni date de clôture (R30)
 const permanent = computed(() => form.value.scope === REGISTRATION_PERIOD_SCOPES.game)
+const drawSettingsApply = computed(() => form.value.entryMode === REGISTRATION_ENTRY_MODES.form && !permanent.value)
+const isCount = (value) => Number.isInteger(Number(value)) && value !== '' && Number(value) >= 0 && Number(value) <= 1000
 
 function onEntryModeChange(mode) {
   if (mode !== REGISTRATION_ENTRY_MODES.form) form.value.scope = REGISTRATION_PERIOD_SCOPES.sessions
@@ -156,6 +194,11 @@ function emptyForm() {
     scope: REGISTRATION_PERIOD_SCOPES.sessions,
     notifyTeam: false,
     replayPolicy: REGISTRATION_REPLAY_POLICIES.allowed,
+    selectionMode: REGISTRATION_SELECTION_MODES.chosen,
+    organizerPicks: 0,
+    weightNotDrawnBefore: false,
+    weightBalance: false,
+    waitlistSize: REGISTRATION_DEFAULT_WAITLIST_SIZE,
     closesAt: '',
     responseDelayDays: REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS,
     state: REGISTRATION_PERIOD_STATES.draft,
@@ -177,6 +220,11 @@ function resetForm() {
     scope: period.scope,
     notifyTeam: Boolean(period.notifyTeam),
     replayPolicy: period.replayPolicy || REGISTRATION_REPLAY_POLICIES.allowed,
+    selectionMode: period.selectionMode || REGISTRATION_SELECTION_MODES.chosen,
+    organizerPicks: period.organizerPicks ?? 0,
+    weightNotDrawnBefore: Boolean(period.weightNotDrawnBefore),
+    weightBalance: Boolean(period.weightBalance),
+    waitlistSize: period.waitlistSize ?? REGISTRATION_DEFAULT_WAITLIST_SIZE,
     closesAt: toDateTimeLocal(period.closesAt),
     responseDelayDays: period.responseDelayDays,
     state: period.state,
@@ -227,6 +275,9 @@ function validate() {
   else if (Object.values(seatsBySession.value).some((seats) => !Number.isInteger(seats) || seats < 0 || seats > 1000)) {
     errors.value.sessions = 'Indiquez pour chaque session un nombre de places entre 0 et 1000.'
   }
+  const drawn = drawSettingsApply.value
+  if (drawn && form.value.selectionMode === REGISTRATION_SELECTION_MODES.mixed && !isCount(form.value.organizerPicks)) errors.value.organizerPicks = 'Un nombre entre 0 et 1000.'
+  if (drawn && form.value.selectionMode !== REGISTRATION_SELECTION_MODES.chosen && !isCount(form.value.waitlistSize)) errors.value.waitlistSize = 'Un nombre entre 0 et 1000.'
   const delay = Number(form.value.responseDelayDays)
   if (!Number.isInteger(delay) || delay < 1 || delay > 90) errors.value.responseDelayDays = 'Entre 1 et 90 jours.'
   return Object.keys(errors.value).length === 0
@@ -244,6 +295,12 @@ async function submit() {
       ...(props.period?.id ? {} : { entryMode: form.value.entryMode, scope: form.value.scope }),
       notifyTeam: form.value.entryMode === REGISTRATION_ENTRY_MODES.form && form.value.notifyTeam,
       replayPolicy: form.value.replayPolicy,
+      // Le tirage ne concerne que les périodes ordinaires en mode formulaire
+      selectionMode: drawSettingsApply.value ? form.value.selectionMode : REGISTRATION_SELECTION_MODES.chosen,
+      organizerPicks: drawSettingsApply.value && form.value.selectionMode === REGISTRATION_SELECTION_MODES.mixed ? Number(form.value.organizerPicks) : null,
+      weightNotDrawnBefore: drawSettingsApply.value && form.value.weightNotDrawnBefore,
+      weightBalance: drawSettingsApply.value && form.value.weightBalance,
+      waitlistSize: Number(form.value.waitlistSize),
       state: form.value.state,
       closesAt: !permanent.value && form.value.closesAt ? new Date(form.value.closesAt).toISOString() : null,
       responseDelayDays: Number(form.value.responseDelayDays),

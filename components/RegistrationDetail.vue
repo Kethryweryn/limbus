@@ -46,6 +46,12 @@
           </div>
         </section>
 
+        <!-- Question d'équilibre (US-091) -->
+        <section v-if="registration.respondedAt && registration.balance" class="space-y-1">
+          <h3 class="font-semibold text-gray-700">{{ registration.balance.label }} : préférence</h3>
+          <p>{{ registration.balancePreference || 'Peu importe' }}</p>
+        </section>
+
         <section v-if="registration.respondedAt && registration.questions.length" class="space-y-2">
           <h3 class="font-semibold text-gray-700">Questions</h3>
           <div v-for="question in registration.questions" :key="question.id">

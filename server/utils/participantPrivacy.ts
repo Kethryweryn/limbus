@@ -80,6 +80,8 @@ export async function exportParticipantData(participantId: string, gameIds: stri
           charterAcceptedAt: true,
           // Réponses aux questions et affinités (US-081, US-082)
           questionAnswers: true,
+          // Réponse à la question d'équilibre (US-091)
+          balancePreference: true,
           formVersion: { select: { definition: true } },
           // Sessions où la personne s'est dite disponible (R10)
           availabilities: { select: { session: { select: { name: true, date: true } } } },

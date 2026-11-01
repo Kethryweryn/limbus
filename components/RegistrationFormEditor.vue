@@ -58,6 +58,27 @@
           </div>
         </section>
 
+        <!-- Question d'équilibre (US-091) : sur l'attribut d'équilibre défini dans la fiche du jeu -->
+        <section class="space-y-2">
+          <h3 class="font-semibold">Question d’équilibre</h3>
+          <div
+            v-if="balanceAttribute"
+            class="flex flex-col gap-2 rounded border border-gray-200 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div>
+              <div class="font-medium text-gray-800">{{ balanceAttribute.label }} : ma préférence</div>
+              <div class="text-xs text-gray-500">{{ balanceAttribute.values.join(', ') }} ou « Peu importe ». Sert au tirage avec équilibre.</div>
+            </div>
+            <div class="flex shrink-0 gap-4">
+              <UCheckbox :model-value="balance.asked" label="Demandée" @update:model-value="setBalanceAsked" />
+              <UCheckbox v-model="balance.required" label="Obligatoire" :disabled="!balance.asked" />
+            </div>
+          </div>
+          <p v-else class="text-sm text-gray-500">
+            Définissez d’abord un attribut d’équilibre (par exemple le genre du personnage) dans la fiche du jeu.
+          </p>
+        </section>
+
         <section class="space-y-2">
           <h3 class="font-semibold">Questions propres au jeu</h3>
           <p v-if="!questions.length" class="text-sm text-gray-500">Aucune question pour l’instant.</p>
@@ -162,6 +183,9 @@ const settings = ref(cloneSettings(DEFAULT_REGISTRATION_FORM_DEFINITION.standard
 const affinities = ref(cloneSettings({}, REGISTRATION_AFFINITIES))
 // Questions en cours d'édition : key sert au rendu, id (absent pour une nouvelle question) au serveur
 const questions = ref([])
+const balance = ref({ asked: false, required: false })
+// Nom et valeurs de l'attribut d'équilibre du jeu ; null sans attribut
+const balanceAttribute = ref(null)
 let nextKey = 0
 const version = ref(null)
 const noteIntention = ref('')
@@ -207,6 +231,7 @@ const definitionQuestions = () => questions.value.map((question) => ({
 // L'aperçu montre les questions telles qu'elles seront posées, même avant l'enregistrement
 const previewDefinition = computed(() => ({
   affinities: affinities.value,
+  balance: { ...balance.value, ...(balanceAttribute.value || {}) },
   questions: definitionQuestions().filter((question) => question.label.trim()).map((question, index) => ({ ...question, id: question.id || `apercu-${index}` }))
 }))
 
@@ -219,6 +244,11 @@ function moveQuestion(index, offset) {
   questions.value.splice(index + offset, 0, question)
 }
 
+function setBalanceAsked(asked) {
+  balance.value.asked = asked
+  if (!asked) balance.value.required = false
+}
+
 function setAffinityAsked(key, asked) {
   affinities.value[key].asked = asked
   if (!asked) affinities.value[key].required = false
@@ -228,6 +258,9 @@ function apply(data) {
   settings.value = cloneSettings(data.definition.standardFields)
   affinities.value = cloneSettings(data.definition.affinities ?? {}, REGISTRATION_AFFINITIES)
   questions.value = (data.definition.questions ?? []).map(editableQuestion)
+  const { asked = false, required = false, label, values } = data.definition.balance ?? {}
+  balance.value = { asked, required }
+  balanceAttribute.value = label && values?.length ? { label, values } : null
   version.value = data.version
   if (data.game) noteIntention.value = data.game.noteIntention || ''
 }
@@ -246,7 +279,7 @@ async function save() {
     const previous = version.value?.number
     apply(await useApiFetch(`/api/games/${props.gameId}/registration-form`, {
       method: 'PUT',
-      body: { standardFields: settings.value, affinities: affinities.value, questions: definitionQuestions(), baseVersionNumber: previous ?? null }
+      body: { standardFields: settings.value, affinities: affinities.value, balance: balance.value, questions: definitionQuestions(), baseVersionNumber: previous ?? null }
     }))
     savedMessage.value = version.value?.number === previous
       ? 'Aucun changement : la version en vigueur est conservée.'
