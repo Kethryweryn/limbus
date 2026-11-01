@@ -56,6 +56,23 @@ describe('télécharger ses données (US-076)', () => {
     expect(text).not.toContain(user.password)
     expect(text).not.toContain('sessionVersion')
   })
+
+  it('contient ses affinités, sans la personne que l’équipe y a rattachée (R24, US-095)', async () => {
+    const { user, teams } = await player()
+    const { game, participant } = teams[0]!
+    const target = await prisma.participant.create({ data: { name: 'Cible Rattachée', slug: `cible-${++counter}`, gameLinks: { create: { gameId: game.id } } } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: 'Période', publicId: `efface-periode-${counter}`, entryMode: 'form' } })
+    await prisma.registration.create({
+      data: {
+        periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: user.email,
+        affinities: { create: { kind: 'avoid', text: 'La cible', position: 0, targetParticipantId: target.id } }
+      }
+    })
+    const text = JSON.stringify((await api(user, 'GET', '/api/account/export')).body)
+    expect(text).toContain('La cible')
+    expect(text).not.toContain('Cible Rattachée')
+    expect(text).not.toContain('targetUnknown')
+  })
 })
 
 describe('effacer son compte (US-077)', () => {

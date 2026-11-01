@@ -109,7 +109,7 @@ describe('éditeur du formulaire (US-081, US-082)', () => {
 
 describe('répondre aux questions et aux affinités (US-081, US-082)', () => {
   it('enregistre les réponses et une affinité par ligne ; l’équipe les lit, pas une autre équipe', async () => {
-    const { registration, path, participant, ids } = await invitedWithForm()
+    const { game, registration, path, participant, ids } = await invitedWithForm()
     const saved = await publicApi('PUT', path, body(ids))
     expect(saved.status, JSON.stringify(saved.body)).toBe(200)
     expect(saved.body.answers.affinities).toEqual({ wantWith: ['Léa', 'Noé'], notWith: [], refusedRelations: [], avoid: ['Max'] })
@@ -119,19 +119,24 @@ describe('répondre aux questions et aux affinités (US-081, US-082)', () => {
     const detail = await api(alice, 'GET', `/api/registrations/${registration.id}`)
     expect(detail.body).toMatchObject({
       questions: [{ id: ids.text, label: 'Pourquoi ce jeu ?' }, {}, {}, {}],
-      questionAnswers: { [ids.single]: 'Intrigue' },
-      affinities: { wantWith: ['Léa', 'Noé'], avoid: ['Max'] }
+      questionAnswers: { [ids.single]: 'Intrigue' }
     })
+    expect((detail.body as any).affinityLines.map((line: { kind: string, text: string }) => [line.kind, line.text])).toEqual(expect.arrayContaining([['wantWith', 'Léa'], ['wantWith', 'Noé'], ['avoid', 'Max']]))
     expect([403, 404]).toContain((await api(bob, 'GET', `/api/registrations/${registration.id}`)).status)
 
     const exported = await api(alice, 'GET', `/api/participants/${participant.id}/export`)
     expect(JSON.stringify(exported.body)).toContain('{"question":"Pourquoi ce jeu ?","answer":"Pour l’ambiance"}')
     expect(JSON.stringify(exported.body)).toContain('Noé')
 
-    // Une modification remplace les affinités
-    const edited = await publicApi('PUT', path, body(ids, { affinities: { wantWith: ['Zoé'] } }))
+    // Une modification remplace les affinités ; une ligne inchangée garde son rattachement (US-095)
+    const lea = await prisma.participant.create({ data: { name: 'Léa Martin', slug: `questions-lea-${counter}`, gameLinks: { create: { gameId: game.id } } } })
+    const leaLine = (await api(alice, 'GET', `/api/registrations/${registration.id}`) as any).body.affinityLines.find((line: { text: string }) => line.text === 'Léa')
+    expect(leaLine.suggestions.map((person: { id: string }) => person.id)).toContain(lea.id)
+    expect((await api(alice, 'POST', `/api/registration-affinities/${leaLine.id}/link`, { targetParticipantId: lea.id })).status).toBe(200)
+    const edited = await publicApi('PUT', path, body(ids, { affinities: { wantWith: ['Zoé', 'léa '] } }))
     expect(edited.status, JSON.stringify(edited.body)).toBe(200)
-    expect(await prisma.registrationAffinity.findMany({ where: { registrationId: registration.id }, select: { kind: true, text: true } })).toEqual([{ kind: 'wantWith', text: 'Zoé' }])
+    expect(await prisma.registrationAffinity.findMany({ where: { registrationId: registration.id }, select: { kind: true, text: true, targetParticipantId: true }, orderBy: { position: 'asc' } }))
+      .toEqual([{ kind: 'wantWith', text: 'Zoé', targetParticipantId: null }, { kind: 'wantWith', text: 'léa', targetParticipantId: lea.id }])
   })
 
   it('refuse une réponse obligatoire manquante ou une option inconnue, sous le bon champ', async () => {

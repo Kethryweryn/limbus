@@ -66,9 +66,18 @@
         </UButton>
       </div>
 
+      <!-- Affinités (US-096, R25) : prévenir sans bloquer -->
+      <UAlert
+        v-if="alertsOf(session).length"
+        color="error"
+        variant="soft"
+        icon="i-heroicons-exclamation-triangle"
+        :description="alertsOf(session).map(alertText).join(' ')"
+      />
+
       <ul v-if="placed(session).length" class="divide-y divide-gray-100 text-sm">
         <li v-for="registration in placed(session)" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
-          <RegistrationSelectionName :registration="registration" :replayer="isReplayer(registration)" />
+          <RegistrationSelectionName :registration="registration" :replayer="isReplayer(registration)" :alert="alerted(session, registration)" :wishes="wishLabels(registration, session)" :to-link="toLink(registration)" />
           <div class="flex shrink-0 flex-wrap gap-2">
             <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="emit('detail', registration)">Détail</UButton>
             <template v-if="registration.status === REGISTRATION_STATUSES.retained">
@@ -110,7 +119,7 @@
           <li v-for="(registration, index) in waiting(session)" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex min-w-0 items-start gap-2">
               <span class="w-5 shrink-0 text-right text-xs text-gray-500">{{ index + 1 }}.</span>
-              <RegistrationSelectionName :registration="registration" :replayer="isReplayer(registration)" />
+              <RegistrationSelectionName :registration="registration" :replayer="isReplayer(registration)" :wishes="wishLabels(registration)" :to-link="toLink(registration)" />
             </div>
             <div class="flex shrink-0 flex-wrap gap-2">
               <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-arrow-up" :disabled="index === 0" aria-label="Monter" @click="move(session, index, -1)" />
@@ -131,7 +140,7 @@
       <p class="text-xs font-semibold text-gray-600">{{ permanent ? 'Dans le vivier' : 'À trier' }} : {{ toSort.length }}</p>
       <ul v-if="toSort.length" class="divide-y divide-gray-100 text-sm">
         <li v-for="registration in toSort" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
-          <RegistrationSelectionName :registration="registration" :replayer="isReplayer(registration)" :availability="availabilityLabel(registration)" />
+          <RegistrationSelectionName :registration="registration" :replayer="isReplayer(registration)" :wishes="wishLabels(registration)" :to-link="toLink(registration)" :availability="availabilityLabel(registration)" />
           <div class="flex shrink-0 flex-wrap gap-2">
             <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="emit('detail', registration)">Détail</UButton>
             <UDropdownMenu :items="decisionItems(registration)">
@@ -151,7 +160,7 @@
       <p class="text-xs font-semibold text-gray-600">Non retenues : {{ rejected.length }}</p>
       <ul class="divide-y divide-gray-100 text-sm">
         <li v-for="registration in rejected" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
-          <RegistrationSelectionName :registration="registration" :replayer="isReplayer(registration)" />
+          <RegistrationSelectionName :registration="registration" :replayer="isReplayer(registration)" :wishes="wishLabels(registration)" :to-link="toLink(registration)" />
           <div class="flex shrink-0 flex-wrap gap-2">
             <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="emit('detail', registration)">Détail</UButton>
             <UDropdownMenu :items="decisionItems(registration)">
@@ -293,6 +302,23 @@ const rejected = computed(() => props.registrations.filter((registration) => reg
 const withdrawn = computed(() => props.registrations.filter((registration) => registration.status === REGISTRATION_STATUSES.withdrawn))
 
 const awaiting = (registration) => canConfirmPlace(registration)
+
+// Affinités (US-095, US-096) : alertes par session, personnes souhaitées, lignes à rattacher
+const affinities = computed(() => overview.value?.affinities ?? { alerts: [], wishes: {}, toLink: {} })
+const alertsOf = (session) => affinities.value.alerts.filter((alert) => alert.sessionId === session.id)
+const alertText = (alert) => `${alert.participantName} ne veut pas ${alert.kind === 'avoid' ? 'croiser' : 'jouer avec'} ${alert.targetName}.`
+const alerted = (session, registration) => alertsOf(session)
+  .some((alert) => [alert.participantId, alert.targetParticipantId].includes(registration.participant.id))
+const toLink = (registration) => affinities.value.toLink[registration.id] || 0
+function wishLabels(registration, session = null) {
+  return (affinities.value.wishes[registration.id] || []).map((wish) => {
+    const elsewhere = wish.sessionIds.filter((id) => id !== session?.id)
+    const where = session && wish.sessionIds.includes(session.id)
+      ? 'ici'
+      : elsewhere.length ? elsewhere.map((id) => sessions.value.find((entry) => entry.id === id)?.name).join(', ') : 'pas encore'
+    return `${wish.name} (${where})`
+  })
+}
 
 // Une période à plusieurs sessions demande les disponibilités (R10) ; l'inscription permanente, non
 function available(registration, session) {

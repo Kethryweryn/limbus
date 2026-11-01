@@ -274,7 +274,7 @@
       :withdrawn-participant-ids="withdrawnParticipantIds(inviteTarget.period)"
       @invited="invited"
     />
-    <RegistrationDetail v-model:open="showDetailModal" :registration-id="detailId" />
+    <RegistrationDetail v-model:open="showDetailModal" :registration-id="detailId" @changed="refresh" />
     <UModal v-model:open="showExtension" :title="extensionTarget ? `Prolonger l’échéance de ${extensionTarget.participant.name}` : 'Prolonger'">
       <template #body>
         <form class="space-y-4" @submit.prevent="extend">

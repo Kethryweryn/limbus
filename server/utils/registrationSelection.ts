@@ -1,6 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { openEmailTransport } from '~/server/utils/email'
 import { countPlayableCharacters, takenSeatsWhere } from '~/server/utils/registrationPeriods'
+import { affinityOverview } from '~/server/utils/registrationAffinities'
 import { createRegistrationToken, registrationResponseDueAt, registrationUrl, selectionAnnouncementEmail } from '~/server/utils/registrations'
 import {
   CLOSED_SESSION_STATUSES,
@@ -110,7 +111,9 @@ export async function selectionOverview(periodId: string) {
     permanent: isPermanentPeriod(period),
     replayPolicy: period.replayPolicy,
     sessions: sessions.map((session) => ({ ...session, taken: takenBySession.get(session.id) ?? 0 })),
-    replayerParticipantIds: [...replayers]
+    replayerParticipantIds: [...replayers],
+    // Alertes, personnes souhaitées et lignes à rattacher (US-095, US-096)
+    affinities: await affinityOverview(periodId, sessions.map((session) => session.id))
   }
 }
 

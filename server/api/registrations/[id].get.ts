@@ -3,12 +3,12 @@ import { requireUser } from '~/server/utils/auth'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { findRegistrationOr404, withSessionPresence } from '~/server/utils/registrations'
 import { registrationListSelect } from '~/server/utils/registrationPeriods'
-import { groupAffinities } from '~/server/utils/publicRegistrations'
+import { affinitiesForTeam } from '~/server/utils/registrationAffinities'
 import { normalizeRegistrationFormDefinition, type RegistrationFormDefinition } from '~/utils/registrationForms'
 
 // Détail d'une inscription pour les organisatrices du jeu (US-005) : réponses au formulaire comprises,
 // allergies et date du consentement (données de santé, R14), questions et affinités (US-081, US-082), lues avec
-// la version du formulaire que la personne a remplie (R9)
+// la version du formulaire que la personne a remplie (R9) ; affinités rattachées aux personnes du jeu (US-095)
 export default defineEventHandler(async (event) => {
   await requireUser(event)
 
@@ -31,14 +31,15 @@ export default defineEventHandler(async (event) => {
       charterAcceptedAt: true,
       questionAnswers: true,
       balancePreference: true,
-      affinities: { select: { kind: true, text: true }, orderBy: { position: 'asc' } },
       formVersion: { select: { number: true, definition: true } },
       session: { select: { id: true, name: true } }
     }
   })
   const game = await prisma.game.findUnique({ where: { id: period.gameId }, select: { balanceAttribute: true } })
   const [withPresence] = await withSessionPresence([registration])
-  const { formVersion, affinities, ...rest } = withPresence!
+  const { formVersion, ...rest } = withPresence!
+  // Lignes d'affinité avec la personne rattachée et des suggestions (US-095)
+  const affinities = await affinitiesForTeam({ id, participantId: registration.participant.id }, period.gameId)
   const definition = formVersion ? normalizeRegistrationFormDefinition(formVersion.definition as RegistrationFormDefinition) : null
   return {
     ...rest,
@@ -46,6 +47,7 @@ export default defineEventHandler(async (event) => {
     questions: definition?.questions ?? [],
     // Question d'équilibre demandée par la version remplie, avec le nom de l'attribut du jeu (US-091)
     balance: definition?.balance.asked && game?.balanceAttribute ? { label: game.balanceAttribute } : null,
-    affinities: groupAffinities(affinities)
+    affinityLines: affinities.lines,
+    gamePeople: affinities.people
   }
 })

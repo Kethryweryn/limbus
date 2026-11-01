@@ -133,7 +133,7 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 
 - **R23** Les affinités sont saisies en texte libre ; les orgas les rapprochent des inscrits ou des participants, avec des suggestions par similarité de nom.
 - **R24** Affinités et réponses au questionnaire sont visibles par tous les organisateurs du jeu, jamais par les inscrits, et n'apparaissent dans aucun document envoyé.
-- **R25** Alertes : deux personnes dont l'une ne veut pas croiser l'autre, retenues pour la même session, font apparaître une alerte dans la sélection et dans la répartition entre sessions.
+- **R25** Alertes : deux personnes dont l'une ne veut pas croiser l'autre, ou ne veut pas jouer avec elle, présentes dans la même session (retenues, confirmées ou dans le cast), font apparaître une alerte dans la sélection, qui fait aussi la répartition entre sessions. L'alerte prévient sans bloquer, et le tirage n'en tient pas compte. « Avec qui je veux jouer » donne un repère : la personne souhaitée est dans la même session, dans une autre, ou pas encore.
 - **R26** Les personnages peuvent être reliés entre eux par des relations typées (romance, famille, rivalité, alliance, hiérarchie, autre), avec une description.
 - **R27** Pour chaque paire joueur ↔ personnage, l'assistant calcule un score dont chaque composante est affichée :
   - réponses au questionnaire reliées au personnage ;
@@ -183,7 +183,7 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 
 Données personnelles :
 
-- inscriptions, affinités (dans les deux sens), réponses et consentements sont couverts par `eraseParticipant` et `exportParticipantData` ([ADR-0011](../adr/ADR-0011-donnees-des-participants.md)) ;
+- inscriptions, affinités, réponses et consentements sont couverts par `eraseParticipant` et `exportParticipantData` ([ADR-0011](../adr/ADR-0011-donnees-des-participants.md)) ; l'export contient les affinités écrites par la personne, avec la personne rattachée, jamais celles des autres qui la visent ;
 - effacer un participant supprime aussi les affinités qui le visent.
 
 ## Sécurité et droits
@@ -202,7 +202,7 @@ Chaque lot devient un epic, livrable seul :
 1. Période d'inscription et mode invitation (R1 à R3, R5, R6, R8 pour la note d'intention et les champs standards, R12 à R16, R20, R22, R33). Voir [EPIC-001](../archive/epics/EPIC-001-inscription-sur-invitation/README.md).
 2. Formulaire public, inscription permanente et lien de diffusion (R8 au complet, R9 à R11, R13, R30 à R32), en deux epics : le formulaire complet, questions propres au jeu et affinités ([EPIC-019](../archive/epics/EPIC-019-formulaire-complet/README.md)), puis le formulaire public, le lien de diffusion et l'inscription permanente ([EPIC-020](../archive/epics/EPIC-020-formulaire-public/README.md)). La question d'équilibre (R8, R17) arrive au lot 3, avec la sélection qui s'en sert.
 3. Sélection (R4, R7, R17 à R21), en deux epics : la sélection à la main, la liste d'attente, la confirmation et le vivier de l'inscription permanente ([EPIC-021](../archive/epics/EPIC-021-selection-a-la-main/README.md)), puis le tirage au sort, le mode mixte, les pondérations et la question d'équilibre (R4, R8, R17, R18, [EPIC-022](../archive/epics/EPIC-022-tirage-au-sort/README.md)).
-4. Affinités (R23 à R25).
+4. Affinités (R23 à R25). Voir [EPIC-023](../archive/epics/EPIC-023-affinites/README.md).
 5. Relations entre personnages et questionnaire relié aux rôles (R8, R26).
 6. Assistant de casting (R27 à R29).
 
@@ -227,3 +227,5 @@ Chaque lot devient un epic, livrable seul :
 - 2026-10-31 : EPIC-021 (lot 3, première moitié) terminé et archivé ; ADR-0047 accepté.
 - 2026-11-01 (choix du tirage) : le tirage produit des décisions que l'équipe revoit avant d'annoncer ; il va session par session ; les personnes sans place vont en liste d'attente dans la limite d'une taille réglée par période, les autres sont non retenues ; « non tirés avant » double les chances ; en mode mixte, chaque organisatrice retient jusqu'à N personnes par session ; un tirage s'annule et se refait tant que rien n'est annoncé ; l'attribut d'équilibre est défini par jeu ; « peu importe » comble la valeur la plus libre ; une valeur sans assez de candidates laisse ses places libres (R4, R17 à R19). Le mode mixte retient la règle « N par organisatrice » ; le quota global n'est pas proposé.
 - 2026-11-01 : EPIC-022 (lot 3, seconde moitié) terminé et archivé ; ADR-0048 accepté. Lot 3 terminé.
+- 2026-11-01 (choix du lot 4) : on rattache une affinité à n'importe quelle personne du jeu ; Limbus propose des noms proches sans rattacher seul ; une ligne peut être marquée « inconnue ». « Ne pas croiser » et « ne pas jouer avec » alertent, cast compris ; l'alerte prévient sans bloquer et le tirage l'ignore ; « veut jouer avec » donne un repère (R23, R25). L'export d'une personne ne contient pas les affinités des autres qui la visent.
+- 2026-11-01 : EPIC-023 (lot 4) terminé et archivé ; ADR-0049 accepté.
