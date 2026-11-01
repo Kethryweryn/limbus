@@ -241,7 +241,11 @@ async function loadTrombinoscopeSources(sessionId: string) {
   return {
     session,
     characters,
-    castByCharacterId: new Map(session.assignments.map((assignment) => [assignment.characterId, assignment])),
+    // Une personne qui a refusé l'usage de sa photo n'apparaît pas avec elle (US-109) : la photo par défaut du personnage reste
+    castByCharacterId: new Map(session.assignments.map((assignment) => [
+      assignment.characterId,
+      assignment.participant?.photoRefusedAt ? { ...assignment, photoUrl: null } : assignment
+    ])),
     entriesByViewerAndTarget: new Map(entries.map((entry) => [`${entry.viewerCharacterId}:${entry.targetCharacterId}`, entry]))
   }
 }

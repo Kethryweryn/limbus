@@ -1,3 +1,4 @@
+import { purgeExpiredPhotos } from '~/server/utils/photoRetention'
 import bcrypt from 'bcrypt'
 import { prisma } from '~/server/utils/prisma'
 import { setAuthCookie } from '~/server/utils/auth'
@@ -27,6 +28,8 @@ export default defineEventHandler(async (event) => {
   await purgeUnconfirmedAccounts()
   // Copies des envois des sessions passées (US-080, ADR-0044)
   await purgeExpiredCopies()
+  // Photos des sessions passées depuis plus longtemps que la durée de leur jeu (US-108, ADR-0054)
+  await purgeExpiredPhotos()
   // Formulaires publics jamais confirmés (R11, ADR-0046)
   await purgeRegistrationRequests()
   const user = await prisma.user.findUnique({

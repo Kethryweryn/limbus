@@ -48,6 +48,8 @@
             <h2 class="font-semibold">Note d’intention</h2>
             <p v-if="period.game.noteIntention" class="mt-2 whitespace-pre-line text-sm text-gray-700">{{ period.game.noteIntention }}</p>
             <p v-else class="mt-2 text-sm italic text-gray-500">Le jeu n’a pas de note d’intention.</p>
+            <!-- Usage des photos (US-107) -->
+            <p class="mt-3 text-xs text-gray-500">{{ period.game.photoInformation }}</p>
           </UCard>
 
           <UCard>

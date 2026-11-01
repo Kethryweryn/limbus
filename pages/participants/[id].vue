@@ -62,6 +62,31 @@
             <span v-if="!participant.games?.length" class="text-sm text-gray-500">Aucun jeu</span>
           </div>
         </UCard>
+
+        <!-- Refus de l'usage de sa photo (US-109) : posé ou levé à la demande de la personne -->
+        <UCard>
+          <template #header>Photo</template>
+          <p v-if="participant.photoRefusedAt" class="text-sm text-gray-600">
+            Photo refusée depuis le {{ new Date(participant.photoRefusedAt).toLocaleDateString('fr-FR') }} : aucune photo de cette personne dans le cast ni les trombinoscopes.
+          </p>
+          <p v-else class="text-sm text-gray-600">Cette personne n’a pas refusé l’usage de sa photo.</p>
+          <p v-if="participant.photoRefusedAt && participant.userId" class="mt-2 text-xs text-gray-500">
+            Elle a un compte : elle seule peut lever ce refus, depuis « Je participe ».
+          </p>
+          <div class="mt-3 flex items-center gap-3">
+            <UButton
+              v-if="!participant.photoRefusedAt || !participant.userId"
+              size="sm"
+              color="neutral"
+              variant="soft"
+              :loading="photoSaving"
+              @click="setPhotoRefusal(!participant.photoRefusedAt)"
+            >
+              {{ participant.photoRefusedAt ? 'Lever le refus' : 'Noter un refus de photo' }}
+            </UButton>
+            <span v-if="photoMessage" class="text-sm text-gray-500">{{ photoMessage }}</span>
+          </div>
+        </UCard>
       </div>
 
       <!-- Une note par jeu, des seuls jeux accessibles (US-069) -->
@@ -78,6 +103,22 @@ const route = useRoute()
 const router = useRouter()
 const { data: participant, error, refresh } = await useFetch(`/api/participants/${route.params.id}`)
 const { data: games } = await useFetch('/api/games')
+const photoSaving = ref(false)
+const photoMessage = ref('')
+
+async function setPhotoRefusal(refused) {
+  if (refused && !confirm('Noter que cette personne refuse l’usage de sa photo ? Ses photos du cast seront supprimées.')) return
+  photoSaving.value = true
+  photoMessage.value = ''
+  try {
+    await useApiFetch(`/api/participants/${participant.value.id}/photo-refusal`, { method: 'POST', body: { refused } })
+    await refresh()
+  } catch (err) {
+    photoMessage.value = err?.data?.message || 'L’enregistrement a échoué.'
+  } finally {
+    photoSaving.value = false
+  }
+}
 
 if (error.value) {
   handleApiAuthError(error.value)

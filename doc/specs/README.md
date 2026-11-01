@@ -15,3 +15,4 @@ Fonctionnalités validées, décrites telles qu'elles marchent. Modèle : [`../m
 | [SPEC-009](SPEC-009-page-publique.md) | Page publique d'un jeu (existant) | validée | aucun : décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
 | [SPEC-010](SPEC-010-hors-ligne.md) | Mode hors ligne (existant) | validée | [EPIC-010](../archive/epics/EPIC-010-ecarts-hors-ligne/README.md) (écarts) |
 | [SPEC-011](SPEC-011-un-compte-pour-tout-le-monde.md) | Un compte pour tout le monde, organiser et participer | validée | [EPIC-012](../archive/epics/EPIC-012-roles/README.md) à [EPIC-018](../archive/epics/EPIC-018-documents-dans-le-compte/README.md) (lots 1 à 7) |
+| [SPEC-012](SPEC-012-photos-des-participants.md) | Photos des participants, information, durée de conservation et retrait | validée | [EPIC-028](../archive/epics/EPIC-028-photos-des-participants/README.md) |

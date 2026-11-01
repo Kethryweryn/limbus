@@ -1,3 +1,4 @@
+import { gamePhotoInformation } from '~/utils/photoInformation'
 import type { H3Event } from 'h3'
 import { prisma } from '~/server/utils/prisma'
 import { requireAuthUser } from '~/server/utils/auth'
@@ -36,7 +37,7 @@ export const formPeriodSelect = {
   closesAt: true,
   notifyTeam: true,
   publicId: true,
-  game: { select: { id: true, title: true, slug: true, noteIntention: true, teaserUrl: true, ownerId: true } },
+  game: { select: { id: true, title: true, slug: true, noteIntention: true, teaserUrl: true, ownerId: true, photoRetentionMonths: true, contactEmail: true, owner: { select: { email: true } } } },
   sessions: { orderBy: { session: { date: 'asc' as const } }, select: { session: { select: sessionSelect } } }
 } as const
 
@@ -110,7 +111,7 @@ export async function exposeFormPeriod(period: FormPeriod, account: { id: string
     state: effectivePeriodState(period, now) === REGISTRATION_PERIOD_STATES.open ? 'open' : 'closed',
     permanent: period.scope === REGISTRATION_PERIOD_SCOPES.game,
     closesAt: period.closesAt,
-    game: { title: period.game.title, noteIntention: period.game.noteIntention },
+    game: { title: period.game.title, noteIntention: period.game.noteIntention, photoInformation: gamePhotoInformation(period.game) },
     sessions: await formPeriodSessions(period, now),
     asksAvailability: asksAvailability(period),
     definition: form.definition,

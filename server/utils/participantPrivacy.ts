@@ -55,6 +55,8 @@ export async function exportParticipantData(participantId: string, gameIds: stri
       email: true,
       phone: true,
       userId: true,
+      // Refus de l'usage de sa photo (US-109)
+      photoRefusedAt: true,
       updatedAt: true,
       gameLinks: { where: inGames, select: { createdAt: true, notes: true, game: { select: { title: true } } } },
       sessionRoles: { where: inSessions, select: { role: true, session } },

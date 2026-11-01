@@ -1,3 +1,5 @@
+import { gamePhotoInformation } from '~/utils/photoInformation'
+import { purgeExpiredPhotos } from '~/server/utils/photoRetention'
 import { createHash } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
 import { openEmailTransport, sendEmail, type EmailTransport } from '~/server/utils/email'
@@ -80,7 +82,8 @@ export async function getSessionDocumentDashboard(sessionId: string) {
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
     include: {
-      game: true,
+      // Propriétaire : adresse donnée pour le retrait d'une photo, faute de contact du jeu (US-107)
+      game: { include: { owner: { select: { email: true } } } },
       participants: {
         include: { participant: true }
       },
@@ -325,6 +328,8 @@ async function sendToEach<Target extends { participant: { name: string, email: s
   if (!targets.length) return { sentCount, failures }
   // Les copies des sessions passées s'effacent avant d'en ajouter (US-080) ; une session déjà passée n'en garde pas
   await purgeExpiredCopies()
+  // Les photos échues ne partent pas dans un trombinoscope (US-108)
+  await purgeExpiredPhotos()
   const keepCopies = !(await expiredSessionIds([sessionId])).size
 
   const transport = await openEmailTransport().catch(() => null)
@@ -416,7 +421,9 @@ async function trombinoscopeMessage(dashboard: Dashboard, sheet: DashboardSheet,
       greeting(sheet.participant),
       '',
       `Voici ton trombinoscope pour ${dashboard.session.name}.`,
-      'Le PDF est joint à cet email.'
+      'Le PDF est joint à cet email.',
+      '',
+      gamePhotoInformation(dashboard.session.game)
     ].join('\n'),
     attachments: [pdf.attachment],
     copies: { trombinoscope: pdf.copy }
@@ -545,7 +552,9 @@ export async function markCharacterSheetBundleDeliveries(sessionId: string) {
       sheet.character.backgroundDocumentUrl
         ? `Fiche liée : ${sheet.character.backgroundDocumentUrl}`
         : sheet.character.background || '',
-      'Les PDF sont joints à cet email.'
+      'Les PDF sont joints à cet email.',
+      // Usage des photos (US-107) : le trombinoscope en contient
+      gamePhotoInformation(dashboard.session.game)
     ].filter(Boolean).join('\n'),
       attachments: [characterSheet.attachment, trombinoscope.attachment],
       copies: { character_sheet: characterSheet.copy, trombinoscope: trombinoscope.copy }

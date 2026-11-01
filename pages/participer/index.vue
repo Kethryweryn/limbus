@@ -15,9 +15,34 @@
       <UButton class="mt-3" to="/games" color="neutral" variant="soft" icon="i-heroicons-plus">Organiser un GN</UButton>
     </UCard>
 
+    <!-- Photos (US-109) : retirer les siennes de tous ses jeux, et refuser les suivantes -->
+    <UCard v-if="participations.length">
+      <template #header>
+        <h2 class="text-lg font-semibold">Mes photos</h2>
+      </template>
+      <p v-if="photoRefused" class="text-sm text-gray-600">
+        Vous avez refusé l’usage de votre photo : les équipes ne peuvent pas en ajouter, et vos trombinoscopes n’en montrent pas.
+      </p>
+      <p v-else class="text-sm text-gray-600">
+        Les équipes de vos jeux peuvent ajouter votre photo au trombinoscope de leurs sessions. Vous pouvez retirer vos photos de tous vos jeux, ce qui empêche aussi d’en ajouter.
+      </p>
+      <div class="mt-3 flex items-center gap-3">
+        <UButton
+          :color="photoRefused ? 'neutral' : 'error'"
+          variant="soft"
+          :loading="photoSaving"
+          @click="setPhotoRefusal(!photoRefused)"
+        >
+          {{ photoRefused ? 'Accepter de nouveau une photo' : 'Retirer mes photos' }}
+        </UButton>
+        <span v-if="photoMessage" class="text-sm text-gray-500">{{ photoMessage }}</span>
+      </div>
+    </UCard>
+
     <UCard v-for="entry in participations" :key="entry.game.id">
       <template #header>
         <h2 class="text-lg font-semibold">{{ entry.game.title }}</h2>
+        <p v-if="entry.game.photoInformation" class="mt-1 text-xs text-gray-500">{{ entry.game.photoInformation }}</p>
       </template>
 
       <div class="space-y-6">
@@ -133,18 +158,37 @@ const { data: authState } = await useFetch('/api/auth/me')
 const participations = ref([])
 const pending = ref(true)
 const loadError = ref('')
+const photoRefused = ref(false)
+const photoSaving = ref(false)
+const photoMessage = ref('')
 
 onMounted(async () => {
   rememberSpace('participate')
   try {
     // Gardée sur l'appareil : sur le lieu du jeu, sans réseau, on retrouve date et lieu
     participations.value = await useApiFetch('/api/me/participations', { offlineCache: true })
+    photoRefused.value = (await useApiFetch('/api/me/photo-refusal', { offlineCache: true })).refused
   } catch (err) {
     loadError.value = err?.data?.message || 'Impossible de charger vos participations.'
   } finally {
     pending.value = false
   }
 })
+
+async function setPhotoRefusal(refused) {
+  if (refused && !confirm('Retirer vos photos de tous vos jeux ? Les trombinoscopes déjà générés seront refaits sans elles.')) return
+  photoSaving.value = true
+  photoMessage.value = ''
+  try {
+    await useApiFetch('/api/me/photo-refusal', { method: 'POST', body: { refused } })
+    photoRefused.value = refused
+    photoMessage.value = refused ? 'Vos photos sont retirées.' : 'Les équipes peuvent de nouveau ajouter votre photo.'
+  } catch (err) {
+    photoMessage.value = err?.data?.message || 'L’enregistrement a échoué.'
+  } finally {
+    photoSaving.value = false
+  }
+}
 
 const sessionMeta = (session) => SESSION_STATUS_META[session.status] || { label: session.status, color: 'neutral' }
 const registrationMeta = (registration) => REGISTRATION_STATUS_META[registration.status] || { label: registration.status, color: 'neutral' }

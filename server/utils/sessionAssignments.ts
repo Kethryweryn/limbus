@@ -163,6 +163,15 @@ export async function assertSessionCastRules(
     }
   }
 
+  // Une personne qui a refusé l'usage de sa photo n'en reçoit pas dans le cast (US-109)
+  const withPhoto = [...new Set(assignments.filter((assignment) => assignment.photoUrl && assignment.participantId).map((assignment) => assignment.participantId!))]
+  if (withPhoto.length) {
+    const refusing = await prisma.participant.findFirst({ where: { id: { in: withPhoto }, photoRefusedAt: { not: null } }, select: { name: true } })
+    if (refusing) {
+      throw createError({ statusCode: 400, message: `${refusing.name} a refusé l’usage de sa photo : retirez la photo de sa ligne du cast.` })
+    }
+  }
+
   const characterIds = [...new Set(assignments.map((assignment) => assignment.characterId))]
   if (!characterIds.length) return
 
