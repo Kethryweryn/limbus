@@ -31,6 +31,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-021](../archive/epics/EPIC-021-selection-a-la-main/README.md) | Sélection à la main : retenues, liste d'attente, confirmation et vivier | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 | [EPIC-022](../archive/epics/EPIC-022-tirage-au-sort/README.md) | Tirage au sort, mode mixte, pondérations et équilibre | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 | [EPIC-023](../archive/epics/EPIC-023-affinites/README.md) | Affinités rattachées, alertes et repères dans la sélection | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
+| [EPIC-024](../archive/epics/EPIC-024-relations-et-questionnaire/README.md) | Relations entre personnages, questionnaire relié aux rôles et relations refusées | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 
 ## US
 
@@ -132,3 +133,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-094](../archive/epics/EPIC-022-tirage-au-sort/US-094-journal-des-tirages.md) | Journal des tirages, annuler et refaire | EPIC-022 | terminée |
 | [US-095](../archive/epics/EPIC-023-affinites/US-095-rattacher-les-affinites.md) | Rattacher les affinités à des personnes du jeu | EPIC-023 | terminée |
 | [US-096](../archive/epics/EPIC-023-affinites/US-096-alertes-et-reperes.md) | Alertes et repères d'affinités dans la sélection | EPIC-023 | terminée |
+| [US-097](../archive/epics/EPIC-024-relations-et-questionnaire/US-097-relations-entre-personnages.md) | Relier les personnages entre eux | EPIC-024 | terminée |
+| [US-098](../archive/epics/EPIC-024-relations-et-questionnaire/US-098-questionnaire-relie-aux-roles.md) | Relier les réponses du questionnaire aux personnages, factions et intrigues | EPIC-024 | terminée |
+| [US-099](../archive/epics/EPIC-024-relations-et-questionnaire/US-099-relations-refusees.md) | Cocher les relations que l'on ne veut pas jouer | EPIC-024 | terminée |

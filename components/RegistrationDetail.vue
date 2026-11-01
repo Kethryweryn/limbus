@@ -37,12 +37,19 @@
         </section>
 
         <!-- Affinités rattachées aux personnes du jeu (US-095) : visibles de l'équipe seulement (R24) -->
-        <section v-if="registration.respondedAt && registration.affinityLines.length" class="space-y-2">
+        <section v-if="registration.respondedAt && (affinityGroups.length || refusedTypes.length)" class="space-y-2">
           <h3 class="font-semibold text-gray-700">Affinités</h3>
           <p class="text-xs text-gray-500">
             Rattachez chaque personne citée à une personne du jeu : la sélection signale alors qui ne veut pas se croiser.
           </p>
           <UAlert v-if="linkError" color="error" variant="soft" :description="linkError" />
+          <!-- Cases de « les relations que je ne veux pas jouer » (US-099) -->
+          <div v-if="refusedTypes.length" class="space-y-1">
+            <p class="text-gray-600">Relations refusées (cases cochées)</p>
+            <div class="flex flex-wrap gap-1">
+              <UBadge v-for="type in refusedTypes" :key="type" color="neutral" variant="subtle">{{ refusedRelationLabel(type) }}</UBadge>
+            </div>
+          </div>
           <div v-for="group in affinityGroups" :key="group.key" class="space-y-1">
             <p class="text-gray-600">{{ group.label }}</p>
             <ul class="space-y-2 pl-2">
@@ -100,6 +107,8 @@
           <div v-for="question in registration.questions" :key="question.id">
             <p class="text-gray-600">{{ question.label }}</p>
             <p class="whitespace-pre-line">{{ answerText(question) }}</p>
+            <!-- Rôles que désigne la réponse (US-098) -->
+            <p v-if="answerTargets(question).length" class="text-xs text-gray-500">→ {{ answerTargets(question).join(', ') }}</p>
           </div>
         </section>
 
@@ -124,6 +133,7 @@
 <script setup>
 import { REGISTRATION_STATUSES } from '~/utils/domain'
 import { REGISTRATION_AFFINITIES } from '~/utils/registrationForms'
+import { refusedRelationLabel } from '~/utils/characterRelations'
 import { REGISTRATION_DISPLAY_STATUS_META, registrationDisplayStatus } from '~/utils/registrations'
 import { apiErrorMessage } from '~/utils/apiErrors'
 
@@ -157,6 +167,20 @@ watch([open, () => props.registrationId], async ([isOpen, id]) => {
 const affinityGroups = computed(() => REGISTRATION_AFFINITIES
   .map(({ key, label }) => ({ key, label, lines: (registration.value?.affinityLines || []).filter((line) => line.kind === key) }))
   .filter((group) => group.lines.length))
+const refusedTypes = computed(() => (registration.value?.affinityLines || [])
+  .filter((line) => line.kind === 'refusedRelationTypes')
+  .map((line) => line.text))
+
+const TARGET_KINDS = { character: 'personnage', faction: 'faction', intrigue: 'intrigue' }
+// Personnages, factions et intrigues reliés aux options choisies, ou à la question sur une échelle répondue (US-098)
+function answerTargets(question) {
+  const answer = registration.value?.questionAnswers?.[question.id]
+  if (answer === null || answer === undefined || answer === '') return []
+  const chosen = question.type === 'scale' ? [''] : Array.isArray(answer) ? answer : [answer]
+  return (registration.value.questionLinks || [])
+    .filter((link) => link.questionId === question.id && chosen.includes(link.option))
+    .map((link) => `${link.target.name} (${TARGET_KINDS[link.target.kind]}${question.type === 'scale' ? `, note ${answer} / 5` : ''})`)
+}
 const peopleItems = computed(() => (registration.value?.gamePeople || []).map((person) => ({ label: person.name, value: person.id })))
 
 const linking = ref(false)

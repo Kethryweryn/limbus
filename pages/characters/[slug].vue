@@ -143,6 +143,8 @@
                 </div>
             </div>
 
+            <CharacterRelations :character="character" :characters="allCharacters || []" />
+
             <div v-if="character.documents?.length">
                 <h2 class="text-xl font-semibold mb-2">Documents liés</h2>
                 <ul class="list-disc pl-5">
@@ -198,6 +200,8 @@ const { data: character, error, refresh } = await useOfflineFetch(`/api/characte
 const { data: games } = await useOfflineFetch('/api/games')
 const { data: factions } = await useOfflineFetch('/api/factions')
 const { data: intrigues, refresh: refreshIntrigues } = await useOfflineFetch('/api/intrigues')
+// Autres personnages du jeu, pour les relations (US-097)
+const { data: allCharacters } = await useOfflineFetch('/api/characters')
 
 if (error.value) {
     handleApiAuthError(error.value)

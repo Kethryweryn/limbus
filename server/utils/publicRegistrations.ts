@@ -241,7 +241,7 @@ export async function exposePublicRegistration(registration: PublicRegistration,
 
 // Affinités d'une inscription, une liste de lignes par sorte (US-082)
 export function groupAffinities(rows: Array<{ kind: string, text: string }>) {
-  const grouped = Object.fromEntries(REGISTRATION_AFFINITIES.map(({ key }) => [key, [] as string[]])) as AffinityAnswers
+  const grouped = Object.fromEntries([...REGISTRATION_AFFINITIES.map(({ key }) => key), 'refusedRelationTypes'].map((key) => [key, [] as string[]])) as AffinityAnswers
   for (const row of rows) grouped[row.kind as keyof AffinityAnswers]?.push(row.text)
   return grouped
 }

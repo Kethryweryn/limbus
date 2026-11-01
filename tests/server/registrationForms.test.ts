@@ -114,13 +114,27 @@ describe('questions et affinités du formulaire', () => {
   it('valide les réponses selon la version', () => {
     const schema = registrationAnswerSchema(withExtras)
     const parsed = schema.parse({ ...answers, affinities: { wantWith: ['Léa', ''], avoid: ['ignorée'] }, questionAnswers: { 'q-choix': 'Intrigue', autre: 'x' } })
-    expect(parsed.affinities).toEqual({ wantWith: ['Léa'], notWith: [], refusedRelations: [], avoid: [] })
+    expect(parsed.affinities).toEqual({ wantWith: ['Léa'], notWith: [], refusedRelations: [], avoid: [], refusedRelationTypes: [] })
     expect(parsed.questionAnswers).toEqual({ 'q-texte': null, 'q-choix': 'Intrigue' })
     expect(schema.safeParse({ ...answers, affinities: { wantWith: ['Léa'] }, questionAnswers: { 'q-choix': 'Autre' } }).success).toBe(false)
     expect(schema.safeParse({ ...answers, questionAnswers: { 'q-choix': 'Combat' } }).success).toBe(false)
     // Les lignes vides ne comptent pas dans la limite de 20
     const lines = [...Array(18).fill('Nom'), '', '', '', '']
     expect(schema.parse({ ...answers, affinities: { wantWith: lines }, questionAnswers: { 'q-choix': 'Intrigue' } }).affinities.wantWith).toHaveLength(18)
+  })
+
+  it('relations refusées : des cases ou du texte suffisent, « Aucune » se coche seule (US-099)', () => {
+    const schema = registrationAnswerSchema({ ...DEFAULT_REGISTRATION_FORM_DEFINITION, affinities: { refusedRelations: { asked: true, required: true } } })
+    const affinitiesOf = (affinities: unknown) => schema.safeParse({ ...answers, affinities })
+    expect(affinitiesOf({}).success).toBe(false)
+    expect(affinitiesOf({ refusedRelationTypes: ['none'] }).success).toBe(true)
+    expect(affinitiesOf({ refusedRelations: ['Pas de trahison'] }).success).toBe(true)
+    expect(affinitiesOf({ refusedRelationTypes: ['none', 'romance'] }).success).toBe(false)
+    expect(affinitiesOf({ refusedRelationTypes: ['inconnu'] }).success).toBe(false)
+    const parsed = schema.parse({ ...answers, affinities: { refusedRelationTypes: ['romance', 'family', 'romance'] } })
+    expect(parsed.affinities.refusedRelationTypes).toEqual(['romance', 'family'])
+    // Non demandée, la question ne garde rien
+    expect(registrationAnswerSchema(DEFAULT_REGISTRATION_FORM_DEFINITION).parse({ ...answers, affinities: { refusedRelationTypes: ['romance'] } }).affinities.refusedRelationTypes).toEqual([])
   })
 })
 

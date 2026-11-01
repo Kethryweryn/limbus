@@ -1,0 +1,169 @@
+// EPIC-024 : relations entre personnages (US-097), questionnaire relié aux rôles (US-098), relations refusées (US-099)
+import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
+import { api } from './api'
+import { createTestPrisma } from './db'
+import { startTestSmtp } from './smtp'
+
+const prisma = createTestPrisma()
+const { alice } = inject('world').users
+let smtp: Awaited<ReturnType<typeof startTestSmtp>>
+let counter = 0
+
+beforeAll(async () => {
+  smtp = await startTestSmtp(prisma)
+})
+
+afterAll(async () => {
+  await smtp.stop()
+  await prisma.$disconnect()
+})
+
+const body = (response: { body: unknown }) => response.body as any
+const off = { asked: false, required: false }
+const standardFields = { lastName: off, firstName: off, facebookName: off, phone: off, emergencyContact: off, dietary: off }
+
+async function aliceGame() {
+  const key = `relations-${++counter}`
+  const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: 'Un jeu', ownerId: alice.id } })
+  const [ada, bran, cy] = await Promise.all(['Ada', 'Bran', 'Cy'].map((name) => prisma.character.create({
+    data: { name, slug: `${key}-${name.toLowerCase()}`, gameId: game.id, sheetReadyToSend: true }
+  })))
+  return { key, game, ada: ada!, bran: bran!, cy: cy! }
+}
+
+const relation = (from: { id: string }, to: { id: string }, extra: Record<string, unknown> = {}) => ({
+  type: 'family', fromCharacterId: from.id, toCharacterId: to.id, fromLabel: 'demi-sœur de', toLabel: 'demi-frère de', description: 'Brouillés depuis la guerre', ...extra
+})
+
+describe('relations entre personnages (US-097)', () => {
+  it('relie deux personnages du jeu, visible des deux pages, et refuse un autre jeu ou soi-même', async () => {
+    const { ada, bran } = await aliceGame()
+    const other = await aliceGame()
+    const created = await api(alice, 'POST', '/api/character-relations', relation(ada, bran, { fromVisible: true }))
+    expect(created.status, JSON.stringify(created.body)).toBe(200)
+    expect(body(created)).toMatchObject({ type: 'family', fromCharacter: { name: 'Ada' }, toCharacter: { name: 'Bran' }, fromVisible: true, toVisible: false })
+
+    expect(body(await api(alice, 'GET', `/api/characters/${bran.id}/relations`)).map((row: { id: string }) => row.id)).toEqual([body(created).id])
+    expect((await api(alice, 'POST', '/api/character-relations', relation(ada, other.ada))).status).toBe(400)
+    expect((await api(alice, 'POST', '/api/character-relations', relation(ada, ada))).status).toBe(400)
+    expect((await api(alice, 'POST', '/api/character-relations', relation(ada, bran, { type: 'inconnu' }))).status).toBe(400)
+  })
+
+  it('modifie avec la version lue, refuse une version dépassée, et supprime', async () => {
+    const { ada, bran, cy } = await aliceGame()
+    const created = body(await api(alice, 'POST', '/api/character-relations', relation(ada, bran)))
+    const updated = await api(alice, 'PUT', `/api/character-relations/${created.id}`, relation(ada, cy, { type: 'rivalry' }), { headers: { 'if-unmodified-since': created.updatedAt } })
+    expect(updated.status, JSON.stringify(updated.body)).toBe(200)
+    expect(body(updated)).toMatchObject({ type: 'rivalry', toCharacter: { name: 'Cy' } })
+    const stale = await api(alice, 'PUT', `/api/character-relations/${created.id}`, relation(ada, bran), { headers: { 'if-unmodified-since': '2000-01-01T00:00:00.000Z' } })
+    expect(stale.status).toBe(409)
+
+    expect((await api(alice, 'DELETE', `/api/character-relations/${created.id}`)).status).toBe(200)
+    expect(await prisma.characterRelation.count({ where: { id: created.id } })).toBe(0)
+  })
+
+  it('supprimer un personnage supprime ses relations', async () => {
+    const { ada, bran } = await aliceGame()
+    const created = body(await api(alice, 'POST', '/api/character-relations', relation(ada, bran)))
+    expect((await api(alice, 'DELETE', `/api/characters/${bran.id}`)).status).toBe(200)
+    expect(await prisma.characterRelation.count({ where: { id: created.id } })).toBe(0)
+  })
+
+  it('la fiche envoyée contient les relations visibles de son côté, et une fiche envoyée devient dépassée', async () => {
+    const { key, game, ada, bran } = await aliceGame()
+    const player = await prisma.participant.create({ data: { name: 'Joueuse', slug: `${key}-joueuse`, email: `${key}@example.test`, gameLinks: { create: { gameId: game.id } } } })
+    const session = await prisma.session.create({
+      data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, assignments: { create: [{ characterId: ada.id, participantId: player.id }] } }
+    })
+    const sheetOf = async () => body(await api(alice, 'GET', `/api/sessions/${session.id}/documents`)).characterSheets.find((sheet: any) => sheet.character.id === ada.id)
+    const before = await sheetOf()
+    expect(before.character.relationLines).toEqual([])
+
+    // Visible côté Bran seulement : rien dans la fiche d'Ada
+    const hidden = body(await api(alice, 'POST', '/api/character-relations', relation(ada, bran, { toVisible: true })))
+    expect((await sheetOf()).sheetContentHash).toBe(before.sheetContentHash)
+    await api(alice, 'PUT', `/api/character-relations/${hidden.id}`, relation(ada, bran, { fromVisible: true }))
+    const after = await sheetOf()
+    expect(after.character.relationLines).toEqual(['Bran — Famille, demi-sœur de : Brouillés depuis la guerre'])
+    expect(after.sheetContentHash).not.toBe(before.sheetContentHash)
+  })
+})
+
+describe('questionnaire relié aux rôles (US-098)', () => {
+  async function withQuestions() {
+    const setup = await aliceGame()
+    const faction = await prisma.faction.create({ data: { name: 'Conseil', slug: `${setup.key}-conseil`, gameId: setup.game.id } })
+    const saved = await api(alice, 'PUT', `/api/games/${setup.game.id}/registration-form`, {
+      standardFields,
+      questions: [
+        { label: 'Votre jeu ?', type: 'single', required: false, options: ['Politique', 'Combat'] },
+        { label: 'Romance ?', type: 'scale', required: false, options: [] },
+        { label: 'Pourquoi ?', type: 'text', required: false, options: [] }
+      ]
+    })
+    expect(saved.status, JSON.stringify(saved.body)).toBe(200)
+    const [choice, scale, text] = body(saved).definition.questions
+    return { ...setup, faction, choice, scale, text }
+  }
+
+  it('enregistre les liens hors des versions, refuse une option inconnue ou un élément d’un autre jeu', async () => {
+    const { game, ada, faction, choice, scale, text } = await withQuestions()
+    const other = await aliceGame()
+    const put = (links: unknown[]) => api(alice, 'PUT', `/api/games/${game.id}/registration-question-links`, { links })
+    const saved = await put([
+      { questionId: choice.id, option: 'Politique', factionId: faction.id },
+      { questionId: choice.id, option: 'Politique', characterId: ada.id },
+      { questionId: scale.id, option: '', characterId: ada.id }
+    ])
+    expect(saved.status, JSON.stringify(saved.body)).toBe(200)
+    expect(body(saved).links).toHaveLength(3)
+    expect(await prisma.registrationFormVersion.count({ where: { form: { gameId: game.id } } })).toBe(1)
+
+    expect((await put([{ questionId: choice.id, option: 'Inconnue', characterId: ada.id }])).status).toBe(400)
+    expect((await put([{ questionId: text.id, option: '', characterId: ada.id }])).status).toBe(400)
+    expect((await put([{ questionId: choice.id, option: 'Combat', characterId: other.ada.id }])).status).toBe(400)
+    expect((await put([{ questionId: choice.id, option: 'Combat', characterId: ada.id, factionId: faction.id }])).status).toBe(400)
+
+    const read = body(await api(alice, 'GET', `/api/games/${game.id}/registration-question-links`))
+    expect(read.targets.characters.map((entry: { name: string }) => entry.name)).toEqual(['Ada', 'Bran', 'Cy'])
+    expect(read.links).toHaveLength(3)
+  })
+
+  it('le détail d’une inscription donne les liens ; un lien vers une option retirée est ignoré', async () => {
+    const { key, game, ada, choice, scale } = await withQuestions()
+    await api(alice, 'PUT', `/api/games/${game.id}/registration-question-links`, { links: [
+      { questionId: choice.id, option: 'Combat', characterId: ada.id },
+      { questionId: scale.id, option: '', characterId: ada.id }
+    ] })
+    const participant = await prisma.participant.create({ data: { name: 'Lou', slug: `${key}-lou`, gameLinks: { create: { gameId: game.id } } } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: 'P', publicId: key, entryMode: 'form' } })
+    const registration = await prisma.registration.create({
+      data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: `${key}-lou@example.test`, respondedAt: new Date(), questionAnswers: { [choice.id]: 'Combat', [scale.id]: 4 } }
+    })
+    expect(body(await api(alice, 'GET', `/api/registrations/${registration.id}`)).questionLinks).toHaveLength(2)
+
+    // L'option « Combat » disparaît : son lien n'est plus lu
+    await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, {
+      standardFields, baseVersionNumber: 1,
+      questions: [{ ...choice, options: ['Politique', 'Intrigue'] }, scale]
+    })
+    expect(body(await api(alice, 'GET', `/api/registrations/${registration.id}`)).questionLinks).toEqual([
+      expect.objectContaining({ questionId: scale.id, option: '', target: { kind: 'character', id: ada.id, name: 'Ada' } })
+    ])
+  })
+
+  it('la copie d’un jeu copie relations et liens, vers ses propres personnages', async () => {
+    const { game, ada, bran, faction, choice } = await withQuestions()
+    await api(alice, 'POST', '/api/character-relations', relation(ada, bran, { fromVisible: true }))
+    await api(alice, 'PUT', `/api/games/${game.id}/registration-question-links`, { links: [{ questionId: choice.id, option: 'Politique', factionId: faction.id }] })
+    expect((await api(alice, 'POST', `/api/games/${game.id}/bequests`, { email: 'bob@example.test' })).status).toBe(200)
+
+    const copy = await prisma.game.findFirstOrThrow({ where: { copiedFromGameId: game.id }, include: { characterRelations: { include: { fromCharacter: true } }, registrationQuestionLinks: { include: { faction: true } } } })
+    expect(copy.characterRelations).toHaveLength(1)
+    expect(copy.characterRelations[0]).toMatchObject({ type: 'family', fromVisible: true, fromLabel: 'demi-sœur de' })
+    expect(copy.characterRelations[0]!.fromCharacter.gameId).toBe(copy.id)
+    expect(copy.registrationQuestionLinks).toHaveLength(1)
+    expect(copy.registrationQuestionLinks[0]).toMatchObject({ questionId: choice.id, option: 'Politique' })
+    expect(copy.registrationQuestionLinks[0]!.faction!.gameId).toBe(copy.id)
+  })
+})

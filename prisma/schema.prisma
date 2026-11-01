@@ -57,6 +57,8 @@ model Game {
   registrationPeriods RegistrationPeriod[]
   slugRedirects  GameSlugRedirect[]
   registrationForm RegistrationForm?
+  characterRelations CharacterRelation[]
+  registrationQuestionLinks RegistrationQuestionLink[]
 
   @@index([ownerId])
   @@index([copiedFromGameId])
@@ -97,6 +99,53 @@ model Character {
   trombinoscopeViewerEntries CharacterTrombinoscopeEntry[] @relation("TrombinoscopeViewerEntries")
   trombinoscopeTargetEntries CharacterTrombinoscopeEntry[] @relation("TrombinoscopeTargetEntries")
   trombinoscopeDocuments SessionTrombinoscope[] @relation("TrombinoscopeViewerDocuments")
+  // Relations entre personnages (US-097, ADR-0050), de chaque côté
+  relationsFrom         CharacterRelation[] @relation("RelationFrom")
+  relationsTo           CharacterRelation[] @relation("RelationTo")
+  questionLinks         RegistrationQuestionLink[]
+}
+
+// Relation entre deux personnages du jeu (US-097, ADR-0050) : un type, une description commune, et pour chaque côté
+// un libellé facultatif et une visibilité dans la fiche envoyée au joueur
+model CharacterRelation {
+  id              String    @id @default(cuid())
+  gameId          String
+  game            Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  // romance, family, rivalry, alliance, hierarchy ou other
+  type            String
+  description     String?
+  fromCharacterId String
+  fromCharacter   Character @relation("RelationFrom", fields: [fromCharacterId], references: [id], onDelete: Cascade)
+  fromLabel       String?
+  fromVisible     Boolean   @default(false)
+  toCharacterId   String
+  toCharacter     Character @relation("RelationTo", fields: [toCharacterId], references: [id], onDelete: Cascade)
+  toLabel         String?
+  toVisible       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([gameId])
+  @@index([fromCharacterId])
+  @@index([toCharacterId])
+}
+
+// Une option d'une question du formulaire (vide pour une question sur une échelle) reliée à un personnage, une faction
+// ou une intrigue (US-098, ADR-0050) ; hors des versions du formulaire
+model RegistrationQuestionLink {
+  id          String     @id @default(cuid())
+  gameId      String
+  game        Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  questionId  String
+  option      String     @default("")
+  characterId String?
+  character   Character? @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  factionId   String?
+  faction     Faction?   @relation(fields: [factionId], references: [id], onDelete: Cascade)
+  intrigueId  String?
+  intrigue    Intrigue?  @relation(fields: [intrigueId], references: [id], onDelete: Cascade)
+
+  @@index([gameId])
 }
 
 model CharacterTrombinoscopeEntry {
@@ -156,6 +205,7 @@ model Faction {
   intrigues             Intrigue[]  @relation("FactionIntrigues")
   timelineEvents        TimelineEvent[] @relation("TimelineEventFactions")
   documents             Document[]  @relation("DocumentFactions")
+  questionLinks         RegistrationQuestionLink[]
 }
 
 model Intrigue {
@@ -172,6 +222,7 @@ model Intrigue {
   published   Boolean   @default(true)
 
   characters  Character[] @relation("CharacterIntrigues")
+  questionLinks RegistrationQuestionLink[]
   factions    Faction[]   @relation("FactionIntrigues")
   items       Item[]      @relation("IntrigueItems")
   timelineEvents TimelineEvent[] @relation("TimelineEventIntrigues")
