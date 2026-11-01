@@ -18,6 +18,13 @@
       <UFormField label="Mot de passe" help="8 caractères au moins.">
         <UInput v-model="form.password" type="password" required minlength="8" autocomplete="new-password" class="w-full" />
       </UFormField>
+      <!-- Conditions d'utilisation (US-111) -->
+      <UCheckbox v-model="form.termsAccepted" required>
+        <template #label>
+          J’accepte les <NuxtLink to="/conditions" target="_blank" class="text-primary underline">conditions d’utilisation</NuxtLink>
+          et j’ai lu la <NuxtLink to="/confidentialite" target="_blank" class="text-primary underline">politique de confidentialité</NuxtLink>
+        </template>
+      </UCheckbox>
       <!-- Champ piège (R6) : invisible pour une personne, rempli par les robots -->
       <div class="absolute -left-[9999px]" aria-hidden="true">
         <label>Site web <input v-model="form.website" type="text" name="website" tabindex="-1" autocomplete="off"></label>
@@ -34,7 +41,7 @@
 // Inscription libre (US-061)
 definePageMeta({ layout: false })
 
-const form = ref({ name: '', email: '', password: '', website: '' })
+const form = ref({ name: '', email: '', password: '', website: '', termsAccepted: false })
 const saving = ref(false)
 const done = ref(false)
 const error = ref('')

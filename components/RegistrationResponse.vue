@@ -183,6 +183,8 @@
           </UButton>
         </UCard>
       </template>
+      <!-- Pages légales (US-110) -->
+      <LegalLinks class="mt-8" />
   </div>
 </template>
 

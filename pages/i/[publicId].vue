@@ -116,6 +116,8 @@
           </UCard>
         </template>
       </template>
+      <!-- Pages légales (US-110) -->
+      <LegalLinks class="mt-8" />
     </div>
   </main>
 </template>

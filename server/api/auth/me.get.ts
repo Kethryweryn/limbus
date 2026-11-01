@@ -1,3 +1,4 @@
+import { TERMS_VERSION } from '~/utils/legal'
 import { prisma } from '~/server/utils/prisma'
 import { getAuthToken, isAdminMode, requireAuthUser } from '~/server/utils/auth'
 
@@ -18,9 +19,12 @@ export default defineEventHandler(async (event) => {
                 prisma.participant.count({ where: { userId: user.id } })
             ])
             : [0, 0]
+        // Conditions d'utilisation en vigueur acceptées (US-111) : sinon l'application les demande
+        const { termsAcceptedVersion } = await prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { termsAcceptedVersion: true } })
         return {
             authenticated: true,
             user,
+            termsAccepted: termsAcceptedVersion === TERMS_VERSION,
             adminMode: isAdminMode(event, user),
             spaces: { organize: organize > 0, participate: participate > 0 }
         }

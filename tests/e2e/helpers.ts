@@ -1,3 +1,4 @@
+import { TERMS_VERSION } from '../../utils/legal'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import jwt from 'jsonwebtoken'
 import { JWT_SECRET } from '../integration/constants'
@@ -88,7 +89,8 @@ export async function choose(page: Page, combobox: Locator, option: string | Reg
 // Session ouverte directement par cookie, sans passer par l'écran de connexion : les tests des parcours ne
 // consomment pas la limite de tentatives de connexion par email (l'écran a ses propres tests, auth.spec.ts)
 export async function signIn(page: Page, prisma: TestPrisma, email: string) {
-  const user = await prisma.user.findUniqueOrThrow({ where: { email }, select: { id: true, sessionVersion: true } })
+  // Conditions déjà acceptées (US-111) : l'écran d'acceptation a son propre test (legal.spec.ts)
+  const user = await prisma.user.update({ where: { email }, data: { termsAcceptedVersion: TERMS_VERSION }, select: { id: true, sessionVersion: true } })
   const token = jwt.sign({ id: user.id, v: user.sessionVersion }, JWT_SECRET, { expiresIn: '1h' })
   await page.context().addCookies([{ name: '__Host-limbus_token', value: token, domain: new URL(test.info().project.use.baseURL!).hostname, path: '/', httpOnly: true, secure: true, sameSite: 'Lax' }])
   await page.goto('/')

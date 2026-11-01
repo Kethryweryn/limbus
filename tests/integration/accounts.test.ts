@@ -1,3 +1,4 @@
+import { TERMS_VERSION } from '~/utils/legal'
 // EPIC-013 : inscription libre, confirmation, mot de passe, compte en libre-service, comptes gérés par l'administratrice,
 // invitation par la bonne adresse, plafond de stockage, transfert prévenu par email
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
@@ -44,10 +45,34 @@ function createUser(key: string, data: Record<string, unknown> = {}) {
 }
 
 async function signup(email: string, extra: Record<string, unknown> = {}) {
-  return await api(null, 'POST', '/api/auth/signup', { name: 'Nouvelle', email, password: 'mot-de-passe-solide', ...extra }, fromIp())
+  return await api(null, 'POST', '/api/auth/signup', { name: 'Nouvelle', email, password: 'mot-de-passe-solide', termsAccepted: true, ...extra }, fromIp())
 }
 
 describe('inscription libre et confirmation (US-061)', () => {
+  it('refuse une inscription sans accepter les conditions, et garde la version acceptée (US-111)', async () => {
+    const refused = unique('sans-conditions')
+    const response = await signup(refused, { termsAccepted: false })
+    expect(response.status).toBe(400)
+    expect(JSON.stringify(response.body)).toContain('conditions d’utilisation')
+    expect(await prisma.user.count({ where: { email: refused } })).toBe(0)
+
+    const email = unique('avec-conditions')
+    expect((await signup(email)).status).toBe(200)
+    const user = await prisma.user.findUniqueOrThrow({ where: { email } })
+    expect(user.termsAcceptedVersion).toBe(TERMS_VERSION)
+    expect(user.termsAcceptedAt).not.toBeNull()
+  })
+
+  it('auth/me dit si la version en cours est acceptée, et accept-terms l’enregistre (US-111)', async () => {
+    const user = await createUser('ancienne-version', { termsAcceptedVersion: '2000-01-01' })
+    expect((await api(user, 'GET', '/api/auth/me')).body).toMatchObject({ termsAccepted: false })
+    expect((await api(user, 'POST', '/api/auth/accept-terms')).status).toBe(200)
+    expect((await api(user, 'GET', '/api/auth/me')).body).toMatchObject({ termsAccepted: true })
+    const exported = await api(user, 'GET', '/api/account/export')
+    expect(exported.status).toBe(200)
+    expect(JSON.stringify(exported.body)).toContain(TERMS_VERSION)
+  })
+
   it('l’écran de connexion sait que l’inscription est ouverte', async () => {
     expect((await api(null, 'GET', '/api/auth/signup')).body).toEqual({ open: true })
   })
@@ -112,7 +137,7 @@ describe('inscription libre et confirmation (US-061)', () => {
     const headers = { 'x-forwarded-for': '10.99.0.1' }
     const statuses = []
     for (let index = 0; index < 6; index += 1) {
-      statuses.push((await api(null, 'POST', '/api/auth/signup', { name: 'N', email: unique('serie'), password: 'mot-de-passe-solide' }, { headers })).status)
+      statuses.push((await api(null, 'POST', '/api/auth/signup', { name: 'N', email: unique('serie'), password: 'mot-de-passe-solide', termsAccepted: true }, { headers })).status)
     }
     expect(statuses).toEqual([200, 200, 200, 200, 200, 429])
   })
@@ -226,7 +251,7 @@ describe('invitation par la bonne adresse (US-064)', () => {
 
   it('le compte créé depuis l’invitation prend l’adresse invitée, confirmée d’emblée', async () => {
     const { email, token } = await invitation()
-    const response = await api(null, 'POST', '/api/auth/register', { token, email: unique('ailleurs'), name: 'Invitée', password: 'mot-de-passe-solide' })
+    const response = await api(null, 'POST', '/api/auth/register', { token, email: unique('ailleurs'), name: 'Invitée', password: 'mot-de-passe-solide', termsAccepted: true })
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     const user = await prisma.user.findUniqueOrThrow({ where: { email } })
     expect(user.emailConfirmedAt).not.toBeNull()

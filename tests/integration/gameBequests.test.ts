@@ -286,7 +286,7 @@ describe('legs à une personne sans compte (US-011)', () => {
     const { email, copy, token } = await pendingBequest()
     expect((await api(null, 'GET', `/api/invitations/${token}`)).body).toMatchObject({ kind: 'bequest', inviterName: 'bob', email })
 
-    const response = await api(null, 'POST', '/api/auth/register', { token, email, name: 'Nouvelle', password: 'mot-de-passe-solide' })
+    const response = await api(null, 'POST', '/api/auth/register', { token, email, name: 'Nouvelle', password: 'mot-de-passe-solide', termsAccepted: true })
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     const user = await prisma.user.findUniqueOrThrow({ where: { email } })
     expect(await prisma.game.findUnique({ where: { id: copy.id } })).toMatchObject({ ownerId: user.id, bequestPending: false })
@@ -360,7 +360,7 @@ describe('suivi des legs en attente (US-012)', () => {
     const first = await pendingBequest(carol)
     const second = await pendingBequest(carol, first.game)
     // Attribué : la copie appartient à sa destinataire, il quitte la liste
-    expect((await api(null, 'POST', '/api/auth/register', { token: second.token, email: second.email, name: 'Arrivée', password: 'mot-de-passe-solide' })).status).toBe(200)
+    expect((await api(null, 'POST', '/api/auth/register', { token: second.token, email: second.email, name: 'Arrivée', password: 'mot-de-passe-solide', termsAccepted: true })).status).toBe(200)
 
     const response = await list(first.game.id)
     expect(response.status).toBe(200)

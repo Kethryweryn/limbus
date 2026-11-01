@@ -57,3 +57,4 @@ Enfin, le rôle global « organisateur » n'a pas vraiment de sens : on peut org
   - le lien personnel d'inscription marche toujours sans connexion ;
   - l'administratrice crée encore des comptes, par un lien pour choisir le mot de passe.
 - Conditions d'utilisation, politique de confidentialité et responsable de traitement : tranchés à l'étape 5 de la feuille de route, avant d'ouvrir l'inscription en production.
+- 2026-11-02 : éditeur et responsable Jean-Damien Mottot, contact limbus@limbuslarp.fr, hébergeur Scaleway ; chaque équipe est responsable des données de ses joueurs, Limbus sous-traitant ([SPEC-013](../specs/SPEC-013-pages-legales-et-conservation.md)).

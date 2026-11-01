@@ -1,3 +1,4 @@
+import { TERMS_VERSION } from '../../utils/legal'
 import { execFileSync } from 'node:child_process'
 import bcrypt from 'bcrypt'
 import { createTestPrisma, testDatabaseUrl } from '../integration/db'
@@ -13,7 +14,7 @@ export default async function globalSetup() {
   const prisma = createTestPrisma()
   const password = await bcrypt.hash(E2E_PASSWORD, 4)
   const users = await Promise.all(Object.values(E2E_USERS).map((email) =>
-    prisma.user.create({ data: { email, name: email.split('@')[0]!, password } })
+    prisma.user.create({ data: { email, name: email.split('@')[0]!, password, termsAcceptedVersion: TERMS_VERSION } })
   ))
 
   await prisma.game.create({

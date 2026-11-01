@@ -84,7 +84,7 @@ L'inscription libre fera venir des personnes inconnues, avec leurs données. Ava
 1. [Photos et RGPD](archive/todo/photos-et-rgpd.md) : information des personnes et durée de conservation. Fait ([SPEC-012](specs/SPEC-012-photos-des-participants.md), [EPIC-028](archive/epics/EPIC-028-photos-des-participants/README.md)) : information sans accord préalable, choix de l'utilisatrice, à revoir après l'avis d'un juriste.
 2. [Durcissement web](todo/durcissement-web.md) : CSP, origine des écritures, cookie. Fait ([EPIC-027](archive/epics/EPIC-027-durcissement-web/README.md)), la CSP en mode rapport ; reste à la rendre bloquante après une semaine de rapports.
 3. [Supervision](todo/supervision.md) : être alerté quand le site tombe. Page de santé faite ([EPIC-026](archive/epics/EPIC-026-supervision/README.md)) ; sondes Better Stack à créer par l'utilisatrice.
-4. Conditions d'utilisation et politique de confidentialité ([fiche des comptes](todo/comptes-participants.md)), puis ouverture de l'inscription libre.
+4. Conditions d'utilisation et politique de confidentialité ([fiche des comptes](todo/comptes-participants.md)), puis ouverture de l'inscription libre ([SPEC-013](specs/SPEC-013-pages-legales-et-conservation.md)). Pages et acceptation faites ([EPIC-029](archive/epics/EPIC-029-pages-legales/README.md)) ; restent les durées de conservation (EPIC-030), puis l'ouverture (`SIGNUP_OPEN=1`).
 
 ## 6. Première version publique
 

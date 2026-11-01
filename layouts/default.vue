@@ -101,6 +101,8 @@ icon="i-heroicons-bars-3" color="neutral" variant="ghost" class="md:hidden"
                         </div>
                     </div>
                 </ClientOnly>
+                <!-- Pages légales (US-110) -->
+                <LegalLinks class="mt-10" />
             </main>
         </div>
 

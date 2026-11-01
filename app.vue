@@ -10,6 +10,11 @@
       <NuxtPwaAssets />
       <UnconfirmedAccountScreen :email="unconfirmedEmail" />
     </div>
+    <!-- Conditions d'utilisation à accepter (US-111) : les pages légales restent lisibles -->
+    <div v-else-if="authenticated && termsPending && !isLegalRoute && currentPath !== '/logout'">
+      <NuxtPwaAssets />
+      <TermsAcceptanceScreen @accepted="termsPending = false" />
+    </div>
     <div v-else-if="authenticated">
       <NuxtPwaAssets />
       <NuxtLoadingIndicator />
@@ -78,13 +83,15 @@
 </template>
 
 <script setup lang="ts">
-import { onUnmounted, useHead, useRoute } from '#imports'
+import { onUnmounted, useHead, useRoute, useRouter } from '#imports'
 import LoginScreen from '~/components/LoginScreen.vue'
 import UnconfirmedAccountScreen from '~/components/UnconfirmedAccountScreen.vue'
 import { isOfflineMode, isServerUnavailableError, setServerUnavailable } from '~/utils/connection'
 import { claimOfflineData, clearPendingLogout, getOfflineAuth, hasPendingLogout, rememberOfflineAuth } from '~/utils/storage'
 import { getOfflineQueue, processOfflineQueue } from '~/utils/offlineSync'
 import OfflineQueuePanel from '~/components/OfflineQueuePanel.vue'
+import TermsAcceptanceScreen from '~/components/TermsAcceptanceScreen.vue'
+import { LEGAL_PAGES } from '~/utils/legal'
 
 useHead({
   title: 'Limbus',
@@ -101,6 +108,7 @@ useHead({
 
 const authenticated = ref(false)
 const unconfirmedEmail = ref('')
+const termsPending = ref(false)
 const authReady = ref(false)
 const serverUnavailable = ref(false)
 const syncing = ref(false)
@@ -114,7 +122,13 @@ const syncSummary = computed(() => [
 const toast = useToast()
 const route = useRoute()
 // /acces/ : inscription, confirmation et mot de passe, ouverts sans connexion (EPIC-013)
-const isPublicRoute = computed(() => ['/public/', '/invitations/', '/acces/'].some((prefix) => route.path.startsWith(prefix)))
+// Route visée par la navigation : useRoute() suit la page affichée, et sous l'écran de connexion aucune page ne
+// l'est, donc il ne changerait pas en suivant un lien de cet écran
+const router = useRouter()
+const currentPath = computed(() => router.currentRoute.value.path)
+// Pages légales (US-110) : lisibles sans compte, et avant d'accepter les conditions
+const isLegalRoute = computed(() => LEGAL_PAGES.some((page) => currentPath.value === page.to))
+const isPublicRoute = computed(() => isLegalRoute.value || ['/public/', '/invitations/', '/acces/'].some((prefix) => currentPath.value.startsWith(prefix)))
 // Liens personnels d'inscription (US-004) et de confirmation de présence (US-024), lien de diffusion (US-084)
 const isPersonalLinkRoute = computed(() => ['/inscription/', '/presence/', '/i/'].some((prefix) => route.path.startsWith(prefix)))
 let authCheckInProgress = false
@@ -193,6 +207,7 @@ const checkAuth = async (forceServerCheck = false) => {
 
   if (authData?.authenticated && 'user' in authData && authData.user) {
     authenticated.value = true
+    termsPending.value = 'termsAccepted' in authData && authData.termsAccepted === false
 
     await claimOfflineData(authData.user.id)
     rememberOfflineAuth(authData.user)
