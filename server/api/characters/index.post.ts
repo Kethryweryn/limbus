@@ -1,5 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { assertBalanceValue } from '~/server/utils/registrationDraws'
+import { CHARACTER_TYPES } from '~/utils/domain'
 import { requireUser } from '~/server/utils/auth'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { createCharacterSchema, readZodBody } from '~/server/utils/schemas'
@@ -43,7 +44,8 @@ export default defineEventHandler(async (event) => {
             trombinoscopePhotoUrl: body.trombinoscopePhotoUrl,
             trombinoscopeNote: body.trombinoscopeNote,
             trombinoscopeDisplayName: body.trombinoscopeDisplayName,
-            balanceValue: body.balanceValue || null,
+            // Seul un PJ porte une valeur d'équilibre (US-091)
+            balanceValue: body.type === CHARACTER_TYPES.pj ? body.balanceValue || null : null,
             gameId: body.gameId,
             factions: {
                 connect: body.factionIds.map((id) => ({ id }))

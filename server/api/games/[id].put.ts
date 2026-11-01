@@ -39,6 +39,8 @@ export default defineEventHandler(async (event) => {
   const previous = await prisma.game.findUniqueOrThrow({ where: { id }, select: { slug: true } })
   const game = await prisma.$transaction(async (tx) => {
     const updated = await tx.game.update({ where: { id }, data })
+    // Une valeur d'équilibre retirée du jeu ne reste pas sur ses personnages (US-091)
+    await tx.character.updateMany({ where: { gameId: id, balanceValue: { not: null, notIn: updated.balanceAttribute ? updated.balanceValues : [] } }, data: { balanceValue: null } })
     // L'ancienne adresse de la page publique redirige vers la nouvelle (US-045, ADR-0035) ; le slug repris
     // par le jeu n'a plus de redirection
     if (updated.slug !== previous.slug) {

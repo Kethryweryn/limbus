@@ -28,6 +28,7 @@ const selectionPeriodSelect = {
   entryMode: true,
   replayPolicy: true,
   responseDelayDays: true,
+  createdAt: true,
   selectionMode: true,
   organizerPicks: true,
   weightNotDrawnBefore: true,

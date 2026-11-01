@@ -4,6 +4,7 @@ import { takenSeatsWhere } from '~/server/utils/registrationPeriods'
 import {
   assertFormPeriod,
   findSelectionPeriod,
+  lockSession,
   isPermanentPeriod,
   replayerParticipantIds,
   selectableSessions,
@@ -40,7 +41,8 @@ async function notDrawnBeforeParticipantIds(period: SelectionPeriod, participant
     where: {
       participantId: { in: participantIds },
       periodId: { not: period.id },
-      period: { gameId: period.gameId },
+      // Une période précédente : créée avant celle-ci (R17)
+      period: { gameId: period.gameId, createdAt: { lt: period.createdAt } },
       status: { in: [REGISTRATION_STATUSES.rejected, REGISTRATION_STATUSES.waitlisted] }
     },
     distinct: ['participantId'],
@@ -116,7 +118,9 @@ export async function drawPeriod(periodId: string, author: { id: string }) {
     balanceAttribute: balanced ? period.game.balanceAttribute : null,
     waitlistSize: period.waitlistSize,
     excludedReplayers: registrations.filter((registration) => excluded.has(registration.participantId)).map((registration) => registration.id),
-    sessions: inputs.map(({ sessionId, freeSeats, reserves }) => ({ sessionId, freeSeats, reserves }))
+    // Entrées complètes du calcul (places, réserves, candidates avec poids et préférence) : avec la graine,
+    // computeDraw les rejoue à l'identique (R18)
+    sessions: inputs
   }
 
   return await prisma.$transaction(async (tx) => {
@@ -124,6 +128,15 @@ export async function drawPeriod(periodId: string, author: { id: string }) {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`registration-draw:${periodId}`}))`
     if (await tx.registrationDraw.findFirst({ where: { periodId, cancelledAt: null }, select: { id: true } })) {
       throw createError({ statusCode: 409, message: 'Un tirage est déjà en cours d’effet : annulez-le pour en refaire un.' })
+    }
+    // Places recomptées sous le verrou des retenues à la main : une retenue arrivée entre-temps ne fait pas déborder
+    for (const input of inputs) {
+      await lockSession(tx, input.sessionId)
+      const seats = sessions.find((session) => session.id === input.sessionId)!.seats
+      const takenNow = await tx.registration.count({ where: takenSeatsWhere([input.sessionId]) })
+      if (seats - takenNow < input.freeSeats) {
+        throw createError({ statusCode: 409, message: 'Des places ont été prises pendant le tirage : relancez-le.' })
+      }
     }
     const stillReceived = async (ids: string[], data: Record<string, unknown>) => {
       if (!ids.length) return

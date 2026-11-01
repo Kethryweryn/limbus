@@ -305,12 +305,15 @@ function availabilityLabel(registration) {
   return sessions.value.filter((session) => available(registration, session)).map((session) => session.name).join(', ')
 }
 
+// Mode hasard : on ne retient à la main qu'après un tirage (US-092)
+const manualRetainAllowed = computed(() => !(props.period.selectionMode === REGISTRATION_SELECTION_MODES.random && !activeDraw.value))
+
 function decisionItems(registration) {
   const targets = sessions.value.filter((session) => available(registration, session))
   const waitingIn = new Set((registration.waitlistEntries || []).map((entry) => entry.sessionId))
   const retainHere = (session) => registration.status === REGISTRATION_STATUSES.retained && registration.sessionId === session.id
   const groups = [
-    targets.filter((session) => !retainHere(session)).map((session) => ({
+    targets.filter((session) => manualRetainAllowed.value && !retainHere(session)).map((session) => ({
       label: `Retenir pour ${session.name}`,
       icon: 'i-heroicons-check',
       disabled: session.taken >= session.seats,

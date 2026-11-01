@@ -7,6 +7,7 @@ import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { assertGameUploads, deleteUnusedUploads } from '~/server/utils/uploads'
 import { requireRouterParam } from '~/server/utils/routeParams'
 import { assertBalanceValue } from '~/server/utils/registrationDraws'
+import { CHARACTER_TYPES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
   await requireUser(event)
@@ -15,7 +16,7 @@ export default defineEventHandler(async (event) => {
 
   const existingCharacter = await prisma.character.findUnique({
     where: { id },
-    select: { gameId: true, trombinoscopePhotoUrl: true }
+    select: { gameId: true, trombinoscopePhotoUrl: true, type: true }
   })
   if (!existingCharacter) {
     throw createError({ statusCode: 404, message: 'Personnage introuvable' })
@@ -70,7 +71,8 @@ export default defineEventHandler(async (event) => {
     trombinoscopePhotoUrl,
     trombinoscopeNote,
     trombinoscopeDisplayName,
-    ...(balanceValue !== undefined ? { balanceValue: balanceValue || null } : {})
+    // Seul un PJ porte une valeur d'équilibre (US-091)
+    ...((type ?? existingCharacter.type) !== CHARACTER_TYPES.pj ? { balanceValue: null } : balanceValue !== undefined ? { balanceValue: balanceValue || null } : {})
   }
 
   if (name) {

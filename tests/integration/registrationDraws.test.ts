@@ -184,6 +184,28 @@ describe('tirer au sort (US-093) et journal (US-094)', () => {
     expect(await statusOf(lou.id)).toBe('received')
   })
 
+  it('« non tirés avant » ne regarde que les périodes précédentes, et le journal garde les entrées du calcul', async () => {
+    const { game, period } = await aliceGame()
+    await prisma.registrationPeriod.update({ where: { id: period.id }, data: { weightNotDrawnBefore: true } })
+    const lou = await received(game, period, 'Lou')
+    const max = await received(game, period, 'Max')
+    const before = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: 'Avant', publicId: `avant-${++counter}`, entryMode: 'form', createdAt: new Date(Date.now() - DAY) } })
+    const after = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: 'Après', publicId: `apres-${++counter}`, entryMode: 'form', createdAt: new Date(Date.now() + DAY) } })
+    await prisma.registration.create({ data: { periodId: before.id, participantId: lou.participantId, status: 'rejected', source: 'form', email: lou.email } })
+    await prisma.registration.create({ data: { periodId: after.id, participantId: max.participantId, status: 'rejected', source: 'form', email: max.email } })
+    await api(alice, 'POST', `/api/registration-periods/${period.id}/draws`)
+    const draw = await prisma.registrationDraw.findFirstOrThrow({ where: { periodId: period.id } })
+    const candidates = (draw.settings as { sessions: Array<{ candidates: Array<{ registrationId: string, weight: number }> }> }).sessions[0]!.candidates
+    expect(Object.fromEntries(candidates.map((candidate) => [candidate.registrationId, candidate.weight]))).toEqual({ [lou.id]: 2, [max.id]: 1 })
+  })
+
+  it('une valeur retirée du jeu est retirée de ses personnages', async () => {
+    const { game } = await aliceGame()
+    const ada = await prisma.character.create({ data: { name: 'Ada', slug: `tirage-ada-${++counter}`, gameId: game.id, type: 'pj', balanceValue: 'F' } })
+    expect((await api(alice, 'PUT', `/api/games/${game.id}`, { balanceAttribute: 'Genre du personnage', balanceValues: ['Femme', 'Homme'] })).status).toBe(200)
+    expect((await prisma.character.findUniqueOrThrow({ where: { id: ada.id } })).balanceValue).toBeNull()
+  })
+
   it('équilibre : les places suivent les valeurs des PJ', async () => {
     const { game, period } = await aliceGame({ seats: 2, weightBalance: true, waitlistSize: 0 })
     await prisma.character.createMany({ data: [
