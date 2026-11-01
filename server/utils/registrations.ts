@@ -605,6 +605,8 @@ export async function releaseRegistration(registration: AwaitingLike, releasedBy
   if (!count) {
     throw createError({ statusCode: 409, message: 'Cette personne a déjà répondu entre-temps.' })
   }
+  // Un personnage réservé redevient libre (US-100)
+  await prisma.sessionAssignment.updateMany({ where: { reservedRegistrationId: registration.id }, data: { reservedRegistrationId: null } })
   return { success: true }
 }
 
@@ -717,6 +719,8 @@ export async function withdrawRegistration(registrationId: string, withdrawnBy: 
       throw createError({ statusCode: 409, message: 'Cette inscription a changé entre-temps : rechargez la page.' })
     }
     await tx.registrationWaitlistEntry.deleteMany({ where: { registrationId: registration.id } })
+    // Un personnage réservé redevient libre (US-100)
+    await tx.sessionAssignment.updateMany({ where: { reservedRegistrationId: registration.id }, data: { reservedRegistrationId: null } })
     // Seule une personne confirmée est dans la session ; pas celle d'une session terminée, revenue au vivier (ADR-0047)
     const sessionId = registration.status === REGISTRATION_STATUSES.confirmed && registration.session?.status !== SESSION_STATUSES.completed
       ? registration.sessionId

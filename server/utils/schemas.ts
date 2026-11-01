@@ -352,7 +352,20 @@ export const sessionAssignmentSchema = z.object({
   characterId: requiredId('Character'),
   participantId: optionalText,
   photoUrl: uploadOrExternalUrl(PHOTO_UPLOAD_PREFIX),
-  notes: optionalText
+  notes: optionalText,
+  // Cadenas et réservation (US-100) ; absents, la ligne garde ceux enregistrés
+  locked: optionalBoolean,
+  reservedRegistrationId: optionalText
+})
+
+// Assistant de casting (US-101) : le cast en cours d'édition
+export const castingAssistantSchema = z.object({
+  assignments: z.array(z.object({
+    characterId: requiredId('Character'),
+    participantId: optionalText,
+    reservedRegistrationId: optionalText,
+    locked: optionalBoolean
+  })).max(1000).optional().default([])
 })
 
 export const sessionParticipantSchema = z.object({

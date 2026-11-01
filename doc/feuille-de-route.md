@@ -38,6 +38,7 @@ Le principe : rien n'est encore réellement utilisé en production, donc la séc
 - Suite des inscriptions, lot 3 (seconde moitié) : tirage au sort reproductible, mode mixte, priorité aux non retenus, équilibre selon un attribut des personnages, journal des tirages ([EPIC-022](archive/epics/EPIC-022-tirage-au-sort/README.md)).
 - Suite des inscriptions, lot 4 : affinités rattachées aux personnes du jeu avec suggestions, alertes « ne pas croiser » et repères « veut jouer avec » dans la sélection ([EPIC-023](archive/epics/EPIC-023-affinites/README.md)).
 - Suite des inscriptions, lot 5 : relations orientées entre personnages, visibles au choix dans la fiche envoyée ; questionnaire relié aux personnages, factions et intrigues ; relations refusées en cases ([EPIC-024](archive/epics/EPIC-024-relations-et-questionnaire/README.md)).
+- Suite des inscriptions, lot 6 : assistant de casting dans le cast de la session, avec notes tirées du questionnaire, interdits, cadenas et réservation pour les personnes retenues ([EPIC-025](archive/epics/EPIC-025-assistant-de-casting/README.md)). SPEC-001 terminée.
 
 ## 1. Finir les écarts des specs de l'existant
 
@@ -74,7 +75,7 @@ Les lots 2 à 6 de [SPEC-001](specs/SPEC-001-inscriptions.md), un epic chacun (l
 2. sélection : retenus, liste d'attente, tirage au sort, mode mixte et pondérations (fait) ;
 3. affinités (fait) ;
 4. relations entre personnages et questionnaire relié aux rôles (fait) ;
-5. assistant de casting.
+5. assistant de casting (fait).
 
 ## 5. Fondations avant d'ouvrir Limbus
 

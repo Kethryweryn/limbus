@@ -451,6 +451,8 @@ model Registration {
   affinities            RegistrationAffinity[]
   availabilities        RegistrationAvailability[]
   waitlistEntries       RegistrationWaitlistEntry[]
+  // Personnages réservés en attendant la confirmation (US-100, ADR-0051)
+  reservedAssignments   SessionAssignment[]
 
   @@unique([periodId, participantId])
   @@index([sessionId])
@@ -546,11 +548,17 @@ model SessionAssignment {
   participantId String?
   photoUrl    String?
   notes       String?
+  // Cadenas : l'assistant de casting ne touche pas à la ligne (US-100, ADR-0051)
+  locked      Boolean  @default(false)
+  // Personnage réservé à une personne retenue qui n'a pas encore confirmé ; participantId reste vide (US-100)
+  reservedRegistrationId String?
+  reservedRegistration   Registration? @relation(fields: [reservedRegistrationId], references: [id], onDelete: SetNull)
   session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
   participant Participant? @relation(fields: [participantId], references: [id])
 
   @@unique([sessionId, characterId])
+  @@index([reservedRegistrationId])
 }
 
 model SessionParticipant {

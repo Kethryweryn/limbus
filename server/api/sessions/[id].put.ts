@@ -2,7 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
 import { readZodBody, sessionSchema } from '~/server/utils/schemas'
 import { requireGameAccess, requireSessionAccess, assertSameGame } from '~/server/utils/gameAccess'
-import { assertSessionCastRules, assertSessionLocation, normalizeAssignments, normalizeSessionParticipants } from '~/server/utils/sessionAssignments'
+import { assertSessionCastRules, assertSessionLocation, castAssignmentInclude, normalizeAssignments, normalizeSessionParticipants, resolveCastLines, withCastReservations } from '~/server/utils/sessionAssignments'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { assertGameUploads, deleteUnusedUploads } from '~/server/utils/uploads'
@@ -26,9 +26,9 @@ export default defineEventHandler(async (event) => {
   const { name, gameId, locationId, status, published } = body
   assertSameGame(existingSession.gameId, gameId)
   await requireGameAccess(event, gameId)
-  const assignments = normalizeAssignments(body.assignments)
+  const { lines: assignments, reservedParticipants } = await resolveCastLines(gameId, existingSession.id, normalizeAssignments(body.assignments))
   const participants = normalizeSessionParticipants(body.participants, assignments)
-  await assertSessionCastRules(gameId, participants, assignments)
+  await assertSessionCastRules(gameId, participants, assignments, reservedParticipants)
   await assertSessionLocation(gameId, locationId)
 
   // Photos remplacées ou retirées de la distribution : effacées si plus rien ne les utilise
@@ -70,14 +70,11 @@ export default defineEventHandler(async (event) => {
         }
       },
       assignments: {
-        include: {
-          character: true,
-          participant: true
-        }
+        include: castAssignmentInclude
       }
     }
   })
 
   await deleteUnusedUploads(previousPhotoUrls)
-  return session
+  return await withCastReservations(session)
 })

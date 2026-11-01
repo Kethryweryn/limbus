@@ -251,6 +251,10 @@ export async function applySelection(registrationId: string, action: SelectionAc
       await write({ status: action === 'reject' ? REGISTRATION_STATUSES.rejected : REGISTRATION_STATUSES.received, sessionId: null, ...cleared })
       await tx.registrationWaitlistEntry.deleteMany({ where: { registrationId: registration.id } })
     }
+    // Plus retenue pour cette session : le personnage réservé redevient libre (US-100)
+    if (!(action === 'retain' && session!.id === registration.sessionId)) {
+      await tx.sessionAssignment.updateMany({ where: { reservedRegistrationId: registration.id }, data: { reservedRegistrationId: null } })
+    }
   })
   return { success: true }
 }
@@ -386,5 +390,10 @@ export async function confirmRetainedPlace(registration: { id: string, status: s
     }
     const key = { sessionId: registration.sessionId!, participantId: registration.participantId, role: SESSION_ROLES.participant }
     await tx.sessionParticipant.upsert({ where: { sessionId_participantId_role: key }, update: {}, create: key })
+    // Le personnage qui lui était réservé devient le sien (US-100, ADR-0051)
+    await tx.sessionAssignment.updateMany({
+      where: { sessionId: registration.sessionId!, reservedRegistrationId: registration.id, participantId: null },
+      data: { participantId: registration.participantId, reservedRegistrationId: null }
+    })
   })
 }

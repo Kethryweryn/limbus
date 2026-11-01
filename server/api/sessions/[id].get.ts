@@ -2,6 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
 import { gameScopedWhere } from '~/server/utils/gameAccess'
 import { requireRouterParam } from '~/server/utils/routeParams'
+import { castAssignmentInclude, withCastReservations } from '~/server/utils/sessionAssignments'
 
 export default defineEventHandler(async (event) => {
   await requireUser(event)
@@ -27,10 +28,7 @@ export default defineEventHandler(async (event) => {
         }
       },
       assignments: {
-        include: {
-          character: true,
-          participant: true
-        },
+        include: castAssignmentInclude,
         orderBy: {
           characterId: 'asc'
         }
@@ -42,5 +40,5 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Session introuvable' })
   }
 
-  return session
+  return await withCastReservations(session)
 })

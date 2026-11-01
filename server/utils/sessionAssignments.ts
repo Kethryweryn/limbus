@@ -1,5 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
-import { CHARACTER_TYPES, SESSION_ROLES } from '~/utils/domain'
+import { CHARACTER_TYPES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
 
 type SessionParticipantRole = typeof SESSION_ROLES[keyof typeof SESSION_ROLES]
 const sessionParticipantRoles = Object.values(SESSION_ROLES)
@@ -9,6 +9,8 @@ export function normalizeAssignments(assignments: Array<{
   participantId?: string | null
   photoUrl?: string | null
   notes?: string | null
+  locked?: boolean
+  reservedRegistrationId?: string | null
 }> | undefined) {
   if (!Array.isArray(assignments)) return []
 
@@ -18,6 +20,9 @@ export function normalizeAssignments(assignments: Array<{
     participantId: string | null
     photoUrl: string | null
     notes: string | null
+    // Absents : la ligne garde son cadenas et sa réservation enregistrés (ADR-0051)
+    locked?: boolean
+    reservedRegistrationId?: string | null
   }> = []
 
   for (const assignment of assignments) {
@@ -28,11 +33,61 @@ export function normalizeAssignments(assignments: Array<{
       characterId: assignment.characterId,
       participantId: assignment.participantId || null,
       photoUrl: assignment.photoUrl || null,
-      notes: assignment.notes || null
+      notes: assignment.notes || null,
+      locked: assignment.locked,
+      reservedRegistrationId: assignment.reservedRegistrationId === undefined ? undefined : assignment.reservedRegistrationId || null
     })
   }
 
   return normalized
+}
+
+/**
+ * Cadenas et réservations des lignes du cast (US-100, ADR-0051). Une ligne qui ne les envoie pas garde ceux enregistrés.
+ * Une réservation vise une inscription retenue de cette session, et seulement une ligne sans joueur ; celle d'une
+ * inscription confirmée entre-temps devient une attribution, celle d'une inscription qui n'est plus retenue pour la
+ * session disparaît.
+ */
+export async function resolveCastLines(gameId: string, sessionId: string | null, assignments: ReturnType<typeof normalizeAssignments>) {
+  const previous = new Map(sessionId
+    ? (await prisma.sessionAssignment.findMany({ where: { sessionId }, select: { characterId: true, locked: true, reservedRegistrationId: true } }))
+        .map((row) => [row.characterId, row])
+    : [])
+  const lines = assignments.map((assignment) => ({
+    ...assignment,
+    locked: assignment.locked ?? previous.get(assignment.characterId)?.locked ?? false,
+    reservedRegistrationId: assignment.participantId
+      ? null
+      : assignment.reservedRegistrationId === undefined ? previous.get(assignment.characterId)?.reservedRegistrationId ?? null : assignment.reservedRegistrationId
+  }))
+
+  const reservationIds = [...new Set(lines.map((line) => line.reservedRegistrationId).filter((id): id is string => Boolean(id)))]
+  const registrations = new Map((reservationIds.length
+    ? await prisma.registration.findMany({
+        where: { id: { in: reservationIds } },
+        select: { id: true, status: true, sessionId: true, participantId: true, period: { select: { gameId: true } } }
+      })
+    : []).map((registration) => [registration.id, registration]))
+  const reservedParticipants = new Map<string, string>()
+  for (const line of lines) {
+    if (!line.reservedRegistrationId) continue
+    const registration = registrations.get(line.reservedRegistrationId)
+    if (!registration || registration.period.gameId !== gameId) {
+      throw createError({ statusCode: 400, message: 'Une réservation vise une inscription d’un autre jeu.' })
+    }
+    // Inscription passée à une autre session : la réservation tombe, comme si elle n'était plus retenue
+    if (registration.sessionId !== sessionId) {
+      line.reservedRegistrationId = null
+    } else if (registration.status === REGISTRATION_STATUSES.confirmed) {
+      line.participantId = registration.participantId
+      line.reservedRegistrationId = null
+    } else if (registration.status === REGISTRATION_STATUSES.retained) {
+      reservedParticipants.set(line.characterId, registration.participantId)
+    } else {
+      line.reservedRegistrationId = null
+    }
+  }
+  return { lines, reservedParticipants }
 }
 
 export function normalizeSessionParticipants(participants: Array<{
@@ -81,7 +136,9 @@ export async function assertSessionLocation(gameId: string, locationId?: string 
 export async function assertSessionCastRules(
   gameId: string,
   sessionParticipants: ReturnType<typeof normalizeSessionParticipants>,
-  assignments: ReturnType<typeof normalizeAssignments>
+  assignments: ReturnType<typeof normalizeAssignments>,
+  // Personnages réservés à une personne retenue : comptés pour « un seul PJ par participant » (US-100)
+  reservedParticipants: Map<string, string> = new Map()
 ) {
   const participantIds = [...new Set([
     ...sessionParticipants.map((participant) => participant.participantId),
@@ -134,6 +191,12 @@ export async function assertSessionCastRules(
       .map((participant) => participant.participantId)
   )
 
+  for (const characterId of reservedParticipants.keys()) {
+    if (charactersById.get(characterId)?.type === CHARACTER_TYPES.pnj) {
+      throw createError({ statusCode: 400, message: 'Seul un personnage PJ peut être réservé à une personne retenue.' })
+    }
+  }
+
   for (const assignment of assignments) {
     if (!assignment.participantId) continue
 
@@ -149,7 +212,8 @@ export async function assertSessionCastRules(
   // Un seul PJ par participant, sauf jeu en plusieurs actes (US-017) ; les PNJ ne sont pas limités
   const game = await prisma.game.findUnique({ where: { id: gameId }, select: { singlePjPerParticipant: true } })
   if (game?.singlePjPerParticipant) {
-    const participantId = participantWithSeveralPjs(assignments, charactersById)
+    const holders = assignments.map((assignment) => ({ ...assignment, participantId: assignment.participantId ?? reservedParticipants.get(assignment.characterId) ?? null }))
+    const participantId = participantWithSeveralPjs(holders, charactersById)
     if (participantId) {
       const participant = await prisma.participant.findUnique({ where: { id: participantId }, select: { name: true } })
       throw createError({
@@ -172,4 +236,33 @@ export function participantWithSeveralPjs(
     seen.add(assignment.participantId)
   }
   return null
+}
+
+// Lignes du cast avec leur réservation (US-100)
+export const castAssignmentInclude = {
+  character: true,
+  participant: true,
+  reservedRegistration: { select: { id: true, status: true, sessionId: true, participant: { select: { id: true, name: true } } } }
+} as const
+
+type ReservedRow = { reservedRegistrationId: string | null, reservedRegistration?: { status: string, sessionId: string | null } | null }
+
+/**
+ * Session lue par l'équipe : une réservation dont l'inscription n'est plus retenue pour la session n'est plus montrée,
+ * et les personnes retenues non confirmées sont listées pour être choisies dans le cast (US-100, ADR-0051).
+ */
+export async function withCastReservations<T extends { id: string, assignments: ReservedRow[] }>(session: T) {
+  const retained = await prisma.registration.findMany({
+    where: { sessionId: session.id, status: REGISTRATION_STATUSES.retained },
+    select: { id: true, participantId: true, participant: { select: { name: true } } },
+    orderBy: { participant: { name: 'asc' } }
+  })
+  return {
+    ...session,
+    assignments: session.assignments.map((assignment) => {
+      const live = assignment.reservedRegistration?.status === REGISTRATION_STATUSES.retained && assignment.reservedRegistration.sessionId === session.id
+      return live ? assignment : { ...assignment, reservedRegistrationId: null, reservedRegistration: null }
+    }),
+    retainedRegistrations: retained.map((registration) => ({ id: registration.id, participantId: registration.participantId, name: registration.participant.name }))
+  }
 }
