@@ -1,4 +1,4 @@
-import { gamePhotoInformation } from '~/utils/photoInformation'
+import { photoInformation } from '~/utils/photoInformation'
 import type { H3Event } from 'h3'
 import { prisma } from '~/server/utils/prisma'
 import { requireAuthUser } from '~/server/utils/auth'
@@ -37,7 +37,7 @@ export const formPeriodSelect = {
   closesAt: true,
   notifyTeam: true,
   publicId: true,
-  game: { select: { id: true, title: true, slug: true, noteIntention: true, teaserUrl: true, ownerId: true, photoRetentionMonths: true, contactEmail: true, owner: { select: { email: true } } } },
+  game: { select: { id: true, title: true, slug: true, noteIntention: true, teaserUrl: true, ownerId: true, photoRetentionMonths: true, contactEmail: true } },
   sessions: { orderBy: { session: { date: 'asc' as const } }, select: { session: { select: sessionSelect } } }
 } as const
 
@@ -111,7 +111,8 @@ export async function exposeFormPeriod(period: FormPeriod, account: { id: string
     state: effectivePeriodState(period, now) === REGISTRATION_PERIOD_STATES.open ? 'open' : 'closed',
     permanent: period.scope === REGISTRATION_PERIOD_SCOPES.game,
     closesAt: period.closesAt,
-    game: { title: period.game.title, noteIntention: period.game.noteIntention, photoInformation: gamePhotoInformation(period.game) },
+    game: { title: period.game.title, noteIntention: period.game.noteIntention, // Page publique et indexable : jamais l'adresse du compte de la propriétaire, seulement le contact du jeu (US-107)
+    photoInformation: photoInformation({ retentionMonths: period.game.photoRetentionMonths, contactEmail: period.game.contactEmail || null }) },
     sessions: await formPeriodSessions(period, now),
     asksAvailability: asksAvailability(period),
     definition: form.definition,

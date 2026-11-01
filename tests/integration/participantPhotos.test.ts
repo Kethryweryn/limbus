@@ -1,4 +1,5 @@
 // EPIC-028 : information (US-107), durée et purge (US-108), retrait et refus (US-109) des photos des participants
+import bcrypt from 'bcrypt'
 import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -43,8 +44,13 @@ async function castSession(g: Awaited<ReturnType<typeof aliceGame>>, date: Date 
   return session
 }
 
-// La purge passe à chaque connexion, même refusée
-const triggerPurge = () => api(null, 'POST', '/api/auth/login', { email: 'personne@example.test', password: 'x' })
+// La purge passe après chaque connexion réussie
+async function triggerPurge() {
+  const email = `purge-${++counter}@example.test`
+  await prisma.user.create({ data: { email, name: 'Purge', password: await bcrypt.hash('mot-de-passe-solide', 4) } })
+  const login = await api(null, 'POST', '/api/auth/login', { email, password: 'mot-de-passe-solide' })
+  expect(login.status, JSON.stringify(login.body)).toBe(200)
+}
 
 describe('réglages et information (US-107)', () => {
   it('enregistre la durée et l’adresse de contact du jeu, et refuse une durée hors bornes', async () => {
@@ -63,6 +69,14 @@ describe('réglages et information (US-107)', () => {
     expect(read.status, JSON.stringify(read.body)).toBe(200)
     expect(body(read).game.photoInformation).toContain('supprimée 3 mois après la session')
     expect(body(read).game.photoInformation).toContain('orga@example.test')
+  })
+
+  it('sans adresse de contact, le lien de diffusion public ne montre pas celle de la propriétaire', async () => {
+    const { key, game } = await aliceGame()
+    await prisma.registrationPeriod.create({ data: { name: `Période ${key}`, gameId: game.id, publicId: `pub-${key}`, state: 'open', entryMode: 'form', scope: 'game' } })
+    const information = body(await api(null, 'GET', `/api/public/periods/pub-${key}`)).game.photoInformation
+    expect(information).toContain('« Je participe »')
+    expect(information).not.toContain('alice@example.test')
   })
 })
 

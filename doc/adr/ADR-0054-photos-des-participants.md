@@ -18,8 +18,8 @@ liens: [../specs/SPEC-012-photos-des-participants.md, ADR-0044-copies-des-envois
 
 ## Décision
 
-- **Texte d'information** : une fonction partagée, `photoInformation({ retentionMonths, contactEmail })` dans `utils/photoInformation.ts`. Elle sert dans les emails comme dans les pages, pour que le texte reste le même partout. Le contact est `Game.contactEmail`, à défaut l'email du compte propriétaire du jeu.
-- **Purge** : `purgeExpiredPhotos(now)` (`server/utils/photoRetention.ts`), sans tâche planifiée. Comme `purgeExpiredCopies` (ADR-0044), elle est appelée à chaque connexion et avant chaque envoi. Pour chaque session datée dont l'échéance (`date` + `photoRetentionMonths` mois) est passée, et qui garde des photos ou des trombinoscopes :
+- **Texte d'information** : une fonction partagée, `photoInformation({ retentionMonths, contactEmail })` dans `utils/photoInformation.ts`. Elle sert dans les emails comme dans les pages, pour que le texte reste le même partout. Le contact est `Game.contactEmail`, à défaut l'email du compte propriétaire du jeu. Le lien de diffusion, public et indexable, ne prend jamais ce repli.
+- **Purge** : `purgeExpiredPhotos(now)` (`server/utils/photoRetention.ts`), sans tâche planifiée. Elle est appelée après chaque connexion réussie et avant chaque envoi, comme `purgeExpiredCopies` (ADR-0044). Pour chaque session datée dont l'échéance (`date` + `photoRetentionMonths` mois) est passée, et qui garde des photos ou des trombinoscopes :
   - les `SessionAssignment.photoUrl` passent à null ;
   - les `SessionTrombinoscope` sont supprimés ;
   - les fichiers qui ne servent plus sont effacés par `deleteUnusedUploads`.

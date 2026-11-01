@@ -456,7 +456,10 @@ async function submit() {
 
   saving.value = true
   try {
-    await props.onSave(assignments.value.filter((assignment) => assignment.characterId))
+    // Une personne qui a refusé l'usage de sa photo ne garde pas celle de la ligne (US-109)
+    await props.onSave(assignments.value
+      .filter((assignment) => assignment.characterId)
+      .map((assignment) => photoRefused(assignment) ? { ...assignment, photoUrl: '' } : assignment))
     serverError.value = ''
   } catch (err) {
     serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'

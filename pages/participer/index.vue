@@ -167,7 +167,8 @@ onMounted(async () => {
   try {
     // Gardée sur l'appareil : sur le lieu du jeu, sans réseau, on retrouve date et lieu
     participations.value = await useApiFetch('/api/me/participations', { offlineCache: true })
-    photoRefused.value = (await useApiFetch('/api/me/photo-refusal', { offlineCache: true })).refused
+    // Lu à chaque ouverture, sans copie sur l'appareil : le refus peut changer ailleurs (autre appareil, équipe)
+    photoRefused.value = (await useApiFetch('/api/me/photo-refusal').catch(() => ({ refused: false }))).refused
   } catch (err) {
     loadError.value = err?.data?.message || 'Impossible de charger vos participations.'
   } finally {

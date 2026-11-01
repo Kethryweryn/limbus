@@ -36,7 +36,7 @@ Pour la CNIL, l'image d'une personne identifiable est une donnée personnelle, e
   - dans l'espace « Je participe ».
 
   Une personne ajoutée à la main par l'équipe est informée par l'email du trombinoscope. L'équipe n'a rien à noter.
-- **P2 Contact.** Chaque jeu a une adresse de contact, facultative, réglée par l'équipe. À défaut, l'information donne l'adresse de la propriétaire du jeu.
+- **P2 Contact.** Chaque jeu a une adresse de contact, facultative, réglée par l'équipe. À défaut, l'information donne l'adresse de la propriétaire du jeu, sauf sur le lien de diffusion : il est public, et ne montre que l'adresse de contact. Sans elle, il renvoie au compte seul.
 - **P3 Durée.** Chaque jeu règle sa durée de conservation, en mois après la date de la session : 6 par défaut, de 1 à 60.
   - À l'échéance, les photos de la session (lignes du cast) et ses trombinoscopes générés sont supprimés.
   - Une session sans date n'a pas d'échéance.
