@@ -33,6 +33,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-023](../archive/epics/EPIC-023-affinites/README.md) | Affinités rattachées, alertes et repères dans la sélection | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 | [EPIC-024](../archive/epics/EPIC-024-relations-et-questionnaire/README.md) | Relations entre personnages, questionnaire relié aux rôles et relations refusées | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 | [EPIC-025](../archive/epics/EPIC-025-assistant-de-casting/README.md) | Assistant de casting | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
+| [EPIC-026](../archive/epics/EPIC-026-supervision/README.md) | Supervision de la production | [fiche](../todo/supervision.md) | terminé |
 
 ## US
 
@@ -140,3 +141,4 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-100](../archive/epics/EPIC-025-assistant-de-casting/US-100-verrouiller-et-reserver.md) | Verrouiller une attribution et réserver un personnage à une personne retenue | EPIC-025 | terminée |
 | [US-101](../archive/epics/EPIC-025-assistant-de-casting/US-101-notes-et-interdits.md) | Voir la note de chaque joueur pour chaque personnage, et les interdits | EPIC-025 | terminée |
 | [US-102](../archive/epics/EPIC-025-assistant-de-casting/US-102-proposer-une-repartition.md) | Proposer une répartition et l'appliquer au cast | EPIC-025 | terminée |
+| [US-103](../archive/epics/EPIC-026-supervision/US-103-page-de-sante.md) | Page de santé de Limbus | EPIC-026 | terminée |

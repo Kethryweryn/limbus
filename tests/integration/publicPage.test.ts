@@ -59,3 +59,13 @@ describe('adresse stable de la page publique (US-045)', () => {
   })
 })
 
+describe('page de santé (US-103)', () => {
+  it('répond sans connexion, ne se met pas en cache et ne dit que l’état et la version', async () => {
+    const response = await fetch(`${inject('baseUrl')}/api/public/health`)
+    expect(response.status).toBe(200)
+    expect(response.headers.get('cache-control')).toBe('no-store')
+    const health = await response.json()
+    expect(Object.keys(health).sort()).toEqual(['status', 'version'])
+    expect(health.status).toBe('ok')
+  })
+})
