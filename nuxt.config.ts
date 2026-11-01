@@ -35,7 +35,54 @@ export default defineNuxtConfig({
   },
   compatibilityDate: '2025-04-07',
   devtools: { enabled: true },
-  modules: ['@nuxt/ui', '@nuxt/eslint', '@pinia/nuxt', '@vite-pwa/nuxt'],
+  modules: ['@nuxt/ui', '@nuxt/eslint', '@pinia/nuxt', '@vite-pwa/nuxt', 'nuxt-security'],
+  // CSP et COOP posées par l'application, d'abord en mode rapport (US-106, ADR-0053). Le reste du module est désactivé :
+  // Limbus a ses propres limites de débit, de taille et contrôles d'origine, et Apache pose HSTS
+  security: {
+    headers: {
+      contentSecurityPolicy: {
+        'default-src': ["'self'"],
+        'script-src': ["'self'", "'nonce-{{nonce}}'", "'strict-dynamic'"],
+        'script-src-attr': ["'none'"],
+        'style-src': ["'self'", "'unsafe-inline'"],
+        'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+        'font-src': ["'self'", 'data:'],
+        'connect-src': ["'self'"],
+        'frame-src': ['https://www.youtube.com'],
+        'worker-src': ["'self'"],
+        'manifest-src': ["'self'"],
+        'object-src': ["'none'"],
+        'base-uri': ["'none'"],
+        'form-action': ["'self'"],
+        'frame-ancestors': ["'self'"],
+        'report-uri': ['/api/public/csp-report'],
+        'upgrade-insecure-requests': false
+      },
+      crossOriginOpenerPolicy: 'same-origin',
+      crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: false,
+      originAgentCluster: false,
+      referrerPolicy: false,
+      strictTransportSecurity: false,
+      xContentTypeOptions: false,
+      xDNSPrefetchControl: false,
+      xDownloadOptions: false,
+      xFrameOptions: false,
+      xPermittedCrossDomainPolicies: false,
+      xXSSProtection: false,
+      permissionsPolicy: false
+    },
+    contentSecurityPolicyReportOnly: true,
+    nonce: true,
+    // Page prérendue (/) : CSP par les en-têtes de Nitro, jamais par une balise meta, qui ne connaît pas le mode rapport
+    ssg: { meta: false, hashScripts: true, hashStyles: false, nitroHeaders: true, exportToPresets: false },
+    requestSizeLimiter: false,
+    rateLimiter: false,
+    xssValidator: false,
+    corsHandler: false,
+    allowedMethodsRestricter: false,
+    removeLoggers: false
+  },
   devServer: {
     host: '0.0.0.0',
     port: 3000,

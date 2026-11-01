@@ -81,7 +81,7 @@ describe('copie de chaque envoi (US-078) et lecture dans « Je participe » (US-
     expect(sectionsText(reading)).toContain('Version envoyée')
     expect(sectionsText(reading)).not.toContain('Brouillon')
 
-    const pdf = await fetch(`${inject('baseUrl')}/api/me/documents/${delivery.id}/pdf`, { headers: { cookie: `limbus_token=${tokenFor(player)}` } })
+    const pdf = await fetch(`${inject('baseUrl')}/api/me/documents/${delivery.id}/pdf`, { headers: { cookie: `__Host-limbus_token=${tokenFor(player)}` } })
     expect(pdf.status).toBe(200)
     expect(pdf.headers.get('content-type')).toBe('application/pdf')
     expect(Buffer.from(await pdf.arrayBuffer()).subarray(0, 4).toString()).toBe('%PDF')

@@ -1,6 +1,6 @@
 ---
 titre: Durcissement web : CSP, origine des requêtes, cookie de session
-statut: à trancher
+statut: en partie traitée
 date: 2026-10-29
 revue: ../revues/2026-10-29-architecture.md
 ---
@@ -25,6 +25,10 @@ La [revue d'architecture du 29 octobre 2026](../revues/2026-10-29-architecture.m
 
 1. R-02 et R-03, petits et indépendants.
 2. R-01, plus délicat : il faut recenser ce que la CSP doit autoriser (scripts de Nuxt et du service worker PWA, styles de Nuxt UI, iframes YouTube, images externes des fiches), puis la tester d'abord en mode « report-only ».
+
+## Suivi
+
+- 2026-11-01 : R-02, R-03 et la CSP en mode rapport faits ([EPIC-027](../archive/epics/EPIC-027-durcissement-web/README.md), [ADR-0053](../adr/ADR-0053-durcissement-web.md)). Reste : relire les violations (`GET /api/admin/csp-reports`) après une semaine, puis passer la CSP en mode bloquant.
 
 ## Points à trancher
 

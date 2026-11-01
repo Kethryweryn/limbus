@@ -90,7 +90,7 @@ export async function choose(page: Page, combobox: Locator, option: string | Reg
 export async function signIn(page: Page, prisma: TestPrisma, email: string) {
   const user = await prisma.user.findUniqueOrThrow({ where: { email }, select: { id: true, sessionVersion: true } })
   const token = jwt.sign({ id: user.id, v: user.sessionVersion }, JWT_SECRET, { expiresIn: '1h' })
-  await page.context().addCookies([{ name: 'limbus_token', value: token, url: test.info().project.use.baseURL!, httpOnly: true, sameSite: 'Lax' }])
+  await page.context().addCookies([{ name: '__Host-limbus_token', value: token, domain: new URL(test.info().project.use.baseURL!).hostname, path: '/', httpOnly: true, secure: true, sameSite: 'Lax' }])
   await page.goto('/')
   await expectLoggedIn(page)
 }

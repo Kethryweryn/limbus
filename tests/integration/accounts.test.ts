@@ -282,7 +282,7 @@ describe('plafond de stockage (US-066)', () => {
     form.append('gameId', gameId)
     const response = await fetch(`${inject('baseUrl')}/api/uploads/session-assignment-photos`, {
       method: 'POST',
-      headers: { cookie: `limbus_token=${tokenFor(user)}` },
+      headers: { cookie: `__Host-limbus_token=${tokenFor(user)}` },
       body: form
     })
     return { status: response.status, body: await response.json() }

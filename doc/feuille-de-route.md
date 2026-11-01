@@ -82,7 +82,7 @@ Les lots 2 à 6 de [SPEC-001](specs/SPEC-001-inscriptions.md), un epic chacun (l
 L'inscription libre fera venir des personnes inconnues, avec leurs données. Avant de l'ouvrir en production et d'annoncer l'ouverture :
 
 1. [Photos et RGPD](todo/photos-et-rgpd.md) : information des personnes et durée de conservation, après avoir confirmé la base légale auprès d'une source juridique.
-2. [Durcissement web](todo/durcissement-web.md) : CSP, origine des écritures, cookie.
+2. [Durcissement web](todo/durcissement-web.md) : CSP, origine des écritures, cookie. Fait ([EPIC-027](archive/epics/EPIC-027-durcissement-web/README.md)), la CSP en mode rapport ; reste à la rendre bloquante après une semaine de rapports.
 3. [Supervision](todo/supervision.md) : être alerté quand le site tombe. Page de santé faite ([EPIC-026](archive/epics/EPIC-026-supervision/README.md)) ; sondes Better Stack à créer par l'utilisatrice.
 4. Conditions d'utilisation et politique de confidentialité ([fiche des comptes](todo/comptes-participants.md)), puis ouverture de l'inscription libre.
 

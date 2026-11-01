@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   await requireAdmin(event)
   const body = await readZodBody(event, adminModeSchema)
 
-  setCookie(event, 'limbus_admin_mode', body.enabled ? '1' : '', {
+  setCookie(event, '__Host-limbus_admin_mode', body.enabled ? '1' : '', {
     httpOnly: true,
     sameSite: 'lax',
     secure: true,

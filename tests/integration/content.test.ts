@@ -207,7 +207,12 @@ describe('connexion', () => {
       body: JSON.stringify({ email: ' Casse@Example.TEST ', password: 'mot-de-passe-solide' })
     })
     expect(await response.json()).toEqual({ success: true })
-    expect(response.headers.get('set-cookie')).toContain('limbus_token=')
+    // Préfixe __Host- : Secure, sur /, sans Domain (US-105)
+    const cookie = response.headers.get('set-cookie')!
+    expect(cookie).toMatch(/^__Host-limbus_token=/)
+    expect(cookie).toMatch(/; Secure/i)
+    expect(cookie).toMatch(/; Path=\/(;|$)/)
+    expect(cookie).not.toMatch(/Domain=/i)
   })
 
   it('un mauvais mot de passe répond 401 avec un message', async () => {

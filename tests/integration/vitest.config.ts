@@ -12,6 +12,7 @@ export default defineConfig({
   test: {
     include: ['tests/integration/**/*.test.ts'],
     globalSetup: ['tests/integration/globalSetup.ts'],
+    setupFiles: ['tests/integration/browserFetch.ts'],
     environment: 'node',
     fileParallelism: false,
     testTimeout: 30_000,

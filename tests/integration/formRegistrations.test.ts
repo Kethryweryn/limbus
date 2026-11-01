@@ -24,7 +24,7 @@ afterAll(async () => {
 async function publicApi(method: string, path: string, body?: unknown, cookieUser?: { id: string }) {
   const headers: Record<string, string> = { 'x-forwarded-for': `10.20.${Math.floor(++counter / 250)}.${counter % 250}` }
   if (body !== undefined) headers['content-type'] = 'application/json'
-  if (cookieUser) headers.cookie = `limbus_token=${tokenFor(cookieUser)}`
+  if (cookieUser) headers.cookie = `__Host-limbus_token=${tokenFor(cookieUser)}`
   const response = await fetch(`${inject('baseUrl')}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) })
   const text = await response.text()
   let parsed: unknown = text
