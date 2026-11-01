@@ -49,7 +49,9 @@ export async function postponeSession(sessionId: string, target: { name: string,
             characterId: assignment.characterId,
             participantId: assignment.participantId,
             photoUrl: assignment.photoUrl,
-            notes: assignment.notes
+            notes: assignment.notes,
+            // Le cadenas suit ; la réservation reste sur l'ancienne session, comme l'inscription (ADR-0051)
+            locked: assignment.locked
           }))
         }
       },

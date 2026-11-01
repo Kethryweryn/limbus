@@ -145,6 +145,7 @@ describe('références croisées vers le jeu de Bob', () => {
     ['POST', '/api/sessions', { name: 'X', gameId: a.game.id, assignments: [{ characterId: a.character.id, photoUrl: b.photo.url }] }],
     ['PUT', `/api/sessions/${a.session.id}/payments/settings`, { paymentRibUrl: b.rib.url }],
     ['PUT', `/api/sessions/${a.session.id}`, { name: 'X', gameId: a.game.id, assignments: [{ characterId: a.character.id, photoUrl: b.photo.url }] }],
+    ['POST', `/api/sessions/${a.session.id}/casting-assistant`, { assignments: [{ characterId: b.character.id, participantId: b.participant.id, locked: true }] }],
     ['PUT', `/api/registration-periods/${a.registrationPeriod.id}`, { name: 'X', gameId: a.game.id, sessions: [{ sessionId: b.session.id }] }],
     ['PUT', `/api/registration-periods/${a.registrationPeriod.id}`, { name: 'X', gameId: b.game.id, sessions: [{ sessionId: b.session.id }] }]
   ]
@@ -169,6 +170,7 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['POST', `/api/sessions/${session}/documents/test-email`, { emails: ['x@example.test'] }],
     ['POST', `/api/sessions/${session}/documents/test-character-sheet`, { emails: ['x@example.test'], characterId: b.character.id }],
     ['GET', `/api/sessions/${session}/payments`],
+    ['POST', `/api/sessions/${session}/casting-assistant`, { assignments: [] }],
     ['PUT', `/api/sessions/${session}/payments/settings`, { paymentLinkUrl: 'https://example.test' }],
     ['PUT', `/api/sessions/${session}/payments/${b.participant.id}`, { paid: true }],
     ['PUT', `/api/sessions/${session}/payments/${b.participant.id}/refund`, { status: 'to_refund' }],

@@ -386,5 +386,10 @@ export async function confirmRetainedPlace(registration: { id: string, status: s
     }
     const key = { sessionId: registration.sessionId!, participantId: registration.participantId, role: SESSION_ROLES.participant }
     await tx.sessionParticipant.upsert({ where: { sessionId_participantId_role: key }, update: {}, create: key })
+    // Le personnage qui lui était réservé devient le sien (US-100, ADR-0051)
+    await tx.sessionAssignment.updateMany({
+      where: { sessionId: registration.sessionId!, reservedRegistrationId: registration.id, participantId: null },
+      data: { participantId: registration.participantId, reservedRegistrationId: null }
+    })
   })
 }

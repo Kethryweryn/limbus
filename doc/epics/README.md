@@ -32,6 +32,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-022](../archive/epics/EPIC-022-tirage-au-sort/README.md) | Tirage au sort, mode mixte, pondérations et équilibre | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 | [EPIC-023](../archive/epics/EPIC-023-affinites/README.md) | Affinités rattachées, alertes et repères dans la sélection | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 | [EPIC-024](../archive/epics/EPIC-024-relations-et-questionnaire/README.md) | Relations entre personnages, questionnaire relié aux rôles et relations refusées | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
+| [EPIC-025](../archive/epics/EPIC-025-assistant-de-casting/README.md) | Assistant de casting | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 
 ## US
 
@@ -136,3 +137,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-097](../archive/epics/EPIC-024-relations-et-questionnaire/US-097-relations-entre-personnages.md) | Relier les personnages entre eux | EPIC-024 | terminée |
 | [US-098](../archive/epics/EPIC-024-relations-et-questionnaire/US-098-questionnaire-relie-aux-roles.md) | Relier les réponses du questionnaire aux personnages, factions et intrigues | EPIC-024 | terminée |
 | [US-099](../archive/epics/EPIC-024-relations-et-questionnaire/US-099-relations-refusees.md) | Cocher les relations que l'on ne veut pas jouer | EPIC-024 | terminée |
+| [US-100](../archive/epics/EPIC-025-assistant-de-casting/US-100-verrouiller-et-reserver.md) | Verrouiller une attribution et réserver un personnage à une personne retenue | EPIC-025 | terminée |
+| [US-101](../archive/epics/EPIC-025-assistant-de-casting/US-101-notes-et-interdits.md) | Voir la note de chaque joueur pour chaque personnage, et les interdits | EPIC-025 | terminée |
+| [US-102](../archive/epics/EPIC-025-assistant-de-casting/US-102-proposer-une-repartition.md) | Proposer une répartition et l'appliquer au cast | EPIC-025 | terminée |

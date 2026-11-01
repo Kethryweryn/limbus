@@ -6,8 +6,20 @@
           <h2 class="font-semibold">Cast</h2>
           <p class="text-sm text-gray-500">{{ assignments.length }} personnage(s)</p>
         </div>
+        <UButton
+          type="button"
+          color="neutral"
+          variant="soft"
+          icon="i-heroicons-sparkles"
+          :loading="assistantLoading"
+          @click="runAssistant"
+        >
+          Proposer une répartition
+        </UButton>
       </div>
     </template>
+
+    <p v-if="assistantMessage" class="mb-4 text-sm text-primary-600">{{ assistantMessage }}</p>
 
     <form class="space-y-4" @submit.prevent="submit">
       <div v-if="totalPages > 1" class="flex justify-end">
@@ -32,13 +44,31 @@
             {{ characterGroupLabel(characterById(assignment.characterId)) }}
           </p>
         </div>
-        <USelect
-          v-model="assignment.participantId"
-          :items="participantOptionsForAssignment(assignment)"
-          value-key="value"
-          placeholder="Participant"
-          class="lg:col-span-3"
-        />
+        <div class="lg:col-span-3 flex items-start gap-2">
+          <UButton
+            type="button"
+            size="sm"
+            :color="assignment.locked ? 'primary' : 'neutral'"
+            :variant="assignment.locked ? 'solid' : 'ghost'"
+            :icon="assignment.locked ? 'i-heroicons-lock-closed' : 'i-heroicons-lock-open'"
+            :aria-label="assignment.locked ? 'Déverrouiller' : 'Verrouiller'"
+            :title="assignment.locked ? 'Verrouillée : l’assistant n’y touche pas' : 'Verrouiller cette attribution'"
+            @click="assignment.locked = !assignment.locked"
+          />
+          <div class="min-w-0 flex-1">
+            <USelect
+              :model-value="choiceOf(assignment)"
+              :items="participantOptionsForAssignment(assignment)"
+              value-key="value"
+              placeholder="Participant"
+              class="w-full"
+              @update:model-value="(value) => setChoice(assignment, value)"
+            />
+            <p v-if="assignment.reservedRegistrationId" class="mt-1 text-xs text-warning-600">
+              Réservé, en attente de confirmation
+            </p>
+          </div>
+        </div>
         <div class="lg:col-span-3 flex items-center gap-3">
           <button
             type="button"
@@ -108,6 +138,90 @@
 
       <p v-if="serverError" class="text-red-500 text-sm">{{ serverError }}</p>
     </form>
+
+    <UModal v-model:open="showAssistant" title="Proposition de répartition" :ui="{ content: 'sm:max-w-4xl' }">
+      <template #body>
+        <div v-if="assistant" class="space-y-5 text-sm">
+          <UAlert
+            v-if="assistant.lockedConflicts.length || assistant.avoidWarnings.length"
+            color="warning"
+            variant="subtle"
+            title="À vérifier"
+          >
+            <template #description>
+              <ul class="list-disc pl-4">
+                <li v-for="line in [...assistant.lockedConflicts, ...assistant.avoidWarnings]" :key="line">{{ line }}</li>
+              </ul>
+            </template>
+          </UAlert>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead class="text-xs text-gray-500">
+                <tr>
+                  <th class="py-1 pr-3">Personnage</th>
+                  <th class="py-1 pr-3">Proposition</th>
+                  <th class="py-1 pr-3">Note</th>
+                  <th class="py-1">Détail</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="line in assistant.proposal" :key="line.characterId" class="border-t border-gray-100 align-top">
+                  <td class="py-2 pr-3 font-medium">{{ assistantCharacterName(line.characterId) }}</td>
+                  <td class="py-2 pr-3">
+                    <span>{{ line.playerId ? assistantPlayerName(line.playerId) : '—' }}</span>
+                    <UBadge v-if="line.locked" color="neutral" variant="subtle" size="xs" class="ml-1">verrouillée</UBadge>
+                    <UBadge v-else-if="line.reservedRegistrationId" color="warning" variant="subtle" size="xs" class="ml-1">à confirmer</UBadge>
+                  </td>
+                  <td class="py-2 pr-3">{{ formatScore(line.score) }}</td>
+                  <td class="py-2 text-xs text-gray-500">
+                    <p v-for="component in line.components" :key="component.label">{{ component.label }} (+{{ formatScore(component.points) }})</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div v-if="assistant.unplaced.length">
+            <h3 class="font-medium">Sans personnage</h3>
+            <ul class="list-disc pl-4">
+              <li v-for="line in assistant.unplaced" :key="line.playerId">{{ assistantPlayerName(line.playerId) }} : {{ line.reason }}</li>
+            </ul>
+          </div>
+
+          <div v-if="playersWithRefusedTexts.length">
+            <h3 class="font-medium">Relations refusées, en texte libre</h3>
+            <ul class="list-disc pl-4">
+              <li v-for="player in playersWithRefusedTexts" :key="player.id">{{ player.name }} : {{ player.refusedTexts.join(' ; ') }}</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="font-medium">Notes par joueur</h3>
+            <details v-for="player in assistant.players" :key="player.id" class="mt-1">
+              <summary class="cursor-pointer">
+                {{ player.name }}
+                <span v-if="player.reservedRegistrationId" class="text-xs text-warning-600">(en attente de confirmation)</span>
+                <span v-if="!player.hasAnswers" class="text-xs text-gray-500">(pas de réponses au questionnaire)</span>
+              </summary>
+              <ul class="mt-1 space-y-1 pl-4">
+                <li v-for="pair in assistant.pairs[player.id]" :key="pair.characterId">
+                  <span :class="pair.blocks.length ? 'text-red-600 line-through' : ''">{{ assistantCharacterName(pair.characterId) }}</span>
+                  — {{ formatScore(pair.score) }}
+                  <span v-for="component in pair.components" :key="component.label" class="block text-xs text-gray-500">{{ component.label }} (+{{ formatScore(component.points) }})</span>
+                  <span v-for="block in pair.blocks" :key="block" class="block text-xs text-red-600">Interdit : {{ block }}</span>
+                </li>
+              </ul>
+            </details>
+          </div>
+
+          <div class="flex gap-2">
+            <UButton type="button" color="primary" @click="applyProposal">Appliquer la proposition</UButton>
+            <UButton type="button" color="neutral" variant="soft" @click="showAssistant = false">Fermer</UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
 
     <UModal v-model:open="showPhotoPreview">
       <template #body>
@@ -198,11 +312,89 @@ function characterGroupLabel(character) {
   return character?.factions?.[0]?.name || 'Sans groupe'
 }
 
+// Personnes retenues non confirmées : un PJ leur est réservé, sans les faire entrer dans le cast (US-100)
+const RESERVATION_PREFIX = 'reservation:'
+const retainedRegistrations = computed(() => props.session.retainedRegistrations || [])
+const reservationOptions = computed(() => retainedRegistrations.value.map((registration) => ({
+  label: `${registration.name} (retenue, en attente de confirmation)`,
+  value: `${RESERVATION_PREFIX}${registration.id}`
+})))
+
 function participantOptionsForAssignment(assignment) {
   const character = characterById(assignment.characterId)
-  if (character?.type !== CHARACTER_TYPES.pnj) return participantOptions.value
+  if (character?.type !== CHARACTER_TYPES.pnj) {
+    const retainedIds = new Set(retainedRegistrations.value.map((registration) => registration.participantId))
+    return [...participantOptions.value.filter((participant) => !retainedIds.has(participant.value)), ...reservationOptions.value]
+  }
 
   return participantOptions.value.filter((participant) => !participant.value || pnjCastableIds.value.has(participant.value))
+}
+
+function choiceOf(assignment) {
+  return assignment.reservedRegistrationId ? `${RESERVATION_PREFIX}${assignment.reservedRegistrationId}` : assignment.participantId
+}
+
+function setChoice(assignment, value) {
+  const reserved = typeof value === 'string' && value.startsWith(RESERVATION_PREFIX)
+  assignment.reservedRegistrationId = reserved ? value.slice(RESERVATION_PREFIX.length) : ''
+  assignment.participantId = reserved ? '' : value || ''
+}
+
+// Assistant de casting (US-101, US-102) : calculé sur le formulaire en cours, appliqué seulement à la demande
+const showAssistant = ref(false)
+const assistant = ref(null)
+const assistantLoading = ref(false)
+const assistantMessage = ref('')
+
+const playersWithRefusedTexts = computed(() => assistant.value?.players.filter((player) => player.refusedTexts.length) || [])
+
+function assistantCharacterName(characterId) {
+  return assistant.value?.characters.find((character) => character.id === characterId)?.name || characterById(characterId)?.name || '?'
+}
+
+function assistantPlayerName(playerId) {
+  return assistant.value?.players.find((player) => player.id === playerId)?.name || '?'
+}
+
+function formatScore(value) {
+  return Number(value.toFixed(2)).toLocaleString('fr-FR')
+}
+
+async function runAssistant() {
+  assistantLoading.value = true
+  assistantMessage.value = ''
+  serverError.value = ''
+  try {
+    assistant.value = await useApiFetch(`/api/sessions/${props.session.id}/casting-assistant`, {
+      method: 'POST',
+      body: {
+        assignments: assignments.value.map(({ characterId, participantId, reservedRegistrationId, locked }) => ({ characterId, participantId, reservedRegistrationId, locked }))
+      }
+    })
+    showAssistant.value = true
+  } catch (err) {
+    serverError.value = err?.data?.message || err?.message || 'L’assistant n’a pas pu calculer de proposition'
+  } finally {
+    assistantLoading.value = false
+  }
+}
+
+// Remplit les lignes non verrouillées ; rien n'est enregistré avant « Enregistrer le cast »
+function applyProposal() {
+  const rows = new Map(assignments.value.map((assignment) => [assignment.characterId, assignment]))
+  for (const line of assistant.value?.proposal || []) {
+    const row = rows.get(line.characterId)
+    if (!row || row.locked) continue
+    const participantId = line.reservedRegistrationId ? '' : line.playerId || ''
+    const reservedRegistrationId = line.reservedRegistrationId || ''
+    if (row.participantId === participantId && row.reservedRegistrationId === reservedRegistrationId) continue
+    row.participantId = participantId
+    row.reservedRegistrationId = reservedRegistrationId
+    // La photo était celle de la personne remplacée
+    row.photoUrl = ''
+  }
+  showAssistant.value = false
+  assistantMessage.value = 'Proposition appliquée : vérifiez le cast, puis enregistrez-le.'
 }
 
 watch([() => props.session, sessionCharacters], ([session]) => {
@@ -216,6 +408,8 @@ watch([() => props.session, sessionCharacters], ([session]) => {
     return {
       characterId: character.id,
       participantId: assignment?.participantId || assignment?.participant?.id || '',
+      reservedRegistrationId: assignment?.reservedRegistrationId || '',
+      locked: Boolean(assignment?.locked),
       photoUrl: assignment?.photoUrl || '',
       notes: assignment?.notes || ''
     }

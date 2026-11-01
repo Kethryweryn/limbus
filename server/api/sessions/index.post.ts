@@ -2,7 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
 import { readZodBody, sessionSchema } from '~/server/utils/schemas'
 import { requireGameAccess } from '~/server/utils/gameAccess'
-import { assertSessionCastRules, assertSessionLocation, normalizeAssignments, normalizeSessionParticipants } from '~/server/utils/sessionAssignments'
+import { assertSessionCastRules, assertSessionLocation, normalizeAssignments, normalizeSessionParticipants, resolveCastLines } from '~/server/utils/sessionAssignments'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { assertGameUploads } from '~/server/utils/uploads'
 import { SESSION_STATUSES } from '~/utils/domain'
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
   const body = await readZodBody(event, sessionSchema)
   const { name, gameId, locationId, status, published } = body
   await requireGameAccess(event, gameId)
-  const assignments = normalizeAssignments(body.assignments)
+  const { lines: assignments } = await resolveCastLines(gameId, null, normalizeAssignments(body.assignments))
   const participants = normalizeSessionParticipants(body.participants, assignments)
   await assertSessionCastRules(gameId, participants, assignments)
   await assertSessionLocation(gameId, locationId)

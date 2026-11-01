@@ -4,8 +4,8 @@ titre: Inscriptions, sélection et aide au casting
 statut: validée
 date: 2026-10-27
 origine: ../archive/todo/inscriptions.md
-epics: [EPIC-001, EPIC-019, EPIC-020, EPIC-021, EPIC-022]
-adr: [ADR-0007, ADR-0008, ADR-0011, ADR-0045, ADR-0046, ADR-0047, ADR-0048]
+epics: [EPIC-001, EPIC-019, EPIC-020, EPIC-021, EPIC-022, EPIC-023, EPIC-024, EPIC-025]
+adr: [ADR-0007, ADR-0008, ADR-0011, ADR-0045, ADR-0046, ADR-0047, ADR-0048, ADR-0049, ADR-0050, ADR-0051]
 ---
 
 # SPEC-001 : Inscriptions, sélection et aide au casting
@@ -135,13 +135,18 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 - **R24** Affinités et réponses au questionnaire sont visibles par tous les organisateurs du jeu, jamais par les inscrits, et n'apparaissent dans aucun document envoyé.
 - **R25** Alertes : deux personnes dont l'une ne veut pas croiser l'autre, ou ne veut pas jouer avec elle, présentes dans la même session (retenues, confirmées ou dans le cast), font apparaître une alerte dans la sélection, qui fait aussi la répartition entre sessions. L'alerte prévient sans bloquer, et le tirage n'en tient pas compte. « Avec qui je veux jouer » donne un repère : la personne souhaitée est dans la même session, dans une autre, ou pas encore.
 - **R26** Les personnages peuvent être reliés entre eux par des relations typées (romance, famille, rivalité, alliance, hiérarchie, autre), avec une description commune et un libellé par côté (« supérieure de », « subordonné de »). Chaque côté peut être rendu visible du joueur : la relation entre alors dans sa fiche personnage envoyée.
-- **R27** Pour chaque paire joueur ↔ personnage, l'assistant calcule un score dont chaque composante est affichée :
-  - réponses au questionnaire reliées au personnage ;
-  - affinités « veut jouer avec » satisfaites par des personnages liés (même faction, même intrigue, relation directe).
+- **R27** L'assistant de casting est dans l'onglet Cast d'une session. Il répartit sur les personnages PJ les joueurs du cast et les personnes retenues pour la session qui n'ont pas encore confirmé. Pour chaque paire joueur ↔ personnage, il calcule une note à partir des réponses au questionnaire reliées au rôle, et affiche chaque composante :
+  - une réponse reliée au personnage vaut 1 point ;
+  - une réponse reliée à sa faction ou à son intrigue vaut un demi-point ;
+  - une échelle compte à proportion (1 : rien, 5 : en entier).
+
+  « Veut jouer avec » sert à placer les personnes dans la même session (R25), pas à choisir les personnages : il n'entre pas dans la note.
 - **R28** Deux situations sont des contraintes bloquantes, signalées comme telles :
-  - une relation que le joueur refuse de jouer ;
-  - un personnage lié à celui d'une personne avec qui il ne veut pas jouer.
-- **R29** Les attributions verrouillées par les orgas sont respectées. L'assistant propose une répartition, mais ne l'applique qu'à la demande explicite de l'organisateur.
+  - une relation d'un type que le joueur refuse de jouer ;
+  - deux personnes dont l'une ne veut pas jouer avec l'autre, sur deux personnages en relation directe. Une faction ou une intrigue commune ne bloque pas.
+
+  « Ne veut pas croiser » reste une alerte (R25) ; l'assistant la signale aussi quand les deux personnes sont dans la session. Les relations refusées en texte libre sont affichées.
+- **R29** Chaque attribution du cast a un cadenas : l'assistant ne touche pas aux attributions verrouillées. Il propose une répartition, qui ne remplit le formulaire du cast qu'à la demande de l'organisateur ; l'organisateur l'enregistre ensuite. Un personnage donné à une personne retenue qui n'a pas confirmé lui est réservé : elle n'entre dans le cast et les paiements qu'à sa confirmation (R22), et le personnage redevient libre si elle se désiste ou si sa place est libérée.
 
 ### Inscription permanente et diffusion
 
@@ -204,7 +209,7 @@ Chaque lot devient un epic, livrable seul :
 3. Sélection (R4, R7, R17 à R21), en deux epics : la sélection à la main, la liste d'attente, la confirmation et le vivier de l'inscription permanente ([EPIC-021](../archive/epics/EPIC-021-selection-a-la-main/README.md)), puis le tirage au sort, le mode mixte, les pondérations et la question d'équilibre (R4, R8, R17, R18, [EPIC-022](../archive/epics/EPIC-022-tirage-au-sort/README.md)).
 4. Affinités (R23 à R25). Voir [EPIC-023](../archive/epics/EPIC-023-affinites/README.md).
 5. Relations entre personnages et questionnaire relié aux rôles (R8, R26). Voir [EPIC-024](../archive/epics/EPIC-024-relations-et-questionnaire/README.md).
-6. Assistant de casting (R27 à R29).
+6. Assistant de casting (R27 à R29). Voir [EPIC-025](../archive/epics/EPIC-025-assistant-de-casting/README.md).
 
 ## Hors périmètre
 
@@ -231,3 +236,5 @@ Chaque lot devient un epic, livrable seul :
 - 2026-11-01 : EPIC-023 (lot 4) terminé et archivé ; ADR-0049 accepté.
 - 2026-11-01 (choix du lot 5) : une relation a un côté par personnage, avec un libellé et une visibilité dans la fiche envoyée pour chacun (R26). Les options des questions à choix et les questions sur une échelle se relient aux personnages, factions et intrigues (R8). « Les relations que je ne veux pas jouer » propose des cases, dont « Aucune, tout me va », en plus du texte libre.
 - 2026-11-01 : EPIC-024 (lot 5) terminé et archivé ; ADR-0050 accepté.
+- 2026-11-01 (choix du lot 6) : l'assistant est dans l'onglet Cast de la session et répartit le cast et les personnes retenues non confirmées. La note ne vient que du questionnaire : une réponse reliée au personnage vaut 1, à sa faction ou à son intrigue ½, une échelle à proportion. « Veut jouer avec » ne concerne que la session. « Ne veut pas jouer avec » interdit deux personnages en relation directe ; « ne veut pas croiser » reste une alerte. Un cadenas par ligne ; appliquer remplit le formulaire sans enregistrer ; un personnage donné à une personne retenue lui est réservé jusqu'à sa confirmation (R27 à R29).
+- 2026-11-01 : EPIC-025 (lot 6) terminé et archivé ; ADR-0051 accepté. SPEC-001 terminée.

@@ -55,6 +55,9 @@ export function projectOfflineSession(session: any, body: any, lookup: Lookup) {
             participantId: item.participantId || null,
             photoUrl: item.photoUrl || null,
             notes: item.notes || null,
+            // Absents du corps : la ligne garde son cadenas et sa réservation (ADR-0051)
+            locked: item.locked ?? previous.locked ?? false,
+            reservedRegistrationId: item.participantId ? null : item.reservedRegistrationId === undefined ? previous.reservedRegistrationId ?? null : item.reservedRegistrationId || null,
             character: characters.get(item.characterId) || previous.character || { id: item.characterId, name: 'Personnage' },
             participant: item.participantId ? participants.get(item.participantId) || unknownParticipant(item.participantId) : null
           }
