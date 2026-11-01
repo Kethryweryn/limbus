@@ -98,3 +98,5 @@ Sources secondaires, sans fiche de la CNIL propre au cas. À confirmer avec un j
 ## Historique
 
 - 2026-11-02 : création, avec les choix de l'utilisatrice.
+- 2026-11-02 (revue de code) : les deux epics sont livrés ensemble, pour que la politique de confidentialité ne promette pas de durée que Limbus n'applique pas encore.
+- 2026-11-02 : EPIC-029 et EPIC-030 terminés et archivés ; ADR-0055 et ADR-0056 acceptés.

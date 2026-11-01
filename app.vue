@@ -130,7 +130,7 @@ const currentPath = computed(() => router.currentRoute.value.path)
 const isLegalRoute = computed(() => LEGAL_PAGES.some((page) => currentPath.value === page.to))
 const isPublicRoute = computed(() => isLegalRoute.value || ['/public/', '/invitations/', '/acces/'].some((prefix) => currentPath.value.startsWith(prefix)))
 // Liens personnels d'inscription (US-004) et de confirmation de présence (US-024), lien de diffusion (US-084)
-const isPersonalLinkRoute = computed(() => ['/inscription/', '/presence/', '/i/'].some((prefix) => route.path.startsWith(prefix)))
+const isPersonalLinkRoute = computed(() => ['/inscription/', '/presence/', '/i/'].some((prefix) => currentPath.value.startsWith(prefix)))
 let authCheckInProgress = false
 
 function hasValidOfflineAuth() {

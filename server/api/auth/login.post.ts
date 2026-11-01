@@ -1,7 +1,8 @@
+import { purgeRetention } from '~/server/utils/retention'
 import { purgeExpiredPhotos } from '~/server/utils/photoRetention'
 import bcrypt from 'bcrypt'
 import { prisma } from '~/server/utils/prisma'
-import { setAuthCookie } from '~/server/utils/auth'
+import { setAuthCookie, touchAccount } from '~/server/utils/auth'
 import { loginSchema, readZodBody } from '~/server/utils/schemas'
 import { assertRateLimit } from '~/server/utils/rateLimit'
 import { purgeUnconfirmedAccounts } from '~/server/utils/accounts'
@@ -49,6 +50,10 @@ export default defineEventHandler(async (event) => {
   // Photos des sessions passées depuis plus longtemps que la durée de leur jeu (US-108, ADR-0054) : après une
   // connexion réussie seulement, pour qu'une tentative refusée ne parcoure pas les sessions
   await purgeExpiredPhotos()
+  // Connexion : activité du compte, puis comptes inactifs et fiches sans compte trop anciens (US-112, US-113), en
+  // tâche de fond pour ne pas ralentir la connexion
+  await touchAccount(user.id, null)
+  purgeRetention().catch((error) => console.error('[conservation] purge non effectuée', { error: (error as Error)?.message }))
   setAuthCookie(event, user)
 
   return { success: true }

@@ -59,6 +59,8 @@ test('les modifications en attente partent à l’ouverture de l’application',
   await expectLoggedIn(page)
   const game = await (await page.request.post('/api/games', { data: { title: `Jeu hors ligne ${Date.now()}` }, headers: { 'sec-fetch-site': 'same-origin' } })).json()
   const name = `Clairière ${Date.now()}`
+  // La page finit de s'ouvrir après la connexion : écrire avant ferait perdre le contexte de la page
+  await page.waitForLoadState('networkidle')
 
   // Modification laissée en attente lors d'une visite précédente
   await writeQueue(page, [{
