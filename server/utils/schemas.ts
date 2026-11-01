@@ -14,7 +14,9 @@ import {
   USER_ROLES,
   REGISTRATION_PERIOD_SCOPES,
   REGISTRATION_REPLAY_POLICIES,
-  REGISTRATION_SELECTION_ACTIONS
+  REGISTRATION_SELECTION_ACTIONS,
+  REGISTRATION_SELECTION_MODES,
+  REGISTRATION_DEFAULT_WAITLIST_SIZE
 } from '~/utils/domain'
 import { isHttpUrl, isUploadUrl, PHOTO_UPLOAD_PREFIX, RIB_UPLOAD_PREFIX } from '~/utils/urls'
 import {
@@ -94,6 +96,13 @@ function formatZodError(error: ZodError) {
   }))
 }
 
+// Attribut d'équilibre des personnages (US-091) : un nom et ses valeurs, sans doublon
+const balanceAttribute = z.string().trim().max(100, 'Nom d’attribut trop long').optional().nullable()
+const balanceValues = z.array(z.string().trim().min(1, 'Valeur vide').max(100, 'Valeur trop longue')).max(20, 'Vingt valeurs au plus')
+  .refine((values) => new Set(values).size === values.length, 'Une valeur est donnée deux fois')
+  .optional()
+const balanceValue = z.string().trim().max(100).optional().nullable()
+
 export const createGameSchema = z.object({
   title: requiredText('Title'),
   description: optionalText,
@@ -103,7 +112,9 @@ export const createGameSchema = z.object({
   // Ce que la page publique montre en plus de la présentation (US-086)
   publicShowSessions: optionalBoolean,
   publicShowRegistration: optionalBoolean,
-  singlePjPerParticipant: optionalBoolean
+  singlePjPerParticipant: optionalBoolean,
+  balanceAttribute,
+  balanceValues
 })
 
 export const updateGameSchema = z.object({
@@ -116,7 +127,9 @@ export const updateGameSchema = z.object({
   // Ce que la page publique montre en plus de la présentation (US-086)
   publicShowSessions: optionalBoolean,
   publicShowRegistration: optionalBoolean,
-  singlePjPerParticipant: optionalBoolean
+  singlePjPerParticipant: optionalBoolean,
+  balanceAttribute,
+  balanceValues
 })
 
 export const createCharacterSchema = z.object({
@@ -132,6 +145,7 @@ export const createCharacterSchema = z.object({
   trombinoscopePhotoUrl: uploadOrExternalUrl(PHOTO_UPLOAD_PREFIX),
   trombinoscopeNote: optionalText,
   trombinoscopeDisplayName: optionalText,
+  balanceValue,
   gameId: requiredId('Game'),
   factionIds: z.array(requiredId('Faction')).optional().default([])
 })
@@ -149,6 +163,7 @@ export const updateCharacterSchema = z.object({
   trombinoscopePhotoUrl: uploadOrExternalUrl(PHOTO_UPLOAD_PREFIX),
   trombinoscopeNote: optionalText,
   trombinoscopeDisplayName: optionalText,
+  balanceValue,
   gameId: requiredId('Game').optional(),
   factionIds: z.array(requiredId('Faction')).optional()
 })
@@ -358,6 +373,14 @@ const registrationPeriodSessions = z.array(registrationPeriodSessionSchema)
   .refine((sessions) => new Set(sessions.map((session) => session.sessionId)).size === sessions.length, 'Une session est choisie deux fois')
   .default([])
 
+const registrationSelectionMode = z.enum(
+  [REGISTRATION_SELECTION_MODES.chosen, REGISTRATION_SELECTION_MODES.random, REGISTRATION_SELECTION_MODES.mixed],
+  { error: 'Mode de sélection inconnu' }
+)
+const registrationWaitlistSize = z.number().int('Taille de liste d’attente invalide').min(0, 'Taille de liste d’attente invalide').max(1000, 'Taille de liste d’attente invalide')
+// Mode mixte : places que chaque organisatrice retient elle-même par session (US-092)
+const registrationOrganizerPicks = z.number().int('Nombre invalide').min(0, 'Nombre invalide').max(1000, 'Nombre invalide').nullable().optional()
+
 const registrationReplayPolicy = z.enum(
   [REGISTRATION_REPLAY_POLICIES.allowed, REGISTRATION_REPLAY_POLICIES.flagged, REGISTRATION_REPLAY_POLICIES.excluded],
   { error: 'Réglage des rejoueurs inconnu' }
@@ -374,8 +397,18 @@ export const registrationPeriodSchema = z.object({
   responseDelayDays: registrationResponseDelay.default(REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS),
   notifyTeam: z.boolean().default(false),
   replayPolicy: registrationReplayPolicy.default(REGISTRATION_REPLAY_POLICIES.allowed),
+  organizerPicks: registrationOrganizerPicks,
+  selectionMode: registrationSelectionMode.default(REGISTRATION_SELECTION_MODES.chosen),
+  weightNotDrawnBefore: z.boolean().default(false),
+  weightBalance: z.boolean().default(false),
+  waitlistSize: registrationWaitlistSize.default(REGISTRATION_DEFAULT_WAITLIST_SIZE),
   sessions: registrationPeriodSessions
 }).superRefine((period, context) => {
+  // Tirage et mode mixte : périodes ordinaires en mode formulaire (US-092)
+  if (period.selectionMode !== REGISTRATION_SELECTION_MODES.chosen
+    && (period.scope === REGISTRATION_PERIOD_SCOPES.game || period.entryMode !== REGISTRATION_ENTRY_MODES.form)) {
+    context.addIssue({ code: 'custom', path: ['selectionMode'], message: 'Le tirage concerne les périodes ordinaires en mode formulaire' })
+  }
   if (period.scope === REGISTRATION_PERIOD_SCOPES.game) {
     if (period.entryMode !== REGISTRATION_ENTRY_MODES.form) {
       context.addIssue({ code: 'custom', path: ['entryMode'], message: 'L’inscription permanente est toujours en mode formulaire' })
@@ -397,6 +430,11 @@ export const registrationPeriodUpdateSchema = z.object({
   responseDelayDays: registrationResponseDelay.optional(),
   notifyTeam: z.boolean().optional(),
   replayPolicy: registrationReplayPolicy.optional(),
+  organizerPicks: registrationOrganizerPicks,
+  selectionMode: registrationSelectionMode.optional(),
+  weightNotDrawnBefore: z.boolean().optional(),
+  weightBalance: z.boolean().optional(),
+  waitlistSize: registrationWaitlistSize.optional(),
   sessions: registrationPeriodSessions
 })
 
@@ -475,6 +513,8 @@ export const registrationFormDefinitionSchema = z.object({
     Object.fromEntries(REGISTRATION_AFFINITIES.map(({ key }) => [key, registrationFieldSetting.optional()])) as
       Record<RegistrationAffinityKey, z.ZodOptional<typeof registrationFieldSetting>>
   ).optional(),
+  // Question d'équilibre (US-091) : demandée ou non ; son libellé et ses valeurs viennent du jeu
+  balance: registrationFieldSetting.optional(),
   questions: z.array(registrationQuestion).max(REGISTRATION_QUESTION_MAX, 'Trop de questions').optional()
     .refine((questions) => {
       const ids = (questions ?? []).map((question) => question.id).filter(Boolean)

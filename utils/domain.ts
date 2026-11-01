@@ -151,6 +151,15 @@ export const REGISTRATION_SELECTION_MODES = {
   mixed: 'mixed'
 } as const
 
+export const REGISTRATION_SELECTION_MODE_OPTIONS = [
+  { label: 'À la main', value: REGISTRATION_SELECTION_MODES.chosen },
+  { label: 'Au hasard', value: REGISTRATION_SELECTION_MODES.random },
+  { label: 'Mixte : choix des orgas, puis tirage', value: REGISTRATION_SELECTION_MODES.mixed }
+] as const
+
+// Taille de la liste d'attente de chaque session après un tirage (US-092)
+export const REGISTRATION_DEFAULT_WAITLIST_SIZE = 5
+
 export const REGISTRATION_PERIOD_STATES = {
   draft: 'draft',
   open: 'open',

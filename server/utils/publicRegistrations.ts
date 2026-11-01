@@ -5,12 +5,13 @@ import { assertRateLimit } from '~/server/utils/rateLimit'
 import { sendEmail } from '~/server/utils/email'
 import { hashRegistrationToken, WITHDRAWABLE_STATUSES } from '~/server/utils/registrations'
 import { asksAvailability } from '~/server/utils/registrationAvailability'
-import { getCurrentRegistrationForm, saveRegistrationFormDefinition, type AffinityAnswers, type QuestionAnswers } from '~/server/utils/registrationForms'
+import { getCurrentRegistrationForm, saveRegistrationFormDefinition, withGameBalanceQuestion, type AffinityAnswers, type QuestionAnswers } from '~/server/utils/registrationForms'
 import { REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES, isClosedSessionStatus } from '~/utils/domain'
 import { effectivePeriodState } from '~/utils/registrationPeriods'
 import { announcedRegistrationStatus, canConfirmPlace, isAnnouncementPending, isResponseOverdue, registrationLinkExpired, splitParticipantName } from '~/utils/registrations'
 import {
   DEFAULT_REGISTRATION_FORM_DEFINITION,
+  REGISTRATION_BALANCE_ANY,
   REGISTRATION_AFFINITIES,
   normalizeRegistrationFormDefinition,
   type RegistrationFormDefinition
@@ -38,6 +39,7 @@ const publicRegistrationSelect = {
   healthConsentAt: true,
   charterAcceptedAt: true,
   questionAnswers: true,
+  balancePreference: true,
   affinities: { select: { kind: true, text: true }, orderBy: { position: 'asc' as const } },
   availabilities: { select: { sessionId: true } },
   responseDueAt: true,
@@ -146,7 +148,7 @@ async function formForRegistration(registration: PublicRegistration) {
   if (registration.formVersion) {
     return {
       versionId: registration.formVersion.id,
-      definition: normalizeRegistrationFormDefinition(registration.formVersion.definition as RegistrationFormDefinition)
+      definition: await withGameBalanceQuestion(registration.period.gameId, normalizeRegistrationFormDefinition(registration.formVersion.definition as RegistrationFormDefinition))
     }
   }
   const current = await getCurrentRegistrationForm(registration.period.gameId)
@@ -229,6 +231,8 @@ export async function exposePublicRegistration(registration: PublicRegistration,
       charterAccepted: Boolean(registration.charterAcceptedAt),
       affinities: groupAffinities(registration.affinities),
       questionAnswers: (registration.questionAnswers ?? {}) as QuestionAnswers,
+      // Réponse déjà donnée : « peu importe » se relit comme tel
+      balancePreference: registration.balancePreference ?? (answered ? REGISTRATION_BALANCE_ANY : null),
       availableSessionIds: registration.availabilities.map((availability) => availability.sessionId)
     }
   }

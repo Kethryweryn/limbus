@@ -12,17 +12,39 @@
           <span v-else-if="overview?.replayPolicy === REGISTRATION_REPLAY_POLICIES.excluded"> Les rejoueurs sont exclus du tirage{{ permanent ? ' et du vivier' : '' }}.</span>
         </p>
       </div>
-      <UButton
-        size="sm"
-        icon="i-heroicons-megaphone"
-        color="primary"
-        :disabled="!pendingCount"
-        :loading="announcing"
-        @click="announce"
-      >
-        Annoncer les résultats{{ pendingCount ? ` (${pendingCount})` : '' }}
-      </UButton>
+      <div class="flex flex-wrap gap-2">
+        <!-- Tirage (US-093) : un seul actif ; pour refaire, on annule le précédent -->
+        <UButton
+          v-if="drawable"
+          size="sm"
+          icon="i-heroicons-sparkles"
+          color="neutral"
+          variant="soft"
+          :disabled="Boolean(activeDraw)"
+          :title="activeDraw ? 'Annulez le tirage en cours pour en refaire un' : undefined"
+          :loading="drawing"
+          @click="draw"
+        >
+          Tirer au sort
+        </UButton>
+        <UButton
+          size="sm"
+          icon="i-heroicons-megaphone"
+          color="primary"
+          :disabled="!pendingCount"
+          :loading="announcing"
+          @click="announce"
+        >
+          Annoncer les résultats{{ pendingCount ? ` (${pendingCount})` : '' }}
+        </UButton>
+      </div>
     </div>
+    <p v-if="drawable && !activeDraw" class="text-xs text-gray-500">
+      <template v-if="period.selectionMode === REGISTRATION_SELECTION_MODES.mixed">
+        Mode mixte : avant le tirage, chaque organisatrice retient jusqu’à {{ period.organizerPicks ?? 0 }} personne{{ (period.organizerPicks ?? 0) > 1 ? 's' : '' }} par session ; le tirage remplit le reste.
+      </template>
+      <template v-else>Sélection au hasard : lancez le tirage, puis corrigez à la main si besoin.</template>
+    </p>
 
     <UAlert v-if="message" :color="messageColor" variant="soft" :description="message" :close="{ color: 'neutral', variant: 'link' }" @update:open="message = ''" />
 
@@ -140,6 +162,38 @@
       </ul>
     </div>
 
+    <!-- Journal des tirages (US-094, R18) : graine, réglages et résultat de chacun, annulés compris -->
+    <div v-if="draws.length" class="space-y-2">
+      <p class="text-xs font-semibold text-gray-600">Tirages</p>
+      <div v-for="entry in draws" :key="entry.id" class="space-y-1 rounded border border-gray-100 p-2 text-xs text-gray-600">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span>
+            Le {{ formatDateTime(entry.createdAt) }}<span v-if="entry.createdBy"> par {{ entry.createdBy.name }}</span>
+            · graine <code>{{ entry.seed }}</code>
+            <UBadge v-if="entry.cancelledAt" class="ml-1" size="sm" color="neutral" variant="outline">
+              Annulé le {{ formatDateTime(entry.cancelledAt) }}<span v-if="entry.cancelledBy">&nbsp;par {{ entry.cancelledBy.name }}</span>
+            </UBadge>
+          </span>
+          <UButton v-if="!entry.cancelledAt" size="xs" color="warning" variant="soft" :loading="cancelling" @click="cancelDraw(entry)">
+            Annuler ce tirage
+          </UButton>
+        </div>
+        <p>
+          {{ entry.settings.weightNotDrawnBefore ? 'Chances doublées pour les non retenus avant' : 'Sans priorité' }} ·
+          {{ entry.settings.weightBalance ? `équilibre selon « ${entry.settings.balanceAttribute} »` : 'sans équilibre' }} ·
+          liste d’attente de {{ entry.settings.waitlistSize }}
+          <span v-if="entry.settings.excludedReplayers?.length"> · {{ entry.settings.excludedReplayers.length }} rejoueur{{ entry.settings.excludedReplayers.length > 1 ? 's' : '' }} exclu{{ entry.settings.excludedReplayers.length > 1 ? 's' : '' }}</span>
+        </p>
+        <p v-for="result in entry.result.sessions" :key="result.sessionId">
+          <span class="font-medium">{{ sessionName(result.sessionId) }}</span> :
+          retenues {{ names(result.retained) || 'aucune' }} ;
+          en attente {{ names(result.waitlisted) || 'aucune' }}
+          <span class="text-gray-400">(ordre : {{ names(result.order.map((item) => item.registrationId)) || '—' }})</span>
+        </p>
+        <p v-if="entry.result.rejected.length">Non retenues : {{ names(entry.result.rejected) }}</p>
+      </div>
+    </div>
+
     <div v-if="withdrawn.length" class="space-y-1">
       <p class="text-xs font-semibold text-gray-600">Désistées : {{ withdrawn.length }}</p>
       <ul class="text-sm text-gray-600">
@@ -164,7 +218,7 @@
 </template>
 
 <script setup>
-import { REGISTRATION_PERIOD_SCOPES, REGISTRATION_REPLAY_POLICIES, REGISTRATION_STATUSES } from '~/utils/domain'
+import { REGISTRATION_PERIOD_SCOPES, REGISTRATION_REPLAY_POLICIES, REGISTRATION_SELECTION_MODES, REGISTRATION_STATUSES } from '~/utils/domain'
 import { canConfirmPlace, isAnnouncementPending, isBackInPool } from '~/utils/registrations'
 import { apiErrorMessage } from '~/utils/apiErrors'
 
@@ -180,9 +234,18 @@ const message = ref('')
 const messageColor = ref('success')
 const announcing = ref(false)
 
+const draws = ref([])
+const drawing = ref(false)
+const cancelling = ref(false)
+
 async function loadOverview() {
   try {
-    overview.value = await useApiFetch(`/api/registration-periods/${props.period.id}/selection`)
+    const [selection, journal] = await Promise.all([
+      useApiFetch(`/api/registration-periods/${props.period.id}/selection`),
+      permanent.value ? Promise.resolve([]) : useApiFetch(`/api/registration-periods/${props.period.id}/draws`)
+    ])
+    overview.value = selection
+    draws.value = journal
   } catch (err) {
     messageColor.value = 'error'
     message.value = apiErrorMessage(err, 'Impossible de charger la sélection')
@@ -193,6 +256,12 @@ onMounted(loadOverview)
 watch(() => props.registrations, loadOverview)
 
 const permanent = computed(() => props.period.scope === REGISTRATION_PERIOD_SCOPES.game)
+// Tirage : périodes ordinaires en mode hasard ou mixte (US-092) ; le journal reste lisible si le mode change ensuite
+const drawable = computed(() => !permanent.value && props.period.selectionMode !== REGISTRATION_SELECTION_MODES.chosen)
+const activeDraw = computed(() => draws.value.find((entry) => !entry.cancelledAt) || null)
+const registrationNames = computed(() => new Map(props.registrations.map((registration) => [registration.id, registration.participant.name])))
+const names = (ids) => ids.map((id) => registrationNames.value.get(id) || 'inscription effacée').join(', ')
+const sessionName = (id) => props.period.sessions.find((link) => link.sessionId === id)?.session.name || 'session retirée'
 const sessions = computed(() => overview.value?.sessions ?? [])
 const replayers = computed(() => new Set(overview.value?.replayerParticipantIds ?? []))
 const sessionIds = computed(() => new Set(sessions.value.map((session) => session.id)))
@@ -236,12 +305,15 @@ function availabilityLabel(registration) {
   return sessions.value.filter((session) => available(registration, session)).map((session) => session.name).join(', ')
 }
 
+// Mode hasard : on ne retient à la main qu'après un tirage (US-092)
+const manualRetainAllowed = computed(() => !(props.period.selectionMode === REGISTRATION_SELECTION_MODES.random && !activeDraw.value))
+
 function decisionItems(registration) {
   const targets = sessions.value.filter((session) => available(registration, session))
   const waitingIn = new Set((registration.waitlistEntries || []).map((entry) => entry.sessionId))
   const retainHere = (session) => registration.status === REGISTRATION_STATUSES.retained && registration.sessionId === session.id
   const groups = [
-    targets.filter((session) => !retainHere(session)).map((session) => ({
+    targets.filter((session) => manualRetainAllowed.value && !retainHere(session)).map((session) => ({
       label: `Retenir pour ${session.name}`,
       icon: 'i-heroicons-check',
       disabled: session.taken >= session.seats,
@@ -281,6 +353,38 @@ async function move(session, index, offset) {
   } catch (err) {
     messageColor.value = 'error'
     message.value = apiErrorMessage(err, 'Réordonnancement impossible')
+  }
+  emit('changed')
+}
+
+async function draw() {
+  if (!confirm('Tirer au sort les inscriptions à trier ? Le tirage range les inscriptions sans prévenir personne : vous pourrez corriger, puis annoncer.')) return
+  drawing.value = true
+  message.value = ''
+  try {
+    await useApiFetch(`/api/registration-periods/${props.period.id}/draws`, { method: 'POST' })
+    messageColor.value = 'success'
+    message.value = 'Tirage effectué : vérifiez le résultat, puis annoncez-le.'
+  } catch (err) {
+    messageColor.value = 'error'
+    message.value = apiErrorMessage(err, 'Tirage impossible')
+  } finally {
+    drawing.value = false
+  }
+  emit('changed')
+}
+
+async function cancelDraw(entry) {
+  if (!confirm('Annuler ce tirage ? Les inscriptions dont la décision vient encore de lui repartent à trier ; il reste dans le journal.')) return
+  cancelling.value = true
+  message.value = ''
+  try {
+    await useApiFetch(`/api/registration-draws/${entry.id}/cancel`, { method: 'POST' })
+  } catch (err) {
+    messageColor.value = 'error'
+    message.value = apiErrorMessage(err, 'Annulation impossible')
+  } finally {
+    cancelling.value = false
   }
   emit('changed')
 }
@@ -338,4 +442,5 @@ async function saveSeats() {
 }
 
 const formatDate = (value) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long' })
+const formatDateTime = (value) => new Date(value).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })
 </script>

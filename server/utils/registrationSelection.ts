@@ -7,6 +7,7 @@ import {
   REGISTRATION_ENTRY_MODES,
   REGISTRATION_PERIOD_SCOPES,
   REGISTRATION_REPLAY_POLICIES,
+  REGISTRATION_SELECTION_MODES,
   REGISTRATION_SELECTION_STATUSES,
   REGISTRATION_STATUSES,
   SESSION_ROLES,
@@ -27,13 +28,23 @@ const selectionPeriodSelect = {
   entryMode: true,
   replayPolicy: true,
   responseDelayDays: true,
-  game: { select: { title: true } },
-  sessions: { select: { sessionId: true, seats: true, session: { select: { id: true, name: true, date: true, status: true } } } }
+  createdAt: true,
+  selectionMode: true,
+  organizerPicks: true,
+  weightNotDrawnBefore: true,
+  weightBalance: true,
+  waitlistSize: true,
+  game: { select: { title: true, balanceAttribute: true, balanceValues: true } },
+  // Dans l'ordre des dates : le tirage va session par session (ADR-0048)
+  sessions: {
+    orderBy: { session: { date: 'asc' } },
+    select: { sessionId: true, seats: true, session: { select: { id: true, name: true, date: true, status: true } } }
+  }
 } as const
 
-type SelectionPeriod = NonNullable<Awaited<ReturnType<typeof findSelectionPeriod>>>
+export type SelectionPeriod = NonNullable<Awaited<ReturnType<typeof findSelectionPeriod>>>
 
-async function findSelectionPeriod(periodId: string) {
+export async function findSelectionPeriod(periodId: string) {
   return await prisma.registrationPeriod.findUnique({ where: { id: periodId }, select: selectionPeriodSelect })
 }
 
@@ -103,13 +114,38 @@ export async function selectionOverview(periodId: string) {
   }
 }
 
-function assertFormPeriod(period: { entryMode: string }) {
+// Un tirage actif (non annulé) : il y en a au plus un par période (US-094)
+export async function activeDraw(periodId: string) {
+  return await prisma.registrationDraw.findFirst({ where: { periodId, cancelledAt: null }, select: { id: true, createdAt: true } })
+}
+
+/**
+ * Retenir à la main avant le tirage (US-092, ADR-0048) : refusé en mode hasard ; en mode mixte, chaque organisatrice
+ * retient au plus `organizerPicks` personnes par session. Une fois un tirage fait, les corrections sont libres.
+ */
+export async function assertManualRetainAllowed(period: SelectionPeriod, sessionId: string, userId: string) {
+  if (period.selectionMode === REGISTRATION_SELECTION_MODES.chosen || isPermanentPeriod(period)) return
+  if (await activeDraw(period.id)) return
+  if (period.selectionMode === REGISTRATION_SELECTION_MODES.random) {
+    throw createError({ statusCode: 409, message: 'Cette période sélectionne au hasard : lancez le tirage, puis corrigez à la main si besoin.' })
+  }
+  const picks = period.organizerPicks ?? 0
+  const mine = await prisma.registration.count({ where: { ...takenSeatsWhere([sessionId]), retainedById: userId } })
+  if (mine >= picks) {
+    throw createError({
+      statusCode: 409,
+      message: `Mode mixte : vous avez déjà retenu ${mine} personne${mine > 1 ? 's' : ''} pour cette session (${picks} au plus par organisatrice avant le tirage).`
+    })
+  }
+}
+
+export function assertFormPeriod(period: { entryMode: string }) {
   if (period.entryMode !== REGISTRATION_ENTRY_MODES.form) {
     throw createError({ statusCode: 409, message: 'La sélection concerne les périodes en mode formulaire : en mode invitation, on invite directement.' })
   }
 }
 
-async function lockSession(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0], sessionId: string) {
+export async function lockSession(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0], sessionId: string) {
   // Deux décisions simultanées pour la même session comptent les places l'une après l'autre
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`registration-seats:${sessionId}`}))`
 }
@@ -118,7 +154,7 @@ async function lockSession(tx: Parameters<Parameters<typeof prisma.$transaction>
  * Décision de sélection sur une inscription (US-087, US-090). Rien n'est envoyé : la décision est
  * « à annoncer » (US-088). Le statut lu est revérifié à l'écriture : un désistement simultané l'emporte.
  */
-export async function applySelection(registrationId: string, action: SelectionAction, sessionId: string | null) {
+export async function applySelection(registrationId: string, action: SelectionAction, sessionId: string | null, author: { id: string }) {
   const registration = await prisma.registration.findUniqueOrThrow({
     where: { id: registrationId },
     select: {
@@ -160,13 +196,14 @@ export async function applySelection(registrationId: string, action: SelectionAc
       throw createError({ statusCode: 409, message: 'Cette personne a déjà joué : les rejoueurs sont exclus du vivier.' })
     }
   }
+  if (action === 'retain') await assertManualRetainAllowed(period, session!.id, author.id)
   if (action === 'unwaitlist' && !registration.waitlistEntries.some((entry) => entry.sessionId === sessionId)) {
     throw createError({ statusCode: 400, message: 'Cette personne n’est pas sur la liste d’attente de cette session.' })
   }
 
   const unchanged = { id: registration.id, status: registration.status, sessionId: registration.sessionId }
-  // Une place retenue revenue au vivier repart sans réponse
-  const cleared = { respondedAt: null, confirmedAt: null }
+  // Une place retenue revenue au vivier repart sans réponse ; seule une place retenue garde qui l'a retenue
+  const cleared = { respondedAt: null, confirmedAt: null, retainedById: null }
   await prisma.$transaction(async (tx) => {
     const write = async (data: Record<string, unknown>) => {
       const { count } = await tx.registration.updateMany({ where: unchanged, data })
@@ -190,6 +227,7 @@ export async function applySelection(registrationId: string, action: SelectionAc
         status: REGISTRATION_STATUSES.retained,
         sessionId: session!.id,
         ...cleared,
+        retainedById: author.id,
         ...(announced ? {} : { responseDueAt: null, lastRemindedAt: null })
       })
       await tx.registrationWaitlistEntry.deleteMany({ where: { registrationId: registration.id } })

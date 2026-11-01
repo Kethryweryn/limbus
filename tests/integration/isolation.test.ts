@@ -232,6 +232,9 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['PUT', `/api/registration-periods/${b.registrationPeriod.id}/waitlist`, { sessionId: b.session.id, registrationIds: [] }],
     ['PUT', `/api/registration-periods/${b.registrationPeriod.id}/pool-seats`, { sessionId: b.session.id, seats: 3 }],
     ['POST', `/api/registration-periods/${b.registrationPeriod.id}/announce`],
+    // Tirage (US-093, US-094)
+    ['POST', `/api/registration-periods/${b.registrationPeriod.id}/draws`],
+    ['GET', `/api/registration-periods/${b.registrationPeriod.id}/draws`],
     ['PUT', `/api/games/${b.game.id}/registration-form`, {
       standardFields: Object.fromEntries(['lastName', 'firstName', 'facebookName', 'phone', 'emergencyContact', 'dietary']
         .map((key) => [key, { asked: false, required: false }]))
@@ -261,6 +264,16 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect((await api(alice, 'GET', `/api/registration-periods/${a.registrationPeriod.id}/selection`)).status).toBe(200)
     // Fichier référencé mais absent du disque : l'accès est accordé, puis 404
     expect((await api(alice, 'GET', `/api/uploads/session-assignment-photos/${a.photo.filename}`)).status).toBe(404)
+  })
+
+  it('Alice n’annule pas un tirage de Bob ; témoin : le sien', async () => {
+    const result = { sessions: [], rejected: [] }
+    const bobDraw = await prisma.registrationDraw.create({ data: { periodId: b.registrationPeriod.id, seed: 'b', settings: {}, result } })
+    const aliceDraw = await prisma.registrationDraw.create({ data: { periodId: a.registrationPeriod.id, seed: 'a', settings: {}, result } })
+    expect(DENIED).toContain((await api(alice, 'POST', `/api/registration-draws/${bobDraw.id}/cancel`)).status)
+    expect((await prisma.registrationDraw.findUniqueOrThrow({ where: { id: bobDraw.id } })).cancelledAt).toBeNull()
+    expect((await api(alice, 'POST', `/api/registration-draws/${aliceDraw.id}/cancel`)).status).toBe(200)
+    expect((await api(alice, 'GET', `/api/registration-periods/${a.registrationPeriod.id}/draws`)).status).toBe(200)
   })
 
   it('les inscriptions de Bob sont intactes', async () => {

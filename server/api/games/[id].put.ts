@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   await assertUnmodifiedSince(event, 'game', id)
 
   const body = await readZodBody(event, updateGameSchema)
-  const { title, description, teaserUrl, noteIntention, published, publicPage, publicShowSessions, publicShowRegistration, singlePjPerParticipant } = body
+  const { title, description, teaserUrl, noteIntention, published, publicPage, publicShowSessions, publicShowRegistration, singlePjPerParticipant, balanceAttribute, balanceValues } = body
 
   const data: any = {
     description,
@@ -24,7 +24,11 @@ export default defineEventHandler(async (event) => {
     publicPage: published === false ? false : publicPage,
     publicShowSessions,
     publicShowRegistration,
-    singlePjPerParticipant
+    singlePjPerParticipant,
+    // Attribut d'équilibre (US-091) : sans nom, pas de valeurs
+    ...(balanceAttribute !== undefined ? { balanceAttribute: balanceAttribute || null } : {}),
+    ...(balanceValues !== undefined ? { balanceValues } : {}),
+    ...(balanceAttribute === null || balanceAttribute === '' ? { balanceValues: [] } : {})
   }
 
   if (title) {
@@ -35,6 +39,8 @@ export default defineEventHandler(async (event) => {
   const previous = await prisma.game.findUniqueOrThrow({ where: { id }, select: { slug: true } })
   const game = await prisma.$transaction(async (tx) => {
     const updated = await tx.game.update({ where: { id }, data })
+    // Une valeur d'équilibre retirée du jeu ne reste pas sur ses personnages (US-091)
+    await tx.character.updateMany({ where: { gameId: id, balanceValue: { not: null, notIn: updated.balanceAttribute ? updated.balanceValues : [] } }, data: { balanceValue: null } })
     // L'ancienne adresse de la page publique redirige vers la nouvelle (US-045, ADR-0035) ; le slug repris
     // par le jeu n'a plus de redirection
     if (updated.slug !== previous.slug) {

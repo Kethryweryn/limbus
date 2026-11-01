@@ -120,6 +120,7 @@
             <RegistrationExtraFields
               v-model:affinities="form.affinities"
               v-model:answers="form.questionAnswers"
+              v-model:balance-preference="form.balancePreference"
               :definition="registration.definition"
               :disabled="readOnly"
               :errors="fieldErrors"

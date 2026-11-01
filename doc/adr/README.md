@@ -51,3 +51,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0045](ADR-0045-questions-et-affinites-du-formulaire.md) | Questions propres au jeu et affinités dans la définition du formulaire | accepté | 2026-10-31 |
 | [ADR-0046](ADR-0046-formulaire-public-des-inscriptions.md) | Formulaire public des inscriptions : demande à confirmer, inscription reçue, inscription permanente | accepté | 2026-10-31 |
 | [ADR-0047](ADR-0047-selection-des-inscriptions.md) | Sélection des inscriptions : décisions préparées puis annoncées, liste d'attente par session, vivier calculé | accepté | 2026-10-31 |
+| [ADR-0048](ADR-0048-tirage-au-sort.md) | Tirage au sort reproductible, session par session, avec pondérations et places réservées par valeur d'équilibre | accepté | 2026-11-01 |

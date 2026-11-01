@@ -73,17 +73,24 @@ export type RegistrationQuestion = {
   options: string[]
 }
 
+// Question d'équilibre (US-091, ADR-0048) : le réglage est dans la définition, le libellé et les valeurs viennent du
+// jeu à la lecture. « Peu importe » s'envoie avec cette valeur et s'enregistre comme une absence de préférence.
+export const REGISTRATION_BALANCE_ANY = '*'
+export type RegistrationBalanceSetting = RegistrationFieldSetting & { label?: string, values?: string[] }
+
 // Une définition d'avant ADR-0045 n'a ni affinités ni questions : elle se lit sans elles
 export type RegistrationFormDefinition = {
   standardFields: Record<RegistrationStandardFieldKey, RegistrationFieldSetting>
   affinities?: Partial<Record<RegistrationAffinityKey, RegistrationFieldSetting>>
   questions?: Array<Omit<RegistrationQuestion, 'id'> & { id?: string }>
+  balance?: RegistrationBalanceSetting
 }
 
 export type NormalizedRegistrationFormDefinition = {
   standardFields: Record<RegistrationStandardFieldKey, RegistrationFieldSetting>
   affinities: Record<RegistrationAffinityKey, RegistrationFieldSetting>
   questions: RegistrationQuestion[]
+  balance: RegistrationBalanceSetting
 }
 
 export const DEFAULT_REGISTRATION_FORM_DEFINITION: RegistrationFormDefinition = {
@@ -121,7 +128,18 @@ export function normalizeRegistrationFormDefinition(definition: RegistrationForm
       : []
   }))
 
-  return { standardFields, affinities, questions }
+  // Le libellé et les valeurs ne sont pas enregistrés : ils suivent l'attribut du jeu
+  const balance = setting(definition.balance, NOT_ASKED)
+  return { standardFields, affinities, questions, balance }
+}
+
+// Ajoute à une définition le libellé et les valeurs de l'attribut d'équilibre du jeu ; sans attribut, la question
+// n'est pas posée
+export function withBalanceQuestion(definition: NormalizedRegistrationFormDefinition, game: { balanceAttribute: string | null, balanceValues: string[] }): NormalizedRegistrationFormDefinition {
+  if (!game.balanceAttribute || !game.balanceValues.length) {
+    return { ...definition, balance: { ...definition.balance, asked: false, required: false } }
+  }
+  return { ...definition, balance: { ...definition.balance, label: game.balanceAttribute, values: game.balanceValues } }
 }
 
 export function sameRegistrationFormDefinition(left: RegistrationFormDefinition, right: RegistrationFormDefinition) {

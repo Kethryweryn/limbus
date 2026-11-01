@@ -60,6 +60,8 @@ export default defineEventHandler(async (event) => {
                 publicPage: game.publicPage,
                 publicShowSessions: game.publicShowSessions,
                 publicShowRegistration: game.publicShowRegistration,
+                balanceAttribute: game.balanceAttribute,
+                balanceValues: game.balanceValues,
                 singlePjPerParticipant: game.singlePjPerParticipant,
                 ownerId: game.ownerId,
                 owner: game.owner,

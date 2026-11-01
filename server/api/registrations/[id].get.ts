@@ -30,11 +30,13 @@ export default defineEventHandler(async (event) => {
       healthConsentAt: true,
       charterAcceptedAt: true,
       questionAnswers: true,
+      balancePreference: true,
       affinities: { select: { kind: true, text: true }, orderBy: { position: 'asc' } },
       formVersion: { select: { number: true, definition: true } },
       session: { select: { id: true, name: true } }
     }
   })
+  const game = await prisma.game.findUnique({ where: { id: period.gameId }, select: { balanceAttribute: true } })
   const [withPresence] = await withSessionPresence([registration])
   const { formVersion, affinities, ...rest } = withPresence!
   const definition = formVersion ? normalizeRegistrationFormDefinition(formVersion.definition as RegistrationFormDefinition) : null
@@ -42,6 +44,8 @@ export default defineEventHandler(async (event) => {
     ...rest,
     formVersion: formVersion ? { number: formVersion.number } : null,
     questions: definition?.questions ?? [],
+    // Question d'équilibre demandée par la version remplie, avec le nom de l'attribut du jeu (US-091)
+    balance: definition?.balance.asked && game?.balanceAttribute ? { label: game.balanceAttribute } : null,
     affinities: groupAffinities(affinities)
   }
 })

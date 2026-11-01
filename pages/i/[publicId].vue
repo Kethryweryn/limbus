@@ -87,6 +87,7 @@
               <RegistrationExtraFields
                 v-model:affinities="form.affinities"
                 v-model:answers="form.questionAnswers"
+                v-model:balance-preference="form.balancePreference"
                 :definition="period.definition"
                 :errors="fieldErrors"
               />
@@ -146,6 +147,7 @@ const form = reactive({
   availableSessionIds: [],
   affinities: {},
   questionAnswers: {},
+  balancePreference: null,
   website: ''
 })
 if (period.value?.account) Object.assign(form, period.value.account)

@@ -26,6 +26,17 @@ v-model="localCharacter.gameId"
                 />
             </UFormField>
 
+            <!-- Valeur de l'attribut d'équilibre du jeu, pour un PJ (US-091) -->
+            <UFormField v-if="balanceGame && localCharacter.type === CHARACTER_TYPES.pj" :label="balanceGame.balanceAttribute">
+                <USelect
+                    v-model="balanceSelection"
+                    :items="balanceItems"
+                    value-key="value"
+                    size="lg"
+                    class="w-full"
+                />
+            </UFormField>
+
             <UFormField v-if="factionOptions.length" label="Groupes">
                 <USelectMenu
                     v-model="localCharacter.factionIds"
@@ -173,6 +184,21 @@ const props = defineProps({
 const emit = defineEmits(['submit', 'cancel', 'update:character'])
 
 const localCharacter = ref({ ...props.character })
+
+// Jeu du personnage, s'il a un attribut d'équilibre ; « Non renseigné » s'envoie comme une valeur vide
+const NO_BALANCE_VALUE = '__none'
+const balanceGame = computed(() => {
+    const game = props.games.find((candidate) => candidate.id === localCharacter.value.gameId)
+    return game?.balanceAttribute && game.balanceValues?.length ? game : null
+})
+const balanceItems = computed(() => [
+    { label: 'Non renseigné', value: NO_BALANCE_VALUE },
+    ...(balanceGame.value?.balanceValues || []).map((value) => ({ label: value, value }))
+])
+const balanceSelection = computed({
+    get: () => localCharacter.value.balanceValue || NO_BALANCE_VALUE,
+    set: (value) => { localCharacter.value.balanceValue = value === NO_BALANCE_VALUE ? null : value }
+})
 const errors = ref({})
 const serverError = ref('')
 const trombinoscopePhotoInput = ref(null)

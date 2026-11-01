@@ -40,6 +40,16 @@
         description="Décochez pour un jeu en plusieurs actes, où un participant joue un rôle par acte."
       />
 
+      <!-- Attribut d'équilibre des personnages (US-091) : sert à la question d'équilibre et au tirage -->
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <UFormField label="Attribut d’équilibre" description="Facultatif, par exemple « Genre du personnage ».">
+          <UInput v-model="localGame.balanceAttribute" class="w-full" />
+        </UFormField>
+        <UFormField v-if="localGame.balanceAttribute?.trim()" label="Valeurs" description="Une par ligne, par exemple F, H, Autre.">
+          <UTextarea v-model="balanceValuesText" :rows="3" class="w-full" />
+        </UFormField>
+      </div>
+
 
       <div class="flex flex-wrap gap-2 pt-2">
         <UButton type="submit" color="primary" size="lg">
@@ -66,11 +76,18 @@ const props = defineProps({
 const emit = defineEmits(['submit', 'cancel', 'update:game'])
 
 const localGame = ref({ ...props.game })
+
+// Une valeur par ligne : le texte saisi reste tel quel, les valeurs envoyées sont sans lignes vides ni doublons
+const balanceValuesText = ref((props.game.balanceValues || []).join('\n'))
+watch(balanceValuesText, (text) => {
+  localGame.value.balanceValues = [...new Set(String(text).split('\n').map((value) => value.trim()).filter(Boolean))]
+})
 const errors = ref({})
 const serverError = ref('')
 
 watch(() => props.game, (newGame) => {
   localGame.value = { ...newGame }
+  balanceValuesText.value = (newGame.balanceValues || []).join('\n')
   errors.value = {}
   serverError.value = ''
 }, { immediate: true })

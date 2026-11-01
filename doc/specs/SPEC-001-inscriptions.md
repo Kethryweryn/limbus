@@ -4,8 +4,8 @@ titre: Inscriptions, sélection et aide au casting
 statut: validée
 date: 2026-10-27
 origine: ../archive/todo/inscriptions.md
-epics: [EPIC-001, EPIC-019, EPIC-020, EPIC-021]
-adr: [ADR-0007, ADR-0008, ADR-0011, ADR-0045, ADR-0046, ADR-0047]
+epics: [EPIC-001, EPIC-019, EPIC-020, EPIC-021, EPIC-022]
+adr: [ADR-0007, ADR-0008, ADR-0011, ADR-0045, ADR-0046, ADR-0047, ADR-0048]
 ---
 
 # SPEC-001 : Inscriptions, sélection et aide au casting
@@ -77,8 +77,10 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 - **R2** Une période d'inscription ne recrute que des PJ. Les PNJ et l'équipe cuisine restent ajoutés à la main dans la session.
 - **R3** Mode d'entrée : `invitation` ou `formulaire`.
 - **R4** Mode de sélection : `hasard`, `choix` ou `mixte`. En mode mixte :
-  - la part choisie est soit **N invitations par organisateur**, soit **un quota global**, au choix pour chaque période d'inscription ;
-  - les invitations des orgas sont attribuées d'abord, puis le tirage porte sur les places restantes.
+  - la part choisie est de **N places par organisatrice et par session**, réglé pour chaque période d'inscription : chaque organisatrice retient elle-même jusqu'à N personnes avant le tirage ;
+  - les choix des orgas sont attribués d'abord, puis le tirage porte sur les places restantes.
+
+  Le tirage ne concerne que les périodes ordinaires en mode formulaire ; l'inscription permanente se sélectionne à la main (R30).
 - **R5** Le nombre de places d'une session vaut par défaut le nombre de personnages PJ du jeu ; il est modifiable session par session.
 - **R6** Le formulaire n'accepte d'inscriptions qu'entre l'ouverture et la clôture de la période d'inscription.
 - **R7** Rejoueurs : un participant qui a déjà joué le jeu (participant d'une session terminée de ce jeu) est, selon le réglage de la période d'inscription :
@@ -199,7 +201,7 @@ Chaque lot devient un epic, livrable seul :
 
 1. Période d'inscription et mode invitation (R1 à R3, R5, R6, R8 pour la note d'intention et les champs standards, R12 à R16, R20, R22, R33). Voir [EPIC-001](../archive/epics/EPIC-001-inscription-sur-invitation/README.md).
 2. Formulaire public, inscription permanente et lien de diffusion (R8 au complet, R9 à R11, R13, R30 à R32), en deux epics : le formulaire complet, questions propres au jeu et affinités ([EPIC-019](../archive/epics/EPIC-019-formulaire-complet/README.md)), puis le formulaire public, le lien de diffusion et l'inscription permanente ([EPIC-020](../archive/epics/EPIC-020-formulaire-public/README.md)). La question d'équilibre (R8, R17) arrive au lot 3, avec la sélection qui s'en sert.
-3. Sélection (R4, R7, R17 à R21), en deux epics : la sélection à la main, la liste d'attente, la confirmation et le vivier de l'inscription permanente ([EPIC-021](../archive/epics/EPIC-021-selection-a-la-main/README.md)), puis le tirage au sort, le mode mixte, les pondérations et la question d'équilibre (R4, R8, R17, R18).
+3. Sélection (R4, R7, R17 à R21), en deux epics : la sélection à la main, la liste d'attente, la confirmation et le vivier de l'inscription permanente ([EPIC-021](../archive/epics/EPIC-021-selection-a-la-main/README.md)), puis le tirage au sort, le mode mixte, les pondérations et la question d'équilibre (R4, R8, R17, R18, [EPIC-022](../archive/epics/EPIC-022-tirage-au-sort/README.md)).
 4. Affinités (R23 à R25).
 5. Relations entre personnages et questionnaire relié aux rôles (R8, R26).
 6. Assistant de casting (R27 à R29).
@@ -223,3 +225,5 @@ Chaque lot devient un epic, livrable seul :
 - 2026-10-31 : EPIC-019 et EPIC-020 (lot 2) terminés et archivés ; ADR-0045 et ADR-0046 acceptés.
 - 2026-10-31 (choix du lot 3, sélection à la main) : l'équipe trie puis annonce les résultats d'un coup ; on retient directement pour une session ; la liste d'attente est propre à chaque session et une personne peut attendre dans plusieurs ; l'email d'attente ne donne pas de rang ; la personne retenue confirme d'un bouton ; on ne retient pas au-delà des places. Dans le vivier, seules les personnes retenues ou en attente sont prévenues, et une personne qui a joué y revient, sauf rejoueurs exclus (R7, R16, R19 à R21, R30).
 - 2026-10-31 : EPIC-021 (lot 3, première moitié) terminé et archivé ; ADR-0047 accepté.
+- 2026-11-01 (choix du tirage) : le tirage produit des décisions que l'équipe revoit avant d'annoncer ; il va session par session ; les personnes sans place vont en liste d'attente dans la limite d'une taille réglée par période, les autres sont non retenues ; « non tirés avant » double les chances ; en mode mixte, chaque organisatrice retient jusqu'à N personnes par session ; un tirage s'annule et se refait tant que rien n'est annoncé ; l'attribut d'équilibre est défini par jeu ; « peu importe » comble la valeur la plus libre ; une valeur sans assez de candidates laisse ses places libres (R4, R17 à R19). Le mode mixte retient la règle « N par organisatrice » ; le quota global n'est pas proposé.
+- 2026-11-01 : EPIC-022 (lot 3, seconde moitié) terminé et archivé ; ADR-0048 accepté. Lot 3 terminé.

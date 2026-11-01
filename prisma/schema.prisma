@@ -24,6 +24,9 @@ model Game {
   // Ce que la page publique montre en plus de la présentation (US-086, ADR-0046)
   publicShowSessions     Boolean @default(false)
   publicShowRegistration Boolean @default(false)
+  // Attribut d'équilibre des personnages (US-091, ADR-0048) : son nom et ses valeurs, par exemple « Genre du personnage »
+  balanceAttribute String?
+  balanceValues    String[]  @default([])
   // Un seul PJ par participant et par session (US-017) ; décoché pour un jeu en plusieurs actes
   singlePjPerParticipant Boolean @default(true)
   // Crédit d'une copie léguée, figé au moment du legs (SPEC-002 R11, R12, ADR-0025)
@@ -73,6 +76,8 @@ model Character {
   trombinoscopePhotoUrl    String?
   trombinoscopeNote        String?
   trombinoscopeDisplayName String?
+  // Valeur de l'attribut d'équilibre du jeu (US-091, ADR-0048)
+  balanceValue          String?
   slug                  String     @unique
   gameId                String
   game                  Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
@@ -282,12 +287,18 @@ model RegistrationPeriod {
   notifyTeam        Boolean  @default(false)
   // Rejoueurs (R7) : allowed, flagged ou excluded (US-087, ADR-0047)
   replayPolicy      String   @default("allowed")
+  // Tirage (US-092, ADR-0048) : places retenues par chaque organisatrice en mode mixte, pondérations, liste d'attente
+  organizerPicks       Int?
+  weightNotDrawnBefore Boolean  @default(false)
+  weightBalance        Boolean  @default(false)
+  waitlistSize         Int      @default(5)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   sessions          RegistrationPeriodSession[]
   registrations     Registration[]
   requests          RegistrationRequest[]
+  draws             RegistrationDraw[]
 
   @@index([gameId])
 }
@@ -378,6 +389,11 @@ model Registration {
   announcedStatus       String?
   announcedSessionId    String?
   announcedAt           DateTime?
+  // Organisatrice qui a retenu la personne à la main (US-092) ; null pour le tirage
+  retainedById          String?
+  retainedBy            User?                    @relation("RegistrationRetentions", fields: [retainedById], references: [id], onDelete: SetNull)
+  // Réponse à la question d'équilibre (US-091) ; null : peu importe
+  balancePreference     String?
   createdAt             DateTime                 @default(now())
   updatedAt             DateTime                 @updatedAt
 
@@ -419,6 +435,24 @@ model RegistrationAvailability {
 
   @@unique([registrationId, sessionId])
   @@index([sessionId])
+}
+
+// Tirage au sort d'une période (US-093, US-094, ADR-0048) : graine, réglages et résultat, pour le rejouer à l'identique
+model RegistrationDraw {
+  id            String             @id @default(cuid())
+  periodId      String
+  period        RegistrationPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  seed          String
+  settings      Json
+  result        Json
+  createdById   String?
+  createdBy     User?              @relation("RegistrationDrawAuthors", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime           @default(now())
+  cancelledAt   DateTime?
+  cancelledById String?
+  cancelledBy   User?              @relation("RegistrationDrawCancellations", fields: [cancelledById], references: [id], onDelete: SetNull)
+
+  @@index([periodId])
 }
 
 // Place dans la liste d'attente d'une session (US-087, ADR-0047) : une inscription attend dans une ou plusieurs sessions
@@ -711,6 +745,9 @@ model User {
   acceptedInvitations GameInvitation[] @relation("AcceptedGameInvitations")
   sentRegistrationInvitations Registration[] @relation("SentRegistrationInvitations")
   registrationWithdrawals Registration[] @relation("RegistrationWithdrawals")
+  registrationRetentions Registration[] @relation("RegistrationRetentions")
+  registrationDraws RegistrationDraw[] @relation("RegistrationDrawAuthors")
+  cancelledRegistrationDraws RegistrationDraw[] @relation("RegistrationDrawCancellations")
 }
 
 // Lien à usage unique envoyé par email : confirmation, changement d'adresse, mot de passe (ADR-0039)

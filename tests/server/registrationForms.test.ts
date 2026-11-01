@@ -123,3 +123,23 @@ describe('questions et affinités du formulaire', () => {
     expect(schema.parse({ ...answers, affinities: { wantWith: lines }, questionAnswers: { 'q-choix': 'Intrigue' } }).affinities.wantWith).toHaveLength(18)
   })
 })
+
+describe('question d’équilibre (US-091)', () => {
+  const base = { ...DEFAULT_REGISTRATION_FORM_DEFINITION, standardFields: Object.fromEntries(Object.keys(DEFAULT_REGISTRATION_FORM_DEFINITION.standardFields).map((key) => [key, { asked: false, required: false }])) } as typeof DEFAULT_REGISTRATION_FORM_DEFINITION
+  const withBalance = (required: boolean) => ({ ...base, balance: { asked: true, required, label: 'Genre', values: ['F', 'H'] } })
+  const answer = (balancePreference?: unknown) => ({ email: 'a@example.test', charterAccepted: true, balancePreference })
+
+  it('accepte une valeur du jeu, « peu importe » enregistré comme null, et refuse une autre valeur', () => {
+    const schema = registrationAnswerSchema(withBalance(true))
+    expect(schema.parse(answer('F')).balancePreference).toBe('F')
+    expect(schema.parse(answer('*')).balancePreference).toBeNull()
+    expect(schema.safeParse(answer('X')).success).toBe(false)
+    expect(schema.safeParse(answer()).success).toBe(false)
+  })
+
+  it('facultative, elle peut rester sans réponse ; non demandée, elle est ignorée', () => {
+    expect(registrationAnswerSchema(withBalance(false)).parse(answer()).balancePreference).toBeNull()
+    expect(registrationAnswerSchema(base).parse(answer('F')).balancePreference).toBeNull()
+  })
+})
+

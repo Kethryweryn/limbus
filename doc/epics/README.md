@@ -29,6 +29,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-019](../archive/epics/EPIC-019-formulaire-complet/README.md) | Formulaire complet : questions propres au jeu et affinités | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 | [EPIC-020](../archive/epics/EPIC-020-formulaire-public/README.md) | Formulaire public, lien de diffusion et inscription permanente | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 | [EPIC-021](../archive/epics/EPIC-021-selection-a-la-main/README.md) | Sélection à la main : retenues, liste d'attente, confirmation et vivier | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
+| [EPIC-022](../archive/epics/EPIC-022-tirage-au-sort/README.md) | Tirage au sort, mode mixte, pondérations et équilibre | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 
 ## US
 
@@ -124,3 +125,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-088](../archive/epics/EPIC-021-selection-a-la-main/US-088-annoncer-les-resultats.md) | Annoncer les résultats | EPIC-021 | terminée |
 | [US-089](../archive/epics/EPIC-021-selection-a-la-main/US-089-confirmer-sa-place.md) | Confirmer sa place, et proposer la suivante quand une place se libère | EPIC-021 | terminée |
 | [US-090](../archive/epics/EPIC-021-selection-a-la-main/US-090-vivier-de-l-inscription-permanente.md) | Choisir dans le vivier de l'inscription permanente | EPIC-021 | terminée |
+| [US-091](../archive/epics/EPIC-022-tirage-au-sort/US-091-attribut-et-question-d-equilibre.md) | Attribut d'équilibre des personnages et question d'équilibre | EPIC-022 | terminée |
+| [US-092](../archive/epics/EPIC-022-tirage-au-sort/US-092-mode-de-selection.md) | Mode de sélection, mode mixte et réglages du tirage | EPIC-022 | terminée |
+| [US-093](../archive/epics/EPIC-022-tirage-au-sort/US-093-tirer-au-sort.md) | Tirer au sort, avec pondérations et équilibre | EPIC-022 | terminée |
+| [US-094](../archive/epics/EPIC-022-tirage-au-sort/US-094-journal-des-tirages.md) | Journal des tirages, annuler et refaire | EPIC-022 | terminée |
