@@ -7,15 +7,21 @@ import { prisma } from '~/server/utils/prisma'
 const DATABASE_TIMEOUT_MS = 3000
 let deployedVersion: string | null | undefined
 
-/** Commit écrit par deploy.sh dans .output/VERSION, à côté de .output/server/index.mjs ; null sans fichier. */
-export function readDeployedVersion(entry = process.argv[1]) {
-  if (!entry) return null
-  try {
-    const version = readFileSync(resolve(dirname(entry), '..', 'VERSION'), 'utf8').trim()
-    return /^[0-9a-f]{7,40}$/.test(version) ? version : null
-  } catch {
-    return null
+/**
+ * Commit écrit par deploy.sh dans .output/VERSION : cherché à côté du point d'entrée (.output/server/index.mjs), puis
+ * dans le dossier de lancement ; null sans fichier.
+ */
+export function readDeployedVersion(entry = process.argv[1], cwd = process.cwd()) {
+  const candidates = [entry && resolve(dirname(entry), '..', 'VERSION'), resolve(cwd, '.output', 'VERSION')].filter((path): path is string => Boolean(path))
+  for (const path of candidates) {
+    try {
+      const version = readFileSync(path, 'utf8').trim()
+      if (/^[0-9a-f]{7,40}$/.test(version)) return version
+    } catch {
+      // Fichier absent : on essaie l'emplacement suivant
+    }
   }
+  return null
 }
 
 export function deployedVersionOnce() {

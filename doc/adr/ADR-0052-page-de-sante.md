@@ -18,14 +18,14 @@ Une panne n'est découverte que quand quelqu'un ouvre le site (revue d'architect
   - Réussite : 200, `{ status: 'ok', version }`.
   - Échec : 503, `{ status: 'error' }`, sans détail de l'erreur.
   - Toujours `Cache-Control: no-store`.
-- **Version** : `deploy.sh` écrit le commit déployé dans `.output/VERSION`. La route le lit une fois, à côté du point d'entrée du serveur (`process.argv[1]`, soit `.output/server/index.mjs`). Sans fichier, `version` vaut `null`.
+- **Version** : `deploy.sh` écrit le commit déployé dans `.output/VERSION`. La route le lit une fois : à côté du point d'entrée du serveur (`process.argv[1]`, soit `.output/server/index.mjs`), sinon dans `.output/` du dossier de lancement. Sans fichier, `version` vaut `null`.
+- **Limite** : 60 requêtes par minute et par adresse, bien au-dessus d'une sonde toutes les 3 minutes, pour qu'un abus ne monopolise pas la base.
 - **Surveillance** : un service externe (Better Stack, offre gratuite) interroge la route et le site professionnel, et alerte par email. Il est configuré hors du dépôt : rien de sa configuration n'y figure.
 
 ## Conséquences
 
 - Un déploiement se vérifie en lisant `version`.
 - La route ne dit rien d'Apache ni du serveur : une page qui répond 200 derrière un Apache en panne n'existe pas, puisque la sonde passe par Apache.
-- Pas de limite de débit : la requête est légère, et une limite ferait passer la sonde pour une panne.
 
 ## Options écartées
 
