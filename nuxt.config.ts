@@ -81,7 +81,9 @@ export default defineNuxtConfig({
     xssValidator: false,
     corsHandler: false,
     allowedMethodsRestricter: false,
-    removeLoggers: false
+    removeLoggers: false,
+    sri: false,
+    hidePoweredBy: false
   },
   devServer: {
     host: '0.0.0.0',

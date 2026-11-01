@@ -48,10 +48,10 @@ export function parseCspReport(raw: string | undefined) {
 }
 
 export async function recordCspViolation(violation: { directive: string, blockedUri: string, documentPath: string }) {
-  const key = { directive_blockedUri_documentPath: violation }
   const updated = await prisma.cspViolation.updateMany({ where: violation, data: { count: { increment: 1 }, lastSeenAt: new Date() } })
   if (updated.count) return
   // Une nouvelle violation n'entre que sous le plafond : un envoi abusif ne remplit pas la base
   if (await prisma.cspViolation.count() >= MAX_DISTINCT_VIOLATIONS) return
-  await prisma.cspViolation.upsert({ where: key, update: { count: { increment: 1 }, lastSeenAt: new Date() }, create: violation })
+  // Deux rapports identiques simultanés : le second échoue sur l'unicité, un compte de moins n'importe pas
+  await prisma.cspViolation.create({ data: violation }).catch(() => {})
 }

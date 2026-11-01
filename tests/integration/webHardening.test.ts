@@ -45,6 +45,18 @@ describe('origine des écritures (US-104)', () => {
   })
 })
 
+describe('cookie __Host- (US-105)', () => {
+  it('la déconnexion efface le cookie avec les attributs qui l’ont posé', async () => {
+    const response = await fetch(`${inject('baseUrl')}/api/auth/logout`, { method: 'POST', headers: { cookie: `__Host-limbus_token=${tokenFor(alice)}` } })
+    expect(response.status).toBe(200)
+    const cookie = response.headers.get('set-cookie')!
+    expect(cookie).toMatch(/^__Host-limbus_token=;/)
+    expect(cookie).toMatch(/Max-Age=0/i)
+    expect(cookie).toMatch(/; Secure/i)
+    expect(cookie).toMatch(/; Path=\/(;|$)/)
+  })
+})
+
 describe('CSP en mode rapport (US-106)', () => {
   it('pose une CSP stricte en mode rapport et la COOP sur les pages', async () => {
     const page = await fetch(`${inject('baseUrl')}/sessions`)
@@ -55,6 +67,17 @@ describe('CSP en mode rapport (US-106)', () => {
     expect(policy).toContain("object-src 'none'")
     expect(policy).toContain('report-uri /api/public/csp-report')
     expect(page.headers.get('cross-origin-opener-policy')).toBe('same-origin')
+    // Le reste de Nuxt Security est désactivé : pas d'attribut integrity sur les scripts
+    expect(await page.text()).not.toContain(' integrity="')
+  })
+
+  it('la page d’accueil prérendue a aussi sa CSP en mode rapport, sans nonce laissé en gabarit', async () => {
+    const home = await fetch(`${inject('baseUrl')}/`)
+    const policy = home.headers.get('content-security-policy-report-only')
+    expect(home.headers.get('content-security-policy')).toBeNull()
+    expect(policy).toContain("object-src 'none'")
+    expect(policy).not.toContain('{{nonce}}')
+    expect(await home.text()).not.toMatch(/http-equiv="Content-Security-Policy"/i)
   })
 
   it('compte les rapports, même envoyés sans origine, et ne les montre qu’à l’administratrice', async () => {
