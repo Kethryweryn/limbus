@@ -33,18 +33,25 @@ function editDistance(left: string, right: string) {
   return previous[right.length]!
 }
 
-// Chaque mot du nom le plus court commence un mot distinct de l'autre : « Paul D. » et « Paul Durand »
-function wordsMatch(shorter: string[], longer: string[]) {
+/**
+ * Chaque mot du nom le plus court se retrouve dans un mot distinct de l'autre : 1 pour un mot identique, 0,8 pour une
+ * initiale (« D » de « Durand »), 0,6 pour un début de mot (« Max » de « Maxence »). Renvoie la moyenne, 0 si un mot
+ * manque : « Paul D. » est plus proche de « Paul Durand » que de « Paula Dupont ».
+ */
+function wordsScore(shorter: string[], longer: string[]) {
   const free = [...longer]
-  return shorter.every((word) => {
-    const index = free.findIndex((candidate) => candidate.startsWith(word))
-    if (index < 0) return false
-    free.splice(index, 1)
-    return true
-  })
+  let total = 0
+  for (const word of shorter) {
+    const scores: number[] = free.map((candidate) => candidate === word ? 1 : !candidate.startsWith(word) ? 0 : word.length === 1 ? 0.8 : 0.6)
+    const best = Math.max(0, ...scores)
+    if (!best) return 0
+    total += best
+    free.splice(scores.indexOf(best), 1)
+  }
+  return total / shorter.length
 }
 
-/** Proximité de deux noms entre 0 et 1 : 1 pour un nom identique, 0,9 quand les mots se recouvrent, sinon la distance d'édition. */
+/** Proximité de deux noms entre 0 et 1 : 1 pour un nom identique, puis le recouvrement des mots ou la distance d'édition, le meilleur des deux. */
 export function nameSimilarity(written: string, name: string) {
   const left = normalizeName(written)
   const right = normalizeName(name)
@@ -53,8 +60,9 @@ export function nameSimilarity(written: string, name: string) {
   const leftWords = left.split(' ')
   const rightWords = right.split(' ')
   const [shorter, longer] = leftWords.length <= rightWords.length ? [leftWords, rightWords] : [rightWords, leftWords]
-  if (wordsMatch(shorter, longer)) return 0.9
-  return 1 - editDistance(left, right) / Math.max(left.length, right.length)
+  // Un nom identique reste seul au sommet
+  const words = Math.min(0.95, wordsScore(shorter, longer))
+  return Math.max(words, 1 - editDistance(left, right) / Math.max(left.length, right.length))
 }
 
 /** Les personnes au nom le plus proche du texte saisi, au-dessus du seuil, la plus proche en premier. */

@@ -36,8 +36,8 @@ export async function exportAccountData(userId: string) {
     account: { ...account, storage: await storageUsage({ id: userId, storageQuotaMb }) },
     ownedGames: ownedGames.map((game) => game.title),
     sharedGames: gameShares.map((share) => ({ title: share.game.title, since: share.createdAt })),
-    // Ses propres données : sans limite de jeux, notes des équipes comprises
-    participantRecords: await Promise.all(participantIds.map((id) => exportParticipantData(id, null)))
+    // Ses propres données : sans limite de jeux, notes des équipes comprises ; sans les rattachements des affinités (R24)
+    participantRecords: await Promise.all(participantIds.map((id) => exportParticipantData(id, null, { forPerson: true })))
   }
 }
 

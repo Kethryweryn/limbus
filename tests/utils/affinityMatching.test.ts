@@ -9,7 +9,9 @@ describe('similarité des noms (US-095)', () => {
 
   it('reconnaît un nom abrégé ou partiel', () => {
     expect(nameSimilarity('Paul D.', 'Paul Durand')).toBe(0.9)
-    expect(nameSimilarity('Durand', 'Paul Durand')).toBe(0.9)
+    expect(nameSimilarity('Durand', 'Paul Durand')).toBe(0.95)
+    // Une initiale et un mot entier passent devant un simple début de mot
+    expect(nameSimilarity('Paul D.', 'Paul Durand')).toBeGreaterThan(nameSimilarity('Paul D.', 'Paula Dupont'))
     expect(nameSimilarity('Paul Martin', 'Paul Durand')).toBeLessThan(0.6)
   })
 

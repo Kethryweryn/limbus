@@ -67,11 +67,15 @@ export async function affinitiesForTeam(registration: { id: string, participantI
  * Rattache une ligne d'affinité (US-095) : à une fiche du jeu de la période, autre que la personne elle-même,
  * ou « inconnue » ; sans l'un ni l'autre, la ligne est détachée.
  */
-export async function linkAffinity(affinityId: string, link: { targetParticipantId?: string | null, unknown?: boolean }) {
-  const affinity = await prisma.registrationAffinity.findUniqueOrThrow({
-    where: { id: affinityId },
-    select: { kind: true, registration: { select: { participantId: true, period: { select: { gameId: true } } } } }
-  })
+export const linkableAffinitySelect = {
+  id: true,
+  kind: true,
+  registration: { select: { participantId: true, period: { select: { gameId: true } } } }
+} as const
+
+type LinkableAffinity = { id: string, kind: string, registration: { participantId: string, period: { gameId: string } } }
+
+export async function linkAffinity(affinity: LinkableAffinity, link: { targetParticipantId?: string | null, unknown?: boolean }) {
   if (!isPersonAffinityKind(affinity.kind)) {
     throw createError({ statusCode: 400, message: 'Cette affinité décrit une relation, pas une personne : elle ne se rattache pas.' })
   }
@@ -86,9 +90,14 @@ export async function linkAffinity(affinityId: string, link: { targetParticipant
     })
     if (!inGame) throw createError({ statusCode: 400, message: 'Cette personne n’appartient pas au jeu.' })
   }
-  return await prisma.registrationAffinity.update({
-    where: { id: affinityId },
-    data: { targetParticipantId, targetUnknown: Boolean(link.unknown) },
+  // La personne peut avoir modifié ses réponses entre-temps : ses lignes ont alors été remplacées
+  const { count } = await prisma.registrationAffinity.updateMany({
+    where: { id: affinity.id },
+    data: { targetParticipantId, targetUnknown: Boolean(link.unknown) }
+  })
+  if (!count) throw createError({ statusCode: 409, message: 'Les réponses de cette personne ont changé entre-temps : rechargez l’inscription.' })
+  return await prisma.registrationAffinity.findUniqueOrThrow({
+    where: { id: affinity.id },
     select: { id: true, targetUnknown: true, targetParticipant: { select: { id: true, name: true } } }
   })
 }

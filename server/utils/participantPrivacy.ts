@@ -39,9 +39,10 @@ export async function eraseParticipant(participantId: string) {
 /**
  * Données d'un participant (RGPD, droit d'accès), limitées aux jeux accessibles
  * à l'organisateur qui exporte : un participant inscrit chez d'autres organisateurs
- * ne révèle pas leurs jeux.
+ * ne révèle pas leurs jeux. Exporté par la personne elle-même (`forPerson`), il ne contient pas les rattachements
+ * de ses affinités, que seule l'équipe voit (R24, ADR-0049).
  */
-export async function exportParticipantData(participantId: string, gameIds: string[] | null) {
+export async function exportParticipantData(participantId: string, gameIds: string[] | null, { forPerson = false } = {}) {
   const inGames = gameIds === null ? {} : { gameId: { in: gameIds } }
   const inSessions = gameIds === null ? {} : { session: { gameId: { in: gameIds } } }
   const session = { select: { name: true, date: true, game: { select: { title: true } } } }
@@ -86,7 +87,10 @@ export async function exportParticipantData(participantId: string, gameIds: stri
           // Sessions où la personne s'est dite disponible (R10)
           availabilities: { select: { session: { select: { name: true, date: true } } } },
           // Affinités écrites par la personne, avec la personne rattachée ; jamais celles des autres qui la visent (US-095)
-          affinities: { select: { kind: true, text: true, targetUnknown: true, targetParticipant: { select: { name: true } } }, orderBy: { position: 'asc' } },
+          affinities: {
+            select: { kind: true, text: true, ...(forPerson ? {} : { targetUnknown: true, targetParticipant: { select: { name: true } } }) },
+            orderBy: { position: 'asc' }
+          },
           // Sélection (US-087, US-088) : listes d'attente et décision annoncée
           waitlistEntries: { select: { position: true, session: { select: { name: true, date: true } } } },
           announcedStatus: true,
