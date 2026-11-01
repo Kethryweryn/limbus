@@ -79,7 +79,7 @@ describe('fiche allergies', () => {
 
   it('se télécharge en PDF, sans mise en cache', async () => {
     const { session } = await sessionWithRegistrations()
-    const response = await fetch(`${inject('baseUrl')}/api/sessions/${session.id}/allergies/pdf`, { headers: { cookie: `limbus_token=${tokenFor(alice)}` } })
+    const response = await fetch(`${inject('baseUrl')}/api/sessions/${session.id}/allergies/pdf`, { headers: { cookie: `__Host-limbus_token=${tokenFor(alice)}` } })
     expect(response.status).toBe(200)
     expect(response.headers.get('content-type')).toBe('application/pdf')
     expect(response.headers.get('cache-control')).toContain('no-store')

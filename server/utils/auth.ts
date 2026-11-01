@@ -13,7 +13,8 @@ export type AuthUser = {
   emailConfirmed: boolean
 }
 
-const AUTH_COOKIE = 'limbus_token'
+// Préfixe __Host- : posé par Limbus seul, en HTTPS, sans Domain (US-105, ADR-0053)
+const AUTH_COOKIE = '__Host-limbus_token'
 const SESSION_DURATION_SECONDS = 60 * 60 * 20
 
 function getJwtSecret(): string {
@@ -105,7 +106,8 @@ export function setAuthCookie(event: H3Event, user: { id: string, sessionVersion
 }
 
 export function clearAuthCookie(event: H3Event) {
-  deleteCookie(event, AUTH_COOKIE, { path: '/' })
+  // Un cookie __Host- ne s'efface qu'avec les mêmes attributs que ceux qui l'ont posé (US-105)
+  deleteCookie(event, AUTH_COOKIE, { path: '/', secure: true, httpOnly: true, sameSite: 'lax' })
 }
 
 // Déconnecte l'utilisateur sur tous ses appareils : les jetons déjà émis ne passent plus
@@ -142,5 +144,5 @@ export async function requireAdmin(event: H3Event): Promise<AuthUser> {
 }
 
 export function isAdminMode(event: H3Event, user: Pick<AuthUser, 'role'>): boolean {
-  return user.role === USER_ROLES.admin && getCookie(event, 'limbus_admin_mode') === '1'
+  return user.role === USER_ROLES.admin && getCookie(event, '__Host-limbus_admin_mode') === '1'
 }

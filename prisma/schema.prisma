@@ -923,3 +923,17 @@ model SessionAttendance {
   @@unique([sessionId, participantId])
   @@index([participantId])
 }
+
+// Violations de la CSP en mode rapport (US-106, ADR-0053), comptées sans adresse IP ni compte : la ressource bloquée
+// est réduite à son origine, la page à son chemin
+model CspViolation {
+  id           String   @id @default(cuid())
+  directive    String
+  blockedUri   String
+  documentPath String
+  count        Int      @default(1)
+  firstSeenAt  DateTime @default(now())
+  lastSeenAt   DateTime @default(now())
+
+  @@unique([directive, blockedUri, documentPath])
+}

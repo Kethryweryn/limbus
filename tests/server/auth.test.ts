@@ -15,7 +15,7 @@ let emailConfirmedAt: Date | null = new Date()
 let disabledAt: Date | null = null
 
 function eventWithToken(token: string) {
-  return fakeEvent({ headers: { cookie: `limbus_token=${token}` } }).event
+  return fakeEvent({ headers: { cookie: `__Host-limbus_token=${token}` } }).event
 }
 
 beforeEach(() => {

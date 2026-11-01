@@ -34,6 +34,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-024](../archive/epics/EPIC-024-relations-et-questionnaire/README.md) | Relations entre personnages, questionnaire relié aux rôles et relations refusées | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 | [EPIC-025](../archive/epics/EPIC-025-assistant-de-casting/README.md) | Assistant de casting | [SPEC-001](../specs/SPEC-001-inscriptions.md) | terminé |
 | [EPIC-026](../archive/epics/EPIC-026-supervision/README.md) | Supervision de la production | [fiche](../todo/supervision.md) | terminé |
+| [EPIC-027](../archive/epics/EPIC-027-durcissement-web/README.md) | Durcissement web : origine des écritures, cookie __Host-, CSP en mode rapport | [fiche](../todo/durcissement-web.md) | terminé |
 
 ## US
 
@@ -142,3 +143,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-101](../archive/epics/EPIC-025-assistant-de-casting/US-101-notes-et-interdits.md) | Voir la note de chaque joueur pour chaque personnage, et les interdits | EPIC-025 | terminée |
 | [US-102](../archive/epics/EPIC-025-assistant-de-casting/US-102-proposer-une-repartition.md) | Proposer une répartition et l'appliquer au cast | EPIC-025 | terminée |
 | [US-103](../archive/epics/EPIC-026-supervision/US-103-page-de-sante.md) | Page de santé de Limbus | EPIC-026 | terminée |
+| [US-104](../archive/epics/EPIC-027-durcissement-web/US-104-origine-des-ecritures.md) | Refuser les écritures venues d'un autre site | EPIC-027 | terminée |
+| [US-105](../archive/epics/EPIC-027-durcissement-web/US-105-cookie-host.md) | Cookies avec le préfixe __Host- | EPIC-027 | terminée |
+| [US-106](../archive/epics/EPIC-027-durcissement-web/US-106-csp-en-mode-rapport.md) | CSP et COOP sur les pages, d'abord en mode rapport | EPIC-027 | terminée |

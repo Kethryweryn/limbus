@@ -29,6 +29,7 @@
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^10.2.1",
     "nuxt": "^4.4.6",
+    "nuxt-security": "^2.6.0",
     "pdf-lib": "^1.17.1",
     "pg": "^8.16.3",
     "pinia": "^4.1.0",

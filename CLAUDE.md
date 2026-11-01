@@ -35,6 +35,7 @@ On ne pousse jamais directement sur `main` (ADR-0017) : chaque chantier a sa bra
 - Une ressource ne change jamais de jeu (`assertSameGame`).
 - Les liens absolus (emails, PDF) passent par `absoluteAppUrl()`, jamais par les en-têtes Host.
 - L'IP client pour le rate limit est la dernière entrée de `X-Forwarded-For`, ajoutée par Apache (voir `clientIp`).
+- Les écritures sous `/api/` doivent venir de Limbus : `server/middleware/origin.ts` refuse un POST, PUT, PATCH ou DELETE venu d'un autre site ou sans `Sec-Fetch-Site`, `Origin` ni `Referer` (ADR-0053). Un test ou un outil qui écrit envoie l'un d'eux. Le cookie de connexion s'appelle `__Host-limbus_token`. La CSP est posée par Nuxt Security (`nuxt.config.ts`) : une nouvelle ressource externe (script, iframe, connexion) doit y être autorisée.
 - Jamais de `process.env.X` dans `nuxt.config.ts` pour un secret : la valeur serait figée en clair dans `.output` au build. `runtimeConfig` reste vide, et le code lit `useRuntimeConfig().x || process.env.X` à l'exécution.
 - Toute nouvelle route ou ressource liée à un jeu doit être ajoutée à `tests/integration/isolation.test.ts`.
 

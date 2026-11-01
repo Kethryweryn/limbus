@@ -57,7 +57,7 @@ test('sans réseau, la déconnexion efface l’appareil et part au retour du ré
 test('les modifications en attente partent à l’ouverture de l’application', async ({ page }) => {
   await login(page, E2E_USERS.autre)
   await expectLoggedIn(page)
-  const game = await (await page.request.post('/api/games', { data: { title: `Jeu hors ligne ${Date.now()}` } })).json()
+  const game = await (await page.request.post('/api/games', { data: { title: `Jeu hors ligne ${Date.now()}` }, headers: { 'sec-fetch-site': 'same-origin' } })).json()
   const name = `Clairière ${Date.now()}`
 
   // Modification laissée en attente lors d'une visite précédente

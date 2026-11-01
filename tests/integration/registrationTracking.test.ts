@@ -202,7 +202,7 @@ describe('export CSV d’une session', () => {
     await prisma.registration.update({ where: { id: registration.id }, data: { emergencyContactName: 'Maman Urgence', emergencyContactPhone: '0699999999' } })
 
     const response = await fetch(`${inject('baseUrl')}/api/sessions/${session.id}/registrations/export`, {
-      headers: { cookie: `limbus_token=${tokenFor(alice)}` }
+      headers: { cookie: `__Host-limbus_token=${tokenFor(alice)}` }
     })
     expect(response.status).toBe(200)
     expect(response.headers.get('content-type')).toContain('text/csv')
