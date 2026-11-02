@@ -91,7 +91,7 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
   - Tout texte libre écrit par un participant : les questions à texte libre, et le texte tapé des affinités et des relations refusées.
   - Ce qui est lu à la place :
     - les réponses fermées (choix, échelles, relations refusées cochées) ;
-    - les affinités déjà traitées par l'équipe : une ligne rattachée à une personne du jeu apparaît comme ce lien, une ligne marquée « personne du jeu » comme telle. Une ligne non traitée n'apparaît pas.
+    - les affinités déjà traitées par l'équipe : une ligne rattachée à une personne du jeu apparaît comme ce lien, une ligne marquée « personne du jeu ne correspond » comme telle. Une ligne non traitée n'apparaît pas.
   - Les fichiers (photos, PDF, RIB) ne sont jamais rendus.
 - **R9 Réponses courtes.** Les outils de liste rendent des résumés paginés, et chaque fiche se lit par un outil à part. L'assistant ne reçoit jamais toute la base d'un coup.
 
@@ -113,6 +113,8 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
   - Rien n'est supprimé au-delà de R10 : ni un jeu, ni une session, ni un participant. Une session n'est pas non plus annulée ni reportée.
   - Les paiements et les tarifs restent hors de portée.
   - Aucun fichier n'est téléversé.
+
+  Choix de l'utilisatrice (2026-11-02) : modifier un contenu déjà visible sur la page publique reste permis. Cela vaut pour la description d'un jeu dont la page est active, une session publiée ou le formulaire d'une période ouverte. Le journal en garde la trace. Ce qui est interdit, c'est de rendre public : activer la page, ouvrir une période, publier un lien.
 - **R12 Règles communes.** Un outil applique les mêmes contrôles que l'interface :
   - accès au jeu ;
   - schéma de validation ;
@@ -128,7 +130,7 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
   - l'outil et l'élément (type, identifiant et nom) ;
   - le jeu et la date.
 
-  Les autorisations données, modifiées, retirées ou expirées sont notées aussi. Les lectures ne le sont pas. Le journal est gardé un an.
+  Les autorisations données, modifiées, retirées ou expirées sont notées aussi. Les lectures ne le sont pas, au choix de l'utilisatrice : seul le dernier usage de l'autorisation est gardé. Le journal est gardé un an.
   - L'organisatrice voit les actions de ses assistants.
   - La propriétaire d'un jeu voit toutes les actions des assistants sur ce jeu.
 - **R14 Limite de débit.** Les appels sont comptés par autorisation, et non par adresse IP : tous les appels d'un même assistant viennent des mêmes machines. Les seuils sont fixés dans l'ADR du lot 1.
@@ -137,7 +139,7 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
 ## Données
 
 - **Assistants** : ceux qui se sont présentés (identifiant, nom, adresses de retour). Ce n'est pas une donnée personnelle.
-- **Autorisations** : compte, assistant, droits, jeux, date, dernier usage, date de retrait. Les jetons sont gardés sous forme d'empreinte. Elles sont effacées 90 jours après leur fin.
+- **Autorisations** : compte, assistant, droits, jeux, date, dernier usage, date de retrait. Les jetons sont gardés sous forme d'empreinte. Une autorisation est effacée à sa fin (R6) ; le journal en garde la trace (R13).
 - **Réglage du jeu** : « Les co-organisatrices peuvent y brancher une IA », désactivé par défaut.
 - **Journal** : il est gardé un an.
   - L'export du compte (`exportAccountData`) contient les autorisations du compte et le journal de ses assistants.
@@ -182,3 +184,4 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
 ## Historique
 
 - 2026-11-02 : création, avec les choix de l'utilisatrice.
+- 2026-11-02 (revue) : contenu public modifiable, lectures hors journal (choix de l'utilisatrice) ; une autorisation finie est effacée, sans délai inventé.
