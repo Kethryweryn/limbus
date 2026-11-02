@@ -11,6 +11,7 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Un compte pour tout le monde](comptes-participants.md) | tranchée ([SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md)) | 2026-10-29 | Inscription libre, administrateur seul rôle global, espaces « J'organise » et « Je participe », coordonnées et RGPD en libre-service (SPEC-007, écart 1) |
 | [Numéros de version et notes de version](versions-et-notes-de-version.md) | à trancher | 2026-10-29 | Version sémantique, étiquettes git et notes de version à partir de la première version publiée |
 | [Indicateurs du questionnaire de casting](indicateurs-du-questionnaire-de-casting.md) | brouillon | 2026-11-02 | Repères compréhensibles sans formation en statistiques : questions qui ne départagent pas, personnages trop proches, rôles sans réponse ; état de l'art à rechercher à la spécification |
+| [Page Inscriptions lisible hors ligne](inscriptions-hors-ligne.md) | brouillon | 2026-11-02 | Inscriptions et détail lisibles depuis l'appareil sans réseau, en lecture seule (revue de la PR #95) |
 
 ## Archivées
 
