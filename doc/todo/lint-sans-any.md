@@ -11,8 +11,8 @@ date: 2026-11-03
 Le passage de l'interface en TypeScript strict (EPIC-031, ADR-0057) n'a couvert que les `.vue`, les composables et quelques fichiers de `utils/`. Ailleurs, la règle `@typescript-eslint/no-explicit-any` n'est qu'un avertissement. Le 3 novembre 2026, `npm run lint` en compte 117, tous de cette règle, dans 31 fichiers :
 
 - 17 fichiers de tests d'intégration ;
-- 9 fichiers serveur (`server/utils`, `server/api`), dont `concurrency.ts`, `gameAccess.ts`, `gameCopy.ts` et les écritures de `contentWrites.ts` ;
-- 4 fichiers de `utils/` (stockage, file hors ligne, connexion) et 1 test unitaire ;
+- 9 fichiers serveur (`server/utils`, `server/api`), dont `concurrency.ts`, `gameAccess.ts` et `gameCopy.ts`, plus les écritures du jeu et des personnages ;
+- 3 fichiers de `utils/` (stockage, file hors ligne, connexion) et 1 test unitaire ;
 - `scripts/create-user.ts`.
 
 Un `any` désactive la vérification de types à cet endroit. Une route dont la réponse change, ou un champ renommé dans Prisma, n'y est donc pas signalé. Et tant que la règle n'est qu'un avertissement, de nouveaux `any` peuvent entrer sans bloquer la CI.
