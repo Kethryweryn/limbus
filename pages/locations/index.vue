@@ -64,7 +64,7 @@
     <AppWideSlideover
       v-model:open="showFormSlideover"
       :title="formMode === 'edit' ? 'Modifier le lieu' : 'Créer un lieu'"
-      :full-page-to="formMode === 'edit' && activeFormLocation?.id ? `/locations/${activeFormLocation.slug}?edit=1` : null"
+      :full-page-to="formMode === 'edit' && activeFormLocation?.slug ? `/locations/${activeFormLocation.slug}?edit=1` : null"
       @close="closeFormSlideover"
       @full-page="showFormSlideover = false"
     >

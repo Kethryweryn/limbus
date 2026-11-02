@@ -199,7 +199,7 @@ test('un jeu se crée, se renomme et se partage avec une co-organisatrice', asyn
 })
 
 // Une fiche à l'adresse inconnue (lien ancien, slug changé) le dit, au lieu de rester en chargement
-for (const [path, message] of [['/documents', 'Document introuvable'], ['/timeline', 'Événement introuvable']]) {
+for (const [path, message] of [['/documents', 'Document introuvable'], ['/timeline', 'Événement introuvable']] as const) {
   test(`${path} : une adresse inconnue affiche « ${message} »`, async ({ page }) => {
     const prisma = createTestPrisma()
     try {

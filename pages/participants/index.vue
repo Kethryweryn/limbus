@@ -87,7 +87,7 @@
     <AppWideSlideover
       v-model:open="showFormSlideover"
       :title="formMode === 'edit' ? 'Modifier le participant' : 'Créer un participant'"
-      :full-page-to="formMode === 'edit' && activeFormParticipant?.id ? `/participants/${activeFormParticipant.slug}?edit=1` : null"
+      :full-page-to="formMode === 'edit' && activeFormParticipant?.slug ? `/participants/${activeFormParticipant.slug}?edit=1` : null"
       @close="closeFormSlideover"
       @full-page="showFormSlideover = false"
     >

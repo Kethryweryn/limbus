@@ -189,7 +189,10 @@ async function onPostponed(created: { slug: string }) {
 // La session se lit par le slug de la page, le reste par son identifiant : un slug change avec le nom. Toutes les
 // lectures gardent leur copie sur l'appareil : sans réseau, la session se rouvre telle qu'elle a été vue (US-047)
 const sessionBySlug = () => `/api/sessions/slug/${route.params.slug}`
-const sessionApi = (path: string, id = session.value?.id) => `/api/sessions/${id}${path}`
+function sessionApi(path: string, id = session.value?.id) {
+  if (!id) throw new Error('Session pas encore lue')
+  return `/api/sessions/${id}${path}`
+}
 function offlineRead<T>(request: string) {
   return fetchByUrl<T>(request, { offlineCache: true })
 }

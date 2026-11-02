@@ -62,7 +62,7 @@
     <AppWideSlideover
       v-model:open="showFormSlideover"
       :title="formMode === 'edit' ? 'Modifier la session' : 'Créer une session'"
-      :full-page-to="formMode === 'edit' && activeFormSession?.id ? `/sessions/${activeFormSession.slug}?edit=details` : null"
+      :full-page-to="formMode === 'edit' && activeFormSession?.slug ? `/sessions/${activeFormSession.slug}?edit=details` : null"
       @close="closeFormSlideover"
       @full-page="showFormSlideover = false"
     >
