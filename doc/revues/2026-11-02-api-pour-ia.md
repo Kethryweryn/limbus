@@ -14,7 +14,7 @@ Les sources sont en fin de document. Ce qui ne vient que d'une source secondaire
 ## Résumé
 
 1. **MCP est devenu le standard.** Claude, ChatGPT et Mistral se branchent sur un serveur MCP distant. La version stable du 28 juillet 2026 rend le protocole sans état, ce qui convient au serveur unique de Limbus.
-2. **L'authentification attendue est OAuth 2.1, avec Limbus comme serveur d'autorisation.** La spécification et Claude ne laissent pas de place à un jeton personnel par utilisatrice : Claude n'accepte une clé fixe que par organisation, en bêta. L'inscription des clients se fait de préférence par document de métadonnées (CIMD) ; l'inscription dynamique (DCR) reste acceptée mais est dépréciée.
+2. **L'authentification attendue est OAuth 2.1, avec Limbus comme serveur d'autorisation.** C'est ce que prévoit la spécification pour un serveur distant. Un jeton personnel marche avec Claude Code et Mistral, mais pas avec Claude sur le web ou le bureau, qui n'accepte une clé fixe que par organisation, en bêta. L'inscription des clients se fait de préférence par document de métadonnées (CIMD) ; l'inscription dynamique (DCR) reste acceptée mais est dépréciée.
 3. **Le risque principal est l'injection d'instructions.** Une IA qui lit des textes écrits par d'autres (réponses aux formulaires d'inscription, contenu d'un co-organisateur), voit des données privées et peut écrire quelque chose de visible à l'extérieur réunit les trois conditions d'une fuite. Aucune parade complète n'est connue : on la limite en restreignant ce que l'IA peut lire et faire.
 4. **Les données des participants ne devraient pas sortir au départ.** Les envoyer à un fournisseur d'IA crée un nouveau destinataire, choisi par l'équipe. Les allergies, données de santé, en sont exclues dans tous les cas.
 5. **Pour Limbus, le travail porte surtout sur l'authentification.** Les outils réutilisent les fonctions serveur existantes. Il faut un serveur d'autorisation OAuth, une limite de débit par compte plutôt que par adresse IP, la révocation par `revokeUserSessions` et un journal des actions de l'IA.
@@ -39,7 +39,7 @@ Le kit de développement officiel en TypeScript est passé en version 2 (`@model
 |---|---|---|---|
 | Claude (web, bureau, mobile, Claude Code, Cowork) | oui, « connecteur personnalisé » | OAuth avec CIMD ou DCR ; clé fixe par organisation en bêta seulement | Retour de connexion à `https://claude.ai/api/mcp/auth_callback` ; Claude Code utilise une adresse locale. Requêtes venues de `160.79.104.0/21`. |
 | ChatGPT | oui, en mode développeur | OAuth, ou sans authentification | Un outil qui n'est pas marqué en lecture seule demande une confirmation. Les plans qui permettent l'écriture diffèrent selon les sources (non vérifié). |
-| Mistral (Le Chat, Work) | oui, réservé à l'administrateur de l'espace | OAuth 2.1 avec DCR, ou jeton Bearer / Basic | Fournisseur européen. |
+| Mistral | oui pour Work, réservé à l'administrateur de l'espace ; pour Le Chat, seulement d'après un comparatif tiers | Work : OAuth 2.1 avec DCR, ou jeton Bearer / Basic | Fournisseur européen. |
 | Gemini | pas confirmé | — | Aucune source sûre sur les connecteurs MCP distants. |
 
 Claude, ChatGPT et Mistral appellent le serveur depuis leurs propres machines, pas depuis l'appareil de l'organisatrice.
@@ -149,7 +149,7 @@ Ce que l'étude change à la fiche, d'après le code actuel :
 | ChatGPT | oui | non documenté | non |
 | Copier un secret | non | oui | oui |
 | Conforme à la spécification MCP | oui | hors spécification pour un serveur distant | sans objet |
-| Travail | serveur d'autorisation, consentement, CIMD et DCR, rafraîchissement | gestion des jetons dans le compte | documentation OpenAPI de 212 routes, jetons |
+| Travail | serveur d'autorisation, consentement, CIMD et DCR, rafraîchissement | gestion des jetons dans le compte | documentation OpenAPI de toute l'API (environ 210 fichiers de routes), jetons |
 
 **Recommandation de l'étude : A, en lecture seule d'abord.** C'est la seule voie qui marche dans Claude et ChatGPT sans copier de secret, et celle que la spécification prévoit. Le serveur d'autorisation peut rester petit si Limbus l'écrit sur ses comptes actuels. Il serait limité à :
 - un seul type d'autorisation : code d'autorisation avec PKCE, plus le rafraîchissement ;
