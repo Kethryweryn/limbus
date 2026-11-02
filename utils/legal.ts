@@ -1,8 +1,8 @@
 // Pages légales (US-110, US-111, SPEC-013, ADR-0055) : ce qui revient d'une page à l'autre
 
 /** Version des conditions d'utilisation et de la politique de confidentialité : la changer fait accepter de nouveau. */
-export const TERMS_VERSION = '2026-11-02b'
-export const TERMS_VERSION_LABEL = '2 novembre 2026, deuxième version'
+export const TERMS_VERSION = '2026-11-02c'
+export const TERMS_VERSION_LABEL = '2 novembre 2026, troisième version'
 
 export const LEGAL_EDITOR = {
   name: 'Jean-Damien Mottot',
@@ -25,7 +25,10 @@ export const RETENTION = {
   participantWithoutAccountYears: 3,
   unconfirmedAccountDays: 7,
   unconfirmedFormDays: 7,
-  contactEmailYears: 3
+  contactEmailYears: 3,
+  // Assistants d'IA (SPEC-014) : autorisation finie après 90 jours sans usage, journal gardé un an
+  aiAuthorizationIdleDays: 90,
+  aiLogDays: 365
 }
 
 export const LEGAL_PAGES = [

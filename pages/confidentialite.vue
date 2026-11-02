@@ -26,6 +26,7 @@
       <li><strong>Photos</strong> ajoutées par l’équipe : pour le trombinoscope de la session. Le formulaire et les emails précisent leur usage et leur durée.</li>
       <li><strong>Paiements</strong> : montants, dates et remboursements notés par l’équipe, et le RIB que l’équipe dépose pour être payée, transmis aux joueurs de la session. Limbus ne traite aucun paiement en ligne et ne connaît aucune carte bancaire.</li>
       <li><strong>Emails envoyés</strong> par l’équipe (documents, fiches, trombinoscopes) : une copie est gardée pour que vous la retrouviez dans « Je participe ».</li>
+      <li><strong>Assistants d’IA</strong> qu’une organisatrice branche sur ses jeux : l’assistant, ses droits, les jeux ouverts, les dates d’autorisation et de dernier usage, et le journal de ses actions. Pour qu’elle les suive et les retire.</li>
     </ul>
 
     <h2>Bases légales</h2>
@@ -43,6 +44,12 @@
       <li>L’hébergeur, {{ LEGAL_HOST.name }}, en France.</li>
       <li>Brevo, en France, qui envoie les emails de Limbus.</li>
       <li>
+        Le fournisseur de l’assistant d’IA qu’une équipe branche sur son jeu (Anthropic, OpenAI, Mistral…), s’il y en a un.
+        C’est l’équipe qui le choisit, et il peut se trouver hors de l’Union européenne. Il reçoit le contenu du jeu, les noms
+        des participants, les notes de l’équipe et les réponses aux questions à choix du formulaire ; jamais vos
+        coordonnées, vos allergies, vos paiements, vos photos ni ce que vous avez écrit librement.
+      </li>
+      <li>
         Proton, en Suisse, qui reçoit les emails écrits à {{ LEGAL_EDITOR.email }}. La Suisse est
         reconnue par l’Union européenne comme assurant une protection adéquate des données personnelles.
       </li>
@@ -58,6 +65,7 @@
       <li>Photos : supprimées après le délai choisi par l’équipe du jeu (6 mois après la session par défaut).</li>
       <li>Copies des emails envoyés : effacées après la session.</li>
       <li>Emails écrits à {{ LEGAL_EDITOR.email }} : effacés {{ RETENTION.contactEmailYears }} ans après le dernier échange.</li>
+      <li>Autorisation d’un assistant d’IA : effacée quand l’organisatrice la retire, après {{ RETENTION.aiAuthorizationIdleDays }} jours sans usage, ou à une déconnexion de tous ses appareils. Le journal de ses actions est gardé un an.</li>
     </ul>
 
     <h2>Vos droits</h2>

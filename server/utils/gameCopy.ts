@@ -19,8 +19,9 @@ export const GAME_COPY_FIELDS = {
     copied: ['title', 'description', 'noteIntention', 'teaserUrl', 'singlePjPerParticipant', 'balanceAttribute', 'balanceValues', 'photoRetentionMonths'],
     remapped: [],
     relinked: ['characters', 'factions', 'intrigues', 'items', 'timelineEvents', 'documents', 'locations', 'uploadedFiles', 'registrationForm', 'characterRelations', 'registrationQuestionLinks'],
-    // La copie démarre active, sans page publique (R10), avec son propre crédit (R11 à R13), sans transfert en cours
-    omitted: ['id', 'slug', 'ownerId', 'createdAt', 'updatedAt', 'published', 'publicPage', 'publicShowSessions', 'publicShowRegistration', 'creditSourceTitle', 'creditAuthorName', 'copiedFromGameId', 'bequestPending', 'owner', 'copiedFrom', 'copies', 'sessions', 'participantLinks', 'shares', 'invitations', 'registrationPeriods', 'slugRedirects', 'transferToUserId', 'transferTo', 'contactEmail']
+    // La copie démarre active, sans page publique (R10), avec son propre crédit (R11 à R13), sans transfert en cours,
+    // sans assistant d'IA ni réglage pour eux (SPEC-014)
+    omitted: ['id', 'slug', 'ownerId', 'createdAt', 'updatedAt', 'published', 'publicPage', 'publicShowSessions', 'publicShowRegistration', 'creditSourceTitle', 'creditAuthorName', 'copiedFromGameId', 'bequestPending', 'owner', 'copiedFrom', 'copies', 'sessions', 'participantLinks', 'shares', 'invitations', 'registrationPeriods', 'slugRedirects', 'transferToUserId', 'transferTo', 'contactEmail', 'aiForCoorganizers', 'aiAuthorizationGames', 'aiLogEntries']
   },
   Character: {
     copied: ['name', 'type', 'pitch', 'background', 'backgroundDocumentUrl', 'sheetReadyToSend', 'costumeIndications', 'excludeFromTrombinoscope', 'trombinoscopeFaceHidden', 'trombinoscopeNote', 'trombinoscopeDisplayName', 'balanceValue', 'published'],

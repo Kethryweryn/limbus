@@ -45,6 +45,8 @@ model Game {
   // Transfert proposé à une co-organisatrice (US-060, ADR-0038) : le jeu change de main quand elle accepte
   transferToUserId  String?
   transferTo        User?      @relation("GameTransfers", fields: [transferToUserId], references: [id], onDelete: SetNull)
+  // Les co-organisatrices peuvent y brancher leur assistant d'IA (SPEC-014, R5) : décidé par la propriétaire
+  aiForCoorganizers Boolean   @default(false)
 
   characters     Character[]
   factions       Faction[]
@@ -63,6 +65,8 @@ model Game {
   registrationForm RegistrationForm?
   characterRelations CharacterRelation[]
   registrationQuestionLinks RegistrationQuestionLink[]
+  aiAuthorizationGames AiAuthorizationGame[]
+  aiLogEntries AiLogEntry[]
 
   @@index([ownerId])
   @@index([copiedFromGameId])
@@ -828,6 +832,8 @@ model User {
   registrationRetentions Registration[] @relation("RegistrationRetentions")
   registrationDraws RegistrationDraw[] @relation("RegistrationDrawAuthors")
   cancelledRegistrationDraws RegistrationDraw[] @relation("RegistrationDrawCancellations")
+  aiAuthorizations AiAuthorization[]
+  aiLogEntries AiLogEntry[]
 }
 
 // Lien à usage unique envoyé par email : confirmation, changement d'adresse, mot de passe (ADR-0039)
@@ -950,4 +956,104 @@ model CspViolation {
   lastSeenAt   DateTime @default(now())
 
   @@unique([directive, blockedUri, documentPath])
+}
+
+// Assistant d'IA (client OAuth) qui se branche sur Limbus (US-121, ADR-0058) : identifié par l'URL de son document
+// de métadonnées (CIMD), ou inscrit dynamiquement (DCR, identifiant aléatoire)
+model AiClient {
+  id           String   @id
+  name         String
+  redirectUris String[]
+  dynamic      Boolean  @default(false)
+  // CIMD : document relu au plus tard une heure après sa dernière lecture
+  fetchedAt    DateTime @default(now())
+  // Inscrit dynamiquement et jamais autorisé : effacé au bout de 24 heures
+  usedAt       DateTime?
+  createdAt    DateTime @default(now())
+
+  requests       AiAuthorizationRequest[]
+  authorizations AiAuthorization[]
+}
+
+// Demande d'autorisation en cours : page « Autoriser » (10 minutes), puis code à échanger (60 secondes)
+model AiAuthorizationRequest {
+  id              String   @id @default(cuid())
+  clientId        String
+  client          AiClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  redirectUri     String
+  state           String?
+  codeChallenge   String
+  // Empreinte du code rendu à l'assistant, et autorisation qu'il permet d'obtenir
+  codeHash        String?  @unique
+  authorizationId String?
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
+// Accord donné par un compte à un assistant (SPEC-014, R4 à R6) : effacé à sa fin, le journal en garde la trace
+model AiAuthorization {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         AiClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  canWrite       Boolean  @default(false)
+  // Version de session du compte à l'autorisation : revokeUserSessions la coupe
+  sessionVersion Int
+  lastUsedAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  games  AiAuthorizationGame[]
+  tokens AiToken[]
+
+  @@index([userId])
+}
+
+model AiAuthorizationGame {
+  authorizationId String
+  authorization   AiAuthorization @relation(fields: [authorizationId], references: [id], onDelete: Cascade)
+  gameId          String
+  game            Game            @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([authorizationId, gameId])
+  @@index([gameId])
+}
+
+// Jeton d'un assistant, gardé en empreinte : accès (une heure) ou rafraîchissement (renouvelé à chaque usage)
+model AiToken {
+  hash            String          @id
+  authorizationId String
+  authorization   AiAuthorization @relation(fields: [authorizationId], references: [id], onDelete: Cascade)
+  kind            String
+  expiresAt       DateTime
+  // Rafraîchissement déjà renouvelé : le présenter de nouveau fait tomber l'autorisation
+  usedAt          DateTime?
+  createdAt       DateTime        @default(now())
+
+  @@index([authorizationId])
+  @@index([expiresAt])
+}
+
+// Journal des assistants (SPEC-014, R13), gardé un an : autorisations et écritures. Effacer le compte efface son
+// nom, effacer le jeu efface ses lignes
+model AiLogEntry {
+  id              String   @id @default(cuid())
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  gameId          String?
+  game            Game?    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  clientName      String
+  authorizationId String?
+  action          String
+  tool            String?
+  targetType      String?
+  targetId        String?
+  targetName      String?
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([gameId])
+  @@index([createdAt])
 }
