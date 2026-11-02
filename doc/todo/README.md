@@ -4,7 +4,6 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 
 | Fiche | Statut | Créée le | Résumé |
 |---|---|---|---|
-| [API pour une IA](api-pour-ia.md) | prête | 2026-10-29 | Accès d'une IA aux jeux choisis par une organisatrice : MCP avec OAuth, lecture et écriture, sans coordonnées des participants ni champs libres ([état de l'art](../revues/2026-11-02-api-pour-ia.md)) |
 | [Durcissement web](durcissement-web.md) | en partie traitée | 2026-10-29 | CSP et COOP sur les pages, origine des écritures, cookie `__Host-` (revue R-01 à R-03) |
 | [Supervision](supervision.md) | en partie traitée | 2026-10-29 | Route de santé et sondes Better Stack faites ; reste les journaux structurés, si besoin (revue R-15, R-16) |
 | [Numéros de version et notes de version](versions-et-notes-de-version.md) | à trancher | 2026-10-29 | Version sémantique, étiquettes git et notes de version à partir de la première version publiée |
@@ -26,3 +25,4 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Interface en TypeScript](../archive/todo/interface-en-typescript.md) | [EPIC-031](../archive/epics/EPIC-031-interface-en-typescript/README.md) | 2026-11-02 |
 | [Un compte pour tout le monde](../archive/todo/comptes-participants.md) | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md), [SPEC-013](../specs/SPEC-013-pages-legales-et-conservation.md) | 2026-11-02 |
 | [Page Inscriptions lisible hors ligne](../archive/todo/inscriptions-hors-ligne.md) | [EPIC-032](../archive/epics/EPIC-032-inscriptions-hors-ligne/README.md) | 2026-11-02 |
+| [API pour une IA](../archive/todo/api-pour-ia.md) | [SPEC-014](../specs/SPEC-014-api-pour-ia.md) | 2026-11-02 |

@@ -1,7 +1,8 @@
 ---
 titre: API pour qu'une IA organise un jeu au nom d'une organisatrice
-statut: prête
-revue: ../revues/2026-11-02-api-pour-ia.md
+statut: archivée
+spec: ../../specs/SPEC-014-api-pour-ia.md
+revue: ../../revues/2026-11-02-api-pour-ia.md
 date: 2026-10-29
 ---
 
@@ -37,11 +38,11 @@ Dans les deux cas :
 
 ## Suivi
 
-- 2026-11-02 : état de l'art fait ([revue du 2026-11-02](../revues/2026-11-02-api-pour-ia.md)). La revue recommande MCP avec OAuth, Limbus étant son propre serveur d'autorisation, en lecture seule d'abord. Elle reformule les points à trancher (section 7) ; ceux ci-dessous restent jusqu'aux choix de l'utilisatrice.
+- 2026-11-02 : état de l'art fait ([revue du 2026-11-02](../../revues/2026-11-02-api-pour-ia.md)). La revue recommande MCP avec OAuth, Limbus étant son propre serveur d'autorisation, en lecture seule d'abord. Elle reformule les points à trancher (section 7) ; ceux ci-dessous restent jusqu'aux choix de l'utilisatrice.
 
 ## Décisions
 
-2026-11-02, choix de l'utilisatrice après l'[état de l'art](../revues/2026-11-02-api-pour-ia.md) :
+2026-11-02, choix de l'utilisatrice après l'[état de l'art](../../revues/2026-11-02-api-pour-ia.md) :
 
 - **Connexion** : serveur MCP avec OAuth. Dans son assistant, l'organisatrice ajoute Limbus, puis autorise l'accès sur une page de Limbus, sans rien copier. Pas de clé personnelle pour l'instant.
 - **Droits** : lecture et écriture dès le premier lot. À l'autorisation, l'organisatrice choisit entre lecture seule et lecture et écriture.
@@ -54,7 +55,7 @@ Dans les deux cas :
 - **Serveur d'autorisation** : un essai écrit pour Limbus et un essai avec `oidc-provider`, comparés dans un ADR ; l'utilisatrice tranche.
 - **Politique de confidentialité** : elle dit qu'une organisatrice peut brancher une IA, qui reçoit alors les données de ses jeux, noms des participants et notes compris. C'est un changement de fond : nouvelle `TERMS_VERSION`, chaque compte accepte de nouveau.
 
-Reste à écrire la spécification (SPEC-014).
+Devenue [SPEC-014](../../specs/SPEC-014-api-pour-ia.md), avec les choix précisés le 2026-11-02 ; fiche archivée.
 
 ## Questions d'origine
 

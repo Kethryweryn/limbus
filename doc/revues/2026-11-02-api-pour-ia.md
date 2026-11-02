@@ -1,13 +1,13 @@
 ---
 titre: Brancher une IA sur Limbus, état de l'art
 date: 2026-11-02
-origine: ../todo/api-pour-ia.md
+origine: ../archive/todo/api-pour-ia.md
 statut: triée
 ---
 
 # Brancher une IA sur Limbus : état de l'art
 
-Étude demandée le 2 novembre 2026 pour trancher la fiche [API pour une IA](../todo/api-pour-ia.md). Elle fait le point sur les protocoles, l'authentification, la sécurité et les données personnelles, puis en tire les conséquences pour Limbus. Elle ne décide rien : les choix restent à faire avec l'utilisatrice (section 7).
+Étude demandée le 2 novembre 2026 pour trancher la fiche [API pour une IA](../archive/todo/api-pour-ia.md). Elle fait le point sur les protocoles, l'authentification, la sécurité et les données personnelles, puis en tire les conséquences pour Limbus. Elle ne décide rien : les choix restent à faire avec l'utilisatrice (section 7).
 
 Les sources sont en fin de document. Ce qui ne vient que d'une source secondaire (blog, comparatif) est signalé comme tel.
 
@@ -173,7 +173,7 @@ Ils remplacent ceux de la fiche :
 
 ## Tri
 
-2026-11-02 : l'utilisatrice a tranché les huit points ; le détail est dans la [fiche](../todo/api-pour-ia.md#décisions). Elle a suivi la recommandation (MCP avec OAuth), sauf sur trois points :
+2026-11-02 : l'utilisatrice a tranché les huit points ; le détail est dans la [fiche](../archive/todo/api-pour-ia.md#décisions). Elle a suivi la recommandation (MCP avec OAuth), sauf sur trois points :
 - l'écriture vient dès le premier lot, au choix de l'organisatrice à l'autorisation ;
 - l'IA voit les noms des participants et les notes d'organisation ;
 - l'IA lit les réponses fermées aux formulaires, et les affinités une fois traitées par l'équipe, pour aider au casting.
