@@ -34,6 +34,10 @@ Dans les deux cas :
 4. Sessions et casting.
 5. Le reste, au cas par cas.
 
+## Suivi
+
+- 2026-11-02 : état de l'art fait ([revue du 2026-11-02](../revues/2026-11-02-api-pour-ia.md)). La revue recommande MCP avec OAuth, Limbus étant son propre serveur d'autorisation, en lecture seule d'abord. Elle reformule les points à trancher (section 7) ; ceux ci-dessous restent jusqu'aux choix de l'utilisatrice.
+
 ## Points à trancher
 
 - MCP, REST + OpenAPI, ou les deux ? Recommandation : MCP d'abord, c'est ce que les assistants savent utiliser directement ; il peut s'appuyer sur les mêmes fonctions serveur qu'une future API REST.
