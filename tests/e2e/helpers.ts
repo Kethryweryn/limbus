@@ -1,5 +1,6 @@
 import { TERMS_VERSION } from '../../utils/legal'
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { JWT_SECRET } from '../integration/constants'
 import { E2E_PASSWORD, PARCOURS } from './constants'
@@ -67,11 +68,13 @@ export function gamePanel(page: Page, title: string, button: string | RegExp) {
     .last()
 }
 
-// Compte propre au test, confirmé et aux conditions acceptées : ses changements ne touchent pas les comptes partagés
+// Compte propre au test, confirmé, aux conditions acceptées et au mot de passe des tests : ses changements ne touchent pas
+// les comptes partagés
 export async function testUser(prisma: TestPrisma, base: string, role = 'user') {
   const name = uniqueName(base)
   const email = `${slugOf(name)}@example.test`
-  const user = await prisma.user.create({ data: { email, name, password: 'inutilisable', role, termsAcceptedVersion: TERMS_VERSION, emailConfirmedAt: new Date() } })
+  const password = await bcrypt.hash(E2E_PASSWORD, 4)
+  const user = await prisma.user.create({ data: { email, name, password, role, termsAcceptedVersion: TERMS_VERSION, emailConfirmedAt: new Date() } })
   return { user, email, name }
 }
 

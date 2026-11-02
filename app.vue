@@ -1,7 +1,9 @@
 <template>
   <UApp>
-    <!-- Lien personnel d'inscription (US-004) : même rendu connecté ou non, sans bandeaux de synchronisation -->
-    <div v-if="isPersonalLinkRoute">
+    <!-- Pages autonomes (liens personnels, accès au compte, page publique) : même rendu connecté ou non, sans bandeaux de
+         synchronisation. Elles ne changent pas de bloc quand la connexion est vérifiée, donc ne se remontent pas : la
+         confirmation d'une adresse ne part qu'une fois -->
+    <div v-if="isStandaloneRoute">
       <NuxtLoadingIndicator />
       <NuxtPage />
     </div>
@@ -121,16 +123,18 @@ const syncSummary = computed(() => [
 ].filter(Boolean).join(', '))
 const toast = useToast()
 const route = useRoute()
-// /acces/ : inscription, confirmation et mot de passe, ouverts sans connexion (EPIC-013)
 // Route visée par la navigation : useRoute() suit la page affichée, et sous l'écran de connexion aucune page ne
 // l'est, donc il ne changerait pas en suivant un lien de cet écran
 const router = useRouter()
 const currentPath = computed(() => router.currentRoute.value.path)
 // Pages légales (US-110) : lisibles sans compte, et avant d'accepter les conditions
 const isLegalRoute = computed(() => LEGAL_PAGES.some((page) => currentPath.value === page.to))
-const isPublicRoute = computed(() => isLegalRoute.value || ['/public/', '/invitations/', '/acces/'].some((prefix) => currentPath.value.startsWith(prefix)))
-// Liens personnels d'inscription (US-004) et de confirmation de présence (US-024), lien de diffusion (US-084)
-const isPersonalLinkRoute = computed(() => ['/inscription/', '/presence/', '/i/'].some((prefix) => currentPath.value.startsWith(prefix)))
+// Invitation à un jeu (US-064) : ouverte sans connexion, mais les conditions d'utilisation passent avant d'accepter
+const isPublicRoute = computed(() => isLegalRoute.value || currentPath.value.startsWith('/invitations/'))
+// Liens personnels d'inscription (US-004) et de confirmation de présence (US-024), lien de diffusion (US-084), accès au
+// compte : inscription, confirmation et mot de passe (EPIC-013), page publique d'un jeu (US-019)
+const STANDALONE_PREFIXES = ['/inscription/', '/presence/', '/i/', '/acces/', '/public/']
+const isStandaloneRoute = computed(() => STANDALONE_PREFIXES.some((prefix) => currentPath.value.startsWith(prefix)))
 let authCheckInProgress = false
 
 function hasValidOfflineAuth() {
