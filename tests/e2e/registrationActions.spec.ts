@@ -3,12 +3,10 @@ import { expect, test, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { startTestSmtp } from '../integration/smtp'
 import { E2E_USERS } from './constants'
-import { signIn } from './helpers'
+import { gamePanel, signIn, slugOf, uniqueName, type TestPrisma } from './helpers'
 
-type TestPrisma = ReturnType<typeof createTestPrisma>
-
-// Jeu propre au test, avec une session et une période sur invitation ouverte
-async function invitationPeriod(prisma: TestPrisma, key: string, periodData: { entryMode?: string, state?: string } = {}) {
+// Jeu propre au test, avec une session et une période ouverte (sur invitation, sauf entryMode contraire)
+async function testPeriod(prisma: TestPrisma, key: string, periodData: { entryMode?: string, state?: string } = {}) {
   const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
   const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-09-01T09:00:00Z') } })
@@ -20,7 +18,7 @@ async function invitationPeriod(prisma: TestPrisma, key: string, periodData: { e
 
 // Personne invitée (email parti) ou confirmée dans la session
 async function invitedPerson(prisma: TestPrisma, ids: { gameId: string, sessionId: string, periodId: string }, name: string, status: 'invited' | 'confirmed' = 'invited') {
-  const slug = `${name.toLowerCase().replace(/[^a-z]+/g, '-')}-${Date.now().toString(36)}`
+  const slug = slugOf(uniqueName(name))
   const email = `${slug}@example.test`
   const participant = await prisma.participant.create({ data: { name, slug, email, gameLinks: { create: { gameId: ids.gameId } } } })
   if (status === 'confirmed') await prisma.sessionParticipant.create({ data: { sessionId: ids.sessionId, participantId: participant.id, role: 'participant' } })
@@ -35,14 +33,6 @@ async function invitedPerson(prisma: TestPrisma, ids: { gameId: string, sessionI
   return { participant, registration, email }
 }
 
-// Le plus petit bloc qui porte le titre du jeu et ses périodes
-function gamePanel(page: Page, title: string) {
-  return page.locator('div')
-    .filter({ has: page.getByRole('heading', { name: title, exact: true }) })
-    .filter({ has: page.getByRole('button', { name: 'Modifier' }) })
-    .last()
-}
-
 async function openRegistrations(page: Page, prisma: TestPrisma) {
   await signIn(page, prisma, E2E_USERS.orga)
   await page.goto('/registrations')
@@ -55,13 +45,13 @@ test('l’équipe relance, prolonge, renvoie, libère et annule des invitations'
   const smtp = await startTestSmtp(prisma)
   try {
     const key = `actions-${Date.now()}`
-    const { game, session, period } = await invitationPeriod(prisma, key)
+    const { game, session, period } = await testPeriod(prisma, key)
     const ids = { gameId: game.id, sessionId: session.id, periodId: period.id }
     const ana = await invitedPerson(prisma, ids, 'Ana Actions')
     const ben = await invitedPerson(prisma, ids, 'Ben Actions')
 
     await openRegistrations(page, prisma)
-    const panel = gamePanel(page, game.title)
+    const panel = gamePanel(page, game.title, 'Modifier')
     const row = (name: string) => panel.locator('li').filter({ hasText: name })
     await expect(panel.getByText('2 invitations pour 3 places')).toBeVisible()
 
@@ -93,12 +83,15 @@ test('l’équipe relance, prolonge, renvoie, libère et annule des invitations'
     expect((await prisma.registration.findUniqueOrThrow({ where: { id: ben.registration.id }, select: { tokenHash: true } })).tokenHash).not.toBe(before)
     await expect.poll(() => smtp.received.filter((message) => message.to.includes(ben.email)).length).toBe(1)
 
-    // Libération : la place se libère, la ligne n'offre plus d'action d'invitation
+    // Libération : la place est libérée par l'organisatrice, la ligne le dit et n'offre plus d'action d'invitation
     page.once('dialog', (dialog) => dialog.accept())
     await row('Ben Actions').getByRole('button', { name: 'Libérer' }).click()
     await expect(page.getByText('Place de Ben Actions libérée.')).toBeVisible()
+    await expect(row('Ben Actions').getByText(/place libérée le .* par /)).toBeVisible()
     await expect(row('Ben Actions').getByRole('button', { name: 'Relancer' })).toBeHidden()
-    expect((await prisma.registration.findUniqueOrThrow({ where: { id: ben.registration.id }, select: { status: true } })).status).not.toBe('invited')
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+    expect(await prisma.registration.findUniqueOrThrow({ where: { id: ben.registration.id }, select: { status: true, withdrawnById: true } }))
+      .toEqual({ status: 'withdrawn', withdrawnById: owner.id })
 
     // Annulation : l'invitation disparaît
     page.once('dialog', (dialog) => dialog.accept())
@@ -118,11 +111,11 @@ test('l’équipe consulte le détail d’une personne confirmée et la retire d
   const smtp = await startTestSmtp(prisma)
   try {
     const key = `retrait-${Date.now()}`
-    const { game, session, period } = await invitationPeriod(prisma, key)
+    const { game, session, period } = await testPeriod(prisma, key)
     const cleo = await invitedPerson(prisma, { gameId: game.id, sessionId: session.id, periodId: period.id }, 'Cléo Retrait', 'confirmed')
 
     await openRegistrations(page, prisma)
-    const panel = gamePanel(page, game.title)
+    const panel = gamePanel(page, game.title, 'Modifier')
     const row = panel.locator('li').filter({ hasText: 'Cléo Retrait' })
 
     await row.getByRole('button', { name: 'Détail' }).click()
@@ -151,10 +144,10 @@ test('l’équipe modifie, clôture, rouvre, copie le lien et supprime une péri
   try {
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
     const key = `periode-${Date.now()}`
-    const { game, period } = await invitationPeriod(prisma, key, { entryMode: 'form' })
+    const { game, period } = await testPeriod(prisma, key, { entryMode: 'form' })
 
     await openRegistrations(page, prisma)
-    const panel = gamePanel(page, game.title)
+    const panel = gamePanel(page, game.title, 'Modifier')
 
     // Modification du nom
     await panel.getByRole('button', { name: 'Modifier' }).click()
@@ -163,6 +156,7 @@ test('l’équipe modifie, clôture, rouvre, copie le lien et supprime une péri
     await dialog.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(dialog).toBeHidden()
     await expect(panel.getByText('Période renommée')).toBeVisible()
+    expect((await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: period.id }, select: { name: true } })).name).toBe('Période renommée')
 
     // Clôture puis réouverture
     await panel.getByRole('button', { name: 'Clôturer' }).click()
