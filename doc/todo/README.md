@@ -8,6 +8,7 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Supervision](supervision.md) | en partie traitée | 2026-10-29 | Route de santé et sondes Better Stack faites ; reste les journaux structurés, si besoin (revue R-15, R-16) |
 | [Numéros de version et notes de version](versions-et-notes-de-version.md) | à trancher | 2026-10-29 | Version sémantique, étiquettes git et notes de version à partir de la première version publiée |
 | [Indicateurs du questionnaire de casting](indicateurs-du-questionnaire-de-casting.md) | brouillon | 2026-11-02 | Repères compréhensibles sans formation en statistiques : questions qui ne départagent pas, personnages trop proches, rôles sans réponse ; état de l'art à rechercher à la spécification |
+| [Aucun any, lint en erreur partout](lint-sans-any.md) | prête | 2026-11-03 | 117 avertissements `no-explicit-any` hors de l'interface (serveur, utils, tests, scripts) ; remplacer par les vrais types, puis règle en erreur partout |
 
 ## Archivées
 
