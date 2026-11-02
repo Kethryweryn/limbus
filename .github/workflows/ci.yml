@@ -78,6 +78,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/dependances
+        with:
+          nuxt-prepare: 'true'
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
@@ -156,7 +158,18 @@ jobs:
         with:
           name: build-a-tester
       - run: tar -xzf limbus-build.tar.gz .output
-      - run: npx playwright install --with-deps chromium
+      # Chromium en cache, par version de Playwright ; les paquets système qu'il demande s'installent à chaque fois
+      - id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - id: chromium
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-bookworm-${{ steps.playwright.outputs.version }}
+      - if: steps.chromium.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.chromium.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
       - run: npm run test:e2e
       - name: Traces Playwright en cas d'échec
         if: failure()

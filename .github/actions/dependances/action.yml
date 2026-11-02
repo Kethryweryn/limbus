@@ -1,5 +1,9 @@
 name: Dépendances
-description: node_modules en cache (clé : package-lock.json), types Nuxt et client Prisma
+description: 'node_modules en cache (clé package-lock.json), client Prisma, et types Nuxt sur demande'
+inputs:
+  nuxt-prepare:
+    description: 'Générer .nuxt (lint et typecheck le lisent, le build le génère lui-même)'
+    default: 'false'
 runs:
   using: composite
   steps:
@@ -9,11 +13,18 @@ runs:
       with:
         path: node_modules
         key: node-modules-bookworm-node24-${{ hashFiles('package-lock.json') }}
+    # Sans node_modules en cache (package-lock.json changé) : les paquets déjà téléchargés évitent de tout reprendre du réseau
+    - if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/cache@v6
+      with:
+        path: ~/.npm
+        key: npm-bookworm-${{ hashFiles('package-lock.json') }}
+        restore-keys: npm-bookworm-
+    # npm ci lance aussi `nuxt prepare` (postinstall)
     - if: steps.cache.outputs.cache-hit != 'true'
       run: npm ci
       shell: bash
-    # npm ci lance `nuxt prepare` (postinstall) ; avec le cache, il faut le lancer soi-même
-    - if: steps.cache.outputs.cache-hit == 'true'
+    - if: steps.cache.outputs.cache-hit == 'true' && inputs.nuxt-prepare == 'true'
       run: npx nuxt prepare
       shell: bash
     # prisma.config.ts exige DATABASE_URL, même pour générer le client : chaque job la fournit

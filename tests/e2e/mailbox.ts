@@ -19,16 +19,19 @@ export async function startSharedSmtp(prisma: TestPrisma) {
   }
 }
 
-// Messages complets du fichier : une ligne en cours d'écriture n'a pas encore son retour à la ligne final
-function allEmails(): ReceivedEmail[] {
-  return readFileSync(process.env.E2E_MAILBOX!, 'utf8').split('\n').slice(0, -1).map((line) => JSON.parse(line) as ReceivedEmail)
+// Messages complets écrits depuis la position donnée (en octets) : une ligne en cours d'écriture n'a pas encore son
+// retour à la ligne final
+function emailsFrom(offset: number): ReceivedEmail[] {
+  return readFileSync(process.env.E2E_MAILBOX!).subarray(offset).toString('utf8')
+    .split('\n').slice(0, -1).map((line) => JSON.parse(line) as ReceivedEmail)
 }
 
 // Boîte d'un test : les emails arrivés depuis son ouverture, par destinataire. Les tests tournent en parallèle :
 // chacun écrit à des adresses qui lui sont propres, et une relance (retries) ne voit pas les emails de la précédente.
 export function openMailbox() {
-  const start = allEmails().length
+  // Après le dernier message complet : une ligne en cours d'écriture appartient déjà à la boîte
+  const start = readFileSync(process.env.E2E_MAILBOX!).lastIndexOf('\n') + 1
   return {
-    to: (email: string) => allEmails().slice(start).filter((message) => message.to.includes(email))
+    to: (email: string) => emailsFrom(start).filter((message) => message.to.includes(email))
   }
 }
