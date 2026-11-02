@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
       await deletePendingCopy(copy.id)
       throw error
     }
-    return { recipient: { name: null, email }, pending: true, expiresAt, emailDelivery: { sent: true } }
+    return { recipient: { name: null, email }, pending: true as const, expiresAt, emailDelivery: { sent: true } }
   }
 
   const copy = await copyGame(id, { ...credit, ownerId: recipient.id })
@@ -72,7 +72,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     recipient: { name: recipient.name, email: recipient.email },
-    pending: false,
+    pending: false as const,
     emailDelivery
   }
 })

@@ -22,11 +22,11 @@
       </UFormField>
 
       <UFormField label="Corps" :error="errors.content">
-        <UTextarea v-model="localDocument.content" :rows="12" size="lg" class="w-full" />
+        <UTextarea v-model.nullable="localDocument.content" :rows="12" size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Document lié">
-        <UInput v-model="localDocument.documentUrl" size="lg" class="w-full" placeholder="Lien PDF, docx, Google Docs..." />
+        <UInput v-model.nullable="localDocument.documentUrl" size="lg" class="w-full" placeholder="Lien PDF, docx, Google Docs..." />
       </UFormField>
 
       <UFormField label="Destinataires">
@@ -48,7 +48,7 @@
       <div v-if="localDocument.audience === DOCUMENT_AUDIENCES.targeted" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <UFormField label="Personnage">
           <USelect
-            v-model="localDocument.characterId"
+            v-model="characterIdModel"
             :items="characterOptions"
             value-key="value"
             :disabled="!localDocument.gameId"
@@ -95,7 +95,7 @@
   </UCard>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import {
   CHARACTER_TYPES,
@@ -104,22 +104,30 @@ import {
   VIRTUAL_CHARACTER_GROUP_OPTIONS,
   VIRTUAL_CHARACTER_GROUPS
 } from '~/utils/domain'
+import { apiErrorMessage } from '~/utils/apiErrors'
+import type { CharacterOption, DocumentDraft, FactionOption, GameOption } from '~/utils/writingDrafts'
 
-const props = defineProps({
-  document: { type: Object, required: true },
-  games: { type: Array, required: true },
-  characters: { type: Array, required: true },
-  factions: { type: Array, required: true },
-  mode: { type: String, default: 'create' }
-})
+const props = withDefaults(defineProps<{
+  document: DocumentDraft
+  games: GameOption[]
+  characters: CharacterOption[]
+  factions: FactionOption[]
+  mode?: 'create' | 'edit'
+}>(), { mode: 'create' })
 
-const emit = defineEmits(['submit', 'cancel', 'update:document'])
+const emit = defineEmits<{ submit: [], cancel: [], 'update:document': [document: DocumentDraft] }>()
 
-const localDocument = ref({ ...props.document })
-const errors = ref({})
+const localDocument = ref<DocumentDraft>({ ...props.document })
+const errors = ref<Record<string, string>>({})
 const serverError = ref('')
 
-const audienceOptions = DOCUMENT_AUDIENCE_OPTIONS
+// Le choix « Aucun personnage » vaut une chaîne vide
+const characterIdModel = computed({
+  get: () => localDocument.value.characterId || '',
+  set: (value: string) => { localDocument.value.characterId = value }
+})
+
+const audienceOptions: Array<{ label: string, value: string }> = [...DOCUMENT_AUDIENCE_OPTIONS]
 
 const gameOptions = computed(() => props.games.map((game) => ({
   label: game.title,
@@ -137,7 +145,7 @@ const characterOptions = computed(() => [
     }))
 ])
 
-const virtualFactionOptions = VIRTUAL_CHARACTER_GROUP_OPTIONS
+const virtualFactionOptions: Array<{ label: string, value: string }> = [...VIRTUAL_CHARACTER_GROUP_OPTIONS]
 
 const realFactionOptions = computed(() =>
   props.factions
@@ -199,7 +207,7 @@ function validate() {
   return Object.keys(errors.value).length === 0
 }
 
-function expandVirtualFactionSelection(value) {
+function expandVirtualFactionSelection(value: DocumentDraft): DocumentDraft {
   if (value.audience !== DOCUMENT_AUDIENCES.targeted) {
     return {
       ...value,
@@ -228,15 +236,15 @@ function expandVirtualFactionSelection(value) {
   }
 }
 
-async function submit() {
+function submit() {
   if (!validate()) return
 
   try {
     emit('update:document', expandVirtualFactionSelection(localDocument.value))
-    await emit('submit')
+    emit('submit')
     serverError.value = ''
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
   }
 }
 </script>

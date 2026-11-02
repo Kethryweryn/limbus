@@ -126,7 +126,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { isInArchivedGame, isVisibleContent } from '~/utils/games'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
@@ -134,18 +134,22 @@ import ItemForm from '@/components/ItemForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import { isOfflineMode } from '~/utils/connection'
 import { getFromStore, saveToStore } from '~/utils/storage'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import type { ItemDraft } from '~/utils/writingDrafts'
 
-const items = ref([])
-const games = ref([])
-const characters = ref([])
-const intrigues = ref([])
+type ItemRow = ApiResponse<'/api/items'>[number]
+
+const items = ref<ItemRow[]>([])
+const games = ref<ApiResponse<'/api/games'>>([])
+const characters = ref<ApiResponse<'/api/characters'>>([])
+const intrigues = ref<ApiResponse<'/api/intrigues'>>([])
 const searchQuery = ref('')
 const gameFilter = ref('all')
 const showArchived = ref(false)
 const isOffline = ref(false)
 const showFormSlideover = ref(false)
-const activeFormItem = ref(null)
-const formMode = ref('create')
+const activeFormItem = ref<ItemDraft | null>(null)
+const formMode = ref<'create' | 'edit'>('create')
 const router = useRouter()
 const { game: selectedGame } = useGameFocus()
 
@@ -197,9 +201,9 @@ watch([searchQuery, gameFilter, filteredItems], () => {
   page.value = 1
 })
 
-const isUnassigned = (item) => !(item.characters?.length || item.intrigues?.length)
+const isUnassigned = (item: ItemRow) => !(item.characters?.length || item.intrigues?.length)
 
-const formatItemLocation = (item) => {
+const formatItemLocation = (item: ItemRow) => {
   if (item.locationCharacter) return item.locationCharacter.name
   if (item.locationText) return item.locationText
   return 'Non renseignée'
@@ -207,7 +211,7 @@ const formatItemLocation = (item) => {
 
 const fetchItems = async () => {
   if (isOfflineMode()) {
-    items.value = await getFromStore('items', 'list') || []
+    items.value = await getFromStore<typeof items.value>('items', 'list') || []
     return
   }
 
@@ -218,7 +222,7 @@ const fetchItems = async () => {
 
 const fetchGames = async () => {
   if (isOfflineMode()) {
-    games.value = await getFromStore('games', 'list') || []
+    games.value = await getFromStore<typeof games.value>('games', 'list') || []
     return
   }
 
@@ -229,7 +233,7 @@ const fetchGames = async () => {
 
 const fetchCharacters = async () => {
   if (isOfflineMode()) {
-    characters.value = await getFromStore('characters', 'list') || []
+    characters.value = await getFromStore<typeof characters.value>('characters', 'list') || []
     return
   }
 
@@ -240,7 +244,7 @@ const fetchCharacters = async () => {
 
 const fetchIntrigues = async () => {
   if (isOfflineMode()) {
-    intrigues.value = await getFromStore('intrigues', 'list') || []
+    intrigues.value = await getFromStore<typeof intrigues.value>('intrigues', 'list') || []
     return
   }
 
@@ -276,11 +280,11 @@ onUnmounted(() => {
   window.removeEventListener('limbus:connection-change', updateStatus)
 })
 
-function itemFormPayload(item) {
+function itemFormPayload(item: ItemRow): ItemDraft {
   return {
     ...item,
-    characterIds: item.characterIds || item.characters?.map((character) => character.id) || [],
-    intrigueIds: item.intrigueIds || item.intrigues?.map((intrigue) => intrigue.id) || [],
+    characterIds: item.characters?.map((character) => character.id) || [],
+    intrigueIds: item.intrigues?.map((intrigue) => intrigue.id) || [],
     locationCharacterId: item.locationCharacterId || item.locationCharacter?.id || '',
     locationText: item.locationText || ''
   }
@@ -301,7 +305,7 @@ function startCreate() {
   showFormSlideover.value = true
 }
 
-function startEdit(item) {
+function startEdit(item: ItemRow) {
   activeFormItem.value = itemFormPayload(item)
   formMode.value = 'edit'
   showFormSlideover.value = true
@@ -312,12 +316,13 @@ function closeFormSlideover() {
   showFormSlideover.value = false
 }
 
-function openItemPage(item) {
+function openItemPage(item: ItemRow) {
   if (!item?.slug && !item?.id) return
   router.push(`/items/${item.slug || item.id}`)
 }
 
 async function handleItemFormSubmit() {
+  if (!activeFormItem.value) return
   if (formMode.value === 'create') {
     await useApiFetch('/api/items', {
       method: 'POST',
@@ -334,7 +339,7 @@ async function handleItemFormSubmit() {
   await fetchItems()
 }
 
-async function deleteItem(id) {
+async function deleteItem(id: string) {
   if (!confirm('Supprimer cet objet ?')) return
 
   await useApiFetch(`/api/items/${id}`, { method: 'DELETE' })

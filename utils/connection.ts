@@ -43,3 +43,9 @@ export function isServerUnavailableError(error: any) {
   const status = getErrorStatus(error)
   return isNetworkError(error) || status === 502 || status === 503 || status === 504
 }
+
+// Page jamais lue avec le réseau sur cet appareil (US-047) : useApiFetch le signale, useAsyncData le range sous cause
+export function isOfflineMissing(error: unknown) {
+  const value = error as { offlineMissing?: boolean, cause?: { offlineMissing?: boolean } } | null
+  return Boolean(value?.offlineMissing || value?.cause?.offlineMissing)
+}

@@ -15,7 +15,7 @@
     </div>
 
     <IntrigueForm
-      v-if="isEditing"
+      v-if="isEditing && editableIntrigue"
       v-model:intrigue="editableIntrigue"
       :games="games || []"
       :characters="characters || []"
@@ -138,13 +138,14 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { isInArchivedGame } from '~/utils/games'
 import { formatIntrigueLevel } from '~/utils/intrigueLevels'
+import type { IntrigueDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
 const router = useRouter()
-const slug = route.params.slug
+const slug = String(route.params.slug)
 const { data: intrigue, error, refresh } = await useFetch(`/api/intrigues/slug/${slug}`)
 const { data: games } = await useFetch('/api/games')
 const { data: characters } = await useFetch('/api/characters')
@@ -155,8 +156,10 @@ if (error.value) {
   throw createError({ statusCode: 404, message: 'Intrigue introuvable' })
 }
 
+type IntriguePage = NonNullable<typeof intrigue.value>
+
 const isEditing = ref(route.query.edit === '1')
-const editableIntrigue = ref(intrigue.value ? intrigueFormPayload(intrigue.value) : null)
+const editableIntrigue = ref<IntrigueDraft | null>(intrigue.value ? intrigueFormPayload(intrigue.value) : null)
 const isUnassigned = computed(() => !(intrigue.value?.characters?.length || intrigue.value?.factions?.length || intrigue.value?.items?.length))
 
 watch(() => route.query.edit, (value) => {
@@ -166,16 +169,16 @@ watch(() => route.query.edit, (value) => {
   }
 })
 
-function intrigueFormPayload(value) {
+function intrigueFormPayload(value: IntriguePage): IntrigueDraft {
   return {
     ...value,
-    characterIds: value.characterIds || value.characters?.map((character) => character.id) || [],
-    factionIds: value.factionIds || value.factions?.map((faction) => faction.id) || []
+    characterIds: value.characters?.map((character) => character.id) || [],
+    factionIds: value.factions?.map((faction) => faction.id) || []
   }
 }
 
 function startEdit() {
-  editableIntrigue.value = intrigueFormPayload(intrigue.value)
+  editableIntrigue.value = intrigue.value ? intrigueFormPayload(intrigue.value) : null
   isEditing.value = true
   router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
 }
@@ -196,8 +199,7 @@ async function handleFormSubmit() {
     body: editableIntrigue.value
   })
 
-  if (updatedIntrigue?.slug && updatedIntrigue.slug !== route.params.slug) {
-    intrigue.value = updatedIntrigue
+  if (!isOfflineQueued(updatedIntrigue) && updatedIntrigue.slug && updatedIntrigue.slug !== route.params.slug) {
     await router.replace(`/intrigues/${updatedIntrigue.slug}`)
   } else {
     await refresh()

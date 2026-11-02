@@ -45,7 +45,7 @@ export function relationSide<T extends RelationRow>(relation: T, characterId: st
   const mine = relation.fromCharacterId === characterId
   return {
     relation,
-    other: mine ? relation.toCharacter : relation.fromCharacter,
+    other: (mine ? relation.toCharacter : relation.fromCharacter) as T['toCharacter'] | T['fromCharacter'],
     label: mine ? relation.fromLabel : relation.toLabel,
     otherLabel: mine ? relation.toLabel : relation.fromLabel,
     visible: mine ? relation.fromVisible : relation.toVisible

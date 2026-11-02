@@ -8,7 +8,7 @@
             <UFormField label="Jeu" :error="errors.gameId">
                 <USelect
 v-model="localCharacter.gameId"
-                    :items="props.games.map(g => ({ label: g.title, value: g.id }))" value-key="value" placeholder="Choisissez un jeu"
+                    :items="gameItems" value-key="value" placeholder="Choisissez un jeu"
                     required size="lg" class="w-full" />
             </UFormField>
 
@@ -27,7 +27,7 @@ v-model="localCharacter.gameId"
             </UFormField>
 
             <!-- Valeur de l'attribut d'équilibre du jeu, pour un PJ (US-091) -->
-            <UFormField v-if="balanceGame && localCharacter.type === CHARACTER_TYPES.pj" :label="balanceGame.balanceAttribute">
+            <UFormField v-if="balanceGame && localCharacter.type === CHARACTER_TYPES.pj" :label="balanceGame.balanceAttribute || ''">
                 <USelect
                     v-model="balanceSelection"
                     :items="balanceItems"
@@ -51,7 +51,7 @@ v-model="localCharacter.gameId"
 
             <UFormField label="Pitch" :error="errors.pitch">
                 <UTextarea
-                    v-model="localCharacter.pitch"
+                    v-model.nullable="localCharacter.pitch"
                     :rows="5"
                     size="lg"
                     class="w-full"
@@ -61,7 +61,7 @@ v-model="localCharacter.gameId"
 
             <UFormField label="Background" :error="errors.background">
                 <UTextarea
-                    v-model="localCharacter.background"
+                    v-model.nullable="localCharacter.background"
                     :rows="18"
                     size="lg"
                     class="w-full font-mono text-sm"
@@ -71,7 +71,7 @@ v-model="localCharacter.gameId"
 
             <UFormField label="Lien vers un background externe" :error="errors.backgroundDocumentUrl">
                 <UInput
-                    v-model="localCharacter.backgroundDocumentUrl"
+                    v-model.nullable="localCharacter.backgroundDocumentUrl"
                     type="url"
                     size="lg"
                     class="w-full"
@@ -103,7 +103,7 @@ v-model="localCharacter.gameId"
                     <UFormField label="Photo de trombinoscope par défaut" :error="errors.trombinoscopePhotoUrl">
                         <div class="flex flex-col gap-2 sm:flex-row">
                             <UInput
-                                v-model="localCharacter.trombinoscopePhotoUrl"
+                                v-model.nullable="localCharacter.trombinoscopePhotoUrl"
                                 type="url"
                                 size="lg"
                                 class="w-full"
@@ -130,7 +130,7 @@ v-model="localCharacter.gameId"
                     </UFormField>
                     <UFormField label="Fausse identité par défaut">
                         <UInput
-                            v-model="localCharacter.trombinoscopeDisplayName"
+                            v-model.nullable="localCharacter.trombinoscopeDisplayName"
                             size="lg"
                             class="w-full"
                             placeholder="Nom affiché dans les trombinoscopes"
@@ -138,7 +138,7 @@ v-model="localCharacter.gameId"
                     </UFormField>
                     <UFormField label="Note de trombinoscope par défaut">
                         <UTextarea
-                            v-model="localCharacter.trombinoscopeNote"
+                            v-model.nullable="localCharacter.trombinoscopeNote"
                             :rows="3"
                             size="lg"
                             class="w-full"
@@ -149,7 +149,7 @@ v-model="localCharacter.gameId"
 
             <UFormField label="Indications costumes" :error="errors.costumeIndications">
                 <UTextarea
-                    v-model="localCharacter.costumeIndications"
+                    v-model.nullable="localCharacter.costumeIndications"
                     :rows="5"
                     size="lg"
                     class="w-full"
@@ -170,20 +170,22 @@ v-model="localCharacter.gameId"
     </UCard>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { CHARACTER_TYPE_OPTIONS, CHARACTER_TYPES } from '~/utils/domain'
+import { apiErrorMessage } from '~/utils/apiErrors'
+import type { CharacterDraft, FactionOption, GameOption } from '~/utils/writingDrafts'
 
-const props = defineProps({
-    character: { type: Object, required: true },
-    games: { type: Array, required: true },
-    factions: { type: Array, default: () => [] },
-    mode: { type: String, default: 'create' }
-})
+const props = withDefaults(defineProps<{
+    character: CharacterDraft
+    games: GameOption[]
+    factions?: FactionOption[]
+    mode?: 'create' | 'edit'
+}>(), { factions: () => [], mode: 'create' })
 
-const emit = defineEmits(['submit', 'cancel', 'update:character'])
+const emit = defineEmits<{ submit: [], cancel: [], 'update:character': [character: CharacterDraft] }>()
 
-const localCharacter = ref({ ...props.character })
+const localCharacter = ref<CharacterDraft>({ ...props.character })
 
 // Jeu du personnage, s'il a un attribut d'équilibre ; « Non renseigné » s'envoie comme une valeur vide
 const NO_BALANCE_VALUE = '__none'
@@ -197,13 +199,14 @@ const balanceItems = computed(() => [
 ])
 const balanceSelection = computed({
     get: () => localCharacter.value.balanceValue || NO_BALANCE_VALUE,
-    set: (value) => { localCharacter.value.balanceValue = value === NO_BALANCE_VALUE ? null : value }
+    set: (value: string) => { localCharacter.value.balanceValue = value === NO_BALANCE_VALUE ? null : value }
 })
-const errors = ref({})
+const errors = ref<Record<string, string>>({})
 const serverError = ref('')
-const trombinoscopePhotoInput = ref(null)
+const trombinoscopePhotoInput = ref<HTMLInputElement | null>(null)
 const uploadingTrombinoscopePhoto = ref(false)
-const characterTypeOptions = CHARACTER_TYPE_OPTIONS
+const characterTypeOptions: Array<{ label: string, value: string }> = [...CHARACTER_TYPE_OPTIONS]
+const gameItems = computed(() => props.games.map(g => ({ label: g.title, value: g.id })))
 
 const factionOptions = computed(() =>
     props.factions
@@ -244,18 +247,18 @@ function validate() {
     return Object.keys(errors.value).length === 0
 }
 
-async function submit() {
+function submit() {
     if (!validate()) return
     try {
         emit('update:character', localCharacter.value)
-        await emit('submit')
+        emit('submit')
     } catch (err) {
-        serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+        serverError.value = apiErrorMessage(err, 'Erreur inconnue')
     }
 }
 
-async function uploadTrombinoscopePhoto(event) {
-    const input = event.target
+async function uploadTrombinoscopePhoto(event: Event) {
+    const input = event.target as HTMLInputElement
     const file = input.files?.[0]
     if (!file) return
 
@@ -263,14 +266,15 @@ async function uploadTrombinoscopePhoto(event) {
     try {
         const formData = new FormData()
         formData.append('photo', file)
-        formData.append('gameId', localCharacter.value.gameId)
-        const result = await useApiFetch('/api/uploads/session-assignment-photos', {
+        formData.append('gameId', localCharacter.value.gameId || '')
+        const response = await useApiFetch('/api/uploads/session-assignment-photos', {
             method: 'POST',
             body: formData
         })
+        const result = actionResult(response)
         localCharacter.value.trombinoscopePhotoUrl = result.photoUrl
     } catch (err) {
-        serverError.value = err?.data?.message || err?.message || 'Impossible d’envoyer la photo'
+        serverError.value = apiErrorMessage(err, 'Impossible d’envoyer la photo')
     } finally {
         uploadingTrombinoscopePhoto.value = false
         input.value = ''

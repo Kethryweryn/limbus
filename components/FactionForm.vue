@@ -23,7 +23,7 @@
 
       <UFormField label="Pitch">
         <UTextarea
-          v-model="localFaction.pitch"
+          v-model.nullable="localFaction.pitch"
           :rows="5"
           size="lg"
           class="w-full"
@@ -33,7 +33,7 @@
 
       <UFormField label="Background">
         <UTextarea
-          v-model="localFaction.background"
+          v-model.nullable="localFaction.background"
           :rows="16"
           size="lg"
           class="w-full font-mono text-sm"
@@ -43,7 +43,7 @@
 
       <UFormField label="Lien vers un background externe">
         <UInput
-          v-model="localFaction.backgroundDocumentUrl"
+          v-model.nullable="localFaction.backgroundDocumentUrl"
           type="url"
           size="lg"
           class="w-full"
@@ -52,7 +52,7 @@
       </UFormField>
 
       <UFormField label="Indications costumes">
-        <UTextarea v-model="localFaction.costumeIndications" :rows="5" size="lg" class="w-full" />
+        <UTextarea v-model.nullable="localFaction.costumeIndications" :rows="5" size="lg" class="w-full" />
       </UFormField>
 
       <AppCheckboxRow
@@ -88,21 +88,23 @@
   </UCard>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { CHARACTER_TYPES } from '~/utils/domain'
+import { apiErrorMessage } from '~/utils/apiErrors'
+import type { CharacterOption, FactionDraft, GameOption } from '~/utils/writingDrafts'
 
-const props = defineProps({
-  faction: { type: Object, required: true },
-  games: { type: Array, required: true },
-  characters: { type: Array, required: true },
-  mode: { type: String, default: 'create' }
-})
+const props = withDefaults(defineProps<{
+  faction: FactionDraft
+  games: GameOption[]
+  characters: CharacterOption[]
+  mode?: 'create' | 'edit'
+}>(), { mode: 'create' })
 
-const emit = defineEmits(['submit', 'cancel', 'update:faction'])
+const emit = defineEmits<{ submit: [], cancel: [], 'update:faction': [faction: FactionDraft] }>()
 
-const localFaction = ref({ ...props.faction })
-const errors = ref({})
+const localFaction = ref<FactionDraft>({ ...props.faction })
+const errors = ref<Record<string, string>>({})
 const serverError = ref('')
 
 const gameOptions = computed(() => props.games.map((game) => ({
@@ -146,15 +148,15 @@ function validate() {
   return Object.keys(errors.value).length === 0
 }
 
-async function submit() {
+function submit() {
   if (!validate()) return
 
   try {
     emit('update:faction', localFaction.value)
-    await emit('submit')
+    emit('submit')
     serverError.value = ''
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
   }
 }
 </script>

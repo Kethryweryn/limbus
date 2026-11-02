@@ -24,7 +24,7 @@
     </div>
 
     <FactionForm
-      v-if="isEditing"
+      v-if="isEditing && editableFaction"
       v-model:faction="editableFaction"
       :games="games || []"
       :characters="characters || []"
@@ -190,11 +190,13 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { isInArchivedGame } from '~/utils/games'
+import type { FactionDraft } from '~/utils/writingDrafts'
+
 const route = useRoute()
 const router = useRouter()
-const slug = route.params.slug
+const slug = String(route.params.slug)
 const { data: faction, error, refresh } = await useFetch(`/api/factions/slug/${slug}`)
 const { data: games } = await useFetch('/api/games')
 const { data: characters } = await useFetch('/api/characters')
@@ -205,14 +207,16 @@ if (error.value) {
   throw createError({ statusCode: 404, message: 'Groupe introuvable' })
 }
 
+type FactionPage = NonNullable<typeof faction.value>
+
 const isEditing = ref(route.query.edit === '1')
-const editableFaction = ref(faction.value ? factionFormPayload(faction.value) : null)
+const editableFaction = ref<FactionDraft | null>(faction.value ? factionFormPayload(faction.value) : null)
 const showIntrigueModal = ref(false)
 const showTrombinoscopeModal = ref(false)
 const trombinoscopeOptions = ref({
   showInTrombinoscope: Boolean(faction.value?.showInTrombinoscope)
 })
-const selectedIntrigueIds = ref(faction.value?.intrigues?.map((intrigue) => intrigue.id) || [])
+const selectedIntrigueIds = ref<string[]>(faction.value?.intrigues?.map((intrigue) => intrigue.id) || [])
 
 const availableIntrigues = computed(() =>
   (intrigues.value || [])
@@ -242,15 +246,15 @@ watch(() => faction.value?.showInTrombinoscope, (value) => {
   trombinoscopeOptions.value.showInTrombinoscope = Boolean(value)
 })
 
-function factionFormPayload(value) {
+function factionFormPayload(value: FactionPage): FactionDraft {
   return {
     ...value,
-    characterIds: value.characterIds || value.characters?.map((character) => character.id) || []
+    characterIds: value.characters?.map((character) => character.id) || []
   }
 }
 
 function startEdit() {
-  editableFaction.value = factionFormPayload(faction.value)
+  editableFaction.value = faction.value ? factionFormPayload(faction.value) : null
   isEditing.value = true
   router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
 }
@@ -271,8 +275,7 @@ async function handleFormSubmit() {
     body: editableFaction.value
   })
 
-  if (updatedFaction?.slug && updatedFaction.slug !== route.params.slug) {
-    faction.value = updatedFaction
+  if (!isOfflineQueued(updatedFaction) && updatedFaction.slug && updatedFaction.slug !== route.params.slug) {
     await router.replace(`/factions/${updatedFaction.slug}`)
   } else {
     await refresh()
@@ -282,9 +285,10 @@ async function handleFormSubmit() {
 }
 
 async function saveFactionIntrigues() {
-  if (!faction.value?.id) return
+  const current = faction.value
+  if (!current?.id) return
 
-  const currentIds = new Set(faction.value.intrigues?.map((intrigue) => intrigue.id) || [])
+  const currentIds = new Set(current.intrigues?.map((intrigue) => intrigue.id) || [])
   const nextIds = new Set(selectedIntrigueIds.value || [])
   const relevantIntrigues = availableIntrigues.value.filter((intrigue) =>
     currentIds.has(intrigue.id) || nextIds.has(intrigue.id)
@@ -294,9 +298,9 @@ async function saveFactionIntrigues() {
     const factionIds = new Set(intrigue.factions?.map((item) => item.id) || [])
 
     if (nextIds.has(intrigue.id)) {
-      factionIds.add(faction.value.id)
+      factionIds.add(current.id)
     } else {
-      factionIds.delete(faction.value.id)
+      factionIds.delete(current.id)
     }
 
     return useApiFetch(`/api/intrigues/${intrigue.id}`, {
@@ -320,7 +324,7 @@ async function saveFactionIntrigues() {
 async function saveFactionTrombinoscopeOptions() {
   if (!faction.value?.id) return
 
-  const updatedFaction = await useApiFetch(`/api/factions/${faction.value.id}`, {
+  await useApiFetch(`/api/factions/${faction.value.id}`, {
     method: 'PUT',
     body: {
       ...factionFormPayload(faction.value),
@@ -328,7 +332,6 @@ async function saveFactionTrombinoscopeOptions() {
     }
   })
 
-  faction.value = updatedFaction
   showTrombinoscopeModal.value = false
   await refresh()
 }

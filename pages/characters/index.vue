@@ -138,22 +138,28 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { isInArchivedGame, isVisibleContent } from '~/utils/games'
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { isOfflineMode } from '~/utils/connection'
 import { CHARACTER_TYPES, INTRIGUE_LEVELS } from '~/utils/domain'
 import { getFromStore, saveToStore } from '~/utils/storage'
-//import GameContextBar from '@/components/GameContextBar.vue'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import type { CharacterDraft } from '~/utils/writingDrafts'
+import type { UiColor } from '~/utils/ui'
 
-const characters = ref([])
+type CharacterItem = ApiResponse<'/api/characters'>[number]
+type GameItem = ApiResponse<'/api/games'>[number]
+type FactionItem = ApiResponse<'/api/factions'>[number]
+
+const characters = ref<CharacterItem[]>([])
 const search = ref('')
 const sortOption = ref('updated-desc')
 const gameFilter = ref('all')
 const showArchived = ref(false)
-const games = ref([])
-const factions = ref([])
+const games = ref<GameItem[]>([])
+const factions = ref<FactionItem[]>([])
 const router = useRouter()
 
 const gameStore = useGameStore()
@@ -166,15 +172,15 @@ const sortOptions = [
     { label: 'Nom Z-A', value: 'name-desc' }
 ]
 
-const intrigueLevelCards = [
+const intrigueLevelCards: Array<{ value: string, shortLabel: string, color: UiColor }> = [
     { value: INTRIGUE_LEVELS.mainStory, shortLabel: 'Scénario', color: 'primary' },
     { value: INTRIGUE_LEVELS.mainCharacter, shortLabel: 'Perso', color: 'primary' },
     { value: INTRIGUE_LEVELS.major, shortLabel: 'Majeure', color: 'warning' },
     { value: INTRIGUE_LEVELS.minor, shortLabel: 'Mineure', color: 'neutral' }
 ]
 
-const intrigueLevelsSummary = (character) => {
-    const counts = (character.intrigues || []).reduce((acc, intrigue) => {
+const intrigueLevelsSummary = (character: CharacterItem) => {
+    const counts = (character.intrigues || []).reduce<Record<string, number>>((acc, intrigue) => {
         acc[intrigue.level] = (acc[intrigue.level] || 0) + 1
         return acc
     }, {})
@@ -192,7 +198,7 @@ const gameFilterOptions = computed(() => [
 
 const fetchGames = async () => {
     if (isOfflineMode()) {
-        games.value = await getFromStore('games', 'list') || []
+        games.value = await getFromStore<GameItem[]>('games', 'list') || []
         return
     }
 
@@ -203,7 +209,7 @@ const fetchGames = async () => {
 
 const fetchCharacters = async () => {
     if (isOfflineMode()) {
-        characters.value = await getFromStore('characters', 'list') || []
+        characters.value = await getFromStore<CharacterItem[]>('characters', 'list') || []
         return
     }
 
@@ -214,7 +220,7 @@ const fetchCharacters = async () => {
 
 const fetchFactions = async () => {
     if (isOfflineMode()) {
-        factions.value = await getFromStore('factions', 'list') || []
+        factions.value = await getFromStore<FactionItem[]>('factions', 'list') || []
         return
     }
 
@@ -305,37 +311,14 @@ const prevCharPage = () => {
 }
 
 
-// 🧱 Création
-const newCharacter = ref({
-    name: '',
-    pitch: '',
-    type: CHARACTER_TYPES.pj,
-    background: '',
-    backgroundDocumentUrl: '',
-    sheetReadyToSend: false,
-    costumeIndications: '',
-    excludeFromTrombinoscope: false,
-    trombinoscopeFaceHidden: false,
-    trombinoscopePhotoUrl: '',
-    trombinoscopeNote: '',
-    trombinoscopeDisplayName: '',
-    factionIds: [],
-    gameId: selectedGame.value?.id || ''
-})
-
-// Met à jour le jeu assigné au personnage si le jeu actif change
-watch(() => selectedGame.value?.id, (newId) => {
-    newCharacter.value.gameId = newId || ''
-})
-
 // Quand on fait une recherche on revient à la page 1 de la pagination
 watch([search, sortOption, gameFilter, filteredCharacters], () => {
     charPage.value = 1
 })
 
 const showSlideover = ref(false)
-const activeFormCharacter = ref(null)
-const formMode = ref('create')
+const activeFormCharacter = ref<CharacterDraft | null>(null)
+const formMode = ref<'create' | 'edit'>('create')
 
 function openCreateSlideover() {
     activeFormCharacter.value = {
@@ -358,7 +341,7 @@ function openCreateSlideover() {
     showSlideover.value = true
 }
 
-function startEdit(char) {
+function startEdit(char: CharacterItem) {
     activeFormCharacter.value = {
         ...char,
         factionIds: char.factions?.map((faction) => faction.id) || []
@@ -372,12 +355,13 @@ function closeSlideover() {
     showSlideover.value = false
 }
 
-function openCharacterPage(char) {
+function openCharacterPage(char: CharacterItem) {
     if (!char?.slug) return
     router.push(`/characters/${char.slug}`)
 }
 
 async function handleFormSubmit() {
+    if (!activeFormCharacter.value) return
     try {
         if (formMode.value === 'create') {
             await useApiFetch('/api/characters', {
@@ -397,7 +381,7 @@ async function handleFormSubmit() {
     }
 }
 
-const deleteCharacter = async (id) => {
+const deleteCharacter = async (id: string) => {
     if (confirm('Supprimer ce personnage ?')) {
         await useApiFetch(`/api/characters/${id}`, { method: 'DELETE' })
         await Promise.all([fetchCharacters(), fetchFactions()])
