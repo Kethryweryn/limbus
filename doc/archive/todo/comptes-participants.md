@@ -1,6 +1,6 @@
 ---
 titre: Un compte pour tout le monde, organiser et participer
-statut: tranchée
+statut: archivée
 spec: ../../specs/SPEC-011-un-compte-pour-tout-le-monde.md
 date: 2026-10-29
 ---
@@ -59,4 +59,7 @@ Enfin, le rôle global « organisateur » n'a pas vraiment de sens : on peut org
   - l'administratrice crée encore des comptes, par un lien pour choisir le mot de passe.
 - Conditions d'utilisation, politique de confidentialité et responsable de traitement : tranchés à l'étape 5 de la feuille de route, avant d'ouvrir l'inscription en production.
 - 2026-11-02 : éditeur et responsable Jean-Damien Mottot, contact limbus@limbuslarp.fr, hébergeur Scaleway ; chaque équipe est responsable des données de ses joueurs, Limbus sous-traitant ([SPEC-013](../../specs/SPEC-013-pages-legales-et-conservation.md)).
+
+## Suivi
+
 - 2026-11-02 : fiche archivée. Les sept lots de [SPEC-011](../../specs/SPEC-011-un-compte-pour-tout-le-monde.md) sont faits, les conditions d'utilisation, la politique de confidentialité et les durées de conservation aussi ([SPEC-013](../../specs/SPEC-013-pages-legales-et-conservation.md)). Reste l'ouverture de l'inscription libre en production, un réglage du serveur (`SIGNUP_OPEN=1`).
