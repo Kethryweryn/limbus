@@ -18,12 +18,6 @@ export function isOfflineQueued(value: unknown): value is OfflineQueuedResponse 
 /** Réponse d'une route pour typer un état (`ref<ApiResponse<'/api/games'>>`) ; route dynamique sous sa forme Nitro (`/api/games/:id`). */
 export type ApiResponse<R extends NitroFetchRequest, M extends HttpMethod = 'get'> = TypedInternalResponse<R, unknown, M>
 
-/** Réponse d'une action (envoi, génération, partage…) : jamais mise en file hors ligne, elle est donc celle du serveur. */
-export function actionResult<T>(value: T): Exclude<T, OfflineQueuedResponse> {
-  if (isOfflineQueued(value)) throw new Error('Cette action n’est pas disponible hors ligne.')
-  return value as Exclude<T, OfflineQueuedResponse>
-}
-
 type HttpMethod = 'get' | 'head' | 'options' | 'post' | 'put' | 'patch' | 'delete'
 type AnyCaseMethod = HttpMethod | Uppercase<HttpMethod>
 type ApiOptions<M extends AnyCaseMethod> = Omit<NitroFetchOptions<NitroFetchRequest>, 'method'> & ApiFetchExtras & { method?: M }
@@ -33,7 +27,13 @@ type ApiOptions<M extends AnyCaseMethod> = Omit<NitroFetchOptions<NitroFetchRequ
 type ApiFetch = <T = unknown, R extends NitroFetchRequest = NitroFetchRequest, M extends AnyCaseMethod = 'get'>(
   request: R,
   options?: ApiOptions<M>
-) => Promise<Lowercase<M> extends 'get' | 'head' | 'options' ? TypedInternalResponse<R, T, 'get'> : TypedInternalResponse<R, T, Lowercase<M>> | OfflineQueuedResponse>
+) => Promise<NoInfer<Lowercase<M> extends 'get' | 'head' | 'options' ? TypedInternalResponse<R, T, 'get'> : TypedInternalResponse<R, T, Lowercase<M>> | OfflineQueuedResponse>>
+
+// Une action (envoi, partage, legs, téléversement…) n'est jamais mise en file hors ligne : sa réponse est celle du serveur
+type ApiAction = <T = unknown, R extends NitroFetchRequest = NitroFetchRequest, M extends AnyCaseMethod = 'get'>(
+  request: R,
+  options?: ApiOptions<M>
+) => Promise<NoInfer<TypedInternalResponse<R, T, Lowercase<M>>>>
 
 // Session expirée ou révoquée : retour à l'écran de connexion. Un 403 n'est qu'un refus
 // ponctuel (action réservée au propriétaire, ressource d'un autre jeu) : on reste connecté.
@@ -51,6 +51,13 @@ export function handleApiAuthError(error: unknown): void {
  * - offlineLabel : précision montrée dans le panneau des modifications si l'écriture part en file (US-049).
  */
 export const useApiFetch = ((request: string, options?: RawOptions) => apiFetch(request, options)) as unknown as ApiFetch
+
+/** Appel d'une action (US-115) : comme useApiFetch, sans mise en file hors ligne possible dans sa réponse. */
+export const useApiAction = (async (request: string, options?: RawOptions) => {
+  const result = await apiFetch(request, options)
+  if (isOfflineQueued(result)) throw new Error('Cette action n’est pas disponible hors ligne.')
+  return result
+}) as unknown as ApiAction
 
 // Implémentation non typée par route : la file hors ligne et le cache de l'appareil ne connaissent que l'URL
 const rawFetch = $fetch as unknown as (request: string, options?: RawOptions) => Promise<unknown>

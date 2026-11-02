@@ -70,13 +70,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
+import { computed, onMounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import TimelineEventForm from '@/components/TimelineEventForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import type { ApiResponse } from '~/composables/useApiFetch'
-import { isOfflineMode } from '~/utils/connection'
-import { getFromStore, saveToStore } from '~/utils/storage'
 import { isArchivedGame } from '~/utils/games'
 import type { TimelineEventRow, TimelineGame } from '~/utils/timeline'
 import type { TimelineEventDraft } from '~/utils/writingDrafts'
@@ -93,7 +92,6 @@ const items = ref<ApiResponse<'/api/items'>>([])
 const searchQuery = ref('')
 const gameFilter = ref('')
 const gameSearch = ref('')
-const isOffline = ref(false)
 const showFormSlideover = ref(false)
 const activeFormEvent = ref<TimelineEventDraft | null>(null)
 const formMode = ref<'create' | 'edit'>('create')
@@ -142,97 +140,38 @@ const filteredEvents = computed(() => {
 })
 
 const fetchTimelineEvents = async () => {
-  if (isOfflineMode()) {
-    timelineEvents.value = await getFromStore<typeof timelineEvents.value>('timelineEvents', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/timeline-events')
-  timelineEvents.value = data
-  await saveToStore('timelineEvents', 'list', data)
+  timelineEvents.value = await fetchOfflineList('timelineEvents', '/api/timeline-events')
 }
 
 const fetchGames = async () => {
-  if (isOfflineMode()) {
-    games.value = await getFromStore<typeof games.value>('games', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/games')
-  games.value = data
-  await saveToStore('games', 'list', data)
+  games.value = await fetchOfflineList('games', '/api/games')
 }
 
 const fetchCharacters = async () => {
-  if (isOfflineMode()) {
-    characters.value = await getFromStore<typeof characters.value>('characters', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/characters')
-  characters.value = data
-  await saveToStore('characters', 'list', data)
+  characters.value = await fetchOfflineList('characters', '/api/characters')
 }
 
 const fetchIntrigues = async () => {
-  if (isOfflineMode()) {
-    intrigues.value = await getFromStore<typeof intrigues.value>('intrigues', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/intrigues')
-  intrigues.value = data
-  await saveToStore('intrigues', 'list', data)
+  intrigues.value = await fetchOfflineList('intrigues', '/api/intrigues')
 }
 
 const fetchFactions = async () => {
-  if (isOfflineMode()) {
-    factions.value = await getFromStore<typeof factions.value>('factions', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/factions')
-  factions.value = data
-  await saveToStore('factions', 'list', data)
+  factions.value = await fetchOfflineList('factions', '/api/factions')
 }
 
 const fetchItems = async () => {
-  if (isOfflineMode()) {
-    items.value = await getFromStore<typeof items.value>('items', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/items')
-  items.value = data
-  await saveToStore('items', 'list', data)
+  items.value = await fetchOfflineList('items', '/api/items')
 }
 
 const refreshData = async () => {
   await Promise.all([fetchTimelineEvents(), fetchGames(), fetchCharacters(), fetchFactions(), fetchIntrigues(), fetchItems()])
 }
 
-const updateStatus = () => {
-  const wasOffline = isOffline.value
-  isOffline.value = isOfflineMode()
-
-  if (wasOffline !== isOffline.value) {
-    refreshData()
-  }
-}
+const { isOffline } = useConnectionRefresh(refreshData)
 
 onMounted(async () => {
-  updateStatus()
-  window.addEventListener('online', updateStatus)
-  window.addEventListener('offline', updateStatus)
-  window.addEventListener('limbus:connection-change', updateStatus)
   await refreshData()
   restoreTimelineGameContext()
-})
-
-onUnmounted(() => {
-  window.removeEventListener('online', updateStatus)
-  window.removeEventListener('offline', updateStatus)
-  window.removeEventListener('limbus:connection-change', updateStatus)
 })
 
 function eventFormPayload(timelineEvent: TimelineEventRow): TimelineEventDraft {

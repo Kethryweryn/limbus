@@ -102,7 +102,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useConnectionRefresh } from '~/composables/useOfflineList'
 import { isOfflineMode } from '~/utils/connection'
 import { getFromStore, saveToStore } from '~/utils/storage'
 import { initialSpace } from '~/utils/spaces'
@@ -144,14 +145,7 @@ const updateDashboard = async () => {
   }
 }
 
-const isOffline = ref(false)
-const updateStatus = () => {
-  const wasOffline = isOffline.value
-  isOffline.value = isOfflineMode()
-  if (!wasOffline && isOffline.value) {
-    updateDashboard()
-  }
-}
+useConnectionRefresh(updateDashboard)
 
 // À l'ouverture, Limbus rouvre le dernier espace utilisé, ou « Je participe » pour qui n'organise rien (US-073)
 const { data: authState } = await useFetch('/api/auth/me')
@@ -162,16 +156,6 @@ onMounted(() => {
     navigateTo('/participer', { replace: true })
     return
   }
-  updateStatus()
-  window.addEventListener('online', updateStatus)
-  window.addEventListener('offline', updateStatus)
-  window.addEventListener('limbus:connection-change', updateStatus)
   updateDashboard()
-})
-
-onUnmounted(() => {
-  window.removeEventListener('online', updateStatus)
-  window.removeEventListener('offline', updateStatus)
-  window.removeEventListener('limbus:connection-change', updateStatus)
 })
 </script>

@@ -163,15 +163,14 @@ v-model="searchQuery" placeholder="Rechercher un jeu..." icon="i-heroicons-magni
 </template>
 
 <script setup lang="ts">
+import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import { isArchivedGame } from '~/utils/games'
 import type { GameDraft } from '~/utils/writingDrafts'
 import { PHOTO_RETENTION_DEFAULT_MONTHS } from '~/utils/photoInformation'
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import type { ApiResponse } from '@/composables/useApiFetch'
 import GameContextBar from '@/components/GameContextBar.vue'
-import { isOfflineMode } from '~/utils/connection'
-import { getFromStore, saveToStore } from '~/utils/storage'
 
 type GameListItem = ApiResponse<'/api/games'>[number]
 
@@ -183,42 +182,18 @@ const router = useRouter()
 const { data: authState } = await useFetch('/api/auth/me')
 
 const fetchGames = async () => {
-  if (isOfflineMode()) {
-    games.value = await getFromStore<GameListItem[]>('games', 'list') || []
-    return
-  }
-
   try {
-    const data = await useApiFetch('/api/games')
-    games.value = data
-    saveToStore('games', 'list', data)
+    games.value = await fetchOfflineList('games', '/api/games')
   } catch (err) {
     console.error('[games] erreur API', err)
     games.value = []
   }
 }
 
-const isOffline = ref(false)
-const updateStatus = () => {
-  const wasOffline = isOffline.value
-  isOffline.value = isOfflineMode()
-  if (wasOffline !== isOffline.value) {
-    fetchGames()
-  }
-}
+useConnectionRefresh(fetchGames)
 
 onMounted(() => {
-  updateStatus()
-  window.addEventListener('online', updateStatus)
-  window.addEventListener('offline', updateStatus)
-  window.addEventListener('limbus:connection-change', updateStatus)
   fetchGames()
-})
-
-onUnmounted(() => {
-  window.removeEventListener('online', updateStatus)
-  window.removeEventListener('offline', updateStatus)
-  window.removeEventListener('limbus:connection-change', updateStatus)
 })
 
 

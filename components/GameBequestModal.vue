@@ -118,8 +118,7 @@ watch(open, (value) => {
 async function loadPendingBequests() {
   if (!props.game?.id) return
   try {
-    const data = await useApiFetch(`/api/games/${props.game.id}/bequests`)
-    pendingBequests.value = data
+    pendingBequests.value = await useApiFetch(`/api/games/${props.game.id}/bequests`)
   } catch (err) {
     errorMessage.value = apiErrorMessage(err, 'Impossible de charger les legs en attente')
   }
@@ -131,8 +130,7 @@ async function resend(bequest: PendingBequest) {
   message.value = ''
   errorMessage.value = ''
   try {
-    const response = await useApiFetch(`/api/games/${props.game.id}/bequests/${bequest.id}/resend`, { method: 'POST' })
-    const result = actionResult(response)
+    const result = await useApiAction(`/api/games/${props.game.id}/bequests/${bequest.id}/resend`, { method: 'POST' })
     message.value = `Invitation renvoyée à ${bequest.email}, valable jusqu’au ${formatDate(result.expiresAt)}.`
   } catch (err) {
     errorMessage.value = apiErrorMessage(err, 'Impossible de renvoyer l’invitation')
@@ -165,11 +163,10 @@ async function bequeath() {
   message.value = ''
   errorMessage.value = ''
   try {
-    const response = await useApiFetch(`/api/games/${props.game.id}/bequests`, {
+    const result = await useApiAction(`/api/games/${props.game.id}/bequests`, {
       method: 'POST',
       body: { email: email.value }
     })
-    const result = actionResult(response)
     const recipient = result.recipient?.name || result.recipient?.email
     message.value = result.pending
       ? `${recipient} n’a pas encore de compte Limbus : elle a reçu une invitation à en créer un, valable jusqu’au ${new Date(result.expiresAt).toLocaleDateString('fr-FR', { dateStyle: 'long' })}. La copie lui sera attribuée à la création de son compte.`

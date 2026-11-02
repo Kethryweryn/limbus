@@ -105,7 +105,7 @@ import {
   VIRTUAL_CHARACTER_GROUPS
 } from '~/utils/domain'
 import { apiErrorMessage } from '~/utils/apiErrors'
-import type { CharacterOption, DocumentDraft, FactionOption, GameOption } from '~/utils/writingDrafts'
+import { emptyStringModel, type CharacterOption, type DocumentDraft, type FactionOption, type GameOption } from '~/utils/writingDrafts'
 
 const props = withDefaults(defineProps<{
   document: DocumentDraft
@@ -121,11 +121,7 @@ const localDocument = ref<DocumentDraft>({ ...props.document })
 const errors = ref<Record<string, string>>({})
 const serverError = ref('')
 
-// Le choix « Aucun personnage » vaut une chaîne vide
-const characterIdModel = computed({
-  get: () => localDocument.value.characterId || '',
-  set: (value: string) => { localDocument.value.characterId = value }
-})
+const characterIdModel = emptyStringModel(localDocument, 'characterId')
 
 const audienceOptions: Array<{ label: string, value: string }> = [...DOCUMENT_AUDIENCE_OPTIONS]
 

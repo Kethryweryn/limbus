@@ -139,12 +139,11 @@
 </template>
 
 <script setup lang="ts">
+import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import { isInArchivedGame, isVisibleContent } from '~/utils/games'
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useGameStore } from '@/stores/game'
-import { isOfflineMode } from '~/utils/connection'
 import { CHARACTER_TYPES, INTRIGUE_LEVELS } from '~/utils/domain'
-import { getFromStore, saveToStore } from '~/utils/storage'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import type { CharacterDraft } from '~/utils/writingDrafts'
 import type { UiColor } from '~/utils/ui'
@@ -164,7 +163,6 @@ const router = useRouter()
 
 const gameStore = useGameStore()
 const selectedGame = computed(() => gameStore.currentGame)
-const isOffline = ref(false)
 
 const sortOptions = [
     { label: 'Dernière modification', value: 'updated-desc' },
@@ -197,66 +195,25 @@ const gameFilterOptions = computed(() => [
 ])
 
 const fetchGames = async () => {
-    if (isOfflineMode()) {
-        games.value = await getFromStore<GameItem[]>('games', 'list') || []
-        return
-    }
-
-    const data = await useApiFetch('/api/games')
-    games.value = data
-    await saveToStore('games', 'list', data)
+    games.value = await fetchOfflineList('games', '/api/games')
 }
 
 const fetchCharacters = async () => {
-    if (isOfflineMode()) {
-        characters.value = await getFromStore<CharacterItem[]>('characters', 'list') || []
-        return
-    }
-
-    const data = await useApiFetch('/api/characters')
-    characters.value = data
-    await saveToStore('characters', 'list', data)
+    characters.value = await fetchOfflineList('characters', '/api/characters')
 }
 
 const fetchFactions = async () => {
-    if (isOfflineMode()) {
-        factions.value = await getFromStore<FactionItem[]>('factions', 'list') || []
-        return
-    }
-
-    const data = await useApiFetch('/api/factions')
-    factions.value = data
-    await saveToStore('factions', 'list', data)
+    factions.value = await fetchOfflineList('factions', '/api/factions')
 }
 
 const refreshData = async () => {
     await Promise.all([fetchGames(), fetchCharacters(), fetchFactions()])
 }
 
-const updateStatus = () => {
-    const wasOffline = isOffline.value
-    isOffline.value = isOfflineMode()
-
-    if (wasOffline && !isOffline.value) {
-        refreshData()
-    }
-    if (!wasOffline && isOffline.value) {
-        refreshData()
-    }
-}
+useConnectionRefresh(refreshData)
 
 onMounted(async () => {
-    updateStatus()
-    window.addEventListener('online', updateStatus)
-    window.addEventListener('offline', updateStatus)
-    window.addEventListener('limbus:connection-change', updateStatus)
     await refreshData()
-})
-
-onUnmounted(() => {
-    window.removeEventListener('online', updateStatus)
-    window.removeEventListener('offline', updateStatus)
-    window.removeEventListener('limbus:connection-change', updateStatus)
 })
 
 // 🧠 Filtrage par jeu actif et recherche

@@ -267,11 +267,10 @@ async function uploadTrombinoscopePhoto(event: Event) {
         const formData = new FormData()
         formData.append('photo', file)
         formData.append('gameId', localCharacter.value.gameId || '')
-        const response = await useApiFetch('/api/uploads/session-assignment-photos', {
+        const result = await useApiAction('/api/uploads/session-assignment-photos', {
             method: 'POST',
             body: formData
         })
-        const result = actionResult(response)
         localCharacter.value.trombinoscopePhotoUrl = result.photoUrl
     } catch (err) {
         serverError.value = apiErrorMessage(err, 'Impossible d’envoyer la photo')
