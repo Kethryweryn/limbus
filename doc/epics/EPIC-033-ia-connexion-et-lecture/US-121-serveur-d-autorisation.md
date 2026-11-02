@@ -1,7 +1,7 @@
 ---
 id: US-121
 titre: Serveur d'autorisation et page « Autoriser »
-statut: à faire
+statut: terminée
 epic: EPIC-033
 regles: [R1, R2, R3, R4, R5, R6]
 adr: [ADR-0058]
@@ -13,29 +13,29 @@ En tant qu'organisatrice, je veux autoriser mon assistant d'IA sur une page de L
 
 ## Critères d'acceptation
 
-- [ ] **Découverte.** Sans jeton, `/mcp` répond 401 avec `WWW-Authenticate: Bearer resource_metadata=…`.
+- [x] **Découverte.** Sans jeton, `/mcp` répond 401 avec `WWW-Authenticate: Bearer resource_metadata=…`.
   - Les métadonnées de la ressource protégée (RFC 9728) et du serveur d'autorisation (RFC 8414) sont servies.
   - Elles annoncent PKCE S256, le client public (`none`), CIMD et `iss`.
-- [ ] **Inscription.** Un assistant s'inscrit par son document CIMD ou par inscription dynamique.
+- [x] **Inscription.** Un assistant s'inscrit par son document CIMD ou par inscription dynamique.
   - Le document CIMD n'est lu que sur un hôte public, en temps et en taille bornés.
   - L'inscription dynamique est limitée en débit. Un assistant inscrit qui n'a jamais servi est effacé au bout de 24 heures.
-- [ ] **Demande.** La demande d'autorisation exige :
+- [x] **Demande.** La demande d'autorisation exige :
   - une adresse de retour déclarée, identique au port près pour une adresse locale ;
   - PKCE S256 ;
   - la ressource de Limbus.
 
   Elle mène à la page « Autoriser », après la connexion si besoin.
-- [ ] **Page « Autoriser ».**
+- [x] **Page « Autoriser ».**
   - Elle affiche le nom de l'assistant et l'hôte de retour, avec un avertissement si l'adresse est locale.
   - Elle propose lecture seule ou lecture et écriture.
   - Elle liste les jeux à cocher : ceux de la personne, et les jeux partagés dont la propriétaire permet les assistants.
   - Elle ne s'affiche pas dans un cadre et n'est pas gardée en cache.
-- [ ] **Compte.** Seul un compte confirmé, actif et à jour de ses conditions peut autoriser.
-- [ ] **Jetons.**
+- [x] **Compte.** Seul un compte confirmé, actif et à jour de ses conditions peut autoriser.
+- [x] **Jetons.**
   - Le code vaut 60 secondes, une seule fois.
   - Le point `token` vérifie PKCE, l'assistant, l'adresse de retour et la ressource. Il rend un jeton d'accès d'une heure et un jeton de rafraîchissement.
   - Le rafraîchissement renouvelle le jeton. Réutiliser un jeton déjà renouvelé fait tomber l'autorisation.
-- [ ] **Fin.** L'autorisation s'arrête :
+- [x] **Fin.** L'autorisation s'arrête :
   - quand elle est retirée ;
   - après 90 jours sans usage ;
   - quand les sessions du compte sont coupées (`revokeUserSessions`) ;

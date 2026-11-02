@@ -207,6 +207,9 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['PUT', `/api/characters/${b.character.id}/trombinoscope`, { entries: [] }],
     ['GET', `/api/games/${b.game.id}/shares`],
     ['DELETE', `/api/games/${b.game.id}/shares/${carol.id}`],
+    // Assistants d'IA (US-123) : réglage et suivi, réservés à la propriétaire
+    ['GET', `/api/games/${b.game.id}/ai-access`],
+    ['PUT', `/api/games/${b.game.id}/ai-settings`, { aiForCoorganizers: true }],
     ['POST', `/api/games/${b.game.id}/transfer`, { userId: carol.id }],
     ['DELETE', `/api/games/${b.game.id}/transfer`],
     ['POST', `/api/games/${b.game.id}/transfer/accept`],
@@ -261,6 +264,7 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect((await api(alice, 'GET', `/api/sessions/${a.session.id}/attendance`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/characters/${a.character.id}/trombinoscope`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/shares`)).status).toBe(200)
+    expect((await api(alice, 'GET', `/api/games/${a.game.id}/ai-access`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/bequests`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/participants/${a.participant.id}/export`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/registration-context`)).status).toBe(200)

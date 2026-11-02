@@ -24,9 +24,9 @@ Les outils d'écriture viennent aux lots 2 à 4. Une autorisation « lecture et 
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-121](US-121-serveur-d-autorisation.md) | Serveur d'autorisation et page « Autoriser » | à faire |
-| [US-122](US-122-serveur-mcp-en-lecture.md) | Serveur MCP et outils de lecture | à faire |
-| [US-123](US-123-assistants-connectes.md) | Assistants connectés, réglage de la propriétaire, journal | à faire |
-| [US-124](US-124-confidentialite-et-conditions.md) | Politique de confidentialité et conditions | à faire |
+| [US-121](US-121-serveur-d-autorisation.md) | Serveur d'autorisation et page « Autoriser » | terminée |
+| [US-122](US-122-serveur-mcp-en-lecture.md) | Serveur MCP et outils de lecture | terminée |
+| [US-123](US-123-assistants-connectes.md) | Assistants connectés, réglage de la propriétaire, journal | terminée |
+| [US-124](US-124-confidentialite-et-conditions.md) | Politique de confidentialité et conditions | terminée |
 
-Après le déploiement : essai avec Claude, ChatGPT et Mistral, sur les comptes de l'utilisatrice.
+Reste, après le déploiement : l'essai avec Claude, ChatGPT et Mistral, sur les comptes de l'utilisatrice. L'epic est archivé ensuite.

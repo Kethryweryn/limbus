@@ -7,6 +7,7 @@ import { loginSchema, readZodBody } from '~/server/utils/schemas'
 import { assertRateLimit } from '~/server/utils/rateLimit'
 import { purgeUnconfirmedAccounts } from '~/server/utils/accounts'
 import { purgeExpiredCopies } from '~/server/utils/deliveryCopies'
+import { purgeAiData } from '~/server/utils/aiAuth'
 import { purgeRegistrationRequests } from '~/server/utils/formRegistrations'
 
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync('mot-de-passe-factice', 10)
@@ -46,8 +47,9 @@ export default defineEventHandler(async (event) => {
 
   // Après une connexion réussie seulement, pour qu'une tentative refusée ne parcoure pas les sessions, et en
   // parallèle : copies des envois des sessions passées (US-080, ADR-0044), formulaires publics jamais confirmés
-  // (R11, ADR-0046), photos échues (US-108, ADR-0054). Attendues : le ménage est fait quand la connexion répond.
-  await Promise.all([purgeExpiredCopies(), purgeRegistrationRequests(), purgeExpiredPhotos()])
+  // (R11, ADR-0046), photos échues (US-108, ADR-0054), autorisations des assistants finies (US-121). Attendues : le
+  // ménage est fait quand la connexion répond.
+  await Promise.all([purgeExpiredCopies(), purgeRegistrationRequests(), purgeExpiredPhotos(), purgeAiData()])
   // Activité du compte, puis comptes inactifs et fiches sans compte trop anciens (US-112, US-113), en tâche de fond :
   // la purge parcourt tous les comptes
   await touchAccount(user.id, null)

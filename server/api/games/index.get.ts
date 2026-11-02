@@ -1,6 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
-import { canAccessAllGames, accessibleGameWhere } from '~/server/utils/gameAccess'
+import { aiGameRestriction, canAccessAllGames, accessibleGameWhere } from '~/server/utils/gameAccess'
 import { CLOSED_SESSION_STATUSES } from '~/utils/domain'
 
 export default defineEventHandler(async (event) => {
@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
     const { user, allGames } = await canAccessAllGames(event)
 
     const games = await prisma.game.findMany({
-        where: accessibleGameWhere(user.id, allGames),
+        where: accessibleGameWhere(user.id, allGames, aiGameRestriction(event)),
         include: {
             owner: { select: { id: true, name: true, email: true } },
             shares: {

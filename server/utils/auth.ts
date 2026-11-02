@@ -158,6 +158,8 @@ export async function requireAdmin(event: H3Event): Promise<AuthUser> {
   return user
 }
 
+// Jamais pour un assistant d'IA, même si la requête porte le cookie du mode administrateur (SPEC-014, R3)
 export function isAdminMode(event: H3Event, user: Pick<AuthUser, 'role'>): boolean {
+  if (event.context.aiAuthorization) return false
   return user.role === USER_ROLES.admin && getCookie(event, '__Host-limbus_admin_mode') === '1'
 }

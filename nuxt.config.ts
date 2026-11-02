@@ -25,8 +25,18 @@ export default defineNuxtConfig({
     // Lien de diffusion (ADR-0046) : public et indexable, mais prérempli pour une personne connectée
     '/i/**': {
       headers: { 'Cache-Control': 'private, no-store' }
+    },
+    // Page « Autoriser » d'un assistant d'IA (US-121) : jamais dans un cadre, jamais en cache
+    '/autoriser/**': {
+      headers: { 'X-Frame-Options': 'DENY', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }
     }
   },
+  // Découverte OAuth pour les assistants d'IA (US-121), aux adresses `/.well-known` fixées par les RFC 9728 et 8414
+  serverHandlers: [
+    { route: '/.well-known/oauth-protected-resource/mcp', handler: '~~/server/handlers/protectedResource.ts' },
+    { route: '/.well-known/oauth-protected-resource', handler: '~~/server/handlers/protectedResource.ts' },
+    { route: '/.well-known/oauth-authorization-server', handler: '~~/server/handlers/authorizationServer.ts' }
+  ],
   nitro: {
     preset: 'node-server', // 👈 force l'utilisation du serveur Node natif
     prerender: {

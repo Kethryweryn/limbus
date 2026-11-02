@@ -4,6 +4,7 @@ import { deletePendingCopy } from '~/server/utils/gameCopy'
 import { eraseParticipant, exportParticipantData } from '~/server/utils/participantPrivacy'
 import { myParticipantIds } from '~/server/utils/participantAccounts'
 import { storageUsage } from '~/server/utils/uploads'
+import { exportAiData } from '~/server/utils/aiAccess'
 import { GAME_INVITATION_KINDS, GAME_INVITATION_STATUSES, REGISTRATION_STATUSES, USER_ROLES } from '~/utils/domain'
 
 // Export et effacement depuis le compte (US-076, US-077, ADR-0043)
@@ -40,7 +41,9 @@ export async function exportAccountData(userId: string) {
     ownedGames: ownedGames.map((game) => game.title),
     sharedGames: gameShares.map((share) => ({ title: share.game.title, since: share.createdAt })),
     // Ses propres données : sans limite de jeux, notes des équipes comprises ; sans les rattachements des affinités (R24)
-    participantRecords: await Promise.all(participantIds.map((id) => exportParticipantData(id, null, { forPerson: true })))
+    participantRecords: await Promise.all(participantIds.map((id) => exportParticipantData(id, null, { forPerson: true }))),
+    // Assistants d'IA autorisés et journal de leurs actions (US-123)
+    aiAssistants: await exportAiData(userId)
   }
 }
 

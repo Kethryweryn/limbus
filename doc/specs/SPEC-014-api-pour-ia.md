@@ -185,3 +185,4 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
 
 - 2026-11-02 : création, avec les choix de l'utilisatrice.
 - 2026-11-02 (revue) : contenu public modifiable, lectures hors journal (choix de l'utilisatrice) ; une autorisation finie est effacée, sans délai inventé.
+- 2026-11-02 : lot 1 livré ([EPIC-033](../epics/EPIC-033-ia-connexion-et-lecture/README.md)) ; reste l'essai avec les assistants.

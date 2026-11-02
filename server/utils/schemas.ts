@@ -752,3 +752,20 @@ export const sessionPaymentOfferedSchema = z.object({
   offered: z.boolean()
 })
 
+
+// Page « Autoriser » d'un assistant d'IA (US-121) : droits et jeux choisis
+export const aiAuthorizationDecisionSchema = z.object({
+  allow: z.boolean(),
+  canWrite: z.boolean(),
+  gameIds: z.array(requiredId('Game')).max(200)
+})
+
+// Jeux d'une autorisation, changés depuis le compte (US-123)
+export const aiAuthorizationGamesSchema = z.object({
+  gameIds: z.array(requiredId('Game')).max(200)
+})
+
+// Réglage de la propriétaire : les co-organisatrices peuvent brancher leur assistant sur le jeu (US-123)
+export const gameAiSettingsSchema = z.object({
+  aiForCoorganizers: z.boolean()
+})

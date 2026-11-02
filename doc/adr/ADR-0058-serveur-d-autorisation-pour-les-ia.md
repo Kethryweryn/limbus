@@ -100,6 +100,10 @@ Les choix communs ci-dessus s'appliquent.
   - `token` (format `application/x-www-form-urlencoded`, réponse en moins de 10 secondes) ;
 - métadonnées RFC 8414 et RFC 9728 ;
 - lecture des documents CIMD avec la même protection que `fetchPublicImage` (hôte public, délai, taille), et cache court ;
+- limites de débit (SPEC-014, R14), fixées au lot 1 :
+  - serveur MCP : 120 appels par minute et par autorisation ;
+  - point `token` : 60 appels par minute et par adresse ;
+  - inscription dynamique : 20 par heure et par adresse ;
 - tests d'intégration du parcours OAuth complet, avec le client MCP officiel ;
 - toute évolution de la spécification MCP (par exemple `iss` qui deviendra obligatoire) est à reporter à la main.
 

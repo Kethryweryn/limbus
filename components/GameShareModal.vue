@@ -94,6 +94,8 @@
           </div>
           <p v-if="!invitations.length" class="text-sm text-gray-500">Aucune invitation.</p>
         </div>
+
+        <GameAiAccessSection v-if="isOwner && game" :game-id="game.id" />
       </div>
     </template>
   </UModal>

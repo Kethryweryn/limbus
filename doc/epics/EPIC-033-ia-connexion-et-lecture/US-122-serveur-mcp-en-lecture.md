@@ -1,7 +1,7 @@
 ---
 id: US-122
 titre: Serveur MCP et outils de lecture
-statut: à faire
+statut: terminée
 epic: EPIC-033
 regles: [R4, R5, R7, R8, R9, R12, R14, R15]
 adr: [ADR-0058]
@@ -13,22 +13,22 @@ En tant qu'organisatrice, je veux que mon assistant lise mes jeux, afin qu'il m'
 
 ## Critères d'acceptation
 
-- [ ] `/mcp` sert le protocole MCP du 28 juillet 2026, sans état. Il n'accepte que le jeton Bearer, jamais le cookie.
-- [ ] Outils de lecture, déclarés en lecture seule :
+- [x] `/mcp` sert le protocole MCP du 28 juillet 2026, sans état. Il n'accepte que le jeton Bearer, jamais le cookie.
+- [x] Outils de lecture, déclarés en lecture seule :
   - les jeux ;
   - le contenu d'un jeu : personnages, factions, intrigues, objets, documents (texte), lieux, chronologie et relations, d'abord en résumé paginé, puis fiche par fiche ;
   - les sessions : détails, équipe, casting, déroulé ;
   - les participants : nom et notes d'organisation du jeu ;
   - les périodes d'inscription, le formulaire, la sélection et le journal des tirages.
-- [ ] Jamais rendus :
+- [x] Jamais rendus :
   - coordonnées, allergies, paiements et fichiers ;
   - texte libre écrit par un participant.
-- [ ] D'une inscription, l'assistant voit :
+- [x] D'une inscription, l'assistant voit :
   - les réponses fermées ;
   - les affinités rattachées, comme un lien vers la personne ;
   - les affinités marquées « personne du jeu ne correspond ».
-- [ ] Seuls les jeux de l'autorisation sont visibles. Un jeu partagé ne l'est que si sa propriétaire permet les assistants.
-- [ ] Les appels sont limités en débit par autorisation.
+- [x] Seuls les jeux de l'autorisation sont visibles. Un jeu partagé ne l'est que si sa propriétaire permet les assistants.
+- [x] Les appels sont limités en débit par autorisation.
 
 ## Notes techniques
 

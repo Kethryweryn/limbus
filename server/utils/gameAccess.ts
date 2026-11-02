@@ -14,12 +14,20 @@ export async function canAccessAllGames(event: H3Event) {
   }
 }
 
+// Un assistant d'IA ne voit que les jeux de son autorisation (SPEC-014, R5, posés par bindAiAuthorization)
+export function aiGameRestriction(event: H3Event) {
+  const ai = event.context.aiAuthorization
+  return ai ? { id: { in: ai.gameIds } } : {}
+}
+
 // Une copie léguée en attente d'attribution n'est visible par personne, même en mode administrateur (ADR-0025)
-export function accessibleGameWhere(userId: string, allGames = false) {
-  if (allGames) return { bequestPending: false }
+// La restriction passe par AND : étalée, elle remplacerait l'identifiant cherché par l'appelant (`{ id, ...where }`)
+export function accessibleGameWhere(userId: string, allGames = false, restriction: { id?: { in: string[] } } = {}) {
+  if (allGames) return { bequestPending: false, AND: [restriction] }
 
   return {
     bequestPending: false,
+    AND: [restriction],
     OR: [
       { ownerId: userId },
       { shares: { some: { userId } } }
@@ -32,7 +40,7 @@ export async function accessibleGameIds(event: H3Event) {
   if (allGames) return null
 
   const games = await prisma.game.findMany({
-    where: accessibleGameWhere(user.id),
+    where: accessibleGameWhere(user.id, false, aiGameRestriction(event)),
     select: { id: true }
   })
 
@@ -46,7 +54,7 @@ export async function accessibleGameModelWhere(event: H3Event, extraWhere: Recor
   return {
     AND: [
       extraWhere,
-      accessibleGameWhere(user.id)
+      accessibleGameWhere(user.id, false, aiGameRestriction(event))
     ]
   }
 }
@@ -57,7 +65,7 @@ export async function requireGameAccess(event: H3Event, gameId: string) {
   const game = await prisma.game.findFirst({
     where: {
       id: gameId,
-      ...accessibleGameWhere(user.id, allGames)
+      ...accessibleGameWhere(user.id, allGames, aiGameRestriction(event))
     },
     select: { id: true }
   })
@@ -83,7 +91,8 @@ export async function requireGameOwner(event: H3Event, gameId: string) {
     where: {
       id: gameId,
       bequestPending: false,
-      ...(allGames ? {} : { ownerId: user.id })
+      ...(allGames ? {} : { ownerId: user.id }),
+      AND: [aiGameRestriction(event)]
     },
     select: { id: true }
   })

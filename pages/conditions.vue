@@ -31,6 +31,11 @@
       <li>informer vos joueurs de l’usage de leurs données (Limbus affiche une information sur les photos dans ses formulaires et ses emails) ;</li>
       <li>ne demander d’informations de santé (allergies, régime) qu’avec le consentement de la personne, que le formulaire recueille ;</li>
       <li>répondre aux demandes de vos joueurs sur leurs données (accès, correction, effacement) ;</li>
+      <li>
+        si vous branchez un assistant d’IA sur un jeu, vous décidez de transmettre à son fournisseur ce que Limbus lui ouvre
+        (contenu du jeu, noms des participants, vos notes, réponses aux questions à choix) : vous en portez la base légale et en
+        informez vos joueurs ;
+      </li>
       <li>ne pas utiliser Limbus pour envoyer des messages sans rapport avec vos jeux.</li>
     </ul>
     <p>

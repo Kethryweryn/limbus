@@ -24,11 +24,11 @@ export function isPrivateAddress(address: string) {
 }
 
 /**
- * Télécharge une photo externe pour l'intégrer à un PDF : http(s) seulement, hôte public,
- * sans redirection, 5 s et 5 Mo au plus. Renvoie null en cas de refus ou d'échec.
+ * Télécharge une ressource externe : http(s) seulement, hôte public, sans redirection, 5 s et `maxBytes` au plus.
+ * Renvoie null en cas de refus ou d'échec.
  * Limite connue : un DNS qui change de réponse entre la vérification et la requête n'est pas couvert.
  */
-export async function fetchPublicImage(url: string): Promise<Buffer | null> {
+export async function fetchPublicResource(url: string, maxBytes: number): Promise<Buffer | null> {
   if (!isHttpUrl(url)) return null
 
   try {
@@ -38,14 +38,14 @@ export async function fetchPublicImage(url: string): Promise<Buffer | null> {
 
     const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(TIMEOUT_MS) })
     if (!response.ok || !response.body) return null
-    if (Number(response.headers.get('content-length') || 0) > MAX_IMAGE_BYTES) return null
+    if (Number(response.headers.get('content-length') || 0) > maxBytes) return null
 
     const reader = response.body.getReader()
     const chunks: Uint8Array[] = []
     let size = 0
     for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
       size += chunk.value.length
-      if (size > MAX_IMAGE_BYTES) {
+      if (size > maxBytes) {
         await reader.cancel()
         return null
       }
@@ -55,4 +55,9 @@ export async function fetchPublicImage(url: string): Promise<Buffer | null> {
   } catch {
     return null
   }
+}
+
+/** Photo externe à intégrer à un PDF : 5 Mo au plus. */
+export async function fetchPublicImage(url: string): Promise<Buffer | null> {
+  return await fetchPublicResource(url, MAX_IMAGE_BYTES)
 }
