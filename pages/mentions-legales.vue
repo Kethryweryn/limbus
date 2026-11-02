@@ -26,7 +26,7 @@
   </LegalPage>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { LEGAL_EDITOR, LEGAL_HOST } from '~/utils/legal'
 
 useHead({ title: 'Mentions légales – Limbus' })

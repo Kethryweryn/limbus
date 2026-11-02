@@ -38,6 +38,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-028](../archive/epics/EPIC-028-photos-des-participants/README.md) | Photos des participants, information, durée de conservation et retrait | [SPEC-012](../specs/SPEC-012-photos-des-participants.md) | terminé |
 | [EPIC-029](../archive/epics/EPIC-029-pages-legales/README.md) | Mentions légales, confidentialité et conditions d'utilisation | [SPEC-013](../specs/SPEC-013-pages-legales-et-conservation.md) | terminé |
 | [EPIC-030](../archive/epics/EPIC-030-durees-de-conservation/README.md) | Durées de conservation des comptes et des fiches participant | [SPEC-013](../specs/SPEC-013-pages-legales-et-conservation.md) | terminé |
+| [EPIC-031](EPIC-031-interface-en-typescript/README.md) | Interface en TypeScript strict | [fiche](../todo/interface-en-typescript.md) | en cours |
 
 ## US
 
@@ -156,3 +157,8 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-111](../archive/epics/EPIC-029-pages-legales/US-111-accepter-les-conditions.md) | Accepter les conditions d'utilisation | EPIC-029 | terminée |
 | [US-112](../archive/epics/EPIC-030-durees-de-conservation/US-112-comptes-inactifs.md) | Effacer les comptes sans connexion depuis deux ans, après un avertissement | EPIC-030 | terminée |
 | [US-113](../archive/epics/EPIC-030-durees-de-conservation/US-113-fiches-sans-compte.md) | Effacer les fiches participant sans compte trois ans après leur dernière activité | EPIC-030 | terminée |
+| [US-114](EPIC-031-interface-en-typescript/US-114-fondations.md) | Fondations : appels typés, mise en page, composants communs, pages d'accès | EPIC-031 | terminée |
+| [US-115](EPIC-031-interface-en-typescript/US-115-ecriture.md) | Écriture du jeu en TypeScript | EPIC-031 | à faire |
+| [US-116](EPIC-031-interface-en-typescript/US-116-sessions.md) | Sessions en TypeScript | EPIC-031 | à faire |
+| [US-117](EPIC-031-interface-en-typescript/US-117-inscriptions.md) | Inscriptions en TypeScript | EPIC-031 | à faire |
+| [US-118](EPIC-031-interface-en-typescript/US-118-compte-participation-administration.md) | Compte, participation, administration ; règle étendue à tout | EPIC-031 | à faire |

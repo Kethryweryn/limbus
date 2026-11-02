@@ -15,3 +15,8 @@ export function apiFieldErrors(err: unknown): Record<string, string> {
   if (!Array.isArray(issues)) return {}
   return Object.fromEntries(issues.filter((issue) => issue.path).map((issue) => [issue.path!, issue.message || '']))
 }
+
+// Message du serveur seul (h3 le range sous data.message), sinon le texte par défaut
+export function serverMessage(err: unknown, fallback: string) {
+  return (err as { data?: { message?: string } } | null)?.data?.message || fallback
+}

@@ -36,29 +36,18 @@
   </USlideover>
 </template>
 
-<script setup>
-const props = defineProps({
-  open: {
-    type: Boolean,
-    required: true
-  },
-  title: {
-    type: String,
-    required: true
-  },
-  fullPageTo: {
-    type: [String, Object],
-    default: null
-  }
-})
+<script setup lang="ts">
+import type { RouteLocationRaw } from 'vue-router'
 
-const emit = defineEmits(['update:open', 'close', 'fullPage'])
+const props = withDefaults(defineProps<{ open: boolean, title: string, fullPageTo?: RouteLocationRaw | null }>(), { fullPageTo: null })
+
+const emit = defineEmits<{ 'update:open': [value: boolean], close: [], fullPage: [] }>()
 
 const contentClass = 'w-screen max-w-none md:w-[calc(100vw-var(--limbus-sidebar-width,16rem))] md:max-w-none'
 
 const openProxy = computed({
   get: () => props.open,
-  set: (value) => {
+  set: (value: boolean) => {
     emit('update:open', value)
     if (!value) {
       emit('close')

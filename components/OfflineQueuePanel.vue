@@ -82,7 +82,8 @@
   </USlideover>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { UiStatusMeta } from '~/utils/ui'
 import {
   abandonAllOperations,
   abandonOperation,
@@ -90,46 +91,48 @@ import {
   getOfflineQueue,
   heldOperationIds,
   operationSummary,
-  retryOperation
+  retryOperation,
+  type OfflineSyncOperation
 } from '~/utils/offlineSync'
 
-const props = defineProps({
-  open: { type: Boolean, default: false }
-})
-const emit = defineEmits(['update:open', 'sync'])
+const props = withDefaults(defineProps<{ open?: boolean }>(), { open: false })
+const emit = defineEmits<{ 'update:open': [value: boolean], sync: [] }>()
 
 const openProxy = computed({
   get: () => props.open,
-  set: (value) => emit('update:open', value)
+  set: (value: boolean) => emit('update:open', value)
 })
-const operations = ref([])
+const operations = ref<OfflineSyncOperation[]>([])
 const held = computed(() => heldOperationIds(operations.value))
 const notice = ref('')
 
-const summary = (operation) => operationSummary(operation)
+const summary = (operation: OfflineSyncOperation) => operationSummary(operation)
 
-const STATUS_META = {
+const STATUS_META: Record<OfflineSyncOperation['status'], UiStatusMeta> = {
   pending: { label: 'En attente', color: 'info' },
   syncing: { label: 'Envoi…', color: 'info' },
   error: { label: 'Erreur', color: 'error' },
   conflict: { label: 'Conflit', color: 'warning' }
 }
-const statusMeta = (operation) => held.value.has(operation.id)
+const statusMeta = (operation: OfflineSyncOperation): UiStatusMeta => held.value.has(operation.id)
   ? { label: 'Retenue', color: 'neutral' }
   : STATUS_META[operation.status] || STATUS_META.pending
 
-const formatDate = (value) => new Date(value).toLocaleString('fr-FR', {
+const formatDate = (value: string) => new Date(value).toLocaleString('fr-FR', {
   day: 'numeric',
   month: 'long',
   hour: '2-digit',
   minute: '2-digit'
 })
 
-function formatValue(value) {
+function formatValue(value: unknown): string {
   if (value === null || value === undefined || value === '') return '—'
   if (typeof value === 'boolean') return value ? 'Oui' : 'Non'
   if (Array.isArray(value)) return `${value.length} élément${value.length > 1 ? 's' : ''}`
-  if (typeof value === 'object' && (value.name || value.title)) return value.name || value.title
+  if (typeof value === 'object') {
+    const named = value as { name?: unknown, title?: unknown }
+    if (named.name || named.title) return String(named.name || named.title)
+  }
   // Textes rangés par identifiant (notes par jeu, US-069) : les textes seuls, sans les identifiants
   if (typeof value === 'object' && Object.values(value).every((item) => item === null || typeof item === 'string')) {
     return formatValue(Object.values(value).filter(Boolean).join(' / '))
@@ -153,7 +156,7 @@ function afterAbandon() {
     : 'L’affichage reprendra la version du serveur au retour du réseau.'
 }
 
-async function abandon(operation) {
+async function abandon(operation: OfflineSyncOperation) {
   const count = await abandonOperation(operation.id)
   if (count > 1) notice.value = `${count} modifications abandonnées : la création et ce qui la suivait.`
   else afterAbandon()
@@ -167,12 +170,12 @@ async function abandonAll() {
   await refresh()
 }
 
-async function retry(operation) {
+async function retry(operation: OfflineSyncOperation) {
   await retryOperation(operation.id)
   emit('sync')
 }
 
-async function keepMine(operation) {
+async function keepMine(operation: OfflineSyncOperation) {
   await retryOperation(operation.id, true)
   emit('sync')
 }

@@ -8,9 +8,8 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useGameFocus } from '@/composables/useGameFocus'
 
 const { game, clearGame } = useGameFocus()
-
 </script>

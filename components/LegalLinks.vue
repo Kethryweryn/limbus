@@ -5,6 +5,6 @@
   </nav>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { LEGAL_PAGES } from '~/utils/legal'
 </script>
