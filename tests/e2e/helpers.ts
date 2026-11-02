@@ -41,7 +41,7 @@ export async function offlineRecordCount(page: Page) {
   }))
 }
 
-type TestPrisma = ReturnType<typeof import('../integration/db').createTestPrisma>
+export type TestPrisma = ReturnType<typeof import('../integration/db').createTestPrisma>
 
 // Jeu commun des parcours (ADR-0037) : ses personnages et participants, par nom
 export async function parcoursGame(prisma: TestPrisma) {
@@ -57,6 +57,14 @@ export async function parcoursGame(prisma: TestPrisma) {
 // Nom propre à une tentative : une relance en CI (retries) ne retombe pas sur les données de la précédente
 export function uniqueName(base: string) {
   return `${base} ${Date.now().toString(36)}`
+}
+
+// Le plus petit bloc de la page Inscriptions qui porte à la fois le titre du jeu et le bouton donné
+export function gamePanel(page: Page, title: string, button: string | RegExp) {
+  return page.locator('div')
+    .filter({ has: page.getByRole('heading', { name: title, exact: true }) })
+    .filter({ has: page.getByRole('button', { name: button }) })
+    .last()
 }
 
 export function slugOf(name: string) {

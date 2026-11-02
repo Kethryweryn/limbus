@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { personalLinkToken, startTestSmtp } from '../integration/smtp'
 import { E2E_USERS } from './constants'
-import { expectLoggedIn, login, signIn } from './helpers'
+import { expectLoggedIn, gamePanel, login, signIn } from './helpers'
 
 // EPIC-001 : invitation par l'organisatrice → réponse par le lien personnel → présence dans la session
 test('une personne invitée accepte par son lien et rejoint la session', async ({ page, browser }) => {
@@ -114,11 +114,7 @@ test('l’éditeur du formulaire ajoute une question et une affinité', async ({
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/registrations')
     await page.waitForLoadState('networkidle')
-    // Le plus petit bloc qui porte à la fois le titre du jeu et son bouton « Formulaire »
-    const panel = page.locator('div')
-      .filter({ has: page.getByRole('heading', { name: title, exact: true }) })
-      .filter({ has: page.getByRole('button', { name: 'Formulaire' }) })
-      .last()
+    const panel = gamePanel(page, title, 'Formulaire')
     await panel.getByRole('button', { name: 'Formulaire' }).click()
 
     const dialog = page.getByRole('dialog')
@@ -207,10 +203,7 @@ test('l’équipe retient une inscription, l’annonce, et la personne confirme 
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/registrations')
     await page.waitForLoadState('networkidle')
-    const panel = page.locator('div')
-      .filter({ has: page.getByRole('heading', { name: game.title, exact: true }) })
-      .filter({ has: page.getByRole('button', { name: /Annoncer les résultats/ }) })
-      .last()
+    const panel = gamePanel(page, game.title, /Annoncer les résultats/)
     await panel.getByRole('button', { name: 'Décider' }).click()
     await page.getByRole('menuitem', { name: `Retenir pour ${session.name}` }).click()
     await expect(panel.getByText('À annoncer')).toBeVisible()
@@ -254,10 +247,7 @@ test('l’équipe tire au sort, voit le journal, puis annule le tirage', async (
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/registrations')
     await page.waitForLoadState('networkidle')
-    const panel = page.locator('div')
-      .filter({ has: page.getByRole('heading', { name: game.title, exact: true }) })
-      .filter({ has: page.getByRole('button', { name: 'Tirer au sort' }) })
-      .last()
+    const panel = gamePanel(page, game.title, 'Tirer au sort')
     page.once('dialog', (dialog) => dialog.accept())
     await panel.getByRole('button', { name: 'Tirer au sort' }).click()
     await expect(panel.getByText('Tirage effectué')).toBeVisible()
@@ -303,10 +293,7 @@ test('l’équipe rattache une affinité et voit l’alerte de la session', asyn
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/registrations')
     await page.waitForLoadState('networkidle')
-    const panel = page.locator('div')
-      .filter({ has: page.getByRole('heading', { name: game.title, exact: true }) })
-      .filter({ has: page.getByRole('button', { name: /Annoncer les résultats/ }) })
-      .last()
+    const panel = gamePanel(page, game.title, /Annoncer les résultats/)
     await expect(panel.getByText('1 affinité à rattacher')).toBeVisible()
     await panel.locator('li').filter({ hasText: 'Lou Affinite' }).getByRole('button', { name: 'Détail' }).click()
     const dialog = page.getByRole('dialog')
