@@ -11,32 +11,13 @@
     </div>
 
     <div class="flex flex-col md:flex-row gap-4 mb-4">
-      <div v-if="!selectedGame" class="relative w-full md:w-80">
-        <UInput
-          v-model="gameSearch"
-          placeholder="Rechercher un jeu..."
-          icon="i-heroicons-magnifying-glass"
-          class="w-full"
-        />
-        <div
-          v-if="gameSearch && !selectedTimelineGameId"
-          class="absolute z-30 mt-1 max-h-72 w-full overflow-y-auto rounded border border-gray-200 bg-white shadow"
-        >
-          <button
-            v-for="game in filteredSelectableGames"
-            :key="game.id"
-            type="button"
-            class="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
-            @click="selectTimelineGame(game)"
-          >
-            {{ game.title }}
-            <span v-if="isArchivedGame(game)" class="text-gray-500">(archivé)</span>
-          </button>
-          <div v-if="!filteredSelectableGames.length" class="px-3 py-2 text-sm text-gray-500">
-            Aucun jeu trouvé.
-          </div>
-        </div>
-      </div>
+      <TimelineGameSearch
+        v-if="!selectedGame"
+        v-model:search="gameSearch"
+        :games="games"
+        :has-selection="Boolean(selectedTimelineGameId)"
+        @select="selectTimelineGame"
+      />
       <UBadge v-if="selectedTimelineGame && isArchivedGame(selectedTimelineGame)" color="neutral" variant="solid" class="self-center">
         Jeu archivé
       </UBadge>
@@ -48,30 +29,7 @@
       />
     </div>
 
-    <div v-if="!selectedTimelineGameId && quickAccessGames.length" class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-      <UCard
-        v-for="quickAccess in quickAccessGames"
-        :key="quickAccess.key"
-      >
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div class="min-w-0">
-            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">
-              {{ quickAccess.label }}
-            </div>
-            <div class="truncate font-medium">{{ quickAccess.game.title }}</div>
-            <div class="text-sm text-gray-500">{{ quickAccess.detail }}</div>
-          </div>
-          <UButton
-            color="primary"
-            variant="soft"
-            size="sm"
-            @click="selectTimelineGame(quickAccess.game)"
-          >
-            Ouvrir
-          </UButton>
-        </div>
-      </UCard>
-    </div>
+    <TimelineQuickAccess v-if="!selectedTimelineGameId" :games="games" @select="selectTimelineGame" />
 
     <UCard v-if="!selectedTimelineGameId">
       <div class="text-sm text-gray-500">
@@ -80,217 +38,8 @@
     </UCard>
 
     <div v-else-if="filteredEvents.length" class="space-y-8">
-      <UCard>
-        <template #header>
-          <div>
-            <h2 class="font-semibold">Vue chronologique</h2>
-            <p class="text-sm text-gray-500">Timeline abstraite du jeu, organisée par jour et par horaire.</p>
-          </div>
-        </template>
-
-        <div class="overflow-x-auto">
-          <div
-            class="min-w-[52rem] grid rounded border border-gray-200 bg-white text-sm"
-            :style="{ gridTemplateColumns: `7rem repeat(${timelineDays.length}, minmax(14rem, 1fr))` }"
-          >
-            <div class="sticky left-0 z-20 border-r border-b border-gray-200 bg-gray-50 px-3 py-2 font-medium">
-              Horaire
-            </div>
-            <div
-              v-for="day in timelineDays"
-              :key="`header-${day}`"
-              class="border-r border-b border-gray-200 bg-gray-50 px-3 py-2 font-medium"
-            >
-              Jour {{ day }}
-            </div>
-
-            <template v-for="time in timelineTimes" :key="time">
-              <div class="sticky left-0 z-10 border-r border-b border-gray-200 bg-white px-3 py-3 font-medium">
-                {{ time }}
-              </div>
-              <div
-                v-for="day in timelineDays"
-                :key="`${day}-${time}`"
-                class="min-h-28 border-r border-b border-gray-200 p-2"
-              >
-                <button
-                  v-for="timelineEvent in eventsForSlot(day, time)"
-                  :key="timelineEvent.id"
-                  type="button"
-                  class="mb-2 w-full rounded border border-gray-200 bg-gray-50 p-3 text-left transition hover:border-primary-300 hover:bg-primary-50"
-                  @click="openEventPage(timelineEvent)"
-                >
-                  <div class="flex items-start justify-between gap-2">
-                    <span class="font-medium leading-tight">{{ timelineEvent.name }}</span>
-                    <UIcon
-                      v-if="timelineEvent.conflicts?.length"
-                      name="i-heroicons-exclamation-triangle"
-                      class="size-4 shrink-0 text-warning-500"
-                    />
-                  </div>
-                  <div class="mt-2 flex flex-wrap gap-1">
-                    <UBadge v-if="timelineEvent.requiredResponsibles" color="neutral" variant="subtle" size="xs">
-                      {{ timelineEvent.requiredResponsibles }} resp.
-                    </UBadge>
-                    <UBadge
-                      v-for="character in timelineEvent.characters || []"
-                      :key="`grid-character-${timelineEvent.id}-${character.id}`"
-                      color="neutral"
-                      variant="subtle"
-                      size="xs"
-                      class="max-w-full truncate"
-                    >
-                      {{ character.name }}
-                    </UBadge>
-                    <UBadge
-                      v-for="item in timelineEvent.items || []"
-                      :key="`grid-item-${timelineEvent.id}-${item.id}`"
-                      color="success"
-                      variant="subtle"
-                      size="xs"
-                      class="max-w-full truncate"
-                    >
-                      {{ item.name }}
-                    </UBadge>
-                    <UBadge
-                      v-for="faction in timelineEvent.factions || []"
-                      :key="`grid-faction-${timelineEvent.id}-${faction.id}`"
-                      color="warning"
-                      variant="subtle"
-                      size="xs"
-                      class="max-w-full truncate"
-                    >
-                      {{ faction.name }}
-                    </UBadge>
-                  </div>
-                </button>
-              </div>
-            </template>
-          </div>
-        </div>
-      </UCard>
-
-      <div>
-        <h2 class="text-lg font-semibold mb-3">Détail des événements</h2>
-      <section
-        v-for="dayGroup in eventsByDay"
-        :key="dayGroup.day"
-        class="rounded-lg border border-gray-200 bg-white"
-      >
-        <div class="border-b border-gray-100 px-4 py-3">
-          <h2 class="font-semibold">Jour {{ dayGroup.day }}</h2>
-        </div>
-
-        <div class="divide-y divide-gray-100">
-          <article
-            v-for="timelineEvent in dayGroup.events"
-            :key="timelineEvent.id"
-            class="grid cursor-pointer grid-cols-1 lg:grid-cols-[7rem_1fr_auto] gap-4 p-4 hover:bg-gray-50"
-            role="link"
-            tabindex="0"
-            @click="openEventPage(timelineEvent)"
-            @keydown.enter="openEventPage(timelineEvent)"
-          >
-            <div class="flex lg:block items-center gap-2">
-              <UBadge color="neutral" variant="subtle">{{ timelineEvent.time }}</UBadge>
-              <UBadge
-                v-if="timelineEvent.conflicts?.length"
-                color="warning"
-                variant="soft"
-                size="xs"
-              >
-                Conflit
-              </UBadge>
-            </div>
-
-            <div class="min-w-0 space-y-3">
-              <div>
-                <h3 class="text-lg font-semibold leading-tight">{{ timelineEvent.name }}</h3>
-                <p class="text-sm text-gray-500">{{ timelineEvent.game?.title || 'Jeu inconnu' }}</p>
-              </div>
-
-              <p class="text-sm leading-6 text-gray-600 line-clamp-3">
-                {{ timelineEvent.description || 'Aucune description renseignée.' }}
-              </p>
-
-              <div class="flex flex-wrap gap-1">
-                <UBadge
-                  v-for="character in timelineEvent.characters || []"
-                  :key="`character-${character.id}`"
-                  color="neutral"
-                  variant="subtle"
-                  size="xs"
-                  class="max-w-44 truncate"
-                >
-                  {{ character.name }}
-                </UBadge>
-                <UBadge
-                  v-for="intrigue in timelineEvent.intrigues || []"
-                  :key="`intrigue-${intrigue.id}`"
-                  color="primary"
-                  variant="subtle"
-                  size="xs"
-                  class="max-w-44 truncate"
-                >
-                  {{ intrigue.name }}
-                </UBadge>
-                <UBadge
-                  v-for="faction in timelineEvent.factions || []"
-                  :key="`faction-${faction.id}`"
-                  color="warning"
-                  variant="subtle"
-                  size="xs"
-                  class="max-w-44 truncate"
-                >
-                  {{ faction.name }}
-                </UBadge>
-                <UBadge
-                  v-for="item in timelineEvent.items || []"
-                  :key="`item-${item.id}`"
-                  color="success"
-                  variant="subtle"
-                  size="xs"
-                  class="max-w-44 truncate"
-                >
-                  {{ item.name }}
-                </UBadge>
-              </div>
-
-              <UAlert
-                v-if="timelineEvent.conflicts?.length"
-                color="warning"
-                variant="soft"
-                icon="i-heroicons-exclamation-triangle"
-                :title="conflictTitle(timelineEvent)"
-              />
-            </div>
-
-            <div class="flex lg:flex-col gap-2 lg:items-end">
-              <UBadge color="neutral" variant="outline" class="whitespace-nowrap">
-                {{ timelineEvent.requiredResponsibles || 0 }} responsable(s)
-              </UBadge>
-              <UButton
-                icon="i-heroicons-pencil-square"
-                size="xs"
-                color="primary"
-                @click.stop="startEdit(timelineEvent)"
-              >
-                Modifier
-              </UButton>
-              <UButton
-                icon="i-heroicons-trash"
-                size="xs"
-                color="error"
-                variant="soft"
-                @click.stop="deleteTimelineEvent(timelineEvent.id)"
-              >
-                Supprimer
-              </UButton>
-            </div>
-          </article>
-        </div>
-      </section>
-      </div>
+      <TimelineGrid :events="filteredEvents" @open="openEventPage" />
+      <TimelineDayList :events="filteredEvents" @open="openEventPage" @edit="startEdit" @remove="deleteTimelineEvent" />
     </div>
 
     <UCard v-else>
@@ -320,89 +69,41 @@
   </div>
 </template>
 
-<script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+<script setup lang="ts">
+import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
+import { computed, onMounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import TimelineEventForm from '@/components/TimelineEventForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
-import { isOfflineMode } from '~/utils/connection'
-import { getFromStore, saveToStore } from '~/utils/storage'
+import type { ApiResponse } from '~/composables/useApiFetch'
 import { isArchivedGame } from '~/utils/games'
+import type { TimelineEventRow, TimelineGame } from '~/utils/timeline'
+import type { TimelineEventDraft } from '~/utils/writingDrafts'
 
-const timelineEvents = ref([])
-const games = ref([])
-const characters = ref([])
-const factions = ref([])
-const intrigues = ref([])
-const items = ref([])
+// D'où l'on ouvre un événement : sa page y ramène (voir pages/timeline/[id].vue)
+type ReturnContext = { source: string, gameId: string, eventId: string }
+
+const timelineEvents = ref<TimelineEventRow[]>([])
+const games = ref<TimelineGame[]>([])
+const characters = ref<ApiResponse<'/api/characters'>>([])
+const factions = ref<ApiResponse<'/api/factions'>>([])
+const intrigues = ref<ApiResponse<'/api/intrigues'>>([])
+const items = ref<ApiResponse<'/api/items'>>([])
 const searchQuery = ref('')
 const gameFilter = ref('')
 const gameSearch = ref('')
-const isOffline = ref(false)
 const showFormSlideover = ref(false)
-const activeFormEvent = ref(null)
-const formMode = ref('create')
+const activeFormEvent = ref<TimelineEventDraft | null>(null)
+const formMode = ref<'create' | 'edit'>('create')
 const router = useRouter()
 const route = useRoute()
 const { game: selectedGame } = useGameFocus()
 
 const selectedTimelineGameId = computed(() => selectedGame.value?.id || gameFilter.value || '')
+// Le jeu actif n'a que son identifiant et son titre : sa fiche complète (archivé ou non) vient de la liste
 const selectedTimelineGame = computed(() =>
-  selectedGame.value || games.value.find((game) => game.id === gameFilter.value) || null
+  games.value.find((game) => game.id === selectedTimelineGameId.value) || null
 )
-
-const filteredSelectableGames = computed(() => {
-  const term = gameSearch.value.trim().toLowerCase()
-  if (!term) return games.value.slice(0, 10)
-
-  return games.value
-    .filter((game) => game.title.toLowerCase().includes(term))
-    .slice(0, 10)
-})
-
-// Raccourcis : jeux en cours seulement ; un jeu archivé se choisit par la recherche (US-013)
-const activeGames = computed(() => games.value.filter((game) => !isArchivedGame(game)))
-
-const latestWritingGame = computed(() =>
-  [...activeGames.value]
-    .filter((game) => game.lastWritingActivityAt || game.lastActivityAt || game.updatedAt)
-    .sort((a, b) =>
-      new Date(b.lastWritingActivityAt || b.lastActivityAt || b.updatedAt).getTime()
-      - new Date(a.lastWritingActivityAt || a.lastActivityAt || a.updatedAt).getTime()
-    )[0] || null
-)
-
-const nextSessionGame = computed(() =>
-  [...activeGames.value]
-    .filter((game) => game.nextScheduledSessionAt)
-    .sort((a, b) =>
-      new Date(a.nextScheduledSessionAt).getTime() - new Date(b.nextScheduledSessionAt).getTime()
-    )[0] || null
-)
-
-const quickAccessGames = computed(() => {
-  const shortcuts = []
-  if (latestWritingGame.value) {
-    const date = latestWritingGame.value.lastWritingActivityAt || latestWritingGame.value.lastActivityAt || latestWritingGame.value.updatedAt
-    shortcuts.push({
-      key: `writing-${latestWritingGame.value.id}`,
-      label: 'Dernière modification en écriture',
-      game: latestWritingGame.value,
-      detail: `Modifié le ${formatDate(date)}`
-    })
-  }
-
-  if (nextSessionGame.value) {
-    shortcuts.push({
-      key: `session-${nextSessionGame.value.id}`,
-      label: 'Prochaine session prévue',
-      game: nextSessionGame.value,
-      detail: `${formatDate(nextSessionGame.value.nextScheduledSessionAt)} · ${nextSessionGame.value.nextScheduledSession?.name || 'Session'}`
-    })
-  }
-
-  return shortcuts
-})
 
 watch(gameSearch, (value) => {
   if (!selectedTimelineGame.value) return
@@ -411,19 +112,10 @@ watch(gameSearch, (value) => {
   }
 })
 
-function selectTimelineGame(game) {
+function selectTimelineGame(game: TimelineGame) {
   gameFilter.value = game.id
   gameSearch.value = game.title
   rememberTimelineGame(game.id)
-}
-
-function formatDate(value) {
-  if (!value) return 'Date inconnue'
-  return new Date(value).toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  })
 }
 
 const filteredEvents = computed(() => {
@@ -447,126 +139,48 @@ const filteredEvents = computed(() => {
     .sort((a, b) => a.day - b.day || a.time.localeCompare(b.time) || a.name.localeCompare(b.name))
 })
 
-const eventsByDay = computed(() => {
-  const groups = new Map()
-  for (const timelineEvent of filteredEvents.value) {
-    const current = groups.get(timelineEvent.day) || []
-    current.push(timelineEvent)
-    groups.set(timelineEvent.day, current)
-  }
-
-  return [...groups.entries()].map(([day, events]) => ({ day, events }))
-})
-
-const timelineDays = computed(() => [...new Set(filteredEvents.value.map((timelineEvent) => timelineEvent.day))].sort((a, b) => a - b))
-
-const timelineTimes = computed(() => [...new Set(filteredEvents.value.map((timelineEvent) => timelineEvent.time))].sort((a, b) => a.localeCompare(b)))
-
-function eventsForSlot(day, time) {
-  return filteredEvents.value.filter((timelineEvent) => timelineEvent.day === day && timelineEvent.time === time)
-}
-
 const fetchTimelineEvents = async () => {
-  if (isOfflineMode()) {
-    timelineEvents.value = await getFromStore('timelineEvents', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/timeline-events')
-  timelineEvents.value = data
-  await saveToStore('timelineEvents', 'list', data)
+  timelineEvents.value = await fetchOfflineList('timelineEvents', '/api/timeline-events')
 }
 
 const fetchGames = async () => {
-  if (isOfflineMode()) {
-    games.value = await getFromStore('games', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/games')
-  games.value = data
-  await saveToStore('games', 'list', data)
+  games.value = await fetchOfflineList('games', '/api/games')
 }
 
 const fetchCharacters = async () => {
-  if (isOfflineMode()) {
-    characters.value = await getFromStore('characters', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/characters')
-  characters.value = data
-  await saveToStore('characters', 'list', data)
+  characters.value = await fetchOfflineList('characters', '/api/characters')
 }
 
 const fetchIntrigues = async () => {
-  if (isOfflineMode()) {
-    intrigues.value = await getFromStore('intrigues', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/intrigues')
-  intrigues.value = data
-  await saveToStore('intrigues', 'list', data)
+  intrigues.value = await fetchOfflineList('intrigues', '/api/intrigues')
 }
 
 const fetchFactions = async () => {
-  if (isOfflineMode()) {
-    factions.value = await getFromStore('factions', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/factions')
-  factions.value = data
-  await saveToStore('factions', 'list', data)
+  factions.value = await fetchOfflineList('factions', '/api/factions')
 }
 
 const fetchItems = async () => {
-  if (isOfflineMode()) {
-    items.value = await getFromStore('items', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/items')
-  items.value = data
-  await saveToStore('items', 'list', data)
+  items.value = await fetchOfflineList('items', '/api/items')
 }
 
 const refreshData = async () => {
   await Promise.all([fetchTimelineEvents(), fetchGames(), fetchCharacters(), fetchFactions(), fetchIntrigues(), fetchItems()])
 }
 
-const updateStatus = () => {
-  const wasOffline = isOffline.value
-  isOffline.value = isOfflineMode()
-
-  if (wasOffline !== isOffline.value) {
-    refreshData()
-  }
-}
+const { isOffline } = useConnectionRefresh(refreshData)
 
 onMounted(async () => {
-  updateStatus()
-  window.addEventListener('online', updateStatus)
-  window.addEventListener('offline', updateStatus)
-  window.addEventListener('limbus:connection-change', updateStatus)
   await refreshData()
   restoreTimelineGameContext()
 })
 
-onUnmounted(() => {
-  window.removeEventListener('online', updateStatus)
-  window.removeEventListener('offline', updateStatus)
-  window.removeEventListener('limbus:connection-change', updateStatus)
-})
-
-function eventFormPayload(timelineEvent) {
+function eventFormPayload(timelineEvent: TimelineEventRow): TimelineEventDraft {
   return {
     ...timelineEvent,
-    characterIds: timelineEvent.characterIds || timelineEvent.characters?.map((character) => character.id) || [],
-    factionIds: timelineEvent.factionIds || timelineEvent.factions?.map((faction) => faction.id) || [],
-    intrigueIds: timelineEvent.intrigueIds || timelineEvent.intrigues?.map((intrigue) => intrigue.id) || [],
-    itemIds: timelineEvent.itemIds || timelineEvent.items?.map((item) => item.id) || []
+    characterIds: timelineEvent.characters?.map((character) => character.id) || [],
+    factionIds: timelineEvent.factions?.map((faction) => faction.id) || [],
+    intrigueIds: timelineEvent.intrigues?.map((intrigue) => intrigue.id) || [],
+    itemIds: timelineEvent.items?.map((item) => item.id) || []
   }
 }
 
@@ -589,7 +203,7 @@ function startCreate() {
   showFormSlideover.value = true
 }
 
-function startEdit(timelineEvent) {
+function startEdit(timelineEvent: TimelineEventRow) {
   activeFormEvent.value = eventFormPayload(timelineEvent)
   formMode.value = 'edit'
   showFormSlideover.value = true
@@ -600,7 +214,7 @@ function closeFormSlideover() {
   showFormSlideover.value = false
 }
 
-function openEventPage(timelineEvent) {
+function openEventPage(timelineEvent: TimelineEventRow) {
   if (!timelineEvent?.id) return
   if (selectedTimelineGameId.value) {
     rememberTimelineGame(selectedTimelineGameId.value)
@@ -610,6 +224,7 @@ function openEventPage(timelineEvent) {
 }
 
 async function handleEventFormSubmit() {
+  if (!activeFormEvent.value) return
   if (formMode.value === 'create') {
     await useApiFetch('/api/timeline-events', {
       method: 'POST',
@@ -626,30 +241,23 @@ async function handleEventFormSubmit() {
   await fetchTimelineEvents()
 }
 
-async function deleteTimelineEvent(id) {
+async function deleteTimelineEvent(id: string) {
   if (!confirm('Supprimer cet événement ?')) return
 
   await useApiFetch(`/api/timeline-events/${id}`, { method: 'DELETE' })
   await fetchTimelineEvents()
 }
 
-function conflictTitle(timelineEvent) {
-  const labels = timelineEvent.conflicts
-    .map((conflict) => `${conflict.type === 'character' ? 'Personnage' : 'Objet'} : ${conflict.name}`)
-    .join(', ')
-  return `Conflit au même créneau (${labels})`
-}
-
 watch(() => [route.query.gameId, route.query.game], () => {
   restoreTimelineGameContext()
 })
 
-function rememberTimelineGame(gameId) {
+function rememberTimelineGame(gameId: string) {
   if (!import.meta.client || !gameId) return
   sessionStorage.setItem('limbus:timeline-game-id', gameId)
 }
 
-function rememberTimelineReturnContext(context) {
+function rememberTimelineReturnContext(context: ReturnContext) {
   if (!import.meta.client) return
   sessionStorage.setItem('limbus:timeline-return-context', JSON.stringify(context))
 }

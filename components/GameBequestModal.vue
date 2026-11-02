@@ -80,31 +80,30 @@
   </UModal>
 </template>
 
-<script setup>
-const open = defineModel('open', { type: Boolean, default: false })
+<script setup lang="ts">
+import { apiErrorMessage } from '~/utils/apiErrors'
+import type { ApiResponse } from '~/composables/useApiFetch'
 
-const props = defineProps({
-  game: {
-    type: Object,
-    default: null
-  },
-  ownerName: {
-    type: String,
-    default: ''
-  }
-})
+type PendingBequest = ApiResponse<'/api/games/:id/bequests'>[number]
+
+const open = defineModel<boolean>('open', { default: false })
+
+const props = withDefaults(defineProps<{
+  game?: { id: string, title: string } | null
+  ownerName?: string
+}>(), { game: null, ownerName: '' })
 
 const email = ref('')
 const confirmed = ref(false)
 const sending = ref(false)
 const message = ref('')
 const errorMessage = ref('')
-const pendingBequests = ref([])
+const pendingBequests = ref<PendingBequest[]>([])
 const busyId = ref('')
 // Une action à la fois : chacune efface les messages et recharge la liste
 const busy = computed(() => sending.value || Boolean(busyId.value))
 
-const formatDate = (value) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long' })
+const formatDate = (value: string | Date) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long' })
 
 watch(open, (value) => {
   if (!value) return
@@ -121,28 +120,28 @@ async function loadPendingBequests() {
   try {
     pendingBequests.value = await useApiFetch(`/api/games/${props.game.id}/bequests`)
   } catch (err) {
-    errorMessage.value = err?.data?.message || err?.message || 'Impossible de charger les legs en attente'
+    errorMessage.value = apiErrorMessage(err, 'Impossible de charger les legs en attente')
   }
 }
 
-async function resend(bequest) {
-  if (busy.value) return
+async function resend(bequest: PendingBequest) {
+  if (busy.value || !props.game) return
   busyId.value = bequest.id
   message.value = ''
   errorMessage.value = ''
   try {
-    const result = await useApiFetch(`/api/games/${props.game.id}/bequests/${bequest.id}/resend`, { method: 'POST' })
+    const result = await useApiAction(`/api/games/${props.game.id}/bequests/${bequest.id}/resend`, { method: 'POST' })
     message.value = `Invitation renvoyée à ${bequest.email}, valable jusqu’au ${formatDate(result.expiresAt)}.`
   } catch (err) {
-    errorMessage.value = err?.data?.message || err?.message || 'Impossible de renvoyer l’invitation'
+    errorMessage.value = apiErrorMessage(err, 'Impossible de renvoyer l’invitation')
   } finally {
     busyId.value = ''
     await loadPendingBequests()
   }
 }
 
-async function cancel(bequest) {
-  if (busy.value || !confirm(`Annuler le legs à ${bequest.email} ? La copie sera supprimée, et le lien de son invitation ne fonctionnera plus.`)) return
+async function cancel(bequest: PendingBequest) {
+  if (busy.value || !props.game || !confirm(`Annuler le legs à ${bequest.email} ? La copie sera supprimée, et le lien de son invitation ne fonctionnera plus.`)) return
   busyId.value = bequest.id
   message.value = ''
   errorMessage.value = ''
@@ -150,7 +149,7 @@ async function cancel(bequest) {
     await useApiFetch(`/api/games/${props.game.id}/bequests/${bequest.id}`, { method: 'DELETE' })
     message.value = `Legs à ${bequest.email} annulé : la copie est supprimée.`
   } catch (err) {
-    errorMessage.value = err?.data?.message || err?.message || 'Impossible d’annuler le legs'
+    errorMessage.value = apiErrorMessage(err, 'Impossible d’annuler le legs')
   } finally {
     busyId.value = ''
     await loadPendingBequests()
@@ -164,7 +163,7 @@ async function bequeath() {
   message.value = ''
   errorMessage.value = ''
   try {
-    const result = await useApiFetch(`/api/games/${props.game.id}/bequests`, {
+    const result = await useApiAction(`/api/games/${props.game.id}/bequests`, {
       method: 'POST',
       body: { email: email.value }
     })
@@ -178,7 +177,7 @@ async function bequeath() {
     confirmed.value = false
     if (result.pending) await loadPendingBequests()
   } catch (err) {
-    errorMessage.value = err?.data?.message || err?.message || 'Impossible de léguer le jeu'
+    errorMessage.value = apiErrorMessage(err, 'Impossible de léguer le jeu')
   } finally {
     sending.value = false
   }

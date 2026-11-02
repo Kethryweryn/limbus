@@ -23,23 +23,32 @@ import {
 } from '~/utils/registrationForms'
 
 // Formulaire d'un jeu dans sa version en vigueur ; sans formulaire enregistré, la définition par défaut
-export async function getCurrentRegistrationForm(gameId: string) {
-  const version = await prisma.registrationFormVersion.findFirst({
-    where: { form: { gameId } },
-    orderBy: { number: 'desc' },
-    select: { id: true, number: true, definition: true, createdAt: true }
-  })
+type GameBalance = { balanceAttribute: string | null, balanceValues: string[] }
+
+const gameBalance = async (gameId: string): Promise<GameBalance> =>
+  await prisma.game.findUnique({ where: { id: gameId }, select: { balanceAttribute: true, balanceValues: true } })
+  ?? { balanceAttribute: null, balanceValues: [] }
+
+// balance : l'attribut d'équilibre du jeu, quand l'appelant l'a déjà lu ; sinon lu en même temps que la version
+export async function getCurrentRegistrationForm(gameId: string, balance?: GameBalance) {
+  const [version, game] = await Promise.all([
+    prisma.registrationFormVersion.findFirst({
+      where: { form: { gameId } },
+      orderBy: { number: 'desc' },
+      select: { id: true, number: true, definition: true, createdAt: true }
+    }),
+    balance ?? gameBalance(gameId)
+  ])
 
   return {
     version: version ? { id: version.id, number: version.number, createdAt: version.createdAt } : null,
-    definition: await withGameBalanceQuestion(gameId, normalizeRegistrationFormDefinition(version ? version.definition as RegistrationFormDefinition : DEFAULT_REGISTRATION_FORM_DEFINITION))
+    definition: withBalanceQuestion(normalizeRegistrationFormDefinition(version ? version.definition as RegistrationFormDefinition : DEFAULT_REGISTRATION_FORM_DEFINITION), game)
   }
 }
 
 // La question d'équilibre prend le nom et les valeurs de l'attribut du jeu en vigueur (US-091, ADR-0048)
 export async function withGameBalanceQuestion(gameId: string, definition: NormalizedRegistrationFormDefinition) {
-  const game = await prisma.game.findUnique({ where: { id: gameId }, select: { balanceAttribute: true, balanceValues: true } })
-  return withBalanceQuestion(definition, game ?? { balanceAttribute: null, balanceValues: [] })
+  return withBalanceQuestion(definition, await gameBalance(gameId))
 }
 
 /**
@@ -47,7 +56,8 @@ export async function withGameBalanceQuestion(gameId: string, definition: Normal
  * sinon rien. Deux enregistrements simultanés se départagent sur l'unicité (formId, number) : 409.
  */
 export async function saveRegistrationFormDefinition(gameId: string, definition: RegistrationFormDefinition, baseVersionNumber?: number | null) {
-  const current = await getCurrentRegistrationForm(gameId)
+  const balance = await gameBalance(gameId)
+  const current = await getCurrentRegistrationForm(gameId, balance)
   // Une nouvelle question reçoit son identifiant, qui la suit d'une version à l'autre (ADR-0045) ; changer de sorte
   // en fait une autre question : ses réponses d'avant n'ont plus le même sens
   const currentTypes = new Map(current.definition.questions.map((question) => [question.id, question.type]))
@@ -84,7 +94,7 @@ export async function saveRegistrationFormDefinition(gameId: string, definition:
     throw error
   }
 
-  return await getCurrentRegistrationForm(gameId)
+  return await getCurrentRegistrationForm(gameId, balance)
 }
 
 const tooLong = (label: string, max: number) => `${label} : ${max} caractères au plus`

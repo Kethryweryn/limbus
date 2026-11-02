@@ -135,30 +135,32 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import { isInArchivedGame, isVisibleContent } from '~/utils/games'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import IntrigueForm from '@/components/IntrigueForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import { formatIntrigueLevel, intrigueLevelOrder } from '~/utils/intrigueLevels'
 import { INTRIGUE_LEVEL_OPTIONS, INTRIGUE_LEVELS } from '~/utils/domain'
-import { isOfflineMode } from '~/utils/connection'
-import { getFromStore, saveToStore } from '~/utils/storage'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import type { IntrigueDraft } from '~/utils/writingDrafts'
 
-const intrigues = ref([])
-const games = ref([])
-const characters = ref([])
-const factions = ref([])
+type IntrigueItem = ApiResponse<'/api/intrigues'>[number]
+
+const intrigues = ref<IntrigueItem[]>([])
+const games = ref<ApiResponse<'/api/games'>>([])
+const characters = ref<ApiResponse<'/api/characters'>>([])
+const factions = ref<ApiResponse<'/api/factions'>>([])
 const searchQuery = ref('')
 const gameFilter = ref('all')
 const showArchived = ref(false)
 const levelFilter = ref('all')
 const sortOption = ref('updated-desc')
-const isOffline = ref(false)
 const showFormSlideover = ref(false)
-const activeFormIntrigue = ref(null)
-const formMode = ref('create')
+const activeFormIntrigue = ref<IntrigueDraft | null>(null)
+const formMode = ref<'create' | 'edit'>('create')
 const router = useRouter()
 const { game: selectedGame } = useGameFocus()
 
@@ -238,84 +240,39 @@ watch([searchQuery, gameFilter, levelFilter, sortOption, filteredIntrigues], () 
   page.value = 1
 })
 
-const isUnassigned = (intrigue) => !(intrigue.characters?.length || intrigue.factions?.length || intrigue.items?.length)
+const isUnassigned = (intrigue: IntrigueItem) => !(intrigue.characters?.length || intrigue.factions?.length || intrigue.items?.length)
 
 const fetchIntrigues = async () => {
-  if (isOfflineMode()) {
-    intrigues.value = await getFromStore('intrigues', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/intrigues')
-  intrigues.value = data
-  await saveToStore('intrigues', 'list', data)
+  intrigues.value = await fetchOfflineList('intrigues', '/api/intrigues')
 }
 
 const fetchGames = async () => {
-  if (isOfflineMode()) {
-    games.value = await getFromStore('games', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/games')
-  games.value = data
-  await saveToStore('games', 'list', data)
+  games.value = await fetchOfflineList('games', '/api/games')
 }
 
 const fetchCharacters = async () => {
-  if (isOfflineMode()) {
-    characters.value = await getFromStore('characters', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/characters')
-  characters.value = data
-  await saveToStore('characters', 'list', data)
+  characters.value = await fetchOfflineList('characters', '/api/characters')
 }
 
 const fetchFactions = async () => {
-  if (isOfflineMode()) {
-    factions.value = await getFromStore('factions', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/factions')
-  factions.value = data
-  await saveToStore('factions', 'list', data)
+  factions.value = await fetchOfflineList('factions', '/api/factions')
 }
 
 const refreshData = async () => {
   await Promise.all([fetchIntrigues(), fetchGames(), fetchCharacters(), fetchFactions()])
 }
 
-const updateStatus = () => {
-  const wasOffline = isOffline.value
-  isOffline.value = isOfflineMode()
-
-  if (wasOffline !== isOffline.value) {
-    refreshData()
-  }
-}
+useConnectionRefresh(refreshData)
 
 onMounted(async () => {
-  updateStatus()
-  window.addEventListener('online', updateStatus)
-  window.addEventListener('offline', updateStatus)
-  window.addEventListener('limbus:connection-change', updateStatus)
   await refreshData()
 })
 
-onUnmounted(() => {
-  window.removeEventListener('online', updateStatus)
-  window.removeEventListener('offline', updateStatus)
-  window.removeEventListener('limbus:connection-change', updateStatus)
-})
-
-function intrigueFormPayload(intrigue) {
+function intrigueFormPayload(intrigue: IntrigueItem): IntrigueDraft {
   return {
     ...intrigue,
-    characterIds: intrigue.characterIds || intrigue.characters?.map((character) => character.id) || [],
-    factionIds: intrigue.factionIds || intrigue.factions?.map((faction) => faction.id) || []
+    characterIds: intrigue.characters?.map((character) => character.id) || [],
+    factionIds: intrigue.factions?.map((faction) => faction.id) || []
   }
 }
 
@@ -333,7 +290,7 @@ function startCreate() {
   showFormSlideover.value = true
 }
 
-function startEdit(intrigue) {
+function startEdit(intrigue: IntrigueItem) {
   activeFormIntrigue.value = intrigueFormPayload(intrigue)
   formMode.value = 'edit'
   showFormSlideover.value = true
@@ -344,12 +301,13 @@ function closeFormSlideover() {
   showFormSlideover.value = false
 }
 
-function openIntriguePage(intrigue) {
+function openIntriguePage(intrigue: IntrigueItem) {
   if (!intrigue?.slug) return
   router.push(`/intrigues/${intrigue.slug}`)
 }
 
 async function handleIntrigueFormSubmit() {
+  if (!activeFormIntrigue.value) return
   if (formMode.value === 'create') {
     await useApiFetch('/api/intrigues', {
       method: 'POST',
@@ -366,7 +324,7 @@ async function handleIntrigueFormSubmit() {
   await fetchIntrigues()
 }
 
-async function deleteIntrigue(id) {
+async function deleteIntrigue(id: string) {
   if (!confirm('Supprimer cette intrigue ?')) return
 
   await useApiFetch(`/api/intrigues/${id}`, { method: 'DELETE' })

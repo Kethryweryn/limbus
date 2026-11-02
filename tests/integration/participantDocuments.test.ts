@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { api, DENIED, tokenFor } from './api'
 import { createTestPrisma } from './db'
+import { triggerPurge } from './purge'
 import { startTestSmtp } from './smtp'
 
 const prisma = createTestPrisma()
@@ -58,7 +59,7 @@ const read = async (user: { id: string }, id: string) => {
 const sectionsText = (reading: Reading) => JSON.stringify(reading.text?.sections)
 const usedBytes = async (user: { id: string }) => ((await api(user, 'GET', '/api/account')).body as { storage: { usedBytes: number } }).storage.usedBytes
 // La purge passe à chaque connexion, réussie ou non (ADR-0044)
-const purge = () => api(null, 'POST', '/api/auth/login', { email: 'personne@example.test', password: 'mauvais-mot-de-passe' })
+const purge = () => triggerPurge(prisma)
 
 describe('copie de chaque envoi (US-078) et lecture dans « Je participe » (US-079)', () => {
   it('la personne lit ce qu’elle a reçu, même modifié depuis, et le renvoi remplace la copie', async () => {

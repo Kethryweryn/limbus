@@ -138,27 +138,31 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import { isInArchivedGame, isVisibleContent } from '~/utils/games'
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useGameStore } from '@/stores/game'
-import { isOfflineMode } from '~/utils/connection'
 import { CHARACTER_TYPES, INTRIGUE_LEVELS } from '~/utils/domain'
-import { getFromStore, saveToStore } from '~/utils/storage'
-//import GameContextBar from '@/components/GameContextBar.vue'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import type { CharacterDraft } from '~/utils/writingDrafts'
+import type { UiColor } from '~/utils/ui'
 
-const characters = ref([])
+type CharacterItem = ApiResponse<'/api/characters'>[number]
+type GameItem = ApiResponse<'/api/games'>[number]
+type FactionItem = ApiResponse<'/api/factions'>[number]
+
+const characters = ref<CharacterItem[]>([])
 const search = ref('')
 const sortOption = ref('updated-desc')
 const gameFilter = ref('all')
 const showArchived = ref(false)
-const games = ref([])
-const factions = ref([])
+const games = ref<GameItem[]>([])
+const factions = ref<FactionItem[]>([])
 const router = useRouter()
 
 const gameStore = useGameStore()
 const selectedGame = computed(() => gameStore.currentGame)
-const isOffline = ref(false)
 
 const sortOptions = [
     { label: 'Dernière modification', value: 'updated-desc' },
@@ -166,15 +170,15 @@ const sortOptions = [
     { label: 'Nom Z-A', value: 'name-desc' }
 ]
 
-const intrigueLevelCards = [
+const intrigueLevelCards: Array<{ value: string, shortLabel: string, color: UiColor }> = [
     { value: INTRIGUE_LEVELS.mainStory, shortLabel: 'Scénario', color: 'primary' },
     { value: INTRIGUE_LEVELS.mainCharacter, shortLabel: 'Perso', color: 'primary' },
     { value: INTRIGUE_LEVELS.major, shortLabel: 'Majeure', color: 'warning' },
     { value: INTRIGUE_LEVELS.minor, shortLabel: 'Mineure', color: 'neutral' }
 ]
 
-const intrigueLevelsSummary = (character) => {
-    const counts = (character.intrigues || []).reduce((acc, intrigue) => {
+const intrigueLevelsSummary = (character: CharacterItem) => {
+    const counts = (character.intrigues || []).reduce<Record<string, number>>((acc, intrigue) => {
         acc[intrigue.level] = (acc[intrigue.level] || 0) + 1
         return acc
     }, {})
@@ -191,66 +195,25 @@ const gameFilterOptions = computed(() => [
 ])
 
 const fetchGames = async () => {
-    if (isOfflineMode()) {
-        games.value = await getFromStore('games', 'list') || []
-        return
-    }
-
-    const data = await useApiFetch('/api/games')
-    games.value = data
-    await saveToStore('games', 'list', data)
+    games.value = await fetchOfflineList('games', '/api/games')
 }
 
 const fetchCharacters = async () => {
-    if (isOfflineMode()) {
-        characters.value = await getFromStore('characters', 'list') || []
-        return
-    }
-
-    const data = await useApiFetch('/api/characters')
-    characters.value = data
-    await saveToStore('characters', 'list', data)
+    characters.value = await fetchOfflineList('characters', '/api/characters')
 }
 
 const fetchFactions = async () => {
-    if (isOfflineMode()) {
-        factions.value = await getFromStore('factions', 'list') || []
-        return
-    }
-
-    const data = await useApiFetch('/api/factions')
-    factions.value = data
-    await saveToStore('factions', 'list', data)
+    factions.value = await fetchOfflineList('factions', '/api/factions')
 }
 
 const refreshData = async () => {
     await Promise.all([fetchGames(), fetchCharacters(), fetchFactions()])
 }
 
-const updateStatus = () => {
-    const wasOffline = isOffline.value
-    isOffline.value = isOfflineMode()
-
-    if (wasOffline && !isOffline.value) {
-        refreshData()
-    }
-    if (!wasOffline && isOffline.value) {
-        refreshData()
-    }
-}
+useConnectionRefresh(refreshData)
 
 onMounted(async () => {
-    updateStatus()
-    window.addEventListener('online', updateStatus)
-    window.addEventListener('offline', updateStatus)
-    window.addEventListener('limbus:connection-change', updateStatus)
     await refreshData()
-})
-
-onUnmounted(() => {
-    window.removeEventListener('online', updateStatus)
-    window.removeEventListener('offline', updateStatus)
-    window.removeEventListener('limbus:connection-change', updateStatus)
 })
 
 // 🧠 Filtrage par jeu actif et recherche
@@ -305,37 +268,14 @@ const prevCharPage = () => {
 }
 
 
-// 🧱 Création
-const newCharacter = ref({
-    name: '',
-    pitch: '',
-    type: CHARACTER_TYPES.pj,
-    background: '',
-    backgroundDocumentUrl: '',
-    sheetReadyToSend: false,
-    costumeIndications: '',
-    excludeFromTrombinoscope: false,
-    trombinoscopeFaceHidden: false,
-    trombinoscopePhotoUrl: '',
-    trombinoscopeNote: '',
-    trombinoscopeDisplayName: '',
-    factionIds: [],
-    gameId: selectedGame.value?.id || ''
-})
-
-// Met à jour le jeu assigné au personnage si le jeu actif change
-watch(() => selectedGame.value?.id, (newId) => {
-    newCharacter.value.gameId = newId || ''
-})
-
 // Quand on fait une recherche on revient à la page 1 de la pagination
 watch([search, sortOption, gameFilter, filteredCharacters], () => {
     charPage.value = 1
 })
 
 const showSlideover = ref(false)
-const activeFormCharacter = ref(null)
-const formMode = ref('create')
+const activeFormCharacter = ref<CharacterDraft | null>(null)
+const formMode = ref<'create' | 'edit'>('create')
 
 function openCreateSlideover() {
     activeFormCharacter.value = {
@@ -358,7 +298,7 @@ function openCreateSlideover() {
     showSlideover.value = true
 }
 
-function startEdit(char) {
+function startEdit(char: CharacterItem) {
     activeFormCharacter.value = {
         ...char,
         factionIds: char.factions?.map((faction) => faction.id) || []
@@ -372,12 +312,13 @@ function closeSlideover() {
     showSlideover.value = false
 }
 
-function openCharacterPage(char) {
+function openCharacterPage(char: CharacterItem) {
     if (!char?.slug) return
     router.push(`/characters/${char.slug}`)
 }
 
 async function handleFormSubmit() {
+    if (!activeFormCharacter.value) return
     try {
         if (formMode.value === 'create') {
             await useApiFetch('/api/characters', {
@@ -397,7 +338,7 @@ async function handleFormSubmit() {
     }
 }
 
-const deleteCharacter = async (id) => {
+const deleteCharacter = async (id: string) => {
     if (confirm('Supprimer ce personnage ?')) {
         await useApiFetch(`/api/characters/${id}`, { method: 'DELETE' })
         await Promise.all([fetchCharacters(), fetchFactions()])

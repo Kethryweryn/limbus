@@ -118,26 +118,28 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import { isInArchivedGame, isVisibleContent } from '~/utils/games'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import FactionForm from '@/components/FactionForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
-import { isOfflineMode } from '~/utils/connection'
-import { getFromStore, saveToStore } from '~/utils/storage'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import type { FactionDraft } from '~/utils/writingDrafts'
 
-const factions = ref([])
-const games = ref([])
-const characters = ref([])
+type FactionItem = ApiResponse<'/api/factions'>[number]
+
+const factions = ref<FactionItem[]>([])
+const games = ref<ApiResponse<'/api/games'>>([])
+const characters = ref<ApiResponse<'/api/characters'>>([])
 const searchQuery = ref('')
 const gameFilter = ref('all')
 const showArchived = ref(false)
 const sortOption = ref('updated-desc')
-const isOffline = ref(false)
 const showFormSlideover = ref(false)
-const activeFormFaction = ref(null)
-const formMode = ref('create')
+const activeFormFaction = ref<FactionDraft | null>(null)
+const formMode = ref<'create' | 'edit'>('create')
 const router = useRouter()
 const { game: selectedGame } = useGameFocus()
 
@@ -207,69 +209,31 @@ watch([searchQuery, gameFilter, sortOption, filteredFactions], () => {
 })
 
 const fetchFactions = async () => {
-  if (isOfflineMode()) {
-    factions.value = await getFromStore('factions', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/factions')
-  factions.value = data
-  await saveToStore('factions', 'list', data)
+  factions.value = await fetchOfflineList('factions', '/api/factions')
 }
 
 const fetchGames = async () => {
-  if (isOfflineMode()) {
-    games.value = await getFromStore('games', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/games')
-  games.value = data
-  await saveToStore('games', 'list', data)
+  games.value = await fetchOfflineList('games', '/api/games')
 }
 
 const fetchCharacters = async () => {
-  if (isOfflineMode()) {
-    characters.value = await getFromStore('characters', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/characters')
-  characters.value = data
-  await saveToStore('characters', 'list', data)
+  characters.value = await fetchOfflineList('characters', '/api/characters')
 }
 
 const refreshData = async () => {
   await Promise.all([fetchFactions(), fetchGames(), fetchCharacters()])
 }
 
-const updateStatus = () => {
-  const wasOffline = isOffline.value
-  isOffline.value = isOfflineMode()
-
-  if (wasOffline !== isOffline.value) {
-    refreshData()
-  }
-}
+useConnectionRefresh(refreshData)
 
 onMounted(async () => {
-  updateStatus()
-  window.addEventListener('online', updateStatus)
-  window.addEventListener('offline', updateStatus)
-  window.addEventListener('limbus:connection-change', updateStatus)
   await refreshData()
 })
 
-onUnmounted(() => {
-  window.removeEventListener('online', updateStatus)
-  window.removeEventListener('offline', updateStatus)
-  window.removeEventListener('limbus:connection-change', updateStatus)
-})
-
-function factionFormPayload(faction) {
+function factionFormPayload(faction: FactionItem): FactionDraft {
   return {
     ...faction,
-    characterIds: faction.characterIds || faction.characters?.map((character) => character.id) || []
+    characterIds: faction.characters?.map((character) => character.id) || []
   }
 }
 
@@ -287,7 +251,7 @@ function startCreate() {
   showFormSlideover.value = true
 }
 
-function startEdit(faction) {
+function startEdit(faction: FactionItem) {
   activeFormFaction.value = factionFormPayload(faction)
   formMode.value = 'edit'
   showFormSlideover.value = true
@@ -298,12 +262,13 @@ function closeFormSlideover() {
   showFormSlideover.value = false
 }
 
-function openFactionPage(faction) {
+function openFactionPage(faction: FactionItem) {
   if (!faction?.slug) return
   router.push(`/factions/${faction.slug}`)
 }
 
 async function handleFactionFormSubmit() {
+  if (!activeFormFaction.value) return
   if (formMode.value === 'create') {
     await useApiFetch('/api/factions', {
       method: 'POST',
@@ -320,7 +285,7 @@ async function handleFactionFormSubmit() {
   await Promise.all([fetchFactions(), fetchCharacters()])
 }
 
-async function deleteFaction(id) {
+async function deleteFaction(id: string) {
   if (!confirm('Supprimer ce groupe ? Les personnages liés seront conservés.')) return
 
   await useApiFetch(`/api/factions/${id}`, { method: 'DELETE' })

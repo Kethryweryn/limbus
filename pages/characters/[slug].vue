@@ -1,5 +1,5 @@
 <template>
-    <div class="p-6 max-w-7xl mx-auto space-y-6">
+    <div v-if="character" class="p-6 max-w-7xl mx-auto space-y-6">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <UButton to="/characters" icon="i-heroicons-arrow-left" color="neutral" variant="ghost">
                 Personnages
@@ -24,7 +24,7 @@
         </div>
 
         <CharacterForm
-            v-if="isEditing"
+            v-if="isEditing && editableCharacter"
             v-model:character="editableCharacter"
             :games="games || []"
             :factions="factions || []"
@@ -144,15 +144,6 @@
             </div>
 
             <CharacterRelations :character="character" :characters="allCharacters || []" />
-
-            <div v-if="character.documents?.length">
-                <h2 class="text-xl font-semibold mb-2">Documents liés</h2>
-                <ul class="list-disc pl-5">
-                    <li v-for="doc in character.documents" :key="doc.id">
-                        {{ doc.title }}
-                    </li>
-                </ul>
-            </div>
         </template>
 
         <UModal v-model:open="showIntrigueModal" title="Intrigues du personnage">
@@ -188,36 +179,42 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { isInArchivedGame } from '~/utils/games'
 import { CHARACTER_TYPES } from '~/utils/domain'
+import { isOfflineMissing } from '~/utils/connection'
+import type { CharacterDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
 const router = useRouter()
-const slug = route.params.slug
+const slug = String(route.params.slug)
 // Fiche consultée avec le réseau : elle se rouvre sans réseau (US-047)
 const { data: character, error, refresh } = await useOfflineFetch(`/api/characters/slug/${slug}`)
-const { data: games } = await useOfflineFetch('/api/games')
-const { data: factions } = await useOfflineFetch('/api/factions')
-const { data: intrigues, refresh: refreshIntrigues } = await useOfflineFetch('/api/intrigues')
-// Autres personnages du jeu, pour les relations (US-097)
-const { data: allCharacters } = await useOfflineFetch('/api/characters')
-
+// Introuvable : la page s'arrête avant de charger les listes de son jeu
 if (error.value) {
     handleApiAuthError(error.value)
     throw createError({
         statusCode: 404,
-        message: error.value.offlineMissing || error.value.cause?.offlineMissing
+        message: isOfflineMissing(error.value)
             ? 'Cette fiche n’a pas été consultée avec le réseau sur cet appareil : elle n’est pas disponible hors ligne.'
             : 'Personnage introuvable'
     })
 }
+const { data: games } = await useOfflineFetch('/api/games')
+// Groupes, intrigues et personnages du jeu du personnage seulement (relations, US-097)
+const gameQuery = `?gameId=${character.value?.gameId ?? ''}`
+const { data: factions } = await useOfflineFetch(`/api/factions${gameQuery}`)
+const { data: intrigues, refresh: refreshIntrigues } = await useOfflineFetch(`/api/intrigues${gameQuery}`)
+// Autres personnages du jeu, pour les relations (US-097)
+const { data: allCharacters } = await useOfflineFetch(`/api/characters${gameQuery}`)
+
+type CharacterPage = NonNullable<typeof character.value>
 
 const isEditing = ref(route.query.edit === '1')
-const editableCharacter = ref(character.value ? characterFormPayload(character.value) : null)
+const editableCharacter = ref<CharacterDraft | null>(character.value ? characterFormPayload(character.value) : null)
 const showIntrigueModal = ref(false)
 const showTrombinoscopeModal = ref(false)
-const selectedIntrigueIds = ref(character.value?.intrigues?.map((intrigue) => intrigue.id) || [])
+const selectedIntrigueIds = ref<string[]>(character.value?.intrigues?.map((intrigue) => intrigue.id) || [])
 
 const availableIntrigues = computed(() =>
     (intrigues.value || [])
@@ -243,7 +240,7 @@ watch(() => character.value?.intrigues, (value) => {
     selectedIntrigueIds.value = value?.map((intrigue) => intrigue.id) || []
 })
 
-function characterFormPayload(value) {
+function characterFormPayload(value: CharacterPage): CharacterDraft {
     return {
         ...value,
         factionIds: value.factions?.map((faction) => faction.id) || []
@@ -251,7 +248,7 @@ function characterFormPayload(value) {
 }
 
 function startEdit() {
-    editableCharacter.value = characterFormPayload(character.value)
+    editableCharacter.value = character.value ? characterFormPayload(character.value) : null
     isEditing.value = true
     router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
 }
@@ -272,8 +269,7 @@ async function handleFormSubmit() {
         body: editableCharacter.value
     })
 
-    if (updatedCharacter?.slug && updatedCharacter.slug !== route.params.slug) {
-        character.value = updatedCharacter
+    if (!isOfflineQueued(updatedCharacter) && updatedCharacter.slug && updatedCharacter.slug !== route.params.slug) {
         await router.replace(`/characters/${updatedCharacter.slug}`)
     } else {
         await refresh()
@@ -283,9 +279,10 @@ async function handleFormSubmit() {
 }
 
 async function saveCharacterIntrigues() {
-    if (!character.value?.id) return
+    const current = character.value
+    if (!current?.id) return
 
-    const currentIds = new Set(character.value.intrigues?.map((intrigue) => intrigue.id) || [])
+    const currentIds = new Set(current.intrigues?.map((intrigue) => intrigue.id) || [])
     const nextIds = new Set(selectedIntrigueIds.value || [])
     const relevantIntrigues = availableIntrigues.value.filter((intrigue) =>
         currentIds.has(intrigue.id) || nextIds.has(intrigue.id)
@@ -295,9 +292,9 @@ async function saveCharacterIntrigues() {
         const characterIds = new Set(intrigue.characters?.map((item) => item.id) || [])
 
         if (nextIds.has(intrigue.id)) {
-            characterIds.add(character.value.id)
+            characterIds.add(current.id)
         } else {
-            characterIds.delete(character.value.id)
+            characterIds.delete(current.id)
         }
 
         return useApiFetch(`/api/intrigues/${intrigue.id}`, {

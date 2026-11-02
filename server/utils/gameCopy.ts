@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { copyFile, unlink } from 'node:fs/promises'
 import { extname } from 'node:path'
 import { prisma } from '~/server/utils/prisma'
-import { generateUniqueSlug, type SlugModel } from '~/server/utils/generateUniqueSlug'
+import { generateUniqueSlugs } from '~/server/utils/generateUniqueSlug'
 import { collectUploadUrls, deleteUnusedUploads, uploadFilePath } from '~/server/utils/uploads'
 import { isUploadUrl, PHOTO_UPLOAD_PREFIX } from '~/utils/urls'
 
@@ -169,14 +169,6 @@ async function removeFiles(urls: Array<string | null>) {
   }
 }
 
-async function slugsFor(model: SlugModel, names: string[]) {
-  const taken = new Set<string>()
-  const slugs: string[] = []
-  for (const name of names) {
-    slugs.push(await generateUniqueSlug(model, name, undefined, taken))
-  }
-  return slugs
-}
 
 export interface GameCopyOptions {
   ownerId: string | null
@@ -190,16 +182,31 @@ export interface GameCopyOptions {
  * liens recréés vers les éléments de la copie, photos dupliquées avant la transaction et effacées si elle échoue.
  */
 export async function copyGame(sourceGameId: string, options: GameCopyOptions) {
+  // Un slug pris entre leur calcul et la transaction (élément créé, autre copie simultanée) : on recalcule
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await copyGameOnce(sourceGameId, options)
+    } catch (error) {
+      if (!isSlugConflict(error) || attempt === 3) throw error
+    }
+  }
+}
+
+const isSlugConflict = (error: unknown) => (error as { slugConflict?: boolean })?.slugConflict === true
+
+async function copyGameOnce(sourceGameId: string, options: GameCopyOptions) {
   const source = await loadSourceGame(sourceGameId)
 
-  const [gameSlug] = await slugsFor('game', [source.title])
-  const characterSlugs = await slugsFor('character', source.characters.map((row) => row.name))
-  const factionSlugs = await slugsFor('faction', source.factions.map((row) => row.name))
-  const intrigueSlugs = await slugsFor('intrigue', source.intrigues.map((row) => row.name))
-  const itemSlugs = await slugsFor('item', source.items.map((row) => row.name))
-  const eventSlugs = await slugsFor('timelineEvent', source.timelineEvents.map((row) => row.name))
-  const documentSlugs = await slugsFor('document', source.documents.map((row) => row.title))
-  const locationSlugs = await slugsFor('location', source.locations.map((row) => row.name))
+  const [[gameSlug], characterSlugs, factionSlugs, intrigueSlugs, itemSlugs, eventSlugs, documentSlugs, locationSlugs] = await Promise.all([
+    generateUniqueSlugs('game', [source.title]),
+    generateUniqueSlugs('character', source.characters.map((row) => row.name)),
+    generateUniqueSlugs('faction', source.factions.map((row) => row.name)),
+    generateUniqueSlugs('intrigue', source.intrigues.map((row) => row.name)),
+    generateUniqueSlugs('item', source.items.map((row) => row.name)),
+    generateUniqueSlugs('timelineEvent', source.timelineEvents.map((row) => row.name)),
+    generateUniqueSlugs('document', source.documents.map((row) => row.title)),
+    generateUniqueSlugs('location', source.locations.map((row) => row.name))
+  ])
 
   const photoCopies = await duplicatePhotos(source.id, source.characters.map((row) => row.trombinoscopePhotoUrl))
   const copiedPhoto = (url: string | null) => (url && photoCopies.has(url) ? photoCopies.get(url)! : url)
@@ -367,7 +374,7 @@ export async function copyGame(sourceGameId: string, options: GameCopyOptions) {
     await removeFiles([...photoCopies.values()])
     // Un élément créé pendant le legs a pris l'un des slugs réservés : rien n'a été copié, on peut recommencer
     if ((error as { code?: string })?.code === 'P2002') {
-      throw createError({ statusCode: 409, message: 'Le jeu a été modifié pendant le legs : rien n’a été copié, recommencez.' })
+      throw Object.assign(createError({ statusCode: 409, message: 'Le jeu a été modifié pendant le legs : rien n’a été copié, recommencez.' }), { slugConflict: true })
     }
     throw error
   }

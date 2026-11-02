@@ -26,11 +26,8 @@ export default defineEventHandler(async (event) => {
     keyParts: [email]
   })
 
+  // Avant la recherche du compte : un compte non confirmé échu ne se connecte plus
   await purgeUnconfirmedAccounts()
-  // Copies des envois des sessions passées (US-080, ADR-0044)
-  await purgeExpiredCopies()
-  // Formulaires publics jamais confirmés (R11, ADR-0046)
-  await purgeRegistrationRequests()
   const user = await prisma.user.findUnique({
     where: { email }
   })
@@ -47,11 +44,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Ce compte est désactivé. Contactez l’administratrice de Limbus.' })
   }
 
-  // Photos des sessions passées depuis plus longtemps que la durée de leur jeu (US-108, ADR-0054) : après une
-  // connexion réussie seulement, pour qu'une tentative refusée ne parcoure pas les sessions
-  await purgeExpiredPhotos()
-  // Connexion : activité du compte, puis comptes inactifs et fiches sans compte trop anciens (US-112, US-113), en
-  // tâche de fond pour ne pas ralentir la connexion
+  // Après une connexion réussie seulement, pour qu'une tentative refusée ne parcoure pas les sessions, et en
+  // parallèle : copies des envois des sessions passées (US-080, ADR-0044), formulaires publics jamais confirmés
+  // (R11, ADR-0046), photos échues (US-108, ADR-0054). Attendues : le ménage est fait quand la connexion répond.
+  await Promise.all([purgeExpiredCopies(), purgeRegistrationRequests(), purgeExpiredPhotos()])
+  // Activité du compte, puis comptes inactifs et fiches sans compte trop anciens (US-112, US-113), en tâche de fond :
+  // la purge parcourt tous les comptes
   await touchAccount(user.id, null)
   purgeRetention().catch((error) => console.error('[conservation] purge non effectuée', { error: (error as Error)?.message }))
   setAuthCookie(event, user)

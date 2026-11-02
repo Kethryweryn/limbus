@@ -129,6 +129,12 @@ export async function requireParticipantAccess(event: H3Event, participantId: st
   }
 }
 
+/** Liste limitée à un jeu (?gameId=) : une page qui n'a besoin que d'un jeu ne charge pas tous les autres. */
+export function queryGameFilter(event: H3Event): { gameId?: string } {
+  const gameId = getQuery(event).gameId?.toString()
+  return gameId ? { gameId } : {}
+}
+
 export async function gameScopedWhere(event: H3Event, extraWhere: Record<string, any> = {}) {
   const gameIds = await accessibleGameIds(event)
   // Mode administrateur : tout, sauf le contenu des copies léguées en attente

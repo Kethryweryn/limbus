@@ -340,6 +340,17 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect(response.body).toEqual([])
   })
 
+  // Listes limitées à un jeu (?gameId=, queryGameFilter) : le filtre ne contourne pas l'accès
+  it.each(['characters', 'factions', 'intrigues', 'timeline-events'])('/api/%s filtrée sur le jeu de Bob est vide', async (list) => {
+    const response = await api(alice, 'GET', `/api/${list}?gameId=${b.game.id}`)
+    expect(response.status).toBe(200)
+    expect(response.body).toEqual([])
+    // Témoin : filtrée sur son propre jeu, la liste a ses éléments
+    const own = await api(alice, 'GET', `/api/${list}?gameId=${a.game.id}`)
+    expect((own.body as Array<{ gameId: string }>).length).toBeGreaterThan(0)
+    expect((own.body as Array<{ gameId: string }>).every((item) => item.gameId === a.game.id)).toBe(true)
+  })
+
   it('le tableau de bord ne montre pas le jeu de Bob', async () => {
     const response = await api(alice, 'GET', '/api/dashboard')
     expect(response.status).toBe(200)

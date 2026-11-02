@@ -22,7 +22,7 @@
       </UFormField>
 
       <UFormField label="Description">
-        <UTextarea v-model="localItem.description" :rows="8" size="lg" class="w-full" />
+        <UTextarea v-model.nullable="localItem.description" :rows="8" size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Quantité" :error="errors.quantity">
@@ -32,7 +32,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <UFormField label="Localisation chez un personnage">
           <USelect
-            v-model="localItem.locationCharacterId"
+            v-model="locationCharacterIdModel"
             :items="locationCharacterOptions"
             value-key="value"
             :disabled="!localItem.gameId"
@@ -44,7 +44,7 @@
 
         <UFormField label="Localisation libre">
           <UInput
-            v-model="localItem.locationText"
+            v-model.nullable="localItem.locationText"
             :disabled="Boolean(localItem.locationCharacterId)"
             size="lg"
             class="w-full"
@@ -102,22 +102,24 @@
   </UCard>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { CHARACTER_TYPES } from '~/utils/domain'
+import { apiErrorMessage } from '~/utils/apiErrors'
+import { emptyStringModel, type CharacterOption, type GameOption, type ItemDraft } from '~/utils/writingDrafts'
 
-const props = defineProps({
-  item: { type: Object, required: true },
-  games: { type: Array, required: true },
-  characters: { type: Array, required: true },
-  intrigues: { type: Array, required: true },
-  mode: { type: String, default: 'create' }
-})
+const props = withDefaults(defineProps<{
+  item: ItemDraft
+  games: GameOption[]
+  characters: CharacterOption[]
+  intrigues: Array<{ id: string, name: string, gameId: string }>
+  mode?: 'create' | 'edit'
+}>(), { mode: 'create' })
 
-const emit = defineEmits(['submit', 'cancel', 'update:item'])
+const emit = defineEmits<{ submit: [], cancel: [], 'update:item': [item: ItemDraft] }>()
 
-const localItem = ref({ ...props.item })
-const errors = ref({})
+const localItem = ref<ItemDraft>({ ...props.item })
+const errors = ref<Record<string, string>>({})
 const serverError = ref('')
 
 const gameOptions = computed(() => props.games.map((game) => ({
@@ -139,6 +141,8 @@ const locationCharacterOptions = computed(() => [
   { label: 'Aucun personnage', value: '' },
   ...characterOptions.value
 ])
+
+const locationCharacterIdModel = emptyStringModel(localItem, 'locationCharacterId')
 
 const intrigueOptions = computed(() =>
   props.intrigues
@@ -195,15 +199,15 @@ function validate() {
   return Object.keys(errors.value).length === 0
 }
 
-async function submit() {
+function submit() {
   if (!validate()) return
 
   try {
     emit('update:item', localItem.value)
-    await emit('submit')
+    emit('submit')
     serverError.value = ''
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
   }
 }
 </script>

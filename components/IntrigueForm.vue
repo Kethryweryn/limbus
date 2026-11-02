@@ -34,11 +34,11 @@
       </div>
 
       <UFormField label="Pitch">
-        <UTextarea v-model="localIntrigue.pitch" :rows="5" size="lg" class="w-full" />
+        <UTextarea v-model.nullable="localIntrigue.pitch" :rows="5" size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Description">
-        <UTextarea v-model="localIntrigue.description" :rows="14" size="lg" class="w-full" />
+        <UTextarea v-model.nullable="localIntrigue.description" :rows="14" size="lg" class="w-full" />
       </UFormField>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -92,7 +92,7 @@
   </UCard>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import {
   CHARACTER_TYPES,
@@ -101,24 +101,26 @@ import {
   VIRTUAL_CHARACTER_GROUP_OPTIONS,
   VIRTUAL_CHARACTER_GROUPS
 } from '~/utils/domain'
+import { apiErrorMessage } from '~/utils/apiErrors'
+import type { CharacterOption, FactionOption, GameOption, IntrigueDraft } from '~/utils/writingDrafts'
 
-const props = defineProps({
-  intrigue: { type: Object, required: true },
-  games: { type: Array, required: true },
-  characters: { type: Array, required: true },
-  factions: { type: Array, required: true },
-  mode: { type: String, default: 'create' }
-})
+const props = withDefaults(defineProps<{
+  intrigue: IntrigueDraft
+  games: GameOption[]
+  characters: CharacterOption[]
+  factions: FactionOption[]
+  mode?: 'create' | 'edit'
+}>(), { mode: 'create' })
 
-const emit = defineEmits(['submit', 'cancel', 'update:intrigue'])
+const emit = defineEmits<{ submit: [], cancel: [], 'update:intrigue': [intrigue: IntrigueDraft] }>()
 
-const localIntrigue = ref({ ...props.intrigue })
-const errors = ref({})
+const localIntrigue = ref<IntrigueDraft>({ ...props.intrigue })
+const errors = ref<Record<string, string>>({})
 const serverError = ref('')
 
-const levelOptions = INTRIGUE_LEVEL_OPTIONS
+const levelOptions: Array<{ label: string, value: string }> = [...INTRIGUE_LEVEL_OPTIONS]
 
-const virtualFactionOptions = VIRTUAL_CHARACTER_GROUP_OPTIONS
+const virtualFactionOptions: Array<{ label: string, value: string }> = [...VIRTUAL_CHARACTER_GROUP_OPTIONS]
 
 const gameOptions = computed(() => props.games.map((game) => ({
   label: game.title,
@@ -181,7 +183,7 @@ function validate() {
   return Object.keys(errors.value).length === 0
 }
 
-function expandVirtualFactionSelection(value) {
+function expandVirtualFactionSelection(value: IntrigueDraft): IntrigueDraft {
   const factionIds = value.factionIds || []
   const selectedVirtualIds = new Set(factionIds.filter((id) => id.startsWith('__')))
   const realFactionIds = factionIds.filter((id) => !id.startsWith('__'))
@@ -201,15 +203,15 @@ function expandVirtualFactionSelection(value) {
   }
 }
 
-async function submit() {
+function submit() {
   if (!validate()) return
 
   try {
     emit('update:intrigue', expandVirtualFactionSelection(localIntrigue.value))
-    await emit('submit')
+    emit('submit')
     serverError.value = ''
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
   }
 }
 </script>

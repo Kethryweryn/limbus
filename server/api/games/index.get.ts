@@ -63,6 +63,9 @@ export default defineEventHandler(async (event) => {
                 balanceAttribute: game.balanceAttribute,
                 balanceValues: game.balanceValues,
                 singlePjPerParticipant: game.singlePjPerParticipant,
+                // Le formulaire du jeu s'ouvre aussi depuis la liste (US-107)
+                photoRetentionMonths: game.photoRetentionMonths,
+                contactEmail: game.contactEmail,
                 ownerId: game.ownerId,
                 owner: game.owner,
                 shares: game.shares,

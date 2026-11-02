@@ -15,12 +15,12 @@
       <li v-for="side in sides" :key="side.relation.id" class="flex flex-col gap-2 p-3 sm:flex-row sm:items-start sm:justify-between">
         <div class="min-w-0 text-sm">
           <div class="flex flex-wrap items-center gap-2">
-            <NuxtLink :to="`/characters/${side.other.slug}`" class="font-medium text-gray-800 hover:underline">{{ side.other.name }}</NuxtLink>
+            <NuxtLink :to="`/characters/${side.other?.slug}`" class="font-medium text-gray-800 hover:underline">{{ side.other?.name }}</NuxtLink>
             <UBadge color="neutral" variant="subtle">{{ characterRelationTypeLabel(side.relation.type) }}</UBadge>
             <span v-if="side.label" class="text-gray-600">{{ character.name }} : {{ side.label }}</span>
             <UBadge v-if="side.visible" size="sm" color="primary" variant="outline" icon="i-heroicons-eye">Dans sa fiche</UBadge>
           </div>
-          <p v-if="side.otherLabel" class="text-xs text-gray-500">{{ side.other.name }} : {{ side.otherLabel }}</p>
+          <p v-if="side.otherLabel" class="text-xs text-gray-500">{{ side.other?.name }} : {{ side.otherLabel }}</p>
           <p v-if="side.relation.description" class="mt-1 whitespace-pre-line text-gray-600">{{ side.relation.description }}</p>
         </div>
         <div class="flex shrink-0 gap-1">
@@ -38,7 +38,7 @@
               <USelectMenu v-model="form.otherId" :items="otherItems" value-key="value" placeholder="Choisir un personnage" class="w-full" />
             </UFormField>
             <UFormField label="Type" required>
-              <USelect v-model="form.type" :items="CHARACTER_RELATION_TYPES" value-key="value" class="w-full" />
+              <USelect v-model="form.type" :items="relationTypeItems" value-key="value" class="w-full" />
             </UFormField>
             <UFormField :label="`Rôle de ${character.name}`" description="Facultatif, par exemple « supérieure de ».">
               <UInput v-model="form.label" class="w-full" />
@@ -66,18 +66,23 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { CHARACTER_RELATION_TYPES, characterRelationTypeLabel, relationSide } from '~/utils/characterRelations'
 import { apiErrorMessage } from '~/utils/apiErrors'
+import type { ApiResponse } from '~/composables/useApiFetch'
 
-const props = defineProps({
-  // Le personnage de la page : id, name, gameId
-  character: { type: Object, required: true },
+type Relation = ApiResponse<'/api/characters/:id/relations'>[number]
+type CharacterRef = { id: string, name: string, gameId: string }
+
+const props = withDefaults(defineProps<{
+  // Le personnage de la page
+  character: CharacterRef
   // Les personnages du même jeu, pour choisir l'autre côté
-  characters: { type: Array, default: () => [] }
-})
+  characters?: CharacterRef[]
+}>(), { characters: () => [] })
 
-const relations = ref([])
+const relations = ref<Relation[]>([])
+const relationTypeItems: Array<{ label: string, value: string }> = [...CHARACTER_RELATION_TYPES]
 const message = ref('')
 
 async function load() {
@@ -99,7 +104,8 @@ const otherItems = computed(() => others.value.map((entry) => ({ label: entry.na
 const showForm = ref(false)
 const saving = ref(false)
 const formError = ref('')
-const emptyForm = () => ({ id: null, updatedAt: null, mine: true, otherId: null, type: 'family', label: '', otherLabel: '', description: '', visible: false, otherVisible: false })
+type RelationForm = { id: string | null, updatedAt: string | null, mine: boolean, otherId: string | undefined, type: string, label: string, otherLabel: string, description: string, visible: boolean, otherVisible: boolean }
+const emptyForm = (): RelationForm => ({ id: null, updatedAt: null, mine: true, otherId: undefined, type: 'family', label: '', otherLabel: '', description: '', visible: false, otherVisible: false })
 const form = ref(emptyForm())
 const otherName = computed(() => others.value.find((entry) => entry.id === form.value.otherId)?.name || '')
 
@@ -110,13 +116,13 @@ function startCreate() {
 }
 
 // Le formulaire est toujours vu du personnage de la page ; « mine » dit de quel côté de la relation il est
-function startEdit(side) {
+function startEdit(side: ReturnType<typeof relationSide<Relation>>) {
   const relation = side.relation
   form.value = {
     id: relation.id,
     updatedAt: relation.updatedAt,
     mine: relation.fromCharacterId === props.character.id,
-    otherId: side.other.id,
+    otherId: side.other?.id,
     type: relation.type,
     label: side.label || '',
     otherLabel: side.otherLabel || '',
@@ -157,7 +163,7 @@ async function save() {
   }
 }
 
-async function remove(relation) {
+async function remove(relation: Relation) {
   if (!confirm('Supprimer cette relation ? Elle disparaît aussi de la fiche de l’autre personnage.')) return
   try {
     await useApiFetch(`/api/character-relations/${relation.id}`, { method: 'DELETE', headers: { 'if-unmodified-since': new Date(relation.updatedAt).toISOString() } })

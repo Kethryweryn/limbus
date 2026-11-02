@@ -36,7 +36,7 @@
       </UFormField>
 
       <UFormField label="Description">
-        <UTextarea v-model="localEvent.description" :rows="8" size="lg" class="w-full" />
+        <UTextarea v-model.nullable="localEvent.description" :rows="8" size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Personnages liés">
@@ -105,24 +105,29 @@
   </UCard>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { CHARACTER_TYPES, VIRTUAL_CHARACTER_GROUP_OPTIONS, VIRTUAL_CHARACTER_GROUPS } from '~/utils/domain'
+import { apiErrorMessage } from '~/utils/apiErrors'
+import type { CharacterOption, FactionOption, GameOption, TimelineEventDraft } from '~/utils/writingDrafts'
 
-const props = defineProps({
-  event: { type: Object, required: true },
-  games: { type: Array, required: true },
-  characters: { type: Array, required: true },
-  factions: { type: Array, required: true },
-  intrigues: { type: Array, required: true },
-  items: { type: Array, required: true },
-  mode: { type: String, default: 'create' }
-})
+type Named = { id: string, name: string, gameId: string }
+type EventInput = TimelineEventDraft & { characters?: Named[], factions?: Named[], intrigues?: Named[], items?: Named[] }
 
-const emit = defineEmits(['submit', 'cancel', 'update:event'])
+const props = withDefaults(defineProps<{
+  event: EventInput
+  games: GameOption[]
+  characters: CharacterOption[]
+  factions: FactionOption[]
+  intrigues: Named[]
+  items: Named[]
+  mode?: 'create' | 'edit'
+}>(), { mode: 'create' })
 
-const localEvent = ref({ ...props.event })
-const errors = ref({})
+const emit = defineEmits<{ submit: [], cancel: [], 'update:event': [event: TimelineEventDraft] }>()
+
+const localEvent = ref<TimelineEventDraft>({ ...props.event })
+const errors = ref<Record<string, string>>({})
 const serverError = ref('')
 
 const gameOptions = computed(() => props.games.map((game) => ({
@@ -160,7 +165,7 @@ const realFactionOptions = computed(() =>
     }))
 )
 
-const factionOptions = computed(() => [
+const factionOptions = computed<Array<{ label: string, value: string }>>(() => [
   ...VIRTUAL_CHARACTER_GROUP_OPTIONS,
   ...realFactionOptions.value
 ])
@@ -217,7 +222,7 @@ function validate() {
   return Object.keys(errors.value).length === 0
 }
 
-function expandVirtualFactionSelection(value) {
+function expandVirtualFactionSelection(value: TimelineEventDraft): TimelineEventDraft {
   const factionIds = value.factionIds || []
   const selectedVirtualIds = new Set(factionIds.filter((id) => id.startsWith('__')))
   const realFactionIds = factionIds.filter((id) => !id.startsWith('__'))
@@ -237,7 +242,7 @@ function expandVirtualFactionSelection(value) {
   }
 }
 
-async function submit() {
+function submit() {
   if (!validate()) return
 
   try {
@@ -246,10 +251,10 @@ async function submit() {
       day: Number(localEvent.value.day),
       requiredResponsibles: Number(localEvent.value.requiredResponsibles || 0)
     }))
-    await emit('submit')
+    emit('submit')
     serverError.value = ''
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
   }
 }
 </script>

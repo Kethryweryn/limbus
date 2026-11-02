@@ -22,9 +22,14 @@ La quasi-totalité des pages et composants est en JavaScript (revue d'architectu
 - **Appels** : `useApiFetch` a la signature de `$fetch`. La réponse vient de `TypedInternalResponse` de Nitro, pour la route appelée et la méthode écrite dans l'appel (`method: 'POST'`). Une écriture rend aussi, possiblement, `OfflineQueuedResponse` : sa mise en file hors ligne, que l'appelant distingue par `isOfflineQueued`.
   - La méthode n'est pas déduite des routes (`ExtractedRouteMethod`). Avec plus de 150 routes, TypeScript dépasse sa profondeur de comparaison en contexte générique.
   - L'implémentation reste non typée par route : la file hors ligne et le cache de l'appareil ne connaissent que l'URL.
+  - Une action (envoi, partage, legs, téléversement), jamais mise en file, passe par `useApiAction` : même signature, réponse du serveur seule.
+  - Un état se type par `ApiResponse<'/api/games/:id'>`, la route sous sa forme Nitro.
+  - La réponse est marquée `NoInfer` : sans cela, la cible d'une affectation (`ref.value = await useApiFetch(…)`) relançait la déduction de la route et dépassait la profondeur de comparaison.
 - **Réponses ambiguës** : une route qui rend des formes différentes les distingue par un champ littéral (`authenticated: true as const`), que l'interface teste.
 - **Erreurs** : `apiErrorMessage` et `serverMessage` (`utils/apiErrors.ts`) lisent le message du serveur, sans `any` dans les `catch`.
+- **Listes hors ligne** : `fetchOfflineList` (lecture sur l'appareil ou par l'API, gardée sur l'appareil) et `useConnectionRefresh` (relecture au changement de connexion), dans `composables/useOfflineList.ts`, remplacent le code recopié dans chaque page de liste.
 - **Types d'interface partagés** : `utils/ui.ts` (couleurs Nuxt UI), `utils/navigation.ts` (menu).
+- **Éléments en cours d'édition** : le type de l'élément rendu par l'API, sans ses éléments liés, que le formulaire tient en identifiants (`utils/writingDrafts.ts`). Un champ texte facultatif se lie avec `v-model.nullable` : vidé, il vaut `null`, comme en base.
 - **Règle** : `eslint.config.mjs` liste les fichiers convertis (`TYPED_INTERFACE`) et y impose `vue/block-lang` (`lang="ts"`) et `no-explicit-any` en erreur. La liste grandit à chaque lot. Le dernier la remplace par tous les `.vue`.
 
 ## Conséquences

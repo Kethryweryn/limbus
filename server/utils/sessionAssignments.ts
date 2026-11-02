@@ -268,7 +268,8 @@ export async function withCastReservations<T extends { id: string, assignments: 
   })
   return {
     ...session,
-    assignments: session.assignments.map((assignment) => {
+    // Chaque ligne garde son type (personnage, participant…) : la réponse de la route le reprend
+    assignments: session.assignments.map((assignment): T['assignments'][number] => {
       const live = assignment.reservedRegistration?.status === REGISTRATION_STATUSES.retained && assignment.reservedRegistration.sessionId === session.id
       return live ? assignment : { ...assignment, reservedRegistrationId: null, reservedRegistration: null }
     }),
