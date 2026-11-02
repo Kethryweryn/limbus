@@ -62,8 +62,13 @@ export function uniqueName(base: string) {
 
 // Le plus petit bloc de la page Inscriptions qui porte à la fois le titre du jeu et le bouton donné
 export function gamePanel(page: Page, title: string, button: string | RegExp) {
+  return blockWith(page, page.getByRole('heading', { name: title, exact: true }), button)
+}
+
+// Le plus petit bloc qui contient à la fois l'élément donné (titre, lien) et le bouton donné : une carte, un panneau
+export function blockWith(page: Page, has: Locator, button: string | RegExp) {
   return page.locator('div')
-    .filter({ has: page.getByRole('heading', { name: title, exact: true }) })
+    .filter({ has })
     .filter({ has: page.getByRole('button', { name: button }) })
     .last()
 }

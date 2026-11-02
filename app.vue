@@ -4,11 +4,13 @@
          synchronisation. Elles ne changent pas de bloc quand la connexion est vérifiée, donc ne se remontent pas : la
          confirmation d'une adresse ne part qu'une fois -->
     <div v-if="isStandaloneRoute">
+      <!-- Manifeste de l'application : les liens personnels gardent leurs propres métadonnées, en mode clair -->
+      <NuxtPwaAssets v-if="!isPersonalLinkRoute" />
       <NuxtLoadingIndicator />
       <NuxtPage />
     </div>
     <!-- Adresse pas encore confirmée (R5) : seul le renvoi du lien est possible -->
-    <div v-else-if="unconfirmedEmail && !isPublicRoute">
+    <div v-else-if="unconfirmedEmail && !isLegalOrInvitationRoute">
       <NuxtPwaAssets />
       <UnconfirmedAccountScreen :email="unconfirmedEmail" />
     </div>
@@ -60,7 +62,7 @@
         </div>
       </div>
     </div>
-    <div v-else-if="isPublicRoute">
+    <div v-else-if="isLegalOrInvitationRoute">
       <NuxtPwaAssets />
       <NuxtLoadingIndicator />
       <NuxtPage />
@@ -129,12 +131,15 @@ const router = useRouter()
 const currentPath = computed(() => router.currentRoute.value.path)
 // Pages légales (US-110) : lisibles sans compte, et avant d'accepter les conditions
 const isLegalRoute = computed(() => LEGAL_PAGES.some((page) => currentPath.value === page.to))
-// Invitation à un jeu (US-064) : ouverte sans connexion, mais les conditions d'utilisation passent avant d'accepter
-const isPublicRoute = computed(() => isLegalRoute.value || currentPath.value.startsWith('/invitations/'))
-// Liens personnels d'inscription (US-004) et de confirmation de présence (US-024), lien de diffusion (US-084), accès au
-// compte : inscription, confirmation et mot de passe (EPIC-013), page publique d'un jeu (US-019)
-const STANDALONE_PREFIXES = ['/inscription/', '/presence/', '/i/', '/acces/', '/public/']
-const isStandaloneRoute = computed(() => STANDALONE_PREFIXES.some((prefix) => currentPath.value.startsWith(prefix)))
+// Pages légales et invitation à un jeu (US-064) : ouvertes sans connexion, mais une fois connecté elles suivent les
+// conditions d'utilisation (les pages légales restent lisibles, l'invitation attend leur acceptation). Toute autre page
+// ouverte sans connexion est autonome (STANDALONE_PREFIXES)
+const isLegalOrInvitationRoute = computed(() => isLegalRoute.value || currentPath.value.startsWith('/invitations/'))
+// Liens personnels d'inscription (US-004) et de confirmation de présence (US-024), lien de diffusion (US-084)
+const isPersonalLinkRoute = computed(() => ['/inscription/', '/presence/', '/i/'].some((prefix) => currentPath.value.startsWith(prefix)))
+// Pages autonomes : liens personnels, accès au compte (inscription, confirmation, mot de passe, EPIC-013), page publique
+// d'un jeu (US-019)
+const isStandaloneRoute = computed(() => isPersonalLinkRoute.value || ['/acces/', '/public/'].some((prefix) => currentPath.value.startsWith(prefix)))
 let authCheckInProgress = false
 
 function hasValidOfflineAuth() {

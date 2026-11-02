@@ -3,7 +3,7 @@ import { expect, test, type Download } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { linkToken, startTestSmtp } from '../integration/smtp'
 import { E2E_PASSWORD, E2E_USERS } from './constants'
-import { expectLoggedIn, signIn, slugOf, testUser, uniqueName } from './helpers'
+import { blockWith, expectLoggedIn, login, signIn, slugOf, testUser, uniqueName } from './helpers'
 
 async function downloadedJson(download: Download) {
   return JSON.parse(await readFile((await download.path())!, 'utf8')) as unknown
@@ -32,6 +32,9 @@ test('la personne change son adresse email par le lien reçu', async ({ page }) 
     await page.goto(`/acces/confirmer/${linkToken(smtp.to(newEmail)[0]!, '/acces/confirmer/')}`)
     await expect(page.getByText(`Votre compte utilise désormais l’adresse ${newEmail}.`)).toBeVisible()
     expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { email: true } })).email).toBe(newEmail)
+    // L'ancienne adresse est prévenue du changement
+    await expect.poll(() => smtp.to(email).length).toBe(1)
+    expect(smtp.to(email)[0]!.text).toContain(newEmail)
   } finally {
     await smtp.stop()
     await prisma.$disconnect()
@@ -60,6 +63,12 @@ test('la personne change son mot de passe, ses autres appareils sont déconnect�
     await expectLoggedIn(page)
     await other.reload()
     await expect(other.getByRole('button', { name: 'Se connecter' })).toBeVisible()
+
+    // L'ancien mot de passe est refusé, le nouveau connecte
+    await login(other, email)
+    await expect(other.getByText('Email ou mot de passe incorrect')).toBeVisible()
+    await login(other, email, 'un-nouveau-secret-1')
+    await expectLoggedIn(other)
   } finally {
     await prisma.$disconnect()
   }
@@ -109,7 +118,7 @@ test('l’équipe exporte les données d’une fiche participant puis la supprim
     await page.goto('/participants')
     await page.waitForLoadState('networkidle')
     await page.getByPlaceholder('Rechercher un participant...').fill(name)
-    const card = page.locator('div').filter({ has: page.getByRole('link', { name }) }).filter({ has: page.getByRole('button', { name: 'Supprimer' }) }).last()
+    const card = blockWith(page, page.getByRole('link', { name }), 'Supprimer')
     page.once('dialog', (dialog) => dialog.accept())
     await card.getByRole('button', { name: 'Supprimer' }).click()
     await expect(page.getByRole('link', { name })).toBeHidden()
