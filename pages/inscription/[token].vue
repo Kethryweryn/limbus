@@ -6,7 +6,7 @@
   </main>
 </template>
 
-<script setup>
+<script setup lang="ts">
 // Page du lien personnel d'une personne invitée (US-004), sans compte : le jeton de l'URL fait foi.
 // Chargée côté navigateur seulement, sans le cache hors ligne de l'application.
 definePageMeta({

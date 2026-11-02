@@ -32,7 +32,7 @@
           <h3 class="font-semibold text-gray-700">Allergies et intolérances</h3>
           <p class="whitespace-pre-line">{{ registration.dietary || 'Aucune déclarée' }}</p>
           <p v-if="registration.healthConsentAt" class="text-xs text-gray-500">
-            Consentement donné le {{ formatDateTime(registration.healthConsentAt) }}
+            Consentement donné le {{ formatLongDateTime(registration.healthConsentAt) }}
           </p>
         </section>
 
@@ -118,11 +118,11 @@
 
         <section class="space-y-1 text-xs text-gray-500">
           <p v-if="registration.invitedBy">Invitée par {{ registration.invitedBy.name }}</p>
-          <p v-if="registration.invitationSentAt">Invitation envoyée le {{ formatDateTime(registration.invitationSentAt) }}</p>
-          <p v-if="registration.lastRemindedAt">Relancée le {{ formatDateTime(registration.lastRemindedAt) }}</p>
-          <p v-if="registration.responseDueAt && registration.status === REGISTRATION_STATUSES.invited">Réponse attendue avant le {{ formatDateTime(registration.responseDueAt) }}</p>
-          <p v-if="registration.respondedAt">Réponse le {{ formatDateTime(registration.respondedAt) }}</p>
-          <p v-if="registration.charterAcceptedAt">Charte acceptée le {{ formatDateTime(registration.charterAcceptedAt) }}</p>
+          <p v-if="registration.invitationSentAt">Invitation envoyée le {{ formatLongDateTime(registration.invitationSentAt) }}</p>
+          <p v-if="registration.lastRemindedAt">Relancée le {{ formatLongDateTime(registration.lastRemindedAt) }}</p>
+          <p v-if="registration.responseDueAt && registration.status === REGISTRATION_STATUSES.invited">Réponse attendue avant le {{ formatLongDateTime(registration.responseDueAt) }}</p>
+          <p v-if="registration.respondedAt">Réponse le {{ formatLongDateTime(registration.respondedAt) }}</p>
+          <p v-if="registration.charterAcceptedAt">Charte acceptée le {{ formatLongDateTime(registration.charterAcceptedAt) }}</p>
           <p v-if="registration.formVersion">Formulaire, version {{ registration.formVersion.number }}</p>
         </section>
       </div>
@@ -130,26 +130,31 @@
   </UModal>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { REGISTRATION_STATUSES } from '~/utils/domain'
 import { REGISTRATION_AFFINITIES } from '~/utils/registrationForms'
 import { refusedRelationLabel } from '~/utils/characterRelations'
-import { REGISTRATION_DISPLAY_STATUS_META, registrationDisplayStatus } from '~/utils/registrations'
+import { registrationStatusMeta } from '~/utils/registrations'
+import { formatLongDateTime } from '~/utils/dates'
 import { apiErrorMessage } from '~/utils/apiErrors'
+import type { ApiResponse } from '~/composables/useApiFetch'
+
+type RegistrationDetail = ApiResponse<'/api/registrations/:id'>
+type AffinityLine = RegistrationDetail['affinityLines'][number]
+type Question = RegistrationDetail['questions'][number]
 
 // Détail d'une inscription (US-005) : réponses au formulaire, dont les allergies (données de santé, R14)
-const props = defineProps({
-  registrationId: { type: String, default: null }
-})
-const open = defineModel('open', { type: Boolean, default: false })
+const props = withDefaults(defineProps<{ registrationId?: string | null }>(), { registrationId: null })
+const open = defineModel<boolean>('open', { default: false })
 // Un rattachement change les alertes de la sélection (US-096)
-const emit = defineEmits(['changed'])
+const emit = defineEmits<{ changed: [] }>()
 
-const registration = ref(null)
+const registration = ref<RegistrationDetail | null>(null)
 const errorMessage = ref('')
 
-const statusMeta = computed(() => REGISTRATION_DISPLAY_STATUS_META[registrationDisplayStatus(registration.value)]
-  || { label: registration.value?.status, color: 'neutral' })
+const statusMeta = computed(() => registration.value ? registrationStatusMeta(registration.value) : { label: '', color: 'neutral' as const })
+
+const load = (id: string) => useApiFetch(`/api/registrations/${id}`)
 
 watch([open, () => props.registrationId], async ([isOpen, id]) => {
   if (!isOpen || !id) return
@@ -157,7 +162,7 @@ watch([open, () => props.registrationId], async ([isOpen, id]) => {
   errorMessage.value = ''
   linkError.value = ''
   try {
-    registration.value = await useApiFetch(`/api/registrations/${id}`)
+    registration.value = await load(id)
   } catch (err) {
     errorMessage.value = apiErrorMessage(err, 'Impossible de charger l’inscription')
   }
@@ -171,13 +176,13 @@ const refusedTypes = computed(() => (registration.value?.affinityLines || [])
   .filter((line) => line.kind === 'refusedRelationTypes')
   .map((line) => line.text))
 
-const TARGET_KINDS = { character: 'personnage', faction: 'faction', intrigue: 'intrigue' }
+const TARGET_KINDS: Record<string, string> = { character: 'personnage', faction: 'faction', intrigue: 'intrigue' }
 // Personnages, factions et intrigues reliés aux options choisies, ou à la question sur une échelle répondue (US-098)
-function answerTargets(question) {
+function answerTargets(question: Question) {
   const answer = registration.value?.questionAnswers?.[question.id]
   if (answer === null || answer === undefined || answer === '') return []
-  const chosen = question.type === 'scale' ? [''] : Array.isArray(answer) ? answer : [answer]
-  return (registration.value.questionLinks || [])
+  const chosen = question.type === 'scale' ? [''] : Array.isArray(answer) ? answer.map(String) : [String(answer)]
+  return (registration.value?.questionLinks || [])
     .filter((link) => link.questionId === question.id && chosen.includes(link.option))
     .map((link) => `${link.target.name} (${TARGET_KINDS[link.target.kind]}${question.type === 'scale' ? `, note ${answer} / 5` : ''})`)
 }
@@ -187,12 +192,13 @@ const linking = ref(false)
 const linkError = ref('')
 
 // Rattacher, marquer « personne du jeu ne correspond » ou détacher (US-095), puis relire les suggestions
-async function link(line, body) {
+async function link(line: AffinityLine, body: { targetParticipantId?: string, unknown?: boolean }) {
+  if (!props.registrationId) return
   linking.value = true
   linkError.value = ''
   try {
-    await useApiFetch(`/api/registration-affinities/${line.id}/link`, { method: 'POST', body })
-    registration.value = await useApiFetch(`/api/registrations/${props.registrationId}`)
+    await useApiAction(`/api/registration-affinities/${line.id}/link`, { method: 'POST', body })
+    registration.value = await load(props.registrationId)
     emit('changed')
   } catch (err) {
     linkError.value = apiErrorMessage(err, 'Rattachement impossible')
@@ -202,12 +208,10 @@ async function link(line, body) {
 }
 
 // Réponse à une question propre au jeu (US-081), lue avec la version du formulaire remplie
-function answerText(question) {
+function answerText(question: Question) {
   const answer = registration.value?.questionAnswers?.[question.id]
   if (answer === null || answer === undefined || answer === '' || (Array.isArray(answer) && !answer.length)) return '—'
   if (Array.isArray(answer)) return answer.join(', ')
   return question.type === 'scale' ? `${answer} / 5` : String(answer)
 }
-
-const formatDateTime = (value) => new Date(value).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })
 </script>

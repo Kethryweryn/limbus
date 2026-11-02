@@ -16,7 +16,7 @@
           class="mb-2"
           orientation="horizontal"
           :model-value="affinities.refusedRelationTypes || []"
-          :items="REFUSED_RELATION_CHOICES"
+          :items="refusedRelationItems"
           value-key="value"
           :disabled="disabled"
           @update:model-value="setRefusedTypes"
@@ -56,7 +56,7 @@
       >
         <UTextarea
           v-if="question.type === 'text'"
-          :model-value="answers[question.id] || ''"
+          :model-value="textAnswer(question.id)"
           :rows="3"
           :disabled="disabled"
           class="w-full"
@@ -64,7 +64,7 @@
         />
         <URadioGroup
           v-else-if="question.type === 'single'"
-          :model-value="answers[question.id] ?? undefined"
+          :model-value="singleAnswer(question.id)"
           :items="question.options"
           :disabled="disabled"
           @update:model-value="setAnswer(question.id, $event)"
@@ -72,14 +72,14 @@
         <!-- Un groupe, pas des cases isolées : dans un champ, chaque case prendrait le libellé du champ -->
         <UCheckboxGroup
           v-else-if="question.type === 'multiple'"
-          :model-value="answers[question.id] || []"
+          :model-value="multipleAnswer(question.id)"
           :items="question.options"
           :disabled="disabled"
           @update:model-value="setAnswer(question.id, $event)"
         />
         <URadioGroup
           v-else
-          :model-value="answers[question.id] ?? undefined"
+          :model-value="scaleAnswer(question.id)"
           :items="SCALE"
           orientation="horizontal"
           :disabled="disabled"
@@ -90,20 +90,27 @@
   </div>
 </template>
 
-<script setup>
-import { REGISTRATION_AFFINITIES, REGISTRATION_BALANCE_ANY } from '~/utils/registrationForms'
+<script setup lang="ts">
+import {
+  REGISTRATION_AFFINITIES,
+  REGISTRATION_BALANCE_ANY,
+  type AffinityAnswers,
+  type NormalizedRegistrationFormDefinition,
+  type QuestionAnswers,
+  type RegistrationAffinityKey
+} from '~/utils/registrationForms'
 import { REFUSED_RELATION_CHOICES, REFUSED_RELATION_NONE } from '~/utils/characterRelations'
 
 // Affinités, question d'équilibre et questions propres au jeu d'un formulaire (US-081, US-082, US-091) : la page de réponse et l'aperçu de l'éditeur
-const props = defineProps({
-  // Définition normalisée (affinities, questions)
-  definition: { type: Object, required: true },
-  disabled: { type: Boolean, default: false },
-  errors: { type: Object, default: () => ({}) }
-})
-const affinities = defineModel('affinities', { type: Object, default: () => ({}) })
-const answers = defineModel('answers', { type: Object, default: () => ({}) })
-const balancePreference = defineModel('balancePreference', { type: String, default: null })
+const props = withDefaults(defineProps<{
+  // Définition normalisée ; l'aperçu de l'éditeur n'a pas les champs standards
+  definition: Pick<NormalizedRegistrationFormDefinition, 'affinities' | 'questions' | 'balance'>
+  disabled?: boolean
+  errors?: Record<string, string>
+}>(), { disabled: false, errors: () => ({}) })
+const affinities = defineModel<Partial<AffinityAnswers>>('affinities', { default: () => ({}) })
+const answers = defineModel<QuestionAnswers>('answers', { default: () => ({}) })
+const balancePreference = defineModel<string | null>('balancePreference', { default: null })
 
 const balanceAsked = computed(() => Boolean(props.definition.balance?.asked && props.definition.balance?.values?.length))
 const balanceItems = computed(() => [
@@ -118,12 +125,13 @@ const askedAffinities = computed(() => REGISTRATION_AFFINITIES
   .map((affinity) => ({ ...affinity, required: props.definition.affinities[affinity.key].required })))
 
 // Une ligne par personne ou relation ; les lignes vides sont retirées à l'enregistrement
-function setAffinity(key, text) {
+function setAffinity(key: RegistrationAffinityKey, text: string | undefined) {
   affinities.value = { ...affinities.value, [key]: String(text ?? '').split('\n') }
 }
 
 // « Aucune, tout me va » s'exclut avec les types : cocher l'une décoche les autres
-function setRefusedTypes(values) {
+function setRefusedTypes(checked: unknown[]) {
+  const values = checked.filter((value): value is string => typeof value === 'string')
   const previous = affinities.value.refusedRelationTypes || []
   const noneAdded = values.includes(REFUSED_RELATION_NONE) && !previous.includes(REFUSED_RELATION_NONE)
   affinities.value = {
@@ -132,7 +140,27 @@ function setRefusedTypes(values) {
   }
 }
 
-function setAnswer(id, value) {
-  answers.value = { ...answers.value, [id]: value }
+function setAnswer(id: string, value: QuestionAnswers[string] | undefined) {
+  answers.value = { ...answers.value, [id]: value ?? null }
+}
+
+const refusedRelationItems: Array<{ value: string, label: string }> = [...REFUSED_RELATION_CHOICES]
+
+// Réponse selon la sorte de question : texte, choix unique, choix multiple, échelle
+function textAnswer(id: string) {
+  const answer = answers.value[id]
+  return typeof answer === 'string' ? answer : ''
+}
+function singleAnswer(id: string) {
+  const answer = answers.value[id]
+  return typeof answer === 'string' ? answer : undefined
+}
+function multipleAnswer(id: string) {
+  const answer = answers.value[id]
+  return Array.isArray(answer) ? answer : []
+}
+function scaleAnswer(id: string) {
+  const answer = answers.value[id]
+  return typeof answer === 'number' ? answer : undefined
 }
 </script>

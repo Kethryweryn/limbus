@@ -14,8 +14,9 @@ import {
   normalizeRegistrationFormDefinition,
   sameRegistrationFormDefinition,
   withBalanceQuestion,
+  type AffinityAnswers,
   type NormalizedRegistrationFormDefinition,
-  type RegistrationAffinityKey,
+  type QuestionAnswers,
   type RegistrationFieldSetting,
   type RegistrationFormDefinition,
   type RegistrationQuestion,
@@ -161,9 +162,7 @@ function balanceField(definition: NormalizedRegistrationFormDefinition) {
     .transform((value) => (!value || value === REGISTRATION_BALANCE_ANY ? null : value))
 }
 
-export type QuestionAnswers = Record<string, string | string[] | number | null>
-// refusedRelationTypes : cases cochées de « les relations que je ne veux pas jouer » (US-099, ADR-0050)
-export type AffinityAnswers = Record<RegistrationAffinityKey, string[]> & { refusedRelationTypes?: string[] }
+export type { AffinityAnswers, QuestionAnswers }
 
 /**
  * Schéma des réponses d'un inscrit, construit à partir d'une version du formulaire.

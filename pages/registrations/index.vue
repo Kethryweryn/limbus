@@ -43,31 +43,34 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useGameFocus } from '@/composables/useGameFocus'
 import { isArchivedGame } from '~/utils/games'
+import { apiErrorMessage } from '~/utils/apiErrors'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import type { RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
 
 const { game: selectedGame } = useGameFocus()
-const games = ref([])
+const games = ref<ApiResponse<'/api/games'>>([])
 const gameFilter = ref('all')
 const showArchived = ref(false)
 const errorMessage = ref('')
 
-const periodsByGame = ref({})
+const periodsByGame = ref<Record<string, RegistrationPeriod[]>>({})
 
 // Une seule requête pour toutes les périodes et leurs inscriptions ; chaque bloc se recharge ensuite seul
 try {
   const [allGames, periods] = await Promise.all([
     useApiFetch('/api/games'),
-    useApiFetch('/api/registration-periods?include=registrations')
+    useApiFetch('/api/registration-periods')
   ])
   games.value = allGames
-  periodsByGame.value = periods.reduce((groups, period) => {
+  periodsByGame.value = periods.reduce<Record<string, RegistrationPeriod[]>>((groups, period) => {
     (groups[period.gameId] ||= []).push(period)
     return groups
   }, {})
 } catch (err) {
-  errorMessage.value = err?.data?.message || err?.message || 'Impossible de charger les jeux'
+  errorMessage.value = apiErrorMessage(err, 'Impossible de charger les jeux')
 }
 
 const visibleGames = computed(() => games.value.filter((game) => showArchived.value || !isArchivedGame(game)))
@@ -78,13 +81,14 @@ const gameFilterOptions = computed(() => [
 ])
 
 // Un jeu choisi puis masqué en décochant « archivés » : on revient à « Tous les jeux »
-watch(visibleGames, (games) => {
-  if (gameFilter.value !== 'all' && !games.some((game) => game.id === gameFilter.value)) gameFilter.value = 'all'
+watch(visibleGames, (visible) => {
+  if (gameFilter.value !== 'all' && !visible.some((game) => game.id === gameFilter.value)) gameFilter.value = 'all'
 })
 
 // Jeu actif d'abord ; sinon le filtre, sans les jeux archivés sauf demande
 const displayedGames = computed(() => {
-  if (selectedGame.value?.id) return games.value.filter((game) => game.id === selectedGame.value.id)
+  const focused = selectedGame.value?.id
+  if (focused) return games.value.filter((game) => game.id === focused)
   if (gameFilter.value !== 'all') return games.value.filter((game) => game.id === gameFilter.value)
   return [...visibleGames.value]
     .sort((left, right) => left.title.localeCompare(right.title, 'fr'))

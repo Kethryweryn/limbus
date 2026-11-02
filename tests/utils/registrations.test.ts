@@ -2,11 +2,15 @@ import { describe, expect, it } from 'vitest'
 import {
   announcedRegistrationStatus,
   countRegistrationsByStatus,
+  invitedCount,
   isAnnouncementPending,
   isResponseOverdue,
   registrationDisplayStatus,
+  registeredParticipantIds,
   registrationLinkExpired,
-  splitParticipantName
+  registrationStatusMeta,
+  splitParticipantName,
+  withdrawnParticipantIds
 } from '~/utils/registrations'
 
 const now = new Date('2027-01-10T12:00:00Z')
@@ -89,5 +93,29 @@ describe('statut montré aux orgas (US-005)', () => {
       ['overdue', 1, 'Délai dépassé'],
       ['confirmed', 2, 'Confirmée']
     ])
+  })
+})
+
+// Listes d'une période sur invitation (US-117)
+describe('invitations d’une période', () => {
+  const registrations = [
+    { sessionId: 's1', status: 'invited', participant: { id: 'p1' } },
+    { sessionId: 's1', status: 'withdrawn', participant: { id: 'p2' } },
+    { sessionId: 's2', status: 'confirmed', participant: { id: 'p3' } }
+  ]
+
+  it('une personne désistée ne compte plus face aux places', () => {
+    expect(invitedCount(registrations, 's1')).toBe(1)
+    expect(invitedCount(registrations, 's3')).toBe(0)
+  })
+
+  it('une personne désistée peut être réinvitée ; les autres ont déjà leur inscription', () => {
+    expect(registeredParticipantIds(registrations)).toEqual(['p1', 'p3'])
+    expect(withdrawnParticipantIds(registrations)).toEqual(['p2'])
+  })
+
+  it('un statut inconnu s’affiche tel quel', () => {
+    expect(registrationStatusMeta({ status: 'invited', responseDueAt: '2020-01-01T00:00:00Z' }).label).toBe('Délai dépassé')
+    expect(registrationStatusMeta({ status: 'inconnu' })).toEqual({ label: 'inconnu', color: 'neutral' })
   })
 })

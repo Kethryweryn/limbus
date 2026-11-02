@@ -29,6 +29,7 @@
 </template>
 
 <script setup>
+import { PARIS_TIME_ZONE, formatLongDate } from '~/utils/dates'
 definePageMeta({
   layout: false,
   colorMode: 'light'
@@ -45,7 +46,7 @@ if (game.value?.redirectSlug) {
   await navigateTo(`/public/games/${game.value.redirectSlug}`, { redirectCode: 301, replace: true })
 }
 
-const formatDate = (value) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long', timeZone: 'Europe/Paris' })
+const formatDate = (value) => formatLongDate(value, PARIS_TIME_ZONE)
 
 useHead(() => ({
   title: game.value ? `${game.value.title} - Limbus` : 'Limbus',
