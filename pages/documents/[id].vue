@@ -124,7 +124,7 @@
 
 <script setup lang="ts">
 import { isInArchivedGame } from '~/utils/games'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import DocumentForm from '@/components/DocumentForm.vue'
 import { DOCUMENT_AUDIENCE_LABELS } from '~/utils/domain'
 import type { ApiResponse } from '~/composables/useApiFetch'
@@ -135,13 +135,11 @@ type DocumentDetail = ApiResponse<'/api/documents/:id'>
 type ReturnContext = { source: string, documentId: string, sessionId?: string, sessionSlug?: string }
 
 const route = useRoute()
-const router = useRouter()
 const documentItem = ref<DocumentDetail | null>(null)
-const editableDocument = ref<DocumentDraft | null>(null)
 const games = ref<ApiResponse<'/api/games'>>([])
 const characters = ref<ApiResponse<'/api/characters'>>([])
 const factions = ref<ApiResponse<'/api/factions'>>([])
-const isEditing = ref(route.query.edit === '1')
+const { isEditing, draft: editableDocument, startEdit, cancelEdit, closeAfterSave } = useSheetEdit(() => documentItem.value ? documentFormPayload(documentItem.value) : null)
 const returnContext = ref<ReturnContext | null>(null)
 
 const documentBackTo = computed(() => {
@@ -177,13 +175,6 @@ async function loadData() {
   ensureDocumentReturnContext(data)
 }
 
-watch(() => route.query.edit, (value) => {
-  isEditing.value = value === '1'
-  if (isEditing.value && documentItem.value) {
-    editableDocument.value = documentFormPayload(documentItem.value)
-  }
-})
-
 function documentFormPayload(document: DocumentDetail): DocumentDraft {
   return {
     ...document,
@@ -193,20 +184,6 @@ function documentFormPayload(document: DocumentDetail): DocumentDraft {
     characterIds: document.characters?.map((character) => character.id) || [],
     factionIds: document.factions?.map((faction) => faction.id) || []
   }
-}
-
-function startEdit() {
-  editableDocument.value = documentItem.value ? documentFormPayload(documentItem.value) : null
-  isEditing.value = true
-  router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
-}
-
-function cancelEdit() {
-  isEditing.value = false
-  editableDocument.value = documentItem.value ? documentFormPayload(documentItem.value) : null
-  const query = { ...route.query }
-  delete query.edit
-  router.replace({ path: route.path, query })
 }
 
 async function saveDocument() {
@@ -223,19 +200,7 @@ async function saveDocument() {
     return
   }
   documentItem.value = updatedDocument
-  editableDocument.value = documentFormPayload(updatedDocument)
-  if (updatedDocument.slug && updatedDocument.slug !== route.params.id) {
-    const query = { ...route.query }
-    delete query.edit
-    await router.replace({
-      path: `/documents/${updatedDocument.slug}`,
-      query
-    })
-    isEditing.value = false
-    return
-  }
-
-  cancelEdit()
+  await closeAfterSave(`/documents/${updatedDocument.slug}`)
 }
 
 function readDocumentReturnContext(): ReturnContext | null {

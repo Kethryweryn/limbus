@@ -173,8 +173,7 @@ const TABS: Array<{ key: Tab, label: string }> = [
 const visibleTabs = computed(() => TABS.filter((tab) => tab.key !== 'presence' || session.value?.postponedFrom))
 const tabOf = (value: unknown): Tab => TABS.find((tab) => tab.key === value)?.key ?? 'cast'
 const activeTab = ref<Tab>(tabOf(route.query.tab))
-const isEditingDetails = ref(route.query.edit === 'details')
-const editableSession = ref<SessionDraft | null>(null)
+const { isEditing: isEditingDetails, draft: editableSession, startEdit: startEditDetails, cancelEdit: cancelEditDetails, closeAfterSave } = useSheetEdit<SessionDraft>(() => session.value ? sessionFormPayload(session.value) : null, 'details')
 
 // Report (US-022) : depuis une session prévue ou annulée
 const showPostpone = ref(false)
@@ -290,13 +289,6 @@ async function refreshPaymentsData() {
   paymentsData.value = await offlineRead<SessionPaymentsData>(sessionApi('/payments'))
 }
 
-watch(() => route.query.edit, (value) => {
-  isEditingDetails.value = value === 'details'
-  if (isEditingDetails.value && session.value) {
-    editableSession.value = sessionFormPayload(session.value)
-  }
-})
-
 watch(() => route.query.tab, (value) => {
   activeTab.value = tabOf(value)
 })
@@ -305,22 +297,6 @@ watch(() => route.query.tab, (value) => {
 watch(() => route.params.id, (value, previous) => {
   if (value && value !== previous && value !== session.value?.slug) loadData()
 })
-
-function startEditDetails() {
-  if (!session.value) return
-
-  editableSession.value = sessionFormPayload(session.value)
-  isEditingDetails.value = true
-  router.replace({ path: route.path, query: { ...route.query, edit: 'details' } })
-}
-
-function cancelEditDetails() {
-  isEditingDetails.value = false
-  editableSession.value = session.value ? sessionFormPayload(session.value) : null
-  const query = { ...route.query }
-  delete query.edit
-  router.replace({ path: route.path, query })
-}
 
 function setTab(tab: Tab) {
   activeTab.value = tab
@@ -340,16 +316,7 @@ async function saveDetails() {
   if (previousStatus !== SESSION_STATUSES.cancelled && session.value.status === SESSION_STATUSES.cancelled) {
     showCancellation.value = true
   }
-  if (session.value.slug && session.value.slug !== route.params.id) {
-    const query = { ...route.query }
-    delete query.edit
-    await router.replace({
-      path: `/sessions/${session.value.slug}`,
-      query
-    })
-    return
-  }
-  cancelEditDetails()
+  await closeAfterSave(`/sessions/${session.value.slug}`)
 }
 
 onMounted(loadData)

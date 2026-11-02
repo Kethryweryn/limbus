@@ -1,6 +1,6 @@
-import { expect, test } from '@playwright/test'
+import { expect } from '@playwright/test'
 import { E2E_USERS } from './constants'
-import { expectLoggedIn, login, offlineRecordCount, openUserMenu } from './helpers'
+import { expectLoggedIn, login, offlineRecordCount, openUserMenu, test } from './helpers'
 
 test('un mauvais mot de passe est refusé, le bon connecte', async ({ page }) => {
   await login(page, E2E_USERS.orga, 'mauvais-mot-de-passe')
@@ -72,9 +72,9 @@ test('un refus 403 ne déconnecte pas', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Connexion' })).toBeHidden()
 })
 
-test('« Déconnecter tous mes appareils » ferme aussi la session des autres navigateurs', async ({ browser }) => {
-  const laptop = await (await browser.newContext()).newPage()
-  const phone = await (await browser.newContext()).newPage()
+test('« Déconnecter tous mes appareils » ferme aussi la session des autres navigateurs', async ({ otherPage }) => {
+  const laptop = await otherPage()
+  const phone = await otherPage()
   await login(laptop, E2E_USERS.partout)
   await login(phone, E2E_USERS.partout)
   await expectLoggedIn(laptop)

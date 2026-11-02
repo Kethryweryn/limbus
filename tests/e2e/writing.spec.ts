@@ -1,8 +1,8 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { linkToken, startTestSmtp } from '../integration/smtp'
 import { E2E_USERS } from './constants'
-import { blockWith, signIn, slugOf, uniqueName, type TestPrisma } from './helpers'
+import { blockWith, signIn, slugOf, test, uniqueName, type TestPrisma } from './helpers'
 
 // Jeu propre au test, de l'organisatrice des parcours
 async function writingGame(prisma: TestPrisma, base: string) {
@@ -17,6 +17,8 @@ async function chooseGame(page: Page, form: Locator, title: string) {
 }
 
 type Element = {
+  // Nom de l'élément, pour les données du test (« personnage »)
+  noun: string
   // Liste, bouton de création et champ de recherche
   list: string
   create: string
@@ -30,27 +32,33 @@ type Element = {
 
 const ELEMENTS: Record<string, Element> = {
   'un personnage': {
+    noun: 'personnage',
     list: '/characters', create: 'Créer un personnage', search: 'Rechercher un personnage...', nameLabel: 'Nom',
     find: (prisma, name) => prisma.character.findFirst({ where: { name } })
   },
   'un groupe': {
+    noun: 'groupe',
     list: '/factions', create: 'Créer un groupe', search: 'Rechercher un groupe...', nameLabel: 'Nom',
     find: (prisma, name) => prisma.faction.findFirst({ where: { name } })
   },
   'une intrigue': {
+    noun: 'intrigue',
     list: '/intrigues', create: 'Créer une intrigue', search: 'Rechercher une intrigue...', nameLabel: 'Nom',
     find: (prisma, name) => prisma.intrigue.findFirst({ where: { name } })
   },
   'un objet': {
+    noun: 'objet',
     list: '/items', create: 'Créer un objet', search: 'Rechercher un objet...', nameLabel: 'Nom',
     find: (prisma, name) => prisma.item.findFirst({ where: { name } })
   },
   'un document': {
+    noun: 'document',
     list: '/documents', create: 'Créer un document', search: 'Rechercher un document...', nameLabel: 'Titre',
     fill: (form) => form.getByLabel('Corps').fill('Le texte du document.'),
     find: (prisma, name) => prisma.document.findFirst({ where: { title: name } })
   },
   'un lieu': {
+    noun: 'lieu',
     list: '/locations', create: 'Créer un lieu', search: 'Rechercher un lieu...', nameLabel: 'Nom',
     fill: (form) => form.getByLabel('Adresse').fill('1 rue du Test'),
     find: (prisma, name) => prisma.location.findFirst({ where: { name } })
@@ -62,8 +70,8 @@ for (const [label, element] of Object.entries(ELEMENTS)) {
   test(`${label} se crée, se renomme et se supprime`, async ({ page }) => {
     const prisma = createTestPrisma()
     try {
-      const game = await writingGame(prisma, `Jeu ${label}`)
-      const name = uniqueName(`Élément ${label}`)
+      const game = await writingGame(prisma, `Jeu ${element.noun}`)
+      const name = uniqueName(`${element.noun} créé`)
 
       await signIn(page, prisma, E2E_USERS.orga)
       await page.goto(element.list)
@@ -79,14 +87,17 @@ for (const [label, element] of Object.entries(ELEMENTS)) {
       expect(created).not.toBeNull()
 
       // Renommage depuis la fiche
-      const renamed = uniqueName(`Renommé ${label}`)
+      const renamed = uniqueName(`${element.noun} renommé`)
       await page.goto(`${element.list}/${created!.slug || created!.id}`)
       await page.waitForLoadState('networkidle')
       await page.getByRole('button', { name: 'Modifier' }).first().click()
       await page.getByLabel(element.nameLabel, { exact: true }).fill(renamed)
       await page.getByRole('button', { name: 'Enregistrer' }).click()
       await expect(page.getByRole('heading', { name: renamed })).toBeVisible()
-      expect(await element.find(prisma, renamed)).toMatchObject({ id: created!.id })
+      const saved = await element.find(prisma, renamed)
+      expect(saved).toMatchObject({ id: created!.id })
+      // La fiche reste ouverte à sa nouvelle adresse
+      await expect(page).toHaveURL(new RegExp(`${element.list}/${saved!.slug || saved!.id}$`))
 
       // Suppression depuis la liste
       await page.goto(element.list)
@@ -140,7 +151,7 @@ test('un événement de la timeline se crée et se renomme', async ({ page }) =>
 })
 
 // EPIC-012 (US-058, US-064) : un jeu se crée, se renomme, et se partage avec une co-organisatrice qui accepte l'invitation
-test('un jeu se crée, se renomme et se partage avec une co-organisatrice', async ({ page, browser }) => {
+test('un jeu se crée, se renomme et se partage avec une co-organisatrice', async ({ page, otherPage }) => {
   const prisma = createTestPrisma()
   const smtp = await startTestSmtp(prisma)
   try {
@@ -173,7 +184,7 @@ test('un jeu se crée, se renomme et se partage avec une co-organisatrice', asyn
     await expect.poll(() => smtp.to(E2E_USERS.autre).length).toBe(1)
     const token = linkToken(smtp.to(E2E_USERS.autre)[0]!, '/invitations/')
 
-    const guest = await (await browser.newContext()).newPage()
+    const guest = await otherPage()
     await signIn(guest, prisma, E2E_USERS.autre)
     await guest.goto(`/invitations/${token}`)
     await guest.waitForLoadState('networkidle')

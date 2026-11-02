@@ -1,11 +1,11 @@
-import { expect, test } from '@playwright/test'
+import { expect } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { startTestSmtp } from '../integration/smtp'
 import { E2E_USERS } from './constants'
-import { expectLoggedIn, login } from './helpers'
+import { expectLoggedIn, login, test } from './helpers'
 
 // US-010 : la propriétaire lègue une copie depuis la fiche du jeu, la destinataire la retrouve avec son crédit
-test('un jeu légué apparaît chez la destinataire avec son crédit', async ({ page, browser }) => {
+test('un jeu légué apparaît chez la destinataire avec son crédit', async ({ page, otherPage }) => {
   const prisma = createTestPrisma()
   const smtp = await startTestSmtp(prisma)
   try {
@@ -23,7 +23,7 @@ test('un jeu légué apparaît chez la destinataire avec son crédit', async ({ 
     await expect.poll(() => smtp.received.length).toBe(1)
     expect(smtp.received[0]!.to).toEqual([E2E_USERS.heritiere])
 
-    const heir = await (await browser.newContext()).newPage()
+    const heir = await otherPage()
     await login(heir, E2E_USERS.heritiere)
     await expectLoggedIn(heir)
     const link = smtp.received[0]!.text.match(/\/games\/[\w-]+/)![0]

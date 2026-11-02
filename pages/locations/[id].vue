@@ -57,7 +57,6 @@ import { isInArchivedGame } from '~/utils/games'
 import { withQueuedEdit, type LocationDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
-const router = useRouter()
 const { data: location, error, refresh } = await useFetch(`/api/locations/${route.params.id}`)
 const { data: games } = await useFetch('/api/games')
 
@@ -66,29 +65,7 @@ if (error.value) {
   throw createError({ statusCode: error.value.statusCode || 404, message: 'Lieu introuvable' })
 }
 
-const isEditing = ref(route.query.edit === '1')
-const editableLocation = ref<LocationDraft | null>(location.value ? { ...location.value } : null)
-
-watch(() => route.query.edit, (value) => {
-  isEditing.value = value === '1'
-  if (isEditing.value && location.value) {
-    editableLocation.value = { ...location.value }
-  }
-})
-
-function startEdit() {
-  editableLocation.value = location.value ? { ...location.value } : null
-  isEditing.value = true
-  router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
-}
-
-function cancelEdit() {
-  isEditing.value = false
-  editableLocation.value = location.value ? { ...location.value } : null
-  const query = { ...route.query }
-  delete query.edit
-  router.replace({ path: route.path, query })
-}
+const { isEditing, draft: editableLocation, startEdit, cancelEdit, closeAfterSave } = useSheetEdit<LocationDraft>(() => location.value ? { ...location.value } : null)
 
 async function saveLocation() {
   if (!editableLocation.value?.id) return
@@ -102,17 +79,7 @@ async function saveLocation() {
     cancelEdit()
     return
   }
-  if (updated.slug && updated.slug !== route.params.id) {
-    location.value = updated
-    const query = { ...route.query }
-    delete query.edit
-    await router.replace({
-      path: `/locations/${updated.slug}`,
-      query
-    })
-    return
-  }
-  await refresh()
-  cancelEdit()
+  location.value = updated
+  await closeAfterSave(`/locations/${updated.slug}`, refresh)
 }
 </script>

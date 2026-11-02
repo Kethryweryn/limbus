@@ -195,7 +195,6 @@ import { isInArchivedGame } from '~/utils/games'
 import type { FactionDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
-const router = useRouter()
 const slug = String(route.params.slug)
 const { data: faction, error, refresh } = await useFetch(`/api/factions/slug/${slug}`)
 const { data: games } = await useFetch('/api/games')
@@ -209,8 +208,7 @@ if (error.value) {
 
 type FactionPage = NonNullable<typeof faction.value>
 
-const isEditing = ref(route.query.edit === '1')
-const editableFaction = ref<FactionDraft | null>(faction.value ? factionFormPayload(faction.value) : null)
+const { isEditing, draft: editableFaction, startEdit, cancelEdit, closeAfterSave } = useSheetEdit(() => faction.value ? factionFormPayload(faction.value) : null)
 const showIntrigueModal = ref(false)
 const showTrombinoscopeModal = ref(false)
 const trombinoscopeOptions = ref({
@@ -231,13 +229,6 @@ const intrigueOptions = computed(() =>
   }))
 )
 
-watch(() => route.query.edit, (value) => {
-  isEditing.value = value === '1'
-  if (isEditing.value && faction.value) {
-    editableFaction.value = factionFormPayload(faction.value)
-  }
-})
-
 watch(() => faction.value?.intrigues, (value) => {
   selectedIntrigueIds.value = value?.map((intrigue) => intrigue.id) || []
 })
@@ -253,20 +244,6 @@ function factionFormPayload(value: FactionPage): FactionDraft {
   }
 }
 
-function startEdit() {
-  editableFaction.value = faction.value ? factionFormPayload(faction.value) : null
-  isEditing.value = true
-  router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
-}
-
-function cancelEdit() {
-  isEditing.value = false
-  editableFaction.value = faction.value ? factionFormPayload(faction.value) : null
-  const query = { ...route.query }
-  delete query.edit
-  router.replace({ path: route.path, query })
-}
-
 async function handleFormSubmit() {
   if (!editableFaction.value?.id) return
 
@@ -275,13 +252,7 @@ async function handleFormSubmit() {
     body: editableFaction.value
   })
 
-  if (!isOfflineQueued(updatedFaction) && updatedFaction.slug && updatedFaction.slug !== route.params.slug) {
-    await router.replace(`/factions/${updatedFaction.slug}`)
-  } else {
-    await refresh()
-  }
-
-  cancelEdit()
+  await closeAfterSave(isOfflineQueued(updatedFaction) ? null : `/factions/${updatedFaction.slug}`, refresh)
 }
 
 async function saveFactionIntrigues() {

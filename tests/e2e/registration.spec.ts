@@ -1,12 +1,12 @@
 import { createHash, randomBytes } from 'node:crypto'
-import { expect, test } from '@playwright/test'
+import { expect } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { personalLinkToken, startTestSmtp } from '../integration/smtp'
 import { E2E_USERS } from './constants'
-import { expectLoggedIn, gamePanel, login, signIn } from './helpers'
+import { expectLoggedIn, gamePanel, login, signIn, test } from './helpers'
 
 // EPIC-001 : invitation par l'organisatrice → réponse par le lien personnel → présence dans la session
-test('une personne invitée accepte par son lien et rejoint la session', async ({ page, browser }) => {
+test('une personne invitée accepte par son lien et rejoint la session', async ({ page, otherPage }) => {
   const prisma = createTestPrisma()
   const smtp = await startTestSmtp(prisma)
   try {
@@ -23,7 +23,7 @@ test('une personne invitée accepte par son lien et rejoint la session', async (
     expect(smtp.received[0]!.to).toEqual(['camille.invitee@example.test'])
 
     // La personne invitée n'a pas de compte : navigateur vierge
-    const guest = await (await browser.newContext()).newPage()
+    const guest = await otherPage()
     await guest.goto(`/inscription/${token}`)
     await guest.waitForLoadState('networkidle')
     await expect(guest.getByRole('heading', { name: 'Jeu des inscriptions' })).toBeVisible()
@@ -56,7 +56,7 @@ test('une personne invitée accepte par son lien et rejoint la session', async (
 })
 
 // EPIC-019 : questions propres au jeu et affinités, remplies par le lien personnel
-test('la personne invitée répond aux questions du jeu et à ses affinités', async ({ browser }) => {
+test('la personne invitée répond aux questions du jeu et à ses affinités', async ({ otherPage }) => {
   const prisma = createTestPrisma()
   try {
     const key = `questions-e2e-${Date.now()}`
@@ -87,7 +87,7 @@ test('la personne invitée répond aux questions du jeu et à ses affinités', a
       }
     })
 
-    const guest = await (await browser.newContext()).newPage()
+    const guest = await otherPage()
     await guest.goto(`/inscription/${token}`)
     await guest.waitForLoadState('networkidle')
     await guest.getByLabel('Avec qui je veux jouer').fill('Léa\nNoé')
@@ -140,7 +140,7 @@ test('l’éditeur du formulaire ajoute une question et une affinité', async ({
 })
 
 // EPIC-020 : s'inscrire par le lien de diffusion, puis confirmer son adresse par le lien reçu
-test('une personne s’inscrit par le lien de diffusion et confirme son adresse', async ({ browser }) => {
+test('une personne s’inscrit par le lien de diffusion et confirme son adresse', async ({ otherPage }) => {
   const prisma = createTestPrisma()
   const smtp = await startTestSmtp(prisma)
   try {
@@ -154,7 +154,7 @@ test('une personne s’inscrit par le lien de diffusion et confirme son adresse'
       data: { name: 'Printemps', gameId: game.id, publicId: `d${Date.now().toString(36)}`, entryMode: 'form', state: 'open', sessions: { create: sessions.map((session) => ({ sessionId: session.id, seats: 3 })) } }
     })
 
-    const guest = await (await browser.newContext()).newPage()
+    const guest = await otherPage()
     await guest.goto(`/i/${period.publicId}`)
     await guest.waitForLoadState('networkidle')
     await expect(guest.getByRole('heading', { name: game.title })).toBeVisible()
@@ -183,7 +183,7 @@ test('une personne s’inscrit par le lien de diffusion et confirme son adresse'
 })
 
 // EPIC-021 : l'équipe retient une inscription reçue, annonce, et la personne confirme sa place par le lien reçu
-test('l’équipe retient une inscription, l’annonce, et la personne confirme sa place', async ({ page, browser }) => {
+test('l’équipe retient une inscription, l’annonce, et la personne confirme sa place', async ({ page, otherPage }) => {
   const prisma = createTestPrisma()
   const smtp = await startTestSmtp(prisma)
   try {
@@ -214,7 +214,7 @@ test('l’équipe retient une inscription, l’annonce, et la personne confirme 
 
     await expect.poll(() => smtp.to(email).length).toBe(1)
     const token = personalLinkToken(smtp.to(email)[0]!)
-    const guest = await (await browser.newContext()).newPage()
+    const guest = await otherPage()
     await guest.goto(`/inscription/${token}`)
     await guest.waitForLoadState('networkidle')
     await guest.getByRole('button', { name: 'Je confirme ma place' }).click()
