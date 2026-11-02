@@ -3,7 +3,7 @@ id: SPEC-011
 titre: Un compte pour tout le monde, organiser et participer
 statut: validée
 date: 2026-10-29
-origine: ../todo/comptes-participants.md
+origine: ../archive/todo/comptes-participants.md
 epics: [EPIC-012, EPIC-013, EPIC-014, EPIC-015, EPIC-016, EPIC-017]
 adr: [ADR-0006, ADR-0007, ADR-0038, ADR-0039, ADR-0040, ADR-0041, ADR-0042, ADR-0043]
 ---
@@ -12,7 +12,7 @@ adr: [ADR-0006, ADR-0007, ADR-0038, ADR-0039, ADR-0040, ADR-0041, ADR-0042, ADR-
 
 ## Objectif
 
-Donner à chacun un seul compte, pour organiser ses jeux et participer à ceux des autres, et tenir lui-même ses données personnelles. Ouvrir Limbus à toutes celles et tous ceux qui veulent organiser un GN. Reprend la fiche [Un compte pour tout le monde](../todo/comptes-participants.md), les écarts 1 à 4 de [SPEC-008](SPEC-008-comptes-et-partage.md) et l'écart 1 de [SPEC-007](SPEC-007-participants-et-rgpd.md).
+Donner à chacun un seul compte, pour organiser ses jeux et participer à ceux des autres, et tenir lui-même ses données personnelles. Ouvrir Limbus à toutes celles et tous ceux qui veulent organiser un GN. Reprend la fiche [Un compte pour tout le monde](../archive/todo/comptes-participants.md), les écarts 1 à 4 de [SPEC-008](SPEC-008-comptes-et-partage.md) et l'écart 1 de [SPEC-007](SPEC-007-participants-et-rgpd.md).
 
 ## Vocabulaire
 

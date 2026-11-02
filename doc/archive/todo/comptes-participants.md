@@ -1,6 +1,7 @@
 ---
 titre: Un compte pour tout le monde, organiser et participer
 statut: tranchée
+spec: ../../specs/SPEC-011-un-compte-pour-tout-le-monde.md
 date: 2026-10-29
 ---
 
@@ -8,11 +9,11 @@ date: 2026-10-29
 
 ## Besoin
 
-Les participants n'ont pas de compte : leur fiche est tenue par l'organisation ([SPEC-007](../specs/SPEC-007-participants-et-rgpd.md)). Une même fiche sert à plusieurs jeux, et parfois à plusieurs équipes : chacune voit et modifie alors les coordonnées et les notes de l'autre (SPEC-007, écart 1). Une même personne peut aussi avoir plusieurs fiches, que rien ne rapproche.
+Les participants n'ont pas de compte : leur fiche est tenue par l'organisation ([SPEC-007](../../specs/SPEC-007-participants-et-rgpd.md)). Une même fiche sert à plusieurs jeux, et parfois à plusieurs équipes : chacune voit et modifie alors les coordonnées et les notes de l'autre (SPEC-007, écart 1). Une même personne peut aussi avoir plusieurs fiches, que rien ne rapproche.
 
 Plutôt que de faire une fiche complète par jeu, l'utilisatrice veut unifier la personne pour de bon : un vrai compte, avec lequel elle gère ses jeux et ses données personnelles.
 
-Côté organisation, les comptes ne sont aujourd'hui créés que par l'administratrice ou sur invitation ([SPEC-008](../specs/SPEC-008-comptes-et-partage.md)). L'utilisatrice veut ouvrir Limbus à toutes celles et tous ceux qui voudraient organiser un GN.
+Côté organisation, les comptes ne sont aujourd'hui créés que par l'administratrice ou sur invitation ([SPEC-008](../../specs/SPEC-008-comptes-et-partage.md)). L'utilisatrice veut ouvrir Limbus à toutes celles et tous ceux qui voudraient organiser un GN.
 
 Enfin, le rôle global « organisateur » n'a pas vraiment de sens : on peut organiser un jeu et participer à un autre. Le seul rôle global est celui d'administrateur, oui ou non (précisé par l'utilisatrice le 29 octobre 2026).
 
@@ -20,7 +21,7 @@ Enfin, le rôle global « organisateur » n'a pas vraiment de sens : on peut org
 
 - **Inscription libre** : une page d'inscription permet à chacun de créer son compte, sans invitation, pour organiser ses propres jeux ou participer à ceux des autres.
 - **Rôles par jeu** : le seul rôle global est « administrateur » (oui ou non). Le reste dépend du jeu : propriétaire ou co-organisatrice d'un jeu, participant d'un autre. Le rôle global « organisateur » disparaît. Le contrôle `requireOrganizer`, en tête de toutes les routes de l'API (CLAUDE.md), devient « compte connecté », l'accès à chaque jeu restant vérifié comme aujourd'hui ; la règle de CLAUDE.md change avec lui.
-- **Compte en libre-service** : avec des comptes ouverts, chacun change lui-même son nom, son email et son mot de passe, et réinitialise un mot de passe oublié par email ([SPEC-008](../specs/SPEC-008-comptes-et-partage.md), écart 2).
+- **Compte en libre-service** : avec des comptes ouverts, chacun change lui-même son nom, son email et son mot de passe, et réinitialise un mot de passe oublié par email ([SPEC-008](../../specs/SPEC-008-comptes-et-partage.md), écart 2).
 - **Deux espaces dans un même compte** : la personne retrouve les jeux qu'elle organise et ceux auxquels elle participe, avec une bascule entre les deux dans l'interface. Une personne qui ne fait que participer ne voit que son espace de participation.
 - **Compte participant** : une personne crée son compte, ou l'active depuis un lien reçu par email (inscription, invitation). Elle y retrouve ses jeux et ses sessions.
 - **Coordonnées tenues par la personne** : nom, email, téléphone, contact d'urgence, régime et allergies. Elle les met à jour elle-même, et chaque équipe les lit pour ses jeux seulement.
@@ -42,7 +43,7 @@ Enfin, le rôle global « organisateur » n'a pas vraiment de sens : on peut org
 ## Décisions
 
 - 2026-10-29 : un seul compte pour organiser et participer, avec l'administrateur comme seul rôle global. Inscription libre, ouverte à toutes celles et tous ceux qui veulent organiser. Bascule dans l'interface entre les jeux qu'on organise et ceux auxquels on participe.
-- 2026-10-29, points ouverts tranchés avec l'utilisatrice (détail dans [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md)) :
+- 2026-10-29, points ouverts tranchés avec l'utilisatrice (détail dans [SPEC-011](../../specs/SPEC-011-un-compte-pour-tout-le-monde.md)) :
   - adresse email confirmée avant de pouvoir faire quoi que ce soit ;
   - contre les robots : limite par adresse IP et champ piège, sans service externe ;
   - plafond de stockage par compte (500 Mo par défaut, modifiable par l'administratrice), pas de limite de jeux ni de participants ;
@@ -57,4 +58,5 @@ Enfin, le rôle global « organisateur » n'a pas vraiment de sens : on peut org
   - le lien personnel d'inscription marche toujours sans connexion ;
   - l'administratrice crée encore des comptes, par un lien pour choisir le mot de passe.
 - Conditions d'utilisation, politique de confidentialité et responsable de traitement : tranchés à l'étape 5 de la feuille de route, avant d'ouvrir l'inscription en production.
-- 2026-11-02 : éditeur et responsable Jean-Damien Mottot, contact limbus@limbuslarp.fr, hébergeur Scaleway ; chaque équipe est responsable des données de ses joueurs, Limbus sous-traitant ([SPEC-013](../specs/SPEC-013-pages-legales-et-conservation.md)).
+- 2026-11-02 : éditeur et responsable Jean-Damien Mottot, contact limbus@limbuslarp.fr, hébergeur Scaleway ; chaque équipe est responsable des données de ses joueurs, Limbus sous-traitant ([SPEC-013](../../specs/SPEC-013-pages-legales-et-conservation.md)).
+- 2026-11-02 : fiche archivée. Les sept lots de [SPEC-011](../../specs/SPEC-011-un-compte-pour-tout-le-monde.md) sont faits, les conditions d'utilisation, la politique de confidentialité et les durées de conservation aussi ([SPEC-013](../../specs/SPEC-013-pages-legales-et-conservation.md)). Reste l'ouverture de l'inscription libre en production, un réglage du serveur (`SIGNUP_OPEN=1`).

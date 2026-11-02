@@ -3,7 +3,7 @@ id: SPEC-013
 titre: Mentions légales, confidentialité, conditions d'utilisation et durées de conservation
 statut: validée
 date: 2026-11-02
-origine: ../todo/comptes-participants.md
+origine: ../archive/todo/comptes-participants.md
 epics: [EPIC-029, EPIC-030]
 adr: [ADR-0055, ADR-0056]
 ---
