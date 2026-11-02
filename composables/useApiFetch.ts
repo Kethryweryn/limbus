@@ -59,6 +59,14 @@ export const useApiAction = (async (request: string, options?: RawOptions) => {
   return result
 }) as unknown as ApiAction
 
+/**
+ * Appel d'une adresse calculée, dont la réponse est typée par l'appelant (`fetchByUrl<ApiResponse<'/api/…'>>(url)`) :
+ * sans la déduction par la route, trop coûteuse quand l'adresse est générique.
+ */
+export function fetchByUrl<T>(request: string, options?: RawOptions) {
+  return apiFetch(request, options) as Promise<T>
+}
+
 // Implémentation non typée par route : la file hors ligne et le cache de l'appareil ne connaissent que l'URL
 const rawFetch = $fetch as unknown as (request: string, options?: RawOptions) => Promise<unknown>
 type RawOptions = Record<string, unknown> & ApiFetchExtras & { body?: Record<string, unknown> | FormData, method?: string, headers?: Record<string, string> }

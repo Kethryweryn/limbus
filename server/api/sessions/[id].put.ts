@@ -63,9 +63,12 @@ export default defineEventHandler(async (event) => {
         create: assignments
       }
     },
+    // Comme la lecture de la session : la page la remplace par cette réponse, report compris (US-022)
     include: {
       game: true,
       location: true,
+      postponedTo: { select: { id: true, slug: true, name: true, date: true } },
+      postponedFrom: { select: { id: true, slug: true, name: true, date: true } },
       participants: {
         include: {
           participant: true

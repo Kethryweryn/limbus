@@ -243,23 +243,37 @@
   </UCard>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { CHARACTER_TYPES, SESSION_ROLES } from '~/utils/domain'
+import { apiErrorMessage } from '~/utils/apiErrors'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import type { CharacterOption } from '~/utils/writingDrafts'
 
-const props = defineProps({
-  session: { type: Object, required: true },
-  characters: { type: Array, required: true },
-  participants: { type: Array, required: true },
-  onSave: { type: Function, required: true }
-})
+type Link = { id: string } | null
+/** Ligne du cast éditée : un personnage, sa personne ou sa réservation (US-100), son cadenas (US-101). */
+export type CastLine = { characterId: string, participantId: string, reservedRegistrationId: string, locked: boolean, photoUrl: string, notes: string }
 
-const assignments = ref([])
-const uploadingIndex = ref(null)
+const props = defineProps<{
+  // Session lue, ou projetée hors ligne (US-048)
+  session: {
+    id: string
+    gameId: string
+    participants?: Array<{ role: string, participantId?: string | null, participant?: Link }>
+    assignments?: Array<{ characterId?: string, participantId?: string | null, reservedRegistrationId?: string | null, locked?: boolean, photoUrl?: string | null, notes?: string | null, character?: Link, participant?: Link }>
+    retainedRegistrations?: Array<{ id: string, name: string }>
+  }
+  characters: Array<CharacterOption & { factions?: Array<{ name: string }> }>
+  participants: Array<{ id: string, name: string, email?: string | null, photoRefusedAt?: string | null, games?: Array<{ id: string }> }>
+  onSave: (assignments: CastLine[]) => Promise<unknown>
+}>()
+
+const assignments = ref<CastLine[]>([])
+const uploadingIndex = ref<number | null>(null)
 const saving = ref(false)
 const serverError = ref('')
-const fileInputs = ref([])
-const selectedPhotoNames = ref({})
+const fileInputs = ref<HTMLInputElement[]>([])
+const selectedPhotoNames = ref<Record<number, string>>({})
 const showPhotoPreview = ref(false)
 const previewPhotoUrl = ref('')
 const currentPage = ref(1)
@@ -306,18 +320,18 @@ const pnjCastableIds = computed(() => new Set(
   props.session.participants
     ?.filter((participant) => participant.role === SESSION_ROLES.organizer || participant.role === SESSION_ROLES.npc)
     .map((participant) => participant.participantId || participant.participant?.id)
-    .filter(Boolean) || []
+    .filter((id): id is string => Boolean(id)) || []
 ))
 
-function photoRefused(assignment) {
+function photoRefused(assignment: CastLine) {
   return Boolean(assignment.participantId && props.participants.find((participant) => participant.id === assignment.participantId)?.photoRefusedAt)
 }
 
-function characterById(characterId) {
+function characterById(characterId: string) {
   return props.characters.find((character) => character.id === characterId)
 }
 
-function characterGroupLabel(character) {
+function characterGroupLabel(character: { factions?: Array<{ name: string }> } | undefined) {
   return character?.factions?.[0]?.name || 'Sans groupe'
 }
 
@@ -329,18 +343,18 @@ const reservationOptions = computed(() => retainedRegistrations.value.map((regis
   value: `${RESERVATION_PREFIX}${registration.id}`
 })))
 
-function participantOptionsForAssignment(assignment) {
+function participantOptionsForAssignment(assignment: CastLine) {
   const character = characterById(assignment.characterId)
   if (character?.type !== CHARACTER_TYPES.pnj) return [...participantOptions.value, ...reservationOptions.value]
 
   return participantOptions.value.filter((participant) => !participant.value || pnjCastableIds.value.has(participant.value))
 }
 
-function choiceOf(assignment) {
+function choiceOf(assignment: CastLine) {
   return assignment.reservedRegistrationId ? `${RESERVATION_PREFIX}${assignment.reservedRegistrationId}` : assignment.participantId
 }
 
-function setChoice(assignment, value) {
+function setChoice(assignment: CastLine, value: string | null) {
   const reserved = typeof value === 'string' && value.startsWith(RESERVATION_PREFIX)
   assignment.reservedRegistrationId = reserved ? value.slice(RESERVATION_PREFIX.length) : ''
   assignment.participantId = reserved ? '' : value || ''
@@ -348,21 +362,21 @@ function setChoice(assignment, value) {
 
 // Assistant de casting (US-101, US-102) : calculé sur le formulaire en cours, appliqué seulement à la demande
 const showAssistant = ref(false)
-const assistant = ref(null)
+const assistant = ref<ApiResponse<'/api/sessions/:id/casting-assistant', 'post'> | null>(null)
 const assistantLoading = ref(false)
 const assistantMessage = ref('')
 
 const playersWithRefusedTexts = computed(() => assistant.value?.players.filter((player) => player.refusedTexts.length) || [])
 
-function assistantCharacterName(characterId) {
+function assistantCharacterName(characterId: string) {
   return assistant.value?.characters.find((character) => character.id === characterId)?.name || characterById(characterId)?.name || '?'
 }
 
-function assistantPlayerName(playerId) {
+function assistantPlayerName(playerId: string) {
   return assistant.value?.players.find((player) => player.id === playerId)?.name || '?'
 }
 
-function formatScore(value) {
+function formatScore(value: number) {
   return Number(value.toFixed(2)).toLocaleString('fr-FR')
 }
 
@@ -371,7 +385,7 @@ async function runAssistant() {
   assistantMessage.value = ''
   serverError.value = ''
   try {
-    assistant.value = await useApiFetch(`/api/sessions/${props.session.id}/casting-assistant`, {
+    assistant.value = await useApiAction(`/api/sessions/${props.session.id}/casting-assistant`, {
       method: 'POST',
       body: {
         assignments: assignments.value.map(({ characterId, participantId, reservedRegistrationId, locked }) => ({ characterId, participantId, reservedRegistrationId, locked }))
@@ -379,7 +393,7 @@ async function runAssistant() {
     })
     showAssistant.value = true
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'L’assistant n’a pas pu calculer de proposition'
+    serverError.value = apiErrorMessage(err, 'L’assistant n’a pas pu calculer de proposition')
   } finally {
     assistantLoading.value = false
   }
@@ -429,24 +443,24 @@ watch(totalPages, () => {
   if (currentPage.value < 1) currentPage.value = 1
 })
 
-function setFileInputRef(element, index) {
-  if (element) {
+function setFileInputRef(element: unknown, index: number) {
+  if (element instanceof HTMLInputElement) {
     fileInputs.value[index] = element
   }
 }
 
-function openFilePicker(index) {
+function openFilePicker(index: number) {
   fileInputs.value[index]?.click()
 }
 
-function photoLabel(assignment, index) {
+function photoLabel(assignment: CastLine, index: number) {
   if (uploadingIndex.value === index) return 'Envoi en cours...'
   if (selectedPhotoNames.value[index]) return selectedPhotoNames.value[index]
   if (assignment.photoUrl) return 'Photo enregistrée'
   return 'Aucune photo'
 }
 
-function openPhotoPreview(photoUrl) {
+function openPhotoPreview(photoUrl: string) {
   previewPhotoUrl.value = photoUrl
   showPhotoPreview.value = true
 }
@@ -462,14 +476,14 @@ async function submit() {
       .map((assignment) => photoRefused(assignment) ? { ...assignment, photoUrl: '' } : assignment))
     serverError.value = ''
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
   } finally {
     saving.value = false
   }
 }
 
-async function uploadAssignmentPhoto(event, assignment, index) {
-  const input = event.target
+async function uploadAssignmentPhoto(event: Event, assignment: CastLine, index: number) {
+  const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
 
@@ -482,13 +496,13 @@ async function uploadAssignmentPhoto(event, assignment, index) {
     const formData = new FormData()
     formData.append('photo', file)
     formData.append('sessionId', props.session.id)
-    const result = await useApiFetch('/api/uploads/session-assignment-photos', {
+    const result = await useApiAction('/api/uploads/session-assignment-photos', {
       method: 'POST',
       body: formData
     })
     assignment.photoUrl = result.photoUrl
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Impossible d’envoyer la photo'
+    serverError.value = apiErrorMessage(err, 'Impossible d’envoyer la photo')
   } finally {
     uploadingIndex.value = null
     input.value = ''

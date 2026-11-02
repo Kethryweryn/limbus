@@ -120,20 +120,29 @@
   </UCard>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { SESSION_ROLES } from '~/utils/domain'
+import { apiErrorMessage } from '~/utils/apiErrors'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import type { projectOfflineTimeline } from '~/utils/sessionOffline'
+import type { UiColor } from '~/utils/ui'
 
-const props = defineProps({
-  timelineData: { type: Object, required: true },
-  onSave: { type: Function, required: true }
-})
+// Déroulé lu par l'API, ou projeté hors ligne après une modification mise en file (US-048)
+type Timeline = ApiResponse<'/api/sessions/:id/timeline'> | ReturnType<typeof projectOfflineTimeline<ApiResponse<'/api/sessions/:id/timeline'>>>
+type TimelineEvent = Timeline['events'][number]
+type Assignment = { timelineEventId: string, participantIds: string[] }
+
+const props = defineProps<{
+  timelineData: Timeline
+  onSave: (assignments: Assignment[]) => Promise<unknown>
+}>()
 
 const saving = ref(false)
 const serverError = ref('')
-const assignments = ref({})
+const assignments = ref<Record<string, string[]>>({})
 
-const events = computed(() => props.timelineData.events || [])
+const events = computed<TimelineEvent[]>(() => props.timelineData.events || [])
 
 const eligibleResponsibles = computed(() =>
   (props.timelineData.session?.participants || [])
@@ -147,12 +156,12 @@ const eligibleResponsibles = computed(() =>
 const responsibleOptions = computed(() =>
   eligibleResponsibles.value.map((responsible) => ({
     label: `${responsible.role === SESSION_ROLES.organizer ? 'Orga' : 'PNJ'} - ${responsible.participant?.name || 'Participant inconnu'}`,
-    value: responsible.participantId || responsible.participant?.id
+    value: responsible.participantId || responsible.participant?.id || ''
   }))
 )
 
 const timelineSlots = computed(() => {
-  const slotByKey = new Map()
+  const slotByKey = new Map<string, { day: number, time: string }>()
   for (const timelineEvent of events.value) {
     const key = `${timelineEvent.day}-${timelineEvent.time}`
     if (!slotByKey.has(key)) {
@@ -164,28 +173,28 @@ const timelineSlots = computed(() => {
 })
 
 watch(() => props.timelineData, (value) => {
-  const nextAssignments = {}
+  const nextAssignments: Record<string, string[]> = {}
   for (const timelineEvent of value.events || []) {
     nextAssignments[timelineEvent.id] = (timelineEvent.responsibles || [])
       .map((responsible) => responsible.participantId || responsible.participant?.id)
-      .filter(Boolean)
+      .filter((id): id is string => Boolean(id))
   }
   assignments.value = nextAssignments
 }, { immediate: true, deep: true })
 
-function selectedResponsibleIds(timelineEventId) {
+function selectedResponsibleIds(timelineEventId: string) {
   return assignments.value[timelineEventId] || []
 }
 
-function isResponsibleAssigned(timelineEventId, participantId) {
+function isResponsibleAssigned(timelineEventId: string, participantId: string) {
   return selectedResponsibleIds(timelineEventId).includes(participantId)
 }
 
-function eventsForSlot(slot) {
+function eventsForSlot(slot: { day: number, time: string }) {
   return events.value.filter((timelineEvent) => timelineEvent.day === slot.day && timelineEvent.time === slot.time)
 }
 
-function toggleResponsible(timelineEventId, participantId, checked) {
+function toggleResponsible(timelineEventId: string, participantId: string, checked: boolean | 'indeterminate') {
   const current = new Set(selectedResponsibleIds(timelineEventId))
   if (checked) {
     current.add(participantId)
@@ -198,30 +207,30 @@ function toggleResponsible(timelineEventId, participantId, checked) {
   }
 }
 
-function responsibleColor(timelineEvent) {
+function responsibleColor(timelineEvent: TimelineEvent): UiColor {
   if (!timelineEvent.requiredResponsibles) return 'neutral'
   return selectedResponsibleIds(timelineEvent.id).length >= timelineEvent.requiredResponsibles ? 'success' : 'warning'
 }
 
-function eventBadgeSummary(timelineEvent) {
-  const badges = [
+function eventBadgeSummary(timelineEvent: TimelineEvent) {
+  const badges: Array<{ id: string, type: string, label: string, color: UiColor }> = [
     ...(timelineEvent.characters || []).map((character) => ({
       id: character.id,
       type: 'character',
       label: character.name,
-      color: 'neutral'
+      color: 'neutral' as const
     })),
     ...(timelineEvent.factions || []).map((faction) => ({
       id: faction.id,
       type: 'faction',
       label: faction.name,
-      color: 'warning'
+      color: 'warning' as const
     })),
     ...(timelineEvent.items || []).map((item) => ({
       id: item.id,
       type: 'item',
       label: item.name,
-      color: 'success'
+      color: 'success' as const
     }))
   ]
 
@@ -235,13 +244,13 @@ function eventBadgeSummary(timelineEvent) {
   }
 }
 
-function eventDetailTo(timelineEvent) {
+function eventDetailTo(timelineEvent: TimelineEvent) {
   return {
     path: `/timeline/${timelineEvent.slug || timelineEvent.id}`
   }
 }
 
-function rememberSessionTimelineContext(timelineEvent) {
+function rememberSessionTimelineContext(timelineEvent: TimelineEvent) {
   if (!import.meta.client || !props.timelineData.session?.id) return
   sessionStorage.setItem('limbus:timeline-return-context', JSON.stringify({
     source: 'session',
@@ -262,7 +271,7 @@ async function submit() {
     })))
     serverError.value = ''
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
   } finally {
     saving.value = false
   }

@@ -27,8 +27,8 @@
       </section>
 
       <div v-if="rows.length" class="flex flex-wrap gap-2 text-sm">
-        <UBadge v-for="(count, key) in counts" :key="key" :color="ATTENDANCE_DISPLAY[key].color" variant="subtle">
-          {{ ATTENDANCE_DISPLAY[key].label }} : {{ count }}
+        <UBadge v-for="badge in countBadges" :key="badge.status" :color="badge.color" variant="subtle">
+          {{ badge.label }} : {{ badge.count }}
         </UBadge>
       </div>
 
@@ -91,21 +91,27 @@
   </UCard>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ATTENDANCE_DISPLAY, ATTENDANCE_STATUSES, DEFAULT_ATTENDANCE_DELAY_DAYS, attendanceInvitationEmailText } from '~/utils/attendance'
 
+import { apiErrorMessage } from '~/utils/apiErrors'
+import type { ApiResponse } from '~/composables/useApiFetch'
+
+type Attendance = ApiResponse<'/api/sessions/:id/attendance'>
+type AttendanceRow = Attendance['rows'][number]
+
 // Confirmation de présence à une session reportée (US-024)
-const props = defineProps({
-  session: { type: Object, required: true }
-})
-const emit = defineEmits(['changed'])
+const props = defineProps<{
+  session: { id: string, name: string, date?: string | null, game?: { title: string } | null, location?: { name: string } | null }
+}>()
+const emit = defineEmits<{ changed: [] }>()
 
 const DAY_MS = 24 * 60 * 60 * 1000
-const toDateInput = (date) => new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10)
+const toDateInput = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10)
 // Fin de la journée choisie, à l'heure locale
-const endOfDay = (value) => new Date(`${value}T23:59:59`).toISOString()
+const endOfDay = (value: string) => new Date(`${value}T23:59:59`).toISOString()
 
-const data = ref(null)
+const data = ref<Attendance | null>(null)
 const dueDate = ref(toDateInput(new Date(Date.now() + DEFAULT_ATTENDANCE_DELAY_DAYS * DAY_MS)))
 const tomorrow = toDateInput(new Date(Date.now() + DAY_MS))
 const sending = ref(false)
@@ -117,16 +123,19 @@ const error = ref('')
 
 const rows = computed(() => data.value?.rows || [])
 const pendingTeam = computed(() => data.value?.notAsked || 0)
-const counts = computed(() => rows.value.reduce((acc, row) => ({ ...acc, [row.displayStatus]: (acc[row.displayStatus] || 0) + 1 }), {}))
+// Décompte par état, dans l'ordre des états
+const countBadges = computed(() => (Object.keys(ATTENDANCE_DISPLAY) as Array<keyof typeof ATTENDANCE_DISPLAY>)
+  .map((status) => ({ status, ...ATTENDANCE_DISPLAY[status], count: rows.value.filter((row) => row.displayStatus === status).length }))
+  .filter((badge) => badge.count))
 
-const formatDate = (value) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long' })
+const formatDate = (value: string | Date) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long' })
 
 const preview = computed(() => attendanceInvitationEmailText({
   participantName: 'Prénom Nom',
   gameTitle: props.session.game?.title || 'Jeu',
   previousSessionName: data.value?.postponedFrom?.name || null,
   sessionName: props.session.name,
-  sessionDate: props.session.date,
+  sessionDate: props.session.date ?? null,
   locationName: props.session.location?.name || null,
   responseDueAt: dueDate.value ? endOfDay(dueDate.value) : new Date(),
   url: 'https://… (lien personnel)'
@@ -139,8 +148,8 @@ async function load() {
 onMounted(load)
 watch(() => props.session.id, load)
 
-function report(err, fallback) {
-  error.value = err?.data?.message || err?.message || fallback
+function report(err: unknown, fallback: string) {
+  error.value = apiErrorMessage(err, fallback)
 }
 
 async function send() {
@@ -149,7 +158,7 @@ async function send() {
   message.value = ''
   error.value = ''
   try {
-    const result = await useApiFetch(`/api/sessions/${props.session.id}/attendance/send`, {
+    const result = await useApiAction(`/api/sessions/${props.session.id}/attendance/send`, {
       method: 'POST',
       body: { responseDueAt: endOfDay(dueDate.value) }
     })
@@ -166,15 +175,16 @@ async function send() {
   }
 }
 
-async function act(row, action, confirmation) {
+async function act(row: AttendanceRow, action: 'remind' | 'resend' | 'release', confirmation?: string) {
   if (confirmation && !confirm(confirmation)) return
   busy.value = `${action}:${row.participant.id}`
   message.value = ''
   error.value = ''
   try {
-    const result = await useApiFetch(`/api/sessions/${props.session.id}/attendance/${row.participant.id}/${action}`, { method: 'POST' })
-    if (result?.trombinoscopes === 'regenerated') message.value = 'Place libérée ; les trombinoscopes de la session ont été régénérés.'
-    if (result?.trombinoscopes === 'failed') message.value = 'Place libérée, mais les trombinoscopes n’ont pas pu être régénérés : générez-les à nouveau.'
+    const result = await useApiAction(`/api/sessions/${props.session.id}/attendance/${row.participant.id}/${action}`, { method: 'POST' })
+    const trombinoscopes = 'trombinoscopes' in result ? result.trombinoscopes : null
+    if (trombinoscopes === 'regenerated') message.value = 'Place libérée ; les trombinoscopes de la session ont été régénérés.'
+    if (trombinoscopes === 'failed') message.value = 'Place libérée, mais les trombinoscopes n’ont pas pu être régénérés : générez-les à nouveau.'
     await load()
     // Une place libérée change l'équipe et le casting de la session
     if (action === 'release') emit('changed')
@@ -185,16 +195,16 @@ async function act(row, action, confirmation) {
   }
 }
 
-function toggleExtend(row) {
+function toggleExtend(row: AttendanceRow) {
   extendingId.value = extendingId.value === row.participant.id ? '' : row.participant.id
   extendDate.value = ''
 }
 
-async function extend(row) {
+async function extend(row: AttendanceRow) {
   busy.value = `extend:${row.participant.id}`
   error.value = ''
   try {
-    await useApiFetch(`/api/sessions/${props.session.id}/attendance/${row.participant.id}/extend`, {
+    await useApiAction(`/api/sessions/${props.session.id}/attendance/${row.participant.id}/extend`, {
       method: 'POST',
       body: { responseDueAt: endOfDay(extendDate.value) }
     })

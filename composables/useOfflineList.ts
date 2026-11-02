@@ -1,6 +1,6 @@
 import type { NitroFetchRequest } from 'nitropack/types'
 import { onMounted, onUnmounted, ref } from 'vue'
-import { useApiFetch, type ApiResponse } from '~/composables/useApiFetch'
+import { fetchByUrl, type ApiResponse } from '~/composables/useApiFetch'
 import { isOfflineMode } from '~/utils/connection'
 import { getFromStore, saveToStore } from '~/utils/storage'
 
@@ -11,8 +11,7 @@ export async function fetchOffline<R extends NitroFetchRequest>(store: string, k
   type Response = ApiResponse<R>
   if (isOfflineMode()) return await getFromStore<Response>(store, key)
 
-  // La réponse est déjà typée par la route : l'appel n'a pas à refaire la déduction en générique
-  const data = await (useApiFetch as unknown as (request: string) => Promise<Response>)(String(request))
+  const data = await fetchByUrl<Response>(String(request))
   // Un appareil sans stockage (navigation privée…) n'empêche pas d'afficher la réponse
   await saveToStore(store, key, data).catch((error) => console.error(`[storage] ${store}/${key}`, error))
   return data

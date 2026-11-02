@@ -28,6 +28,17 @@ export type LocationDraft = Draft<ApiResponse<'/api/locations/:id'>, 'game'>
 export type TimelineEventDraft = Draft<ApiResponse<'/api/timeline-events/:id'>, 'game' | 'characters' | 'factions' | 'intrigues' | 'items'>
   & { characterIds?: string[], factionIds?: string[], intrigueIds?: string[], itemIds?: string[] }
 
+type SessionLink = { id: string } | null
+
+/** Session en cours d'édition (détails, US-116) : équipe par rôle, et cast tel que lu, en identifiants. */
+export type SessionDraft = Draft<ApiResponse<'/api/sessions/:id'>, 'game' | 'location' | 'participants' | 'assignments'> & {
+  organizerIds?: string[]
+  npcIds?: string[]
+  kitchenIds?: string[]
+  participants?: Array<{ participantId?: string | null, role: string, participant?: SessionLink }>
+  assignments?: Array<{ characterId?: string, participantId?: string | null, photoUrl?: string | null, notes?: string | null, character?: SessionLink, participant?: SessionLink }>
+}
+
 /** Élément affiché après un enregistrement mis en file hors ligne (ADR-0036) : l'élément lu, avec les champs modifiés. */
 export function withQueuedEdit<T extends object>(current: T, draft: object): T {
   return { ...current, ...draft } as T

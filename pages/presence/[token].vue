@@ -57,9 +57,10 @@
   </main>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ATTENDANCE_STATUSES } from '~/utils/attendance'
 import { apiErrorMessage } from '~/utils/apiErrors'
+import type { ApiResponse } from '~/composables/useApiFetch'
 
 // Lien personnel de confirmation de présence à une session reportée (US-024), sans compte : le jeton fait foi.
 // Chargée côté navigateur seulement, sans le cache hors ligne de l'application.
@@ -84,7 +85,7 @@ const endpoint = `/api/public/attendance/${encodeURIComponent(String(route.param
 
 const loading = ref(true)
 const invalid = ref(false)
-const attendance = ref(null)
+const attendance = ref<ApiResponse<'/api/public/attendance/:token'> | null>(null)
 const saving = ref('')
 const errorMessage = ref('')
 
@@ -94,8 +95,8 @@ const answerLabel = computed(() => {
   return ''
 })
 
-const formatDate = (value) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long', timeZone: 'Europe/Paris' })
-const formatDateTime = (value) => new Date(value).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Europe/Paris' })
+const formatDate = (value: string | Date) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long', timeZone: 'Europe/Paris' })
+const formatDateTime = (value: string | Date) => new Date(value).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Europe/Paris' })
 
 onMounted(async () => {
   try {
@@ -107,7 +108,7 @@ onMounted(async () => {
   }
 })
 
-async function answer(value) {
+async function answer(value: 'confirmed' | 'declined') {
   saving.value = value
   errorMessage.value = ''
   try {

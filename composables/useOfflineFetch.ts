@@ -13,8 +13,7 @@ export function useOfflineFetch<T = unknown, R extends NitroFetchRequest = Nitro
   const key = String(request)
   const result = useAsyncData<Response>(key, () => import.meta.server
     ? requestFetch(key)
-    // La réponse est déjà typée par la route : l'appel interne n'a pas à refaire la déduction (trop coûteuse en générique)
-    : (useApiFetch as unknown as (request: string, options: { offlineCache: boolean }) => Promise<Response>)(key, { offlineCache: true }))
+    : fetchByUrl<Response>(key, { offlineCache: true }))
 
   if (import.meta.client) {
     watch(result.data, (value) => {

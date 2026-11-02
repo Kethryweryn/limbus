@@ -36,101 +36,14 @@
           <span class="text-sm text-gray-500">{{ section.sessions.length }} session(s)</span>
         </div>
 
-        <UCard v-for="session in paginatedSectionSessions(section)" :key="session.id" class="mb-4">
-          <template #header>
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-              <div>
-                <h3 class="font-semibold">{{ session.name }}</h3>
-                <p class="text-sm text-gray-500">
-                  {{ session.game?.title || 'Jeu inconnu' }}
-                  <span v-if="session.date"> · {{ formatDate(session.date) }}</span>
-                  <span v-if="session.location"> · {{ session.location.name }}</span>
-                </p>
-              </div>
-              <div class="flex flex-col items-start md:items-end gap-2">
-                <div>
-                  <UBadge :color="statusMeta(session.status).color" variant="subtle" size="xs">
-                    {{ statusMeta(session.status).label }}
-                  </UBadge>
-                  <UBadge v-if="session.published" color="primary" variant="outline" size="xs" class="ml-1">
-                    Visible sur la page publique
-                  </UBadge>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                  <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.slug || session.id}?tab=timeline`">
-                    Timeline
-                  </UButton>
-                  <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.slug || session.id}?tab=documents`">
-                    Documents
-                  </UButton>
-                  <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.slug || session.id}?tab=payments`">
-                    Paiements
-                  </UButton>
-                  <UButton size="xs" color="neutral" variant="soft" :to="`/sessions/${session.slug || session.id}?tab=cast`">
-                    Cast
-                  </UButton>
-                  <UButton size="xs" color="primary" @click="startEdit(session)">Organisation</UButton>
-                  <UButton size="xs" color="error" @click="deleteSession(session.id)">Supprimer</UButton>
-                </div>
-              </div>
-            </div>
-          </template>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <span class="text-gray-500">Lieu</span>
-              <div class="font-medium">
-                {{ session.location ? formatLocation(session.location) : 'Non renseigné' }}
-              </div>
-            </div>
-            <div>
-              <div class="flex items-center justify-between gap-3 mb-2">
-                <span class="text-gray-500">Cast assigné</span>
-                <span class="font-medium">
-                  {{ assignedCastCount(session) }}/{{ totalCastCount(session) }} rôle(s)
-                  <span class="text-gray-500">({{ castPercent(session) }}%)</span>
-                </span>
-              </div>
-              <UProgress :model-value="castPercent(session)" />
-            </div>
-          </div>
-
-          <div v-if="session.assignments?.length" class="mt-4">
-            <h4 class="text-sm font-semibold mb-2">Assignations</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <div
-                v-for="assignment in session.assignments"
-                :key="assignment.id"
-                class="text-sm border rounded p-2 bg-gray-50"
-              >
-                <div class="flex items-start gap-3">
-                  <button
-                    type="button"
-                    class="size-20 shrink-0 overflow-hidden rounded border border-gray-200 bg-gray-50 flex items-center justify-center"
-                    :class="assignment.photoUrl ? 'cursor-pointer' : 'cursor-default'"
-                    @click="assignment.photoUrl && openPhotoPreview(assignment.photoUrl)"
-                  >
-                    <img
-                      v-if="assignment.photoUrl"
-                      :src="assignment.photoUrl"
-                      alt=""
-                      class="h-full w-full object-cover"
-                    >
-                    <UIcon v-else name="i-heroicons-user" class="size-8 text-gray-400" />
-                  </button>
-                  <div class="min-w-0">
-                    <div class="font-medium">{{ assignment.character?.name }}</div>
-                    <div class="text-gray-600">
-                      {{ assignment.participant?.name || 'Participant non assigné' }}
-                      <span v-if="assignment.participant?.email"> · {{ assignment.participant.email }}</span>
-                    </div>
-                  </div>
-                </div>
-                <div v-if="assignment.notes" class="text-gray-500">{{ assignment.notes }}</div>
-              </div>
-            </div>
-          </div>
-        </UCard>
+        <SessionCard
+          v-for="session in paginatedSectionSessions(section)"
+          :key="session.id"
+          :session="session"
+          @edit="startEdit(session)"
+          @delete="deleteSession(session.id)"
+          @preview="openPhotoPreview"
+        />
 
         <UCard v-if="section.sessions.length === 0">
           <div class="text-sm text-gray-500">Aucune session dans cette période.</div>
@@ -161,7 +74,6 @@
         :locations="locations"
         :participants="participants"
         :mode="formMode"
-        :show-cast="false"
         @submit="handleSessionFormSubmit"
         @cancel="closeFormSlideover"
       />
@@ -183,26 +95,33 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import { computed, onMounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import SessionForm from '@/components/SessionForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
-import { CHARACTER_TYPES, SESSION_ROLES, SESSION_STATUSES, SESSION_STATUS_META, isClosedSessionStatus } from '~/utils/domain'
+import { SESSION_STATUSES, isClosedSessionStatus } from '~/utils/domain'
+import { apiErrorMessage } from '~/utils/apiErrors'
+import { sessionFormPayload } from '~/utils/sessions'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import type { SessionDraft } from '~/utils/writingDrafts'
 
-const sessions = ref([])
-const games = ref([])
-const characters = ref([])
-const locations = ref([])
-const participants = ref([])
+type SessionRow = ApiResponse<'/api/sessions'>[number]
+type Section = { key: 'future' | 'past', title: string, sessions: SessionRow[] }
+
+const sessions = ref<SessionRow[]>([])
+const games = ref<ApiResponse<'/api/games'>>([])
+const characters = ref<ApiResponse<'/api/characters'>>([])
+const locations = ref<ApiResponse<'/api/locations'>>([])
+const participants = ref<ApiResponse<'/api/participants'>>([])
 const searchQuery = ref('')
 const deleteError = ref('')
 const gameFilter = ref('all')
 const periodFilter = ref('future')
 const showFormSlideover = ref(false)
-const activeFormSession = ref(null)
-const formMode = ref('create')
+const activeFormSession = ref<SessionDraft | null>(null)
+const formMode = ref<'create' | 'edit'>('create')
 const showPhotoPreview = ref(false)
 const previewPhotoUrl = ref('')
 const { game: selectedGame } = useGameFocus()
@@ -218,8 +137,6 @@ const periodFilterOptions = [
   { label: 'Tout', value: 'all' }
 ]
 
-const statusMeta = (status) => SESSION_STATUS_META[status] || SESSION_STATUS_META[SESSION_STATUSES.scheduled]
-
 const filteredSessions = computed(() => {
   const term = searchQuery.value.toLowerCase()
   const gameId = selectedGame.value?.id || (gameFilter.value === 'all' ? '' : gameFilter.value)
@@ -233,7 +150,7 @@ const filteredSessions = computed(() => {
     )
 })
 
-const sessionTime = (session) => session.date ? new Date(session.date).getTime() : Number.POSITIVE_INFINITY
+const sessionTime = (session: SessionRow) => session.date ? new Date(session.date).getTime() : Number.POSITIVE_INFINITY
 const nowTime = computed(() => Date.now())
 
 const futureSessions = computed(() =>
@@ -249,7 +166,7 @@ const pastSessions = computed(() =>
     .sort((a, b) => sessionTime(b) - sessionTime(a))
 )
 
-const sessionSections = computed(() => {
+const sessionSections = computed<Section[]>(() => {
   if (periodFilter.value === 'future') {
     return [{ key: 'future', title: 'Sessions à venir', sessions: futureSessions.value }]
   }
@@ -263,29 +180,29 @@ const sessionSections = computed(() => {
   ]
 })
 
-const sessionPages = ref({
+const sessionPages = ref<Record<Section['key'], number>>({
   future: 1,
   past: 1
 })
 const sessionItemsPerPage = 5
 
-const sectionPage = (key) => sessionPages.value[key] || 1
+const sectionPage = (key: Section['key']) => sessionPages.value[key] || 1
 
-const totalSectionPages = (section) => Math.max(1, Math.ceil(section.sessions.length / sessionItemsPerPage))
+const totalSectionPages = (section: Section) => Math.max(1, Math.ceil(section.sessions.length / sessionItemsPerPage))
 
-const paginatedSectionSessions = (section) => {
+const paginatedSectionSessions = (section: Section) => {
   const start = (sectionPage(section.key) - 1) * sessionItemsPerPage
   return section.sessions.slice(start, start + sessionItemsPerPage)
 }
 
-const nextSectionPage = (section) => {
+const nextSectionPage = (section: Section) => {
   const key = section.key
   if (sectionPage(key) < totalSectionPages(section)) {
     sessionPages.value[key] = sectionPage(key) + 1
   }
 }
 
-const prevSectionPage = (key) => {
+const prevSectionPage = (key: Section['key']) => {
   if (sectionPage(key) > 1) {
     sessionPages.value[key] = sectionPage(key) - 1
   }
@@ -298,30 +215,7 @@ watch([searchQuery, gameFilter, periodFilter, filteredSessions], () => {
   }
 })
 
-const formatDate = (value) => new Date(value).toLocaleString('fr-FR', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit'
-})
-
-const formatLocation = (location) => {
-  return location.address ? `${location.name} - ${location.address}` : location.name
-}
-
-const castProgressAssignments = (session) =>
-  (session.assignments || []).filter((assignment) => assignment.character?.type !== CHARACTER_TYPES.pnj)
-const totalCastCount = (session) => castProgressAssignments(session).length
-const assignedCastCount = (session) =>
-  castProgressAssignments(session).filter((assignment) => assignment.participantId || assignment.participant?.id).length
-const castPercent = (session) => {
-  const total = totalCastCount(session)
-  if (!total) return 0
-  return Math.round((assignedCastCount(session) / total) * 100)
-}
-
-function openPhotoPreview(photoUrl) {
+function openPhotoPreview(photoUrl: string) {
   previewPhotoUrl.value = photoUrl
   showPhotoPreview.value = true
 }
@@ -356,39 +250,6 @@ onMounted(async () => {
   await refreshData()
 })
 
-function toDatetimeLocal(value) {
-  if (!value) return ''
-  const date = new Date(value)
-  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-  return offsetDate.toISOString().slice(0, 16)
-}
-
-function normalizeSessionForForm(session) {
-  return {
-    ...session,
-    date: toDatetimeLocal(session.date),
-    locationId: session.locationId || '',
-    organizerIds: session.participants
-      ?.filter((participant) => participant.role === SESSION_ROLES.organizer)
-      .map((participant) => participant.participantId || participant.participant?.id)
-      .filter(Boolean) || [],
-    npcIds: session.participants
-      ?.filter((participant) => participant.role === SESSION_ROLES.npc)
-      .map((participant) => participant.participantId || participant.participant?.id)
-      .filter(Boolean) || [],
-    kitchenIds: session.participants
-      ?.filter((participant) => participant.role === SESSION_ROLES.kitchen)
-      .map((participant) => participant.participantId || participant.participant?.id)
-      .filter(Boolean) || [],
-    assignments: session.assignments?.map((assignment) => ({
-      characterId: assignment.characterId,
-      participantId: assignment.participantId || '',
-      photoUrl: assignment.photoUrl || '',
-      notes: assignment.notes || ''
-    })) || []
-  }
-}
-
 function startCreate() {
   activeFormSession.value = {
     name: '',
@@ -407,8 +268,8 @@ function startCreate() {
   showFormSlideover.value = true
 }
 
-function startEdit(session) {
-  activeFormSession.value = normalizeSessionForForm(session)
+function startEdit(session: SessionRow) {
+  activeFormSession.value = sessionFormPayload(session)
   formMode.value = 'edit'
   showFormSlideover.value = true
 }
@@ -419,6 +280,7 @@ function closeFormSlideover() {
 }
 
 async function handleSessionFormSubmit() {
+  if (!activeFormSession.value) return
   if (formMode.value === 'create') {
     await useApiFetch('/api/sessions', {
       method: 'POST',
@@ -435,7 +297,7 @@ async function handleSessionFormSubmit() {
   await fetchSessions()
 }
 
-async function deleteSession(id) {
+async function deleteSession(id: string) {
   if (!confirm('Supprimer cette session ?')) return
 
   deleteError.value = ''
@@ -443,7 +305,7 @@ async function deleteSession(id) {
     await useApiFetch(`/api/sessions/${id}`, { method: 'DELETE' })
   } catch (error) {
     // Paiements ou inscriptions : refus qui oriente vers l'annulation ou le report (US-021)
-    deleteError.value = error?.data?.message || error?.message || 'Impossible de supprimer la session'
+    deleteError.value = apiErrorMessage(error, 'Impossible de supprimer la session')
     return
   }
   await fetchSessions()

@@ -4,8 +4,7 @@ import { projectOfflineSession, projectOfflineTimeline } from '~/utils/sessionOf
 const lea = { id: 'p1', name: 'Léa' }
 const noe = { id: 'p2', name: 'Noé' }
 const aube = { id: 'c1', name: 'Aube' }
-// Lignes réduites aux champs utilisés : la projection garde le reste tel que lu
-type SessionInput = Parameters<typeof projectOfflineSession>[0]
+// Déroulé réduit aux champs utilisés : la projection garde le reste tel que lu
 type TimelineInput = Parameters<typeof projectOfflineTimeline>[0]
 
 const session = {
@@ -19,7 +18,7 @@ const session = {
 
 describe('session modifiée hors ligne (US-048)', () => {
   it('affiche le casting et l’équipe avec les personnes de l’appareil, en gardant la version lue', () => {
-    const projected = projectOfflineSession(session as unknown as SessionInput, {
+    const projected = projectOfflineSession(session, {
       name: 'Dimanche',
       locationId: 'l1',
       participants: [{ participantId: 'p1', role: 'participant' }, { participantId: 'p2', role: 'npc' }],
@@ -36,8 +35,8 @@ describe('session modifiée hors ligne (US-048)', () => {
   })
 
   it('une personne absente de l’appareil garde un nom neutre', () => {
-    const projected = projectOfflineSession(session as unknown as SessionInput, { participants: [{ participantId: 'p9', role: 'npc' }] }, {})
-    expect(projected.participants[0]?.participant).toEqual({ id: 'p9', name: 'Participant' })
+    const projected = projectOfflineSession(session, { participants: [{ participantId: 'p9', role: 'npc' }] }, {})
+    expect(projected.participants?.[0]?.participant).toEqual({ id: 'p9', name: 'Participant' })
   })
 
   it('remplace les responsables du déroulé', () => {
