@@ -34,9 +34,9 @@
         :key="game.id"
         :game-id="game.id"
         :game-title="game.title"
-        :initial-periods="periodsByGame[game.id] || []"
+        :initial-periods="periodsByGame[game.id] ?? NO_PERIODS"
       />
-      <p v-if="!displayedGames.length && !errorMessage" class="text-sm text-gray-500">
+      <p v-if="loaded && !displayedGames.length && !errorMessage" class="text-sm text-gray-500">
         Aucun jeu à afficher.
       </p>
     </div>
@@ -48,6 +48,7 @@ import { useGameFocus } from '@/composables/useGameFocus'
 import { isArchivedGame } from '~/utils/games'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
+import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import type { RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
 
 const { game: selectedGame } = useGameFocus()
@@ -57,21 +58,33 @@ const showArchived = ref(false)
 const errorMessage = ref('')
 
 const periodsByGame = ref<Record<string, RegistrationPeriod[]>>({})
+const loaded = ref(false)
+// Même tableau d'un rendu à l'autre : un bloc ne reprend les périodes de la page qu'après une nouvelle lecture
+const NO_PERIODS: RegistrationPeriod[] = []
 
-// Une seule requête pour toutes les périodes et leurs inscriptions ; chaque bloc se recharge ensuite seul
-try {
-  const [allGames, periods] = await Promise.all([
-    useApiFetch('/api/games'),
-    useApiFetch('/api/registration-periods')
-  ])
-  games.value = allGames
-  periodsByGame.value = periods.reduce<Record<string, RegistrationPeriod[]>>((groups, period) => {
-    (groups[period.gameId] ||= []).push(period)
-    return groups
-  }, {})
-} catch (err) {
-  errorMessage.value = apiErrorMessage(err, 'Impossible de charger les jeux')
+// Une seule requête pour toutes les périodes et leurs inscriptions ; chaque bloc se recharge ensuite seul. La page se
+// lit hors ligne depuis sa dernière version sur l'appareil (US-119)
+async function loadData() {
+  try {
+    const [allGames, periods] = await Promise.all([
+      fetchOfflineList('games', '/api/games'),
+      useApiFetch('/api/registration-periods', { offlineCache: true })
+    ])
+    games.value = allGames
+    // Un tableau par jeu, même vide, créé à chaque lecture et seulement alors
+    const groups = Object.fromEntries(allGames.map((game) => [game.id, [] as RegistrationPeriod[]]))
+    for (const period of periods) (groups[period.gameId] ||= []).push(period)
+    periodsByGame.value = groups
+    errorMessage.value = ''
+  } catch (err) {
+    errorMessage.value = apiErrorMessage(err, 'Impossible de charger les inscriptions')
+  } finally {
+    loaded.value = true
+  }
 }
+
+useConnectionRefresh(loadData)
+onMounted(loadData)
 
 const visibleGames = computed(() => games.value.filter((game) => showArchived.value || !isArchivedGame(game)))
 

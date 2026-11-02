@@ -267,11 +267,12 @@ function showMessage(text: string, color: MessageColor) {
   message.value = text
 }
 
+// Lisible hors ligne depuis sa dernière version sur l'appareil (US-119)
 async function loadOverview() {
   try {
     const [selection, journal] = await Promise.all([
-      useApiFetch(`/api/registration-periods/${props.period.id}/selection`),
-      permanent.value ? Promise.resolve([]) : useApiFetch(`/api/registration-periods/${props.period.id}/draws`)
+      useApiFetch(`/api/registration-periods/${props.period.id}/selection`, { offlineCache: true }),
+      permanent.value ? Promise.resolve([]) : useApiFetch(`/api/registration-periods/${props.period.id}/draws`, { offlineCache: true })
     ])
     overview.value = selection
     draws.value = journal

@@ -39,6 +39,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-029](../archive/epics/EPIC-029-pages-legales/README.md) | Mentions légales, confidentialité et conditions d'utilisation | [SPEC-013](../specs/SPEC-013-pages-legales-et-conservation.md) | terminé |
 | [EPIC-030](../archive/epics/EPIC-030-durees-de-conservation/README.md) | Durées de conservation des comptes et des fiches participant | [SPEC-013](../specs/SPEC-013-pages-legales-et-conservation.md) | terminé |
 | [EPIC-031](../archive/epics/EPIC-031-interface-en-typescript/README.md) | Interface en TypeScript strict | [fiche](../archive/todo/interface-en-typescript.md) | terminé |
+| [EPIC-032](../archive/epics/EPIC-032-inscriptions-hors-ligne/README.md) | Page Inscriptions lisible hors ligne | [SPEC-010](../specs/SPEC-010-hors-ligne.md) | terminé |
 
 ## US
 
@@ -162,3 +163,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-116](../archive/epics/EPIC-031-interface-en-typescript/US-116-sessions.md) | Sessions en TypeScript | EPIC-031 | terminée |
 | [US-117](../archive/epics/EPIC-031-interface-en-typescript/US-117-inscriptions.md) | Inscriptions en TypeScript | EPIC-031 | terminée |
 | [US-118](../archive/epics/EPIC-031-interface-en-typescript/US-118-compte-participation-administration.md) | Compte, participation, administration ; règle étendue à tout | EPIC-031 | terminée |
+| [US-119](../archive/epics/EPIC-032-inscriptions-hors-ligne/US-119-page-inscriptions-hors-ligne.md) | Page Inscriptions et sélection lisibles hors ligne | EPIC-032 | terminée |
+| [US-120](../archive/epics/EPIC-032-inscriptions-hors-ligne/US-120-detail-d-une-inscription-hors-ligne.md) | Détail d'une inscription lisible hors ligne | EPIC-032 | terminée |

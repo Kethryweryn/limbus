@@ -4,7 +4,7 @@ titre: Mode hors ligne
 statut: validée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
-epics: [EPIC-010]
+epics: [EPIC-010, EPIC-032]
 adr: [ADR-0006, ADR-0012, ADR-0036]
 ---
 
@@ -41,7 +41,7 @@ Continuer à consulter un jeu sur le lieu du GN, où le réseau manque souvent, 
 
 ### Consultation
 
-- **R1** Le cache de l'appareil contient le tableau de bord et les listes des jeux, personnages, factions, intrigues, objets, documents, événements de chronologie, participants, lieux et sessions, telles qu'elles ont été chargées la dernière fois. Il garde aussi chaque session ouverte avec le réseau (détails, équipe, casting, déroulé, envois, paiements, présence, fiche allergies), chaque fiche de personnage consultée, et les PDF consultés (trombinoscopes, fiches, fiche allergies). Une page jamais consultée avec le réseau le dit ([US-047](../archive/epics/EPIC-010-ecarts-hors-ligne/US-047-session-consultable-hors-ligne.md)).
+- **R1** Le cache de l'appareil contient le tableau de bord et les listes des jeux, personnages, factions, intrigues, objets, documents, événements de chronologie, participants, lieux et sessions, telles qu'elles ont été chargées la dernière fois. Il garde aussi chaque session ouverte avec le réseau (détails, équipe, casting, déroulé, envois, paiements, présence, fiche allergies), chaque fiche de personnage consultée, et les PDF consultés (trombinoscopes, fiches, fiche allergies). La page Inscriptions y est aussi, avec la sélection de chaque période (retenus, listes d'attente, vivier, journal des tirages), et chaque inscription ouverte avec le réseau, allergies et affinités comprises ([US-119](../archive/epics/EPIC-032-inscriptions-hors-ligne/US-119-page-inscriptions-hors-ligne.md), [US-120](../archive/epics/EPIC-032-inscriptions-hors-ligne/US-120-detail-d-une-inscription-hors-ligne.md)). Hors ligne, ces pages se lisent seulement : leurs actions sont des envois, qui échouent avec un message. Une page jamais consultée avec le réseau le dit ([US-047](../archive/epics/EPIC-010-ecarts-hors-ligne/US-047-session-consultable-hors-ligne.md)).
 - **R2** Les photos d'attribution déjà affichées sont gardées dans le cache du navigateur : 300 au plus, 30 jours au plus.
 - **R3** Sans réseau, l'application reste ouverte pour le dernier compte connecté sur l'appareil pendant 7 jours après sa dernière connexion au serveur. Passé ce délai, elle demande de se connecter. Cette identité locale n'ouvre aucun droit sur le serveur.
 - **R4** Un 401 du serveur (session expirée ou révoquée) oublie l'identité locale et ramène à l'écran de connexion, en gardant le cache : le même compte le retrouve en se reconnectant. Un 403 est un refus ponctuel, qui ne déconnecte pas.
@@ -61,7 +61,7 @@ Continuer à consulter un jeu sur le lieu du GN, où le réseau manque souvent, 
 
 ## Données
 
-- Le cache de l'appareil contient des données personnelles : coordonnées des participants, photos. Il n'est pas chiffré ([ADR-0012](../adr/ADR-0012-donnees-hors-ligne.md), options écartées). Il reste sur l'appareil jusqu'à la déconnexion, ou jusqu'à la connexion d'un autre compte.
+- Le cache de l'appareil contient des données personnelles : coordonnées des participants, photos, et pour les inscriptions consultées, allergies et affinités. Il n'est pas chiffré ([ADR-0012](../adr/ADR-0012-donnees-hors-ligne.md), options écartées). Il reste sur l'appareil jusqu'à la déconnexion, ou jusqu'à la connexion d'un autre compte.
 - Le serveur ne garde rien du mode hors ligne.
 
 ## Sécurité et droits

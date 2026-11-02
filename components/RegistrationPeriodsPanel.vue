@@ -69,12 +69,13 @@ import { provideRegistrationPeriodActions, type RegistrationPeriod } from '~/com
 
 // Bloc d'un jeu sur la page Inscriptions (R33) : ses périodes d'inscription et son formulaire (US-002). Découpé
 // en sections (US-117) qui partagent l'état et les actions du bloc.
-const props = withDefaults(defineProps<{
+const props = defineProps<{
   gameId: string
   gameTitle: string
-  // Périodes déjà chargées par la page, avec leurs inscriptions
-  initialPeriods?: RegistrationPeriod[] | null
-}>(), { initialPeriods: null })
+  // Périodes lues par la page, avec leurs inscriptions ; une nouvelle lecture (changement de connexion, US-119) les
+  // remplace
+  initialPeriods: RegistrationPeriod[]
+}>()
 
 const {
   periods, errorMessage, infoMessage, infoColor, refresh,
@@ -82,6 +83,7 @@ const {
 } = provideRegistrationPeriodActions(() => props.gameId)
 const showFormEditor = ref(false)
 
-if (props.initialPeriods) periods.value = props.initialPeriods
-else await refresh()
+watch(() => props.initialPeriods, (initial) => {
+  periods.value = initial
+}, { immediate: true })
 </script>
