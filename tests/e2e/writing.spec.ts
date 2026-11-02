@@ -27,7 +27,7 @@ type Element = {
   nameLabel: string
   fill?: (form: Locator) => Promise<void>
   // Lecture en base, et adresse de sa fiche
-  find: (prisma: TestPrisma, name: string) => Promise<{ id: string, slug?: string | null } | null>
+  find: (prisma: TestPrisma, name: string) => Promise<{ id: string, slug: string } | null>
 }
 
 const ELEMENTS: Record<string, Element> = {
@@ -88,7 +88,7 @@ for (const [label, element] of Object.entries(ELEMENTS)) {
 
       // Renommage depuis la fiche
       const renamed = uniqueName(`${element.noun} renommé`)
-      await page.goto(`${element.list}/${created!.slug || created!.id}`)
+      await page.goto(`${element.list}/${created!.slug}`)
       await page.waitForLoadState('networkidle')
       await page.getByRole('button', { name: 'Modifier' }).first().click()
       await page.getByLabel(element.nameLabel, { exact: true }).fill(renamed)
@@ -97,7 +97,7 @@ for (const [label, element] of Object.entries(ELEMENTS)) {
       const saved = await element.find(prisma, renamed)
       expect(saved).toMatchObject({ id: created!.id })
       // La fiche reste ouverte à sa nouvelle adresse
-      await expect(page).toHaveURL(new RegExp(`${element.list}/${saved!.slug || saved!.id}$`))
+      await expect(page).toHaveURL(new RegExp(`${element.list}/${saved!.slug}$`))
 
       // Suppression depuis la liste
       await page.goto(element.list)
@@ -138,7 +138,7 @@ test('un événement de la timeline se crée et se renomme', async ({ page }) =>
     expect(created).toMatchObject({ gameId: game.id, day: 1, time: '14:30' })
 
     const renamed = uniqueName('Départ des invités')
-    await page.goto(`/timeline/${created.id}`)
+    await page.goto(`/timeline/${created.slug}`)
     await page.waitForLoadState('networkidle')
     await page.getByRole('button', { name: 'Modifier' }).first().click()
     await page.getByLabel('Nom', { exact: true }).fill(renamed)
@@ -197,3 +197,17 @@ test('un jeu se crée, se renomme et se partage avec une co-organisatrice', asyn
     await prisma.$disconnect()
   }
 })
+
+// Une fiche à l'adresse inconnue (lien ancien, slug changé) le dit, au lieu de rester en chargement
+for (const [path, message] of [['/documents', 'Document introuvable'], ['/timeline', 'Événement introuvable']] as const) {
+  test(`${path} : une adresse inconnue affiche « ${message} »`, async ({ page }) => {
+    const prisma = createTestPrisma()
+    try {
+      await signIn(page, prisma, E2E_USERS.orga)
+      await page.goto(`${path}/adresse-inconnue`)
+      await expect(page.getByText(message)).toBeVisible()
+    } finally {
+      await prisma.$disconnect()
+    }
+  })
+}

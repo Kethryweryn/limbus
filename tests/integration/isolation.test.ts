@@ -29,12 +29,12 @@ const resources: Resource[] = [
   { path: 'characters', model: 'character', entity: (w) => w.character, body: () => ({ name: 'Renommé' }), slugPath: 'characters/slug' },
   { path: 'factions', model: 'faction', entity: (w) => w.faction, body: (w) => ({ name: 'Renommé', gameId: w.game.id }), slugPath: 'factions/slug' },
   { path: 'intrigues', model: 'intrigue', entity: (w) => w.intrigue, body: (w) => ({ name: 'Renommé', gameId: w.game.id }), slugPath: 'intrigues/slug' },
-  { path: 'items', model: 'item', entity: (w) => w.item, body: (w) => ({ name: 'Renommé', gameId: w.game.id }) },
-  { path: 'locations', model: 'location', entity: (w) => w.location, body: (w) => ({ name: 'Renommé', gameId: w.game.id }) },
-  { path: 'documents', model: 'document', entity: (w) => w.document, body: (w) => ({ title: 'Renommé', content: 'x', gameId: w.game.id }) },
-  { path: 'timeline-events', model: 'timelineEvent', entity: (w) => w.timelineEvent, body: (w) => ({ name: 'Renommé', day: 1, time: '11:00', gameId: w.game.id }) },
-  { path: 'participants', model: 'participant', entity: (w) => w.participant, body: (w) => ({ name: 'Renommé', gameIds: [w.game.id] }) },
-  { path: 'sessions', model: 'session', entity: (w) => w.session, body: (w) => ({ name: 'Renommé', gameId: w.game.id }) },
+  { path: 'items', model: 'item', entity: (w) => w.item, body: (w) => ({ name: 'Renommé', gameId: w.game.id }), slugPath: 'items/slug' },
+  { path: 'locations', model: 'location', entity: (w) => w.location, body: (w) => ({ name: 'Renommé', gameId: w.game.id }), slugPath: 'locations/slug' },
+  { path: 'documents', model: 'document', entity: (w) => w.document, body: (w) => ({ title: 'Renommé', content: 'x', gameId: w.game.id }), slugPath: 'documents/slug' },
+  { path: 'timeline-events', model: 'timelineEvent', entity: (w) => w.timelineEvent, body: (w) => ({ name: 'Renommé', day: 1, time: '11:00', gameId: w.game.id }), slugPath: 'timeline-events/slug' },
+  { path: 'participants', model: 'participant', entity: (w) => w.participant, body: (w) => ({ name: 'Renommé', gameIds: [w.game.id] }), slugPath: 'participants/slug' },
+  { path: 'sessions', model: 'session', entity: (w) => w.session, body: (w) => ({ name: 'Renommé', gameId: w.game.id }), slugPath: 'sessions/slug' },
   {
     path: 'registration-periods',
     model: 'registrationPeriod',
@@ -63,6 +63,11 @@ describe.each(resources)('/api/$path', (resource) => {
   it.runIf(resource.slugPath)('lecture par slug : refusée chez Bob', async () => {
     expect((await api(alice, 'GET', `/api/${resource.slugPath}/${own.slug}`)).status).toBe(200)
     expect(DENIED).toContain((await api(alice, 'GET', `/api/${resource.slugPath}/${foreign.slug}`)).status)
+  })
+
+  // Un slug change avec le nom : la route par identifiant ne l'accepte pas (lecture par slug explicite)
+  it.runIf(resource.slugPath)('la route par identifiant refuse un slug', async () => {
+    expect(DENIED).toContain((await api(alice, 'GET', `/api/${resource.path}/${own.slug}`)).status)
   })
 
   it('liste : ne contient que les données accessibles', async () => {

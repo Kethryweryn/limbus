@@ -49,7 +49,7 @@
     <AppWideSlideover
       v-model:open="showFormSlideover"
       :title="formMode === 'edit' ? 'Modifier l’événement' : 'Créer un événement'"
-      :full-page-to="formMode === 'edit' && (activeFormEvent?.slug || activeFormEvent?.id) ? `/timeline/${activeFormEvent.slug || activeFormEvent.id}?edit=1` : null"
+      :full-page-to="formMode === 'edit' && activeFormEvent?.slug ? `/timeline/${activeFormEvent.slug}?edit=1` : null"
       @close="closeFormSlideover"
       @full-page="showFormSlideover = false"
     >
@@ -220,7 +220,7 @@ function openEventPage(timelineEvent: TimelineEventRow) {
     rememberTimelineGame(selectedTimelineGameId.value)
     rememberTimelineReturnContext({ source: 'timeline', gameId: selectedTimelineGameId.value, eventId: timelineEvent.id })
   }
-  router.push(`/timeline/${timelineEvent.slug || timelineEvent.id}`)
+  router.push(`/timeline/${timelineEvent.slug}`)
 }
 
 async function handleEventFormSubmit() {

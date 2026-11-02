@@ -96,13 +96,9 @@ export async function requireGameOwner(event: H3Event, gameId: string) {
 }
 
 export async function requireSessionAccess(event: H3Event, sessionId: string) {
+  // Identifiant seulement : un slug change avec le nom (lecture par slug : routes slug/[slug])
   const session = await prisma.session.findFirst({
-    where: {
-      OR: [
-        { id: sessionId },
-        { slug: sessionId }
-      ]
-    },
+    where: { id: sessionId },
     select: { id: true, gameId: true }
   })
   if (!session) {

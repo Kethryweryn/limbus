@@ -21,7 +21,7 @@
             </UBadge>
           </div>
           <div class="flex flex-wrap gap-2">
-            <UButton v-for="tab in TABS" :key="tab.key" size="xs" color="neutral" variant="soft" :to="`/sessions/${session.slug || session.id}?tab=${tab.key}`">
+            <UButton v-for="tab in TABS" :key="tab.key" size="xs" color="neutral" variant="soft" :to="`/sessions/${session.slug}?tab=${tab.key}`">
               {{ tab.label }}
             </UButton>
             <UButton size="xs" color="primary" @click="emit('edit')">Organisation</UButton>
