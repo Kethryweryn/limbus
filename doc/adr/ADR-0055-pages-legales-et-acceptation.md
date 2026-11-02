@@ -16,7 +16,7 @@ liens: [../specs/SPEC-013-pages-legales-et-conservation.md, ADR-0039-inscription
 
 - **Textes** : les trois pages sont des pages Nuxt (`pages/mentions-legales.vue`, `pages/confidentialite.vue`, `pages/conditions.vue`). Les données qui reviennent d'une page à l'autre sont dans `utils/legal.ts` :
   - éditeur, contact, hébergeur ;
-  - `TERMS_VERSION`, la date de la version en cours.
+  - `TERMS_VERSION`, la date de la version en cours, suivie d'une lettre pour une nouvelle version le même jour (`2026-11-02b`).
 
   Elles sont publiques, dans la liste des routes publiques de `app.vue`.
 - **Acceptation** : `User.termsAcceptedVersion` et `User.termsAcceptedAt`.

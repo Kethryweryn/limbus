@@ -40,7 +40,12 @@
     <ul>
       <li>L’équipe de chaque jeu auquel vous participez (propriétaire et co-organisatrices), pour ce jeu seulement. Une équipe ne voit pas les données d’une autre.</li>
       <li>Les joueurs de votre session, pour le trombinoscope : le nom de votre personnage et, si l’équipe l’a ajoutée, votre photo.</li>
-      <li>L’hébergeur, {{ LEGAL_HOST.name }}, en France, et le serveur d’envoi d’emails utilisé par Limbus.</li>
+      <li>L’hébergeur, {{ LEGAL_HOST.name }}, en France.</li>
+      <li>Brevo, en France, qui envoie les emails de Limbus.</li>
+      <li>
+        Proton, en Suisse, qui reçoit les emails écrits à {{ LEGAL_EDITOR.email }}. La Suisse est
+        reconnue par l’Union européenne comme assurant une protection adéquate des données personnelles.
+      </li>
     </ul>
     <p>Aucune donnée n’est vendue, ni utilisée pour de la publicité ou de la mesure d’audience.</p>
 
@@ -52,6 +57,7 @@
       <li>Fiche participant sans compte : effacée {{ RETENTION.participantWithoutAccountYears }} ans après sa dernière activité (dernière session ou dernière inscription), ou avant si l’équipe l’efface.</li>
       <li>Photos : supprimées après le délai choisi par l’équipe du jeu (6 mois après la session par défaut).</li>
       <li>Copies des emails envoyés : effacées après la session.</li>
+      <li>Emails écrits à {{ LEGAL_EDITOR.email }} : effacés {{ RETENTION.contactEmailYears }} ans après le dernier échange.</li>
     </ul>
 
     <h2>Vos droits</h2>
