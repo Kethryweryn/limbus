@@ -132,16 +132,31 @@ async function eraseStaleParticipants(now: Date) {
 }
 
 let running: Promise<number> | null = null
+let rerun = false
+
+async function purgeOnce(now: Date) {
+  const kept = await warnInactiveAccounts(now)
+  await deleteInactiveAccounts(now, kept)
+  return await eraseStaleParticipants(now)
+}
 
 /**
  * Lancée après une connexion réussie, sans être attendue ; une erreur est journalisée, jamais renvoyée. Une seule à la
- * fois : deux connexions rapprochées ne traitent pas deux fois les mêmes comptes.
+ * fois : deux connexions rapprochées ne traitent pas deux fois les mêmes comptes. Une demande faite pendant un
+ * passage en relance un juste après, pour ne rien laisser de côté.
  */
 export function purgeRetention(now = new Date()) {
-  running ??= (async () => {
-    const kept = await warnInactiveAccounts(now)
-    await deleteInactiveAccounts(now, kept)
-    return await eraseStaleParticipants(now)
+  if (running) {
+    rerun = true
+    return running
+  }
+  running = (async () => {
+    let erased = await purgeOnce(now)
+    while (rerun) {
+      rerun = false
+      erased += await purgeOnce(new Date())
+    }
+    return erased
   })().finally(() => {
     running = null
   })

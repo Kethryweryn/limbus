@@ -22,7 +22,7 @@ Limbus n'a pas de tâche planifiée : les autres purges passent à la connexion 
 - **Activité d'un compte** : `User.lastSeenAt`.
   - Il est mis à jour à la connexion, puis par `loadAuthUser` quand il date de plus d'un jour, sans attendre la réponse. Une mise à jour efface `inactivityWarnedAt`.
   - La migration le crée à la date du déploiement pour les comptes existants : personne n'est effacé à cause d'un passé qu'on ne connaît pas.
-- **Purge** : `purgeRetention(now)` (`server/utils/retention.ts`), lancée après chaque connexion réussie sans être attendue. Une erreur est journalisée, jamais renvoyée. Elle fait trois choses :
+- **Purge** : `purgeRetention(now)` (`server/utils/retention.ts`), lancée après chaque connexion réussie sans être attendue. Une erreur est journalisée, jamais renvoyée. Une seule tourne à la fois ; une demande faite pendant un passage en relance un juste après. Elle fait trois choses :
   1. Elle avertit par email les comptes confirmés, non désactivés, inactifs depuis 23 mois et pas encore avertis (`inactivityWarnedAt`).
   2. Elle efface par `deleteOwnAccount` les comptes inactifs depuis 24 mois et avertis depuis 25 jours au moins. Un refus (jeux possédés, dernière administratrice) est signalé une fois aux administratrices (`inactivityReportedAt`), et le compte est gardé.
   3. Elle efface par `eraseParticipant`, 50 au plus par passage, les fiches sans compte dont aucune activité n'est récente : ajout à un jeu, modification, inscription, ou session où elles ont un rôle ou un personnage, datée ou à défaut créée.
