@@ -21,7 +21,7 @@
           <UInput v-model="newUser.email" type="email" required autocomplete="off" name="new-user-contact-email" />
         </UFormField>
         <UFormField label="Rôle">
-          <USelect v-model="newUser.role" :items="USER_ROLE_OPTIONS" value-key="value" />
+          <USelect v-model="newUser.role" :items="roleItems" value-key="value" />
         </UFormField>
         <UButton type="submit" color="primary" :loading="saving">
           Créer
@@ -56,7 +56,7 @@
               <UInput v-model="user.email" type="email" autocomplete="off" :name="`managed-user-email-${user.id}`" />
             </UFormField>
             <UFormField label="Rôle">
-              <USelect v-model="user.role" :items="USER_ROLE_OPTIONS" value-key="value" />
+              <USelect v-model="user.role" :items="roleItems" value-key="value" />
             </UFormField>
             <UFormField label="Plafond de stockage (Mo)" :help="`${formatMb(user.storageUsedBytes)} utilisés`">
               <UInput v-model.number="user.storageQuotaMb" type="number" min="0" />
@@ -75,10 +75,10 @@
             <UButton color="neutral" variant="soft" size="sm" :disabled="Boolean(user.disabledAt)" @click="sendPasswordLink(user)">
               Envoyer un lien de mot de passe
             </UButton>
-            <UButton color="warning" variant="soft" size="sm" :disabled="authState?.user?.id === user.id" @click="toggleDisabled(user)">
+            <UButton color="warning" variant="soft" size="sm" :disabled="currentUserId === user.id" @click="toggleDisabled(user)">
               {{ user.disabledAt ? 'Réactiver' : 'Désactiver' }}
             </UButton>
-            <UButton color="error" variant="soft" size="sm" :disabled="authState?.user?.id === user.id" @click="deleteUser(user)">
+            <UButton color="error" variant="soft" size="sm" :disabled="currentUserId === user.id" @click="deleteUser(user)">
               Supprimer
             </UButton>
           </div>
@@ -91,22 +91,25 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { USER_ROLES, USER_ROLE_OPTIONS } from '~/utils/domain'
+import { apiErrorMessage } from '~/utils/apiErrors'
 import { formatMegabytes as formatMb } from '~/utils/fileSizes'
+import type { ApiResponse } from '~/composables/useApiFetch'
 
-const users = ref([])
+type ManagedUser = ApiResponse<'/api/admin/users'>[number]
+
+const users = ref<ManagedUser[]>([])
 const saving = ref(false)
 const savingUserId = ref('')
 const serverError = ref('')
 const notice = ref('')
 const { data: authState } = await useFetch('/api/auth/me')
+const currentUserId = computed(() => authState.value?.authenticated ? authState.value.user.id : null)
+const roleItems: Array<{ label: string, value: string }> = [...USER_ROLE_OPTIONS]
 
-const newUser = ref({
-  name: '',
-  email: '',
-  role: USER_ROLES.user
-})
+const emptyUser = () => ({ name: '', email: '', role: USER_ROLES.user as string })
+const newUser = ref(emptyUser())
 
 async function fetchUsers() {
   users.value = await useApiFetch('/api/admin/users')
@@ -116,31 +119,27 @@ async function createUser() {
   saving.value = true
   serverError.value = ''
   try {
-    const created = await useApiFetch('/api/admin/users', {
+    const created = await useApiAction('/api/admin/users', {
       method: 'POST',
       body: newUser.value
     })
     notice.value = created.emailSent
       ? `Compte créé : ${created.email} a reçu un lien pour choisir son mot de passe.`
       : `Compte créé, mais l’email n’est pas parti : utilisez « Envoyer un lien de mot de passe » sur la fiche de ${created.email}.`
-    newUser.value = {
-      name: '',
-      email: '',
-      role: USER_ROLES.user
-    }
+    newUser.value = emptyUser()
     await fetchUsers()
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
   } finally {
     saving.value = false
   }
 }
 
-async function updateUser(user) {
+async function updateUser(user: ManagedUser) {
   savingUserId.value = user.id
   serverError.value = ''
   try {
-    await useApiFetch(`/api/admin/users/${user.id}`, {
+    await useApiAction(`/api/admin/users/${user.id}`, {
       method: 'PUT',
       body: {
         name: user.name,
@@ -152,46 +151,46 @@ async function updateUser(user) {
     })
     await fetchUsers()
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
   } finally {
     savingUserId.value = ''
   }
 }
 
-async function sendPasswordLink(user) {
+async function sendPasswordLink(user: ManagedUser) {
   serverError.value = ''
   notice.value = ''
   try {
-    await useApiFetch(`/api/admin/users/${user.id}/password-link`, { method: 'POST' })
+    await useApiAction(`/api/admin/users/${user.id}/password-link`, { method: 'POST' })
     notice.value = `Lien envoyé à ${user.email}, valable 7 jours.`
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
   }
 }
 
 // Désactiver déconnecte le compte et bloque sa connexion ; ses jeux restent à leurs co-organisatrices (US-065)
-async function toggleDisabled(user) {
+async function toggleDisabled(user: ManagedUser) {
   const disabled = !user.disabledAt
   if (disabled && !confirm(`Désactiver ${user.name} ? Le compte sera déconnecté et ne pourra plus se connecter.`)) return
   serverError.value = ''
   notice.value = ''
   try {
-    await useApiFetch(`/api/admin/users/${user.id}`, { method: 'PUT', body: { disabled } })
+    await useApiAction(`/api/admin/users/${user.id}`, { method: 'PUT', body: { disabled } })
     await fetchUsers()
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
   }
 }
 
-async function deleteUser(user) {
+async function deleteUser(user: ManagedUser) {
   if (!confirm(`Supprimer ${user.name} ?`)) return
 
   serverError.value = ''
   try {
-    await useApiFetch(`/api/admin/users/${user.id}`, { method: 'DELETE' })
+    await useApiAction(`/api/admin/users/${user.id}`, { method: 'DELETE' })
     await fetchUsers()
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
   }
 }
 

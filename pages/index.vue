@@ -105,19 +105,21 @@
 import { ref, onMounted } from 'vue'
 import { fetchOffline, useConnectionRefresh } from '~/composables/useOfflineList'
 import { initialSpace } from '~/utils/spaces'
+import type { ApiResponse } from '~/composables/useApiFetch'
 
-const dashboardData = ref<any>(null)
+const dashboardData = ref<ApiResponse<'/api/dashboard'> | null>(null)
 const pending = ref(true)
 
-const formatDateTime = (value: string) => new Date(value).toLocaleString('fr-FR', {
+// Date de la prochaine session : toujours posée (le serveur ne retient que les sessions datées à venir)
+const formatDateTime = (value: string | null) => value ? new Date(value).toLocaleString('fr-FR', {
   day: 'numeric',
   month: 'long',
   year: 'numeric',
   hour: '2-digit',
   minute: '2-digit'
-})
+}) : 'Non renseignée'
 
-const formatLocation = (location: any) => {
+const formatLocation = (location: { name: string, address?: string | null } | null | undefined) => {
   if (!location) return 'Non renseigné'
   return location.address ? `${location.name} - ${location.address}` : location.name
 }

@@ -107,13 +107,16 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { apiErrorMessage } from '~/utils/apiErrors'
+import type { ApiResponse } from '~/composables/useApiFetch'
+
 const secureOptions = [
   { label: 'STARTTLS ou non sécurisé (ports 587/25)', value: 'starttls' },
   { label: 'TLS direct (port 465)', value: 'tls' }
 ]
 
-const settings = ref(null)
+const settings = ref<ApiResponse<'/api/admin/smtp'> | null>(null)
 const saving = ref(false)
 const testing = ref(false)
 const testCooldown = ref(false)
@@ -134,7 +137,7 @@ const form = ref({
 
 const secureMode = computed({
   get: () => form.value.secure ? 'tls' : 'starttls',
-  set: (value) => {
+  set: (value: string) => {
     form.value.secure = value === 'tls'
     form.value.port = value === 'tls' ? 465 : 587
   }
@@ -156,24 +159,27 @@ async function fetchSettings() {
   }
 }
 
-async function saveSettings() {
+// Mot de passe : vide pour garder l'actuel ; null le retire
+const saveSettings = () => save(form.value.password || undefined)
+
+async function save(password: string | null | undefined) {
   saving.value = true
   serverError.value = ''
   message.value = ''
 
   try {
-    settings.value = await useApiFetch('/api/admin/smtp', {
+    settings.value = await useApiAction('/api/admin/smtp', {
       method: 'PUT',
       body: {
         ...form.value,
         port: Number(form.value.port),
-        password: form.value.password === null ? null : form.value.password || undefined
+        password
       }
     })
     form.value.password = ''
     message.value = 'Configuration SMTP enregistrée.'
   } catch (err) {
-    serverError.value = err?.data?.message || err?.statusMessage || err?.message || 'Impossible d’enregistrer la configuration SMTP'
+    serverError.value = apiErrorMessage(err, 'Impossible d’enregistrer la configuration SMTP')
   } finally {
     saving.value = false
   }
@@ -182,8 +188,7 @@ async function saveSettings() {
 async function clearPassword() {
   if (!confirm('Retirer le mot de passe SMTP enregistré ?')) return
 
-  form.value.password = null
-  await saveSettings()
+  await save(null)
 }
 
 async function sendTest() {
@@ -192,13 +197,13 @@ async function sendTest() {
   message.value = ''
 
   try {
-    await useApiFetch('/api/admin/smtp/test', {
+    await useApiAction('/api/admin/smtp/test', {
       method: 'POST',
       body: { to: testEmail.value }
     })
     message.value = `Email de test envoyé à ${testEmail.value}.`
   } catch (err) {
-    serverError.value = err?.data?.message || err?.statusMessage || err?.message || 'Impossible d’envoyer l’email de test'
+    serverError.value = apiErrorMessage(err, 'Impossible d’envoyer l’email de test')
   } finally {
     testing.value = false
     testCooldown.value = true

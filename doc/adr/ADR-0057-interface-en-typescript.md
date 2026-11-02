@@ -3,7 +3,7 @@ id: ADR-0057
 titre: Interface en TypeScript strict, réponses déduites des routes Nitro, règle de lint étendue lot par lot
 statut: accepté
 date: 2026-11-02
-liens: [../todo/interface-en-typescript.md, ../revues/2026-10-29-architecture.md, ADR-0036-protocole-de-resynchronisation.md]
+liens: [../archive/todo/interface-en-typescript.md, ../revues/2026-10-29-architecture.md, ADR-0036-protocole-de-resynchronisation.md]
 ---
 
 # ADR-0057 : Interface en TypeScript strict, réponses déduites des routes Nitro, règle de lint étendue lot par lot

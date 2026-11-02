@@ -25,6 +25,9 @@ export type DocumentDraft = Draft<ApiResponse<'/api/documents/:id'>, 'game' | 'c
 
 export type LocationDraft = Draft<ApiResponse<'/api/locations/:id'>, 'game'>
 
+/** Fiche participant en cours d'édition : ses jeux en identifiants, ses notes par jeu (US-069). */
+export type ParticipantDraft = Draft<ApiResponse<'/api/participants/:id'>, 'games'> & { gameIds?: string[] }
+
 export type TimelineEventDraft = Draft<ApiResponse<'/api/timeline-events/:id'>, 'game' | 'characters' | 'factions' | 'intrigues' | 'items'>
   & { characterIds?: string[], factionIds?: string[], intrigueIds?: string[], itemIds?: string[] }
 

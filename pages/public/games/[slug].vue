@@ -1,5 +1,5 @@
 <template>
-  <main v-if="game && !game.redirectSlug" class="light min-h-screen bg-gray-50 text-gray-900" style="color-scheme: light;">
+  <main v-if="game" class="light min-h-screen bg-gray-50 text-gray-900" style="color-scheme: light;">
     <div class="p-6 max-w-7xl mx-auto">
       <GamePageContent :game="game" :thumbnail-url="`/api/public/games/${game.slug}/teaser-thumbnail`" />
 
@@ -28,25 +28,28 @@
   </main>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { PARIS_TIME_ZONE, formatLongDate } from '~/utils/dates'
+
 definePageMeta({
   layout: false,
   colorMode: 'light'
 })
 
 const route = useRoute()
-const { data: game, error } = await useFetch(`/api/public/games/${route.params.slug}`)
+const { data, error } = await useFetch(`/api/public/games/${route.params.slug}`)
 
 if (error.value) {
   throw createError({ statusCode: error.value.statusCode || 404, message: 'Jeu non publié' })
 }
 // Ancienne adresse d'un jeu renommé : redirection permanente vers la nouvelle (US-045)
-if (game.value?.redirectSlug) {
-  await navigateTo(`/public/games/${game.value.redirectSlug}`, { redirectCode: 301, replace: true })
+// La réponse d'un jeu renommé ne porte que sa nouvelle adresse
+const game = computed(() => data.value && !('redirectSlug' in data.value) ? data.value : null)
+if (data.value && 'redirectSlug' in data.value) {
+  await navigateTo(`/public/games/${data.value.redirectSlug}`, { redirectCode: 301, replace: true })
 }
 
-const formatDate = (value) => formatLongDate(value, PARIS_TIME_ZONE)
+const formatDate = (value: string | Date) => formatLongDate(value, PARIS_TIME_ZONE)
 
 useHead(() => ({
   title: game.value ? `${game.value.title} - Limbus` : 'Limbus',

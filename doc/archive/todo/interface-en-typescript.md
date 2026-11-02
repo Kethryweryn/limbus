@@ -1,8 +1,8 @@
 ---
 titre: Passer l'interface en TypeScript
-statut: en cours
+statut: archivée
 date: 2026-10-29
-revue: ../revues/2026-10-29-architecture.md
+revue: ../../revues/2026-10-29-architecture.md
 ---
 
 # Passer l'interface en TypeScript
@@ -24,7 +24,8 @@ Un chantier dédié qui passe tous les composants en `lang="ts"`, avec des types
 
 ## Suivi
 
-- 2026-11-02 : choix de l'utilisatrice : réponses déduites des routes, strict dès le départ, une PR par domaine, gros écrans découpés. [EPIC-031](../epics/EPIC-031-interface-en-typescript/README.md), [ADR-0057](../adr/ADR-0057-interface-en-typescript.md) ; lot 1 (fondations) fait.
+- 2026-11-02 : choix de l'utilisatrice : réponses déduites des routes, strict dès le départ, une PR par domaine, gros écrans découpés. [EPIC-031](../epics/EPIC-031-interface-en-typescript/README.md), [ADR-0057](../../adr/ADR-0057-interface-en-typescript.md) ; lot 1 (fondations) fait.
+- 2026-11-02 : lots 2 à 5 faits (US-115 à US-118) : toute l’interface est en TypeScript strict, et la règle de lint couvre tous les `.vue`. EPIC-031 terminé.
 
 ## Points à trancher
 

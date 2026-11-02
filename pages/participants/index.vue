@@ -28,7 +28,7 @@
             <div class="flex items-center gap-3 min-w-0">
               <UAvatar icon="i-heroicons-user" />
               <div class="min-w-0">
-                <NuxtLink :to="`/participants/${participant.slug || participant.id}`" class="font-semibold truncate hover:underline">
+                <NuxtLink :to="`/participants/${participant.slug || participant.id}`" class="block font-semibold truncate hover:underline">
                   {{ participant.name }}
                 </NuxtLink>
                 <div class="flex flex-wrap gap-1 mt-1" :title="formatParticipantGames(participant)">
@@ -103,20 +103,24 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import { computed, onMounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import ParticipantForm from '@/components/ParticipantForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import type { ParticipantDraft } from '~/utils/writingDrafts'
 
-const participants = ref([])
-const games = ref([])
+type ParticipantRow = ApiResponse<'/api/participants'>[number]
+
+const participants = ref<ParticipantRow[]>([])
+const games = ref<ApiResponse<'/api/games'>>([])
 const searchQuery = ref('')
 const gameFilter = ref('all')
 const showFormSlideover = ref(false)
-const activeFormParticipant = ref(null)
-const formMode = ref('create')
+const activeFormParticipant = ref<ParticipantDraft | null>(null)
+const formMode = ref<'create' | 'edit'>('create')
 const { game: selectedGame } = useGameFocus()
 
 const gameFilterOptions = computed(() => [
@@ -129,9 +133,9 @@ const filteredParticipants = computed(() => {
   const gameId = selectedGame.value?.id || (gameFilter.value === 'all' ? '' : gameFilter.value)
 
   return participants.value
-    .filter((participant) => !gameId || participant.games?.some((game) => game.id === gameId))
+    .filter((participant) => !gameId || participant.games.some((game) => game.id === gameId))
     .filter((participant) =>
-      [participant.name, participant.email, participant.phone, ...(participant.games || []).map((game) => game.title)].some((field) =>
+      [participant.name, participant.email, participant.phone, ...participant.games.map((game) => game.title)].some((field) =>
         field?.toLowerCase().includes(term)
       )
     )
@@ -159,16 +163,16 @@ watch([searchQuery, gameFilter, filteredParticipants], () => {
   page.value = 1
 })
 
-const formatParticipantGames = (participant) => {
-  if (!participant.games?.length) return 'Aucun jeu'
+const formatParticipantGames = (participant: ParticipantRow) => {
+  if (!participant.games.length) return 'Aucun jeu'
   return participant.games.map((game) => game.title).join(', ')
 }
 
 // Notes de chaque jeu accessible, s'il y en a (US-069)
-const gamesWithNotes = (participant) => (participant.games || []).filter((game) => participant.gameNotes?.[game.id])
-const visibleParticipantGames = (participant) => participant.games?.slice(0, 2) || []
+const gamesWithNotes = (participant: ParticipantRow) => participant.games.filter((game) => participant.gameNotes[game.id])
+const visibleParticipantGames = (participant: ParticipantRow) => participant.games.slice(0, 2)
 
-const hiddenParticipantGamesCount = (participant) => Math.max((participant.games?.length || 0) - visibleParticipantGames(participant).length, 0)
+const hiddenParticipantGamesCount = (participant: ParticipantRow) => Math.max(participant.games.length - visibleParticipantGames(participant).length, 0)
 
 const fetchParticipants = async () => {
   participants.value = await fetchOfflineList('participants', '/api/participants')
@@ -200,10 +204,10 @@ function startCreate() {
   showFormSlideover.value = true
 }
 
-function startEdit(participant) {
+function startEdit(participant: ParticipantRow) {
   activeFormParticipant.value = {
     ...participant,
-    gameIds: participant.games?.map((game) => game.id) || []
+    gameIds: participant.games.map((game) => game.id)
   }
   formMode.value = 'edit'
   showFormSlideover.value = true
@@ -215,6 +219,7 @@ function closeFormSlideover() {
 }
 
 async function handleParticipantFormSubmit() {
+  if (!activeFormParticipant.value) return
   if (formMode.value === 'create') {
     await useApiFetch('/api/participants', {
       method: 'POST',
@@ -231,7 +236,7 @@ async function handleParticipantFormSubmit() {
   await fetchParticipants()
 }
 
-async function deleteParticipant(id) {
+async function deleteParticipant(id: string) {
   if (!confirm('Supprimer définitivement ce participant et ses données (coordonnées, photos, paiements, envois) ? Les rôles de session restent, sans participant. Les trombinoscopes où figurait sa photo devront être régénérés.')) return
 
   await useApiFetch(`/api/participants/${id}`, { method: 'DELETE' })
