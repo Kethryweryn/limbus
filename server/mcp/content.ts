@@ -145,7 +145,7 @@ export function registerContentTools({ event, server }: ToolContext) {
 
   server.registerTool('lister_relations', {
     title: 'Relations entre personnages',
-    description: 'Relations entre les personnages d’un jeu : type, description, libellé et visibilité de chaque côté.',
+    description: 'Relations entre les personnages d’un jeu : type, description, libellé et visibilité de chaque côté, avec leur version (updatedAt).',
     inputSchema: z.object({ jeuId: z.string() }),
     annotations: READ_ONLY
   }, ({ jeuId }) => toolResult(async () => {
@@ -154,7 +154,7 @@ export function registerContentTools({ event, server }: ToolContext) {
       where: { gameId: jeuId },
       orderBy: { createdAt: 'asc' },
       select: {
-        id: true, type: true, description: true,
+        id: true, type: true, description: true, updatedAt: true,
         fromCharacter: named, fromLabel: true, fromVisible: true,
         toCharacter: named, toLabel: true, toVisible: true
       }

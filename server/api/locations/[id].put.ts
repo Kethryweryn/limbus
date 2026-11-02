@@ -1,38 +1,10 @@
-import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
-import { locationSchema, readZodBody } from '~/server/utils/schemas'
-import { requireGameAccess, assertSameGame } from '~/server/utils/gameAccess'
-import { assertUnmodifiedSince } from '~/server/utils/concurrency'
-import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
+import { readZodBody, locationSchema } from '~/server/utils/schemas'
 import { requireRouterParam } from '~/server/utils/routeParams'
+import { updateLocation } from '~/server/utils/contentWrites'
 
+// Écriture commune à l'interface et aux assistants d'IA (server/utils/contentWrites.ts, US-126)
 export default defineEventHandler(async (event) => {
   await requireUser(event)
-
-  const id = requireRouterParam(event, 'id')
-  const location = await prisma.location.findUnique({ where: { id }, select: { gameId: true } })
-  if (!location) {
-    throw createError({ statusCode: 404, message: 'Lieu introuvable' })
-  }
-  await requireGameAccess(event, location.gameId)
-  await assertUnmodifiedSince(event, 'location', id)
-
-  const body = await readZodBody(event, locationSchema)
-  assertSameGame(location.gameId, body.gameId)
-  const { name, address, notes, gameId } = body
-  await requireGameAccess(event, gameId)
-
-  return await prisma.location.update({
-    where: { id },
-    data: {
-      name,
-      slug: await generateUniqueSlug('location', name, id),
-      address: address || null,
-      notes: notes || null,
-      gameId
-    },
-    include: {
-      game: true
-    }
-  })
+  return await updateLocation(event, requireRouterParam(event, 'id'), () => readZodBody(event, locationSchema))
 })

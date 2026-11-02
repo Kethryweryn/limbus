@@ -1,35 +1,9 @@
-import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
 import { itemSchema, readZodBody } from '~/server/utils/schemas'
-import { requireGameAccess } from '~/server/utils/gameAccess'
-import { itemInclude, validateItemRelations } from '~/server/utils/items'
-import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
+import { createItem } from '~/server/utils/contentWrites'
 
+// Écriture commune à l'interface et aux assistants d'IA (server/utils/contentWrites.ts, US-126)
 export default defineEventHandler(async (event) => {
   await requireUser(event)
-
-  const body = await readZodBody(event, itemSchema)
-  await requireGameAccess(event, body.gameId)
-  const characterIds = [...new Set(body.characterIds)]
-  const intrigueIds = [...new Set(body.intrigueIds)]
-  await validateItemRelations(body.gameId, characterIds, intrigueIds, body.locationCharacterId)
-
-  return await prisma.item.create({
-    data: {
-      name: body.name,
-      slug: await generateUniqueSlug('item', body.name),
-      description: body.description,
-      quantity: body.quantity ?? 1,
-      locationText: body.locationCharacterId ? null : body.locationText,
-      locationCharacterId: body.locationCharacterId || null,
-      gameId: body.gameId,
-      characters: {
-        connect: characterIds.map((characterId) => ({ id: characterId }))
-      },
-      intrigues: {
-        connect: intrigueIds.map((intrigueId) => ({ id: intrigueId }))
-      }
-    },
-    include: itemInclude
-  })
+  return await createItem(event, () => readZodBody(event, itemSchema))
 })

@@ -1,7 +1,10 @@
 import { prisma } from '~/server/utils/prisma'
 
-// Version lue par le client (ADR-0036) : la date de l'en-tête If-Unmodified-Since, ou null sans en-tête
+// Version lue par le client (ADR-0036) : celle donnée par un outil d'assistant d'IA (SPEC-014, R10), sinon la date de
+// l'en-tête If-Unmodified-Since, ou null sans en-tête
 function readVersion(event: any) {
+  const given: Date | undefined = event.context?.writeVersion
+  if (given) return given
   const raw = getHeader(event, 'if-unmodified-since')
   if (!raw) return null
 

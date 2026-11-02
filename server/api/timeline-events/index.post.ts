@@ -1,35 +1,9 @@
-import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
-import { readZodBody, timelineEventSchema } from '~/server/utils/schemas'
-import { requireGameAccess } from '~/server/utils/gameAccess'
-import { timelineEventInclude, validateTimelineEventRelations } from '~/server/utils/timelineEvents'
-import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
+import { timelineEventSchema, readZodBody } from '~/server/utils/schemas'
+import { createTimelineEvent } from '~/server/utils/contentWrites'
 
+// Écriture commune à l'interface et aux assistants d'IA (server/utils/contentWrites.ts, US-126)
 export default defineEventHandler(async (event) => {
   await requireUser(event)
-
-  const body = await readZodBody(event, timelineEventSchema)
-  await requireGameAccess(event, body.gameId)
-  const characterIds = [...new Set(body.characterIds)]
-  const factionIds = [...new Set(body.factionIds)]
-  const intrigueIds = [...new Set(body.intrigueIds)]
-  const itemIds = [...new Set(body.itemIds)]
-  await validateTimelineEventRelations(body.gameId, characterIds, factionIds, intrigueIds, itemIds)
-
-  return await prisma.timelineEvent.create({
-    data: {
-      name: body.name,
-      slug: await generateUniqueSlug('timelineEvent', body.name),
-      description: body.description,
-      day: body.day,
-      time: body.time,
-      requiredResponsibles: body.requiredResponsibles,
-      gameId: body.gameId,
-      characters: { connect: characterIds.map((id) => ({ id })) },
-      factions: { connect: factionIds.map((id) => ({ id })) },
-      intrigues: { connect: intrigueIds.map((id) => ({ id })) },
-      items: { connect: itemIds.map((id) => ({ id })) }
-    },
-    include: timelineEventInclude
-  })
+  return await createTimelineEvent(event, () => readZodBody(event, timelineEventSchema))
 })

@@ -4,7 +4,7 @@ titre: Brancher une IA sur ses jeux
 statut: validée
 date: 2026-11-02
 origine: ../archive/todo/api-pour-ia.md
-epics: [EPIC-033]
+epics: [EPIC-033, EPIC-034]
 adr: [ADR-0038, ADR-0042, ADR-0043, ADR-0053, ADR-0055, ADR-0058]
 ---
 
@@ -98,8 +98,8 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
 ### Ce que l'assistant écrit
 
 - **R10 Écriture.** Avec une autorisation en lecture et écriture, sur les jeux de son autorisation, l'assistant peut :
-  - créer un jeu et modifier un jeu, sauf ses réglages de page publique, de photos et de contact ;
-  - créer, modifier et supprimer personnages, factions, intrigues, objets, documents (texte), lieux, événements de la chronologie et relations entre personnages ;
+  - créer un jeu et modifier un jeu, sauf ses réglages de page publique, de photos et de contact, et sans l'archiver ni le restaurer ;
+  - créer, modifier et supprimer personnages, factions, intrigues, objets, documents (texte), lieux, événements de la chronologie et relations entre personnages. Il écrit leurs textes et leurs liens, marque une fiche ou un document « prêt à envoyer », et règle le trombinoscope d'un personnage (nom affiché, note, visage caché, exclusion), mais jamais sa photo. Une suppression est définitive, comme dans l'interface, et le journal garde le nom de l'élément ;
   - créer et modifier une session (détails, équipe, casting, déroulé), sans l'annuler, la reporter ni la supprimer ;
   - lancer l'assistant de casting d'une session ;
   - créer et modifier une fiche participant (nom et notes d'organisation du jeu). Le nom d'une fiche rattachée à un compte reste celui du compte ([ADR-0042](../adr/ADR-0042-coordonnees-du-compte.md)) ;
@@ -112,7 +112,7 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
   - Rien n'est publié ni partagé : page publique, ouverture d'une période, lien de diffusion, partage, transfert ou legs d'un jeu.
   - Rien n'est supprimé au-delà de R10 : ni un jeu, ni une session, ni un participant. Une session n'est pas non plus annulée ni reportée.
   - Les paiements et les tarifs restent hors de portée.
-  - Aucun fichier n'est téléversé.
+  - Aucun fichier n'est téléversé, et aucun lien n'est posé ni changé (vidéo de présentation, fichier d'un background ou d'un document) : un lien choisi par un assistant manipulé pourrait faire sortir des informations.
 
   Choix de l'utilisatrice (2026-11-02) : modifier un contenu déjà visible sur la page publique reste permis. Cela vaut pour la description d'un jeu dont la page est active, une session publiée ou le formulaire d'une période ouverte. Le journal en garde la trace. Ce qui est interdit, c'est de rendre public : activer la page, ouvrir une période, publier un lien.
 - **R12 Règles communes.** Un outil applique les mêmes contrôles que l'interface :
@@ -177,7 +177,7 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
    - journal, limite de débit, politique de confidentialité et conditions d'utilisation ;
    - outils de lecture (R7 à R9) ;
    - essai de bout en bout avec Claude, ChatGPT et Mistral, avec les comptes de l'utilisatrice.
-2. **Écriture du contenu d'un jeu** : jeu, personnages, factions, intrigues, objets, documents, lieux, chronologie, relations.
+2. **Écriture du contenu d'un jeu** ([EPIC-034](../epics/EPIC-034-ia-ecriture-du-contenu/README.md)) : jeu, personnages, factions, intrigues, objets, documents, lieux, chronologie, relations.
 3. **Sessions, casting et participants** : sessions, casting, déroulé, assistant de casting, fiches participant.
 4. **Inscriptions** : périodes fermées, formulaire, décisions, tirage au sort.
 
@@ -186,3 +186,4 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
 - 2026-11-02 : création, avec les choix de l'utilisatrice.
 - 2026-11-02 (revue) : contenu public modifiable, lectures hors journal (choix de l'utilisatrice) ; une autorisation finie est effacée, sans délai inventé.
 - 2026-11-02 : lot 1 livré et essayé avec Claude ([EPIC-033](../archive/epics/EPIC-033-ia-connexion-et-lecture/README.md)) ; ChatGPT et Mistral seront essayés quand une organisatrice voudra s'en servir.
+- 2026-11-03 : lot 2, choix de l'utilisatrice : aucun lien, « prêt à envoyer » et trombinoscope permis, pas d'archivage du jeu, suppression définitive. Limbus n'archive pas un élément seul.

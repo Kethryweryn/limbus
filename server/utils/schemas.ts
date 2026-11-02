@@ -79,15 +79,18 @@ const optionalEmail = z.string().trim().default('').refine(
 )
 
 export async function readZodBody<T>(event: H3Event, schema: ZodType<T>): Promise<T> {
-  return await readValidatedBody(event, (body) => {
-    const result = schema.safeParse(body)
-    if (result.success) return result.data
+  return await readValidatedBody(event, (body) => parseZod(schema, body))
+}
 
-    throw createError({
-      statusCode: 400,
-      message: 'Invalid request body',
-      data: formatZodError(result.error)
-    })
+/** Valide une valeur déjà lue (outils des assistants d'IA, US-126) : même refus 400 que readZodBody. */
+export function parseZod<T>(schema: ZodType<T>, value: unknown): T {
+  const result = schema.safeParse(value)
+  if (result.success) return result.data
+
+  throw createError({
+    statusCode: 400,
+    message: 'Invalid request body',
+    data: formatZodError(result.error)
   })
 }
 

@@ -16,15 +16,18 @@
 
 <script setup lang="ts">
 import { formatLongDateTime } from '~/utils/dates'
-import { AI_LOG_ACTION_LABELS } from '~/utils/aiAssistants'
+import { AI_LOG_ACTION_LABELS, AI_TARGET_LABELS } from '~/utils/aiAssistants'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
 type LogEntry = ApiResponse<'/api/account/ai-log'>[number]
 
 withDefaults(defineProps<{ entries: LogEntry[], showUser?: boolean }>(), { showUser: false })
 
+// « personnage créé : Aélis », ou « autorisé » pour une autorisation
 function entryLabel(entry: LogEntry) {
   const label = AI_LOG_ACTION_LABELS[entry.action] ?? entry.action
-  return entry.targetName ? `${label} : ${entry.targetName}` : label
+  const target = entry.targetType ? AI_TARGET_LABELS[entry.targetType] ?? entry.targetType : ''
+  const what = target ? `${target} ${label}` : label
+  return entry.targetName ? `${what} : ${entry.targetName}` : what
 }
 </script>

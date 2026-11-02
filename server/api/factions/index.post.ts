@@ -1,51 +1,9 @@
-import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
-import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { factionSchema, readZodBody } from '~/server/utils/schemas'
-import { requireGameAccess } from '~/server/utils/gameAccess'
+import { createFaction } from '~/server/utils/contentWrites'
 
+// Écriture commune à l'interface et aux assistants d'IA (server/utils/contentWrites.ts, US-126)
 export default defineEventHandler(async (event) => {
   await requireUser(event)
-
-  const body = await readZodBody(event, factionSchema)
-  await requireGameAccess(event, body.gameId)
-  const slug = await generateUniqueSlug('faction', body.name)
-
-  if (body.characterIds.length) {
-    const matchingCharacters = await prisma.character.count({
-      where: {
-        id: { in: body.characterIds },
-        gameId: body.gameId
-      }
-    })
-
-    if (matchingCharacters !== body.characterIds.length) {
-      throw createError({ statusCode: 400, message: 'Personnages invalides pour ce jeu' })
-    }
-  }
-
-  return await prisma.faction.create({
-    data: {
-      name: body.name,
-      slug,
-      pitch: body.pitch,
-      background: body.background,
-      backgroundDocumentUrl: body.backgroundDocumentUrl,
-      costumeIndications: body.costumeIndications,
-      showInTrombinoscope: body.showInTrombinoscope ?? false,
-      gameId: body.gameId,
-      characters: {
-        connect: body.characterIds.map((id) => ({ id }))
-      }
-    },
-    include: {
-      game: true,
-      characters: {
-        orderBy: { name: 'asc' }
-      },
-      intrigues: {
-        orderBy: { updatedAt: 'desc' }
-      }
-    }
-  })
+  return await createFaction(event, () => readZodBody(event, factionSchema))
 })
