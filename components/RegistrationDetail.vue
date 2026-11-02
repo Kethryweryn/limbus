@@ -154,7 +154,8 @@ const errorMessage = ref('')
 
 const statusMeta = computed(() => registration.value ? registrationStatusMeta(registration.value) : { label: '', color: 'neutral' as const })
 
-const load = (id: string) => useApiFetch(`/api/registrations/${id}`)
+// Gardée sur l'appareil, allergies et affinités comprises, pour être lue hors ligne (US-120)
+const load = (id: string) => useApiFetch(`/api/registrations/${id}`, { offlineCache: true })
 
 watch([open, () => props.registrationId], async ([isOpen, id]) => {
   if (!isOpen || !id) return

@@ -48,6 +48,7 @@ import { useGameFocus } from '@/composables/useGameFocus'
 import { isArchivedGame } from '~/utils/games'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
+import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import type { RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
 
 const { game: selectedGame } = useGameFocus()
@@ -58,20 +59,27 @@ const errorMessage = ref('')
 
 const periodsByGame = ref<Record<string, RegistrationPeriod[]>>({})
 
-// Une seule requête pour toutes les périodes et leurs inscriptions ; chaque bloc se recharge ensuite seul
-try {
-  const [allGames, periods] = await Promise.all([
-    useApiFetch('/api/games'),
-    useApiFetch('/api/registration-periods')
-  ])
-  games.value = allGames
-  periodsByGame.value = periods.reduce<Record<string, RegistrationPeriod[]>>((groups, period) => {
-    (groups[period.gameId] ||= []).push(period)
-    return groups
-  }, {})
-} catch (err) {
-  errorMessage.value = apiErrorMessage(err, 'Impossible de charger les jeux')
+// Une seule requête pour toutes les périodes et leurs inscriptions ; chaque bloc se recharge ensuite seul. La page se
+// lit hors ligne depuis sa dernière version sur l'appareil (US-119)
+async function loadData() {
+  try {
+    const [allGames, periods] = await Promise.all([
+      fetchOfflineList('games', '/api/games'),
+      useApiFetch('/api/registration-periods', { offlineCache: true })
+    ])
+    games.value = allGames
+    periodsByGame.value = periods.reduce<Record<string, RegistrationPeriod[]>>((groups, period) => {
+      (groups[period.gameId] ||= []).push(period)
+      return groups
+    }, {})
+    errorMessage.value = ''
+  } catch (err) {
+    errorMessage.value = apiErrorMessage(err, 'Impossible de charger les inscriptions')
+  }
 }
+
+useConnectionRefresh(loadData)
+onMounted(loadData)
 
 const visibleGames = computed(() => games.value.filter((game) => showArchived.value || !isArchivedGame(game)))
 

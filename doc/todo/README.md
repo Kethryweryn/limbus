@@ -9,7 +9,6 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Supervision](supervision.md) | en partie traitée | 2026-10-29 | Route de santé et sondes Better Stack faites ; reste les journaux structurés, si besoin (revue R-15, R-16) |
 | [Numéros de version et notes de version](versions-et-notes-de-version.md) | à trancher | 2026-10-29 | Version sémantique, étiquettes git et notes de version à partir de la première version publiée |
 | [Indicateurs du questionnaire de casting](indicateurs-du-questionnaire-de-casting.md) | brouillon | 2026-11-02 | Repères compréhensibles sans formation en statistiques : questions qui ne départagent pas, personnages trop proches, rôles sans réponse ; état de l'art à rechercher à la spécification |
-| [Page Inscriptions lisible hors ligne](inscriptions-hors-ligne.md) | brouillon | 2026-11-02 | Inscriptions et détail lisibles depuis l'appareil sans réseau, en lecture seule (revue de la PR #95) |
 
 ## Archivées
 
@@ -26,3 +25,4 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Photos et RGPD](../archive/todo/photos-et-rgpd.md) | [SPEC-012](../specs/SPEC-012-photos-des-participants.md) ([EPIC-028](../archive/epics/EPIC-028-photos-des-participants/README.md)) | 2026-11-01 |
 | [Interface en TypeScript](../archive/todo/interface-en-typescript.md) | [EPIC-031](../archive/epics/EPIC-031-interface-en-typescript/README.md) | 2026-11-02 |
 | [Un compte pour tout le monde](../archive/todo/comptes-participants.md) | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md), [SPEC-013](../specs/SPEC-013-pages-legales-et-conservation.md) | 2026-11-02 |
+| [Page Inscriptions lisible hors ligne](../archive/todo/inscriptions-hors-ligne.md) | [EPIC-032](../archive/epics/EPIC-032-inscriptions-hors-ligne/README.md) | 2026-11-02 |

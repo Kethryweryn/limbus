@@ -82,6 +82,11 @@ const {
 } = provideRegistrationPeriodActions(() => props.gameId)
 const showFormEditor = ref(false)
 
+// La page relit ses périodes au changement de connexion (US-119) : le bloc reprend sa nouvelle version
+watch(() => props.initialPeriods, (initial) => {
+  if (initial) periods.value = initial
+})
+
 if (props.initialPeriods) periods.value = props.initialPeriods
 else await refresh()
 </script>

@@ -2,6 +2,7 @@ import { computed, inject, provide, ref, type InjectionKey } from 'vue'
 import { fetchByUrl, useApiAction, type ApiResponse } from '~/composables/useApiFetch'
 import { apiErrorMessage, apiFieldErrors } from '~/utils/apiErrors'
 import { REGISTRATION_PERIOD_STATES, REGISTRATION_STATUSES } from '~/utils/domain'
+import { getCachedResponse, saveCachedResponse } from '~/utils/storage'
 
 // Bloc d'un jeu sur la page Inscriptions (US-117) : les périodes, leurs inscriptions et les actions partagées par ses
 // sections (période, sélection, invitations, prolongation)
@@ -27,6 +28,15 @@ export const plural = (count: number, word: string) => `${count} ${word}${count 
 export const sendFailures = (failures: Array<{ participantName: string, message: string | null }>) =>
   failures.map((failure) => `${failure.participantName} (${failure.message})`)
 
+// La page Inscriptions se lit hors ligne depuis sa dernière lecture (US-119) : un bloc relu après une action y reporte
+// ses périodes, pour que l'appareil garde l'état le plus récent
+const ALL_PERIODS = '/api/registration-periods'
+async function keepPeriodsOffline(gameId: string, periods: RegistrationPeriod[]) {
+  const cached = await getCachedResponse<RegistrationPeriod[]>(ALL_PERIODS)
+  if (!cached) return
+  await saveCachedResponse(ALL_PERIODS, [...cached.filter((period) => period.gameId !== gameId), ...periods])
+}
+
 function createActions(gameId: () => string) {
   const periods = ref<RegistrationPeriod[]>([])
   const errorMessage = ref('')
@@ -40,8 +50,10 @@ function createActions(gameId: () => string) {
 
   async function refresh() {
     try {
-      periods.value = await fetchByUrl<RegistrationPeriod[]>(`/api/registration-periods?gameId=${encodeURIComponent(gameId())}`)
+      periods.value = await fetchByUrl<RegistrationPeriod[]>(`${ALL_PERIODS}?gameId=${encodeURIComponent(gameId())}`)
       errorMessage.value = ''
+      // Un appareil sans stockage (navigation privée…) n'empêche pas d'afficher les périodes
+      await keepPeriodsOffline(gameId(), periods.value).catch((error) => console.error('[storage] périodes d’inscription', error))
     } catch (err) {
       errorMessage.value = apiErrorMessage(err, 'Impossible de charger les périodes d’inscription')
     }
