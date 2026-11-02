@@ -56,10 +56,10 @@
         <UCard>
           <template #header>Jeux</template>
           <div class="flex flex-wrap gap-2">
-            <UBadge v-for="game in participant.games" :key="game.id" color="neutral" variant="subtle">
+            <UBadge v-for="game in shownGames" :key="game.id" color="neutral" variant="subtle">
               {{ game.title }}
             </UBadge>
-            <span v-if="!participant.games?.length" class="text-sm text-gray-500">Aucun jeu</span>
+            <span v-if="!shownGames.length" class="text-sm text-gray-500">Aucun jeu</span>
           </div>
         </UCard>
 
@@ -142,7 +142,13 @@ watch(() => route.query.edit, (value) => {
   }
 })
 
-const gamesWithNotes = computed(() => (participant.value?.games || []).filter((game) => participant.value?.gameNotes[game.id]))
+// Jeux d'un enregistrement mis en file hors ligne (ADR-0036) : la fiche les montre jusqu'à la relecture
+const queuedGameIds = ref<string[] | null>(null)
+const shownGames = computed(() => {
+  const ids = queuedGameIds.value
+  return ids ? (games.value || []).filter((game) => ids.includes(game.id)) : participant.value?.games || []
+})
+const gamesWithNotes = computed(() => shownGames.value.filter((game) => participant.value?.gameNotes[game.id]))
 
 function normalizeParticipantForForm(value: Participant): ParticipantDraft {
   return {
@@ -174,6 +180,7 @@ async function saveParticipant() {
   })
   if (isOfflineQueued(saved)) {
     if (participant.value) participant.value = withQueuedEdit(participant.value, editableParticipant.value)
+    queuedGameIds.value = editableParticipant.value.gameIds ?? null
     cancelEdit()
     return
   }
@@ -183,6 +190,7 @@ async function saveParticipant() {
     return
   }
   participant.value = saved
+  queuedGameIds.value = null
   if (saved.slug && saved.slug !== route.params.id) {
     const query = { ...route.query }
     delete query.edit

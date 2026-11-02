@@ -25,6 +25,14 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
     await form.getByLabel('Nom').fill(name)
     await form.getByLabel('Email').fill(`${slugOf(name)}@example.test`)
     await form.getByLabel(`Notes — ${title}`).fill('Vient en covoiturage.')
+
+    // Un refus du serveur s'affiche dans le formulaire, qui reste ouvert
+    await page.route('**/api/participants', (route) => route.request().method() === 'POST'
+      ? route.fulfill({ status: 400, json: { message: 'Refus de test' } })
+      : route.continue(), { times: 1 })
+    await form.getByRole('button', { name: 'Créer' }).click()
+    await expect(form.getByText('Refus de test')).toBeVisible()
+
     await form.getByRole('button', { name: 'Créer' }).click()
     await expect(form).toBeHidden()
 

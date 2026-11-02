@@ -1,23 +1,14 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { expect, test } from '@playwright/test'
-import { TERMS_VERSION } from '../../utils/legal'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { signIn, slugOf, uniqueName, type TestPrisma } from './helpers'
-
-// Compte propre au test : ses changements ne touchent pas les comptes partagés
-async function testAccount(prisma: TestPrisma, base: string) {
-  const name = uniqueName(base)
-  const email = `${slugOf(name)}@example.test`
-  const user = await prisma.user.create({ data: { email, name, password: 'inutilisable', termsAcceptedVersion: TERMS_VERSION, emailConfirmedAt: new Date() } })
-  return { user, email, name }
-}
+import { signIn, slugOf, testUser, uniqueName } from './helpers'
 
 // EPIC-031 (US-118) : nom et coordonnées depuis « Mon compte »
 test('la personne change son nom et ses coordonnées depuis son compte', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
-    const { user, email } = await testAccount(prisma, 'Compte Nom')
+    const { user, email } = await testUser(prisma, 'Compte Nom')
 
     await signIn(page, prisma, email)
     await page.goto('/compte')
@@ -45,7 +36,7 @@ test('la personne change son nom et ses coordonnées depuis son compte', async (
 test('la personne accepte une invitation depuis « Je participe »', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
-    const { user, email, name } = await testAccount(prisma, 'Compte Invitation')
+    const { user, email, name } = await testUser(prisma, 'Compte Invitation')
     // Jeu d'un autre compte que l'organisatrice des parcours d'inscription, qui ne compte que ses propres invitations
     const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.autre } })
     const title = uniqueName('Jeu compte')
@@ -69,10 +60,11 @@ test('la personne accepte une invitation depuis « Je participe »', async ({ pa
     await page.waitForLoadState('networkidle')
 
     // Champs demandés par le formulaire par défaut, que le compte ne tient pas encore
-    for (const [label, value] of [['Prénom', 'Compte'], ['Nom', 'Invitation'], ['Téléphone', '0612345678'], ['Contact d’urgence : nom', 'Dominique'], ['Contact d’urgence : téléphone', '0698765432']]) {
-      const field = page.getByLabel(label!, { exact: true })
-      if (await field.isEditable()) await field.fill(value!)
-    }
+    await page.getByLabel('Prénom', { exact: true }).fill('Compte')
+    await page.getByLabel('Nom', { exact: true }).fill('Invitation')
+    await page.getByLabel('Téléphone', { exact: true }).fill('0612345678')
+    await page.getByLabel('Contact d’urgence : nom', { exact: true }).fill('Dominique')
+    await page.getByLabel('Contact d’urgence : téléphone', { exact: true }).fill('0698765432')
     await page.getByLabel('J’ai lu la note d’intention et j’y adhère').check()
     await page.getByRole('button', { name: 'Accepter l’invitation' }).click()
     await expect(page.getByText('Votre inscription est confirmée.')).toBeVisible()

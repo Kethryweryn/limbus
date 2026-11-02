@@ -67,12 +67,14 @@ import { apiErrorMessage } from '~/utils/apiErrors'
 import type { GameOption, ParticipantDraft } from '~/utils/writingDrafts'
 
 const props = withDefaults(defineProps<{
+  // Enregistrement par le parent (`@submit`), attendu pour afficher ici son erreur
+  onSubmit: () => unknown
   participant: ParticipantDraft
   games: GameOption[]
   mode?: 'create' | 'edit'
 }>(), { mode: 'create' })
 
-const emit = defineEmits<{ submit: [], cancel: [], 'update:participant': [participant: ParticipantDraft] }>()
+const emit = defineEmits<{ cancel: [], 'update:participant': [participant: ParticipantDraft] }>()
 
 const localParticipant = ref<ParticipantDraft & { gameNotes: Record<string, string | null> }>({ ...props.participant, gameNotes: {} })
 const errors = ref<Record<string, string>>({})
@@ -117,13 +119,13 @@ function confirmGameRemoval() {
   return confirm(`Retirer ${removed.length} jeu(x) retire aussi la personne de leurs sessions (équipe, casting, présence), et ses inscriptions à ces jeux passent à « retirée ». Ses paiements restent, à traiter à part. Continuer ?`)
 }
 
-function submit() {
+async function submit() {
   if (!validate()) return
   if (!confirmGameRemoval()) return
 
   try {
     emit('update:participant', localParticipant.value)
-    emit('submit')
+    await props.onSubmit()
     serverError.value = ''
   } catch (err) {
     serverError.value = apiErrorMessage(err, 'Erreur inconnue')

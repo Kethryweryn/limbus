@@ -81,9 +81,14 @@ import { PHOTO_RETENTION_MAX_MONTHS, PHOTO_RETENTION_MIN_MONTHS } from '~/utils/
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { GameDraft } from '~/utils/writingDrafts'
 
-const props = withDefaults(defineProps<{ game: GameDraft, mode?: 'create' | 'edit' }>(), { mode: 'create' })
+const props = withDefaults(defineProps<{
+  game: GameDraft
+  mode?: 'create' | 'edit'
+  // Enregistrement par le parent (`@submit`), attendu pour afficher ici son erreur
+  onSubmit: () => unknown
+}>(), { mode: 'create' })
 
-const emit = defineEmits<{ submit: [], cancel: [], 'update:game': [game: GameDraft] }>()
+const emit = defineEmits<{ cancel: [], 'update:game': [game: GameDraft] }>()
 
 const localGame = ref<GameDraft>({ ...props.game })
 
@@ -110,12 +115,12 @@ function validate() {
   return Object.keys(errors.value).length === 0
 }
 
-function submit() {
+async function submit() {
   if (!validate()) return
 
   try {
     emit('update:game', localGame.value)
-    emit('submit') // le parent s’occupe d’appeler l’API
+    await props.onSubmit()
     serverError.value = ''
   } catch (err) {
     serverError.value = apiErrorMessage(err, 'Erreur inconnue')

@@ -1,16 +1,14 @@
 import { expect, test } from '@playwright/test'
-import { TERMS_VERSION } from '../../utils/legal'
 import { createTestPrisma } from '../integration/db'
 import { startTestSmtp } from '../integration/smtp'
-import { signIn, slugOf, uniqueName } from './helpers'
+import { signIn, slugOf, testUser, uniqueName } from './helpers'
 
 // EPIC-031 (US-118) : l'administratrice crée un compte, le désactive, et teste l'envoi d'emails
 test('l’administratrice crée et désactive un compte, puis teste l’envoi d’emails', async ({ page }) => {
   const prisma = createTestPrisma()
   const smtp = await startTestSmtp(prisma)
   try {
-    const adminEmail = `${slugOf(uniqueName('admin'))}@example.test`
-    await prisma.user.create({ data: { email: adminEmail, name: 'Admin', password: 'inutilisable', role: 'admin', termsAcceptedVersion: TERMS_VERSION, emailConfirmedAt: new Date() } })
+    const { email: adminEmail } = await testUser(prisma, 'Admin', 'admin')
     const name = uniqueName('Compte Créé')
     const email = `${slugOf(name)}@example.test`
 

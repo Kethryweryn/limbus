@@ -109,6 +109,8 @@ import { apiErrorMessage } from '~/utils/apiErrors'
 import { emptyStringModel, type CharacterOption, type GameOption, type ItemDraft } from '~/utils/writingDrafts'
 
 const props = withDefaults(defineProps<{
+  // Enregistrement par le parent (`@submit`), attendu pour afficher ici son erreur
+  onSubmit: () => unknown
   item: ItemDraft
   games: GameOption[]
   characters: CharacterOption[]
@@ -116,7 +118,7 @@ const props = withDefaults(defineProps<{
   mode?: 'create' | 'edit'
 }>(), { mode: 'create' })
 
-const emit = defineEmits<{ submit: [], cancel: [], 'update:item': [item: ItemDraft] }>()
+const emit = defineEmits<{ cancel: [], 'update:item': [item: ItemDraft] }>()
 
 const localItem = ref<ItemDraft>({ ...props.item })
 const errors = ref<Record<string, string>>({})
@@ -199,12 +201,12 @@ function validate() {
   return Object.keys(errors.value).length === 0
 }
 
-function submit() {
+async function submit() {
   if (!validate()) return
 
   try {
     emit('update:item', localItem.value)
-    emit('submit')
+    await props.onSubmit()
     serverError.value = ''
   } catch (err) {
     serverError.value = apiErrorMessage(err, 'Erreur inconnue')

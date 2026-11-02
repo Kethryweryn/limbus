@@ -115,6 +115,8 @@ type Named = { id: string, name: string, gameId: string }
 type EventInput = TimelineEventDraft & { characters?: Named[], factions?: Named[], intrigues?: Named[], items?: Named[] }
 
 const props = withDefaults(defineProps<{
+  // Enregistrement par le parent (`@submit`), attendu pour afficher ici son erreur
+  onSubmit: () => unknown
   event: EventInput
   games: GameOption[]
   characters: CharacterOption[]
@@ -124,7 +126,7 @@ const props = withDefaults(defineProps<{
   mode?: 'create' | 'edit'
 }>(), { mode: 'create' })
 
-const emit = defineEmits<{ submit: [], cancel: [], 'update:event': [event: TimelineEventDraft] }>()
+const emit = defineEmits<{ cancel: [], 'update:event': [event: TimelineEventDraft] }>()
 
 const localEvent = ref<TimelineEventDraft>({ ...props.event })
 const errors = ref<Record<string, string>>({})
@@ -242,7 +244,7 @@ function expandVirtualFactionSelection(value: TimelineEventDraft): TimelineEvent
   }
 }
 
-function submit() {
+async function submit() {
   if (!validate()) return
 
   try {
@@ -251,7 +253,7 @@ function submit() {
       day: Number(localEvent.value.day),
       requiredResponsibles: Number(localEvent.value.requiredResponsibles || 0)
     }))
-    emit('submit')
+    await props.onSubmit()
     serverError.value = ''
   } catch (err) {
     serverError.value = apiErrorMessage(err, 'Erreur inconnue')

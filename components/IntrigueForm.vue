@@ -105,6 +105,8 @@ import { apiErrorMessage } from '~/utils/apiErrors'
 import type { CharacterOption, FactionOption, GameOption, IntrigueDraft } from '~/utils/writingDrafts'
 
 const props = withDefaults(defineProps<{
+  // Enregistrement par le parent (`@submit`), attendu pour afficher ici son erreur
+  onSubmit: () => unknown
   intrigue: IntrigueDraft
   games: GameOption[]
   characters: CharacterOption[]
@@ -112,7 +114,7 @@ const props = withDefaults(defineProps<{
   mode?: 'create' | 'edit'
 }>(), { mode: 'create' })
 
-const emit = defineEmits<{ submit: [], cancel: [], 'update:intrigue': [intrigue: IntrigueDraft] }>()
+const emit = defineEmits<{ cancel: [], 'update:intrigue': [intrigue: IntrigueDraft] }>()
 
 const localIntrigue = ref<IntrigueDraft>({ ...props.intrigue })
 const errors = ref<Record<string, string>>({})
@@ -203,12 +205,12 @@ function expandVirtualFactionSelection(value: IntrigueDraft): IntrigueDraft {
   }
 }
 
-function submit() {
+async function submit() {
   if (!validate()) return
 
   try {
     emit('update:intrigue', expandVirtualFactionSelection(localIntrigue.value))
-    emit('submit')
+    await props.onSubmit()
     serverError.value = ''
   } catch (err) {
     serverError.value = apiErrorMessage(err, 'Erreur inconnue')

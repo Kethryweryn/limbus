@@ -150,7 +150,8 @@
 </template>
 
 <script setup lang="ts">
-import { REFUND_STATUSES, REGISTRATION_STATUS_META, SESSION_ROLE_LABELS, SESSION_ROLES } from '~/utils/domain'
+import { REFUND_STATUSES, REGISTRATION_STATUS_META, SESSION_ROLE_LABELS, SESSION_ROLES, metaOf } from '~/utils/domain'
+import { ATTENDANCE_STATUSES } from '~/utils/attendance'
 import { serverMessage } from '~/utils/apiErrors'
 import { rememberSpace } from '~/utils/spaces'
 import { sessionStatusMeta } from '~/utils/sessions'
@@ -201,11 +202,16 @@ async function setPhotoRefusal(refused: boolean) {
 }
 
 const sessionMeta = (session: { status: string }) => sessionStatusMeta(session.status)
-const registrationMeta = (registration: { status: string }) => lookup(REGISTRATION_STATUS_META, registration.status) || { label: registration.status, color: 'neutral' as const }
+const registrationMeta = (registration: { status: string }) => metaOf(REGISTRATION_STATUS_META, registration.status) || { label: registration.status, color: 'neutral' as const }
 // Casting et inscription confirmée : « PJ » plutôt que « Participant »
-const roleLabel = (role: string) => role === SESSION_ROLES.participant ? 'PJ' : lookup(SESSION_ROLE_LABELS, role) || role
+const roleLabel = (role: string) => role === SESSION_ROLES.participant ? 'PJ' : metaOf(SESSION_ROLE_LABELS, role) || role
 
-const ATTENDANCE_LABELS: Record<string, string> = { pending: 'réponse attendue', confirmed: 'confirmée', declined: 'déclinée', released: 'place libérée' }
+const ATTENDANCE_LABELS: Record<string, string> = {
+  [ATTENDANCE_STATUSES.pending]: 'réponse attendue',
+  [ATTENDANCE_STATUSES.confirmed]: 'confirmée',
+  [ATTENDANCE_STATUSES.declined]: 'déclinée',
+  [ATTENDANCE_STATUSES.released]: 'place libérée'
+}
 const attendanceLabel = (status: string) => ATTENDANCE_LABELS[status] || status
 
 const REFUND_LABELS: Record<string, string> = {
@@ -219,9 +225,4 @@ const refundLabel = (status: string) => REFUND_LABELS[status] || ''
 
 // Reste à payer : montant restant en mode tarifs, case non cochée en mode simple
 const owes = (payment: Payment) => payment.mode === 'simple' ? !payment.paidAt : (payment.remainingCents || 0) > 0
-
-// Libellé d'un statut connu, undefined sinon
-function lookup<T extends object>(table: T, key: string): T[keyof T] | undefined {
-  return key in table ? table[key as keyof T] : undefined
-}
 </script>
