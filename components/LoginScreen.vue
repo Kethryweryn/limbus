@@ -123,6 +123,8 @@ onUnmounted(() => {
                         Créer un compte
                     </NuxtLink>
                 </div>
+                <!-- Pages légales (US-110) -->
+                <LegalLinks />
             </form>
         </UCard>
     </div>

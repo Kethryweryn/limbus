@@ -599,11 +599,15 @@ export const userUpdateSchema = z.object({
 const newPassword = () => requiredText('Password').min(8, 'Le mot de passe doit faire au moins 8 caractères')
 
 // Inscription libre (US-061) : website est le champ piège, invisible pour une personne
+const termsAccepted = () => z.literal(true, { error: 'Acceptez les conditions d’utilisation pour créer votre compte.' })
+
 export const signupSchema = z.object({
   name: requiredText('Name'),
   email: accountEmail(),
   password: newPassword(),
-  website: z.string().optional()
+  website: z.string().optional(),
+  // Conditions d'utilisation (US-111) : la case est obligatoire
+  termsAccepted: termsAccepted()
 })
 
 export const accountTokenSchema = z.object({
@@ -677,7 +681,8 @@ export const gameBequestSchema = z.object({
 export const invitationRegistrationSchema = z.object({
   token: requiredText('Token'),
   name: requiredText('Name'),
-  password: requiredText('Password').min(8, 'Password must contain at least 8 characters')
+  password: requiredText('Password').min(8, 'Password must contain at least 8 characters'),
+  termsAccepted: termsAccepted()
 })
 
 export const invitationAcceptSchema = z.object({

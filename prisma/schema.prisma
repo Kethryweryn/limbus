@@ -805,6 +805,14 @@ model User {
   healthConsentAt       DateTime?
   // Premier enregistrement des coordonnées : avant, rien n'est recopié
   profileUpdatedAt      DateTime?
+  // Conditions d'utilisation acceptées (US-111, ADR-0055) : version (date) et moment de l'acceptation
+  termsAcceptedVersion  String?
+  termsAcceptedAt       DateTime?
+  // Dernière activité (US-112, ADR-0056) : après 23 mois sans, un avertissement ; après 24, l'effacement
+  lastSeenAt            DateTime @default(now())
+  inactivityWarnedAt    DateTime?
+  // Compte inactif qu'on ne peut pas effacer (jeux possédés, dernière administratrice), signalé une fois
+  inactivityReportedAt  DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
