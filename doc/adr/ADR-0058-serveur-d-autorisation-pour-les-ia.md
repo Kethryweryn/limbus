@@ -96,7 +96,7 @@ Si A est retenu :
 
 - tables Prisma pour les assistants, les codes (60 secondes), les autorisations (SPEC-014, R4 à R6) et les jetons, gardés en empreinte : accès une heure, rafraîchissement renouvelé à chaque usage ;
 - points d'accès sous `/oauth/` :
-  - `register` (DCR, dépréciée mais demandée par Claude et Mistral) ;
+  - `register` (DCR, dépréciée). Claude passe par CIMD dès qu'il est annoncé, mais Mistral Work et les assistants sans CIMD en ont encore besoin. Elle est limitée en débit par adresse IP, et un assistant inscrit qui n'a jamais servi est effacé au bout de 24 heures ;
   - `authorize` (page de consentement Limbus) ;
   - `token` (format `application/x-www-form-urlencoded`, réponse en moins de 10 secondes) ;
 - métadonnées RFC 8414 et RFC 9728 ;
