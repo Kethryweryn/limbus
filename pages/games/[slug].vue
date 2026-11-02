@@ -116,7 +116,6 @@ import { apiErrorMessage } from '~/utils/apiErrors'
 import type { GameDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
-const router = useRouter()
 const slug = String(route.params.slug)
 const { data: game, error, refresh } = await useFetch(`/api/games/slug/${slug}`)
 const { data: authState } = await useFetch('/api/auth/me')
@@ -130,8 +129,7 @@ const { selectGame, clearGame, game: currentGame } = useGameFocus()
 
 const currentUser = computed(() => authState.value?.authenticated ? authState.value.user : null)
 const isCurrentGame = computed(() => currentGame?.value?.id === game.value?.id)
-const isEditing = ref(route.query.edit === '1')
-const editableGame = ref<GameDraft | null>(game.value ? { ...game.value } : null)
+const { isEditing, draft: editableGame, startEdit, cancelEdit, closeAfterSave } = useSheetEdit<GameDraft>(() => game.value ? { ...game.value } : null)
 const showShares = ref(false)
 const showBequest = ref(false)
 // Léguer est réservé à la propriétaire, même en mode administrateur (SPEC-002 R1)
@@ -188,27 +186,6 @@ const canManageShares = computed(() =>
     && Boolean(authState.value?.authenticated && (authState.value.adminMode || game.value?.ownerId === authState.value.user.id))
 )
 
-watch(() => route.query.edit, (value) => {
-    isEditing.value = value === '1'
-    if (isEditing.value && game.value) {
-        editableGame.value = { ...game.value }
-    }
-})
-
-function startEdit() {
-    editableGame.value = game.value ? { ...game.value } : null
-    isEditing.value = true
-    router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
-}
-
-function cancelEdit() {
-    isEditing.value = false
-    editableGame.value = game.value ? { ...game.value } : null
-    const query = { ...route.query }
-    delete query.edit
-    router.replace({ path: route.path, query })
-}
-
 async function handleGameFormSubmit() {
     if (!editableGame.value?.id) return
 
@@ -217,13 +194,7 @@ async function handleGameFormSubmit() {
         body: editableGame.value
     })
 
-    if (!isOfflineQueued(updatedGame) && updatedGame.slug && updatedGame.slug !== route.params.slug) {
-        await router.replace(`/games/${updatedGame.slug}`)
-    } else {
-        await refresh()
-    }
-
-    cancelEdit()
+    await closeAfterSave(isOfflineQueued(updatedGame) ? null : `/games/${updatedGame.slug}`, refresh)
 }
 
 async function setPublicPage(publicPage: boolean) {

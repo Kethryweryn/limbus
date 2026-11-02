@@ -186,7 +186,6 @@ import { isOfflineMissing } from '~/utils/connection'
 import type { CharacterDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
-const router = useRouter()
 const slug = String(route.params.slug)
 // Fiche consultée avec le réseau : elle se rouvre sans réseau (US-047)
 const { data: character, error, refresh } = await useOfflineFetch(`/api/characters/slug/${slug}`)
@@ -210,8 +209,7 @@ const { data: allCharacters } = await useOfflineFetch(`/api/characters${gameQuer
 
 type CharacterPage = NonNullable<typeof character.value>
 
-const isEditing = ref(route.query.edit === '1')
-const editableCharacter = ref<CharacterDraft | null>(character.value ? characterFormPayload(character.value) : null)
+const { isEditing, draft: editableCharacter, startEdit, cancelEdit, closeAfterSave } = useSheetEdit(() => character.value ? characterFormPayload(character.value) : null)
 const showIntrigueModal = ref(false)
 const showTrombinoscopeModal = ref(false)
 const selectedIntrigueIds = ref<string[]>(character.value?.intrigues?.map((intrigue) => intrigue.id) || [])
@@ -229,13 +227,6 @@ const intrigueOptions = computed(() =>
     }))
 )
 
-watch(() => route.query.edit, (value) => {
-    isEditing.value = value === '1'
-    if (isEditing.value && character.value) {
-        editableCharacter.value = characterFormPayload(character.value)
-    }
-})
-
 watch(() => character.value?.intrigues, (value) => {
     selectedIntrigueIds.value = value?.map((intrigue) => intrigue.id) || []
 })
@@ -247,20 +238,6 @@ function characterFormPayload(value: CharacterPage): CharacterDraft {
     }
 }
 
-function startEdit() {
-    editableCharacter.value = character.value ? characterFormPayload(character.value) : null
-    isEditing.value = true
-    router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
-}
-
-function cancelEdit() {
-    isEditing.value = false
-    editableCharacter.value = character.value ? characterFormPayload(character.value) : null
-    const query = { ...route.query }
-    delete query.edit
-    router.replace({ path: route.path, query })
-}
-
 async function handleFormSubmit() {
     if (!editableCharacter.value?.id) return
 
@@ -269,13 +246,7 @@ async function handleFormSubmit() {
         body: editableCharacter.value
     })
 
-    if (!isOfflineQueued(updatedCharacter) && updatedCharacter.slug && updatedCharacter.slug !== route.params.slug) {
-        await router.replace(`/characters/${updatedCharacter.slug}`)
-    } else {
-        await refresh()
-    }
-
-    cancelEdit()
+    await closeAfterSave(isOfflineQueued(updatedCharacter) ? null : `/characters/${updatedCharacter.slug}`, refresh)
 }
 
 async function saveCharacterIntrigues() {

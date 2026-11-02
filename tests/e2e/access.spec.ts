@@ -39,6 +39,8 @@ test('une personne qui a oublié son mot de passe en choisit un nouveau par le l
     await page.getByLabel('Confirmation').fill('nouveau-secret-1')
     await page.getByRole('button', { name: 'Enregistrer et me connecter' }).click()
     await expectLoggedIn(page)
+    // L'accueil redirige vers le dernier espace utilisé : attendre la fin, sinon elle interrompt la navigation suivante
+    await page.waitForLoadState('networkidle')
 
     // Le lien ne sert qu'une fois, et le nouveau mot de passe ouvre une session
     await page.context().clearCookies()

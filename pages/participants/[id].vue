@@ -132,15 +132,7 @@ if (error.value) {
   throw createError({ statusCode: error.value.statusCode || 404, message: 'Participant introuvable' })
 }
 
-const isEditing = ref(route.query.edit === '1')
-const editableParticipant = ref<ParticipantDraft | null>(participant.value ? normalizeParticipantForForm(participant.value) : null)
-
-watch(() => route.query.edit, (value) => {
-  isEditing.value = value === '1'
-  if (isEditing.value && participant.value) {
-    editableParticipant.value = normalizeParticipantForForm(participant.value)
-  }
-})
+const { isEditing, draft: editableParticipant, startEdit, cancelEdit, closeAfterSave } = useSheetEdit(() => participant.value ? normalizeParticipantForForm(participant.value) : null)
 
 // Jeux d'un enregistrement mis en file hors ligne (ADR-0036) : la fiche les montre jusqu'à la relecture
 const queuedGameIds = ref<string[] | null>(null)
@@ -155,20 +147,6 @@ function normalizeParticipantForForm(value: Participant): ParticipantDraft {
     ...value,
     gameIds: value.games.map((game) => game.id)
   }
-}
-
-function startEdit() {
-  editableParticipant.value = participant.value ? normalizeParticipantForForm(participant.value) : null
-  isEditing.value = true
-  router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
-}
-
-function cancelEdit() {
-  isEditing.value = false
-  editableParticipant.value = participant.value ? normalizeParticipantForForm(participant.value) : null
-  const query = { ...route.query }
-  delete query.edit
-  router.replace({ path: route.path, query })
 }
 
 async function saveParticipant() {
@@ -191,19 +169,7 @@ async function saveParticipant() {
   }
   participant.value = saved
   queuedGameIds.value = null
-  if (saved.slug && saved.slug !== route.params.id) {
-    const query = { ...route.query }
-    delete query.edit
-    await router.replace({
-      path: `/participants/${saved.slug}`,
-      query
-    })
-    return
-  }
-  await refresh()
-  cancelEdit()
+  await closeAfterSave(`/participants/${saved.slug}`, refresh)
 }
 </script>
-
-
 

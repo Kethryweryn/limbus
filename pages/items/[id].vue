@@ -101,7 +101,6 @@ import ItemForm from '@/components/ItemForm.vue'
 import { withQueuedEdit, type ItemDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
-const router = useRouter()
 const { data: item, error, refresh } = await useFetch(`/api/items/${route.params.id}`)
 const { data: games } = await useFetch('/api/games')
 const { data: characters } = await useFetch('/api/characters')
@@ -114,16 +113,8 @@ if (error.value) {
 
 type ItemPage = NonNullable<typeof item.value>
 
-const isEditing = ref(route.query.edit === '1')
-const editableItem = ref<ItemDraft | null>(item.value ? itemFormPayload(item.value) : null)
+const { isEditing, draft: editableItem, startEdit, cancelEdit, closeAfterSave } = useSheetEdit(() => item.value ? itemFormPayload(item.value) : null)
 const isUnassigned = computed(() => !(item.value?.characters?.length || item.value?.intrigues?.length))
-
-watch(() => route.query.edit, (value) => {
-  isEditing.value = value === '1'
-  if (isEditing.value && item.value) {
-    editableItem.value = itemFormPayload(item.value)
-  }
-})
 
 function itemFormPayload(value: ItemPage): ItemDraft {
   return {
@@ -141,20 +132,6 @@ function formatItemLocation(value: ItemPage) {
   return 'Non renseignée'
 }
 
-function startEdit() {
-  editableItem.value = item.value ? itemFormPayload(item.value) : null
-  isEditing.value = true
-  router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
-}
-
-function cancelEdit() {
-  isEditing.value = false
-  editableItem.value = item.value ? itemFormPayload(item.value) : null
-  const query = { ...route.query }
-  delete query.edit
-  router.replace({ path: route.path, query })
-}
-
 async function saveItem() {
   if (!editableItem.value?.id) return
 
@@ -162,19 +139,12 @@ async function saveItem() {
     method: 'PUT',
     body: editableItem.value
   })
-  isEditing.value = false
-
   if (isOfflineQueued(updated)) {
     if (item.value) item.value = withQueuedEdit(item.value, editableItem.value)
     cancelEdit()
-  } else if (updated.slug && updated.slug !== route.params.id) {
-    item.value = updated
-    const query = { ...route.query }
-    delete query.edit
-    await router.replace({ path: `/items/${updated.slug}`, query })
-  } else {
-    await refresh()
-    cancelEdit()
+    return
   }
+  item.value = updated
+  await closeAfterSave(`/items/${updated.slug}`, refresh)
 }
 </script>

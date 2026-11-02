@@ -136,7 +136,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import TimelineEventForm from '@/components/TimelineEventForm.vue'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { withQueuedEdit, type TimelineEventDraft } from '~/utils/writingDrafts'
@@ -147,15 +147,13 @@ type TimelineEventDetail = ApiResponse<'/api/timeline-events/:id'>
 type ReturnContext = { source: string, eventId: string, gameId?: string, sessionId?: string, sessionSlug?: string }
 
 const route = useRoute()
-const router = useRouter()
 const timelineEvent = ref<TimelineEventDetail | null>(null)
-const editableEvent = ref<TimelineEventDraft | null>(null)
 const games = ref<ApiResponse<'/api/games'>>([])
 const characters = ref<ApiResponse<'/api/characters'>>([])
 const factions = ref<ApiResponse<'/api/factions'>>([])
 const intrigues = ref<ApiResponse<'/api/intrigues'>>([])
 const items = ref<ApiResponse<'/api/items'>>([])
-const isEditing = ref(route.query.edit === '1')
+const { isEditing, draft: editableEvent, startEdit, cancelEdit, closeAfterSave } = useSheetEdit(() => timelineEvent.value ? eventFormPayload(timelineEvent.value) : null)
 const returnContext = ref<ReturnContext | null>(null)
 const timelineBackTo = computed(() => ({
   path: returnContext.value?.source === 'session'
@@ -208,13 +206,6 @@ function ensureTimelineReturnContext(eventData: TimelineEventDetail) {
   sessionStorage.setItem('limbus:timeline-return-context', JSON.stringify(fallbackContext))
 }
 
-watch(() => route.query.edit, (value) => {
-  isEditing.value = value === '1'
-  if (isEditing.value && timelineEvent.value) {
-    editableEvent.value = eventFormPayload(timelineEvent.value)
-  }
-})
-
 function eventFormPayload(value: TimelineEventDetail): TimelineEventDraft {
   return {
     ...value,
@@ -223,22 +214,6 @@ function eventFormPayload(value: TimelineEventDetail): TimelineEventDraft {
     intrigueIds: value.intrigues?.map((intrigue) => intrigue.id) || [],
     itemIds: value.items?.map((item) => item.id) || []
   }
-}
-
-function startEdit() {
-  if (!timelineEvent.value) return
-
-  editableEvent.value = eventFormPayload(timelineEvent.value)
-  isEditing.value = true
-  router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
-}
-
-function cancelEdit() {
-  isEditing.value = false
-  editableEvent.value = timelineEvent.value ? eventFormPayload(timelineEvent.value) : null
-  const query = { ...route.query }
-  delete query.edit
-  router.replace({ path: route.path, query })
 }
 
 async function saveEvent() {
@@ -258,18 +233,7 @@ async function saveEvent() {
   const reloaded = await useApiFetch(`/api/timeline-events/${updated.id}`)
     .catch(() => ({ ...updated, conflicts: timelineEvent.value?.conflicts || [] }))
   timelineEvent.value = reloaded
-  editableEvent.value = eventFormPayload(reloaded)
-  isEditing.value = false
-  if (updated.slug && updated.slug !== route.params.id) {
-    const query = { ...route.query }
-    delete query.edit
-    await router.replace({
-      path: `/timeline/${updated.slug}`,
-      query
-    })
-    return
-  }
-  cancelEdit()
+  await closeAfterSave(`/timeline/${updated.slug}`)
 }
 
 onMounted(loadData)

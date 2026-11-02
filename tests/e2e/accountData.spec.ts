@@ -1,9 +1,9 @@
 import { readFile } from 'node:fs/promises'
-import { expect, test, type Download } from '@playwright/test'
+import { expect, type Download } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { linkToken, startTestSmtp } from '../integration/smtp'
 import { E2E_PASSWORD, E2E_USERS } from './constants'
-import { blockWith, expectLoggedIn, login, signIn, slugOf, testUser, uniqueName } from './helpers'
+import { blockWith, expectLoggedIn, login, signIn, slugOf, test, testUser, uniqueName } from './helpers'
 
 async function downloadedJson(download: Download) {
   return JSON.parse(await readFile((await download.path())!, 'utf8')) as unknown
@@ -42,11 +42,11 @@ test('la personne change son adresse email par le lien reçu', async ({ page }) 
 })
 
 // EPIC-013 (US-063) : changer son mot de passe déconnecte les autres appareils
-test('la personne change son mot de passe, ses autres appareils sont déconnectés', async ({ page, browser }) => {
+test('la personne change son mot de passe, ses autres appareils sont déconnectés', async ({ page, otherPage }) => {
   const prisma = createTestPrisma()
   try {
     const { email } = await testUser(prisma, 'Mot de passe')
-    const other = await (await browser.newContext()).newPage()
+    const other = await otherPage()
     await signIn(other, prisma, email)
     await signIn(page, prisma, email)
 

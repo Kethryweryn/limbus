@@ -144,7 +144,6 @@ import { formatIntrigueLevel } from '~/utils/intrigueLevels'
 import type { IntrigueDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
-const router = useRouter()
 const slug = String(route.params.slug)
 const { data: intrigue, error, refresh } = await useFetch(`/api/intrigues/slug/${slug}`)
 const { data: games } = await useFetch('/api/games')
@@ -158,16 +157,8 @@ if (error.value) {
 
 type IntriguePage = NonNullable<typeof intrigue.value>
 
-const isEditing = ref(route.query.edit === '1')
-const editableIntrigue = ref<IntrigueDraft | null>(intrigue.value ? intrigueFormPayload(intrigue.value) : null)
+const { isEditing, draft: editableIntrigue, startEdit, cancelEdit, closeAfterSave } = useSheetEdit(() => intrigue.value ? intrigueFormPayload(intrigue.value) : null)
 const isUnassigned = computed(() => !(intrigue.value?.characters?.length || intrigue.value?.factions?.length || intrigue.value?.items?.length))
-
-watch(() => route.query.edit, (value) => {
-  isEditing.value = value === '1'
-  if (isEditing.value && intrigue.value) {
-    editableIntrigue.value = intrigueFormPayload(intrigue.value)
-  }
-})
 
 function intrigueFormPayload(value: IntriguePage): IntrigueDraft {
   return {
@@ -175,20 +166,6 @@ function intrigueFormPayload(value: IntriguePage): IntrigueDraft {
     characterIds: value.characters?.map((character) => character.id) || [],
     factionIds: value.factions?.map((faction) => faction.id) || []
   }
-}
-
-function startEdit() {
-  editableIntrigue.value = intrigue.value ? intrigueFormPayload(intrigue.value) : null
-  isEditing.value = true
-  router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
-}
-
-function cancelEdit() {
-  isEditing.value = false
-  editableIntrigue.value = intrigue.value ? intrigueFormPayload(intrigue.value) : null
-  const query = { ...route.query }
-  delete query.edit
-  router.replace({ path: route.path, query })
 }
 
 async function handleFormSubmit() {
@@ -199,12 +176,6 @@ async function handleFormSubmit() {
     body: editableIntrigue.value
   })
 
-  if (!isOfflineQueued(updatedIntrigue) && updatedIntrigue.slug && updatedIntrigue.slug !== route.params.slug) {
-    await router.replace(`/intrigues/${updatedIntrigue.slug}`)
-  } else {
-    await refresh()
-  }
-
-  cancelEdit()
+  await closeAfterSave(isOfflineQueued(updatedIntrigue) ? null : `/intrigues/${updatedIntrigue.slug}`, refresh)
 }
 </script>

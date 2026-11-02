@@ -1,9 +1,22 @@
 import { TERMS_VERSION } from '../../utils/legal'
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test as base, type BrowserContext, type Locator, type Page } from '@playwright/test'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { JWT_SECRET } from '../integration/constants'
 import { E2E_PASSWORD, PARCOURS } from './constants'
+
+// Tests des parcours : `otherPage()` ouvre un navigateur à part (autre personne, autre appareil), fermé à la fin du test
+export const test = base.extend<{ otherPage: () => Promise<Page> }>({
+  otherPage: async ({ browser }, use) => {
+    const contexts: BrowserContext[] = []
+    await use(async () => {
+      const context = await browser.newContext()
+      contexts.push(context)
+      return await context.newPage()
+    })
+    await Promise.all(contexts.map((context) => context.close()))
+  }
+})
 
 export async function login(page: Page, email: string, password = E2E_PASSWORD) {
   await page.goto('/')
