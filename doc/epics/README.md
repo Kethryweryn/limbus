@@ -160,5 +160,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-114](EPIC-031-interface-en-typescript/US-114-fondations.md) | Fondations : appels typés, mise en page, composants communs, pages d'accès | EPIC-031 | terminée |
 | [US-115](EPIC-031-interface-en-typescript/US-115-ecriture.md) | Écriture du jeu en TypeScript | EPIC-031 | terminée |
 | [US-116](EPIC-031-interface-en-typescript/US-116-sessions.md) | Sessions en TypeScript | EPIC-031 | terminée |
-| [US-117](EPIC-031-interface-en-typescript/US-117-inscriptions.md) | Inscriptions en TypeScript | EPIC-031 | à faire |
+| [US-117](EPIC-031-interface-en-typescript/US-117-inscriptions.md) | Inscriptions en TypeScript | EPIC-031 | terminée |
 | [US-118](EPIC-031-interface-en-typescript/US-118-compte-participation-administration.md) | Compte, participation, administration ; règle étendue à tout | EPIC-031 | à faire |

@@ -95,6 +95,7 @@
 import { ATTENDANCE_DISPLAY, ATTENDANCE_STATUSES, DEFAULT_ATTENDANCE_DELAY_DAYS, attendanceInvitationEmailText } from '~/utils/attendance'
 
 import { apiErrorMessage } from '~/utils/apiErrors'
+import { formatLongDate as formatDate } from '~/utils/dates'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
 type Attendance = ApiResponse<'/api/sessions/:id/attendance'>
@@ -128,7 +129,6 @@ const countBadges = computed(() => (Object.keys(ATTENDANCE_DISPLAY) as Array<key
   .map((status) => ({ status, ...ATTENDANCE_DISPLAY[status], count: rows.value.filter((row) => row.displayStatus === status).length }))
   .filter((badge) => badge.count))
 
-const formatDate = (value: string | Date) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long' })
 
 const preview = computed(() => attendanceInvitationEmailText({
   participantName: 'Prénom Nom',

@@ -67,6 +67,14 @@ export function fetchByUrl<T>(request: string, options?: RawOptions) {
   return apiFetch(request, options) as Promise<T>
 }
 
+/**
+ * Appel direct d'une page publique (lien personnel, formulaire de diffusion), typé par l'appelant : sans le cache ni
+ * la file hors ligne, et sans retour à l'écran de connexion sur un refus, puisque personne n'y est connecté.
+ */
+export function publicFetch<T>(request: string, options?: { method: 'POST' | 'PUT', body?: Record<string, unknown> }) {
+  return rawFetch(request, options) as Promise<T>
+}
+
 // Implémentation non typée par route : la file hors ligne et le cache de l'appareil ne connaissent que l'URL
 const rawFetch = $fetch as unknown as (request: string, options?: RawOptions) => Promise<unknown>
 type RawOptions = Record<string, unknown> & ApiFetchExtras & { body?: Record<string, unknown> | FormData, method?: string, headers?: Record<string, string> }

@@ -82,6 +82,7 @@
 
 <script setup lang="ts">
 import { apiErrorMessage } from '~/utils/apiErrors'
+import { formatLongDate as formatDate } from '~/utils/dates'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
 type PendingBequest = ApiResponse<'/api/games/:id/bequests'>[number]
@@ -103,7 +104,6 @@ const busyId = ref('')
 // Une action à la fois : chacune efface les messages et recharge la liste
 const busy = computed(() => sending.value || Boolean(busyId.value))
 
-const formatDate = (value: string | Date) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long' })
 
 watch(open, (value) => {
   if (!value) return
@@ -169,7 +169,7 @@ async function bequeath() {
     })
     const recipient = result.recipient?.name || result.recipient?.email
     message.value = result.pending
-      ? `${recipient} n’a pas encore de compte Limbus : elle a reçu une invitation à en créer un, valable jusqu’au ${new Date(result.expiresAt).toLocaleDateString('fr-FR', { dateStyle: 'long' })}. La copie lui sera attribuée à la création de son compte.`
+      ? `${recipient} n’a pas encore de compte Limbus : elle a reçu une invitation à en créer un, valable jusqu’au ${formatDate(result.expiresAt)}. La copie lui sera attribuée à la création de son compte.`
       : result.emailDelivery?.sent
       ? `Copie léguée à ${recipient}, qui a été prévenue par email.`
       : `Copie léguée à ${recipient}, mais l’email n’a pas pu être envoyé : prévenez-la vous-même.`

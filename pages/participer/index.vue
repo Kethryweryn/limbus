@@ -152,6 +152,7 @@
 <script setup>
 import { REFUND_STATUSES, REGISTRATION_STATUS_META, SESSION_ROLE_LABELS, SESSION_ROLES, SESSION_STATUS_META } from '~/utils/domain'
 import { rememberSpace } from '~/utils/spaces'
+import { formatLongDate as formatDate } from '~/utils/dates'
 
 // Espace « Je participe » (US-071)
 const { data: authState } = await useFetch('/api/auth/me')
@@ -211,6 +212,5 @@ const refundLabel = (status) => REFUND_LABELS[status] || ''
 // Reste à payer : montant restant en mode tarifs, case non cochée en mode simple
 const owes = (payment) => payment.mode === 'simple' ? !payment.paidAt : payment.remainingCents > 0
 
-const formatDate = (value) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long' })
 const formatEuros = (cents) => ((cents || 0) / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
 </script>

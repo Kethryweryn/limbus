@@ -11,7 +11,7 @@
           <h3 class="font-semibold">Informations demandées</h3>
           <p class="text-sm text-gray-500">L’email est toujours demandé et obligatoire.</p>
           <div
-            v-for="field in REGISTRATION_STANDARD_FIELDS"
+            v-for="field in STANDARD_FIELDS"
             :key="field.key"
             class="flex flex-col gap-2 rounded border border-gray-200 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
           >
@@ -23,7 +23,7 @@
               <UCheckbox
                 :model-value="settings[field.key].asked"
                 label="Demandé"
-                @update:model-value="setAsked(field.key, $event)"
+                @update:model-value="setAsked(settings[field.key], $event)"
               />
               <UCheckbox
                 v-model="settings[field.key].required"
@@ -47,7 +47,7 @@
               <UCheckbox
                 :model-value="affinities[affinity.key].asked"
                 label="Demandée"
-                @update:model-value="setAffinityAsked(affinity.key, $event)"
+                @update:model-value="setAsked(affinities[affinity.key], $event)"
               />
               <UCheckbox
                 v-model="affinities[affinity.key].required"
@@ -70,7 +70,7 @@
               <div class="text-xs text-gray-500">{{ balanceAttribute.values.join(', ') }} ou « Peu importe ». Sert au tirage avec équilibre.</div>
             </div>
             <div class="flex shrink-0 gap-4">
-              <UCheckbox :model-value="balance.asked" label="Demandée" @update:model-value="setBalanceAsked" />
+              <UCheckbox :model-value="balance.asked" label="Demandée" @update:model-value="setAsked(balance, $event)" />
               <UCheckbox v-model="balance.required" label="Obligatoire" :disabled="!balance.asked" />
             </div>
           </div>
@@ -88,7 +88,7 @@
                 <UInput v-model="question.label" class="w-full" />
               </UFormField>
               <UFormField label="Sorte">
-                <USelect v-model="question.type" :items="REGISTRATION_QUESTION_TYPES" value-key="value" class="w-full" />
+                <USelect v-model="question.type" :items="QUESTION_TYPES" value-key="value" class="w-full" />
               </UFormField>
             </div>
             <UFormField v-if="REGISTRATION_CHOICE_TYPES.includes(question.type)" label="Options" description="Une option par ligne, deux au moins.">
@@ -138,7 +138,7 @@
               <p v-if="noteIntention" class="mt-1 whitespace-pre-line text-sm text-gray-600">{{ noteIntention }}</p>
               <p v-else class="mt-1 text-sm italic text-gray-400">Le jeu n’a pas encore de note d’intention : renseignez-la dans la fiche du jeu.</p>
             </div>
-            <UCheckbox disabled label="J’ai lu la note d’intention et j’y adhère *" />
+            <UCheckbox disabled :label="`${REGISTRATION_CHARTER_LABEL} *`" />
 
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <UFormField label="Email *">
@@ -155,11 +155,7 @@
               </UFormField>
             </div>
             <RegistrationExtraFields :definition="previewDefinition" disabled />
-            <UCheckbox
-              v-if="settings.dietary.asked"
-              disabled
-              label="J’accepte que ces informations de santé soient transmises aux organisateurs et à l’équipe cuisine (obligatoire si je déclare des allergies)"
-            />
+            <UCheckbox v-if="settings.dietary.asked" disabled :label="REGISTRATION_HEALTH_CONSENT_LABEL" />
           </div>
         </section>
 
@@ -185,33 +181,61 @@
   </UModal>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import {
   DEFAULT_REGISTRATION_FORM_DEFINITION,
   REGISTRATION_AFFINITIES,
+  REGISTRATION_CHARTER_LABEL,
   REGISTRATION_CHOICE_TYPES,
-  REGISTRATION_FORM_INPUTS,
+  REGISTRATION_HEALTH_CONSENT_LABEL,
   REGISTRATION_QUESTION_TYPES,
-  REGISTRATION_STANDARD_FIELDS
+  REGISTRATION_STANDARD_FIELDS,
+  askedRegistrationInputs,
+  type RegistrationFieldSetting,
+  type RegistrationQuestion,
+  type RegistrationQuestionType,
+  type RegistrationStandardFieldKey
 } from '~/utils/registrationForms'
 import { apiErrorMessage } from '~/utils/apiErrors'
+import { formatLongDateTime } from '~/utils/dates'
+import { isOfflineQueued, type ApiResponse } from '~/composables/useApiFetch'
 
-const open = defineModel('open', { type: Boolean, default: false })
+// Listes de réglages, sous une forme que les composants acceptent (les constantes sont en lecture seule)
+const STANDARD_FIELDS: Array<{ key: RegistrationStandardFieldKey, label: string, description?: string }> = [...REGISTRATION_STANDARD_FIELDS]
+const QUESTION_TYPES = [...REGISTRATION_QUESTION_TYPES]
 
-const props = defineProps({
-  gameId: { type: String, required: true },
-  gameTitle: { type: String, required: true }
-})
+type SavedForm = ApiResponse<'/api/games/:id/registration-form', 'put'>
+type QuestionLinks = ApiResponse<'/api/games/:id/registration-question-links'>
+type QuestionLink = QuestionLinks['links'][number]
 
-const settings = ref(cloneSettings(DEFAULT_REGISTRATION_FORM_DEFINITION.standardFields))
-const affinities = ref(cloneSettings({}, REGISTRATION_AFFINITIES))
-// Questions en cours d'édition : key sert au rendu, id (absent pour une nouvelle question) au serveur
-const questions = ref([])
-const balance = ref({ asked: false, required: false })
+// Question en cours d'édition : key sert au rendu, id (absent pour une nouvelle question) au serveur. optionLinks :
+// les rôles de chaque option, par texte de l'option ; scaleLinks : ceux d'une question sur une échelle (US-098)
+type EditableQuestion = {
+  key: number
+  id?: string
+  label: string
+  type: RegistrationQuestionType
+  required: boolean
+  optionsText: string
+  optionLinks: Record<string, string[]>
+  scaleLinks: string[]
+}
+
+const open = defineModel<boolean>('open', { default: false })
+
+const props = defineProps<{
+  gameId: string
+  gameTitle: string
+}>()
+
+const settings = ref(cloneSettings(REGISTRATION_STANDARD_FIELDS, DEFAULT_REGISTRATION_FORM_DEFINITION.standardFields))
+const affinities = ref(cloneSettings(REGISTRATION_AFFINITIES, {}))
+const questions = ref<EditableQuestion[]>([])
+const balance = ref<RegistrationFieldSetting>({ asked: false, required: false })
 // Nom et valeurs de l'attribut d'équilibre du jeu ; null sans attribut
-const balanceAttribute = ref(null)
+const balanceAttribute = ref<{ label: string, values: string[] } | null>(null)
 let nextKey = 0
-const version = ref(null)
+const version = ref<SavedForm['version']>(null)
 const noteIntention = ref('')
 const errorMessage = ref('')
 const savedMessage = ref('')
@@ -222,62 +246,64 @@ watch(open, async (value) => {
   errorMessage.value = ''
   savedMessage.value = ''
   try {
-    apply(await useApiFetch(`/api/games/${props.gameId}/registration-form`))
+    const current = await useApiFetch(`/api/games/${props.gameId}/registration-form`)
+    apply(current)
+    noteIntention.value = current.game.noteIntention || ''
     linksLoaded.value = false
     const linked = await useApiFetch(`/api/games/${props.gameId}/registration-question-links`)
     linkTargets.value = linked.targets
     applyLinks(linked.links)
     linksLoaded.value = true
   } catch (err) {
-    errorMessage.value = err?.data?.message || err?.message || 'Impossible de charger le formulaire'
+    errorMessage.value = apiErrorMessage(err, 'Impossible de charger le formulaire')
   }
 })
 
 const versionLabel = computed(() => version.value
-  ? `Version ${version.value.number}, enregistrée le ${new Date(version.value.createdAt).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}.`
+  ? `Version ${version.value.number}, enregistrée le ${formatLongDateTime(version.value.createdAt)}.`
   : 'Formulaire par défaut, jamais enregistré.')
 
 // Champs affichés dans l'aperçu, dans l'ordre où l'inscrit les verra (même liste que la page du lien)
-const previewFields = computed(() => REGISTRATION_FORM_INPUTS
-  .filter((input) => settings.value[input.setting].asked)
-  .map((input) => ({ ...input, required: settings.value[input.setting].required })))
+const previewFields = computed(() => askedRegistrationInputs(settings.value))
 
 // Sans réglage enregistré (affinités d'un ancien formulaire), le champ n'est pas demandé
-function cloneSettings(values, fields = REGISTRATION_STANDARD_FIELDS) {
-  return Object.fromEntries(fields.map(({ key }) => [key, { ...(values[key] ?? { asked: false, required: false }) }]))
+function cloneSettings<K extends string>(fields: ReadonlyArray<{ key: K }>, values: Partial<Record<K, RegistrationFieldSetting>>) {
+  return Object.fromEntries(fields.map(({ key }) => [key, { ...(values[key] ?? { asked: false, required: false }) }])) as Record<K, RegistrationFieldSetting>
 }
 
-// optionLinks : les rôles de chaque option, par texte de l'option ; scaleLinks : ceux d'une question sur une échelle (US-098)
-const editableQuestion = (question) => ({
-  key: nextKey++,
-  id: question.id,
-  label: question.label,
-  type: question.type,
-  required: question.required,
-  optionsText: question.options.join('\n'),
-  optionLinks: {},
-  scaleLinks: []
-})
+function editableQuestion(question: Omit<RegistrationQuestion, 'id'> & { id?: string }): EditableQuestion {
+  return {
+    key: nextKey++,
+    id: question.id,
+    label: question.label,
+    type: question.type,
+    required: question.required,
+    optionsText: question.options.join('\n'),
+    optionLinks: {},
+    scaleLinks: []
+  }
+}
 
-const parseOptions = (text) => String(text ?? '').split('\n').map((option) => option.trim()).filter(Boolean)
+const parseOptions = (text: string | undefined) => String(text ?? '').split('\n').map((option) => option.trim()).filter(Boolean)
 
 /**
  * Les rôles suivent le texte de leur option : ajouter, retirer ou déplacer une ligne ne les change pas d'option. Une
  * ligne modifiée à la même place, quand le nombre d'options ne change pas, est un renommage : elle garde ses rôles.
  */
-function setOptionsText(question, text) {
+function setOptionsText(question: EditableQuestion, text: string) {
   const before = parseOptions(question.optionsText)
   const after = parseOptions(text)
-  const links = {}
+  const links: Record<string, string[]> = {}
   after.forEach((option, index) => {
-    const renamed = before.length === after.length && !before.includes(option) && !after.includes(before[index]) ? before[index] : null
+    const previous = before[index]
+    const renamed = before.length === after.length && !before.includes(option) && previous !== undefined && !after.includes(previous) ? previous : null
     const kept = question.optionLinks[option] ?? (renamed ? question.optionLinks[renamed] : undefined)
     if (kept?.length) links[option] = kept
   })
   question.optionsText = text
   question.optionLinks = links
 }
-const questionOptions = (question) => REGISTRATION_CHOICE_TYPES.includes(question.type) ? question.optionsText.split('\n').map((option) => option.trim()).filter(Boolean) : []
+const questionOptions = (question: EditableQuestion) => REGISTRATION_CHOICE_TYPES.includes(question.type) ? parseOptions(question.optionsText) : []
 const definitionQuestions = () => questions.value.map((question) => ({
   ...(question.id ? { id: question.id } : {}),
   label: question.label,
@@ -297,23 +323,19 @@ function addQuestion() {
   questions.value.push(editableQuestion({ label: '', type: 'text', required: false, options: [] }))
 }
 
-function moveQuestion(index, offset) {
+function moveQuestion(index: number, offset: number) {
   const [question] = questions.value.splice(index, 1)
-  questions.value.splice(index + offset, 0, question)
+  questions.value.splice(index + offset, 0, question!)
 }
 
-function setBalanceAsked(asked) {
-  balance.value.asked = asked
-  if (!asked) balance.value.required = false
-}
-
-function setAffinityAsked(key, asked) {
-  affinities.value[key].asked = asked
-  if (!asked) affinities.value[key].required = false
+// Un champ non demandé ne peut pas être obligatoire
+function setAsked(setting: RegistrationFieldSetting, checked: boolean | 'indeterminate') {
+  setting.asked = checked === true
+  if (!setting.asked) setting.required = false
 }
 
 // Liens du questionnaire (US-098) : « character:id », « faction:id » ou « intrigue:id »
-const linkTargets = ref({ characters: [], factions: [], intrigues: [] })
+const linkTargets = ref<QuestionLinks['targets']>({ characters: [], factions: [], intrigues: [] })
 const linksLoaded = ref(false)
 const hasLinkTargets = computed(() => Object.values(linkTargets.value).some((list) => list.length))
 const linkItems = computed(() => [
@@ -322,10 +344,10 @@ const linkItems = computed(() => [
   linkTargets.value.intrigues.map((entry) => ({ label: `${entry.name} (intrigue)`, value: `intrigue:${entry.id}` }))
 ].filter((group) => group.length))
 
-function applyLinks(links) {
+function applyLinks(links: QuestionLink[]) {
+  const value = (link: QuestionLink) => `${link.target.kind}:${link.target.id}`
   for (const question of questions.value) {
     const mine = links.filter((link) => link.questionId === question.id)
-    const value = (link) => `${link.target.kind}:${link.target.id}`
     question.scaleLinks = mine.filter((link) => link.option === '').map(value)
     question.optionLinks = Object.fromEntries(questionOptions(question).map((option) => [option, mine.filter((link) => link.option === option).map(value)]))
   }
@@ -336,33 +358,24 @@ function applyLinks(links) {
 function linkDrafts() {
   return questions.value.map((question) => question.type === 'scale'
     ? [{ option: '', values: question.scaleLinks }]
-    : REGISTRATION_CHOICE_TYPES.includes(question.type)
-      ? questionOptions(question).map((option) => ({ option, values: question.optionLinks[option] || [] }))
-      : [])
+    : questionOptions(question).map((option) => ({ option, values: question.optionLinks[option] || [] })))
 }
 
-function linksPayload(drafts) {
+function linksPayload(drafts: ReturnType<typeof linkDrafts>) {
   return questions.value.flatMap((question, index) => (drafts[index] || []).flatMap(({ option, values }) => values.map((value) => {
     const [kind, id] = value.split(':')
     return { questionId: question.id, option, [`${kind}Id`]: id }
   })))
 }
 
-function apply(data) {
-  settings.value = cloneSettings(data.definition.standardFields)
-  affinities.value = cloneSettings(data.definition.affinities ?? {}, REGISTRATION_AFFINITIES)
-  questions.value = (data.definition.questions ?? []).map(editableQuestion)
-  const { asked = false, required = false, label, values } = data.definition.balance ?? {}
+function apply(data: SavedForm) {
+  settings.value = cloneSettings(REGISTRATION_STANDARD_FIELDS, data.definition.standardFields)
+  affinities.value = cloneSettings(REGISTRATION_AFFINITIES, data.definition.affinities)
+  questions.value = data.definition.questions.map(editableQuestion)
+  const { asked, required, label, values } = data.definition.balance
   balance.value = { asked, required }
   balanceAttribute.value = label && values?.length ? { label, values } : null
   version.value = data.version
-  if (data.game) noteIntention.value = data.game.noteIntention || ''
-}
-
-// Un champ non demandé ne peut pas être obligatoire
-function setAsked(key, asked) {
-  settings.value[key].asked = asked
-  if (!asked) settings.value[key].required = false
 }
 
 async function save() {
@@ -372,19 +385,29 @@ async function save() {
   try {
     const previous = version.value?.number
     const drafts = linkDrafts()
-    apply(await useApiFetch(`/api/games/${props.gameId}/registration-form`, {
+    const saved = await useApiFetch(`/api/games/${props.gameId}/registration-form`, {
       method: 'PUT',
       body: { standardFields: settings.value, affinities: affinities.value, balance: balance.value, questions: definitionQuestions(), baseVersionNumber: previous ?? null }
-    }))
+    })
+    // Hors ligne, le formulaire part en file (ADR-0036) ; les rôles, qui attendent les identifiants des nouvelles
+    // questions, ne peuvent pas suivre
+    if (isOfflineQueued(saved)) {
+      savedMessage.value = 'Hors ligne : le formulaire sera enregistré au retour du réseau, mais pas les rôles reliés aux options. Reliez-les de nouveau une fois le formulaire enregistré.'
+      return
+    }
+    apply(saved)
     // Les questions reviennent dans le même ordre, avec leurs identifiants : les liens suivent (US-098). Sans liens
     // chargés, on n'enregistre rien : une liste vide les effacerait tous
+    let linksQueued = false
     if (linksLoaded.value) {
-      const saved = await useApiFetch(`/api/games/${props.gameId}/registration-question-links`, { method: 'PUT', body: { links: linksPayload(drafts) } })
-      applyLinks(saved.links)
+      const savedLinks = await useApiFetch(`/api/games/${props.gameId}/registration-question-links`, { method: 'PUT', body: { links: linksPayload(drafts) } })
+      if (isOfflineQueued(savedLinks)) linksQueued = true
+      else applyLinks(savedLinks.links)
     }
-    savedMessage.value = version.value?.number === previous
-      ? 'Aucun changement : la version en vigueur est conservée.'
-      : `Version ${version.value.number} enregistrée.`
+    savedMessage.value = [
+      version.value?.number === previous ? 'Aucun changement : la version en vigueur est conservée.' : `Version ${version.value?.number} enregistrée.`,
+      linksQueued ? 'Hors ligne : les rôles seront enregistrés au retour du réseau.' : ''
+    ].filter(Boolean).join(' ')
   } catch (err) {
     errorMessage.value = apiErrorMessage(err, 'Enregistrement impossible')
   } finally {

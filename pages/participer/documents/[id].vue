@@ -68,6 +68,7 @@
 </template>
 
 <script setup>
+import { formatLongDate as formatDate } from '~/utils/dates'
 // Un document reçu, dans « Je participe » (US-079)
 const route = useRoute()
 const delivery = ref(null)
@@ -84,5 +85,4 @@ onMounted(async () => {
   }
 })
 
-const formatDate = (value) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long' })
 </script>

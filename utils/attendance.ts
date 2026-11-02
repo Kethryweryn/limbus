@@ -1,3 +1,5 @@
+import { PARIS_TIME_ZONE, formatLongDate, formatLongDateTime } from '~/utils/dates'
+
 // Confirmation de présence à une session reportée (US-024, ADR-0029) : partagé entre le serveur et l'aperçu de l'email
 
 export const ATTENDANCE_STATUSES = {
@@ -35,8 +37,8 @@ export function canReleaseAttendance(row: { status: string, responseDueAt: Date 
   return display === 'declined' || display === 'overdue'
 }
 
-const formatDate = (value: Date | string) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long', timeZone: 'Europe/Paris' })
-const formatDateTime = (value: Date | string) => new Date(value).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Europe/Paris' })
+const formatDate = (value: Date | string) => formatLongDate(value, PARIS_TIME_ZONE)
+const formatDateTime = (value: Date | string) => formatLongDateTime(value, PARIS_TIME_ZONE)
 
 type AttendanceEmailParams = {
   participantName: string

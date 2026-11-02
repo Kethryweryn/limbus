@@ -98,3 +98,25 @@ export function splitParticipantName(name: string) {
   const [firstName = '', ...rest] = name.trim().split(/\s+/)
   return { firstName, lastName: rest.join(' ') }
 }
+
+// « Délai dépassé » se lit sur l'échéance (R20, ADR-0020) ; un statut inconnu s'affiche tel quel
+export function registrationStatusMeta(registration: { status: string, responseDueAt?: DateLike }) {
+  return REGISTRATION_DISPLAY_STATUS_META[registrationDisplayStatus(registration)] || { label: registration.status, color: 'neutral' as const }
+}
+
+type ListedRegistration = { sessionId: string | null, status: string, participant: { id: string } }
+
+// Une personne désistée libère sa place : elle ne compte plus face aux places
+export function invitedCount(registrations: ListedRegistration[], sessionId: string) {
+  return registrations.filter((registration) => registration.sessionId === sessionId && registration.status !== REGISTRATION_STATUSES.withdrawn).length
+}
+
+// Une personne qui a décliné ou s'est désistée peut être réinvitée (erreur de sa part) ; les autres ont déjà leur
+// inscription dans la période
+export function registeredParticipantIds(registrations: ListedRegistration[]) {
+  return registrations.filter((registration) => registration.status !== REGISTRATION_STATUSES.withdrawn).map((registration) => registration.participant.id)
+}
+
+export function withdrawnParticipantIds(registrations: ListedRegistration[]) {
+  return registrations.filter((registration) => registration.status === REGISTRATION_STATUSES.withdrawn).map((registration) => registration.participant.id)
+}

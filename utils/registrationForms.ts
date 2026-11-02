@@ -11,11 +11,13 @@ export const REGISTRATION_STANDARD_FIELDS = [
 
 export type RegistrationStandardFieldKey = typeof REGISTRATION_STANDARD_FIELDS[number]['key']
 
+export type RegistrationInputKey = 'lastName' | 'firstName' | 'phone' | 'facebookName' | 'emergencyContactName' | 'emergencyContactPhone' | 'dietary'
+
 // Champs saisis par l'inscrit, dans l'ordre du formulaire : un réglage peut donner deux champs (contact d'urgence).
 // Partagés par l'aperçu de l'éditeur et la page du lien personnel, pour que l'aperçu reste fidèle.
 export const REGISTRATION_FORM_INPUTS: ReadonlyArray<{
   setting: RegistrationStandardFieldKey
-  key: string
+  key: RegistrationInputKey
   label: string
   type?: string
   autocomplete?: string
@@ -30,6 +32,17 @@ export const REGISTRATION_FORM_INPUTS: ReadonlyArray<{
   { setting: 'emergencyContact', key: 'emergencyContactPhone', label: 'Contact d’urgence : téléphone', type: 'tel' },
   { setting: 'dietary', key: 'dietary', label: 'Allergies et intolérances alimentaires', wide: true, multiline: true }
 ]
+
+/** Champs demandés par les réglages du formulaire, dans l'ordre où l'inscrit les voit. */
+export function askedRegistrationInputs(settings: Record<RegistrationStandardFieldKey, RegistrationFieldSetting>) {
+  return REGISTRATION_FORM_INPUTS
+    .filter((input) => settings[input.setting].asked)
+    .map((input) => ({ ...input, required: settings[input.setting].required }))
+}
+
+// Cases de fin du formulaire, identiques sur la page du lien personnel, le formulaire de diffusion et l'aperçu
+export const REGISTRATION_HEALTH_CONSENT_LABEL = 'J’accepte que ces informations de santé soient transmises aux organisateurs et à l’équipe cuisine (obligatoire si je déclare des allergies)'
+export const REGISTRATION_CHARTER_LABEL = 'J’ai lu la note d’intention et j’y adhère'
 
 // Longueur maximale d'une réponse ; les allergies peuvent demander une description détaillée
 export const REGISTRATION_ANSWER_MAX_LENGTH = 500
@@ -46,6 +59,40 @@ export const REGISTRATION_AFFINITIES = [
 ] as const
 
 export type RegistrationAffinityKey = typeof REGISTRATION_AFFINITIES[number]['key']
+// refusedRelationTypes : cases cochées de « les relations que je ne veux pas jouer » (US-099, ADR-0050)
+export type AffinityAnswers = Record<RegistrationAffinityKey, string[]> & { refusedRelationTypes?: string[] }
+// Réponses aux questions propres au jeu, par identifiant de question
+export type QuestionAnswers = Record<string, string | string[] | number | null>
+
+/** Réponses en cours de saisie dans le formulaire d'inscription (lien personnel, compte, formulaire de diffusion). */
+export type RegistrationAnswerForm = Record<RegistrationInputKey, string | null> & {
+  email: string
+  healthConsent: boolean
+  charterAccepted: boolean
+  availableSessionIds: string[]
+  affinities: Partial<AffinityAnswers>
+  questionAnswers: QuestionAnswers
+  balancePreference: string | null
+}
+
+export function emptyRegistrationAnswerForm(): RegistrationAnswerForm {
+  return {
+    email: '',
+    firstName: '',
+    lastName: '',
+    facebookName: '',
+    phone: '',
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+    dietary: '',
+    healthConsent: false,
+    charterAccepted: false,
+    availableSessionIds: [],
+    affinities: {},
+    questionAnswers: {},
+    balancePreference: null
+  }
+}
 export const REGISTRATION_AFFINITY_MAX_LINES = 20
 export const REGISTRATION_AFFINITY_MAX_LENGTH = 200
 

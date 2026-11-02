@@ -1,5 +1,5 @@
 <template>
-  <UModal v-model:open="open" :title="`Inviter · ${sessionName}`">
+  <UModal v-model:open="open" :title="`Inviter · ${link.session.name}`">
     <template #body>
       <form class="space-y-5" @submit.prevent="submit">
         <p class="text-sm text-gray-500">
@@ -65,32 +65,37 @@
   </UModal>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { apiErrorMessage } from '~/utils/apiErrors'
+import { invitedCount as countInvited, registeredParticipantIds, withdrawnParticipantIds } from '~/utils/registrations'
+import { fetchByUrl, type ApiResponse } from '~/composables/useApiFetch'
+import type { InvitationResult, PeriodSessionLink, RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
 
-const open = defineModel('open', { type: Boolean, default: false })
+type Participant = ApiResponse<'/api/participants'>[number]
 
-const props = defineProps({
-  gameId: { type: String, required: true },
-  periodId: { type: String, required: true },
-  sessionId: { type: String, required: true },
-  sessionName: { type: String, required: true },
-  seats: { type: Number, required: true },
-  invitedCount: { type: Number, required: true },
-  // Participants qui ont déjà une inscription en cours dans la période : une seule par personne
-  registeredParticipantIds: { type: Array, default: () => [] },
-  // Participants qui ont décliné ou se sont désistés : leur inscription repart avec un nouveau lien
-  withdrawnParticipantIds: { type: Array, default: () => [] }
-})
+const open = defineModel<boolean>('open', { default: false })
 
-const emit = defineEmits(['invited'])
+const props = defineProps<{
+  gameId: string
+  period: RegistrationPeriod
+  // Session à laquelle on invite
+  link: PeriodSessionLink
+}>()
 
-const participants = ref([])
-const selected = ref([])
+const emit = defineEmits<{ invited: [result: InvitationResult] }>()
+
+const participants = ref<Participant[]>([])
+const selected = ref<string[]>([])
 const search = ref('')
 const newParticipant = reactive({ name: '', email: '' })
 const serverError = ref('')
 const saving = ref(false)
+
+const seats = computed(() => props.link.seats)
+const invitedCount = computed(() => countInvited(props.period.registrations, props.link.sessionId))
+// Une seule inscription en cours par personne dans la période ; qui a décliné ou s'est désisté repart avec un nouveau lien
+const registeredIds = computed(() => registeredParticipantIds(props.period.registrations))
+const withdrawnIds = computed(() => withdrawnParticipantIds(props.period.registrations))
 
 watch(open, async (value) => {
   if (!value) return
@@ -100,10 +105,9 @@ watch(open, async (value) => {
   newParticipant.email = ''
   serverError.value = ''
   try {
-    const all = await useApiFetch('/api/participants')
-    participants.value = all.filter((participant) => participant.games.some((game) => game.id === props.gameId))
+    participants.value = await fetchByUrl<Participant[]>(`/api/participants?gameId=${encodeURIComponent(props.gameId)}`)
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Impossible de charger les participants'
+    serverError.value = apiErrorMessage(err, 'Impossible de charger les participants')
   }
 }, { immediate: true }) // La modale est montée déjà ouverte au premier clic sur « Inviter »
 
@@ -114,20 +118,20 @@ const visibleParticipants = computed(() => {
 
 const hasNewParticipant = computed(() => Boolean(newParticipant.name.trim() || newParticipant.email.trim()))
 const toInviteCount = computed(() => selected.value.length + (hasNewParticipant.value ? 1 : 0))
-const overSeats = computed(() => props.invitedCount + toInviteCount.value > props.seats)
+const overSeats = computed(() => invitedCount.value + toInviteCount.value > seats.value)
 
-function canInvite(participant) {
-  return Boolean(participant.email?.trim()) && !props.registeredParticipantIds.includes(participant.id)
+function canInvite(participant: Participant) {
+  return Boolean(participant.email?.trim()) && !registeredIds.value.includes(participant.id)
 }
 
-function participantDescription(participant) {
-  if (props.registeredParticipantIds.includes(participant.id)) return 'Déjà inscrit dans cette période'
+function participantDescription(participant: Participant) {
+  if (registeredIds.value.includes(participant.id)) return 'Déjà inscrit dans cette période'
   if (!participant.email?.trim()) return 'Sans email : ajoutez-en un sur sa fiche pour l’inviter'
-  if (props.withdrawnParticipantIds.includes(participant.id)) return `${participant.email} · a décliné ou s’est désisté·e : la réinviter lui envoie un nouveau lien`
+  if (withdrawnIds.value.includes(participant.id)) return `${participant.email} · a décliné ou s’est désisté·e : la réinviter lui envoie un nouveau lien`
   return participant.email
 }
 
-function toggle(id, checked) {
+function toggle(id: string, checked: boolean) {
   selected.value = checked ? [...selected.value, id] : selected.value.filter((value) => value !== id)
 }
 
@@ -135,10 +139,10 @@ async function submit() {
   saving.value = true
   serverError.value = ''
   try {
-    const result = await useApiFetch(`/api/registration-periods/${props.periodId}/invitations`, {
+    const result = await useApiAction(`/api/registration-periods/${props.period.id}/invitations`, {
       method: 'POST',
       body: {
-        sessionId: props.sessionId,
+        sessionId: props.link.sessionId,
         participantIds: selected.value,
         newParticipant: hasNewParticipant.value ? { name: newParticipant.name, email: newParticipant.email } : null
       }
