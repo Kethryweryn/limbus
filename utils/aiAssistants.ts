@@ -8,7 +8,6 @@ export const AI_LOG_ACTIONS = {
   expired: 'expiration',
   sessionsRevoked: 'déconnexion',
   reused: 'réutilisation',
-  tool: 'outil',
   // Écritures d'un assistant (SPEC-014, R13)
   created: 'création',
   changed: 'mise à jour',
@@ -35,7 +34,6 @@ export const AI_LOG_ACTION_LABELS: Record<string, string> = {
   [AI_LOG_ACTIONS.expired]: 'expiré après 90 jours sans usage',
   [AI_LOG_ACTIONS.sessionsRevoked]: 'coupé (déconnexion partout ou compte désactivé)',
   [AI_LOG_ACTIONS.reused]: 'retiré (jeton réutilisé)',
-  [AI_LOG_ACTIONS.tool]: 'action',
   [AI_LOG_ACTIONS.created]: 'créé',
   [AI_LOG_ACTIONS.changed]: 'modifié',
   [AI_LOG_ACTIONS.deleted]: 'supprimé'

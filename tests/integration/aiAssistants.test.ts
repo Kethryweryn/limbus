@@ -369,7 +369,7 @@ describe('assistants connectés', () => {
     const gameId = (await prisma.game.create({ data: { title: 'Jeu du départ', slug: 'jeu-du-depart-ia', description: '', ownerId: bob.id } })).id
     await connectAssistant(leaving, { gameIds: [] })
     const authorization = await prisma.aiAuthorization.findFirstOrThrow({ where: { userId: leaving.id } })
-    await prisma.aiLogEntry.create({ data: { userId: leaving.id, gameId, clientName: 'Assistant de test', action: 'outil', authorizationId: authorization.id } })
+    await prisma.aiLogEntry.create({ data: { userId: leaving.id, gameId, clientName: 'Assistant de test', action: 'création', authorizationId: authorization.id } })
 
     await prisma.user.delete({ where: { id: leaving.id } })
     expect(await prisma.aiAuthorization.count({ where: { id: authorization.id } })).toBe(0)
