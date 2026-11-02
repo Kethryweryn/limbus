@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { startTestSmtp } from '../integration/smtp'
-import { signIn, slugOf, testUser, uniqueName } from './helpers'
+import { blockWith, signIn, slugOf, testUser, uniqueName } from './helpers'
 
 // EPIC-031 (US-118) : l'administratrice crée un compte, le désactive, et teste l'envoi d'emails
 test('l’administratrice crée et désactive un compte, puis teste l’envoi d’emails', async ({ page }) => {
@@ -23,7 +23,7 @@ test('l’administratrice crée et désactive un compte, puis teste l’envoi d�
     await expect.poll(() => smtp.to(email).length).toBe(1)
 
     // Désactivation depuis la carte du compte
-    const card = page.locator('div').filter({ has: page.getByRole('heading', { name, exact: true }) }).filter({ has: page.getByRole('button', { name: 'Désactiver' }) }).last()
+    const card = blockWith(page, page.getByRole('heading', { name, exact: true }), 'Désactiver')
     page.once('dialog', (dialog) => dialog.accept())
     await card.getByRole('button', { name: 'Désactiver' }).click()
     await expect(card.getByText('Désactivé', { exact: true })).toBeVisible()

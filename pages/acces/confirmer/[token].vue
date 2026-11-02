@@ -17,6 +17,8 @@
 
 <script setup lang="ts">
 import { serverMessage } from '~/utils/apiErrors'
+import { once } from '~/utils/once'
+import type { ApiResponse } from '~/composables/useApiFetch'
 
 // Lien de confirmation : inscription (US-061) ou nouvelle adresse (US-063). Le clic connecte
 definePageMeta({ layout: false })
@@ -28,7 +30,8 @@ const newEmail = ref('')
 
 onMounted(async () => {
   try {
-    const result = await $fetch('/api/auth/confirm', { method: 'POST', body: { token: String(route.params.token || '') } })
+    const token = String(route.params.token || '')
+    const result = await once(`confirm:${token}`, () => publicFetch<ApiResponse<'/api/auth/confirm', 'post'>>('/api/auth/confirm', { method: 'POST', body: { token } }))
     newEmail.value = 'email' in result ? result.email ?? '' : ''
   } catch (err) {
     error.value = serverMessage(err, 'Ce lien n’est pas valable.')

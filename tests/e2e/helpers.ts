@@ -1,5 +1,6 @@
 import { TERMS_VERSION } from '../../utils/legal'
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { JWT_SECRET } from '../integration/constants'
 import { E2E_PASSWORD, PARCOURS } from './constants'
@@ -61,17 +62,24 @@ export function uniqueName(base: string) {
 
 // Le plus petit bloc de la page Inscriptions qui porte à la fois le titre du jeu et le bouton donné
 export function gamePanel(page: Page, title: string, button: string | RegExp) {
+  return blockWith(page, page.getByRole('heading', { name: title, exact: true }), button)
+}
+
+// Le plus petit bloc qui contient à la fois l'élément donné (titre, lien) et le bouton donné : une carte, un panneau
+export function blockWith(page: Page, has: Locator, button: string | RegExp) {
   return page.locator('div')
-    .filter({ has: page.getByRole('heading', { name: title, exact: true }) })
+    .filter({ has })
     .filter({ has: page.getByRole('button', { name: button }) })
     .last()
 }
 
-// Compte propre au test, confirmé et aux conditions acceptées : ses changements ne touchent pas les comptes partagés
+// Compte propre au test, confirmé, aux conditions acceptées et au mot de passe des tests : ses changements ne touchent pas
+// les comptes partagés
 export async function testUser(prisma: TestPrisma, base: string, role = 'user') {
   const name = uniqueName(base)
   const email = `${slugOf(name)}@example.test`
-  const user = await prisma.user.create({ data: { email, name, password: 'inutilisable', role, termsAcceptedVersion: TERMS_VERSION, emailConfirmedAt: new Date() } })
+  const password = await bcrypt.hash(E2E_PASSWORD, 4)
+  const user = await prisma.user.create({ data: { email, name, password, role, termsAcceptedVersion: TERMS_VERSION, emailConfirmedAt: new Date() } })
   return { user, email, name }
 }
 
