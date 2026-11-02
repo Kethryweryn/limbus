@@ -21,7 +21,6 @@ En tant que développeuse, je veux que les écrans des sessions soient vérifié
 - [x] Code recopié mis en commun : fonctions des sessions (`utils/sessions.ts`), délai des boutons d'envoi (`coolDown`), écriture d'une ligne de paiement (une au lieu de huit).
 - [x] Changements visibles, voulus :
   - après un enregistrement, la page d'une session garde ses liens de report et l'onglet Présence (la réponse du serveur ne les rendait pas) ;
-  - les envois groupés de fiches et trombinoscopes partent un par un : un envoi en cours désactive les deux autres ;
   - les états de présence se décomptent dans un ordre fixe.
 - [x] Code mort retiré : la distribution du cast dans `SessionForm`, remplacée par `SessionCastForm`.
 

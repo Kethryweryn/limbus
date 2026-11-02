@@ -190,9 +190,8 @@ async function onPostponed(created: { slug: string }) {
 // Toutes les lectures de la page passent par l'adresse de la page : sans réseau, la session se rouvre telle
 // qu'elle a été vue (US-047)
 const sessionApi = (path = '') => `/api/sessions/${route.params.id}${path}`
-// Adresse calculée : le type de la réponse est donné par l'appelant
 function offlineRead<T>(request: string) {
-  return (useApiFetch as unknown as (request: string, options: { offlineCache: boolean }) => Promise<T>)(request, { offlineCache: true })
+  return fetchByUrl<T>(request, { offlineCache: true })
 }
 
 // Modification partie en file hors ligne : la page et sa copie sur l'appareil montrent aussitôt le résultat (US-048)
@@ -255,10 +254,10 @@ async function saveCast(assignments: CastLine[]) {
     published: session.value.published,
     // Version lue : refus si la session a changé entre-temps (US-018, ADR-0028)
     updatedAt: session.value.updatedAt,
-    participants: session.value.participants?.map((participant) => ({
-      participantId: participant.participantId || participant.participant?.id || '',
-      role: participant.role
-    })) || [],
+    participants: session.value.participants?.flatMap((participant) => {
+      const participantId = participant.participantId || participant.participant?.id
+      return participantId ? [{ participantId, role: participant.role }] : []
+    }) || [],
     assignments
   })
 }

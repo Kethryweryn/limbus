@@ -83,14 +83,12 @@
 import { computed, ref, watch } from 'vue'
 import { apiErrorMessage } from '~/utils/apiErrors'
 
-/** Aperçu de l'email testé : objet, texte, noms des pièces jointes. */
-export type EmailPreview = { subject: string, body: string, attachments: string[] }
-
 const props = withDefaults(defineProps<{
   open?: boolean
   defaultEmail?: string
   organizerEmails?: Array<string | null | undefined>
-  preview?: EmailPreview
+  // Aperçu de l'email testé : objet, texte, noms des pièces jointes
+  preview?: { subject: string, body: string, attachments: string[] }
   onSubmit: (emails: string[]) => Promise<unknown>
 }>(), { open: false, defaultEmail: '', organizerEmails: () => [], preview: () => ({ subject: '', body: '', attachments: [] }) })
 

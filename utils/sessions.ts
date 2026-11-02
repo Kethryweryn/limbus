@@ -28,6 +28,11 @@ export const formatSessionDate = (value: string | Date) => new Date(value).toLoc
   minute: '2-digit'
 })
 
+/** Date d'un envoi ou d'un paiement : jour et heure, chiffres seuls. */
+export const formatEventDate = (value: string | Date | null | undefined) => value
+  ? new Date(value).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  : ''
+
 /** Avancement du cast : les rôles joueurs attribués, sans les PNJ. */
 export function castProgress(assignments: Array<{ participantId?: string | null, participant?: { id: string } | null, character?: { type: string } | null }> = []) {
   const roles = assignments.filter((assignment) => assignment.character?.type !== CHARACTER_TYPES.pnj)

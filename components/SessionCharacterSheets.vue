@@ -19,13 +19,13 @@
         <UButton color="neutral" variant="soft" :loading="generatingTrombinoscopes" @click="generateTrombinoscopes">
           Générer les trombinoscopes
         </UButton>
-        <UButton color="primary" :loading="sending === 'bundle'" :disabled="Boolean(sending) || cooldown === 'bundle' || !bundleReadySheets.length || bundleBlockedByOutdated" @click="sendAll('bundle')">
+        <UButton color="primary" :loading="sending.bundle" :disabled="sending.bundle || cooldown.bundle || !bundleReadySheets.length || bundleBlockedByOutdated" @click="sendAll('bundle')">
           Envoyer fiches et trombis
         </UButton>
-        <UButton color="neutral" variant="soft" :loading="sending === 'sheets'" :disabled="Boolean(sending) || cooldown === 'sheets' || !pendingCharacterSheets.length" @click="sendAll('sheets')">
+        <UButton color="neutral" variant="soft" :loading="sending.sheets" :disabled="sending.sheets || cooldown.sheets || !pendingCharacterSheets.length" @click="sendAll('sheets')">
           Envoyer fiches seules
         </UButton>
-        <UButton color="neutral" variant="soft" :loading="sending === 'trombinoscopes'" :disabled="Boolean(sending) || cooldown === 'trombinoscopes' || !pendingTrombinoscopes.length || trombinoscopesBlockedByOutdated" @click="sendAll('trombinoscopes')">
+        <UButton color="neutral" variant="soft" :loading="sending.trombinoscopes" :disabled="sending.trombinoscopes || cooldown.trombinoscopes || !pendingTrombinoscopes.length || trombinoscopesBlockedByOutdated" @click="sendAll('trombinoscopes')">
           Envoyer trombinoscopes seuls
         </UButton>
         <UButton
@@ -162,8 +162,9 @@ const BATCHES: Record<Batch, { path: string, question: string }> = {
   trombinoscopes: { path: 'documents/send-trombinoscopes', question: 'Envoyer les trombinoscopes aux destinataires manquants ?' }
 }
 
-const sending = ref<Batch | ''>('')
-const cooldown = ref<Batch | ''>('')
+// Chaque envoi groupé n'attend que lui-même, comme avant le découpage
+const sending = reactive<Record<Batch, boolean>>({ bundle: false, sheets: false, trombinoscopes: false })
+const cooldown = reactive<Record<Batch, boolean>>({ bundle: false, sheets: false, trombinoscopes: false })
 const generatingTrombinoscopes = ref(false)
 
 const pendingCharacterSheets = computed(() => characterSheets.value.filter((sheet) => sheet.readyToSend && !sheet.sentAt))
@@ -189,12 +190,12 @@ const outdatedSentTrombinoscopes = computed(() => characterSheets.value.filter((
 async function sendAll(batch: Batch) {
   if (!confirm(BATCHES[batch].question)) return
 
-  sending.value = batch
+  sending[batch] = true
   try {
     await send(BATCHES[batch].path)
   } finally {
-    sending.value = ''
-    coolDown(cooldown, batch, '')
+    sending[batch] = false
+    coolDown(toRef(cooldown, batch), true, false)
   }
 }
 

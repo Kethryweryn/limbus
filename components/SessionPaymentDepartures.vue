@@ -15,8 +15,8 @@
       <div class="text-sm">
         <div class="font-medium">{{ refund.participant.name }}</div>
         <div class="text-gray-500">
-          Payé le {{ formatPaymentDate(refund.paidAt) }}<template v-if="refund.receivedCents"> · {{ formatEuros(refund.receivedCents) }} reçu(s)</template>
-          <span v-if="refund.refundedAt"> · remboursé le {{ formatPaymentDate(refund.refundedAt) }}</span>
+          Payé le {{ formatEventDate(refund.paidAt) }}<template v-if="refund.receivedCents"> · {{ formatEuros(refund.receivedCents) }} reçu(s)</template>
+          <span v-if="refund.refundedAt"> · remboursé le {{ formatEventDate(refund.refundedAt) }}</span>
         </div>
       </div>
       <USelect
@@ -39,7 +39,7 @@
       <div class="text-gray-700">
         <div class="font-medium">{{ payment.participant.name }}</div>
         <div>
-          Payé le {{ formatPaymentDate(payment.paidAt) }}<template v-if="payment.receivedCents"> · {{ formatEuros(payment.receivedCents) }}</template>
+          Payé le {{ formatEventDate(payment.paidAt) }}<template v-if="payment.receivedCents"> · {{ formatEuros(payment.receivedCents) }}</template>
           <span v-if="payment.participant.email"> · {{ payment.participant.email }}</span>
           <span v-if="payment.transferredTo"> · transféré à {{ payment.transferredTo.name }}</span>
           <span v-if="payment.suggestedStatus" class="text-warning-700"> · proposé : {{ departureLabel(payment.suggestedStatus) }}</span>
@@ -69,7 +69,8 @@
 <script setup lang="ts">
 import { REFUND_STATUSES, SESSION_STATUSES } from '~/utils/domain'
 import { formatEuros } from '~/utils/sessionTariffs'
-import { formatPaymentDate, useSessionPaymentActions, type DeparturePayment, type PaymentRefund } from '~/composables/useSessionPaymentActions'
+import { useSessionPaymentActions, type DeparturePayment, type PaymentRefund } from '~/composables/useSessionPaymentActions'
+import { formatEventDate } from '~/utils/sessions'
 
 const props = defineProps<{ refunds: PaymentRefund[], unassignedPayments: DeparturePayment[] }>()
 

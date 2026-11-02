@@ -149,7 +149,3 @@ export function useSessionPaymentActions() {
   if (!actions) throw new Error('useSessionPaymentActions hors de SessionPaymentsManager')
   return actions
 }
-
-export const formatPaymentDate = (value: string | Date | null | undefined) => value
-  ? new Date(value).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-  : ''

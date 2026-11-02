@@ -108,7 +108,7 @@
             <div class="font-medium">{{ recipient.participant.name }}</div>
             <div class="text-gray-500">
               {{ recipient.targetLabel || recipient.character?.name || 'Destinataire session' }}
-              <span v-if="recipient.sentAt"> · envoyé le {{ formatSentDate(recipient.sentAt) }}</span>
+              <span v-if="recipient.sentAt"> · envoyé le {{ formatEventDate(recipient.sentAt) }}</span>
               <span v-else> · à envoyer</span>
               <span v-if="recipient.versionOutdated" class="text-warning-600"> · version dépassée</span>
             </div>
@@ -138,7 +138,8 @@
 <script setup lang="ts">
 import { DOCUMENT_AUDIENCE_LABELS } from '~/utils/domain'
 import { coolDown } from '~/composables/useCooldown'
-import { formatSentDate, useSessionDocumentActions, type SessionDocument } from '~/composables/useSessionDocumentActions'
+import { useSessionDocumentActions, type SessionDocument } from '~/composables/useSessionDocumentActions'
+import { formatEventDate } from '~/utils/sessions'
 
 const { session, documents, resendingKey, previewingPdfUrl, testingEmail, testEmailCooldownKey, send, resend, openTest, previewPdf } = useSessionDocumentActions()
 

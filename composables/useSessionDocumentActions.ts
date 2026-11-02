@@ -172,11 +172,3 @@ export function useSessionDocumentActions() {
   if (!actions) throw new Error('useSessionDocumentActions hors de SessionDocumentsManager')
   return actions
 }
-
-export const formatSentDate = (value: string | Date) => new Date(value).toLocaleString('fr-FR', {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit'
-})

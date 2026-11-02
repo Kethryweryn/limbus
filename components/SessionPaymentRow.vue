@@ -21,13 +21,13 @@
             Place offerte
           </UBadge>
           <UBadge v-else :color="row.paidAt ? 'success' : 'warning'" variant="subtle" size="xs">
-            {{ row.paidAt ? `Payé le ${formatPaymentDate(row.paidAt)}` : 'Non payé' }}
+            {{ row.paidAt ? `Payé le ${formatEventDate(row.paidAt)}` : 'Non payé' }}
           </UBadge>
           <UBadge :color="row.paymentEmailSentAt ? 'success' : 'neutral'" variant="subtle" size="xs">
-            {{ row.paymentEmailSentAt ? `Email envoyé le ${formatPaymentDate(row.paymentEmailSentAt)}` : 'Email non envoyé' }}
+            {{ row.paymentEmailSentAt ? `Email envoyé le ${formatEventDate(row.paymentEmailSentAt)}` : 'Email non envoyé' }}
           </UBadge>
           <UBadge v-if="row.paymentReminderSentAt" color="warning" variant="subtle" size="xs">
-            Relancé le {{ formatPaymentDate(row.paymentReminderSentAt) }}
+            Relancé le {{ formatEventDate(row.paymentReminderSentAt) }}
           </UBadge>
         </div>
       </div>
@@ -116,7 +116,8 @@
 <script setup lang="ts">
 import { PAYMENT_STATE_DISPLAY, TARIFF_ROLE_LABELS, formatEuros } from '~/utils/sessionTariffs'
 import { coolDown } from '~/composables/useCooldown'
-import { formatPaymentDate, useSessionPaymentActions, type PaymentRow } from '~/composables/useSessionPaymentActions'
+import { useSessionPaymentActions, type PaymentRow } from '~/composables/useSessionPaymentActions'
+import { formatEventDate } from '~/utils/sessions'
 
 const props = defineProps<{ row: PaymentRow }>()
 
