@@ -45,7 +45,7 @@ describe('comptes inactifs (US-112)', () => {
 
     await expect.poll(async () => (await prisma.user.findUnique({ where: { id: toDelete.id } }))).toBeNull()
     await expect.poll(async () => (await prisma.user.findUniqueOrThrow({ where: { id: toWarn.id } })).inactivityWarnedAt).not.toBeNull()
-    expect(smtp.received.some((email) => email.to.includes(toWarn.email) && email.text.includes('Pour garder votre compte'))).toBe(true)
+    await expect.poll(() => smtp.received.some((email) => email.to.includes(toWarn.email) && email.text.includes('Pour garder votre compte'))).toBe(true)
     // Jamais averti : averti maintenant, pas effacé
     await expect.poll(async () => (await prisma.user.findUniqueOrThrow({ where: { id: neverWarned.id } })).inactivityWarnedAt).not.toBeNull()
   })
@@ -62,7 +62,8 @@ describe('comptes inactifs (US-112)', () => {
     await prisma.game.create({ data: { title: 'Jeu gardé', slug: `jeu-garde-${counter}`, description: '', ownerId: owner.id } })
     await loginSomeone()
     await expect.poll(async () => (await prisma.user.findUniqueOrThrow({ where: { id: owner.id } })).inactivityReportedAt).not.toBeNull()
-    expect(smtp.received.some((email) => email.text.includes(owner.email) && email.text.includes('n’ont pas pu être avertis ou effacés'))).toBe(true)
+    // L'email part après le marquage du compte : on l'attend aussi
+    await expect.poll(() => smtp.received.some((email) => email.text.includes(owner.email) && email.text.includes('n’ont pas pu être avertis ou effacés'))).toBe(true)
   })
 })
 
