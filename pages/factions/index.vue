@@ -118,7 +118,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { isInArchivedGame, isVisibleContent } from '~/utils/games'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
@@ -126,18 +126,22 @@ import FactionForm from '@/components/FactionForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import { isOfflineMode } from '~/utils/connection'
 import { getFromStore, saveToStore } from '~/utils/storage'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import type { FactionDraft } from '~/utils/writingDrafts'
 
-const factions = ref([])
-const games = ref([])
-const characters = ref([])
+type FactionItem = ApiResponse<'/api/factions'>[number]
+
+const factions = ref<FactionItem[]>([])
+const games = ref<ApiResponse<'/api/games'>>([])
+const characters = ref<ApiResponse<'/api/characters'>>([])
 const searchQuery = ref('')
 const gameFilter = ref('all')
 const showArchived = ref(false)
 const sortOption = ref('updated-desc')
 const isOffline = ref(false)
 const showFormSlideover = ref(false)
-const activeFormFaction = ref(null)
-const formMode = ref('create')
+const activeFormFaction = ref<FactionDraft | null>(null)
+const formMode = ref<'create' | 'edit'>('create')
 const router = useRouter()
 const { game: selectedGame } = useGameFocus()
 
@@ -208,7 +212,7 @@ watch([searchQuery, gameFilter, sortOption, filteredFactions], () => {
 
 const fetchFactions = async () => {
   if (isOfflineMode()) {
-    factions.value = await getFromStore('factions', 'list') || []
+    factions.value = await getFromStore<typeof factions.value>('factions', 'list') || []
     return
   }
 
@@ -219,7 +223,7 @@ const fetchFactions = async () => {
 
 const fetchGames = async () => {
   if (isOfflineMode()) {
-    games.value = await getFromStore('games', 'list') || []
+    games.value = await getFromStore<typeof games.value>('games', 'list') || []
     return
   }
 
@@ -230,7 +234,7 @@ const fetchGames = async () => {
 
 const fetchCharacters = async () => {
   if (isOfflineMode()) {
-    characters.value = await getFromStore('characters', 'list') || []
+    characters.value = await getFromStore<typeof characters.value>('characters', 'list') || []
     return
   }
 
@@ -266,10 +270,10 @@ onUnmounted(() => {
   window.removeEventListener('limbus:connection-change', updateStatus)
 })
 
-function factionFormPayload(faction) {
+function factionFormPayload(faction: FactionItem): FactionDraft {
   return {
     ...faction,
-    characterIds: faction.characterIds || faction.characters?.map((character) => character.id) || []
+    characterIds: faction.characters?.map((character) => character.id) || []
   }
 }
 
@@ -287,7 +291,7 @@ function startCreate() {
   showFormSlideover.value = true
 }
 
-function startEdit(faction) {
+function startEdit(faction: FactionItem) {
   activeFormFaction.value = factionFormPayload(faction)
   formMode.value = 'edit'
   showFormSlideover.value = true
@@ -298,12 +302,13 @@ function closeFormSlideover() {
   showFormSlideover.value = false
 }
 
-function openFactionPage(faction) {
+function openFactionPage(faction: FactionItem) {
   if (!faction?.slug) return
   router.push(`/factions/${faction.slug}`)
 }
 
 async function handleFactionFormSubmit() {
+  if (!activeFormFaction.value) return
   if (formMode.value === 'create') {
     await useApiFetch('/api/factions', {
       method: 'POST',
@@ -320,7 +325,7 @@ async function handleFactionFormSubmit() {
   await Promise.all([fetchFactions(), fetchCharacters()])
 }
 
-async function deleteFaction(id) {
+async function deleteFaction(id: string) {
   if (!confirm('Supprimer ce groupe ? Les personnages liés seront conservés.')) return
 
   await useApiFetch(`/api/factions/${id}`, { method: 'DELETE' })

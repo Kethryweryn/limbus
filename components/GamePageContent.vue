@@ -78,21 +78,15 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { isHttpUrl, youtubeEmbedUrl } from '~/utils/urls'
 import { gameCreditText } from '~/utils/games'
 
-const props = defineProps({
-  game: {
-    type: Object,
-    required: true
-  },
+const props = withDefaults(defineProps<{
+  game: { title: string, description?: string | null, noteIntention?: string | null, teaserUrl?: string | null, creditSourceTitle?: string | null, creditAuthorName?: string | null }
   // Vignette du teaser servie par Limbus (page publique) ; sans elle, un fond neutre
-  thumbnailUrl: {
-    type: String,
-    default: ''
-  }
-})
+  thumbnailUrl?: string
+}>(), { thumbnailUrl: '' })
 
 const teaserPlaying = ref(false)
 const thumbnailFailed = ref(false)

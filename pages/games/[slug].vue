@@ -87,7 +87,7 @@
         <UAlert v-if="actionError" color="error" variant="soft" :description="actionError" />
 
         <GameForm
-            v-if="isEditing"
+            v-if="isEditing && editableGame"
             v-model:game="editableGame"
             mode="edit"
             @submit="handleGameFormSubmit"
@@ -105,17 +105,19 @@
         </template>
 
         <GameShareModal v-model:open="showShares" :game="game" :is-owner="isOwner" @changed="refresh" />
-        <GameBequestModal v-model:open="showBequest" :game="game" :owner-name="authState?.user?.name || authState?.user?.email || ''" />
+        <GameBequestModal v-model:open="showBequest" :game="game" :owner-name="ownerName" />
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { useGameFocus } from '@/composables/useGameFocus'
+import { apiErrorMessage } from '~/utils/apiErrors'
+import type { GameDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
 const router = useRouter()
-const slug = route.params.slug
+const slug = String(route.params.slug)
 const { data: game, error, refresh } = await useFetch(`/api/games/slug/${slug}`)
 const { data: authState } = await useFetch('/api/auth/me')
 
@@ -126,51 +128,56 @@ if (error.value) {
 
 const { selectGame, clearGame, game: currentGame } = useGameFocus()
 
+const currentUser = computed(() => authState.value?.authenticated ? authState.value.user : null)
 const isCurrentGame = computed(() => currentGame?.value?.id === game.value?.id)
 const isEditing = ref(route.query.edit === '1')
-const editableGame = ref(game.value ? { ...game.value } : null)
+const editableGame = ref<GameDraft | null>(game.value ? { ...game.value } : null)
 const showShares = ref(false)
 const showBequest = ref(false)
 // Léguer est réservé à la propriétaire, même en mode administrateur (SPEC-002 R1)
-const isOwner = computed(() => Boolean(game.value?.ownerId) && game.value?.ownerId === authState.value?.user?.id)
-const transferProposedToMe = computed(() => Boolean(game.value?.transferToUserId) && game.value?.transferToUserId === authState.value?.user?.id)
+const isOwner = computed(() => Boolean(game.value?.ownerId) && game.value?.ownerId === currentUser.value?.id)
+const transferProposedToMe = computed(() => Boolean(game.value?.transferToUserId) && game.value?.transferToUserId === currentUser.value?.id)
+const ownerName = computed(() => currentUser.value?.name || currentUser.value?.email || '')
 const transferring = ref(false)
 const actionError = ref('')
 
 // Quitter un jeu partagé (US-059) : ce qu'on y a écrit reste
 async function leaveGame() {
+    if (!game.value || !currentUser.value) return
     if (!confirm(`Quitter « ${game.value.title} » ? Vous n’y aurez plus accès ; ce que vous y avez écrit reste.`)) return
     try {
-        await useApiFetch(`/api/games/${game.value.id}/shares/${authState.value.user.id}`, { method: 'DELETE' })
+        await useApiFetch(`/api/games/${game.value.id}/shares/${currentUser.value.id}`, { method: 'DELETE' })
         // Plus d'accès : le jeu ne reste pas le jeu actif
         if (isCurrentGame.value) clearGame()
         await navigateTo('/games')
     } catch (err) {
-        actionError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+        actionError.value = apiErrorMessage(err, 'Erreur inconnue')
     }
 }
 
 async function acceptTransfer() {
+    if (!game.value) return
     transferring.value = true
     try {
         await useApiFetch(`/api/games/${game.value.id}/transfer/accept`, { method: 'POST' })
         actionError.value = ''
         await refresh()
     } catch (err) {
-        actionError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+        actionError.value = apiErrorMessage(err, 'Erreur inconnue')
     } finally {
         transferring.value = false
     }
 }
 
 async function refuseTransfer() {
+    if (!game.value) return
     transferring.value = true
     try {
         await useApiFetch(`/api/games/${game.value.id}/transfer`, { method: 'DELETE' })
         actionError.value = ''
         await refresh()
     } catch (err) {
-        actionError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+        actionError.value = apiErrorMessage(err, 'Erreur inconnue')
     } finally {
         transferring.value = false
     }
@@ -178,7 +185,7 @@ async function refuseTransfer() {
 
 const canManageShares = computed(() =>
     Boolean(game.value?.id)
-    && (authState.value?.adminMode || game.value?.ownerId === authState.value?.user?.id)
+    && Boolean(authState.value?.authenticated && (authState.value.adminMode || game.value?.ownerId === authState.value.user.id))
 )
 
 watch(() => route.query.edit, (value) => {
@@ -189,7 +196,7 @@ watch(() => route.query.edit, (value) => {
 })
 
 function startEdit() {
-    editableGame.value = { ...game.value }
+    editableGame.value = game.value ? { ...game.value } : null
     isEditing.value = true
     router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
 }
@@ -210,8 +217,7 @@ async function handleGameFormSubmit() {
         body: editableGame.value
     })
 
-    if (updatedGame?.slug && updatedGame.slug !== route.params.slug) {
-        game.value = updatedGame
+    if (!isOfflineQueued(updatedGame) && updatedGame.slug && updatedGame.slug !== route.params.slug) {
         await router.replace(`/games/${updatedGame.slug}`)
     } else {
         await refresh()
@@ -220,13 +226,13 @@ async function handleGameFormSubmit() {
     cancelEdit()
 }
 
-async function setPublicPage(publicPage) {
+async function setPublicPage(publicPage: boolean) {
     if (!game.value?.id) return
 
-    game.value = await useApiFetch(`/api/games/${game.value.id}`, {
+    await useApiFetch(`/api/games/${game.value.id}`, {
         method: 'PUT',
         body: { publicPage }
     })
+    game.value = { ...game.value, publicPage }
 }
-
 </script>

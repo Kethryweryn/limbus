@@ -158,7 +158,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-112](../archive/epics/EPIC-030-durees-de-conservation/US-112-comptes-inactifs.md) | Effacer les comptes sans connexion depuis deux ans, après un avertissement | EPIC-030 | terminée |
 | [US-113](../archive/epics/EPIC-030-durees-de-conservation/US-113-fiches-sans-compte.md) | Effacer les fiches participant sans compte trois ans après leur dernière activité | EPIC-030 | terminée |
 | [US-114](EPIC-031-interface-en-typescript/US-114-fondations.md) | Fondations : appels typés, mise en page, composants communs, pages d'accès | EPIC-031 | terminée |
-| [US-115](EPIC-031-interface-en-typescript/US-115-ecriture.md) | Écriture du jeu en TypeScript | EPIC-031 | à faire |
+| [US-115](EPIC-031-interface-en-typescript/US-115-ecriture.md) | Écriture du jeu en TypeScript | EPIC-031 | terminée |
 | [US-116](EPIC-031-interface-en-typescript/US-116-sessions.md) | Sessions en TypeScript | EPIC-031 | à faire |
 | [US-117](EPIC-031-interface-en-typescript/US-117-inscriptions.md) | Inscriptions en TypeScript | EPIC-031 | à faire |
 | [US-118](EPIC-031-interface-en-typescript/US-118-compte-participation-administration.md) | Compte, participation, administration ; règle étendue à tout | EPIC-031 | à faire |

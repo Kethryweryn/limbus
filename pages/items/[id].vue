@@ -15,7 +15,7 @@
     </div>
 
     <ItemForm
-      v-if="isEditing"
+      v-if="isEditing && editableItem"
       v-model:item="editableItem"
       :games="games || []"
       :characters="characters || []"
@@ -95,9 +95,10 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { isInArchivedGame } from '~/utils/games'
 import ItemForm from '@/components/ItemForm.vue'
+import type { ItemDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
 const router = useRouter()
@@ -111,8 +112,10 @@ if (error.value) {
   throw createError({ statusCode: error.value.statusCode || 404, message: 'Objet introuvable' })
 }
 
+type ItemPage = NonNullable<typeof item.value>
+
 const isEditing = ref(route.query.edit === '1')
-const editableItem = ref(item.value ? itemFormPayload(item.value) : null)
+const editableItem = ref<ItemDraft | null>(item.value ? itemFormPayload(item.value) : null)
 const isUnassigned = computed(() => !(item.value?.characters?.length || item.value?.intrigues?.length))
 
 watch(() => route.query.edit, (value) => {
@@ -122,7 +125,7 @@ watch(() => route.query.edit, (value) => {
   }
 })
 
-function itemFormPayload(value) {
+function itemFormPayload(value: ItemPage): ItemDraft {
   return {
     ...value,
     characterIds: value.characters?.map((character) => character.id) || [],
@@ -132,14 +135,14 @@ function itemFormPayload(value) {
   }
 }
 
-function formatItemLocation(value) {
+function formatItemLocation(value: ItemPage) {
   if (value.locationCharacter) return value.locationCharacter.name
   if (value.locationText) return value.locationText
   return 'Non renseignée'
 }
 
 function startEdit() {
-  editableItem.value = itemFormPayload(item.value)
+  editableItem.value = item.value ? itemFormPayload(item.value) : null
   isEditing.value = true
   router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
 }
@@ -155,16 +158,17 @@ function cancelEdit() {
 async function saveItem() {
   if (!editableItem.value?.id) return
 
-  item.value = await useApiFetch(`/api/items/${editableItem.value.id}`, {
+  const updated = await useApiFetch(`/api/items/${editableItem.value.id}`, {
     method: 'PUT',
     body: editableItem.value
   })
   isEditing.value = false
 
-  if (item.value?.slug && item.value.slug !== route.params.id) {
+  if (!isOfflineQueued(updated) && updated.slug && updated.slug !== route.params.id) {
+    item.value = updated
     const query = { ...route.query }
     delete query.edit
-    await router.replace({ path: `/items/${item.value.slug}`, query })
+    await router.replace({ path: `/items/${updated.slug}`, query })
   } else {
     await refresh()
     cancelEdit()

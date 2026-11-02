@@ -132,7 +132,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { isInArchivedGame, isVisibleContent } from '~/utils/games'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import DocumentForm from '@/components/DocumentForm.vue'
@@ -141,18 +141,22 @@ import { useGameFocus } from '@/composables/useGameFocus'
 import { isOfflineMode } from '~/utils/connection'
 import { DOCUMENT_AUDIENCES, DOCUMENT_AUDIENCE_LABELS } from '~/utils/domain'
 import { getFromStore, saveToStore } from '~/utils/storage'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import type { DocumentDraft } from '~/utils/writingDrafts'
 
-const documents = ref([])
-const games = ref([])
-const characters = ref([])
-const factions = ref([])
+type DocumentRow = ApiResponse<'/api/documents'>[number]
+
+const documents = ref<DocumentRow[]>([])
+const games = ref<ApiResponse<'/api/games'>>([])
+const characters = ref<ApiResponse<'/api/characters'>>([])
+const factions = ref<ApiResponse<'/api/factions'>>([])
 const searchQuery = ref('')
 const gameFilter = ref('all')
 const showArchived = ref(false)
 const isOffline = ref(false)
 const showFormSlideover = ref(false)
-const activeFormDocument = ref(null)
-const formMode = ref('create')
+const activeFormDocument = ref<DocumentDraft | null>(null)
+const formMode = ref<'create' | 'edit'>('create')
 const { game: selectedGame } = useGameFocus()
 const router = useRouter()
 
@@ -204,14 +208,14 @@ const prevPage = () => {
   if (page.value > 1) page.value--
 }
 
-const hasTargets = (document) =>
+const hasTargets = (document: DocumentRow) =>
   document.audience !== DOCUMENT_AUDIENCES.targeted
   || Boolean(document.character || document.characters?.length || document.factions?.length)
-const audienceLabel = (audience) => DOCUMENT_AUDIENCE_LABELS[audience] || DOCUMENT_AUDIENCE_LABELS[DOCUMENT_AUDIENCES.targeted]
+const audienceLabel = (audience: string) => DOCUMENT_AUDIENCE_LABELS[audience] || DOCUMENT_AUDIENCE_LABELS[DOCUMENT_AUDIENCES.targeted]
 
 const fetchDocuments = async () => {
   if (isOfflineMode()) {
-    documents.value = await getFromStore('documents', 'list') || []
+    documents.value = await getFromStore<typeof documents.value>('documents', 'list') || []
     return
   }
 
@@ -222,7 +226,7 @@ const fetchDocuments = async () => {
 
 const fetchGames = async () => {
   if (isOfflineMode()) {
-    games.value = await getFromStore('games', 'list') || []
+    games.value = await getFromStore<typeof games.value>('games', 'list') || []
     return
   }
 
@@ -233,7 +237,7 @@ const fetchGames = async () => {
 
 const fetchCharacters = async () => {
   if (isOfflineMode()) {
-    characters.value = await getFromStore('characters', 'list') || []
+    characters.value = await getFromStore<typeof characters.value>('characters', 'list') || []
     return
   }
 
@@ -244,7 +248,7 @@ const fetchCharacters = async () => {
 
 const fetchFactions = async () => {
   if (isOfflineMode()) {
-    factions.value = await getFromStore('factions', 'list') || []
+    factions.value = await getFromStore<typeof factions.value>('factions', 'list') || []
     return
   }
 
@@ -280,7 +284,7 @@ onUnmounted(() => {
   window.removeEventListener('limbus:connection-change', updateStatus)
 })
 
-function documentFormPayload(document) {
+function documentFormPayload(document: DocumentRow): DocumentDraft {
   return {
     ...document,
     audience: document.audience || DOCUMENT_AUDIENCES.targeted,
@@ -288,8 +292,8 @@ function documentFormPayload(document) {
     content: document.content || '',
     documentUrl: document.documentUrl || '',
     characterId: document.characterId || document.character?.id || '',
-    characterIds: document.characterIds || document.characters?.map((character) => character.id) || [],
-    factionIds: document.factionIds || document.factions?.map((faction) => faction.id) || []
+    characterIds: document.characters?.map((character) => character.id) || [],
+    factionIds: document.factions?.map((faction) => faction.id) || []
   }
 }
 
@@ -309,13 +313,13 @@ function startCreate() {
   showFormSlideover.value = true
 }
 
-function startEdit(document) {
+function startEdit(document: DocumentRow) {
   activeFormDocument.value = documentFormPayload(document)
   formMode.value = 'edit'
   showFormSlideover.value = true
 }
 
-function rememberDocumentReturn(document) {
+function rememberDocumentReturn(document: DocumentRow) {
   if (!import.meta.client) return
 
   sessionStorage.setItem('limbus:document-return-context', JSON.stringify({
@@ -324,7 +328,7 @@ function rememberDocumentReturn(document) {
   }))
 }
 
-function openDocumentPage(document) {
+function openDocumentPage(document: DocumentRow) {
   if (!document?.slug) return
   rememberDocumentReturn(document)
   router.push(`/documents/${document.slug}`)
@@ -336,6 +340,7 @@ function closeFormSlideover() {
 }
 
 async function handleDocumentFormSubmit() {
+  if (!activeFormDocument.value) return
   if (formMode.value === 'create') {
     await useApiFetch('/api/documents', {
       method: 'POST',
@@ -352,7 +357,7 @@ async function handleDocumentFormSubmit() {
   await fetchDocuments()
 }
 
-async function deleteDocument(id) {
+async function deleteDocument(id: string) {
   if (!confirm('Supprimer ce document ?')) return
 
   await useApiFetch(`/api/documents/${id}`, { method: 'DELETE' })

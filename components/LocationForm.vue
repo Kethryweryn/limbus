@@ -22,11 +22,11 @@
       </UFormField>
 
       <UFormField label="Adresse">
-        <UTextarea v-model="localLocation.address" :rows="8" size="lg" class="w-full" />
+        <UTextarea v-model.nullable="localLocation.address" :rows="8" size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Notes">
-        <UTextarea v-model="localLocation.notes" :rows="8" size="lg" class="w-full" />
+        <UTextarea v-model.nullable="localLocation.notes" :rows="8" size="lg" class="w-full" />
       </UFormField>
 
       <div class="flex flex-wrap gap-2 pt-2">
@@ -43,19 +43,21 @@
   </UCard>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { apiErrorMessage } from '~/utils/apiErrors'
+import type { GameOption, LocationDraft } from '~/utils/writingDrafts'
 
-const props = defineProps({
-  location: { type: Object, required: true },
-  games: { type: Array, required: true },
-  mode: { type: String, default: 'create' }
-})
+const props = withDefaults(defineProps<{
+  location: LocationDraft
+  games: GameOption[]
+  mode?: 'create' | 'edit'
+}>(), { mode: 'create' })
 
-const emit = defineEmits(['submit', 'cancel', 'update:location'])
+const emit = defineEmits<{ submit: [], cancel: [], 'update:location': [location: LocationDraft] }>()
 
-const localLocation = ref({ ...props.location })
-const errors = ref({})
+const localLocation = ref<LocationDraft>({ ...props.location })
+const errors = ref<Record<string, string>>({})
 const serverError = ref('')
 
 const gameOptions = computed(() => props.games.map((game) => ({
@@ -80,15 +82,15 @@ function validate() {
   return Object.keys(errors.value).length === 0
 }
 
-async function submit() {
+function submit() {
   if (!validate()) return
 
   try {
     emit('update:location', localLocation.value)
-    await emit('submit')
+    emit('submit')
     serverError.value = ''
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
   }
 }
 </script>

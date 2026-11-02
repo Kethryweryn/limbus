@@ -25,7 +25,7 @@
     </div>
 
     <DocumentForm
-      v-if="documentItem && isEditing"
+      v-if="documentItem && isEditing && editableDocument"
       v-model:document="editableDocument"
       :games="games"
       :characters="characters"
@@ -122,21 +122,27 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { isInArchivedGame } from '~/utils/games'
 import { computed, onMounted, ref, watch } from 'vue'
 import DocumentForm from '@/components/DocumentForm.vue'
 import { DOCUMENT_AUDIENCE_LABELS } from '~/utils/domain'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import type { DocumentDraft } from '~/utils/writingDrafts'
+
+type DocumentDetail = ApiResponse<'/api/documents/:id'>
+// D'où l'on vient : la liste des documents ou l'onglet Documents d'une session
+type ReturnContext = { source: string, documentId: string, sessionId?: string, sessionSlug?: string }
 
 const route = useRoute()
 const router = useRouter()
-const documentItem = ref(null)
-const editableDocument = ref(null)
-const games = ref([])
-const characters = ref([])
-const factions = ref([])
+const documentItem = ref<DocumentDetail | null>(null)
+const editableDocument = ref<DocumentDraft | null>(null)
+const games = ref<ApiResponse<'/api/games'>>([])
+const characters = ref<ApiResponse<'/api/characters'>>([])
+const factions = ref<ApiResponse<'/api/factions'>>([])
 const isEditing = ref(route.query.edit === '1')
-const returnContext = ref(null)
+const returnContext = ref<ReturnContext | null>(null)
 
 const documentBackTo = computed(() => {
   if (returnContext.value?.source === 'session') {
@@ -153,7 +159,7 @@ const documentBackLabel = computed(() =>
   returnContext.value?.source === 'session' ? 'Documents de session' : 'Documents'
 )
 
-const audienceLabel = (audience) => DOCUMENT_AUDIENCE_LABELS[audience] || DOCUMENT_AUDIENCE_LABELS.targeted
+const audienceLabel = (audience: string) => DOCUMENT_AUDIENCE_LABELS[audience] || DOCUMENT_AUDIENCE_LABELS.targeted
 
 async function loadData() {
   const [data, gamesData, charactersData, factionsData] = await Promise.all([
@@ -178,19 +184,19 @@ watch(() => route.query.edit, (value) => {
   }
 })
 
-function documentFormPayload(document) {
+function documentFormPayload(document: DocumentDetail): DocumentDraft {
   return {
     ...document,
     content: document.content || '',
     documentUrl: document.documentUrl || '',
     characterId: document.characterId || document.character?.id || '',
-    characterIds: document.characterIds || document.characters?.map((character) => character.id) || [],
-    factionIds: document.factionIds || document.factions?.map((faction) => faction.id) || []
+    characterIds: document.characters?.map((character) => character.id) || [],
+    factionIds: document.factions?.map((faction) => faction.id) || []
   }
 }
 
 function startEdit() {
-  editableDocument.value = documentFormPayload(documentItem.value)
+  editableDocument.value = documentItem.value ? documentFormPayload(documentItem.value) : null
   isEditing.value = true
   router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
 }
@@ -211,9 +217,13 @@ async function saveDocument() {
     body: editableDocument.value
   })
 
+  if (isOfflineQueued(updatedDocument)) {
+    cancelEdit()
+    return
+  }
   documentItem.value = updatedDocument
   editableDocument.value = documentFormPayload(updatedDocument)
-  if (updatedDocument?.slug && updatedDocument.slug !== route.params.id) {
+  if (updatedDocument.slug && updatedDocument.slug !== route.params.id) {
     const query = { ...route.query }
     delete query.edit
     await router.replace({
@@ -227,7 +237,7 @@ async function saveDocument() {
   cancelEdit()
 }
 
-function readDocumentReturnContext() {
+function readDocumentReturnContext(): ReturnContext | null {
   if (!import.meta.client) return null
 
   try {
@@ -238,7 +248,7 @@ function readDocumentReturnContext() {
   }
 }
 
-function ensureDocumentReturnContext(documentData) {
+function ensureDocumentReturnContext(documentData: DocumentDetail) {
   const storedContext = readDocumentReturnContext()
   returnContext.value = storedContext?.documentId === documentData?.id ? storedContext : null
   if (returnContext.value || !import.meta.client || !documentData?.id) return

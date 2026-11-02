@@ -80,7 +80,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { isInArchivedGame, isVisibleContent } from '~/utils/games'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
@@ -88,16 +88,20 @@ import LocationForm from '@/components/LocationForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import { isOfflineMode } from '~/utils/connection'
 import { getFromStore, saveToStore } from '~/utils/storage'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import type { LocationDraft } from '~/utils/writingDrafts'
 
-const locations = ref([])
-const games = ref([])
+type LocationRow = ApiResponse<'/api/locations'>[number]
+
+const locations = ref<LocationRow[]>([])
+const games = ref<ApiResponse<'/api/games'>>([])
 const searchQuery = ref('')
 const gameFilter = ref('all')
 const showArchived = ref(false)
 const isOffline = ref(false)
 const showFormSlideover = ref(false)
-const activeFormLocation = ref(null)
-const formMode = ref('create')
+const activeFormLocation = ref<LocationDraft | null>(null)
+const formMode = ref<'create' | 'edit'>('create')
 const { game: selectedGame } = useGameFocus()
 
 const gameFilterOptions = computed(() => [
@@ -143,7 +147,7 @@ watch([searchQuery, gameFilter, filteredLocations], () => {
 
 const fetchLocations = async () => {
   if (isOfflineMode()) {
-    locations.value = await getFromStore('locations', 'list') || []
+    locations.value = await getFromStore<typeof locations.value>('locations', 'list') || []
     return
   }
 
@@ -154,7 +158,7 @@ const fetchLocations = async () => {
 
 const fetchGames = async () => {
   if (isOfflineMode()) {
-    games.value = await getFromStore('games', 'list') || []
+    games.value = await getFromStore<typeof games.value>('games', 'list') || []
     return
   }
 
@@ -204,7 +208,7 @@ function startCreate() {
   showFormSlideover.value = true
 }
 
-function startEdit(location) {
+function startEdit(location: LocationRow) {
   activeFormLocation.value = { ...location }
   formMode.value = 'edit'
   showFormSlideover.value = true
@@ -216,6 +220,7 @@ function closeFormSlideover() {
 }
 
 async function handleLocationFormSubmit() {
+  if (!activeFormLocation.value) return
   if (formMode.value === 'create') {
     await useApiFetch('/api/locations', {
       method: 'POST',
@@ -232,7 +237,7 @@ async function handleLocationFormSubmit() {
   await fetchLocations()
 }
 
-async function deleteLocation(id) {
+async function deleteLocation(id: string) {
   if (!confirm('Supprimer ce lieu ? Les sessions liées seront conservées sans lieu.')) return
 
   await useApiFetch(`/api/locations/${id}`, { method: 'DELETE' })

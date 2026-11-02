@@ -85,26 +85,28 @@
   </UModal>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { CHARACTER_TYPES } from '~/utils/domain'
 import { NO_VERSION } from '~/utils/offlineSync'
+import { apiErrorMessage } from '~/utils/apiErrors'
+import type { ApiResponse } from '~/composables/useApiFetch'
 
-const props = defineProps({
-  open: { type: Boolean, default: false },
-  character: { type: Object, required: true }
-})
+type Target = ApiResponse<'/api/characters/:id/trombinoscope'>['characters'][number]
+type Entry = { targetCharacterId: string, character: Target, included: boolean, faceKnown: boolean, displayName: string, note: string }
 
-const emit = defineEmits(['update:open'])
+const props = withDefaults(defineProps<{ open?: boolean, character: { id: string, name: string } }>(), { open: false })
+
+const emit = defineEmits<{ 'update:open': [value: boolean] }>()
 
 const isOpen = computed({
   get: () => props.open,
-  set: (value) => emit('update:open', value)
+  set: (value: boolean) => emit('update:open', value)
 })
 const loading = ref(false)
 const saving = ref(false)
-const entries = ref([])
+const entries = ref<Entry[]>([])
 // Version lue du trombinoscope, renvoyée à l'enregistrement (ADR-0036)
-const version = ref(NO_VERSION)
+const version = ref<string>(NO_VERSION)
 const serverError = ref('')
 
 watch(() => props.open, async (value) => {
@@ -131,13 +133,13 @@ async function loadConfig() {
       note: target.trombinoscope?.note || ''
     }))
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
   } finally {
     loading.value = false
   }
 }
 
-function setAllEntries(value) {
+function setAllEntries(value: boolean) {
   entries.value = entries.value.map((entry) => ({
     ...entry,
     included: entry.character.excludeFromTrombinoscope ? false : value
@@ -165,7 +167,7 @@ async function saveConfig() {
     })
     isOpen.value = false
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
   } finally {
     saving.value = false
   }

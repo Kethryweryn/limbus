@@ -15,6 +15,15 @@ export function isOfflineQueued(value: unknown): value is OfflineQueuedResponse 
   return typeof value === 'object' && value !== null && (value as { __offlineQueued?: unknown }).__offlineQueued === true
 }
 
+/** Réponse d'une route pour typer un état (`ref<ApiResponse<'/api/games'>>`) ; route dynamique sous sa forme Nitro (`/api/games/:id`). */
+export type ApiResponse<R extends NitroFetchRequest, M extends HttpMethod = 'get'> = TypedInternalResponse<R, unknown, M>
+
+/** Réponse d'une action (envoi, génération, partage…) : jamais mise en file hors ligne, elle est donc celle du serveur. */
+export function actionResult<T>(value: T): Exclude<T, OfflineQueuedResponse> {
+  if (isOfflineQueued(value)) throw new Error('Cette action n’est pas disponible hors ligne.')
+  return value as Exclude<T, OfflineQueuedResponse>
+}
+
 type HttpMethod = 'get' | 'head' | 'options' | 'post' | 'put' | 'patch' | 'delete'
 type AnyCaseMethod = HttpMethod | Uppercase<HttpMethod>
 type ApiOptions<M extends AnyCaseMethod> = Omit<NitroFetchOptions<NitroFetchRequest>, 'method'> & ApiFetchExtras & { method?: M }

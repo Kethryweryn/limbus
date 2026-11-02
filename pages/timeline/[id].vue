@@ -20,7 +20,7 @@
     </div>
 
     <TimelineEventForm
-      v-if="timelineEvent && isEditing"
+      v-if="timelineEvent && isEditing && editableEvent"
       v-model:event="editableEvent"
       :games="games"
       :characters="characters"
@@ -135,21 +135,28 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import TimelineEventForm from '@/components/TimelineEventForm.vue'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import type { TimelineEventDraft } from '~/utils/writingDrafts'
+import { conflictTitle } from '~/utils/timeline'
+
+type TimelineEventDetail = ApiResponse<'/api/timeline-events/:id'>
+// D'où l'on vient : la timeline d'un jeu ou l'onglet Timeline d'une session
+type ReturnContext = { source: string, eventId: string, gameId?: string, sessionId?: string, sessionSlug?: string }
 
 const route = useRoute()
 const router = useRouter()
-const timelineEvent = ref(null)
-const editableEvent = ref(null)
-const games = ref([])
-const characters = ref([])
-const factions = ref([])
-const intrigues = ref([])
-const items = ref([])
+const timelineEvent = ref<TimelineEventDetail | null>(null)
+const editableEvent = ref<TimelineEventDraft | null>(null)
+const games = ref<ApiResponse<'/api/games'>>([])
+const characters = ref<ApiResponse<'/api/characters'>>([])
+const factions = ref<ApiResponse<'/api/factions'>>([])
+const intrigues = ref<ApiResponse<'/api/intrigues'>>([])
+const items = ref<ApiResponse<'/api/items'>>([])
 const isEditing = ref(route.query.edit === '1')
-const returnContext = ref(null)
+const returnContext = ref<ReturnContext | null>(null)
 const timelineBackTo = computed(() => ({
   path: returnContext.value?.source === 'session'
     ? `/sessions/${returnContext.value.sessionSlug || returnContext.value.sessionId}`
@@ -179,7 +186,7 @@ async function loadData() {
   editableEvent.value = eventFormPayload(eventData)
 }
 
-function readTimelineReturnContext() {
+function readTimelineReturnContext(): ReturnContext | null {
   if (!import.meta.client) return null
 
   try {
@@ -190,7 +197,7 @@ function readTimelineReturnContext() {
   }
 }
 
-function ensureTimelineReturnContext(eventData) {
+function ensureTimelineReturnContext(eventData: TimelineEventDetail) {
   const storedContext = readTimelineReturnContext()
   returnContext.value = storedContext?.eventId === eventData?.id ? storedContext : null
   if (returnContext.value || !import.meta.client || !eventData?.gameId) return
@@ -208,13 +215,13 @@ watch(() => route.query.edit, (value) => {
   }
 })
 
-function eventFormPayload(value) {
+function eventFormPayload(value: TimelineEventDetail): TimelineEventDraft {
   return {
     ...value,
-    characterIds: value.characterIds || value.characters?.map((character) => character.id) || [],
-    factionIds: value.factionIds || value.factions?.map((faction) => faction.id) || [],
-    intrigueIds: value.intrigueIds || value.intrigues?.map((intrigue) => intrigue.id) || [],
-    itemIds: value.itemIds || value.items?.map((item) => item.id) || []
+    characterIds: value.characters?.map((character) => character.id) || [],
+    factionIds: value.factions?.map((faction) => faction.id) || [],
+    intrigueIds: value.intrigues?.map((intrigue) => intrigue.id) || [],
+    itemIds: value.items?.map((item) => item.id) || []
   }
 }
 
@@ -237,29 +244,29 @@ function cancelEdit() {
 async function saveEvent() {
   if (!editableEvent.value?.id) return
 
-  timelineEvent.value = await useApiFetch(`/api/timeline-events/${editableEvent.value.id}`, {
+  const updated = await useApiFetch(`/api/timeline-events/${editableEvent.value.id}`, {
     method: 'PUT',
     body: editableEvent.value
   })
-  editableEvent.value = eventFormPayload(timelineEvent.value)
+  if (isOfflineQueued(updated)) {
+    cancelEdit()
+    return
+  }
+  // La réponse de l'enregistrement n'a pas les conflits du créneau : on relit l'événement
+  const reloaded = await useApiFetch(`/api/timeline-events/${updated.id}`)
+  timelineEvent.value = reloaded
+  editableEvent.value = eventFormPayload(reloaded)
   isEditing.value = false
-  if (timelineEvent.value?.slug && timelineEvent.value.slug !== route.params.id) {
+  if (updated.slug && updated.slug !== route.params.id) {
     const query = { ...route.query }
     delete query.edit
     await router.replace({
-      path: `/timeline/${timelineEvent.value.slug}`,
+      path: `/timeline/${updated.slug}`,
       query
     })
     return
   }
   cancelEdit()
-}
-
-function conflictTitle(value) {
-  const labels = value.conflicts
-    .map((conflict) => `${conflict.type === 'character' ? 'Personnage' : 'Objet'} : ${conflict.name}`)
-    .join(', ')
-  return `Conflit au même créneau (${labels})`
 }
 
 onMounted(loadData)

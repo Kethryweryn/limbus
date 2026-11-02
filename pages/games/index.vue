@@ -162,25 +162,29 @@ v-model="searchQuery" placeholder="Rechercher un jeu..." icon="i-heroicons-magni
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { isArchivedGame } from '~/utils/games'
+import type { GameDraft } from '~/utils/writingDrafts'
 import { PHOTO_RETENTION_DEFAULT_MONTHS } from '~/utils/photoInformation'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useGameFocus } from '@/composables/useGameFocus'
+import type { ApiResponse } from '@/composables/useApiFetch'
 import GameContextBar from '@/components/GameContextBar.vue'
 import { isOfflineMode } from '~/utils/connection'
 import { getFromStore, saveToStore } from '~/utils/storage'
 
+type GameListItem = ApiResponse<'/api/games'>[number]
+
 const { selectGame, game: activeGame } = useGameFocus()
 
-const games = ref([])
+const games = ref<GameListItem[]>([])
 const route = useRoute()
 const router = useRouter()
 const { data: authState } = await useFetch('/api/auth/me')
 
 const fetchGames = async () => {
   if (isOfflineMode()) {
-    games.value = await getFromStore('games', 'list') || []
+    games.value = await getFromStore<GameListItem[]>('games', 'list') || []
     return
   }
 
@@ -218,7 +222,7 @@ onUnmounted(() => {
 })
 
 
-const startEdit = (game) => {
+const startEdit = (game: GameListItem) => {
   activeFormGame.value = { ...game }
   formMode.value = 'edit'
   showFormSlideover.value = true
@@ -239,7 +243,7 @@ function startCreate() {
   showFormSlideover.value = true
 }
 
-const archiveGame = async (id) => {
+const archiveGame = async (id: string) => {
   if (confirm('Archiver ce jeu ? Sa page publique sera dépubliée, et ne sera pas republiée à la restauration.')) {
     await useApiFetch(`/api/games/${id}`, {
       method: 'PUT',
@@ -249,7 +253,7 @@ const archiveGame = async (id) => {
   }
 }
 
-const publishGame = async (id) => {
+const publishGame = async (id: string) => {
   try {
     await useApiFetch(`/api/games/${id}`, {
       method: 'PUT',
@@ -298,7 +302,7 @@ const prevPage = () => {
   if (page.value > 1) page.value--
 }
 
-const excerpt = (value, maxLength) => {
+const excerpt = (value: string | null | undefined, maxLength: number) => {
   const text = value?.trim()
   if (!text) return ''
   if (text.length <= maxLength) return text
@@ -307,10 +311,10 @@ const excerpt = (value, maxLength) => {
 }
 
 const showFormSlideover = ref(false)
-const activeFormGame = ref(null)
-const formMode = ref('create')
+const activeFormGame = ref<GameDraft | null>(null)
+const formMode = ref<'create' | 'edit'>('create')
 const showShares = ref(false)
-const shareGame = ref(null)
+const shareGame = ref<GameListItem | null>(null)
 
 function closeFormSlideover() {
   activeFormGame.value = null
@@ -322,12 +326,12 @@ function closeFormSlideover() {
   }
 }
 
-function openGamePage(game) {
+function openGamePage(game: GameListItem) {
   if (!game?.slug) return
   router.push(`/games/${game.slug}`)
 }
 
-async function setPublicPage(game, publicPage) {
+async function setPublicPage(game: GameListItem, publicPage: boolean) {
   await useApiFetch(`/api/games/${game.id}`, {
     method: 'PUT',
     body: { publicPage }
@@ -335,17 +339,18 @@ async function setPublicPage(game, publicPage) {
   await fetchGames()
 }
 
-function canManageShares(game) {
-  return Boolean(game?.id)
-    && (authState.value?.adminMode || game.ownerId === authState.value?.user?.id)
+function canManageShares(game: GameListItem) {
+  const auth = authState.value
+  return Boolean(game?.id) && Boolean(auth?.authenticated && (auth.adminMode || game.ownerId === auth.user.id))
 }
 
-function openShareModal(game) {
+function openShareModal(game: GameListItem) {
   shareGame.value = game
   showShares.value = true
 }
 
 async function handleGameFormSubmit() {
+  if (!activeFormGame.value) return
   try {
     if (formMode.value === 'create') {
       await useApiFetch('/api/games', {
@@ -378,5 +383,4 @@ watch([games, () => route.query.edit], () => {
 
   startEdit(game)
 }, { immediate: true })
-
 </script>

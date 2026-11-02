@@ -15,7 +15,7 @@
     </div>
 
     <LocationForm
-      v-if="isEditing"
+      v-if="isEditing && editableLocation"
       v-model:location="editableLocation"
       :games="games || []"
       mode="edit"
@@ -52,8 +52,10 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { isInArchivedGame } from '~/utils/games'
+import type { LocationDraft } from '~/utils/writingDrafts'
+
 const route = useRoute()
 const router = useRouter()
 const { data: location, error, refresh } = await useFetch(`/api/locations/${route.params.id}`)
@@ -65,7 +67,7 @@ if (error.value) {
 }
 
 const isEditing = ref(route.query.edit === '1')
-const editableLocation = ref(location.value ? { ...location.value } : null)
+const editableLocation = ref<LocationDraft | null>(location.value ? { ...location.value } : null)
 
 watch(() => route.query.edit, (value) => {
   isEditing.value = value === '1'
@@ -75,7 +77,7 @@ watch(() => route.query.edit, (value) => {
 })
 
 function startEdit() {
-  editableLocation.value = { ...location.value }
+  editableLocation.value = location.value ? { ...location.value } : null
   isEditing.value = true
   router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
 }
@@ -91,15 +93,16 @@ function cancelEdit() {
 async function saveLocation() {
   if (!editableLocation.value?.id) return
 
-  location.value = await useApiFetch(`/api/locations/${editableLocation.value.id}`, {
+  const updated = await useApiFetch(`/api/locations/${editableLocation.value.id}`, {
     method: 'PUT',
     body: editableLocation.value
   })
-  if (location.value?.slug && location.value.slug !== route.params.id) {
+  if (!isOfflineQueued(updated) && updated.slug && updated.slug !== route.params.id) {
+    location.value = updated
     const query = { ...route.query }
     delete query.edit
     await router.replace({
-      path: `/locations/${location.value.slug}`,
+      path: `/locations/${updated.slug}`,
       query
     })
     return

@@ -81,9 +81,6 @@
                 {{ invitationStatusLabel(invitation) }}
                 <span v-if="invitation.acceptedBy"> · {{ invitation.acceptedBy.name }}</span>
               </div>
-              <div v-if="invitation.invitationUrl" class="mt-1 text-xs text-gray-500 break-all">
-                {{ invitation.invitationUrl }}
-              </div>
             </div>
             <UButton
               v-if="invitation.status === GAME_INVITATION_STATUSES.pending"
@@ -102,24 +99,25 @@
   </UModal>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { GAME_INVITATION_STATUSES } from '~/utils/domain'
+import { apiErrorMessage } from '~/utils/apiErrors'
+import type { ApiResponse } from '~/composables/useApiFetch'
 
-const open = defineModel('open', { type: Boolean, default: false })
+type SharesResponse = ApiResponse<'/api/games/:id/shares'>
+type Share = SharesResponse['shares'][number]
+type Invitation = SharesResponse['invitations'][number]
 
-const props = defineProps({
-  game: {
-    type: Object,
-    default: null
-  },
-  isOwner: {
-    type: Boolean,
-    default: false
-  }
-})
-const emit = defineEmits(['changed'])
+const open = defineModel<boolean>('open', { default: false })
 
-async function proposeTransfer(share) {
+const props = withDefaults(defineProps<{
+  game?: { id: string, title: string, transferToUserId?: string | null } | null
+  isOwner?: boolean
+}>(), { game: null, isOwner: false })
+const emit = defineEmits<{ changed: [] }>()
+
+async function proposeTransfer(share: Share) {
+  if (!props.game) return
   if (!confirm(`Proposer à ${share.user?.name} de devenir propriétaire de « ${props.game.title} » ? Vous en resterez co-organisatrice.`)) return
   try {
     await useApiFetch(`/api/games/${props.game.id}/transfer`, { method: 'POST', body: { userId: share.userId } })
@@ -127,23 +125,24 @@ async function proposeTransfer(share) {
     shareError.value = ''
     emit('changed')
   } catch (err) {
-    shareError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    shareError.value = apiErrorMessage(err, 'Erreur inconnue')
   }
 }
 
 async function cancelTransfer() {
+  if (!props.game) return
   try {
     await useApiFetch(`/api/games/${props.game.id}/transfer`, { method: 'DELETE' })
     shareMessage.value = 'Proposition de transfert retirée.'
     shareError.value = ''
     emit('changed')
   } catch (err) {
-    shareError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    shareError.value = apiErrorMessage(err, 'Erreur inconnue')
   }
 }
 
-const shares = ref([])
-const invitations = ref([])
+const shares = ref<Share[]>([])
+const invitations = ref<Invitation[]>([])
 const inviteEmail = ref('')
 const inviting = ref(false)
 const shareMessage = ref('')
@@ -182,7 +181,7 @@ async function refreshShares() {
     invitations.value = data.invitations || []
     shareError.value = ''
   } catch (err) {
-    shareError.value = err?.data?.message || err?.message || 'Impossible de charger les partages'
+    shareError.value = apiErrorMessage(err, 'Impossible de charger les partages')
   }
 }
 
@@ -192,10 +191,11 @@ async function inviteUser() {
   inviting.value = true
   resetMessages()
   try {
-    const invitation = await useApiFetch(`/api/games/${props.game.id}/invitations`, {
+    const response = await useApiFetch(`/api/games/${props.game.id}/invitations`, {
       method: 'POST',
       body: { email: inviteEmail.value }
     })
+    const invitation = actionResult(response)
     inviteEmail.value = ''
     await refreshShares()
     if (invitation.emailDelivery?.sent) {
@@ -204,13 +204,13 @@ async function inviteUser() {
       shareError.value = `Invitation créée, mais email non envoyé : ${invitation.emailDelivery?.reason || 'raison inconnue'}.`
     }
   } catch (err) {
-    shareError.value = err?.data?.message || err?.message || 'Impossible de créer l’invitation'
+    shareError.value = apiErrorMessage(err, 'Impossible de créer l’invitation')
   } finally {
     inviting.value = false
   }
 }
 
-async function removeShare(userId) {
+async function removeShare(userId: string) {
   if (!props.game?.id || !userId) return
 
   try {
@@ -220,11 +220,11 @@ async function removeShare(userId) {
     // Un transfert proposé à cette personne tombe avec son partage
     emit('changed')
   } catch (err) {
-    shareError.value = err?.data?.message || err?.message || 'Impossible de retirer le partage'
+    shareError.value = apiErrorMessage(err, 'Impossible de retirer le partage')
   }
 }
 
-async function revokeInvitation(invitationId) {
+async function revokeInvitation(invitationId: string) {
   if (!props.game?.id || !invitationId) return
 
   try {
@@ -232,11 +232,11 @@ async function revokeInvitation(invitationId) {
     await useApiFetch(`/api/games/${props.game.id}/invitations/${invitationId}`, { method: 'DELETE' })
     await refreshShares()
   } catch (err) {
-    shareError.value = err?.data?.message || err?.message || 'Impossible d’annuler l’invitation'
+    shareError.value = apiErrorMessage(err, 'Impossible d’annuler l’invitation')
   }
 }
 
-function invitationStatusLabel(invitation) {
+function invitationStatusLabel(invitation: Invitation) {
   if (invitation.status === GAME_INVITATION_STATUSES.accepted) return 'Acceptée'
   if (invitation.status === GAME_INVITATION_STATUSES.revoked) return 'Annulée'
   if (new Date(invitation.expiresAt).getTime() < Date.now()) return 'Expirée'
