@@ -39,25 +39,24 @@ export default defineEventHandler(async (event) => {
   const gameIdsToRemove = managedExistingGameIds.filter((gameId) => !nextGameIds.has(gameId))
   const gameIdsToAdd = uniqueGameIds.filter((gameId) => !existingGameIds.has(gameId))
 
-  // Fiche qui reste rattachée : nom et téléphone sont tenus par la personne, l'envoi de l'équipe est ignoré (US-075)
-  const userId = await accountIdForEmail(email)
-  const current = await prisma.participant.findUniqueOrThrow({ where: { id }, select: { name: true, phone: true, userId: true } })
-  const heldByPerson = Boolean(userId && userId === current.userId)
-  const effectiveName = heldByPerson ? current.name : name
-  const slug = await generateUniqueSlug('participant', effectiveName, id)
-
   // Retirer un jeu retire aussi la personne de ses sessions (US-035) : dans la même transaction que la fiche, pour
   // qu'un échec de la mise à jour ne laisse pas les jeux retirés
   const removal = await planParticipantRemoval(id, gameIdsToRemove, user)
-  const participant = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     await removal.apply(tx)
     // Une fiche sans aucun jeu est supprimée (US-036) : l'interface l'a fait confirmer
     if (!gameIdsToAdd.length && !await tx.participantGame.count({ where: { participantId: id } })) return null
-    return await tx.participant.update({
+
+    // Fiche qui reste rattachée : nom et téléphone sont tenus par la personne, l'envoi de l'équipe est ignoré (US-075)
+    const userId = await accountIdForEmail(email)
+    const current = await tx.participant.findUniqueOrThrow({ where: { id }, select: { name: true, phone: true, userId: true } })
+    const heldByPerson = Boolean(userId && userId === current.userId)
+    const effectiveName = heldByPerson ? current.name : name
+    const updated = await tx.participant.update({
       where: { id },
       data: {
         name: effectiveName,
-        slug,
+        slug: await generateUniqueSlug('participant', effectiveName, id),
         email: email || null,
         phone: heldByPerson ? current.phone : phone || null,
         // Le rattachement suit l'adresse : autre compte, ou aucun (US-070)
@@ -72,17 +71,19 @@ export default defineEventHandler(async (event) => {
       },
       include: participantGameLinksInclude(allowedGameIds)
     })
+    return { updated, newlyLinkedUserId: userId && !heldByPerson ? userId : null }
   })
   await removal.afterCommit()
 
-  if (!participant) {
+  if (!result) {
     await eraseParticipant(id)
     return { deleted: true }
   }
 
   // Rattachée par ce changement d'email : elle prend les coordonnées du compte (US-074)
-  if (userId && !heldByPerson) {
-    await syncProfileToParticipants(userId)
+  const { updated: participant, newlyLinkedUserId } = result
+  if (newlyLinkedUserId) {
+    await syncProfileToParticipants(newlyLinkedUserId)
     return exposeParticipantGames(await prisma.participant.findUniqueOrThrow({ where: { id }, include: participantGameLinksInclude(allowedGameIds) }))
   }
   return exposeParticipantGames(participant)

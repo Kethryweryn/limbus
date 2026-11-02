@@ -410,10 +410,12 @@ const testPreview = computed(() => {
   }
 })
 
-// Un échec n'arrête pas l'envoi : les personnes qui n'ont rien reçu sont listées (US-029)
-const sendFailuresMessage = (result) => result?.failures?.length
-  ? `${result.sentCount} email(s) envoyé(s). Non envoyés : ${result.failures.join(', ')}.`
-  : ''
+// Un échec n'arrête pas l'envoi : les personnes qui n'ont rien reçu sont listées (US-029), et celles dont l'envoi
+// est parti sans être enregistré, à ne pas renvoyer
+const sendFailuresMessage = (result) => [
+  result?.failures?.length ? `${result.sentCount} email(s) envoyé(s). Non envoyés : ${result.failures.join(', ')}.` : '',
+  result?.unrecorded?.length ? `Envoyés mais non enregistrés dans le suivi, ne pas renvoyer : ${result.unrecorded.join(', ')}.` : ''
+].filter(Boolean).join(' ')
 // Renvoi de la version à jour (US-030)
 const resendingKey = ref('')
 const outdatedRecipients = (document) => document.recipients.filter((recipient) => recipient.versionOutdated && recipient.participant.email)

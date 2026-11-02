@@ -407,11 +407,15 @@ function showDetail(registration) {
 }
 
 // Actions d'une organisatrice sur une inscription (US-005) : on recharge la liste, réussite ou échec (un renvoi
-// échoué a tout de même invalidé l'ancien lien). Sans action, l'inscription elle-même est supprimée.
-async function registrationAction(registration, action, body, success, failure = 'Action impossible') {
+// échoué a tout de même invalidé l'ancien lien)
+function registrationAction(registration, action, body, success, failure = 'Action impossible') {
+  return registrationRequest(() => useApiFetch(`/api/registrations/${registration.id}/${action}`, { method: 'POST', body }), success, failure)
+}
+
+async function registrationRequest(request, success, failure) {
   infoMessage.value = ''
   try {
-    await useApiFetch(`/api/registrations/${registration.id}${action ? `/${action}` : ''}`, { method: action ? 'POST' : 'DELETE', body })
+    await request()
     await refresh()
     infoColor.value = 'success'
     infoMessage.value = success
@@ -512,7 +516,7 @@ async function resend(registration) {
 
 async function cancel(registration) {
   if (!confirm(`Annuler l’invitation de ${registration.participant.name} ? Son lien ne fonctionnera plus.`)) return
-  await registrationAction(registration, null, undefined, `Invitation de ${registration.participant.name} annulée.`, 'Annulation impossible')
+  await registrationRequest(() => useApiFetch(`/api/registrations/${registration.id}`, { method: 'DELETE' }), `Invitation de ${registration.participant.name} annulée.`, 'Annulation impossible')
 }
 
 function stateMeta(period) {

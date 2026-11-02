@@ -182,6 +182,19 @@ export interface GameCopyOptions {
  * liens recréés vers les éléments de la copie, photos dupliquées avant la transaction et effacées si elle échoue.
  */
 export async function copyGame(sourceGameId: string, options: GameCopyOptions) {
+  // Un slug pris entre leur calcul et la transaction (élément créé, autre copie simultanée) : on recalcule
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await copyGameOnce(sourceGameId, options)
+    } catch (error) {
+      if (!isSlugConflict(error) || attempt === 3) throw error
+    }
+  }
+}
+
+const isSlugConflict = (error: unknown) => (error as { slugConflict?: boolean })?.slugConflict === true
+
+async function copyGameOnce(sourceGameId: string, options: GameCopyOptions) {
   const source = await loadSourceGame(sourceGameId)
 
   const [[gameSlug], characterSlugs, factionSlugs, intrigueSlugs, itemSlugs, eventSlugs, documentSlugs, locationSlugs] = await Promise.all([
@@ -361,7 +374,7 @@ export async function copyGame(sourceGameId: string, options: GameCopyOptions) {
     await removeFiles([...photoCopies.values()])
     // Un élément créé pendant le legs a pris l'un des slugs réservés : rien n'a été copié, on peut recommencer
     if ((error as { code?: string })?.code === 'P2002') {
-      throw createError({ statusCode: 409, message: 'Le jeu a été modifié pendant le legs : rien n’a été copié, recommencez.' })
+      throw Object.assign(createError({ statusCode: 409, message: 'Le jeu a été modifié pendant le legs : rien n’a été copié, recommencez.' }), { slugConflict: true })
     }
     throw error
   }
