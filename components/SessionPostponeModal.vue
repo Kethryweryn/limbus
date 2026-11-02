@@ -32,13 +32,18 @@
   </UModal>
 </template>
 
-<script setup>
-const props = defineProps({
-  session: { type: Object, default: null },
-  locations: { type: Array, default: () => [] }
-})
-const emit = defineEmits(['postponed'])
-const open = defineModel('open', { type: Boolean, default: false })
+<script setup lang="ts">
+import { apiErrorMessage } from '~/utils/apiErrors'
+import type { ApiResponse } from '~/composables/useApiFetch'
+
+type PostponedSession = ApiResponse<'/api/sessions/:id/postpone', 'post'>
+
+const props = withDefaults(defineProps<{
+  session?: { id: string, name: string, gameId: string, locationId?: string | null } | null
+  locations?: Array<{ id: string, name: string, address?: string | null, gameId: string }>
+}>(), { session: null, locations: () => [] })
+const emit = defineEmits<{ postponed: [session: PostponedSession] }>()
+const open = defineModel<boolean>('open', { default: false })
 
 const form = ref({ name: '', date: '', locationId: '' })
 const saving = ref(false)
@@ -66,7 +71,7 @@ async function postpone() {
   saving.value = true
   error.value = ''
   try {
-    const created = await useApiFetch(`/api/sessions/${props.session.id}/postpone`, {
+    const created = await useApiAction(`/api/sessions/${props.session.id}/postpone`, {
       method: 'POST',
       body: {
         name: form.value.name,
@@ -77,7 +82,7 @@ async function postpone() {
     open.value = false
     emit('postponed', created)
   } catch (err) {
-    error.value = err?.data?.message || err?.message || 'Impossible de reporter la session'
+    error.value = apiErrorMessage(err, 'Impossible de reporter la session')
   } finally {
     saving.value = false
   }

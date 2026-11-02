@@ -27,6 +27,7 @@ La quasi-totalité des pages et composants est en JavaScript (revue d'architectu
   - La réponse est marquée `NoInfer` : sans cela, la cible d'une affectation (`ref.value = await useApiFetch(…)`) relançait la déduction de la route et dépassait la profondeur de comparaison.
 - **Réponses ambiguës** : une route qui rend des formes différentes les distingue par un champ littéral (`authenticated: true as const`), que l'interface teste.
 - **Erreurs** : `apiErrorMessage` et `serverMessage` (`utils/apiErrors.ts`) lisent le message du serveur, sans `any` dans les `catch`.
+- **Écrans découpés** : un écran à plusieurs sections (documents, paiements d'une session) garde son état et ses actions dans un composable qu'il fournit (`provide`) à ses sections (`useSessionDocumentActions`, `useSessionPaymentActions`) : les sections ne se passent pas une dizaine de propriétés.
 - **Listes hors ligne** : `fetchOfflineList` (lecture sur l'appareil ou par l'API, gardée sur l'appareil) et `useConnectionRefresh` (relecture au changement de connexion), dans `composables/useOfflineList.ts`, remplacent le code recopié dans chaque page de liste.
 - **Types d'interface partagés** : `utils/ui.ts` (couleurs Nuxt UI), `utils/navigation.ts` (menu).
 - **Éléments en cours d'édition** : le type de l'élément rendu par l'API, sans ses éléments liés, que le formulaire tient en identifiants (`utils/writingDrafts.ts`). Un champ texte facultatif se lie avec `v-model.nullable` : vidé, il vaut `null`, comme en base.

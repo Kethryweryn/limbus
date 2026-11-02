@@ -9,6 +9,7 @@ const TYPED_INTERFACE = [
   'components/AppWideSlideover.vue',
   'components/Character*.vue',
   'components/DocumentForm.vue',
+  'components/EmailTestModal.vue',
   'components/FactionForm.vue',
   'components/Game*.vue',
   'components/IntrigueForm.vue',
@@ -18,6 +19,7 @@ const TYPED_INTERFACE = [
   'components/LocationForm.vue',
   'components/LoginScreen.vue',
   'components/OfflineQueuePanel.vue',
+  'components/Session*.vue',
   'components/SidebarLink.vue',
   'components/SidebarSection.vue',
   'components/TermsAcceptanceScreen.vue',
@@ -37,8 +39,11 @@ const TYPED_INTERFACE = [
   'pages/locations/**/*.vue',
   'pages/logout.vue',
   'pages/mentions-legales.vue',
+  'pages/presence/**/*.vue',
+  'pages/sessions/**/*.vue',
   'pages/timeline/**/*.vue',
   'utils/sessionOffline.ts',
+  'utils/sessions.ts',
   'utils/timeline.ts',
   'utils/writingDrafts.ts'
 ]

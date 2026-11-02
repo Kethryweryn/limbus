@@ -55,21 +55,22 @@
   </UCard>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { apiErrorMessage } from '~/utils/apiErrors'
 
 // Fiche allergies de la session (US-008, R15), destinée à l'équipe cuisine
-const props = defineProps({
-  sessionId: { type: String, required: true }
-})
+import type { ApiResponse } from '~/composables/useApiFetch'
+import type { UiColor } from '~/utils/ui'
 
-const sheet = ref(null)
+const props = defineProps<{ sessionId: string }>()
+
+const sheet = ref<ApiResponse<'/api/sessions/:id/allergies'> | null>(null)
 const errorMessage = ref('')
 const infoMessage = ref('')
-const infoColor = ref('success')
+const infoColor = ref<UiColor>('success')
 const sending = ref(false)
 
-const plural = (count, word) => `${count} ${word}${count > 1 ? 's' : ''}`
+const plural = (count: number, word: string) => `${count} ${word}${count > 1 ? 's' : ''}`
 
 async function load() {
   try {
@@ -90,7 +91,7 @@ async function send() {
   sending.value = true
   errorMessage.value = ''
   try {
-    const result = await useApiFetch(`/api/sessions/${props.sessionId}/allergies/send`, { method: 'POST' })
+    const result = await useApiAction(`/api/sessions/${props.sessionId}/allergies/send`, { method: 'POST' })
     infoColor.value = result.failures.length ? 'warning' : 'success'
     infoMessage.value = [
       `Fiche envoyée à ${plural(result.sentCount, 'membre')} de l’équipe cuisine.`,

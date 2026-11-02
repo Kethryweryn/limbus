@@ -39,15 +39,16 @@
   </UModal>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { cancellationEmailDefaults } from '~/utils/sessionCancellation'
+import { apiErrorMessage } from '~/utils/apiErrors'
 
 // Email d'annulation proposé, relu et envoyé à la main (US-025)
-const props = defineProps({
-  session: { type: Object, default: null },
-  defaultEmail: { type: String, default: '' }
-})
-const open = defineModel('open', { type: Boolean, default: false })
+const props = withDefaults(defineProps<{
+  session?: { id: string, name: string, date?: string | null, game?: { title: string } | null } | null
+  defaultEmail?: string
+}>(), { session: null, defaultEmail: '' })
+const open = defineModel<boolean>('open', { default: false })
 
 const form = ref({ subject: '', text: '' })
 const sending = ref(false)
@@ -61,41 +62,42 @@ watch(open, (value) => {
   form.value = cancellationEmailDefaults({
     gameTitle: props.session.game?.title || 'Jeu',
     sessionName: props.session.name,
-    sessionDate: props.session.date
+    sessionDate: props.session.date ?? null
   })
   message.value = ''
   error.value = ''
 })
 
 async function sendTest() {
+  if (!props.session) return
   testing.value = true
   error.value = ''
   try {
-    await useApiFetch(`/api/sessions/${props.session.id}/cancellation-email/test`, {
+    await useApiAction(`/api/sessions/${props.session.id}/cancellation-email/test`, {
       method: 'POST',
       body: { ...form.value, emails: [props.defaultEmail] }
     })
     message.value = `Test envoyé à ${props.defaultEmail}.`
   } catch (err) {
-    error.value = err?.data?.message || err?.message || 'Le test n’est pas parti'
+    error.value = apiErrorMessage(err, 'Le test n’est pas parti')
   } finally {
     testing.value = false
   }
 }
 
 async function send() {
-  if (!confirm('Envoyer l’email d’annulation à toute l’équipe ?')) return
+  if (!props.session || !confirm('Envoyer l’email d’annulation à toute l’équipe ?')) return
   sending.value = true
   error.value = ''
   try {
-    const result = await useApiFetch(`/api/sessions/${props.session.id}/cancellation-email`, { method: 'POST', body: form.value })
+    const result = await useApiAction(`/api/sessions/${props.session.id}/cancellation-email`, { method: 'POST', body: form.value })
     message.value = [
       `${result.sentCount} email(s) envoyé(s).`,
       result.withoutEmail.length ? `Sans email : ${result.withoutEmail.join(', ')}.` : '',
       result.failures.length ? `Non envoyés : ${result.failures.join(', ')}.` : ''
     ].filter(Boolean).join(' ')
   } catch (err) {
-    error.value = err?.data?.message || err?.message || 'L’email n’est pas parti'
+    error.value = apiErrorMessage(err, 'L’email n’est pas parti')
   } finally {
     sending.value = false
   }

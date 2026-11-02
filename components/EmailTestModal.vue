@@ -79,18 +79,22 @@
   </UModal>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { apiErrorMessage } from '~/utils/apiErrors'
 
-const props = defineProps({
-  open: { type: Boolean, default: false },
-  defaultEmail: { type: String, default: '' },
-  organizerEmails: { type: Array, default: () => [] },
-  preview: { type: Object, default: () => ({ subject: '', body: '', attachments: [] }) },
-  onSubmit: { type: Function, required: true }
-})
+/** Aperçu de l'email testé : objet, texte, noms des pièces jointes. */
+export type EmailPreview = { subject: string, body: string, attachments: string[] }
 
-const emit = defineEmits(['update:open'])
+const props = withDefaults(defineProps<{
+  open?: boolean
+  defaultEmail?: string
+  organizerEmails?: Array<string | null | undefined>
+  preview?: EmailPreview
+  onSubmit: (emails: string[]) => Promise<unknown>
+}>(), { open: false, defaultEmail: '', organizerEmails: () => [], preview: () => ({ subject: '', body: '', attachments: [] }) })
+
+const emit = defineEmits<{ 'update:open': [value: boolean] }>()
 
 const emailsText = ref('')
 const sendToMe = ref(false)
@@ -101,7 +105,7 @@ const error = ref('')
 
 const openProxy = computed({
   get: () => props.open,
-  set: (value) => emit('update:open', value)
+  set: (value: boolean) => emit('update:open', value)
 })
 
 watch(() => props.open, (value) => {
@@ -151,7 +155,7 @@ async function submit() {
     await props.onSubmit(emails)
     openProxy.value = false
   } catch (err) {
-    error.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    error.value = apiErrorMessage(err, 'Erreur inconnue')
   } finally {
     loading.value = false
     submitCooldown.value = true

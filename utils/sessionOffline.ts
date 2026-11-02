@@ -8,7 +8,22 @@ import type { sessionSchema, sessionTimelineSchema } from '~/server/utils/schema
 
 type SessionDetail = ApiResponse<'/api/sessions/:id'>
 type SessionTimeline = ApiResponse<'/api/sessions/:id/timeline'>
-type SessionBody = Partial<z.input<typeof sessionSchema>>
+// Ce que lit la projection : une session lue, ou déjà projetée par une modification précédente hors ligne
+type SessionLike = Pick<SessionDetail, 'id'> & {
+  location?: Named | null
+  participants?: Array<{ participant?: Named | null }>
+  assignments?: Array<{ characterId: string, character?: Named | null, participant?: Named | null, locked?: boolean, reservedRegistrationId?: string | null }>
+}
+type TimelineLike = Omit<SessionTimeline, 'session' | 'events'> & {
+  session?: { id: string, participants?: Array<{ participant?: Named | null }> } | null
+  events?: Array<SessionTimeline['events'][number]>
+}
+// Corps envoyé par la page : celui du schéma d'enregistrement, avec l'équipe et le cast tels que le formulaire les tient
+type SessionBody = Omit<Partial<z.input<typeof sessionSchema>>, 'status' | 'participants' | 'assignments'> & {
+  status?: string
+  participants?: Array<{ participantId?: string | null, role: string, participant?: { id: string } | null }>
+  assignments?: Array<{ characterId?: string, participantId?: string | null, photoUrl?: string | null, notes?: string | null, locked?: boolean, reservedRegistrationId?: string | null }>
+}
 type TimelineAssignments = NonNullable<z.input<typeof sessionTimelineSchema>['assignments']>
 
 type Named = { id: string, name: string }
@@ -27,7 +42,7 @@ function byId<T extends Named>(...lists: Array<Array<T | null | undefined> | und
 // Personne absente des listes de l'appareil : un nom neutre plutôt qu'une page cassée
 const unknownParticipant = (id: string): Named => ({ id, name: 'Participant' })
 
-export function projectOfflineSession(session: SessionDetail, body: SessionBody, lookup: Lookup) {
+export function projectOfflineSession<S extends SessionLike>(session: S, body: SessionBody, lookup: Lookup) {
   const participants = byId<Named>(
     lookup.participants,
     session.participants?.map((item) => item.participant),
@@ -48,27 +63,31 @@ export function projectOfflineSession(session: SessionDetail, body: SessionBody,
       location: body.locationId ? locations.get(body.locationId) || null : null
     }),
     participants: body.participants
-      ? body.participants.map((item) => ({
-          sessionId: session.id,
-          participantId: item.participantId,
-          role: item.role,
-          participant: participants.get(item.participantId) || unknownParticipant(item.participantId)
-        }))
+      ? body.participants.map((item) => {
+          const participantId = item.participantId || item.participant?.id || ''
+          return {
+            sessionId: session.id,
+            participantId,
+            role: item.role,
+            participant: participants.get(participantId) || unknownParticipant(participantId)
+          }
+        })
       : session.participants,
     assignments: body.assignments
-      ? body.assignments.map((item) => {
-          const previous = previousAssignments.get(item.characterId)
+      ? body.assignments.filter((item) => item.characterId).map((item) => {
+          const characterId = item.characterId!
+          const previous = previousAssignments.get(characterId)
           return {
             ...previous,
             sessionId: session.id,
-            characterId: item.characterId,
+            characterId,
             participantId: item.participantId || null,
             photoUrl: item.photoUrl || null,
             notes: item.notes || null,
             // Absents du corps : la ligne garde son cadenas et sa réservation (ADR-0051)
             locked: item.locked ?? previous?.locked ?? false,
             reservedRegistrationId: item.participantId ? null : item.reservedRegistrationId === undefined ? previous?.reservedRegistrationId ?? null : item.reservedRegistrationId || null,
-            character: characters.get(item.characterId) || previous?.character || { id: item.characterId, name: 'Personnage' },
+            character: characters.get(characterId) || previous?.character || { id: characterId, name: 'Personnage' },
             participant: item.participantId ? participants.get(item.participantId) || unknownParticipant(item.participantId) : null
           }
         })
@@ -77,7 +96,7 @@ export function projectOfflineSession(session: SessionDetail, body: SessionBody,
   }
 }
 
-export function projectOfflineTimeline(timeline: SessionTimeline, assignments: TimelineAssignments, lookup: Lookup) {
+export function projectOfflineTimeline<T extends TimelineLike>(timeline: T, assignments: TimelineAssignments, lookup: Lookup) {
   const participants = byId<Named>(lookup.participants, timeline.session?.participants?.map((item) => item.participant))
   const responsibleIds = new Map(assignments.map((assignment) => [assignment.timelineEventId, assignment.participantIds || []]))
 

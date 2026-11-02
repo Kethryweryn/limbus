@@ -25,7 +25,7 @@ date: 2026-11-02
 |---|---|---|
 | [US-114](US-114-fondations.md) | Fondations : appels typés, mise en page, composants communs, pages d'accès | terminée |
 | [US-115](US-115-ecriture.md) | Écriture du jeu : jeux, personnages, groupes, intrigues, objets, documents, lieux, timeline | terminée |
-| [US-116](US-116-sessions.md) | Sessions : cast, déroulé, documents, paiements, présence | à faire |
+| [US-116](US-116-sessions.md) | Sessions : cast, déroulé, documents, paiements, présence | terminée |
 | [US-117](US-117-inscriptions.md) | Inscriptions : périodes, formulaire, sélection, liens personnels | à faire |
 | [US-118](US-118-compte-participation-administration.md) | Compte, « Je participe », administration, page publique ; règle étendue à tout | à faire |
 
