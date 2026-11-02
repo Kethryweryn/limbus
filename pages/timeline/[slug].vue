@@ -99,7 +99,7 @@
                 <NuxtLink
                   v-for="item in timelineEvent.items || []"
                   :key="item.id"
-                  :to="`/items/${item.slug || item.id}`"
+                  :to="`/items/${item.slug}`"
                 >
                   <UBadge color="success" variant="subtle" class="cursor-pointer hover:ring-1 hover:ring-success-300">
                     {{ item.name }}
@@ -129,6 +129,7 @@
       </UCard>
     </div>
 
+    <UAlert v-else-if="loadError" color="error" variant="soft" :description="loadError" />
     <UCard v-else>
       Chargement...
     </UCard>
@@ -137,6 +138,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { serverMessage } from '~/utils/apiErrors'
 import TimelineEventForm from '@/components/TimelineEventForm.vue'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { withQueuedEdit, type TimelineEventDraft } from '~/utils/writingDrafts'
@@ -157,7 +159,8 @@ const { isEditing, draft: editableEvent, startEdit, cancelEdit, closeAfterSave }
 const returnContext = ref<ReturnContext | null>(null)
 const timelineBackTo = computed(() => ({
   path: returnContext.value?.source === 'session'
-    ? `/sessions/${returnContext.value.sessionSlug || returnContext.value.sessionId}`
+    // Retour à la session par son slug (la page des sessions ne s'ouvre pas par identifiant), sinon à la liste
+    ? (returnContext.value.sessionSlug ? `/sessions/${returnContext.value.sessionSlug}` : '/sessions')
     : '/timeline',
   query: returnContext.value?.source === 'session'
     ? { tab: 'timeline' }
@@ -166,7 +169,7 @@ const timelineBackTo = computed(() => ({
 
 async function loadData() {
   const [eventData, gamesData, charactersData, factionsData, intriguesData, itemsData] = await Promise.all([
-    useApiFetch(`/api/timeline-events/${route.params.id}`),
+    useApiFetch(`/api/timeline-events/slug/${route.params.slug}`),
     useApiFetch('/api/games'),
     useApiFetch('/api/characters'),
     useApiFetch('/api/factions'),
@@ -236,5 +239,13 @@ async function saveEvent() {
   await closeAfterSave(`/timeline/${updated.slug}`)
 }
 
-onMounted(loadData)
+// Fiche absente (lien ancien, slug changé) ou refusée : un message plutôt qu'un chargement sans fin
+const loadError = ref('')
+onMounted(async () => {
+  try {
+    await loadData()
+  } catch (err) {
+    loadError.value = serverMessage(err, 'Événement introuvable.')
+  }
+})
 </script>

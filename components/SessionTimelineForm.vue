@@ -246,7 +246,7 @@ function eventBadgeSummary(timelineEvent: TimelineEvent) {
 
 function eventDetailTo(timelineEvent: TimelineEvent) {
   return {
-    path: `/timeline/${timelineEvent.slug || timelineEvent.id}`
+    path: `/timeline/${timelineEvent.slug}`
   }
 }
 
@@ -255,7 +255,7 @@ function rememberSessionTimelineContext(timelineEvent: TimelineEvent) {
   sessionStorage.setItem('limbus:timeline-return-context', JSON.stringify({
     source: 'session',
     sessionId: props.timelineData.session.id,
-    sessionSlug: props.timelineData.session.slug || props.timelineData.session.id,
+    sessionSlug: props.timelineData.session.slug,
     eventId: timelineEvent.id
   }))
 }

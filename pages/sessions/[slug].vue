@@ -186,9 +186,10 @@ async function onPostponed(created: { slug: string }) {
   await router.push({ path: `/sessions/${created.slug}`, query: { tab: 'presence' } })
 }
 
-// Toutes les lectures de la page passent par l'adresse de la page : sans réseau, la session se rouvre telle
-// qu'elle a été vue (US-047)
-const sessionApi = (path = '') => `/api/sessions/${route.params.id}${path}`
+// La session se lit par le slug de la page, le reste par son identifiant : un slug change avec le nom. Toutes les
+// lectures gardent leur copie sur l'appareil : sans réseau, la session se rouvre telle qu'elle a été vue (US-047)
+const sessionBySlug = () => `/api/sessions/slug/${route.params.slug}`
+const sessionApi = (path: string, id = session.value?.id) => `/api/sessions/${id}${path}`
 function offlineRead<T>(request: string) {
   return fetchByUrl<T>(request, { offlineCache: true })
 }
@@ -204,16 +205,18 @@ const offlineLookup = () => ({ characters: characters.value, participants: parti
 async function loadData() {
   loadError.value = ''
   try {
-    const [sessionData, gamesData, charactersData, locationsData, participantsData, timelineSessionData, sessionDocumentsData, sessionPaymentsData, authData] = await Promise.all([
-      offlineRead<ApiResponse<'/api/sessions/:id'>>(sessionApi()),
+    const [sessionData, gamesData, charactersData, locationsData, participantsData, authData] = await Promise.all([
+      offlineRead<ApiResponse<'/api/sessions/slug/:slug'>>(sessionBySlug()),
       offlineRead<ApiResponse<'/api/games'>>('/api/games'),
       offlineRead<ApiResponse<'/api/characters'>>('/api/characters'),
       offlineRead<ApiResponse<'/api/locations'>>('/api/locations'),
       offlineRead<ApiResponse<'/api/participants'>>('/api/participants'),
-      offlineRead<ApiResponse<'/api/sessions/:id/timeline'>>(sessionApi('/timeline')),
-      offlineRead<SessionDocumentsData>(sessionApi('/documents')),
-      offlineRead<SessionPaymentsData>(sessionApi('/payments')),
       offlineRead<ApiResponse<'/api/auth/me'>>('/api/auth/me')
+    ])
+    const [timelineSessionData, sessionDocumentsData, sessionPaymentsData] = await Promise.all([
+      offlineRead<ApiResponse<'/api/sessions/:id/timeline'>>(sessionApi('/timeline', sessionData.id)),
+      offlineRead<SessionDocumentsData>(sessionApi('/documents', sessionData.id)),
+      offlineRead<SessionPaymentsData>(sessionApi('/payments', sessionData.id))
     ])
     session.value = sessionData
     games.value = gamesData
@@ -237,7 +240,7 @@ async function saveSession(body: Parameters<typeof projectOfflineSession>[1] & R
   if (!session.value) return
   const saved = await useApiFetch(`/api/sessions/${session.value.id}`, { method: 'PUT', body })
   session.value = isOfflineQueued(saved)
-    ? await keepOffline(sessionApi(), projectOfflineSession(session.value, body, offlineLookup()))
+    ? await keepOffline(sessionBySlug(), projectOfflineSession(session.value, body, offlineLookup()))
     : saved
 }
 
@@ -294,7 +297,7 @@ watch(() => route.query.tab, (value) => {
 })
 
 // Passage à une autre session sur la même page (lien de report, US-022) : on recharge ses données
-watch(() => route.params.id, (value, previous) => {
+watch(() => route.params.slug, (value, previous) => {
   if (value && value !== previous && value !== session.value?.slug) loadData()
 })
 
@@ -310,8 +313,8 @@ async function saveDetails() {
   await saveSession(editableSession.value)
   if (!session.value) return
   const cancelled = previousStatus !== SESSION_STATUSES.cancelled && session.value.status === SESSION_STATUSES.cancelled
-  // Nouveau slug : la page passe d'abord à sa nouvelle adresse (sessionApi la suit ; l'ancien slug répondrait 404), puis
-  // relit tout depuis elle, pour que la copie de l'appareil retrouve la session à cette adresse hors ligne
+  // Nouveau slug : la page passe à sa nouvelle adresse et relit tout depuis elle, pour que la copie de l'appareil
+  // retrouve la session à cette adresse hors ligne
   const previousPath = route.path
   await closeAfterSave(`/sessions/${session.value.slug}`)
   if (route.path !== previousPath) {

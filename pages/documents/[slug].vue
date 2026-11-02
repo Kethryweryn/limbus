@@ -116,6 +116,7 @@
       </UCard>
     </div>
 
+    <UAlert v-else-if="loadError" color="error" variant="soft" :description="loadError" />
     <UCard v-else>
       Chargement...
     </UCard>
@@ -125,6 +126,7 @@
 <script setup lang="ts">
 import { isInArchivedGame } from '~/utils/games'
 import { computed, onMounted, ref } from 'vue'
+import { serverMessage } from '~/utils/apiErrors'
 import DocumentForm from '@/components/DocumentForm.vue'
 import { DOCUMENT_AUDIENCE_LABELS } from '~/utils/domain'
 import type { ApiResponse } from '~/composables/useApiFetch'
@@ -143,9 +145,10 @@ const { isEditing, draft: editableDocument, startEdit, cancelEdit, closeAfterSav
 const returnContext = ref<ReturnContext | null>(null)
 
 const documentBackTo = computed(() => {
+  // Retour à la session par son slug (la page des sessions ne s'ouvre pas par identifiant), sinon à la liste
   if (returnContext.value?.source === 'session') {
     return {
-      path: `/sessions/${returnContext.value.sessionSlug || returnContext.value.sessionId}`,
+      path: returnContext.value.sessionSlug ? `/sessions/${returnContext.value.sessionSlug}` : '/sessions',
       query: { tab: 'documents' }
     }
   }
@@ -161,7 +164,7 @@ const audienceLabel = (audience: string) => DOCUMENT_AUDIENCE_LABELS[audience] |
 
 async function loadData() {
   const [data, gamesData, charactersData, factionsData] = await Promise.all([
-    useApiFetch(`/api/documents/${route.params.id}`),
+    useApiFetch(`/api/documents/slug/${route.params.slug}`),
     useApiFetch('/api/games'),
     useApiFetch('/api/characters'),
     useApiFetch('/api/factions')
@@ -224,5 +227,13 @@ function ensureDocumentReturnContext(documentData: DocumentDetail) {
   sessionStorage.setItem('limbus:document-return-context', JSON.stringify(fallbackContext))
 }
 
-onMounted(loadData)
+// Fiche absente (lien ancien, slug changé) ou refusée : un message plutôt qu'un chargement sans fin
+const loadError = ref('')
+onMounted(async () => {
+  try {
+    await loadData()
+  } catch (err) {
+    loadError.value = serverMessage(err, 'Document introuvable.')
+  }
+})
 </script>

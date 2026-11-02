@@ -27,7 +27,7 @@
         <template #header>
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <NuxtLink :to="`/locations/${location.slug || location.id}`" class="block font-semibold truncate hover:underline">
+              <NuxtLink :to="`/locations/${location.slug}`" class="block font-semibold truncate hover:underline">
                 {{ location.name }}
               </NuxtLink>
               <p class="text-sm text-gray-500 truncate">
@@ -64,7 +64,7 @@
     <AppWideSlideover
       v-model:open="showFormSlideover"
       :title="formMode === 'edit' ? 'Modifier le lieu' : 'Créer un lieu'"
-      :full-page-to="formMode === 'edit' && activeFormLocation?.id ? `/locations/${activeFormLocation.slug || activeFormLocation.id}?edit=1` : null"
+      :full-page-to="formMode === 'edit' && activeFormLocation?.id ? `/locations/${activeFormLocation.slug}?edit=1` : null"
       @close="closeFormSlideover"
       @full-page="showFormSlideover = false"
     >

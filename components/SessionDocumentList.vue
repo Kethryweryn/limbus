@@ -12,7 +12,7 @@
           <div class="min-w-0 space-y-2">
             <div>
               <NuxtLink
-                :to="`/documents/${document.slug || document.id}`"
+                :to="`/documents/${document.slug}`"
                 class="font-medium text-gray-950 hover:text-primary-600"
                 @click="rememberDocumentReturn(document)"
               >

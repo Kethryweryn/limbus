@@ -57,7 +57,7 @@ import { isInArchivedGame } from '~/utils/games'
 import { withQueuedEdit, type LocationDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
-const { data: location, error, refresh } = await useFetch(`/api/locations/${route.params.id}`)
+const { data: location, error, refresh } = await useFetch(`/api/locations/slug/${route.params.slug}`)
 const { data: games } = await useFetch('/api/games')
 
 if (error.value) {

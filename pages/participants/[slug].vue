@@ -107,7 +107,7 @@ type Participant = ApiResponse<'/api/participants/:id'>
 
 const route = useRoute()
 const router = useRouter()
-const { data: participant, error, refresh } = await useFetch(`/api/participants/${route.params.id}`)
+const { data: participant, error, refresh } = await useFetch(`/api/participants/slug/${route.params.slug}`)
 const { data: games } = await useFetch('/api/games')
 const photoSaving = ref(false)
 const photoMessage = ref('')

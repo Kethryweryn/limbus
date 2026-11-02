@@ -101,7 +101,7 @@ import ItemForm from '@/components/ItemForm.vue'
 import { withQueuedEdit, type ItemDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
-const { data: item, error, refresh } = await useFetch(`/api/items/${route.params.id}`)
+const { data: item, error, refresh } = await useFetch(`/api/items/slug/${route.params.slug}`)
 const { data: games } = await useFetch('/api/games')
 const { data: characters } = await useFetch('/api/characters')
 const { data: intrigues } = await useFetch('/api/intrigues')
