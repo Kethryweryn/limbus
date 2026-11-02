@@ -1,6 +1,7 @@
 ---
 titre: API pour qu'une IA organise un jeu au nom d'une organisatrice
-statut: à trancher
+statut: prête
+revue: ../revues/2026-11-02-api-pour-ia.md
 date: 2026-10-29
 ---
 
@@ -38,7 +39,25 @@ Dans les deux cas :
 
 - 2026-11-02 : état de l'art fait ([revue du 2026-11-02](../revues/2026-11-02-api-pour-ia.md)). La revue recommande MCP avec OAuth, Limbus étant son propre serveur d'autorisation, en lecture seule d'abord. Elle reformule les points à trancher (section 7) ; ceux ci-dessous restent jusqu'aux choix de l'utilisatrice.
 
-## Points à trancher
+## Décisions
+
+2026-11-02, choix de l'utilisatrice après l'[état de l'art](../revues/2026-11-02-api-pour-ia.md) :
+
+- **Connexion** : serveur MCP avec OAuth. Dans son assistant, l'organisatrice ajoute Limbus, puis autorise l'accès sur une page de Limbus, sans rien copier. Pas de clé personnelle pour l'instant.
+- **Droits** : lecture et écriture dès le premier lot. À l'autorisation, l'organisatrice choisit entre lecture seule et lecture et écriture.
+- **Jeux** : l'IA ne voit que les jeux cochés à l'autorisation. L'organisatrice change ce choix depuis son compte.
+- **Ce que l'IA ne lit pas** : les coordonnées des participants (emails, téléphones, contacts d'urgence) et les réponses aux formulaires d'inscription, écrites par des tiers. Les allergies sont exclues dans tous les cas. L'IA voit les noms des participants, ce qui permet le casting, et les notes d'organisation.
+- **Ce que l'IA ne fait jamais** : envoyer un email, publier la page publique, partager ou léguer un jeu, supprimer un jeu ou une session, toucher aux paiements (validation, tarifs, RIB).
+- **Écritures** : appliquées tout de suite, et inscrites dans un journal (assistant, action, élément, date) que l'organisatrice consulte.
+- **Assistants à vérifier** : Claude (web, ordinateur, Claude Code), ChatGPT et Mistral.
+- **Serveur d'autorisation** : un essai écrit pour Limbus et un essai avec `oidc-provider`, comparés dans un ADR ; l'utilisatrice tranche.
+- **Politique de confidentialité** : elle dit qu'une organisatrice peut brancher une IA, qui reçoit alors les données de ses jeux, noms des participants et notes compris. C'est un changement de fond : nouvelle `TERMS_VERSION`, chaque compte accepte de nouveau.
+
+Reste à écrire la spécification (SPEC-014).
+
+## Questions d'origine
+
+Posées à la création de la fiche, avec leurs recommandations d'alors. Elles sont tranchées : en cas d'écart, la section Décisions fait foi.
 
 - MCP, REST + OpenAPI, ou les deux ? Recommandation : MCP d'abord, c'est ce que les assistants savent utiliser directement ; il peut s'appuyer sur les mêmes fonctions serveur qu'une future API REST.
 - Authentification : OAuth (recommandé par la spécification MCP pour un serveur distant) ou jetons personnels ? Recommandation : OAuth, pour que l'organisatrice autorise l'accès depuis Limbus sans copier de secret.
