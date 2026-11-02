@@ -98,7 +98,7 @@
 <script setup lang="ts">
 import { isInArchivedGame } from '~/utils/games'
 import ItemForm from '@/components/ItemForm.vue'
-import type { ItemDraft } from '~/utils/writingDrafts'
+import { withQueuedEdit, type ItemDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
 const router = useRouter()
@@ -164,7 +164,10 @@ async function saveItem() {
   })
   isEditing.value = false
 
-  if (!isOfflineQueued(updated) && updated.slug && updated.slug !== route.params.id) {
+  if (isOfflineQueued(updated)) {
+    if (item.value) item.value = withQueuedEdit(item.value, editableItem.value)
+    cancelEdit()
+  } else if (updated.slug && updated.slug !== route.params.id) {
     item.value = updated
     const query = { ...route.query }
     delete query.edit

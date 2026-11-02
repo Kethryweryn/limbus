@@ -54,7 +54,7 @@
 
 <script setup lang="ts">
 import { isInArchivedGame } from '~/utils/games'
-import type { LocationDraft } from '~/utils/writingDrafts'
+import { withQueuedEdit, type LocationDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
 const router = useRouter()
@@ -97,7 +97,12 @@ async function saveLocation() {
     method: 'PUT',
     body: editableLocation.value
   })
-  if (!isOfflineQueued(updated) && updated.slug && updated.slug !== route.params.id) {
+  if (isOfflineQueued(updated)) {
+    if (location.value) location.value = withQueuedEdit(location.value, editableLocation.value)
+    cancelEdit()
+    return
+  }
+  if (updated.slug && updated.slug !== route.params.id) {
     location.value = updated
     const query = { ...route.query }
     delete query.edit

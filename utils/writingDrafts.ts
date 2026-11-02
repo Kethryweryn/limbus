@@ -27,6 +27,11 @@ export type LocationDraft = Draft<ApiResponse<'/api/locations/:id'>, 'game'>
 export type TimelineEventDraft = Draft<ApiResponse<'/api/timeline-events/:id'>, 'game' | 'characters' | 'factions' | 'intrigues' | 'items'>
   & { characterIds?: string[], factionIds?: string[], intrigueIds?: string[], itemIds?: string[] }
 
+/** Élément affiché après un enregistrement mis en file hors ligne (ADR-0036) : l'élément lu, avec les champs modifiés. */
+export function withQueuedEdit<T extends object>(current: T, draft: object): T {
+  return { ...current, ...draft } as T
+}
+
 /** Groupe proposé dans un formulaire : seuls ceux du jeu choisi sont proposés. */
 export type FactionOption = { id: string, name: string, gameId: string }
 

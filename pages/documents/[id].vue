@@ -128,7 +128,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import DocumentForm from '@/components/DocumentForm.vue'
 import { DOCUMENT_AUDIENCE_LABELS } from '~/utils/domain'
 import type { ApiResponse } from '~/composables/useApiFetch'
-import type { DocumentDraft } from '~/utils/writingDrafts'
+import { withQueuedEdit, type DocumentDraft } from '~/utils/writingDrafts'
 
 type DocumentDetail = ApiResponse<'/api/documents/:id'>
 // D'où l'on vient : la liste des documents ou l'onglet Documents d'une session
@@ -218,6 +218,7 @@ async function saveDocument() {
   })
 
   if (isOfflineQueued(updatedDocument)) {
+    if (documentItem.value) documentItem.value = withQueuedEdit(documentItem.value, editableDocument.value)
     cancelEdit()
     return
   }

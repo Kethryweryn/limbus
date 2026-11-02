@@ -139,7 +139,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import TimelineEventForm from '@/components/TimelineEventForm.vue'
 import type { ApiResponse } from '~/composables/useApiFetch'
-import type { TimelineEventDraft } from '~/utils/writingDrafts'
+import { withQueuedEdit, type TimelineEventDraft } from '~/utils/writingDrafts'
 import { conflictTitle } from '~/utils/timeline'
 
 type TimelineEventDetail = ApiResponse<'/api/timeline-events/:id'>
@@ -249,11 +249,14 @@ async function saveEvent() {
     body: editableEvent.value
   })
   if (isOfflineQueued(updated)) {
+    if (timelineEvent.value) timelineEvent.value = withQueuedEdit(timelineEvent.value, editableEvent.value)
     cancelEdit()
     return
   }
-  // La réponse de l'enregistrement n'a pas les conflits du créneau : on relit l'événement
+  // La réponse de l'enregistrement n'a pas les conflits du créneau : on relit l'événement, sans faire échouer
+  // l'enregistrement si la relecture échoue (les conflits lus avant restent alors affichés)
   const reloaded = await useApiFetch(`/api/timeline-events/${updated.id}`)
+    .catch(() => ({ ...updated, conflicts: timelineEvent.value?.conflicts || [] }))
   timelineEvent.value = reloaded
   editableEvent.value = eventFormPayload(reloaded)
   isEditing.value = false

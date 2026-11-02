@@ -19,7 +19,8 @@ En tant que développeuse, je veux que les écrans d'écriture du jeu soient vé
 - [x] Défauts révélés par la vérification, corrigés :
   - le badge « Jeu archivé » de la timeline s'affichait pour tout jeu actif ;
   - l'alerte de conflit d'un événement disparaissait après son enregistrement ;
-  - une page enregistrée hors ligne remplaçait l'élément affiché par sa mise en file ;
+  - une fiche enregistrée hors ligne remplaçait l'élément affiché par sa mise en file : elle garde l'élément, avec les champs modifiés ;
+  - modifié depuis la liste des jeux, un jeu montrait vides sa durée de conservation des photos et son adresse de contact ;
   - un champ facultatif vidé s'enregistre vide (`null`), plus en chaîne vide.
 
 ## Tests
