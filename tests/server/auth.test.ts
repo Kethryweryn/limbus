@@ -7,7 +7,7 @@ import { runtimeConfig } from '../setup'
 
 const SECRET = 'secret-jwt-de-test'
 const USER = { id: 'user-1', email: 'orga@example.test', name: 'Orga', role: 'user' }
-const AUTH_USER = { ...USER, emailConfirmed: true }
+const AUTH_USER = { ...USER, emailConfirmed: true, termsAccepted: false }
 const findUnique = vi.fn()
 let sessionVersion = 0
 let role = USER.role

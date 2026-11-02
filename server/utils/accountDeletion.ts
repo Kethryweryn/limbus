@@ -24,6 +24,9 @@ export async function exportAccountData(userId: string) {
       dietary: true,
       healthConsentAt: true,
       profileUpdatedAt: true,
+      // Conditions d'utilisation acceptées (US-111)
+      termsAcceptedVersion: true,
+      termsAcceptedAt: true,
       storageQuotaMb: true,
       ownedGames: { select: { title: true } },
       gameShares: { select: { createdAt: true, game: { select: { title: true } } } }

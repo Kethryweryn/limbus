@@ -36,6 +36,8 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-026](../archive/epics/EPIC-026-supervision/README.md) | Supervision de la production | [fiche](../todo/supervision.md) | terminé |
 | [EPIC-027](../archive/epics/EPIC-027-durcissement-web/README.md) | Durcissement web : origine des écritures, cookie __Host-, CSP en mode rapport | [fiche](../todo/durcissement-web.md) | terminé |
 | [EPIC-028](../archive/epics/EPIC-028-photos-des-participants/README.md) | Photos des participants, information, durée de conservation et retrait | [SPEC-012](../specs/SPEC-012-photos-des-participants.md) | terminé |
+| [EPIC-029](../archive/epics/EPIC-029-pages-legales/README.md) | Mentions légales, confidentialité et conditions d'utilisation | [SPEC-013](../specs/SPEC-013-pages-legales-et-conservation.md) | terminé |
+| [EPIC-030](../archive/epics/EPIC-030-durees-de-conservation/README.md) | Durées de conservation des comptes et des fiches participant | [SPEC-013](../specs/SPEC-013-pages-legales-et-conservation.md) | terminé |
 
 ## US
 
@@ -150,3 +152,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-107](../archive/epics/EPIC-028-photos-des-participants/US-107-information-et-contact.md) | Informer les personnes de l'usage de leur photo | EPIC-028 | terminée |
 | [US-108](../archive/epics/EPIC-028-photos-des-participants/US-108-duree-et-purge.md) | Supprimer les photos d'une session après le délai du jeu | EPIC-028 | terminée |
 | [US-109](../archive/epics/EPIC-028-photos-des-participants/US-109-retrait-et-refus.md) | Retirer ses photos et refuser les suivantes | EPIC-028 | terminée |
+| [US-110](../archive/epics/EPIC-029-pages-legales/US-110-pages-legales.md) | Lire les mentions légales, la politique de confidentialité et les conditions d'utilisation | EPIC-029 | terminée |
+| [US-111](../archive/epics/EPIC-029-pages-legales/US-111-accepter-les-conditions.md) | Accepter les conditions d'utilisation | EPIC-029 | terminée |
+| [US-112](../archive/epics/EPIC-030-durees-de-conservation/US-112-comptes-inactifs.md) | Effacer les comptes sans connexion depuis deux ans, après un avertissement | EPIC-030 | terminée |
+| [US-113](../archive/epics/EPIC-030-durees-de-conservation/US-113-fiches-sans-compte.md) | Effacer les fiches participant sans compte trois ans après leur dernière activité | EPIC-030 | terminée |

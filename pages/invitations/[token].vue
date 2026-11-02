@@ -71,6 +71,13 @@
             <UFormField label="Mot de passe" help="8 caractères au moins.">
               <UInput v-model="form.password" type="password" required minlength="8" autocomplete="new-password" />
             </UFormField>
+            <!-- Conditions d'utilisation (US-111) -->
+            <UCheckbox v-model="form.termsAccepted" required>
+              <template #label>
+                J’accepte les <NuxtLink to="/conditions" target="_blank" class="text-primary underline">conditions d’utilisation</NuxtLink>
+                et j’ai lu la <NuxtLink to="/confidentialite" target="_blank" class="text-primary underline">politique de confidentialité</NuxtLink>
+              </template>
+            </UCheckbox>
             <UButton type="submit" color="primary" :loading="saving">
               {{ isBequest ? 'Créer mon compte et recevoir la copie' : 'Créer mon compte et accepter' }}
             </UButton>
@@ -110,7 +117,8 @@ const saving = ref(false)
 const mode = ref('register')
 const form = ref({
   name: '',
-  password: ''
+  password: '',
+  termsAccepted: false
 })
 const loginForm = ref({
   email: '',
@@ -175,7 +183,8 @@ async function register() {
       body: {
         token,
         name: form.value.name,
-        password: form.value.password
+        password: form.value.password,
+        termsAccepted: form.value.termsAccepted
       }
     })
     await navigateTo(`/games/${result.game.slug}`)

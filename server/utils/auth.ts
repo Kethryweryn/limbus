@@ -1,3 +1,4 @@
+import { TERMS_VERSION } from '~/utils/legal'
 import jwt from 'jsonwebtoken'
 import { deleteCookie, getCookie, setCookie } from 'h3'
 import type { H3Event } from 'h3'
@@ -11,6 +12,8 @@ export type AuthUser = {
   role: string
   // Adresse confirmée (ADR-0039) : sinon le compte ne fait que renvoyer le lien
   emailConfirmed: boolean
+  // Version en cours des conditions d'utilisation acceptée (US-111, ADR-0055)
+  termsAccepted: boolean
 }
 
 // Préfixe __Host- : posé par Limbus seul, en HTTPS, sans Domain (US-105, ADR-0053)
@@ -75,7 +78,9 @@ async function loadAuthUser(event: H3Event): Promise<AuthUser> {
       role: true,
       sessionVersion: true,
       emailConfirmedAt: true,
-      disabledAt: true
+      disabledAt: true,
+      termsAcceptedVersion: true,
+      lastSeenAt: true
     }
   })
 
@@ -85,10 +90,20 @@ async function loadAuthUser(event: H3Event): Promise<AuthUser> {
     throw createError({ statusCode: 401, message: 'Unauthorized' })
   }
 
-  const { sessionVersion: _sessionVersion, emailConfirmedAt, disabledAt: _disabledAt, ...fields } = record
-  const user = { ...fields, emailConfirmed: Boolean(emailConfirmedAt) }
+  // Activité du compte (US-112), sans faire attendre la requête
+  touchAccount(record.id, record.lastSeenAt).catch((error) => console.error('[comptes] activité non notée', { error: (error as Error)?.message }))
+  const { sessionVersion: _sessionVersion, emailConfirmedAt, disabledAt: _disabledAt, termsAcceptedVersion, lastSeenAt: _lastSeenAt, ...fields } = record
+  const user = { ...fields, emailConfirmed: Boolean(emailConfirmedAt), termsAccepted: termsAcceptedVersion === TERMS_VERSION }
   event.context.authUser = user
   return user
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/** Activité d'un compte (US-112, ADR-0056) : notée au plus une fois par jour, elle annule un avertissement d'inactivité. */
+export async function touchAccount(userId: string, lastSeenAt: Date | null, now = new Date()) {
+  if (lastSeenAt && now.getTime() - lastSeenAt.getTime() < DAY_MS) return
+  await prisma.user.update({ where: { id: userId }, data: { lastSeenAt: now, inactivityWarnedAt: null, inactivityReportedAt: null } })
 }
 
 export function signAuthToken(payload: string | object | Buffer): string {

@@ -1,3 +1,4 @@
+import { TERMS_VERSION } from '~/utils/legal'
 import { prisma } from '~/server/utils/prisma'
 import { readZodBody, signupSchema } from '~/server/utils/schemas'
 import { assertRateLimit } from '~/server/utils/rateLimit'
@@ -28,10 +29,14 @@ export default defineEventHandler(async (event) => {
   // Confirmer applique le mot de passe du lien cliqué : une inscription faite par un tiers avant la vraie
   // personne ne lui impose pas son mot de passe
   const passwordHash = await hashPassword(body.password)
-  const user = existing ?? await prisma.user.create({
-    data: { email: body.email, name: body.name, password: passwordHash, role: USER_ROLES.user, emailConfirmedAt: null },
-    select: { id: true, emailConfirmedAt: true }
-  })
+  // Conditions acceptées à l'inscription (US-111, ADR-0055)
+  const terms = { termsAcceptedVersion: TERMS_VERSION, termsAcceptedAt: new Date() }
+  const user = existing
+    ? await prisma.user.update({ where: { id: existing.id }, data: terms, select: { id: true, emailConfirmedAt: true } })
+    : await prisma.user.create({
+        data: { email: body.email, name: body.name, password: passwordHash, role: USER_ROLES.user, emailConfirmedAt: null, ...terms },
+        select: { id: true, emailConfirmedAt: true }
+      })
   const token = await createAccountToken(user.id, ACCOUNT_TOKEN_KINDS.confirm, ACCOUNT_TOKEN_TTL.confirm, { passwordHash, keepOthers: true })
   await sendAccountConfirmationEmail({ to: body.email, url: confirmUrl(token) })
   return { success: true }

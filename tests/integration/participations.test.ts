@@ -56,7 +56,7 @@ describe('rattachement des fiches (US-070)', () => {
     expect((await prisma.participant.findUniqueOrThrow({ where: { id: participant.id } })).userId).toBeNull()
 
     const sent = smtp.received.length
-    await api(null, 'POST', '/api/auth/signup', { name: 'Joueuse', email, password: 'mot-de-passe-solide' }, { headers: { 'x-forwarded-for': `10.15.0.${counter}` } })
+    await api(null, 'POST', '/api/auth/signup', { name: 'Joueuse', email, password: 'mot-de-passe-solide', termsAccepted: true }, { headers: { 'x-forwarded-for': `10.15.0.${counter}` } })
     const token = smtp.received.slice(sent).find((message) => message.to.includes(email))!.text.match(/\/acces\/confirmer\/([\w-]+)/)![1]
     expect((await api(null, 'POST', '/api/auth/confirm', { token })).status).toBe(200)
     const user = await prisma.user.findUniqueOrThrow({ where: { email } })

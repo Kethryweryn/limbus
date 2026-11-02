@@ -1,3 +1,4 @@
+import { TERMS_VERSION } from '~/utils/legal'
 import { prisma } from '~/server/utils/prisma'
 import { setAuthCookie } from '~/server/utils/auth'
 import { acceptInvitationForUser, createInvitedUser, getValidInvitation, normalizeInvitationEmail } from '~/server/utils/invitations'
@@ -25,6 +26,8 @@ export default defineEventHandler(async (event) => {
 
   const password = await hashPassword(body.password)
   const user = await createInvitedUser(email, body.name, password)
+  // Conditions acceptées à la création du compte (US-111, ADR-0055)
+  await prisma.user.update({ where: { id: user.id }, data: { termsAcceptedVersion: TERMS_VERSION, termsAcceptedAt: new Date() } })
   await linkParticipantsToUser(user)
   // Connectée dès la création : si l'acceptation échoue (legs annulé entre-temps…), elle n'a pas à recréer son compte
   setAuthCookie(event, { id: user.id, sessionVersion: 0 })

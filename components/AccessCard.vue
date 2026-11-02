@@ -21,6 +21,9 @@ defineProps<{ title: string, subtitle?: string }>()
       <div class="mt-4 text-sm">
         <NuxtLink to="/" class="text-primary hover:underline">Retour à la connexion</NuxtLink>
       </div>
+      <template #footer>
+        <LegalLinks />
+      </template>
     </UCard>
   </div>
 </template>

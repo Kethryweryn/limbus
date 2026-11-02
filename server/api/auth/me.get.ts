@@ -21,6 +21,8 @@ export default defineEventHandler(async (event) => {
         return {
             authenticated: true,
             user,
+            // Conditions d'utilisation en vigueur acceptées (US-111) : sinon l'application les demande
+            termsAccepted: user.termsAccepted,
             adminMode: isAdminMode(event, user),
             spaces: { organize: organize > 0, participate: participate > 0 }
         }
