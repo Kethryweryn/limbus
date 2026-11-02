@@ -309,14 +309,19 @@ async function saveDetails() {
   const previousStatus = session.value?.status
   await saveSession(editableSession.value)
   if (!session.value) return
-  editableSession.value = sessionFormPayload(session.value)
-  timelineData.value = await offlineRead<ApiResponse<'/api/sessions/:id/timeline'>>(sessionApi('/timeline'))
-  await refreshDocumentsData()
-  await refreshPaymentsData()
-  if (previousStatus !== SESSION_STATUSES.cancelled && session.value.status === SESSION_STATUSES.cancelled) {
-    showCancellation.value = true
-  }
+  const cancelled = previousStatus !== SESSION_STATUSES.cancelled && session.value.status === SESSION_STATUSES.cancelled
+  // Nouveau slug : la page passe d'abord à sa nouvelle adresse (sessionApi la suit ; l'ancien slug répondrait 404), puis
+  // relit tout depuis elle, pour que la copie de l'appareil retrouve la session à cette adresse hors ligne
+  const previousPath = route.path
   await closeAfterSave(`/sessions/${session.value.slug}`)
+  if (route.path !== previousPath) {
+    await loadData()
+  } else {
+    timelineData.value = await offlineRead<ApiResponse<'/api/sessions/:id/timeline'>>(sessionApi('/timeline'))
+    await refreshDocumentsData()
+    await refreshPaymentsData()
+  }
+  if (cancelled) showCancellation.value = true
 }
 
 onMounted(loadData)
