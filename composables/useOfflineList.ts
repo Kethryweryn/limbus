@@ -12,7 +12,8 @@ export async function fetchOfflineList<R extends NitroFetchRequest>(store: strin
 
   // La réponse est déjà typée par la route : l'appel n'a pas à refaire la déduction en générique
   const data = await (useApiFetch as unknown as (request: string) => Promise<List>)(String(request))
-  await saveToStore(store, 'list', data)
+  // Un appareil sans stockage (navigation privée…) n'empêche pas d'afficher la liste
+  await saveToStore(store, 'list', data).catch((error) => console.error(`[storage] ${store}`, error))
   return data
 }
 
