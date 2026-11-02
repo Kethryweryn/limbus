@@ -2,7 +2,7 @@
 titre: Brancher une IA sur Limbus, état de l'art
 date: 2026-11-02
 origine: ../todo/api-pour-ia.md
-statut: à trier
+statut: triée
 ---
 
 # Brancher une IA sur Limbus : état de l'art
@@ -170,6 +170,15 @@ Ils remplacent ceux de la fiche :
 6. **Confirmation** : une écriture de l'IA s'applique-t-elle directement (avec le journal et l'historique), ou attend-elle une validation dans Limbus ?
 7. **Assistants visés** : Claude d'abord ? Faut-il tester aussi ChatGPT et Mistral ?
 8. **Politique de confidentialité** : ajouter que l'organisatrice peut connecter un assistant d'IA, qu'elle en devient responsable vis-à-vis de ses joueurs, et ce que Limbus lui transmet.
+
+## Tri
+
+2026-11-02 : l'utilisatrice a tranché les huit points ; le détail est dans la [fiche](../todo/api-pour-ia.md#décisions). Elle a suivi la recommandation (MCP avec OAuth), sauf sur trois points :
+- l'écriture vient dès le premier lot, au choix de l'organisatrice à l'autorisation ;
+- l'IA voit les noms des participants et les notes d'organisation ;
+- l'IA lit les réponses fermées aux formulaires, et les affinités une fois traitées par l'équipe, pour aider au casting.
+
+Les coordonnées restent exclues, ainsi que tout champ libre écrit par un tiers. L'injection d'instructions décrite en section 3 passe justement par ces champs.
 
 ## Sources
 

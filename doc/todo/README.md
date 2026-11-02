@@ -4,7 +4,7 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 
 | Fiche | Statut | Créée le | Résumé |
 |---|---|---|---|
-| [API pour une IA](api-pour-ia.md) | à trancher | 2026-10-29 | Accès d'une IA aux jeux d'une organisatrice connectée, avec ses droits (MCP ou REST) |
+| [API pour une IA](api-pour-ia.md) | prête | 2026-10-29 | Accès d'une IA aux jeux choisis par une organisatrice : MCP avec OAuth, lecture et écriture, sans coordonnées des participants ni champs libres ([état de l'art](../revues/2026-11-02-api-pour-ia.md)) |
 | [Durcissement web](durcissement-web.md) | en partie traitée | 2026-10-29 | CSP et COOP sur les pages, origine des écritures, cookie `__Host-` (revue R-01 à R-03) |
 | [Supervision](supervision.md) | en partie traitée | 2026-10-29 | Route de santé et sondes Better Stack faites ; reste les journaux structurés, si besoin (revue R-15, R-16) |
 | [Numéros de version et notes de version](versions-et-notes-de-version.md) | à trancher | 2026-10-29 | Version sémantique, étiquettes git et notes de version à partir de la première version publiée |
