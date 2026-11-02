@@ -269,12 +269,16 @@ async function handleFormSubmit() {
         body: editableCharacter.value
     })
 
+    // Nouveau slug : la page de la nouvelle adresse s'ouvre sans formulaire ; revenir ensuite à l'adresse de cette page
+    // (cancelEdit) rouvrirait l'ancien slug, qui n'existe plus
     if (!isOfflineQueued(updatedCharacter) && updatedCharacter.slug && updatedCharacter.slug !== route.params.slug) {
-        await router.replace(`/characters/${updatedCharacter.slug}`)
-    } else {
-        await refresh()
+        const query = { ...route.query }
+        delete query.edit
+        await router.replace({ path: `/characters/${updatedCharacter.slug}`, query })
+        return
     }
 
+    await refresh()
     cancelEdit()
 }
 
