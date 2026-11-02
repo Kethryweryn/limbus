@@ -64,7 +64,7 @@
   </LegalPage>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { LEGAL_EDITOR } from '~/utils/legal'
 
 useHead({ title: 'Conditions d’utilisation – Limbus' })

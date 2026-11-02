@@ -1,11 +1,35 @@
+import type { NitroFetchOptions, NitroFetchRequest, TypedInternalResponse } from 'nitropack/types'
 import { getErrorStatus, isOfflineMode, isServerUnavailableError, setServerUnavailable } from '~/utils/connection'
 import { enqueueOfflineOperation, isQueueableApiWrite } from '~/utils/offlineSync'
 import { forgetOfflineAuth, getCachedResponse, saveCachedResponse } from '~/utils/storage'
 
+// Types des appels à l'API (US-114, ADR-0057) : la réponse est déduite de la route Nitro appelée, comme pour $fetch
+
+/** Options propres à Limbus, en plus de celles de $fetch. */
+export type ApiFetchExtras = { offlineCache?: boolean, offlineLabel?: string }
+
+/** Réponse d'une écriture mise en file hors ligne (ADR-0036) : les champs envoyés, marqués. */
+export type OfflineQueuedResponse = { __offlineQueued: true, __offlinePending?: true } & Record<string, unknown>
+
+export function isOfflineQueued(value: unknown): value is OfflineQueuedResponse {
+  return typeof value === 'object' && value !== null && (value as { __offlineQueued?: unknown }).__offlineQueued === true
+}
+
+type HttpMethod = 'get' | 'head' | 'options' | 'post' | 'put' | 'patch' | 'delete'
+type AnyCaseMethod = HttpMethod | Uppercase<HttpMethod>
+type ApiOptions<M extends AnyCaseMethod> = Omit<NitroFetchOptions<NitroFetchRequest>, 'method'> & ApiFetchExtras & { method?: M }
+
+// Comme $fetch : la réponse est celle de la route et de la méthode appelées ; une écriture peut aussi rendre sa mise
+// en file hors ligne. La méthode est lue telle qu'écrite dans l'appel (sans la déduire des routes, trop coûteux)
+type ApiFetch = <T = unknown, R extends NitroFetchRequest = NitroFetchRequest, M extends AnyCaseMethod = 'get'>(
+  request: R,
+  options?: ApiOptions<M>
+) => Promise<Lowercase<M> extends 'get' | 'head' | 'options' ? TypedInternalResponse<R, T, 'get'> : TypedInternalResponse<R, T, Lowercase<M>> | OfflineQueuedResponse>
+
 // Session expirée ou révoquée : retour à l'écran de connexion. Un 403 n'est qu'un refus
 // ponctuel (action réservée au propriétaire, ressource d'un autre jeu) : on reste connecté.
 // Les données hors ligne sont gardées : le même compte les retrouve en se reconnectant.
-export function handleApiAuthError(error: any): void {
+export function handleApiAuthError(error: unknown): void {
   if (!import.meta.client || getErrorStatus(error) !== 401) return
 
   forgetOfflineAuth()
@@ -17,27 +41,33 @@ export function handleApiAuthError(error: any): void {
  * - offlineCache : lecture gardée sur l'appareil, et rendue depuis lui hors ligne (US-047) ;
  * - offlineLabel : précision montrée dans le panneau des modifications si l'écriture part en file (US-049).
  */
-export async function useApiFetch<T = unknown>(request: string, options?: any): Promise<T> {
+export const useApiFetch = ((request: string, options?: RawOptions) => apiFetch(request, options)) as unknown as ApiFetch
+
+// Implémentation non typée par route : la file hors ligne et le cache de l'appareil ne connaissent que l'URL
+const rawFetch = $fetch as unknown as (request: string, options?: RawOptions) => Promise<unknown>
+type RawOptions = Record<string, unknown> & ApiFetchExtras & { body?: Record<string, unknown> | FormData, method?: string, headers?: Record<string, string> }
+
+async function apiFetch(request: string, options?: RawOptions): Promise<unknown> {
   const { offlineCache, offlineLabel, ...fetchOptions } = options || {}
   const requestOptions = withConcurrencyHeaders(options ? fetchOptions : undefined)
 
   if (offlineCache && import.meta.client) {
-    return await fetchWithOfflineCache<T>(request, requestOptions)
+    return await fetchWithOfflineCache(request, requestOptions)
   }
 
   if (import.meta.client && isQueueableApiWrite(request, requestOptions) && !navigator.onLine) {
-    return await enqueueOfflineOperation(request, { ...requestOptions, offlineLabel }) as T
+    return await enqueueOfflineOperation(request, { ...requestOptions, offlineLabel })
   }
 
   try {
-    const result = await $fetch<T>(request, requestOptions)
+    const result = await rawFetch(request, requestOptions)
     setServerUnavailable(false)
-    return result as T
+    return result
   } catch (error) {
     if (isServerUnavailableError(error)) {
       setServerUnavailable(true)
       if (import.meta.client && isQueueableApiWrite(request, requestOptions)) {
-        return await enqueueOfflineOperation(request, { ...requestOptions, offlineLabel }) as T
+        return await enqueueOfflineOperation(request, { ...requestOptions, offlineLabel })
       }
       throw error
     }
@@ -46,11 +76,11 @@ export async function useApiFetch<T = unknown>(request: string, options?: any): 
   }
 }
 
-async function fetchWithOfflineCache<T>(request: string, options?: any): Promise<T> {
+async function fetchWithOfflineCache<T>(request: string, options?: RawOptions): Promise<T> {
   if (isOfflineMode()) return await cachedResponseOrThrow<T>(request)
 
   try {
-    const result = await $fetch<T>(request, options)
+    const result = await rawFetch(request, options)
     setServerUnavailable(false)
     await saveCachedResponse(request, result)
     return result as T
@@ -72,16 +102,17 @@ async function cachedResponseOrThrow<T>(request: string): Promise<T> {
   return cached
 }
 
-function withConcurrencyHeaders(options?: any) {
-  if (!options?.body?.updatedAt || String(options?.method || 'GET').toUpperCase() !== 'PUT') {
+function withConcurrencyHeaders(options?: RawOptions): RawOptions | undefined {
+  const updatedAt = options?.body && !(options.body instanceof FormData) ? options.body.updatedAt : undefined
+  if (!updatedAt || String(options?.method || 'GET').toUpperCase() !== 'PUT') {
     return options
   }
 
   return {
     ...options,
     headers: {
-      ...(options.headers || {}),
-      'if-unmodified-since': new Date(options.body.updatedAt).toISOString()
+      ...(options?.headers || {}),
+      'if-unmodified-since': new Date(updatedAt as string).toISOString()
     }
   }
 }

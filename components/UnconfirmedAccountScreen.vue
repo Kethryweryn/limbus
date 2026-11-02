@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { serverMessage } from '~/utils/apiErrors'
+
 // Compte dont l'adresse n'est pas confirmée (US-061, R5) : renvoyer le lien ou se déconnecter
 const props = defineProps<{ email: string }>()
 
@@ -17,8 +19,8 @@ async function resend() {
       return
     }
     message.value = `Un nouveau lien est parti à ${props.email}.`
-  } catch (err: any) {
-    error.value = err?.data?.message || 'Impossible d’envoyer le lien.'
+  } catch (err) {
+    error.value = serverMessage(err, 'Impossible d’envoyer le lien.')
   } finally {
     sending.value = false
   }

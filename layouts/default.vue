@@ -138,7 +138,8 @@ icon="i-heroicons-bars-3" color="neutral" variant="ghost" class="md:hidden"
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { NavLink, NavSection } from '~/utils/navigation'
 import { rememberSpace, spaceOfPath } from '~/utils/spaces'
 import { navigateTo } from '#app'
 import { getOfflineQueue } from '~/utils/offlineSync'
@@ -146,19 +147,21 @@ import { getOfflineQueue } from '~/utils/offlineSync'
 const route = useRoute()
 const sidebarCollapsed = ref(false)
 const mobileOpen = ref(false)
-const { data: authState, refresh: refreshAuthState } = await useFetch('/api/auth/me')
-const isAdmin = computed(() => authState.value?.user?.role === 'admin')
+const { data: authResponse, refresh: refreshAuthState } = await useFetch('/api/auth/me')
+// Connecté seulement : la réponse « non connecté » n'a ni compte, ni espaces, ni mode admin
+const authState = computed(() => authResponse.value?.authenticated ? authResponse.value : null)
+const isAdmin = computed(() => authState.value?.user.role === 'admin')
 
 // Espace affiché, déduit de l'adresse (US-073) ; le menu le suit
 const space = computed(() => spaceOfPath(route.path))
-const showSpaceSelector = computed(() => Boolean(authState.value?.spaces?.organize && authState.value?.spaces?.participate))
+const showSpaceSelector = computed(() => Boolean(authState.value?.spaces.organize && authState.value?.spaces.participate))
 watch(space, (value) => rememberSpace(value))
 
-const dashboardLink = computed(() => space.value === 'participate'
+const dashboardLink = computed((): NavLink => space.value === 'participate'
     ? { label: 'Mes jeux', to: '/participer', icon: 'i-heroicons-ticket' }
     : { label: 'Dashboard', to: '/', icon: 'i-heroicons-home' })
 
-const adminSection = computed(() => isAdmin.value
+const adminSection = computed((): NavSection[] => isAdmin.value
     ? [{
         label: 'Administration',
         icon: 'i-heroicons-shield-check',
@@ -169,7 +172,7 @@ const adminSection = computed(() => isAdmin.value
     }]
     : [])
 
-const navSections = computed(() => space.value === 'participate'
+const navSections = computed((): NavSection[] => space.value === 'participate'
     ? [
         {
             label: 'Organiser',
@@ -254,7 +257,7 @@ async function logout() {
     if (await confirmPendingChangesLoss()) await navigateTo('/logout')
 }
 
-const isActive = (path) => {
+const isActive = (path: string) => {
     if (path === '/') {
         return route.path === '/'
     }

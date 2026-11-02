@@ -60,3 +60,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0054](ADR-0054-photos-des-participants.md) | Photos des participants, information sans accord préalable, purge à l'échéance et refus bloquant | accepté | 2026-11-01 |
 | [ADR-0055](ADR-0055-pages-legales-et-acceptation.md) | Pages légales dans l'application, version des conditions acceptée sur le compte | accepté | 2026-11-02 |
 | [ADR-0056](ADR-0056-durees-de-conservation.md) | Comptes inactifs et fiches sans compte effacés à la connexion, en tâche de fond | accepté | 2026-11-02 |
+| [ADR-0057](ADR-0057-interface-en-typescript.md) | Interface en TypeScript strict, réponses déduites des routes Nitro, règle de lint étendue lot par lot | accepté | 2026-11-02 |

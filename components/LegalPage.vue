@@ -15,10 +15,10 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { TERMS_VERSION_LABEL } from '~/utils/legal'
 
-defineProps({ title: { type: String, required: true } })
+defineProps<{ title: string }>()
 </script>
 
 <style scoped>

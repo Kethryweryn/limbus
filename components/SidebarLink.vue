@@ -16,21 +16,10 @@
   </NuxtLink>
 </template>
 
-<script setup>
-defineEmits(['click'])
+<script setup lang="ts">
+import type { NavLink } from '~/utils/navigation'
 
-defineProps({
-  item: {
-    type: Object,
-    required: true
-  },
-  active: {
-    type: Boolean,
-    default: false
-  },
-  collapsed: {
-    type: Boolean,
-    default: false
-  }
-})
+defineEmits<{ click: [] }>()
+
+withDefaults(defineProps<{ item: NavLink, active?: boolean, collapsed?: boolean }>(), { active: false, collapsed: false })
 </script>

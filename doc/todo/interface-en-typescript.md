@@ -1,6 +1,6 @@
 ---
 titre: Passer l'interface en TypeScript
-statut: à trancher
+statut: en cours
 date: 2026-10-29
 revue: ../revues/2026-10-29-architecture.md
 ---
@@ -21,6 +21,10 @@ Un chantier dédié qui passe tous les composants en `lang="ts"`, avec des types
 2. Composants partagés (`components/`).
 3. Pages, en découpant au passage les plus volumineuses : `timeline/index.vue` (670 lignes), `sessions/index.vue` (494).
 4. Règle de lint ou de CI qui exige `lang="ts"`.
+
+## Suivi
+
+- 2026-11-02 : choix de l'utilisatrice : réponses déduites des routes, strict dès le départ, une PR par domaine, gros écrans découpés. [EPIC-031](../epics/EPIC-031-interface-en-typescript/README.md), [ADR-0057](../adr/ADR-0057-interface-en-typescript.md) ; lot 1 (fondations) fait.
 
 ## Points à trancher
 

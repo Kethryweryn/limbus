@@ -22,21 +22,10 @@
   </section>
 </template>
 
-<script setup>
-defineEmits(['navigate'])
+<script setup lang="ts">
+import type { NavSection } from '~/utils/navigation'
 
-defineProps({
-  section: {
-    type: Object,
-    required: true
-  },
-  collapsed: {
-    type: Boolean,
-    default: false
-  },
-  isActive: {
-    type: Function,
-    required: true
-  }
-})
+defineEmits<{ navigate: [] }>()
+
+withDefaults(defineProps<{ section: NavSection, collapsed?: boolean, isActive: (to: string) => boolean }>(), { collapsed: false })
 </script>

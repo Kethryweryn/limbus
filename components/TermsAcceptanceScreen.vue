@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { serverMessage } from '~/utils/apiErrors'
+
 // Conditions d'utilisation à accepter (US-111, ADR-0055) : nouveau compte sans acceptation, ou nouvelle version
 const emit = defineEmits<{ accepted: [] }>()
 
@@ -11,8 +13,8 @@ async function accept() {
   try {
     await $fetch('/api/auth/accept-terms', { method: 'POST' })
     emit('accepted')
-  } catch (err: any) {
-    error.value = err?.data?.message || 'L’acceptation n’a pas pu être enregistrée.'
+  } catch (err) {
+    error.value = serverMessage(err, 'L’acceptation n’a pas pu être enregistrée.')
   } finally {
     saving.value = false
   }
