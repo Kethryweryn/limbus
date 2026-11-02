@@ -31,6 +31,17 @@ export type DrawResult = {
   rejected: string[]
 }
 
+// Réglages d'un tirage, gardés dans le journal avec ses entrées (R18)
+export type DrawSettings = {
+  selectionMode: string
+  weightNotDrawnBefore: boolean
+  weightBalance: boolean
+  balanceAttribute: string | null
+  waitlistSize: number
+  excludedReplayers: string[]
+  sessions: DrawSessionInput[]
+}
+
 // SHA-256 de la graine en quatre entiers, pour initialiser le générateur
 async function seedWords(seed: string) {
   const digest = new Uint32Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(seed)))

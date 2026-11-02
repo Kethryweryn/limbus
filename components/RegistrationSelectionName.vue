@@ -12,9 +12,9 @@
     </UBadge>
     <div class="text-xs text-gray-500">
       {{ registration.email }}
-      <span v-if="registration.confirmedAt"> · confirmée le {{ formatDate(registration.confirmedAt) }}</span>
-      <span v-else-if="registration.status === REGISTRATION_STATUSES.retained && registration.responseDueAt"> · confirmation avant le {{ formatDate(registration.responseDueAt) }}</span>
-      <span v-if="registration.lastRemindedAt"> · relancée le {{ formatDate(registration.lastRemindedAt) }}</span>
+      <span v-if="registration.confirmedAt"> · confirmée le {{ formatLongDate(registration.confirmedAt) }}</span>
+      <span v-else-if="registration.status === REGISTRATION_STATUSES.retained && registration.responseDueAt"> · confirmation avant le {{ formatLongDate(registration.responseDueAt) }}</span>
+      <span v-if="registration.lastRemindedAt"> · relancée le {{ formatLongDate(registration.lastRemindedAt) }}</span>
       <span v-if="availability"> · disponible : {{ availability }}</span>
     </div>
     <p v-if="wishes.length" class="text-xs text-gray-500">Veut jouer avec {{ wishes.join(', ') }}</p>
@@ -24,24 +24,22 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { REGISTRATION_STATUSES } from '~/utils/domain'
-import { REGISTRATION_DISPLAY_STATUS_META, isAnnouncementPending, registrationDisplayStatus } from '~/utils/registrations'
+import { isAnnouncementPending, registrationStatusMeta } from '~/utils/registrations'
+import { formatLongDate } from '~/utils/dates'
+import type { PeriodRegistration } from '~/composables/useRegistrationPeriodActions'
 
-const props = defineProps({
-  registration: { type: Object, required: true },
-  replayer: { type: Boolean, default: false },
-  availability: { type: String, default: '' },
-  alert: { type: Boolean, default: false },
-  toLink: { type: Number, default: 0 },
+const props = withDefaults(defineProps<{
+  registration: PeriodRegistration
+  replayer?: boolean
+  availability?: string
+  alert?: boolean
+  toLink?: number
   // « Max (ici) », « Zoé (Session 2) », « Noé (pas encore) »
-  wishes: { type: Array, default: () => [] }
-})
+  wishes?: string[]
+}>(), { replayer: false, availability: '', alert: false, toLink: 0, wishes: () => [] })
 
-// « Délai dépassé » se lit sur l'échéance (R20, ADR-0020)
-const statusMeta = computed(() => REGISTRATION_DISPLAY_STATUS_META[registrationDisplayStatus(props.registration)]
-  || { label: props.registration.status, color: 'neutral' })
+const statusMeta = computed(() => registrationStatusMeta(props.registration))
 const pending = computed(() => isAnnouncementPending(props.registration))
-
-const formatDate = (value) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long' })
 </script>

@@ -351,6 +351,17 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect((own.body as Array<{ gameId: string }>).every((item) => item.gameId === a.game.id)).toBe(true)
   })
 
+  it('/api/participants filtrée sur le jeu de Bob est vide', async () => {
+    const response = await api(alice, 'GET', `/api/participants?gameId=${b.game.id}`)
+    expect(response.status).toBe(200)
+    expect(response.body).toEqual([])
+    // Témoin : filtrée sur son propre jeu, la liste a ses participants, tous de ce jeu
+    const own = await api(alice, 'GET', `/api/participants?gameId=${a.game.id}`)
+    const participants = own.body as Array<{ games: Array<{ id: string }> }>
+    expect(participants.length).toBeGreaterThan(0)
+    expect(participants.every((participant) => participant.games.some((game) => game.id === a.game.id))).toBe(true)
+  })
+
   it('le tableau de bord ne montre pas le jeu de Bob', async () => {
     const response = await api(alice, 'GET', '/api/dashboard')
     expect(response.status).toBe(200)

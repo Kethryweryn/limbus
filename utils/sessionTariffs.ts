@@ -1,3 +1,5 @@
+import { PARIS_TIME_ZONE, formatLongDate } from '~/utils/dates'
+
 // Tarifs, versements et état d'un paiement (US-031 à US-034, ADR-0032) : partagé entre le serveur et l'interface
 
 export const TARIFF_ROLES = {
@@ -118,6 +120,6 @@ export function suggestedDepartureStatus(withdrawalDeadline: Date | string | nul
 
 export function withdrawalDeadlineLine(withdrawalDeadline: Date | string | null | undefined) {
   if (!withdrawalDeadline) return null
-  const date = new Date(withdrawalDeadline).toLocaleDateString('fr-FR', { dateStyle: 'long', timeZone: 'Europe/Paris' })
+  const date = formatLongDate(withdrawalDeadline, PARIS_TIME_ZONE)
   return `Date limite de désistement : ${date}. Après cette date, le remboursement est laissé à l’appréciation de l’organisation.`
 }

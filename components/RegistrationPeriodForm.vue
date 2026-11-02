@@ -124,7 +124,7 @@
   </UModal>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import {
   REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS,
   REGISTRATION_ENTRY_MODES,
@@ -137,32 +137,43 @@ import {
   REGISTRATION_SELECTION_MODES
 } from '~/utils/domain'
 import { apiErrorMessage } from '~/utils/apiErrors'
+import { formatLongDate } from '~/utils/dates'
+import { toDatetimeLocal } from '~/utils/sessions'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import type { RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
 
-const ENTRY_MODE_ITEMS = [
+type Context = ApiResponse<'/api/games/:id/registration-context'>
+type ContextSession = Context['sessions'][number]
+// Un champ nombre vidé rend une chaîne vide : la validation le refuse
+type Count = number | ''
+
+type SelectItem = { value: string, label: string }
+
+const ENTRY_MODE_ITEMS: SelectItem[] = [
   { value: REGISTRATION_ENTRY_MODES.invitation, label: 'Sur invitation' },
   { value: REGISTRATION_ENTRY_MODES.form, label: 'Formulaire public' }
 ]
-const REPLAY_POLICY_ITEMS = [...REGISTRATION_REPLAY_POLICY_OPTIONS]
-const SELECTION_MODE_ITEMS = [...REGISTRATION_SELECTION_MODE_OPTIONS]
-const SCOPE_ITEMS = [
+const REPLAY_POLICY_ITEMS: SelectItem[] = [...REGISTRATION_REPLAY_POLICY_OPTIONS]
+const SELECTION_MODE_ITEMS: SelectItem[] = [...REGISTRATION_SELECTION_MODE_OPTIONS]
+const SCOPE_ITEMS: SelectItem[] = [
   { value: REGISTRATION_PERIOD_SCOPES.sessions, label: 'Des sessions précises' },
   { value: REGISTRATION_PERIOD_SCOPES.game, label: 'Tout le jeu (inscription permanente)' }
 ]
 
-const open = defineModel('open', { type: Boolean, default: false })
+const open = defineModel<boolean>('open', { default: false })
 
-const props = defineProps({
-  gameId: { type: String, required: true },
+const props = withDefaults(defineProps<{
+  gameId: string
   // Période à modifier, ou null pour en créer une
-  period: { type: Object, default: null }
-})
+  period?: RegistrationPeriod | null
+}>(), { period: null })
 
-const emit = defineEmits(['saved'])
+const emit = defineEmits<{ saved: [] }>()
 
 const form = ref(emptyForm())
-const seatsBySession = ref({})
-const context = ref({ sessions: [], playableCharacters: 0 })
-const errors = ref({})
+const seatsBySession = ref<Record<string, Count>>({})
+const context = ref<Context>({ sessions: [], playableCharacters: 0 })
+const errors = ref<Record<string, string>>({})
 const serverError = ref('')
 const saving = ref(false)
 
@@ -173,7 +184,7 @@ watch(open, async (value) => {
   try {
     context.value = await useApiFetch(`/api/games/${props.gameId}/registration-context`)
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Impossible de charger les sessions du jeu'
+    serverError.value = apiErrorMessage(err, 'Impossible de charger les sessions du jeu')
   }
   resetForm()
 })
@@ -181,28 +192,28 @@ watch(open, async (value) => {
 // Inscription permanente : sans sessions ni date de clôture (R30)
 const permanent = computed(() => form.value.scope === REGISTRATION_PERIOD_SCOPES.game)
 const drawSettingsApply = computed(() => form.value.entryMode === REGISTRATION_ENTRY_MODES.form && !permanent.value)
-const isCount = (value) => Number.isInteger(Number(value)) && value !== '' && Number(value) >= 0 && Number(value) <= 1000
+const isCount = (value: Count) => value !== '' && Number.isInteger(value) && value >= 0 && value <= 1000
 
-function onEntryModeChange(mode) {
+function onEntryModeChange(mode: string) {
   if (mode !== REGISTRATION_ENTRY_MODES.form) form.value.scope = REGISTRATION_PERIOD_SCOPES.sessions
 }
 
 function emptyForm() {
   return {
     name: '',
-    entryMode: REGISTRATION_ENTRY_MODES.invitation,
-    scope: REGISTRATION_PERIOD_SCOPES.sessions,
+    entryMode: REGISTRATION_ENTRY_MODES.invitation as string,
+    scope: REGISTRATION_PERIOD_SCOPES.sessions as string,
     notifyTeam: false,
-    replayPolicy: REGISTRATION_REPLAY_POLICIES.allowed,
-    selectionMode: REGISTRATION_SELECTION_MODES.chosen,
-    organizerPicks: 0,
+    replayPolicy: REGISTRATION_REPLAY_POLICIES.allowed as string,
+    selectionMode: REGISTRATION_SELECTION_MODES.chosen as string,
+    organizerPicks: 0 as Count,
     weightNotDrawnBefore: false,
     weightBalance: false,
-    waitlistSize: REGISTRATION_DEFAULT_WAITLIST_SIZE,
+    waitlistSize: REGISTRATION_DEFAULT_WAITLIST_SIZE as Count,
     closesAt: '',
-    responseDelayDays: REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS,
-    state: REGISTRATION_PERIOD_STATES.draft,
-    updatedAt: null
+    responseDelayDays: REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS as Count,
+    state: REGISTRATION_PERIOD_STATES.draft as string,
+    updatedAt: null as string | null
   }
 }
 
@@ -218,14 +229,14 @@ function resetForm() {
     name: period.name,
     entryMode: period.entryMode,
     scope: period.scope,
-    notifyTeam: Boolean(period.notifyTeam),
+    notifyTeam: period.notifyTeam,
     replayPolicy: period.replayPolicy || REGISTRATION_REPLAY_POLICIES.allowed,
     selectionMode: period.selectionMode || REGISTRATION_SELECTION_MODES.chosen,
     organizerPicks: period.organizerPicks ?? 0,
-    weightNotDrawnBefore: Boolean(period.weightNotDrawnBefore),
-    weightBalance: Boolean(period.weightBalance),
+    weightNotDrawnBefore: period.weightNotDrawnBefore,
+    weightBalance: period.weightBalance,
     waitlistSize: period.waitlistSize ?? REGISTRATION_DEFAULT_WAITLIST_SIZE,
-    closesAt: toDateTimeLocal(period.closesAt),
+    closesAt: toDatetimeLocal(period.closesAt),
     responseDelayDays: period.responseDelayDays,
     state: period.state,
     updatedAt: period.updatedAt
@@ -233,15 +244,15 @@ function resetForm() {
   seatsBySession.value = Object.fromEntries(period.sessions.map((link) => [link.sessionId, link.seats]))
 }
 
-function isSelected(sessionId) {
+function isSelected(sessionId: string) {
   return Object.hasOwn(seatsBySession.value, sessionId)
 }
 
-function isTakenElsewhere(session) {
+function isTakenElsewhere(session: ContextSession) {
   return Boolean(session.periodId) && session.periodId !== props.period?.id
 }
 
-function toggleSession(sessionId, selected) {
+function toggleSession(sessionId: string, selected: boolean) {
   if (selected) {
     // Places proposées par défaut : le nombre de personnages PJ du jeu (R5)
     seatsBySession.value = { ...seatsBySession.value, [sessionId]: context.value.playableCharacters }
@@ -250,37 +261,28 @@ function toggleSession(sessionId, selected) {
   }
 }
 
-function sessionDescription(session) {
+function sessionDescription(session: ContextSession) {
   const parts = []
-  if (session.date) parts.push(new Date(session.date).toLocaleDateString('fr-FR', { dateStyle: 'long' }))
+  if (session.date) parts.push(formatLongDate(session.date))
   if (isTakenElsewhere(session)) parts.push(`déjà dans « ${session.periodName} »`)
   return parts.join(' · ')
 }
 
-// <input type="datetime-local"> attend l'heure locale sans fuseau ; le serveur reçoit de l'ISO
-function toDateTimeLocal(value) {
-  if (!value) return ''
-  const date = new Date(value)
-  const offsetMs = date.getTimezoneOffset() * 60_000
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16)
-}
-
 function validate() {
-  errors.value = {}
-  if (!form.value.name?.trim()) errors.value.name = 'Le nom est requis.'
-  if (permanent.value) {
-    // Pas de sessions à vérifier
-  } else if (!Object.keys(seatsBySession.value).length) errors.value.sessions = 'Choisissez au moins une session.'
+  const found: Record<string, string> = {}
+  if (!form.value.name.trim()) found.name = 'Le nom est requis.'
   // Un champ vidé n'est pas « nombre de PJ par défaut » : on demande une valeur explicite
-  else if (Object.values(seatsBySession.value).some((seats) => !Number.isInteger(seats) || seats < 0 || seats > 1000)) {
-    errors.value.sessions = 'Indiquez pour chaque session un nombre de places entre 0 et 1000.'
+  if (!permanent.value && !Object.keys(seatsBySession.value).length) found.sessions = 'Choisissez au moins une session.'
+  else if (!permanent.value && !Object.values(seatsBySession.value).every(isCount)) {
+    found.sessions = 'Indiquez pour chaque session un nombre de places entre 0 et 1000.'
   }
   const drawn = drawSettingsApply.value
-  if (drawn && form.value.selectionMode === REGISTRATION_SELECTION_MODES.mixed && !isCount(form.value.organizerPicks)) errors.value.organizerPicks = 'Un nombre entre 0 et 1000.'
-  if (drawn && form.value.selectionMode !== REGISTRATION_SELECTION_MODES.chosen && !isCount(form.value.waitlistSize)) errors.value.waitlistSize = 'Un nombre entre 0 et 1000.'
+  if (drawn && form.value.selectionMode === REGISTRATION_SELECTION_MODES.mixed && !isCount(form.value.organizerPicks)) found.organizerPicks = 'Un nombre entre 0 et 1000.'
+  if (drawn && form.value.selectionMode !== REGISTRATION_SELECTION_MODES.chosen && !isCount(form.value.waitlistSize)) found.waitlistSize = 'Un nombre entre 0 et 1000.'
   const delay = Number(form.value.responseDelayDays)
-  if (!Number.isInteger(delay) || delay < 1 || delay > 90) errors.value.responseDelayDays = 'Entre 1 et 90 jours.'
-  return Object.keys(errors.value).length === 0
+  if (!Number.isInteger(delay) || delay < 1 || delay > 90) found.responseDelayDays = 'Entre 1 et 90 jours.'
+  errors.value = found
+  return Object.keys(found).length === 0
 }
 
 async function submit() {
@@ -307,10 +309,9 @@ async function submit() {
       sessions: permanent.value ? [] : Object.entries(seatsBySession.value).map(([sessionId, seats]) => ({ sessionId, seats })),
       updatedAt: form.value.updatedAt
     }
-    const saved = props.period?.id
-      ? await useApiFetch(`/api/registration-periods/${props.period.id}`, { method: 'PUT', body })
-      : await useApiFetch('/api/registration-periods', { method: 'POST', body })
-    emit('saved', saved)
+    if (props.period?.id) await useApiAction(`/api/registration-periods/${props.period.id}`, { method: 'PUT', body })
+    else await useApiAction('/api/registration-periods', { method: 'POST', body })
+    emit('saved')
     open.value = false
   } catch (err) {
     serverError.value = apiErrorMessage(err, 'Enregistrement impossible')

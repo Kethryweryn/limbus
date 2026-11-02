@@ -6,6 +6,7 @@ import { registrationListSelect } from '~/server/utils/registrationPeriods'
 import { affinitiesForTeam } from '~/server/utils/registrationAffinities'
 import { currentQuestionLinks } from '~/server/utils/registrationQuestionLinks'
 import { normalizeRegistrationFormDefinition, type RegistrationFormDefinition } from '~/utils/registrationForms'
+import type { QuestionAnswers } from '~/server/utils/registrationForms'
 
 // Détail d'une inscription pour les organisatrices du jeu (US-005) : réponses au formulaire comprises,
 // allergies et date du consentement (données de santé, R14), questions et affinités (US-081, US-082), lues avec
@@ -47,6 +48,8 @@ export default defineEventHandler(async (event) => {
   return {
     ...rest,
     formVersion: formVersion ? { number: formVersion.number } : null,
+    // Colonne JSON écrite par la réponse au formulaire
+    questionAnswers: rest.questionAnswers as QuestionAnswers | null,
     questions: definition?.questions ?? [],
     // Question d'équilibre demandée par la version remplie, avec le nom de l'attribut du jeu (US-091)
     balance: definition?.balance.asked && game?.balanceAttribute ? { label: game.balanceAttribute } : null,

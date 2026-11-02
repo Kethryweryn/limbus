@@ -176,7 +176,7 @@ describe('suivi dans la liste', () => {
     await prisma.sessionParticipant.deleteMany({ where: { sessionId: session.id, participantId: participant.id } })
     const after = await api(alice, 'GET', `/api/registration-periods/${period.id}/registrations`)
     expect(after.body).toMatchObject([{ id: registration.id, missingFromSession: true }])
-    const all = await api(alice, 'GET', `/api/registration-periods?gameId=${period.gameId}&include=registrations`)
+    const all = await api(alice, 'GET', `/api/registration-periods?gameId=${period.gameId}`)
     expect((all.body as any)[0].registrations).toMatchObject([{ id: registration.id, missingFromSession: true }])
   })
 

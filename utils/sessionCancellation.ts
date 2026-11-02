@@ -1,6 +1,8 @@
+import { PARIS_TIME_ZONE, formatLongDateTime } from '~/utils/dates'
+
 // Email d'annulation proposé à l'équipe d'une session (US-025) : texte par défaut, modifiable avant l'envoi
 
-const formatDateTime = (value: Date | string) => new Date(value).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Europe/Paris' })
+const formatDateTime = (value: Date | string) => formatLongDateTime(value, PARIS_TIME_ZONE)
 
 export function cancellationEmailDefaults(params: { gameTitle: string, sessionName: string, sessionDate: Date | string | null }) {
   return {

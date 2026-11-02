@@ -35,8 +35,8 @@
           v-else-if="result"
           color="success"
           variant="soft"
-          :title="result.received ? 'Votre inscription est reçue.' : result.alreadyRegistered ? 'Vous êtes déjà inscrit·e.' : 'Vérifiez votre boîte mail.'"
-          :description="result.received || result.alreadyRegistered
+          :title="result.received ? 'Votre inscription est reçue.' : alreadyRegistered ? 'Vous êtes déjà inscrit·e.' : 'Vérifiez votre boîte mail.'"
+          :description="result.received || alreadyRegistered
             ? 'Vous retrouvez votre inscription dans votre espace « Je participe ».'
             : result.emailSent
               ? 'Un email vient de vous être envoyé : ouvrez le lien qu’il contient pour confirmer votre adresse. Sans confirmation, l’inscription n’est pas transmise à l’équipe.'
@@ -59,55 +59,18 @@
                 Vous êtes connecté·e : vos coordonnées viennent de votre compte, et votre inscription sera reçue sans email de confirmation.
               </p>
 
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <UFormField label="Email" required :error="fieldErrors.email">
-                  <UInput v-model="form.email" type="email" autocomplete="email" :disabled="Boolean(period.account)" class="w-full" />
-                </UFormField>
-                <UFormField
-                  v-for="field in textFields"
-                  :key="field.key"
-                  :label="field.label"
-                  :required="field.required"
-                  :error="fieldErrors[field.key]"
-                  :class="field.wide ? 'sm:col-span-2' : ''"
-                >
-                  <UTextarea v-if="field.multiline" v-model="form[field.key]" :rows="3" class="w-full" />
-                  <UInput v-else v-model="form[field.key]" :type="field.type || 'text'" :autocomplete="field.autocomplete" class="w-full" />
-                </UFormField>
-              </div>
-
-              <UFormField
-                v-if="period.asksAvailability"
-                label="Sessions où vous êtes disponible"
-                required
-                :error="fieldErrors.availableSessionIds"
-              >
-                <!-- Un groupe, pas des cases isolées : dans un champ, chaque case prendrait le libellé du champ -->
-                <UCheckboxGroup v-model="form.availableSessionIds" :items="sessionItems" />
-              </UFormField>
-
-              <RegistrationExtraFields
-                v-model:affinities="form.affinities"
-                v-model:answers="form.questionAnswers"
-                v-model:balance-preference="form.balancePreference"
+              <RegistrationAnswerFields
+                v-model:form="form"
                 :definition="period.definition"
+                :availability-sessions="period.asksAvailability ? period.sessions : null"
+                :email-locked="Boolean(period.account)"
                 :errors="fieldErrors"
-              />
-
-              <!-- Champ piège : invisible, seul un robot le remplit -->
-              <div class="hidden" aria-hidden="true">
-                <label>Site web <input v-model="form.website" type="text" tabindex="-1" autocomplete="off"></label>
-              </div>
-
-              <UFormField v-if="period.definition.standardFields.dietary.asked" :error="fieldErrors.healthConsent">
-                <UCheckbox
-                  v-model="form.healthConsent"
-                  label="J’accepte que ces informations de santé soient transmises aux organisateurs et à l’équipe cuisine (obligatoire si je déclare des allergies)"
-                />
-              </UFormField>
-              <UFormField :error="fieldErrors.charterAccepted">
-                <UCheckbox v-model="form.charterAccepted" label="J’ai lu la note d’intention et j’y adhère" required />
-              </UFormField>
+              >
+                <!-- Champ piège : invisible, seul un robot le remplit -->
+                <div class="hidden" aria-hidden="true">
+                  <label>Site web <input v-model="website" type="text" tabindex="-1" autocomplete="off"></label>
+                </div>
+              </RegistrationAnswerFields>
 
               <UAlert v-if="errorMessage" color="error" variant="soft" :description="errorMessage" />
 
@@ -122,9 +85,13 @@
   </main>
 </template>
 
-<script setup>
-import { REGISTRATION_FORM_INPUTS } from '~/utils/registrationForms'
+<script setup lang="ts">
+import { emptyRegistrationAnswerForm } from '~/utils/registrationForms'
 import { apiErrorMessage, apiFieldErrors } from '~/utils/apiErrors'
+import { PARIS_TIME_ZONE, formatLongDate } from '~/utils/dates'
+import { publicFetch, type ApiResponse } from '~/composables/useApiFetch'
+
+type Submitted = ApiResponse<'/api/public/periods/:publicId', 'post'>
 
 // Lien de diffusion d'une période en mode formulaire (US-084, R32) : rendu côté serveur pour l'aperçu des réseaux sociaux
 definePageMeta({
@@ -137,48 +104,26 @@ const publicId = encodeURIComponent(String(route.params.publicId || ''))
 // Le cookie suit la requête faite au rendu : une personne connectée voit le formulaire prérempli
 const { data: period } = await useFetch(`/api/public/periods/${publicId}`, { headers: useRequestHeaders(['cookie']), key: `form-${publicId}` })
 
-const form = reactive({
-  email: '',
-  firstName: '',
-  lastName: '',
-  facebookName: '',
-  phone: '',
-  emergencyContactName: '',
-  emergencyContactPhone: '',
-  dietary: '',
-  healthConsent: false,
-  charterAccepted: false,
-  availableSessionIds: [],
-  affinities: {},
-  questionAnswers: {},
-  balancePreference: null,
-  website: ''
-})
-if (period.value?.account) Object.assign(form, period.value.account)
+const form = ref({ ...emptyRegistrationAnswerForm(), ...period.value?.account })
+// Champ piège : un robot le remplit, le serveur refuse alors l'inscription
+const website = ref('')
 
 const saving = ref(false)
 const errorMessage = ref('')
-const fieldErrors = ref({})
-const result = ref(null)
+const fieldErrors = ref<Record<string, string>>({})
+const result = ref<Submitted | null>(null)
+const alreadyRegistered = computed(() => Boolean(result.value && 'alreadyRegistered' in result.value && result.value.alreadyRegistered))
 
-const textFields = computed(() => {
-  const settings = period.value?.definition.standardFields || {}
-  return REGISTRATION_FORM_INPUTS
-    .filter((input) => settings[input.setting]?.asked)
-    .map((input) => ({ ...input, required: settings[input.setting].required }))
-})
 
-const sessionItems = computed(() => (period.value?.sessions || []).map((session) => ({
-  value: session.id,
-  label: session.date ? `${session.name} · ${formatDate(session.date)}` : session.name
-})))
+const formatDate = (value: string) => formatLongDate(value, PARIS_TIME_ZONE)
+
 
 async function submit() {
   saving.value = true
   errorMessage.value = ''
   fieldErrors.value = {}
   try {
-    result.value = await $fetch(`/api/public/periods/${publicId}`, { method: 'POST', body: { ...form } })
+    result.value = await publicFetch<Submitted>(`/api/public/periods/${publicId}`, { method: 'POST', body: { ...form.value, website: website.value } })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (err) {
     fieldErrors.value = apiFieldErrors(err)
@@ -189,8 +134,6 @@ async function submit() {
     saving.value = false
   }
 }
-
-const formatDate = (value) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long', timeZone: 'Europe/Paris' })
 
 // Aperçu sur les réseaux sociaux (R32) : nom du jeu, sessions et dates, début de la note d'intention, vignette du teaser
 const description = computed(() => {

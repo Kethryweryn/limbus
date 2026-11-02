@@ -60,6 +60,7 @@
 <script setup lang="ts">
 import { ATTENDANCE_STATUSES } from '~/utils/attendance'
 import { apiErrorMessage } from '~/utils/apiErrors'
+import { PARIS_TIME_ZONE, formatLongDate, formatLongDateTime } from '~/utils/dates'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
 // Lien personnel de confirmation de présence à une session reportée (US-024), sans compte : le jeton fait foi.
@@ -95,8 +96,8 @@ const answerLabel = computed(() => {
   return ''
 })
 
-const formatDate = (value: string | Date) => new Date(value).toLocaleDateString('fr-FR', { dateStyle: 'long', timeZone: 'Europe/Paris' })
-const formatDateTime = (value: string | Date) => new Date(value).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Europe/Paris' })
+const formatDate = (value: string | Date) => formatLongDate(value, PARIS_TIME_ZONE)
+const formatDateTime = (value: string | Date) => formatLongDateTime(value, PARIS_TIME_ZONE)
 
 onMounted(async () => {
   try {

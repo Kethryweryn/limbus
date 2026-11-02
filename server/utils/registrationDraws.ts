@@ -16,7 +16,7 @@ import {
   REGISTRATION_SELECTION_MODES,
   REGISTRATION_STATUSES
 } from '~/utils/domain'
-import { balanceReserves, computeDraw, type DrawResult, type DrawSessionInput } from '~/utils/registrationDraw'
+import { balanceReserves, computeDraw, type DrawResult, type DrawSessionInput, type DrawSettings } from '~/utils/registrationDraw'
 
 // La valeur d'équilibre d'un personnage est une des valeurs de l'attribut du jeu (US-091)
 export async function assertBalanceValue(gameId: string, value: string | null | undefined) {
@@ -111,7 +111,7 @@ export async function drawPeriod(periodId: string, author: { id: string }) {
 
   const seed = randomBytes(16).toString('hex')
   const result = await computeDraw(seed, inputs, period.waitlistSize)
-  const settings = {
+  const settings: DrawSettings = {
     selectionMode: period.selectionMode,
     weightNotDrawnBefore: period.weightNotDrawnBefore,
     weightBalance: balanced,
@@ -225,7 +225,7 @@ export async function cancelDraw(drawId: string, author: { id: string }) {
 
 // Journal des tirages d'une période (US-094, R18), annulés compris, du plus récent au plus ancien
 export async function listDraws(periodId: string) {
-  return await prisma.registrationDraw.findMany({
+  const draws = await prisma.registrationDraw.findMany({
     where: { periodId },
     orderBy: { createdAt: 'desc' },
     select: {
@@ -239,4 +239,6 @@ export async function listDraws(periodId: string) {
       cancelledBy: { select: { name: true } }
     }
   })
+  // Colonnes JSON écrites par drawRegistrations
+  return draws.map((draw) => ({ ...draw, settings: draw.settings as DrawSettings, result: draw.result as DrawResult }))
 }
