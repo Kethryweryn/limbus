@@ -34,8 +34,8 @@ export const aiIssuer = () => publicAppUrl()
 export const hashSecret = (value: string) => createHash('sha256').update(value).digest('base64url')
 export const newSecret = () => randomBytes(32).toString('base64url')
 
-const sameResource = (value: string | undefined | null) => !value || value.replace(/\/$/, '') === aiResourceUrl()
-export { sameResource as isAiResource }
+/** Ressource demandée (RFC 8707) : absente, ou le serveur MCP de Limbus. */
+export const isAiResource = (value: string | undefined | null) => !value || value.replace(/\/$/, '') === aiResourceUrl()
 
 export function isLoopbackUri(uri: string) {
   return /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?\//i.test(uri)

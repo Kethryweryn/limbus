@@ -3,9 +3,10 @@ import { oauthError, readOAuthJson } from '~/server/utils/oauthResponses'
 import { registerDynamicClient } from '~/server/utils/aiAuth'
 
 // Inscription dynamique d'un assistant (RFC 7591, US-121) : dépréciée par MCP, gardée pour les assistants sans CIMD.
-// Limitée par adresse ; un assistant jamais autorisé est effacé au bout de 24 heures (purgeAiData)
+// Limitée par adresse, largement : tous les utilisateurs d'un même assistant arrivent des mêmes adresses. Un assistant
+// jamais autorisé est effacé au bout de 24 heures (purgeAiData)
 export default defineEventHandler(async (event) => {
-  assertRateLimit(event, { name: 'oauth-register', limit: 20, windowMs: 60 * 60 * 1000 })
+  assertRateLimit(event, { name: 'oauth-register', limit: 200, windowMs: 60 * 60 * 1000 })
   const client = await registerDynamicClient(await readOAuthJson(event))
   if (!client) return oauthError(event, 400, 'invalid_client_metadata', 'Adresses de retour HTTPS ou locales, client public seulement.')
 

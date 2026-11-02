@@ -102,8 +102,7 @@ Les choix communs ci-dessus s'appliquent.
 - lecture des documents CIMD avec la même protection que `fetchPublicImage` (hôte public, délai, taille), et cache court ;
 - limites de débit (SPEC-014, R14), fixées au lot 1 :
   - serveur MCP : 120 appels par minute et par autorisation ;
-  - point `token` : 60 appels par minute et par adresse ;
-  - inscription dynamique : 20 par heure et par adresse ;
+  - point `token` : 600 appels par minute et par adresse, et inscription dynamique : 200 par heure et par adresse. Ces limites sont larges, car tous les utilisateurs d'un même assistant arrivent des mêmes adresses. Les codes et les jetons (256 bits) ne se devinent pas ;
 - tests d'intégration du parcours OAuth complet, avec le client MCP officiel ;
 - toute évolution de la spécification MCP (par exemple `iss` qui deviendra obligatoire) est à reporter à la main.
 

@@ -238,6 +238,15 @@ describe('jetons', () => {
     expect(await rawStatus(renewed.body.access_token!)).toBe(401)
   })
 
+  it('deux rafraîchissements simultanés n’en renouvellent qu’un, sans retirer l’autorisation', async () => {
+    const { provider } = await connectAssistant(alice, { gameIds: [a.game.id] })
+    const params = { grant_type: 'refresh_token', refresh_token: provider.saved!.refresh_token!, client_id: provider.info!.client_id }
+    const results = await Promise.all([token(params), token(params)])
+    const won = results.filter((result) => result.status === 200)
+    expect(won).toHaveLength(1)
+    expect(await rawStatus(won[0]!.body.access_token!)).toBe(200)
+  })
+
   it('la déconnexion partout coupe l’assistant', async () => {
     const { provider } = await connectAssistant(dora, { gameIds: [doraGameId] })
     expect(await rawStatus(provider.saved!.access_token)).toBe(200)

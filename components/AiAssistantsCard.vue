@@ -78,7 +78,8 @@ const saving = ref(false)
 const revoking = ref('')
 const showLog = ref(false)
 
-const mcpUrl = computed(() => import.meta.client ? `${window.location.origin}/mcp` : '/mcp')
+// Adresse complète posée au montage : le rendu serveur et l'hydratation affichent la même chose
+const mcpUrl = ref('/mcp')
 
 async function load() {
   try {
@@ -93,7 +94,10 @@ async function load() {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  mcpUrl.value = `${window.location.origin}/mcp`
+  load()
+})
 
 function startEdit(authorization: Authorization) {
   editing.value = authorization.id

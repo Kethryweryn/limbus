@@ -10,7 +10,9 @@ const s256 = (verifier: string) => createHash('sha256').update(verifier).digest(
 // Échange d'un code (PKCE) ou d'un jeton de rafraîchissement (US-121, SPEC-014 R1 et R6). Le rafraîchissement est
 // renouvelé à chaque usage ; présenter un jeton déjà renouvelé fait tomber l'autorisation (OAuth 2.1, 4.3.1)
 export default defineEventHandler(async (event) => {
-  assertRateLimit(event, { name: 'oauth-token', limit: 60, windowMs: 60 * 1000 })
+  // Large : tous les utilisateurs d'un même assistant arrivent des mêmes adresses, et les codes et jetons (256 bits) ne se
+  // devinent pas
+  assertRateLimit(event, { name: 'oauth-token', limit: 600, windowMs: 60 * 1000 })
   setResponseHeader(event, 'cache-control', 'no-store')
   const params = await readOAuthForm(event)
   if (!isAiResource(params.resource)) return oauthError(event, 400, 'invalid_target', 'Ressource inconnue.')
@@ -45,12 +47,10 @@ export default defineEventHandler(async (event) => {
       await endAiAuthorization(authorization, AI_LOG_ACTIONS.reused)
       return oauthError(event, 400, 'invalid_grant', 'Jeton déjà utilisé : l’autorisation est retirée.')
     }
-    // Marqué utilisé d'un seul coup : deux échanges simultanés du même jeton n'en renouvellent qu'un
+    // Marqué utilisé d'un seul coup : deux échanges simultanés du même jeton (une relance de l'assistant) n'en renouvellent
+    // qu'un, et le second est refusé sans faire tomber l'autorisation
     const { count } = await prisma.aiToken.updateMany({ where: { hash: token.hash, usedAt: null }, data: { usedAt: new Date() } })
-    if (!count) {
-      await endAiAuthorization(authorization, AI_LOG_ACTIONS.reused)
-      return oauthError(event, 400, 'invalid_grant', 'Jeton déjà utilisé : l’autorisation est retirée.')
-    }
+    if (!count) return oauthError(event, 400, 'invalid_grant', 'Jeton en cours de renouvellement.')
     return await issueAiTokens(authorization)
   }
 
