@@ -128,15 +128,19 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 // Mon compte (US-063, US-066)
+import { serverMessage } from '~/utils/apiErrors'
 import { formatMegabytes as formatMb } from '~/utils/fileSizes'
 import { clearOfflineData } from '~/utils/storage'
+import type { ApiResponse } from '~/composables/useApiFetch'
 
-const account = ref(null)
+type SavingKey = '' | 'name' | 'email' | 'password' | 'profile' | 'delete'
+
+const account = ref<ApiResponse<'/api/account'> | null>(null)
 const loadError = ref('')
 const error = ref('')
-const saving = ref('')
+const saving = ref<SavingKey>('')
 const name = ref('')
 const emailForm = ref({ email: '', password: '' })
 const passwordForm = ref({ currentPassword: '', password: '' })
@@ -150,47 +154,48 @@ const storagePercent = computed(() => {
 
 async function load() {
   try {
-    account.value = await useApiFetch('/api/account')
-    name.value = account.value.name
-    profileForm.value = { ...profileForm.value, ...Object.fromEntries(Object.entries(account.value.profile).filter(([key, value]) => key !== 'updatedAt' && value !== null)) }
+    const loaded = await useApiFetch('/api/account')
+    account.value = loaded
+    name.value = loaded.name
+    profileForm.value = { ...profileForm.value, ...Object.fromEntries(Object.entries(loaded.profile).filter(([key, value]) => key !== 'updatedAt' && value !== null)) }
   } catch (err) {
-    loadError.value = err?.data?.message || 'Impossible de charger le compte.'
+    loadError.value = serverMessage(err, 'Impossible de charger le compte.')
   }
 }
 
-async function run(key, action) {
+async function run(key: Exclude<SavingKey, ''>, action: () => Promise<void>) {
   saving.value = key
   error.value = ''
   messages.value = { name: '', password: '', profile: '' }
   try {
     await action()
   } catch (err) {
-    error.value = err?.data?.message || 'Erreur inconnue'
+    error.value = serverMessage(err, 'Erreur inconnue')
   } finally {
     saving.value = ''
   }
 }
 
 const saveName = () => run('name', async () => {
-  await useApiFetch('/api/account', { method: 'PUT', body: { name: name.value } })
+  await useApiAction('/api/account', { method: 'PUT', body: { name: name.value } })
   messages.value.name = 'Nom enregistré.'
   await load()
 })
 
 const changeEmail = () => run('email', async () => {
-  await useApiFetch('/api/account/email', { method: 'POST', body: emailForm.value })
+  await useApiAction('/api/account/email', { method: 'POST', body: emailForm.value })
   emailForm.value = { email: '', password: '' }
   await load()
 })
 
 const changePassword = () => run('password', async () => {
-  await useApiFetch('/api/account/password', { method: 'PUT', body: passwordForm.value })
+  await useApiAction('/api/account/password', { method: 'PUT', body: passwordForm.value })
   passwordForm.value = { currentPassword: '', password: '' }
   messages.value.password = 'Mot de passe changé. Vos autres appareils sont déconnectés.'
 })
 
 const saveProfile = () => run('profile', async () => {
-  await useApiFetch('/api/account/profile', { method: 'PUT', body: profileForm.value })
+  await useApiAction('/api/account/profile', { method: 'PUT', body: profileForm.value })
   messages.value.profile = 'Coordonnées enregistrées : vos fiches et inscriptions sont à jour.'
 })
 
@@ -198,7 +203,7 @@ const deletePassword = ref('')
 const deleteAccount = () => {
   if (!confirm('Effacer définitivement votre compte et toutes vos données ? Cette action ne peut pas être annulée.')) return
   return run('delete', async () => {
-    const result = await useApiFetch('/api/account/delete', { method: 'POST', body: { password: deletePassword.value } })
+    const result = await useApiAction('/api/account/delete', { method: 'POST', body: { password: deletePassword.value } })
     // Équipes non prévenues (envoi d'emails coupé…) : la personne le sait avant de quitter la page
     if (result.teamsNotified < result.teams) {
       alert(`Votre compte est effacé, mais ${result.teams - result.teamsNotified} équipe(s) n’ont pas pu être prévenue(s) par email. Prévenez-les vous-même que vos places sont libérées.`)

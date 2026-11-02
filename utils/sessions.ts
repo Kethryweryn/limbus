@@ -1,4 +1,4 @@
-import { CHARACTER_TYPES, SESSION_STATUSES, SESSION_STATUS_META } from '~/utils/domain'
+import { CHARACTER_TYPES, SESSION_STATUSES, SESSION_STATUS_META, metaOf } from '~/utils/domain'
 
 // Sessions (US-116) : ce que partagent la liste, la page d'une session et leurs composants
 
@@ -17,7 +17,7 @@ export function sessionFormPayload<T extends { date?: string | Date | null, loca
 }
 
 export function sessionStatusMeta(status: string) {
-  return status in SESSION_STATUS_META ? SESSION_STATUS_META[status as keyof typeof SESSION_STATUS_META] : SESSION_STATUS_META[SESSION_STATUSES.scheduled]
+  return metaOf(SESSION_STATUS_META, status) ?? SESSION_STATUS_META[SESSION_STATUSES.scheduled]
 }
 
 export const formatSessionDate = (value: string | Date) => new Date(value).toLocaleString('fr-FR', {

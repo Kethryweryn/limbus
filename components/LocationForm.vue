@@ -49,12 +49,14 @@ import { apiErrorMessage } from '~/utils/apiErrors'
 import type { GameOption, LocationDraft } from '~/utils/writingDrafts'
 
 const props = withDefaults(defineProps<{
+  // Enregistrement par le parent (`@submit`), attendu pour afficher ici son erreur
+  onSubmit: () => unknown
   location: LocationDraft
   games: GameOption[]
   mode?: 'create' | 'edit'
 }>(), { mode: 'create' })
 
-const emit = defineEmits<{ submit: [], cancel: [], 'update:location': [location: LocationDraft] }>()
+const emit = defineEmits<{ cancel: [], 'update:location': [location: LocationDraft] }>()
 
 const localLocation = ref<LocationDraft>({ ...props.location })
 const errors = ref<Record<string, string>>({})
@@ -82,12 +84,12 @@ function validate() {
   return Object.keys(errors.value).length === 0
 }
 
-function submit() {
+async function submit() {
   if (!validate()) return
 
   try {
     emit('update:location', localLocation.value)
-    emit('submit')
+    await props.onSubmit()
     serverError.value = ''
   } catch (err) {
     serverError.value = apiErrorMessage(err, 'Erreur inconnue')

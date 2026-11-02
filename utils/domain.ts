@@ -28,6 +28,11 @@ export const REFUND_STATUSES = {
 // Annulée ou terminée : hors du tableau de bord, des prochaines sessions et de la section « à venir » (US-020)
 export const CLOSED_SESSION_STATUSES: string[] = [SESSION_STATUSES.cancelled, SESSION_STATUSES.completed]
 
+/** Entrée d'une table de libellés pour une clé lue de l'API, undefined si la clé est inconnue. */
+export function metaOf<T extends object>(table: T, key: string): T[keyof T] | undefined {
+  return key in table ? table[key as keyof T] : undefined
+}
+
 export function isClosedSessionStatus(status: string | null | undefined) {
   return CLOSED_SESSION_STATUSES.includes(status ?? '')
 }

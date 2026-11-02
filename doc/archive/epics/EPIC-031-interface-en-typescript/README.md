@@ -1,7 +1,7 @@
 ---
 id: EPIC-031
 titre: Interface en TypeScript strict
-statut: en cours
+statut: terminé
 spec: ../../todo/interface-en-typescript.md
 date: 2026-11-02
 ---
@@ -27,10 +27,10 @@ date: 2026-11-02
 | [US-115](US-115-ecriture.md) | Écriture du jeu : jeux, personnages, groupes, intrigues, objets, documents, lieux, timeline | terminée |
 | [US-116](US-116-sessions.md) | Sessions : cast, déroulé, documents, paiements, présence | terminée |
 | [US-117](US-117-inscriptions.md) | Inscriptions : périodes, formulaire, sélection, liens personnels | terminée |
-| [US-118](US-118-compte-participation-administration.md) | Compte, « Je participe », administration, page publique ; règle étendue à tout | à faire |
+| [US-118](US-118-compte-participation-administration.md) | Compte, « Je participe », administration, page publique ; règle étendue à tout | terminée |
 
 ## Définition de terminé
 
 - `npm run lint`, `npm run typecheck`, `npm test` et la CI passent à chaque PR.
 - Plus aucun `<script setup>` sans `lang="ts"`, et la règle de lint couvre toute l'interface.
-- [ADR-0057](../../adr/ADR-0057-interface-en-typescript.md).
+- [ADR-0057](../../../adr/ADR-0057-interface-en-typescript.md).

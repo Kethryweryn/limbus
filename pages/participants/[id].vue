@@ -27,7 +27,7 @@
     </div>
 
     <ParticipantForm
-      v-if="isEditing"
+      v-if="isEditing && editableParticipant"
       v-model:participant="editableParticipant"
       :games="games || []"
       mode="edit"
@@ -56,10 +56,10 @@
         <UCard>
           <template #header>Jeux</template>
           <div class="flex flex-wrap gap-2">
-            <UBadge v-for="game in participant.games" :key="game.id" color="neutral" variant="subtle">
+            <UBadge v-for="game in shownGames" :key="game.id" color="neutral" variant="subtle">
               {{ game.title }}
             </UBadge>
-            <span v-if="!participant.games?.length" class="text-sm text-gray-500">Aucun jeu</span>
+            <span v-if="!shownGames.length" class="text-sm text-gray-500">Aucun jeu</span>
           </div>
         </UCard>
 
@@ -98,7 +98,13 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { apiErrorMessage } from '~/utils/apiErrors'
+import { withQueuedEdit, type ParticipantDraft } from '~/utils/writingDrafts'
+import type { ApiResponse } from '~/composables/useApiFetch'
+
+type Participant = ApiResponse<'/api/participants/:id'>
+
 const route = useRoute()
 const router = useRouter()
 const { data: participant, error, refresh } = await useFetch(`/api/participants/${route.params.id}`)
@@ -106,15 +112,16 @@ const { data: games } = await useFetch('/api/games')
 const photoSaving = ref(false)
 const photoMessage = ref('')
 
-async function setPhotoRefusal(refused) {
+async function setPhotoRefusal(refused: boolean) {
+  if (!participant.value) return
   if (refused && !confirm('Noter que cette personne refuse l’usage de sa photo ? Ses photos du cast seront supprimées.')) return
   photoSaving.value = true
   photoMessage.value = ''
   try {
-    await useApiFetch(`/api/participants/${participant.value.id}/photo-refusal`, { method: 'POST', body: { refused } })
+    await useApiAction(`/api/participants/${participant.value.id}/photo-refusal`, { method: 'POST', body: { refused } })
     await refresh()
   } catch (err) {
-    photoMessage.value = err?.data?.message || 'L’enregistrement a échoué.'
+    photoMessage.value = apiErrorMessage(err, 'L’enregistrement a échoué.')
   } finally {
     photoSaving.value = false
   }
@@ -126,7 +133,7 @@ if (error.value) {
 }
 
 const isEditing = ref(route.query.edit === '1')
-const editableParticipant = ref(participant.value ? normalizeParticipantForForm(participant.value) : null)
+const editableParticipant = ref<ParticipantDraft | null>(participant.value ? normalizeParticipantForForm(participant.value) : null)
 
 watch(() => route.query.edit, (value) => {
   isEditing.value = value === '1'
@@ -135,17 +142,23 @@ watch(() => route.query.edit, (value) => {
   }
 })
 
-const gamesWithNotes = computed(() => (participant.value?.games || []).filter((game) => participant.value?.gameNotes?.[game.id]))
+// Jeux d'un enregistrement mis en file hors ligne (ADR-0036) : la fiche les montre jusqu'à la relecture
+const queuedGameIds = ref<string[] | null>(null)
+const shownGames = computed(() => {
+  const ids = queuedGameIds.value
+  return ids ? (games.value || []).filter((game) => ids.includes(game.id)) : participant.value?.games || []
+})
+const gamesWithNotes = computed(() => shownGames.value.filter((game) => participant.value?.gameNotes[game.id]))
 
-function normalizeParticipantForForm(value) {
+function normalizeParticipantForForm(value: Participant): ParticipantDraft {
   return {
     ...value,
-    gameIds: value.games?.map((game) => game.id) || []
+    gameIds: value.games.map((game) => game.id)
   }
 }
 
 function startEdit() {
-  editableParticipant.value = normalizeParticipantForForm(participant.value)
+  editableParticipant.value = participant.value ? normalizeParticipantForForm(participant.value) : null
   isEditing.value = true
   router.replace({ path: route.path, query: { ...route.query, edit: '1' } })
 }
@@ -165,17 +178,24 @@ async function saveParticipant() {
     method: 'PUT',
     body: editableParticipant.value
   })
+  if (isOfflineQueued(saved)) {
+    if (participant.value) participant.value = withQueuedEdit(participant.value, editableParticipant.value)
+    queuedGameIds.value = editableParticipant.value.gameIds ?? null
+    cancelEdit()
+    return
+  }
   // Fiche sans aucun jeu : supprimée par le serveur (US-036)
-  if (saved?.deleted) {
+  if ('deleted' in saved) {
     await router.replace('/participants')
     return
   }
   participant.value = saved
-  if (participant.value?.slug && participant.value.slug !== route.params.id) {
+  queuedGameIds.value = null
+  if (saved.slug && saved.slug !== route.params.id) {
     const query = { ...route.query }
     delete query.edit
     await router.replace({
-      path: `/participants/${participant.value.slug}`,
+      path: `/participants/${saved.slug}`,
       query
     })
     return

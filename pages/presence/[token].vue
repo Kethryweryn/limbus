@@ -86,7 +86,8 @@ const endpoint = `/api/public/attendance/${encodeURIComponent(String(route.param
 
 const loading = ref(true)
 const invalid = ref(false)
-const attendance = ref<ApiResponse<'/api/public/attendance/:token'> | null>(null)
+type Attendance = ApiResponse<'/api/public/attendance/:token'>
+const attendance = ref<Attendance | null>(null)
 const saving = ref('')
 const errorMessage = ref('')
 
@@ -101,7 +102,7 @@ const formatDateTime = (value: string | Date) => formatLongDateTime(value, PARIS
 
 onMounted(async () => {
   try {
-    attendance.value = await $fetch(endpoint)
+    attendance.value = await publicFetch<Attendance>(endpoint)
   } catch {
     invalid.value = true
   } finally {
@@ -113,7 +114,7 @@ async function answer(value: 'confirmed' | 'declined') {
   saving.value = value
   errorMessage.value = ''
   try {
-    attendance.value = await $fetch(endpoint, { method: 'POST', body: { answer: value } })
+    attendance.value = await publicFetch<Attendance>(endpoint, { method: 'POST', body: { answer: value } })
   } catch (error) {
     errorMessage.value = apiErrorMessage(error, 'Votre réponse n’a pas pu être enregistrée.')
   } finally {

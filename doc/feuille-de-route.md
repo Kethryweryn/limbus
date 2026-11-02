@@ -93,7 +93,7 @@ La fiche [Numéros de version et notes de version](todo/versions-et-notes-de-ver
 ## Sans dépendance forte
 
 - [API pour une IA](todo/api-pour-ia.md) : après la refonte des comptes, dont dépendent ses droits.
-- [Interface en TypeScript](todo/interface-en-typescript.md) : au fil de l'eau, quand on touche une page, ou en une passe à part.
+- [Interface en TypeScript](archive/todo/interface-en-typescript.md) : fait en une passe à part ([EPIC-031](archive/epics/EPIC-031-interface-en-typescript/README.md)) ; toute l'interface est en TypeScript strict, et la règle de lint couvre tous les `.vue`.
 
 ## Exploitation
 

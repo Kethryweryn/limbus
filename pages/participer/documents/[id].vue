@@ -67,11 +67,14 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { serverMessage } from '~/utils/apiErrors'
 import { formatLongDate as formatDate } from '~/utils/dates'
+import type { ApiResponse } from '~/composables/useApiFetch'
+
 // Un document reçu, dans « Je participe » (US-079)
 const route = useRoute()
-const delivery = ref(null)
+const delivery = ref<ApiResponse<'/api/me/documents/:id'> | null>(null)
 const pending = ref(true)
 const loadError = ref('')
 
@@ -79,10 +82,9 @@ onMounted(async () => {
   try {
     delivery.value = await useApiFetch(`/api/me/documents/${encodeURIComponent(String(route.params.id || ''))}`, { offlineCache: true })
   } catch (err) {
-    loadError.value = err?.data?.message || 'Impossible de charger ce document.'
+    loadError.value = serverMessage(err, 'Impossible de charger ce document.')
   } finally {
     pending.value = false
   }
 })
-
 </script>

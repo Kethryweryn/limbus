@@ -9,7 +9,7 @@
     <p v-else-if="pending" class="text-sm text-gray-500">Chargement…</p>
     <UCard v-else-if="!participations.length">
       <p class="text-sm text-gray-600">
-        Aucune équipe ne vous a encore inscrit·e avec l’adresse {{ authState?.user?.email }}.
+        Aucune équipe ne vous a encore inscrit·e avec l’adresse {{ currentUser?.email }}.
         Dès qu’une fiche participant porte cette adresse, le jeu apparaît ici.
       </p>
       <UButton class="mt-3" to="/games" color="neutral" variant="soft" icon="i-heroicons-plus">Organiser un GN</UButton>
@@ -149,14 +149,23 @@
   </div>
 </template>
 
-<script setup>
-import { REFUND_STATUSES, REGISTRATION_STATUS_META, SESSION_ROLE_LABELS, SESSION_ROLES, SESSION_STATUS_META } from '~/utils/domain'
+<script setup lang="ts">
+import { REFUND_STATUSES, REGISTRATION_STATUS_META, SESSION_ROLE_LABELS, SESSION_ROLES, metaOf } from '~/utils/domain'
+import { ATTENDANCE_STATUSES } from '~/utils/attendance'
+import { serverMessage } from '~/utils/apiErrors'
 import { rememberSpace } from '~/utils/spaces'
+import { sessionStatusMeta } from '~/utils/sessions'
+import { formatEuros } from '~/utils/sessionTariffs'
 import { formatLongDate as formatDate } from '~/utils/dates'
+import type { ApiResponse } from '~/composables/useApiFetch'
+
+type Participation = ApiResponse<'/api/me/participations'>[number]
+type Payment = NonNullable<Participation['sessions'][number]['payment']>
 
 // Espace « Je participe » (US-071)
 const { data: authState } = await useFetch('/api/auth/me')
-const participations = ref([])
+const currentUser = computed(() => authState.value?.authenticated ? authState.value.user : null)
+const participations = ref<Participation[]>([])
 const pending = ref(true)
 const loadError = ref('')
 const photoRefused = ref(false)
@@ -171,46 +180,49 @@ onMounted(async () => {
     // Lu à chaque ouverture, sans copie sur l'appareil : le refus peut changer ailleurs (autre appareil, équipe)
     photoRefused.value = (await useApiFetch('/api/me/photo-refusal').catch(() => ({ refused: false }))).refused
   } catch (err) {
-    loadError.value = err?.data?.message || 'Impossible de charger vos participations.'
+    loadError.value = serverMessage(err, 'Impossible de charger vos participations.')
   } finally {
     pending.value = false
   }
 })
 
-async function setPhotoRefusal(refused) {
+async function setPhotoRefusal(refused: boolean) {
   if (refused && !confirm('Retirer vos photos de tous vos jeux ? Les trombinoscopes déjà générés seront refaits sans elles.')) return
   photoSaving.value = true
   photoMessage.value = ''
   try {
-    await useApiFetch('/api/me/photo-refusal', { method: 'POST', body: { refused } })
+    await useApiAction('/api/me/photo-refusal', { method: 'POST', body: { refused } })
     photoRefused.value = refused
     photoMessage.value = refused ? 'Vos photos sont retirées.' : 'Les équipes peuvent de nouveau ajouter votre photo.'
   } catch (err) {
-    photoMessage.value = err?.data?.message || 'L’enregistrement a échoué.'
+    photoMessage.value = serverMessage(err, 'L’enregistrement a échoué.')
   } finally {
     photoSaving.value = false
   }
 }
 
-const sessionMeta = (session) => SESSION_STATUS_META[session.status] || { label: session.status, color: 'neutral' }
-const registrationMeta = (registration) => REGISTRATION_STATUS_META[registration.status] || { label: registration.status, color: 'neutral' }
+const sessionMeta = (session: { status: string }) => sessionStatusMeta(session.status)
+const registrationMeta = (registration: { status: string }) => metaOf(REGISTRATION_STATUS_META, registration.status) || { label: registration.status, color: 'neutral' as const }
 // Casting et inscription confirmée : « PJ » plutôt que « Participant »
-const roleLabel = (role) => role === SESSION_ROLES.participant ? 'PJ' : SESSION_ROLE_LABELS[role] || role
+const roleLabel = (role: string) => role === SESSION_ROLES.participant ? 'PJ' : metaOf(SESSION_ROLE_LABELS, role) || role
 
-const ATTENDANCE_LABELS = { pending: 'réponse attendue', confirmed: 'confirmée', declined: 'déclinée', released: 'place libérée' }
-const attendanceLabel = (status) => ATTENDANCE_LABELS[status] || status
+const ATTENDANCE_LABELS: Record<string, string> = {
+  [ATTENDANCE_STATUSES.pending]: 'réponse attendue',
+  [ATTENDANCE_STATUSES.confirmed]: 'confirmée',
+  [ATTENDANCE_STATUSES.declined]: 'déclinée',
+  [ATTENDANCE_STATUSES.released]: 'place libérée'
+}
+const attendanceLabel = (status: string) => ATTENDANCE_LABELS[status] || status
 
-const REFUND_LABELS = {
+const REFUND_LABELS: Record<string, string> = {
   [REFUND_STATUSES.toRefund]: 'Remboursement prévu par l’équipe.',
   [REFUND_STATUSES.refunded]: 'Remboursé.',
   [REFUND_STATUSES.carriedOver]: 'Paiement reporté sur la nouvelle session.',
   [REFUND_STATUSES.kept]: 'Paiement gardé par l’équipe.',
   [REFUND_STATUSES.transferred]: 'Paiement transféré à la personne qui vous remplace.'
 }
-const refundLabel = (status) => REFUND_LABELS[status] || ''
+const refundLabel = (status: string) => REFUND_LABELS[status] || ''
 
 // Reste à payer : montant restant en mode tarifs, case non cochée en mode simple
-const owes = (payment) => payment.mode === 'simple' ? !payment.paidAt : payment.remainingCents > 0
-
-const formatEuros = (cents) => ((cents || 0) / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+const owes = (payment: Payment) => payment.mode === 'simple' ? !payment.paidAt : (payment.remainingCents || 0) > 0
 </script>

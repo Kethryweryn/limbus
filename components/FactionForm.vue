@@ -95,13 +95,15 @@ import { apiErrorMessage } from '~/utils/apiErrors'
 import type { CharacterOption, FactionDraft, GameOption } from '~/utils/writingDrafts'
 
 const props = withDefaults(defineProps<{
+  // Enregistrement par le parent (`@submit`), attendu pour afficher ici son erreur
+  onSubmit: () => unknown
   faction: FactionDraft
   games: GameOption[]
   characters: CharacterOption[]
   mode?: 'create' | 'edit'
 }>(), { mode: 'create' })
 
-const emit = defineEmits<{ submit: [], cancel: [], 'update:faction': [faction: FactionDraft] }>()
+const emit = defineEmits<{ cancel: [], 'update:faction': [faction: FactionDraft] }>()
 
 const localFaction = ref<FactionDraft>({ ...props.faction })
 const errors = ref<Record<string, string>>({})
@@ -148,12 +150,12 @@ function validate() {
   return Object.keys(errors.value).length === 0
 }
 
-function submit() {
+async function submit() {
   if (!validate()) return
 
   try {
     emit('update:faction', localFaction.value)
-    emit('submit')
+    await props.onSubmit()
     serverError.value = ''
   } catch (err) {
     serverError.value = apiErrorMessage(err, 'Erreur inconnue')

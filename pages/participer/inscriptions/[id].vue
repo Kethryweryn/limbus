@@ -5,7 +5,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 // Répondre à une inscription depuis le compte (US-072)
 const route = useRoute()
 </script>

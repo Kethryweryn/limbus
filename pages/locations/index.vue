@@ -27,7 +27,7 @@
         <template #header>
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <NuxtLink :to="`/locations/${location.slug || location.id}`" class="font-semibold truncate hover:underline">
+              <NuxtLink :to="`/locations/${location.slug || location.id}`" class="block font-semibold truncate hover:underline">
                 {{ location.name }}
               </NuxtLink>
               <p class="text-sm text-gray-500 truncate">

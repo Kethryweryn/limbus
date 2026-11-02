@@ -30,11 +30,11 @@
       </UFormField>
 
       <UFormField label="Email" :help="heldByPerson ? 'Changer l’email détache la fiche de son compte : à faire seulement pour corriger une erreur.' : undefined">
-        <UInput v-model="localParticipant.email" type="email" size="lg" class="w-full" />
+        <UInput v-model.nullable="localParticipant.email" type="email" size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Téléphone" :help="heldByPerson ? 'Tenu par la personne depuis son compte.' : undefined">
-        <UInput v-model="localParticipant.phone" size="lg" class="w-full" :disabled="heldByPerson" />
+        <UInput v-model.nullable="localParticipant.phone" size="lg" class="w-full" :disabled="heldByPerson" />
       </UFormField>
 
       <!-- Une note par jeu (US-069) : chaque équipe ne voit que celles de ses jeux -->
@@ -44,7 +44,7 @@
         :label="`Notes — ${game.label}`"
         help="Visibles par l’équipe de ce jeu seulement."
       >
-        <UTextarea v-model="localParticipant.gameNotes[game.value]" :rows="5" size="lg" class="w-full" />
+        <UTextarea v-model.nullable="localParticipant.gameNotes[game.value]" :rows="5" size="lg" class="w-full" />
       </UFormField>
 
       <div class="flex flex-wrap gap-2 pt-2">
@@ -61,19 +61,23 @@
   </UCard>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { apiErrorMessage } from '~/utils/apiErrors'
+import type { GameOption, ParticipantDraft } from '~/utils/writingDrafts'
 
-const props = defineProps({
-  participant: { type: Object, required: true },
-  games: { type: Array, required: true },
-  mode: { type: String, default: 'create' }
-})
+const props = withDefaults(defineProps<{
+  // Enregistrement par le parent (`@submit`), attendu pour afficher ici son erreur
+  onSubmit: () => unknown
+  participant: ParticipantDraft
+  games: GameOption[]
+  mode?: 'create' | 'edit'
+}>(), { mode: 'create' })
 
-const emit = defineEmits(['submit', 'cancel', 'update:participant'])
+const emit = defineEmits<{ cancel: [], 'update:participant': [participant: ParticipantDraft] }>()
 
-const localParticipant = ref({ ...props.participant })
-const errors = ref({})
+const localParticipant = ref<ParticipantDraft & { gameNotes: Record<string, string | null> }>({ ...props.participant, gameNotes: {} })
+const errors = ref<Record<string, string>>({})
 const serverError = ref('')
 
 const gameOptions = computed(() => props.games.map((game) => ({
@@ -121,10 +125,10 @@ async function submit() {
 
   try {
     emit('update:participant', localParticipant.value)
-    await emit('submit')
+    await props.onSubmit()
     serverError.value = ''
   } catch (err) {
-    serverError.value = err?.data?.message || err?.message || 'Erreur inconnue'
+    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
   }
 }
 </script>

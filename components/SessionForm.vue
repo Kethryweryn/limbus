@@ -115,6 +115,8 @@ import { emptyStringModel, type CharacterOption, type GameOption, type SessionDr
 
 // Détails d'une session : nom, date, lieu, statut, équipe. Le cast se distribue dans son onglet (SessionCastForm).
 const props = withDefaults(defineProps<{
+  // Enregistrement par le parent (`@submit`), attendu pour afficher ici son erreur
+  onSubmit: () => unknown
   session: SessionDraft
   games: GameOption[]
   characters: CharacterOption[]
@@ -123,7 +125,7 @@ const props = withDefaults(defineProps<{
   mode?: 'create' | 'edit'
 }>(), { mode: 'create' })
 
-const emit = defineEmits<{ submit: [], cancel: [], 'update:session': [session: SessionDraft] }>()
+const emit = defineEmits<{ cancel: [], 'update:session': [session: SessionDraft] }>()
 
 const localSession = ref<SessionDraft>({ ...props.session })
 const errors = ref<Record<string, string>>({})
@@ -240,7 +242,7 @@ function validate() {
   return Object.keys(errors.value).length === 0
 }
 
-function submit() {
+async function submit() {
   if (!validate()) return
 
   try {
@@ -249,7 +251,7 @@ function submit() {
       assignments: (localSession.value.assignments || []).filter((assignment) => assignment.characterId),
       participants: sessionParticipantsPayload(localSession.value)
     })
-    emit('submit')
+    await props.onSubmit()
     serverError.value = ''
   } catch (err) {
     serverError.value = apiErrorMessage(err, 'Erreur inconnue')

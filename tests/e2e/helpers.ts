@@ -67,6 +67,14 @@ export function gamePanel(page: Page, title: string, button: string | RegExp) {
     .last()
 }
 
+// Compte propre au test, confirmé et aux conditions acceptées : ses changements ne touchent pas les comptes partagés
+export async function testUser(prisma: TestPrisma, base: string, role = 'user') {
+  const name = uniqueName(base)
+  const email = `${slugOf(name)}@example.test`
+  const user = await prisma.user.create({ data: { email, name, password: 'inutilisable', role, termsAcceptedVersion: TERMS_VERSION, emailConfirmedAt: new Date() } })
+  return { user, email, name }
+}
+
 export function slugOf(name: string) {
   return name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-')
 }

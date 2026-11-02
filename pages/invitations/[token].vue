@@ -26,9 +26,9 @@
           :description="`Cette invitation est destinée à ${invitation.email}.`"
         />
 
-        <div v-if="authState?.authenticated" class="space-y-3">
+        <div v-if="currentUser" class="space-y-3">
           <p class="text-sm text-gray-600">
-            Vous êtes connecté avec {{ authState.user.email }}.
+            Vous êtes connecté avec {{ currentUser.email }}.
           </p>
           <UAlert
             v-if="wrongAccount"
@@ -102,7 +102,10 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { serverMessage } from '~/utils/apiErrors'
+import type { ApiResponse } from '~/composables/useApiFetch'
+
 definePageMeta({
   layout: false
 })
@@ -110,11 +113,11 @@ definePageMeta({
 const route = useRoute()
 const token = String(route.params.token || '')
 const pending = ref(true)
-const invitation = ref(null)
+const invitation = ref<ApiResponse<'/api/invitations/:token'> | null>(null)
 const loadError = ref('')
 const serverError = ref('')
 const saving = ref(false)
-const mode = ref('register')
+const mode = ref<'register' | 'login'>('register')
 const form = ref({
   name: '',
   password: '',
@@ -125,8 +128,9 @@ const loginForm = ref({
   password: ''
 })
 const { data: authState } = await useFetch('/api/auth/me')
-const normalizeEmail = (email) => String(email || '').trim().toLowerCase()
-const normalizedAuthEmail = computed(() => normalizeEmail(authState.value?.user?.email))
+const normalizeEmail = (email: string | null | undefined) => String(email || '').trim().toLowerCase()
+const currentUser = computed(() => authState.value?.authenticated ? authState.value.user : null)
+const normalizedAuthEmail = computed(() => normalizeEmail(currentUser.value?.email))
 const normalizedInvitationEmail = computed(() => normalizeEmail(invitation.value?.email))
 // Seul le compte de l'adresse invitée accepte (US-064)
 const wrongAccount = computed(() => normalizedAuthEmail.value !== normalizedInvitationEmail.value)
@@ -134,10 +138,11 @@ const wrongAccount = computed(() => normalizedAuthEmail.value !== normalizedInvi
 const isBequest = computed(() => invitation.value?.kind === 'bequest')
 
 try {
-  invitation.value = await $fetch(`/api/invitations/${token}`)
-  loginForm.value.email = invitation.value.email
+  const loaded = await publicFetch<ApiResponse<'/api/invitations/:token'>>(`/api/invitations/${token}`)
+  invitation.value = loaded
+  loginForm.value.email = loaded.email
 } catch (err) {
-  loadError.value = err?.data?.message || err?.statusMessage || 'Invitation introuvable'
+  loadError.value = serverMessage(err, 'Invitation introuvable')
 } finally {
   pending.value = false
 }
@@ -146,13 +151,10 @@ async function loginAndAccept() {
   saving.value = true
   serverError.value = ''
   try {
-    await $fetch('/api/auth/login', {
-      method: 'POST',
-      body: loginForm.value
-    })
+    await publicFetch('/api/auth/login', { method: 'POST', body: loginForm.value })
     await acceptInvitation()
   } catch (err) {
-    serverError.value = err?.data?.message || err?.statusMessage || 'Impossible de se connecter'
+    serverError.value = serverMessage(err, 'Impossible de se connecter')
   } finally {
     saving.value = false
   }
@@ -162,13 +164,10 @@ async function acceptInvitation() {
   saving.value = true
   serverError.value = ''
   try {
-    const result = await $fetch('/api/invitations/accept', {
-      method: 'POST',
-      body: { token }
-    })
+    const result = await publicFetch<ApiResponse<'/api/invitations/accept', 'post'>>('/api/invitations/accept', { method: 'POST', body: { token } })
     await navigateTo(`/games/${result.game.slug}`)
   } catch (err) {
-    serverError.value = err?.data?.message || err?.statusMessage || 'Impossible d’accepter l’invitation'
+    serverError.value = serverMessage(err, 'Impossible d’accepter l’invitation')
   } finally {
     saving.value = false
   }
@@ -178,7 +177,7 @@ async function register() {
   saving.value = true
   serverError.value = ''
   try {
-    const result = await $fetch('/api/auth/register', {
+    const result = await publicFetch<ApiResponse<'/api/auth/register', 'post'>>('/api/auth/register', {
       method: 'POST',
       body: {
         token,
@@ -189,7 +188,7 @@ async function register() {
     })
     await navigateTo(`/games/${result.game.slug}`)
   } catch (err) {
-    serverError.value = err?.data?.message || err?.statusMessage || 'Impossible de créer le compte'
+    serverError.value = serverMessage(err, 'Impossible de créer le compte')
   } finally {
     saving.value = false
   }
