@@ -89,6 +89,8 @@ export async function startTestSmtp(prisma: PrismaClient) {
 
   return {
     received,
+    // Emails reçus par une adresse
+    to: (email: string) => received.filter((message) => message.to.includes(email)),
     async disable() {
       await prisma.smtpSettings.update({ where: { id: 'default' }, data: { enabled: false } })
     },
@@ -104,7 +106,8 @@ export async function startTestSmtp(prisma: PrismaClient) {
 
 // Jeton d'un lien reçu par email (/inscription/…, /acces/mot-de-passe/…)
 export function linkToken(email: ReceivedEmail, path: string) {
-  return email.text.match(new RegExp(`${path}([\\w-]+)`))?.[1]
+  const escaped = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return email.text.match(new RegExp(`${escaped}([\\w-]+)`))?.[1]
 }
 
 export function personalLinkToken(email: ReceivedEmail) {

@@ -169,8 +169,8 @@ test('une personne s’inscrit par le lien de diffusion et confirme son adresse'
     await guest.getByRole('button', { name: 'M’inscrire' }).click()
     await expect(guest.getByText('Vérifiez votre boîte mail.')).toBeVisible()
 
-    await expect.poll(() => smtp.received.filter((message) => message.to.includes(`marie-${key}@example.test`)).length).toBe(1)
-    const token = personalLinkToken(smtp.received.find((message) => message.to.includes(`marie-${key}@example.test`))!)
+    await expect.poll(() => smtp.to(`marie-${key}@example.test`).length).toBe(1)
+    const token = personalLinkToken(smtp.to(`marie-${key}@example.test`)[0]!)
     await guest.goto(`/inscription/${token}`)
     await expect(guest.getByText('Votre adresse est confirmée : votre inscription est reçue.')).toBeVisible()
 
@@ -212,8 +212,8 @@ test('l’équipe retient une inscription, l’annonce, et la personne confirme 
     await panel.getByRole('button', { name: 'Annoncer les résultats (1)' }).click()
     await expect(panel.getByText('1 personne prévenue.')).toBeVisible()
 
-    await expect.poll(() => smtp.received.filter((message) => message.to.includes(email)).length).toBe(1)
-    const token = personalLinkToken(smtp.received.find((message) => message.to.includes(email))!)
+    await expect.poll(() => smtp.to(email).length).toBe(1)
+    const token = personalLinkToken(smtp.to(email)[0]!)
     const guest = await (await browser.newContext()).newPage()
     await guest.goto(`/inscription/${token}`)
     await guest.waitForLoadState('networkidle')
