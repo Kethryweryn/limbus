@@ -6,8 +6,7 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 |---|---|---|---|
 | [API pour une IA](api-pour-ia.md) | à trancher | 2026-10-29 | Accès d'une IA aux jeux d'une organisatrice connectée, avec ses droits (MCP ou REST) |
 | [Durcissement web](durcissement-web.md) | en partie traitée | 2026-10-29 | CSP et COOP sur les pages, origine des écritures, cookie `__Host-` (revue R-01 à R-03) |
-| [Supervision](supervision.md) | en partie traitée | 2026-10-29 | Route de santé et surveillance externe avec alerte email (revue R-15, R-16) |
-| [Un compte pour tout le monde](comptes-participants.md) | tranchée ([SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md)) | 2026-10-29 | Inscription libre, administrateur seul rôle global, espaces « J'organise » et « Je participe », coordonnées et RGPD en libre-service (SPEC-007, écart 1) |
+| [Supervision](supervision.md) | en partie traitée | 2026-10-29 | Route de santé et sondes Better Stack faites ; reste les journaux structurés, si besoin (revue R-15, R-16) |
 | [Numéros de version et notes de version](versions-et-notes-de-version.md) | à trancher | 2026-10-29 | Version sémantique, étiquettes git et notes de version à partir de la première version publiée |
 | [Indicateurs du questionnaire de casting](indicateurs-du-questionnaire-de-casting.md) | brouillon | 2026-11-02 | Repères compréhensibles sans formation en statistiques : questions qui ne départagent pas, personnages trop proches, rôles sans réponse ; état de l'art à rechercher à la spécification |
 | [Page Inscriptions lisible hors ligne](inscriptions-hors-ligne.md) | brouillon | 2026-11-02 | Inscriptions et détail lisibles depuis l'appareil sans réseau, en lecture seule (revue de la PR #95) |
@@ -26,3 +25,4 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Tests de bout en bout des parcours](../archive/todo/tests-e2e-des-parcours.md) | [EPIC-011](../archive/epics/EPIC-011-tests-e2e-des-parcours/README.md) | 2026-10-29 |
 | [Photos et RGPD](../archive/todo/photos-et-rgpd.md) | [SPEC-012](../specs/SPEC-012-photos-des-participants.md) ([EPIC-028](../archive/epics/EPIC-028-photos-des-participants/README.md)) | 2026-11-01 |
 | [Interface en TypeScript](../archive/todo/interface-en-typescript.md) | [EPIC-031](../archive/epics/EPIC-031-interface-en-typescript/README.md) | 2026-11-02 |
+| [Un compte pour tout le monde](../archive/todo/comptes-participants.md) | [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md), [SPEC-013](../specs/SPEC-013-pages-legales-et-conservation.md) | 2026-11-02 |

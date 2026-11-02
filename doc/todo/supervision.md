@@ -25,10 +25,15 @@ Une panne de Limbus n'est découverte que lorsque quelqu'un ouvre le site (revue
 
 ## Suivi
 
-- 2026-11-01 : choix de l'utilisatrice : Better Stack, version dans la réponse, site professionnel surveillé aussi. Route de santé faite ([EPIC-026](../archive/epics/EPIC-026-supervision/README.md), [ADR-0052](../adr/ADR-0052-page-de-sante.md)). Reste : les sondes (utilisatrice), puis les journaux structurés si besoin.
+- 2026-11-01 : choix de l'utilisatrice : Better Stack, version dans la réponse, site professionnel surveillé aussi. Route de santé faite ([EPIC-026](../archive/epics/EPIC-026-supervision/README.md), [ADR-0052](../adr/ADR-0052-page-de-sante.md)).
+- 2026-11-01 : sondes Better Stack créées par l'utilisatrice, pour Limbus et pour le site professionnel.
 
-## Points à trancher
+## Points tranchés
 
-- Quel service ? À comparer : offre gratuite, fréquence, alertes par email, hébergement en Europe.
-- La route de santé dit-elle seulement « ça marche », ou aussi la version déployée (SHA) ? Recommandation : le SHA aussi, utile pour vérifier un déploiement, et sans risque.
-- Surveiller aussi le site professionnel (jdmottot.fr) avec le même service ? Recommandation : oui.
+- Service : Better Stack (choix de l'utilisatrice, 2026-11-01).
+- La route de santé donne aussi la version déployée (SHA).
+- Le site professionnel est surveillé par le même service.
+
+## Reste
+
+- Journaux structurés (R-16), seulement si la supervision le demande.
