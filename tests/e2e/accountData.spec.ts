@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises'
 import { expect, type Download } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
-import { linkToken, startTestSmtp } from '../integration/smtp'
+import { linkToken } from '../integration/smtp'
+import { openMailbox } from './mailbox'
 import { E2E_PASSWORD, E2E_USERS } from './constants'
 import { blockWith, expectLoggedIn, login, signIn, slugOf, test, testUser, uniqueName } from './helpers'
 
@@ -12,7 +13,7 @@ async function downloadedJson(download: Download) {
 // EPIC-013 (US-063) : nouvelle adresse confirmée par le lien reçu à cette adresse
 test('la personne change son adresse email par le lien reçu', async ({ page }) => {
   const prisma = createTestPrisma()
-  const smtp = await startTestSmtp(prisma)
+  const mailbox = openMailbox()
   try {
     const { user, email } = await testUser(prisma, 'Adresse')
     const newEmail = `${slugOf(uniqueName('nouvelle adresse'))}@example.test`
@@ -28,15 +29,14 @@ test('la personne change son adresse email par le lien reçu', async ({ page }) 
     // L'adresse ne change qu'à l'ouverture du lien
     expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { email: true } })).email).toBe(email)
 
-    await expect.poll(() => smtp.to(newEmail).length).toBe(1)
-    await page.goto(`/acces/confirmer/${linkToken(smtp.to(newEmail)[0]!, '/acces/confirmer/')}`)
+    await expect.poll(() => mailbox.to(newEmail).length).toBe(1)
+    await page.goto(`/acces/confirmer/${linkToken(mailbox.to(newEmail)[0]!, '/acces/confirmer/')}`)
     await expect(page.getByText(`Votre compte utilise désormais l’adresse ${newEmail}.`)).toBeVisible()
     expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { email: true } })).email).toBe(newEmail)
     // L'ancienne adresse est prévenue du changement
-    await expect.poll(() => smtp.to(email).length).toBe(1)
-    expect(smtp.to(email)[0]!.text).toContain(newEmail)
+    await expect.poll(() => mailbox.to(email).length).toBe(1)
+    expect(mailbox.to(email)[0]!.text).toContain(newEmail)
   } finally {
-    await smtp.stop()
     await prisma.$disconnect()
   }
 })

@@ -1,15 +1,17 @@
 import { expect } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
-import { linkToken, startTestSmtp } from '../integration/smtp'
+import { linkToken } from '../integration/smtp'
+import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
-import { parcoursSession, signIn, slugOf, test, uniqueName } from './helpers'
+import { parcoursPerson, parcoursSession, signIn, slugOf, test, uniqueName } from './helpers'
 
 // EPIC-004 (SPEC-004) : une session se renomme depuis sa fiche, puis s'annule et l'équipe en est prévenue (US-021)
 test('une session se renomme, s’annule, et l’équipe est prévenue', async ({ page }) => {
   const prisma = createTestPrisma()
-  const smtp = await startTestSmtp(prisma)
+  const mailbox = openMailbox()
   try {
-    const { session, participant } = await parcoursSession(prisma, 'Session à annuler', [['Aube', 'Léa Parcours']])
+    const lea = await parcoursPerson(prisma, 'Léa Annulation')
+    const { session } = await parcoursSession(prisma, 'Session à annuler', [['Aube', lea.name]])
 
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto(`/sessions/${session.slug}`)
@@ -35,10 +37,9 @@ test('une session se renomme, s’annule, et l’équipe est prévenue', async (
     page.once('dialog', (confirmation) => confirmation.accept())
     await dialog.getByRole('button', { name: 'Envoyer à l’équipe' }).click()
     await expect(dialog.getByText(/email\(s\) envoyé\(s\)/)).toBeVisible()
-    await expect.poll(() => smtp.to(participant('Léa Parcours').email!).length).toBe(1)
+    await expect.poll(() => mailbox.to(lea.email).length).toBe(1)
     expect((await prisma.session.findUniqueOrThrow({ where: { id: session.id }, select: { status: true } })).status).toBe('cancelled')
   } finally {
-    await smtp.stop()
     await prisma.$disconnect()
   }
 })
@@ -46,10 +47,10 @@ test('une session se renomme, s’annule, et l’équipe est prévenue', async (
 // EPIC-004 (US-022, US-024) : une session reportée demande la présence de son équipe, et l'onglet Présence suit les réponses
 test('une session se reporte, et la présence de l’équipe se demande et se suit', async ({ page, otherPage }) => {
   const prisma = createTestPrisma()
-  const smtp = await startTestSmtp(prisma)
+  const mailbox = openMailbox()
   try {
-    const { session, participant } = await parcoursSession(prisma, 'Session à reporter', [['Aube', 'Léa Parcours']])
-    const email = participant('Léa Parcours').email!
+    const { email, name: lea } = await parcoursPerson(prisma, 'Léa Report')
+    const { session } = await parcoursSession(prisma, 'Session à reporter', [['Aube', lea]])
 
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto(`/sessions/${session.slug}`)
@@ -72,8 +73,8 @@ test('une session se reporte, et la présence de l’équipe se demande et se su
     await expect(page.getByText(/1 demande\(s\) envoyée\(s\)\./)).toBeVisible()
 
     // La personne répond par son lien ; l'équipe voit la réponse
-    await expect.poll(() => smtp.to(email).length).toBe(1)
-    const token = linkToken(smtp.to(email)[0]!, '/presence/')
+    await expect.poll(() => mailbox.to(email).length).toBe(1)
+    const token = linkToken(mailbox.to(email)[0]!, '/presence/')
     const guest = await otherPage()
     await guest.goto(`/presence/${token}`)
     await guest.waitForLoadState('networkidle')
@@ -83,7 +84,6 @@ test('une session se reporte, et la présence de l’équipe se demande et se su
     await page.waitForLoadState('networkidle')
     await expect(page.getByText('Confirmé', { exact: true }).first()).toBeVisible()
   } finally {
-    await smtp.stop()
     await prisma.$disconnect()
   }
 })

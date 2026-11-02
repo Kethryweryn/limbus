@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
-import { linkToken, startTestSmtp } from '../integration/smtp'
+import { linkToken } from '../integration/smtp'
+import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
 import { blockWith, signIn, slugOf, test, uniqueName, type TestPrisma } from './helpers'
 
@@ -153,7 +154,7 @@ test('un événement de la timeline se crée et se renomme', async ({ page }) =>
 // EPIC-012 (US-058, US-064) : un jeu se crée, se renomme, et se partage avec une co-organisatrice qui accepte l'invitation
 test('un jeu se crée, se renomme et se partage avec une co-organisatrice', async ({ page, otherPage }) => {
   const prisma = createTestPrisma()
-  const smtp = await startTestSmtp(prisma)
+  const mailbox = openMailbox()
   try {
     const title = uniqueName('Nouveau jeu')
 
@@ -181,8 +182,8 @@ test('un jeu se crée, se renomme et se partage avec une co-organisatrice', asyn
     await share.getByPlaceholder('email@exemple.fr').fill(E2E_USERS.autre)
     await share.getByRole('button', { name: 'Inviter' }).click()
     await expect(share.getByText(`Invitation envoyée à ${E2E_USERS.autre}.`)).toBeVisible()
-    await expect.poll(() => smtp.to(E2E_USERS.autre).length).toBe(1)
-    const token = linkToken(smtp.to(E2E_USERS.autre)[0]!, '/invitations/')
+    await expect.poll(() => mailbox.to(E2E_USERS.autre).length).toBe(1)
+    const token = linkToken(mailbox.to(E2E_USERS.autre)[0]!, '/invitations/')
 
     const guest = await otherPage()
     await signIn(guest, prisma, E2E_USERS.autre)
@@ -193,7 +194,6 @@ test('un jeu se crée, se renomme et se partage avec une co-organisatrice', asyn
     const autre = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.autre } })
     expect(await prisma.gameShare.count({ where: { gameId: game.id, userId: autre.id } })).toBe(1)
   } finally {
-    await smtp.stop()
     await prisma.$disconnect()
   }
 })

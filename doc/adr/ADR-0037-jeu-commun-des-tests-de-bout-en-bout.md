@@ -16,7 +16,7 @@ Les tests de bout en bout des parcours (casting, trombinoscopes, envois, paiemen
 
 - `tests/e2e/globalSetup.ts` prépare, directement en base, un jeu commun : personnages PJ et PNJ, participants avec email, lieu.
 - Chaque test crée par l'interface ce qu'il vérifie (session, casting, tarif…) et prépare en base ce dont il a seulement besoin comme point de départ, sous un nom qui lui est propre. Un test ne modifie pas ce qu'un autre utilise.
-- Les tests tournent l'un après l'autre (un seul worker), contre la base de test vidée au démarrage.
+- Les tests tournent l'un après l'autre (un seul worker), contre la base de test vidée au démarrage. Depuis [ADR-0059](ADR-0059-ci-en-jobs-paralleles.md), les fichiers tournent sur trois workers ; les tests d'un fichier se suivent toujours.
 - Les tests des parcours ouvrent la session par cookie (`signIn`), sans l'écran de connexion : il a ses propres tests, et chaque connexion par l'écran compte dans la limite de 10 tentatives par email en 15 minutes.
 - Pas de plafond de durée : la durée de la CI est surveillée.
 

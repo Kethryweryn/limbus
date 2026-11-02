@@ -1,26 +1,28 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { expect } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
-import { personalLinkToken, startTestSmtp } from '../integration/smtp'
+import { personalLinkToken } from '../integration/smtp'
+import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
 import { expectLoggedIn, gamePanel, login, signIn, test } from './helpers'
 
 // EPIC-001 : invitation par l'organisatrice → réponse par le lien personnel → présence dans la session
 test('une personne invitée accepte par son lien et rejoint la session', async ({ page, otherPage }) => {
   const prisma = createTestPrisma()
-  const smtp = await startTestSmtp(prisma)
+  const mailbox = openMailbox()
   try {
     await login(page, E2E_USERS.orga)
     await expectLoggedIn(page)
     await page.goto('/registrations')
-    await page.getByRole('button', { name: 'Inviter', exact: true }).click()
+    await page.waitForLoadState('networkidle')
+    // Le panneau de ce jeu : les tests voisins ajoutent leurs propres jeux à la page, en parallèle
+    await gamePanel(page, 'Jeu des inscriptions', 'Inviter').getByRole('button', { name: 'Inviter', exact: true }).click()
     await page.getByText('Camille Invitée').click()
     await page.getByRole('button', { name: 'Inviter (1)' }).click()
     await expect(page.getByText('1 invitation, 1 email envoyé.')).toBeVisible()
 
-    await expect.poll(() => smtp.received.length).toBe(1)
-    const token = personalLinkToken(smtp.received[0]!)
-    expect(smtp.received[0]!.to).toEqual(['camille.invitee@example.test'])
+    await expect.poll(() => mailbox.to('camille.invitee@example.test').length).toBe(1)
+    const token = personalLinkToken(mailbox.to('camille.invitee@example.test')[0]!)
 
     // La personne invitée n'a pas de compte : navigateur vierge
     const guest = await otherPage()
@@ -43,14 +45,13 @@ test('une personne invitée accepte par son lien et rejoint la session', async (
     const participants = await (await page.request.get(`/api/sessions/${session.id}`)).json()
     expect(JSON.stringify(participants)).toContain('Camille Invitée')
     await page.goto('/registrations')
-    await expect(page.getByText('Confirmée', { exact: true })).toBeVisible()
+    await expect(gamePanel(page, 'Jeu des inscriptions', 'Inviter').locator('li').filter({ hasText: 'Camille Invitée' }).getByText('Confirmée', { exact: true })).toBeVisible()
 
     // Elle entre dans le circuit de paiement sans attendre le casting (US-007, R22)
     await page.goto('/sessions/session-printemps?tab=payments')
     await expect(page.getByText('Camille Invitée').first()).toBeVisible()
     await expect(page.getByText('Personnage à attribuer')).toBeVisible()
   } finally {
-    await smtp.stop()
     await prisma.$disconnect()
   }
 })
@@ -142,7 +143,7 @@ test('l’éditeur du formulaire ajoute une question et une affinité', async ({
 // EPIC-020 : s'inscrire par le lien de diffusion, puis confirmer son adresse par le lien reçu
 test('une personne s’inscrit par le lien de diffusion et confirme son adresse', async ({ otherPage }) => {
   const prisma = createTestPrisma()
-  const smtp = await startTestSmtp(prisma)
+  const mailbox = openMailbox()
   try {
     const key = `diffusion-${Date.now()}`
     const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
@@ -169,15 +170,14 @@ test('une personne s’inscrit par le lien de diffusion et confirme son adresse'
     await guest.getByRole('button', { name: 'M’inscrire' }).click()
     await expect(guest.getByText('Vérifiez votre boîte mail.')).toBeVisible()
 
-    await expect.poll(() => smtp.to(`marie-${key}@example.test`).length).toBe(1)
-    const token = personalLinkToken(smtp.to(`marie-${key}@example.test`)[0]!)
+    await expect.poll(() => mailbox.to(`marie-${key}@example.test`).length).toBe(1)
+    const token = personalLinkToken(mailbox.to(`marie-${key}@example.test`)[0]!)
     await guest.goto(`/inscription/${token}`)
     await expect(guest.getByText('Votre adresse est confirmée : votre inscription est reçue.')).toBeVisible()
 
     const registration = await prisma.registration.findFirstOrThrow({ where: { periodId: period.id }, select: { status: true, availabilities: { select: { sessionId: true } } } })
     expect(registration).toEqual({ status: 'received', availabilities: [{ sessionId: sessions[1]!.id }] })
   } finally {
-    await smtp.stop()
     await prisma.$disconnect()
   }
 })
@@ -185,7 +185,7 @@ test('une personne s’inscrit par le lien de diffusion et confirme son adresse'
 // EPIC-021 : l'équipe retient une inscription reçue, annonce, et la personne confirme sa place par le lien reçu
 test('l’équipe retient une inscription, l’annonce, et la personne confirme sa place', async ({ page, otherPage }) => {
   const prisma = createTestPrisma()
-  const smtp = await startTestSmtp(prisma)
+  const mailbox = openMailbox()
   try {
     const key = `selection-${Date.now()}`
     const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
@@ -212,8 +212,8 @@ test('l’équipe retient une inscription, l’annonce, et la personne confirme 
     await panel.getByRole('button', { name: 'Annoncer les résultats (1)' }).click()
     await expect(panel.getByText('1 personne prévenue.')).toBeVisible()
 
-    await expect.poll(() => smtp.to(email).length).toBe(1)
-    const token = personalLinkToken(smtp.to(email)[0]!)
+    await expect.poll(() => mailbox.to(email).length).toBe(1)
+    const token = personalLinkToken(mailbox.to(email)[0]!)
     const guest = await otherPage()
     await guest.goto(`/inscription/${token}`)
     await guest.waitForLoadState('networkidle')
@@ -223,7 +223,6 @@ test('l’équipe retient une inscription, l’annonce, et la personne confirme 
     expect(await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { status: true } })).toEqual({ status: 'confirmed' })
     expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(1)
   } finally {
-    await smtp.stop()
     await prisma.$disconnect()
   }
 })

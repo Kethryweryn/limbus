@@ -1,12 +1,13 @@
 import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
-import { linkToken, startTestSmtp } from '../integration/smtp'
+import { linkToken } from '../integration/smtp'
+import { openMailbox } from './mailbox'
 import { expectLoggedIn, login, slugOf, testUser, uniqueName } from './helpers'
 
 // EPIC-013 (US-062) : mot de passe oublié, lien reçu par email, nouveau mot de passe qui connecte
 test('une personne qui a oublié son mot de passe en choisit un nouveau par le lien reçu', async ({ page }) => {
   const prisma = createTestPrisma()
-  const smtp = await startTestSmtp(prisma)
+  const mailbox = openMailbox()
   try {
     const { email } = await testUser(prisma, 'Oubli')
 
@@ -24,9 +25,9 @@ test('une personne qui a oublié son mot de passe en choisit un nouveau par le l
     await page.getByRole('button', { name: 'Recevoir le lien' }).click()
     await expect(page.getByText(`Si un compte utilise ${unknown}, un lien vient d’y partir.`)).toBeVisible()
 
-    await expect.poll(() => smtp.to(email).length).toBe(1)
-    expect(smtp.to(unknown)).toEqual([])
-    const token = linkToken(smtp.to(email)[0]!, '/acces/mot-de-passe/')
+    await expect.poll(() => mailbox.to(email).length).toBe(1)
+    expect(mailbox.to(unknown)).toEqual([])
+    const token = linkToken(mailbox.to(email)[0]!, '/acces/mot-de-passe/')
     await page.goto(`/acces/mot-de-passe/${token}`)
     await page.waitForLoadState('networkidle')
 
@@ -54,7 +55,6 @@ test('une personne qui a oublié son mot de passe en choisit un nouveau par le l
     await login(page, email, 'nouveau-secret-1')
     await expectLoggedIn(page)
   } finally {
-    await smtp.stop()
     await prisma.$disconnect()
   }
 })
@@ -62,7 +62,7 @@ test('une personne qui a oublié son mot de passe en choisit un nouveau par le l
 // EPIC-013 (US-061) : inscription libre, confirmation de l'adresse par le lien reçu, qui connecte
 test('une personne crée son compte et le confirme par le lien reçu', async ({ page }) => {
   const prisma = createTestPrisma()
-  const smtp = await startTestSmtp(prisma)
+  const mailbox = openMailbox()
   try {
     const name = uniqueName('Nouvelle Venue')
     const email = `${slugOf(name)}@example.test`
@@ -81,15 +81,14 @@ test('une personne crée son compte et le confirme par le lien reçu', async ({ 
     // Adresse pas encore confirmée tant que le lien n'est pas ouvert
     expect((await prisma.user.findUniqueOrThrow({ where: { email }, select: { emailConfirmedAt: true } })).emailConfirmedAt).toBeNull()
 
-    await expect.poll(() => smtp.to(email).length).toBe(1)
-    const token = linkToken(smtp.to(email)[0]!, '/acces/confirmer/')
+    await expect.poll(() => mailbox.to(email).length).toBe(1)
+    const token = linkToken(mailbox.to(email)[0]!, '/acces/confirmer/')
     await page.goto(`/acces/confirmer/${token}`)
     await expect(page.getByText('Votre adresse est confirmée : votre compte est actif.')).toBeVisible()
     await page.getByRole('button', { name: 'Ouvrir Limbus' }).click()
     await expectLoggedIn(page)
     expect((await prisma.user.findUniqueOrThrow({ where: { email }, select: { emailConfirmedAt: true } })).emailConfirmedAt).not.toBeNull()
   } finally {
-    await smtp.stop()
     await prisma.$disconnect()
   }
 })

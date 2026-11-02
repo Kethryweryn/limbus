@@ -11,8 +11,10 @@ export const BASE_URL = `http://localhost:${PORT}`
 export default defineConfig({
   testDir: '.',
   globalSetup: './globalSetup.ts',
+  // Les fichiers se répartissent entre trois navigateurs ; les tests d'un fichier se suivent. Les tests partagent la
+  // base et le serveur d'emails : chacun crée ses propres données et écrit à ses propres adresses (mailbox.ts).
   fullyParallel: false,
-  workers: 1,
+  workers: 3,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['list'], ['github']] : 'list',
   use: {

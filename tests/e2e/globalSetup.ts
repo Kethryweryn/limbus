@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process'
 import bcrypt from 'bcrypt'
 import { createTestPrisma, testDatabaseUrl } from '../integration/db'
 import { E2E_PASSWORD, E2E_USERS, PARCOURS } from './constants'
+import { startSharedSmtp } from './mailbox'
 
 export default async function globalSetup() {
   execFileSync('npx', ['prisma', 'migrate', 'reset', '--force'], {
@@ -51,5 +52,8 @@ export default async function globalSetup() {
       data: { name: person.name, slug: person.slug, email: person.email, gameLinks: { create: { gameId: parcours.id } } }
     })
   }
+  // Emails de toute la série : le serveur vit le temps des tests, et s'arrête avec eux
+  const stopSmtp = await startSharedSmtp(prisma)
   await prisma.$disconnect()
+  return stopSmtp
 }

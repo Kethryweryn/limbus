@@ -117,6 +117,16 @@ export async function parcoursSession(prisma: TestPrisma, base: string, cast: Ar
   return { session, game, character, participant }
 }
 
+// Participant du jeu commun, propre au test : les emails qu'il reçoit ne se mêlent pas à ceux des tests voisins,
+// qui tournent en parallèle
+export async function parcoursPerson(prisma: TestPrisma, base: string) {
+  const { game } = await parcoursGame(prisma)
+  const name = uniqueName(base)
+  const email = `${slugOf(name)}@example.test`
+  await prisma.participant.create({ data: { name, slug: slugOf(name), email, gameLinks: { create: { gameId: game.id } } } })
+  return { name, email }
+}
+
 // Choisit une option dans un USelect (bouton « combobox » de Nuxt UI)
 export async function choose(page: Page, combobox: Locator, option: string | RegExp) {
   await combobox.click()
