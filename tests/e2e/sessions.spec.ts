@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { expect } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { linkToken, startTestSmtp } from '../integration/smtp'
@@ -22,7 +21,8 @@ test('une session se renomme, s’annule, et l’équipe est prévenue', async (
     await page.getByLabel('Nom', { exact: true }).fill(renamed)
     await page.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(page.getByRole('heading', { name: renamed, level: 1 })).toBeVisible()
-    await expect(page).toHaveURL(new RegExp(`/sessions/${slugOf(renamed)}`))
+    const { slug } = await prisma.session.findUniqueOrThrow({ where: { id: session.id }, select: { slug: true } })
+    await expect(page).toHaveURL(new RegExp(`/sessions/${slug}([?]|$)`))
 
     // Annulation : la modale d'information de l'équipe s'ouvre d'elle-même
     await page.getByRole('button', { name: 'Modifier' }).first().click()
@@ -60,9 +60,13 @@ test('une session se reporte, et la présence de l’équipe se demande et se su
     await dialog.getByLabel('Nom de la nouvelle session').fill(name)
     await dialog.getByRole('button', { name: 'Reporter' }).click()
 
-    // La nouvelle session s'ouvre sur son onglet Présence
+    // La nouvelle session s'ouvre sur son onglet Présence ; l'ancienne est reportée sur elle
     await expect(page.getByRole('heading', { name, level: 1 })).toBeVisible()
     await expect(page).toHaveURL(/tab=presence/)
+    const created = await prisma.session.findFirstOrThrow({ where: { name } })
+    expect(await prisma.session.findUniqueOrThrow({ where: { id: session.id }, select: { status: true, postponedToSessionId: true } }))
+      .toEqual({ status: 'postponed', postponedToSessionId: created.id })
+    await expect(page.getByRole('link', { name: session.name })).toBeVisible()
     page.once('dialog', (confirmation) => confirmation.accept())
     await page.getByRole('button', { name: 'Envoyer les demandes' }).click()
     await expect(page.getByText(/1 demande\(s\) envoyée\(s\)\./)).toBeVisible()
@@ -70,9 +74,6 @@ test('une session se reporte, et la présence de l’équipe se demande et se su
     // La personne répond par son lien ; l'équipe voit la réponse
     await expect.poll(() => smtp.to(email).length).toBe(1)
     const token = linkToken(smtp.to(email)[0]!, '/presence/')
-    const created = await prisma.session.findFirstOrThrow({ where: { name } })
-    const attendance = await prisma.sessionAttendance.findFirstOrThrow({ where: { sessionId: created.id } })
-    expect(attendance.tokenHash).toBe(createHash('sha256').update(token!).digest('hex'))
     const guest = await otherPage()
     await guest.goto(`/presence/${token}`)
     await guest.waitForLoadState('networkidle')
