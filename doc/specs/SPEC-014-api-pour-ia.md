@@ -172,7 +172,7 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
 À préciser en epics et US :
 
 1. **Connexion et lecture** :
-   - avant de coder, un essai du serveur d'autorisation écrit pour Limbus et un essai avec `oidc-provider`, comparés dans l'[ADR-0058](../adr/ADR-0058-serveur-d-autorisation-pour-les-ia.md) (l'utilisatrice tranche) ;
+   - avant de coder, un essai du serveur d'autorisation écrit pour Limbus et un essai avec `oidc-provider`, comparés dans l'[ADR-0058](../adr/ADR-0058-serveur-d-autorisation-pour-les-ia.md) : serveur écrit pour Limbus retenu ;
    - serveur d'autorisation, page d'autorisation, « Assistants connectés », réglage de la propriétaire ;
    - journal, limite de débit, politique de confidentialité et conditions d'utilisation ;
    - outils de lecture (R7 à R9) ;

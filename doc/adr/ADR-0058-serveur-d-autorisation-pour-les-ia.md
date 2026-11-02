@@ -1,7 +1,7 @@
 ---
 id: ADR-0058
 titre: Serveur MCP et serveur d'autorisation OAuth pour brancher une IA
-statut: proposé
+statut: accepté
 date: 2026-11-02
 liens: [../specs/SPEC-014-api-pour-ia.md, ../revues/2026-11-02-api-pour-ia.md, ADR-0038-un-seul-role-global.md, ADR-0053-durcissement-web.md]
 ---
@@ -73,7 +73,7 @@ Les frictions de l'essai B :
 
 ## Décision
 
-**À trancher par l'utilisatrice.** Recommandation : **A, le serveur écrit pour Limbus.**
+**A, le serveur écrit pour Limbus** : choix de l'utilisatrice le 2 novembre 2026, sur la recommandation de cet ADR.
 
 - Le besoin est étroit :
   - un seul type d'autorisation (code avec PKCE, puis rafraîchissement) ;
@@ -88,11 +88,10 @@ Les frictions de l'essai B :
   - la protection SSRF reprise de `fetchPublicImage` ;
   - la liste des exigences de la spécification MCP et d'OAuth 2.1, citée dans le code.
 
-Les choix communs ci-dessus valent dans les deux cas.
+Les choix communs ci-dessus s'appliquent.
 
 ## Conséquences
 
-Si A est retenu :
 
 - tables Prisma pour les assistants, les codes (60 secondes), les autorisations (SPEC-014, R4 à R6) et les jetons, gardés en empreinte : accès une heure, rafraîchissement renouvelé à chaque usage ;
 - points d'accès sous `/oauth/` :
@@ -104,9 +103,10 @@ Si A est retenu :
 - tests d'intégration du parcours OAuth complet, avec le client MCP officiel ;
 - toute évolution de la spécification MCP (par exemple `iss` qui deviendra obligatoire) est à reporter à la main.
 
-Si B est retenu : adaptateur Prisma, clés et `renderError` à fournir. Il faut aussi suivre les versions de `oidc-provider` et l'avancement de CIMD dans la bibliothèque.
 
 ## Options écartées
+
+- **`oidc-provider` (essai B)** : il passe les mêmes vérifications. Il est écarté pour sa fonction CIMD expérimentale, ses frictions d'intégration et ses 34 paquets. Il demanderait aussi un adaptateur de stockage, des clés de chiffrement et des pages d'erreur en anglais à refaire.
 
 - **Better Auth (greffons `mcp()` et `cimd()`)** : en version bêta, et il remplacerait toute l'authentification de Limbus (JWT, `sessionVersion`, règles ADR-0039 et ADR-0042).
 - **Fournisseur d'identité externe (Auth0, Keycloak…)** : un service ou un serveur de plus pour un seul usage, avec les comptes à synchroniser.

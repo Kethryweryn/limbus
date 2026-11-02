@@ -61,4 +61,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0055](ADR-0055-pages-legales-et-acceptation.md) | Pages légales dans l'application, version des conditions acceptée sur le compte | accepté | 2026-11-02 |
 | [ADR-0056](ADR-0056-durees-de-conservation.md) | Comptes inactifs et fiches sans compte effacés à la connexion, en tâche de fond | accepté | 2026-11-02 |
 | [ADR-0057](ADR-0057-interface-en-typescript.md) | Interface en TypeScript strict, réponses déduites des routes Nitro, règle de lint étendue lot par lot | accepté | 2026-11-02 |
-| [ADR-0058](ADR-0058-serveur-d-autorisation-pour-les-ia.md) | Serveur MCP et serveur d'autorisation OAuth pour brancher une IA | proposé | 2026-11-02 |
+| [ADR-0058](ADR-0058-serveur-d-autorisation-pour-les-ia.md) | Serveur MCP et serveur d'autorisation OAuth écrit pour Limbus, pour brancher une IA | accepté | 2026-11-02 |
