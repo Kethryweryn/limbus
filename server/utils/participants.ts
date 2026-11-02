@@ -60,8 +60,14 @@ export function exposeParticipantsGames<T extends ParticipantWithGameLinks>(part
  * restent, affichés à part (ADR-0033). Les trombinoscopes déjà générés sont refaits sans elle, sans
  * faire échouer le retrait.
  */
-export async function removeParticipantFromGames(participantId: string, gameIds: string[], removedBy: { id: string }) {
-  if (!gameIds.length) return
+type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
+
+/**
+ * Retrait d'une personne de jeux (US-035), en deux temps : apply dans la transaction de l'appelant, avec la mise à
+ * jour de la fiche ; afterCommit ensuite (fichiers, trombinoscopes), une fois le retrait enregistré.
+ */
+export async function planParticipantRemoval(participantId: string, gameIds: string[], removedBy: { id: string }) {
+  if (!gameIds.length) return { apply: async () => {}, afterCommit: async () => {} }
   const inSessions = { participantId, session: { gameId: { in: gameIds } } }
   const [roles, assignments, responsibilities, attendances] = await Promise.all([
     prisma.sessionParticipant.findMany({ where: inSessions, select: { sessionId: true } }),
@@ -72,7 +78,7 @@ export async function removeParticipantFromGames(participantId: string, gameIds:
   const sessionIds = [...new Set([...roles, ...assignments, ...responsibilities, ...attendances].map((item) => item.sessionId))]
   const now = new Date()
 
-  await prisma.$transaction(async (tx) => {
+  const apply = async (tx: Tx) => {
     await tx.participantGame.deleteMany({ where: { participantId, gameId: { in: gameIds } } })
     await tx.sessionParticipant.deleteMany({ where: inSessions })
     await tx.timelineEventResponsible.deleteMany({ where: inSessions })
@@ -84,13 +90,17 @@ export async function removeParticipantFromGames(participantId: string, gameIds:
     })
     // L'équipe et le casting de ces sessions ont changé : leur version aussi (ADR-0028)
     if (sessionIds.length) await tx.session.updateMany({ where: { id: { in: sessionIds } }, data: { updatedAt: now } })
-  })
+  }
 
-  await deleteUnusedUploads(assignments.map((assignment) => assignment.photoUrl))
-  // Après la réponse, comme pour un désistement : l'enregistrement de la fiche n'attend pas les PDF
-  regenerateTrombinoscopes(sessionIds).catch((error) =>
-    console.error('[retrait d’un jeu] trombinoscopes non régénérés', { error: (error as Error)?.message })
-  )
+  const afterCommit = async () => {
+    await deleteUnusedUploads(assignments.map((assignment) => assignment.photoUrl))
+    // Après la réponse, comme pour un désistement : l'enregistrement de la fiche n'attend pas les PDF
+    regenerateTrombinoscopes(sessionIds).catch((error) =>
+      console.error('[retrait d’un jeu] trombinoscopes non régénérés', { error: (error as Error)?.message })
+    )
+  }
+
+  return { apply, afterCommit }
 }
 
 async function regenerateTrombinoscopes(sessionIds: string[]) {

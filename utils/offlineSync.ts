@@ -135,7 +135,11 @@ export async function enqueueOfflineOperation(request: string, options: any = {}
   const body = clone(options.body)
   const [, id] = apiSegments(request)
   const entityId = method === 'POST' ? body?.id || tempId() : id
-  const cached = entityId ? await findCachedEntity(store, entityId) : null
+  // Pages de détail gardées de l'élément, lues une fois : la recherche en cache et sa mise à jour s'en servent
+  const detailResponses = entityId && method !== 'POST'
+    ? (await listStoreEntries('responses')).filter((entry) => entry.value?.id === entityId)
+    : []
+  const cached = entityId ? await findCachedEntity(store, entityId, detailResponses) : null
   // Version lue (ADR-0036) : celle du corps, ou pour une suppression celle de l'élément en cache. Un élément
   // créé hors ligne n'en a pas : personne d'autre n'a pu le modifier
   const baseVersion = method === 'POST' || isTemporaryId(entityId)
@@ -160,7 +164,7 @@ export async function enqueueOfflineOperation(request: string, options: any = {}
 
   const queue = await getOfflineQueue()
   await saveOfflineQueue([...queue, operation])
-  await applyOptimisticCache(operation)
+  await applyOptimisticCache(operation, detailResponses)
   if (import.meta.client) window.dispatchEvent(new CustomEvent('limbus:offline-queued'))
   return optimisticResponse(operation, cached)
 }
@@ -425,12 +429,12 @@ async function markOperation(id: string, patch: Partial<OfflineSyncOperation>) {
   await saveOfflineQueue(queue.map((operation) => operation.id === id ? { ...operation, ...patch } : operation))
 }
 
-async function findCachedEntity(store: string, id: string) {
+type DetailResponse = { key: string, value: any }
+
+async function findCachedEntity(store: string, id: string, detailResponses: DetailResponse[]) {
   const list = store ? await getFromStore<any[]>(store, 'list') : null
   const fromList = Array.isArray(list) ? list.find((item) => item?.id === id) : null
-  if (fromList) return fromList
-  const responses = await listStoreEntries('responses')
-  return responses.find((entry) => entry.value?.id === id)?.value || null
+  return fromList || detailResponses[0]?.value || null
 }
 
 function entityName(value: any) {
@@ -439,15 +443,13 @@ function entityName(value: any) {
 
 // Le cache de l'appareil reflète aussitôt la modification. Seules les écritures sur l'élément lui-même le
 // touchent : une sous-route (déroulé, paiement…) n'a pas la forme de l'élément parent (US-048)
-async function applyOptimisticCache(operation: OfflineSyncOperation) {
+async function applyOptimisticCache(operation: OfflineSyncOperation, detailResponses: DetailResponse[]) {
   if (!operation.store || isSubRoute(operation.request)) return
 
   const current = await getFromStore<any[]>(operation.store, 'list') || []
   if (operation.method === 'DELETE') {
     await saveToStore(operation.store, 'list', current.filter((item) => item.id !== operation.entityId))
-    for (const entry of await listStoreEntries('responses')) {
-      if (entry.value?.id === operation.entityId) await deleteFromStore('responses', entry.key)
-    }
+    for (const entry of detailResponses) await deleteFromStore('responses', entry.key)
     return
   }
 
@@ -464,10 +466,8 @@ async function applyOptimisticCache(operation: OfflineSyncOperation) {
   ))
   // Pages de détail gardées : leurs champs simples suivent (nom, description…)
   const scalars = scalarFields(operation.body)
-  for (const entry of await listStoreEntries('responses')) {
-    if (entry.value?.id === operation.entityId) {
-      await saveToStore('responses', entry.key, { ...entry.value, ...scalars, updatedAt: entry.value.updatedAt, __offlinePending: true })
-    }
+  for (const entry of detailResponses) {
+    await saveToStore('responses', entry.key, { ...entry.value, ...scalars, updatedAt: entry.value.updatedAt, __offlinePending: true })
   }
 }
 

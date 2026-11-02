@@ -35,7 +35,7 @@ type MySession = {
  * sans rien des autres personnes. null s'il n'y a ni montant dû ni versement.
  */
 async function myPayment(session: MySession, participantIds: Set<string>) {
-  const dashboard = await getSessionPaymentDashboard(session.id)
+  const dashboard = await getSessionPaymentDashboard(session.id, [...participantIds])
   const row = dashboard.rows.find((item) => participantIds.has(item.participant.id))
   const refund = dashboard.refunds.find((item) => participantIds.has(item.participant.id))
   const departed = dashboard.unassignedPayments.find((item) => participantIds.has(item.participant.id))

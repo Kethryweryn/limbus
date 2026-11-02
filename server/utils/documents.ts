@@ -90,7 +90,8 @@ export async function getSessionDocumentDashboard(sessionId: string) {
       assignments: {
         include: {
           // Relations visibles du joueur, pour sa fiche (US-097)
-          character: { include: sheetRelationsInclude },
+          // Groupes : pour l'empreinte des trombinoscopes, calculée sans relire la session
+          character: { include: { ...sheetRelationsInclude, factions: { orderBy: { name: 'asc' as const } } } },
           participant: true
         }
       }
@@ -122,7 +123,7 @@ export async function getSessionDocumentDashboard(sessionId: string) {
         participant: true
       }
     }),
-    currentTrombinoscopeFingerprints(session.id)
+    currentTrombinoscopeFingerprints(session.id, session)
   ])
 
   const castByCharacterId = new Map(
@@ -324,8 +325,10 @@ async function sendToEach<Target extends { participant: { name: string, email: s
   record: (target: Target, copies: Copies) => Promise<void>
 ) {
   const failures: string[] = []
+  // Partis mais non enregistrés : restent « à envoyer » dans le suivi, l'équipe est prévenue de ne pas renvoyer
+  const unrecorded: string[] = []
   let sentCount = 0
-  if (!targets.length) return { sentCount, failures }
+  if (!targets.length) return { sentCount, failures, unrecorded }
   // Les copies des sessions passées s'effacent avant d'en ajouter (US-080) ; une session déjà passée n'en garde pas
   await purgeExpiredCopies()
   // Les photos échues ne partent pas dans un trombinoscope (US-108)
@@ -348,8 +351,12 @@ async function sendToEach<Target extends { participant: { name: string, email: s
         failures.push(target.participant.name)
         continue
       }
-      await record(target, keepCopies ? copies : {})
       sentCount++
+      // L'email est parti : un échec de son enregistrement n'arrête pas les envois suivants
+      await record(target, keepCopies ? copies : {}).catch((error) => {
+        unrecorded.push(target.participant.name)
+        console.error('[envoi] envoi parti mais non enregistré', { sessionId, error: (error as Error)?.message })
+      })
     }
   } finally {
     transport.close()
@@ -358,7 +365,7 @@ async function sendToEach<Target extends { participant: { name: string, email: s
   if (!sentCount && failures.length) {
     throw createError({ statusCode: 502, message: `Aucun email n’est parti (${failures.join(', ')}).` })
   }
-  return { sentCount, failures }
+  return { sentCount, failures, unrecorded }
 }
 
 type Dashboard = Awaited<ReturnType<typeof getSessionDocumentDashboard>>

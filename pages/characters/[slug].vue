@@ -190,12 +190,7 @@ const router = useRouter()
 const slug = String(route.params.slug)
 // Fiche consultée avec le réseau : elle se rouvre sans réseau (US-047)
 const { data: character, error, refresh } = await useOfflineFetch(`/api/characters/slug/${slug}`)
-const { data: games } = await useOfflineFetch('/api/games')
-const { data: factions } = await useOfflineFetch('/api/factions')
-const { data: intrigues, refresh: refreshIntrigues } = await useOfflineFetch('/api/intrigues')
-// Autres personnages du jeu, pour les relations (US-097)
-const { data: allCharacters } = await useOfflineFetch('/api/characters')
-
+// Introuvable : la page s'arrête avant de charger les listes de son jeu
 if (error.value) {
     handleApiAuthError(error.value)
     throw createError({
@@ -205,6 +200,13 @@ if (error.value) {
             : 'Personnage introuvable'
     })
 }
+const { data: games } = await useOfflineFetch('/api/games')
+// Groupes, intrigues et personnages du jeu du personnage seulement (relations, US-097)
+const gameQuery = `?gameId=${character.value?.gameId ?? ''}`
+const { data: factions } = await useOfflineFetch(`/api/factions${gameQuery}`)
+const { data: intrigues, refresh: refreshIntrigues } = await useOfflineFetch(`/api/intrigues${gameQuery}`)
+// Autres personnages du jeu, pour les relations (US-097)
+const { data: allCharacters } = await useOfflineFetch(`/api/characters${gameQuery}`)
 
 type CharacterPage = NonNullable<typeof character.value>
 

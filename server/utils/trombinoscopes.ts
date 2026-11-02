@@ -207,21 +207,26 @@ export function buildTrombinoscopeRows(
     })
 }
 
-async function loadTrombinoscopeSources(sessionId: string) {
-  const session = await prisma.session.findUnique({
-    where: { id: sessionId },
+const trombinoscopeSessionInclude = {
+  game: true,
+  assignments: {
     include: {
-      game: true,
-      assignments: {
-        include: {
-          participant: true,
-          character: {
-            include: { factions: { orderBy: { name: 'asc' } } }
-          }
-        }
+      participant: true,
+      character: {
+        include: { factions: { orderBy: { name: 'asc' as const } } }
       }
     }
-  })
+  }
+}
+
+type TrombinoscopeSession = NonNullable<Awaited<ReturnType<typeof findTrombinoscopeSession>>>
+
+const findTrombinoscopeSession = (sessionId: string) =>
+  prisma.session.findUnique({ where: { id: sessionId }, include: trombinoscopeSessionInclude })
+
+// loaded : la session déjà lue par l'appelant avec au moins ces liens (tableau des envois), pour ne pas la relire
+async function loadTrombinoscopeSources(sessionId: string, loaded?: TrombinoscopeSession) {
+  const session = loaded ?? await findTrombinoscopeSession(sessionId)
 
   if (!session) {
     throw createError({ statusCode: 404, message: 'Session introuvable' })
@@ -270,8 +275,8 @@ export function trombinoscopeFingerprint(params: { gameTitle: string, sessionNam
 const trombinoscopeKey = (viewerCharacterId: string, participantId: string) => `${viewerCharacterId}:${participantId}`
 
 // Empreinte actuelle de chaque trombinoscope d'une session, par personnage qui regarde et participant
-export async function currentTrombinoscopeFingerprints(sessionId: string) {
-  const { session, characters, castByCharacterId, entriesByViewerAndTarget } = await loadTrombinoscopeSources(sessionId)
+export async function currentTrombinoscopeFingerprints(sessionId: string, loaded?: TrombinoscopeSession) {
+  const { session, characters, castByCharacterId, entriesByViewerAndTarget } = await loadTrombinoscopeSources(sessionId, loaded)
   const fingerprints = new Map<string, string>()
   for (const assignment of session.assignments) {
     if (!assignment.participantId) continue

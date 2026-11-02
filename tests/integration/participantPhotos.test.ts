@@ -1,11 +1,11 @@
 // EPIC-028 : information (US-107), durée et purge (US-108), retrait et refus (US-109) des photos des participants
-import bcrypt from 'bcrypt'
 import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
+import { triggerPurge } from './purge'
 
 const prisma = createTestPrisma()
 const { alice, bob } = inject('world').users
@@ -44,13 +44,6 @@ async function castSession(g: Awaited<ReturnType<typeof aliceGame>>, date: Date 
   return session
 }
 
-// La purge passe après chaque connexion réussie
-async function triggerPurge() {
-  const email = `purge-${++counter}@example.test`
-  await prisma.user.create({ data: { email, name: 'Purge', password: await bcrypt.hash('mot-de-passe-solide', 4) } })
-  const login = await api(null, 'POST', '/api/auth/login', { email, password: 'mot-de-passe-solide' })
-  expect(login.status, JSON.stringify(login.body)).toBe(200)
-}
 
 describe('réglages et information (US-107)', () => {
   it('enregistre la durée et l’adresse de contact du jeu, et refuse une durée hors bornes', async () => {
@@ -90,7 +83,7 @@ describe('durée et purge (US-108)', () => {
     const noDate = await castSession(g, null, lea, undated.url)
     await prisma.sessionTrombinoscope.create({ data: { sessionId: expired.id, viewerCharacterId: g.viewer.id, participantId: lea.id, fileName: 't.pdf', contentHtml: '<p>x</p>' } })
 
-    await triggerPurge()
+    await triggerPurge(prisma)
     const photoOf = async (sessionId: string) => (await prisma.sessionAssignment.findFirstOrThrow({ where: { sessionId } })).photoUrl
     expect(await photoOf(expired.id)).toBeNull()
     expect(await prisma.sessionTrombinoscope.count({ where: { sessionId: expired.id } })).toBe(0)

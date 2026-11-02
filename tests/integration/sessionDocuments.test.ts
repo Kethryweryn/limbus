@@ -91,7 +91,7 @@ describe('envoi des documents d’une session', () => {
 
     const response = await api(alice, 'POST', `/api/sessions/${session.id}/documents/send-character-sheets`, {})
     expect(response.status, JSON.stringify(response.body)).toBe(200)
-    expect(response.body).toEqual({ sentCount: 1, failures: [people[0]!.name] })
+    expect(response.body).toEqual({ sentCount: 1, failures: [people[0]!.name], unrecorded: [] })
     expect(smtp.received.some((received) => received.to.includes(people[1]!.email!))).toBe(true)
     expect(await prisma.sessionDocumentDelivery.count({ where: { sessionId: session.id } })).toBe(1)
 
@@ -136,7 +136,7 @@ describe('envoi des documents d’une session', () => {
     const before = smtp.received.length
     const resent = await api(alice, 'POST', `/api/sessions/${session.id}/documents/resend`, { kind: 'document', documentId: document.id })
     expect(resent.status, JSON.stringify(resent.body)).toBe(200)
-    expect(resent.body).toEqual({ sentCount: 2, failures: [] })
+    expect(resent.body).toEqual({ sentCount: 2, failures: [], unrecorded: [] })
     const update = mailsTo(people[0]!.email!).at(-1)!
     expect(update.raw).toMatch(/^Subject: .*Mise/m)
     expect(update.text).toContain('Version 2')
@@ -144,12 +144,12 @@ describe('envoi des documents d’une session', () => {
 
     // Fiche : seule celle qui a changé repart
     const sheets = await api(alice, 'POST', `/api/sessions/${session.id}/documents/resend`, { kind: 'character_sheet' })
-    expect(sheets.body).toEqual({ sentCount: 1, failures: [] })
+    expect(sheets.body).toEqual({ sentCount: 1, failures: [], unrecorded: [] })
     expect(smtp.received.slice(before).filter((received) => received.to.includes(people[1]!.email!))).toHaveLength(2)
     expect((await dashboard()).characterSheets.every((sheet) => !sheet.sheetVersionOutdated)).toBe(true)
 
     // Rien n'est dépassé : le renvoi groupé ne part à personne, le renvoi à une personne part quand même
-    expect((await api(alice, 'POST', `/api/sessions/${session.id}/documents/resend`, { kind: 'document', documentId: document.id })).body).toEqual({ sentCount: 0, failures: [] })
-    expect((await api(alice, 'POST', `/api/sessions/${session.id}/documents/resend`, { kind: 'character_sheet', characterId: characters[0]!.id })).body).toEqual({ sentCount: 1, failures: [] })
+    expect((await api(alice, 'POST', `/api/sessions/${session.id}/documents/resend`, { kind: 'document', documentId: document.id })).body).toEqual({ sentCount: 0, failures: [], unrecorded: [] })
+    expect((await api(alice, 'POST', `/api/sessions/${session.id}/documents/resend`, { kind: 'character_sheet', characterId: characters[0]!.id })).body).toEqual({ sentCount: 1, failures: [], unrecorded: [] })
   })
 })

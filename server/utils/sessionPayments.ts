@@ -194,19 +194,24 @@ export async function setSessionPaymentRefund(sessionId: string, participantId: 
   })
 }
 
-async function getPaymentSession(sessionId: string) {
+// participantIds : les lignes de ces personnes seules (« Je participe », US-071) ; une ligne ne dépend que de la
+// personne, de ses attributions, de ses rôles et de son paiement
+async function getPaymentSession(sessionId: string, participantIds?: string[]) {
+  const only = participantIds ? { where: { participantId: { in: participantIds } } } : {}
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
     // Nom et email suffisent au tableau : ni notes ni téléphone des personnes
     include: {
       game: { select: { id: true, title: true } },
       assignments: {
+        ...only,
         include: {
           character: { select: { id: true, name: true, type: true } },
           participant: { select: participantSelect }
         }
       },
       payments: {
+        ...only,
         include: {
           participant: { select: participantSelect },
           transferredTo: { select: { id: true, name: true } },
@@ -215,6 +220,7 @@ async function getPaymentSession(sessionId: string) {
       },
       tariffs: { orderBy: { createdAt: 'asc' } },
       participants: {
+        ...only,
         include: {
           participant: { select: participantSelect }
         }
@@ -472,8 +478,8 @@ export async function deleteSessionPaymentInstalment(sessionId: string, particip
   return { success: true }
 }
 
-export async function getSessionPaymentDashboard(sessionId: string) {
-  const session = await getPaymentSession(sessionId)
+export async function getSessionPaymentDashboard(sessionId: string, participantIds?: string[]) {
+  const session = await getPaymentSession(sessionId, participantIds)
   const rows = paymentRowsOf(session)
 
   // Paiements reçus de personnes qui ne sont plus dans le tableau (désistement, retrait) : à rembourser ou

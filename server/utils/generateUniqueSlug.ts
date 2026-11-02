@@ -16,62 +16,47 @@ const slugFallbackByModel: Record<SlugModel, string> = {
   document: 'document'
 }
 
+// Les modèles à slug ont le même accès par slug : leur délégué Prisma, lu par son nom
+type SlugDelegate = {
+  findUnique(args: { where: { slug: string }, select: { id: true } }): Promise<{ id: string } | null>
+  findMany(args: { where: { OR: Array<{ slug: { startsWith: string } }> }, select: { slug: true } }): Promise<Array<{ slug: string }>>
+}
+const delegate = (model: SlugModel) => prisma[model] as unknown as SlugDelegate
+
 async function findBySlug(model: SlugModel, slug: string): Promise<{ id: string } | null> {
-  if (model === 'game') {
-    return prisma.game.findUnique({ where: { slug }, select: { id: true } })
-  }
-
-  if (model === 'character') {
-    return prisma.character.findUnique({ where: { slug }, select: { id: true } })
-  }
-
-  if (model === 'faction') {
-    return prisma.faction.findUnique({ where: { slug }, select: { id: true } })
-  }
-
-  if (model === 'intrigue') {
-    return prisma.intrigue.findUnique({ where: { slug }, select: { id: true } })
-  }
-
-  if (model === 'item') {
-    return prisma.item.findUnique({ where: { slug }, select: { id: true } })
-  }
-
-  if (model === 'timelineEvent') {
-    return prisma.timelineEvent.findUnique({ where: { slug }, select: { id: true } })
-  }
-
-  if (model === 'participant') {
-    return prisma.participant.findUnique({ where: { slug }, select: { id: true } })
-  }
-
-  if (model === 'location') {
-    return prisma.location.findUnique({ where: { slug }, select: { id: true } })
-  }
-
-  if (model === 'session') {
-    return prisma.session.findUnique({ where: { slug }, select: { id: true } })
-  }
-
-  return prisma.document.findUnique({ where: { slug }, select: { id: true } })
+  return await delegate(model).findUnique({ where: { slug }, select: { id: true } })
 }
 
-// `taken` : slugs déjà réservés mais pas encore en base (copie d'un jeu, ADR-0025)
-export async function generateUniqueSlug(model: SlugModel, text: string, excludeId?: string, taken?: Set<string>): Promise<string> {
+export async function generateUniqueSlug(model: SlugModel, text: string, excludeId?: string): Promise<string> {
   const baseSlug = generateSlug(text) || slugFallbackByModel[model]
   let slug = baseSlug
   let suffix = 2
 
   while (true) {
-    if (!taken?.has(slug)) {
-      const existing = await findBySlug(model, slug)
-      if (!existing || existing.id === excludeId) {
-        taken?.add(slug)
-        return slug
-      }
-    }
+    const existing = await findBySlug(model, slug)
+    if (!existing || existing.id === excludeId) return slug
 
     slug = `${baseSlug}-${suffix}`
     suffix += 1
   }
+}
+
+/**
+ * Slugs uniques de plusieurs éléments créés ensemble (copie d'un jeu, ADR-0025) : les slugs qui commencent comme les
+ * leurs sont lus en une requête, au lieu d'une par essai.
+ */
+export async function generateUniqueSlugs(model: SlugModel, texts: string[]): Promise<string[]> {
+  if (!texts.length) return []
+  const bases = texts.map((text) => generateSlug(text) || slugFallbackByModel[model])
+  const existing = await delegate(model).findMany({
+    where: { OR: [...new Set(bases)].map((base) => ({ slug: { startsWith: base } })) },
+    select: { slug: true }
+  })
+  const taken = new Set(existing.map((row) => row.slug))
+  return bases.map((base) => {
+    let slug = base
+    for (let suffix = 2; taken.has(slug); suffix++) slug = `${base}-${suffix}`
+    taken.add(slug)
+    return slug
+  })
 }

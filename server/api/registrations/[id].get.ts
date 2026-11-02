@@ -36,13 +36,13 @@ export default defineEventHandler(async (event) => {
       session: { select: { id: true, name: true } }
     }
   })
-  const game = await prisma.game.findUnique({ where: { id: period.gameId }, select: { balanceAttribute: true } })
+  const game = await prisma.game.findUnique({ where: { id: period.gameId }, select: { balanceAttribute: true, balanceValues: true } })
   const [withPresence] = await withSessionPresence([registration])
   const { formVersion, ...rest } = withPresence!
   // Lignes d'affinité avec la personne rattachée et des suggestions (US-095)
   const affinities = await affinitiesForTeam({ id, participantId: registration.participant.id }, period.gameId)
   // Personnages, factions et intrigues que désignent les réponses (US-098)
-  const questionLinks = await currentQuestionLinks(period.gameId)
+  const questionLinks = await currentQuestionLinks(period.gameId, game ?? undefined)
   const definition = formVersion ? normalizeRegistrationFormDefinition(formVersion.definition as RegistrationFormDefinition) : null
   return {
     ...rest,

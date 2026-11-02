@@ -3,6 +3,7 @@
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { api, tokenFor } from './api'
 import { createTestPrisma } from './db'
+import { triggerPurge } from './purge'
 import { personalLinkToken, startTestSmtp } from './smtp'
 
 const prisma = createTestPrisma()
@@ -230,7 +231,7 @@ describe('confirmer son email et suivre son inscription (US-085)', () => {
     const token = personalLinkToken(smtp.received.at(-1)!)!
     await prisma.registrationRequest.updateMany({ where: { periodId: period.id }, data: { createdAt: new Date(Date.now() - 8 * DAY) } })
     expect((await publicApi('POST', `/api/public/registrations/${token}/confirm`)).status).toBe(404)
-    await publicApi('POST', '/api/auth/login', { email: 'personne@example.test', password: 'mauvais' })
+    await triggerPurge(prisma)
     expect(await prisma.registrationRequest.count({ where: { periodId: period.id } })).toBe(0)
   })
 })
