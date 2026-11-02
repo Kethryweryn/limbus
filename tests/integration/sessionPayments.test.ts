@@ -66,7 +66,7 @@ describe('tableau des paiements', () => {
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     expect(response.body).toMatchObject({ sentCount: 1 })
 
-    const email = smtp.received.filter((message) => message.to.includes(confirmed.email!)).at(-1)!
+    const email = smtp.to(confirmed.email!).at(-1)!
     expect(email.text).toContain(`régler ta participation à ${session.name}`)
     expect(email.text).not.toMatch(/personnage/i)
     expect(smtp.received.some((message) => message.to.includes(cook.email!))).toBe(false)

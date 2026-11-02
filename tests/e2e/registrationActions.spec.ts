@@ -60,7 +60,7 @@ test('l’équipe relance, prolonge, renvoie, libère et annule des invitations'
     await row('Ana Actions').getByRole('button', { name: 'Relancer' }).click()
     await expect(page.getByText('Rappel envoyé à Ana Actions.')).toBeVisible()
     await expect(row('Ana Actions').getByText(/relancée le/)).toBeVisible()
-    await expect.poll(() => smtp.received.filter((message) => message.to.includes(ana.email)).length).toBe(1)
+    await expect.poll(() => smtp.to(ana.email).length).toBe(1)
 
     // Prolongation : la modale propose une semaine après l'échéance, la nouvelle date est enregistrée
     await row('Ana Actions').getByRole('button', { name: 'Prolonger' }).click()
@@ -81,7 +81,7 @@ test('l’équipe relance, prolonge, renvoie, libère et annule des invitations'
     await row('Ben Actions').getByRole('button', { name: 'Nouveau lien' }).click()
     await expect(page.getByText('Nouveau lien envoyé à Ben Actions.')).toBeVisible()
     expect((await prisma.registration.findUniqueOrThrow({ where: { id: ben.registration.id }, select: { tokenHash: true } })).tokenHash).not.toBe(before)
-    await expect.poll(() => smtp.received.filter((message) => message.to.includes(ben.email)).length).toBe(1)
+    await expect.poll(() => smtp.to(ben.email).length).toBe(1)
 
     // Libération : la place est libérée par l'organisatrice, la ligne le dit et n'offre plus d'action d'invitation
     page.once('dialog', (dialog) => dialog.accept())

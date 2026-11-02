@@ -20,7 +20,7 @@ test('l’administratrice crée et désactive un compte, puis teste l’envoi d�
     await creation.getByLabel('Email').fill(email)
     await creation.getByRole('button', { name: 'Créer' }).click()
     await expect(page.getByText(`Compte créé : ${email} a reçu un lien pour choisir son mot de passe.`)).toBeVisible()
-    await expect.poll(() => smtp.received.filter((message) => message.to.includes(email)).length).toBe(1)
+    await expect.poll(() => smtp.to(email).length).toBe(1)
 
     // Désactivation depuis la carte du compte
     const card = page.locator('div').filter({ has: page.getByRole('heading', { name, exact: true }) }).filter({ has: page.getByRole('button', { name: 'Désactiver' }) }).last()
@@ -36,7 +36,7 @@ test('l’administratrice crée et désactive un compte, puis teste l’envoi d�
     await page.getByLabel('Destinataire').fill('test-smtp@example.test')
     await page.getByRole('button', { name: 'Envoyer un test' }).click()
     await expect(page.getByText('Email de test envoyé à test-smtp@example.test.')).toBeVisible()
-    await expect.poll(() => smtp.received.filter((message) => message.to.includes('test-smtp@example.test')).length).toBe(1)
+    await expect.poll(() => smtp.to('test-smtp@example.test').length).toBe(1)
   } finally {
     await smtp.stop()
     await prisma.$disconnect()

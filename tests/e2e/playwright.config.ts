@@ -30,6 +30,8 @@ export default defineConfig({
       DATABASE_URL: testDatabaseUrl(),
       JWT_SECRET,
       PUBLIC_APP_URL: BASE_URL,
+      // Inscription libre ouverte, pour tester son parcours (fermée en production tant que l'utilisatrice ne l'ouvre pas)
+      SIGNUP_OPEN: '1',
       HOST: '127.0.0.1',
       PORT: String(PORT)
     }

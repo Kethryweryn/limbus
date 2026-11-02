@@ -173,7 +173,7 @@ describe('accepter', () => {
     // L'email du formulaire fait foi et remonte sur la fiche (R12) ; le reste reste sur l'inscription (R14)
     expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id } })).toMatchObject({ email: 'camille.perso@example.test', phone: '0100000000' })
 
-    const email = smtp.received.find((message) => message.to.includes('camille.perso@example.test'))!
+    const email = smtp.to('camille.perso@example.test')[0]!
     expect(email.text).toContain(game.title)
     expect(personalLinkToken(email)).toBe(token)
     expect(email.text).not.toContain('Arachides')
