@@ -173,11 +173,12 @@ Ils remplacent ceux de la fiche :
 
 ## Tri
 
-2026-11-02 : l'utilisatrice a tranché les huit points ; le détail est dans la [fiche](../todo/api-pour-ia.md#décisions). Elle a suivi la recommandation (MCP avec OAuth), sauf sur deux points :
+2026-11-02 : l'utilisatrice a tranché les huit points ; le détail est dans la [fiche](../todo/api-pour-ia.md#décisions). Elle a suivi la recommandation (MCP avec OAuth), sauf sur trois points :
 - l'écriture vient dès le premier lot, au choix de l'organisatrice à l'autorisation ;
-- l'IA voit les noms des participants et les notes d'organisation.
+- l'IA voit les noms des participants et les notes d'organisation ;
+- l'IA lit les réponses fermées aux formulaires, et les affinités une fois traitées par l'équipe, pour aider au casting.
 
-Les coordonnées et les réponses aux formulaires restent exclues.
+Les coordonnées restent exclues, ainsi que tout champ libre écrit par un tiers. L'injection d'instructions décrite en section 3 passe justement par ces champs.
 
 ## Sources
 
