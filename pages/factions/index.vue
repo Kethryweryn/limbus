@@ -119,13 +119,12 @@
 </template>
 
 <script setup lang="ts">
+import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import { isInArchivedGame, isVisibleContent } from '~/utils/games'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import FactionForm from '@/components/FactionForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
-import { isOfflineMode } from '~/utils/connection'
-import { getFromStore, saveToStore } from '~/utils/storage'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import type { FactionDraft } from '~/utils/writingDrafts'
 
@@ -138,7 +137,6 @@ const searchQuery = ref('')
 const gameFilter = ref('all')
 const showArchived = ref(false)
 const sortOption = ref('updated-desc')
-const isOffline = ref(false)
 const showFormSlideover = ref(false)
 const activeFormFaction = ref<FactionDraft | null>(null)
 const formMode = ref<'create' | 'edit'>('create')
@@ -211,63 +209,25 @@ watch([searchQuery, gameFilter, sortOption, filteredFactions], () => {
 })
 
 const fetchFactions = async () => {
-  if (isOfflineMode()) {
-    factions.value = await getFromStore<typeof factions.value>('factions', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/factions')
-  factions.value = data
-  await saveToStore('factions', 'list', data)
+  factions.value = await fetchOfflineList('factions', '/api/factions')
 }
 
 const fetchGames = async () => {
-  if (isOfflineMode()) {
-    games.value = await getFromStore<typeof games.value>('games', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/games')
-  games.value = data
-  await saveToStore('games', 'list', data)
+  games.value = await fetchOfflineList('games', '/api/games')
 }
 
 const fetchCharacters = async () => {
-  if (isOfflineMode()) {
-    characters.value = await getFromStore<typeof characters.value>('characters', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/characters')
-  characters.value = data
-  await saveToStore('characters', 'list', data)
+  characters.value = await fetchOfflineList('characters', '/api/characters')
 }
 
 const refreshData = async () => {
   await Promise.all([fetchFactions(), fetchGames(), fetchCharacters()])
 }
 
-const updateStatus = () => {
-  const wasOffline = isOffline.value
-  isOffline.value = isOfflineMode()
-
-  if (wasOffline !== isOffline.value) {
-    refreshData()
-  }
-}
+useConnectionRefresh(refreshData)
 
 onMounted(async () => {
-  updateStatus()
-  window.addEventListener('online', updateStatus)
-  window.addEventListener('offline', updateStatus)
-  window.addEventListener('limbus:connection-change', updateStatus)
   await refreshData()
-})
-
-onUnmounted(() => {
-  window.removeEventListener('online', updateStatus)
-  window.removeEventListener('offline', updateStatus)
-  window.removeEventListener('limbus:connection-change', updateStatus)
 })
 
 function factionFormPayload(faction: FactionItem): FactionDraft {

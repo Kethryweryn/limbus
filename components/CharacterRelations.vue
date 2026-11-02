@@ -88,8 +88,7 @@ const message = ref('')
 async function load() {
   try {
     // Lue avec le réseau, elle reste lisible hors ligne avec la fiche (US-047)
-    const data = await useApiFetch(`/api/characters/${props.character.id}/relations`, { offlineCache: true })
-    relations.value = data
+    relations.value = await useApiFetch(`/api/characters/${props.character.id}/relations`, { offlineCache: true })
     message.value = ''
   } catch (err) {
     message.value = apiErrorMessage(err, 'Impossible de charger les relations')

@@ -102,14 +102,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { isOfflineMode } from '~/utils/connection'
-import { getFromStore, saveToStore } from '~/utils/storage'
+import { ref, onMounted } from 'vue'
+import { fetchOffline, useConnectionRefresh } from '~/composables/useOfflineList'
 import { initialSpace } from '~/utils/spaces'
 
 const dashboardData = ref<any>(null)
 const pending = ref(true)
-const error = ref(null)
 
 const formatDateTime = (value: string) => new Date(value).toLocaleString('fr-FR', {
   day: 'numeric',
@@ -126,32 +124,18 @@ const formatLocation = (location: any) => {
 
 const pluralLabel = (count: number, singular: string, plural: string) => count === 1 ? singular : plural
 
+// En cas d'échec, le tableau de bord déjà affiché reste
 const updateDashboard = async () => {
-  if (isOfflineMode()) {
-    dashboardData.value = await getFromStore('dashboard', 'main')
-    pending.value = false
-    return
-  }
-
   try {
-    const data = await useApiFetch('/api/dashboard')
-    dashboardData.value = data
-    saveToStore('dashboard', 'main', data)
-  } catch (e: any) {
-    error.value = e
+    dashboardData.value = await fetchOffline('dashboard', 'main', '/api/dashboard') ?? dashboardData.value
+  } catch (err) {
+    console.error('[dashboard]', err)
   } finally {
     pending.value = false
   }
 }
 
-const isOffline = ref(false)
-const updateStatus = () => {
-  const wasOffline = isOffline.value
-  isOffline.value = isOfflineMode()
-  if (!wasOffline && isOffline.value) {
-    updateDashboard()
-  }
-}
+useConnectionRefresh(updateDashboard)
 
 // À l'ouverture, Limbus rouvre le dernier espace utilisé, ou « Je participe » pour qui n'organise rien (US-073)
 const { data: authState } = await useFetch('/api/auth/me')
@@ -162,16 +146,6 @@ onMounted(() => {
     navigateTo('/participer', { replace: true })
     return
   }
-  updateStatus()
-  window.addEventListener('online', updateStatus)
-  window.addEventListener('offline', updateStatus)
-  window.addEventListener('limbus:connection-change', updateStatus)
   updateDashboard()
-})
-
-onUnmounted(() => {
-  window.removeEventListener('online', updateStatus)
-  window.removeEventListener('offline', updateStatus)
-  window.removeEventListener('limbus:connection-change', updateStatus)
 })
 </script>

@@ -1,3 +1,4 @@
+import { computed, type Ref } from 'vue'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
 // Éléments du jeu en cours d'édition (US-115) : leurs champs tels que l'API les rend, sans les éléments liés, que
@@ -30,6 +31,16 @@ export type TimelineEventDraft = Draft<ApiResponse<'/api/timeline-events/:id'>, 
 /** Élément affiché après un enregistrement mis en file hors ligne (ADR-0036) : l'élément lu, avec les champs modifiés. */
 export function withQueuedEdit<T extends object>(current: T, draft: object): T {
   return { ...current, ...draft } as T
+}
+
+type NullableTextKey<T> = { [K in keyof T]-?: T[K] extends string | null | undefined ? K : never }[keyof T]
+
+/** Liste de choix dont « Aucun » vaut une chaîne vide (personnage d'un document, d'un objet) : un champ facultatif du brouillon. */
+export function emptyStringModel<T extends object, K extends NullableTextKey<T>>(draft: Ref<T>, key: K) {
+  return computed({
+    get: () => (draft.value[key] as string | null | undefined) || '',
+    set: (value: string) => { draft.value[key] = value as T[K] }
+  })
 }
 
 /** Groupe proposé dans un formulaire : seuls ceux du jeu choisi sont proposés. */

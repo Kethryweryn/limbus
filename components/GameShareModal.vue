@@ -191,11 +191,10 @@ async function inviteUser() {
   inviting.value = true
   resetMessages()
   try {
-    const response = await useApiFetch(`/api/games/${props.game.id}/invitations`, {
+    const invitation = await useApiAction(`/api/games/${props.game.id}/invitations`, {
       method: 'POST',
       body: { email: inviteEmail.value }
     })
-    const invitation = actionResult(response)
     inviteEmail.value = ''
     await refreshShares()
     if (invitation.emailDelivery?.sent) {

@@ -81,13 +81,12 @@
 </template>
 
 <script setup lang="ts">
+import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import { isInArchivedGame, isVisibleContent } from '~/utils/games'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import LocationForm from '@/components/LocationForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
-import { isOfflineMode } from '~/utils/connection'
-import { getFromStore, saveToStore } from '~/utils/storage'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import type { LocationDraft } from '~/utils/writingDrafts'
 
@@ -98,7 +97,6 @@ const games = ref<ApiResponse<'/api/games'>>([])
 const searchQuery = ref('')
 const gameFilter = ref('all')
 const showArchived = ref(false)
-const isOffline = ref(false)
 const showFormSlideover = ref(false)
 const activeFormLocation = ref<LocationDraft | null>(null)
 const formMode = ref<'create' | 'edit'>('create')
@@ -146,55 +144,21 @@ watch([searchQuery, gameFilter, filteredLocations], () => {
 })
 
 const fetchLocations = async () => {
-  if (isOfflineMode()) {
-    locations.value = await getFromStore<typeof locations.value>('locations', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/locations')
-  locations.value = data
-  await saveToStore('locations', 'list', data)
+  locations.value = await fetchOfflineList('locations', '/api/locations')
 }
 
 const fetchGames = async () => {
-  if (isOfflineMode()) {
-    games.value = await getFromStore<typeof games.value>('games', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/games')
-  games.value = data
-  await saveToStore('games', 'list', data)
+  games.value = await fetchOfflineList('games', '/api/games')
 }
 
 const refreshData = async () => {
   await Promise.all([fetchLocations(), fetchGames()])
 }
 
-const updateStatus = () => {
-  const wasOffline = isOffline.value
-  isOffline.value = isOfflineMode()
-
-  if (wasOffline && !isOffline.value) {
-    refreshData()
-  }
-  if (!wasOffline && isOffline.value) {
-    refreshData()
-  }
-}
+useConnectionRefresh(refreshData)
 
 onMounted(async () => {
-  updateStatus()
-  window.addEventListener('online', updateStatus)
-  window.addEventListener('offline', updateStatus)
-  window.addEventListener('limbus:connection-change', updateStatus)
   await refreshData()
-})
-
-onUnmounted(() => {
-  window.removeEventListener('online', updateStatus)
-  window.removeEventListener('offline', updateStatus)
-  window.removeEventListener('limbus:connection-change', updateStatus)
 })
 
 function startCreate() {

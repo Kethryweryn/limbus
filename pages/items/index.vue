@@ -127,13 +127,12 @@
 </template>
 
 <script setup lang="ts">
+import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import { isInArchivedGame, isVisibleContent } from '~/utils/games'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import ItemForm from '@/components/ItemForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
-import { isOfflineMode } from '~/utils/connection'
-import { getFromStore, saveToStore } from '~/utils/storage'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import type { ItemDraft } from '~/utils/writingDrafts'
 
@@ -146,7 +145,6 @@ const intrigues = ref<ApiResponse<'/api/intrigues'>>([])
 const searchQuery = ref('')
 const gameFilter = ref('all')
 const showArchived = ref(false)
-const isOffline = ref(false)
 const showFormSlideover = ref(false)
 const activeFormItem = ref<ItemDraft | null>(null)
 const formMode = ref<'create' | 'edit'>('create')
@@ -210,74 +208,29 @@ const formatItemLocation = (item: ItemRow) => {
 }
 
 const fetchItems = async () => {
-  if (isOfflineMode()) {
-    items.value = await getFromStore<typeof items.value>('items', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/items')
-  items.value = data
-  await saveToStore('items', 'list', data)
+  items.value = await fetchOfflineList('items', '/api/items')
 }
 
 const fetchGames = async () => {
-  if (isOfflineMode()) {
-    games.value = await getFromStore<typeof games.value>('games', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/games')
-  games.value = data
-  await saveToStore('games', 'list', data)
+  games.value = await fetchOfflineList('games', '/api/games')
 }
 
 const fetchCharacters = async () => {
-  if (isOfflineMode()) {
-    characters.value = await getFromStore<typeof characters.value>('characters', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/characters')
-  characters.value = data
-  await saveToStore('characters', 'list', data)
+  characters.value = await fetchOfflineList('characters', '/api/characters')
 }
 
 const fetchIntrigues = async () => {
-  if (isOfflineMode()) {
-    intrigues.value = await getFromStore<typeof intrigues.value>('intrigues', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/intrigues')
-  intrigues.value = data
-  await saveToStore('intrigues', 'list', data)
+  intrigues.value = await fetchOfflineList('intrigues', '/api/intrigues')
 }
 
 const refreshData = async () => {
   await Promise.all([fetchItems(), fetchGames(), fetchCharacters(), fetchIntrigues()])
 }
 
-const updateStatus = () => {
-  const wasOffline = isOffline.value
-  isOffline.value = isOfflineMode()
-
-  if (wasOffline !== isOffline.value) {
-    refreshData()
-  }
-}
+useConnectionRefresh(refreshData)
 
 onMounted(async () => {
-  updateStatus()
-  window.addEventListener('online', updateStatus)
-  window.addEventListener('offline', updateStatus)
-  window.addEventListener('limbus:connection-change', updateStatus)
   await refreshData()
-})
-
-onUnmounted(() => {
-  window.removeEventListener('online', updateStatus)
-  window.removeEventListener('offline', updateStatus)
-  window.removeEventListener('limbus:connection-change', updateStatus)
 })
 
 function itemFormPayload(item: ItemRow): ItemDraft {

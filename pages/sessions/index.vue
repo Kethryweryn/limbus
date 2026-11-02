@@ -184,13 +184,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
+import { computed, onMounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import SessionForm from '@/components/SessionForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
-import { isOfflineMode } from '~/utils/connection'
 import { CHARACTER_TYPES, SESSION_ROLES, SESSION_STATUSES, SESSION_STATUS_META, isClosedSessionStatus } from '~/utils/domain'
-import { getFromStore, saveToStore } from '~/utils/storage'
 
 const sessions = ref([])
 const games = ref([])
@@ -201,7 +200,6 @@ const searchQuery = ref('')
 const deleteError = ref('')
 const gameFilter = ref('all')
 const periodFilter = ref('future')
-const isOffline = ref(false)
 const showFormSlideover = ref(false)
 const activeFormSession = ref(null)
 const formMode = ref('create')
@@ -329,88 +327,33 @@ function openPhotoPreview(photoUrl) {
 }
 
 const fetchSessions = async () => {
-  if (isOfflineMode()) {
-    sessions.value = await getFromStore('sessions', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/sessions')
-  sessions.value = data
-  await saveToStore('sessions', 'list', data)
+  sessions.value = await fetchOfflineList('sessions', '/api/sessions')
 }
 
 const fetchGames = async () => {
-  if (isOfflineMode()) {
-    games.value = await getFromStore('games', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/games')
-  games.value = data
-  await saveToStore('games', 'list', data)
+  games.value = await fetchOfflineList('games', '/api/games')
 }
 
 const fetchCharacters = async () => {
-  if (isOfflineMode()) {
-    characters.value = await getFromStore('characters', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/characters')
-  characters.value = data
-  await saveToStore('characters', 'list', data)
+  characters.value = await fetchOfflineList('characters', '/api/characters')
 }
 
 const fetchLocations = async () => {
-  if (isOfflineMode()) {
-    locations.value = await getFromStore('locations', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/locations')
-  locations.value = data
-  await saveToStore('locations', 'list', data)
+  locations.value = await fetchOfflineList('locations', '/api/locations')
 }
 
 const fetchParticipants = async () => {
-  if (isOfflineMode()) {
-    participants.value = await getFromStore('participants', 'list') || []
-    return
-  }
-
-  const data = await useApiFetch('/api/participants')
-  participants.value = data
-  await saveToStore('participants', 'list', data)
+  participants.value = await fetchOfflineList('participants', '/api/participants')
 }
 
 const refreshData = async () => {
   await Promise.all([fetchSessions(), fetchGames(), fetchCharacters(), fetchLocations(), fetchParticipants()])
 }
 
-const updateStatus = () => {
-  const wasOffline = isOffline.value
-  isOffline.value = isOfflineMode()
-
-  if (wasOffline && !isOffline.value) {
-    refreshData()
-  }
-  if (!wasOffline && isOffline.value) {
-    refreshData()
-  }
-}
+useConnectionRefresh(refreshData)
 
 onMounted(async () => {
-  updateStatus()
-  window.addEventListener('online', updateStatus)
-  window.addEventListener('offline', updateStatus)
-  window.addEventListener('limbus:connection-change', updateStatus)
   await refreshData()
-})
-
-onUnmounted(() => {
-  window.removeEventListener('online', updateStatus)
-  window.removeEventListener('offline', updateStatus)
-  window.removeEventListener('limbus:connection-change', updateStatus)
 })
 
 function toDatetimeLocal(value) {

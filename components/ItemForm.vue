@@ -106,7 +106,7 @@
 import { computed, ref, watch } from 'vue'
 import { CHARACTER_TYPES } from '~/utils/domain'
 import { apiErrorMessage } from '~/utils/apiErrors'
-import type { CharacterOption, GameOption, ItemDraft } from '~/utils/writingDrafts'
+import { emptyStringModel, type CharacterOption, type GameOption, type ItemDraft } from '~/utils/writingDrafts'
 
 const props = withDefaults(defineProps<{
   item: ItemDraft
@@ -142,11 +142,7 @@ const locationCharacterOptions = computed(() => [
   ...characterOptions.value
 ])
 
-// Le choix « Aucun personnage » vaut une chaîne vide
-const locationCharacterIdModel = computed({
-  get: () => localItem.value.locationCharacterId || '',
-  set: (value: string) => { localItem.value.locationCharacterId = value }
-})
+const locationCharacterIdModel = emptyStringModel(localItem, 'locationCharacterId')
 
 const intrigueOptions = computed(() =>
   props.intrigues
