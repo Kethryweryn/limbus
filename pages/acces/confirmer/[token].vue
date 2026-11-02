@@ -15,7 +15,9 @@
   </AccessCard>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { serverMessage } from '~/utils/apiErrors'
+
 // Lien de confirmation : inscription (US-061) ou nouvelle adresse (US-063). Le clic connecte
 definePageMeta({ layout: false })
 
@@ -27,9 +29,9 @@ const newEmail = ref('')
 onMounted(async () => {
   try {
     const result = await $fetch('/api/auth/confirm', { method: 'POST', body: { token: String(route.params.token || '') } })
-    newEmail.value = result.email || ''
+    newEmail.value = 'email' in result ? result.email ?? '' : ''
   } catch (err) {
-    error.value = err?.data?.message || 'Ce lien n’est pas valable.'
+    error.value = serverMessage(err, 'Ce lien n’est pas valable.')
   } finally {
     pending.value = false
   }

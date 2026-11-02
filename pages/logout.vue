@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { clearOfflineData, markPendingLogout } from '~/utils/storage'
 
 if (import.meta.client) {

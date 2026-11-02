@@ -81,7 +81,7 @@
   </LegalPage>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { LEGAL_EDITOR, LEGAL_HOST, RETENTION } from '~/utils/legal'
 
 useHead({ title: 'Confidentialité – Limbus' })

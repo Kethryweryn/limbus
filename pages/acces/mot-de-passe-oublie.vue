@@ -18,8 +18,10 @@
   </AccessCard>
 </template>
 
-<script setup>
+<script setup lang="ts">
 // Mot de passe oublié (US-062)
+import { serverMessage } from '~/utils/apiErrors'
+
 definePageMeta({ layout: false })
 
 const email = ref('')
@@ -34,7 +36,7 @@ async function send() {
     await $fetch('/api/auth/password-forgotten', { method: 'POST', body: { email: email.value } })
     done.value = true
   } catch (err) {
-    error.value = err?.data?.message || 'Impossible d’envoyer le lien.'
+    error.value = serverMessage(err, 'Impossible d’envoyer le lien.')
   } finally {
     saving.value = false
   }

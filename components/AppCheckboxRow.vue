@@ -18,19 +18,18 @@
   </div>
 </template>
 
-<script setup>
-const props = defineProps({
-  modelValue: { type: Boolean, default: false },
-  label: { type: String, required: true },
-  description: { type: String, default: '' },
-  disabled: { type: Boolean, default: false }
+<script setup lang="ts">
+const props = withDefaults(defineProps<{ modelValue?: boolean, label: string, description?: string, disabled?: boolean }>(), {
+  modelValue: false,
+  description: '',
+  disabled: false
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
 
 const valueProxy = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
+  set: (value: boolean) => emit('update:modelValue', value)
 })
 
 function toggle() {

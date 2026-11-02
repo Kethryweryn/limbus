@@ -7,7 +7,7 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [API pour une IA](api-pour-ia.md) | à trancher | 2026-10-29 | Accès d'une IA aux jeux d'une organisatrice connectée, avec ses droits (MCP ou REST) |
 | [Durcissement web](durcissement-web.md) | en partie traitée | 2026-10-29 | CSP et COOP sur les pages, origine des écritures, cookie `__Host-` (revue R-01 à R-03) |
 | [Supervision](supervision.md) | en partie traitée | 2026-10-29 | Route de santé et surveillance externe avec alerte email (revue R-15, R-16) |
-| [Interface en TypeScript](interface-en-typescript.md) | à trancher | 2026-10-29 | Composants et pages en `lang="ts"`, réponses d'API typées (revue R-10) |
+| [Interface en TypeScript](interface-en-typescript.md) | en cours ([EPIC-031](../epics/EPIC-031-interface-en-typescript/README.md)) | 2026-10-29 | Composants et pages en `lang="ts"`, réponses d'API typées (revue R-10) |
 | [Un compte pour tout le monde](comptes-participants.md) | tranchée ([SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md)) | 2026-10-29 | Inscription libre, administrateur seul rôle global, espaces « J'organise » et « Je participe », coordonnées et RGPD en libre-service (SPEC-007, écart 1) |
 | [Numéros de version et notes de version](versions-et-notes-de-version.md) | à trancher | 2026-10-29 | Version sémantique, étiquettes git et notes de version à partir de la première version publiée |
 

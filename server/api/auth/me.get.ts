@@ -5,7 +5,7 @@ export default defineEventHandler(async (event) => {
     const token = getAuthToken(event)
 
     if (!token) {
-        return { authenticated: false }
+        return { authenticated: false as const }
     }
 
     try {
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
             ])
             : [0, 0]
         return {
-            authenticated: true,
+            authenticated: true as const,
             user,
             // Conditions d'utilisation en vigueur acceptées (US-111) : sinon l'application les demande
             termsAccepted: user.termsAccepted,
@@ -27,6 +27,6 @@ export default defineEventHandler(async (event) => {
             spaces: { organize: organize > 0, participate: participate > 0 }
         }
     } catch {
-        return { authenticated: false }
+        return { authenticated: false as const }
     }
 })

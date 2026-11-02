@@ -15,7 +15,9 @@
   </AccessCard>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { serverMessage } from '~/utils/apiErrors'
+
 // Lien de mot de passe : oublié (US-062) ou compte créé par l'administratrice (US-065)
 definePageMeta({ layout: false })
 
@@ -36,7 +38,7 @@ async function save() {
     await $fetch('/api/auth/password-reset', { method: 'POST', body: { token: String(route.params.token || ''), password: password.value } })
     window.location.replace('/')
   } catch (err) {
-    error.value = err?.data?.message || 'Impossible d’enregistrer le mot de passe.'
+    error.value = serverMessage(err, 'Impossible d’enregistrer le mot de passe.')
   } finally {
     saving.value = false
   }

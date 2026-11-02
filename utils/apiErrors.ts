@@ -6,7 +6,7 @@ export function apiErrorMessage(err: unknown, fallback: string) {
   if (Array.isArray(issues) && issues.length) {
     return [...new Set(issues.map((issue) => issue.message).filter(Boolean))].join(' ; ')
   }
-  return error?.data?.message || error?.message || fallback
+  return serverMessage(err, error?.message || fallback)
 }
 
 // Détail par champ d'une validation zod, pour afficher chaque message sous son champ
@@ -14,4 +14,10 @@ export function apiFieldErrors(err: unknown): Record<string, string> {
   const issues = (err as { data?: { data?: { data?: Array<{ path?: string, message?: string }> } } } | null)?.data?.data?.data
   if (!Array.isArray(issues)) return {}
   return Object.fromEntries(issues.filter((issue) => issue.path).map((issue) => [issue.path!, issue.message || '']))
+}
+
+// Message du serveur seul (h3 le range sous data.message), sinon le texte par défaut ; apiErrorMessage y ajoute le
+// détail d'une validation et le message technique
+export function serverMessage(err: unknown, fallback: string) {
+  return (err as { data?: { message?: string } } | null)?.data?.message || fallback
 }

@@ -37,8 +37,10 @@
   </AccessCard>
 </template>
 
-<script setup>
+<script setup lang="ts">
 // Inscription libre (US-061)
+import { serverMessage } from '~/utils/apiErrors'
+
 definePageMeta({ layout: false })
 
 const form = ref({ name: '', email: '', password: '', website: '', termsAccepted: false })
@@ -58,7 +60,7 @@ async function signup() {
     await $fetch('/api/auth/signup', { method: 'POST', body: form.value })
     done.value = true
   } catch (err) {
-    error.value = err?.data?.message || 'Impossible de créer le compte.'
+    error.value = serverMessage(err, 'Impossible de créer le compte.')
   } finally {
     saving.value = false
   }
