@@ -15,7 +15,7 @@ export function isOfflineQueued(value: unknown): value is OfflineQueuedResponse 
   return typeof value === 'object' && value !== null && (value as { __offlineQueued?: unknown }).__offlineQueued === true
 }
 
-type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete'
+type HttpMethod = 'get' | 'head' | 'options' | 'post' | 'put' | 'patch' | 'delete'
 type AnyCaseMethod = HttpMethod | Uppercase<HttpMethod>
 type ApiOptions<M extends AnyCaseMethod> = Omit<NitroFetchOptions<NitroFetchRequest>, 'method'> & ApiFetchExtras & { method?: M }
 
@@ -24,7 +24,7 @@ type ApiOptions<M extends AnyCaseMethod> = Omit<NitroFetchOptions<NitroFetchRequ
 type ApiFetch = <T = unknown, R extends NitroFetchRequest = NitroFetchRequest, M extends AnyCaseMethod = 'get'>(
   request: R,
   options?: ApiOptions<M>
-) => Promise<Lowercase<M> extends 'get' ? TypedInternalResponse<R, T, 'get'> : TypedInternalResponse<R, T, Lowercase<M>> | OfflineQueuedResponse>
+) => Promise<Lowercase<M> extends 'get' | 'head' | 'options' ? TypedInternalResponse<R, T, 'get'> : TypedInternalResponse<R, T, Lowercase<M>> | OfflineQueuedResponse>
 
 // Session expirée ou révoquée : retour à l'écran de connexion. Un 403 n'est qu'un refus
 // ponctuel (action réservée au propriétaire, ressource d'un autre jeu) : on reste connecté.
