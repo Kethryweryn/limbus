@@ -22,7 +22,7 @@ vi.mock('~/utils/storage', () => ({
     state.stored.set(`${store}/${key}`, value)
   }
 }))
-vi.mock('~/composables/useApiFetch', () => ({ useApiFetch: vi.fn(async (request: string) => [{ from: request }]) }))
+vi.mock('~/composables/useApiFetch', () => ({ fetchByUrl: vi.fn(async (request: string) => [{ from: request }]) }))
 
 const { fetchOffline, fetchOfflineList, useConnectionRefresh } = await import('~/composables/useOfflineList')
 
