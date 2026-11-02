@@ -52,7 +52,7 @@ export function handleApiAuthError(error: unknown): void {
  */
 export const useApiFetch = ((request: string, options?: RawOptions) => apiFetch(request, options)) as unknown as ApiFetch
 
-/** Appel d'une action (US-115) : comme useApiFetch, sans mise en file hors ligne possible dans sa réponse. */
+/** Appel d'une action (revue de la PR #89) : comme useApiFetch, sans mise en file hors ligne possible dans sa réponse. */
 export const useApiAction = (async (request: string, options?: RawOptions) => {
   const result = await apiFetch(request, options)
   if (isOfflineQueued(result)) throw new Error('Cette action n’est pas disponible hors ligne.')

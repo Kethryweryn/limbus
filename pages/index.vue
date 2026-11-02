@@ -103,14 +103,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useConnectionRefresh } from '~/composables/useOfflineList'
-import { isOfflineMode } from '~/utils/connection'
-import { getFromStore, saveToStore } from '~/utils/storage'
+import { fetchOffline, useConnectionRefresh } from '~/composables/useOfflineList'
 import { initialSpace } from '~/utils/spaces'
 
 const dashboardData = ref<any>(null)
 const pending = ref(true)
-const error = ref(null)
 
 const formatDateTime = (value: string) => new Date(value).toLocaleString('fr-FR', {
   day: 'numeric',
@@ -127,19 +124,12 @@ const formatLocation = (location: any) => {
 
 const pluralLabel = (count: number, singular: string, plural: string) => count === 1 ? singular : plural
 
+// En cas d'échec, le tableau de bord déjà affiché reste
 const updateDashboard = async () => {
-  if (isOfflineMode()) {
-    dashboardData.value = await getFromStore('dashboard', 'main')
-    pending.value = false
-    return
-  }
-
   try {
-    const data = await useApiFetch('/api/dashboard')
-    dashboardData.value = data
-    saveToStore('dashboard', 'main', data)
-  } catch (e: any) {
-    error.value = e
+    dashboardData.value = await fetchOffline('dashboard', 'main', '/api/dashboard') ?? dashboardData.value
+  } catch (err) {
+    console.error('[dashboard]', err)
   } finally {
     pending.value = false
   }
