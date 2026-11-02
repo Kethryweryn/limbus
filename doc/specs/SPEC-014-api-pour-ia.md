@@ -4,7 +4,7 @@ titre: Brancher une IA sur ses jeux
 statut: validée
 date: 2026-11-02
 origine: ../archive/todo/api-pour-ia.md
-epics: []
+epics: [EPIC-033]
 adr: [ADR-0038, ADR-0042, ADR-0043, ADR-0053, ADR-0055, ADR-0058]
 ---
 
@@ -171,7 +171,7 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
 
 À préciser en epics et US :
 
-1. **Connexion et lecture** :
+1. **Connexion et lecture** ([EPIC-033](../epics/EPIC-033-ia-connexion-et-lecture/README.md)) :
    - avant de coder, un essai du serveur d'autorisation écrit pour Limbus et un essai avec `oidc-provider`, comparés dans l'[ADR-0058](../adr/ADR-0058-serveur-d-autorisation-pour-les-ia.md) : serveur écrit pour Limbus retenu ;
    - serveur d'autorisation, page d'autorisation, « Assistants connectés », réglage de la propriétaire ;
    - journal, limite de débit, politique de confidentialité et conditions d'utilisation ;

@@ -40,6 +40,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-030](../archive/epics/EPIC-030-durees-de-conservation/README.md) | Durées de conservation des comptes et des fiches participant | [SPEC-013](../specs/SPEC-013-pages-legales-et-conservation.md) | terminé |
 | [EPIC-031](../archive/epics/EPIC-031-interface-en-typescript/README.md) | Interface en TypeScript strict | [fiche](../archive/todo/interface-en-typescript.md) | terminé |
 | [EPIC-032](../archive/epics/EPIC-032-inscriptions-hors-ligne/README.md) | Page Inscriptions lisible hors ligne | [SPEC-010](../specs/SPEC-010-hors-ligne.md) | terminé |
+| [EPIC-033](EPIC-033-ia-connexion-et-lecture/README.md) | Brancher une IA, lot 1 : connexion et lecture | [SPEC-014](../specs/SPEC-014-api-pour-ia.md) | en cours |
 
 ## US
 
@@ -165,3 +166,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-118](../archive/epics/EPIC-031-interface-en-typescript/US-118-compte-participation-administration.md) | Compte, participation, administration ; règle étendue à tout | EPIC-031 | terminée |
 | [US-119](../archive/epics/EPIC-032-inscriptions-hors-ligne/US-119-page-inscriptions-hors-ligne.md) | Page Inscriptions et sélection lisibles hors ligne | EPIC-032 | terminée |
 | [US-120](../archive/epics/EPIC-032-inscriptions-hors-ligne/US-120-detail-d-une-inscription-hors-ligne.md) | Détail d'une inscription lisible hors ligne | EPIC-032 | terminée |
+| [US-121](EPIC-033-ia-connexion-et-lecture/US-121-serveur-d-autorisation.md) | Serveur d'autorisation et page « Autoriser » | EPIC-033 | à faire |
+| [US-122](EPIC-033-ia-connexion-et-lecture/US-122-serveur-mcp-en-lecture.md) | Serveur MCP et outils de lecture | EPIC-033 | à faire |
+| [US-123](EPIC-033-ia-connexion-et-lecture/US-123-assistants-connectes.md) | Assistants connectés, réglage de la propriétaire, journal | EPIC-033 | à faire |
+| [US-124](EPIC-033-ia-connexion-et-lecture/US-124-confidentialite-et-conditions.md) | Politique de confidentialité et conditions | EPIC-033 | à faire |
