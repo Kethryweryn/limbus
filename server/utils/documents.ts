@@ -90,7 +90,8 @@ export async function getSessionDocumentDashboard(sessionId: string) {
       assignments: {
         include: {
           // Relations visibles du joueur, pour sa fiche (US-097)
-          character: { include: sheetRelationsInclude },
+          // Groupes : pour l'empreinte des trombinoscopes, calculée sans relire la session
+          character: { include: { ...sheetRelationsInclude, factions: { orderBy: { name: 'asc' as const } } } },
           participant: true
         }
       }
@@ -122,7 +123,7 @@ export async function getSessionDocumentDashboard(sessionId: string) {
         participant: true
       }
     }),
-    currentTrombinoscopeFingerprints(session.id)
+    currentTrombinoscopeFingerprints(session.id, session)
   ])
 
   const castByCharacterId = new Map(
@@ -348,8 +349,12 @@ async function sendToEach<Target extends { participant: { name: string, email: s
         failures.push(target.participant.name)
         continue
       }
-      await record(target, keepCopies ? copies : {})
       sentCount++
+      // L'email est parti : un échec de son enregistrement n'arrête pas les envois suivants ; la personne reste
+      // alors « à envoyer » dans le suivi
+      await record(target, keepCopies ? copies : {}).catch((error) =>
+        console.error('[envoi] envoi parti mais non enregistré', { sessionId, error: (error as Error)?.message })
+      )
     }
   } finally {
     transport.close()

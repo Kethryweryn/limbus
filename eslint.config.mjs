@@ -38,6 +38,7 @@ const TYPED_INTERFACE = [
   'pages/logout.vue',
   'pages/mentions-legales.vue',
   'pages/timeline/**/*.vue',
+  'utils/sessionOffline.ts',
   'utils/timeline.ts',
   'utils/writingDrafts.ts'
 ]

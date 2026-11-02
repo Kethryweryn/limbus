@@ -406,18 +406,19 @@ function showDetail(registration) {
   showDetailModal.value = true
 }
 
-// Actions d'une organisatrice sur une inscription (US-005) : on recharge la liste, réussite ou échec
-async function registrationAction(registration, action, body, success) {
+// Actions d'une organisatrice sur une inscription (US-005) : on recharge la liste, réussite ou échec (un renvoi
+// échoué a tout de même invalidé l'ancien lien). Sans action, l'inscription elle-même est supprimée.
+async function registrationAction(registration, action, body, success, failure = 'Action impossible') {
   infoMessage.value = ''
   try {
-    await useApiFetch(`/api/registrations/${registration.id}/${action}`, { method: 'POST', body })
+    await useApiFetch(`/api/registrations/${registration.id}${action ? `/${action}` : ''}`, { method: action ? 'POST' : 'DELETE', body })
     await refresh()
     infoColor.value = 'success'
     infoMessage.value = success
     return true
   } catch (err) {
     await refresh()
-    errorMessage.value = apiErrorMessage(err, 'Action impossible')
+    errorMessage.value = apiErrorMessage(err, failure)
     return false
   }
 }
@@ -506,26 +507,12 @@ async function invited(result) {
 
 async function resend(registration) {
   if (!confirm(`Envoyer un nouveau lien à ${registration.participant.name} ? Le lien envoyé précédemment ne fonctionnera plus.`)) return
-  try {
-    await useApiFetch(`/api/registrations/${registration.id}/resend`, { method: 'POST' })
-    await refresh()
-    infoColor.value = 'success'
-    infoMessage.value = `Nouveau lien envoyé à ${registration.participant.name}.`
-  } catch (err) {
-    // Même en échec d'envoi, l'ancien lien est invalidé : on recharge avant d'afficher l'erreur
-    await refresh()
-    errorMessage.value = err?.data?.message || err?.message || 'Renvoi impossible'
-  }
+  await registrationAction(registration, 'resend', undefined, `Nouveau lien envoyé à ${registration.participant.name}.`, 'Renvoi impossible')
 }
 
 async function cancel(registration) {
   if (!confirm(`Annuler l’invitation de ${registration.participant.name} ? Son lien ne fonctionnera plus.`)) return
-  try {
-    await useApiFetch(`/api/registrations/${registration.id}`, { method: 'DELETE' })
-    await refresh()
-  } catch (err) {
-    errorMessage.value = err?.data?.message || err?.message || 'Annulation impossible'
-  }
+  await registrationAction(registration, null, undefined, `Invitation de ${registration.participant.name} annulée.`, 'Annulation impossible')
 }
 
 function stateMeta(period) {

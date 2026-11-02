@@ -23,9 +23,9 @@ export async function linkTargets(gameId: string) {
  * Liens du jeu qui visent une question et une option du formulaire en vigueur ; un lien vers une question ou une
  * option disparue est ignoré. Une question sur une échelle se relie entière (option vide).
  */
-export async function currentQuestionLinks(gameId: string) {
+export async function currentQuestionLinks(gameId: string, balance?: Parameters<typeof getCurrentRegistrationForm>[1]) {
   const [{ definition }, rows] = await Promise.all([
-    getCurrentRegistrationForm(gameId),
+    getCurrentRegistrationForm(gameId, balance),
     prisma.registrationQuestionLink.findMany({ where: { gameId }, select: linkSelect })
   ])
   const questions = new Map(definition.questions.map((question) => [question.id, question]))

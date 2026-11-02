@@ -38,8 +38,11 @@ export default defineEventHandler(async (event) => {
     data.slug = await generateUniqueSlug('game', title, id)
   }
 
-  const previous = await prisma.game.findUniqueOrThrow({ where: { id }, select: { slug: true } })
   const game = await prisma.$transaction(async (tx) => {
+    // Ligne verrouillée : deux renommages simultanés lisent chacun le slug laissé par l'autre, et la redirection
+    // pointe toujours vers l'adresse précédente
+    const [previous] = await tx.$queryRaw<Array<{ slug: string }>>`SELECT slug FROM "Game" WHERE id = ${id} FOR UPDATE`
+    if (!previous) throw createError({ statusCode: 404, message: 'Jeu introuvable' })
     const updated = await tx.game.update({ where: { id }, data })
     // Une valeur d'équilibre retirée du jeu ne reste pas sur ses personnages (US-091)
     await tx.character.updateMany({ where: { gameId: id, balanceValue: { not: null, notIn: updated.balanceAttribute ? updated.balanceValues : [] } }, data: { balanceValue: null } })

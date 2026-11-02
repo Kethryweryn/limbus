@@ -2,7 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
 import { accessibleGameIds, requireParticipantAccess } from '~/server/utils/gameAccess'
 import { participantSchema, readZodBody } from '~/server/utils/schemas'
-import { exposeParticipantGames, participantGameLinksInclude, removeParticipantFromGames } from '~/server/utils/participants'
+import { exposeParticipantGames, participantGameLinksInclude, planParticipantRemoval } from '~/server/utils/participants'
 import { eraseParticipant } from '~/server/utils/participantPrivacy'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
@@ -39,39 +39,46 @@ export default defineEventHandler(async (event) => {
   const gameIdsToRemove = managedExistingGameIds.filter((gameId) => !nextGameIds.has(gameId))
   const gameIdsToAdd = uniqueGameIds.filter((gameId) => !existingGameIds.has(gameId))
 
-  // Retirer un jeu retire aussi la personne de ses sessions (US-035)
-  await removeParticipantFromGames(id, gameIdsToRemove, user)
-
-  // Une fiche sans aucun jeu est supprimée (US-036) : l'interface l'a fait confirmer
-  if (!gameIdsToAdd.length && !await prisma.participantGame.count({ where: { participantId: id } })) {
-    await eraseParticipant(id)
-    return { deleted: true }
-  }
-
   // Fiche qui reste rattachée : nom et téléphone sont tenus par la personne, l'envoi de l'équipe est ignoré (US-075)
   const userId = await accountIdForEmail(email)
   const current = await prisma.participant.findUniqueOrThrow({ where: { id }, select: { name: true, phone: true, userId: true } })
   const heldByPerson = Boolean(userId && userId === current.userId)
   const effectiveName = heldByPerson ? current.name : name
-  const participant = await prisma.participant.update({
-    where: { id },
-    data: {
-      name: effectiveName,
-      slug: await generateUniqueSlug('participant', effectiveName, id),
-      email: email || null,
-      phone: heldByPerson ? current.phone : phone || null,
-      // Le rattachement suit l'adresse : autre compte, ou aucun (US-070)
-      userId,
-      gameLinks: {
-        create: gameIdsToAdd.map((gameId) => ({ gameId, notes: gameNotes[gameId] || null })),
-        // Note de chaque jeu déjà lié et reçu ; les notes des autres jeux ne bougent pas (US-069)
-        updateMany: Object.entries(gameNotes)
-          .filter(([gameId]) => existingGameIds.has(gameId) && nextGameIds.has(gameId))
-          .map(([gameId, text]) => ({ where: { gameId }, data: { notes: text || null } }))
-      }
-    },
-    include: participantGameLinksInclude(allowedGameIds)
+  const slug = await generateUniqueSlug('participant', effectiveName, id)
+
+  // Retirer un jeu retire aussi la personne de ses sessions (US-035) : dans la même transaction que la fiche, pour
+  // qu'un échec de la mise à jour ne laisse pas les jeux retirés
+  const removal = await planParticipantRemoval(id, gameIdsToRemove, user)
+  const participant = await prisma.$transaction(async (tx) => {
+    await removal.apply(tx)
+    // Une fiche sans aucun jeu est supprimée (US-036) : l'interface l'a fait confirmer
+    if (!gameIdsToAdd.length && !await tx.participantGame.count({ where: { participantId: id } })) return null
+    return await tx.participant.update({
+      where: { id },
+      data: {
+        name: effectiveName,
+        slug,
+        email: email || null,
+        phone: heldByPerson ? current.phone : phone || null,
+        // Le rattachement suit l'adresse : autre compte, ou aucun (US-070)
+        userId,
+        gameLinks: {
+          create: gameIdsToAdd.map((gameId) => ({ gameId, notes: gameNotes[gameId] || null })),
+          // Note de chaque jeu déjà lié et reçu ; les notes des autres jeux ne bougent pas (US-069)
+          updateMany: Object.entries(gameNotes)
+            .filter(([gameId]) => existingGameIds.has(gameId) && nextGameIds.has(gameId))
+            .map(([gameId, text]) => ({ where: { gameId }, data: { notes: text || null } }))
+        }
+      },
+      include: participantGameLinksInclude(allowedGameIds)
+    })
   })
+  await removal.afterCommit()
+
+  if (!participant) {
+    await eraseParticipant(id)
+    return { deleted: true }
+  }
 
   // Rattachée par ce changement d'email : elle prend les coordonnées du compte (US-074)
   if (userId && !heldByPerson) {

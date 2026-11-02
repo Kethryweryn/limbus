@@ -38,7 +38,10 @@ export default defineEventHandler(async (event) => {
   })).map((assignment) => assignment.photoUrl)
   await assertGameUploads(assignments.map((assignment) => assignment.photoUrl), gameId, { sessionFiles: true, keep: previousPhotoUrls, label: 'Photo d’attribution' })
 
-  const { cancelledAt } = await prisma.session.findUniqueOrThrow({ where: { id: existingSession.id }, select: { cancelledAt: true } })
+  // Date d'annulation, gardée tant que la session reste annulée (US-080) : relue seulement pour une session annulée
+  const cancelledAt = status === SESSION_STATUSES.cancelled
+    ? (await prisma.session.findUniqueOrThrow({ where: { id: existingSession.id }, select: { cancelledAt: true } })).cancelledAt ?? new Date()
+    : null
   const session = await prisma.session.update({
     where: { id: existingSession.id },
     data: {
@@ -48,8 +51,7 @@ export default defineEventHandler(async (event) => {
       date: parseDate(body.date),
       locationId: locationId || null,
       status,
-      // Date d'annulation, gardée tant que la session reste annulée (US-080)
-      cancelledAt: status === SESSION_STATUSES.cancelled ? cancelledAt ?? new Date() : null,
+      cancelledAt,
       // Absent : la visibilité ne change pas (US-019)
       published,
       participants: {

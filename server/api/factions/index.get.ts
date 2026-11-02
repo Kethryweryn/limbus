@@ -1,12 +1,12 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
-import { gameScopedWhere } from '~/server/utils/gameAccess'
+import { gameScopedWhere, queryGameFilter } from '~/server/utils/gameAccess'
 
 export default defineEventHandler(async (event) => {
   await requireUser(event)
 
   return await prisma.faction.findMany({
-    where: await gameScopedWhere(event),
+    where: await gameScopedWhere(event, queryGameFilter(event)),
     orderBy: { updatedAt: 'desc' },
     include: {
       game: true,
