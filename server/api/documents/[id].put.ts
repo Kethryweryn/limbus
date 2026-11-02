@@ -1,48 +1,10 @@
-import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
-import { requireGameAccess, assertSameGame } from '~/server/utils/gameAccess'
-import { documentSchema, readZodBody } from '~/server/utils/schemas'
-import { documentInclude, validateDocumentRelations } from '~/server/utils/documents'
-import { assertUnmodifiedSince } from '~/server/utils/concurrency'
-import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
+import { readZodBody, documentSchema } from '~/server/utils/schemas'
 import { requireRouterParam } from '~/server/utils/routeParams'
+import { updateDocument } from '~/server/utils/contentWrites'
 
+// Écriture commune à l'interface et aux assistants d'IA (server/utils/contentWrites.ts, US-126)
 export default defineEventHandler(async (event) => {
   await requireUser(event)
-
-  const id = requireRouterParam(event, 'id')
-  const document = await prisma.document.findUnique({ where: { id }, select: { gameId: true } })
-  if (!document) {
-    throw createError({ statusCode: 404, message: 'Document introuvable' })
-  }
-  await requireGameAccess(event, document.gameId)
-  await assertUnmodifiedSince(event, 'document', id)
-
-  const body = await readZodBody(event, documentSchema)
-  assertSameGame(document.gameId, body.gameId)
-  await requireGameAccess(event, body.gameId)
-  const characterIds = [...new Set(body.characterIds)]
-  const factionIds = [...new Set(body.factionIds)]
-  await validateDocumentRelations(body.gameId, body.characterId, characterIds, factionIds)
-
-  return await prisma.document.update({
-    where: { id },
-    data: {
-      title: body.title,
-      slug: await generateUniqueSlug('document', body.title, id),
-      content: body.content,
-      documentUrl: body.documentUrl,
-      audience: body.audience,
-      readyToSend: body.readyToSend ?? false,
-      gameId: body.gameId,
-      characterId: body.characterId || null,
-      characters: {
-        set: characterIds.map((characterId) => ({ id: characterId }))
-      },
-      factions: {
-        set: factionIds.map((factionId) => ({ id: factionId }))
-      }
-    },
-    include: documentInclude
-  })
+  return await updateDocument(event, requireRouterParam(event, 'id'), () => readZodBody(event, documentSchema))
 })

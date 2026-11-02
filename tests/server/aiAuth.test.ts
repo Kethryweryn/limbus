@@ -141,3 +141,14 @@ describe('inscription vue par un assistant', () => {
     ])
   })
 })
+
+describe('modification par un assistant', () => {
+  it('complète les champs donnés avec la fiche actuelle, liens et fichiers compris', async () => {
+    const { mergedBody } = await import('~/server/mcp/contentWrites')
+    const current = { name: 'Garde', pitch: 'Ancien', backgroundDocumentUrl: 'https://exemple.test/bg.pdf', characterIds: ['c1', 'c2'], characters: undefined, gameId: 'g1' }
+    expect(mergedBody(current, { pitch: 'Nouveau', characterIds: undefined })).toEqual({
+      name: 'Garde', pitch: 'Nouveau', backgroundDocumentUrl: 'https://exemple.test/bg.pdf', characterIds: ['c1', 'c2'], gameId: 'g1'
+    })
+    expect(mergedBody(current, { characterIds: [] }).characterIds).toEqual([])
+  })
+})

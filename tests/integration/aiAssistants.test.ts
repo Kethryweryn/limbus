@@ -257,6 +257,90 @@ describe('jetons', () => {
   })
 })
 
+// EPIC-034 (US-125, US-126) : écriture du contenu d'un jeu, dans un jeu créé par l'assistant
+describe('écriture', () => {
+  it('une autorisation en lecture seule n’a aucun outil d’écriture', async () => {
+    const { client } = await connectAssistant(alice, { gameIds: [a.game.id] })
+    const names = (await client.listTools()).tools.map((tool) => tool.name)
+    expect(names).toContain('lister_jeux')
+    expect(names.filter((name) => /^(creer|modifier|enregistrer|supprimer)_/.test(name))).toEqual([])
+  })
+
+  it('crée un jeu et tout son contenu, modifie champ par champ, supprime, et note chaque écriture', async () => {
+    const { client } = await connectAssistant(alice, { canWrite: true, gameIds: [a.game.id] })
+    const tools = (await client.listTools()).tools
+    expect(tools.find((tool) => tool.name === 'supprimer_contenu')?.annotations?.destructiveHint).toBe(true)
+    expect(tools.find((tool) => tool.name === 'enregistrer_personnage')?.annotations?.readOnlyHint).toBe(false)
+
+    const game = (await call(client, 'creer_jeu', { title: 'Jeu écrit par l’assistant', description: 'Huis clos' })).json
+    expect((await call(client, 'lister_jeux')).json.map((row: { id: string }) => row.id)).toContain(game.id)
+    expect((await prisma.game.findUniqueOrThrow({ where: { id: game.id } })).ownerId).toBe(alice.id)
+
+    const hero = (await call(client, 'enregistrer_personnage', { jeuId: game.id, name: 'Aube', pitch: 'Héritière', sheetReadyToSend: true, trombinoscopeDisplayName: 'Aube' })).json
+    const rival = (await call(client, 'enregistrer_personnage', { jeuId: game.id, name: 'Crépuscule' })).json
+    const faction = (await call(client, 'enregistrer_faction', { jeuId: game.id, name: 'Maison', characterIds: [hero.id, rival.id] })).json
+    const intrigue = (await call(client, 'enregistrer_intrigue', { jeuId: game.id, name: 'Succession', characterIds: [hero.id], factionIds: [faction.id] })).json
+    const item = (await call(client, 'enregistrer_objet', { jeuId: game.id, name: 'Testament', locationCharacterId: hero.id })).json
+    const location = (await call(client, 'enregistrer_lieu', { jeuId: game.id, name: 'Tour' })).json
+    const timelineEvent = (await call(client, 'enregistrer_evenement', { jeuId: game.id, name: 'Ouverture', day: 1, time: '10:00', intrigueIds: [intrigue.id] })).json
+    const relation = (await call(client, 'enregistrer_relation', { type: 'rivalry', fromCharacterId: hero.id, toCharacterId: rival.id, fromVisible: true })).json
+    for (const saved of [hero, rival, faction, intrigue, item, location, timelineEvent, relation]) expect(saved.id).toBeTruthy()
+    expect((await prisma.character.findUniqueOrThrow({ where: { id: hero.id } })).sheetReadyToSend).toBe(true)
+
+    // Un document avec un fichier posé dans l'interface : l'assistant change le texte, le fichier reste
+    const withFile = await api(alice, 'POST', '/api/documents', { title: 'Plan', content: 'Version 1', documentUrl: 'https://exemple.test/plan.pdf', gameId: game.id })
+    expect(withFile.status).toBe(200)
+    const documentId = (withFile.body as { id: string }).id
+    const documentRead = (await call(client, 'lire_contenu', { type: 'documents', id: documentId })).json
+    expect((await call(client, 'enregistrer_document', { id: documentId, version: documentRead.updatedAt, content: 'Version 2' })).error).toBe(false)
+    expect(await prisma.document.findUniqueOrThrow({ where: { id: documentId }, select: { content: true, documentUrl: true } })).toEqual({ content: 'Version 2', documentUrl: 'https://exemple.test/plan.pdf' })
+
+    // Un champ donné seul : les membres de la faction restent
+    const factionRead = (await call(client, 'lire_contenu', { type: 'factions', id: faction.id })).json
+    const changed = await call(client, 'enregistrer_faction', { id: faction.id, version: factionRead.updatedAt, pitch: 'Ancienne maison' })
+    expect(changed.error).toBe(false)
+    const factionNow = await prisma.faction.findUniqueOrThrow({ where: { id: faction.id }, include: { characters: true } })
+    expect(factionNow.pitch).toBe('Ancienne maison')
+    expect(factionNow.characters.map((character) => character.id).sort()).toEqual([hero.id, rival.id].sort())
+
+    // Version dépassée : refus, rien n'est écrit
+    const stale = await call(client, 'enregistrer_faction', { id: faction.id, version: factionRead.updatedAt, pitch: 'Écrasée' })
+    expect(stale.error).toBe(true)
+    expect(stale.text).toContain('modifié par quelqu’un d’autre')
+    expect((await call(client, 'enregistrer_faction', { id: faction.id, pitch: 'Sans version' })).error).toBe(true)
+
+    // Lien vers un élément d'un autre jeu, et écriture hors de l'autorisation
+    expect((await call(client, 'enregistrer_intrigue', { jeuId: game.id, name: 'Intruse', characterIds: [b.character.id] })).error).toBe(true)
+    expect((await call(client, 'enregistrer_personnage', { jeuId: b.game.id, name: 'Intrus' })).error).toBe(true)
+    const bRead = await prisma.character.findUniqueOrThrow({ where: { id: b.character.id } })
+    expect((await call(client, 'enregistrer_personnage', { id: b.character.id, version: bRead.updatedAt.toISOString(), name: 'Volé' })).error).toBe(true)
+    expect((await call(client, 'supprimer_contenu', { type: 'personnage', id: b.character.id, version: bRead.updatedAt.toISOString() })).error).toBe(true)
+
+    // Le jeu lui-même : présentation seulement
+    const gameRead = (await call(client, 'lire_jeu', { jeuId: game.id })).json
+    expect((await call(client, 'modifier_jeu', { jeuId: game.id, version: gameRead.updatedAt, title: 'Jeu renommé' })).error).toBe(false)
+    expect((await prisma.game.findUniqueOrThrow({ where: { id: game.id } })).title).toBe('Jeu renommé')
+
+    // Suppression : définitive, avec la version lue
+    const relationRead = (await call(client, 'lister_relations', { jeuId: game.id })).json[0]
+    expect((await call(client, 'supprimer_contenu', { type: 'relation', id: relation.id, version: relationRead.updatedAt })).json).toEqual({ deleted: true })
+    const rivalRead = (await call(client, 'lire_contenu', { type: 'personnages', id: rival.id })).json
+    expect((await call(client, 'supprimer_contenu', { type: 'personnage', id: rival.id, version: rivalRead.updatedAt })).error).toBe(false)
+    expect(await prisma.character.count({ where: { id: rival.id } })).toBe(0)
+
+    const log = await prisma.aiLogEntry.findMany({ where: { gameId: game.id }, orderBy: { createdAt: 'asc' } })
+    expect(log.map((entry) => `${entry.action} ${entry.targetType} ${entry.targetName}`)).toEqual(expect.arrayContaining([
+      'création game Jeu écrit par l’assistant',
+      'création character Aube',
+      'mise à jour faction Maison',
+      'mise à jour document Plan',
+      'mise à jour game Jeu renommé',
+      'suppression characterRelation rivalry',
+      'suppression character Crépuscule'
+    ]))
+  })
+})
+
 describe('assistants connectés', () => {
   it('liste, change les jeux, retire, et garde la trace au journal et dans l’export', async () => {
     const { client, provider } = await connectAssistant(bob, { gameIds: [b.game.id] })

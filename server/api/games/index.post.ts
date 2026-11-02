@@ -1,36 +1,9 @@
-import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
-import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { createGameSchema, readZodBody } from '~/server/utils/schemas'
-import { requireCurrentUser } from '~/server/utils/gameAccess'
+import { createGame } from '~/server/utils/contentWrites'
 
+// Écriture commune à l'interface et aux assistants d'IA (server/utils/contentWrites.ts, US-126)
 export default defineEventHandler(async (event) => {
   await requireUser(event)
-  const user = await requireCurrentUser(event)
-
-  const body = await readZodBody(event, createGameSchema)
-  const { title, description, teaserUrl, noteIntention, publicPage, publicShowSessions, publicShowRegistration, singlePjPerParticipant, balanceAttribute, balanceValues, photoRetentionMonths, contactEmail } = body
-
-  const slug = await generateUniqueSlug('game', title)
-
-  const game = await prisma.game.create({
-    data: {
-      title,
-      slug,
-      description: description ?? '',
-      teaserUrl,
-      noteIntention,
-      ownerId: user.id,
-      publicPage: publicPage ?? false,
-      publicShowSessions: publicShowSessions ?? false,
-      publicShowRegistration: publicShowRegistration ?? false,
-      balanceAttribute: balanceAttribute || null,
-      balanceValues: balanceAttribute ? balanceValues ?? [] : [],
-      singlePjPerParticipant: singlePjPerParticipant ?? true,
-      photoRetentionMonths: photoRetentionMonths ?? undefined,
-      contactEmail: contactEmail || null
-    }
-  })
-
-  return game
+  return await createGame(event, () => readZodBody(event, createGameSchema))
 })

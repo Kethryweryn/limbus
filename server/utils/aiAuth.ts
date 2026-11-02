@@ -240,6 +240,8 @@ export async function bindAiAuthorization(event: H3Event, authorization: LoadedA
   event.context.authUser = { id: user.id, email: user.email, name: user.name, role: user.role, emailConfirmed: true, termsAccepted: true }
   event.context.aiAuthorization = {
     id: authorization.id,
+    userId: authorization.userId,
+    clientName: authorization.client.name,
     canWrite: authorization.canWrite,
     gameIds: await aiAuthorizedGameIds(authorization)
   }
@@ -250,7 +252,9 @@ export async function bindAiAuthorization(event: H3Event, authorization: LoadedA
 
 declare module 'h3' {
   interface H3EventContext {
-    aiAuthorization?: { id: string, canWrite: boolean, gameIds: string[] }
+    aiAuthorization?: { id: string, userId: string, clientName: string, canWrite: boolean, gameIds: string[] }
+    // Version lue donnée par un outil d'écriture (SPEC-014, R10), contrôlée comme l'en-tête If-Unmodified-Since
+    writeVersion?: Date
   }
 }
 

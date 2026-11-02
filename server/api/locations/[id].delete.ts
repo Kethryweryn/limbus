@@ -1,27 +1,9 @@
-import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
-import { requireGameAccess } from '~/server/utils/gameAccess'
 import { requireRouterParam } from '~/server/utils/routeParams'
-import { assertUnmodifiedSince } from '~/server/utils/concurrency'
+import { deleteLocation } from '~/server/utils/contentWrites'
 
+// Écriture commune à l'interface et aux assistants d'IA (server/utils/contentWrites.ts, US-126)
 export default defineEventHandler(async (event) => {
   await requireUser(event)
-
-  const id = requireRouterParam(event, 'id')
-  const location = await prisma.location.findUnique({ where: { id }, select: { gameId: true } })
-  if (!location) {
-    throw createError({ statusCode: 404, message: 'Lieu introuvable' })
-  }
-  await requireGameAccess(event, location.gameId)
-  // Suppression rejouée hors ligne : refusée si l'élément a changé depuis sa lecture (ADR-0036)
-  await assertUnmodifiedSince(event, 'location', id)
-
-  await prisma.session.updateMany({
-    where: { locationId: id },
-    data: { locationId: null }
-  })
-
-  return await prisma.location.delete({
-    where: { id }
-  })
+  return await deleteLocation(event, requireRouterParam(event, 'id'))
 })

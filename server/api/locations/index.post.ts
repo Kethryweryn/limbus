@@ -1,26 +1,9 @@
-import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
 import { locationSchema, readZodBody } from '~/server/utils/schemas'
-import { requireGameAccess } from '~/server/utils/gameAccess'
-import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
+import { createLocation } from '~/server/utils/contentWrites'
 
+// Écriture commune à l'interface et aux assistants d'IA (server/utils/contentWrites.ts, US-126)
 export default defineEventHandler(async (event) => {
   await requireUser(event)
-
-  const body = await readZodBody(event, locationSchema)
-  const { name, address, notes, gameId } = body
-  await requireGameAccess(event, gameId)
-
-  return await prisma.location.create({
-    data: {
-      name,
-      slug: await generateUniqueSlug('location', name),
-      address: address || null,
-      notes: notes || null,
-      gameId
-    },
-    include: {
-      game: true
-    }
-  })
+  return await createLocation(event, () => readZodBody(event, locationSchema))
 })

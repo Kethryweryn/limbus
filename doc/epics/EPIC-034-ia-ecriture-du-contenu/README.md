@@ -31,5 +31,5 @@ Choix techniques :
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-125](US-125-creer-et-modifier-un-jeu.md) | L'assistant crée et modifie un jeu | à faire |
-| [US-126](US-126-ecrire-le-contenu.md) | L'assistant écrit le contenu d'un jeu | à faire |
+| [US-125](US-125-creer-et-modifier-un-jeu.md) | L'assistant crée et modifie un jeu | terminée |
+| [US-126](US-126-ecrire-le-contenu.md) | L'assistant écrit le contenu d'un jeu | terminée |

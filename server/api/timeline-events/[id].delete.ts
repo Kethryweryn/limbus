@@ -1,21 +1,9 @@
-import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
-import { requireGameAccess } from '~/server/utils/gameAccess'
 import { requireRouterParam } from '~/server/utils/routeParams'
-import { assertUnmodifiedSince } from '~/server/utils/concurrency'
+import { deleteTimelineEvent } from '~/server/utils/contentWrites'
 
+// Écriture commune à l'interface et aux assistants d'IA (server/utils/contentWrites.ts, US-126)
 export default defineEventHandler(async (event) => {
   await requireUser(event)
-
-  const id = requireRouterParam(event, 'id')
-  const timelineEvent = await prisma.timelineEvent.findUnique({ where: { id }, select: { gameId: true } })
-  if (!timelineEvent) {
-    throw createError({ statusCode: 404, message: 'Événement introuvable' })
-  }
-  await requireGameAccess(event, timelineEvent.gameId)
-  // Suppression rejouée hors ligne : refusée si l'élément a changé depuis sa lecture (ADR-0036)
-  await assertUnmodifiedSince(event, 'timelineEvent', id)
-
-  await prisma.timelineEvent.delete({ where: { id } })
-  return { ok: true }
+  return await deleteTimelineEvent(event, requireRouterParam(event, 'id'))
 })

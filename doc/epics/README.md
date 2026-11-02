@@ -171,5 +171,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-122](../archive/epics/EPIC-033-ia-connexion-et-lecture/US-122-serveur-mcp-en-lecture.md) | Serveur MCP et outils de lecture | EPIC-033 | terminée |
 | [US-123](../archive/epics/EPIC-033-ia-connexion-et-lecture/US-123-assistants-connectes.md) | Assistants connectés, réglage de la propriétaire, journal | EPIC-033 | terminée |
 | [US-124](../archive/epics/EPIC-033-ia-connexion-et-lecture/US-124-confidentialite-et-conditions.md) | Politique de confidentialité et conditions | EPIC-033 | terminée |
-| [US-125](EPIC-034-ia-ecriture-du-contenu/US-125-creer-et-modifier-un-jeu.md) | L'assistant crée et modifie un jeu | EPIC-034 | à faire |
-| [US-126](EPIC-034-ia-ecriture-du-contenu/US-126-ecrire-le-contenu.md) | L'assistant écrit le contenu d'un jeu | EPIC-034 | à faire |
+| [US-125](EPIC-034-ia-ecriture-du-contenu/US-125-creer-et-modifier-un-jeu.md) | L'assistant crée et modifie un jeu | EPIC-034 | terminée |
+| [US-126](EPIC-034-ia-ecriture-du-contenu/US-126-ecrire-le-contenu.md) | L'assistant écrit le contenu d'un jeu | EPIC-034 | terminée |

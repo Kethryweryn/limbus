@@ -16,8 +16,12 @@ export async function toolResult(run: () => Promise<unknown>): Promise<ToolResul
   try {
     return { content: [{ type: 'text', text: JSON.stringify(await run()) }] }
   } catch (error) {
-    const message = (error as { statusMessage?: string, message?: string })?.message || 'Erreur'
     const status = (error as { statusCode?: number })?.statusCode
+    // Refus d'une validation : le détail de chaque champ, pour que l'assistant corrige sa demande
+    const issues = (error as { data?: Array<{ path?: string, message?: string }> })?.data
+    const message = Array.isArray(issues) && issues.length
+      ? issues.map((issue) => issue.path ? `${issue.path} : ${issue.message}` : issue.message).join(' ; ')
+      : (error as { message?: string })?.message || 'Erreur'
     // Une erreur inattendue ne montre pas son détail à l'assistant
     if (!status || status >= 500) console.error('[mcp] outil en échec', { error: message })
     return { isError: true, content: [{ type: 'text', text: status && status < 500 ? message : 'Erreur du serveur' }] }
