@@ -102,6 +102,11 @@ export async function startTestSmtp(prisma: PrismaClient) {
   }
 }
 
+// Jeton d'un lien reçu par email (/inscription/…, /acces/mot-de-passe/…)
+export function linkToken(email: ReceivedEmail, path: string) {
+  return email.text.match(new RegExp(`${path}([\\w-]+)`))?.[1]
+}
+
 export function personalLinkToken(email: ReceivedEmail) {
-  return email.text.match(/\/inscription\/([\w-]+)/)?.[1]
+  return linkToken(email, '/inscription/')
 }
