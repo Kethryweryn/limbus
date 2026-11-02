@@ -79,7 +79,8 @@ test('les modifications en attente partent à l’ouverture de l’application',
     const locations = await (await page.request.get('/api/locations')).json()
     return locations.some((location: { name: string }) => location.name === name)
   }).toBe(true)
-  await expect.poll(() => readQueue(page)).toEqual([])
+  // La page peut naviguer pendant l'envoi de la file : une lecture interrompue est simplement refaite
+  await expect.poll(() => readQueue(page).catch(() => 'page en cours de chargement')).toEqual([])
 })
 
 test('une session consultée se rouvre et se modifie sans réseau, puis la modification part', async ({ page, context }) => {

@@ -38,7 +38,10 @@ describe('comptes inactifs (US-112)', () => {
     const toWarn = await user('a-avertir', { lastSeenAt: ago(23.5 * MONTH) })
     const toDelete = await user('a-effacer', { lastSeenAt: ago(25 * MONTH), inactivityWarnedAt: ago(30 * DAY) })
     const neverWarned = await user('jamais-averti', { lastSeenAt: ago(25 * MONTH) })
+    // Un compte désactivé suit la même durée
+    const disabled = await user('desactive', { lastSeenAt: ago(23.5 * MONTH), disabledAt: ago(MONTH) })
     await loginSomeone()
+    await expect.poll(async () => (await prisma.user.findUniqueOrThrow({ where: { id: disabled.id } })).inactivityWarnedAt).not.toBeNull()
 
     await expect.poll(async () => (await prisma.user.findUnique({ where: { id: toDelete.id } }))).toBeNull()
     await expect.poll(async () => (await prisma.user.findUniqueOrThrow({ where: { id: toWarn.id } })).inactivityWarnedAt).not.toBeNull()
@@ -59,7 +62,7 @@ describe('comptes inactifs (US-112)', () => {
     await prisma.game.create({ data: { title: 'Jeu gardé', slug: `jeu-garde-${counter}`, description: '', ownerId: owner.id } })
     await loginSomeone()
     await expect.poll(async () => (await prisma.user.findUniqueOrThrow({ where: { id: owner.id } })).inactivityReportedAt).not.toBeNull()
-    expect(smtp.received.some((email) => email.text.includes(owner.email) && email.text.includes('n’ont pas pu être effacés'))).toBe(true)
+    expect(smtp.received.some((email) => email.text.includes(owner.email) && email.text.includes('n’ont pas pu être avertis ou effacés'))).toBe(true)
   })
 })
 
