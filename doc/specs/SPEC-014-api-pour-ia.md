@@ -178,7 +178,7 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
    - outils de lecture (R7 à R9) ;
    - essai de bout en bout avec Claude, ChatGPT et Mistral, avec les comptes de l'utilisatrice.
 2. **Écriture du contenu d'un jeu** ([EPIC-034](../archive/epics/EPIC-034-ia-ecriture-du-contenu/README.md)) : jeu, personnages, factions, intrigues, objets, documents, lieux, chronologie, relations.
-3. **Sessions, casting et participants** ([EPIC-035](../epics/EPIC-035-ia-sessions-et-participants/README.md)) : sessions, casting, déroulé, assistant de casting, fiches participant.
+3. **Sessions, casting et participants** ([EPIC-035](../archive/epics/EPIC-035-ia-sessions-et-participants/README.md)) : sessions, casting, déroulé, assistant de casting, fiches participant.
 4. **Inscriptions** : périodes fermées, formulaire, décisions, tirage au sort.
 
 ## Historique
@@ -189,3 +189,4 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
 - 2026-11-03 : lot 2, choix de l'utilisatrice : aucun lien, « prêt à envoyer » et trombinoscope permis, pas d'archivage du jeu, suppression définitive. Limbus n'archive pas un élément seul.
 - 2026-11-03 : lot 2 livré ([EPIC-034](../archive/epics/EPIC-034-ia-ecriture-du-contenu/README.md), PR #112).
 - 2026-11-03 : lot 3, choix de l'utilisatrice : l'équipe se modifie comme dans l'interface, retraits compris ; le statut d'une session ne change jamais ; au casting, le cadenas oui, les réservations non ; une fiche s'ajoute à un autre jeu autorisé, jamais retirée d'un jeu.
+- 2026-11-03 : lot 3 livré ([EPIC-035](../archive/epics/EPIC-035-ia-sessions-et-participants/README.md), PR #118).

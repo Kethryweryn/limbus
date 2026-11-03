@@ -13,7 +13,7 @@ En tant qu'organisatrice, je veux que mon assistant propose et enregistre le cas
 
 ## Critères d'acceptation
 
-- [x] L'assistant lance l'assistant de casting d'une session sur son cast actuel, et lit ses notes, ses interdits, ses alertes et sa proposition ([ADR-0051](../../adr/ADR-0051-assistant-de-casting.md)). Rien n'est écrit. Les inscriptions n'y apparaissent que par leur identifiant et le nom de la fiche, sans réponse libre.
+- [x] L'assistant lance l'assistant de casting d'une session sur son cast actuel, et lit ses notes, ses interdits, ses alertes et sa proposition ([ADR-0051](../../../adr/ADR-0051-assistant-de-casting.md)). Rien n'est écrit. Les inscriptions n'y apparaissent que par leur identifiant et le nom de la fiche, sans réponse libre.
 - [x] Il enregistre des lignes du cast : pour un personnage du jeu, la personne (ou aucune), la note de la ligne, le cadenas. Les lignes non données restent telles quelles.
 - [x] Quand la personne d'une ligne change, la photo de la ligne est retirée. Il ne pose jamais de photo, et ne change pas les réservations d'un personnage pour une personne retenue.
 - [x] Une personne mise au cast entre dans l'équipe comme participant, comme dans l'interface. Les règles du cast s'appliquent (un seul PJ par participant…).
