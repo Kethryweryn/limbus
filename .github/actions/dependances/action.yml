@@ -1,0 +1,30 @@
+name: Dépendances
+description: 'node_modules en cache (clé package-lock.json), types Nuxt et client Prisma'
+runs:
+  using: composite
+  steps:
+    # Le cache vient du même conteneur (Debian 12 + Node 24) : ses modules natifs (bcrypt) y sont compilés
+    - id: cache
+      uses: actions/cache@v6
+      with:
+        path: node_modules
+        key: node-modules-bookworm-node24-${{ hashFiles('package-lock.json') }}
+    # Sans node_modules en cache (package-lock.json changé) : les paquets déjà téléchargés évitent de tout reprendre du réseau
+    - if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/cache@v6
+      with:
+        path: ~/.npm
+        key: npm-bookworm-${{ hashFiles('package-lock.json') }}
+        restore-keys: npm-bookworm-
+    # npm ci lance aussi `nuxt prepare` (postinstall)
+    - if: steps.cache.outputs.cache-hit != 'true'
+      run: npm ci
+      shell: bash
+    # Avec le cache, il faut lancer `nuxt prepare` soi-même : tous les jobs lisent `.nuxt/tsconfig.json`, que le
+    # tsconfig.json de la racine étend (prisma.config.ts et les tests compris)
+    - if: steps.cache.outputs.cache-hit == 'true'
+      run: npx nuxt prepare
+      shell: bash
+    # prisma.config.ts exige DATABASE_URL, même pour générer le client : chaque job la fournit
+    - run: npx prisma generate
+      shell: bash

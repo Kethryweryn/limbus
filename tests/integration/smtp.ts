@@ -26,12 +26,10 @@ function decodeBody(raw: string): string {
 }
 
 /**
- * Serveur SMTP minimal, en clair et sans authentification, qui garde les messages reçus.
- * L'application compilée (processus séparé) y envoie via les réglages SMTP de la base.
+ * Serveur SMTP minimal, en clair et sans authentification, qui passe chaque message reçu à `onMessage`.
+ * L'application compilée (processus séparé) y envoie via les réglages SMTP de la base (`saveTestSmtpSettings`).
  */
-export async function startTestSmtp(prisma: PrismaClient) {
-  const received: ReceivedEmail[] = []
-
+export async function listenTestSmtp(onMessage: (email: ReceivedEmail) => void) {
   const server: Server = createServer((socket) => {
     let buffer = ''
     let inData = false
@@ -47,7 +45,7 @@ export async function startTestSmtp(prisma: PrismaClient) {
           const raw = buffer.slice(0, end).replace(/^\.\./gm, '.')
           buffer = buffer.slice(end + 5)
           inData = false
-          received.push({ to: recipients, raw, text: decodeBody(raw) })
+          onMessage({ to: recipients, raw, text: decodeBody(raw) })
           recipients = []
           socket.write('250 OK\r\n')
           continue
@@ -83,9 +81,23 @@ export async function startTestSmtp(prisma: PrismaClient) {
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
   const address = server.address()
   const port = typeof address === 'object' && address ? address.port : 0
+  return {
+    port,
+    close: () => new Promise((resolve) => server.close(resolve))
+  }
+}
 
+// Réglages SMTP de l'application : tout part vers le serveur de test
+export async function saveTestSmtpSettings(prisma: PrismaClient, port: number) {
   const settings = { enabled: true, host: '127.0.0.1', port, secure: false, username: null, passwordEncrypted: null, fromEmail: 'limbus@example.test', fromName: 'Limbus' }
   await prisma.smtpSettings.upsert({ where: { id: 'default' }, create: { id: 'default', ...settings }, update: settings })
+}
+
+// Serveur de test propre à un fichier de tests d'intégration, qui garde les messages reçus
+export async function startTestSmtp(prisma: PrismaClient) {
+  const received: ReceivedEmail[] = []
+  const server = await listenTestSmtp((email) => received.push(email))
+  await saveTestSmtpSettings(prisma, server.port)
 
   return {
     received,
@@ -99,7 +111,7 @@ export async function startTestSmtp(prisma: PrismaClient) {
     },
     async stop() {
       await prisma.smtpSettings.deleteMany({ where: { id: 'default' } })
-      await new Promise((resolve) => server.close(resolve))
+      await server.close()
     }
   }
 }

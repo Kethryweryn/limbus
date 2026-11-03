@@ -1,7 +1,7 @@
 ---
 id: ADR-0023
 titre: Construire une fois dans la CI, tester ce build, le déployer tel quel
-statut: accepté
+statut: accepté, job `check` découpé par ADR-0059 (jobs parallèles)
 date: 2026-10-28
 liens: [ADR-0002, ADR-0017, ADR-0022, ADR-0015, ADR-0004]
 ---

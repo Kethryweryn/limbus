@@ -2,11 +2,12 @@ name: CI
 
 # Construire une fois, tester, déployer ce build (ADR-0023) :
 # - sur une PR, l'application est construite dans un conteneur Debian 12 + Node 24 (comme le serveur),
-#   testée, puis archivée ;
+#   testée, puis archivée. Contrôles statiques et build tournent en parallèle, puis l'intégration et
+#   Playwright testent ce build en parallèle ;
 # - la fusion dans main ne relance pas les tests : le job `deploy` reprend l'archive de la PR, vérifie
 #   qu'elle a été construite à partir du code exact de main, et l'envoie au serveur.
 # La protection de main exige la seule vérification « Verdict CI », sur une branche à jour avec main.
-# Documentation seule : `check` n'est pas lancé sur la PR, et la fusion ne déploie rien (ADR-0022).
+# Documentation seule : aucun test n'est lancé sur la PR, et la fusion ne déploie rien (ADR-0022).
 # Secours (« Run workflow » sur main) : construit, teste et déploie main, quand l'archive de la PR manque.
 on:
   push:
@@ -62,16 +63,61 @@ jobs:
           done
           exit "$failed"
 
-  check:
+  # Contrôles statiques, en parallèle du build
+  static:
     needs: changes
     # always() : sur un lancement manuel, `changes` est ignoré mais les tests doivent tourner
     if: always() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true')
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     # Même système (glibc) et même Node majeur que le serveur : le build déployé contient des modules natifs (bcrypt)
     container: node:24-bookworm
+    env:
+      # Sans base : l'adresse sert seulement à générer le client Prisma
+      DATABASE_URL: postgresql://limbus@localhost:5432/limbus
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/dependances
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      # Toutes les dépendances, outils de build compris : ils produisent le build déployé et tournent aussi sur le serveur
+      - run: npm audit --audit-level=high
+
+  # Le build, construit une fois : l'intégration et Playwright le testent en parallèle, puis `check` l'archive.
+  # L'arbre Git et la version de Node l'accompagnent : le déploiement vérifie le premier, le serveur le second.
+  build:
+    needs: changes
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.code == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container: node:24-bookworm
+    env:
+      # Sans base : le client Prisma se génère et le prérendu le crée sans s'y connecter
+      DATABASE_URL: postgresql://limbus@localhost:5432/limbus
+      PUBLIC_APP_URL: https://limbuslarp.fr
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/dependances
+      - run: npm run build
+      - run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git rev-parse 'HEAD^{tree}' > BUILD_TREE
+          node --version > BUILD_NODE
+          tar -czf limbus-build.tar.gz .output BUILD_TREE BUILD_NODE
+      - uses: actions/upload-artifact@v7
+        with:
+          name: build-a-tester
+          path: limbus-build.tar.gz
+          retention-days: 1
+
+  integration:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container: node:24-bookworm
     services:
-      postgres:
+      postgres: &postgres
         image: postgres:15
         env:
           POSTGRES_USER: limbus
@@ -82,28 +128,46 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-    env:
+    env: &test-env
       DATABASE_URL: postgresql://limbus:limbus@postgres:5432/limbus_test
       TEST_DATABASE_URL: postgresql://limbus:limbus@postgres:5432/limbus_test
       PUBLIC_APP_URL: https://limbuslarp.fr
     steps:
       - uses: actions/checkout@v7
-
-      - uses: actions/cache@v6
+      - uses: ./.github/actions/dependances
+      - uses: actions/download-artifact@v8
         with:
-          path: ~/.npm
-          key: npm-bookworm-${{ hashFiles('package-lock.json') }}
-
-      - run: npm ci
-      - run: npx prisma generate
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-      # Toutes les dépendances, outils de build compris : ils produisent le build déployé et tournent aussi sur le serveur
-      - run: npm audit --audit-level=high
-      - run: npm run build
+          name: build-a-tester
+      - run: tar -xzf limbus-build.tar.gz .output
       - run: npm run test:integration
-      - run: npx playwright install --with-deps chromium
+
+  e2e:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container: node:24-bookworm
+    services:
+      postgres: *postgres
+    env: *test-env
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/dependances
+      - uses: actions/download-artifact@v8
+        with:
+          name: build-a-tester
+      - run: tar -xzf limbus-build.tar.gz .output
+      # Chromium en cache, par version de Playwright ; les paquets système qu'il demande s'installent à chaque fois
+      - id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - id: chromium
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-bookworm-${{ steps.playwright.outputs.version }}
+      - if: steps.chromium.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.chromium.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
       - run: npm run test:e2e
       - name: Traces Playwright en cas d'échec
         if: failure()
@@ -113,14 +177,15 @@ jobs:
           path: test-results/
           retention-days: 7
 
-      # Seul un build qui a passé tous les tests est archivé. L'arbre Git testé et la version de Node
-      # l'accompagnent : le déploiement vérifie le premier, le serveur le second.
-      - name: Archiver le build testé
-        run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git rev-parse 'HEAD^{tree}' > BUILD_TREE
-          node --version > BUILD_NODE
-          tar -czf limbus-build.tar.gz .output BUILD_TREE BUILD_NODE
+  # Seul un build qui a passé tous les tests est archivé sous le nom que le déploiement cherche
+  check:
+    needs: [static, integration, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: build-a-tester
       - uses: actions/upload-artifact@v7
         with:
           name: limbus-build

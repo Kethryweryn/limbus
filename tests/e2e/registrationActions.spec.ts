@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
-import { startTestSmtp } from '../integration/smtp'
+import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
 import { gamePanel, signIn, slugOf, uniqueName, type TestPrisma } from './helpers'
 
@@ -42,7 +42,7 @@ async function openRegistrations(page: Page, prisma: TestPrisma) {
 // EPIC-001 (US-005) : relance, prolongation, nouveau lien, libération et annulation d'une invitation
 test('l’équipe relance, prolonge, renvoie, libère et annule des invitations', async ({ page }) => {
   const prisma = createTestPrisma()
-  const smtp = await startTestSmtp(prisma)
+  const mailbox = openMailbox()
   try {
     const key = `actions-${Date.now()}`
     const { game, session, period } = await testPeriod(prisma, key)
@@ -60,7 +60,7 @@ test('l’équipe relance, prolonge, renvoie, libère et annule des invitations'
     await row('Ana Actions').getByRole('button', { name: 'Relancer' }).click()
     await expect(page.getByText('Rappel envoyé à Ana Actions.')).toBeVisible()
     await expect(row('Ana Actions').getByText(/relancée le/)).toBeVisible()
-    await expect.poll(() => smtp.to(ana.email).length).toBe(1)
+    await expect.poll(() => mailbox.to(ana.email).length).toBe(1)
 
     // Prolongation : la modale propose une semaine après l'échéance, la nouvelle date est enregistrée
     await row('Ana Actions').getByRole('button', { name: 'Prolonger' }).click()
@@ -81,7 +81,7 @@ test('l’équipe relance, prolonge, renvoie, libère et annule des invitations'
     await row('Ben Actions').getByRole('button', { name: 'Nouveau lien' }).click()
     await expect(page.getByText('Nouveau lien envoyé à Ben Actions.')).toBeVisible()
     expect((await prisma.registration.findUniqueOrThrow({ where: { id: ben.registration.id }, select: { tokenHash: true } })).tokenHash).not.toBe(before)
-    await expect.poll(() => smtp.to(ben.email).length).toBe(1)
+    await expect.poll(() => mailbox.to(ben.email).length).toBe(1)
 
     // Libération : la place est libérée par l'organisatrice, la ligne le dit et n'offre plus d'action d'invitation
     page.once('dialog', (dialog) => dialog.accept())
@@ -100,7 +100,6 @@ test('l’équipe relance, prolonge, renvoie, libère et annule des invitations'
     await expect(row('Ana Actions')).toHaveCount(0)
     expect(await prisma.registration.count({ where: { id: ana.registration.id } })).toBe(0)
   } finally {
-    await smtp.stop()
     await prisma.$disconnect()
   }
 })
@@ -108,7 +107,6 @@ test('l’équipe relance, prolonge, renvoie, libère et annule des invitations'
 // EPIC-001 (US-005) : détail d'une inscription confirmée, puis retrait de la session
 test('l’équipe consulte le détail d’une personne confirmée et la retire de la session', async ({ page }) => {
   const prisma = createTestPrisma()
-  const smtp = await startTestSmtp(prisma)
   try {
     const key = `retrait-${Date.now()}`
     const { game, session, period } = await testPeriod(prisma, key)
@@ -133,7 +131,6 @@ test('l’équipe consulte le détail d’une personne confirmée et la retire d
     expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: cleo.participant.id } })).toBe(0)
     expect((await prisma.registration.findUniqueOrThrow({ where: { id: cleo.registration.id }, select: { status: true } })).status).toBe('withdrawn')
   } finally {
-    await smtp.stop()
     await prisma.$disconnect()
   }
 })
