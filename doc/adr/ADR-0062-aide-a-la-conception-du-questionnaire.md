@@ -23,8 +23,9 @@ liens: [SPEC-016, SPEC-015, SPEC-014, ADR-0050, ADR-0051, ADR-0058, ADR-0061]
 
 | Question reliée | Information maximale | Référence |
 |---|---|---|
-| Choix unique à k options, échelle à k niveaux | log₂(k) bits | Shannon (1948) ; Dahl et Østerås (2010) |
-| Choix multiples à k options | k bits (chaque option est un oui ou un non) | idem |
+| Choix unique | log₂(g) bits, g étant le nombre de groupes d'options de mêmes liens (les options sans lien forment un groupe) : deux options qui donnent les mêmes points ne se distinguent pas pour le casting | Shannon (1948) ; Dahl et Østerås (2010) |
+| Échelle reliée | log₂(5) bits | idem |
+| Choix multiples | un bit par option reliée (chaque option est un oui ou un non) | idem |
 | Questionnaire | somme des questions reliées, comparée à log₂(N) pour N personnages PJ | 2^bits profils de réponses distincts au plus |
 
 L'information attendue avec les proportions de l'équipe est l'entropie de Shannon de ces proportions (de chaque option, pour une question à choix multiples). La somme suppose les questions indépendantes : c'est une borne haute, donc le repère ne signale que les cas sûrs.
@@ -32,7 +33,7 @@ L'information attendue avec les proportions de l'équipe est l'entropie de Shann
 ### Simulation (R6 à R10)
 
 - **Réponses par défaut** : sans proportions, chaque option a la même chance, et chaque option d'une question à choix multiples est cochée une fois sur deux. C'est la loi d'entropie maximale, celle qui ne suppose rien de plus que ce que l'on sait (Jaynes, 1957).
-- **Proportions de l'équipe** : pour une question à choix unique ou une échelle, des poids ramenés à une somme de 1 ; pour une question à choix multiples, une probabilité par option, tirée indépendamment des autres.
+- **Proportions de l'équipe** : pour une question à choix unique ou une échelle, des poids ramenés à une somme de 1 ; pour une question à choix multiples, une probabilité par option, tirée indépendamment des autres. Dès qu'une option d'une question a une part, les autres valent 0 si elles sont vides. Le schéma zod refuse une question à choix unique ou une échelle dont toutes les parts sont nulles.
 - **Personnes simulées** : autant que de personnages PJ, choix de l'utilisatrice. Elles répondent à toutes les questions reliées. Les questions non reliées ne changent aucune note.
 - **Calculs** : ceux de SPEC-015, partagés dans `utils/questionnaireQuality.ts` : présence parmi les 3 meilleurs et meilleur personnage (R12), affectation optimale par la méthode hongroise et part des meilleures notes ex æquo (R13). Le premier des deux lots qui en a besoin, SPEC-015 lot 2 ou SPEC-016 lot 2, écrit la fonction pure ; l'autre la réutilise.
 - **Répétitions** : 1 000 simulations. L'erreur de Monte-Carlo d'une proportion estimée sur n simulations est √(p(1−p)/n), au plus 0,016 pour n = 1 000 (Morris, White et Crowther, 2019) : « 7 simulations sur 10 » est juste à 3 points près.
@@ -43,11 +44,11 @@ L'information attendue avec les proportions de l'équipe est l'entropie de Shann
 
 ### Proportions attendues (R6)
 
-- Modèle `RegistrationOptionExpectation` : `gameId`, `questionId`, `option` (texte de l'option, ou niveau `1` à `5` d'une échelle), `share` (nombre entre 0 et 1).
+- Modèle `RegistrationOptionExpectation` : `gameId`, `questionId`, `option` (texte de l'option, ou niveau `1` à `5` d'une échelle), `share` (nombre entre 0 et 1), `updatedAt`.
 - Comme `RegistrationQuestionLink` (ADR-0050) :
   - elles vivent hors de la définition versionnée ;
   - l'éditeur les renvoie avec le texte en cours de l'option ;
-  - `PUT /api/games/:id/registration-option-expectations` les remplace toutes, en contrôlant la version lue ;
+  - `PUT /api/games/:id/registration-option-expectations` les remplace toutes. L'éditeur envoie la version lue, le plus récent `updatedAt` des lignes (`NO_VERSION` s'il n'y en a aucune), contrôlée par `assertUnmodifiedSince` : deux membres de l'équipe ne s'écrasent pas sans le savoir. Les liens, eux, n'ont pas ce contrôle ;
   - une ligne vers une question ou une option disparue est ignorée à la lecture ;
   - elles sont copiées avec un jeu (`gameCopy.ts`) et supprimées avec lui.
 - La route utilise `requireGameAccess`, un schéma zod (`readZodBody`), et entre dans `isolation.test.ts`.
@@ -59,10 +60,10 @@ Des fonctions pures dans `utils/questionnaireDrafting.ts`, appliquées au formul
 | Règle | Repérage | Référence |
 |---|---|---|
 | Double sens | mot « et » ou « ou » dans le libellé d'une question à choix ou d'une échelle, ou dans une option | Bradburn, Sudman et Wansink (2004) |
-| Double négation | au moins deux marques de négation dans le libellé (« ne », « n' », « pas », « jamais », « plus », « rien », « aucun », « non », « sans ») | Artino et al. (2014) |
+| Double négation | au moins deux négations dans le libellé. Une négation, c'est un « ne » ou un « n' » (avec son « pas », « jamais », « plus », « rien » ou « aucun », qui ne compte pas en plus), un « sans » ou un « non », ou un « pas » sans « ne » dans la même phrase (registre familier) | Artino et al. (2014) |
 | Format « d'accord » | « d'accord » dans le libellé ou une option | Saris, Revilla, Krosnick et Shaeffer (2010) |
 | Quantifieur vague | liste fermée de mots (« souvent », « parfois », « rarement », « régulièrement », « fréquemment », « beaucoup », « peu »…) dans le libellé ou une option | Bradburn et Miles (1979) ; Schaeffer (1991). Leur intérêt est discuté pour des comparaisons entre personnes (Al Baghal, 2014) : le signalement invite à vérifier, sans interdire |
-| Longueur | nombre de mots au-delà de Q3 + 1,5 × (Q3 − Q1) parmi les questions propres au jeu | Tukey (1977) pour la règle ; Alwin et Beattie (2016) : fiabilité moindre des questions plus longues, sans seuil fixe |
+| Longueur | nombre de mots au-delà de Q3 + 1,5 × (Q3 − Q1) parmi les questions propres au jeu, quartiles par interpolation linéaire (type 7 de Hyndman et Fan, 1996). Si l'écart interquartile est nul, la règle ne s'applique pas : toute question plus longue d'un mot serait signalée | Tukey (1977) pour la règle ; Alwin et Beattie (2016) : fiabilité moindre des questions plus longues, sans seuil fixe |
 
 Les mots sont comptés sur le texte découpé aux espaces et à l'apostrophe, sans tenir compte de la casse ni des accents. La liste des quantifieurs vagues et celle des négations sont des constantes du module.
 
@@ -81,6 +82,7 @@ Les mots sont comptés sur le texte découpé aux espaces et à l'apostrophe, sa
 
 - Le champ `shuffleOptions` (booléen, absent = faux) appartient à une question à choix de la définition versionnée (`registrationFormDefinitionSchema`). Le changer crée une version, comme tout ce que voit la personne.
 - L'ordre est tiré au hasard à chaque affichage, dans le formulaire public et dans l'essai, avec `Math.random` : il ne sert qu'à répartir l'effet d'ordre entre les options (Krosnick et Presser, 2010). Les réponses restent enregistrées par le texte de l'option.
+- Le tirage se fait dans le navigateur, après le montage du composant (`onMounted`). Le rendu serveur garde l'ordre saisi : un tirage côté serveur, puis un autre à l'hydratation, donneraient deux ordres différents.
 
 ## Conséquences
 
@@ -115,4 +117,5 @@ Les mots sont comptés sur le texte découpé aux espaces et à l'apostrophe, sa
 - Saris, W. E., Revilla, M., Krosnick, J. A. et Shaeffer, E. M. (2010). Comparing questions with agree/disagree response options to questions with item-specific response options. *Survey Research Methods*, 4(1).
 - Schaeffer, N. C. (1991). Hardly ever or constantly? Group comparisons using vague quantifiers. *Public Opinion Quarterly*, 55(3).
 - Shannon, C. E. (1948). A mathematical theory of communication. *Bell System Technical Journal*, 27.
+- Hyndman, R. J. et Fan, Y. (1996). Sample quantiles in statistical packages. *The American Statistician*, 50(4), 361-365.
 - Tukey, J. W. (1977). *Exploratory Data Analysis*. Addison-Wesley.

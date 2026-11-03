@@ -89,7 +89,7 @@ Rien n'est enregistré : les repères se calculent à la lecture, à partir du f
 
 - Questions à texte libre : aucune analyse.
 - Doublons entre une question à choix multiples et une autre question : les options d'une question à choix multiples ne sont jugées que par R8.
-- Repères pour l'assistant d'IA (SPEC-014) : pas d'outil pour l'instant.
+- Repères pour l'assistant d'IA (SPEC-014) : pas d'outil pour l'instant. Seuls les signalements de rédaction lui sont donnés, par la consigne « Relire le questionnaire » de SPEC-016 (R12).
 - Repères par session : ils portent sur le jeu entier.
 - Aide à la conception avant les réponses (essai, prévision, relecture, mélange des options) : [SPEC-016](SPEC-016-conception-du-questionnaire.md), qui ajoute à l'encadré une partie « Prévision » et une partie « Rédaction ».
 
