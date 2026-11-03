@@ -1,7 +1,7 @@
 ---
 id: EPIC-037
 titre: Qualité du questionnaire, lot 1 : repères sur les liens
-statut: à faire
+statut: terminé
 spec: ../../specs/SPEC-015-qualite-du-questionnaire.md
 date: 2026-11-03
 ---
@@ -16,8 +16,8 @@ Lot 1 de [SPEC-015](../../specs/SPEC-015-qualite-du-questionnaire.md) (R1 à R6)
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-133](US-133-encadre-et-liens-manquants.md) | L'encadré « Qualité du questionnaire » et les liens manquants | à faire |
-| [US-134](US-134-personnages-indistincts-par-les-liens.md) | Les personnages que les liens ne distinguent pas | à faire |
+| [US-133](US-133-encadre-et-liens-manquants.md) | L'encadré « Qualité du questionnaire » et les liens manquants | terminée |
+| [US-134](US-134-personnages-indistincts-par-les-liens.md) | Les personnages que les liens ne distinguent pas | terminée |
 
 ## Décisions
 

@@ -95,7 +95,7 @@ Rien n'est enregistré : les repères se calculent à la lecture, à partir du f
 
 ## Découpage
 
-1. **Repères sur les liens** ([EPIC-037](../epics/EPIC-037-qualite-du-questionnaire-liens/README.md)) : encadré, route, R1 à R6.
+1. **Repères sur les liens** ([EPIC-037](../epics/EPIC-037-qualite-du-questionnaire-liens/README.md)) : encadré, route, R1 à R6. Fait.
 2. **Repères sur les réponses** : R7 à R12.
 3. **Estimation générale** : R13, avec le choix de ses seuils.
 

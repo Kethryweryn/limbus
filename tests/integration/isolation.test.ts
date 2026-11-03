@@ -318,11 +318,13 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect((await prisma.characterRelation.findUniqueOrThrow({ where: { id: bobRelation.id } })).type).toBe('family')
     expect(DENIED).toContain((await api(alice, 'GET', `/api/games/${b.game.id}/registration-question-links`)).status)
     expect(DENIED).toContain((await api(alice, 'PUT', `/api/games/${b.game.id}/registration-question-links`, { links: [] })).status)
+    expect(DENIED).toContain((await api(alice, 'GET', `/api/games/${b.game.id}/registration-form-quality`)).status)
 
     const own = await api(alice, 'POST', '/api/character-relations', relationBody(a.character.id, aliceOther.id))
     expect(own.status).toBe(200)
     expect((await api(alice, 'GET', `/api/characters/${a.character.id}/relations`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/registration-question-links`)).status).toBe(200)
+    expect((await api(alice, 'GET', `/api/games/${a.game.id}/registration-form-quality`)).status).toBe(200)
     expect((await api(alice, 'DELETE', `/api/character-relations/${(own.body as { id: string }).id}`)).status).toBe(200)
   })
 
