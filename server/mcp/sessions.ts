@@ -24,7 +24,7 @@ export function registerSessionTools({ event, server }: ToolContext) {
 
   server.registerTool('lire_session', {
     title: 'Lire une session',
-    description: 'Détails d’une session, son équipe (rôle de chaque personne), son casting (personnage, personne, verrou, notes) et son déroulé (responsables des événements de la chronologie).',
+    description: 'Détails d’une session, son équipe (rôle de chaque personne), son casting (personnage, personne, verrou, notes, inscription retenue pour qui le personnage est réservé) et son déroulé (responsables des événements de la chronologie).',
     inputSchema: z.object({ sessionId: z.string() }),
     annotations: READ_ONLY
   }, ({ sessionId }) => toolResult(async () => {
@@ -38,7 +38,7 @@ export function registerSessionTools({ event, server }: ToolContext) {
           postponedTo: named,
           postponedFrom: named,
           participants: { orderBy: { participant: { name: 'asc' } }, select: { role: true, participant: named } },
-          assignments: { orderBy: { character: { name: 'asc' } }, select: { character: named, participant: named, locked: true, notes: true } }
+          assignments: { orderBy: { character: { name: 'asc' } }, select: { character: named, participant: named, locked: true, notes: true, reservedRegistrationId: true } }
         }
       }),
       prisma.timelineEventResponsible.findMany({

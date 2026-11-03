@@ -1,61 +1,9 @@
-import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
 import { readZodBody, sessionSchema } from '~/server/utils/schemas'
-import { requireGameAccess } from '~/server/utils/gameAccess'
-import { assertSessionCastRules, assertSessionLocation, normalizeAssignments, normalizeSessionParticipants, resolveCastLines } from '~/server/utils/sessionAssignments'
-import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
-import { assertGameUploads } from '~/server/utils/uploads'
-import { SESSION_STATUSES } from '~/utils/domain'
+import { createSession } from '~/server/utils/sessionWrites'
 
-function parseDate(value: unknown): Date | null {
-  if (!value || typeof value !== 'string') return null
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date
-}
-
+// Écriture commune à l'interface et aux assistants d'IA (server/utils/sessionWrites.ts, US-127)
 export default defineEventHandler(async (event) => {
   await requireUser(event)
-
-  const body = await readZodBody(event, sessionSchema)
-  const { name, gameId, locationId, status, published } = body
-  await requireGameAccess(event, gameId)
-  const { lines: assignments } = await resolveCastLines(gameId, null, normalizeAssignments(body.assignments))
-  const participants = normalizeSessionParticipants(body.participants, assignments)
-  await assertSessionCastRules(gameId, participants, assignments)
-  await assertSessionLocation(gameId, locationId)
-  await assertGameUploads(assignments.map((assignment) => assignment.photoUrl), gameId, { sessionFiles: true, label: 'Photo d’attribution' })
-
-  return await prisma.session.create({
-    data: {
-      name,
-      slug: await generateUniqueSlug('session', name),
-      gameId,
-      date: parseDate(body.date),
-      locationId: locationId || null,
-      status,
-      cancelledAt: status === SESSION_STATUSES.cancelled ? new Date() : null,
-      published: published ?? false,
-      participants: {
-        create: participants
-      },
-      assignments: {
-        create: assignments
-      }
-    },
-    include: {
-      game: true,
-      location: true,
-      participants: {
-        include: {
-          participant: true
-        }
-      },
-      assignments: {
-        include: {
-          character: true,
-          participant: true
-        }
-      }
-    }
-  })
+  return await createSession(event, () => readZodBody(event, sessionSchema))
 })

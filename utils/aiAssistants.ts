@@ -24,7 +24,9 @@ export const AI_TARGET_LABELS: Record<string, string> = {
   document: 'document',
   location: 'lieu',
   timelineEvent: 'événement',
-  characterRelation: 'relation'
+  characterRelation: 'relation',
+  session: 'session',
+  participant: 'participant'
 }
 
 export const AI_LOG_ACTION_LABELS: Record<string, string> = {

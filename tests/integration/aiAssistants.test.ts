@@ -149,8 +149,8 @@ describe('lecture', () => {
     const participants = await call(client, 'lister_participants', { jeuId: a.game.id })
     const items = participants.json.items as Array<Record<string, unknown>>
     expect(items.map((item) => item.id)).toContain(a.participant.id)
-    // Nom et notes du jeu seulement
-    for (const item of items) expect(Object.keys(item).sort()).toEqual(['id', 'name', 'notes'])
+    // Nom, notes du jeu et version seulement
+    for (const item of items) expect(Object.keys(item).sort()).toEqual(['id', 'name', 'notes', 'updatedAt'])
     const selection = await call(client, 'lire_selection', { periodeId: a.registrationPeriod.id })
     expect(selection.json.registrations.map((row: { participant: { id: string } }) => row.participant.id)).toContain(a.participant.id)
     for (const secret of [a.participant.email!, '0612345678', 'Arachides', 'texte libre']) {
@@ -263,7 +263,7 @@ describe('écriture', () => {
     const { client } = await connectAssistant(alice, { gameIds: [a.game.id] })
     const names = (await client.listTools()).tools.map((tool) => tool.name)
     expect(names).toContain('lister_jeux')
-    expect(names.filter((name) => /^(creer|modifier|enregistrer|supprimer)_/.test(name))).toEqual([])
+    expect(names.filter((name) => /^(creer|modifier|enregistrer|supprimer|proposer)_/.test(name))).toEqual([])
   })
 
   it('crée un jeu et tout son contenu, modifie champ par champ, supprime, et note chaque écriture', async () => {
@@ -338,6 +338,125 @@ describe('écriture', () => {
       'suppression characterRelation rivalry',
       'suppression character Crépuscule'
     ]))
+  })
+})
+
+// EPIC-035 (US-127 à US-129) : sessions, équipe, casting, déroulé et fiches participant, sans statut, visibilité,
+// photo, réservation ni coordonnées
+describe('sessions et participants', () => {
+  it('prépare une session de bout en bout, sans toucher à ce qui lui est interdit, et note chaque écriture', async () => {
+    const { client } = await connectAssistant(alice, { canWrite: true, gameIds: [a.game.id] })
+    const game = (await call(client, 'creer_jeu', { title: 'Jeu des sessions de l’assistant' })).json
+    const hero = (await call(client, 'enregistrer_personnage', { jeuId: game.id, name: 'Aube' })).json
+    const rival = (await call(client, 'enregistrer_personnage', { jeuId: game.id, name: 'Brume' })).json
+    const reserved = (await call(client, 'enregistrer_personnage', { jeuId: game.id, name: 'Cendre' })).json
+    const place = (await call(client, 'enregistrer_lieu', { jeuId: game.id, name: 'Tour' })).json
+    const opening = (await call(client, 'enregistrer_evenement', { jeuId: game.id, name: 'Ouverture', day: 1, time: '10:00' })).json
+
+    // Fiches participant : sans coordonnées
+    const ana = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Ana Assistée', notes: 'Joue souvent les meneuses' })).json
+    const ben = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Ben Assisté' })).json
+    const cleo = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Cléo Orga' })).json
+    expect(await prisma.participant.findUniqueOrThrow({ where: { id: ana.id }, select: { email: true, phone: true, gameLinks: { select: { gameId: true, notes: true } } } }))
+      .toEqual({ email: null, phone: null, gameLinks: [{ gameId: game.id, notes: 'Joue souvent les meneuses' }] })
+
+    // Session : prévue et non visible ; lieu et jeu de l'autorisation seulement
+    const session = (await call(client, 'creer_session', { jeuId: game.id, name: 'Session de l’assistant', date: '2099-05-01T10:00:00.000Z', locationId: place.id })).json
+    expect(await prisma.session.findUniqueOrThrow({ where: { id: session.id }, select: { status: true, published: true, locationId: true } }))
+      .toEqual({ status: 'scheduled', published: false, locationId: place.id })
+    expect((await call(client, 'creer_session', { jeuId: game.id, name: 'Lieu volé', locationId: a.location.id })).error).toBe(true)
+    expect((await call(client, 'creer_session', { jeuId: b.game.id, name: 'Intruse' })).error).toBe(true)
+    // Une date illisible est refusée, au lieu d'effacer la date
+    expect((await call(client, 'creer_session', { jeuId: game.id, name: 'Sans date lisible', date: 'samedi prochain' })).error).toBe(true)
+
+    // Équipe, puis casting ligne par ligne
+    let version = (await call(client, 'modifier_equipe', { sessionId: session.id, version: session.version, team: [
+      { participantId: ana.id, role: 'participant' }, { participantId: ben.id, role: 'participant' }, { participantId: cleo.id, role: 'organizer' }
+    ] })).json.version
+    expect((await call(client, 'modifier_equipe', { sessionId: session.id, version, team: [{ participantId: b.participant.id, role: 'participant' }] })).error).toBe(true)
+    version = (await call(client, 'modifier_casting', { sessionId: session.id, version, lines: [
+      { characterId: hero.id, participantId: ana.id, notes: 'Arrive en premier' }, { characterId: rival.id, participantId: ben.id }
+    ] })).json.version
+    expect((await call(client, 'modifier_casting', { sessionId: session.id, version, lines: [{ characterId: b.character.id, participantId: ana.id }] })).error).toBe(true)
+
+    // Photos posées dans l'interface, et un personnage réservé pour une inscription retenue
+    const period = await prisma.registrationPeriod.create({ data: { name: 'Période de l’assistant', gameId: game.id, publicId: `ia-${Date.now()}` } })
+    const registration = await prisma.registration.create({ data: { periodId: period.id, sessionId: session.id, participantId: cleo.id, status: 'retained', source: 'invitation', email: 'cleo-ia@example.test' } })
+    await prisma.sessionAssignment.updateMany({ where: { sessionId: session.id, characterId: { in: [hero.id, rival.id] } }, data: { photoUrl: 'https://exemple.test/photo.jpg' } })
+    await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: reserved.id, reservedRegistrationId: registration.id } })
+    version = (await call(client, 'lire_session', { sessionId: session.id })).json.updatedAt
+
+    // Une ligne qui change de personne perd sa photo ; une ligne non donnée garde tout ; la réservation ne bouge pas
+    version = (await call(client, 'modifier_casting', { sessionId: session.id, version, lines: [{ characterId: hero.id, participantId: null, locked: true }] })).json.version
+    const lines = async () => Object.fromEntries((await prisma.sessionAssignment.findMany({
+      where: { sessionId: session.id },
+      select: { characterId: true, participantId: true, photoUrl: true, notes: true, locked: true, reservedRegistrationId: true }
+    })).map(({ characterId, ...line }) => [characterId, line]))
+    expect(await lines()).toEqual({
+      [hero.id]: { participantId: null, photoUrl: null, notes: 'Arrive en premier', locked: true, reservedRegistrationId: null },
+      [rival.id]: { participantId: ben.id, photoUrl: 'https://exemple.test/photo.jpg', notes: null, locked: false, reservedRegistrationId: null },
+      [reserved.id]: { participantId: null, photoUrl: null, notes: null, locked: false, reservedRegistrationId: registration.id }
+    })
+    const onReserved = await call(client, 'modifier_casting', { sessionId: session.id, version, lines: [{ characterId: reserved.id, participantId: ana.id }] })
+    expect(onReserved.error).toBe(true)
+    expect(onReserved.text).toContain('réservé')
+
+    // L'assistant de casting : rien n'est écrit, et aucun texte tapé par un participant
+    const proposal = (await call(client, 'proposer_casting', { sessionId: session.id })).json
+    expect(proposal.players.map((player: { name: string }) => player.name)).toEqual(expect.arrayContaining(['Ana Assistée', 'Ben Assisté']))
+    expect(JSON.stringify(proposal)).not.toContain('refusedTexts')
+    expect((await call(client, 'lire_session', { sessionId: session.id })).json.updatedAt).toBe(version)
+
+    // Retirer Ben de l'équipe lui retire son personnage, et la photo de son attribution
+    version = (await call(client, 'modifier_equipe', { sessionId: session.id, version, team: [{ participantId: ana.id, role: 'participant' }, { participantId: cleo.id, role: 'organizer' }] })).json.version
+    expect((await lines())[rival.id]).toMatchObject({ participantId: null, photoUrl: null })
+
+    // Déroulé : une orga de l'équipe ; une joueuse est refusée
+    expect((await call(client, 'modifier_deroule', { sessionId: session.id, version, events: [{ timelineEventId: opening.id, participantIds: [ana.id] }] })).error).toBe(true)
+    expect((await call(client, 'modifier_deroule', { sessionId: session.id, version, events: [{ timelineEventId: opening.id, participantIds: [cleo.id] }] })).error).toBe(false)
+    expect(await prisma.timelineEventResponsible.findMany({ where: { sessionId: session.id }, select: { timelineEventId: true, participantId: true } }))
+      .toEqual([{ timelineEventId: opening.id, participantId: cleo.id }])
+
+    // Détails : le reste ne bouge pas, visibilité comprise ; une version dépassée est refusée
+    await prisma.session.update({ where: { id: session.id }, data: { published: true } })
+    version = (await call(client, 'lire_session', { sessionId: session.id })).json.updatedAt
+    expect((await call(client, 'modifier_session', { sessionId: session.id, version, name: 'Session renommée' })).error).toBe(false)
+    expect(await prisma.session.findUniqueOrThrow({ where: { id: session.id }, select: { name: true, status: true, published: true, locationId: true, _count: { select: { participants: true, assignments: true } } } }))
+      .toEqual({ name: 'Session renommée', status: 'scheduled', published: true, locationId: place.id, _count: { participants: 2, assignments: 3 } })
+    expect((await call(client, 'modifier_session', { sessionId: session.id, version, name: 'Écrasée' })).error).toBe(true)
+    const bSession = await prisma.session.findUniqueOrThrow({ where: { id: b.session.id } })
+    expect((await call(client, 'modifier_session', { sessionId: b.session.id, version: bSession.updatedAt.toISOString(), name: 'Volée' })).error).toBe(true)
+
+    // Fiche : nom et note ; ajout à un autre jeu autorisé ; les coordonnées et les jeux hors de l'autorisation restent
+    await prisma.participant.update({ where: { id: ana.id }, data: { phone: '0600000000', gameLinks: { create: { gameId: b.game.id, notes: 'Note de Bob' } } } })
+    const anaRead = (await call(client, 'lister_participants', { jeuId: game.id, recherche: 'Ana' })).json.items[0]
+    expect(anaRead).not.toHaveProperty('phone')
+    expect((await call(client, 'modifier_participant', { participantId: ana.id, version: anaRead.updatedAt, name: 'Ana Renommée', notes: [{ jeuId: game.id, notes: 'Meneuse' }], addToGames: [a.game.id] })).error).toBe(false)
+    const anaLinks = [{ gameId: a.game.id, notes: null }, { gameId: b.game.id, notes: 'Note de Bob' }, { gameId: game.id, notes: 'Meneuse' }]
+    expect(await prisma.participant.findUniqueOrThrow({ where: { id: ana.id }, select: { name: true, phone: true, gameLinks: { orderBy: { gameId: 'asc' }, select: { gameId: true, notes: true } } } }))
+      .toEqual({ name: 'Ana Renommée', phone: '0600000000', gameLinks: anaLinks.sort((x, y) => x.gameId.localeCompare(y.gameId)) })
+    expect((await call(client, 'modifier_participant', { participantId: ana.id, version: anaRead.updatedAt, name: 'Écrasée' })).error).toBe(true)
+    const bPerson = await prisma.participant.findUniqueOrThrow({ where: { id: b.participant.id } })
+    expect((await call(client, 'modifier_participant', { participantId: b.participant.id, version: bPerson.updatedAt.toISOString(), name: 'Volée' })).error).toBe(true)
+
+    // Une fiche rattachée à un compte confirmé garde le nom du compte
+    const eve = await prisma.user.create({ data: { email: 'eve-ia@example.test', name: 'Ève', password: 'non-utilise', emailConfirmedAt: new Date(), termsAcceptedVersion: TERMS_VERSION } })
+    const benLinked = await prisma.participant.update({ where: { id: ben.id }, data: { email: eve.email, userId: eve.id } })
+    expect((await call(client, 'modifier_participant', { participantId: ben.id, version: benLinked.updatedAt.toISOString(), name: 'Autre nom' })).error).toBe(false)
+    expect((await prisma.participant.findUniqueOrThrow({ where: { id: ben.id } })).name).toBe(benLinked.name)
+
+    const log = await prisma.aiLogEntry.findMany({ where: { gameId: game.id }, orderBy: { createdAt: 'asc' } })
+    expect(log.map((entry) => `${entry.action} ${entry.tool} ${entry.targetType}`)).toEqual(expect.arrayContaining([
+      'création creer_session session',
+      'mise à jour modifier_equipe session',
+      'mise à jour modifier_casting session',
+      'mise à jour modifier_deroule session',
+      'mise à jour modifier_session session',
+      'création creer_participant participant',
+      'mise à jour modifier_participant participant'
+    ]))
+    // L'ajout à un autre jeu est noté aussi pour la propriétaire de ce jeu
+    expect(await prisma.aiLogEntry.count({ where: { gameId: a.game.id, tool: 'modifier_participant', targetId: ana.id } })).toBe(1)
   })
 })
 

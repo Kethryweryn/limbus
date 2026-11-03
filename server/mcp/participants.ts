@@ -7,7 +7,7 @@ import { PAGE_SIZE, READ_ONLY, pageOf, skipOf, toolResult, type ToolContext } fr
 export function registerParticipantTools({ event, server }: ToolContext) {
   server.registerTool('lister_participants', {
     title: 'Lister les participants',
-    description: `Participants d’un jeu (${PAGE_SIZE} par page) : nom et notes d’organisation de l’équipe pour ce jeu. Aucune coordonnée.`,
+    description: `Participants d’un jeu (${PAGE_SIZE} par page) : nom, notes d’organisation de l’équipe pour ce jeu et version (updatedAt). Aucune coordonnée.`,
     inputSchema: z.object({
       jeuId: z.string(),
       recherche: z.string().max(100).optional().describe('Filtre sur le nom'),
@@ -23,10 +23,10 @@ export function registerParticipantTools({ event, server }: ToolContext) {
         orderBy: { participant: { name: 'asc' } },
         skip: skipOf(page),
         take: PAGE_SIZE,
-        select: { notes: true, participant: { select: { id: true, name: true } } }
+        select: { notes: true, participant: { select: { id: true, name: true, updatedAt: true } } }
       }),
       prisma.participantGame.count({ where })
     ])
-    return pageOf(links.map((link) => ({ id: link.participant.id, name: link.participant.name, notes: link.notes })), page, total)
+    return pageOf(links.map((link) => ({ id: link.participant.id, name: link.participant.name, notes: link.notes, updatedAt: link.participant.updatedAt })), page, total)
   }))
 }

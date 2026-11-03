@@ -6,6 +6,7 @@ import { registerSessionTools } from '~/server/mcp/sessions'
 import { registerParticipantTools } from '~/server/mcp/participants'
 import { registerRegistrationTools } from '~/server/mcp/registrations'
 import { registerContentWriteTools } from '~/server/mcp/contentWrites'
+import { registerSessionAndParticipantWriteTools } from '~/server/mcp/sessionWrites'
 
 const INSTRUCTIONS = [
   'Limbus est un outil d’organisation de jeux de rôle grandeur nature (GN).',
@@ -23,5 +24,6 @@ export function buildLimbusMcpServer(event: H3Event) {
   registerParticipantTools(context)
   registerRegistrationTools(context)
   registerContentWriteTools(context)
+  registerSessionAndParticipantWriteTools(context)
   return server
 }
