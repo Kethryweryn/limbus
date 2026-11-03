@@ -177,7 +177,7 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
    - journal, limite de débit, politique de confidentialité et conditions d'utilisation ;
    - outils de lecture (R7 à R9) ;
    - essai de bout en bout avec Claude, ChatGPT et Mistral, avec les comptes de l'utilisatrice.
-2. **Écriture du contenu d'un jeu** ([EPIC-034](../epics/EPIC-034-ia-ecriture-du-contenu/README.md)) : jeu, personnages, factions, intrigues, objets, documents, lieux, chronologie, relations.
+2. **Écriture du contenu d'un jeu** ([EPIC-034](../archive/epics/EPIC-034-ia-ecriture-du-contenu/README.md)) : jeu, personnages, factions, intrigues, objets, documents, lieux, chronologie, relations.
 3. **Sessions, casting et participants** : sessions, casting, déroulé, assistant de casting, fiches participant.
 4. **Inscriptions** : périodes fermées, formulaire, décisions, tirage au sort.
 
@@ -187,3 +187,4 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
 - 2026-11-02 (revue) : contenu public modifiable, lectures hors journal (choix de l'utilisatrice) ; une autorisation finie est effacée, sans délai inventé.
 - 2026-11-02 : lot 1 livré et essayé avec Claude ([EPIC-033](../archive/epics/EPIC-033-ia-connexion-et-lecture/README.md)) ; ChatGPT et Mistral seront essayés quand une organisatrice voudra s'en servir.
 - 2026-11-03 : lot 2, choix de l'utilisatrice : aucun lien, « prêt à envoyer » et trombinoscope permis, pas d'archivage du jeu, suppression définitive. Limbus n'archive pas un élément seul.
+- 2026-11-03 : lot 2 livré ([EPIC-034](../archive/epics/EPIC-034-ia-ecriture-du-contenu/README.md), PR #112).

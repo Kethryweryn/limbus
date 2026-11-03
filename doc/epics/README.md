@@ -41,7 +41,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-031](../archive/epics/EPIC-031-interface-en-typescript/README.md) | Interface en TypeScript strict | [fiche](../archive/todo/interface-en-typescript.md) | terminé |
 | [EPIC-032](../archive/epics/EPIC-032-inscriptions-hors-ligne/README.md) | Page Inscriptions lisible hors ligne | [SPEC-010](../specs/SPEC-010-hors-ligne.md) | terminé |
 | [EPIC-033](../archive/epics/EPIC-033-ia-connexion-et-lecture/README.md) | Brancher une IA, lot 1 : connexion et lecture | [SPEC-014](../specs/SPEC-014-api-pour-ia.md) | terminé |
-| [EPIC-034](EPIC-034-ia-ecriture-du-contenu/README.md) | Brancher une IA, lot 2 : écriture du contenu d'un jeu | [SPEC-014](../specs/SPEC-014-api-pour-ia.md) | en cours |
+| [EPIC-034](../archive/epics/EPIC-034-ia-ecriture-du-contenu/README.md) | Brancher une IA, lot 2 : écriture du contenu d'un jeu | [SPEC-014](../specs/SPEC-014-api-pour-ia.md) | terminé |
 
 ## US
 
@@ -171,5 +171,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-122](../archive/epics/EPIC-033-ia-connexion-et-lecture/US-122-serveur-mcp-en-lecture.md) | Serveur MCP et outils de lecture | EPIC-033 | terminée |
 | [US-123](../archive/epics/EPIC-033-ia-connexion-et-lecture/US-123-assistants-connectes.md) | Assistants connectés, réglage de la propriétaire, journal | EPIC-033 | terminée |
 | [US-124](../archive/epics/EPIC-033-ia-connexion-et-lecture/US-124-confidentialite-et-conditions.md) | Politique de confidentialité et conditions | EPIC-033 | terminée |
-| [US-125](EPIC-034-ia-ecriture-du-contenu/US-125-creer-et-modifier-un-jeu.md) | L'assistant crée et modifie un jeu | EPIC-034 | terminée |
-| [US-126](EPIC-034-ia-ecriture-du-contenu/US-126-ecrire-le-contenu.md) | L'assistant écrit le contenu d'un jeu | EPIC-034 | terminée |
+| [US-125](../archive/epics/EPIC-034-ia-ecriture-du-contenu/US-125-creer-et-modifier-un-jeu.md) | L'assistant crée et modifie un jeu | EPIC-034 | terminée |
+| [US-126](../archive/epics/EPIC-034-ia-ecriture-du-contenu/US-126-ecrire-le-contenu.md) | L'assistant écrit le contenu d'un jeu | EPIC-034 | terminée |

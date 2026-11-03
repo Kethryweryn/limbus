@@ -1,8 +1,8 @@
 ---
 id: EPIC-034
 titre: Brancher une IA, lot 2 : écriture du contenu d'un jeu
-statut: en cours
-spec: ../../specs/SPEC-014-api-pour-ia.md
+statut: terminé
+spec: ../../../specs/SPEC-014-api-pour-ia.md
 date: 2026-11-03
 ---
 
@@ -10,7 +10,7 @@ date: 2026-11-03
 
 ## Objectif
 
-Lot 2 de [SPEC-014](../../specs/SPEC-014-api-pour-ia.md) (R10 à R13). Avec une autorisation en lecture et écriture, l'assistant crée et modifie un jeu, et écrit son contenu : personnages, factions, intrigues, objets, documents, lieux, chronologie et relations.
+Lot 2 de [SPEC-014](../../../specs/SPEC-014-api-pour-ia.md) (R10 à R13). Avec une autorisation en lecture et écriture, l'assistant crée et modifie un jeu, et écrit son contenu : personnages, factions, intrigues, objets, documents, lieux, chronologie et relations.
 
 ## Décisions
 
@@ -33,3 +33,8 @@ Choix techniques :
 |---|---|---|
 | [US-125](US-125-creer-et-modifier-un-jeu.md) | L'assistant crée et modifie un jeu | terminée |
 | [US-126](US-126-ecrire-le-contenu.md) | L'assistant écrit le contenu d'un jeu | terminée |
+
+## Suivi
+
+- 2026-11-03 : déployé (PR #112). Les écritures de l'interface et de l'assistant passent par les mêmes fonctions serveur (`server/utils/contentWrites.ts`).
+- Epic archivé.
