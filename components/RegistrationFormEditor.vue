@@ -130,6 +130,8 @@
           <UButton size="sm" color="neutral" variant="soft" icon="i-heroicons-plus" @click="addQuestion">Ajouter une question</UButton>
         </section>
 
+        <RegistrationFormQuality :game-id="gameId" :refresh-key="qualityKey" />
+
         <section class="space-y-3">
           <h3 class="font-semibold">Aperçu</h3>
           <div class="space-y-4 rounded border border-dashed border-gray-300 p-4">
@@ -240,6 +242,8 @@ const noteIntention = ref('')
 const errorMessage = ref('')
 const savedMessage = ref('')
 const saving = ref(false)
+// Relit l'encadré « Qualité du questionnaire » après chaque enregistrement (US-133)
+const qualityKey = ref(0)
 
 watch(open, async (value) => {
   if (!value) return
@@ -404,6 +408,7 @@ async function save() {
       if (isOfflineQueued(savedLinks)) linksQueued = true
       else applyLinks(savedLinks.links)
     }
+    qualityKey.value++
     savedMessage.value = [
       version.value?.number === previous ? 'Aucun changement : la version en vigueur est conservée.' : `Version ${version.value?.number} enregistrée.`,
       linksQueued ? 'Hors ligne : les rôles seront enregistrés au retour du réseau.' : ''

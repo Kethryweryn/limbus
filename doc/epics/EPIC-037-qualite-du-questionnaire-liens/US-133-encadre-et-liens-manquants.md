@@ -1,7 +1,7 @@
 ---
 id: US-133
 titre: L'encadré « Qualité du questionnaire » et les liens manquants
-statut: à faire
+statut: terminée
 epic: EPIC-037
 regles: [R1, R2, R3, R4, R5]
 adr: [ADR-0061, ADR-0050, ADR-0051]
@@ -13,12 +13,12 @@ En tant qu'organisatrice, je veux savoir, dès l'écriture du formulaire, quels 
 
 ## Critères d'acceptation
 
-- [ ] Dans l'éditeur du formulaire d'inscription, sous les liens, un encadré « Qualité du questionnaire » liste les repères du formulaire et des liens enregistrés. Il se recalcule après chaque enregistrement.
-- [ ] Chaque repère a un niveau (bon, à surveiller, à revoir), une phrase, ce qu'il faut faire, et un détail replié avec la valeur, le seuil et la référence.
-- [ ] Un personnage PJ qu'aucune réponse ne rejoint, ni directement ni par sa faction ou son intrigue, est « à revoir » : « Aldric n'est relié à aucune réponse : l'assistant ne pourra lui proposer personne. »
-- [ ] Une question à choix ou une échelle sans aucun lien est « à surveiller », avec la mention que ce peut être voulu. Une option sans lien dans une question reliée par ailleurs est « à surveiller ». Une question à texte libre n'a pas de repère.
-- [ ] Sans aucun problème, l'encadré dit que les liens permettent de choisir.
-- [ ] Seule l'équipe du jeu obtient les repères ; ils ne nomment aucune personne inscrite.
+- [x] Dans l'éditeur du formulaire d'inscription, sous les liens, un encadré « Qualité du questionnaire » liste les repères du formulaire et des liens enregistrés. Il se recalcule après chaque enregistrement.
+- [x] Chaque repère a un niveau (bon, à surveiller, à revoir), une phrase, ce qu'il faut faire, et un détail replié avec la valeur, le seuil et la référence.
+- [x] Un personnage PJ qu'aucune réponse ne rejoint, ni directement ni par sa faction ou son intrigue, est « à revoir » : « Aldric n'est relié à aucune réponse : l'assistant ne pourra lui proposer personne. »
+- [x] Une question à choix ou une échelle sans aucun lien est « à surveiller », avec la mention que ce peut être voulu. Une option sans lien dans une question reliée par ailleurs est « à surveiller ». Une question à texte libre n'a pas de repère.
+- [x] Sans aucun problème, l'encadré dit que les liens permettent de choisir.
+- [x] Seule l'équipe du jeu obtient les repères ; ils ne nomment aucune personne inscrite.
 
 ## Notes techniques
 

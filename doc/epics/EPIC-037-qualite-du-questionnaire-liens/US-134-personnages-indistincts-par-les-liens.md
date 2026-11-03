@@ -1,7 +1,7 @@
 ---
 id: US-134
 titre: Les personnages que les liens ne distinguent pas
-statut: à faire
+statut: terminée
 epic: EPIC-037
 regles: [R2, R6]
 adr: [ADR-0061, ADR-0051]
@@ -13,11 +13,11 @@ En tant qu'organisatrice, je veux savoir quels personnages mon questionnaire ne 
 
 ## Critères d'acceptation
 
-- [ ] Pour chaque paire de personnages PJ reliés, Limbus compare les points que chaque réponse possible leur donne, comme la note de l'assistant de casting (1 point direct, ½ par la faction ou l'intrigue, une échelle comptée à 5/5).
-- [ ] À partir d'une similarité cosinus de 0,80, la paire est « à revoir » : « Aldric et Bertrand rapportent presque les mêmes points pour chaque réponse : le questionnaire aura du mal à les départager. »
-- [ ] La phrase donne une piste : une réponse qui les sépare déjà, ou l'absence de réponse propre à l'un d'eux.
-- [ ] Un personnage sans lien (US-133) n'est pas comparé.
-- [ ] Le détail replié donne la similarité, le seuil de 0,80 et l'origine du seuil (choix de l'utilisatrice).
+- [x] Pour chaque paire de personnages PJ reliés, Limbus compare les points que chaque réponse possible leur donne, comme la note de l'assistant de casting (1 point direct, ½ par la faction ou l'intrigue, une échelle comptée à 5/5).
+- [x] À partir d'une similarité cosinus de 0,80, la paire est « à revoir » : « Aldric et Bertrand rapportent presque les mêmes points pour chaque réponse : le questionnaire aura du mal à les départager. »
+- [x] La phrase donne une piste : une réponse qui les sépare déjà, ou l'absence de réponse propre à l'un d'eux.
+- [x] Un personnage sans lien (US-133) n'est pas comparé.
+- [x] Le détail replié donne la similarité, le seuil de 0,80 et l'origine du seuil (choix de l'utilisatrice).
 
 ## Notes techniques
 
