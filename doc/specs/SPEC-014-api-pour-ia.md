@@ -179,7 +179,7 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
    - essai de bout en bout avec Claude, ChatGPT et Mistral, avec les comptes de l'utilisatrice.
 2. **Écriture du contenu d'un jeu** ([EPIC-034](../archive/epics/EPIC-034-ia-ecriture-du-contenu/README.md)) : jeu, personnages, factions, intrigues, objets, documents, lieux, chronologie, relations.
 3. **Sessions, casting et participants** ([EPIC-035](../archive/epics/EPIC-035-ia-sessions-et-participants/README.md)) : sessions, casting, déroulé, assistant de casting, fiches participant.
-4. **Inscriptions** ([EPIC-036](../epics/EPIC-036-ia-inscriptions/README.md)) : périodes fermées, formulaire, décisions, tirage au sort.
+4. **Inscriptions** ([EPIC-036](../archive/epics/EPIC-036-ia-inscriptions/README.md)) : périodes fermées, formulaire, décisions, tirage au sort.
 
 ## Historique
 
@@ -191,3 +191,4 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
 - 2026-11-03 : lot 3, choix de l'utilisatrice : l'équipe se modifie comme dans l'interface, retraits compris ; le statut d'une session ne change jamais ; au casting, le cadenas oui, les réservations non ; une fiche s'ajoute à un autre jeu autorisé, jamais retirée d'un jeu.
 - 2026-11-03 : lot 3 livré ([EPIC-035](../archive/epics/EPIC-035-ia-sessions-et-participants/README.md), PR #118).
 - 2026-11-03 : lot 4, choix de l'utilisatrice : toute période se modifie sans changer d'état ; aucune décision après une annonce ; ordre des listes d'attente, places du vivier et liens du questionnaire permis.
+- 2026-11-03 : lot 4 livré ([EPIC-036](../archive/epics/EPIC-036-ia-inscriptions/README.md), PR #120) : spécification entièrement livrée.

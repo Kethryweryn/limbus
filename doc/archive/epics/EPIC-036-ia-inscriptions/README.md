@@ -1,8 +1,8 @@
 ---
 id: EPIC-036
 titre: Brancher une IA, lot 4 : inscriptions
-statut: en cours
-spec: ../../specs/SPEC-014-api-pour-ia.md
+statut: terminé
+spec: ../../../specs/SPEC-014-api-pour-ia.md
 date: 2026-11-03
 ---
 
@@ -10,7 +10,7 @@ date: 2026-11-03
 
 ## Objectif
 
-Lot 4 de [SPEC-014](../../specs/SPEC-014-api-pour-ia.md) (R10 à R13), le dernier. Avec une autorisation en lecture et écriture, l'assistant prépare les périodes d'inscription, rédige le formulaire du jeu, et aide à la sélection : décisions, listes d'attente, places du vivier et tirages au sort. Rien n'est annoncé, rien ne part par email, et aucune période n'est ouverte par lui.
+Lot 4 de [SPEC-014](../../../specs/SPEC-014-api-pour-ia.md) (R10 à R13), le dernier. Avec une autorisation en lecture et écriture, l'assistant prépare les périodes d'inscription, rédige le formulaire du jeu, et aide à la sélection : décisions, listes d'attente, places du vivier et tirages au sort. Rien n'est annoncé, rien ne part par email, et aucune période n'est ouverte par lui.
 
 ## Décisions
 
@@ -18,7 +18,7 @@ Lot 4 de [SPEC-014](../../specs/SPEC-014-api-pour-ia.md) (R10 à R13), le dernie
 
 - une période créée par l'assistant est un brouillon. Il modifie toute période, brouillon, ouverte ou close (nom, sessions, places, date de clôture, réglages de sélection), mais ne change jamais son état : il ne l'ouvre, ne la clôt ni ne la remet en brouillon ;
 - il décide d'une inscription (retenue, en attente, non retenue, à trier) tant que rien ne lui a été annoncé. Une inscription dont une décision a déjà été annoncée se change dans l'interface ;
-- il règle aussi l'ordre des listes d'attente, les places d'une session recrutée par l'inscription permanente, et les liens du questionnaire vers les personnages, factions et intrigues (assistant de casting, [ADR-0050](../../adr/ADR-0050-relations-et-questionnaire-relie.md)).
+- il règle aussi l'ordre des listes d'attente, les places d'une session recrutée par l'inscription permanente, et les liens du questionnaire vers les personnages, factions et intrigues (assistant de casting, [ADR-0050](../../../adr/ADR-0050-relations-et-questionnaire-relie.md)).
 
 Rappels de SPEC-014 : il n'invite personne, n'annonce rien, n'envoie ni relance ni lien, ne supprime aucune période ni inscription, et ne rattache pas les affinités (il n'en lit pas le texte).
 
@@ -36,3 +36,8 @@ Choix techniques :
 | [US-130](US-130-periodes.md) | L'assistant prépare les périodes d'inscription | terminée |
 | [US-131](US-131-formulaire.md) | L'assistant rédige le formulaire et ses liens | terminée |
 | [US-132](US-132-selection-et-tirages.md) | L'assistant aide à la sélection et tire au sort | terminée |
+
+## Suivi
+
+- 2026-11-03 : déployé (PR #120). La revue a corrigé le cas d'un lien du questionnaire laissé par une option retirée, qui bloquait la mise à jour des liens. SPEC-014 est entièrement livrée.
+- Epic archivé.
