@@ -101,7 +101,7 @@ Les personnes inscrites ne voient que l'ordre mélangé des options.
 2. **Prévision** : R4 à R10.
 3. **Relecture et mélange** : R11 à R13.
 
-Le lot 1 de SPEC-015 ([EPIC-037](../epics/EPIC-037-qualite-du-questionnaire-liens/README.md)) crée l'encadré et sa route, dont l'essai et la prévision lisent les personnages PJ : il passe avant.
+Le lot 1 de SPEC-015 ([EPIC-037](../archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md)) crée l'encadré et sa route, dont l'essai et la prévision lisent les personnages PJ : il passe avant.
 
 ## Historique
 

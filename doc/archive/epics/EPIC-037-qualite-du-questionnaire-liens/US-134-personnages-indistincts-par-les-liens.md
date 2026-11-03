@@ -21,7 +21,7 @@ En tant qu'organisatrice, je veux savoir quels personnages mon questionnaire ne 
 
 ## Notes techniques
 
-- Profil de points d'un personnage : un vecteur indexé par (question, option), calculé avec `answerFactor` et les liens. La similarité est le cosinus de deux profils.
+- Profil de points d'un personnage : un vecteur indexé par (question, option), calculé avec `castingScore` pour une réponse possible à la fois. La similarité est le cosinus de deux profils.
 - Le nombre de paires croît comme le carré du nombre de personnages : pour quelques centaines, c'est négligeable.
 
 ## Tests
