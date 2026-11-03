@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3'
+import type { Prisma } from '~/generated/prisma/client'
 import { prisma } from '~/server/utils/prisma'
 
 // Version lue par le client (ADR-0036) : celle donnée par un outil d'assistant d'IA (SPEC-014, R10), sinon la date de
@@ -32,8 +33,8 @@ export function assertVersion(event: H3Event, current: Date | string | null | un
   }
 }
 
-// Modèles dont une ligne fait version : chacun a un champ updatedAt
-type VersionedModel = 'game' | 'character' | 'faction' | 'intrigue' | 'item' | 'document' | 'location' | 'timelineEvent' | 'characterRelation' | 'session' | 'participant' | 'registrationPeriod' | 'registration' | 'sessionTariff'
+// Modèle du schéma, par le nom de son délégué (prisma.session…) ; seul un modèle qui a updatedAt fait version
+type VersionedModel = Uncapitalize<Prisma.ModelName>
 type VersionReader = { findUnique(args: { where: { id: string }, select: { updatedAt: true } }): Promise<{ updatedAt: Date } | null> }
 
 export async function assertUnmodifiedSince(event: H3Event, model: VersionedModel, id: string) {

@@ -73,6 +73,12 @@ export function decryptSmtpPassword(payload: string) {
 // Erreur de nodemailer : ses champs utiles, quand ils sont là
 type SmtpError = { code?: unknown, command?: unknown, response?: unknown, responseCode?: unknown, message?: unknown }
 
+/** Raison d'un envoi en échec, pour la réponse et la trace : le message de l'erreur levée par l'envoi. */
+export function emailFailureReason(error: unknown) {
+  const { statusMessage, message } = (error ?? {}) as { statusMessage?: string, message?: string }
+  return statusMessage || message || 'smtp_error'
+}
+
 function smtpErrorMessage(error: SmtpError | undefined) {
   const code = String(error?.code || '')
   const command = String(error?.command || '')

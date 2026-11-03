@@ -4,7 +4,7 @@ import { requireGameOwner } from '~/server/utils/gameAccess'
 import { gameInvitationCreateSchema, readZodBody } from '~/server/utils/schemas'
 import { GAME_INVITATION_KINDS, GAME_INVITATION_STATUSES } from '~/utils/domain'
 import { createInvitationToken, invitationUrl, normalizeInvitationEmail } from '~/server/utils/invitations'
-import { sendGameInvitationEmail } from '~/server/utils/email'
+import { emailFailureReason, sendGameInvitationEmail } from '~/server/utils/email'
 import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
 import { requireRouterParam } from '~/server/utils/routeParams'
 
@@ -85,16 +85,16 @@ export default defineEventHandler(async (event) => {
       url
     })
   } catch (error) {
-    const { statusMessage, message } = (error ?? {}) as { statusMessage?: string, message?: string }
+    const reason = emailFailureReason(error)
     console.warn('Game invitation email failed', {
       gameId: id,
       invitationId: invitation.id,
       email: invitation.email,
-      error: statusMessage || message || 'smtp_error'
+      error: reason
     })
     emailDelivery = {
       sent: false,
-      reason: statusMessage || message || 'smtp_error'
+      reason: reason
     }
   }
 

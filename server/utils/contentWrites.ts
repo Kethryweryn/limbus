@@ -82,8 +82,7 @@ export async function updateGame(event: H3Event, id: string, readBody: Reader<ty
   const { title, description, teaserUrl, noteIntention, published, publicPage, publicShowSessions, publicShowRegistration, singlePjPerParticipant, balanceAttribute, balanceValues, photoRetentionMonths, contactEmail } = body
 
   const data: Prisma.GameUpdateInput = {
-    // Colonne obligatoire : une description vidée devient un texte vide, comme à la création
-    description: description === null ? '' : description,
+    description,
     teaserUrl,
     noteIntention,
     published,
