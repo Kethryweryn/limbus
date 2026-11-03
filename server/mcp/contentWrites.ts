@@ -1,7 +1,6 @@
 import * as z from 'zod'
 import type { H3Event } from 'h3'
 import { prisma } from '~/server/utils/prisma'
-import { aiLog } from '~/server/utils/aiAuth'
 import {
   characterRelationSchema,
   createCharacterSchema,
@@ -20,46 +19,12 @@ import * as writes from '~/server/utils/contentWrites'
 import { AI_LOG_ACTIONS } from '~/utils/aiAssistants'
 import { CHARACTER_TYPES, DOCUMENT_AUDIENCES, INTRIGUE_LEVELS } from '~/utils/domain'
 import { CHARACTER_RELATION_TYPE_VALUES } from '~/utils/characterRelations'
-import { toolResult, type ToolContext } from '~/server/mcp/tools'
+import { DESTRUCTIVE, WRITE, logWrite, requireWrite, text, toolResult, version, withVersion, type ToolContext } from '~/server/mcp/tools'
 
 // Écriture du contenu d'un jeu par un assistant (US-125, US-126, SPEC-014 R10 à R13) : les fonctions de l'interface
 // (contentWrites), avec la version lue, sans lien ni fichier, et chaque écriture notée au journal
 
-const WRITE = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
-const DESTRUCTIVE = { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false }
-
-const text = (description: string) => z.string().max(20_000).nullable().optional().describe(description)
 const ids = (description: string) => z.array(z.string()).max(500).optional().describe(description)
-const version = z.string().describe('Version lue : le champ updatedAt rendu par la lecture de l’élément')
-
-function requireWrite(event: H3Event) {
-  const ai = event.context.aiAuthorization
-  if (!ai?.canWrite) throw createError({ statusCode: 403, message: 'Autorisation en lecture seule' })
-  return ai
-}
-
-/** Exécute une écriture avec la version lue, contrôlée comme l'en-tête If-Unmodified-Since de l'interface. */
-async function withVersion<T>(event: H3Event, read: string, run: () => Promise<T>) {
-  const at = new Date(read)
-  if (Number.isNaN(at.getTime())) throw createError({ statusCode: 400, message: 'Version illisible : donnez le champ updatedAt lu' })
-  event.context.writeVersion = at
-  try {
-    return await run()
-  } finally {
-    delete event.context.writeVersion
-  }
-}
-
-async function logWrite(event: H3Event, tool: string, action: string, target: { type: string, id: string, name: string, gameId: string }) {
-  const ai = requireWrite(event)
-  await aiLog({
-    authorization: { id: ai.id, userId: ai.userId, client: { name: ai.clientName } },
-    action,
-    tool,
-    gameIds: [target.gameId],
-    target: { type: target.type, id: target.id, name: target.name }
-  })
-}
 
 /** Une sorte d'élément : ses champs écrits par un assistant, et comment compléter une modification avec la fiche actuelle. */
 type ContentKind = {

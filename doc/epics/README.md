@@ -42,6 +42,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-032](../archive/epics/EPIC-032-inscriptions-hors-ligne/README.md) | Page Inscriptions lisible hors ligne | [SPEC-010](../specs/SPEC-010-hors-ligne.md) | terminé |
 | [EPIC-033](../archive/epics/EPIC-033-ia-connexion-et-lecture/README.md) | Brancher une IA, lot 1 : connexion et lecture | [SPEC-014](../specs/SPEC-014-api-pour-ia.md) | terminé |
 | [EPIC-034](../archive/epics/EPIC-034-ia-ecriture-du-contenu/README.md) | Brancher une IA, lot 2 : écriture du contenu d'un jeu | [SPEC-014](../specs/SPEC-014-api-pour-ia.md) | terminé |
+| [EPIC-035](EPIC-035-ia-sessions-et-participants/README.md) | Brancher une IA, lot 3 : sessions, casting et participants | [SPEC-014](../specs/SPEC-014-api-pour-ia.md) | en cours |
 
 ## US
 
@@ -173,3 +174,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-124](../archive/epics/EPIC-033-ia-connexion-et-lecture/US-124-confidentialite-et-conditions.md) | Politique de confidentialité et conditions | EPIC-033 | terminée |
 | [US-125](../archive/epics/EPIC-034-ia-ecriture-du-contenu/US-125-creer-et-modifier-un-jeu.md) | L'assistant crée et modifie un jeu | EPIC-034 | terminée |
 | [US-126](../archive/epics/EPIC-034-ia-ecriture-du-contenu/US-126-ecrire-le-contenu.md) | L'assistant écrit le contenu d'un jeu | EPIC-034 | terminée |
+| [US-127](EPIC-035-ia-sessions-et-participants/US-127-sessions-et-equipe.md) | L'assistant crée une session et compose son équipe | EPIC-035 | terminée |
+| [US-128](EPIC-035-ia-sessions-et-participants/US-128-casting-et-deroule.md) | L'assistant prépare le casting et le déroulé d'une session | EPIC-035 | terminée |
+| [US-129](EPIC-035-ia-sessions-et-participants/US-129-fiches-participant.md) | L'assistant crée et modifie les fiches participant | EPIC-035 | terminée |
