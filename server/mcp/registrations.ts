@@ -3,6 +3,7 @@ import { prisma } from '~/server/utils/prisma'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { findRegistrationPeriodOr404 } from '~/server/utils/registrationPeriods'
 import { getCurrentRegistrationForm } from '~/server/utils/registrationForms'
+import { currentQuestionLinks } from '~/server/utils/registrationQuestionLinks'
 import { selectionOverview } from '~/server/utils/registrationSelection'
 import { listDraws } from '~/server/utils/registrationDraws'
 import { closedAnswers, processedAffinities } from '~/server/mcp/registrationProjection'
@@ -32,13 +33,13 @@ export function registerRegistrationTools({ event, server }: ToolContext) {
 
   server.registerTool('lire_formulaire_inscription', {
     title: 'Lire le formulaire d’inscription',
-    description: 'Formulaire d’inscription en vigueur d’un jeu : questions propres au jeu (libellé, sorte, options), affinités demandées, question d’équilibre.',
+    description: 'Formulaire d’inscription en vigueur d’un jeu : numéro de version, champs demandés, questions propres au jeu (libellé, sorte, options), affinités demandées, question d’équilibre, et liens des réponses vers les personnages, factions et intrigues.',
     inputSchema: z.object({ jeuId: z.string() }),
     annotations: READ_ONLY
   }, ({ jeuId }) => toolResult(async () => {
     await requireGameAccess(event, jeuId)
-    const { version, definition } = await getCurrentRegistrationForm(jeuId)
-    return { version, questions: definition.questions, affinities: definition.affinities, balance: definition.balance }
+    const [{ version, definition }, links] = await Promise.all([getCurrentRegistrationForm(jeuId), currentQuestionLinks(jeuId)])
+    return { version, standardFields: definition.standardFields, questions: definition.questions, affinities: definition.affinities, balance: definition.balance, links }
   }))
 
   server.registerTool('lire_selection', {

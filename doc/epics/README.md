@@ -43,6 +43,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-033](../archive/epics/EPIC-033-ia-connexion-et-lecture/README.md) | Brancher une IA, lot 1 : connexion et lecture | [SPEC-014](../specs/SPEC-014-api-pour-ia.md) | terminé |
 | [EPIC-034](../archive/epics/EPIC-034-ia-ecriture-du-contenu/README.md) | Brancher une IA, lot 2 : écriture du contenu d'un jeu | [SPEC-014](../specs/SPEC-014-api-pour-ia.md) | terminé |
 | [EPIC-035](../archive/epics/EPIC-035-ia-sessions-et-participants/README.md) | Brancher une IA, lot 3 : sessions, casting et participants | [SPEC-014](../specs/SPEC-014-api-pour-ia.md) | terminé |
+| [EPIC-036](EPIC-036-ia-inscriptions/README.md) | Brancher une IA, lot 4 : inscriptions | [SPEC-014](../specs/SPEC-014-api-pour-ia.md) | en cours |
 
 ## US
 
@@ -177,3 +178,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-127](../archive/epics/EPIC-035-ia-sessions-et-participants/US-127-sessions-et-equipe.md) | L'assistant crée une session et compose son équipe | EPIC-035 | terminée |
 | [US-128](../archive/epics/EPIC-035-ia-sessions-et-participants/US-128-casting-et-deroule.md) | L'assistant prépare le casting et le déroulé d'une session | EPIC-035 | terminée |
 | [US-129](../archive/epics/EPIC-035-ia-sessions-et-participants/US-129-fiches-participant.md) | L'assistant crée et modifie les fiches participant | EPIC-035 | terminée |
+| [US-130](EPIC-036-ia-inscriptions/US-130-periodes.md) | L'assistant prépare les périodes d'inscription | EPIC-036 | terminée |
+| [US-131](EPIC-036-ia-inscriptions/US-131-formulaire.md) | L'assistant rédige le formulaire et ses liens | EPIC-036 | terminée |
+| [US-132](EPIC-036-ia-inscriptions/US-132-selection-et-tirages.md) | L'assistant aide à la sélection et tire au sort | EPIC-036 | terminée |

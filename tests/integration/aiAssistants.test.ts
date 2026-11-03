@@ -263,7 +263,7 @@ describe('écriture', () => {
     const { client } = await connectAssistant(alice, { gameIds: [a.game.id] })
     const names = (await client.listTools()).tools.map((tool) => tool.name)
     expect(names).toContain('lister_jeux')
-    expect(names.filter((name) => /^(creer|modifier|enregistrer|supprimer|proposer)_/.test(name))).toEqual([])
+    expect(names.filter((name) => /^(creer|modifier|enregistrer|supprimer|proposer|decider|ordonner|regler|tirer|annuler|relier)_/.test(name))).toEqual([])
   })
 
   it('crée un jeu et tout son contenu, modifie champ par champ, supprime, et note chaque écriture', async () => {
@@ -463,6 +463,115 @@ describe('sessions et participants', () => {
     ]))
     // L'ajout à un autre jeu est noté aussi pour la propriétaire de ce jeu
     expect(await prisma.aiLogEntry.count({ where: { gameId: a.game.id, tool: 'modifier_participant', targetId: ana.id } })).toBe(1)
+  })
+})
+
+// EPIC-036 (US-130 à US-132) : périodes en brouillon et état gardé, formulaire et liens, décisions non annoncées,
+// listes d'attente, places du vivier et tirages ; rien d'annoncé ni d'envoyé
+describe('inscriptions', () => {
+  it('prépare les inscriptions d’un jeu sans rien ouvrir ni annoncer, et note chaque écriture', async () => {
+    const { client } = await connectAssistant(alice, { canWrite: true, gameIds: [a.game.id] })
+    const game = (await call(client, 'creer_jeu', { title: 'Jeu des inscriptions de l’assistant' })).json
+    const hero = (await call(client, 'enregistrer_personnage', { jeuId: game.id, name: 'Aube' })).json
+    const first = (await call(client, 'creer_session', { jeuId: game.id, name: 'Première' })).json
+    const second = (await call(client, 'creer_session', { jeuId: game.id, name: 'Seconde' })).json
+    const person = async (name: string) => (await call(client, 'creer_participant', { jeuId: game.id, name })).json.id as string
+    const [ana, ben, cleo, dan] = [await person('Ana Inscrite'), await person('Ben Inscrit'), await person('Cléo Inscrite'), await person('Dan Inscrit')]
+
+    // Période : en brouillon ; une session d'un autre jeu est refusée
+    const created = (await call(client, 'creer_periode_inscription', { jeuId: game.id, name: 'Printemps', entryMode: 'form', selectionMode: 'random', waitlistSize: 2, sessions: [{ sessionId: first.id, seats: 1 }] })).json
+    expect((await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: created.id } })).state).toBe('draft')
+    expect((await call(client, 'creer_periode_inscription', { jeuId: game.id, name: 'Volée', sessions: [{ sessionId: b.session.id }] })).error).toBe(true)
+
+    // Ouverte par l'équipe : l'assistant la modifie, son état et ses sessions restent
+    await prisma.registrationPeriod.update({ where: { id: created.id }, data: { state: 'open' } })
+    const periodRead = (await call(client, 'lister_periodes_inscription', { jeuId: game.id })).json.find((row: { id: string }) => row.id === created.id)
+    const renamed = await call(client, 'modifier_periode_inscription', { periodeId: created.id, version: periodRead.updatedAt, name: 'Printemps renommé' })
+    expect(renamed.error).toBe(false)
+    expect(await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: created.id }, select: { name: true, state: true, sessions: { select: { sessionId: true, seats: true } } } }))
+      .toEqual({ name: 'Printemps renommé', state: 'open', sessions: [{ sessionId: first.id, seats: 1 }] })
+    expect((await call(client, 'modifier_periode_inscription', { periodeId: created.id, version: periodRead.updatedAt, name: 'Écrasée' })).error).toBe(true)
+    let version = renamed.json.version
+
+    // Inscriptions reçues par le formulaire
+    const received = async (participantId: string, data: Record<string, unknown> = {}) => (await prisma.registration.create({
+      data: { periodId: created.id, participantId, status: 'received', source: 'form', email: `${participantId}@example.test`, ...data }
+    })).id
+    const [anaReg, benReg, cleoReg] = [await received(ana), await received(ben), await received(cleo)]
+
+    // Tirage, puis annulation : tout repart à « reçue »
+    const draw = (await call(client, 'tirer_au_sort', { periodeId: created.id, version })).json
+    expect(await prisma.registration.count({ where: { periodId: created.id, status: 'retained' } })).toBe(1)
+    version = (await call(client, 'lister_periodes_inscription', { jeuId: game.id })).json.find((row: { id: string }) => row.id === created.id).updatedAt
+    expect((await call(client, 'annuler_tirage', { tirageId: draw.id, version })).error).toBe(false)
+    expect(await prisma.registration.count({ where: { periodId: created.id, status: { not: 'received' } } })).toBe(0)
+
+    // Une inscription déjà annoncée : ni décision ni tirage par l'assistant
+    const danReg = await received(dan, { announcedStatus: 'rejected', announcedAt: new Date() })
+    const danRead = await prisma.registration.findUniqueOrThrow({ where: { id: danReg } })
+    const onAnnounced = await call(client, 'decider_inscription', { inscriptionId: danReg, version: danRead.updatedAt.toISOString(), action: 'reset' })
+    expect(onAnnounced.error).toBe(true)
+    expect(onAnnounced.text).toContain('annoncée')
+    expect((await call(client, 'tirer_au_sort', { periodeId: created.id, version })).error).toBe(true)
+    await prisma.registration.delete({ where: { id: danReg } })
+
+    // Décisions à la main, avec la version lue de chaque inscription
+    version = (await call(client, 'lister_periodes_inscription', { jeuId: game.id })).json.find((row: { id: string }) => row.id === created.id).updatedAt
+    expect((await call(client, 'modifier_periode_inscription', { periodeId: created.id, version, selectionMode: 'chosen' })).error).toBe(false)
+    const registrationVersion = async (id: string) => (await call(client, 'lire_selection', { periodeId: created.id })).json.registrations.find((row: { id: string }) => row.id === id).updatedAt
+    const anaVersion = await registrationVersion(anaReg)
+    expect((await call(client, 'decider_inscription', { inscriptionId: anaReg, version: anaVersion, action: 'retain', sessionId: first.id })).error).toBe(false)
+    expect((await call(client, 'decider_inscription', { inscriptionId: anaReg, version: anaVersion, action: 'reject' })).error).toBe(true)
+    for (const id of [benReg, cleoReg]) {
+      expect((await call(client, 'decider_inscription', { inscriptionId: id, version: await registrationVersion(id), action: 'waitlist', sessionId: first.id })).error).toBe(false)
+    }
+    expect(await prisma.registration.findUniqueOrThrow({ where: { id: anaReg }, select: { status: true, sessionId: true, announcedStatus: true } }))
+      .toEqual({ status: 'retained', sessionId: first.id, announcedStatus: null })
+
+    // Ordre de la liste d'attente
+    version = (await call(client, 'lister_periodes_inscription', { jeuId: game.id })).json.find((row: { id: string }) => row.id === created.id).updatedAt
+    expect((await call(client, 'ordonner_liste_attente', { periodeId: created.id, version, sessionId: first.id, inscriptionIds: [cleoReg, benReg] })).error).toBe(false)
+    expect((await prisma.registrationWaitlistEntry.findMany({ where: { sessionId: first.id }, orderBy: { position: 'asc' }, select: { registrationId: true } })).map((entry) => entry.registrationId))
+      .toEqual([cleoReg, benReg])
+
+    // Inscription permanente : places du vivier d'une session
+    const permanent = (await call(client, 'creer_periode_inscription', { jeuId: game.id, name: 'Toute l’année', scope: 'game', entryMode: 'form' })).json
+    expect((await call(client, 'regler_places_vivier', { periodeId: permanent.id, version: permanent.version, sessionId: second.id, seats: 3 })).error).toBe(false)
+    expect((await prisma.session.findUniqueOrThrow({ where: { id: second.id } })).poolSeats).toBe(3)
+
+    // Formulaire : versions successives, parties données seules ; liens du questionnaire
+    expect((await call(client, 'lire_formulaire_inscription', { jeuId: game.id })).json.version).toBeNull()
+    expect((await call(client, 'modifier_formulaire_inscription', { jeuId: game.id, version: null, questions: [{ label: 'Style de jeu', type: 'single', options: ['Combat', 'Intrigue'] }, { label: 'Envie de jouer', type: 'scale' }] })).json.version).toBe(1)
+    const form = (await call(client, 'lire_formulaire_inscription', { jeuId: game.id })).json
+    const [question, scale] = form.questions
+    expect((await call(client, 'modifier_formulaire_inscription', { jeuId: game.id, version: 1, affinities: { wantWith: { asked: true, required: false } } })).json.version).toBe(2)
+    expect((await call(client, 'lire_formulaire_inscription', { jeuId: game.id })).json.questions.map((row: { id: string }) => row.id)).toEqual([question.id, scale.id])
+    expect((await call(client, 'modifier_formulaire_inscription', { jeuId: game.id, version: 1, questions: [] })).error).toBe(true)
+    expect((await call(client, 'relier_questionnaire', { jeuId: game.id, version: 2, questions: [{ questionId: question.id, links: [{ option: 'Combat', characterId: hero.id }, { option: 'Intrigue', characterId: hero.id }] }] })).json).toEqual({ links: 2 })
+    // Une option retirée laisse son lien en base, hors versions : il ne bloque pas les liens des autres questions
+    expect((await call(client, 'modifier_formulaire_inscription', { jeuId: game.id, version: 2, questions: [{ ...question, options: ['Combat', 'Ruse'] }, scale] })).json.version).toBe(3)
+    expect((await call(client, 'relier_questionnaire', { jeuId: game.id, version: 3, questions: [{ questionId: scale.id, links: [{ characterId: hero.id }] }] })).json).toEqual({ links: 2 })
+    expect((await call(client, 'relier_questionnaire', { jeuId: game.id, version: 3, questions: [{ questionId: question.id, links: [{ option: 'Combat', characterId: b.character.id }] }] })).error).toBe(true)
+    expect((await call(client, 'relier_questionnaire', { jeuId: game.id, version: 2, questions: [{ questionId: question.id, links: [] }] })).error).toBe(true)
+    expect((await call(client, 'lire_formulaire_inscription', { jeuId: game.id })).json.links).toHaveLength(2)
+
+    // Hors de l'autorisation
+    const bPeriod = await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: b.registrationPeriod.id } })
+    expect((await call(client, 'modifier_periode_inscription', { periodeId: bPeriod.id, version: bPeriod.updatedAt.toISOString(), name: 'Volée' })).error).toBe(true)
+    expect((await call(client, 'decider_inscription', { inscriptionId: b.registration.id, version: new Date().toISOString(), action: 'reset' })).error).toBe(true)
+
+    const log = await prisma.aiLogEntry.findMany({ where: { gameId: game.id } })
+    expect(log.map((entry) => `${entry.action} ${entry.tool} ${entry.targetType}`)).toEqual(expect.arrayContaining([
+      'création creer_periode_inscription registrationPeriod',
+      'mise à jour modifier_periode_inscription registrationPeriod',
+      'création tirer_au_sort registrationDraw',
+      'mise à jour annuler_tirage registrationDraw',
+      'mise à jour decider_inscription registration',
+      'mise à jour ordonner_liste_attente registrationPeriod',
+      'mise à jour regler_places_vivier registrationPeriod',
+      'mise à jour modifier_formulaire_inscription registrationForm',
+      'mise à jour relier_questionnaire registrationForm'
+    ]))
   })
 })
 

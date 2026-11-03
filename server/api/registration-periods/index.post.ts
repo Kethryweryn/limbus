@@ -1,52 +1,9 @@
-import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
 import { readZodBody, registrationPeriodSchema } from '~/server/utils/schemas'
-import { requireGameAccess } from '~/server/utils/gameAccess'
-import {
-  assertClosingDateAllowsState,
-  assertSinglePermanentOpen,
-  exposeRegistrationPeriod,
-  parseOptionalDate,
-  registrationPeriodInclude,
-  resolveRegistrationPeriodSessions,
-  rethrowSessionAlreadyTaken,
-  withFreshPublicId
-} from '~/server/utils/registrationPeriods'
-import { REGISTRATION_PERIOD_SCOPES, REGISTRATION_SELECTION_MODES } from '~/utils/domain'
+import { createRegistrationPeriod } from '~/server/utils/registrationPeriodWrites'
 
+// Écriture commune à l'interface et aux assistants d'IA (server/utils/registrationPeriodWrites.ts, US-130)
 export default defineEventHandler(async (event) => {
   await requireUser(event)
-
-  const body = await readZodBody(event, registrationPeriodSchema)
-  await requireGameAccess(event, body.gameId)
-  // L'inscription permanente n'a pas de date de clôture : les orgas la clôturent à la main (R30)
-  const permanent = body.scope === REGISTRATION_PERIOD_SCOPES.game
-  const closesAt = permanent ? null : parseOptionalDate(body.closesAt)
-  assertClosingDateAllowsState(body.state, closesAt)
-  await assertSinglePermanentOpen(body.gameId, body.scope, body.state)
-  const sessions = permanent ? [] : await resolveRegistrationPeriodSessions(body.gameId, body.sessions)
-
-  const period = await withFreshPublicId((publicId) => prisma.registrationPeriod.create({
-    data: {
-      gameId: body.gameId,
-      name: body.name,
-      scope: body.scope,
-      publicId,
-      entryMode: body.entryMode,
-      notifyTeam: body.notifyTeam,
-      replayPolicy: body.replayPolicy,
-      selectionMode: body.selectionMode,
-      organizerPicks: body.selectionMode === REGISTRATION_SELECTION_MODES.mixed ? body.organizerPicks ?? 0 : null,
-      weightNotDrawnBefore: body.weightNotDrawnBefore,
-      weightBalance: body.weightBalance,
-      waitlistSize: body.waitlistSize,
-      state: body.state,
-      closesAt,
-      responseDelayDays: body.responseDelayDays,
-      sessions: { create: sessions }
-    },
-    include: registrationPeriodInclude
-  })).catch(rethrowSessionAlreadyTaken)
-
-  return exposeRegistrationPeriod(period)
+  return await createRegistrationPeriod(event, () => readZodBody(event, registrationPeriodSchema))
 })
