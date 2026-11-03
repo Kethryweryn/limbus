@@ -78,8 +78,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/dependances
-        with:
-          nuxt-prepare: 'true'
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
