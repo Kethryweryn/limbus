@@ -1,14 +1,15 @@
 ---
 titre: Aide à la conception du questionnaire de casting
-statut: à trancher
+statut: archivée
 date: 2026-11-03
+spec: ../../specs/SPEC-016-conception-du-questionnaire.md
 ---
 
 # Aide à la conception du questionnaire de casting
 
 ## Besoin
 
-[SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) juge le questionnaire de casting à partir de ses liens, puis des réponses reçues. Mais l'équipe écrit ses questions avant toute réponse. Une question corrigée après l'ouverture des inscriptions crée une nouvelle version du formulaire (R9 de [SPEC-001](../specs/SPEC-001-inscriptions.md)) : les premières personnes gardent leur réponse à l'ancienne question, et les réponses ne se comparent plus entre elles. Mieux vaut corriger avant d'ouvrir.
+[SPEC-015](../../specs/SPEC-015-qualite-du-questionnaire.md) juge le questionnaire de casting à partir de ses liens, puis des réponses reçues. Mais l'équipe écrit ses questions avant toute réponse. Une question corrigée après l'ouverture des inscriptions crée une nouvelle version du formulaire (R9 de [SPEC-001](../../specs/SPEC-001-inscriptions.md)) : les premières personnes gardent leur réponse à l'ancienne question, et les réponses ne se comparent plus entre elles. Mieux vaut corriger avant d'ouvrir.
 
 La méthodologie des questionnaires dispose d'outils pour concevoir une question correctement, et pour prévoir ses performances avant de la poser. Limbus n'en propose aucun aujourd'hui.
 
@@ -60,6 +61,10 @@ Une aide à la conception dans l'éditeur du formulaire, à côté des repères 
 ## Découpage envisagé
 
 À préciser une fois les pistes choisies. Par exemple : prévision et essai par l'équipe (pistes 2 et 3), puis relecture des questions (1), puis forme et test pilote (4 et 5).
+
+## Suite
+
+Devenue [SPEC-016](../../specs/SPEC-016-conception-du-questionnaire.md) le 2026-11-03 : essai par l'équipe, prévision, relecture et mélange des options ; test pilote écarté. Choix de l'utilisatrice dans l'historique de la spec.
 
 ## Points à trancher
 
