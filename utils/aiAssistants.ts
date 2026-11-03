@@ -26,7 +26,11 @@ export const AI_TARGET_LABELS: Record<string, string> = {
   timelineEvent: 'événement',
   characterRelation: 'relation',
   session: 'session',
-  participant: 'participant'
+  participant: 'participant',
+  registrationPeriod: 'période d’inscription',
+  registrationForm: 'formulaire d’inscription',
+  registration: 'inscription',
+  registrationDraw: 'tirage au sort'
 }
 
 export const AI_LOG_ACTION_LABELS: Record<string, string> = {
