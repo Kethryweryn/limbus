@@ -1,8 +1,8 @@
 ---
 id: EPIC-035
 titre: Brancher une IA, lot 3 : sessions, casting et participants
-statut: en cours
-spec: ../../specs/SPEC-014-api-pour-ia.md
+statut: terminé
+spec: ../../../specs/SPEC-014-api-pour-ia.md
 date: 2026-11-03
 ---
 
@@ -10,7 +10,7 @@ date: 2026-11-03
 
 ## Objectif
 
-Lot 3 de [SPEC-014](../../specs/SPEC-014-api-pour-ia.md) (R10 à R13). Avec une autorisation en lecture et écriture, l'assistant crée et prépare les sessions des jeux de son autorisation : détails, équipe, casting et déroulé. Il lance l'assistant de casting, et crée ou modifie les fiches participant.
+Lot 3 de [SPEC-014](../../../specs/SPEC-014-api-pour-ia.md) (R10 à R13). Avec une autorisation en lecture et écriture, l'assistant crée et prépare les sessions des jeux de son autorisation : détails, équipe, casting et déroulé. Il lance l'assistant de casting, et crée ou modifie les fiches participant.
 
 ## Décisions
 
@@ -27,7 +27,7 @@ Choix techniques :
 
 - Les écritures de l'interface passent dans des fonctions serveur (`server/utils/sessionWrites.ts`, `server/utils/participantWrites.ts`) que les routes et les outils appellent toutes deux (R12). Les routes ne changent pas de comportement.
 - Comme au lot 2, un outil de modification ne reçoit que ce qui change et le complète avec la fiche actuelle : une ligne de cast, un événement du déroulé ou un champ omis reste tel quel. La photo d'une ligne de cast est retirée quand la personne change, comme quand l'interface applique une proposition de l'assistant de casting.
-- La version lue (`updatedAt`) est obligatoire pour modifier. Le déroulé et le casting font partie de la version de la session ([ADR-0028](../../adr/ADR-0028-version-d-une-session.md)).
+- La version lue (`updatedAt`) est obligatoire pour modifier. Le déroulé et le casting font partie de la version de la session ([ADR-0028](../../../adr/ADR-0028-version-d-une-session.md)).
 
 ## US
 
@@ -36,3 +36,8 @@ Choix techniques :
 | [US-127](US-127-sessions-et-equipe.md) | L'assistant crée une session et compose son équipe | terminée |
 | [US-128](US-128-casting-et-deroule.md) | L'assistant prépare le casting et le déroulé d'une session | terminée |
 | [US-129](US-129-fiches-participant.md) | L'assistant crée et modifie les fiches participant | terminée |
+
+## Suivi
+
+- 2026-11-03 : déployé (PR #118). La revue a corrigé un défaut de l'interface : une orga retirée de l'équipe restait responsable d'événements du déroulé ; une migration a nettoyé ces lignes.
+- Epic archivé.

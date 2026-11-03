@@ -14,7 +14,7 @@ En tant qu'organisatrice, je veux que mon assistant crée et tienne à jour les 
 ## Critères d'acceptation
 
 - [x] L'assistant crée une fiche dans un jeu de l'autorisation : nom et note d'organisation de ce jeu. Elle n'a ni email ni téléphone.
-- [x] Il change le nom d'une fiche et sa note d'organisation pour un jeu de l'autorisation, en donnant la version lue. Le nom d'une fiche rattachée à un compte reste celui du compte ([ADR-0042](../../adr/ADR-0042-coordonnees-du-compte.md)). Les coordonnées et les notes des autres jeux ne changent pas.
+- [x] Il change le nom d'une fiche et sa note d'organisation pour un jeu de l'autorisation, en donnant la version lue. Le nom d'une fiche rattachée à un compte reste celui du compte ([ADR-0042](../../../adr/ADR-0042-coordonnees-du-compte.md)). Les coordonnées et les notes des autres jeux ne changent pas.
 - [x] Il ajoute à un jeu de l'autorisation une personne déjà présente dans un jeu de l'autorisation. Il ne la retire jamais d'un jeu, et ne supprime aucune fiche.
 - [x] La lecture des participants rend la version de chaque fiche, toujours sans coordonnées.
 - [x] Une fiche d'un jeu hors de l'autorisation est refusée. Une version dépassée est refusée.
