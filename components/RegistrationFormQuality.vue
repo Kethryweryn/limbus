@@ -3,14 +3,14 @@
     <h3 class="font-semibold">Qualité du questionnaire</h3>
     <p v-if="errorMessage" class="text-sm text-error-600">{{ errorMessage }}</p>
     <template v-else-if="quality">
-      <p v-if="!quality.characterCount" class="text-sm text-gray-500">Le jeu n’a pas encore de personnage PJ : rien à juger.</p>
-      <p v-else-if="!quality.questionCount" class="text-sm text-gray-500">
+      <p v-if="!quality.characterCount" class="text-sm text-gray-500">Le jeu n’a pas encore de personnage PJ : les repères sur les personnages viendront avec eux.</p>
+      <p v-if="!quality.questionCount" class="text-sm text-gray-500">
         Aucune question à choix ni échelle : le questionnaire ne sert pas encore au casting.
       </p>
-      <p v-else-if="!quality.findings.length" class="text-sm text-success-700">
+      <p v-if="quality.characterCount && quality.questionCount && !quality.findings.length" class="text-sm text-success-700">
         Bon : chaque personnage PJ est relié à une réponse, et les liens permettent de choisir entre eux.
       </p>
-      <ul v-else class="space-y-2">
+      <ul v-if="items.length" class="space-y-2">
         <li v-for="(item, index) in items" :key="index" class="rounded border border-gray-200 px-3 py-2 text-sm">
           <div class="flex flex-wrap items-start gap-2">
             <UBadge :color="LEVELS[item.level].color" variant="subtle" size="sm">{{ LEVELS[item.level].label }}</UBadge>
@@ -49,13 +49,18 @@ const LEVELS: Record<QualityLevel, { label: string, color: 'success' | 'warning'
 
 const quality = ref<ApiResponse<'/api/games/:id/registration-form-quality'> | null>(null)
 const errorMessage = ref('')
+// Seule la dernière lecture compte : une réponse plus lente d'une lecture précédente est ignorée
+let lastRequest = 0
 
 watch(() => [props.gameId, props.refreshKey], async () => {
-  errorMessage.value = ''
+  const request = ++lastRequest
   try {
-    quality.value = await useApiFetch(`/api/games/${props.gameId}/registration-form-quality`, { offlineCache: true })
+    const result = await useApiFetch(`/api/games/${props.gameId}/registration-form-quality`, { offlineCache: true })
+    if (request !== lastRequest) return
+    quality.value = result
+    errorMessage.value = ''
   } catch (err) {
-    errorMessage.value = apiErrorMessage(err, 'Impossible de calculer la qualité du questionnaire')
+    if (request === lastRequest) errorMessage.value = apiErrorMessage(err, 'Impossible de calculer la qualité du questionnaire')
   }
 }, { immediate: true })
 

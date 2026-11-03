@@ -11,7 +11,7 @@ type CastLine = { characterId: string, participantId?: string | null, reservedRe
 const PLACED_STATUSES: string[] = [REGISTRATION_STATUSES.retained, REGISTRATION_STATUSES.confirmed]
 const nameSelect = { select: { id: true, name: true } } as const
 
-async function gameCharacters(gameId: string): Promise<CastingCharacter[]> {
+export async function gameCharacters(gameId: string): Promise<CastingCharacter[]> {
   const rows = await prisma.character.findMany({
     where: { gameId, type: CHARACTER_TYPES.pj },
     select: {

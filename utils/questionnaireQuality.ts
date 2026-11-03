@@ -46,11 +46,12 @@ function possibleAnswers(questions: QualityQuestion[]): PossibleAnswer[] {
 /** Profil de points d'un personnage (R6) : les points que lui donne chaque réponse possible, comme la note de l'assistant. */
 export function pointProfile(character: QualityCharacter, questions: QualityQuestion[], links: CastingLink[]) {
   const casting = { ...character, relations: [] }
+  const linksOf = Map.groupBy(links, (link) => link.questionId)
   return possibleAnswers(questions).map(({ question, answer }) => castingScore(
     { id: '', name: '', answers: { [question.id]: answer }, refusedTypes: [], notWithIds: [] },
     casting,
     [question],
-    links.filter((link) => link.questionId === question.id)
+    linksOf.get(question.id) ?? []
   ).score)
 }
 
@@ -100,16 +101,15 @@ export function linkFindings(questions: QualityQuestion[], links: CastingLink[],
     for (const second of reached.slice(index + 1)) {
       const similarity = cosineSimilarity(first.profile, second.profile)
       if (similarity < threshold) continue
-      let widest = 0
-      let separating: Extract<QuestionnaireFinding, { kind: 'indistinctCharacters' }>['separating'] = null
-      first.profile.forEach((points, answerIndex) => {
-        const gap = points - (second.profile[answerIndex] ?? 0)
-        if (Math.abs(gap) <= widest) return
-        widest = Math.abs(gap)
-        const { question, option } = answers[answerIndex]!
-        const favors = gap > 0 ? first.character : second.character
-        separating = { questionLabel: question.label, option, favors: { id: favors.id, name: favors.name } }
-      })
+      // Réponse dont l'écart de points entre les deux est le plus grand
+      let widest = { index: -1, gap: 0 }
+      for (const [index, points] of first.profile.entries()) {
+        const gap = points - (second.profile[index] ?? 0)
+        if (Math.abs(gap) > Math.abs(widest.gap)) widest = { index, gap }
+      }
+      const answer = answers[widest.index]
+      const favors = widest.gap > 0 ? first.character : second.character
+      const separating = answer ? { questionLabel: answer.question.label, option: answer.option, favors: { id: favors.id, name: favors.name } } : null
       findings.push({
         kind: 'indistinctCharacters',
         level: 'review',
