@@ -1,11 +1,17 @@
 import { deleteFromStore, getFromStore, listStoreEntries, saveToStore } from '~/utils/storage'
 import { getErrorStatus, isServerUnavailableError, setServerUnavailable } from '~/utils/connection'
 
+// Corps d'une écriture, élément gardé sur l'appareil, version relue du serveur : des objets JSON
+type JsonRecord = Record<string, unknown>
+
+// Options d'une écriture mise en file (useApiFetch) : un FormData n'y entre jamais (isQueueableApiWrite)
+type QueuedRequestOptions = { method?: string, body?: JsonRecord | FormData, headers?: Record<string, string>, offlineLabel?: string }
+
 export type OfflineSyncOperation = {
   id: string
   request: string
   method: 'POST' | 'PUT' | 'DELETE'
-  body?: any
+  body?: JsonRecord
   headers?: Record<string, string>
   store?: string
   entityId?: string
@@ -22,7 +28,7 @@ export type OfflineSyncOperation = {
   status: 'pending' | 'syncing' | 'error' | 'conflict'
   error?: string
   // Version du serveur relue lors d'un conflit, pour la comparaison champ par champ
-  serverVersion?: any
+  serverVersion?: JsonRecord
 }
 
 export type OfflineSyncResult = { id: string, ok: boolean, held?: boolean, error?: string }
@@ -81,7 +87,7 @@ function isActionRequest(request: string, method: string) {
   return (method === 'POST' && segments > 2) || (method === 'DELETE' && segments > 3)
 }
 
-export function isQueueableApiWrite(request: string, options?: any) {
+export function isQueueableApiWrite(request: string, options?: QueuedRequestOptions) {
   const method = String(options?.method || 'GET').toUpperCase()
   const [resource = ''] = apiSegments(request)
   return ['POST', 'PUT', 'DELETE'].includes(method)
@@ -129,15 +135,15 @@ export async function saveOfflineQueue(queue: OfflineSyncOperation[]) {
   notifyQueueChanged()
 }
 
-export async function enqueueOfflineOperation(request: string, options: any = {}) {
+export async function enqueueOfflineOperation(request: string, options: QueuedRequestOptions = {}) {
   const method = String(options.method || 'GET').toUpperCase() as OfflineSyncOperation['method']
   const store = offlineStoreForRequest(request)
-  const body = clone(options.body)
+  const body = clone(options.body as JsonRecord | undefined)
   const [, id] = apiSegments(request)
-  const entityId = method === 'POST' ? body?.id || tempId() : id
+  const entityId = method === 'POST' ? (body?.id as string | undefined) || tempId() : id
   // Pages de détail gardées de l'élément, lues une fois : la recherche en cache et sa mise à jour s'en servent
   const detailResponses = entityId && method !== 'POST'
-    ? (await listStoreEntries('responses')).filter((entry) => entry.value?.id === entityId)
+    ? (await listStoreEntries<JsonRecord>('responses')).filter((entry) => entry.value?.id === entityId)
     : []
   const cached = entityId ? await findCachedEntity(store, entityId, detailResponses) : null
   // Version lue (ADR-0036) : celle du corps, ou pour une suppression celle de l'élément en cache. Un élément
@@ -215,27 +221,29 @@ export async function processOfflineQueue() {
     await markOperation(id, { status: 'syncing', error: undefined })
 
     try {
-      const response: any = await $fetch(operation.request, {
+      const response = await $fetch<{ id?: string, updatedAt?: string } | null>(operation.request, {
         method: operation.method,
         body: operation.body,
         headers: operation.force ? undefined : operation.headers
       })
       let next = (await getOfflineQueue()).filter((item) => item.id !== id)
-      if (operation.method === 'POST' && operation.entityId && response?.id && response.id !== operation.entityId) {
-        next = next.map((item) => remapTemporaryEntity(item, operation.entityId!, response.id))
+      const createdId = response?.id
+      if (operation.method === 'POST' && operation.entityId && createdId && createdId !== operation.entityId) {
+        next = next.map((item) => remapTemporaryEntity(item, operation.entityId!, createdId))
       }
       const newVersion = versionOf(response?.updatedAt)
       if (newVersion) next = next.map((item) => chainVersion(item, operation, newVersion))
       await saveOfflineQueue(next)
       results.push({ id, ok: true })
-    } catch (error: any) {
+    } catch (error) {
       if (isServerUnavailableError(error) || !navigator.onLine) {
         await markOperation(id, { status: 'pending', error: undefined })
         setServerUnavailable(true)
         return { results, aborted: true }
       }
 
-      const message = error?.data?.message || error?.message || 'Erreur de synchronisation'
+      const { data, message: thrown } = error as { data?: { message?: string }, message?: string }
+      const message = data?.message || thrown || 'Erreur de synchronisation'
       if (isConflictError(error)) {
         const serverVersion = await fetchServerVersion(operation).catch(() => undefined)
         await markOperation(id, { status: 'conflict', error: message, serverVersion })
@@ -343,25 +351,27 @@ export function conflictFields(operation: OfflineSyncOperation) {
 
   return Object.keys(operation.body)
     .filter((key) => !IGNORED_FIELDS.has(key) && key in server)
-    .map((key) => ({ key, label: FIELD_LABELS[key] || key, mine: operation.body[key], theirs: server[key] }))
+    .map((key) => ({ key, label: FIELD_LABELS[key] || key, mine: operation.body![key], theirs: server[key] }))
     .filter((field) => comparable(field.mine, field.mine) !== comparable(field.theirs, field.mine))
 }
 
 // Valeur comparable, ramenée à la forme de ma version : mêmes clés pour les objets, ordre indifférent
 // pour les listes, date à la minute, vide = null
-function comparable(value: any, shape: any): string {
+function comparable(value: unknown, shape: unknown): string {
   return JSON.stringify(normalizeLike(value, shape))
 }
 
-function normalizeLike(value: any, shape: any): any {
+function normalizeLike(value: unknown, shape: unknown): unknown {
   if (value === undefined || value === '' || value === null) return null
   if (Array.isArray(value)) {
-    const itemShape = Array.isArray(shape) ? shape[0] : undefined
+    const itemShape: unknown = Array.isArray(shape) ? shape[0] : undefined
     return value.map((item) => normalizeLike(item, itemShape)).map((item) => JSON.stringify(item)).sort()
   }
   if (typeof value === 'object') {
-    const keys = shape && typeof shape === 'object' && !Array.isArray(shape) ? Object.keys(shape) : Object.keys(value)
-    return Object.fromEntries(keys.filter((key) => !IGNORED_FIELDS.has(key)).sort().map((key) => [key, normalizeLike(value[key], shape?.[key])]))
+    const record = value as JsonRecord
+    const shapeRecord = shape && typeof shape === 'object' && !Array.isArray(shape) ? shape as JsonRecord : undefined
+    const keys = shapeRecord ? Object.keys(shapeRecord) : Object.keys(record)
+    return Object.fromEntries(keys.filter((key) => !IGNORED_FIELDS.has(key)).sort().map((key) => [key, normalizeLike(record[key], shapeRecord?.[key])]))
   }
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) {
     const date = new Date(value)
@@ -370,29 +380,37 @@ function normalizeLike(value: any, shape: any): any {
   return value
 }
 
-function isConflictError(error: any) {
-  return getErrorStatus(error) === 409 && Boolean(error?.data?.data?.conflict)
+function isConflictError(error: unknown) {
+  return getErrorStatus(error) === 409 && Boolean((error as { data?: { data?: { conflict?: boolean } } } | null)?.data?.data?.conflict)
 }
 
 // Version actuelle du serveur, ramenée aux champs que la modification envoie
-async function fetchServerVersion(operation: OfflineSyncOperation): Promise<any> {
+// Formes des lectures du serveur, réduites à ce que la comparaison utilise ; fetch() ne connaît pas la route,
+// qui se construit à partir de la file
+type TimelineRead = { events?: Array<{ id: string, responsibles?: Array<{ participantId: string }> }> }
+type TrombinoscopeRead = { characters?: Array<{ id: string, name: string, trombinoscope?: { included?: boolean, faceKnown?: boolean, displayName?: string, note?: string } }> }
+type PaymentRow = { participant?: { id: string }, paidAt?: string | null, offered?: boolean, tariffChosen?: boolean, tariff?: { id: string } | null, refundStatus?: string | null, transferredTo?: { id: string } | null }
+type PaymentsRead = { session?: JsonRecord, tariffs?: Array<JsonRecord & { id: string, amountCents: number }>, rows?: PaymentRow[], unassignedPayments?: PaymentRow[], refunds?: PaymentRow[] }
+
+async function fetchServerVersion(operation: OfflineSyncOperation): Promise<JsonRecord | undefined> {
   const [resource, id, ...rest] = apiSegments(operation.request)
   const base = `/api/${resource}/${id}`
-  if (!rest.length) return await $fetch(base)
+  const read = <T>(url: string) => $fetch<T>(url)
+  if (!rest.length) return await read<JsonRecord>(base)
 
   if (rest[0] === 'timeline') {
-    const timeline: any = await $fetch(`${base}/timeline`)
+    const timeline = await read<TimelineRead>(`${base}/timeline`)
     return {
       assignments: (timeline.events || [])
-        .filter((event: any) => event.responsibles?.length)
-        .map((event: any) => ({ timelineEventId: event.id, participantIds: event.responsibles.map((responsible: any) => responsible.participantId) }))
+        .filter((event) => event.responsibles?.length)
+        .map((event) => ({ timelineEventId: event.id, participantIds: (event.responsibles || []).map((responsible) => responsible.participantId) }))
     }
   }
 
   if (rest[0] === 'trombinoscope') {
-    const config: any = await $fetch(`${base}/trombinoscope`)
+    const config = await read<TrombinoscopeRead>(`${base}/trombinoscope`)
     return {
-      entries: (config.characters || []).map((target: any) => ({
+      entries: (config.characters || []).map((target) => ({
         targetCharacterId: target.id,
         included: Boolean(target.trombinoscope?.included),
         faceKnown: Boolean(target.trombinoscope?.faceKnown),
@@ -403,15 +421,15 @@ async function fetchServerVersion(operation: OfflineSyncOperation): Promise<any>
   }
 
   if (rest[0] === 'payments' || rest[0] === 'tariffs') {
-    const dashboard: any = await $fetch(`${base}/payments`)
+    const dashboard = await read<PaymentsRead>(`${base}/payments`)
     if (rest[0] === 'tariffs') {
-      const tariff = (dashboard.tariffs || []).find((item: any) => item.id === rest[1])
+      const tariff = (dashboard.tariffs || []).find((item) => item.id === rest[1])
       return tariff && { ...tariff, amount: tariff.amountCents / 100 }
     }
     if (rest[1] === 'settings') return dashboard.session
 
     const row = [...(dashboard.rows || []), ...(dashboard.unassignedPayments || []), ...(dashboard.refunds || [])]
-      .find((item: any) => item.participant?.id === rest[1])
+      .find((item) => item.participant?.id === rest[1])
     return row && {
       paid: Boolean(row.paidAt),
       offered: Boolean(row.offered),
@@ -429,16 +447,16 @@ async function markOperation(id: string, patch: Partial<OfflineSyncOperation>) {
   await saveOfflineQueue(queue.map((operation) => operation.id === id ? { ...operation, ...patch } : operation))
 }
 
-type DetailResponse = { key: string, value: any }
+type DetailResponse = { key: string, value: JsonRecord }
 
-async function findCachedEntity(store: string, id: string, detailResponses: DetailResponse[]) {
-  const list = store ? await getFromStore<any[]>(store, 'list') : null
+async function findCachedEntity(store: string, id: string, detailResponses: DetailResponse[]): Promise<JsonRecord | null> {
+  const list = store ? await getFromStore<JsonRecord[]>(store, 'list') : null
   const fromList = Array.isArray(list) ? list.find((item) => item?.id === id) : null
   return fromList || detailResponses[0]?.value || null
 }
 
-function entityName(value: any) {
-  return value?.name || value?.title || ''
+function entityName(value: JsonRecord | null | undefined) {
+  return String(value?.name || value?.title || '')
 }
 
 // Le cache de l'appareil reflète aussitôt la modification. Seules les écritures sur l'élément lui-même le
@@ -446,7 +464,7 @@ function entityName(value: any) {
 async function applyOptimisticCache(operation: OfflineSyncOperation, detailResponses: DetailResponse[]) {
   if (!operation.store || isSubRoute(operation.request)) return
 
-  const current = await getFromStore<any[]>(operation.store, 'list') || []
+  const current = await getFromStore<JsonRecord[]>(operation.store, 'list') || []
   if (operation.method === 'DELETE') {
     await saveToStore(operation.store, 'list', current.filter((item) => item.id !== operation.entityId))
     for (const entry of detailResponses) await deleteFromStore('responses', entry.key)
@@ -471,13 +489,13 @@ async function applyOptimisticCache(operation: OfflineSyncOperation, detailRespo
   }
 }
 
-function scalarFields(body: any) {
+function scalarFields(body: JsonRecord | undefined) {
   return Object.fromEntries(Object.entries(body || {}).filter(([key, value]) =>
     !IGNORED_FIELDS.has(key) && (value === null || ['string', 'number', 'boolean'].includes(typeof value))
   ))
 }
 
-function optimisticResponse(operation: OfflineSyncOperation, cached: any) {
+function optimisticResponse(operation: OfflineSyncOperation, cached: JsonRecord | null) {
   if (operation.method === 'DELETE') return { success: true, __offlineQueued: true }
   if (isSubRoute(operation.request)) return { ...(operation.body || {}), __offlineQueued: true }
   return {
@@ -521,11 +539,15 @@ function remapTemporaryEntity(operation: OfflineSyncOperation, temporaryId: stri
   }
 }
 
-function replaceDeep(value: any, from: string, to: string): any {
+function replaceDeep<T>(value: T, from: string, to: string): T {
+  return replaceDeepValue(value, from, to) as T
+}
+
+function replaceDeepValue(value: unknown, from: string, to: string): unknown {
   if (value === from) return to
-  if (Array.isArray(value)) return value.map((item) => replaceDeep(item, from, to))
+  if (Array.isArray(value)) return value.map((item) => replaceDeepValue(item, from, to))
   if (value && typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replaceDeep(item, from, to)]))
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replaceDeepValue(item, from, to)]))
   }
   return value
 }

@@ -43,7 +43,7 @@ async function ensureStore(store: string) {
     return await dbPromise
 }
 
-export async function saveToStore<T = any>(store: string, key: string, value: T) {
+export async function saveToStore<T = unknown>(store: string, key: string, value: T) {
     const db = await ensureStore(store)
 
     try {
@@ -68,7 +68,7 @@ export async function saveToStore<T = any>(store: string, key: string, value: T)
 
 
 
-export async function getFromStore<T = any>(store: string, key: string): Promise<T | null> {
+export async function getFromStore<T = unknown>(store: string, key: string): Promise<T | null> {
     const db = await ensureStore(store)
     const result = await db.get(store, key)
     return result
@@ -79,18 +79,18 @@ export async function deleteFromStore(store: string, key: string) {
     await db.delete(store, key)
 }
 
-export async function listStoreEntries<T = any>(store: string): Promise<Array<{ key: string, value: T }>> {
+export async function listStoreEntries<T = unknown>(store: string): Promise<Array<{ key: string, value: T }>> {
     const db = await ensureStore(store)
     const [keys, values] = await Promise.all([db.getAllKeys(store), db.getAll(store)])
     return keys.map((key, index) => ({ key: String(key), value: values[index] }))
 }
 
 // Réponse d'une lecture, gardée pour la rouvrir sans réseau (US-047) ; la clé est l'URL demandée
-export async function saveCachedResponse<T = any>(request: string, value: T) {
+export async function saveCachedResponse<T = unknown>(request: string, value: T) {
     await saveToStore('responses', request, value)
 }
 
-export async function getCachedResponse<T = any>(request: string): Promise<T | null> {
+export async function getCachedResponse<T = unknown>(request: string): Promise<T | null> {
     return await getFromStore<T>('responses', request) ?? null
 }
 

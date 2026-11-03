@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import type { z } from 'zod'
+import type { Prisma } from '~/generated/prisma/client'
 import { prisma } from '~/server/utils/prisma'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { assertSameGame, requireCurrentUser, requireGameAccess } from '~/server/utils/gameAccess'
@@ -80,8 +81,9 @@ export async function updateGame(event: H3Event, id: string, readBody: Reader<ty
   const body = await readBody()
   const { title, description, teaserUrl, noteIntention, published, publicPage, publicShowSessions, publicShowRegistration, singlePjPerParticipant, balanceAttribute, balanceValues, photoRetentionMonths, contactEmail } = body
 
-  const data: any = {
-    description,
+  const data: Prisma.GameUpdateInput = {
+    // Colonne obligatoire : une description vidée devient un texte vide, comme à la création
+    description: description === null ? '' : description,
     teaserUrl,
     noteIntention,
     published,
@@ -182,7 +184,7 @@ export async function updateCharacter(event: H3Event, id: string, readBody: Read
   await assertBalanceValue(gameId, body.balanceValue)
   if (body.factionIds) await assertSameGameIds('faction', body.factionIds, gameId, 'Groupes invalides pour ce jeu')
 
-  const data: any = {
+  const data: Prisma.CharacterUpdateInput = {
     pitch: body.pitch,
     type: body.type,
     background: body.background,

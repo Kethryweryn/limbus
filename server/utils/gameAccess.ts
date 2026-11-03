@@ -47,7 +47,7 @@ export async function accessibleGameIds(event: H3Event) {
   return games.map((game) => game.id)
 }
 
-export async function accessibleGameModelWhere(event: H3Event, extraWhere: Record<string, any> = {}) {
+export async function accessibleGameModelWhere(event: H3Event, extraWhere: Record<string, unknown> = {}) {
   const { user, allGames } = await canAccessAllGames(event)
   if (allGames) return { AND: [extraWhere, accessibleGameWhere(user.id, true)] }
 
@@ -140,7 +140,7 @@ export function queryGameFilter(event: H3Event): { gameId?: string } {
   return gameId ? { gameId } : {}
 }
 
-export async function gameScopedWhere(event: H3Event, extraWhere: Record<string, any> = {}) {
+export async function gameScopedWhere(event: H3Event, extraWhere: Record<string, unknown> = {}) {
   const gameIds = await accessibleGameIds(event)
   // Mode administrateur : tout, sauf le contenu des copies léguées en attente
   if (gameIds === null) return { AND: [extraWhere, { game: { bequestPending: false } }] }

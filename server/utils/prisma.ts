@@ -18,13 +18,13 @@ export function isSlugConflict(error: unknown) {
 
 // Deux enregistrements simultanés du même nom calculent le même slug (generateUniqueSlug lit puis écrit) :
 // le second échoue sur la contrainte d'unicité. On le réessaie une fois avec un suffixe aléatoire.
-async function withSlugRetry<T>(args: { data?: unknown }, query: (args: any) => Promise<T>): Promise<T> {
+async function withSlugRetry<A extends { data?: unknown }, T>(args: A, query: (args: A) => Promise<T>): Promise<T> {
     try {
         return await query(args)
     } catch (error) {
         const data = args.data as { slug?: unknown } | undefined
         if (typeof data?.slug !== 'string' || !isSlugConflict(error)) throw error
-        return await query({ ...args, data: { ...data, slug: `${data.slug}-${randomBytes(2).toString('hex')}` } })
+        return await query({ ...args, data: { ...data, slug: `${data.slug}-${randomBytes(2).toString('hex')}` } } as A)
     }
 }
 

@@ -25,21 +25,26 @@ export function isOfflineMode() {
   return !navigator.onLine || isServerUnavailable()
 }
 
-export function getErrorStatus(error: any): number | undefined {
-  return error?.statusCode || error?.status || error?.response?.status
+// Erreur d'un appel ($fetch, fetch) : les champs utiles, quand ils sont là
+type FetchFailure = { statusCode?: number, status?: number, response?: { status?: number }, name?: string, message?: string, cause?: unknown } | null | undefined
+
+export function getErrorStatus(error: unknown): number | undefined {
+  const value = error as FetchFailure
+  return value?.statusCode || value?.status || value?.response?.status
 }
 
-export function isNetworkError(error: any) {
+export function isNetworkError(error: unknown) {
   const status = getErrorStatus(error)
-  return !status && (
-    error?.name === 'FetchError' ||
-    error?.name === 'TypeError' ||
-    error?.message?.toLowerCase().includes('fetch') ||
-    error?.cause
+  const value = error as FetchFailure
+  return !status && Boolean(
+    value?.name === 'FetchError' ||
+    value?.name === 'TypeError' ||
+    value?.message?.toLowerCase().includes('fetch') ||
+    value?.cause
   )
 }
 
-export function isServerUnavailableError(error: any) {
+export function isServerUnavailableError(error: unknown) {
   const status = getErrorStatus(error)
   return isNetworkError(error) || status === 502 || status === 503 || status === 504
 }

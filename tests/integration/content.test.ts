@@ -255,6 +255,15 @@ describe('trombinoscopes après un changement de distribution', () => {
   })
 })
 
+// Fiche lint-sans-any : le typage a montré qu'une description vidée à null faisait échouer la modification (colonne obligatoire)
+describe('modification d’un jeu', () => {
+  it('une description vidée à null s’enregistre comme un texte vide', async () => {
+    const { game } = await aliceGame('description-vide')
+    expect((await api(alice, 'PUT', `/api/games/${game.id}`, { description: null })).status).toBe(200)
+    expect(await prisma.game.findUniqueOrThrow({ where: { id: game.id }, select: { description: true } })).toEqual({ description: '' })
+  })
+})
+
 describe('archivage d’un jeu (US-016)', () => {
   it('archiver dépublie la page publique, et la restauration ne la republie pas', async () => {
     const { game } = await aliceGame('archivage')

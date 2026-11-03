@@ -70,7 +70,10 @@ export function decryptSmtpPassword(payload: string) {
   }
 }
 
-function smtpErrorMessage(error: any) {
+// Erreur de nodemailer : ses champs utiles, quand ils sont là
+type SmtpError = { code?: unknown, command?: unknown, response?: unknown, responseCode?: unknown, message?: unknown }
+
+function smtpErrorMessage(error: SmtpError | undefined) {
   const code = String(error?.code || '')
   const command = String(error?.command || '')
   const response = String(error?.response || error?.message || '')
@@ -215,7 +218,8 @@ export async function openEmailTransport(): Promise<EmailTransport | null> {
           attachments: message.attachments
         })
         return { sent: true as const, messageId: info.messageId }
-      } catch (error: any) {
+      } catch (caught) {
+        const error = caught as SmtpError | undefined
         // Trace côté serveur (journalctl -u limbus) : sans elle, la cause n'apparaît que dans le navigateur.
         // Pas de destinataire ni de contenu : ce sont des données personnelles.
         console.error(`[smtp] échec d'envoi via ${settings.host}:${settings.port}`, {

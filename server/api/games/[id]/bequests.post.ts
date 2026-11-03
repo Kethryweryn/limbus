@@ -65,9 +65,10 @@ export default defineEventHandler(async (event) => {
       ownerName,
       url: absoluteAppUrl(`/games/${copy.slug}`)
     })
-  } catch (error: any) {
-    console.warn('Game bequest email failed', { gameId: id, copyId: copy.id, error: error?.message || 'smtp_error' })
-    emailDelivery = { sent: false, reason: error?.statusMessage || error?.message || 'smtp_error' }
+  } catch (error) {
+    const { statusMessage, message } = (error ?? {}) as { statusMessage?: string, message?: string }
+    console.warn('Game bequest email failed', { gameId: id, copyId: copy.id, error: message || 'smtp_error' })
+    emailDelivery = { sent: false, reason: statusMessage || message || 'smtp_error' }
   }
 
   return {
