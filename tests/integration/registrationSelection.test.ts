@@ -2,7 +2,7 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
-import { api, bodyOf } from './api'
+import { api, bodyOf, errorMessage } from './api'
 import { createTestPrisma } from './db'
 import { personalLinkToken, startTestSmtp } from './smtp'
 
@@ -77,7 +77,6 @@ async function receivedAll(game: { id: string }, period: { id: string }, names: 
   return all as [Received, Received, Received]
 }
 
-const message = (response: { body: unknown }) => (response.body as { message?: string }).message ?? ''
 type Selection = ApiResponse<'/api/registration-periods/:id/selection'>
 type Announcement = ApiResponse<'/api/registration-periods/:id/announce', 'post'>
 
@@ -100,7 +99,7 @@ describe('trier les inscriptions (US-087)', () => {
     // Session 1 complète : refus, la personne reste à trier
     const full = await select(max.id, 'retain', sessions[0]!.id)
     expect(full.status).toBe(409)
-    expect(message(full)).toContain('complète')
+    expect(errorMessage(full)).toContain('complète')
     expect(await statusOf(max.id)).toBe('received')
 
     // On ne baisse pas les places sous le nombre de retenues
@@ -312,7 +311,7 @@ describe('vivier de l’inscription permanente (US-090)', () => {
       name: 'Dédiée', gameId: game.id, entryMode: 'form', sessions: [{ sessionId: sessions[0]!.id, seats: 3 }]
     })
     expect(dedicated.status).toBe(409)
-    expect(message(dedicated)).toContain('inscription permanente')
+    expect(errorMessage(dedicated)).toContain('inscription permanente')
   })
 
   it('après une session terminée, la personne revient au vivier, sauf rejoueurs exclus', async () => {
@@ -327,7 +326,7 @@ describe('vivier de l’inscription permanente (US-090)', () => {
     await prisma.session.update({ where: { id: sessions[0]!.id }, data: { status: 'completed' } })
     const excluded = await select(lou.id, 'retain', sessions[1]!.id)
     expect(excluded.status).toBe(409)
-    expect(message(excluded)).toContain('déjà joué')
+    expect(errorMessage(excluded)).toContain('déjà joué')
 
     await prisma.registrationPeriod.update({ where: { id: period.id }, data: { replayPolicy: 'flagged' } })
     // Le jeu n'a pas de personnage PJ : sans places réglées, la session n'en a aucune (R5)

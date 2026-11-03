@@ -162,7 +162,7 @@ describe('assistant de casting (US-101, US-102)', () => {
 
     const proposal = new Map(bodyOf<CastingProposal>(result).proposal.map((line) => [line.characterId, line]))
     expect(proposal.get(game.iseult.id)).toMatchObject({ playerId: max.participant.id, reservedRegistrationId: max.registration.id })
-    expect([game.cy.id, game.bran.id].map((id) => proposal.get(id)?.playerId)).not.toContain(max.participant.id)
+    expect([game.cy.id, game.bran.id].map((id) => proposal.get(id)!.playerId)).not.toContain(max.participant.id)
     expect(bodyOf<CastingProposal>(result).players.find((entry) => entry.id === lea.participant.id)?.refusedTexts).toEqual(['Pas de trahison'])
     expect(await prisma.sessionAssignment.count({ where: { sessionId: game.session.id } })).toBe(0)
   })

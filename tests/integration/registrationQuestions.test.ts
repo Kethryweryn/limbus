@@ -94,14 +94,14 @@ describe('éditeur du formulaire (US-081, US-082)', () => {
       standardFields, affinities, questions: [{ ...definition.questions[0], label: 'Pourquoi venir ?' }, ...definition.questions.slice(1)]
     })
     expect(bodyOf<SavedForm>(renamed).version?.number).toBe(2)
-    expect(bodyOf<SavedForm>(renamed).definition.questions[0]?.id).toBe(definition.questions[0]?.id)
+    expect(bodyOf<SavedForm>(renamed).definition.questions[0]!.id).toBe(definition.questions[0]!.id)
 
 
     // Changer de sorte en fait une autre question
     const retyped = await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, {
       standardFields, affinities, questions: [{ ...definition.questions[1], type: 'text' }]
     })
-    expect(bodyOf<SavedForm>(retyped).definition.questions[0]?.id).not.toBe(definition.questions[1]?.id)
+    expect(bodyOf<SavedForm>(retyped).definition.questions[0]!.id).not.toBe(definition.questions[1]!.id)
   })
 
   it('refuse une question à choix sans deux options, ou un identifiant en double', async () => {

@@ -44,10 +44,10 @@ const resources: Resource[] = [
 ]
 
 // Chaque délégué Prisma a sa propre signature : on n'en garde que la lecture par identifiant, commune à tous
-type RowReader = { findUnique(args: { where: { id: string } }): Promise<{ name?: string, title?: string } | null> }
+type RowReader = { findUnique(args: { where: { id: string }, select: { id: true, name?: true, title?: true } }): Promise<{ name?: string, title?: string } | null> }
 
-function readRow(model: Resource['model'], id: string) {
-  return (prisma[model] as unknown as RowReader).findUnique({ where: { id } })
+function readRow(model: Resource['model'], id: string, select: { id: true, name?: true, title?: true } = { id: true }) {
+  return (prisma[model] as unknown as RowReader).findUnique({ where: { id }, select })
 }
 
 async function exists(model: Resource['model'], id: string) {
@@ -87,8 +87,10 @@ describe.each(resources)('/api/$path', (resource) => {
   it('modification : refusée chez Bob, même avec un corps valide', async () => {
     expect(DENIED).toContain((await api(alice, 'PUT', `/api/${resource.path}/${foreign.id}`, resource.body(b))).status)
     expect(DENIED).toContain((await api(alice, 'PUT', `/api/${resource.path}/${foreign.id}`, resource.body(a))).status)
-    const unchanged = await readRow(resource.model, foreign.id)
-    expect(unchanged?.name ?? unchanged?.title).not.toBe('Renommé')
+    // Le champ renommé : title pour un jeu ou un document, name ailleurs
+    const field = 'title' in resource.body(b) ? 'title' : 'name'
+    const unchanged = await readRow(resource.model, foreign.id, field === 'title' ? { id: true, title: true } : { id: true, name: true })
+    expect(unchanged?.[field]).not.toBe('Renommé')
 
     expect((await api(alice, 'PUT', `/api/${resource.path}/${own.id}`, resource.body(a))).status).toBe(200)
   })
