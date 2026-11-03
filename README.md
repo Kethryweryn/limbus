@@ -15,6 +15,10 @@ Données personnelles (RGPD) : la fiche d'un participant permet d'exporter ses d
 
 Documentation du projet (propositions, spécifications, US, décisions techniques) : [`doc/`](doc/README.md).
 
+## Licence
+
+[PolyForm Noncommercial 1.0.0](LICENSE) : le code est libre d'accès et d'usage non commercial (personnel, associatif, enseignement, recherche), mais toute utilisation commerciale est interdite. Les versions publiées avant le 2026-11-03 restent sous licence MIT pour qui les a déjà récupérées ([ADR-0060](doc/adr/ADR-0060-licence-non-commerciale.md)).
+
 ## Stack
 
 Nuxt 4 · Nuxt UI 4 · Pinia · Prisma 7 / PostgreSQL · Nodemailer · pdf-lib · Vitest. Node 24.
