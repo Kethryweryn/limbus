@@ -45,6 +45,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-035](../archive/epics/EPIC-035-ia-sessions-et-participants/README.md) | Brancher une IA, lot 3 : sessions, casting et participants | [SPEC-014](../specs/SPEC-014-api-pour-ia.md) | terminé |
 | [EPIC-036](../archive/epics/EPIC-036-ia-inscriptions/README.md) | Brancher une IA, lot 4 : inscriptions | [SPEC-014](../specs/SPEC-014-api-pour-ia.md) | terminé |
 | [EPIC-037](EPIC-037-qualite-du-questionnaire-liens/README.md) | Qualité du questionnaire, lot 1 : repères sur les liens | [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) | à faire |
+| [EPIC-038](EPIC-038-essai-du-questionnaire/README.md) | Aide à la conception du questionnaire, lot 1 : essai par l'équipe | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | à faire |
 
 ## US
 
@@ -184,3 +185,4 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-132](../archive/epics/EPIC-036-ia-inscriptions/US-132-selection-et-tirages.md) | L'assistant aide à la sélection et tire au sort | EPIC-036 | terminée |
 | [US-133](EPIC-037-qualite-du-questionnaire-liens/US-133-encadre-et-liens-manquants.md) | L'encadré « Qualité du questionnaire » et les liens manquants | EPIC-037 | à faire |
 | [US-134](EPIC-037-qualite-du-questionnaire-liens/US-134-personnages-indistincts-par-les-liens.md) | Les personnages que les liens ne distinguent pas | EPIC-037 | à faire |
+| [US-135](EPIC-038-essai-du-questionnaire/US-135-essayer-le-questionnaire.md) | Essayer le questionnaire comme un joueur | EPIC-038 | à faire |
