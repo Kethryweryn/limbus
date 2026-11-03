@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { copyFile, unlink } from 'node:fs/promises'
 import { extname } from 'node:path'
+import type { Prisma } from '~/generated/prisma/client'
 import { prisma } from '~/server/utils/prisma'
 import { generateUniqueSlugs } from '~/server/utils/generateUniqueSlug'
 import { collectUploadUrls, deleteUnusedUploads, uploadFilePath } from '~/server/utils/uploads'
@@ -102,9 +103,11 @@ export const GAME_COPY_FIELDS = {
 
 type CopiedModel = keyof typeof GAME_COPY_FIELDS
 
-// Typé `any` : chaque modèle a ses champs, et la liste est contrôlée par un test plutôt que par le typage
-function pickCopied(model: CopiedModel, row: Record<string, any>): any {
-  return Object.fromEntries(GAME_COPY_FIELDS[model].copied.map((field) => [field, row[field]]))
+// Les seuls champs copiés tels quels de la ligne, avec leur type ; la liste de chaque modèle est contrôlée par un test
+type CopiedFields<M extends CopiedModel> = typeof GAME_COPY_FIELDS[M]['copied'][number]
+
+function pickCopied<M extends CopiedModel, R extends Record<CopiedFields<M>, unknown>>(model: M, row: R): Pick<R, CopiedFields<M>> {
+  return Object.fromEntries(GAME_COPY_FIELDS[model].copied.map((field) => [field, row[field as CopiedFields<M>]])) as Pick<R, CopiedFields<M>>
 }
 
 async function loadSourceGame(gameId: string) {
@@ -353,7 +356,8 @@ async function copyGameOnce(sourceGameId: string, options: GameCopyOptions) {
       const currentVersion = source.registrationForm?.versions[0]
       if (currentVersion) {
         await tx.registrationForm.create({
-          data: { gameId, versions: { create: { ...pickCopied('RegistrationFormVersion', currentVersion), number: 1 } } }
+          // La définition, colonne JSON obligatoire, se relit typée JsonValue (null compris) : elle repart telle quelle
+          data: { gameId, versions: { create: { ...pickCopied('RegistrationFormVersion', currentVersion), definition: currentVersion.definition as Prisma.InputJsonValue, number: 1 } } }
         })
       }
 

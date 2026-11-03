@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib'
 import { CHARACTER_TYPES } from '~/utils/domain'
 import { readUpload, uploadFilePath } from '~/server/utils/uploads'
 import { fetchPublicImage } from '~/server/utils/remoteImage'
@@ -611,12 +611,12 @@ async function renderTrombinoscopePdf({
   return await pdf.save()
 }
 
-async function drawPhoto(pdf: PDFDocument, page: any, entry: TrombinoscopeRow, box: {
+async function drawPhoto(pdf: PDFDocument, page: PDFPage, entry: TrombinoscopeRow, box: {
   x: number
   y: number
   width: number
   height: number
-}, boldFont: any) {
+}, boldFont: PDFFont) {
   page.drawRectangle({
     ...box,
     color: rgb(0.9, 0.93, 0.96)
@@ -680,8 +680,8 @@ function isPng(bytes: Uint8Array) {
   return bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47
 }
 
-function drawWrappedText(page: any, text: string, x: number, y: number, maxWidth: number, options: {
-  font: any
+function drawWrappedText(page: PDFPage, text: string, x: number, y: number, maxWidth: number, options: {
+  font: PDFFont
   size: number
   lineHeight: number
   color: ReturnType<typeof rgb>

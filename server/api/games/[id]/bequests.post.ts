@@ -4,7 +4,7 @@ import { bequestExpiresAt, purgeExpiredBequests, requireBequestOwner, sendBeques
 import { gameBequestSchema, readZodBody } from '~/server/utils/schemas'
 import { createInvitationToken, invitationUrl, normalizeInvitationEmail } from '~/server/utils/invitations'
 import { copyGame, deletePendingCopy } from '~/server/utils/gameCopy'
-import { sendGameBequestEmail } from '~/server/utils/email'
+import { emailFailureReason, sendGameBequestEmail } from '~/server/utils/email'
 import { GAME_INVITATION_KINDS } from '~/utils/domain'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
 import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
@@ -65,9 +65,10 @@ export default defineEventHandler(async (event) => {
       ownerName,
       url: absoluteAppUrl(`/games/${copy.slug}`)
     })
-  } catch (error: any) {
-    console.warn('Game bequest email failed', { gameId: id, copyId: copy.id, error: error?.message || 'smtp_error' })
-    emailDelivery = { sent: false, reason: error?.statusMessage || error?.message || 'smtp_error' }
+  } catch (error) {
+    const reason = emailFailureReason(error)
+    console.warn('Game bequest email failed', { gameId: id, copyId: copy.id, error: reason })
+    emailDelivery = { sent: false, reason }
   }
 
   return {

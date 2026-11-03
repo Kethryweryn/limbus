@@ -1,9 +1,11 @@
+import type { H3Event } from 'h3'
+import type { Prisma } from '~/generated/prisma/client'
 import { prisma } from '~/server/utils/prisma'
 
 // Version lue par le client (ADR-0036) : celle donnée par un outil d'assistant d'IA (SPEC-014, R10), sinon la date de
 // l'en-tête If-Unmodified-Since, ou null sans en-tête
-function readVersion(event: any) {
-  const given: Date | undefined = event.context?.writeVersion
+function readVersion(event: H3Event) {
+  const given = event.context.writeVersion
   if (given) return given
   const raw = getHeader(event, 'if-unmodified-since')
   if (!raw) return null
@@ -16,7 +18,7 @@ function readVersion(event: any) {
  * Refuse l'écriture (409) si la version actuelle est plus récente que la version lue. Une version absente
  * (ligne pas encore créée) vaut la date zéro. Sans en-tête, rien n'est contrôlé.
  */
-export function assertVersion(event: any, current: Date | string | null | undefined) {
+export function assertVersion(event: H3Event, current: Date | string | null | undefined) {
   const since = readVersion(event)
   if (!since) return
 
@@ -31,10 +33,15 @@ export function assertVersion(event: any, current: Date | string | null | undefi
   }
 }
 
-export async function assertUnmodifiedSince(event: any, model: string, id: string) {
+// Modèle du schéma, par le nom de son délégué (prisma.session…) ; seul un modèle qui a updatedAt fait version
+type VersionedModel = Uncapitalize<Prisma.ModelName>
+type VersionReader = { findUnique(args: { where: { id: string }, select: { updatedAt: true } }): Promise<{ updatedAt: Date } | null> }
+
+export async function assertUnmodifiedSince(event: H3Event, model: VersionedModel, id: string) {
   if (!readVersion(event)) return
 
-  const record = await (prisma as any)[model].findUnique({
+  // Chaque délégué a sa propre signature : on n'en garde que la lecture de updatedAt, commune à tous
+  const record = await (prisma[model] as unknown as VersionReader).findUnique({
     where: { id },
     select: { updatedAt: true }
   })
@@ -44,7 +51,7 @@ export async function assertUnmodifiedSince(event: any, model: string, id: strin
 }
 
 // Paiement d'une personne : sa ligne fait version, à part de celle de la session (ADR-0036)
-export async function assertPaymentUnmodifiedSince(event: any, sessionId: string, participantId: string) {
+export async function assertPaymentUnmodifiedSince(event: H3Event, sessionId: string, participantId: string) {
   if (!readVersion(event)) return
 
   const payment = await prisma.sessionPayment.findUnique({

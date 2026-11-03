@@ -108,9 +108,12 @@ const balanceValues = z.array(z.string().trim().min(1, 'Valeur vide').max(100, '
   .optional()
 const balanceValue = z.string().trim().max(100).optional().nullable()
 
+// Colonne obligatoire : une description vidée (null) devient un texte vide ; absente, elle ne change pas
+const gameDescription = optionalText.transform((value) => value === null ? '' : value)
+
 export const createGameSchema = z.object({
   title: requiredText('Title'),
-  description: optionalText,
+  description: gameDescription,
   teaserUrl: externalUrl,
   noteIntention: optionalText,
   publicPage: optionalBoolean,
@@ -127,7 +130,7 @@ export const createGameSchema = z.object({
 
 export const updateGameSchema = z.object({
   title: requiredText('Title').optional(),
-  description: optionalText,
+  description: gameDescription,
   teaserUrl: externalUrl,
   noteIntention: optionalText,
   published: optionalBoolean,
