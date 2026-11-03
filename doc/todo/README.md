@@ -7,6 +7,7 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Durcissement web](durcissement-web.md) | en partie traitée | 2026-10-29 | CSP et COOP sur les pages, origine des écritures, cookie `__Host-` (revue R-01 à R-03) |
 | [Supervision](supervision.md) | en partie traitée | 2026-10-29 | Route de santé et sondes Better Stack faites ; reste les journaux structurés, si besoin (revue R-15, R-16) |
 | [Numéros de version et notes de version](versions-et-notes-de-version.md) | à trancher | 2026-10-29 | Version sémantique, étiquettes git et notes de version à partir de la première version publiée |
+| [Aide à la conception du questionnaire de casting](aide-a-la-conception-du-questionnaire.md) | à trancher | 2026-11-03 | Relecture des questions selon des règles étayées, prévision des performances avant les réponses (information, simulation), essai par l'équipe, test pilote ; état de l'art fait |
 
 ## Archivées
 
