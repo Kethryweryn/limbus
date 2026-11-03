@@ -1,6 +1,6 @@
 ---
 titre: Aucun any dans le code, règle de lint en erreur partout
-statut: prête
+statut: archivée
 date: 2026-11-03
 ---
 
@@ -33,3 +33,8 @@ C'est un nettoyage sans changement de comportement. Il n'a pas d'US et cite cett
 ## Points à trancher
 
 Aucun : demandé par l'utilisatrice le 3 novembre 2026.
+
+## Réalisation
+
+- Lot 1, serveur et `utils/` : PR [#122](https://github.com/Kethryweryn/limbus/pull/122). Le typage a révélé qu'une description de jeu vidée à `null` provoquait une erreur serveur ; le schéma la convertit en texte vide.
+- Lot 2, tests, script et règle en erreur partout : PR [#123](https://github.com/Kethryweryn/limbus/pull/123). Les tests d'intégration lisent les réponses avec le type de leur route (`bodyOf`, `tests/integration/api.ts`).

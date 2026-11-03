@@ -12,8 +12,8 @@ const MIN_PASSWORD_LENGTH = 12
 function ask(question: string, hidden = false): Promise<string> {
   const rl = createInterface({ input: process.stdin, output: process.stdout, terminal: true })
   if (hidden) {
-    // N'affiche rien pendant la saisie du mot de passe
-    ;(rl as any)._writeToOutput = (text: string) => {
+    // N'affiche rien pendant la saisie du mot de passe : _writeToOutput, méthode interne de readline, absente de ses types
+    ;(rl as unknown as { _writeToOutput: (text: string) => void })._writeToOutput = (text: string) => {
       if (text.startsWith(question)) process.stdout.write(question)
     }
   }

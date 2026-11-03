@@ -1,7 +1,8 @@
 // EPIC-019 : questions propres au jeu (US-081) et affinités (US-082) du formulaire d'inscription
 import { createHash, randomBytes } from 'node:crypto'
 import { afterAll, describe, expect, inject, it } from 'vitest'
-import { api } from './api'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import { api, bodyOf, invalidPaths, type WithField } from './api'
 import { createTestPrisma } from './db'
 
 const { alice, bob } = inject('world').users
@@ -12,6 +13,11 @@ afterAll(async () => {
   await prisma.$disconnect()
 })
 
+type SavedForm = ApiResponse<'/api/games/:id/registration-form', 'put'>
+type SavedAnswers = WithField<ApiResponse<'/api/public/registrations/:token', 'put'>, 'answers'>
+type RegistrationDetail = ApiResponse<'/api/registrations/:id'>
+type PersonalRegistration = WithField<ApiResponse<'/api/public/registrations/:token'>, 'answers'>
+
 const sha256 = (value: string) => createHash('sha256').update(value).digest('hex')
 
 async function publicApi(method: string, path: string, body?: unknown) {
@@ -21,7 +27,7 @@ async function publicApi(method: string, path: string, body?: unknown) {
   const text = await response.text()
   let parsed: unknown = text
   try { parsed = JSON.parse(text) } catch { /* texte brut */ }
-  return { status: response.status, body: parsed as any }
+  return { status: response.status, body: parsed }
 }
 
 const standardFields = {
@@ -51,7 +57,7 @@ async function invitedWithForm() {
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id, noteIntention: 'Note' } })
   const saved = await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, { standardFields, affinities, questions })
   expect(saved.status, JSON.stringify(saved.body)).toBe(200)
-  const definition = (saved.body as any).definition
+  const definition = bodyOf<SavedForm>(saved).definition
   const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-03-10T09:00:00Z') } })
   const period = await prisma.registrationPeriod.create({
     data: { name: `Période ${key}`, gameId: game.id, publicId: `pub-${key}`, state: 'open', sessions: { create: { sessionId: session.id, seats: 5 } } }
@@ -82,20 +88,20 @@ describe('éditeur du formulaire (US-081, US-082)', () => {
     const { game, definition } = await invitedWithForm()
     expect(definition.affinities).toEqual(affinities)
     expect(definition.questions.map((question: { id: string }) => question.id).every(Boolean)).toBe(true)
-    expect(definition.questions[2].options).toEqual(['Romance', 'Trahison', 'Mystère'])
+    expect(definition.questions[2]?.options).toEqual(['Romance', 'Trahison', 'Mystère'])
 
     const renamed = await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, {
       standardFields, affinities, questions: [{ ...definition.questions[0], label: 'Pourquoi venir ?' }, ...definition.questions.slice(1)]
     })
-    expect((renamed.body as any).version.number).toBe(2)
-    expect((renamed.body as any).definition.questions[0].id).toBe(definition.questions[0].id)
+    expect(bodyOf<SavedForm>(renamed).version?.number).toBe(2)
+    expect(bodyOf<SavedForm>(renamed).definition.questions[0]?.id).toBe(definition.questions[0]?.id)
 
 
     // Changer de sorte en fait une autre question
     const retyped = await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, {
       standardFields, affinities, questions: [{ ...definition.questions[1], type: 'text' }]
     })
-    expect((retyped.body as any).definition.questions[0].id).not.toBe(definition.questions[1].id)
+    expect(bodyOf<SavedForm>(retyped).definition.questions[0]?.id).not.toBe(definition.questions[1]?.id)
   })
 
   it('refuse une question à choix sans deux options, ou un identifiant en double', async () => {
@@ -112,8 +118,8 @@ describe('répondre aux questions et aux affinités (US-081, US-082)', () => {
     const { game, registration, path, participant, ids } = await invitedWithForm()
     const saved = await publicApi('PUT', path, body(ids))
     expect(saved.status, JSON.stringify(saved.body)).toBe(200)
-    expect(saved.body.answers.affinities).toEqual({ wantWith: ['Léa', 'Noé'], notWith: [], refusedRelations: [], avoid: ['Max'], refusedRelationTypes: [] })
-    expect(saved.body.answers.questionAnswers).toEqual({ [ids.text]: 'Pour l’ambiance', [ids.single]: 'Intrigue', [ids.multiple]: ['Romance', 'Mystère'], [ids.scale]: 4 })
+    expect(bodyOf<SavedAnswers>(saved).answers.affinities).toEqual({ wantWith: ['Léa', 'Noé'], notWith: [], refusedRelations: [], avoid: ['Max'], refusedRelationTypes: [] })
+    expect(bodyOf<SavedAnswers>(saved).answers.questionAnswers).toEqual({ [ids.text]: 'Pour l’ambiance', [ids.single]: 'Intrigue', [ids.multiple]: ['Romance', 'Mystère'], [ids.scale]: 4 })
     expect(await prisma.registrationAffinity.count({ where: { registrationId: registration.id } })).toBe(3)
 
     const detail = await api(alice, 'GET', `/api/registrations/${registration.id}`)
@@ -121,7 +127,7 @@ describe('répondre aux questions et aux affinités (US-081, US-082)', () => {
       questions: [{ id: ids.text, label: 'Pourquoi ce jeu ?' }, {}, {}, {}],
       questionAnswers: { [ids.single]: 'Intrigue' }
     })
-    expect((detail.body as any).affinityLines.map((line: { kind: string, text: string }) => [line.kind, line.text])).toEqual(expect.arrayContaining([['wantWith', 'Léa'], ['wantWith', 'Noé'], ['avoid', 'Max']]))
+    expect(bodyOf<RegistrationDetail>(detail).affinityLines.map((line) => [line.kind, line.text])).toEqual(expect.arrayContaining([['wantWith', 'Léa'], ['wantWith', 'Noé'], ['avoid', 'Max']]))
     expect([403, 404]).toContain((await api(bob, 'GET', `/api/registrations/${registration.id}`)).status)
 
     const exported = await api(alice, 'GET', `/api/participants/${participant.id}/export`)
@@ -130,8 +136,8 @@ describe('répondre aux questions et aux affinités (US-081, US-082)', () => {
 
     // Une modification remplace les affinités ; une ligne inchangée garde son rattachement (US-095)
     const lea = await prisma.participant.create({ data: { name: 'Léa Martin', slug: `questions-lea-${counter}`, gameLinks: { create: { gameId: game.id } } } })
-    const leaLine = (await api(alice, 'GET', `/api/registrations/${registration.id}`) as any).body.affinityLines.find((line: { text: string }) => line.text === 'Léa')
-    expect(leaLine.suggestions.map((person: { id: string }) => person.id)).toContain(lea.id)
+    const leaLine = bodyOf<RegistrationDetail>(await api(alice, 'GET', `/api/registrations/${registration.id}`)).affinityLines.find((line) => line.text === 'Léa')!
+    expect(leaLine.suggestions.map((person) => person.id)).toContain(lea.id)
     expect((await api(alice, 'POST', `/api/registration-affinities/${leaLine.id}/link`, { targetParticipantId: lea.id })).status).toBe(200)
     const edited = await publicApi('PUT', path, body(ids, { affinities: { wantWith: ['Zoé', 'léa '] } }))
     expect(edited.status, JSON.stringify(edited.body)).toBe(200)
@@ -143,7 +149,7 @@ describe('répondre aux questions et aux affinités (US-081, US-082)', () => {
     const { path, ids } = await invitedWithForm()
     const missing = await publicApi('PUT', path, body(ids, { questionAnswers: { [ids.single]: 'Intrigue' }, affinities: { wantWith: [''] } }))
     expect(missing.status).toBe(400)
-    const paths = (missing.body.data.data as Array<{ path: string }>).map((issue) => issue.path)
+    const paths = invalidPaths(missing)
     expect(paths).toEqual(expect.arrayContaining([`questionAnswers.${ids.text}`, 'affinities.wantWith']))
 
     const unknown = await publicApi('PUT', path, body(ids, { questionAnswers: { [ids.text]: 'Oui', [ids.single]: 'Autre' } }))
@@ -158,14 +164,14 @@ describe('répondre aux questions et aux affinités (US-081, US-082)', () => {
 
     const missing = await publicApi('PUT', path, body(ids, { affinities: { wantWith: ['Léa'] } }))
     expect(missing.status).toBe(400)
-    expect((missing.body.data.data as Array<{ path: string }>).map((issue) => issue.path)).toContain('affinities.refusedRelations')
+    expect(invalidPaths(missing)).toContain('affinities.refusedRelations')
     expect((await publicApi('PUT', path, body(ids, { affinities: { wantWith: ['Léa'], refusedRelationTypes: ['none', 'romance'] } }))).status).toBe(400)
 
     const saved = await publicApi('PUT', path, body(ids, { affinities: { wantWith: ['Léa'], refusedRelationTypes: ['romance', 'family'], refusedRelations: ['Pas de trahison'] } }))
     expect(saved.status, JSON.stringify(saved.body)).toBe(200)
-    expect(saved.body.answers.affinities.refusedRelationTypes).toEqual(['romance', 'family'])
-    const detail = (await api(alice, 'GET', `/api/registrations/${registration.id}`)).body as any
-    expect(detail.affinityLines.filter((line: { kind: string }) => line.kind === 'refusedRelationTypes').map((line: { text: string }) => line.text)).toEqual(['romance', 'family'])
+    expect(bodyOf<SavedAnswers>(saved).answers.affinities.refusedRelationTypes).toEqual(['romance', 'family'])
+    const detail = bodyOf<RegistrationDetail>(await api(alice, 'GET', `/api/registrations/${registration.id}`))
+    expect(detail.affinityLines.filter((line) => line.kind === 'refusedRelationTypes').map((line) => line.text)).toEqual(['romance', 'family'])
   })
 
   it('l’inscription garde sa version du formulaire (R9)', async () => {
@@ -174,7 +180,7 @@ describe('répondre aux questions et aux affinités (US-081, US-082)', () => {
     await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, { standardFields, affinities, questions: [{ ...definition.questions[0], label: 'Nouvelle question' }] })
 
     const read = await publicApi('GET', path)
-    expect(read.body.definition.questions.map((question: { label: string }) => question.label)).toEqual(questions.map((question) => question.label))
-    expect(read.body.answers.questionAnswers[ids.scale]).toBe(4)
+    expect(bodyOf<PersonalRegistration>(read).definition.questions.map((question) => question.label)).toEqual(questions.map((question) => question.label))
+    expect(bodyOf<PersonalRegistration>(read).answers.questionAnswers[ids.scale]).toBe(4)
   })
 })

@@ -43,8 +43,15 @@ const resources: Resource[] = [
   }
 ]
 
+// Chaque délégué Prisma a sa propre signature : on n'en garde que la lecture par identifiant, commune à tous
+type RowReader = { findUnique(args: { where: { id: string } }): Promise<{ name?: string, title?: string } | null> }
+
+function readRow(model: Resource['model'], id: string) {
+  return (prisma[model] as unknown as RowReader).findUnique({ where: { id } })
+}
+
 async function exists(model: Resource['model'], id: string) {
-  return Boolean(await (prisma[model] as any).findUnique({ where: { id }, select: { id: true } }))
+  return Boolean(await readRow(model, id))
 }
 
 function ids(body: unknown): string[] {
@@ -80,8 +87,8 @@ describe.each(resources)('/api/$path', (resource) => {
   it('modification : refusée chez Bob, même avec un corps valide', async () => {
     expect(DENIED).toContain((await api(alice, 'PUT', `/api/${resource.path}/${foreign.id}`, resource.body(b))).status)
     expect(DENIED).toContain((await api(alice, 'PUT', `/api/${resource.path}/${foreign.id}`, resource.body(a))).status)
-    const unchanged = await (prisma[resource.model] as any).findUnique({ where: { id: foreign.id } })
-    expect(unchanged.name ?? unchanged.title).not.toBe('Renommé')
+    const unchanged = await readRow(resource.model, foreign.id)
+    expect(unchanged?.name ?? unchanged?.title).not.toBe('Renommé')
 
     expect((await api(alice, 'PUT', `/api/${resource.path}/${own.id}`, resource.body(a))).status).toBe(200)
   })

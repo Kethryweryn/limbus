@@ -1,7 +1,8 @@
 // EPIC-025 : cadenas et réservation (US-100), notes et interdits (US-101), proposition (US-102)
 import { createHash, randomBytes } from 'node:crypto'
 import { afterAll, describe, expect, inject, it } from 'vitest'
-import { api } from './api'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import { api, bodyOf } from './api'
 import { createTestPrisma } from './db'
 
 const prisma = createTestPrisma()
@@ -12,7 +13,8 @@ afterAll(async () => {
   await prisma.$disconnect()
 })
 
-const body = (response: { body: unknown }) => response.body as any
+type SavedSession = ApiResponse<'/api/sessions/:id', 'put'>
+type CastingProposal = ApiResponse<'/api/sessions/:id/casting-assistant', 'post'>
 const sha256 = (value: string) => createHash('sha256').update(value).digest('hex')
 const off = { asked: false, required: false }
 const standardFields = { lastName: off, firstName: off, facebookName: off, phone: off, emergencyContact: off, dietary: off }
@@ -37,7 +39,7 @@ async function castingGame() {
     questions: [{ label: 'Ton style', type: 'single', required: false, options: ['Intrigue', 'Combat'] }, { label: 'Ton expérience', type: 'scale', required: false, options: [] }]
   })
   expect(form.status, JSON.stringify(form.body)).toBe(200)
-  const [style, level] = body(form).definition.questions as Array<{ id: string }>
+  const [style, level] = bodyOf<ApiResponse<'/api/games/:id/registration-form', 'put'>>(form).definition.questions
   const links = await api(alice, 'PUT', `/api/games/${game.id}/registration-question-links`, {
     links: [
       { questionId: style!.id, option: 'Intrigue', characterId: iseult!.id },
@@ -84,11 +86,11 @@ describe('cadenas et réservation (US-100)', () => {
     // Les détails de la session renvoient les lignes sans cadenas
     const saved = await saveCast(game, [{ characterId: game.iseult.id, participantId: lea.participant.id }])
     expect(saved.status, JSON.stringify(saved.body)).toBe(200)
-    expect(body(saved).assignments[0]).toMatchObject({ locked: true, participantId: lea.participant.id })
+    expect(bodyOf<SavedSession>(saved).assignments[0]).toMatchObject({ locked: true, participantId: lea.participant.id })
 
     const postponed = await api(alice, 'POST', `/api/sessions/${game.session.id}/postpone`, { name: 'Reportée' })
     expect(postponed.status, JSON.stringify(postponed.body)).toBe(200)
-    expect(await prisma.sessionAssignment.findFirst({ where: { sessionId: body(postponed).id }, select: { locked: true } })).toEqual({ locked: true })
+    expect(await prisma.sessionAssignment.findFirst({ where: { sessionId: bodyOf<ApiResponse<'/api/sessions/:id/postpone', 'post'>>(postponed).id }, select: { locked: true } })).toEqual({ locked: true })
   })
 
   it('réserve un PJ à une personne retenue sans la faire entrer dans le cast ; elle le reçoit en confirmant', async () => {
@@ -96,8 +98,8 @@ describe('cadenas et réservation (US-100)', () => {
     const max = await player(game, 'Max', 'retained')
     const saved = await saveCast(game, [{ characterId: game.bran.id, reservedRegistrationId: max.registration.id }])
     expect(saved.status, JSON.stringify(saved.body)).toBe(200)
-    expect(body(saved).assignments[0]).toMatchObject({ participantId: null, reservedRegistrationId: max.registration.id, reservedRegistration: { participant: { name: 'Max' } } })
-    expect(body(saved).retainedRegistrations).toEqual([{ id: max.registration.id, participantId: max.participant.id, name: 'Max' }])
+    expect(bodyOf<SavedSession>(saved).assignments[0]).toMatchObject({ participantId: null, reservedRegistrationId: max.registration.id, reservedRegistration: { participant: { name: 'Max' } } })
+    expect(bodyOf<SavedSession>(saved).retainedRegistrations).toEqual([{ id: max.registration.id, participantId: max.participant.id, name: 'Max' }])
     expect(await prisma.sessionParticipant.count({ where: { sessionId: game.session.id, participantId: max.participant.id } })).toBe(0)
 
     expect((await publicApi('POST', `/api/public/registrations/${max.token}/accept`)).status).toBe(200)
@@ -152,16 +154,16 @@ describe('assistant de casting (US-101, US-102)', () => {
 
     const result = await api(alice, 'POST', `/api/sessions/${game.session.id}/casting-assistant`, { assignments: [] })
     expect(result.status, JSON.stringify(result.body)).toBe(200)
-    const pairs = body(result).pairs
-    const leaIseult = pairs[lea.participant.id].find((pair: { characterId: string }) => pair.characterId === game.iseult.id)
+    const pairs = bodyOf<CastingProposal>(result).pairs
+    const leaIseult = pairs[lea.participant.id]?.find((pair) => pair.characterId === game.iseult.id)
     expect(leaIseult).toMatchObject({ score: 1, blocks: ['Relation refusée : Romance, avec Bran'] })
-    expect(pairs[max.participant.id].find((pair: { characterId: string }) => pair.characterId === game.iseult.id))
+    expect(pairs[max.participant.id]?.find((pair) => pair.characterId === game.iseult.id))
       .toMatchObject({ score: 0.5, components: [{ label: '« Ton expérience » : 5/5 → faction Loups', points: 0.5 }] })
 
-    const proposal = new Map(body(result).proposal.map((line: { characterId: string, playerId: string }) => [line.characterId, line]))
+    const proposal = new Map(bodyOf<CastingProposal>(result).proposal.map((line) => [line.characterId, line]))
     expect(proposal.get(game.iseult.id)).toMatchObject({ playerId: max.participant.id, reservedRegistrationId: max.registration.id })
-    expect([game.cy.id, game.bran.id].map((id) => (proposal.get(id) as any).playerId)).not.toContain(max.participant.id)
-    expect(body(result).players.find((entry: { id: string }) => entry.id === lea.participant.id).refusedTexts).toEqual(['Pas de trahison'])
+    expect([game.cy.id, game.bran.id].map((id) => proposal.get(id)?.playerId)).not.toContain(max.participant.id)
+    expect(bodyOf<CastingProposal>(result).players.find((entry) => entry.id === lea.participant.id)?.refusedTexts).toEqual(['Pas de trahison'])
     expect(await prisma.sessionAssignment.count({ where: { sessionId: game.session.id } })).toBe(0)
   })
 
@@ -173,10 +175,10 @@ describe('assistant de casting (US-101, US-102)', () => {
       assignments: [{ characterId: game.bran.id, participantId: lea.participant.id, locked: true }]
     })
     expect(result.status, JSON.stringify(result.body)).toBe(200)
-    expect(body(result).avoidWarnings).toEqual([])
-    const maxIseult = body(result).pairs[max.participant.id].find((pair: { characterId: string }) => pair.characterId === game.iseult.id)
-    expect(maxIseult.blocks[0]).toContain('Relation directe avec Bran, joué par Léa')
-    const proposal = new Map(body(result).proposal.map((line: { characterId: string, playerId: string }) => [line.characterId, line.playerId]))
+    expect(bodyOf<CastingProposal>(result).avoidWarnings).toEqual([])
+    const maxIseult = bodyOf<CastingProposal>(result).pairs[max.participant.id]?.find((pair) => pair.characterId === game.iseult.id)
+    expect(maxIseult?.blocks[0]).toContain('Relation directe avec Bran, joué par Léa')
+    const proposal = new Map(bodyOf<CastingProposal>(result).proposal.map((line) => [line.characterId, line.playerId]))
     expect(proposal.get(game.bran.id)).toBe(lea.participant.id)
     expect(proposal.get(game.iseult.id)).not.toBe(max.participant.id)
     expect(proposal.get(game.cy.id)).toBe(max.participant.id)
@@ -187,7 +189,7 @@ describe('assistant de casting (US-101, US-102)', () => {
     const lea = await player(game, 'Léa', 'confirmed')
     await player(game, 'Max', 'retained', { affinities: [{ kind: 'avoid', text: 'Léa', targetParticipantId: lea.participant.id }] })
     const result = await api(alice, 'POST', `/api/sessions/${game.session.id}/casting-assistant`, { assignments: [] })
-    expect(body(result).avoidWarnings).toEqual(['Max ne veut pas croiser Léa : les deux sont dans la session.'])
+    expect(bodyOf<CastingProposal>(result).avoidWarnings).toEqual(['Max ne veut pas croiser Léa : les deux sont dans la session.'])
   })
 
   it('n’est ouvert qu’à l’équipe du jeu', async () => {

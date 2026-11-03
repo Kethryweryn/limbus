@@ -31,5 +31,23 @@ export async function api(user: TestUser | null, method: string, path: string, b
   return { status: response.status, body: parseBody(await response.text()) }
 }
 
+/** Corps d'une réponse, typé par sa route : `bodyOf<ApiResponse<'/api/games/:id'>>(response)`. */
+export function bodyOf<T>(response: { body: unknown }) {
+  return response.body as T
+}
+
+/** Forme d'une réponse à plusieurs formes qui porte ce champ (une inscription ouverte plutôt que retirée…). */
+export type WithField<T, K extends PropertyKey> = Extract<T, Record<K, unknown>>
+
+/** Message d'une réponse en erreur (createError). */
+export function errorMessage(response: { body: unknown }) {
+  return (response.body as { message: string }).message
+}
+
+/** Champs refusés par la validation d'un corps (readZodBody), dans l'ordre des erreurs. */
+export function invalidPaths(response: { body: unknown }) {
+  return (response.body as { data: { data: Array<{ path: string }> } }).data.data.map((issue) => issue.path)
+}
+
 // Refus attendu : 403 (accès interdit) ou 404 (ressource introuvable pour cet utilisateur)
 export const DENIED = [403, 404]

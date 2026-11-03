@@ -1,7 +1,7 @@
 // US-003 : inviter des participants (SPEC-001, R12, R13, R16, R20)
 import { createHash } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
-import { api } from './api'
+import { api, errorMessage } from './api'
 import { createTestPrisma } from './db'
 import { personalLinkToken, startTestSmtp } from './smtp'
 
@@ -131,7 +131,7 @@ describe('inviter des participants', () => {
 
     const again = await invite(period.id, { sessionId: session.id, participantIds: [participant.id] })
     expect(again.status).toBe(409)
-    expect((again.body as any).message).toContain(participant.name)
+    expect(errorMessage(again)).toContain(participant.name)
 
     // Par l'email aussi
     const byEmail = await invite(period.id, { sessionId: session.id, newParticipant: { name: 'X', email: participant.email } })
@@ -147,7 +147,7 @@ describe('inviter des participants', () => {
 
     const response = await invite(period.id, { sessionId: session.id, participantIds: [withoutEmail.id] })
     expect(response.status).toBe(400)
-    expect((response.body as any).message).toContain('Sans Email')
+    expect(errorMessage(response)).toContain('Sans Email')
   })
 
   it('refuse d’inviter dans une période qui n’est pas ouverte', async () => {
@@ -272,7 +272,7 @@ describe('règles issues de la revue de code', () => {
     })
     const response = await invite(period.id, { sessionId: session.id, participantIds: [participant.id, twin.id] })
     expect(response.status).toBe(400)
-    expect((response.body as any).message).toContain('même adresse email')
+    expect(errorMessage(response)).toContain('même adresse email')
   })
 
   it('le renvoi part à l’adresse de l’inscription', async () => {
@@ -308,7 +308,7 @@ describe('période qui a des inscriptions', () => {
     const body = { name: period.name, gameId: game.id, state: 'open', sessions: [{ sessionId: other.id, seats: 3 }] }
     const removed = await api(alice, 'PUT', `/api/registration-periods/${period.id}`, body)
     expect(removed.status).toBe(409)
-    expect((removed.body as any).message).toContain(session.name)
+    expect(errorMessage(removed)).toContain(session.name)
 
     // Ajouter une session en gardant la première reste possible
     const added = await api(alice, 'PUT', `/api/registration-periods/${period.id}`, { ...body, sessions: [{ sessionId: session.id, seats: 5 }, { sessionId: other.id, seats: 3 }] })

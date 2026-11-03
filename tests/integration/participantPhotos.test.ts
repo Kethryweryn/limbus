@@ -3,7 +3,8 @@ import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterAll, describe, expect, inject, it } from 'vitest'
-import { api } from './api'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import { api, bodyOf } from './api'
 import { createTestPrisma } from './db'
 import { triggerPurge } from './purge'
 
@@ -17,7 +18,7 @@ afterAll(async () => {
   await prisma.$disconnect()
 })
 
-const body = (response: { body: unknown }) => response.body as any
+type PublicPeriod = ApiResponse<'/api/public/periods/:publicId'>
 
 async function photo(gameId: string) {
   const filename = `photo-rgpd-${++counter}-${Date.now()}.png`
@@ -60,14 +61,14 @@ describe('réglages et information (US-107)', () => {
     await prisma.registrationPeriod.create({ data: { name: `Période ${key}`, gameId: game.id, publicId: `pub-${key}`, state: 'open', entryMode: 'form', scope: 'game' } })
     const read = await api(null, 'GET', `/api/public/periods/pub-${key}`)
     expect(read.status, JSON.stringify(read.body)).toBe(200)
-    expect(body(read).game.photoInformation).toContain('supprimée 3 mois après la session')
-    expect(body(read).game.photoInformation).toContain('orga@example.test')
+    expect(bodyOf<PublicPeriod>(read).game.photoInformation).toContain('supprimée 3 mois après la session')
+    expect(bodyOf<PublicPeriod>(read).game.photoInformation).toContain('orga@example.test')
   })
 
   it('sans adresse de contact, le lien de diffusion public ne montre pas celle de la propriétaire', async () => {
     const { key, game } = await aliceGame()
     await prisma.registrationPeriod.create({ data: { name: `Période ${key}`, gameId: game.id, publicId: `pub-${key}`, state: 'open', entryMode: 'form', scope: 'game' } })
-    const information = body(await api(null, 'GET', `/api/public/periods/pub-${key}`)).game.photoInformation
+    const information = bodyOf<PublicPeriod>(await api(null, 'GET', `/api/public/periods/pub-${key}`)).game.photoInformation
     expect(information).toContain('« Je participe »')
     expect(information).not.toContain('alice@example.test')
   })
@@ -104,7 +105,7 @@ describe('retrait et refus (US-109)', () => {
 
     const refused = await api(user, 'POST', '/api/me/photo-refusal', { refused: true })
     expect(refused.status, JSON.stringify(refused.body)).toBe(200)
-    expect(body(await api(user, 'GET', '/api/me/photo-refusal'))).toEqual({ refused: true })
+    expect((await api(user, 'GET', '/api/me/photo-refusal')).body).toEqual({ refused: true })
     expect((await prisma.sessionAssignment.findFirstOrThrow({ where: { sessionId: session.id } })).photoUrl).toBeNull()
     expect(existsSync(picture.path)).toBe(false)
 

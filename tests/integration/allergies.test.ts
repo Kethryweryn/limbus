@@ -1,6 +1,7 @@
 // US-008 : fiche allergies de la session (SPEC-001, R14, R15)
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
-import { api, tokenFor } from './api'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import { api, bodyOf, tokenFor } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
 
@@ -69,7 +70,7 @@ describe('fiche allergies', () => {
     expect(response.status).toBe(200)
     // À table : Zoé et Inès (confirmées, participantes de la session), la cuisine et le PNJ
     expect(response.body).toMatchObject({ confirmedCount: 2, eaterCount: 4, people: [{ name: zoe.name, dietary: 'Gluten' }] })
-    expect((response.body as any).people).toHaveLength(1)
+    expect(bodyOf<ApiResponse<'/api/sessions/:id/allergies'>>(response).people).toHaveLength(1)
     const json = JSON.stringify(response.body)
     expect(json).not.toContain('0612345678')
     expect(json).not.toContain('Urgence')
