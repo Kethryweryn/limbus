@@ -1,7 +1,8 @@
 ---
 titre: Indicateurs pour concevoir le questionnaire de casting
-statut: brouillon
+statut: archivée
 date: 2026-11-02
+spec: ../../specs/SPEC-015-qualite-du-questionnaire.md
 ---
 
 # Indicateurs pour concevoir le questionnaire de casting
@@ -39,6 +40,10 @@ Les indicateurs restent réservés à l'équipe, comme les réponses (R24).
 1. Indicateurs sur les liens, avant les inscriptions.
 2. Indicateurs sur les réponses reçues.
 3. Estimation générale et conseils de correction.
+
+## Suite
+
+Devenue [SPEC-015](../../specs/SPEC-015-qualite-du-questionnaire.md) le 2026-11-03, avec les choix de l'utilisatrice et l'état de l'art statistique ([ADR-0061](../../adr/ADR-0061-indicateurs-du-questionnaire.md)).
 
 ## Points à trancher
 

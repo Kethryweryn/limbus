@@ -64,3 +64,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0058](ADR-0058-serveur-d-autorisation-pour-les-ia.md) | Serveur MCP et serveur d'autorisation OAuth écrit pour Limbus, pour brancher une IA | accepté | 2026-11-02 |
 | [ADR-0059](ADR-0059-ci-en-jobs-paralleles.md) | CI en jobs parallèles, dépendances en cache, Playwright sur trois navigateurs | accepté | 2026-11-03 |
 | [ADR-0060](ADR-0060-licence-non-commerciale.md) | Licence PolyForm Noncommercial à la place de MIT | accepté | 2026-11-03 |
+| [ADR-0061](ADR-0061-indicateurs-du-questionnaire.md) | Indicateurs statistiques de la qualité du questionnaire de casting (entropie, Wilson, Cramér, Spearman, HTMT) | accepté | 2026-11-03 |

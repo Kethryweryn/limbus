@@ -7,7 +7,6 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Durcissement web](durcissement-web.md) | en partie traitée | 2026-10-29 | CSP et COOP sur les pages, origine des écritures, cookie `__Host-` (revue R-01 à R-03) |
 | [Supervision](supervision.md) | en partie traitée | 2026-10-29 | Route de santé et sondes Better Stack faites ; reste les journaux structurés, si besoin (revue R-15, R-16) |
 | [Numéros de version et notes de version](versions-et-notes-de-version.md) | à trancher | 2026-10-29 | Version sémantique, étiquettes git et notes de version à partir de la première version publiée |
-| [Indicateurs du questionnaire de casting](indicateurs-du-questionnaire-de-casting.md) | brouillon | 2026-11-02 | Repères compréhensibles sans formation en statistiques : questions qui ne départagent pas, personnages trop proches, rôles sans réponse ; état de l'art à rechercher à la spécification |
 
 ## Archivées
 
@@ -27,3 +26,4 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Page Inscriptions lisible hors ligne](../archive/todo/inscriptions-hors-ligne.md) | [EPIC-032](../archive/epics/EPIC-032-inscriptions-hors-ligne/README.md) | 2026-11-02 |
 | [API pour une IA](../archive/todo/api-pour-ia.md) | [SPEC-014](../specs/SPEC-014-api-pour-ia.md) | 2026-11-02 |
 | [Aucun any, lint en erreur partout](../archive/todo/lint-sans-any.md) | PR [#122](https://github.com/Kethryweryn/limbus/pull/122), [#123](https://github.com/Kethryweryn/limbus/pull/123) | 2026-11-03 |
+| [Indicateurs du questionnaire de casting](../archive/todo/indicateurs-du-questionnaire-de-casting.md) | [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) | 2026-11-03 |
