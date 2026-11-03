@@ -14,6 +14,8 @@ Toute évolution passe par ces documents, de l'idée à l'archive. La base grand
 | `archive/` | Fiches todo transformées en specs ou en revues, epics terminés | même nom, sous `archive/todo/` et `archive/epics/` |
 | [`modeles/`](modeles/) | Gabarits de chaque type de fiche | |
 | [`feuille-de-route.md`](feuille-de-route.md) | L'ordre des chantiers à venir, et pourquoi | |
+| [`developpement.md`](developpement.md) | Installation, variables d'environnement, tests, CI et déploiement | |
+| `images/` | Captures d'écran du README, prises sur des données fictives | |
 
 ## Cycle de vie
 

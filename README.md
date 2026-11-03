@@ -1,72 +1,64 @@
 # Limbus
 
-Outil d'organisation de jeux de rôle grandeur nature (GN), en ligne sur <https://limbuslarp.fr>.
+**L'outil des organisatrices et organisateurs de GN, de la première idée au débriefing.**
 
-Il couvre deux besoins :
+Limbus réunit en un seul endroit tout ce qu'on fait d'habitude entre un traitement de texte, trois tableurs et une boîte mail : écrire le jeu, inscrire les joueuses et joueurs, faire le casting, préparer les sessions et suivre les paiements.
 
-- **l'écriture d'un jeu** : personnages, factions, intrigues, objets, documents, chronologie. Tout est centralisé pour faciliter l'écriture, la relecture et la cohérence ;
-- **l'organisation des sessions** : une session associe un jeu, une date, un lieu, des participants et le casting (participant ↔ personnage). Elle produit les trombinoscopes, les feuilles de personnage en PDF, les envois d'emails (documents, paiements) et une chronologie de déroulé.
+En ligne sur **[limbuslarp.fr](https://limbuslarp.fr)**.
 
-Les participants portent les informations stables (nom, email, téléphone) et peuvent être inscrits à plusieurs jeux. La photo dépend de l'assignation à un personnage pour une session donnée, pour correspondre au rôle incarné.
+![Une session de GN dans Limbus : le casting, personnage par personnage](doc/images/readme-session.png)
 
-Un jeu peut être partagé avec d'autres organisateurs par invitation email. Depuis le menu utilisateur, on peut fermer sa session sur tous ses appareils ; un changement de mot de passe le fait aussi.
+## Écrire le jeu
 
-Données personnelles (RGPD) : la fiche d'un participant permet d'exporter ses données en JSON (droit d'accès), limitées aux jeux de l'organisateur. Le supprimer efface ses coordonnées, paiements, envois et photos, fichiers compris. Les trombinoscopes qui contenaient sa photo sont supprimés et doivent être régénérés. L'application est une PWA : en cas de coupure réseau, elle reste consultable en lecture.
+Personnages joueurs et non joueurs, groupes, intrigues, objets, documents, lieux et chronologie : chaque élément a sa fiche, reliée aux autres. On voit d'un coup d'œil qui est impliqué dans quelle intrigue, quels objets circulent, quelles relations lient les personnages.
 
-Documentation du projet (propositions, spécifications, US, décisions techniques) : [`doc/`](doc/README.md).
+- Une fiche se marque « prête à envoyer » quand elle est relue.
+- Un jeu se partage avec des co-organisatrices, et se lègue en copie à une autre équipe qui veut le rejouer.
+- Une page publique présente le jeu, ses sessions et son formulaire d'inscription.
+
+![La fiche d'un personnage](doc/images/readme-personnage.png)
+
+## Inscrire et choisir
+
+- Invitations personnelles ou formulaire public, avec les questions propres au jeu et les affinités (« je veux jouer avec », « je ne veux pas croiser »).
+- Sélection à la main ou tirage au sort, avec son journal, liste d'attente par session, annonce groupée des décisions.
+- Un assistant de casting propose une répartition des personnages d'après les réponses au questionnaire, sans mettre en relation deux personnes qui ne veulent pas jouer ensemble ni donner une relation que quelqu'un refuse. Les attributions verrouillées sont gardées.
+
+## Préparer chaque session
+
+- Le casting : qui joue qui, avec la photo de chacun pour son rôle.
+- Les trombinoscopes et les fiches de personnage en PDF, envoyés par email à chaque personne, avec les documents qui la concernent.
+- Les paiements : tarifs, versements, places offertes ou solidaires, et relance d'un clic de qui doit encore.
+- La chronologie de déroulé, colonne par organisatrice ou PNJ, et la présence de l'équipe.
+- Une session se reporte ou s'annule, et chacun est prévenu.
+
+![La chronologie de déroulé d'une session](doc/images/readme-chronologie.png)
+
+## Pour les joueuses et joueurs
+
+Chaque personne a son espace « Je participe » : ses inscriptions, ses réponses, ses documents reçus. Ses coordonnées et ses allergies viennent de son compte, une seule fois pour tous les jeux.
+
+## Et aussi
+
+- **Hors ligne** : sur le terrain, sans réseau, l'application reste consultable ; les modifications partent au retour de la connexion.
+- **Assistant d'IA** : on peut brancher son assistant (Claude, par exemple) sur les jeux de son choix pour écrire avec lui. Il ne voit ni les coordonnées ni les réponses libres des participants, et chacune de ses écritures est notée au journal.
+- **Données personnelles** : export et effacement d'un participant ou d'un compte, photos retirables, durées de conservation limitées. Tout est décrit dans la [politique de confidentialité](https://limbuslarp.fr/confidentialite).
+
+![La page d'un jeu](doc/images/readme-jeu.png)
+
+## Développer
+
+Limbus est écrit avec Nuxt 4, Nuxt UI et PostgreSQL. Pour le lancer en local :
+
+```bash
+cp .env.example .env    # puis renseigner DATABASE_URL et JWT_SECRET
+npm install
+npx prisma migrate dev
+npm run dev             # http://localhost:3000
+```
+
+Installation complète, tests et déploiement : [`doc/developpement.md`](doc/developpement.md). Chaque évolution passe par une spécification et ses décisions techniques, rassemblées dans [`doc/`](doc/README.md).
 
 ## Licence
 
 [PolyForm Noncommercial 1.0.0](LICENSE) : le code est libre d'accès et d'usage non commercial (personnel, associatif, enseignement, recherche), mais toute utilisation commerciale est interdite. Les versions publiées avant le 2026-11-03 restent sous licence MIT pour qui les a déjà récupérées ([ADR-0060](doc/adr/ADR-0060-licence-non-commerciale.md)).
-
-## Stack
-
-Nuxt 4 · Nuxt UI 4 · Pinia · Prisma 7 / PostgreSQL · Nodemailer · pdf-lib · Vitest. Node 24.
-
-## Développement
-
-Prérequis : Node 24 et une base PostgreSQL.
-
-```bash
-cp .env.example .env      # puis renseigner DATABASE_URL, JWT_SECRET, SMTP_ENCRYPTION_SECRET
-npm install
-npx prisma migrate dev    # crée le schéma
-npx prisma db seed        # données de démonstration (optionnel)
-npm run user:create       # premier compte (admin ou organizer)
-npm run dev               # http://localhost:3000
-```
-
-Vérifications (lancées aussi par la CI GitHub à chaque push) :
-
-```bash
-npm run lint
-npm run typecheck
-npm test
-npm run build
-TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/limbus_test npm run test:integration
-TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/limbus_test npm run test:e2e   # Playwright (npx playwright install chromium)
-```
-
-Les tests d'intégration vident la base indiquée : son nom doit contenir « test ».
-
-Sous Windows, `npm run build` échoue à l'étape de prérendu (« File URL path must be absolute »). C'est une limite de l'environnement : le build est vérifié sous Linux par la CI.
-
-## Variables d'environnement
-
-| Variable | Rôle |
-|---|---|
-| `DATABASE_URL` | Connexion PostgreSQL |
-| `JWT_SECRET` | Signature des cookies de session. Le changer déconnecte tout le monde |
-| `SMTP_ENCRYPTION_SECRET` | Chiffrement du mot de passe SMTP stocké en base (repli sur `JWT_SECRET`). Le changer oblige à ressaisir le mot de passe SMTP |
-| `PUBLIC_APP_URL` | URL publique, obligatoire en production. Sert aux liens absolus dans les emails et PDF ; on ne se fie jamais aux en-têtes Host |
-| `SIGNUP_OPEN` | `1` ouvre l'inscription libre (ADR-0039). Absente : fermée, l'écran de connexion ne propose pas de créer un compte |
-
-## Production
-
-Serveur Debian derrière Apache (reverse proxy HTTPS). L'application tourne sous l'utilisateur système `limbus`, dans un service systemd durci, et n'écoute que sur `127.0.0.1:3000`.
-
-- **Déployer** : automatique après chaque push sur `main` dont la CI passe. À la main : `/var/www/limbus/deploy.sh` (en root). Le script fait `git pull`, construit dans un dossier temporaire, applique les migrations, remplace `.output` puis redémarre le service. L'ancienne version reste dans `.output-prev`.
-- **(Ré)installer le service** : `install-service.sh`.
-- **Créer un compte ou changer un mot de passe** : `cd /var/www/limbus && npm run user:create`.
-- **Données runtime** : les uploads (photos, RIB) sont dans `.data/uploads`, hors Git, et ne doivent jamais être supprimés au déploiement. Le `.env` est en `root:600` : systemd le lit avant de passer à l'utilisateur `limbus`.
-- **Sauvegardes** : chaque jour, chiffrées avec age, envoyées hors du serveur (voir `/etc/sauvegarde/RESTAURATION.txt` sur le serveur).

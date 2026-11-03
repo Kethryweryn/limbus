@@ -1,6 +1,6 @@
 # Limbus
 
-Outil d'organisation de GN (Nuxt 4, Nuxt UI 4, Prisma 7 / PostgreSQL). Contexte produit et commandes : voir README.md. Le code et l'interface sont en français.
+Outil d'organisation de GN (Nuxt 4, Nuxt UI 4, Prisma 7 / PostgreSQL). Contexte produit : README.md ; installation, variables et commandes : doc/developpement.md. Le code et l'interface sont en français.
 
 ## Documentation (`doc/`)
 
