@@ -47,6 +47,9 @@ export const named = { select: { id: true, name: true } } as const
 export const WRITE = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
 export const DESTRUCTIVE = { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false }
 
+/** Texte libre d'une fiche écrit par l'assistant. */
+export const text = (description: string) => z.string().max(20_000).nullable().optional().describe(description)
+
 export const version = z.string().describe('Version lue : le champ updatedAt rendu par la lecture de l’élément')
 
 export function requireWrite(event: H3Event) {

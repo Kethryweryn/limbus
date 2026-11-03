@@ -128,6 +128,13 @@ export async function updateSession(event: H3Event, id: string, readBody: Reader
     }
   })
 
+  // Responsables du déroulé : seulement des orgas et PNJ de l'équipe ; une personne qui en sort, ou change de rôle,
+  // n'y reste pas (US-128)
+  const responsibleIds = participants
+    .filter((participant) => participant.role === SESSION_ROLES.organizer || participant.role === SESSION_ROLES.npc)
+    .map((participant) => participant.participantId)
+  await prisma.timelineEventResponsible.deleteMany({ where: { sessionId: existingSession.id, participantId: { notIn: responsibleIds } } })
+
   await deleteUnusedUploads(previousPhotoUrls)
   return await withCastReservations(session)
 }

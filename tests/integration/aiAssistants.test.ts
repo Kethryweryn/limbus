@@ -413,9 +413,15 @@ describe('sessions et participants', () => {
 
     // Déroulé : une orga de l'équipe ; une joueuse est refusée
     expect((await call(client, 'modifier_deroule', { sessionId: session.id, version, events: [{ timelineEventId: opening.id, participantIds: [ana.id] }] })).error).toBe(true)
-    expect((await call(client, 'modifier_deroule', { sessionId: session.id, version, events: [{ timelineEventId: opening.id, participantIds: [cleo.id] }] })).error).toBe(false)
+    version = (await call(client, 'modifier_deroule', { sessionId: session.id, version, events: [{ timelineEventId: opening.id, participantIds: [cleo.id] }] })).json.version
     expect(await prisma.timelineEventResponsible.findMany({ where: { sessionId: session.id }, select: { timelineEventId: true, participantId: true } }))
       .toEqual([{ timelineEventId: opening.id, participantId: cleo.id }])
+    expect((await call(client, 'modifier_deroule', { sessionId: 'session-inconnue', version, events: [{ timelineEventId: opening.id, participantIds: [] }] })).text).toBe('Session introuvable')
+
+    // Une orga qui quitte ce rôle n'est plus responsable, et le déroulé reste modifiable
+    version = (await call(client, 'modifier_equipe', { sessionId: session.id, version, team: [{ participantId: ana.id, role: 'participant' }, { participantId: cleo.id, role: 'participant' }] })).json.version
+    expect(await prisma.timelineEventResponsible.count({ where: { sessionId: session.id } })).toBe(0)
+    expect((await call(client, 'modifier_deroule', { sessionId: session.id, version, events: [{ timelineEventId: opening.id, participantIds: [] }] })).error).toBe(false)
 
     // Détails : le reste ne bouge pas, visibilité comprise ; une version dépassée est refusée
     await prisma.session.update({ where: { id: session.id }, data: { published: true } })

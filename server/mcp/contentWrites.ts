@@ -19,12 +19,11 @@ import * as writes from '~/server/utils/contentWrites'
 import { AI_LOG_ACTIONS } from '~/utils/aiAssistants'
 import { CHARACTER_TYPES, DOCUMENT_AUDIENCES, INTRIGUE_LEVELS } from '~/utils/domain'
 import { CHARACTER_RELATION_TYPE_VALUES } from '~/utils/characterRelations'
-import { DESTRUCTIVE, WRITE, logWrite, requireWrite, toolResult, version, withVersion, type ToolContext } from '~/server/mcp/tools'
+import { DESTRUCTIVE, WRITE, logWrite, requireWrite, text, toolResult, version, withVersion, type ToolContext } from '~/server/mcp/tools'
 
 // Écriture du contenu d'un jeu par un assistant (US-125, US-126, SPEC-014 R10 à R13) : les fonctions de l'interface
 // (contentWrites), avec la version lue, sans lien ni fichier, et chaque écriture notée au journal
 
-const text = (description: string) => z.string().max(20_000).nullable().optional().describe(description)
 const ids = (description: string) => z.array(z.string()).max(500).optional().describe(description)
 
 /** Une sorte d'élément : ses champs écrits par un assistant, et comment compléter une modification avec la fiche actuelle. */

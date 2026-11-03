@@ -1,21 +1,20 @@
 import * as z from 'zod'
 import type { H3Event } from 'h3'
 import { prisma } from '~/server/utils/prisma'
-import { accessibleGameIds, requireParticipantAccess, requireSessionAccess } from '~/server/utils/gameAccess'
+import { accessibleGameIds, requireSessionAccess } from '~/server/utils/gameAccess'
 import { participantCreateSchema, participantSchema, parseZod, sessionSchema, sessionTimelineSchema } from '~/server/utils/schemas'
 import { createSession, updateSession, updateSessionTimeline } from '~/server/utils/sessionWrites'
 import { createParticipant, updateParticipant } from '~/server/utils/participantWrites'
 import { sessionCastingAssistant } from '~/server/utils/castingAssistant'
 import { AI_LOG_ACTIONS } from '~/utils/aiAssistants'
 import { SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
-import { WRITE, logWrite, requireWrite, toolResult, version, withVersion, type ToolContext } from '~/server/mcp/tools'
+import { WRITE, logWrite, requireWrite, text, toolResult, version, withVersion, type ToolContext } from '~/server/mcp/tools'
 
 // Sessions, casting, déroulé et fiches participant écrits par un assistant (US-127 à US-129, SPEC-014 R10 à R13) : les
 // fonctions de l'interface (sessionWrites, participantWrites), complétées avec la fiche actuelle, avec la version lue.
 // Jamais : statut, visibilité publique, photo, réservation d'un personnage, coordonnées, retrait d'un jeu
 
 const ROLES = [SESSION_ROLES.participant, SESSION_ROLES.organizer, SESSION_ROLES.npc, SESSION_ROLES.kitchen] as const
-const note = (description: string) => z.string().max(20_000).nullable().optional().describe(description)
 // Une date illisible effacerait la date de la session (parseDate) : elle est refusée ici
 const date = (description: string) => z.string().refine((value) => !Number.isNaN(new Date(value).getTime()), 'Date illisible : format ISO 8601 attendu').nullable().optional().describe(description)
 
@@ -115,7 +114,7 @@ function registerSessionWriteTools({ event, server }: ToolContext) {
       lines: z.array(z.object({
         characterId: z.string(),
         participantId: z.string().nullable().optional().describe('Personne du jeu ; null retire la personne'),
-        notes: note('Note de la ligne (brief)'),
+        notes: text('Note de la ligne (brief)'),
         locked: z.boolean().optional().describe('Cadenas : l’assistant de casting garde la ligne telle quelle')
       })).min(1).max(500)
     }),
@@ -155,16 +154,18 @@ function registerSessionWriteTools({ event, server }: ToolContext) {
     annotations: WRITE
   }, ({ sessionId, version: read, events }) => toolResult(async () => {
     requireWrite(event)
+    // Accès d'abord : la fonction commune lit le corps avant (ordre de la route), et le corps lit la session
+    await requireSessionAccess(event, sessionId)
+    const current = await currentSession(sessionId)
     const result = await withVersion(event, read, () => updateSessionTimeline(event, sessionId, async () => {
       const responsibles = new Map<string, string[]>()
-      for (const row of (await currentSession(sessionId)).timelineResponsibles) {
+      for (const row of current.timelineResponsibles) {
         responsibles.set(row.timelineEventId, [...responsibles.get(row.timelineEventId) ?? [], row.participantId])
       }
       for (const given of events) responsibles.set(given.timelineEventId, given.participantIds)
       return parseZod(sessionTimelineSchema, { assignments: [...responsibles].map(([timelineEventId, participantIds]) => ({ timelineEventId, participantIds })) })
     }))
-    const session = await prisma.session.findUniqueOrThrow({ where: { id: sessionId }, select: { name: true, gameId: true } })
-    await logWrite(event, 'modifier_deroule', AI_LOG_ACTIONS.changed, { type: 'session', id: sessionId, name: session.name, gameId: session.gameId })
+    await logWrite(event, 'modifier_deroule', AI_LOG_ACTIONS.changed, { type: 'session', id: sessionId, name: current.name, gameId: current.gameId })
     return { id: sessionId, version: result.updatedAt }
   }))
 
@@ -210,7 +211,7 @@ function registerParticipantWriteTools({ event, server }: ToolContext) {
     inputSchema: z.object({
       jeuId: z.string(),
       name: z.string().max(200),
-      notes: note('Note d’organisation pour ce jeu')
+      notes: text('Note d’organisation pour ce jeu')
     }),
     annotations: WRITE
   }, ({ jeuId, name, notes }) => toolResult(async () => {
@@ -233,7 +234,6 @@ function registerParticipantWriteTools({ event, server }: ToolContext) {
     annotations: WRITE
   }, ({ participantId, version: read, name, notes, addToGames }) => toolResult(async () => {
     requireWrite(event)
-    await requireParticipantAccess(event, participantId)
     const participant = await withVersion(event, read, () => updateParticipant(event, participantId, async () => {
       const current = await currentParticipant(event, participantId)
       const gameNotes = Object.fromEntries(current.links.map((link) => [link.gameId, link.notes]))
