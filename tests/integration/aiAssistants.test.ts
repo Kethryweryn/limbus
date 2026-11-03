@@ -541,16 +541,19 @@ describe('inscriptions', () => {
 
     // Formulaire : versions successives, parties données seules ; liens du questionnaire
     expect((await call(client, 'lire_formulaire_inscription', { jeuId: game.id })).json.version).toBeNull()
-    expect((await call(client, 'modifier_formulaire_inscription', { jeuId: game.id, version: null, questions: [{ label: 'Style de jeu', type: 'single', options: ['Combat', 'Intrigue'] }] })).json.version).toBe(1)
+    expect((await call(client, 'modifier_formulaire_inscription', { jeuId: game.id, version: null, questions: [{ label: 'Style de jeu', type: 'single', options: ['Combat', 'Intrigue'] }, { label: 'Envie de jouer', type: 'scale' }] })).json.version).toBe(1)
     const form = (await call(client, 'lire_formulaire_inscription', { jeuId: game.id })).json
-    const question = form.questions[0]
+    const [question, scale] = form.questions
     expect((await call(client, 'modifier_formulaire_inscription', { jeuId: game.id, version: 1, affinities: { wantWith: { asked: true, required: false } } })).json.version).toBe(2)
-    expect((await call(client, 'lire_formulaire_inscription', { jeuId: game.id })).json.questions.map((row: { id: string }) => row.id)).toEqual([question.id])
+    expect((await call(client, 'lire_formulaire_inscription', { jeuId: game.id })).json.questions.map((row: { id: string }) => row.id)).toEqual([question.id, scale.id])
     expect((await call(client, 'modifier_formulaire_inscription', { jeuId: game.id, version: 1, questions: [] })).error).toBe(true)
-    expect((await call(client, 'relier_questionnaire', { jeuId: game.id, version: 2, questions: [{ questionId: question.id, links: [{ option: 'Combat', characterId: hero.id }] }] })).json).toEqual({ links: 1 })
-    expect((await call(client, 'relier_questionnaire', { jeuId: game.id, version: 2, questions: [{ questionId: question.id, links: [{ option: 'Combat', characterId: b.character.id }] }] })).error).toBe(true)
-    expect((await call(client, 'relier_questionnaire', { jeuId: game.id, version: 1, questions: [{ questionId: question.id, links: [] }] })).error).toBe(true)
-    expect((await call(client, 'lire_formulaire_inscription', { jeuId: game.id })).json.links).toHaveLength(1)
+    expect((await call(client, 'relier_questionnaire', { jeuId: game.id, version: 2, questions: [{ questionId: question.id, links: [{ option: 'Combat', characterId: hero.id }, { option: 'Intrigue', characterId: hero.id }] }] })).json).toEqual({ links: 2 })
+    // Une option retirée laisse son lien en base, hors versions : il ne bloque pas les liens des autres questions
+    expect((await call(client, 'modifier_formulaire_inscription', { jeuId: game.id, version: 2, questions: [{ ...question, options: ['Combat', 'Ruse'] }, scale] })).json.version).toBe(3)
+    expect((await call(client, 'relier_questionnaire', { jeuId: game.id, version: 3, questions: [{ questionId: scale.id, links: [{ characterId: hero.id }] }] })).json).toEqual({ links: 2 })
+    expect((await call(client, 'relier_questionnaire', { jeuId: game.id, version: 3, questions: [{ questionId: question.id, links: [{ option: 'Combat', characterId: b.character.id }] }] })).error).toBe(true)
+    expect((await call(client, 'relier_questionnaire', { jeuId: game.id, version: 2, questions: [{ questionId: question.id, links: [] }] })).error).toBe(true)
+    expect((await call(client, 'lire_formulaire_inscription', { jeuId: game.id })).json.links).toHaveLength(2)
 
     // Hors de l'autorisation
     const bPeriod = await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: b.registrationPeriod.id } })

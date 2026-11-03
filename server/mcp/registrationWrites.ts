@@ -10,7 +10,7 @@ import { findRegistrationOr404 } from '~/server/utils/registrations'
 import { applySelection, reorderWaitlist, setPoolSeats } from '~/server/utils/registrationSelection'
 import { cancelDraw, drawPeriod } from '~/server/utils/registrationDraws'
 import { getCurrentRegistrationForm, saveRegistrationFormDefinition } from '~/server/utils/registrationForms'
-import { saveQuestionLinks } from '~/server/utils/registrationQuestionLinks'
+import { currentQuestionLinks, saveQuestionLinks } from '~/server/utils/registrationQuestionLinks'
 import { AI_LOG_ACTIONS } from '~/utils/aiAssistants'
 import {
   REGISTRATION_ENTRY_MODES,
@@ -98,6 +98,9 @@ function registerPeriodTools({ event, server }: ToolContext) {
   }))
 }
 
+// Le formulaire est celui du jeu : le journal le nomme ainsi, le jeu figurant déjà sur la ligne
+const FORM_NAME = 'formulaire d’inscription'
+
 function registerFormTools({ event, server }: ToolContext) {
   const setting = z.object({ asked: z.boolean(), required: z.boolean() })
 
@@ -125,8 +128,7 @@ function registerFormTools({ event, server }: ToolContext) {
     const { definition } = await getCurrentRegistrationForm(jeuId)
     const { baseVersionNumber: _base, ...parsed } = parseZod(registrationFormDefinitionSchema, { ...definition, ...given })
     const saved = await saveRegistrationFormDefinition(jeuId, parsed, read)
-    const game = await prisma.game.findUniqueOrThrow({ where: { id: jeuId }, select: { title: true } })
-    await logWrite(event, 'modifier_formulaire_inscription', AI_LOG_ACTIONS.changed, { type: 'registrationForm', id: jeuId, name: game.title, gameId: jeuId })
+    await logWrite(event, 'modifier_formulaire_inscription', AI_LOG_ACTIONS.changed, { type: 'registrationForm', id: jeuId, name: FORM_NAME, gameId: jeuId })
     return { version: saved.version?.number ?? null }
   }))
 
@@ -155,16 +157,15 @@ function registerFormTools({ event, server }: ToolContext) {
       throw createError({ statusCode: 409, message: 'Le formulaire a été modifié par quelqu’un d’autre depuis sa lecture : relisez-le.' })
     }
     const given = new Set(questions.map((question) => question.questionId))
-    const kept = await prisma.registrationQuestionLink.findMany({
-      where: { gameId: jeuId, questionId: { notIn: [...given] } },
-      select: { questionId: true, option: true, characterId: true, factionId: true, intrigueId: true }
-    })
+    // Liens en vigueur des autres questions : ceux d'une question ou d'une option retirée depuis ne sont pas renvoyés
+    const kept = (await currentQuestionLinks(jeuId))
+      .filter((link) => !given.has(link.questionId))
+      .map(({ questionId, option, target }) => ({ questionId, option, [`${target.kind}Id`]: target.id }))
     const { links } = parseZod(registrationQuestionLinksSchema, {
       links: [...kept, ...questions.flatMap((question) => question.links.map((link) => ({ questionId: question.questionId, ...link })))]
     })
     const saved = await saveQuestionLinks(jeuId, links)
-    const game = await prisma.game.findUniqueOrThrow({ where: { id: jeuId }, select: { title: true } })
-    await logWrite(event, 'relier_questionnaire', AI_LOG_ACTIONS.changed, { type: 'registrationForm', id: jeuId, name: game.title, gameId: jeuId })
+    await logWrite(event, 'relier_questionnaire', AI_LOG_ACTIONS.changed, { type: 'registrationForm', id: jeuId, name: FORM_NAME, gameId: jeuId })
     return { links: saved.length }
   }))
 }
@@ -187,15 +188,16 @@ function registerSelectionTools({ event, server }: ToolContext) {
     const body = parseZod(registrationSelectionSchema, { action, sessionId })
     const result = await withVersion(event, read, async () => {
       await assertUnmodifiedSince(event, 'registration', registration.id)
-      const { announcedStatus } = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { announcedStatus: true } })
+      const { announcedStatus, participant } = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { announcedStatus: true, participant: { select: { name: true } } } })
       if (announcedStatus) {
         throw createError({ statusCode: 409, message: 'Une décision a déjà été annoncée à cette personne : changez-la dans l’interface.' })
       }
-      return await applySelection(registration.id, body.action, body.sessionId ?? null, await requireCurrentUser(event))
+      await applySelection(registration.id, body.action, body.sessionId ?? null, await requireCurrentUser(event))
+      return participant
     })
-    const { participant, updatedAt } = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { updatedAt: true, participant: { select: { name: true } } } })
-    await logWrite(event, 'decider_inscription', AI_LOG_ACTIONS.changed, { type: 'registration', id: registration.id, name: participant.name, gameId: registration.period.gameId })
-    return { id: registration.id, version: updatedAt, result }
+    const { updatedAt } = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { updatedAt: true } })
+    await logWrite(event, 'decider_inscription', AI_LOG_ACTIONS.changed, { type: 'registration', id: registration.id, name: result.name, gameId: registration.period.gameId })
+    return { id: registration.id, version: updatedAt }
   }))
 
   server.registerTool('ordonner_liste_attente', {
