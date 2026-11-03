@@ -1,6 +1,7 @@
 // EPIC-023 : affinités rattachées (US-095), alertes et repères dans la sélection (US-096)
 import { afterAll, describe, expect, inject, it } from 'vitest'
-import { api } from './api'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import { api, bodyOf } from './api'
 import { createTestPrisma } from './db'
 
 const prisma = createTestPrisma()
@@ -12,7 +13,6 @@ afterAll(async () => {
   await prisma.$disconnect()
 })
 
-const body = (response: { body: unknown }) => response.body as any
 
 // Un jeu d'Alice, deux sessions et une période en mode formulaire
 async function aliceGame() {
@@ -60,7 +60,7 @@ async function registration(period: { id: string }, participant: { id: string },
   })
 }
 
-const overviewOf = async (period: { id: string }) => body(await api(alice, 'GET', `/api/registration-periods/${period.id}/selection`))
+const overviewOf = async (period: { id: string }) => bodyOf<ApiResponse<'/api/registration-periods/:id/selection'>>(await api(alice, 'GET', `/api/registration-periods/${period.id}/selection`))
 
 describe('rattacher les affinités (US-095)', () => {
   it('propose des personnes du jeu au nom proche sans rien rattacher, puis rattache, marque inconnue et détache', async () => {
@@ -70,25 +70,25 @@ describe('rattacher les affinités (US-095)', () => {
     await person(game, 'Zacharie Lemoine')
     const own = await registration(period, lou, { affinities: [['avoid', 'Paul D.'], ['refusedRelations', 'Romance'], ['wantWith', 'Personne connue']] })
 
-    const detail = body(await api(alice, 'GET', `/api/registrations/${own.id}`))
+    const detail = bodyOf<ApiResponse<'/api/registrations/:id'>>(await api(alice, 'GET', `/api/registrations/${own.id}`))
     const [avoid, relation, unknown] = detail.affinityLines
     expect(avoid).toMatchObject({ linkable: true, target: null, suggestions: [{ id: paul.id, name: 'Paul Durand' }] })
     expect(relation).toMatchObject({ linkable: false, suggestions: [] })
-    expect(unknown.suggestions).toEqual([])
+    expect(unknown?.suggestions).toEqual([])
     // Rien n'est rattaché sans l'équipe, et la personne elle-même n'est pas proposée
     expect(await prisma.registrationAffinity.count({ where: { registrationId: own.id, targetParticipantId: { not: null } } })).toBe(0)
-    expect(detail.gamePeople.map((entry: { id: string }) => entry.id)).not.toContain(lou.id)
+    expect(detail.gamePeople.map((entry) => entry.id)).not.toContain(lou.id)
 
-    const linked = await api(alice, 'POST', `/api/registration-affinities/${avoid.id}/link`, { targetParticipantId: paul.id })
+    const linked = await api(alice, 'POST', `/api/registration-affinities/${avoid!.id}/link`, { targetParticipantId: paul.id })
     expect(linked.status).toBe(200)
-    expect(body(linked).targetParticipant).toEqual({ id: paul.id, name: 'Paul Durand' })
-    expect((await api(alice, 'POST', `/api/registration-affinities/${relation.id}/link`, { unknown: true })).status).toBe(400)
-    expect((await api(alice, 'POST', `/api/registration-affinities/${avoid.id}/link`, { targetParticipantId: lou.id })).status).toBe(400)
+    expect(bodyOf<ApiResponse<'/api/registration-affinities/:id/link', 'post'>>(linked).targetParticipant).toEqual({ id: paul.id, name: 'Paul Durand' })
+    expect((await api(alice, 'POST', `/api/registration-affinities/${relation!.id}/link`, { unknown: true })).status).toBe(400)
+    expect((await api(alice, 'POST', `/api/registration-affinities/${avoid!.id}/link`, { targetParticipantId: lou.id })).status).toBe(400)
 
-    expect(body(await api(alice, 'POST', `/api/registration-affinities/${unknown.id}/link`, { unknown: true }))).toMatchObject({ targetUnknown: true, targetParticipant: null })
+    expect((await api(alice, 'POST', `/api/registration-affinities/${unknown!.id}/link`, { unknown: true })).body).toMatchObject({ targetUnknown: true, targetParticipant: null })
     expect((await overviewOf(period)).affinities.toLink).toEqual({})
 
-    expect(body(await api(alice, 'POST', `/api/registration-affinities/${avoid.id}/link`, {}))).toMatchObject({ targetUnknown: false, targetParticipant: null })
+    expect((await api(alice, 'POST', `/api/registration-affinities/${avoid!.id}/link`, {})).body).toMatchObject({ targetUnknown: false, targetParticipant: null })
     expect((await overviewOf(period)).affinities.toLink).toEqual({ [own.id]: 1 })
   })
 
@@ -98,7 +98,7 @@ describe('rattacher les affinités (US-095)', () => {
     const max = await person(game, 'Max')
     await registration(period, lou, { affinities: [['avoid', 'Max le grand', max.id]] })
     await registration(period, max, { affinities: [['notWith', 'Lou la petite', lou.id]] })
-    const exported = JSON.stringify(body(await api(alice, 'GET', `/api/participants/${lou.id}/export`)))
+    const exported = JSON.stringify((await api(alice, 'GET', `/api/participants/${lou.id}/export`)).body)
     expect(exported).toContain('Max le grand')
     expect(exported).toContain('"targetParticipant":{"name":"Max"}')
     expect(exported).not.toContain('Lou la petite')

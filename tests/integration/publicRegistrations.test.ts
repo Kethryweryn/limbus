@@ -4,7 +4,8 @@ import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
-import { api } from './api'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import { api, bodyOf, errorMessage, invalidPaths } from './api'
 import { createTestPrisma } from './db'
 import { personalLinkToken, startTestSmtp } from './smtp'
 
@@ -38,7 +39,7 @@ async function publicApi(method: string, path: string, body?: unknown, ip = `10.
   const text = await response.text()
   let parsed: unknown = text
   try { parsed = JSON.parse(text) } catch { /* texte brut */ }
-  return { status: response.status, body: parsed as any, headers: response.headers }
+  return { status: response.status, body: parsed, headers: response.headers }
 }
 
 // Une invitation d'Alice, avec un jeton connu du test
@@ -185,7 +186,7 @@ describe('accepter', () => {
     const response = await publicApi('PUT', path, answers({ phone: '', charterAccepted: false }))
 
     expect(response.status).toBe(400)
-    expect(response.body.data.data.map((issue: { path: string }) => issue.path).sort()).toEqual(['charterAccepted', 'phone'])
+    expect(invalidPaths(response).sort()).toEqual(['charterAccepted', 'phone'])
     expect(await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })).toMatchObject({ status: 'invited', phone: null })
   })
 
@@ -193,7 +194,7 @@ describe('accepter', () => {
     const { path } = await invitation()
     const response = await publicApi('PUT', path, answers({ healthConsent: false }))
     expect(response.status).toBe(400)
-    expect(response.body.data.data[0].path).toBe('healthConsent')
+    expect(invalidPaths(response)[0]).toBe('healthConsent')
   })
 
   it('reste possible après l’échéance, qui est signalée (R20)', async () => {
@@ -294,8 +295,8 @@ describe('se désister (US-006)', () => {
     // Le paiement reçu est gardé, à traiter à la main (R22), et reste visible dans le tableau des paiements
     expect(await prisma.sessionPayment.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(1)
     const payments = await api(alice, 'GET', `/api/sessions/${session.id}/payments`)
-    expect((payments.body as any).unassignedPayments).toMatchObject([{ participant: { id: participant.id } }])
-    expect((payments.body as any).rows).toEqual([])
+    expect(bodyOf<ApiResponse<'/api/sessions/:id/payments'>>(payments).unassignedPayments).toMatchObject([{ participant: { id: participant.id } }])
+    expect(bodyOf<ApiResponse<'/api/sessions/:id/payments'>>(payments).rows).toEqual([])
 
     // Après la réponse : trombinoscopes régénérés sans elle, puis email aux organisateurs
     await expect.poll(() => smtp.received.slice(sentBefore).find((message) => message.to.includes('alice@example.test'))?.text, { timeout: 10_000 })
@@ -387,7 +388,7 @@ describe('liens invalides (ADR-0018)', () => {
     const responses = await Promise.all(paths.map((path) => publicApi('GET', path)))
     for (const response of responses) {
       expect(response.status).toBe(404)
-      expect(response.body.message).toBe('Ce lien n’est pas valide.')
+      expect(errorMessage(response)).toBe('Ce lien n’est pas valide.')
     }
     expect((await publicApi('PUT', replaced.path, answers())).status).toBe(404)
     expect((await publicApi('POST', `${deleted.path}/decline`)).status).toBe(404)

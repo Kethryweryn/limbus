@@ -1,6 +1,7 @@
 // EPIC-022 : attribut et question d'équilibre (US-091), mode de sélection (US-092), tirage (US-093), journal (US-094)
 import { afterAll, describe, expect, inject, it } from 'vitest'
-import { api } from './api'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import { api, bodyOf } from './api'
 import { createTestPrisma } from './db'
 
 const prisma = createTestPrisma()
@@ -12,7 +13,6 @@ afterAll(async () => {
   await prisma.$disconnect()
 })
 
-const body = (response: { body: unknown }) => response.body as any
 
 // Un jeu d'Alice, ses sessions, et une période ordinaire en mode formulaire
 async function aliceGame(options: { sessions?: number, seats?: number, selectionMode?: string, organizerPicks?: number, waitlistSize?: number, weightBalance?: boolean, replayPolicy?: string } = {}) {
@@ -68,7 +68,7 @@ describe('attribut et question d’équilibre (US-091)', () => {
     expect(created.status).toBe(400)
     const ok = await api(alice, 'POST', '/api/characters', { name: 'Ada', gameId: game.id, balanceValue: 'F' })
     expect(ok.status).toBe(200)
-    expect(body(ok).balanceValue).toBe('F')
+    expect(bodyOf<ApiResponse<'/api/characters', 'post'>>(ok).balanceValue).toBe('F')
   })
 
   it('la question d’équilibre prend le nom et les valeurs de l’attribut du jeu, et refuse une autre valeur', async () => {
@@ -78,7 +78,7 @@ describe('attribut et question d’équilibre (US-091)', () => {
       balance: { asked: true, required: true }
     })
     expect(form.status).toBe(200)
-    expect(body(form).definition.balance).toEqual({ asked: true, required: true, label: 'Genre du personnage', values: ['F', 'H'] })
+    expect(bodyOf<ApiResponse<'/api/games/:id/registration-form', 'put'>>(form).definition.balance).toEqual({ asked: true, required: true, label: 'Genre du personnage', values: ['F', 'H'] })
 
     const view = await fetch(`${inject('baseUrl')}/api/public/periods/${period.publicId}`, { headers: { 'x-forwarded-for': `10.40.0.${++counter % 250}` } })
     expect((await view.json()).definition.balance.values).toEqual(['F', 'H'])
@@ -154,13 +154,14 @@ describe('tirer au sort (US-093) et journal (US-094)', () => {
 
     // Journal : graine, réglages et résultat ; un seul tirage actif
     const journal = await api(alice, 'GET', `/api/registration-periods/${period.id}/draws`)
-    expect(body(journal)).toHaveLength(1)
-    expect(body(journal)[0]).toMatchObject({ cancelledAt: null, createdBy: { name: expect.any(String) } })
-    expect(body(journal)[0].seed).toMatch(/^[0-9a-f]{32}$/)
+    expect(journal.body).toHaveLength(1)
+    const [draw] = bodyOf<ApiResponse<'/api/registration-periods/:id/draws'>>(journal)
+    expect(draw).toMatchObject({ cancelledAt: null, createdBy: { name: expect.any(String) } })
+    expect(draw?.seed).toMatch(/^[0-9a-f]{32}$/)
     expect((await api(alice, 'POST', `/api/registration-periods/${period.id}/draws`)).status).toBe(409)
 
     // Annuler : tout repart à trier, et on peut refaire
-    expect((await api(alice, 'POST', `/api/registration-draws/${body(journal)[0].id}/cancel`)).status).toBe(200)
+    expect((await api(alice, 'POST', `/api/registration-draws/${draw!.id}/cancel`)).status).toBe(200)
     expect((await prisma.registration.findMany({ where: { periodId: period.id } })).every((row) => row.status === 'received')).toBe(true)
     expect(await prisma.registrationWaitlistEntry.count({ where: { sessionId: { in: both } } })).toBe(0)
     expect((await api(alice, 'POST', `/api/registration-periods/${period.id}/draws`)).status).toBe(200)

@@ -1,6 +1,7 @@
 // US-007 : inscrits confirmés dans le tableau des paiements (SPEC-001, R22, ADR-0021)
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
-import { api } from './api'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import { api, bodyOf } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
 
@@ -9,6 +10,8 @@ const { alice } = world.users
 const prisma = createTestPrisma()
 let smtp: Awaited<ReturnType<typeof startTestSmtp>>
 let counter = 0
+
+type Payments = ApiResponse<'/api/sessions/:id/payments'>
 
 beforeAll(async () => {
   smtp = await startTestSmtp(prisma)
@@ -55,7 +58,7 @@ describe('tableau des paiements', () => {
     const { session, player, confirmed, both } = await sessionWithPeople()
     const response = await api(alice, 'GET', `/api/sessions/${session.id}/payments`)
     expect(response.status).toBe(200)
-    const rows = (response.body as any).rows as Array<{ participant: { id: string }, character: { name: string } | null }>
+    const rows = bodyOf<Payments>(response).rows
     expect(rows.map((row) => row.participant.id)).toEqual([player.id, both.id, confirmed.id])
     expect(rows.find((row) => row.participant.id === confirmed.id)!.character).toBeNull()
   })
@@ -76,7 +79,7 @@ describe('tableau des paiements', () => {
     const { session, confirmed, cook } = await sessionWithPeople()
     expect((await api(alice, 'PUT', `/api/sessions/${session.id}/payments/${confirmed.id}`, { paid: true })).status).toBe(200)
     expect((await api(alice, 'PUT', `/api/sessions/${session.id}/payments/${cook.id}`, { paid: true })).status).toBe(400)
-    const rows = (await api(alice, 'GET', `/api/sessions/${session.id}/payments`)).body as any
-    expect(rows.rows.find((row: any) => row.participant.id === confirmed.id).paidAt).toBeTruthy()
+    const { rows } = bodyOf<Payments>(await api(alice, 'GET', `/api/sessions/${session.id}/payments`))
+    expect(rows.find((row) => row.participant.id === confirmed.id)?.paidAt).toBeTruthy()
   })
 })

@@ -5,7 +5,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { DEFAULT_REGISTRATION_FORM_DEFINITION } from '~/utils/registrationForms'
-import { api, DENIED } from './api'
+import { api, DENIED, errorMessage } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
 
@@ -226,7 +226,7 @@ describe('legs d’un jeu à une organisatrice qui a un compte', () => {
     const { game } = await sourceGame()
     const self = await api(alice, 'POST', `/api/games/${game.id}/bequests`, { email: 'alice@example.test' })
     expect(self.status).toBe(400)
-    expect((self.body as any).message).toContain('propre jeu')
+    expect(errorMessage(self)).toContain('propre jeu')
     expect((await api(alice, 'POST', `/api/games/${game.id}/bequests`, { email: 'pas-un-email' })).status).toBe(400)
     expect(await copiesOf(game.id)).toHaveLength(0)
   })

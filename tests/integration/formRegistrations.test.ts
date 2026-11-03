@@ -1,7 +1,8 @@
 // EPIC-020 : période en mode formulaire (US-083), formulaire public (US-084), confirmation de l'email (US-085),
 // page publique (US-086)
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
-import { api, tokenFor } from './api'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import { api, bodyOf, tokenFor, type WithField } from './api'
 import { createTestPrisma } from './db'
 import { triggerPurge } from './purge'
 import { personalLinkToken, startTestSmtp } from './smtp'
@@ -11,6 +12,10 @@ const { alice, bob } = inject('world').users
 let smtp: Awaited<ReturnType<typeof startTestSmtp>>
 let counter = 0
 const DAY = 24 * 60 * 60 * 1000
+
+type PublicPeriod = ApiResponse<'/api/public/periods/:publicId'>
+type PersonalRegistration = WithField<ApiResponse<'/api/public/registrations/:token'>, 'answers'>
+type PublicGame = WithField<ApiResponse<'/api/public/games/:slug'>, 'upcomingSessions'>
 
 beforeAll(async () => {
   smtp = await startTestSmtp(prisma)
@@ -30,7 +35,7 @@ async function publicApi(method: string, path: string, body?: unknown, cookieUse
   const text = await response.text()
   let parsed: unknown = text
   try { parsed = JSON.parse(text) } catch { /* texte brut */ }
-  return { status: response.status, body: parsed as any }
+  return { status: response.status, body: parsed }
 }
 
 const standardFields = {
@@ -97,7 +102,7 @@ describe('période en mode formulaire et inscription permanente (US-083)', () =>
     expect(read.status, JSON.stringify(read.body)).toBe(200)
     expect(read.body).toMatchObject({ permanent: true, asksAvailability: false })
     // Les deux sessions de la période dédiée en sont exclues (R31), comme la passée et l'annulée
-    expect(read.body.sessions.map((session: { id: string }) => session.id)).toEqual([free.id])
+    expect(bodyOf<PublicPeriod>(read).sessions.map((session) => session.id)).toEqual([free.id])
     expect(sessions.length).toBe(2)
   })
 
@@ -117,13 +122,13 @@ describe('formulaire public (US-084)', () => {
     const read = await publicApi('GET', `/api/public/periods/${period.publicId}`)
     expect(read.status).toBe(200)
     expect(read.body).toMatchObject({ state: 'open', permanent: false, asksAvailability: true, game: { title: game.title }, account: null })
-    expect(read.body.sessions.map((session: { id: string }) => session.id)).toEqual(sessions.map((session) => session.id))
+    expect(bodyOf<PublicPeriod>(read).sessions.map((session) => session.id)).toEqual(sessions.map((session) => session.id))
     expect(JSON.stringify(read.body)).not.toContain(alice.id)
 
     await prisma.registrationPeriod.update({ where: { id: period.id }, data: { state: 'draft' } })
     expect((await publicApi('GET', `/api/public/periods/${period.publicId}`)).status).toBe(404)
     await prisma.registrationPeriod.update({ where: { id: period.id }, data: { state: 'closed' } })
-    expect((await publicApi('GET', `/api/public/periods/${period.publicId}`)).body.state).toBe('closed')
+    expect(bodyOf<PublicPeriod>(await publicApi('GET', `/api/public/periods/${period.publicId}`)).state).toBe('closed')
     expect((await publicApi('POST', `/api/public/periods/${period.publicId}`, answers('closed@example.test', [sessions[0]!.id]))).status).toBe(409)
   })
 
@@ -161,7 +166,7 @@ describe('formulaire public (US-084)', () => {
     const { key, sessions, period } = await aliceGame()
     await prisma.session.update({ where: { id: sessions[1]!.id }, data: { status: 'cancelled' } })
     const read = await publicApi('GET', `/api/public/periods/${period.publicId}`)
-    expect(read.body.sessions.map((session: { id: string }) => session.id)).toEqual([sessions[0]!.id])
+    expect(bodyOf<PublicPeriod>(read).sessions.map((session) => session.id)).toEqual([sessions[0]!.id])
     expect((await publicApi('POST', `/api/public/periods/${period.publicId}`, answers(`annulee-${key}@example.test`, [sessions[1]!.id]))).status).toBe(400)
   })
 
@@ -169,7 +174,7 @@ describe('formulaire public (US-084)', () => {
     const { key, sessions, period } = await aliceGame()
     const user = await prisma.user.create({ data: { email: `connectee-${key}@example.test`, name: 'Camille Connectée', password: 'non-utilise', phone: '0611111111' } })
     const read = await publicApi('GET', `/api/public/periods/${period.publicId}`, undefined, user)
-    expect(read.body.account).toMatchObject({ email: user.email, firstName: 'Camille', phone: '0611111111' })
+    expect(bodyOf<PublicPeriod>(read).account).toMatchObject({ email: user.email, firstName: 'Camille', phone: '0611111111' })
 
     const sent = await publicApi('POST', `/api/public/periods/${period.publicId}`, answers('autre@example.test', [sessions[1]!.id], { phone: '0622222222' }), user)
     expect(sent.body).toEqual({ received: true, emailSent: false })
@@ -193,7 +198,7 @@ describe('confirmer son email et suivre son inscription (US-085)', () => {
     const { token, confirmed } = await registerAndConfirm(period.publicId, answers(email, [sessions[0]!.id, sessions[1]!.id]))
     expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200)
     expect(confirmed.body).toMatchObject({ status: 'received', canEdit: true, canWithdraw: true })
-    expect(confirmed.body.answers.availableSessionIds.sort()).toEqual(sessions.map((session) => session.id).sort())
+    expect(bodyOf<PersonalRegistration>(confirmed).answers.availableSessionIds.sort()).toEqual(sessions.map((session) => session.id).sort())
 
     const participant = await prisma.participant.findFirstOrThrow({ where: { email }, select: { id: true, name: true, gameLinks: { select: { gameId: true } } } })
     expect(participant).toMatchObject({ name: 'Lou Dupont', gameLinks: [{ gameId: game.id }] })
@@ -201,12 +206,12 @@ describe('confirmer son email et suivre son inscription (US-085)', () => {
 
     // Une seconde ouverture ne confirme rien de plus ; le lien personnel marche
     expect((await publicApi('POST', `/api/public/registrations/${token}/confirm`)).status).toBe(404)
-    expect((await publicApi('GET', `/api/public/registrations/${token}`)).body.status).toBe('received')
+    expect(bodyOf<PersonalRegistration>(await publicApi('GET', `/api/public/registrations/${token}`)).status).toBe('received')
 
     // Modifier ses disponibilités, puis retirer son inscription
     const edited = await publicApi('PUT', `/api/public/registrations/${token}`, answers(email, [sessions[1]!.id]))
     expect(edited.status, JSON.stringify(edited.body)).toBe(200)
-    expect(edited.body.answers.availableSessionIds).toEqual([sessions[1]!.id])
+    expect(bodyOf<PersonalRegistration>(edited).answers.availableSessionIds).toEqual([sessions[1]!.id])
     expect((await publicApi('POST', `/api/public/registrations/${token}/withdraw`)).status).toBe(200)
     expect((await publicApi('GET', `/api/public/registrations/${token}`)).body).toMatchObject({ status: 'withdrawn', withdrawalReason: 'retracted' })
 
@@ -246,8 +251,8 @@ describe('page publique : sessions à venir et lien d’inscription (US-086)', (
     await prisma.session.update({ where: { id: sessions[0]!.id }, data: { published: true } })
     expect((await api(alice, 'PUT', `/api/games/${game.id}`, { publicShowSessions: true, publicShowRegistration: true })).status).toBe(200)
     const after = await publicApi('GET', `/api/public/games/${game.slug}`)
-    expect(after.body.upcomingSessions).toEqual([expect.objectContaining({ name: sessions[0]!.name })])
-    expect(after.body.registrationLinks).toEqual([expect.objectContaining({ url: expect.stringContaining(`/i/${period.publicId}`) })])
+    expect(bodyOf<PublicGame>(after).upcomingSessions).toEqual([expect.objectContaining({ name: sessions[0]!.name })])
+    expect(bodyOf<PublicGame>(after).registrationLinks).toEqual([expect.objectContaining({ url: expect.stringContaining(`/i/${period.publicId}`) })])
     expect(JSON.stringify(after.body)).not.toContain(sessions[1]!.name)
   })
 })

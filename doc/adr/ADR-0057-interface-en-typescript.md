@@ -39,6 +39,8 @@ La quasi-totalité des pages et composants est en JavaScript (revue d'architectu
 - Pendant la migration, un fichier non encore converti n'est pas vérifié. L'ordre des lots suit les domaines, pas les risques.
 - Les `any` hérités du serveur restent des avertissements, hors du périmètre de cet epic.
 
+> Note du 2026-11-03 (fiche [lint-sans-any](../archive/todo/lint-sans-any.md), PR #122 et #123) : il n'y a plus aucun `any` dans le dépôt. `no-explicit-any` est en erreur partout, tests et scripts compris ; `TYPED_INTERFACE` a disparu, et `vue/block-lang` s'applique à tous les `.vue`.
+
 ## Options écartées
 
 - **Types écrits à la main** : à maintenir deux fois, et ils divergent sans qu'aucune vérification ne le voie.

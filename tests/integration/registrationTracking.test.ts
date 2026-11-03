@@ -1,7 +1,8 @@
 // US-005 : suivre et gérer les inscriptions (SPEC-001, R16, R20, R21, ADR-0020, ADR-0021)
 import { createHash } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
-import { api, tokenFor } from './api'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import { api, bodyOf, tokenFor } from './api'
 import { createTestPrisma } from './db'
 import { personalLinkToken, startTestSmtp } from './smtp'
 
@@ -23,9 +24,11 @@ afterAll(async () => {
 const sha256 = (value: string) => createHash('sha256').update(value).digest('hex')
 const DAY_MS = 24 * 60 * 60 * 1000
 
+type PeriodRegistrations = ApiResponse<'/api/registration-periods/:id/registrations'>
+
 async function publicGet(token: string) {
   const response = await fetch(`${inject('baseUrl')}/api/public/registrations/${token}`, { headers: { 'x-forwarded-for': `10.5.0.${counter}` } })
-  return { status: response.status, body: await response.json() as any }
+  return { status: response.status, body: await response.json() as unknown }
 }
 
 // Une période ouverte d'Alice et une invitation envoyée par l'API, dont le test connaît le lien
@@ -106,7 +109,7 @@ describe('prolonger l’échéance', () => {
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     expect((await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })).responseDueAt).toEqual(responseDueAt)
     const list = await api(alice, 'GET', `/api/registration-periods/${period.id}/registrations`)
-    expect(new Date((list.body as any)[0].responseDueAt).getTime()).toBeGreaterThan(Date.now())
+    expect(new Date(bodyOf<PeriodRegistrations>(list)[0]?.responseDueAt ?? 0).getTime()).toBeGreaterThan(Date.now())
   })
 
   it('refuse une date passée, invalide ou absente, avec un message en français', async () => {
@@ -128,7 +131,7 @@ describe('libérer une place', () => {
     expect(saved).toMatchObject({ status: 'withdrawn', withdrawnById: alice.id, respondedAt: null })
     const link = await publicGet(token)
     expect(link.body).toMatchObject({ status: 'withdrawn', withdrawalReason: 'released' })
-    expect(link.body.canAccept).toBeUndefined()
+    expect(link.body).not.toHaveProperty('canAccept')
   })
 
   it('une place libérée peut être réattribuée à la même personne par une réinvitation', async () => {
@@ -177,7 +180,7 @@ describe('suivi dans la liste', () => {
     const after = await api(alice, 'GET', `/api/registration-periods/${period.id}/registrations`)
     expect(after.body).toMatchObject([{ id: registration.id, missingFromSession: true }])
     const all = await api(alice, 'GET', `/api/registration-periods?gameId=${period.gameId}`)
-    expect((all.body as any)[0].registrations).toMatchObject([{ id: registration.id, missingFromSession: true }])
+    expect(bodyOf<ApiResponse<'/api/registration-periods'>>(all)[0]?.registrations).toMatchObject([{ id: registration.id, missingFromSession: true }])
   })
 
   it('le détail montre les réponses, les allergies et la date du consentement ; la liste non', async () => {
@@ -187,11 +190,11 @@ describe('suivi dans la liste', () => {
     const detail = await api(alice, 'GET', `/api/registrations/${registration.id}`)
     expect(detail.status).toBe(200)
     expect(detail.body).toMatchObject({ id: registration.id, phone: '0612345678', dietary: 'Arachides', session: { id: session.id } })
-    expect((detail.body as any).healthConsentAt).toBeTruthy()
-    expect((detail.body as any).tokenHash).toBeUndefined()
+    expect(bodyOf<ApiResponse<'/api/registrations/:id'>>(detail).healthConsentAt).toBeTruthy()
+    expect(detail.body).not.toHaveProperty('tokenHash')
 
     const list = await api(alice, 'GET', `/api/registration-periods/${period.id}/registrations`)
-    expect((list.body as any)[0].dietary).toBeUndefined()
+    expect(bodyOf<PeriodRegistrations>(list)[0]).not.toHaveProperty('dietary')
   })
 })
 

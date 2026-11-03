@@ -1,6 +1,7 @@
 // EPIC-024 : relations entre personnages (US-097), questionnaire relié aux rôles (US-098), relations refusées (US-099)
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
-import { api } from './api'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import { api, bodyOf } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
 
@@ -18,7 +19,8 @@ afterAll(async () => {
   await prisma.$disconnect()
 })
 
-const body = (response: { body: unknown }) => response.body as any
+type Relation = ApiResponse<'/api/character-relations', 'post'>
+type RegistrationDetail = ApiResponse<'/api/registrations/:id'>
 const off = { asked: false, required: false }
 const standardFields = { lastName: off, firstName: off, facebookName: off, phone: off, emergencyContact: off, dietary: off }
 
@@ -41,9 +43,9 @@ describe('relations entre personnages (US-097)', () => {
     const other = await aliceGame()
     const created = await api(alice, 'POST', '/api/character-relations', relation(ada, bran, { fromVisible: true }))
     expect(created.status, JSON.stringify(created.body)).toBe(200)
-    expect(body(created)).toMatchObject({ type: 'family', fromCharacter: { name: 'Ada' }, toCharacter: { name: 'Bran' }, fromVisible: true, toVisible: false })
+    expect(created.body).toMatchObject({ type: 'family', fromCharacter: { name: 'Ada' }, toCharacter: { name: 'Bran' }, fromVisible: true, toVisible: false })
 
-    expect(body(await api(alice, 'GET', `/api/characters/${bran.id}/relations`)).map((row: { id: string }) => row.id)).toEqual([body(created).id])
+    expect(bodyOf<ApiResponse<'/api/characters/:id/relations'>>(await api(alice, 'GET', `/api/characters/${bran.id}/relations`)).map((row) => row.id)).toEqual([bodyOf<Relation>(created).id])
     expect((await api(alice, 'POST', '/api/character-relations', relation(ada, other.ada))).status).toBe(400)
     expect((await api(alice, 'POST', '/api/character-relations', relation(ada, ada))).status).toBe(400)
     expect((await api(alice, 'POST', '/api/character-relations', relation(ada, bran, { type: 'inconnu' }))).status).toBe(400)
@@ -51,10 +53,10 @@ describe('relations entre personnages (US-097)', () => {
 
   it('modifie avec la version lue, refuse une version dépassée, et supprime', async () => {
     const { ada, bran, cy } = await aliceGame()
-    const created = body(await api(alice, 'POST', '/api/character-relations', relation(ada, bran)))
+    const created = bodyOf<Relation>(await api(alice, 'POST', '/api/character-relations', relation(ada, bran)))
     const updated = await api(alice, 'PUT', `/api/character-relations/${created.id}`, relation(ada, cy, { type: 'rivalry' }), { headers: { 'if-unmodified-since': created.updatedAt } })
     expect(updated.status, JSON.stringify(updated.body)).toBe(200)
-    expect(body(updated)).toMatchObject({ type: 'rivalry', toCharacter: { name: 'Cy' } })
+    expect(updated.body).toMatchObject({ type: 'rivalry', toCharacter: { name: 'Cy' } })
     const stale = await api(alice, 'PUT', `/api/character-relations/${created.id}`, relation(ada, bran), { headers: { 'if-unmodified-since': '2000-01-01T00:00:00.000Z' } })
     expect(stale.status).toBe(409)
 
@@ -64,7 +66,7 @@ describe('relations entre personnages (US-097)', () => {
 
   it('supprimer un personnage supprime ses relations', async () => {
     const { ada, bran } = await aliceGame()
-    const created = body(await api(alice, 'POST', '/api/character-relations', relation(ada, bran)))
+    const created = bodyOf<Relation>(await api(alice, 'POST', '/api/character-relations', relation(ada, bran)))
     expect((await api(alice, 'DELETE', `/api/characters/${bran.id}`)).status).toBe(200)
     expect(await prisma.characterRelation.count({ where: { id: created.id } })).toBe(0)
   })
@@ -75,17 +77,17 @@ describe('relations entre personnages (US-097)', () => {
     const session = await prisma.session.create({
       data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, assignments: { create: [{ characterId: ada.id, participantId: player.id }] } }
     })
-    const sheetOf = async () => body(await api(alice, 'GET', `/api/sessions/${session.id}/documents`)).characterSheets.find((sheet: any) => sheet.character.id === ada.id)
+    const sheetOf = async () => bodyOf<ApiResponse<'/api/sessions/:id/documents'>>(await api(alice, 'GET', `/api/sessions/${session.id}/documents`)).characterSheets.find((sheet) => sheet.character.id === ada.id)
     const before = await sheetOf()
-    expect(before.character.relationLines).toEqual([])
+    expect(before?.character.relationLines).toEqual([])
 
     // Visible côté Bran seulement : rien dans la fiche d'Ada
-    const hidden = body(await api(alice, 'POST', '/api/character-relations', relation(ada, bran, { toVisible: true })))
-    expect((await sheetOf()).sheetContentHash).toBe(before.sheetContentHash)
+    const hidden = bodyOf<Relation>(await api(alice, 'POST', '/api/character-relations', relation(ada, bran, { toVisible: true })))
+    expect((await sheetOf())?.sheetContentHash).toBe(before?.sheetContentHash)
     await api(alice, 'PUT', `/api/character-relations/${hidden.id}`, relation(ada, bran, { fromVisible: true }))
     const after = await sheetOf()
-    expect(after.character.relationLines).toEqual(['Bran — Famille, demi-sœur de : Brouillés depuis la guerre'])
-    expect(after.sheetContentHash).not.toBe(before.sheetContentHash)
+    expect(after?.character.relationLines).toEqual(['Bran — Famille, demi-sœur de : Brouillés depuis la guerre'])
+    expect(after?.sheetContentHash).not.toBe(before?.sheetContentHash)
   })
 })
 
@@ -102,8 +104,8 @@ describe('questionnaire relié aux rôles (US-098)', () => {
       ]
     })
     expect(saved.status, JSON.stringify(saved.body)).toBe(200)
-    const [choice, scale, text] = body(saved).definition.questions
-    return { ...setup, faction, choice, scale, text }
+    const [choice, scale, text] = bodyOf<ApiResponse<'/api/games/:id/registration-form', 'put'>>(saved).definition.questions
+    return { ...setup, faction, choice: choice!, scale: scale!, text: text! }
   }
 
   it('enregistre les liens hors des versions, refuse une option inconnue ou un élément d’un autre jeu', async () => {
@@ -116,7 +118,7 @@ describe('questionnaire relié aux rôles (US-098)', () => {
       { questionId: scale.id, option: '', characterId: ada.id }
     ])
     expect(saved.status, JSON.stringify(saved.body)).toBe(200)
-    expect(body(saved).links).toHaveLength(3)
+    expect(bodyOf<ApiResponse<'/api/games/:id/registration-question-links', 'put'>>(saved).links).toHaveLength(3)
     expect(await prisma.registrationFormVersion.count({ where: { form: { gameId: game.id } } })).toBe(1)
 
     expect((await put([{ questionId: choice.id, option: 'Inconnue', characterId: ada.id }])).status).toBe(400)
@@ -124,8 +126,8 @@ describe('questionnaire relié aux rôles (US-098)', () => {
     expect((await put([{ questionId: choice.id, option: 'Combat', characterId: other.ada.id }])).status).toBe(400)
     expect((await put([{ questionId: choice.id, option: 'Combat', characterId: ada.id, factionId: faction.id }])).status).toBe(400)
 
-    const read = body(await api(alice, 'GET', `/api/games/${game.id}/registration-question-links`))
-    expect(read.targets.characters.map((entry: { name: string }) => entry.name)).toEqual(['Ada', 'Bran', 'Cy'])
+    const read = bodyOf<ApiResponse<'/api/games/:id/registration-question-links'>>(await api(alice, 'GET', `/api/games/${game.id}/registration-question-links`))
+    expect(read.targets.characters.map((entry) => entry.name)).toEqual(['Ada', 'Bran', 'Cy'])
     expect(read.links).toHaveLength(3)
   })
 
@@ -140,14 +142,14 @@ describe('questionnaire relié aux rôles (US-098)', () => {
     const registration = await prisma.registration.create({
       data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: `${key}-lou@example.test`, respondedAt: new Date(), questionAnswers: { [choice.id]: 'Combat', [scale.id]: 4 } }
     })
-    expect(body(await api(alice, 'GET', `/api/registrations/${registration.id}`)).questionLinks).toHaveLength(2)
+    expect(bodyOf<RegistrationDetail>(await api(alice, 'GET', `/api/registrations/${registration.id}`)).questionLinks).toHaveLength(2)
 
     // L'option « Combat » disparaît : son lien n'est plus lu
     await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, {
       standardFields, baseVersionNumber: 1,
       questions: [{ ...choice, options: ['Politique', 'Intrigue'] }, scale]
     })
-    expect(body(await api(alice, 'GET', `/api/registrations/${registration.id}`)).questionLinks).toEqual([
+    expect(bodyOf<RegistrationDetail>(await api(alice, 'GET', `/api/registrations/${registration.id}`)).questionLinks).toEqual([
       expect.objectContaining({ questionId: scale.id, option: '', target: { kind: 'character', id: ada.id, name: 'Ada' } })
     ])
   })

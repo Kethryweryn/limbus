@@ -14,7 +14,7 @@ import {
 } from '~/utils/offlineSync'
 
 // Magasins IndexedDB de l'appareil, en mémoire
-const stores = new Map<string, Map<string, any>>()
+const stores = new Map<string, Map<string, unknown>>()
 const store = (name: string) => stores.get(name) || stores.set(name, new Map()).get(name)!
 
 vi.mock('~/utils/storage', () => ({
@@ -72,7 +72,7 @@ describe('cache de l’appareil (US-048)', () => {
     store('responses').set('/api/sessions/samedi', { id: 's1', name: 'Samedi', updatedAt: READ, assignments: [{ characterId: 'c1' }] })
     await enqueueOfflineOperation('/api/sessions/s1', { method: 'PUT', body: { name: 'Dimanche', updatedAt: READ, assignments: [] } })
 
-    expect(store('sessions').get('list')[0]).toMatchObject({ name: 'Dimanche', updatedAt: READ, __offlinePending: true })
+    expect((store('sessions').get('list') as unknown[])[0]).toMatchObject({ name: 'Dimanche', updatedAt: READ, __offlinePending: true })
     // Page de détail gardée : ses champs simples suivent, ses listes restent dans leur forme
     expect(store('responses').get('/api/sessions/samedi')).toMatchObject({ name: 'Dimanche', updatedAt: READ, assignments: [{ characterId: 'c1' }] })
   })
@@ -133,9 +133,10 @@ describe('resynchronisation (US-049, US-050, ADR-0036)', () => {
   })
 
   it('abandonner une création abandonne aussi ce qui la suit sur cet élément', async () => {
-    const created: any = await enqueueOfflineOperation('/api/factions', { method: 'POST', body: { name: 'Loups' } })
-    await enqueueOfflineOperation(`/api/factions/${created.id}`, { method: 'PUT', body: { name: 'Ours' } })
-    await enqueueOfflineOperation('/api/items/i1', { method: 'PUT', body: { name: 'Épée', factionId: created.id, updatedAt: READ } })
+    await enqueueOfflineOperation('/api/factions', { method: 'POST', body: { name: 'Loups' } })
+    const [{ entityId: factionId }] = await readQueue()
+    await enqueueOfflineOperation(`/api/factions/${factionId}`, { method: 'PUT', body: { name: 'Ours' } })
+    await enqueueOfflineOperation('/api/items/i1', { method: 'PUT', body: { name: 'Épée', factionId, updatedAt: READ } })
     await enqueueOfflineOperation('/api/items/i2', { method: 'PUT', body: { name: 'Bouclier', updatedAt: READ } })
 
     const [creation] = await readQueue()

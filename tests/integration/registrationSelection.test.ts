@@ -1,7 +1,8 @@
 // EPIC-021 : trier les inscriptions (US-087), annoncer (US-088), confirmer sa place (US-089), vivier (US-090)
 import { createHash, randomBytes } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
-import { api } from './api'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import { api, bodyOf, errorMessage } from './api'
 import { createTestPrisma } from './db'
 import { personalLinkToken, startTestSmtp } from './smtp'
 
@@ -24,7 +25,7 @@ afterAll(async () => {
 async function publicApi(method: string, path: string) {
   const headers = { 'x-forwarded-for': `10.30.${Math.floor(++counter / 250)}.${counter % 250}` }
   const response = await fetch(`${inject('baseUrl')}${path}`, { method, headers })
-  return { status: response.status, body: await response.json().catch(() => null) as any }
+  return { status: response.status, body: await response.json().catch(() => null) as unknown }
 }
 
 // Un jeu d'Alice, ses sessions à venir, et une période en mode formulaire (ou l'inscription permanente)
@@ -76,8 +77,8 @@ async function receivedAll(game: { id: string }, period: { id: string }, names: 
   return all as [Received, Received, Received]
 }
 
-const message = (response: { body: unknown }) => (response.body as { message?: string }).message ?? ''
-const body = (response: { body: unknown }) => response.body as any
+type Selection = ApiResponse<'/api/registration-periods/:id/selection'>
+type Announcement = ApiResponse<'/api/registration-periods/:id/announce', 'post'>
 
 const select = (registrationId: string, action: string, sessionId?: string) =>
   api(alice, 'POST', `/api/registrations/${registrationId}/selection`, { action, sessionId })
@@ -98,7 +99,7 @@ describe('trier les inscriptions (US-087)', () => {
     // Session 1 complète : refus, la personne reste à trier
     const full = await select(max.id, 'retain', sessions[0]!.id)
     expect(full.status).toBe(409)
-    expect(message(full)).toContain('complète')
+    expect(errorMessage(full)).toContain('complète')
     expect(await statusOf(max.id)).toBe('received')
 
     // On ne baisse pas les places sous le nombre de retenues
@@ -154,8 +155,8 @@ describe('trier les inscriptions (US-087)', () => {
 
     const overview = await api(alice, 'GET', `/api/registration-periods/${period.id}/selection`)
     expect(overview.status).toBe(200)
-    expect(body(overview).replayerParticipantIds).toEqual([lou.participantId])
-    expect(body(overview).sessions.map((session: { id: string }) => session.id)).toEqual(sessions.map((session) => session.id))
+    expect(bodyOf<Selection>(overview).replayerParticipantIds).toEqual([lou.participantId])
+    expect(bodyOf<Selection>(overview).sessions.map((session) => session.id)).toEqual(sessions.map((session) => session.id))
   })
 
   it('refuse une décision sur une période en mode invitation, ou sur une inscription confirmée', async () => {
@@ -195,14 +196,14 @@ describe('annoncer les résultats (US-088) et confirmer sa place (US-089)', () =
 
     // Une seconde annonce n'envoie rien
     const again = await api(alice, 'POST', `/api/registration-periods/${period.id}/announce`)
-    expect(body(again).announcedCount).toBe(0)
+    expect(bodyOf<Announcement>(again).announcedCount).toBe(0)
 
     const token = personalLinkToken(louEmail)!
     const view = await publicApi('GET', `/api/public/registrations/${token}`)
     expect(view.body).toMatchObject({ status: 'retained', canConfirmPlace: true })
     const confirmed = await publicApi('POST', `/api/public/registrations/${token}/accept`)
     expect(confirmed.status).toBe(200)
-    expect(confirmed.body.status).toBe('confirmed')
+    expect(bodyOf<ApiResponse<'/api/public/registrations/:token/accept', 'post'>>(confirmed).status).toBe('confirmed')
     expect(await prisma.sessionParticipant.count({ where: { sessionId: sessions[0]!.id, participantId: lou.participantId, role: 'participant' } })).toBe(1)
     expect((await publicApi('POST', `/api/public/registrations/${token}/accept`)).status).toBe(409)
   })
@@ -227,7 +228,7 @@ describe('annoncer les résultats (US-088) et confirmer sa place (US-089)', () =
     await prisma.registration.update({ where: { id: lou.id }, data: { email: `refuse-${lou.email}` } })
     await select(lou.id, 'retain', sessions[0]!.id)
     const result = await api(alice, 'POST', `/api/registration-periods/${period.id}/announce`)
-    expect(body(result).failures).toHaveLength(1)
+    expect(bodyOf<Announcement>(result).failures).toHaveLength(1)
     expect(await prisma.registration.findUniqueOrThrow({ where: { id: lou.id } })).toMatchObject({ announcedStatus: null, tokenHash: lou.tokenHash })
   })
 
@@ -248,7 +249,7 @@ describe('annoncer les résultats (US-088) et confirmer sa place (US-089)', () =
     expect(await statusOf(lou.id)).toBe('withdrawn')
     // Son lien dit que la place a été réattribuée faute de réponse
     const louToken = personalLinkToken(smtp.received.find((email) => email.to.includes(lou.email))!)!
-    expect((await publicApi('GET', `/api/public/registrations/${louToken}`)).body.withdrawalReason).toBe('released')
+    expect((await publicApi('GET', `/api/public/registrations/${louToken}`)).body).toMatchObject({ withdrawalReason: 'released' })
     // La place est libre : la première de la file se retient, et reste à annoncer
     expect((await select(max.id, 'retain', sessions[0]!.id)).status).toBe(200)
     expect(await prisma.registration.findUniqueOrThrow({ where: { id: max.id } })).toMatchObject({ status: 'retained', announcedStatus: 'waitlisted' })
@@ -273,7 +274,7 @@ describe('revue de la PR #76', () => {
     await select(lou.id, 'waitlist', sessions[0]!.id)
     const view = await publicApi('GET', `/api/public/registrations/${token}`)
     expect(view.body).toMatchObject({ status: 'received', canEdit: true })
-    expect(view.body.availability).not.toBeNull()
+    expect(view.body).not.toMatchObject({ availability: null })
   })
 
   it('revenir à la place déjà annoncée garde son échéance', async () => {
@@ -294,8 +295,8 @@ describe('vivier de l’inscription permanente (US-090)', () => {
     const [lou, max] = await receivedAll(game, period, ['Lou', 'Max'])
 
     const overview = await api(alice, 'GET', `/api/registration-periods/${period.id}/selection`)
-    expect(body(overview).permanent).toBe(true)
-    expect(body(overview).sessions.map((session: { id: string }) => session.id).sort()).toEqual(sessions.map((session) => session.id).sort())
+    expect(bodyOf<Selection>(overview).permanent).toBe(true)
+    expect(bodyOf<Selection>(overview).sessions.map((session) => session.id).sort()).toEqual(sessions.map((session) => session.id).sort())
 
     expect((await api(alice, 'PUT', `/api/registration-periods/${period.id}/pool-seats`, { sessionId: sessions[0]!.id, seats: 1 })).status).toBe(200)
     expect((await select(lou.id, 'retain', sessions[0]!.id)).status).toBe(200)
@@ -310,7 +311,7 @@ describe('vivier de l’inscription permanente (US-090)', () => {
       name: 'Dédiée', gameId: game.id, entryMode: 'form', sessions: [{ sessionId: sessions[0]!.id, seats: 3 }]
     })
     expect(dedicated.status).toBe(409)
-    expect(message(dedicated)).toContain('inscription permanente')
+    expect(errorMessage(dedicated)).toContain('inscription permanente')
   })
 
   it('après une session terminée, la personne revient au vivier, sauf rejoueurs exclus', async () => {
@@ -325,7 +326,7 @@ describe('vivier de l’inscription permanente (US-090)', () => {
     await prisma.session.update({ where: { id: sessions[0]!.id }, data: { status: 'completed' } })
     const excluded = await select(lou.id, 'retain', sessions[1]!.id)
     expect(excluded.status).toBe(409)
-    expect(message(excluded)).toContain('déjà joué')
+    expect(errorMessage(excluded)).toContain('déjà joué')
 
     await prisma.registrationPeriod.update({ where: { id: period.id }, data: { replayPolicy: 'flagged' } })
     // Le jeu n'a pas de personnage PJ : sans places réglées, la session n'en a aucune (R5)
