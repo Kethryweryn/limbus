@@ -77,6 +77,8 @@ Les lots 2 à 6 de [SPEC-001](specs/SPEC-001-inscriptions.md), un epic chacun (l
 4. relations entre personnages et questionnaire relié aux rôles (fait) ;
 5. assistant de casting (fait).
 
+Puis la [qualité du questionnaire de casting](specs/SPEC-015-qualite-du-questionnaire.md), en trois lots : repères sur les liens ([EPIC-037](epics/EPIC-037-qualite-du-questionnaire-liens/README.md)), repères sur les réponses, estimation générale.
+
 ## 5. Fondations avant d'ouvrir Limbus
 
 L'inscription libre fera venir des personnes inconnues, avec leurs données. Avant de l'ouvrir en production et d'annoncer l'ouverture :
