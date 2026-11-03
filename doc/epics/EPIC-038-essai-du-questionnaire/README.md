@@ -12,7 +12,7 @@ date: 2026-11-03
 
 Lot 1 de [SPEC-016](../../specs/SPEC-016-conception-du-questionnaire.md) (R1 à R3). Dans l'éditeur du formulaire, l'équipe répond au questionnaire comme un joueur et voit aussitôt quels personnages ressortent, et pourquoi, sans rien enregistrer.
 
-Il passe après [EPIC-037](../../archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md), dont la route rend les personnages PJ.
+Il passe après [EPIC-037](../../archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md), dont US-135 étend la route pour qu'elle rende aussi les personnages PJ.
 
 ## US
 
