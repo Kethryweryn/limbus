@@ -33,5 +33,9 @@ Il passe après [EPIC-040](../EPIC-040-qualite-du-questionnaire-estimation/READM
 
 ## Suivi
 
-- 2026-11-05 : déployé (PR #135). La revue a notamment couvert une liste de proportions vidée par le contrôle de version (`assertRowsVersion`), compté une seule fois deux options de même texte, et distingué un conflit sur les proportions d'un échec de tout l'enregistrement. Le lot 3 de SPEC-016 reste à faire.
+- 2026-11-05 : déployé (PR #135). La revue a notamment étendu le contrôle de version au cas d'une liste de proportions vidée (`assertRowsVersion`), compté une seule fois deux options de même texte, et distingué un conflit sur les proportions d'un échec de tout l'enregistrement. Le lot 3 de SPEC-016 reste à faire.
+- Limites connues au déploiement :
+  - sur un questionnaire de test riche, de 22 à 23 personnages sur 60 sont « à surveiller », une ligne par personnage comme le prévoit R8. Un regroupement se décidera sur un vrai jeu, si la liste est trop longue ;
+  - la partie « Prévision » n'a été vue à l'écran que par Playwright, sur le build testé ;
+  - le message affiché quand le calcul échoue n'a pas de test (voir US-143).
 - Epic archivé.
