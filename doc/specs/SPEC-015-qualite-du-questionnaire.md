@@ -4,8 +4,8 @@ titre: Qualité du questionnaire de casting
 statut: validée
 date: 2026-11-03
 origine: ../archive/todo/indicateurs-du-questionnaire-de-casting.md
-epics: [EPIC-037]
-adr: [ADR-0050, ADR-0051, ADR-0061]
+epics: [EPIC-037, EPIC-039]
+adr: [ADR-0050, ADR-0051, ADR-0061, ADR-0063]
 ---
 
 # SPEC-015 : Qualité du questionnaire de casting
@@ -56,12 +56,12 @@ Les personnes inscrites ne voient rien de tout cela.
 
 ### Repères sur les réponses reçues
 
-- **R7** Les réponses prises en compte sont celles des inscriptions du jeu qui ont répondu à la question, quelle que soit leur période et leur statut. Une réponse donnée à une option qui n'existe plus dans le formulaire actuel (option retirée ou renommée depuis) n'est pas comptée ; le détail dit combien de réponses sont ainsi laissées de côté. Les repères ne se fondent sur aucun nombre minimal fixé à l'avance : un constat n'est affiché comme « à revoir » que si le test statistique le confirme (ADR-0061). Sinon il est « à confirmer », avec le nombre de réponses déjà reçues. Quand un repère compare de nombreuses paires (R10, R11), les tests sont corrigés pour leur nombre (méthode de Holm), pour qu'une paire ne soit pas signalée par le seul hasard.
+- **R7** Les réponses prises en compte sont celles des inscriptions du jeu qui ont répondu à la question, quelle que soit leur période et leur statut. Une personne inscrite plusieurs fois compte une seule fois : sa dernière inscription qui contient des réponses, comme dans l'assistant de casting. R8 à R10 ne portent que sur les questions reliées à un rôle : une question sans lien ne compte pas au casting, et R5 la signale déjà. Une réponse donnée à une option qui n'existe plus dans le formulaire actuel (option retirée ou renommée depuis) n'est pas comptée ; le détail dit combien de réponses sont ainsi laissées de côté. Les repères ne se fondent sur aucun nombre minimal fixé à l'avance : un constat n'est affiché comme « à revoir » que si le test statistique le confirme (ADR-0061). Sinon il est « à confirmer », avec le nombre de réponses déjà reçues. Quand un repère compare de nombreuses paires (R10, R11), les tests sont corrigés pour leur nombre (méthode de Holm), pour qu'une paire ne soit pas signalée par le seul hasard.
 - **R8** Question qui ne départage pas : quand une même réponse est choisie par 8 personnes sur 10 ou plus, avec un intervalle de Wilson à 95 % dont la borne basse atteint 0,8, la question est « à revoir ». Si la proportion observée atteint 0,8 sans que la borne basse l'atteigne, elle est « à confirmer ». Pour une question à choix multiples, la règle s'applique à chaque option : une option cochée par presque tout le monde ne départage pas. Pour une question à choix unique ou une échelle, le détail donne aussi l'entropie normalisée ; pour une question à choix multiples, la part de chaque option.
-- **R9** Échelle tassée à une extrémité : quand plus de 15 % des réponses sont au minimum ou au maximum de l'échelle (critère de Terwee et al.), avec une borne basse de Wilson au-dessus de 15 %, l'échelle est « à revoir » ; « à confirmer » si seule la proportion observée dépasse 15 %. La règle R8 s'applique aussi aux échelles. Le détail donne aussi la dispersion ordinale de Leik.
+- **R9** Échelle tassée à une extrémité : quand plus de 20 % des réponses sont au minimum ou au maximum de l'échelle, soit plus que la part de cette note dans une répartition égale entre les 5 notes, avec une borne basse de Wilson au-dessus de 20 %, l'échelle est « à revoir » ; « à confirmer » si seule la proportion observée dépasse 20 %. La règle R8 s'applique aussi aux échelles ; quand elle signale déjà cette note, R9 ne la signale pas une seconde fois. Le détail donne aussi la dispersion ordinale de Leik.
 - **R10** Questions qui font doublon, pour deux questions à choix unique ou échelles répondues par les mêmes personnes :
-  - entre deux questions dont l'une au moins est à choix unique : V de Cramér corrigé (Bergsma). Il est « à revoir » quand il atteint le seuil « fort » de Cohen pour la taille du tableau (0,50 divisé par la racine du plus petit nombre d'options moins un). Il n'est calculé que si les effectifs remplissent les conditions de Cochran ; sinon, « à confirmer » ;
-  - entre deux échelles : corrélation de Spearman. Elle est « à revoir » quand la borne basse de son intervalle à 95 % dépasse 0,50 (limite haute de Clark et Watson), « à confirmer » si seule la valeur observée la dépasse.
+  - entre deux questions dont l'une au moins est à choix unique : V de Cramér corrigé (Bergsma), comparé au seuil « fort » de Cohen pour la taille du tableau (0,50 divisé par la racine du plus petit nombre d'options répondues moins un). Une paire dont le V n'atteint pas le seuil n'est pas affichée. Quand il l'atteint, elle est « à revoir » si les effectifs remplissent les conditions de Cochran et si le test contre ce seuil le confirme (ADR-0063) ; sinon, « à confirmer » ;
+  - entre deux échelles : corrélation de Spearman, en valeur absolue car deux échelles opposées disent la même chose. Elle est « à revoir » quand la borne basse de son intervalle à 95 % dépasse 0,50 (limite haute de Clark et Watson), « à confirmer » si seule la valeur observée la dépasse.
   La phrase donne la réponse la plus liée : « ceux qui répondent Intrigue à la question 3 répondent presque toujours 4 ou 5 à la question 5 ».
 - **R11** Personnages indistincts chez les inscrits : pour deux personnages PJ, corrélation de leurs notes chez les personnes qui ont répondu. Ils sont « à revoir » quand la borne basse de son intervalle à 95 % atteint 0,85 (seuil prudent du critère HTMT), « à confirmer » si seule la valeur observée l'atteint. Ce repère complète R6. Un personnage dont la note est la même pour tout le monde (personne ne donne ses réponses) n'a pas de corrélation : il n'est pas comparé, et R12 le signale. De même, R10 ne compare pas une question à laquelle tout le monde a répondu pareil : R8 la signale déjà.
 - **R12** Personnages peu ou trop demandés : pour chaque personne, ses 3 personnages les mieux notés (ex æquo compris, note non nulle).
@@ -96,10 +96,11 @@ Rien n'est enregistré : les repères se calculent à la lecture, à partir du f
 ## Découpage
 
 1. **Repères sur les liens** ([EPIC-037](../archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md)) : encadré, route, R1 à R6. Fait.
-2. **Repères sur les réponses** : R7 à R12.
+2. **Repères sur les réponses** ([EPIC-039](../epics/EPIC-039-qualite-du-questionnaire-reponses/README.md)) : R7 à R12.
 3. **Estimation générale** : R13, avec le choix de ses seuils.
 
 ## Historique
 
 - 2026-11-03 : création, avec les choix de l'utilisatrice : tous les repères proposés sur les liens et sur les réponses ; affichage dans l'éditeur du formulaire ; questionnaire seul, sans les contraintes ; indicateurs statistiques reconnus plutôt que des pourcentages fixés à la main (ADR-0061) ; fiabilité jugée par les tests seuls, sauf pour « peu demandé », un simple compte qu'aucun test ne juge : il n'est affiché qu'à partir de réponses aussi nombreuses que la moitié des personnages PJ ; seuil HTMT de 0,85 ; « 8 personnes sur 10 » pour une question qui ne départage pas ; demande jugée par les 3 meilleurs personnages ; phrase, couleur et détail replié.
 - 2026-11-03 : lot 1 livré ([EPIC-037](../archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md), PR #127).
+- 2026-11-04 : précisions avant le lot 2, choix de l'utilisatrice ([ADR-0063](../adr/ADR-0063-reperes-sur-les-reponses.md)) : extrémité d'une échelle comparée à 20 % et non 15 %, car une répartition égale y met déjà 20 % ; repères sur les réponses limités aux questions reliées ; doublon « à confirmer » seulement si le lien observé atteint le seuil ; une personne comptée une fois.

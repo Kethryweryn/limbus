@@ -46,6 +46,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-036](../archive/epics/EPIC-036-ia-inscriptions/README.md) | Brancher une IA, lot 4 : inscriptions | [SPEC-014](../specs/SPEC-014-api-pour-ia.md) | terminé |
 | [EPIC-037](../archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md) | Qualité du questionnaire, lot 1 : repères sur les liens | [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) | terminé |
 | [EPIC-038](EPIC-038-essai-du-questionnaire/README.md) | Aide à la conception du questionnaire, lot 1 : essai par l'équipe | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | à faire |
+| [EPIC-039](EPIC-039-qualite-du-questionnaire-reponses/README.md) | Qualité du questionnaire, lot 2 : repères sur les réponses | [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) | à faire |
 
 ## US
 
@@ -186,3 +187,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-133](../archive/epics/EPIC-037-qualite-du-questionnaire-liens/US-133-encadre-et-liens-manquants.md) | L'encadré « Qualité du questionnaire » et les liens manquants | EPIC-037 | terminée |
 | [US-134](../archive/epics/EPIC-037-qualite-du-questionnaire-liens/US-134-personnages-indistincts-par-les-liens.md) | Les personnages que les liens ne distinguent pas | EPIC-037 | terminée |
 | [US-135](EPIC-038-essai-du-questionnaire/US-135-essayer-le-questionnaire.md) | Essayer le questionnaire comme un joueur | EPIC-038 | à faire |
+| [US-136](EPIC-039-qualite-du-questionnaire-reponses/US-136-questions-qui-ne-departagent-pas.md) | Les questions qui ne départagent pas et les échelles tassées | EPIC-039 | à faire |
+| [US-137](EPIC-039-qualite-du-questionnaire-reponses/US-137-questions-qui-font-doublon.md) | Les questions qui font doublon | EPIC-039 | à faire |
+| [US-138](EPIC-039-qualite-du-questionnaire-reponses/US-138-personnages-indistincts-chez-les-inscrits.md) | Les personnages indistincts chez les inscrits | EPIC-039 | à faire |
+| [US-139](EPIC-039-qualite-du-questionnaire-reponses/US-139-personnages-peu-ou-trop-demandes.md) | Les personnages peu ou trop demandés | EPIC-039 | à faire |
