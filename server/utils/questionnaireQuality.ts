@@ -5,7 +5,8 @@ import { getCurrentRegistrationForm } from '~/server/utils/registrationForms'
 import { currentQuestionLinks } from '~/server/utils/registrationQuestionLinks'
 import { latestAnswersPerPerson, questionnaireFindings } from '~/utils/questionnaireQuality'
 
-// Repères sur le questionnaire de casting d'un jeu (SPEC-015, US-133, US-136 à US-139) : calculés à la lecture, rien n'est écrit
+// Repères sur le questionnaire de casting d'un jeu (SPEC-015, US-133, US-136 à US-139) : calculés à la lecture, rien n'est écrit.
+// Rend aussi les personnages PJ, pour l'essai du questionnaire (SPEC-016, US-135)
 
 export async function questionnaireQuality(gameId: string) {
   const [{ definition }, links, characters, registrations] = await Promise.all([
@@ -21,6 +22,7 @@ export async function questionnaireQuality(gameId: string) {
   ])
   return {
     characterCount: characters.length,
+    characters: characters.map(({ id, name, factions, intrigues }) => ({ id, name, factions, intrigues })),
     questionCount: definition.questions.filter((question) => question.type !== 'text').length,
     ...questionnaireFindings(definition.questions, links, characters, latestAnswersPerPerson(registrations))
   }

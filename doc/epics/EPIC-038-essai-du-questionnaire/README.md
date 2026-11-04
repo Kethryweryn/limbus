@@ -1,7 +1,7 @@
 ---
 id: EPIC-038
 titre: Aide à la conception du questionnaire, lot 1 : essai par l'équipe
-statut: à faire
+statut: terminé
 spec: ../../specs/SPEC-016-conception-du-questionnaire.md
 date: 2026-11-03
 ---
@@ -18,7 +18,7 @@ Il passe après [EPIC-037](../../archive/epics/EPIC-037-qualite-du-questionnaire
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-135](US-135-essayer-le-questionnaire.md) | Essayer le questionnaire comme un joueur | à faire |
+| [US-135](US-135-essayer-le-questionnaire.md) | Essayer le questionnaire comme un joueur | terminée |
 
 ## Décisions
 

@@ -244,6 +244,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatScore } from '~/utils/castingAssistant'
 import { computed, ref, watch } from 'vue'
 import { CHARACTER_TYPES, SESSION_ROLES } from '~/utils/domain'
 import { apiErrorMessage } from '~/utils/apiErrors'
@@ -374,10 +375,6 @@ function assistantCharacterName(characterId: string) {
 
 function assistantPlayerName(playerId: string) {
   return assistant.value?.players.find((player) => player.id === playerId)?.name || '?'
-}
-
-function formatScore(value: number) {
-  return Number(value.toFixed(2)).toLocaleString('fr-FR')
 }
 
 async function runAssistant() {

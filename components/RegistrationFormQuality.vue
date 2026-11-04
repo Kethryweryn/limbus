@@ -30,6 +30,7 @@
 </template>
 
 <script setup lang="ts">
+import type { QualityCharacter } from '~/utils/questionnaireQuality'
 import { describeEstimate, describeFinding, QUALITY_LEVELS, qualityScope } from '~/utils/questionnaireQualityText'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
@@ -40,6 +41,9 @@ const props = defineProps<{
   gameId: string
   refreshKey: number
 }>()
+
+// Les personnages PJ lus par la route, pour l'essai du questionnaire (US-135) ; null si une lecture hors ligne d'avant US-135 ne les a pas
+const emit = defineEmits<{ characters: [characters: QualityCharacter[] | null] }>()
 
 const quality = ref<ApiResponse<'/api/games/:id/registration-form-quality'> | null>(null)
 const errorMessage = ref('')
@@ -52,6 +56,7 @@ watch(() => [props.gameId, props.refreshKey], async () => {
     const result = await useApiFetch(`/api/games/${props.gameId}/registration-form-quality`, { offlineCache: true })
     if (request !== lastRequest) return
     quality.value = result
+    emit('characters', result.characters ?? null)
     errorMessage.value = ''
   } catch (err) {
     if (request === lastRequest) errorMessage.value = apiErrorMessage(err, 'Impossible de calculer la qualité du questionnaire')

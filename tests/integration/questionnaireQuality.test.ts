@@ -38,6 +38,12 @@ describe('repères sur les liens du questionnaire', () => {
     expect(response.status).toBe(200)
     const quality = bodyOf<Quality>(response)
     expect(quality).toMatchObject({ characterCount: 3, questionCount: 1 })
+    // US-135 : les personnages PJ, avec leurs factions, pour l'essai du questionnaire ; ni PNJ ni relations
+    expect(quality.characters).toEqual([
+      { id: aldric!.id, name: 'Aldric', factions: [{ id: loups.id, name: 'Loups' }], intrigues: [] },
+      { id: bertrand!.id, name: 'Bertrand', factions: [{ id: loups.id, name: 'Loups' }], intrigues: [] },
+      { id: expect.any(String), name: 'Cyrielle', factions: [], intrigues: [] }
+    ])
     expect(quality.findings).toEqual([
       { kind: 'characterWithoutLink', level: 'review', character: { id: expect.any(String), name: 'Cyrielle' } },
       expect.objectContaining({ kind: 'indistinctCharacters', characters: [{ id: aldric!.id, name: 'Aldric' }, { id: bertrand!.id, name: 'Bertrand' }], similarity: 1, separating: null }),

@@ -127,10 +127,13 @@
               </div>
             </div>
           </div>
-          <UButton size="sm" color="neutral" variant="soft" icon="i-heroicons-plus" @click="addQuestion">Ajouter une question</UButton>
+          <div class="flex flex-wrap gap-2">
+            <UButton size="sm" color="neutral" variant="soft" icon="i-heroicons-plus" @click="addQuestion">Ajouter une question</UButton>
+            <UButton size="sm" color="neutral" variant="soft" icon="i-heroicons-play" :disabled="!linksLoaded" @click="trialOpen = true">Essayer le questionnaire</UButton>
+          </div>
         </section>
 
-        <RegistrationFormQuality :game-id="gameId" :refresh-key="qualityKey" />
+        <RegistrationFormQuality :game-id="gameId" :refresh-key="qualityKey" @characters="trialCharacters = $event" />
 
         <section class="space-y-3">
           <h3 class="font-semibold">Aperçu</h3>
@@ -178,6 +181,8 @@
           <UButton color="primary" :loading="saving" @click="save">Enregistrer</UButton>
           <UButton color="neutral" variant="soft" @click="open = false">Fermer</UButton>
         </div>
+
+        <RegistrationFormTrial v-if="trialOpen" v-model:open="trialOpen" :characters="trialCharacters" :questions="trialQuestions" :links="trialLinks" />
       </div>
     </template>
   </UModal>
@@ -201,6 +206,7 @@ import {
 import { apiErrorMessage } from '~/utils/apiErrors'
 import { formatLongDateTime } from '~/utils/dates'
 import { isOfflineQueued, type ApiResponse } from '~/composables/useApiFetch'
+import type { QualityCharacter } from '~/utils/questionnaireQuality'
 
 // Listes de réglages, sous une forme que les composants acceptent (les constantes sont en lecture seule)
 const STANDARD_FIELDS: Array<{ key: RegistrationStandardFieldKey, label: string, description?: string }> = [...REGISTRATION_STANDARD_FIELDS]
@@ -316,11 +322,16 @@ const definitionQuestions = () => questions.value.map((question) => ({
   options: questionOptions(question)
 }))
 
-// L'aperçu montre les questions telles qu'elles seront posées, même avant l'enregistrement
+// Les questions telles qu'elles seront posées, même avant l'enregistrement : une nouvelle question a un identifiant provisoire
+const draftId = (question: EditableQuestion) => question.id ?? `brouillon-${question.key}`
+const draftQuestions = computed(() => questions.value
+  .filter((question) => question.label.trim())
+  .map((question) => ({ id: draftId(question), label: question.label.trim(), type: question.type, required: question.required, options: questionOptions(question) })))
+
 const previewDefinition = computed(() => ({
   affinities: affinities.value,
   balance: { ...balance.value, ...(balanceAttribute.value || {}) },
-  questions: definitionQuestions().filter((question) => question.label.trim()).map((question, index) => ({ ...question, id: question.id || `apercu-${index}` }))
+  questions: draftQuestions.value
 }))
 
 function addQuestion() {
@@ -365,12 +376,31 @@ function linkDrafts() {
     : questionOptions(question).map((option) => ({ option, values: question.optionLinks[option] || [] })))
 }
 
-function linksPayload(drafts: ReturnType<typeof linkDrafts>) {
+// Un lien par question, option et rôle
+function draftLinks(drafts: ReturnType<typeof linkDrafts>) {
   return questions.value.flatMap((question, index) => (drafts[index] || []).flatMap(({ option, values }) => values.map((value) => {
-    const [kind, id] = value.split(':')
-    return { questionId: question.id, option, [`${kind}Id`]: id }
+    const [kind = '', id = ''] = value.split(':')
+    return { question, option, kind, id }
   })))
 }
+
+function linksPayload(drafts: ReturnType<typeof linkDrafts>) {
+  return draftLinks(drafts).map(({ question, option, kind, id }) => ({ questionId: question.id, option, [`${kind}Id`]: id }))
+}
+
+// Essai du questionnaire (US-135) : les questions et les liens en cours, et les personnages PJ que l'encadré a lus (null avant sa lecture)
+const trialOpen = ref(false)
+const trialCharacters = ref<QualityCharacter[] | null>(null)
+const trialQuestions = computed(() => draftQuestions.value.filter((question) => question.type !== 'text'))
+const trialLinks = computed(() => {
+  const { characters, factions, intrigues } = linkTargets.value
+  const names = new Map<string, string>([
+    ...characters.map((entry) => [`character:${entry.id}`, entry.name] as const),
+    ...factions.map((entry) => [`faction:${entry.id}`, entry.name] as const),
+    ...intrigues.map((entry) => [`intrigue:${entry.id}`, entry.name] as const)
+  ])
+  return draftLinks(linkDrafts()).map(({ question, option, kind, id }) => ({ questionId: draftId(question), option, target: { kind, id, name: names.get(`${kind}:${id}`) ?? '' } }))
+})
 
 function apply(data: SavedForm) {
   settings.value = cloneSettings(REGISTRATION_STANDARD_FIELDS, data.definition.standardFields)
