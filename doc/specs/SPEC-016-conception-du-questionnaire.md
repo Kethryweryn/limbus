@@ -5,7 +5,7 @@ statut: validée
 date: 2026-11-03
 origine: ../archive/todo/aide-a-la-conception-du-questionnaire.md
 epics: [EPIC-038]
-adr: [ADR-0050, ADR-0051, ADR-0058, ADR-0061, ADR-0062]
+adr: [ADR-0050, ADR-0051, ADR-0058, ADR-0061, ADR-0062, ADR-0064]
 ---
 
 # SPEC-016 : Aide à la conception du questionnaire de casting
@@ -56,7 +56,7 @@ Les personnes inscrites ne voient que l'ordre mélangé des options.
 - **R6** Proportions attendues : pour chaque question reliée, l'équipe peut indiquer la part attendue de chaque option (chaque niveau d'une échelle ; pour une question à choix multiples, la part des personnes qui cochent chaque option). Sans proportions, chaque option a la même chance, et une option d'une question à choix multiples est cochée une fois sur deux. Les proportions d'une question se donnent pour toutes ses options ou pour aucune : une option laissée vide compte pour 0. Pour une question à choix unique ou une échelle, au moins une part doit être positive. Les proportions sont enregistrées avec le jeu, hors des versions du formulaire, comme les liens : les modifier ne crée pas de version.
 - **R7** Simulation : des personnes fictives, autant que de personnages PJ, répondent à toutes les questions reliées selon les proportions de R6. Leurs réponses passent par les mêmes calculs que les vraies réponses dans SPEC-015. La simulation est répétée 1 000 fois, et donne pour chaque résultat sa valeur médiane et une fourchette qui contient 95 % des simulations.
 - **R8** Personnages peu ou trop demandés, prévus : la règle de SPEC-015 (R12) s'applique à la médiane des simulations. Un personnage est « à surveiller » quand, pour une inscription typique, moins de 2 personnes l'ont parmi leurs 3 meilleurs, ou plus de 3 l'ont pour meilleur. La phrase dit dans quelle part des simulations c'est le cas : « Aldric serait peu demandé dans 7 simulations sur 10 ».
-- **R9** Estimation générale prévue : les deux mesures de SPEC-015 (R13), note obtenue rapportée à la meilleure possible et part des meilleures notes ex æquo, sont données avec leur médiane et leur fourchette. Elles n'ont pas de niveau tant que les seuils de R13 ne sont pas choisis (SPEC-015, lot 3) ; ensuite, ces seuils s'appliquent à la médiane.
+- **R9** Estimation générale prévue : les deux mesures de SPEC-015 (R13), note obtenue rapportée à la meilleure possible et part des meilleures notes ex æquo, sont données avec leur médiane et leur fourchette. Les seuils de R13 ([ADR-0064](../adr/ADR-0064-estimation-generale-du-questionnaire.md)) s'appliquent directement à la médiane, sans intervalle de Wilson : la note est « bon » à partir de 0,75, « à surveiller » de 0,60 à 0,75, « à revoir » sous 0,60 ; les ex æquo sont « bon » jusqu'à une personne sur deux, « à revoir » au-delà. Il n'y a pas de niveau « à confirmer », car aucune réponse n'est attendue pour lever le doute ; la fourchette reste affichée à côté.
 - **R10** La simulation donne le même résultat à chaque ouverture tant que le formulaire, les liens, les personnages et les proportions ne changent pas.
 
 ### Relecture des questions

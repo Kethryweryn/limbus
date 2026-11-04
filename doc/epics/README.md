@@ -47,7 +47,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-037](../archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md) | Qualité du questionnaire, lot 1 : repères sur les liens | [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) | terminé |
 | [EPIC-038](EPIC-038-essai-du-questionnaire/README.md) | Aide à la conception du questionnaire, lot 1 : essai par l'équipe | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | à faire |
 | [EPIC-039](../archive/epics/EPIC-039-qualite-du-questionnaire-reponses/README.md) | Qualité du questionnaire, lot 2 : repères sur les réponses | [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) | terminé |
-| [EPIC-040](EPIC-040-qualite-du-questionnaire-estimation/README.md) | Qualité du questionnaire, lot 3 : estimation générale | [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) | en cours |
+| [EPIC-040](../archive/epics/EPIC-040-qualite-du-questionnaire-estimation/README.md) | Qualité du questionnaire, lot 3 : estimation générale | [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) | terminé |
 
 ## US
 
@@ -192,4 +192,4 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-137](../archive/epics/EPIC-039-qualite-du-questionnaire-reponses/US-137-questions-qui-font-doublon.md) | Les questions qui font doublon | EPIC-039 | terminée |
 | [US-138](../archive/epics/EPIC-039-qualite-du-questionnaire-reponses/US-138-personnages-indistincts-chez-les-inscrits.md) | Les personnages indistincts chez les inscrits | EPIC-039 | terminée |
 | [US-139](../archive/epics/EPIC-039-qualite-du-questionnaire-reponses/US-139-personnages-peu-ou-trop-demandes.md) | Les personnages peu ou trop demandés | EPIC-039 | terminée |
-| [US-140](EPIC-040-qualite-du-questionnaire-estimation/US-140-estimation-generale.md) | L'estimation générale du questionnaire | EPIC-040 | terminée |
+| [US-140](../archive/epics/EPIC-040-qualite-du-questionnaire-estimation/US-140-estimation-generale.md) | L'estimation générale du questionnaire | EPIC-040 | terminée |
