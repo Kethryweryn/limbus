@@ -24,7 +24,7 @@ En tant qu'organisatrice, je veux répondre à mon questionnaire comme un joueur
 ## Notes techniques
 
 - `components/RegistrationFormTrial.vue` (`UModal`, contenu dans `#body`), monté à l'ouverture depuis `components/RegistrationFormEditor.vue`. Il reçoit les questions et les liens de l'éditeur ; une question pas encore enregistrée y a un identifiant provisoire.
-- Les personnages PJ, avec leurs factions et intrigues, viennent de la route de l'encadré (`GET /api/games/:id/registration-form-quality`, US-133), qui les rend en plus des repères.
+- Les personnages PJ, avec leurs factions et intrigues, viennent de la route de l'encadré (`GET /api/games/:id/registration-form-quality`, US-133), qui les rend en plus des repères. L'encadré les passe à l'éditeur : l'essai ne relit pas la route.
 - Notes : `trialRanking` (`utils/questionnaireTrial.ts`) sur `castingScore` (`utils/castingAssistant.ts`), dans le navigateur. Aucune route d'écriture.
 - Les champs de réponse réutilisent le rendu des questions du formulaire public (`components/RegistrationExtraFields.vue`).
 

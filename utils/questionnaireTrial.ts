@@ -14,6 +14,6 @@ export function trialRanking(characters: QualityCharacter[], questions: CastingQ
   const sameScore = Map.groupBy(reached, ({ score }) => score)
   return {
     ranked: [...reached].sort((a, b) => b.score - a.score).map((entry) => ({ ...entry, tied: sameScore.get(entry.score)!.length > 1 })),
-    unreached: scored.filter(({ score }) => score === 0).map(({ id, name }) => ({ id, name }))
+    unreached: scored.filter(({ score }) => score === 0).map(({ name }) => name)
   }
 }

@@ -14,7 +14,7 @@ describe('classement de l’essai (US-135)', () => {
   it('sans réponse, aucun personnage n’est rejoint', () => {
     expect(trialRanking([character('A'), character('B')], questions, [link('style', 'Intrigue', 'character', 'A')], {})).toEqual({
       ranked: [],
-      unreached: [{ id: 'A', name: 'A' }, { id: 'B', name: 'B' }]
+      unreached: ['A', 'B']
     })
   })
 
@@ -27,7 +27,7 @@ describe('classement de l’essai (US-135)', () => {
     ])
     expect(ranked[0]?.components).toEqual([{ label: '« Ton style » : Intrigue → B', points: 1 }])
     expect(ranked[1]?.components).toEqual([{ label: '« Ton expérience » : 3/5 → A', points: 0.5 }])
-    expect(unreached).toEqual([{ id: 'C', name: 'C' }])
+    expect(unreached).toEqual(['C'])
   })
 
   it('compte ½ point par la faction, et signale les ex æquo', () => {

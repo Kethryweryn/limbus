@@ -69,7 +69,8 @@ test('l’essai du questionnaire classe les personnages selon les réponses, san
     const title = `Jeu ${key}`
     const game = await prisma.game.create({ data: { title, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
     await prisma.character.create({ data: { name: 'Aldric Essai', slug: `aldric-${key}`, gameId: game.id } })
-    await prisma.character.create({ data: { name: 'Bertrand Essai', slug: `bertrand-${key}`, gameId: game.id } })
+    const loups = await prisma.faction.create({ data: { name: 'Loups', slug: `loups-${key}`, gameId: game.id } })
+    await prisma.character.create({ data: { name: 'Bertrand Essai', slug: `bertrand-${key}`, gameId: game.id, factions: { connect: { id: loups.id } } } })
     await prisma.registrationForm.create({
       data: {
         gameId: game.id,
@@ -93,10 +94,21 @@ test('l’essai du questionnaire classe les personnages selon les réponses, san
     await trial.getByRole('button', { name: 'Close' }).click()
     await expect(trial).toBeHidden()
 
-    // Un lien pas encore enregistré compte dans l'essai
-    await editor.getByText('Personnages, factions, intrigues…').first().click()
-    await page.getByRole('option', { name: 'Aldric Essai' }).click()
-    await page.keyboard.press('Escape')
+    // Des liens pas encore enregistrés comptent dans l'essai, ceux d'une nouvelle question aussi
+    const linkOption = async (target: string) => {
+      await editor.getByText('Personnages, factions, intrigues…').first().click()
+      await page.getByRole('option', { name: target }).click()
+      await page.keyboard.press('Escape')
+      await expect(page.getByRole('option')).toHaveCount(0)
+    }
+    await linkOption('Aldric Essai')
+    await linkOption('Loups (faction)')
+    await editor.getByRole('button', { name: 'Ajouter une question' }).click()
+    await editor.getByLabel('Question', { exact: true }).last().fill('Ton envie')
+    await editor.getByRole('combobox').last().click()
+    await page.getByRole('option', { name: 'Choix unique' }).click()
+    await editor.getByLabel('Options').last().fill('Romance\nTrahison')
+    await linkOption('Aldric Essai')
     await tryButton.click()
     await expect(trial.getByText('Aldric Essai, Bertrand Essai')).toBeVisible()
 
@@ -105,6 +117,13 @@ test('l’essai du questionnaire classe les personnages selon les réponses, san
     await expect(trial.getByText('« Ton style » : Intrigue → Aldric Essai (+1)')).toBeVisible()
     await expect(trial.getByText('Qu’aucune réponse donnée ne rejoint')).toBeVisible()
     await expect(trial.getByText('Bertrand Essai')).toBeVisible()
+
+    await trial.getByRole('radio', { name: 'Romance' }).check()
+    await expect(trial.getByRole('listitem').filter({ hasText: 'Aldric Essai' })).toContainText('2 points')
+
+    await trial.getByRole('radio', { name: 'Combat' }).check()
+    await expect(trial.getByRole('listitem').filter({ hasText: 'Bertrand Essai' })).toContainText('0,5 point')
+    await expect(trial.getByText('« Ton style » : Combat → faction Loups (+0,5)', { exact: true })).toBeVisible()
 
     // Fermer oublie les réponses et n'écrit rien
     await trial.getByRole('button', { name: 'Close' }).click()
