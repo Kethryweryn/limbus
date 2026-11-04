@@ -97,3 +97,81 @@ describe('repères sur les réponses reçues', () => {
     expect(JSON.stringify(quality)).not.toContain(key)
   })
 })
+
+// EPIC-041 : proportions attendues des options (US-141), et ce que la route de l'encadré rend pour la prévision (US-142)
+describe('proportions attendues des options', () => {
+  type Expectations = ApiResponse<'/api/games/:id/registration-option-expectations'>
+
+  it('les enregistre hors des versions, refuse le reste, contrôle la version, et les copie avec le jeu', async () => {
+    const key = `proportions-${Date.now()}`
+    const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
+    const aldric = await prisma.character.create({ data: { name: 'Aldric', slug: `${key}-aldric`, gameId: game.id } })
+    const form = await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, {
+      standardFields,
+      questions: [
+        { label: 'Ton style', type: 'single', required: false, options: ['Intrigue', 'Combat'] },
+        { label: 'Ton envie', type: 'scale', required: false },
+        { label: 'Tes goûts', type: 'multiple', required: false, options: ['Romance', 'Trahison'] }
+      ]
+    })
+    expect(form.status, JSON.stringify(form.body)).toBe(200)
+    const formBody = bodyOf<ApiResponse<'/api/games/:id/registration-form', 'put'>>(form)
+    const [style, envie, gouts] = formBody.definition.questions
+    const route = `/api/games/${game.id}/registration-option-expectations`
+    const read = async () => bodyOf<Expectations>(await api(alice, 'GET', route))
+
+    expect(await read()).toEqual({ expectations: [], version: null })
+
+    // Refus : une option inconnue, un niveau hors de l'échelle, une part hors bornes, des parts toutes nulles
+    expect((await api(alice, 'PUT', route, { expectations: [{ questionId: style!.id, option: 'Disparue', share: 0.5 }] })).status).toBe(400)
+    expect((await api(alice, 'PUT', route, { expectations: [{ questionId: envie!.id, option: '6', share: 0.5 }] })).status).toBe(400)
+    expect((await api(alice, 'PUT', route, { expectations: [{ questionId: style!.id, option: 'Intrigue', share: 1.2 }] })).status).toBe(400)
+    expect((await api(alice, 'PUT', route, { expectations: [{ questionId: style!.id, option: 'Intrigue', share: 0 }] })).status).toBe(400)
+    expect((await api(alice, 'PUT', route, { expectations: [{ questionId: envie!.id, option: '3', share: 0 }] })).status).toBe(400)
+
+    const rows = [
+      { questionId: style!.id, option: 'Intrigue', share: 0.7 },
+      { questionId: style!.id, option: 'Combat', share: 0.3 },
+      { questionId: envie!.id, option: '3', share: 1 },
+      // Une question à choix multiples peut n'avoir que des parts nulles : personne ne coche
+      { questionId: gouts!.id, option: 'Romance', share: 0 }
+    ]
+    const sent = await api(alice, 'PUT', route, { expectations: rows }, { headers: { 'if-unmodified-since': new Date(0).toISOString() } })
+    expect(sent.status, JSON.stringify(sent.body)).toBe(200)
+    const saved = bodyOf<Expectations>(sent)
+    expect(saved.expectations).toHaveLength(4)
+    expect(saved.version).not.toBeNull()
+    expect(await read()).toEqual(saved)
+    // Sans nouvelle version du formulaire
+    const current = bodyOf<ApiResponse<'/api/games/:id/registration-form'>>(await api(alice, 'GET', `/api/games/${game.id}/registration-form`))
+    expect(current.version?.number).toBe(formBody.version?.number)
+
+    // Une version lue périmée : conflit, et rien n'est écrit
+    const stale = await api(alice, 'PUT', route, { expectations: [rows[0]] }, { headers: { 'if-unmodified-since': new Date(0).toISOString() } })
+    expect(stale.status).toBe(409)
+    expect((await read()).expectations).toHaveLength(4)
+    const fresh = await api(alice, 'PUT', route, { expectations: rows.slice(0, 3) }, { headers: { 'if-unmodified-since': saved.version! } })
+    expect(fresh.status, JSON.stringify(fresh.body)).toBe(200)
+
+    // La route de l'encadré rend ce que la prévision calcule
+    const links = await api(alice, 'PUT', `/api/games/${game.id}/registration-question-links`, { links: [{ questionId: style!.id, option: 'Intrigue', characterId: aldric.id }] })
+    expect(links.status).toBe(200)
+    const quality = bodyOf<Quality>(await api(alice, 'GET', `/api/games/${game.id}/registration-form-quality`))
+    expect(quality.forecastInput.questions.map(({ id }) => id)).toEqual([style!.id, envie!.id, gouts!.id])
+    expect(quality.forecastInput.links).toEqual([{ questionId: style!.id, option: 'Intrigue', target: { kind: 'character', id: aldric.id, name: 'Aldric' } }])
+    expect(quality.forecastInput.expectations).toHaveLength(3)
+
+    // La copie du jeu les emporte
+    const copied = await api(alice, 'POST', `/api/games/${game.id}/bequests`, { email: 'bob@example.test' })
+    expect(copied.status, JSON.stringify(copied.body)).toBe(200)
+    const copy = await prisma.game.findFirstOrThrow({ where: { copiedFromGameId: game.id }, include: { registrationOptionExpectations: true } })
+    expect(copy.registrationOptionExpectations).toHaveLength(3)
+
+    // Une option retirée du formulaire : sa ligne est ignorée à la lecture
+    await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, {
+      standardFields,
+      questions: [{ id: style!.id, label: 'Ton style', type: 'single', required: false, options: ['Intrigue', 'Diplomatie'] }]
+    })
+    expect((await read()).expectations).toEqual([{ questionId: style!.id, option: 'Intrigue', share: 0.7 }])
+  })
+})

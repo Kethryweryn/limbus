@@ -136,3 +136,79 @@ test('l’essai du questionnaire classe les personnages selon les réponses, san
     await prisma.$disconnect()
   }
 })
+
+// EPIC-041 (US-141 à US-143) : la prévision tourne dans son Web Worker, suit les proportions enregistrées, et se replie une fois des réponses reçues
+test('la prévision du questionnaire suit les proportions attendues', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const key = `prevision-${Date.now()}`
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+    const title = `Jeu ${key}`
+    const game = await prisma.game.create({ data: { title, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
+    const names = ['Aldric', 'Bertrand', 'Cyrielle', 'Dorian']
+    const [aldric, bertrand] = await Promise.all(names.map((name) => prisma.character.create({ data: { name: `${name} Prévision`, slug: `${name.toLowerCase()}-${key}`, gameId: game.id } })))
+    await prisma.registrationForm.create({
+      data: {
+        gameId: game.id,
+        versions: { create: { number: 1, definition: { ...DEFAULT_REGISTRATION_FORM_DEFINITION, questions: [{ id: 'style', label: 'Ton style', type: 'single', required: false, options: ['Intrigue', 'Combat'] }] } } }
+      }
+    })
+    await prisma.registrationQuestionLink.createMany({
+      data: [
+        { gameId: game.id, questionId: 'style', option: 'Intrigue', characterId: aldric!.id },
+        { gameId: game.id, questionId: 'style', option: 'Combat', characterId: bertrand!.id }
+      ]
+    })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: 'Période', publicId: key, entryMode: 'form' } })
+
+    const openEditor = async () => {
+      await page.goto('/registrations')
+      await page.waitForLoadState('networkidle')
+      await gamePanel(page, title, 'Formulaire').getByRole('button', { name: 'Formulaire' }).click()
+    }
+    await signIn(page, prisma, E2E_USERS.orga)
+    await openEditor()
+    const editor = page.getByRole('dialog', { name: /Formulaire d’inscription/ })
+
+    // Avant les réponses, la partie est dépliée, et le calcul aboutit malgré la CSP
+    await expect(editor.getByText('Vos questions distinguent au plus 2 profils de réponses, pour 4 personnages.')).toBeVisible()
+    await expect(editor.getByText(/Pour une inscription typique, chaque personne qui reçoit un rôle/)).toBeVisible()
+    await expect(editor.getByText(/Chaque réponse a la même chance/)).toBeVisible()
+    await expect(editor.getByText('Impossible de calculer la prévision.')).toBeHidden()
+
+    // Une proportion invalide est refusée avant d'enregistrer quoi que ce soit
+    await editor.getByText('Proportions attendues (facultatif)').click()
+    await editor.getByLabel('Part attendue : Intrigue').fill('0')
+    await editor.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect(editor.getByText('« Ton style » : au moins une part doit être positive, ou laissez-les toutes vides.')).toBeVisible()
+    expect(await prisma.registrationOptionExpectation.count({ where: { gameId: game.id } })).toBe(0)
+
+    // Tout le monde sur la même option : le personnage est disputé, l'autre peu demandé
+    await editor.getByLabel('Part attendue : Intrigue').fill('100')
+    await editor.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect(editor.getByText('Aldric Prévision serait disputé dans 10 simulations sur 10.')).toBeVisible()
+    await expect(editor.getByText('Bertrand Prévision serait peu demandé dans 10 simulations sur 10.')).toBeVisible()
+    await expect(editor.getByText(/Les réponses suivent vos proportions/)).toBeVisible()
+    expect(await prisma.registrationFormVersion.count({ where: { form: { gameId: game.id } } })).toBe(1)
+
+    // Les proportions se retrouvent à la réouverture
+    await openEditor()
+    await editor.getByText('Proportions attendues (facultatif)').click()
+    await expect(editor.getByLabel('Part attendue : Intrigue')).toHaveValue('100')
+    await expect(editor.getByLabel('Part attendue : Combat')).toHaveValue('')
+
+    // Une fois des réponses reçues, la partie reste là, repliée
+    const email = `zoe-${key}@example.test`
+    const person = await prisma.participant.create({ data: { name: `Zoé ${key}`, slug: `zoe-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
+    await prisma.registration.create({ data: { periodId: period.id, participantId: person.id, status: 'received', source: 'form', email, questionAnswers: { style: 'Intrigue' } } })
+    await openEditor()
+    const forecastTitle = editor.locator('summary').filter({ hasText: 'Prévision' })
+    await expect(forecastTitle).toContainText('À revoir')
+    const typical = editor.getByText(/Pour une inscription typique, chaque personne qui reçoit un rôle/)
+    await expect(typical).toBeHidden()
+    await forecastTitle.click()
+    await expect(typical).toBeVisible()
+  } finally {
+    await prisma.$disconnect()
+  }
+})

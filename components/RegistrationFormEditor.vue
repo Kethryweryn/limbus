@@ -118,6 +118,28 @@
             >
               <USelectMenu v-model="question.scaleLinks" :items="linkItems" value-key="value" multiple placeholder="Personnages, factions, intrigues…" class="w-full" />
             </UFormField>
+            <!-- Proportions attendues (US-141) : pour la prévision, jamais montrées à l'inscrit -->
+            <details v-if="isLinked(question)" class="text-sm">
+              <summary class="cursor-pointer text-xs font-medium text-gray-600">Proportions attendues (facultatif)</summary>
+              <p class="mt-1 text-xs text-gray-500">{{ question.type === 'multiple' ? MULTIPLE_SHARES_HELP : SHARES_HELP }}</p>
+              <div class="mt-1 space-y-1">
+                <div v-for="option in expectationOptions(question)" :key="option" class="grid grid-cols-3 items-center gap-2">
+                  <span class="col-span-2 truncate text-gray-700">{{ question.type === 'scale' ? `Note ${option}` : option }}</span>
+                  <UInput
+                    :model-value="question.shares[option] ?? ''"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="any"
+                    size="sm"
+                    :aria-label="`Part attendue : ${option}`"
+                    @update:model-value="question.shares[option] = String($event ?? '')"
+                  >
+                    <template #trailing><span class="text-xs text-gray-500">%</span></template>
+                  </UInput>
+                </div>
+              </div>
+            </details>
             <div class="flex flex-wrap items-center gap-3">
               <UCheckbox v-model="question.required" label="Obligatoire" />
               <div class="ml-auto flex gap-1">
@@ -206,7 +228,8 @@ import {
 import { apiErrorMessage } from '~/utils/apiErrors'
 import { formatLongDateTime } from '~/utils/dates'
 import { isOfflineQueued, type ApiResponse } from '~/composables/useApiFetch'
-import type { QualityCharacter } from '~/utils/questionnaireQuality'
+import { NO_VERSION } from '~/utils/offlineSync'
+import { SCALE_OPTIONS, type QualityCharacter } from '~/utils/questionnaireQuality'
 
 // Listes de réglages, sous une forme que les composants acceptent (les constantes sont en lecture seule)
 const STANDARD_FIELDS: Array<{ key: RegistrationStandardFieldKey, label: string, description?: string }> = [...REGISTRATION_STANDARD_FIELDS]
@@ -215,9 +238,14 @@ const QUESTION_TYPES = [...REGISTRATION_QUESTION_TYPES]
 type SavedForm = ApiResponse<'/api/games/:id/registration-form', 'put'>
 type QuestionLinks = ApiResponse<'/api/games/:id/registration-question-links'>
 type QuestionLink = QuestionLinks['links'][number]
+type OptionExpectations = ApiResponse<'/api/games/:id/registration-option-expectations'>
+
+const SHARES_HELP = 'Tout vide : chaque réponse a la même chance. Une réponse vide compte pour 0, et les parts sont ramenées à 100 % au total.'
+const MULTIPLE_SHARES_HELP = 'La part des personnes qui cochent chaque option. Tout vide : chaque option est cochée une fois sur deux. Une option vide compte pour 0.'
 
 // Question en cours d'édition : key sert au rendu, id (absent pour une nouvelle question) au serveur. optionLinks :
-// les rôles de chaque option, par texte de l'option ; scaleLinks : ceux d'une question sur une échelle (US-098)
+// les rôles de chaque option, par texte de l'option ; scaleLinks : ceux d'une question sur une échelle (US-098) ;
+// shares : les parts attendues saisies, en %, par texte de l'option ou niveau de l'échelle (US-141)
 type EditableQuestion = {
   key: number
   id?: string
@@ -227,6 +255,7 @@ type EditableQuestion = {
   optionsText: string
   optionLinks: Record<string, string[]>
   scaleLinks: string[]
+  shares: Record<string, string>
 }
 
 const open = defineModel<boolean>('open', { default: false })
@@ -260,9 +289,13 @@ watch(open, async (value) => {
     apply(current)
     noteIntention.value = current.game.noteIntention || ''
     linksLoaded.value = false
-    const linked = await useApiFetch(`/api/games/${props.gameId}/registration-question-links`)
+    const [linked, expected] = await Promise.all([
+      useApiFetch(`/api/games/${props.gameId}/registration-question-links`),
+      useApiFetch(`/api/games/${props.gameId}/registration-option-expectations`)
+    ])
     linkTargets.value = linked.targets
     applyLinks(linked.links)
+    applyExpectations(expected)
     linksLoaded.value = true
   } catch (err) {
     errorMessage.value = apiErrorMessage(err, 'Impossible de charger le formulaire')
@@ -290,28 +323,33 @@ function editableQuestion(question: Omit<RegistrationQuestion, 'id'> & { id?: st
     required: question.required,
     optionsText: question.options.join('\n'),
     optionLinks: {},
-    scaleLinks: []
+    scaleLinks: [],
+    shares: {}
   }
 }
 
 const parseOptions = (text: string | undefined) => String(text ?? '').split('\n').map((option) => option.trim()).filter(Boolean)
 
 /**
- * Les rôles suivent le texte de leur option : ajouter, retirer ou déplacer une ligne ne les change pas d'option. Une
- * ligne modifiée à la même place, quand le nombre d'options ne change pas, est un renommage : elle garde ses rôles.
+ * Les rôles et la part attendue suivent le texte de leur option : ajouter, retirer ou déplacer une ligne ne les change
+ * pas d'option. Une ligne modifiée à la même place, quand le nombre d'options ne change pas, est un renommage : elle les garde.
  */
 function setOptionsText(question: EditableQuestion, text: string) {
   const before = parseOptions(question.optionsText)
   const after = parseOptions(text)
   const links: Record<string, string[]> = {}
+  const shares: Record<string, string> = {}
   after.forEach((option, index) => {
     const previous = before[index]
     const renamed = before.length === after.length && !before.includes(option) && previous !== undefined && !after.includes(previous) ? previous : null
-    const kept = question.optionLinks[option] ?? (renamed ? question.optionLinks[renamed] : undefined)
-    if (kept?.length) links[option] = kept
+    const keptLinks = question.optionLinks[option] ?? (renamed ? question.optionLinks[renamed] : undefined)
+    if (keptLinks?.length) links[option] = keptLinks
+    const keptShare = question.shares[option] ?? (renamed ? question.shares[renamed] : undefined)
+    if (keptShare) shares[option] = keptShare
   })
   question.optionsText = text
   question.optionLinks = links
+  question.shares = shares
 }
 const questionOptions = (question: EditableQuestion) => REGISTRATION_CHOICE_TYPES.includes(question.type) ? parseOptions(question.optionsText) : []
 const definitionQuestions = () => questions.value.map((question) => ({
@@ -388,6 +426,44 @@ function linksPayload(drafts: ReturnType<typeof linkDrafts>) {
   return draftLinks(drafts).map(({ question, option, kind, id }) => ({ questionId: question.id, option, [`${kind}Id`]: id }))
 }
 
+// Proportions attendues (US-141), pour les questions reliées. La version lue évite d'écraser un autre membre de l'équipe ; le dernier
+// contenu lu ou enregistré évite de faire avancer cette version quand rien n'a changé
+const expectationsVersion = ref<string | null>(null)
+let savedExpectations = ''
+
+const expectationOptions = (question: EditableQuestion) => (question.type === 'scale' ? SCALE_OPTIONS : questionOptions(question))
+const isLinked = (question: EditableQuestion) => (question.type === 'scale' ? question.scaleLinks.length > 0 : questionOptions(question).some((option) => question.optionLinks[option]?.length))
+
+function applyExpectations({ expectations, version }: OptionExpectations) {
+  for (const question of questions.value) {
+    // Quatre décimales : une part en % se relit telle qu'elle a été saisie, sans 7,000000000000001
+    question.shares = Object.fromEntries(expectations.filter((row) => row.questionId === question.id).map((row) => [row.option, String(Number((row.share * 100).toFixed(4)))]))
+  }
+  expectationsVersion.value = version
+  savedExpectations = JSON.stringify(expectationsPayload(expectationDrafts()))
+}
+
+// Parts saisies, question par question dans l'ordre : comme les liens, relues après l'enregistrement du formulaire
+function expectationDrafts() {
+  return questions.value.map((question) => (isLinked(question)
+    ? expectationOptions(question).flatMap((option) => (question.shares[option] ? [{ option, share: Number(question.shares[option]) / 100 }] : []))
+    : []))
+}
+
+function expectationsPayload(drafts: ReturnType<typeof expectationDrafts>) {
+  return questions.value.flatMap((question, index) => (drafts[index] ?? []).map((row) => ({ questionId: question.id ?? '', ...row })))
+}
+
+// Ce qui serait refusé, à dire avant d'enregistrer quoi que ce soit (R6)
+function expectationProblem(drafts: ReturnType<typeof expectationDrafts>) {
+  for (const [index, rows] of drafts.entries()) {
+    const question = questions.value[index]!
+    if (rows.some(({ share }) => !(share >= 0 && share <= 1))) return `« ${question.label} » : une part va de 0 à 100 %.`
+    if (rows.length && question.type !== 'multiple' && rows.every(({ share }) => !share)) return `« ${question.label} » : au moins une part doit être positive, ou laissez-les toutes vides.`
+  }
+  return ''
+}
+
 // Essai du questionnaire (US-135) : les questions et les liens en cours, et les personnages PJ que l'encadré a lus (null avant sa lecture)
 const trialOpen = ref(false)
 const trialCharacters = ref<QualityCharacter[] | null>(null)
@@ -413,12 +489,19 @@ function apply(data: SavedForm) {
 }
 
 async function save() {
-  saving.value = true
   errorMessage.value = ''
   savedMessage.value = ''
+  const expectationRows = expectationDrafts()
+  const problem = expectationProblem(expectationRows)
+  if (problem) {
+    errorMessage.value = problem
+    return
+  }
+  saving.value = true
   try {
     const previous = version.value?.number
     const drafts = linkDrafts()
+    const shares = questions.value.map((question) => question.shares)
     const saved = await useApiFetch(`/api/games/${props.gameId}/registration-form`, {
       method: 'PUT',
       body: { standardFields: settings.value, affinities: affinities.value, balance: balance.value, questions: definitionQuestions(), baseVersionNumber: previous ?? null }
@@ -426,10 +509,13 @@ async function save() {
     // Hors ligne, le formulaire part en file (ADR-0036) ; les rôles, qui attendent les identifiants des nouvelles
     // questions, ne peuvent pas suivre
     if (isOfflineQueued(saved)) {
-      savedMessage.value = 'Hors ligne : le formulaire sera enregistré au retour du réseau, mais pas les rôles reliés aux options. Reliez-les de nouveau une fois le formulaire enregistré.'
+      savedMessage.value = 'Hors ligne : le formulaire sera enregistré au retour du réseau, mais pas les rôles reliés aux options ni les proportions attendues. Indiquez-les de nouveau une fois le formulaire enregistré.'
       return
     }
     apply(saved)
+    questions.value.forEach((question, index) => {
+      question.shares = shares[index] ?? {}
+    })
     // Les questions reviennent dans le même ordre, avec leurs identifiants : les liens suivent (US-098). Sans liens
     // chargés, on n'enregistre rien : une liste vide les effacerait tous
     let linksQueued = false
@@ -437,11 +523,18 @@ async function save() {
       const savedLinks = await useApiFetch(`/api/games/${props.gameId}/registration-question-links`, { method: 'PUT', body: { links: linksPayload(drafts) } })
       if (isOfflineQueued(savedLinks)) linksQueued = true
       else applyLinks(savedLinks.links)
+      // Après les liens : sans eux, une question ne serait plus reliée
+      const expectations = expectationsPayload(expectationRows)
+      if (JSON.stringify(expectations) !== savedExpectations) {
+        const savedShares = await useApiFetch(`/api/games/${props.gameId}/registration-option-expectations`, { method: 'PUT', body: { expectations, updatedAt: expectationsVersion.value ?? NO_VERSION } })
+        if (isOfflineQueued(savedShares)) linksQueued = true
+        else applyExpectations(savedShares)
+      }
     }
     qualityKey.value++
     savedMessage.value = [
       version.value?.number === previous ? 'Aucun changement : la version en vigueur est conservée.' : `Version ${version.value?.number} enregistrée.`,
-      linksQueued ? 'Hors ligne : les rôles seront enregistrés au retour du réseau.' : ''
+      linksQueued ? 'Hors ligne : les rôles et les proportions seront enregistrés au retour du réseau.' : ''
     ].filter(Boolean).join(' ')
   } catch (err) {
     errorMessage.value = apiErrorMessage(err, 'Enregistrement impossible')

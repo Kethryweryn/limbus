@@ -8,11 +8,11 @@ export const QUALITY_LEVELS: Record<QualityLevel, { label: string, color: 'succe
   unsure: { label: 'À confirmer', color: 'neutral' }
 }
 
-const decimal = (value: number) => value.toLocaleString('fr-FR', { maximumFractionDigits: 3 })
+export const decimal = (value: number) => value.toLocaleString('fr-FR', { maximumFractionDigits: 3 })
 // Une borne basse s'arrondit vers le bas : jamais affichée au seuil sans l'avoir atteint
-const lowerBound = (value: number) => decimal(Math.floor(value * 1000 + 1e-9) / 1000)
+export const lowerBound = (value: number) => decimal(Math.floor(value * 1000 + 1e-9) / 1000)
 // Une borne haute s'arrondit vers le haut, pour la même raison
-const upperBound = (value: number) => decimal(Math.ceil(value * 1000 - 1e-9) / 1000)
+export const upperBound = (value: number) => decimal(Math.ceil(value * 1000 - 1e-9) / 1000)
 const adjustedP = (value: number | null) => {
   if (value === null) return 'non calculable'
   return value < 0.001 ? 'moins de 0,001' : decimal(value)
@@ -26,6 +26,10 @@ const todoFor = (level: QualityLevel, received: number, action: string) => (leve
   ? `Pas encore certain, avec ${peopleCount(received)} : attendez d’autres réponses. Si cela se confirme : ${action.charAt(0).toLowerCase()}${action.slice(1)}`
   : action)
 
+// Ce qu'il faut faire d'une note basse ou d'ex æquo trop nombreux (R13), sur les réponses reçues comme en prévision
+export const NOTE_ACTION = 'Reliez davantage de réponses à des personnages précis, et diversifiez les questions où presque tout le monde répond pareil.'
+export const TIES_ACTION = 'Reliez des réponses à des personnages précis plutôt qu’à leur seule faction ou intrigue, pour les départager.'
+
 /** Ce sur quoi portent les repères affichés. */
 export function qualityScope(respondentCount: number) {
   return `Ces repères portent sur le formulaire et les liens enregistrés${respondentCount ? `, et sur les réponses de ${peopleCount(respondentCount)}` : ''}.`
@@ -35,13 +39,12 @@ export function qualityScope(respondentCount: number) {
 export function describeEstimate(estimate: QuestionnaireEstimate, reviewCount: number) {
   const { note, ties, withoutRole, withoutPoints } = estimate
   const { estimateGood, estimateReview, tiedShare } = THRESHOLDS
-  const noteAction = 'Reliez davantage de réponses à des personnages précis, et diversifiez les questions où presque tout le monde répond pareil.'
   const todoOfNote = ({ level, counted, tooFewPeople }: NonNullable<QuestionnaireEstimate['note']>) => {
     if (level === 'good') return ''
     if (tooFewPeople) return 'Moins de personnes que de rôles pour l’instant : chacune obtient presque toujours son meilleur personnage. Attendez d’autres réponses.'
     // La note ne porte que sur les personnes placées : quand les rôles manquent, d'autres réponses ne la préciseront plus
-    if (level === 'unsure' && withoutRole) return `Pas encore certain, avec ${counted} rôle${counted > 1 ? 's' : ''} : d’autres réponses ne préciseront plus ce résultat. Si la note vous semble basse : ${noteAction.charAt(0).toLowerCase()}${noteAction.slice(1)}`
-    return todoFor(level, counted, noteAction)
+    if (level === 'unsure' && withoutRole) return `Pas encore certain, avec ${counted} rôle${counted > 1 ? 's' : ''} : d’autres réponses ne préciseront plus ce résultat. Si la note vous semble basse : ${NOTE_ACTION.charAt(0).toLowerCase()}${NOTE_ACTION.slice(1)}`
+    return todoFor(level, counted, NOTE_ACTION)
   }
   const left = `${withoutRole} sans rôle, ${withoutPoints} sans aucun point.`
   return {
@@ -57,7 +60,7 @@ export function describeEstimate(estimate: QuestionnaireEstimate, reviewCount: n
     ties: {
       level: ties.level,
       sentence: `${peopleOutOf(ties.count, ties.total)} plusieurs personnages à égalité en tête.`,
-      todo: ties.level === 'good' ? '' : todoFor(ties.level, ties.total, 'Reliez des réponses à des personnages précis plutôt qu’à leur seule faction ou intrigue, pour les départager.'),
+      todo: ties.level === 'good' ? '' : todoFor(ties.level, ties.total, TIES_ACTION),
       detail: `Part : ${upperBound(ties.share)} ; borne basse de Wilson à 95 % : ${lowerBound(ties.lower)} ; seuil : ${decimal(tiedShare)}, choix de l’utilisatrice. ${left} SPEC-015, R13 ; ADR-0064.`
     }
   }

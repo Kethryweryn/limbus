@@ -65,6 +65,7 @@ model Game {
   registrationForm RegistrationForm?
   characterRelations CharacterRelation[]
   registrationQuestionLinks RegistrationQuestionLink[]
+  registrationOptionExpectations RegistrationOptionExpectation[]
   aiAuthorizationGames AiAuthorizationGame[]
   aiLogEntries AiLogEntry[]
 
@@ -154,6 +155,20 @@ model RegistrationQuestionLink {
   intrigue    Intrigue?  @relation(fields: [intrigueId], references: [id], onDelete: Cascade)
 
   @@index([gameId])
+}
+
+// Part attendue d'une option d'une question du formulaire, ou d'un niveau d'une échelle (US-141, ADR-0062) ; hors des
+// versions du formulaire
+model RegistrationOptionExpectation {
+  id         String   @id @default(cuid())
+  gameId     String
+  game       Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  questionId String
+  option     String
+  share      Float
+  updatedAt  DateTime @updatedAt
+
+  @@unique([gameId, questionId, option])
 }
 
 model CharacterTrombinoscopeEntry {

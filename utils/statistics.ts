@@ -160,6 +160,20 @@ export function normalizedEntropy(counts: number[], optionCount: number) {
   return entropy / Math.log(optionCount)
 }
 
+/** Entropie de Shannon, en bits, d'une loi de probabilité (Shannon, 1948). */
+export function shannonEntropy(probabilities: number[]) {
+  return probabilities.reduce((sum, probability) => (probability > 0 ? sum - probability * Math.log2(probability) : sum), 0)
+}
+
+/** Quantile d'une liste triée, par interpolation linéaire (type 7 de Hyndman et Fan, 1996). */
+export function quantile(sorted: ArrayLike<number>, probability: number) {
+  const position = (sorted.length - 1) * probability
+  const below = Math.floor(position)
+  const low = sorted[below]!
+  const high = sorted[Math.min(below + 1, sorted.length - 1)]!
+  return low + (high - low) * (position - below)
+}
+
 /** Dispersion ordinale de Leik (1966) : 0 si tout le monde donne la même note, 1 si les réponses sont aux deux extrémités. */
 export function leikDispersion(counts: number[]) {
   const total = counts.reduce((sum, count) => sum + count, 0)
