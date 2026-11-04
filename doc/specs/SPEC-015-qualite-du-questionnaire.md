@@ -96,7 +96,7 @@ Rien n'est enregistré : les repères se calculent à la lecture, à partir du f
 ## Découpage
 
 1. **Repères sur les liens** ([EPIC-037](../archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md)) : encadré, route, R1 à R6. Fait.
-2. **Repères sur les réponses** ([EPIC-039](../epics/EPIC-039-qualite-du-questionnaire-reponses/README.md)) : R7 à R12.
+2. **Repères sur les réponses** ([EPIC-039](../archive/epics/EPIC-039-qualite-du-questionnaire-reponses/README.md)) : R7 à R12. Fait.
 3. **Estimation générale** : R13, avec le choix de ses seuils.
 
 ## Historique
@@ -104,3 +104,4 @@ Rien n'est enregistré : les repères se calculent à la lecture, à partir du f
 - 2026-11-03 : création, avec les choix de l'utilisatrice : tous les repères proposés sur les liens et sur les réponses ; affichage dans l'éditeur du formulaire ; questionnaire seul, sans les contraintes ; indicateurs statistiques reconnus plutôt que des pourcentages fixés à la main (ADR-0061) ; fiabilité jugée par les tests seuls, sauf pour « peu demandé », un simple compte qu'aucun test ne juge : il n'est affiché qu'à partir de réponses aussi nombreuses que la moitié des personnages PJ ; seuil HTMT de 0,85 ; « 8 personnes sur 10 » pour une question qui ne départage pas ; demande jugée par les 3 meilleurs personnages ; phrase, couleur et détail replié.
 - 2026-11-03 : lot 1 livré ([EPIC-037](../archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md), PR #127).
 - 2026-11-04 : précisions avant le lot 2, choix de l'utilisatrice ([ADR-0063](../adr/ADR-0063-reperes-sur-les-reponses.md)) : extrémité d'une échelle comparée à 20 % et non 15 %, car une répartition égale y met déjà 20 % ; repères sur les réponses limités aux questions reliées ; doublon « à confirmer » seulement si le lien observé atteint le seuil ; une personne comptée une fois ; corrélation sans intervalle possible (3 réponses ou moins) non affichée.
+- 2026-11-04 : lot 2 livré ([EPIC-039](../archive/epics/EPIC-039-qualite-du-questionnaire-reponses/README.md), PR #129).
