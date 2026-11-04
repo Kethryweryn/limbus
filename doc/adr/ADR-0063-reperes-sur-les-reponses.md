@@ -40,7 +40,7 @@ Toutes les paires testées entrent dans la correction, y compris celles sous le 
 
 ### Corrélations extrêmes
 
-Avec 3 réponses ou moins, la transformation de Fisher n'a pas d'erreur type : la paire reste « à confirmer ». Une corrélation de 1 a une valeur p nulle à partir de 4 réponses, comme dans les logiciels de statistique.
+Avec 3 réponses ou moins, la transformation de Fisher n'a pas d'erreur type, et une corrélation y vaut souvent 1 par simple hasard : la paire n'est pas affichée (choix de l'utilisatrice). C'est la limite du calcul, et non un nombre minimal choisi à la main. Une corrélation de 1 a une valeur p nulle à partir de 4 réponses, comme dans les logiciels de statistique.
 
 ### Calcul
 

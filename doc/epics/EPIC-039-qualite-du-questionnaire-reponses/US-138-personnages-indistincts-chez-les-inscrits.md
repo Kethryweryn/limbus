@@ -14,7 +14,7 @@ En tant qu'organisatrice, je veux savoir quels personnages reçoivent les mêmes
 ## Critères d'acceptation
 
 - [x] Pour deux personnages PJ, Limbus calcule la corrélation de Pearson de leurs notes chez les personnes qui ont répondu à une question reliée.
-- [x] La paire est « à revoir » si le test contre 0,85, corrigé par Holm, confirme, « à confirmer » si seule la valeur observée atteint 0,85.
+- [x] La paire est « à revoir » si le test contre 0,85, corrigé par Holm, confirme, « à confirmer » si seule la valeur observée atteint 0,85. Avec 3 réponses ou moins, la paire n'est pas affichée.
 - [x] Un personnage dont la note est la même pour tout le monde n'est pas comparé.
 - [x] Le détail donne la corrélation, sa borne basse, le seuil et la référence.
 

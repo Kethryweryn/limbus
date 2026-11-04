@@ -133,13 +133,15 @@ export function spearman(a: number[], b: number[]) {
   return pearson(averageRanks(a), averageRanks(b))
 }
 
+/** La transformation de Fisher n'a pas d'erreur type en dessous de ce nombre de valeurs. */
+export const FISHER_MIN_N = 4
+
 /**
- * Test d'une corrélation contre un seuil, par la transformation de Fisher : borne basse à 95 % et valeur p unilatérale
- * (« la corrélation dépasse le seuil »). Sans erreur type possible (3 valeurs ou moins), les deux sont null ;
- * une corrélation de 1 a une borne de 1 et une valeur p nulle, comme dans les logiciels de statistique (ADR-0063).
+ * Test d'une corrélation contre un seuil, par la transformation de Fisher, à partir de FISHER_MIN_N valeurs : borne basse
+ * à 95 % et valeur p unilatérale (« la corrélation dépasse le seuil »). Une corrélation de 1 a une borne de 1 et une
+ * valeur p nulle, comme dans les logiciels de statistique (ADR-0063).
  */
 export function fisherTest(correlation: number, n: number, threshold: number, varianceFactor = 1) {
-  if (n <= 3) return { lower: null, pValue: null }
   if (correlation >= 1) return { lower: 1, pValue: 0 }
   if (correlation <= -1) return { lower: -1, pValue: 1 }
   const standardError = Math.sqrt(varianceFactor / (n - 3))

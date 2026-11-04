@@ -21,7 +21,7 @@ En tant qu'organisatrice, je veux savoir quelles questions reçoivent presque to
 
 ## Notes techniques
 
-- `utils/statistics.ts` pour les fonctions statistiques, `answerFindings` dans `utils/questionnaireQuality.ts`.
+- `utils/statistics.ts` pour les fonctions statistiques, `questionnaireFindings` dans `utils/questionnaireQuality.ts`, les phrases dans `utils/questionnaireQualityText.ts`.
 - La route rend aussi le nombre de personnes qui ont répondu.
 
 ## Tests

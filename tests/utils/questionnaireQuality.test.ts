@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { answerFindings, cosineSimilarity, latestAnswersPerPerson, linkFindings, pointProfile, type QualityCharacter, type QualityQuestion } from '~/utils/questionnaireQuality'
+import { cosineSimilarity, latestAnswersPerPerson, linkFindings, pointProfile, questionnaireFindings, type QualityCharacter, type QualityQuestion } from '~/utils/questionnaireQuality'
 
 const questions: QualityQuestion[] = [
   { id: 'style', label: 'Ton style', type: 'single', options: ['Intrigue', 'Combat', 'Mystère'] },
@@ -101,6 +101,13 @@ describe('personnages indistincts par les liens (US-134)', () => {
     expect(only(findings)).toEqual([])
   })
 })
+
+// Seulement les repères sur les réponses, sans ceux sur les liens
+const LINK_KINDS = ['characterWithoutLink', 'questionWithoutLink', 'optionWithoutLink', 'indistinctCharacters']
+const answerFindings = (...args: Parameters<typeof questionnaireFindings>) => {
+  const { respondentCount, findings } = questionnaireFindings(...args)
+  return { respondentCount, findings: findings.filter((finding) => !LINK_KINDS.includes(finding.kind)) }
+}
 
 // n réponses identiques
 const times = (count: number, answers: Record<string, unknown>) => Array.from({ length: count }, () => answers)
@@ -229,9 +236,10 @@ describe('questions qui font doublon (US-137, R10)', () => {
     expect(duplicates([scale('a'), scale('b')], people)).toEqual([expect.objectContaining({ level: 'review', method: 'spearman', value: 1, lower: 1, cochran: null })])
   })
 
-  it('deux échelles liées avec 3 réponses : à confirmer, sans borne ni valeur p', () => {
+  it('deux échelles avec 3 réponses ne sont pas affichées : pas d’intervalle possible', () => {
     const people = [{ a: 1, b: 1 }, { a: 2, b: 2 }, { a: 3, b: 3 }]
-    expect(duplicates([scale('a'), scale('b')], people)).toEqual([expect.objectContaining({ level: 'unsure', lower: null, adjustedP: null })])
+    expect(duplicates([scale('a'), scale('b')], people)).toEqual([])
+    expect(duplicates([scale('a'), scale('b')], [...people, { a: 4, b: 3 }])).toEqual([expect.objectContaining({ level: 'unsure', n: 4, lower: expect.any(Number), adjustedP: expect.any(Number) })])
   })
 })
 
@@ -248,8 +256,15 @@ describe('personnages indistincts chez les inscrits (US-138, R11)', () => {
     expect(indistinct(sameNotes, [...times(10, { q1: 'Oui' }), ...times(10, { q1: 'Non' })])).toEqual([expect.objectContaining({ level: 'review', correlation: 1, threshold: 0.85, n: 20 })])
   })
 
-  it('avec 3 réponses : à confirmer', () => {
-    expect(indistinct(sameNotes, [{ q1: 'Oui' }, { q1: 'Non' }, { q1: 'Non' }])).toEqual([expect.objectContaining({ level: 'unsure', lower: null, adjustedP: null })])
+  it('avec 3 réponses, rien n’est affiché : pas d’intervalle possible', () => {
+    expect(indistinct(sameNotes, [{ q1: 'Oui' }, { q1: 'Non' }, { q1: 'Non' }])).toEqual([])
+  })
+
+  it('une corrélation forte sans certitude : à confirmer', () => {
+    // Une réponse en désaccord sur 13 : r = 36 / 42, soit 0,857, trop peu de réponses pour conclure
+    const links = [link('q1', 'Oui', 'character', 'A'), link('q2', 'Oui', 'character', 'B')]
+    const people = [...times(6, { q1: 'Oui', q2: 'Oui' }), ...times(6, { q1: 'Non', q2: 'Non' }), { q1: 'Oui', q2: 'Non' }]
+    expect(indistinct(links, people)).toEqual([expect.objectContaining({ level: 'unsure', n: 13, lower: expect.any(Number) })])
   })
 
   it('une corrélation sous le seuil n’est pas signalée', () => {

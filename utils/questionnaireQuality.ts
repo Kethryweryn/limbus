@@ -2,7 +2,7 @@
 // Fonctions pures, partagées entre la route et les tests ; les phrases sont rédigées par l'interface.
 import { castingScore, type CastingCharacter, type CastingLink, type CastingQuestion } from './castingAssistant'
 import { REGISTRATION_CHOICE_TYPES, type RegistrationQuestionType } from './registrationForms'
-import { contingency, fisherTest, holmAdjust, leikDispersion, noncentralChiSquareSurvival, normalizedEntropy, pearson, spearman, wilsonInterval } from './statistics'
+import { contingency, FISHER_MIN_N, fisherTest, holmAdjust, leikDispersion, noncentralChiSquareSurvival, normalizedEntropy, pearson, spearman, wilsonInterval } from './statistics'
 
 export type QualityLevel = 'good' | 'watch' | 'review' | 'unsure'
 export type QualityQuestion = CastingQuestion & { type: RegistrationQuestionType, options: string[] }
@@ -32,6 +32,18 @@ export const QUESTIONNAIRE_THRESHOLDS = {
 type Named = { id: string, name: string }
 type QuestionRef = { questionId: string, questionLabel: string }
 type QuestionName = { id: string, label: string }
+// Une réponse, mesurée sur les personnes qui ont répondu ; dominantAnswer donne en plus l'entropie (choix unique, échelle)
+// ou la part de chaque option (choix multiple)
+type AnswerMeasure = QuestionRef & {
+  level: 'review' | 'unsure'
+  option: string
+  count: number
+  total: number
+  share: number
+  lower: number
+  threshold: number
+  ignored: number
+}
 
 export type QuestionnaireFinding =
   | { kind: 'characterWithoutLink', level: 'review', character: Named }
@@ -46,33 +58,8 @@ export type QuestionnaireFinding =
     // Réponse qui sépare le plus les deux personnages, et celui qu'elle favorise ; null si aucune ne les sépare
     separating: { questionLabel: string, option: string, favors: Named } | null
   }
-  | {
-    kind: 'dominantAnswer'
-    level: 'review' | 'unsure'
-    questionType: RegistrationQuestionType
-    option: string
-    count: number
-    total: number
-    share: number
-    lower: number
-    threshold: number
-    ignored: number
-    // Choix unique ou échelle : entropie normalisée ; choix multiple : part de chaque option
-    entropy: number | null
-    shares: Array<{ option: string, share: number }> | null
-  } & QuestionRef
-  | {
-    kind: 'scaleEnd'
-    level: 'review' | 'unsure'
-    option: string
-    count: number
-    total: number
-    share: number
-    lower: number
-    threshold: number
-    ignored: number
-    leik: number
-  } & QuestionRef
+  | { kind: 'dominantAnswer', questionType: RegistrationQuestionType, entropy: number | null, shares: Array<{ option: string, share: number }> | null } & AnswerMeasure
+  | { kind: 'scaleEnd', leik: number } & AnswerMeasure
   | {
     kind: 'duplicateQuestions'
     level: 'review' | 'unsure'
@@ -81,7 +68,7 @@ export type QuestionnaireFinding =
     value: number
     threshold: number
     n: number
-    // Spearman seulement ; null avec 3 réponses ou moins
+    // Spearman seulement
     lower: number | null
     adjustedP: number | null
     // V de Cramér seulement : conditions de Cochran remplies
@@ -94,7 +81,7 @@ export type QuestionnaireFinding =
     level: 'review' | 'unsure'
     characters: [Named, Named]
     correlation: number
-    lower: number | null
+    lower: number
     adjustedP: number | null
     threshold: number
     n: number
@@ -104,8 +91,8 @@ export type QuestionnaireFinding =
 
 const LEVEL_ORDER: Record<QualityLevel, number> = { review: 0, unsure: 1, watch: 2, good: 3 }
 
-/** Du plus grave au moins grave, sans changer l'ordre à gravité égale. */
-export function sortFindings(findings: QuestionnaireFinding[]) {
+// Du plus grave au moins grave, sans changer l'ordre à gravité égale
+function sortFindings(findings: QuestionnaireFinding[]) {
   return [...findings].sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level])
 }
 
@@ -123,12 +110,13 @@ function possibleAnswers(questions: QualityQuestion[]): PossibleAnswer[] {
 /** Profil de points d'un personnage (R6) : les points que lui donne chaque réponse possible, comme la note de l'assistant. */
 export function pointProfile(character: QualityCharacter, questions: QualityQuestion[], links: CastingLink[]) {
   const linksOf = Map.groupBy(links, (link) => link.questionId)
-  return possibleAnswers(questions).map(({ question, answer }) => noteOf(character, { [question.id]: answer }, [question], linksOf.get(question.id) ?? []))
+  const casting = { ...character, relations: [] }
+  return possibleAnswers(questions).map(({ question, answer }) => noteOf(casting, { [question.id]: answer }, [question], linksOf.get(question.id) ?? []))
 }
 
-// La note de l'assistant de casting, sans les relations, qui n'y jouent pas
-function noteOf(character: QualityCharacter, answers: Record<string, unknown>, questions: QualityQuestion[], links: CastingLink[]) {
-  return castingScore({ id: '', name: '', answers, refusedTypes: [], notWithIds: [] }, { ...character, relations: [] }, questions, links).score
+// La note de l'assistant de casting ; les relations n'y jouent pas
+function noteOf(character: CastingCharacter, answers: Record<string, unknown>, questions: QualityQuestion[], links: CastingLink[]) {
+  return castingScore({ id: '', name: '', answers, refusedTypes: [], notWithIds: [] }, character, questions, links).score
 }
 
 /** Similarité cosinus de deux profils de points ; 0 si l'un est nul. */
@@ -281,18 +269,28 @@ function withAdjustedP<T extends { pValue: number | null }>(pairs: T[]) {
 
 const confirmedLevel = (adjustedP: number | null) => (adjustedP !== null && adjustedP < QUESTIONNAIRE_THRESHOLDS.alpha ? 'review' as const : 'unsure' as const)
 
-// R10 : une paire de questions, sur les personnes qui ont répondu aux deux ; null si l'une des deux n'a qu'une réponse
-function comparePair(first: QualityQuestion, second: QualityQuestion, people: Answers[]) {
-  const answered = people.flatMap((answers) => {
-    const [a] = givenOptions(first, answers[first.id]) ?? []
-    const [b] = givenOptions(second, answers[second.id]) ?? []
+// Une question, avec la réponse de chaque personne, dans le même ordre pour toutes les questions
+type AnswerColumn = { question: QualityQuestion, given: Array<string | undefined> }
+
+// R10 : une paire de questions, sur les personnes qui ont répondu aux deux ; null si l'une des deux n'a qu'une réponse,
+// ou si deux échelles ont trop peu de réponses pour un intervalle (ADR-0063)
+function comparePair(first: AnswerColumn, second: AnswerColumn) {
+  const answered = first.given.flatMap((a, index) => {
+    const b = second.given[index]
     return a !== undefined && b !== undefined ? [{ a, b }] : []
   })
-  const rows = optionsOf(first).filter((option) => answered.some(({ a }) => a === option))
-  const columns = optionsOf(second).filter((option) => answered.some(({ b }) => b === option))
+  const seenFirst = new Set(answered.map(({ a }) => a))
+  const seenSecond = new Set(answered.map(({ b }) => b))
+  const rows = optionsOf(first.question).filter((option) => seenFirst.has(option))
+  const columns = optionsOf(second.question).filter((option) => seenSecond.has(option))
   if (rows.length < 2 || columns.length < 2) return null
+  const bothScales = first.question.type === 'scale' && second.question.type === 'scale'
+  if (bothScales && answered.length < FISHER_MIN_N) return null
 
-  const table = rows.map((row) => columns.map((column) => answered.filter(({ a, b }) => a === row && b === column).length))
+  const cellKey = (a: string, b: string) => `${a}\u0000${b}`
+  const cells = new Map<string, number>()
+  for (const { a, b } of answered) cells.set(cellKey(a, b), (cells.get(cellKey(a, b)) ?? 0) + 1)
+  const table = rows.map((row) => columns.map((column) => cells.get(cellKey(row, column)) ?? 0))
   const { n, df, chiSquare, cramerV, cochran, expected } = contingency(table)
   // Réponse la plus liée : le plus grand résidu de Pearson
   let strongest = { firstOption: rows[0]!, secondOption: columns[0]!, count: 0, firstCount: 0 }
@@ -304,35 +302,34 @@ function comparePair(first: QualityQuestion, second: QualityQuestion, people: An
       strongest = { firstOption: rows[r]!, secondOption: columns[c]!, count, firstCount: row.reduce((sum, value) => sum + value, 0) }
     }
   }))
-  const questions: [QuestionName, QuestionName] = [{ id: first.id, label: first.label }, { id: second.id, label: second.label }]
+  const questions: [QuestionName, QuestionName] = [
+    { id: first.question.id, label: first.question.label },
+    { id: second.question.id, label: second.question.label }
+  ]
 
-  if (first.type === 'scale' && second.type === 'scale') {
+  if (bothScales) {
     const value = Math.abs(spearman(answered.map(({ a }) => Number(a)), answered.map(({ b }) => Number(b))) ?? 0)
     const threshold = QUESTIONNAIRE_THRESHOLDS.duplicateScales
     // Erreur type de Bonett et Wright pour une corrélation de Spearman
-    return { questions, n, strongest, method: 'spearman' as const, value, threshold, ...fisherTest(value, n, threshold, 1.06), cochran: null, over: value > threshold }
+    const { lower, pValue } = fisherTest(value, n, threshold, 1.06)
+    return { over: value > threshold, pValue, finding: { questions, n, strongest, method: 'spearman' as const, value, threshold, lower, cochran: null } }
   }
   const threshold = QUESTIONNAIRE_THRESHOLDS.duplicateCramer / Math.sqrt(Math.min(rows.length, columns.length) - 1)
   // Le seuil de Cohen revient à w = 0,50 quel que soit le tableau : non-centralité 0,25 n (ADR-0063)
   const pValue = cochran ? noncentralChiSquareSurvival(chiSquare, df, QUESTIONNAIRE_THRESHOLDS.duplicateCramer ** 2 * n) : null
-  return { questions, n, strongest, method: 'cramer' as const, value: cramerV, threshold, lower: null, pValue, cochran, over: cramerV >= threshold }
+  return { over: cramerV >= threshold, pValue, finding: { questions, n, strongest, method: 'cramer' as const, value: cramerV, threshold, lower: null, cochran } }
 }
 
 function duplicateFindings(questions: QualityQuestion[], people: Answers[]): QuestionnaireFinding[] {
-  const compared = questions.filter((question) => question.type === 'single' || question.type === 'scale')
-  const pairs = compared.flatMap((first, index) => compared.slice(index + 1).flatMap((second) => comparePair(first, second, people) ?? []))
-  return withAdjustedP(pairs).filter((pair) => pair.over).map((pair) => ({
+  const compared: AnswerColumn[] = questions
+    .filter((question) => question.type === 'single' || question.type === 'scale')
+    .map((question) => ({ question, given: people.map((answers) => givenOptions(question, answers[question.id])?.[0]) }))
+  const pairs = compared.flatMap((first, index) => compared.slice(index + 1).flatMap((second) => comparePair(first, second) ?? []))
+  return withAdjustedP(pairs).filter((pair) => pair.over).map(({ finding, adjustedP }) => ({
     kind: 'duplicateQuestions',
-    level: confirmedLevel(pair.adjustedP),
-    questions: pair.questions,
-    method: pair.method,
-    value: pair.value,
-    threshold: pair.threshold,
-    n: pair.n,
-    lower: pair.lower,
-    adjustedP: pair.adjustedP,
-    cochran: pair.cochran,
-    strongest: pair.strongest
+    level: confirmedLevel(adjustedP),
+    adjustedP,
+    ...finding
   }))
 }
 
@@ -340,6 +337,8 @@ function duplicateFindings(questions: QualityQuestion[], people: Answers[]): Que
 function indistinctByAnswers(characters: QualityCharacter[], notes: number[][]): QuestionnaireFinding[] {
   const threshold = QUESTIONNAIRE_THRESHOLDS.indistinctNotes
   const n = notes.length
+  // Trop peu de réponses pour un intervalle : une corrélation y vaut souvent 1 par hasard (ADR-0063)
+  if (n < FISHER_MIN_N) return []
   const columns = characters.map((_, index) => notes.map((row) => row[index]!))
   const pairs = characters.flatMap((first, a) => characters.slice(a + 1).flatMap((second, offset) => {
     const correlation = pearson(columns[a]!, columns[a + offset + 1]!)
@@ -358,7 +357,7 @@ function indistinctByAnswers(characters: QualityCharacter[], notes: number[][]):
 }
 
 // R12 : présence parmi les 3 meilleurs personnages de chaque personne, ex æquo compris, note non nulle
-function demandFindings(characters: QualityCharacter[], notes: number[][], reached: Set<string>): QuestionnaireFinding[] {
+function demandFindings(characters: QualityCharacter[], notes: number[][], withoutLink: Set<string>): QuestionnaireFinding[] {
   const { topCharacters, rarelyWanted, overWanted } = QUESTIONNAIRE_THRESHOLDS
   const inTop = new Array<number>(characters.length).fill(0)
   const best = new Array<number>(characters.length).fill(0)
@@ -375,7 +374,7 @@ function demandFindings(characters: QualityCharacter[], notes: number[][], reach
   const showRare = respondents >= characters.length / 2
   return characters.flatMap((character, index): QuestionnaireFinding[] => {
     // Un personnage sans lien a déjà son repère « à revoir » (R4)
-    if (!reached.has(character.id)) return []
+    if (withoutLink.has(character.id)) return []
     const named = { id: character.id, name: character.name }
     return [
       ...(showRare && inTop[index]! < rarelyWanted ? [{ kind: 'rarelyWanted' as const, level: 'watch' as const, character: named, count: inTop[index]!, respondents }] : []),
@@ -384,21 +383,24 @@ function demandFindings(characters: QualityCharacter[], notes: number[][], reach
   })
 }
 
-/** Repères sur les réponses reçues (SPEC-015, R7 à R12), du plus grave au moins grave. */
-export function answerFindings(questions: QualityQuestion[], links: CastingLink[], characters: QualityCharacter[], people: Answers[]) {
+/** Tous les repères du questionnaire (SPEC-015, R4 à R12), du plus grave au moins grave. */
+export function questionnaireFindings(questions: QualityQuestion[], links: CastingLink[], characters: QualityCharacter[], people: Answers[]) {
+  const fromLinks = linkFindings(questions, links, characters)
+  const withoutLink = new Set(fromLinks.flatMap((finding) => (finding.kind === 'characterWithoutLink' ? [finding.character.id] : [])))
   const linkedIds = new Set(links.map((link) => link.questionId))
   const linked = questions.filter((question) => linkedIds.has(question.id) && (question.type === 'scale' || REGISTRATION_CHOICE_TYPES.includes(question.type)))
   // Personnes qui ont répondu à une question reliée, avec une option qui existe encore
   const respondents = people.filter((answers) => linked.some((question) => givenOptions(question, answers[question.id])?.length))
-  const notes = respondents.map((answers) => characters.map((character) => noteOf(character, answers, linked, links)))
-  const reached = new Set(characters.filter((character) => pointProfile(character, linked, links).some((points) => points > 0)).map((character) => character.id))
+  const castings = characters.map((character) => ({ ...character, relations: [] }))
+  const notes = respondents.map((answers) => castings.map((character) => noteOf(character, answers, linked, links)))
   return {
     respondentCount: respondents.length,
     findings: sortFindings([
+      ...fromLinks,
       ...linked.flatMap((question) => distributionFindings(question, people)),
       ...duplicateFindings(linked, respondents),
       ...indistinctByAnswers(characters, notes),
-      ...demandFindings(characters, notes, reached)
+      ...demandFindings(characters, notes, withoutLink)
     ])
   }
 }

@@ -65,8 +65,7 @@ describe('corrélations', () => {
     expect(pValue).toBeCloseTo(0.18650060259879425, 10)
   })
 
-  it('test de Fisher : 3 valeurs ou moins, et corrélations extrêmes', () => {
-    expect(fisherTest(0.9, 3, 0.85)).toEqual({ lower: null, pValue: null })
+  it('test de Fisher : corrélations extrêmes', () => {
     expect(fisherTest(1, 4, 0.85)).toEqual({ lower: 1, pValue: 0 })
     expect(fisherTest(-1, 4, 0.85)).toEqual({ lower: -1, pValue: 1 })
   })
