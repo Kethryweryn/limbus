@@ -77,7 +77,7 @@ Les lots 2 à 6 de [SPEC-001](specs/SPEC-001-inscriptions.md), un epic chacun (l
 4. relations entre personnages et questionnaire relié aux rôles (fait) ;
 5. assistant de casting (fait).
 
-Puis la [qualité du questionnaire de casting](specs/SPEC-015-qualite-du-questionnaire.md), en trois lots, faits : repères sur les liens ([EPIC-037](archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md)), repères sur les réponses ([EPIC-039](archive/epics/EPIC-039-qualite-du-questionnaire-reponses/README.md)), estimation générale ([EPIC-040](archive/epics/EPIC-040-qualite-du-questionnaire-estimation/README.md)). Ensuite, l'[aide à la conception du questionnaire](specs/SPEC-016-conception-du-questionnaire.md), en trois lots : essai par l'équipe (fait, [EPIC-038](archive/epics/EPIC-038-essai-du-questionnaire/README.md)), prévision, relecture et mélange des options.
+Puis la [qualité du questionnaire de casting](specs/SPEC-015-qualite-du-questionnaire.md), en trois lots, faits : repères sur les liens ([EPIC-037](archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md)), repères sur les réponses ([EPIC-039](archive/epics/EPIC-039-qualite-du-questionnaire-reponses/README.md)), estimation générale ([EPIC-040](archive/epics/EPIC-040-qualite-du-questionnaire-estimation/README.md)). Ensuite, l'[aide à la conception du questionnaire](specs/SPEC-016-conception-du-questionnaire.md), en trois lots : essai par l'équipe (fait, [EPIC-038](archive/epics/EPIC-038-essai-du-questionnaire/README.md)), prévision ([EPIC-041](epics/EPIC-041-prevision-du-questionnaire/README.md)), relecture et mélange des options.
 
 ## 5. Fondations avant d'ouvrir Limbus
 

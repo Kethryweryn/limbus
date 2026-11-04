@@ -25,17 +25,18 @@
         <QualityFindingItem v-for="(item, index) in items" :key="index" v-bind="item" />
       </ul>
       <p class="text-xs text-gray-500">{{ scope }}</p>
+      <RegistrationFormForecast v-if="forecastInput" :input="forecastInput" :collapsed="quality.respondentCount > 0" />
     </template>
   </section>
 </template>
 
 <script setup lang="ts">
-import type { QualityCharacter } from '~/utils/questionnaireQuality'
+import { linkedQuestions, type QualityCharacter } from '~/utils/questionnaireQuality'
 import { describeEstimate, describeFinding, QUALITY_LEVELS, qualityScope } from '~/utils/questionnaireQualityText'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
-// Encadré « Qualité du questionnaire » de l'éditeur du formulaire (US-133, US-134, US-136 à US-140, SPEC-015) : relu à chaque
+// Encadré « Qualité du questionnaire » de l'éditeur du formulaire (US-133, US-134, US-136 à US-140, US-142, US-143, SPEC-015) : relu à chaque
 // enregistrement (refreshKey)
 const props = defineProps<{
   gameId: string
@@ -71,4 +72,12 @@ const estimate = computed(() => {
 })
 
 const scope = computed(() => qualityScope(quality.value?.respondentCount ?? 0))
+
+// Ce que la prévision calcule (US-142, US-143), sans proxy réactif pour passer au Web Worker. Sans question reliée ni personnage,
+// ou si une lecture hors ligne ancienne n'a pas ces données, il n'y a pas de prévision
+const forecastInput = computed(() => {
+  const raw = toRaw(quality.value)
+  if (!raw?.forecastInput || !raw.characters?.length || !linkedQuestions(raw.forecastInput.questions, raw.forecastInput.links).length) return null
+  return { ...raw.forecastInput, characters: raw.characters }
+})
 </script>

@@ -4,7 +4,7 @@ titre: Aide à la conception du questionnaire de casting
 statut: validée
 date: 2026-11-03
 origine: ../archive/todo/aide-a-la-conception-du-questionnaire.md
-epics: [EPIC-038]
+epics: [EPIC-038, EPIC-041]
 adr: [ADR-0050, ADR-0051, ADR-0058, ADR-0061, ADR-0062, ADR-0064]
 ---
 
@@ -51,9 +51,9 @@ Les personnes inscrites ne voient que l'ordre mélangé des options.
 
 ### Prévision avant les réponses
 
-- **R4** La prévision est une partie « Prévision » de l'encadré « Qualité du questionnaire » (SPEC-015, R1). Elle porte sur le formulaire, les liens et les proportions attendues enregistrés, et suit la présentation des repères (SPEC-015, R2). Elle reste visible une fois des réponses reçues, pour comparer prévision et réalité.
+- **R4** La prévision est une partie « Prévision » de l'encadré « Qualité du questionnaire » (SPEC-015, R1). Elle porte sur le formulaire, les liens et les proportions attendues enregistrés, et suit la présentation des repères (SPEC-015, R2). Elle reste visible une fois des réponses reçues, pour comparer prévision et réalité : dépliée tant qu'aucune réponse n'est reçue, repliée ensuite, son niveau restant dans le titre.
 - **R5** Information maximale : chaque question reliée apporte au plus une quantité d'information utile au casting, en bits. Seules comptent les réponses qui changent les notes : pour une question à choix unique, les options qui ont les mêmes liens (ou aucun lien) ne comptent que pour une, et la question apporte log₂ du nombre de groupes ainsi formés ; une échelle reliée apporte log₂(5) ; une question à choix multiples, un bit par option reliée. Départager N personnages PJ demande au moins log₂(N) bits. Si le total des questions reliées est inférieur, le questionnaire est « à revoir » : « vos questions distinguent au plus 12 profils de réponses, pour 16 personnages ». Le détail donne l'information de chaque question et, si l'équipe a indiqué des proportions, l'information attendue avec ces proportions (entropie de Shannon). Ce repère est une condition nécessaire, pas suffisante : la simulation (R7) juge le reste.
-- **R6** Proportions attendues : pour chaque question reliée, l'équipe peut indiquer la part attendue de chaque option (chaque niveau d'une échelle ; pour une question à choix multiples, la part des personnes qui cochent chaque option). Sans proportions, chaque option a la même chance, et une option d'une question à choix multiples est cochée une fois sur deux. Les proportions d'une question se donnent pour toutes ses options ou pour aucune : une option laissée vide compte pour 0. Pour une question à choix unique ou une échelle, au moins une part doit être positive. Les proportions sont enregistrées avec le jeu, hors des versions du formulaire, comme les liens : les modifier ne crée pas de version.
+- **R6** Proportions attendues : pour chaque question reliée, l'équipe peut indiquer, en % et dans un volet replié sous la question, la part attendue de chaque option (chaque niveau d'une échelle ; pour une question à choix multiples, la part des personnes qui cochent chaque option). Sans proportions, chaque option a la même chance, et une option d'une question à choix multiples est cochée une fois sur deux. Les proportions d'une question se donnent pour toutes ses options ou pour aucune : une option laissée vide compte pour 0. Pour une question à choix unique ou une échelle, au moins une part doit être positive. Les proportions sont enregistrées avec le jeu, hors des versions du formulaire, comme les liens : les modifier ne crée pas de version.
 - **R7** Simulation : des personnes fictives, autant que de personnages PJ, répondent à toutes les questions reliées selon les proportions de R6. Leurs réponses passent par les mêmes calculs que les vraies réponses dans SPEC-015. La simulation est répétée 1 000 fois, et donne pour chaque résultat sa valeur médiane et une fourchette qui contient 95 % des simulations.
 - **R8** Personnages peu ou trop demandés, prévus : la règle de SPEC-015 (R12) s'applique à la médiane des simulations. Un personnage est « à surveiller » quand, pour une inscription typique, moins de 2 personnes l'ont parmi leurs 3 meilleurs, ou plus de 3 l'ont pour meilleur. La phrase dit dans quelle part des simulations c'est le cas : « Aldric serait peu demandé dans 7 simulations sur 10 ».
 - **R9** Estimation générale prévue : les deux mesures de SPEC-015 (R13), note obtenue rapportée à la meilleure possible et part des meilleures notes ex æquo, sont données avec leur médiane et leur fourchette. Les seuils de R13 ([ADR-0064](../adr/ADR-0064-estimation-generale-du-questionnaire.md)) s'appliquent directement à la médiane, sans intervalle de Wilson : la note est « bon » à partir de 0,75, « à surveiller » de 0,60 à 0,75, « à revoir » sous 0,60 ; les ex æquo sont « bon » jusqu'à une personne sur deux, « à revoir » au-delà. Il n'y a pas de niveau « à confirmer », car aucune réponse n'est attendue pour lever le doute ; la fourchette reste affichée à côté.
@@ -98,7 +98,7 @@ Les personnes inscrites ne voient que l'ordre mélangé des options.
 ## Découpage
 
 1. **Essai par l'équipe** ([EPIC-038](../archive/epics/EPIC-038-essai-du-questionnaire/README.md)) : R1 à R3, hors mélange des options, qui vient avec R13. Fait.
-2. **Prévision** : R4 à R10.
+2. **Prévision** ([EPIC-041](../epics/EPIC-041-prevision-du-questionnaire/README.md)) : R4 à R10.
 3. **Relecture et mélange** : R11 à R13, et le mélange des options dans l'essai (R1).
 
 Le lot 1 de SPEC-015 ([EPIC-037](../archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md)) crée l'encadré et sa route, dont l'essai et la prévision lisent les personnages PJ : il passe avant.
@@ -118,3 +118,6 @@ Le lot 1 de SPEC-015 ([EPIC-037](../archive/epics/EPIC-037-qualite-du-questionna
   - échelle gardée de 1 à 5 ;
   - ordre des lots : essai, prévision, relecture.
 - 2026-11-04 : lot 1 livré ([EPIC-038](../archive/epics/EPIC-038-essai-du-questionnaire/README.md), PR #133).
+- 2026-11-04, choix de l'utilisatrice pour le lot 2 :
+  - proportions saisies dans un volet replié sous chaque question reliée ;
+  - partie « Prévision » dépliée tant qu'aucune réponse n'est reçue, repliée ensuite.

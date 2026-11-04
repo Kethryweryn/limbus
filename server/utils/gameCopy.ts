@@ -19,7 +19,7 @@ export const GAME_COPY_FIELDS = {
   Game: {
     copied: ['title', 'description', 'noteIntention', 'teaserUrl', 'singlePjPerParticipant', 'balanceAttribute', 'balanceValues', 'photoRetentionMonths'],
     remapped: [],
-    relinked: ['characters', 'factions', 'intrigues', 'items', 'timelineEvents', 'documents', 'locations', 'uploadedFiles', 'registrationForm', 'characterRelations', 'registrationQuestionLinks'],
+    relinked: ['characters', 'factions', 'intrigues', 'items', 'timelineEvents', 'documents', 'locations', 'uploadedFiles', 'registrationForm', 'characterRelations', 'registrationQuestionLinks', 'registrationOptionExpectations'],
     // La copie démarre active, sans page publique (R10), avec son propre crédit (R11 à R13), sans transfert en cours,
     // sans assistant d'IA ni réglage pour eux (SPEC-014)
     omitted: ['id', 'slug', 'ownerId', 'createdAt', 'updatedAt', 'published', 'publicPage', 'publicShowSessions', 'publicShowRegistration', 'creditSourceTitle', 'creditAuthorName', 'copiedFromGameId', 'bequestPending', 'owner', 'copiedFrom', 'copies', 'sessions', 'participantLinks', 'shares', 'invitations', 'registrationPeriods', 'slugRedirects', 'transferToUserId', 'transferTo', 'contactEmail', 'aiForCoorganizers', 'aiAuthorizationGames', 'aiLogEntries']
@@ -61,6 +61,13 @@ export const GAME_COPY_FIELDS = {
     remapped: ['characterId', 'factionId', 'intrigueId'],
     relinked: ['character', 'faction', 'intrigue'],
     omitted: ['id', 'gameId', 'game']
+  },
+  // Proportions attendues (US-141, ADR-0062) : comme les liens, la question garde son identifiant
+  RegistrationOptionExpectation: {
+    copied: ['questionId', 'option', 'share'],
+    remapped: [],
+    relinked: [],
+    omitted: ['id', 'gameId', 'game', 'updatedAt']
   },
   Item: {
     copied: ['name', 'description', 'quantity', 'locationText', 'published'],
@@ -124,7 +131,8 @@ async function loadSourceGame(gameId: string) {
       locations: { orderBy: { createdAt: 'asc' } },
       registrationForm: { include: { versions: { orderBy: { number: 'desc' }, take: 1 } } },
       characterRelations: { orderBy: { createdAt: 'asc' } },
-      registrationQuestionLinks: true
+      registrationQuestionLinks: true,
+      registrationOptionExpectations: true
     }
   })
   if (!game) {
@@ -350,6 +358,11 @@ async function copyGameOnce(sourceGameId: string, options: GameCopyOptions) {
             factionId: mapped(row.factionId),
             intrigueId: mapped(row.intrigueId)
           }))
+        })
+      }
+      if (source.registrationOptionExpectations.length) {
+        await tx.registrationOptionExpectation.createMany({
+          data: source.registrationOptionExpectations.map((row) => ({ ...pickCopied('RegistrationOptionExpectation', row), gameId }))
         })
       }
 

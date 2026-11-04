@@ -228,6 +228,15 @@ export const registrationQuestionLinksSchema = z.object({
     .max(2000, 'Trop de liens')
 })
 
+// Proportions attendues des options (US-141, ADR-0062) : la liste complète du jeu
+export const registrationOptionExpectationsSchema = z.object({
+  expectations: z.array(z.object({
+    questionId: requiredId('Question'),
+    option: z.string().trim().min(1).max(REGISTRATION_QUESTION_LABEL_MAX_LENGTH),
+    share: z.number().min(0, 'Une part va de 0 à 100 %').max(1, 'Une part va de 0 à 100 %')
+  })).max(2000, 'Trop de proportions')
+})
+
 export const participantSchema = z.object({
   name: requiredText('Name'),
   email: optionalText,
