@@ -48,7 +48,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-038](../archive/epics/EPIC-038-essai-du-questionnaire/README.md) | Aide à la conception du questionnaire, lot 1 : essai par l'équipe | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | terminé |
 | [EPIC-039](../archive/epics/EPIC-039-qualite-du-questionnaire-reponses/README.md) | Qualité du questionnaire, lot 2 : repères sur les réponses | [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) | terminé |
 | [EPIC-040](../archive/epics/EPIC-040-qualite-du-questionnaire-estimation/README.md) | Qualité du questionnaire, lot 3 : estimation générale | [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) | terminé |
-| [EPIC-041](EPIC-041-prevision-du-questionnaire/README.md) | Aide à la conception du questionnaire, lot 2 : prévision | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | en cours |
+| [EPIC-041](../archive/epics/EPIC-041-prevision-du-questionnaire/README.md) | Aide à la conception du questionnaire, lot 2 : prévision | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | terminé |
 
 ## US
 
@@ -194,6 +194,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-138](../archive/epics/EPIC-039-qualite-du-questionnaire-reponses/US-138-personnages-indistincts-chez-les-inscrits.md) | Les personnages indistincts chez les inscrits | EPIC-039 | terminée |
 | [US-139](../archive/epics/EPIC-039-qualite-du-questionnaire-reponses/US-139-personnages-peu-ou-trop-demandes.md) | Les personnages peu ou trop demandés | EPIC-039 | terminée |
 | [US-140](../archive/epics/EPIC-040-qualite-du-questionnaire-estimation/US-140-estimation-generale.md) | L'estimation générale du questionnaire | EPIC-040 | terminée |
-| [US-141](EPIC-041-prevision-du-questionnaire/US-141-proportions-attendues.md) | Indiquer les proportions attendues des options | EPIC-041 | terminée |
-| [US-142](EPIC-041-prevision-du-questionnaire/US-142-information-maximale.md) | Savoir si les questions peuvent départager les personnages | EPIC-041 | terminée |
-| [US-143](EPIC-041-prevision-du-questionnaire/US-143-simulation-de-repondants.md) | Voir ce que donnerait une inscription typique | EPIC-041 | terminée |
+| [US-141](../archive/epics/EPIC-041-prevision-du-questionnaire/US-141-proportions-attendues.md) | Indiquer les proportions attendues des options | EPIC-041 | terminée |
+| [US-142](../archive/epics/EPIC-041-prevision-du-questionnaire/US-142-information-maximale.md) | Savoir si les questions peuvent départager les personnages | EPIC-041 | terminée |
+| [US-143](../archive/epics/EPIC-041-prevision-du-questionnaire/US-143-simulation-de-repondants.md) | Voir ce que donnerait une inscription typique | EPIC-041 | terminée |
