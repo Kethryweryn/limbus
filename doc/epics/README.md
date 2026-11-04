@@ -45,7 +45,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-035](../archive/epics/EPIC-035-ia-sessions-et-participants/README.md) | Brancher une IA, lot 3 : sessions, casting et participants | [SPEC-014](../specs/SPEC-014-api-pour-ia.md) | terminé |
 | [EPIC-036](../archive/epics/EPIC-036-ia-inscriptions/README.md) | Brancher une IA, lot 4 : inscriptions | [SPEC-014](../specs/SPEC-014-api-pour-ia.md) | terminé |
 | [EPIC-037](../archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md) | Qualité du questionnaire, lot 1 : repères sur les liens | [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) | terminé |
-| [EPIC-038](EPIC-038-essai-du-questionnaire/README.md) | Aide à la conception du questionnaire, lot 1 : essai par l'équipe | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | terminé |
+| [EPIC-038](../archive/epics/EPIC-038-essai-du-questionnaire/README.md) | Aide à la conception du questionnaire, lot 1 : essai par l'équipe | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | terminé |
 | [EPIC-039](../archive/epics/EPIC-039-qualite-du-questionnaire-reponses/README.md) | Qualité du questionnaire, lot 2 : repères sur les réponses | [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) | terminé |
 | [EPIC-040](../archive/epics/EPIC-040-qualite-du-questionnaire-estimation/README.md) | Qualité du questionnaire, lot 3 : estimation générale | [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) | terminé |
 
@@ -187,7 +187,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-132](../archive/epics/EPIC-036-ia-inscriptions/US-132-selection-et-tirages.md) | L'assistant aide à la sélection et tire au sort | EPIC-036 | terminée |
 | [US-133](../archive/epics/EPIC-037-qualite-du-questionnaire-liens/US-133-encadre-et-liens-manquants.md) | L'encadré « Qualité du questionnaire » et les liens manquants | EPIC-037 | terminée |
 | [US-134](../archive/epics/EPIC-037-qualite-du-questionnaire-liens/US-134-personnages-indistincts-par-les-liens.md) | Les personnages que les liens ne distinguent pas | EPIC-037 | terminée |
-| [US-135](EPIC-038-essai-du-questionnaire/US-135-essayer-le-questionnaire.md) | Essayer le questionnaire comme un joueur | EPIC-038 | terminée |
+| [US-135](../archive/epics/EPIC-038-essai-du-questionnaire/US-135-essayer-le-questionnaire.md) | Essayer le questionnaire comme un joueur | EPIC-038 | terminée |
 | [US-136](../archive/epics/EPIC-039-qualite-du-questionnaire-reponses/US-136-questions-qui-ne-departagent-pas.md) | Les questions qui ne départagent pas et les échelles tassées | EPIC-039 | terminée |
 | [US-137](../archive/epics/EPIC-039-qualite-du-questionnaire-reponses/US-137-questions-qui-font-doublon.md) | Les questions qui font doublon | EPIC-039 | terminée |
 | [US-138](../archive/epics/EPIC-039-qualite-du-questionnaire-reponses/US-138-personnages-indistincts-chez-les-inscrits.md) | Les personnages indistincts chez les inscrits | EPIC-039 | terminée |

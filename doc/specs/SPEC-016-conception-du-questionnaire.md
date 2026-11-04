@@ -97,7 +97,7 @@ Les personnes inscrites ne voient que l'ordre mélangé des options.
 
 ## Découpage
 
-1. **Essai par l'équipe** ([EPIC-038](../epics/EPIC-038-essai-du-questionnaire/README.md)) : R1 à R3.
+1. **Essai par l'équipe** ([EPIC-038](../archive/epics/EPIC-038-essai-du-questionnaire/README.md)) : R1 à R3, hors mélange des options, qui vient avec R13. Fait.
 2. **Prévision** : R4 à R10.
 3. **Relecture et mélange** : R11 à R13.
 
@@ -117,3 +117,4 @@ Le lot 1 de SPEC-015 ([EPIC-037](../archive/epics/EPIC-037-qualite-du-questionna
   - mélange par une case par question ;
   - échelle gardée de 1 à 5 ;
   - ordre des lots : essai, prévision, relecture.
+- 2026-11-04 : lot 1 livré ([EPIC-038](../archive/epics/EPIC-038-essai-du-questionnaire/README.md), PR #133).
