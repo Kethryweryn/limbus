@@ -89,7 +89,7 @@ Les mots sont comptés sur le texte découpé aux espaces et à l'apostrophe, sa
 - La prévision n'est aussi bonne que les hypothèses de réponse. Sans proportions, elle est optimiste, car de vraies réponses ne se répartissent jamais également. La phrase le rappelle.
 - L'encadré de SPEC-015 grandit : ses parties (liens, rédaction, prévision, réponses) se replient.
 - La route de l'encadré rend aussi les personnages PJ avec leurs factions et intrigues (identifiants et noms), pour l'essai et la simulation.
-- Les seuils de R13 choisis au lot 3 de SPEC-015 s'appliqueront aussi à la prévision.
+- Les seuils de R13, choisis au lot 3 de SPEC-015 ([ADR-0064](ADR-0064-estimation-generale-du-questionnaire.md)), s'appliqueront aussi à la prévision, directement à la médiane (SPEC-016, R9).
 
 ## Options écartées
 

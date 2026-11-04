@@ -3,7 +3,7 @@ id: ADR-0064
 titre: Estimation générale du questionnaire : seuils, intervalle de la note moyenne, ordre des repères
 statut: accepté
 date: 2026-11-04
-liens: [SPEC-015, ADR-0051, ADR-0061, ADR-0063]
+liens: [SPEC-015, SPEC-016, ADR-0051, ADR-0061, ADR-0062, ADR-0063]
 ---
 
 # ADR-0064 : Estimation générale du questionnaire : seuils, intervalle de la note moyenne, ordre des repères
