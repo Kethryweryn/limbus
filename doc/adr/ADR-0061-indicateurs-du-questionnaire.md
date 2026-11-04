@@ -8,7 +8,7 @@ liens: [SPEC-015, SPEC-001, ADR-0050, ADR-0051]
 
 # ADR-0061 : Indicateurs statistiques de la qualité du questionnaire de casting
 
-Complété par [ADR-0063](ADR-0063-reperes-sur-les-reponses.md), qui remplace le seuil de l'échelle tassée (R9) et précise le test du V de Cramér.
+Complété par [ADR-0063](ADR-0063-reperes-sur-les-reponses.md), qui remplace le seuil de l'échelle tassée (R9), précise le test du V de Cramér, et n'affiche ni une paire sous le seuil faute de conditions de Cochran, ni une corrélation à 3 réponses ou moins.
 
 ## Contexte
 

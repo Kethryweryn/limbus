@@ -22,11 +22,11 @@ Ce qui suit complète ADR-0061 et remplace sa ligne « Échelle tassée à une e
 
 ### Extrémité d'une échelle (R9)
 
-Le seuil est de 20 %, la part d'une note dans une répartition égale entre les 5 notes (choix de l'utilisatrice). L'échelle est « à revoir » quand la borne basse de Wilson de l'extrémité dépasse 20 %. Ce n'est plus le critère de Terwee : les études qui appliquent un seuil à une question isolée vont de 15 % à 40 %, sans norme commune.
+Le seuil est de 20 %, la part d'une note dans une répartition égale entre les 5 notes (choix de l'utilisatrice). L'échelle est « à revoir » quand la borne basse de Wilson de l'extrémité dépasse 20 %. Ce n'est plus le critère de Terwee : les études qui appliquent un seuil à une question isolée vont de 15 % à 40 %, sans norme commune : 15 % pour le [SAQ-CAN](https://pmc.ncbi.nlm.nih.gov/articles/PMC7706021/table/Tab2), 20 % pour un [indice de satisfaction](https://bmcmedinformdecismak.biomedcentral.com/articles/10.1186/s12911-022-02002-5/tables/2), 20 à 40 % selon le module pour le [COP-Q](https://jpro.springeropen.com/articles/10.1186/s41687-025-00862-9/tables/3).
 
 ### Test du V de Cramér (R10)
 
-Le seuil « fort » de Cohen, 0,50 / √df\*, revient à w = 0,50 quel que soit le tableau. La valeur p teste « l'association dépasse ce seuil » par la loi du khi-deux non centrale, avec le paramètre de non-centralité λ₀ = 0,25 n, à (r−1)(c−1) degrés de liberté. C'est la loi qui sert à construire l'intervalle de confiance du V (Smithson, 2003).
+Le seuil « fort » de Cohen, 0,50 / √df\*, revient à w = 0,50 quel que soit le tableau. La valeur p teste « l'association dépasse ce seuil » par la loi du khi-deux non centrale, avec le paramètre de non-centralité λ₀ = 0,25 n, à (r−1)(c−1) degrés de liberté. C'est la loi qui sert à construire l'intervalle de confiance du V (Smithson, 2003, cité d'après le paquet R [confintr](https://search.r-project.org/CRAN/refmans/confintr/html/ci_cramersv.html) ; le livre n'a pas été relu).
 
 Une paire est « à revoir » quand le V corrigé atteint le seuil, que les conditions de Cochran sont remplies et que la valeur p ajustée confirme. Si le V corrigé atteint le seuil sans le reste, elle est « à confirmer ». Sous le seuil, elle n'est pas affichée (choix de l'utilisatrice) : une ligne par paire de questions noierait les autres repères.
 

@@ -26,6 +26,6 @@ En tant qu'organisatrice, je veux savoir quelles questions reçoivent presque to
 
 ## Tests
 
-- Unitaires : valeurs de référence de Wilson, entropie, Leik ; niveaux selon l'effectif ; option retirée ; échelle bien répartie non signalée.
+- Unitaires : valeurs de référence de Wilson, entropie, Leik ; niveaux selon l'effectif ; option retirée ; échelle bien répartie non signalée ; phrases de chaque repère, singulier compris (`tests/utils/questionnaireQualityText.test.ts`, commun aux US de l'epic).
 - Intégration : deux inscriptions d'une même personne comptent une fois ; une question sans lien n'est pas jugée.
 - Bout en bout : un repère sur les réponses s'affiche dans l'encadré.
