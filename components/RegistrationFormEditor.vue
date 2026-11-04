@@ -127,7 +127,10 @@
               </div>
             </div>
           </div>
-          <UButton size="sm" color="neutral" variant="soft" icon="i-heroicons-plus" @click="addQuestion">Ajouter une question</UButton>
+          <div class="flex flex-wrap gap-2">
+            <UButton size="sm" color="neutral" variant="soft" icon="i-heroicons-plus" @click="addQuestion">Ajouter une question</UButton>
+            <UButton size="sm" color="neutral" variant="soft" icon="i-heroicons-play" :disabled="!linksLoaded" @click="trialOpen = true">Essayer le questionnaire</UButton>
+          </div>
         </section>
 
         <RegistrationFormQuality :game-id="gameId" :refresh-key="qualityKey" />
@@ -178,6 +181,8 @@
           <UButton color="primary" :loading="saving" @click="save">Enregistrer</UButton>
           <UButton color="neutral" variant="soft" @click="open = false">Fermer</UButton>
         </div>
+
+        <RegistrationFormTrial v-if="trialOpen" v-model:open="trialOpen" :game-id="gameId" :questions="trialQuestions" :links="trialLinks" />
       </div>
     </template>
   </UModal>
@@ -371,6 +376,21 @@ function linksPayload(drafts: ReturnType<typeof linkDrafts>) {
     return { questionId: question.id, option, [`${kind}Id`]: id }
   })))
 }
+
+// Essai du questionnaire (US-135) : les questions et les liens en cours, une nouvelle question ayant un identifiant provisoire
+const trialOpen = ref(false)
+const trialId = (question: EditableQuestion) => question.id ?? `essai-${question.key}`
+const trialQuestions = computed(() => questions.value
+  .filter((question) => question.label.trim() && question.type !== 'text')
+  .map((question) => ({ id: trialId(question), label: question.label, type: question.type, required: question.required, options: questionOptions(question) })))
+const trialLinks = computed(() => {
+  const names = new Map(linkItems.value.flat().map(({ label, value }) => [value, label]))
+  const drafts = linkDrafts()
+  return questions.value.flatMap((question, index) => (drafts[index] || []).flatMap(({ option, values }) => values.map((value) => {
+    const [kind = '', id = ''] = value.split(':')
+    return { questionId: trialId(question), option, target: { kind, id, name: names.get(value) ?? '' } }
+  })))
+})
 
 function apply(data: SavedForm) {
   settings.value = cloneSettings(REGISTRATION_STANDARD_FIELDS, data.definition.standardFields)

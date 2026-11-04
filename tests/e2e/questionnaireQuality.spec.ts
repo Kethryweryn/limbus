@@ -59,3 +59,61 @@ test('l’encadré de qualité signale un personnage sans lien, puis les repère
     await prisma.$disconnect()
   }
 })
+
+// EPIC-038 (US-135) : l'essai porte sur les liens pas encore enregistrés, et ne laisse rien
+test('l’essai du questionnaire classe les personnages selon les réponses, sans rien enregistrer', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const key = `essai-${Date.now()}`
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+    const title = `Jeu ${key}`
+    const game = await prisma.game.create({ data: { title, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
+    await prisma.character.create({ data: { name: 'Aldric Essai', slug: `aldric-${key}`, gameId: game.id } })
+    await prisma.character.create({ data: { name: 'Bertrand Essai', slug: `bertrand-${key}`, gameId: game.id } })
+    await prisma.registrationForm.create({
+      data: {
+        gameId: game.id,
+        versions: { create: { number: 1, definition: { ...DEFAULT_REGISTRATION_FORM_DEFINITION, questions: [{ id: 'style', label: 'Ton style', type: 'single', required: false, options: ['Intrigue', 'Combat'] }] } } }
+      }
+    })
+    await prisma.registrationPeriod.create({ data: { gameId: game.id, name: 'Période', publicId: key, entryMode: 'form' } })
+
+    await signIn(page, prisma, E2E_USERS.orga)
+    await page.goto('/registrations')
+    await page.waitForLoadState('networkidle')
+    await gamePanel(page, title, 'Formulaire').getByRole('button', { name: 'Formulaire' }).click()
+    const editor = page.getByRole('dialog', { name: /Formulaire d’inscription/ })
+    const tryButton = editor.getByRole('button', { name: 'Essayer le questionnaire' })
+    await expect(tryButton).toBeEnabled()
+
+    // Sans lien, la fenêtre le dit
+    await tryButton.click()
+    const trial = page.getByRole('dialog', { name: 'Essayer le questionnaire' })
+    await expect(trial.getByText('Aucune question n’est reliée à un rôle')).toBeVisible()
+    await trial.getByRole('button', { name: 'Close' }).click()
+    await expect(trial).toBeHidden()
+
+    // Un lien pas encore enregistré compte dans l'essai
+    await editor.getByText('Personnages, factions, intrigues…').first().click()
+    await page.getByRole('option', { name: 'Aldric Essai' }).click()
+    await page.keyboard.press('Escape')
+    await tryButton.click()
+    await expect(trial.getByText('Aldric Essai, Bertrand Essai')).toBeVisible()
+
+    await trial.getByRole('radio', { name: 'Intrigue' }).check()
+    await expect(trial.getByRole('listitem').filter({ hasText: 'Aldric Essai' })).toContainText('1 point')
+    await expect(trial.getByText('« Ton style » : Intrigue → Aldric Essai (+1)')).toBeVisible()
+    await expect(trial.getByText('Qu’aucune réponse donnée ne rejoint')).toBeVisible()
+    await expect(trial.getByText('Bertrand Essai')).toBeVisible()
+
+    // Fermer oublie les réponses et n'écrit rien
+    await trial.getByRole('button', { name: 'Close' }).click()
+    await expect(trial).toBeHidden()
+    expect(await prisma.registration.count({ where: { period: { gameId: game.id } } })).toBe(0)
+    expect(await prisma.registrationQuestionLink.count({ where: { gameId: game.id } })).toBe(0)
+    await tryButton.click()
+    await expect(trial.getByText('Aldric Essai, Bertrand Essai')).toBeVisible()
+  } finally {
+    await prisma.$disconnect()
+  }
+})

@@ -56,6 +56,11 @@ export function castingScore(player: CastingPlayer, character: CastingCharacter,
   return { score: components.reduce((sum, component) => sum + component.points, 0), components }
 }
 
+/** Note ou points, à deux décimales au plus. */
+export function formatScore(value: number) {
+  return Number(value.toFixed(2)).toLocaleString('fr-FR')
+}
+
 const pairKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`)
 
 /** Paires de joueurs dont l'un ne veut pas jouer avec l'autre (affinité rattachée, dans un sens ou dans l'autre). */
