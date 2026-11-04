@@ -8,6 +8,8 @@ liens: [SPEC-015, SPEC-001, ADR-0050, ADR-0051]
 
 # ADR-0061 : Indicateurs statistiques de la qualité du questionnaire de casting
 
+Complété par [ADR-0063](ADR-0063-reperes-sur-les-reponses.md), qui remplace le seuil de l'échelle tassée (R9) et précise le test du V de Cramér.
+
 ## Contexte
 
 [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) donne à l'équipe d'un jeu des repères sur son questionnaire de casting. Il faut des indicateurs reconnus, valables sur de petits effectifs (un GN compte souvent de 20 à 60 inscrits), et qui disent quand les réponses ne suffisent pas encore pour conclure. Les seuils doivent venir de la littérature quand elle en donne, et des choix de l'utilisatrice sinon.

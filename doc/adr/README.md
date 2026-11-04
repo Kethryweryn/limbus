@@ -66,3 +66,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0060](ADR-0060-licence-non-commerciale.md) | Licence PolyForm Noncommercial à la place de MIT | accepté | 2026-11-03 |
 | [ADR-0061](ADR-0061-indicateurs-du-questionnaire.md) | Indicateurs statistiques de la qualité du questionnaire de casting (entropie, Wilson, Cramér, Spearman, HTMT) | accepté | 2026-11-03 |
 | [ADR-0062](ADR-0062-aide-a-la-conception-du-questionnaire.md) | Aide à la conception du questionnaire : information maximale, simulation de répondants, règles de relecture, consigne MCP, mélange des options | accepté | 2026-11-03 |
+| [ADR-0063](ADR-0063-reperes-sur-les-reponses.md) | Repères sur les réponses : extrémité d'une échelle comparée à 20 %, test du V de Cramér, risque d'erreur | accepté | 2026-11-04 |
