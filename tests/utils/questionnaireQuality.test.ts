@@ -112,6 +112,89 @@ const answerFindings = (...args: Parameters<typeof questionnaireFindings>) => {
 // n réponses identiques
 const times = (count: number, answers: Record<string, unknown>) => Array.from({ length: count }, () => answers)
 
+describe('estimation générale (US-140, R13)', () => {
+  const style: QualityQuestion = { id: 'style', label: 'Ton style', type: 'single', options: ['Intrigue', 'Combat', 'Mystère', 'Fête'] }
+  const toCharacter = (option: string, id: string) => link('style', option, 'character', id)
+  const estimateOf = (links: ReturnType<typeof link>[], characters: QualityCharacter[], people: Array<Record<string, unknown>>) =>
+    questionnaireFindings([style], links, characters, people).estimate
+  const roles = (count: number) => Array.from({ length: count }, (_, index) => character(`P${index}`))
+
+  it('absente sans réponse ou sans personnage', () => {
+    expect(estimateOf([toCharacter('Intrigue', 'A')], [character('A')], [])).toBeNull()
+    expect(estimateOf([], [], [{ style: 'Intrigue' }])).toBeNull()
+  })
+
+  it('bon : chacun obtient sa meilleure note, sans ex æquo', () => {
+    const estimate = estimateOf([toCharacter('Intrigue', 'A'), toCharacter('Combat', 'B')], [character('A'), character('B')], [{ style: 'Intrigue' }, { style: 'Combat' }])
+    expect(estimate).toMatchObject({ level: 'good', withoutRole: 0, withoutPoints: 0, note: { level: 'good', value: 1, counted: 2, tooFewPeople: false }, ties: { level: 'good', count: 0, total: 2 } })
+  })
+
+  it('à surveiller entre 0,60 et 0,75', () => {
+    const links = [toCharacter('Intrigue', 'P0'), toCharacter('Combat', 'P1'), toCharacter('Mystère', 'P2')]
+    const estimate = estimateOf(links, roles(5), [...times(3, { style: 'Intrigue' }), { style: 'Combat' }, { style: 'Mystère' }])
+    expect(estimate?.note).toMatchObject({ level: 'watch', value: 0.6 })
+    expect(estimate?.level).toBe('watch')
+  })
+
+  it('à revoir quand la borne haute reste sous 0,60', () => {
+    const estimate = estimateOf([toCharacter('Intrigue', 'P0')], roles(30), times(30, { style: 'Intrigue' }))
+    expect(estimate?.note).toMatchObject({ level: 'review', counted: 30 })
+    expect(estimate?.note?.upper).toBeLessThan(0.6)
+    expect(estimate?.level).toBe('review')
+  })
+
+  it('à confirmer quand seule la valeur est sous 0,60', () => {
+    const estimate = estimateOf([toCharacter('Intrigue', 'A')], [character('A'), character('B')], times(2, { style: 'Intrigue' }))
+    expect(estimate?.note).toMatchObject({ level: 'unsure', value: 0.5, counted: 2, tooFewPeople: false })
+  })
+
+  it('à confirmer tant qu’il y a moins de personnes que de rôles, même avec une note parfaite', () => {
+    const estimate = estimateOf([toCharacter('Intrigue', 'A')], [character('A'), character('B')], [{ style: 'Intrigue' }])
+    expect(estimate?.note).toMatchObject({ level: 'unsure', value: 1, tooFewPeople: true })
+  })
+
+  it('ne compte que les personnes placées quand les rôles manquent', () => {
+    const estimate = estimateOf([toCharacter('Intrigue', 'A')], [character('A')], times(4, { style: 'Intrigue' }))
+    expect(estimate).toMatchObject({ withoutRole: 3, note: { level: 'good', value: 1, counted: 1 } })
+  })
+
+  it('ex æquo : à revoir si la borne basse dépasse 50 %, à confirmer sinon, bon jusqu’à une personne sur deux', () => {
+    const both = [toCharacter('Intrigue', 'A'), toCharacter('Intrigue', 'B'), toCharacter('Combat', 'A')]
+    const pair = [character('A'), character('B')]
+    expect(estimateOf(both, pair, times(20, { style: 'Intrigue' }))?.ties).toMatchObject({ level: 'review', count: 20, total: 20, share: 1 })
+    expect(estimateOf(both, pair, [...times(3, { style: 'Intrigue' }), { style: 'Combat' }])?.ties).toMatchObject({ level: 'unsure', count: 3, total: 4 })
+    expect(estimateOf(both, pair, [{ style: 'Intrigue' }, { style: 'Combat' }])?.ties).toMatchObject({ level: 'good', share: 0.5 })
+  })
+
+  it('une personne sans aucun point sort de la note et compte comme ex æquo', () => {
+    const links = [toCharacter('Intrigue', 'A'), toCharacter('Combat', 'B')]
+    const estimate = estimateOf(links, [character('A'), character('B')], [{ style: 'Intrigue' }, { style: 'Mystère' }])
+    expect(estimate).toMatchObject({ withoutPoints: 1, note: { counted: 1, value: 1 }, ties: { count: 1, total: 2 } })
+  })
+
+  it('sans personne comptée, seuls les ex æquo fixent le niveau ; un seul personnage n’a pas d’ex æquo', () => {
+    const none = estimateOf([toCharacter('Intrigue', 'A')], [character('A')], [{ style: 'Combat' }])
+    expect(none).toMatchObject({ level: 'good', note: null, withoutPoints: 1, ties: { count: 0 } })
+  })
+
+  it('le niveau d’ensemble est le plus grave des deux mesures', () => {
+    const both = [toCharacter('Intrigue', 'A'), toCharacter('Intrigue', 'B')]
+    expect(estimateOf(both, [character('A'), character('B')], times(20, { style: 'Intrigue' }))).toMatchObject({ level: 'review', note: { level: 'good' }, ties: { level: 'review' } })
+  })
+
+  it('trie les repères à revoir du plus bloquant au moins bloquant', () => {
+    const a: QualityQuestion = { id: 'a', label: 'A', type: 'single', options: ['Oui', 'Non'] }
+    const b: QualityQuestion = { id: 'b', label: 'B', type: 'single', options: ['Oui', 'Non'] }
+    const c: QualityQuestion = { id: 'c', label: 'C', type: 'single', options: ['X', 'Y'] }
+    const links = [link('a', 'Oui', 'character', 'A'), link('b', 'Non', 'character', 'B'), link('c', 'X', 'character', 'C')]
+    const people = [...times(30, { a: 'Oui', b: 'Oui', c: 'X' }), ...times(30, { a: 'Non', b: 'Non', c: 'X' })]
+    const { findings } = questionnaireFindings([a, b, c], links, [character('A'), character('B'), character('C'), character('D')], people)
+    const reviews = findings.filter((finding) => finding.level === 'review').map((finding) => finding.kind)
+    expect(reviews).toEqual(['characterWithoutLink', 'dominantAnswer', 'duplicateQuestions'])
+    expect(findings[0]?.kind).toBe('characterWithoutLink')
+  })
+})
+
 describe('qui compte dans les réponses (US-136, R7)', () => {
   it('une personne compte une fois, par sa dernière inscription qui contient des réponses', () => {
     expect(latestAnswersPerPerson([

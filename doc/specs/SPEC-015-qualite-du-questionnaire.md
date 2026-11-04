@@ -4,8 +4,8 @@ titre: Qualité du questionnaire de casting
 statut: validée
 date: 2026-11-03
 origine: ../archive/todo/indicateurs-du-questionnaire-de-casting.md
-epics: [EPIC-037, EPIC-039]
-adr: [ADR-0050, ADR-0051, ADR-0061, ADR-0063]
+epics: [EPIC-037, EPIC-039, EPIC-040]
+adr: [ADR-0050, ADR-0051, ADR-0061, ADR-0063, ADR-0064]
 ---
 
 # SPEC-015 : Qualité du questionnaire de casting
@@ -28,7 +28,7 @@ Organisatrice ou co-organisatrice du jeu :
 
 1. Dans l'éditeur du formulaire d'inscription, sous les liens entre réponses et rôles, elle ouvre l'encadré « Qualité du questionnaire ».
 2. Avant toute inscription, elle y voit les repères sur les liens : personnages qu'aucune réponse ne rejoint, questions et options sans lien, personnages que les liens ne distinguent pas.
-3. Une fois des réponses reçues, elle y voit aussi les repères sur les réponses : questions qui ne départagent pas, questions qui font doublon, personnages indistincts chez les inscrits, personnages peu ou trop demandés, puis une estimation générale.
+3. Une fois des réponses reçues, elle y voit d'abord une estimation générale, puis aussi les repères sur les réponses : questions qui ne départagent pas, questions qui font doublon, personnages indistincts chez les inscrits, personnages peu ou trop demandés.
 4. Elle corrige le formulaire ou ses liens, enregistre, et les repères sont recalculés.
 
 Les personnes inscrites ne voient rien de tout cela.
@@ -70,10 +70,11 @@ Les personnes inscrites ne voient rien de tout cela.
 
 ### Estimation générale
 
-- **R13** Une estimation générale résume le questionnaire, à partir de l'affectation optimale de l'assistant de casting (sans cadenas ni contraintes) :
-  - la note moyenne obtenue par chaque personne, rapportée à la meilleure note qu'elle pouvait avoir ;
-  - la part des personnes dont la meilleure note est partagée par plusieurs personnages, avec son intervalle de Wilson.
-  Elle liste les repères « à revoir » par ordre d'importance. Ses seuils (« bon », « à revoir ») restent à choisir au lot 3.
+- **R13** Une estimation générale résume le questionnaire en tête de l'encadré, dès la première réponse et dès que le jeu a un personnage PJ. Son niveau d'ensemble est le plus grave de ses deux mesures, qui gardent chacune leur niveau, leur phrase et leur détail (ADR-0064) :
+  - **Note moyenne** : la note obtenue par chaque personne dans l'affectation optimale de l'assistant de casting (sans cadenas ni contraintes), rapportée à la meilleure note qu'elle pouvait avoir. Une personne sans rôle n'est pas comptée : le manque de places n'est pas un défaut du questionnaire ; le détail dit combien de personnes sont dans ce cas. La note est « bon » à partir de 0,75. Sous 0,60, elle est « à revoir » si la borne haute de son intervalle de Wilson à 95 % reste sous 0,60, « à confirmer » sinon. Entre les deux, elle est « à surveiller ». Tant que les personnes qui ont répondu sont moins nombreuses que les personnages PJ, elle reste « à confirmer » quelle que soit sa valeur, car chacune obtient alors presque toujours son meilleur personnage.
+  - **Ex æquo** : la part des personnes dont la meilleure note est partagée par plusieurs personnages. Elle est « bon » jusqu'à une personne sur deux. Au-delà, elle est « à revoir » si la borne basse de son intervalle de Wilson dépasse 50 %, « à confirmer » sinon.
+  - Une personne dont aucune réponse ne rapporte de point sort de la note moyenne et compte comme ex æquo, dès que le jeu a deux personnages ; le détail dit combien de personnes sont dans ce cas.
+  Les repères de la liste sont triés par niveau puis, à niveau égal, du plus bloquant au moins bloquant pour le casting : personnage sans lien, personnages indistincts par les liens puis chez les inscrits, question qui ne départage pas, échelle tassée, doublon. L'estimation dit combien de repères sont « à revoir », et renvoie à la liste plutôt que de les répéter.
 
 ## Données
 
@@ -97,7 +98,7 @@ Rien n'est enregistré : les repères se calculent à la lecture, à partir du f
 
 1. **Repères sur les liens** ([EPIC-037](../archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md)) : encadré, route, R1 à R6. Fait.
 2. **Repères sur les réponses** ([EPIC-039](../archive/epics/EPIC-039-qualite-du-questionnaire-reponses/README.md)) : R7 à R12. Fait.
-3. **Estimation générale** : R13, avec le choix de ses seuils.
+3. **Estimation générale** ([EPIC-040](../epics/EPIC-040-qualite-du-questionnaire-estimation/README.md)) : R13.
 
 ## Historique
 
@@ -105,3 +106,4 @@ Rien n'est enregistré : les repères se calculent à la lecture, à partir du f
 - 2026-11-03 : lot 1 livré ([EPIC-037](../archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md), PR #127).
 - 2026-11-04 : précisions avant le lot 2, choix de l'utilisatrice ([ADR-0063](../adr/ADR-0063-reperes-sur-les-reponses.md)) : extrémité d'une échelle comparée à 20 % et non 15 %, car une répartition égale y met déjà 20 % ; repères sur les réponses limités aux questions reliées ; doublon « à confirmer » seulement si le lien observé atteint le seuil ; une personne comptée une fois ; corrélation sans intervalle possible (3 réponses ou moins) non affichée.
 - 2026-11-04 : lot 2 livré ([EPIC-039](../archive/epics/EPIC-039-qualite-du-questionnaire-reponses/README.md), PR #129).
+- 2026-11-04 : R13 précisée avant le lot 3, choix de l'utilisatrice ([ADR-0064](../adr/ADR-0064-estimation-generale-du-questionnaire.md)) : note bon 0,75 et à revoir 0,60 ; ex æquo une personne sur deux ; personnes placées seules dans la note ; « à confirmer » sous autant de personnes que de rôles ; personne sans point hors de la note et comptée ex æquo ; ordre selon le casting ; niveau d'ensemble, le plus grave des deux ; affichage dès la première réponse.

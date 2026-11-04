@@ -1,9 +1,18 @@
 // Phrases des repères sur le questionnaire de casting (SPEC-015, R2) : phrase, ce qu'il faut faire, détail replié
-import { QUESTIONNAIRE_THRESHOLDS as THRESHOLDS, type QualityLevel, type QuestionnaireFinding } from './questionnaireQuality'
+import { QUESTIONNAIRE_THRESHOLDS as THRESHOLDS, type QualityLevel, type QuestionnaireEstimate, type QuestionnaireFinding } from './questionnaireQuality'
+
+export const QUALITY_LEVELS: Record<QualityLevel, { label: string, color: 'success' | 'warning' | 'error' | 'neutral' }> = {
+  good: { label: 'Bon', color: 'success' },
+  watch: { label: 'À surveiller', color: 'warning' },
+  review: { label: 'À revoir', color: 'error' },
+  unsure: { label: 'À confirmer', color: 'neutral' }
+}
 
 const decimal = (value: number) => value.toLocaleString('fr-FR', { maximumFractionDigits: 3 })
 // Une borne basse s'arrondit vers le bas : jamais affichée au seuil sans l'avoir atteint
 const lowerBound = (value: number) => decimal(Math.floor(value * 1000) / 1000)
+// Une borne haute s'arrondit vers le haut, pour la même raison
+const upperBound = (value: number) => decimal(Math.ceil(value * 1000) / 1000)
 const adjustedP = (value: number | null) => {
   if (value === null) return 'non calculable'
   return value < 0.001 ? 'moins de 0,001' : decimal(value)
@@ -20,6 +29,35 @@ const todoFor = (level: QualityLevel, received: number, action: string) => (leve
 /** Ce sur quoi portent les repères affichés. */
 export function qualityScope(respondentCount: number) {
   return `Ces repères portent sur le formulaire et les liens enregistrés${respondentCount ? `, et sur les réponses de ${peopleCount(respondentCount)}` : ''}.`
+}
+
+/** Phrases de l'estimation générale (R13), et renvoi aux repères à revoir, en tête de la liste. */
+export function describeEstimate(estimate: QuestionnaireEstimate, reviewCount: number) {
+  const { note, ties, withoutRole, withoutPoints } = estimate
+  const { estimateGood, estimateReview, tiedShare } = THRESHOLDS
+  const noteTodo = (level: QualityLevel, counted: number) => {
+    if (level === 'good') return ''
+    return todoFor(level, counted, 'Reliez davantage de réponses à des personnages précis, et diversifiez les questions où presque tout le monde répond pareil.')
+  }
+  const left = `${withoutRole} sans rôle, ${withoutPoints} sans aucun point.`
+  return {
+    level: estimate.level,
+    summary: reviewCount ? `${reviewCount} repère${reviewCount > 1 ? 's' : ''} à revoir, en tête de la liste, du plus bloquant au moins bloquant pour le casting.` : '',
+    note: note && {
+      level: note.level,
+      sentence: `Une fois les rôles répartis au mieux, chaque personne obtient en moyenne ${Math.round(note.value * 100)} % de sa meilleure note possible.`,
+      todo: note.tooFewPeople
+        ? 'Moins de personnes que de rôles pour l’instant : chacune obtient presque toujours son meilleur personnage. Attendez d’autres réponses.'
+        : noteTodo(note.level, note.counted),
+      detail: `Note moyenne : ${decimal(note.value)} ; intervalle de Wilson à 95 % : ${lowerBound(note.lower)} à ${upperBound(note.upper)} ; seuils : bon ${decimal(estimateGood)}, à revoir ${decimal(estimateReview)}, choix de l’utilisatrice. ${peopleCount(note.counted)} dans la note. ${left} SPEC-015, R13 ; ADR-0064.`
+    },
+    ties: {
+      level: ties.level,
+      sentence: `${peopleOutOf(ties.count, ties.total)} plusieurs personnages à égalité en tête.`,
+      todo: ties.level === 'good' ? '' : todoFor(ties.level, ties.total, 'Reliez des réponses à des personnages précis plutôt qu’à leur seule faction ou intrigue, pour les départager.'),
+      detail: `Part : ${decimal(ties.share)} ; borne basse de Wilson à 95 % : ${lowerBound(ties.lower)} ; seuil : ${decimal(tiedShare)}, choix de l’utilisatrice. ${left} SPEC-015, R13 ; ADR-0064.`
+    }
+  }
 }
 
 /** Phrase, ce qu'il faut faire, et détail replié (valeur, seuil, référence) d'un repère. */

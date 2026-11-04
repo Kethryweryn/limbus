@@ -44,10 +44,11 @@ describe('repères sur les liens du questionnaire', () => {
       { kind: 'optionWithoutLink', level: 'watch', questionId: style!.id, questionLabel: 'Ton style', option: 'Combat' }
     ])
     expect(quality.respondentCount).toBe(0)
+    expect(quality.estimate).toBeNull()
   })
 })
 
-// EPIC-039 : repères sur les réponses reçues (US-136 à US-139)
+// EPIC-039 et EPIC-040 : repères sur les réponses reçues et estimation générale (US-136 à US-140)
 describe('repères sur les réponses reçues', () => {
   it('compte chaque personne une fois, ne juge que les questions reliées et ne nomme personne', async () => {
     const key = `reponses-${Date.now()}`
@@ -81,6 +82,8 @@ describe('repères sur les réponses reçues', () => {
     expect(response.status).toBe(200)
     const quality = bodyOf<Quality>(response)
     expect(quality.respondentCount).toBe(4)
+    // US-140 : un seul rôle pour quatre personnes, trois restent sans rôle
+    expect(quality.estimate).toMatchObject({ level: 'good', withoutRole: 3, withoutPoints: 0, note: { level: 'good', value: 1, counted: 1 }, ties: { level: 'good', count: 0, total: 4 } })
     expect(quality.findings).toContainEqual(expect.objectContaining({ kind: 'dominantAnswer', level: 'unsure', questionId: style!.id, option: 'Intrigue', count: 4, total: 4 }))
     expect(quality.findings).toContainEqual({ kind: 'overWanted', level: 'watch', character: { id: aldric.id, name: 'Aldric' }, count: 4, respondents: 4 })
     // La question d'organisation, sans lien, n'a que son repère de lien
