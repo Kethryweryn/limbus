@@ -1,6 +1,6 @@
 import { prisma } from '~/server/utils/prisma'
 import { getCurrentRegistrationForm } from '~/server/utils/registrationForms'
-import { REGISTRATION_CHOICE_TYPES } from '~/utils/registrationForms'
+import { REGISTRATION_CHOICE_TYPES, type RegistrationQuestion } from '~/utils/registrationForms'
 
 // Liens du questionnaire vers les personnages, factions et intrigues (US-098, ADR-0050)
 
@@ -24,14 +24,17 @@ export async function linkTargets(gameId: string) {
  * option disparue est ignoré. Une question sur une échelle se relie entière (option vide).
  */
 export async function currentQuestionLinks(gameId: string, balance?: Parameters<typeof getCurrentRegistrationForm>[1]) {
-  const [{ definition }, rows] = await Promise.all([
-    getCurrentRegistrationForm(gameId, balance),
-    prisma.registrationQuestionLink.findMany({ where: { gameId }, select: linkSelect })
-  ])
-  const questions = new Map(definition.questions.map((question) => [question.id, question]))
+  const { definition } = await getCurrentRegistrationForm(gameId, balance)
+  return await questionLinksOf(gameId, definition.questions)
+}
+
+/** Les mêmes liens, pour qui a déjà lu le formulaire. */
+export async function questionLinksOf(gameId: string, questions: RegistrationQuestion[]) {
+  const rows = await prisma.registrationQuestionLink.findMany({ where: { gameId }, select: linkSelect })
+  const byId = new Map(questions.map((question) => [question.id, question]))
   return rows
     .filter((row) => {
-      const question = questions.get(row.questionId)
+      const question = byId.get(row.questionId)
       if (!question) return false
       return REGISTRATION_CHOICE_TYPES.includes(question.type) ? question.options.includes(row.option) : question.type === 'scale' && row.option === ''
     })

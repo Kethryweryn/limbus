@@ -190,17 +190,32 @@ test('la prévision du questionnaire suit les proportions attendues', async ({ p
     await expect(editor.getByText('Bertrand Prévision serait peu demandé dans 10 simulations sur 10.')).toBeVisible()
     await expect(editor.getByText(/Les réponses suivent vos proportions/)).toBeVisible()
     expect(await prisma.registrationFormVersion.count({ where: { form: { gameId: game.id } } })).toBe(1)
+    const savedRow = () => prisma.registrationOptionExpectation.findFirstOrThrow({ where: { gameId: game.id } })
+    const firstVersion = (await savedRow()).updatedAt
+
+    // Enregistrer sans changer les proportions ne les réécrit pas, et le volet reste déplié
+    await expect(editor.getByLabel('Part attendue : Intrigue')).toBeVisible()
+    await editor.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect(editor.getByText('Aucun changement : la version en vigueur est conservée.')).toBeVisible()
+    expect((await savedRow()).updatedAt).toEqual(firstVersion)
+
+    // Une part suit son option renommée
+    await editor.getByLabel('Options').fill('Manigance\nCombat')
+    await expect(editor.getByLabel('Part attendue : Manigance')).toHaveValue('100')
+    await editor.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect(editor.getByText('Version 2 enregistrée.')).toBeVisible()
+    await expect.poll(async () => (await savedRow()).option).toBe('Manigance')
 
     // Les proportions se retrouvent à la réouverture
     await openEditor()
     await editor.getByText('Proportions attendues (facultatif)').click()
-    await expect(editor.getByLabel('Part attendue : Intrigue')).toHaveValue('100')
+    await expect(editor.getByLabel('Part attendue : Manigance')).toHaveValue('100')
     await expect(editor.getByLabel('Part attendue : Combat')).toHaveValue('')
 
     // Une fois des réponses reçues, la partie reste là, repliée
     const email = `zoe-${key}@example.test`
     const person = await prisma.participant.create({ data: { name: `Zoé ${key}`, slug: `zoe-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
-    await prisma.registration.create({ data: { periodId: period.id, participantId: person.id, status: 'received', source: 'form', email, questionAnswers: { style: 'Intrigue' } } })
+    await prisma.registration.create({ data: { periodId: period.id, participantId: person.id, status: 'received', source: 'form', email, questionAnswers: { style: 'Manigance' } } })
     await openEditor()
     const forecastTitle = editor.locator('summary').filter({ hasText: 'Prévision' })
     await expect(forecastTitle).toContainText('À revoir')

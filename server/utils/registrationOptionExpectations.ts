@@ -11,19 +11,27 @@ const accepts = (question: RegistrationQuestion | undefined, option: string) =>
   Boolean(question && (question.type === 'scale' || REGISTRATION_CHOICE_TYPES.includes(question.type)) && optionsOf(question).includes(option))
 
 /** Proportions qui visent une question et une option du formulaire en vigueur ; les autres sont ignorées. */
-export async function currentOptionExpectations(gameId: string) {
-  const [{ definition }, rows] = await Promise.all([
-    getCurrentRegistrationForm(gameId),
-    prisma.registrationOptionExpectation.findMany({ where: { gameId }, select: { questionId: true, option: true, share: true } })
-  ])
-  const questions = new Map(definition.questions.map((question) => [question.id, question]))
-  return rows.filter((row) => accepts(questions.get(row.questionId), row.option))
+export async function optionExpectationsOf(gameId: string, questions: RegistrationQuestion[]) {
+  const rows = await prisma.registrationOptionExpectation.findMany({ where: { gameId }, select: { questionId: true, option: true, share: true } })
+  const byId = new Map(questions.map((question) => [question.id, question]))
+  return rows.filter((row) => accepts(byId.get(row.questionId), row.option))
 }
 
 /** Version lue par l'éditeur : le plus récent `updatedAt` des lignes, null s'il n'y en a aucune. */
 export async function optionExpectationsVersion(gameId: string) {
   const { _max } = await prisma.registrationOptionExpectation.aggregate({ where: { gameId }, _max: { updatedAt: true } })
   return _max.updatedAt
+}
+
+// Ce que lit l'éditeur : les proportions et leur version
+async function expectationsState(gameId: string, questions: RegistrationQuestion[]) {
+  const [expectations, version] = await Promise.all([optionExpectationsOf(gameId, questions), optionExpectationsVersion(gameId)])
+  return { expectations, version: version?.toISOString() ?? null }
+}
+
+export async function optionExpectationsState(gameId: string) {
+  const { definition } = await getCurrentRegistrationForm(gameId)
+  return await expectationsState(gameId, definition.questions)
 }
 
 /** Remplace les proportions du jeu. Pour un choix unique ou une échelle, au moins une part doit être positive. */
@@ -45,4 +53,5 @@ export async function saveOptionExpectations(gameId: string, expectations: Expec
     prisma.registrationOptionExpectation.deleteMany({ where: { gameId } }),
     prisma.registrationOptionExpectation.createMany({ data: [...unique.values()] })
   ])
+  return await expectationsState(gameId, definition.questions)
 }

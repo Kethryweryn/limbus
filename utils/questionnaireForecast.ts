@@ -24,9 +24,12 @@ const RANGE_HIGH = 0.975
 export type OptionExpectation = { questionId: string, option: string, share: number }
 export type ForecastInput = { questions: QualityQuestion[], links: CastingLink[], characters: QualityCharacter[], expectations: OptionExpectation[] }
 
+// Le formulaire accepte deux options de même texte ; pour une réponse, le casting et les parts, ce n'en est qu'une
+const distinctOptions = (question: QualityQuestion) => [...new Set(optionsOf(question))]
+
 /** Les parts indiquées pour une question, ou null sans parts utilisables : la question suit alors la répartition par défaut (R6). */
 function givenShares(question: QualityQuestion, expectations: OptionExpectation[]) {
-  const options = optionsOf(question)
+  const options = distinctOptions(question)
   const rows = expectations.filter((row) => row.questionId === question.id && options.includes(row.option))
   // Un choix unique ou une échelle sans part positive (son formulaire a changé) n'a pas de répartition à suivre
   if (!rows.length || (question.type !== 'multiple' && rows.every((row) => !row.share))) return null
@@ -35,7 +38,7 @@ function givenShares(question: QualityQuestion, expectations: OptionExpectation[
 
 /** Pour chaque option : la chance d'être choisie (somme de 1), ou d'être cochée pour une question à choix multiples (R6). */
 export function answerProbabilities(question: QualityQuestion, expectations: OptionExpectation[]) {
-  const options = optionsOf(question)
+  const options = distinctOptions(question)
   const shares = givenShares(question, expectations)
   if (question.type === 'multiple') return options.map((option) => (shares ? shares.get(option) ?? 0 : 0.5))
   if (!shares) return options.map(() => 1 / options.length)
@@ -46,7 +49,7 @@ export function answerProbabilities(question: QualityQuestion, expectations: Opt
 // Les profils de réponses que distingue une question : options de mêmes liens confondues pour un choix unique. expected est
 // l'information attendue avec les parts de l'équipe, null sans parts
 function questionInformation(question: QualityQuestion, links: CastingLink[], expectations: OptionExpectation[]) {
-  const options = optionsOf(question)
+  const options = distinctOptions(question)
   const mine = links.filter((link) => link.questionId === question.id)
   const probabilities = answerProbabilities(question, expectations)
   const hasShares = givenShares(question, expectations) !== null
@@ -131,7 +134,7 @@ type PreparedQuestion = { multiple: boolean, points: number[][], probabilities: 
 export function prepareQuestion(question: QualityQuestion, links: CastingLink[], characters: QualityCharacter[], expectations: OptionExpectation[]): PreparedQuestion {
   const mine = links.filter((link) => link.questionId === question.id)
   const castings = characters.map((character) => ({ ...character, relations: [] }))
-  const answers = optionsOf(question).map((option) => {
+  const answers = distinctOptions(question).map((option) => {
     if (question.type === 'scale') return Number(option)
     return question.type === 'multiple' ? [option] : option
   })

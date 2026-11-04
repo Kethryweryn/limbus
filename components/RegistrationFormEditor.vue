@@ -431,7 +431,8 @@ function linksPayload(drafts: ReturnType<typeof linkDrafts>) {
 const expectationsVersion = ref<string | null>(null)
 let savedExpectations = ''
 
-const expectationOptions = (question: EditableQuestion) => (question.type === 'scale' ? SCALE_OPTIONS : questionOptions(question))
+// Une part par texte d'option : deux lignes identiques n'en font qu'une
+const expectationOptions = (question: EditableQuestion) => (question.type === 'scale' ? SCALE_OPTIONS : [...new Set(questionOptions(question))])
 const isLinked = (question: EditableQuestion) => (question.type === 'scale' ? question.scaleLinks.length > 0 : questionOptions(question).some((option) => question.optionLinks[option]?.length))
 
 function applyExpectations({ expectations, version }: OptionExpectations) {
@@ -501,7 +502,7 @@ async function save() {
   try {
     const previous = version.value?.number
     const drafts = linkDrafts()
-    const shares = questions.value.map((question) => question.shares)
+    const before = questions.value.map(({ key, shares, optionLinks, scaleLinks }) => ({ key, shares, optionLinks, scaleLinks }))
     const saved = await useApiFetch(`/api/games/${props.gameId}/registration-form`, {
       method: 'PUT',
       body: { standardFields: settings.value, affinities: affinities.value, balance: balance.value, questions: definitionQuestions(), baseVersionNumber: previous ?? null }
@@ -513,9 +514,8 @@ async function save() {
       return
     }
     apply(saved)
-    questions.value.forEach((question, index) => {
-      question.shares = shares[index] ?? {}
-    })
+    // Tant que liens et parts sont en route, chaque question garde les siens et sa clé : un volet de proportions déplié le reste
+    questions.value.forEach((question, index) => Object.assign(question, before[index]))
     // Les questions reviennent dans le même ordre, avec leurs identifiants : les liens suivent (US-098). Sans liens
     // chargés, on n'enregistre rien : une liste vide les effacerait tous
     let linksQueued = false
@@ -526,9 +526,14 @@ async function save() {
       // Après les liens : sans eux, une question ne serait plus reliée
       const expectations = expectationsPayload(expectationRows)
       if (JSON.stringify(expectations) !== savedExpectations) {
-        const savedShares = await useApiFetch(`/api/games/${props.gameId}/registration-option-expectations`, { method: 'PUT', body: { expectations, updatedAt: expectationsVersion.value ?? NO_VERSION } })
-        if (isOfflineQueued(savedShares)) linksQueued = true
-        else applyExpectations(savedShares)
+        try {
+          const savedShares = await useApiFetch(`/api/games/${props.gameId}/registration-option-expectations`, { method: 'PUT', body: { expectations, updatedAt: expectationsVersion.value ?? NO_VERSION } })
+          if (isOfflineQueued(savedShares)) linksQueued = true
+          else applyExpectations(savedShares)
+        } catch (err) {
+          // Le formulaire et les liens sont déjà écrits : ne pas laisser croire que rien ne l'est
+          errorMessage.value = `Le formulaire et les rôles sont enregistrés, mais pas les proportions attendues. ${apiErrorMessage(err, 'Enregistrement impossible.')}`
+        }
       }
     }
     qualityKey.value++

@@ -14,6 +14,16 @@ function readVersion(event: H3Event) {
   return Number.isNaN(since.getTime()) ? null : since
 }
 
+function versionConflict() {
+  return createError({
+    statusCode: 409,
+    // En ligne comme au retour du mode hors ligne : la version lue n'est plus la dernière (ADR-0028)
+    message: 'Cet élément a été modifié par quelqu’un d’autre entre-temps. Rechargez la page pour voir ses changements ; les vôtres n’ont pas été enregistrés.',
+    // Distingue un conflit de version d'un autre refus 409 (resynchronisation, ADR-0036)
+    data: { conflict: true }
+  })
+}
+
 /**
  * Refuse l'écriture (409) si la version actuelle est plus récente que la version lue. Une version absente
  * (ligne pas encore créée) vaut la date zéro. Sans en-tête, rien n'est contrôlé.
@@ -23,14 +33,18 @@ export function assertVersion(event: H3Event, current: Date | string | null | un
   if (!since) return
 
   if ((current ? new Date(current).getTime() : 0) > since.getTime()) {
-    throw createError({
-      statusCode: 409,
-      // En ligne comme au retour du mode hors ligne : la version lue n'est plus la dernière (ADR-0028)
-      message: 'Cet élément a été modifié par quelqu’un d’autre entre-temps. Rechargez la page pour voir ses changements ; les vôtres n’ont pas été enregistrés.',
-      // Distingue un conflit de version d'un autre refus 409 (resynchronisation, ADR-0036)
-      data: { conflict: true }
-    })
+    throw versionConflict()
   }
+}
+
+/**
+ * Comme assertVersion, pour une liste remplacée d'un bloc dont la version est le plus récent `updatedAt` de ses lignes. Sans
+ * ligne, il n'y a plus de date : une version lue non nulle veut dire que la liste a été vidée depuis (ADR-0062).
+ */
+export function assertRowsVersion(event: H3Event, latest: Date | null) {
+  const since = readVersion(event)
+  if (!latest && since && since.getTime() > 0) throw versionConflict()
+  assertVersion(event, latest)
 }
 
 // Modèle du schéma, par le nom de son délégué (prisma.session…) ; seul un modèle qui a updatedAt fait version

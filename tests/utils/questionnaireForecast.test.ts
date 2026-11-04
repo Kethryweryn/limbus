@@ -41,6 +41,25 @@ describe('proportions attendues (R6)', () => {
     expect(answerProbabilities(question('m', 'multiple', ['A', 'B']), [share('m', 'A', 0.9)])).toEqual([0.9, 0])
   })
 
+  it('compte une fois deux options de même texte', () => {
+    const doubled = question('q', 'single', ['A', 'A', 'B'])
+    expect(answerProbabilities(doubled, [share('q', 'A', 0.5), share('q', 'B', 0.5)])).toEqual([0.5, 0.5])
+    expect(answerProbabilities(doubled, [])).toEqual([0.5, 0.5])
+    const information = maximalInformation(input({
+      questions: [question('m', 'multiple', ['X', 'X'])],
+      links: [toCharacter('m', 'X', 'p0')],
+      characters: characters(2)
+    }))
+    expect(information).toMatchObject({ profiles: 2, bits: 1 })
+    const { demand } = simulateRegistrations(input({
+      questions: [doubled],
+      links: [toCharacter('q', 'B', 'p0')],
+      characters: characters(1),
+      expectations: [share('q', 'A', 0), share('q', 'B', 1)]
+    }), 5)
+    expect(demand).toEqual([{ kind: 'rarelyWanted', character: { id: 'p0', name: 'p0' }, median: 1, share: 1 }])
+  })
+
   it('ignore les parts d’une option disparue, et une question laissée sans part positive revient à l’égalité', () => {
     const left = question('q', 'single', ['A', 'B'])
     expect(answerProbabilities(left, [share('q', 'Disparue', 1)])).toEqual([0.5, 0.5])
@@ -201,7 +220,32 @@ describe('phrases de la prévision', () => {
   it('dit qu’un questionnaire suffit, sans chiffre illisible', () => {
     const many = Array.from({ length: 40 }, (_, index) => question(`m${index}`, 'multiple', ['X']))
     const [information] = describeForecast(runForecast(input({ questions: many, links: many.map(({ id }) => toCharacter(id, 'X', 'p0')), characters: characters(2) }), 5))
-    expect(information).toMatchObject({ level: 'good', sentence: 'Vos questions distinguent au plus plus d’un milliard de profils de réponses, pour 2 personnages : c’est assez pour les départager.', todo: '' })
+    expect(information).toMatchObject({ level: 'good', sentence: 'Vos questions distinguent plus d’un milliard de profils de réponses, pour 2 personnages : c’est assez pour les départager.', todo: '' })
+  })
+
+  it('accorde la phrase à un seul profil et un seul personnage', () => {
+    const [information] = describeForecast(runForecast(input({
+      questions: [question('u', 'single', ['A', 'B'])],
+      links: [toCharacter('u', 'A', 'p0'), toCharacter('u', 'B', 'p0')],
+      characters: characters(1)
+    }), 5))
+    expect(information!.sentence).toBe('Vos questions distinguent au plus 1 profil de réponses, pour 1 personnage.')
+  })
+
+  it('ne dit 10 simulations sur 10 que si c’est le cas de toutes', () => {
+    const forecast = runForecast(input({
+      questions: [question('u', 'single', ['A', 'B'])],
+      links: [toCharacter('u', 'A', 'p0'), toCharacter('u', 'B', 'p1')],
+      characters: characters(4),
+      expectations: [share('u', 'A', 1), share('u', 'B', 0)]
+    }), 5)
+    const sentences = (value: number) => describeForecast({
+      ...forecast,
+      simulation: { ...forecast.simulation, demand: forecast.simulation.demand.map((entry) => ({ ...entry, share: value })) }
+    }).at(-1)!.sentence
+    expect(sentences(1)).toBe('p1 serait peu demandé dans 10 simulations sur 10.')
+    expect(sentences(0.96)).toBe('p1 serait peu demandé dans 9 simulations sur 10.')
+    expect(sentences(0.68)).toBe('p1 serait peu demandé dans 7 simulations sur 10.')
   })
 
   it('donne médiane et fourchette, et les personnages à surveiller en simulations sur 10', () => {

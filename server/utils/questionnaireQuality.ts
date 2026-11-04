@@ -2,8 +2,8 @@ import { Prisma } from '../../generated/prisma/client'
 import { gameCharacters } from '~/server/utils/castingAssistant'
 import { prisma } from '~/server/utils/prisma'
 import { getCurrentRegistrationForm } from '~/server/utils/registrationForms'
-import { currentOptionExpectations } from '~/server/utils/registrationOptionExpectations'
-import { currentQuestionLinks } from '~/server/utils/registrationQuestionLinks'
+import { optionExpectationsOf } from '~/server/utils/registrationOptionExpectations'
+import { questionLinksOf } from '~/server/utils/registrationQuestionLinks'
 import { latestAnswersPerPerson, questionnaireFindings } from '~/utils/questionnaireQuality'
 
 // Repères sur le questionnaire de casting d'un jeu (SPEC-015, US-133, US-136 à US-139) : calculés à la lecture, rien n'est écrit.
@@ -11,10 +11,10 @@ import { latestAnswersPerPerson, questionnaireFindings } from '~/utils/questionn
 // dans le navigateur (US-142, US-143)
 
 export async function questionnaireQuality(gameId: string) {
-  const [{ definition }, links, expectations, characters, registrations] = await Promise.all([
-    getCurrentRegistrationForm(gameId),
-    currentQuestionLinks(gameId),
-    currentOptionExpectations(gameId),
+  const { definition } = await getCurrentRegistrationForm(gameId)
+  const [links, expectations, characters, registrations] = await Promise.all([
+    questionLinksOf(gameId, definition.questions),
+    optionExpectationsOf(gameId, definition.questions),
     // Les personnages que répartit l'assistant de casting
     gameCharacters(gameId),
     prisma.registration.findMany({

@@ -153,6 +153,14 @@ describe('proportions attendues des options', () => {
     const fresh = await api(alice, 'PUT', route, { expectations: rows.slice(0, 3) }, { headers: { 'if-unmodified-since': saved.version! } })
     expect(fresh.status, JSON.stringify(fresh.body)).toBe(200)
 
+    // Quelqu'un vide la liste : une version lue avant ne l'écrase pas sans le savoir, et une liste vide se réécrit depuis NO_VERSION
+    const readBefore = bodyOf<Expectations>(fresh).version!
+    const cleared = await api(alice, 'PUT', route, { expectations: [] }, { headers: { 'if-unmodified-since': readBefore } })
+    expect(bodyOf<Expectations>(cleared)).toEqual({ expectations: [], version: null })
+    expect((await api(alice, 'PUT', route, { expectations: rows.slice(0, 3) }, { headers: { 'if-unmodified-since': readBefore } })).status).toBe(409)
+    const rewritten = await api(alice, 'PUT', route, { expectations: rows.slice(0, 3) }, { headers: { 'if-unmodified-since': new Date(0).toISOString() } })
+    expect(rewritten.status, JSON.stringify(rewritten.body)).toBe(200)
+
     // La route de l'encadré rend ce que la prévision calcule
     const links = await api(alice, 'PUT', `/api/games/${game.id}/registration-question-links`, { links: [{ questionId: style!.id, option: 'Intrigue', characterId: aldric.id }] })
     expect(links.status).toBe(200)

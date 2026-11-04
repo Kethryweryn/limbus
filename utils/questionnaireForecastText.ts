@@ -7,16 +7,21 @@ const percentDown = (value: number) => Math.floor(value * 100 + 1e-9)
 const percentUp = (value: number) => Math.ceil(value * 100 - 1e-9)
 const bits = (value: number) => `${decimal(value)} bit${value > 1 ? 's' : ''}`
 const characterCount = (count: number) => `${count} personnage${count > 1 ? 's' : ''}`
-// Au-delà, le nombre n'apporte plus rien à la lecture
-const profileCount = (profiles: number) => (profiles > 1e9 ? 'plus d’un milliard de' : profiles.toLocaleString('fr-FR'))
+// Au-delà du milliard, le nombre n'apporte plus rien à la lecture
+const profileCount = (profiles: number) => (profiles > 1e9
+  ? 'plus d’un milliard de profils'
+  : `au plus ${profiles.toLocaleString('fr-FR')} profil${profiles > 1 ? 's' : ''}`)
+// Une part de simulations, en dixièmes : « 10 sur 10 » n'est dit que si c'est le cas de toutes
+const outOfTen = (share: number) => {
+  const tenths = share < 1 ? Math.min(Math.round(share * 10), 9) : 10
+  return `${tenths} simulation${tenths > 1 ? 's' : ''} sur 10`
+}
 
 function describeInformation({ level, profiles, bits: total, requiredBits, characterCount: count, questions }: QuestionnaireForecast['information']) {
   const perQuestion = questions.map(({ label, bits: value, expected }) => `« ${label} » : ${bits(value)}${expected === null ? '' : `, ${bits(expected)} attendu${expected > 1 ? 's' : ''} avec vos proportions`}`).join(' ; ')
   return {
     level,
-    sentence: level === 'good'
-      ? `Vos questions distinguent au plus ${profileCount(profiles)} profils de réponses, pour ${characterCount(count)} : c’est assez pour les départager.`
-      : `Vos questions distinguent au plus ${profileCount(profiles)} profil${profiles > 1 ? 's' : ''} de réponses, pour ${characterCount(count)}.`,
+    sentence: `Vos questions distinguent ${profileCount(profiles)} de réponses, pour ${characterCount(count)}${level === 'good' && count > 1 ? ' : c’est assez pour les départager' : ''}.`,
     todo: level === 'good' ? '' : 'Ajoutez des questions reliées, ou reliez à des rôles différents les options qui donnent aujourd’hui les mêmes points.',
     detail: `Information maximale : ${bits(total)} ; il en faut au moins ${bits(requiredBits)}. ${perQuestion}. Condition nécessaire, pas suffisante : la simulation juge le reste. SPEC-016, R5 ; ADR-0062 ; Shannon (1948).`
   }
@@ -52,17 +57,16 @@ export function describeForecast(forecast: QuestionnaireForecast) {
     detail: `Médiane de la part : ${upperBound(ties.median)} ; 95 % des simulations entre ${lowerBound(ties.lower)} et ${upperBound(ties.upper)} ; seuil : ${decimal(tiedShare)}, choix de l’utilisatrice. SPEC-016, R9 ; ADR-0064.`
   })
   for (const entry of demand) {
-    const inTen = `${Math.round(entry.share * 10)} simulation${Math.round(entry.share * 10) > 1 ? 's' : ''} sur 10`
     items.push(entry.kind === 'rarelyWanted'
       ? {
           level: 'watch',
-          sentence: `${entry.character.name} serait peu demandé dans ${inTen}.`,
+          sentence: `${entry.character.name} serait peu demandé dans ${outOfTen(entry.share)}.`,
           todo: 'Reliez ce personnage à des réponses plus souvent choisies, ou vérifiez que c’est voulu.',
           detail: `Médiane de sa présence parmi les ${topCharacters} meilleurs : ${decimal(entry.median)}. Seuil : moins de ${rarelyWanted}, choix de l’utilisatrice. SPEC-016, R8 ; ADR-0061.`
         }
       : {
           level: 'watch',
-          sentence: `${entry.character.name} serait disputé dans ${inTen}.`,
+          sentence: `${entry.character.name} serait disputé dans ${outOfTen(entry.share)}.`,
           todo: 'Prévoyez des personnages proches pour les personnes qui ne l’auront pas, ou revoyez ses liens s’il attire trop largement.',
           detail: `Médiane de ses premières places, ex æquo compris : ${decimal(entry.median)}. Seuil : plus de ${overWanted}, choix de l’utilisatrice. SPEC-016, R8 ; ADR-0061.`
         })

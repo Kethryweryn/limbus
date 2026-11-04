@@ -48,7 +48,7 @@ L'information attendue avec les proportions de l'équipe est l'entropie de Shann
 - Comme `RegistrationQuestionLink` (ADR-0050) :
   - elles vivent hors de la définition versionnée ;
   - l'éditeur les renvoie avec le texte en cours de l'option ;
-  - `GET /api/games/:id/registration-option-expectations` les rend avec leur version, le plus récent `updatedAt` des lignes. `PUT` sur la même route les remplace toutes. L'éditeur envoie la version lue (`NO_VERSION` s'il n'y a aucune ligne), contrôlée par `assertVersion`, car la version porte sur plusieurs lignes : deux membres de l'équipe ne s'écrasent pas sans le savoir. Les liens, eux, n'ont pas ce contrôle ;
+  - `GET /api/games/:id/registration-option-expectations` les rend avec leur version, le plus récent `updatedAt` des lignes. `PUT` sur la même route les remplace toutes. L'éditeur envoie la version lue (`NO_VERSION` s'il n'y a aucune ligne), contrôlée par `assertRowsVersion`, car la version porte sur plusieurs lignes, et qu'une liste vidée n'a plus de date : une version lue non nulle veut alors dire qu'elle a été vidée depuis. Deux membres de l'équipe ne s'écrasent pas sans le savoir. Les liens, eux, n'ont pas ce contrôle ;
   - l'éditeur n'envoie le `PUT` que si les proportions ont changé. Sinon, enregistrer le formulaire ferait avancer la version, et l'autre membre de l'équipe recevrait un conflit sans que rien n'ait changé ;
   - une ligne vers une question ou une option disparue est ignorée à la lecture ;
   - elles sont copiées avec un jeu (`gameCopy.ts`) et supprimées avec lui.
@@ -88,7 +88,7 @@ Les mots sont comptés sur le texte découpé aux espaces et à l'apostrophe, sa
 ## Conséquences
 
 - La prévision n'est aussi bonne que les hypothèses de réponse. Sans proportions, elle est optimiste, car de vraies réponses ne se répartissent jamais également. La phrase le rappelle.
-- L'encadré de SPEC-015 grandit : ses parties (liens, rédaction, prévision, réponses) se replient.
+- L'encadré de SPEC-015 grandit. La partie « Prévision » se replie une fois des réponses reçues, par choix de l'utilisatrice. Le repli des autres parties n'est pas décidé.
 - La route de l'encadré rend aussi les personnages PJ avec leurs factions et intrigues (identifiants et noms), pour l'essai et la simulation.
 - Les seuils de R13, choisis au lot 3 de SPEC-015 ([ADR-0064](ADR-0064-estimation-generale-du-questionnaire.md)), s'appliqueront aussi à la prévision, directement à la médiane (SPEC-016, R9).
 

@@ -37,22 +37,28 @@ function stop() {
   worker = null
 }
 
+function fail() {
+  failed.value = true
+  forecast.value = null
+  stop()
+}
+
 // L'ancienne prévision reste affichée pendant le calcul de la nouvelle, le temps d'un enregistrement
 watch(() => props.input, (input) => {
   stop()
   failed.value = false
-  const current = new Worker(new URL('../utils/questionnaireForecast.worker.ts', import.meta.url), { type: 'module' })
-  current.onmessage = ({ data }: MessageEvent<QuestionnaireForecast>) => {
-    forecast.value = data
-    stop()
+  try {
+    // La création elle-même peut être refusée par le navigateur
+    worker = new Worker(new URL('../utils/questionnaireForecast.worker.ts', import.meta.url), { type: 'module' })
+    worker.onmessage = ({ data }: MessageEvent<QuestionnaireForecast>) => {
+      forecast.value = data
+      stop()
+    }
+    worker.onerror = fail
+    worker.postMessage(input)
+  } catch {
+    fail()
   }
-  current.onerror = () => {
-    failed.value = true
-    forecast.value = null
-    stop()
-  }
-  current.postMessage(input)
-  worker = current
 }, { immediate: true })
 
 onBeforeUnmount(stop)

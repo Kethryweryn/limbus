@@ -24,12 +24,12 @@ En tant qu'organisatrice, je veux indiquer la part de joueurs que j'attends pour
 ## Notes techniques
 
 - Modèle `RegistrationOptionExpectation` (`gameId`, `questionId`, `option`, `share`, `updatedAt`), unique par jeu, question et option. Migration : création de table seule.
-- `GET` et `PUT /api/games/:id/registration-option-expectations` (`requireGameAccess`, `readZodBody`) ; `server/utils/registrationOptionExpectations.ts` ; version : `assertVersion`, avec le plus récent `updatedAt` des lignes.
+- `GET` et `PUT /api/games/:id/registration-option-expectations` (`requireGameAccess`, `readZodBody`) ; `server/utils/registrationOptionExpectations.ts` ; version : `assertRowsVersion`, avec le plus récent `updatedAt` des lignes.
 - `server/utils/gameCopy.ts` (`GAME_COPY_FIELDS` et copie).
 - `components/RegistrationFormEditor.vue` : parts par texte d'option, en texte saisi, à côté de `optionLinks`.
 
 ## Tests
 
 - Unitaires : `gameCopy` classe tous les champs du nouveau modèle.
-- Intégration : aller-retour, 400 (option inconnue, parts toutes nulles), 409 sur une version périmée, ligne d'une option disparue ignorée, copie du jeu ; `isolation.test.ts` avec témoin positif.
-- Bout en bout : saisir des proportions, enregistrer, rouvrir et les retrouver.
+- Intégration : aller-retour, 400 (option inconnue, parts toutes nulles), 409 sur une version périmée, y compris après une liste vidée, ligne d'une option disparue ignorée, copie du jeu ; `isolation.test.ts` avec témoin positif.
+- Bout en bout : saisir des proportions, enregistrer sans les changer sans les réécrire, renommer une option, rouvrir et les retrouver.
