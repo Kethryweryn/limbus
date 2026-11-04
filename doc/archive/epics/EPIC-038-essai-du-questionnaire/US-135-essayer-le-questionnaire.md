@@ -32,4 +32,4 @@ En tant qu'organisatrice, je veux répondre à mon questionnaire comme un joueur
 
 - Unitaires : classement et ex æquo à partir de réponses données, personnage non rejoint, lien par faction.
 - Intégration : la route de l'encadré rend les personnages PJ avec leurs factions et intrigues ; `isolation.test.ts` couvre déjà la route (US-133).
-- Bout en bout : ouvrir l'essai, répondre, voir le personnage relié passer en tête avec le détail de sa note, fermer sans qu'aucune inscription n'apparaisse.
+- Bout en bout : ouvrir l'essai sans lien, puis avec des liens pas encore enregistrés vers un personnage et une faction, et sur une nouvelle question ; répondre, voir le personnage relié passer en tête avec le détail de sa note ; fermer sans qu'aucune inscription ni aucun lien n'apparaisse.

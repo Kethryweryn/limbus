@@ -16,7 +16,7 @@ liens: [SPEC-016, SPEC-015, SPEC-014, ADR-0050, ADR-0051, ADR-0058, ADR-0061]
 
 ### Essai par l'équipe (R1 à R3)
 
-- L'essai calcule les notes dans le navigateur avec `castingScore` (`utils/castingAssistant.ts`), à partir du formulaire et des liens en cours dans l'éditeur, et des personnages PJ avec leurs factions et intrigues. Ceux-ci sont rendus par la route de l'encadré, `GET /api/games/:id/registration-form-quality` (SPEC-015, R1).
+- L'essai calcule les notes dans le navigateur avec `castingScore` (`utils/castingAssistant.ts`), à partir du formulaire et des liens en cours dans l'éditeur, et des personnages PJ avec leurs factions et intrigues. Ceux-ci sont rendus par la route de l'encadré, `GET /api/games/:id/registration-form-quality` (SPEC-015, R1) ; l'encadré les passe à l'éditeur, et l'essai ne relit pas cette route, qui recalcule tous les repères.
 - Aucune route d'écriture : l'essai n'enregistre rien.
 
 ### Information maximale (R5)
