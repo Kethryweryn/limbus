@@ -24,4 +24,4 @@ En tant qu'organisatrice, je veux savoir quels personnages reçoivent les mêmes
 
 ## Tests
 
-- Unitaires : personnages aux notes proportionnelles, note constante, corrélation sous le seuil, correction par Holm.
+- Unitaires : personnages aux notes proportionnelles, note constante, corrélation sous le seuil, correction par Holm, 3 réponses ou moins.
