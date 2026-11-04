@@ -43,5 +43,48 @@ describe('repères sur les liens du questionnaire', () => {
       expect.objectContaining({ kind: 'indistinctCharacters', characters: [{ id: aldric!.id, name: 'Aldric' }, { id: bertrand!.id, name: 'Bertrand' }], similarity: 1, separating: null }),
       { kind: 'optionWithoutLink', level: 'watch', questionId: style!.id, questionLabel: 'Ton style', option: 'Combat' }
     ])
+    expect(quality.respondentCount).toBe(0)
+  })
+})
+
+// EPIC-039 : repères sur les réponses reçues (US-136 à US-139)
+describe('repères sur les réponses reçues', () => {
+  it('compte chaque personne une fois, ne juge que les questions reliées et ne nomme personne', async () => {
+    const key = `reponses-${Date.now()}`
+    const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
+    const aldric = await prisma.character.create({ data: { name: 'Aldric', slug: `${key}-aldric`, gameId: game.id } })
+    const form = await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, {
+      standardFields,
+      questions: [
+        { label: 'Ton style', type: 'single', required: false, options: ['Intrigue', 'Combat'] },
+        { label: 'Viens-tu en voiture ?', type: 'single', required: false, options: ['Oui', 'Non'] }
+      ]
+    })
+    expect(form.status, JSON.stringify(form.body)).toBe(200)
+    const [style, car] = bodyOf<ApiResponse<'/api/games/:id/registration-form', 'put'>>(form).definition.questions
+    const links = await api(alice, 'PUT', `/api/games/${game.id}/registration-question-links`, { links: [{ questionId: style!.id, option: 'Intrigue', characterId: aldric.id }] })
+    expect(links.status, JSON.stringify(links.body)).toBe(200)
+
+    const [first, second] = await Promise.all(['premiere', 'seconde'].map((name) => prisma.registrationPeriod.create({ data: { gameId: game.id, name, publicId: `${key}-${name}`, entryMode: 'form' } })))
+    const people = await Promise.all(['Zoe', 'Ines', 'Leo', 'Hugo'].map((name) => prisma.participant.create({
+      data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
+    })))
+    const register = (periodId: string, person: { id: string, email: string | null }, answers: Record<string, unknown>, createdAt: Date) => prisma.registration.create({
+      data: { periodId, participantId: person.id, status: 'received', source: 'form', email: person.email!, questionAnswers: answers, createdAt }
+    })
+    const [zoe] = people
+    await Promise.all(people.map((person) => register(second!.id, person, { [style!.id]: 'Intrigue', [car!.id]: 'Oui' }, new Date('2026-02-01'))))
+    // L'ancienne inscription de Zoé ne compte pas
+    await register(first!.id, zoe!, { [style!.id]: 'Combat' }, new Date('2026-01-01'))
+
+    const response = await api(alice, 'GET', `/api/games/${game.id}/registration-form-quality`)
+    expect(response.status).toBe(200)
+    const quality = bodyOf<Quality>(response)
+    expect(quality.respondentCount).toBe(4)
+    expect(quality.findings).toContainEqual(expect.objectContaining({ kind: 'dominantAnswer', level: 'unsure', questionId: style!.id, option: 'Intrigue', count: 4, total: 4 }))
+    expect(quality.findings).toContainEqual({ kind: 'overWanted', level: 'watch', character: { id: aldric.id, name: 'Aldric' }, count: 4, respondents: 4 })
+    // La question d'organisation, sans lien, n'a que son repère de lien
+    expect(quality.findings.filter((finding) => 'questionId' in finding && finding.questionId === car!.id).map((finding) => finding.kind)).toEqual(['questionWithoutLink'])
+    expect(JSON.stringify(quality)).not.toContain(key)
   })
 })

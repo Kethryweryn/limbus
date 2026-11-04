@@ -1,7 +1,7 @@
 ---
 id: US-138
 titre: Les personnages indistincts chez les inscrits
-statut: à faire
+statut: terminée
 epic: EPIC-039
 regles: [R2, R7, R11]
 adr: [ADR-0061, ADR-0063]
@@ -13,10 +13,10 @@ En tant qu'organisatrice, je veux savoir quels personnages reçoivent les mêmes
 
 ## Critères d'acceptation
 
-- [ ] Pour deux personnages PJ, Limbus calcule la corrélation de Pearson de leurs notes chez les personnes qui ont répondu à une question reliée.
-- [ ] La paire est « à revoir » si le test contre 0,85, corrigé par Holm, confirme, « à confirmer » si seule la valeur observée atteint 0,85.
-- [ ] Un personnage dont la note est la même pour tout le monde n'est pas comparé.
-- [ ] Le détail donne la corrélation, sa borne basse, le seuil et la référence.
+- [x] Pour deux personnages PJ, Limbus calcule la corrélation de Pearson de leurs notes chez les personnes qui ont répondu à une question reliée.
+- [x] La paire est « à revoir » si le test contre 0,85, corrigé par Holm, confirme, « à confirmer » si seule la valeur observée atteint 0,85.
+- [x] Un personnage dont la note est la même pour tout le monde n'est pas comparé.
+- [x] Le détail donne la corrélation, sa borne basse, le seuil et la référence.
 
 ## Notes techniques
 

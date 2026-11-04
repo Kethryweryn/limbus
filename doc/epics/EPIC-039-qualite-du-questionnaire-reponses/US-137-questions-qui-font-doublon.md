@@ -1,7 +1,7 @@
 ---
 id: US-137
 titre: Les questions qui font doublon
-statut: à faire
+statut: terminée
 epic: EPIC-039
 regles: [R2, R7, R10]
 adr: [ADR-0061, ADR-0063]
@@ -13,11 +13,11 @@ En tant qu'organisatrice, je veux savoir quelles questions disent la même chose
 
 ## Critères d'acceptation
 
-- [ ] Deux questions reliées, à choix unique ou échelles, sont comparées sur les personnes qui ont répondu aux deux. Une question à laquelle ces personnes ont toutes répondu pareil n'est pas comparée.
-- [ ] Entre deux échelles : corrélation de Spearman en valeur absolue, « à revoir » si la borne basse dépasse 0,50, « à confirmer » si seule la valeur la dépasse.
-- [ ] Sinon : V de Cramér corrigé, « à revoir » s'il atteint le seuil de Cohen, que les conditions de Cochran sont remplies et que le test contre le seuil confirme, « à confirmer » s'il l'atteint sans le reste. Sous le seuil, rien n'est affiché.
-- [ ] Les valeurs p sont corrigées par la méthode de Holm.
-- [ ] La phrase donne la réponse la plus liée, avec ses comptes.
+- [x] Deux questions reliées, à choix unique ou échelles, sont comparées sur les personnes qui ont répondu aux deux. Une question à laquelle ces personnes ont toutes répondu pareil n'est pas comparée.
+- [x] Entre deux échelles : corrélation de Spearman en valeur absolue, « à revoir » si la borne basse dépasse 0,50, « à confirmer » si seule la valeur la dépasse.
+- [x] Sinon : V de Cramér corrigé, « à revoir » s'il atteint le seuil de Cohen, que les conditions de Cochran sont remplies et que le test contre le seuil confirme, « à confirmer » s'il l'atteint sans le reste. Sous le seuil, rien n'est affiché.
+- [x] Les valeurs p sont corrigées par la méthode de Holm.
+- [x] La phrase donne la réponse la plus liée, avec ses comptes.
 
 ## Notes techniques
 

@@ -1,7 +1,7 @@
 ---
 id: EPIC-039
 titre: Qualité du questionnaire, lot 2 : repères sur les réponses
-statut: à faire
+statut: terminé
 spec: ../../specs/SPEC-015-qualite-du-questionnaire.md
 date: 2026-11-04
 ---
@@ -16,10 +16,10 @@ Lot 2 de [SPEC-015](../../specs/SPEC-015-qualite-du-questionnaire.md) (R7 à R12
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-136](US-136-questions-qui-ne-departagent-pas.md) | Les questions qui ne départagent pas et les échelles tassées | à faire |
-| [US-137](US-137-questions-qui-font-doublon.md) | Les questions qui font doublon | à faire |
-| [US-138](US-138-personnages-indistincts-chez-les-inscrits.md) | Les personnages indistincts chez les inscrits | à faire |
-| [US-139](US-139-personnages-peu-ou-trop-demandes.md) | Les personnages peu ou trop demandés | à faire |
+| [US-136](US-136-questions-qui-ne-departagent-pas.md) | Les questions qui ne départagent pas et les échelles tassées | terminée |
+| [US-137](US-137-questions-qui-font-doublon.md) | Les questions qui font doublon | terminée |
+| [US-138](US-138-personnages-indistincts-chez-les-inscrits.md) | Les personnages indistincts chez les inscrits | terminée |
+| [US-139](US-139-personnages-peu-ou-trop-demandes.md) | Les personnages peu ou trop demandés | terminée |
 
 ## Décisions
 

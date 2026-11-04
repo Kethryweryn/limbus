@@ -4,8 +4,9 @@ import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
 import { gamePanel, signIn } from './helpers'
 
-// EPIC-037 (US-133) : l'encadré « Qualité du questionnaire » signale un personnage sans lien, puis plus rien une fois relié
-test('l’encadré de qualité signale un personnage sans lien, puis plus après l’ajout du lien', async ({ page }) => {
+// EPIC-037 (US-133) : l'encadré « Qualité du questionnaire » signale un personnage sans lien, puis plus rien une fois relié.
+// EPIC-039 (US-136, US-139) : une fois la question reliée, les réponses reçues donnent leurs repères
+test('l’encadré de qualité signale un personnage sans lien, puis les repères sur les réponses après l’ajout du lien', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
     const key = `qualite-${Date.now()}`
@@ -19,6 +20,12 @@ test('l’encadré de qualité signale un personnage sans lien, puis plus après
         versions: { create: { number: 1, definition: { ...DEFAULT_REGISTRATION_FORM_DEFINITION, questions: [{ id: 'style', label: 'Ton style', type: 'single', required: false, options: ['Intrigue', 'Combat'] }] } } }
       }
     })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: 'Période', publicId: key, entryMode: 'form' } })
+    for (const name of ['zoe', 'ines', 'leo', 'hugo']) {
+      const email = `${name}-${key}@example.test`
+      const person = await prisma.participant.create({ data: { name: `${name} ${key}`, slug: `${name}-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
+      await prisma.registration.create({ data: { periodId: period.id, participantId: person.id, status: 'received', source: 'form', email, questionAnswers: { style: 'Intrigue' } } })
+    }
 
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/registrations')
@@ -38,6 +45,10 @@ test('l’encadré de qualité signale un personnage sans lien, puis plus après
 
     await expect(missing).toBeHidden()
     await expect(dialog.getByText('L’option « Combat » de « Ton style » n’est reliée à aucun rôle.')).toBeVisible()
+
+    await expect(dialog.getByText('4 personnes sur 4 ont répondu « Intrigue » à « Ton style » : cette question ne départage presque personne.')).toBeVisible()
+    await expect(dialog.getByText('Aldric Qualité arrive en tête pour 4 personnes sur 4 : ce personnage sera disputé.')).toBeVisible()
+    await expect(dialog.getByText('Ces repères portent sur le formulaire et les liens enregistrés, et sur les réponses de 4 personnes.')).toBeVisible()
   } finally {
     await prisma.$disconnect()
   }
