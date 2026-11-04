@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { QuestionnaireFinding } from '~/utils/questionnaireQuality'
-import { describeFinding, qualityScope } from '~/utils/questionnaireQualityText'
+import type { QuestionnaireEstimate, QuestionnaireFinding } from '~/utils/questionnaireQuality'
+import { describeEstimate, describeFinding, qualityScope } from '~/utils/questionnaireQualityText'
 
 const ref = { questionId: 'q', questionLabel: 'Ton style' }
 const measure = { ...ref, option: '5', count: 6, total: 10, share: 0.6, lower: 0.2, threshold: 0.2, ignored: 0 }
@@ -12,6 +12,66 @@ const duplicate = {
   n: 40,
   strongest: { firstOption: 'Oui', secondOption: 'Non', count: 7, firstCount: 8 }
 }
+
+describe('phrases de l’estimation générale (US-140)', () => {
+  const estimate: QuestionnaireEstimate = {
+    level: 'review',
+    note: { level: 'review', value: 0.37, lower: 0.2, upper: 0.5, counted: 20, tooFewPeople: false },
+    ties: { level: 'review', count: 17, total: 20, share: 0.85, lower: 0.64 },
+    withoutRole: 2,
+    withoutPoints: 1
+  }
+
+  it('la note, ce qu’il faut faire et le détail', () => {
+    const { note } = describeEstimate(estimate, 0)
+    expect(note?.sentence).toBe('Une fois les rôles répartis au mieux, chaque personne qui reçoit un rôle obtient en moyenne 37 % de sa meilleure note possible.')
+    expect(note?.todo).toContain('Reliez davantage de réponses')
+    expect(note?.detail).toContain('intervalle de Wilson à 95 % : 0,2 à 0,5 ; seuils : bon 0,75, à revoir 0,6')
+    expect(note?.detail).toContain('20 personnes dans la note. 2 sans rôle, 1 sans aucun point.')
+  })
+
+  it('dit pourquoi la note reste à confirmer avec moins de personnes que de rôles', () => {
+    const { note } = describeEstimate({ ...estimate, note: { ...estimate.note!, level: 'unsure', tooFewPeople: true } }, 0)
+    expect(note?.todo).toBe('Moins de personnes que de rôles pour l’instant : chacune obtient presque toujours son meilleur personnage. Attendez d’autres réponses.')
+  })
+
+  it('n’affiche jamais la note ni la part à un seuil qu’elles n’ont pas atteint', () => {
+    const { note, ties } = describeEstimate({ ...estimate, note: { ...estimate.note!, value: 0.7496 }, ties: { ...estimate.ties, share: 0.5004 } }, 0)
+    expect(note?.sentence).toContain('en moyenne 74 %')
+    expect(note?.detail).toContain('Note moyenne : 0,749 ;')
+    expect(ties.detail).toContain('Part : 0,501 ;')
+  })
+
+  it('quand les rôles manquent, ne demande pas d’attendre d’autres réponses', () => {
+    const { note } = describeEstimate({ ...estimate, note: { ...estimate.note!, level: 'unsure', counted: 15 } }, 0)
+    expect(note?.todo).toContain('Pas encore certain, avec 15 rôles : d’autres réponses ne préciseront plus ce résultat.')
+    const placedAll = describeEstimate({ ...estimate, withoutRole: 0, note: { ...estimate.note!, level: 'unsure', counted: 15 } }, 0)
+    expect(placedAll.note?.todo).toContain('Pas encore certain, avec 15 personnes : attendez d’autres réponses.')
+  })
+
+  it('à confirmer : dit combien de réponses sont reçues', () => {
+    const { ties } = describeEstimate({ ...estimate, ties: { ...estimate.ties, level: 'unsure' } }, 0)
+    expect(ties.todo).toContain('Pas encore certain, avec 20 personnes')
+  })
+
+  it('les ex æquo, au singulier et au pluriel', () => {
+    expect(describeEstimate(estimate, 0).ties.sentence).toBe('17 personnes sur 20 ont plusieurs personnages à égalité en tête.')
+    expect(describeEstimate({ ...estimate, ties: { ...estimate.ties, count: 1 } }, 0).ties.sentence).toBe('1 personne sur 20 a plusieurs personnages à égalité en tête.')
+  })
+
+  it('rien à faire quand c’est bon ; pas de note sans personne comptée', () => {
+    const { note, ties } = describeEstimate({ ...estimate, note: null, ties: { ...estimate.ties, level: 'good' } }, 0)
+    expect(note).toBeNull()
+    expect(ties.todo).toBe('')
+    expect(describeEstimate({ ...estimate, note: { ...estimate.note!, level: 'good' } }, 0).note?.todo).toBe('')
+  })
+
+  it('renvoie aux repères à revoir', () => {
+    expect(describeEstimate(estimate, 0).summary).toBe('')
+    expect(describeEstimate(estimate, 1).summary).toBe('1 repère à revoir, en tête de la liste, du plus bloquant au moins bloquant pour le casting.')
+    expect(describeEstimate(estimate, 3).summary).toContain('3 repères à revoir')
+  })
+})
 
 describe('phrases des repères sur les réponses', () => {
   it('une extrémité d’échelle, avec son détail', () => {

@@ -8,7 +8,7 @@ liens: [SPEC-015, SPEC-001, ADR-0050, ADR-0051]
 
 # ADR-0061 : Indicateurs statistiques de la qualité du questionnaire de casting
 
-Complété par [ADR-0063](ADR-0063-reperes-sur-les-reponses.md), qui remplace le seuil de l'échelle tassée (R9), précise le test du V de Cramér, et n'affiche ni une paire sous le seuil faute de conditions de Cochran, ni une corrélation à 3 réponses ou moins.
+Complété par [ADR-0063](ADR-0063-reperes-sur-les-reponses.md), qui remplace le seuil de l'échelle tassée (R9), précise le test du V de Cramér, et n'affiche ni une paire sous le seuil faute de conditions de Cochran, ni une corrélation à 3 réponses ou moins. Complété aussi par [ADR-0064](ADR-0064-estimation-generale-du-questionnaire.md), qui fixe les seuils de l'estimation générale (R13).
 
 ## Contexte
 
@@ -33,11 +33,11 @@ Complété par [ADR-0063](ADR-0063-reperes-sur-les-reponses.md), qui remplace le
 | Doublon entre échelles (R10) | Corrélation de Spearman, intervalle par la transformation de Fisher avec l'erreur type de Bonett et Wright (√(1,06/(n−3))) | 0,50 | Clark et Watson (1995) : corrélations entre questions de 0,15 à 0,50 ; Bonett et Wright (2000) pour l'intervalle |
 | Personnages indistincts chez les inscrits (R11) | Corrélation de Pearson des notes, intervalle par la transformation de Fisher | 0,85 | Henseler, Ringle et Sarstedt (2015), critère HTMT, seuil prudent |
 | Personnages peu ou trop demandés (R12) | Comptes : présence parmi les 3 meilleurs, meilleur personnage | moins de 2 ; plus de 3 (choix de l'utilisatrice) ; « peu demandé » affiché seulement à partir de réponses aussi nombreuses que la moitié des personnages PJ (choix de l'utilisatrice) | — |
-| Estimation générale (R13) | Affectation optimale : note obtenue rapportée à la meilleure possible ; part des meilleures notes ex æquo, intervalle de Wilson | à choisir au lot 3 | Kuhn (1955), méthode hongroise |
+| Estimation générale (R13) | Affectation optimale : note obtenue rapportée à la meilleure possible ; part des meilleures notes ex æquo, intervalle de Wilson | Note : bon 0,75, à revoir 0,60 ; ex æquo : une personne sur deux, choix de l'utilisatrice ([ADR-0064](ADR-0064-estimation-generale-du-questionnaire.md)) | Kuhn (1955), méthode hongroise |
 
 ### Fiabilité
 
-Aucun nombre minimal de réponses n'est fixé, sauf pour « peu demandé » (R12), un simple compte qu'aucun test ne juge. Un repère passe à « à revoir » quand la borne de son intervalle à 95 % qui va dans le sens prudent franchit le seuil. Quand seule la valeur observée le franchit, il est « à confirmer ». Pour le V de Cramér, le calcul exige les conditions de Cochran (aucun effectif attendu sous 1, et au moins 80 % des effectifs attendus à 5 ou plus). Sinon, le repère est « à confirmer ».
+Aucun nombre minimal de réponses n'est fixé, sauf pour « peu demandé » (R12), un simple compte qu'aucun test ne juge, et pour la note de l'estimation générale (R13, [ADR-0064](ADR-0064-estimation-generale-du-questionnaire.md)), comparée au nombre de rôles. Un repère passe à « à revoir » quand la borne de son intervalle à 95 % qui va dans le sens prudent franchit le seuil. Quand seule la valeur observée le franchit, il est « à confirmer ». Pour le V de Cramér, le calcul exige les conditions de Cochran (aucun effectif attendu sous 1, et au moins 80 % des effectifs attendus à 5 ou plus). Sinon, le repère est « à confirmer ».
 
 R10 et R11 testent de nombreuses paires : les tests sont corrigés par la méthode de Holm (1979), qui tient le risque de signaler à tort au moins une paire sous 5 % en tout. Concrètement, chaque paire est jugée sur sa valeur p contre le seuil (test unilatéral « l'indicateur dépasse le seuil »), et les valeurs p sont ajustées par Holm.
 

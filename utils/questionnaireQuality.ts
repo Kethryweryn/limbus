@@ -1,6 +1,6 @@
 // Qualité du questionnaire de casting (SPEC-015, ADR-0061) : repères calculés à partir du formulaire et des liens.
 // Fonctions pures, partagées entre la route et les tests ; les phrases sont rédigées par l'interface.
-import { castingScore, type CastingCharacter, type CastingLink, type CastingQuestion } from './castingAssistant'
+import { castingScore, optimalAssignment, type CastingCharacter, type CastingLink, type CastingQuestion } from './castingAssistant'
 import { REGISTRATION_CHOICE_TYPES, type RegistrationQuestionType } from './registrationForms'
 import { contingency, FISHER_MIN_N, fisherTest, holmAdjust, leikDispersion, noncentralChiSquareSurvival, normalizedEntropy, pearson, spearman, wilsonInterval } from './statistics'
 
@@ -25,6 +25,10 @@ export const QUESTIONNAIRE_THRESHOLDS = {
   topCharacters: 3,
   rarelyWanted: 2,
   overWanted: 3,
+  // R13 : note moyenne dans l'affectation optimale ; part des personnes à égalité en tête (ADR-0064)
+  estimateGood: 0.75,
+  estimateReview: 0.6,
+  tiedShare: 0.5,
   // Valeurs p unilatérales : même conclusion que la borne d'un intervalle à 95 % (ADR-0063)
   alpha: 0.025
 } as const
@@ -89,11 +93,27 @@ export type QuestionnaireFinding =
   | { kind: 'rarelyWanted', level: 'watch', character: Named, count: number, respondents: number }
   | { kind: 'overWanted', level: 'watch', character: Named, count: number, respondents: number }
 
+/** Estimation générale (R13) ; la note est absente quand personne n'est compté. */
+export type QuestionnaireEstimate = {
+  level: QualityLevel
+  note: { level: QualityLevel, value: number, lower: number, upper: number, counted: number, tooFewPeople: boolean } | null
+  ties: { level: QualityLevel, count: number, total: number, share: number, lower: number }
+  withoutRole: number
+  withoutPoints: number
+}
+
 const LEVEL_ORDER: Record<QualityLevel, number> = { review: 0, unsure: 1, watch: 2, good: 3 }
 
-// Du plus grave au moins grave, sans changer l'ordre à gravité égale
+// Du plus bloquant au moins bloquant pour le casting (R13) ; les repères absents de cette liste gardent leur ordre, après eux
+const BLOCKING_ORDER: Array<QuestionnaireFinding['kind']> = ['characterWithoutLink', 'indistinctCharacters', 'indistinctByAnswers', 'dominantAnswer', 'scaleEnd', 'duplicateQuestions']
+const blockingRank = ({ kind }: QuestionnaireFinding) => {
+  const rank = BLOCKING_ORDER.indexOf(kind)
+  return rank === -1 ? BLOCKING_ORDER.length : rank
+}
+
+// Du plus grave au moins grave puis, à gravité égale, du plus bloquant au moins bloquant
 function sortFindings(findings: QuestionnaireFinding[]) {
-  return [...findings].sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level])
+  return [...findings].sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level] || blockingRank(a) - blockingRank(b))
 }
 
 // Une réponse possible : une option d'une question à choix, ou une échelle (option vide) comptée à 5/5
@@ -383,7 +403,52 @@ function demandFindings(characters: QualityCharacter[], notes: number[][], witho
   })
 }
 
-/** Tous les repères du questionnaire (SPEC-015, R4 à R12), du plus grave au moins grave. */
+// R13 : ce que l'affectation optimale de l'assistant donne à chacun, et les personnes à égalité entre plusieurs personnages
+function questionnaireEstimate(notes: number[][], characterCount: number): QuestionnaireEstimate | null {
+  if (!notes.length || !characterCount) return null
+  const { estimateGood, estimateReview, tiedShare } = QUESTIONNAIRE_THRESHOLDS
+  const best = notes.map((row) => Math.max(...row))
+  // Une personne sans aucun point n'entre pas dans l'affectation : elle prendrait un rôle au hasard à une personne comptée
+  const scored = notes.flatMap((row, index) => (best[index]! > 0 ? [{ row, best: best[index]! }] : []))
+  const ratios = optimalAssignment(scored.length, characterCount, (row, column) => scored[row]!.row[column]!)
+    .flatMap((column, row) => (column === -1 ? [] : [scored[row]!.row[column]! / scored[row]!.best]))
+
+  let note: QuestionnaireEstimate['note'] = null
+  if (ratios.length) {
+    const sum = ratios.reduce((total, ratio) => total + ratio, 0)
+    const value = sum / ratios.length
+    // La variance d'une moyenne entre 0 et 1 ne dépasse pas celle d'une proportion : Wilson s'y applique (ADR-0064)
+    const { lower, upper } = wilsonInterval(sum, ratios.length)
+    const noteLevel = (): QualityLevel => {
+      if (scored.length < characterCount) return 'unsure'
+      if (value >= estimateGood) return 'good'
+      if (value >= estimateReview) return 'watch'
+      return upper < estimateReview ? 'review' : 'unsure'
+    }
+    note = { level: noteLevel(), value, lower, upper, counted: ratios.length, tooFewPeople: scored.length < characterCount }
+  }
+
+  // Une personne sans aucun point a tous les personnages à égalité
+  const count = notes.filter((row, index) => row.filter((value) => value === best[index]).length > 1).length
+  const total = notes.length
+  const share = count / total
+  const { lower } = wilsonInterval(count, total)
+  const tiesLevel = (): QualityLevel => {
+    if (share <= tiedShare) return 'good'
+    return lower > tiedShare ? 'review' : 'unsure'
+  }
+  const ties = { level: tiesLevel(), count, total, share, lower }
+
+  return {
+    level: note && LEVEL_ORDER[note.level] < LEVEL_ORDER[ties.level] ? note.level : ties.level,
+    note,
+    ties,
+    withoutRole: scored.length - ratios.length,
+    withoutPoints: total - scored.length
+  }
+}
+
+/** Tous les repères du questionnaire (SPEC-015, R4 à R12), du plus grave au moins grave, et son estimation générale (R13). */
 export function questionnaireFindings(questions: QualityQuestion[], links: CastingLink[], characters: QualityCharacter[], people: Answers[]) {
   const fromLinks = linkFindings(questions, links, characters)
   const withoutLink = new Set(fromLinks.flatMap((finding) => (finding.kind === 'characterWithoutLink' ? [finding.character.id] : [])))
@@ -395,6 +460,7 @@ export function questionnaireFindings(questions: QualityQuestion[], links: Casti
   const notes = respondents.map((answers) => castings.map((character) => noteOf(character, answers, linked, links)))
   return {
     respondentCount: respondents.length,
+    estimate: questionnaireEstimate(notes, characters.length),
     findings: sortFindings([
       ...fromLinks,
       ...linked.flatMap((question) => distributionFindings(question, people)),

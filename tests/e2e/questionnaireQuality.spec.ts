@@ -6,6 +6,7 @@ import { gamePanel, signIn } from './helpers'
 
 // EPIC-037 (US-133) : l'encadré « Qualité du questionnaire » signale un personnage sans lien, puis plus rien une fois relié.
 // EPIC-039 (US-136, US-139) : une fois la question reliée, les réponses reçues donnent leurs repères
+// EPIC-040 (US-140) : et l'estimation générale
 test('l’encadré de qualité signale un personnage sans lien, puis les repères sur les réponses après l’ajout du lien', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
@@ -34,6 +35,8 @@ test('l’encadré de qualité signale un personnage sans lien, puis les repère
     const dialog = page.getByRole('dialog')
     const missing = dialog.getByText('Aldric Qualité n’est relié à aucune réponse : l’assistant ne pourra lui proposer personne.')
     await expect(missing).toBeVisible()
+    // Aucune question n'est reliée : les réponses reçues ne comptent pas encore
+    await expect(dialog.getByText('Estimation générale')).toBeHidden()
     await expect(dialog.getByText('« Ton style » n’est reliée à aucun rôle : ses réponses ne comptent pas dans le casting.')).toBeVisible()
 
     // Relier l'option Intrigue au personnage
@@ -46,6 +49,9 @@ test('l’encadré de qualité signale un personnage sans lien, puis les repère
     await expect(missing).toBeHidden()
     await expect(dialog.getByText('L’option « Combat » de « Ton style » n’est reliée à aucun rôle.')).toBeVisible()
 
+    await expect(dialog.getByText('Estimation générale')).toBeVisible()
+    await expect(dialog.getByText('Une fois les rôles répartis au mieux, chaque personne qui reçoit un rôle obtient en moyenne 100 % de sa meilleure note possible.')).toBeVisible()
+    await expect(dialog.getByText('0 personne sur 4 a plusieurs personnages à égalité en tête.')).toBeVisible()
     await expect(dialog.getByText('4 personnes sur 4 ont répondu « Intrigue » à « Ton style » : cette question ne départage presque personne.')).toBeVisible()
     await expect(dialog.getByText('Aldric Qualité arrive en tête pour 4 personnes sur 4 : ce personnage sera disputé.')).toBeVisible()
     await expect(dialog.getByText('Ces repères portent sur le formulaire et les liens enregistrés, et sur les réponses de 4 personnes.')).toBeVisible()

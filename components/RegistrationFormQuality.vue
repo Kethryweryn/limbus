@@ -7,21 +7,22 @@
       <p v-if="!quality.questionCount" class="text-sm text-gray-500">
         Aucune question à choix ni échelle : le questionnaire ne sert pas encore au casting.
       </p>
-      <p v-if="quality.characterCount && quality.questionCount && !quality.findings.length" class="text-sm text-success-700">
-        Bon : chaque personnage PJ est relié à une réponse, et les liens permettent de choisir entre eux.{{ quality.respondentCount ? ' Les réponses reçues ne signalent rien non plus.' : '' }}
+      <p v-if="quality.characterCount && quality.questionCount && !quality.findings.length && (!quality.estimate || quality.estimate.level === 'good')" class="text-sm text-success-700">
+        Bon : chaque personnage PJ est relié à une réponse, et les liens permettent de choisir entre eux.{{ quality.estimate ? ' Les réponses reçues ne signalent rien non plus.' : '' }}
       </p>
+      <div v-if="estimate" class="space-y-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <h4 class="text-sm font-medium">Estimation générale</h4>
+          <UBadge :color="QUALITY_LEVELS[estimate.level].color" variant="subtle" size="sm">{{ QUALITY_LEVELS[estimate.level].label }}</UBadge>
+        </div>
+        <ul class="space-y-2">
+          <QualityFindingItem v-if="estimate.note" v-bind="estimate.note" />
+          <QualityFindingItem v-bind="estimate.ties" />
+        </ul>
+        <p v-if="estimate.summary" class="text-sm text-gray-600">{{ estimate.summary }}</p>
+      </div>
       <ul v-if="items.length" class="space-y-2">
-        <li v-for="(item, index) in items" :key="index" class="rounded border border-gray-200 px-3 py-2 text-sm">
-          <div class="flex flex-wrap items-start gap-2">
-            <UBadge :color="LEVELS[item.level].color" variant="subtle" size="sm">{{ LEVELS[item.level].label }}</UBadge>
-            <span class="min-w-0 flex-1 text-gray-800">{{ item.sentence }}</span>
-          </div>
-          <p class="mt-1 text-gray-600">{{ item.todo }}</p>
-          <details class="mt-1 text-xs text-gray-500">
-            <summary class="cursor-pointer">Détail</summary>
-            <p class="mt-1">{{ item.detail }}</p>
-          </details>
-        </li>
+        <QualityFindingItem v-for="(item, index) in items" :key="index" v-bind="item" />
       </ul>
       <p class="text-xs text-gray-500">{{ scope }}</p>
     </template>
@@ -29,24 +30,16 @@
 </template>
 
 <script setup lang="ts">
-import type { QualityLevel } from '~/utils/questionnaireQuality'
-import { describeFinding, qualityScope } from '~/utils/questionnaireQualityText'
+import { describeEstimate, describeFinding, QUALITY_LEVELS, qualityScope } from '~/utils/questionnaireQualityText'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
-// Encadré « Qualité du questionnaire » de l'éditeur du formulaire (US-133, US-134, US-136 à US-139, SPEC-015) : relu à chaque
+// Encadré « Qualité du questionnaire » de l'éditeur du formulaire (US-133, US-134, US-136 à US-140, SPEC-015) : relu à chaque
 // enregistrement (refreshKey)
 const props = defineProps<{
   gameId: string
   refreshKey: number
 }>()
-
-const LEVELS: Record<QualityLevel, { label: string, color: 'success' | 'warning' | 'error' | 'neutral' }> = {
-  good: { label: 'Bon', color: 'success' },
-  watch: { label: 'À surveiller', color: 'warning' },
-  review: { label: 'À revoir', color: 'error' },
-  unsure: { label: 'À confirmer', color: 'neutral' }
-}
 
 const quality = ref<ApiResponse<'/api/games/:id/registration-form-quality'> | null>(null)
 const errorMessage = ref('')
@@ -66,6 +59,11 @@ watch(() => [props.gameId, props.refreshKey], async () => {
 }, { immediate: true })
 
 const items = computed(() => (quality.value?.findings ?? []).map((finding) => ({ level: finding.level, ...describeFinding(finding) })))
+
+const estimate = computed(() => {
+  if (!quality.value?.estimate) return null
+  return describeEstimate(quality.value.estimate, quality.value.findings.filter((finding) => finding.level === 'review').length)
+})
 
 const scope = computed(() => qualityScope(quality.value?.respondentCount ?? 0))
 </script>
