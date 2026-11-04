@@ -148,9 +148,11 @@ describe('estimation générale (US-140, R13)', () => {
     expect(estimate?.note).toMatchObject({ level: 'unsure', value: 0.5, counted: 2, tooFewPeople: false })
   })
 
-  it('à confirmer tant qu’il y a moins de personnes que de rôles, même avec une note parfaite', () => {
-    const estimate = estimateOf([toCharacter('Intrigue', 'A')], [character('A'), character('B')], [{ style: 'Intrigue' }])
-    expect(estimate?.note).toMatchObject({ level: 'unsure', value: 1, tooFewPeople: true })
+  it('à confirmer tant qu’il y a moins de personnes avec des points que de rôles, même avec une note parfaite', () => {
+    const links = [toCharacter('Intrigue', 'A')]
+    const pair = [character('A'), character('B')]
+    expect(estimateOf(links, pair, [{ style: 'Intrigue' }])?.note).toMatchObject({ level: 'unsure', value: 1, tooFewPeople: true })
+    expect(estimateOf(links, pair, [{ style: 'Intrigue' }, { style: 'Combat' }])?.note).toMatchObject({ level: 'unsure', value: 1, tooFewPeople: true })
   })
 
   it('ne compte que les personnes placées quand les rôles manquent', () => {
@@ -170,6 +172,15 @@ describe('estimation générale (US-140, R13)', () => {
     const links = [toCharacter('Intrigue', 'A'), toCharacter('Combat', 'B')]
     const estimate = estimateOf(links, [character('A'), character('B')], [{ style: 'Intrigue' }, { style: 'Mystère' }])
     expect(estimate).toMatchObject({ withoutPoints: 1, note: { counted: 1, value: 1 }, ties: { count: 1, total: 2 } })
+  })
+
+  it('une personne sans aucun point ne prend pas de rôle à une personne comptée, quel que soit l’ordre', () => {
+    const links = [toCharacter('Intrigue', 'A')]
+    const pair = [character('A'), character('B')]
+    const people = [{ style: 'Intrigue' }, { style: 'Intrigue' }, { style: 'Mystère' }]
+    for (const order of [people, [...people].reverse()]) {
+      expect(estimateOf(links, pair, order)).toMatchObject({ withoutPoints: 1, withoutRole: 0, note: { counted: 2, value: 0.5 } })
+    }
   })
 
   it('sans personne comptée, seuls les ex æquo fixent le niveau ; un seul personnage n’a pas d’ex æquo', () => {

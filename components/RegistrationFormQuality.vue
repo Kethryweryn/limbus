@@ -7,8 +7,8 @@
       <p v-if="!quality.questionCount" class="text-sm text-gray-500">
         Aucune question à choix ni échelle : le questionnaire ne sert pas encore au casting.
       </p>
-      <p v-if="quality.characterCount && quality.questionCount && !quality.findings.length" class="text-sm text-success-700">
-        Bon : chaque personnage PJ est relié à une réponse, et les liens permettent de choisir entre eux.{{ quality.estimate?.level === 'good' ? ' Les réponses reçues ne signalent rien non plus.' : '' }}
+      <p v-if="quality.characterCount && quality.questionCount && !quality.findings.length && (!quality.estimate || quality.estimate.level === 'good')" class="text-sm text-success-700">
+        Bon : chaque personnage PJ est relié à une réponse, et les liens permettent de choisir entre eux.{{ quality.estimate ? ' Les réponses reçues ne signalent rien non plus.' : '' }}
       </p>
       <div v-if="estimate" class="space-y-2">
         <div class="flex flex-wrap items-center gap-2">

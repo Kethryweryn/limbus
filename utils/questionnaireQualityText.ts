@@ -10,9 +10,9 @@ export const QUALITY_LEVELS: Record<QualityLevel, { label: string, color: 'succe
 
 const decimal = (value: number) => value.toLocaleString('fr-FR', { maximumFractionDigits: 3 })
 // Une borne basse s'arrondit vers le bas : jamais affichée au seuil sans l'avoir atteint
-const lowerBound = (value: number) => decimal(Math.floor(value * 1000) / 1000)
+const lowerBound = (value: number) => decimal(Math.floor(value * 1000 + 1e-9) / 1000)
 // Une borne haute s'arrondit vers le haut, pour la même raison
-const upperBound = (value: number) => decimal(Math.ceil(value * 1000) / 1000)
+const upperBound = (value: number) => decimal(Math.ceil(value * 1000 - 1e-9) / 1000)
 const adjustedP = (value: number | null) => {
   if (value === null) return 'non calculable'
   return value < 0.001 ? 'moins de 0,001' : decimal(value)
@@ -35,9 +35,13 @@ export function qualityScope(respondentCount: number) {
 export function describeEstimate(estimate: QuestionnaireEstimate, reviewCount: number) {
   const { note, ties, withoutRole, withoutPoints } = estimate
   const { estimateGood, estimateReview, tiedShare } = THRESHOLDS
-  const noteTodo = (level: QualityLevel, counted: number) => {
+  const noteAction = 'Reliez davantage de réponses à des personnages précis, et diversifiez les questions où presque tout le monde répond pareil.'
+  const todoOfNote = ({ level, counted, tooFewPeople }: NonNullable<QuestionnaireEstimate['note']>) => {
     if (level === 'good') return ''
-    return todoFor(level, counted, 'Reliez davantage de réponses à des personnages précis, et diversifiez les questions où presque tout le monde répond pareil.')
+    if (tooFewPeople) return 'Moins de personnes que de rôles pour l’instant : chacune obtient presque toujours son meilleur personnage. Attendez d’autres réponses.'
+    // La note ne porte que sur les personnes placées : quand les rôles manquent, d'autres réponses ne la préciseront plus
+    if (level === 'unsure' && withoutRole) return `Pas encore certain, avec ${counted} rôle${counted > 1 ? 's' : ''} : d’autres réponses ne préciseront plus ce résultat. Si la note vous semble basse : ${noteAction.charAt(0).toLowerCase()}${noteAction.slice(1)}`
+    return todoFor(level, counted, noteAction)
   }
   const left = `${withoutRole} sans rôle, ${withoutPoints} sans aucun point.`
   return {
@@ -45,17 +49,16 @@ export function describeEstimate(estimate: QuestionnaireEstimate, reviewCount: n
     summary: reviewCount ? `${reviewCount} repère${reviewCount > 1 ? 's' : ''} à revoir, en tête de la liste, du plus bloquant au moins bloquant pour le casting.` : '',
     note: note && {
       level: note.level,
-      sentence: `Une fois les rôles répartis au mieux, chaque personne obtient en moyenne ${Math.round(note.value * 100)} % de sa meilleure note possible.`,
-      todo: note.tooFewPeople
-        ? 'Moins de personnes que de rôles pour l’instant : chacune obtient presque toujours son meilleur personnage. Attendez d’autres réponses.'
-        : noteTodo(note.level, note.counted),
-      detail: `Note moyenne : ${decimal(note.value)} ; intervalle de Wilson à 95 % : ${lowerBound(note.lower)} à ${upperBound(note.upper)} ; seuils : bon ${decimal(estimateGood)}, à revoir ${decimal(estimateReview)}, choix de l’utilisatrice. ${peopleCount(note.counted)} dans la note. ${left} SPEC-015, R13 ; ADR-0064.`
+      // Arrondi vers le bas : jamais affichée au seuil sans l'avoir atteint
+      sentence: `Une fois les rôles répartis au mieux, chaque personne qui reçoit un rôle obtient en moyenne ${Math.floor(note.value * 100 + 1e-9)} % de sa meilleure note possible.`,
+      todo: todoOfNote(note),
+      detail: `Note moyenne : ${lowerBound(note.value)} ; intervalle de Wilson à 95 % : ${lowerBound(note.lower)} à ${upperBound(note.upper)} ; seuils : bon ${decimal(estimateGood)}, à revoir ${decimal(estimateReview)}, choix de l’utilisatrice. ${peopleCount(note.counted)} dans la note. ${left} SPEC-015, R13 ; ADR-0064.`
     },
     ties: {
       level: ties.level,
       sentence: `${peopleOutOf(ties.count, ties.total)} plusieurs personnages à égalité en tête.`,
       todo: ties.level === 'good' ? '' : todoFor(ties.level, ties.total, 'Reliez des réponses à des personnages précis plutôt qu’à leur seule faction ou intrigue, pour les départager.'),
-      detail: `Part : ${decimal(ties.share)} ; borne basse de Wilson à 95 % : ${lowerBound(ties.lower)} ; seuil : ${decimal(tiedShare)}, choix de l’utilisatrice. ${left} SPEC-015, R13 ; ADR-0064.`
+      detail: `Part : ${upperBound(ties.share)} ; borne basse de Wilson à 95 % : ${lowerBound(ties.lower)} ; seuil : ${decimal(tiedShare)}, choix de l’utilisatrice. ${left} SPEC-015, R13 ; ADR-0064.`
     }
   }
 }

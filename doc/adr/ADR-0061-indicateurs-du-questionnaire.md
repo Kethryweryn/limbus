@@ -37,7 +37,7 @@ Complété par [ADR-0063](ADR-0063-reperes-sur-les-reponses.md), qui remplace le
 
 ### Fiabilité
 
-Aucun nombre minimal de réponses n'est fixé, sauf pour « peu demandé » (R12), un simple compte qu'aucun test ne juge. Un repère passe à « à revoir » quand la borne de son intervalle à 95 % qui va dans le sens prudent franchit le seuil. Quand seule la valeur observée le franchit, il est « à confirmer ». Pour le V de Cramér, le calcul exige les conditions de Cochran (aucun effectif attendu sous 1, et au moins 80 % des effectifs attendus à 5 ou plus). Sinon, le repère est « à confirmer ».
+Aucun nombre minimal de réponses n'est fixé, sauf pour « peu demandé » (R12), un simple compte qu'aucun test ne juge, et pour la note de l'estimation générale (R13, [ADR-0064](ADR-0064-estimation-generale-du-questionnaire.md)), comparée au nombre de rôles. Un repère passe à « à revoir » quand la borne de son intervalle à 95 % qui va dans le sens prudent franchit le seuil. Quand seule la valeur observée le franchit, il est « à confirmer ». Pour le V de Cramér, le calcul exige les conditions de Cochran (aucun effectif attendu sous 1, et au moins 80 % des effectifs attendus à 5 ou plus). Sinon, le repère est « à confirmer ».
 
 R10 et R11 testent de nombreuses paires : les tests sont corrigés par la méthode de Holm (1979), qui tient le risque de signaler à tort au moins une paire sous 5 % en tout. Concrètement, chaque paire est jugée sur sa valeur p contre le seuil (test unilatéral « l'indicateur dépasse le seuil »), et les valeurs p sont ajustées par Holm.
 

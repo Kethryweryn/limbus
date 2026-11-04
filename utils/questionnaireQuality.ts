@@ -1,6 +1,6 @@
 // Qualité du questionnaire de casting (SPEC-015, ADR-0061) : repères calculés à partir du formulaire et des liens.
 // Fonctions pures, partagées entre la route et les tests ; les phrases sont rédigées par l'interface.
-import { castingAssistant, castingScore, type CastingCharacter, type CastingLink, type CastingQuestion } from './castingAssistant'
+import { castingScore, optimalAssignment, type CastingCharacter, type CastingLink, type CastingQuestion } from './castingAssistant'
 import { REGISTRATION_CHOICE_TYPES, type RegistrationQuestionType } from './registrationForms'
 import { contingency, FISHER_MIN_N, fisherTest, holmAdjust, leikDispersion, noncentralChiSquareSurvival, normalizedEntropy, pearson, spearman, wilsonInterval } from './statistics'
 
@@ -404,16 +404,14 @@ function demandFindings(characters: QualityCharacter[], notes: number[][], witho
 }
 
 // R13 : ce que l'affectation optimale de l'assistant donne à chacun, et les personnes à égalité entre plusieurs personnages
-function questionnaireEstimate(questions: QualityQuestion[], links: CastingLink[], characters: CastingCharacter[], people: Answers[], notes: number[][]): QuestionnaireEstimate | null {
-  if (!people.length || !characters.length) return null
+function questionnaireEstimate(notes: number[][], characterCount: number): QuestionnaireEstimate | null {
+  if (!notes.length || !characterCount) return null
   const { estimateGood, estimateReview, tiedShare } = QUESTIONNAIRE_THRESHOLDS
   const best = notes.map((row) => Math.max(...row))
-  const players = people.map((answers, index) => ({ id: String(index), name: '', answers, refusedTypes: [], notWithIds: [] }))
-  const placed = castingAssistant({ players, characters, questions, links, locked: new Map() }).proposal.filter((row) => row.playerId !== null)
-  const ratios = placed.flatMap(({ playerId, score }) => {
-    const bestNote = best[Number(playerId)]!
-    return bestNote > 0 ? [score / bestNote] : []
-  })
+  // Une personne sans aucun point n'entre pas dans l'affectation : elle prendrait un rôle au hasard à une personne comptée
+  const scored = notes.flatMap((row, index) => (best[index]! > 0 ? [{ row, best: best[index]! }] : []))
+  const ratios = optimalAssignment(scored.length, characterCount, (row, column) => scored[row]!.row[column]!)
+    .flatMap((column, row) => (column === -1 ? [] : [scored[row]!.row[column]! / scored[row]!.best]))
 
   let note: QuestionnaireEstimate['note'] = null
   if (ratios.length) {
@@ -421,24 +419,32 @@ function questionnaireEstimate(questions: QualityQuestion[], links: CastingLink[
     const value = sum / ratios.length
     // La variance d'une moyenne entre 0 et 1 ne dépasse pas celle d'une proportion : Wilson s'y applique (ADR-0064)
     const { lower, upper } = wilsonInterval(sum, ratios.length)
-    const tooFewPeople = people.length < characters.length
-    const level = tooFewPeople ? 'unsure' : value >= estimateGood ? 'good' : value >= estimateReview ? 'watch' : upper < estimateReview ? 'review' : 'unsure'
-    note = { level, value, lower, upper, counted: ratios.length, tooFewPeople }
+    const noteLevel = (): QualityLevel => {
+      if (scored.length < characterCount) return 'unsure'
+      if (value >= estimateGood) return 'good'
+      if (value >= estimateReview) return 'watch'
+      return upper < estimateReview ? 'review' : 'unsure'
+    }
+    note = { level: noteLevel(), value, lower, upper, counted: ratios.length, tooFewPeople: scored.length < characterCount }
   }
 
   // Une personne sans aucun point a tous les personnages à égalité
   const count = notes.filter((row, index) => row.filter((value) => value === best[index]).length > 1).length
-  const total = people.length
+  const total = notes.length
   const share = count / total
   const { lower } = wilsonInterval(count, total)
-  const ties = { level: share <= tiedShare ? 'good' as const : lower > tiedShare ? 'review' as const : 'unsure' as const, count, total, share, lower }
+  const tiesLevel = (): QualityLevel => {
+    if (share <= tiedShare) return 'good'
+    return lower > tiedShare ? 'review' : 'unsure'
+  }
+  const ties = { level: tiesLevel(), count, total, share, lower }
 
   return {
     level: note && LEVEL_ORDER[note.level] < LEVEL_ORDER[ties.level] ? note.level : ties.level,
     note,
     ties,
-    withoutRole: people.length - placed.length,
-    withoutPoints: best.filter((value) => value === 0).length
+    withoutRole: scored.length - ratios.length,
+    withoutPoints: total - scored.length
   }
 }
 
@@ -454,7 +460,7 @@ export function questionnaireFindings(questions: QualityQuestion[], links: Casti
   const notes = respondents.map((answers) => castings.map((character) => noteOf(character, answers, linked, links)))
   return {
     respondentCount: respondents.length,
-    estimate: questionnaireEstimate(linked, links, castings, respondents, notes),
+    estimate: questionnaireEstimate(notes, characters.length),
     findings: sortFindings([
       ...fromLinks,
       ...linked.flatMap((question) => distributionFindings(question, people)),

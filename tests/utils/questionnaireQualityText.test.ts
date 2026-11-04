@@ -24,7 +24,7 @@ describe('phrases de l’estimation générale (US-140)', () => {
 
   it('la note, ce qu’il faut faire et le détail', () => {
     const { note } = describeEstimate(estimate, 0)
-    expect(note?.sentence).toBe('Une fois les rôles répartis au mieux, chaque personne obtient en moyenne 37 % de sa meilleure note possible.')
+    expect(note?.sentence).toBe('Une fois les rôles répartis au mieux, chaque personne qui reçoit un rôle obtient en moyenne 37 % de sa meilleure note possible.')
     expect(note?.todo).toContain('Reliez davantage de réponses')
     expect(note?.detail).toContain('intervalle de Wilson à 95 % : 0,2 à 0,5 ; seuils : bon 0,75, à revoir 0,6')
     expect(note?.detail).toContain('20 personnes dans la note. 2 sans rôle, 1 sans aucun point.')
@@ -33,6 +33,20 @@ describe('phrases de l’estimation générale (US-140)', () => {
   it('dit pourquoi la note reste à confirmer avec moins de personnes que de rôles', () => {
     const { note } = describeEstimate({ ...estimate, note: { ...estimate.note!, level: 'unsure', tooFewPeople: true } }, 0)
     expect(note?.todo).toBe('Moins de personnes que de rôles pour l’instant : chacune obtient presque toujours son meilleur personnage. Attendez d’autres réponses.')
+  })
+
+  it('n’affiche jamais la note ni la part à un seuil qu’elles n’ont pas atteint', () => {
+    const { note, ties } = describeEstimate({ ...estimate, note: { ...estimate.note!, value: 0.7496 }, ties: { ...estimate.ties, share: 0.5004 } }, 0)
+    expect(note?.sentence).toContain('en moyenne 74 %')
+    expect(note?.detail).toContain('Note moyenne : 0,749 ;')
+    expect(ties.detail).toContain('Part : 0,501 ;')
+  })
+
+  it('quand les rôles manquent, ne demande pas d’attendre d’autres réponses', () => {
+    const { note } = describeEstimate({ ...estimate, note: { ...estimate.note!, level: 'unsure', counted: 15 } }, 0)
+    expect(note?.todo).toContain('Pas encore certain, avec 15 rôles : d’autres réponses ne préciseront plus ce résultat.')
+    const placedAll = describeEstimate({ ...estimate, withoutRole: 0, note: { ...estimate.note!, level: 'unsure', counted: 15 } }, 0)
+    expect(placedAll.note?.todo).toContain('Pas encore certain, avec 15 personnes : attendez d’autres réponses.')
   })
 
   it('à confirmer : dit combien de réponses sont reçues', () => {

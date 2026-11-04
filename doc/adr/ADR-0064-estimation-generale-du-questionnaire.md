@@ -35,10 +35,10 @@ Ce qui suit complète ADR-0061 et remplace « à choisir au lot 3 » dans sa tab
 
 ### Note moyenne
 
-- Le rapport se calcule pour chaque personne qui reçoit un rôle dans l'affectation de l'assistant de casting, sans cadenas ni contraintes, et dont la meilleure note n'est pas nulle.
+- Le rapport se calcule pour chaque personne qui reçoit un rôle dans l'affectation optimale de l'assistant de casting, sans cadenas ni contraintes. Une personne dont la meilleure note est nulle n'entre pas dans l'affectation : elle n'a pas de rapport, et prendrait au hasard un rôle à une personne comptée, ce qui ferait dépendre la note de l'ordre des inscriptions.
 - Bon à partir de 0,75 observé. Sous 0,60, « à revoir » si la borne haute de l'intervalle à 95 % reste sous 0,60, « à confirmer » sinon. Entre les deux, « à surveiller ». Choix de l'utilisatrice.
 - Une personne sans rôle n'est pas comptée, car le manque de places n'est pas un défaut du questionnaire. Le détail dit combien de personnes sont dans ce cas.
-- Tant que les personnes qui ont répondu sont moins nombreuses que les personnages PJ, la note est « à confirmer » quelle que soit sa valeur : chacune obtient presque toujours son meilleur personnage (0,97 dans la simulation, même pour un questionnaire pauvre). Comme pour « peu demandé » (R12), ce n'est pas un nombre choisi pour la fiabilité : sous ce nombre, les personnes ne se disputent pas encore les rôles.
+- Tant que les personnes qui ont au moins un point sont moins nombreuses que les personnages PJ, la note est « à confirmer » quelle que soit sa valeur : chacune obtient presque toujours son meilleur personnage (0,97 dans la simulation, même pour un questionnaire pauvre). Comme pour « peu demandé » (R12), ce n'est pas un nombre choisi pour la fiabilité : sous ce nombre, les personnes ne se disputent pas encore les rôles.
 
 ### Ex æquo
 
@@ -63,11 +63,14 @@ L'estimation renvoie à ces repères en tête de la liste plutôt que de les ré
 
 ### Calcul
 
-L'affectation est celle de `castingAssistant` (ADR-0051), appelée sans cadenas, relations ni refus : les repères ne peuvent pas diverger de l'assistant. Rien n'est enregistré.
+L'affectation est `optimalAssignment`, la fonction qu'utilise `castingAssistant` (ADR-0051), sans cadenas, relations ni refus : les repères ne peuvent pas diverger de l'assistant, et réutilisent les notes déjà calculées. Rien n'est enregistré.
 
 ## Conséquences
 
 - Une note « bon » ne demande que la valeur observée : avec peu de personnes placées, elle peut être flatteuse, mais la part des ex æquo et les repères détaillés restent lisibles à côté.
+- Avec plus de personnes que de rôles, l'affectation place celles qui conviennent le mieux, et la note monte. En simulation, avec 20 rôles, le questionnaire riche passe de 0,83 (20 personnes) à 0,87 (30), 0,88 (40) et 0,91 (100) ; le pauvre reste à 0,36. Aucun niveau simulé ne change : la règle reste, par choix de l'utilisatrice.
+- L'effectif de l'intervalle s'arrête au nombre de rôles. Sur un jeu à peu de rôles, une note basse peut rester « à confirmer » quel que soit le nombre d'inscrits, par exemple 0,37 avec 15 rôles : la phrase le dit, sans demander d'attendre.
+- À total égal, plusieurs affectations peuvent exister, avec des rapports différents, entre personnes qui ont des points. La méthode hongroise en choisit une selon l'ordre des inscriptions. L'ampleur de cet écart n'a pas été mesurée.
 - Un jeu qui relie ses questions aux factions seules reste « à revoir » pour ses ex æquo, même avec une bonne note. C'est voulu : les personnages d'une faction ne sont pas départagés.
 - Les seuils n'ont pas de référence dans la littérature : leur fondement est le choix de l'utilisatrice, éclairé par la simulation. Ils pourront changer avec des données réelles, par la spec.
 

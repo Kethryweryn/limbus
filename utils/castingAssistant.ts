@@ -143,6 +143,25 @@ export function hungarian(cost: number[][]) {
   return rowToColumn
 }
 
+/**
+ * Affectation optimale : d'abord placer le plus de monde, ensuite la meilleure note ; une paire interdite n'est jamais choisie.
+ * Renvoie, pour chaque ligne, sa colonne, ou -1 si elle reste sans place.
+ */
+export function optimalAssignment(rows: number, columns: number, score: (row: number, column: number) => number, allowed: (row: number, column: number) => boolean = () => true) {
+  const size = Math.max(rows, columns)
+  let maxScore = 0
+  for (let row = 0; row < rows; row++) {
+    for (let column = 0; column < columns; column++) maxScore = Math.max(maxScore, score(row, column))
+  }
+  const empty = (maxScore + 1) * (size + 1)
+  const forbidden = empty * (size + 1) * 2
+  const cost = Array.from({ length: size }, (_, row) => Array.from({ length: size }, (_, column) => {
+    if (row >= rows || column >= columns) return empty
+    return allowed(row, column) ? maxScore - score(row, column) : forbidden
+  }))
+  return hungarian(cost).slice(0, rows).map((column, row) => (column < columns && allowed(row, column) ? column : -1))
+}
+
 export type CastingInput = {
   players: CastingPlayer[]
   characters: CastingCharacter[]
@@ -173,25 +192,18 @@ export function castingAssistant({ players, characters, questions, links, locked
   const allowed = (playerId: string, characterId: string) => pairOf(playerId, characterId)?.blocks.length === 0
   const scoreOf = (playerId: string, characterId: string) => pairOf(playerId, characterId)?.score ?? 0
 
-  // Affectation optimale des joueurs libres sur les personnages libres. Coûts : d'abord placer le plus de monde,
-  // ensuite la meilleure note ; une paire interdite n'est jamais choisie
+  // Affectation optimale des joueurs libres sur les personnages libres
   const freePlayers = players.filter((player) => !lockedPlayerIds.has(player.id))
   const freeCharacters = characters.filter((character) => !locked.has(character.id))
-  const size = Math.max(freePlayers.length, freeCharacters.length)
   const maxScore = Math.max(0, ...freePlayers.flatMap((player) => freeCharacters.map((character) => scoreOf(player.id, character.id))))
-  const empty = (maxScore + 1) * (size + 1)
-  const forbidden = empty * (size + 1) * 2
-  const cost = Array.from({ length: size }, (_, row) => Array.from({ length: size }, (_, column) => {
-    const player = freePlayers[row]
-    const character = freeCharacters[column]
-    if (!player || !character) return empty
-    return allowed(player.id, character.id) ? maxScore - scoreOf(player.id, character.id) : forbidden
-  }))
   const holders: Holders = new Map(lockedHolders)
-  hungarian(cost).forEach((column, row) => {
-    const player = freePlayers[row]
-    const character = freeCharacters[column]
-    if (player && character && allowed(player.id, character.id)) holders.set(character.id, player.id)
+  optimalAssignment(
+    freePlayers.length,
+    freeCharacters.length,
+    (row, column) => scoreOf(freePlayers[row]!.id, freeCharacters[column]!.id),
+    (row, column) => allowed(freePlayers[row]!.id, freeCharacters[column]!.id)
+  ).forEach((column, row) => {
+    if (column !== -1) holders.set(freeCharacters[column]!.id, freePlayers[row]!.id)
   })
 
   // Conflits « ne veut pas jouer avec » restants : déplacer ou échanger l'un des deux au moindre coût, sinon le retirer

@@ -50,7 +50,7 @@ test('l’encadré de qualité signale un personnage sans lien, puis les repère
     await expect(dialog.getByText('L’option « Combat » de « Ton style » n’est reliée à aucun rôle.')).toBeVisible()
 
     await expect(dialog.getByText('Estimation générale')).toBeVisible()
-    await expect(dialog.getByText('Une fois les rôles répartis au mieux, chaque personne obtient en moyenne 100 % de sa meilleure note possible.')).toBeVisible()
+    await expect(dialog.getByText('Une fois les rôles répartis au mieux, chaque personne qui reçoit un rôle obtient en moyenne 100 % de sa meilleure note possible.')).toBeVisible()
     await expect(dialog.getByText('0 personne sur 4 a plusieurs personnages à égalité en tête.')).toBeVisible()
     await expect(dialog.getByText('4 personnes sur 4 ont répondu « Intrigue » à « Ton style » : cette question ne départage presque personne.')).toBeVisible()
     await expect(dialog.getByText('Aldric Qualité arrive en tête pour 4 personnes sur 4 : ce personnage sera disputé.')).toBeVisible()
