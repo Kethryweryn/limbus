@@ -6,7 +6,6 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 |---|---|---|---|
 | [Durcissement web](durcissement-web.md) | en partie traitée | 2026-10-29 | CSP et COOP sur les pages, origine des écritures, cookie `__Host-` (revue R-01 à R-03) |
 | [Supervision](supervision.md) | en partie traitée | 2026-10-29 | Route de santé et sondes Better Stack faites ; reste les journaux structurés, si besoin (revue R-15, R-16) |
-| [Numéros de version et notes de version](versions-et-notes-de-version.md) | à trancher | 2026-10-29 | Version sémantique, étiquettes git et notes de version à partir de la première version publiée |
 
 ## Archivées
 
@@ -28,3 +27,4 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Aucun any, lint en erreur partout](../archive/todo/lint-sans-any.md) | PR [#122](https://github.com/Kethryweryn/limbus/pull/122), [#123](https://github.com/Kethryweryn/limbus/pull/123) | 2026-11-03 |
 | [Indicateurs du questionnaire de casting](../archive/todo/indicateurs-du-questionnaire-de-casting.md) | [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) | 2026-11-03 |
 | [Aide à la conception du questionnaire de casting](../archive/todo/aide-a-la-conception-du-questionnaire.md) | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | 2026-11-03 |
+| [Numéros de version et notes de version](../archive/todo/versions-et-notes-de-version.md) | [SPEC-017](../specs/SPEC-017-nouveautes.md) | 2026-11-05 |

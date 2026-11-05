@@ -1,14 +1,15 @@
 ---
 titre: Numéros de version et notes de version
-statut: à trancher
+statut: archivée
 date: 2026-10-29
+spec: ../../specs/SPEC-017-nouveautes.md
 ---
 
 # Numéros de version et notes de version
 
 ## Besoin
 
-Limbus n'a ni numéro de version (`package.json` n'en déclare pas), ni étiquette git, ni journal des changements. Chaque fusion dans `main` part en production ([ADR-0023](../adr/ADR-0023-deploiement-sans-ci-redondante.md)) sans que les personnes qui utilisent l'application sachent ce qui a changé. L'utilisatrice veut des numéros de version et des notes de version, une fois la première version publiée.
+Limbus n'a ni numéro de version (`package.json` n'en déclare pas), ni étiquette git, ni journal des changements. Chaque fusion dans `main` part en production ([ADR-0023](../../adr/ADR-0023-deploiement-sans-ci-redondante.md)) sans que les personnes qui utilisent l'application sachent ce qui a changé. L'utilisatrice veut des numéros de version et des notes de version, une fois la première version publiée.
 
 ## Proposition
 
@@ -22,11 +23,15 @@ Limbus n'a ni numéro de version (`package.json` n'en déclare pas), ni étiquet
 1. Numéro de version dans `package.json`, étiquette git et notes dans un fichier du dépôt.
 2. Affichage du numéro et page « Nouveautés » dans l'application.
 
+## Devenir
+
+Devenue [SPEC-017](../../specs/SPEC-017-nouveautes.md) le 2026-11-05, après un état de l'art ([ADR-0065](../../adr/ADR-0065-nouveautes-et-numero-de-deploiement.md)) : page « Nouveautés » publique et datée, une note par pull request, numéro de la pull request déployée. La proposition ci-dessus (version sémantique, 1.0.0, étiquettes) et le fichier `CHANGELOG.md` sont écartés. Choix de l'utilisatrice : pas de pastille, un petit lien séparé dans le menu.
+
 ## Points à trancher
 
 - Quand faire la première version, et qu'est-ce qui doit être fait avant ?
 - Une version à chaque fusion déployée, ou des versions regroupées, publiées quand on le décide ? Avec le déploiement continu, une version regroupée veut dire que des changements sont en production avant d'être dans une note.
 - Qui rédige les notes, et quand : à chaque PR (une ligne dans un fichier « à venir »), ou au moment de la version ?
-- Comment une version passe par le circuit du projet : on ne pousse jamais sur `main` ([ADR-0017](../adr/ADR-0017-branches-et-pull-requests.md)), et changer `package.json` déclenche la CI et un déploiement ([ADR-0022](../adr/ADR-0022-pas-de-ci-pour-la-documentation.md), [ADR-0023](../adr/ADR-0023-deploiement-sans-ci-redondante.md)). Options : une PR de version qui change le numéro et les notes ; une étiquette posée par la CI sur le commit déployé ; ou un numéro tiré de l'étiquette, sans toucher `package.json`. À décider dans un ADR.
+- Comment une version passe par le circuit du projet : on ne pousse jamais sur `main` ([ADR-0017](../../adr/ADR-0017-branches-et-pull-requests.md)), et changer `package.json` déclenche la CI et un déploiement ([ADR-0022](../../adr/ADR-0022-pas-de-ci-pour-la-documentation.md), [ADR-0023](../../adr/ADR-0023-deploiement-sans-ci-redondante.md)). Options : une PR de version qui change le numéro et les notes ; une étiquette posée par la CI sur le commit déployé ; ou un numéro tiré de l'étiquette, sans toucher `package.json`. À décider dans un ADR.
 - Où les publier : fichier du dépôt (`CHANGELOG.md`), page dans l'application, release GitHub, ou plusieurs ?
 - Faut-il prévenir les organisatrices d'une nouvelle version (bandeau à la connexion, email) ?

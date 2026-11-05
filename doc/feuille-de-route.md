@@ -88,9 +88,9 @@ L'inscription libre peut faire venir des personnes inconnues, avec leurs donnée
 3. [Supervision](todo/supervision.md) : être alerté quand le site tombe. Fait : page de santé ([EPIC-026](archive/epics/EPIC-026-supervision/README.md)) et sondes Better Stack ; les journaux structurés attendront un besoin.
 4. Conditions d'utilisation et politique de confidentialité ([fiche des comptes](archive/todo/comptes-participants.md), [SPEC-013](specs/SPEC-013-pages-legales-et-conservation.md)). Pages, acceptation et durées de conservation faites ([EPIC-029](archive/epics/EPIC-029-pages-legales/README.md), [EPIC-030](archive/epics/EPIC-030-durees-de-conservation/README.md)). L'inscription libre s'ouvre par un réglage du serveur (`SIGNUP_OPEN=1`), quand l'utilisatrice le décide.
 
-## 6. Numéros et notes de version
+## 6. Nouveautés
 
-La fiche [Numéros de version et notes de version](todo/versions-et-notes-de-version.md), à trancher, moment de la première version compris.
+La page « Nouveautés » et le numéro de déploiement ([SPEC-017](specs/SPEC-017-nouveautes.md)), en un lot.
 
 ## Sans dépendance forte
 
