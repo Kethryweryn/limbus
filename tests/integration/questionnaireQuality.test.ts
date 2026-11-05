@@ -54,6 +54,36 @@ describe('repères sur les liens du questionnaire', () => {
   })
 })
 
+// EPIC-042 : relecture des questions et mélange des options (US-144, US-146)
+describe('relecture et mélange', () => {
+  it('rend les signalements du formulaire enregistré, et le mélange crée une version', async () => {
+    const key = `redaction-${Date.now()}`
+    const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
+    const route = `/api/games/${game.id}/registration-form`
+    const question = { label: 'Combat ou intrigue ?', type: 'single', required: false, options: ['Combat', 'Intrigue'] }
+    const first = await api(alice, 'PUT', route, { standardFields, questions: [question] })
+    expect(first.status, JSON.stringify(first.body)).toBe(200)
+    const saved = bodyOf<ApiResponse<'/api/games/:id/registration-form', 'put'>>(first).definition.questions[0]!
+    expect(saved).not.toHaveProperty('shuffleOptions')
+
+    const quality = bodyOf<Quality>(await api(alice, 'GET', `/api/games/${game.id}/registration-form-quality`))
+    expect(quality.drafting).toEqual({
+      questions: [{ questionId: saved.id, label: 'Combat ou intrigue ?', flags: [{ rule: 'doubleBarreled', places: [{ word: 'ou', option: null }] }] }],
+      wordCounts: [{ label: 'Combat ou intrigue ?', words: 3 }]
+    })
+    expect(quality.hasAnswers).toBe(false)
+
+    // Réenregistrer sans changement ne crée pas de version ; cocher le mélange en crée une
+    const versions = () => prisma.registrationFormVersion.count({ where: { form: { gameId: game.id } } })
+    expect((await api(alice, 'PUT', route, { standardFields, questions: [{ ...question, id: saved.id, shuffleOptions: false }] })).status).toBe(200)
+    expect(await versions()).toBe(1)
+    const shuffled = await api(alice, 'PUT', route, { standardFields, questions: [{ ...question, id: saved.id, shuffleOptions: true }] })
+    expect(shuffled.status, JSON.stringify(shuffled.body)).toBe(200)
+    expect(await versions()).toBe(2)
+    expect(bodyOf<ApiResponse<'/api/games/:id/registration-form', 'put'>>(shuffled).definition.questions[0]!.shuffleOptions).toBe(true)
+  })
+})
+
 // EPIC-039 et EPIC-040 : repères sur les réponses reçues et estimation générale (US-136 à US-140)
 describe('repères sur les réponses reçues', () => {
   it('compte chaque personne une fois, ne juge que les questions reliées et ne nomme personne', async () => {

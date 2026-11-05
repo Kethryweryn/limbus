@@ -14,6 +14,15 @@ const characters = (count: number) => Array.from({ length: count }, (_, index) =
 const share = (questionId: string, option: string, value: number): OptionExpectation => ({ questionId, option, share: value })
 const input = (partial: Partial<ForecastInput>): ForecastInput => ({ questions: [], links: [], characters: [], expectations: [], ...partial })
 
+// US-146 : le mélange ne change aucune note
+describe('mélange des options', () => {
+  it('ne change pas la prévision', () => {
+    const base = input({ questions: [question('q', 'single', ['A', 'B'])], links: [toCharacter('q', 'A', 'p0')], characters: characters(2) })
+    const shuffled = { ...base, questions: [{ ...question('q', 'single', ['A', 'B']), shuffleOptions: true }] }
+    expect(runForecast(shuffled, 100)).toEqual(runForecast(base, 100))
+  })
+})
+
 describe('statistiques de la prévision', () => {
   it('calcule l’entropie en bits et les quantiles par interpolation', () => {
     expect(shannonEntropy([0.5, 0.5])).toBe(1)

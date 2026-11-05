@@ -118,6 +118,8 @@ export type RegistrationQuestion = {
   type: RegistrationQuestionType
   required: boolean
   options: string[]
+  // Question à choix : options dans un ordre tiré au hasard à chaque affichage (US-146, ADR-0062). Absent, l'ordre saisi
+  shuffleOptions?: boolean
 }
 
 // Question d'équilibre (US-091, ADR-0048) : le réglage est dans la définition, le libellé et les valeurs viennent du
@@ -172,7 +174,9 @@ export function normalizeRegistrationFormDefinition(definition: RegistrationForm
     required: Boolean(question.required),
     options: REGISTRATION_CHOICE_TYPES.includes(question.type)
       ? [...new Set((question.options ?? []).map((option) => option.trim()).filter(Boolean))]
-      : []
+      : [],
+    // Seulement s'il est coché : une version enregistrée avant ce réglage reste identique, et n'en crée pas de nouvelle
+    ...(question.shuffleOptions && REGISTRATION_CHOICE_TYPES.includes(question.type) ? { shuffleOptions: true } : {})
   }))
 
   // Le libellé et les valeurs ne sont pas enregistrés : ils suivent l'attribut du jeu
@@ -187,6 +191,16 @@ export function withBalanceQuestion(definition: NormalizedRegistrationFormDefini
     return { ...definition, balance: { ...definition.balance, asked: false, required: false } }
   }
   return { ...definition, balance: { ...definition.balance, label: game.balanceAttribute, values: game.balanceValues } }
+}
+
+/** Options dans un ordre tiré au hasard (Fisher-Yates) : il répartit l'effet d'ordre entre elles, sans enjeu de sécurité. */
+export function shuffledOptions(options: string[], random: () => number = Math.random) {
+  const shuffled = [...options]
+  for (let index = shuffled.length - 1; index > 0; index--) {
+    const other = Math.floor(random() * (index + 1))
+    ;[shuffled[index], shuffled[other]] = [shuffled[other]!, shuffled[index]!]
+  }
+  return shuffled
 }
 
 export function sameRegistrationFormDefinition(left: RegistrationFormDefinition, right: RegistrationFormDefinition) {

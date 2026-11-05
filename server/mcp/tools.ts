@@ -13,20 +13,25 @@ export type ToolContext = { event: H3Event, server: McpServer }
 
 type ToolResult = { content: Array<{ type: 'text', text: string }>, isError?: boolean }
 
+/** Message d'une erreur pour l'assistant : le refus ou le détail d'une validation ; une erreur inattendue ne montre pas son détail. */
+export function safeErrorMessage(error: unknown) {
+  const status = (error as { statusCode?: number })?.statusCode
+  // Refus d'une validation : le détail de chaque champ, pour que l'assistant corrige sa demande
+  const issues = (error as { data?: Array<{ path?: string, message?: string }> })?.data
+  const message = Array.isArray(issues) && issues.length
+    ? issues.map((issue) => issue.path ? `${issue.path} : ${issue.message}` : issue.message).join(' ; ')
+    : (error as { message?: string })?.message || 'Erreur'
+  if (status && status < 500) return message
+  console.error('[mcp] outil en échec', { error: message })
+  return 'Erreur du serveur'
+}
+
 /** Résultat d'un outil : le JSON de la projection, ou le message d'une erreur (refus, introuvable…). */
 export async function toolResult(run: () => Promise<unknown>): Promise<ToolResult> {
   try {
     return { content: [{ type: 'text', text: JSON.stringify(await run()) }] }
   } catch (error) {
-    const status = (error as { statusCode?: number })?.statusCode
-    // Refus d'une validation : le détail de chaque champ, pour que l'assistant corrige sa demande
-    const issues = (error as { data?: Array<{ path?: string, message?: string }> })?.data
-    const message = Array.isArray(issues) && issues.length
-      ? issues.map((issue) => issue.path ? `${issue.path} : ${issue.message}` : issue.message).join(' ; ')
-      : (error as { message?: string })?.message || 'Erreur'
-    // Une erreur inattendue ne montre pas son détail à l'assistant
-    if (!status || status >= 500) console.error('[mcp] outil en échec', { error: message })
-    return { isError: true, content: [{ type: 'text', text: status && status < 500 ? message : 'Erreur du serveur' }] }
+    return { isError: true, content: [{ type: 'text', text: safeErrorMessage(error) }] }
   }
 }
 

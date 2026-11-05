@@ -60,13 +60,13 @@ Des fonctions pures dans `utils/questionnaireDrafting.ts`, appliquées au formul
 
 | Règle | Repérage | Référence |
 |---|---|---|
-| Double sens | mot « et » ou « ou » dans le libellé d'une question à choix ou d'une échelle, ou dans une option | Bradburn, Sudman et Wansink (2004) |
+| Double sens | mot « et » ou « ou » dans le libellé d'une question à choix ou d'une échelle, ou dans une option. Ici les accents comptent : « où » n'est pas « ou » | Bradburn, Sudman et Wansink (2004) |
 | Double négation | au moins deux négations dans le libellé. Une négation, c'est un « ne » ou un « n' » (avec son « pas », « jamais », « plus », « rien » ou « aucun », qui ne compte pas en plus), un « sans » ou un « non », ou un « pas » sans « ne » dans la même phrase (registre familier) | Artino et al. (2014) |
 | Format « d'accord » | « d'accord » dans le libellé ou une option | Saris, Revilla, Krosnick et Shaeffer (2010) |
-| Quantifieur vague | liste fermée de mots (« souvent », « parfois », « rarement », « régulièrement », « fréquemment », « beaucoup », « peu »…) dans le libellé ou une option | Bradburn et Miles (1979) ; Schaeffer (1991). Leur intérêt est discuté pour des comparaisons entre personnes (Al Baghal, 2014) : le signalement invite à vérifier, sans interdire |
+| Quantifieur vague | liste fermée de mots (« souvent », « parfois », « rarement », « régulièrement », « fréquemment », « beaucoup », « peu »…) dans le libellé ou une option, sauf « peu importe », qui ne dit aucune quantité | Bradburn et Miles (1979) ; Schaeffer (1991). Leur intérêt est discuté pour des comparaisons entre personnes (Al Baghal, 2014) : le signalement invite à vérifier, sans interdire |
 | Longueur | nombre de mots au-delà de Q3 + 1,5 × (Q3 − Q1) parmi les questions propres au jeu, quartiles par interpolation linéaire (type 7 de Hyndman et Fan, 1996). Si l'écart interquartile est nul, la règle ne s'applique pas : toute question plus longue d'un mot serait signalée | Tukey (1977) pour la règle ; Alwin et Beattie (2016) : fiabilité moindre des questions plus longues, sans seuil fixe |
 
-Les mots sont comptés sur le texte découpé aux espaces et à l'apostrophe, sans tenir compte de la casse ni des accents. La liste des quantifieurs vagues et celle des négations sont des constantes du module.
+Les mots sont comptés sur le texte découpé aux espaces et à l'apostrophe (droite ou typographique), sans tenir compte de la casse ni, sauf pour « ou », des accents. La liste des quantifieurs vagues et celle des négations sont des constantes du module.
 
 ### Consigne MCP (R12)
 
@@ -84,11 +84,14 @@ Les mots sont comptés sur le texte découpé aux espaces et à l'apostrophe, sa
 - Le champ `shuffleOptions` (booléen, absent = faux) appartient à une question à choix de la définition versionnée (`registrationFormDefinitionSchema`). Le changer crée une version, comme tout ce que voit la personne.
 - L'ordre est tiré au hasard à chaque affichage, dans le formulaire public et dans l'essai, avec `Math.random` : il ne sert qu'à répartir l'effet d'ordre entre les options (Krosnick et Presser, 2010). Les réponses restent enregistrées par le texte de l'option.
 - Le tirage se fait dans le navigateur, après le montage du composant (`onMounted`). Le rendu serveur garde l'ordre saisi : un tirage côté serveur, puis un autre à l'hydratation, donneraient deux ordres différents.
+- L'ordre tiré reste celui de la question tant que ses options ne changent pas : répondre ne le refait pas. L'aperçu de l'éditeur mélange aussi, choix de l'utilisatrice, car il montre ce que voit un joueur.
+- `modifier_formulaire_inscription` accepte `shuffleOptions`, choix de l'utilisatrice. Comme un outil de modification complète les champs donnés avec la fiche actuelle, une question existante renvoyée sans ce champ garde son réglage.
+- Le réglage ne change aucune note : il n'entre pas dans l'empreinte de la simulation.
 
 ## Conséquences
 
 - La prévision n'est aussi bonne que les hypothèses de réponse. Sans proportions, elle est optimiste, car de vraies réponses ne se répartissent jamais également. La phrase le rappelle.
-- L'encadré de SPEC-015 grandit. La partie « Prévision » se replie une fois des réponses reçues, par choix de l'utilisatrice. Le repli des autres parties n'est pas décidé.
+- L'encadré de SPEC-015 grandit. Les parties « Prévision » et « Rédaction » se replient une fois des réponses reçues, par choix de l'utilisatrice. Le repli des autres parties n'est pas décidé.
 - La route de l'encadré rend aussi les personnages PJ avec leurs factions et intrigues (identifiants et noms), pour l'essai et la simulation.
 - Les seuils de R13, choisis au lot 3 de SPEC-015 ([ADR-0064](ADR-0064-estimation-generale-du-questionnaire.md)), s'appliqueront aussi à la prévision, directement à la médiane (SPEC-016, R9).
 
@@ -120,3 +123,4 @@ Les mots sont comptés sur le texte découpé aux espaces et à l'apostrophe, sa
 - Shannon, C. E. (1948). A mathematical theory of communication. *Bell System Technical Journal*, 27.
 - Hyndman, R. J. et Fan, Y. (1996). Sample quantiles in statistical packages. *The American Statistician*, 50(4), 361-365.
 - Tukey, J. W. (1977). *Exploratory Data Analysis*. Addison-Wesley.
+- Willis, G. B. et Lessler, J. T. (1999). *Question Appraisal System (QAS-99)*. Research Triangle Institute. Présupposés, options qui se chevauchent ou ne couvrent pas tous les cas, dans la consigne MCP.

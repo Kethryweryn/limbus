@@ -5,6 +5,7 @@ import {
   DEFAULT_REGISTRATION_FORM_DEFINITION,
   normalizeRegistrationFormDefinition,
   sameRegistrationFormDefinition,
+  shuffledOptions,
   type RegistrationFormDefinition
 } from '~/utils/registrationForms'
 
@@ -102,6 +103,36 @@ describe('questions et affinités du formulaire', () => {
     const normalized = normalizeRegistrationFormDefinition(DEFAULT_REGISTRATION_FORM_DEFINITION)
     expect(normalized.questions).toEqual([])
     expect(Object.values(normalized.affinities).every((setting) => !setting.asked)).toBe(true)
+  })
+
+  // US-146 : mélange des options
+  it('ne garde le mélange que coché, sur une question à choix', () => {
+    const questions = normalizeRegistrationFormDefinition({
+      ...DEFAULT_REGISTRATION_FORM_DEFINITION,
+      questions: [
+        { id: 'a', label: 'A', type: 'single', required: false, options: ['x', 'y'], shuffleOptions: true },
+        { id: 'b', label: 'B', type: 'multiple', required: false, options: ['x', 'y'], shuffleOptions: false },
+        { id: 'c', label: 'C', type: 'scale', required: false, options: [], shuffleOptions: true },
+        { id: 'd', label: 'D', type: 'text', required: false, options: [], shuffleOptions: true }
+      ]
+    }).questions
+    expect(questions.map((question) => question.shuffleOptions)).toEqual([true, undefined, undefined, undefined])
+    expect(Object.keys(questions[1]!)).not.toContain('shuffleOptions')
+  })
+
+  it('un formulaire d’avant le mélange reste identique, et le cocher le change', () => {
+    const question = { id: 'a', label: 'A', type: 'single' as const, required: false, options: ['x', 'y'] }
+    const before = { ...DEFAULT_REGISTRATION_FORM_DEFINITION, questions: [question] }
+    expect(sameRegistrationFormDefinition(before, { ...before, questions: [{ ...question, shuffleOptions: false }] })).toBe(true)
+    expect(sameRegistrationFormDefinition(before, { ...before, questions: [{ ...question, shuffleOptions: true }] })).toBe(false)
+  })
+
+  it('mélange sans perdre d’option, selon le générateur', () => {
+    const options = ['a', 'b', 'c', 'd']
+    expect(shuffledOptions(options, () => 0)).toEqual(['b', 'c', 'd', 'a'])
+    expect(shuffledOptions(options, () => 0.999)).toEqual(options)
+    expect([...shuffledOptions(options)].sort()).toEqual(options)
+    expect(options).toEqual(['a', 'b', 'c', 'd'])
   })
 
   it('nettoie libellés et options, et rend facultative une affinité non demandée', () => {

@@ -4,7 +4,7 @@ titre: Aide à la conception du questionnaire de casting
 statut: validée
 date: 2026-11-03
 origine: ../archive/todo/aide-a-la-conception-du-questionnaire.md
-epics: [EPIC-038, EPIC-041]
+epics: [EPIC-038, EPIC-041, EPIC-042]
 adr: [ADR-0050, ADR-0051, ADR-0058, ADR-0061, ADR-0062, ADR-0064]
 ---
 
@@ -61,7 +61,7 @@ Les personnes inscrites ne voient que l'ordre mélangé des options.
 
 ### Relecture des questions
 
-- **R11** La partie « Rédaction » de l'encadré signale, question par question, les défauts que des règles écrites repèrent. Elle porte sur le formulaire enregistré. Chaque signalement est « à surveiller », car une règle de mots se trompe parfois. Il donne la règle, ce qu'il faut vérifier, et en détail la référence :
+- **R11** La partie « Rédaction » de l'encadré signale, question par question, les défauts que des règles écrites repèrent. Elle porte sur le formulaire enregistré. Comme la prévision, elle est dépliée tant qu'aucune réponse n'est reçue, repliée ensuite, son niveau restant dans le titre. Les défauts d'une même question sont groupés sous son libellé. Chaque signalement est « à surveiller », car une règle de mots se trompe parfois. Il donne la règle, ce qu'il faut vérifier, et en détail la référence :
   - **question à double sens** : un « et » ou un « ou » dans le libellé d'une question à choix ou d'une échelle, ou dans une option, peut faire porter la question sur deux choses à la fois. Vérifier, et sinon scinder ;
   - **double négation** : au moins deux négations dans le libellé ;
   - **format « d'accord / pas d'accord »** : il pousse à acquiescer. Mieux vaut des options propres à la question (« très souvent… jamais ») ;
@@ -72,7 +72,7 @@ Les personnes inscrites ne voient que l'ordre mélangé des options.
 
 ### Mélange des options
 
-- **R13** Une question à choix unique ou multiples a une case « Mélanger les options », décochée par défaut. Cochée, ses options s'affichent dans un ordre tiré au hasard à chaque affichage du formulaire. L'équipe la laisse décochée pour une liste qui a un ordre naturel. Le réglage fait partie de la définition du formulaire : le changer après l'ouverture des inscriptions crée une version (SPEC-001, R9). Les réponses, enregistrées par le texte des options, ne changent pas.
+- **R13** Une question à choix unique ou multiples a une case « Mélanger les options », décochée par défaut. Cochée, ses options s'affichent dans un ordre tiré au hasard à chaque affichage du formulaire, y compris dans l'essai et l'aperçu de l'éditeur. L'équipe la laisse décochée pour une liste qui a un ordre naturel. Le réglage fait partie de la définition du formulaire : le changer après l'ouverture des inscriptions crée une version (SPEC-001, R9). Les réponses, enregistrées par le texte des options, ne changent pas. L'assistant d'IA peut changer ce réglage, comme le reste du formulaire (SPEC-014).
 
 ## Données
 
@@ -99,7 +99,7 @@ Les personnes inscrites ne voient que l'ordre mélangé des options.
 
 1. **Essai par l'équipe** ([EPIC-038](../archive/epics/EPIC-038-essai-du-questionnaire/README.md)) : R1 à R3, hors mélange des options, qui vient avec R13. Fait.
 2. **Prévision** ([EPIC-041](../archive/epics/EPIC-041-prevision-du-questionnaire/README.md)) : R4 à R10. Fait.
-3. **Relecture et mélange** : R11 à R13, et le mélange des options dans l'essai (R1).
+3. **Relecture et mélange** ([EPIC-042](../epics/EPIC-042-relecture-et-melange-du-questionnaire/README.md)) : R11 à R13, et le mélange des options dans l'essai (R1).
 
 Le lot 1 de SPEC-015 ([EPIC-037](../archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md)) crée l'encadré et sa route, dont l'essai et la prévision lisent les personnages PJ : il passe avant.
 
@@ -122,3 +122,8 @@ Le lot 1 de SPEC-015 ([EPIC-037](../archive/epics/EPIC-037-qualite-du-questionna
   - proportions saisies dans un volet replié sous chaque question reliée ;
   - partie « Prévision » dépliée tant qu'aucune réponse n'est reçue, repliée ensuite.
 - 2026-11-05 : lot 2 livré ([EPIC-041](../archive/epics/EPIC-041-prevision-du-questionnaire/README.md), PR #135).
+- 2026-11-05, choix de l'utilisatrice pour le lot 3 :
+  - partie « Rédaction » dépliée tant qu'aucune réponse n'est reçue, repliée ensuite ;
+  - défauts groupés par question ;
+  - aperçu de l'éditeur mélangé, comme le voit un joueur ;
+  - l'assistant d'IA peut changer le réglage de mélange.

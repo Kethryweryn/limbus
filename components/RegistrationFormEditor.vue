@@ -94,6 +94,13 @@
             <UFormField v-if="REGISTRATION_CHOICE_TYPES.includes(question.type)" label="Options" description="Une option par ligne, deux au moins.">
               <UTextarea :model-value="question.optionsText" :rows="3" class="w-full" @update:model-value="setOptionsText(question, $event)" />
             </UFormField>
+            <!-- Mélange des options (US-146) : à laisser décoché pour une liste qui a un ordre naturel -->
+            <UCheckbox
+              v-if="REGISTRATION_CHOICE_TYPES.includes(question.type)"
+              v-model="question.shuffleOptions"
+              label="Mélanger les options"
+              description="Un nouvel ordre à chaque affichage, pour une liste sans ordre naturel."
+            />
             <!-- Rôles que désigne chaque réponse (US-098) : jamais montrés à l'inscrit -->
             <div v-if="hasLinkTargets && REGISTRATION_CHOICE_TYPES.includes(question.type) && questionOptions(question).length" class="space-y-1">
               <p class="text-xs font-medium text-gray-600">Rôles désignés par chaque option (visibles de l’équipe seulement)</p>
@@ -253,6 +260,7 @@ type EditableQuestion = {
   type: RegistrationQuestionType
   required: boolean
   optionsText: string
+  shuffleOptions: boolean
   optionLinks: Record<string, string[]>
   scaleLinks: string[]
   shares: Record<string, string>
@@ -322,6 +330,7 @@ function editableQuestion(question: Omit<RegistrationQuestion, 'id'> & { id?: st
     type: question.type,
     required: question.required,
     optionsText: question.options.join('\n'),
+    shuffleOptions: Boolean(question.shuffleOptions),
     optionLinks: {},
     scaleLinks: [],
     shares: {}
@@ -357,14 +366,15 @@ const definitionQuestions = () => questions.value.map((question) => ({
   label: question.label,
   type: question.type,
   required: question.required,
-  options: questionOptions(question)
+  options: questionOptions(question),
+  shuffleOptions: question.shuffleOptions
 }))
 
 // Les questions telles qu'elles seront posées, même avant l'enregistrement : une nouvelle question a un identifiant provisoire
 const draftId = (question: EditableQuestion) => question.id ?? `brouillon-${question.key}`
 const draftQuestions = computed(() => questions.value
   .filter((question) => question.label.trim())
-  .map((question) => ({ id: draftId(question), label: question.label.trim(), type: question.type, required: question.required, options: questionOptions(question) })))
+  .map((question) => ({ id: draftId(question), label: question.label.trim(), type: question.type, required: question.required, options: questionOptions(question), shuffleOptions: question.shuffleOptions })))
 
 const previewDefinition = computed(() => ({
   affinities: affinities.value,

@@ -49,6 +49,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-039](../archive/epics/EPIC-039-qualite-du-questionnaire-reponses/README.md) | Qualité du questionnaire, lot 2 : repères sur les réponses | [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) | terminé |
 | [EPIC-040](../archive/epics/EPIC-040-qualite-du-questionnaire-estimation/README.md) | Qualité du questionnaire, lot 3 : estimation générale | [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) | terminé |
 | [EPIC-041](../archive/epics/EPIC-041-prevision-du-questionnaire/README.md) | Aide à la conception du questionnaire, lot 2 : prévision | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | terminé |
+| [EPIC-042](EPIC-042-relecture-et-melange-du-questionnaire/README.md) | Aide à la conception du questionnaire, lot 3 : relecture et mélange | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | en cours |
 
 ## US
 
@@ -197,3 +198,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-141](../archive/epics/EPIC-041-prevision-du-questionnaire/US-141-proportions-attendues.md) | Indiquer les proportions attendues des options | EPIC-041 | terminée |
 | [US-142](../archive/epics/EPIC-041-prevision-du-questionnaire/US-142-information-maximale.md) | Savoir si les questions peuvent départager les personnages | EPIC-041 | terminée |
 | [US-143](../archive/epics/EPIC-041-prevision-du-questionnaire/US-143-simulation-de-repondants.md) | Voir ce que donnerait une inscription typique | EPIC-041 | terminée |
+| [US-144](EPIC-042-relecture-et-melange-du-questionnaire/US-144-relecture-par-regles.md) | Voir les questions à relire | EPIC-042 | terminée |
+| [US-145](EPIC-042-relecture-et-melange-du-questionnaire/US-145-consigne-relire-le-questionnaire.md) | Demander une relecture à mon assistant d'IA | EPIC-042 | terminée |
+| [US-146](EPIC-042-relecture-et-melange-du-questionnaire/US-146-melange-des-options.md) | Mélanger l'ordre des options d'une question | EPIC-042 | terminée |

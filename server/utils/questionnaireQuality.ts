@@ -4,11 +4,12 @@ import { prisma } from '~/server/utils/prisma'
 import { getCurrentRegistrationForm } from '~/server/utils/registrationForms'
 import { optionExpectationsOf } from '~/server/utils/registrationOptionExpectations'
 import { questionLinksOf } from '~/server/utils/registrationQuestionLinks'
+import { draftingReview } from '~/utils/questionnaireDrafting'
 import { latestAnswersPerPerson, questionnaireFindings } from '~/utils/questionnaireQuality'
 
 // Repères sur le questionnaire de casting d'un jeu (SPEC-015, US-133, US-136 à US-139) : calculés à la lecture, rien n'est écrit.
 // Rend aussi les personnages PJ, pour l'essai du questionnaire (SPEC-016, US-135), et le reste de ce que la prévision calcule
-// dans le navigateur (US-142, US-143)
+// dans le navigateur (US-142, US-143), et les signalements de rédaction (US-144)
 
 export async function questionnaireQuality(gameId: string) {
   const { definition } = await getCurrentRegistrationForm(gameId)
@@ -23,11 +24,15 @@ export async function questionnaireQuality(gameId: string) {
       orderBy: { createdAt: 'desc' }
     })
   ])
+  const people = latestAnswersPerPerson(registrations)
   return {
+    // Une réponse, même à une question sans lien, ouvre le temps des repères : la prévision et la relecture se replient (US-142, US-144)
+    hasAnswers: people.length > 0,
     characterCount: characters.length,
     characters: characters.map(({ id, name, factions, intrigues }) => ({ id, name, factions, intrigues })),
     questionCount: definition.questions.filter((question) => question.type !== 'text').length,
     forecastInput: { questions: definition.questions, links, expectations },
-    ...questionnaireFindings(definition.questions, links, characters, latestAnswersPerPerson(registrations))
+    drafting: draftingReview(definition.questions),
+    ...questionnaireFindings(definition.questions, links, characters, people)
   }
 }

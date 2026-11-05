@@ -124,7 +124,7 @@ test('l’éditeur du formulaire ajoute une question et une affinité', async ({
     await dialog.getByLabel('Question', { exact: true }).fill('Ton style de jeu')
     await dialog.getByRole('combobox').last().click()
     await page.getByRole('option', { name: 'Choix unique' }).click()
-    await dialog.getByLabel('Options').fill('Combat\nIntrigue\n')
+    await dialog.getByLabel('Options', { exact: true }).fill('Combat\nIntrigue\n')
     // L'aperçu montre la question avant l'enregistrement
     await expect(dialog.getByText('Intrigue', { exact: true })).toBeVisible()
     await dialog.getByRole('button', { name: 'Enregistrer' }).click()
