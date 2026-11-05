@@ -8,7 +8,7 @@ import { collectUploadUrls, deleteUnusedUploads, uploadDir, UPLOAD_DIRS } from '
 import { TERMS_VERSION } from '../utils/legal'
 import { PHOTO_UPLOAD_PREFIX } from '../utils/urls'
 import type { Db } from './seed/db'
-import { createMeridianStage, MERIDIAN_EXTRA_PEOPLE } from './seed/meridian'
+import { createMeridianStage, MERIDIAN_EXTRA_PEOPLE, type StageContext } from './seed/meridian'
 import { daysFromNow, personAddress, readSeedOptions, type SeedOptions } from './seed/options'
 
 // La transaction du rechargement, utilisée par toutes les fonctions du script : un échec laisse les jeux tels quels
@@ -69,6 +69,8 @@ type ItemSeed = {
 type GameSeed = {
   // Identifiant fixe : un jeu renommé reste reconnu, et le jeu d'une autre personne n'est jamais pris pour lui (ADR-0066)
   id: string
+  // L'étape de la vie d'un jeu que ce jeu montre, avec ses sessions à venir (ADR-0066)
+  createStage?: (db: Db, context: StageContext) => Promise<void>
   title: string
   description: string
   noteIntention: string
@@ -225,6 +227,7 @@ const games: GameSeed[] = [
   },
   {
     id: 'jeu-test-meridian',
+    createStage: createMeridianStage,
     title: 'Station Meridian',
     description: 'Jeu d’essai : ce jeu n’aura jamais lieu. Une station scientifique coupée du reste du système solaire après la découverte d’un signal impossible.',
     noteIntention: 'Tester la paranoïa, la coopération sous pression et les dilemmes scientifiques.',
@@ -903,10 +906,11 @@ async function createGame(
   await createDocuments(game.id, seed.title)
   await createTrombinoscopeEntries(characters)
 
-  const participantPhotos = await createParticipantPhotos(game.id, participants, gameIndex)
-  await createSessions(game.id, seed.title, gameIndex, characters, participants, locations, participantPhotos)
-  if (seed.id === 'jeu-test-meridian') {
-    await createMeridianStage(db, {
+  // Seules les personnes qui reçoivent un rôle ont une photo : 6 PJ et 2 PNJ (voir createSessions)
+  const participantPhotos = await createParticipantPhotos(game.id, participants.filter((_, index) => index < 6 || index === 8 || index === 9), gameIndex)
+  await createSessions(game.id, seed.title, gameIndex, characters, participants, locations, participantPhotos, Boolean(seed.createStage))
+  if (seed.createStage) {
+    await seed.createStage(db, {
       gameId: game.id,
       title: seed.title,
       ownerId,
@@ -1126,7 +1130,8 @@ async function createSessions(
   characters: Array<{ id: string, name: string, type: string }>,
   participants: Array<{ id: string, name: string }>,
   locations: Array<{ id: string, name: string }>,
-  participantPhotos: Map<string, string>
+  participantPhotos: Map<string, string>,
+  pastSessionOnly: boolean
 ) {
   const pastDate = daysFromNow(-60)
   const firstDate = daysFromNow(10 + 35 * gameIndex)
@@ -1206,8 +1211,7 @@ async function createSessions(
     }
   })
 
-  // Station Meridian prépare ses sessions à venir avec ses périodes d'inscription (createMeridianStage)
-  if (gameId === 'jeu-test-meridian') return
+  if (pastSessionOnly) return
 
   const firstAssignments = buildAssignments(Math.max(0, pjCharacters.length - 2), 1)
 

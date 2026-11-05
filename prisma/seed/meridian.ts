@@ -1,6 +1,5 @@
 // Station Meridian, jeu de test « avant les sessions » : page publique, périodes d'inscription, questionnaire,
 // sélection, tirage, affinités et relations (US-152, ADR-0066)
-import { randomBytes } from 'node:crypto'
 import { computeDraw, type DrawSessionInput, type DrawSettings } from '../../utils/registrationDraw'
 import { REGISTRATION_STANDARD_FIELDS, type QuestionAnswers, type RegistrationFormDefinition } from '../../utils/registrationForms'
 import {
@@ -14,6 +13,7 @@ import {
   SESSION_ROLES,
   SESSION_STATUSES
 } from '../../utils/domain'
+import type { Prisma } from '../../generated/prisma/client'
 import type { Db } from './db'
 import { daysFromNow } from './options'
 
@@ -21,7 +21,7 @@ type Person = { id: string, name: string, email: string | null }
 type Character = { id: string, name: string, type: string }
 type Profile = { phone: string, emergencyContactName: string, emergencyContactPhone: string, dietary: string | null }
 
-export type MeridianContext = {
+export type StageContext = {
   gameId: string
   title: string
   ownerId: string | undefined
@@ -108,7 +108,7 @@ function answersFor(rank: number, fullForm: boolean): QuestionAnswers {
   }
 }
 
-export async function createMeridianStage(db: Db, context: MeridianContext) {
+export async function createMeridianStage(db: Db, context: StageContext) {
   const { gameId, title, ownerId, locationId, characters, people, profiles, makeSlug } = context
   const character = (name: string) => characters.find((row) => row.name === name)!.id
 
@@ -198,14 +198,17 @@ export async function createMeridianStage(db: Db, context: MeridianContext) {
   const poolSessions = [await createSession('Soirée du vivier', 200, 6), await createSession('Week-end du vivier', 230, 8)]
 
   const SEATS = 6
+  // Le lien public reste le même d'un rechargement à l'autre
   const createPeriod = (
     name: string,
-    fields: { entryMode: string, selectionMode: string, state: string, sessionId?: string, permanent?: boolean, organizerPicks?: number, replayPolicy?: string, weightBalance?: boolean, weightNotDrawnBefore?: boolean, waitlistSize?: number, closesInDays?: number }
+    fields: {
+      key: string
+      entryMode: string, selectionMode: string, state: string, sessionId?: string, permanent?: boolean, organizerPicks?: number, replayPolicy?: string, weightBalance?: boolean, weightNotDrawnBefore?: boolean, waitlistSize?: number, closesInDays?: number }
   ) => db.registrationPeriod.create({
     data: {
       gameId,
       name,
-      publicId: randomBytes(12).toString('base64url'),
+      publicId: `essai-meridian-${fields.key}`,
       scope: fields.permanent ? REGISTRATION_PERIOD_SCOPES.game : REGISTRATION_PERIOD_SCOPES.sessions,
       entryMode: fields.entryMode,
       selectionMode: fields.selectionMode,
@@ -222,12 +225,12 @@ export async function createMeridianStage(db: Db, context: MeridianContext) {
     },
     select: { id: true }
   })
-  const drawPeriod = await createPeriod('Première vague, au tirage', { entryMode: ENTRY.form, selectionMode: SELECTION.random, state: STATE.closed, sessionId: drawSession.id, closesInDays: -5 })
-  const chosenPeriod = await createPeriod('Deuxième vague, à la main', { entryMode: ENTRY.form, selectionMode: SELECTION.chosen, state: STATE.open, sessionId: chosenSession.id, closesInDays: 30, replayPolicy: REGISTRATION_REPLAY_POLICIES.flagged })
-  const invitationPeriod = await createPeriod('Sur invitation', { entryMode: ENTRY.invitation, selectionMode: SELECTION.chosen, state: STATE.open, sessionId: invitationSession.id, closesInDays: 60 })
-  const mixedPeriod = await createPeriod('Vague mixte', { entryMode: ENTRY.form, selectionMode: SELECTION.mixed, state: STATE.open, sessionId: mixedSession.id, closesInDays: 90, organizerPicks: 2, weightBalance: true, weightNotDrawnBefore: true })
-  await createPeriod('Prochaine vague, en préparation', { entryMode: ENTRY.form, selectionMode: SELECTION.chosen, state: STATE.draft, sessionId: draftSession.id })
-  const poolPeriod = await createPeriod('Inscription permanente', { entryMode: ENTRY.form, selectionMode: SELECTION.random, state: STATE.open, permanent: true })
+  const drawPeriod = await createPeriod('Première vague, au tirage', { key: 'tirage', entryMode: ENTRY.form, selectionMode: SELECTION.random, state: STATE.closed, sessionId: drawSession.id, closesInDays: -5 })
+  const chosenPeriod = await createPeriod('Deuxième vague, à la main', { key: 'main', entryMode: ENTRY.form, selectionMode: SELECTION.chosen, state: STATE.open, sessionId: chosenSession.id, closesInDays: 30, replayPolicy: REGISTRATION_REPLAY_POLICIES.flagged })
+  const invitationPeriod = await createPeriod('Sur invitation', { key: 'invitation', entryMode: ENTRY.invitation, selectionMode: SELECTION.chosen, state: STATE.open, sessionId: invitationSession.id, closesInDays: 60 })
+  const mixedPeriod = await createPeriod('Vague mixte', { key: 'mixte', entryMode: ENTRY.form, selectionMode: SELECTION.mixed, state: STATE.open, sessionId: mixedSession.id, closesInDays: 90, organizerPicks: 2, weightBalance: true, weightNotDrawnBefore: true })
+  await createPeriod('Prochaine vague, en préparation', { key: 'preparation', entryMode: ENTRY.form, selectionMode: SELECTION.chosen, state: STATE.draft, sessionId: draftSession.id })
+  const poolPeriod = await createPeriod('Inscription permanente', { key: 'permanente', entryMode: ENTRY.form, selectionMode: SELECTION.random, state: STATE.open, permanent: true })
 
   let nextRank = 0
   const createRegistration = async (
@@ -240,7 +243,7 @@ export async function createMeridianStage(db: Db, context: MeridianContext) {
       answered?: boolean
       oldForm?: boolean
       announced?: boolean
-      extra?: Record<string, unknown>
+      extra?: Partial<Prisma.RegistrationUncheckedCreateInput>
     } = {}
   ) => {
     const person = people.get(fictionalEmail)!

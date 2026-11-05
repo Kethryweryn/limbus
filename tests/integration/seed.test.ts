@@ -97,7 +97,8 @@ describe('rechargement des jeux de test', () => {
 
   it('écrit les photos avec leur taille, sur le disque', async () => {
     const photos = await prisma.uploadedFile.findMany({ where: { gameId: { in: GAME_IDS } }, select: { filename: true, size: true } })
-    expect(photos.length).toBeGreaterThan(0)
+    // Les 8 personnes du casting de chaque jeu, et pas les fiches ajoutées à Station Meridian
+    expect(photos.length).toBe(24)
     for (const photo of photos) {
       expect(photo.size).toBeGreaterThan(0)
       expect(existsSync(join(process.cwd(), '.data', 'uploads', 'session-assignment-photos', photo.filename))).toBe(true)
@@ -274,6 +275,11 @@ describe('Station Meridian, avant les sessions', () => {
     const page = await api(null, 'GET', '/api/public/games/station-meridian')
     expect(page.status, JSON.stringify(page.body)).toBe(200)
     expect(JSON.stringify(page.body)).toContain('Jeu d’essai')
+    expect(JSON.stringify(page.body)).toContain('/i/essai-meridian-main')
+
+    const form = await api(null, 'GET', '/api/public/periods/essai-meridian-main')
+    expect(form.status, JSON.stringify(form.body)).toBe(200)
+    expect(JSON.stringify(form.body)).toContain('Quel type de rôle préférez-vous ?')
     expect(await prisma.registrationPeriod.count({ where: { gameId: meridian, notifyTeam: true } })).toBe(0)
   })
 
@@ -324,11 +330,15 @@ describe('Station Meridian, avant les sessions', () => {
   it('donne des repères de qualité et une estimation sur le questionnaire', async () => {
     const quality = await api(owner, 'GET', `/api/games/${meridian}/registration-form-quality`)
     expect(quality.status, JSON.stringify(quality.body)).toBe(200)
-    const body = bodyOf<Record<string, unknown>>(quality)
-    expect(body.respondents ?? body.responseCount ?? 1).toBeGreaterThan(0)
-    const text = JSON.stringify(body)
-    expect(text).toContain('q-enquete')
-    expect(text).toContain('Eli Chen')
+    const body = bodyOf<ApiResponse<'/api/games/:id/registration-form-quality'>>(quality)
+    expect(body.hasAnswers).toBe(true)
+    expect(body.respondentCount).toBeGreaterThanOrEqual(40)
+    expect(body.characterCount).toBe(6)
+    expect(body.estimate).not.toBeNull()
+    expect(body.drafting.questions.length).toBeGreaterThan(0)
+    for (const kind of ['dominantAnswer', 'duplicateQuestions', 'indistinctCharacters']) {
+      expect(body.findings.map((finding) => finding.kind)).toContain(kind)
+    }
   })
 
   it('propose une distribution avec l\'assistant de casting', async () => {
@@ -345,6 +355,13 @@ describe('Station Meridian, avant les sessions', () => {
     const text = JSON.stringify(space.body)
     expect(text).toContain('Station Meridian')
     expect(text).toContain('Les Cendres de Valombre')
+  })
+
+  it('donne à Inès ses jeux partagés, et lui refuse le troisième', async () => {
+    const ines = await prisma.user.findUniqueOrThrow({ where: { email: 'meridian-proprietaire+ines.lefevre@example.test' }, select: { id: true } })
+    expect((await api(ines, 'GET', `/api/games/${meridian}`)).status).toBe(200)
+    expect((await api(ines, 'GET', '/api/games/jeu-test-valombre')).status).toBe(200)
+    expect([403, 404]).toContain((await api(ines, 'GET', '/api/games/jeu-test-bal')).status)
   })
 
   it('montre à chacune sa décision annoncée, jamais une décision non annoncée', async () => {
