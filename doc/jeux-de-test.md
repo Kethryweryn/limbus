@@ -10,7 +10,7 @@ Où essayer chaque fonctionnalité de Limbus, sur quel jeu et avec quel compte. 
 | Les Cendres de Valombre | Session imminente | terminée à J-60 ; reportée, remplacée par la session imminente à J+10 ; une autre à J+75 |
 | Le Bal des Masques Brisés | Après et imprévus | terminée à J-60 ; annulée (J+20) ; reportée (J+30) vers sa remplaçante (J+90) |
 
-Les dates comptent à partir du jour du rechargement. Un rechargement remplace ces trois jeux : ce qui y a été modifié à la main est perdu. Les partages, les autorisations d'assistants d'IA et les liens publics des périodes restent.
+Les dates comptent à partir du jour du rechargement, et ne bougent plus ensuite : au bout de quelques jours, le délai de Lucie est dépassé ; après dix jours, la session imminente de Valombre est passée et ses copies d'envoi s'effacent. Il suffit alors de recharger. Un rechargement remplace ces trois jeux : ce qui y a été modifié à la main est perdu. Les partages, les autorisations d'assistants d'IA et les liens publics des périodes restent.
 
 ## Les comptes
 
@@ -49,7 +49,7 @@ Aucun lien personnel n'est préparé, car Limbus ne garde que l'empreinte d'un l
 | [SPEC-008](specs/SPEC-008-comptes-et-partage.md) Comptes et partage | Partage, droits et refus ; invitation d'une nouvelle personne | Meridian, le Bal | Inès, le vôtre |
 | [SPEC-009](specs/SPEC-009-page-publique.md) Page publique | Page, sessions et liens d'inscription, sans compte : `/public/games/station-meridian` | Meridian | Aucun |
 | [SPEC-010](specs/SPEC-010-hors-ligne.md) Hors ligne | Consulter puis modifier une liste sans connexion, depuis le navigateur. Cela vaut pour tout jeu | Valombre | Le vôtre |
-| [SPEC-011](specs/SPEC-011-un-compte-pour-tout-le-monde.md) Un compte pour tout | « Je participe », coordonnées et allergies tenues par la personne, documents reçus, export et effacement du compte. Effacer un compte de test est sans risque : le rechargement le recrée | Valombre, Meridian, le Bal | Camille, Lucie |
+| [SPEC-011](specs/SPEC-011-un-compte-pour-tout-le-monde.md) Un compte pour tout | « Je participe », coordonnées et allergies tenues par la personne, documents reçus, export et effacement du compte. Effacer un compte de test est sans risque : un rechargement avec `SEED_PASSWORD` le recrée | Valombre, Meridian, le Bal | Camille, Lucie |
 | [SPEC-012](specs/SPEC-012-photos-des-participants.md) Photos | Photos du casting, durée de conservation du jeu, refus d'une photo (Jeanne Giraud) | Le Bal | Le vôtre |
 | [SPEC-013](specs/SPEC-013-pages-legales-et-conservation.md) Pages légales | Mentions, confidentialité, conditions. Les durées de conservation n'ont rien à montrer sur ces jeux, trop récents | Tout le site | Aucun |
 | [SPEC-014](specs/SPEC-014-api-pour-ia.md) Assistants d'IA | Brancher un assistant, autoriser des jeux, lui faire lire et écrire. Les co-organisatrices peuvent le faire sur Valombre, pas sur Meridian | Valombre, Meridian | Le vôtre, Inès |

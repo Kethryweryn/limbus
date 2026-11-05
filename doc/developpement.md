@@ -41,6 +41,8 @@ read -rs SEED_PASSWORD && export SEED_PASSWORD
 SEED_ALLOW_ERASE=1 SEED_EMAIL='adresse-du-compte' node --env-file=.env --import tsx prisma/seed.ts
 ```
 
+La toute première fois, ajouter `SEED_REPLACE_BY_SLUG=1` : la base a encore les anciens jeux de test, sans identifiant fixe, et le script s'arrête sans cela.
+
 ## Variables d'environnement
 
 | Variable | Rôle |
