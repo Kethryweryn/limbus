@@ -15,6 +15,10 @@ Toute évolution suit le cycle décrit dans `doc/README.md` : fiche `doc/todo/` 
 
 Une PR qui change ce qu'une personne voit ou peut faire, correction d'un défaut rencontré comprise, ajoute sa note dans `nouveautes/` : un fichier JSON (`type` : `nouveau`, `modifie`, `corrige` ou `retire` ; `titre` ; `texte`), en français, pour les personnes qui utilisent Limbus, sans vocabulaire technique, ni donnée personnelle, ni détail du serveur ou d'une faille. La revue de code le vérifie. On ne renomme pas une note : sa date vient du commit qui l'a ajoutée (SPEC-017, ADR-0065).
 
+## Jeux de test
+
+Une fonctionnalité qui ajoute une donnée à essayer complète `prisma/seed/` et `doc/jeux-de-test.md` dans la même PR (ADR-0066). `tests/integration/seed.test.ts` lance le script : il casse la CI s'il ne suit plus le schéma. Le déploiement ne le lance jamais ; le rechargement en production se fait seulement à la demande de l'utilisatrice, car il remplace les trois jeux.
+
 ## Avant de considérer un changement terminé
 
 `npm run lint`, `npm run typecheck` et `npm test` doivent passer. Le build, les tests d'intégration et Playwright tournent dans la CI de la PR (ADR-0023) : inutile de les relancer en local avant d'ouvrir la PR. Sous Windows, le build échoue au prérendu.
