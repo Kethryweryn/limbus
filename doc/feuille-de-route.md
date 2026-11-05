@@ -90,7 +90,7 @@ L'inscription libre peut faire venir des personnes inconnues, avec leurs donnée
 
 ## 6. Nouveautés
 
-La page « Nouveautés » et le numéro de déploiement ([SPEC-017](specs/SPEC-017-nouveautes.md)), en un lot.
+La page « Nouveautés » et le numéro de déploiement ([SPEC-017](specs/SPEC-017-nouveautes.md)), en un lot ([EPIC-043](epics/EPIC-043-nouveautes/README.md)).
 
 ## Sans dépendance forte
 

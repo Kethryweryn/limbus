@@ -79,6 +79,9 @@ icon="i-heroicons-bars-3" color="neutral" variant="ghost" class="md:hidden"
                         :is-active="isActive"
                     />
                 </nav>
+                <div class="border-t border-gray-100 p-3">
+                    <ReleaseNotesLink :collapsed="sidebarCollapsed" />
+                </div>
             </aside>
 
             <!-- Page content -->
@@ -132,6 +135,9 @@ icon="i-heroicons-bars-3" color="neutral" variant="ghost" class="md:hidden"
                             @navigate="mobileOpen = false"
                         />
                     </nav>
+                    <div class="border-t border-gray-100 pt-3">
+                        <ReleaseNotesLink @click="mobileOpen = false" />
+                    </div>
                 </div>
             </template>
         </USlideover>

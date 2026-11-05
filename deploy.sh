@@ -103,7 +103,8 @@ if [ -s "$ARTIFACT" ]; then
   tar -xzf "$ARTIFACT" -C "$BUILD_DIR" .output
   echo "Build testé reçu (Node $build_node)"
 else
-  npm run build
+  # Le dossier de build n'a pas de .git : les dates de « Nouveautés » se lisent dans le dépôt (ADR-0065)
+  NOUVEAUTES_DEPOT="$APP_DIR" npm run build
 fi
 npx prisma migrate deploy
 # Version lue par la page de santé (US-103, ADR-0052)

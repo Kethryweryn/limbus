@@ -1,10 +1,10 @@
 ---
 id: SPEC-017
 titre: Nouveautés et numéro de déploiement
-statut: validée
+statut: en cours
 date: 2026-11-05
 origine: ../archive/todo/versions-et-notes-de-version.md
-epics: []
+epics: [EPIC-043]
 adr: [ADR-0023, ADR-0065]
 ---
 

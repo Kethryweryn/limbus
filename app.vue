@@ -10,7 +10,7 @@
       <NuxtPage />
     </div>
     <!-- Adresse pas encore confirmée (R5) : seul le renvoi du lien est possible -->
-    <div v-else-if="unconfirmedEmail && !isLegalOrInvitationRoute">
+    <div v-else-if="unconfirmedEmail && !isOpenRoute">
       <NuxtPwaAssets />
       <UnconfirmedAccountScreen :email="unconfirmedEmail" />
     </div>
@@ -62,7 +62,7 @@
         </div>
       </div>
     </div>
-    <div v-else-if="isLegalOrInvitationRoute">
+    <div v-else-if="isOpenRoute">
       <NuxtPwaAssets />
       <NuxtLoadingIndicator />
       <NuxtPage />
@@ -131,10 +131,10 @@ const router = useRouter()
 const currentPath = computed(() => router.currentRoute.value.path)
 // Pages légales (US-110) : lisibles sans compte, et avant d'accepter les conditions
 const isLegalRoute = computed(() => LEGAL_PAGES.some((page) => currentPath.value === page.to))
-// Pages légales et invitation à un jeu (US-064) : ouvertes sans connexion, mais une fois connecté elles suivent les
-// conditions d'utilisation (les pages légales restent lisibles, l'invitation attend leur acceptation). Toute autre page
-// ouverte sans connexion est autonome (STANDALONE_PREFIXES)
-const isLegalOrInvitationRoute = computed(() => isLegalRoute.value || currentPath.value.startsWith('/invitations/'))
+// Pages légales, nouveautés (US-147) et invitation à un jeu (US-064) : ouvertes sans connexion, mais une fois connecté
+// elles suivent les conditions d'utilisation (les pages légales restent lisibles, les autres attendent leur acceptation).
+// Toute autre page ouverte sans connexion est autonome (STANDALONE_PREFIXES)
+const isOpenRoute = computed(() => isLegalRoute.value || currentPath.value === '/nouveautes' || currentPath.value.startsWith('/invitations/'))
 // Liens personnels d'inscription (US-004) et de confirmation de présence (US-024), lien de diffusion (US-084)
 const isPersonalLinkRoute = computed(() => ['/inscription/', '/presence/', '/i/'].some((prefix) => currentPath.value.startsWith(prefix)))
 // Pages autonomes : liens personnels, accès au compte (inscription, confirmation, mot de passe, EPIC-013), page publique
