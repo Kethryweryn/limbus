@@ -69,3 +69,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0063](ADR-0063-reperes-sur-les-reponses.md) | Repères sur les réponses : extrémité d'une échelle comparée à 20 %, test du V de Cramér, risque d'erreur | accepté | 2026-11-04 |
 | [ADR-0064](ADR-0064-estimation-generale-du-questionnaire.md) | Estimation générale du questionnaire : seuils, intervalle de la note moyenne, ordre des repères | accepté | 2026-11-04 |
 | [ADR-0065](ADR-0065-nouveautes-et-numero-de-deploiement.md) | Nouveautés datées, une note par pull request, numéro de la pull request déployée | accepté | 2026-11-05 |
+| [ADR-0066](ADR-0066-jeux-de-test-rechargeables-en-production.md) | Jeux de test rechargeables en production, dates relatives et script vérifié en CI | accepté | 2026-11-05 |

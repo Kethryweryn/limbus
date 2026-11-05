@@ -94,6 +94,7 @@ La page « Nouveautés » et le numéro de déploiement ([SPEC-017](specs/SPEC-0
 
 ## Sans dépendance forte
 
+- [Jeux de test à jour](archive/todo/jeux-de-test.md) : trois jeux rechargeables, pour essayer tout ce qui existe ([EPIC-044](epics/EPIC-044-jeux-de-test/README.md)).
 - [API pour une IA](archive/todo/api-pour-ia.md) : après la refonte des comptes, dont dépendent ses droits. Spécifiée ([SPEC-014](specs/SPEC-014-api-pour-ia.md)), en quatre lots.
 - [Interface en TypeScript](archive/todo/interface-en-typescript.md) : fait en une passe à part ([EPIC-031](archive/epics/EPIC-031-interface-en-typescript/README.md)) ; toute l'interface est en TypeScript strict, et la règle de lint couvre tous les `.vue`.
 
