@@ -27,6 +27,6 @@ En tant qu'organisatrice, je veux mélanger l'ordre des options d'une question q
 
 ## Tests
 
-- Unitaires : `shuffledOptions` garde les mêmes options et suit le générateur ; normalisation (faux par défaut, sans effet sur une échelle ou un texte) ; pas de nouvelle version sans changement.
+- Unitaires : `shuffledOptions` garde les mêmes options et suit le générateur ; `optionsInDrawnOrder` garde la place de chaque option quand la liste change, et compte un doublon pour une ; normalisation (champ absent si la case est décochée, sans effet sur une échelle ou un texte) ; pas de nouvelle version sans changement.
 - Intégration : le réglage est enregistré, crée une version, et passe par les outils MCP.
 - Bout en bout : l'aperçu, l'essai et le formulaire réel montrent les options cochées dans un ordre tiré au hasard et le gardent après une réponse ; le formulaire réel s'hydrate sans erreur, et la réponse suit le texte de l'option. S'y ajoute le test du message d'échec du calcul de la prévision (limite connue d'EPIC-041), avec un Web Worker simulé qui échoue.
