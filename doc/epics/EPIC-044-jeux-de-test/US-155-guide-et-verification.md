@@ -14,7 +14,8 @@ En tant qu'utilisatrice, je veux une liste de ce que je peux essayer, et je veux
 ## Critères d'acceptation
 
 - [ ] Étant donné `doc/jeux-de-test.md`, alors chaque spec implémentée a sa ligne : quoi essayer, sur quel jeu, avec quel compte. Ce qui ne peut pas s'y essayer le dit.
-- [ ] Étant donné le guide, alors il indique quelles personnes reçoivent vraiment les emails, et il ne contient ni mot de passe, ni adresse réelle.
+- [ ] Étant donné le guide, alors il indique quelles personnes reçoivent vraiment les emails, annonce les échecs attendus d'un envoi groupé vers `example.test`, et ne contient ni mot de passe, ni adresse réelle.
+- [ ] Étant donné `doc/README.md`, alors le guide figure dans son arborescence.
 - [ ] Étant donné `doc/developpement.md`, alors la commande de rechargement, en local et sur le serveur, et les variables `SEED_*` y sont décrites.
 - [ ] Étant donné une pull request qui casse le script, alors la CI échoue.
 - [ ] Étant donné `CLAUDE.md`, alors une fonctionnalité qui ajoute une donnée à essayer complète le script et le guide.

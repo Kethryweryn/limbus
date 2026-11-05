@@ -13,8 +13,10 @@ En tant qu'utilisatrice, je veux un jeu en pleine période d'inscription, afin d
 
 ## Critères d'acceptation
 
-- [ ] Étant donné le jeu, alors sa page publique est ouverte, avec ses sessions et le lien d'inscription, et ses deux sessions sont à venir (environ J+45 et J+80).
-- [ ] Étant donné les périodes, alors on trouve au moins : une ouverte à sélection à la main, une fermée dont le tirage est fait, et une en préparation.
+- [ ] Étant donné le jeu, alors sa page publique est ouverte, avec ses sessions et le lien d'inscription, sa présentation dit clairement que c'est un jeu d'essai, et ses deux sessions sont à venir (environ J+45 et J+80).
+- [ ] Étant donné les périodes, alors on trouve au moins : une ouverte par formulaire à sélection à la main, une sur invitation, une fermée dont le tirage est fait, une en mode mixte, une inscription permanente à l'échelle du jeu, et une en préparation.
+- [ ] Étant donné la période ouverte par formulaire, alors l'équipe n'est pas prévenue de chaque inscription, pour qu'une inscription extérieure n'envoie rien.
+- [ ] Étant donné la politique des rejoueurs, alors une période signale une personne ayant déjà joué, grâce à une fiche présente aussi sur la session terminée du Bal des Masques Brisés.
 - [ ] Étant donné le formulaire, alors il a plusieurs versions et propose les champs standards, les affinités, la question d'équilibre et des questions propres au jeu.
 - [ ] Étant donné les inscriptions, alors chaque statut est représenté : invitée, reçue, retenue, en attente, non retenue, confirmée et retirée, avec des décisions annoncées et d'autres encore à annoncer.
 - [ ] Étant donné le tirage, alors son résultat s'affiche, peut être annulé, et une liste d'attente ordonnée existe.

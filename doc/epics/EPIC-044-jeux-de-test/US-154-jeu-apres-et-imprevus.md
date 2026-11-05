@@ -13,12 +13,12 @@ En tant qu'utilisatrice, je veux un jeu qui a déjà vécu, afin d'essayer ce qu
 
 ## Critères d'acceptation
 
-- [ ] Étant donné le jeu, alors une session terminée récente (environ J-60) a ses statistiques, ses photos et son historique d'envois.
+- [ ] Étant donné le jeu, alors une session terminée récente (environ J-60) a ses statistiques, ses photos et son historique d'envois, sans copies, qui s'effacent le lendemain de la session (ADR-0044).
 - [ ] Étant donné une session annulée, alors des paiements y sont à rembourser ou déjà remboursés.
 - [ ] Étant donné une session reportée, alors elle renvoie à sa nouvelle session, et des paiements y sont reportés.
 - [ ] Étant donné les photos, alors une personne a refusé la sienne, et la durée de conservation du jeu s'affiche.
 - [ ] Étant donné le legs, alors une copie est en attente pour Manon, sans compte. Son invitation peut être renvoyée depuis l'application, et un rechargement supprime cette copie.
-- [ ] Étant donné Lucie, alors elle retrouve la session terminée dans « Je participe », avec ce qui lui a été envoyé.
+- [ ] Étant donné Lucie, alors elle retrouve la session terminée dans « Je participe », et lit la version actuelle de ce qui lui a été envoyé, tant que ce document reste prêt à envoyer.
 - [ ] Étant donné les données d'origine, alors le texte, les personnages, les intrigues et l'intrigue sans rattachement restent là.
 
 ## Notes techniques

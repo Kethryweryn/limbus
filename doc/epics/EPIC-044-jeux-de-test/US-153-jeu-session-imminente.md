@@ -18,6 +18,7 @@ En tant qu'utilisatrice, je veux un jeu dont la session approche, afin d'essayer
 - [ ] Étant donné les paiements, alors on trouve des tarifs par rôle et solidaires, et des personnes à jour, en retard, en plusieurs versements, avec une place offerte et avec un paiement transféré à un remplaçant.
 - [ ] Étant donné la présence, alors on trouve des réponses en attente, confirmées, refusées et un délai dépassé.
 - [ ] Étant donné les envois, alors des documents et des trombinoscopes ont déjà été envoyés, et certains ont changé depuis, ce qui demande un renvoi.
+- [ ] Étant donné les fiches, alors des notes d'organisation propres au jeu existent, et Alex Morgan et Morgan Da Silva sont présents sur plusieurs jeux, pour essayer les filtres et le fait que ces notes restent propres à chaque jeu.
 - [ ] Étant donné le déroulé, alors des événements ont leurs responsables, et d'autres en manquent ou sont en conflit.
 - [ ] Étant donné Camille, alors « Je participe » montre sa session, son personnage, ses documents, son trombinoscope et son paiement.
 - [ ] Étant donné Nicolas, alors une demande de présence lancée par l'équipe lui arrive et son lien fonctionne.
