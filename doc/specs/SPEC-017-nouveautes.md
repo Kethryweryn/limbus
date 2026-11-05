@@ -62,4 +62,10 @@ La page est publique et en lecture seule, sans route d'API. Ses textes viennent 
 
 ## Historique
 
+- 2026-11-05 : création, avec les choix de l'utilisatrice :
+  - une note par pull request, sans section « à venir », pour que la page reste fidèle à la production ;
+  - le numéro de la pull request déployée, sans autre numéro de version ;
+  - une page lisible par tout le monde, sans compte ;
+  - un lien de menu plus petit et séparé du reste, sans pastille ;
+  - un départ avec une seule note.
 - 2026-11-05 : lot unique livré ([EPIC-043](../archive/epics/EPIC-043-nouveautes/README.md), PR #143). Spec entièrement livrée.
