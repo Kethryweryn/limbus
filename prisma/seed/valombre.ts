@@ -10,7 +10,8 @@ import { RIB_UPLOAD_PREFIX } from '../../utils/urls'
 import type { Db, StageContext } from './db'
 import { daysFromNow } from './options'
 
-const DAY_ATTENDANCE_DUE = 5
+// Délai laissé aux réponses de présence, en jours
+const ATTENDANCE_DUE_IN_DAYS = 5
 
 // Ce qui part à une personne, tel qu'un envoi le garde (ADR-0044)
 async function textCopyData(input: TextPdfInput) {
@@ -161,20 +162,36 @@ export async function createValombreStage(db: Db, context: StageContext) {
   await payment(antoine.id, { paidAt: daysFromNow(-30), transferredToParticipantId: julien.id })
   await payment(kitchen.id, { paidAt: daysFromNow(-8) })
 
-  // Présence : rien n'est envoyé, l'équipe lance les demandes depuis l'application pour obtenir les liens
+  // La session imminente remplace une session reportée : seule une session reportée demande une présence (US-024)
+  await db.session.create({
+    data: {
+      name: `${title} - Session reportée`,
+      slug: makeSlug(`${title}-session-reportee`),
+      date: daysFromNow(-20),
+      gameId,
+      locationId,
+      status: SESSION_STATUSES.postponed,
+      published: true,
+      postponedToSessionId: session.id
+    }
+  })
+
+  // Demandes déjà parties. Nicolas et Inès n'en ont pas : l'équipe les lance depuis l'application, ce qui crée leur lien.
   const attendance = (participantId: string, status: string, dueInDays: number, respondedDaysAgo?: number) => ({
     sessionId: session.id,
     participantId,
     status,
     responseDueAt: daysFromNow(dueInDays),
+    invitationSentAt: daysFromNow(-6),
     respondedAt: respondedDaysAgo === undefined ? null : daysFromNow(-respondedDaysAgo)
   })
   await db.sessionAttendance.createMany({
     data: [
-      attendance(camille.id, 'pending', DAY_ATTENDANCE_DUE),
-      attendance(lucie.id, 'confirmed', DAY_ATTENDANCE_DUE, 2),
-      attendance(nicolas.id, 'pending', DAY_ATTENDANCE_DUE),
-      attendance(sarah.id, 'declined', DAY_ATTENDANCE_DUE, 1),
+      attendance(camille.id, 'pending', ATTENDANCE_DUE_IN_DAYS),
+      attendance(lucie.id, 'confirmed', ATTENDANCE_DUE_IN_DAYS, 2),
+      attendance(sarah.id, 'declined', ATTENDANCE_DUE_IN_DAYS, 1),
+      attendance(organizer.id, 'confirmed', ATTENDANCE_DUE_IN_DAYS, 3),
+      attendance(kitchen.id, 'confirmed', ATTENDANCE_DUE_IN_DAYS, 3),
       // Délai dépassé : c'est à la lecture que l'application le signale
       attendance(julien.id, 'pending', -1)
     ]
@@ -237,6 +254,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
       viewerCharacterId: aelis.id,
       participantId: camille.id,
       fileName: 'trombinoscope-aelis.pdf',
+      contentPdfBase64: Buffer.from(await renderTextPdf({ title: `Trombinoscope de ${aelis.name}`, subtitle: session.name, sections: cards.map((card) => ({ title: card.displayName })) })).toString('base64'),
       contentHtml: `<h1>Trombinoscope de ${aelis.name}</h1>`,
       contentJson: cards
     }

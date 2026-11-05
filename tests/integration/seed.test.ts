@@ -11,6 +11,7 @@ import { registrationFormDefinitionSchema } from '~/server/utils/schemas'
 import { MERIDIAN_FORM_DEFINITIONS } from '../../prisma/seed/meridian'
 import { api, bodyOf } from './api'
 import { createTestPrisma, testDatabaseUrl } from './db'
+import { startTestSmtp } from './smtp'
 
 const prisma = createTestPrisma()
 const OWNER = 'seed-proprietaire@example.test'
@@ -419,19 +420,49 @@ describe('Les Cendres de Valombre, session imminente', () => {
     expect(rows.some((row) => row.offered)).toBe(true)
     expect(rows.some((row) => row.transferredToParticipantId)).toBe(true)
     expect(await prisma.sessionTariff.count({ where: { sessionId, baseTariffId: { not: null } } })).toBe(2)
+    expect(JSON.stringify(response.body)).toContain('Antoine Durand')
+    const body = bodyOf<ApiResponse<'/api/sessions/:id/payments'>>(response)
+    const row = (name: string) => body.rows.find((line) => line.participant.name === name)!
+    expect(row('Lucie Moreau').receivedCents).toBe(8000)
+    expect(row('Lucie Moreau').dueCents).toBe(12000)
+    expect(row('Sarah Petit').dueCents).toBe(0)
+    expect(row('Nicolas Martin').dueCents).toBe(9000)
 
     const session = await prisma.session.findUniqueOrThrow({ where: { id: sessionId }, select: { paymentRibUrl: true } })
     expect(existsSync(join(process.cwd(), '.data', 'uploads', 'session-payment-ribs', session.paymentRibUrl!.split('/').pop()!))).toBe(true)
     const file = await prisma.uploadedFile.findUniqueOrThrow({ where: { url: session.paymentRibUrl! }, select: { size: true } })
     expect(file.size).toBeGreaterThan(0)
+    expect((await api(owner, 'GET', session.paymentRibUrl!)).status).toBe(200)
+    const photo = await prisma.sessionAssignment.findFirstOrThrow({ where: { sessionId, photoUrl: { not: null } }, select: { photoUrl: true } })
+    expect((await api(owner, 'GET', photo.photoUrl!)).status).toBe(200)
   })
 
-  it('lit la présence, avec chaque réponse', async () => {
+  it('lit la présence, avec chaque réponse et un délai dépassé', async () => {
     const response = await api(owner, 'GET', `/api/sessions/${sessionId}/attendance`)
     expect(response.status, JSON.stringify(response.body)).toBe(200)
-    const rows = await prisma.sessionAttendance.findMany({ where: { sessionId }, select: { status: true, responseDueAt: true } })
-    expect(new Set(rows.map((row) => row.status))).toEqual(new Set(['pending', 'confirmed', 'declined']))
-    expect(rows.some((row) => row.status === 'pending' && row.responseDueAt.getTime() < Date.now())).toBe(true)
+    const body = bodyOf<ApiResponse<'/api/sessions/:id/attendance'>>(response)
+    expect(body.postponedFrom?.name).toContain('Session reportée')
+    expect(new Set(body.rows.map((row) => row.status))).toEqual(new Set(['pending', 'confirmed', 'declined']))
+    const julien = body.rows.find((row) => row.participant.name === 'Julien Robert')!
+    expect(julien.displayStatus).not.toBe(julien.status)
+    expect(body.rows.every((row) => row.invitationSentAt)).toBe(true)
+  })
+
+  it('envoie une demande de présence à Nicolas et à Inès seulement, avec un lien qui marche', async () => {
+    const smtp = await startTestSmtp(prisma)
+    try {
+      const responseDueAt = new Date(Date.now() + 5 * 86_400_000).toISOString()
+      const sent = await api(owner, 'POST', `/api/sessions/${sessionId}/attendance/send`, { responseDueAt })
+      expect(sent.status, JSON.stringify(sent.body)).toBe(200)
+      expect(smtp.received.map((email) => email.to).flat().sort()).toEqual([
+        'valombre-proprietaire+ines.lefevre@example.test',
+        'valombre-proprietaire+nicolas.martin@example.test'
+      ])
+      const token = smtp.received[0]!.text.match(/\/presence\/([\w-]+)/)?.[1]
+      expect((await api(null, 'GET', `/api/public/attendance/${token}`)).status).toBe(200)
+    } finally {
+      await smtp.stop()
+    }
   })
 
   it('distingue un envoi à jour d\'un envoi dépassé', async () => {
@@ -446,7 +477,8 @@ describe('Les Cendres de Valombre, session imminente', () => {
     expect(sent('Document monde').every((recipient) => recipient.versionOutdated)).toBe(true)
     const sheet = body.characterSheets.find((row) => row.character.name === 'Aélis de Valombre')!
     expect(sheet.sentAt).not.toBeNull()
-    expect(sheet.trombinoscopeOutdated).toBe(false)
+    expect(sheet.sheetVersionOutdated).toBe(false)
+    expect(sheet.trombinoscopeOutdated).toBe(true)
   })
 
   it('signale les conflits et les responsables manquants du déroulé', async () => {
@@ -469,9 +501,7 @@ describe('Les Cendres de Valombre, session imminente', () => {
       const read = await api(camille, 'GET', `/api/me/documents/${delivery.id}`)
       expect(read.status, JSON.stringify(read.body)).toBe(200)
       expect(bodyOf<{ source: string | null }>(read).source, delivery.kind).not.toBeNull()
-      if (delivery.kind !== 'trombinoscope') {
-        expect((await api(camille, 'GET', `/api/me/documents/${delivery.id}/pdf`)).status).toBe(200)
-      }
+      expect((await api(camille, 'GET', `/api/me/documents/${delivery.id}/pdf`)).status, delivery.kind).toBe(200)
     }
   })
 
@@ -483,6 +513,17 @@ describe('Les Cendres de Valombre, session imminente', () => {
     const erased = await api(owner, 'DELETE', `/api/participants/${fiche.id}`)
     expect(erased.status, JSON.stringify(erased.body)).toBe(200)
     expect(await prisma.participant.findUnique({ where: { id: fiche.id } })).toBeNull()
+  })
+
+  it('garde des notes propres à chaque jeu, pour une personne présente sur plusieurs jeux', async () => {
+    const camille = await ficheOf('camille.bernard')
+    const link = await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: camille.id, gameId: valombre } }, select: { notes: true } })
+    expect(link.notes).toContain('covoiturage')
+    const other = await prisma.participantGame.findFirstOrThrow({ where: { participant: { email: `valombre-proprietaire+camille.bernard@example.test` }, gameId: 'jeu-test-meridian' }, select: { notes: true } })
+    expect(other.notes).toBeNull()
+
+    const morgan = await prisma.participant.findFirstOrThrow({ where: { email: 'morgan.dasilva@example.test' }, select: { gameLinks: { select: { gameId: true } } } })
+    expect(morgan.gameLinks.map((row) => row.gameId).sort()).toEqual([...GAME_IDS].sort())
   })
 
   it('laisse les co-organisatrices y brancher un assistant', async () => {

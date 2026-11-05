@@ -13,7 +13,7 @@ En tant qu'utilisatrice, je veux un jeu dont la session approche, afin d'essayer
 
 ## Critères d'acceptation
 
-- [x] Étant donné le jeu, alors une session a lieu dans environ 10 jours, publiée et presque complète, et une autre, à environ J+75, a encore un casting incomplet.
+- [x] Étant donné le jeu, alors une session a lieu dans environ 10 jours, publiée et presque complète, en remplacement d'une session reportée, seule situation où l'application demande une présence (US-024), et une autre, à environ J+75, a encore un casting incomplet.
 - [x] Étant donné le casting, alors il y a des rôles attribués et libres, des PNJ, une équipe (organisation, PNJ, cuisine) et des photos.
 - [x] Étant donné les paiements, alors on trouve des tarifs par rôle et solidaires, et des personnes à jour, en retard, en plusieurs versements, avec une place offerte et avec un paiement transféré à un remplaçant.
 - [x] Étant donné la présence, alors on trouve des réponses en attente, confirmées, refusées et un délai dépassé.
@@ -30,4 +30,4 @@ Les copies d'envoi suivent ADR-0044 et comptent dans le stockage de la propriét
 
 ## Tests
 
-`tests/integration/seed.test.ts` : casting, paiements et RIB, présence, envois à jour et dépassés, déroulé, espace de Camille et ses documents, export et effacement d'une fiche, droits d'Inès. La demande de présence à Nicolas se fait à la main : aucun lien personnel n'est préparé (ADR-0066), et l'envoi réel n'est pas joué par ce test.
+`tests/integration/seed.test.ts` : casting, paiements et RIB, présence, envois à jour et dépassés, déroulé, espace de Camille et ses documents, export et effacement d'une fiche, droits d'Inès, demande de présence à Nicolas et à Inès, lien compris, sur le faux serveur d'emails.
