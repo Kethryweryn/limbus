@@ -21,4 +21,6 @@ export type StageContext = {
   // Coordonnées des comptes de test, qui priment sur celles du formulaire (ADR-0042)
   profiles: Map<string, Profile>
   makeSlug: (value: string) => string
+  // L'adresse réelle d'une personne fictive (ADR-0066)
+  address: (fictionalEmail: string) => string
 }
