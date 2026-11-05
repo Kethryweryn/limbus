@@ -30,6 +30,6 @@ En tant qu'organisatrice, je veux voir les défauts de rédaction que des règle
 
 ## Tests
 
-- Unitaires : chaque règle, avec ses faux positifs écartés (« où », « Peu importe », « n'... pas » compté une fois), apostrophes droite et typographique, seuil de Tukey, écart interquartile nul.
+- Unitaires : chaque règle, avec ses faux positifs écartés (« où », « Peu importe », « n'... pas » compté une fois, « n° », « pas à pas »), phrases coupées à « … », apostrophes droite et typographique, seuil de Tukey, écart interquartile nul.
 - Intégration : la route rend les signalements.
 - Bout en bout : la partie affiche un signalement groupé sous sa question, puis se replie une fois des réponses reçues.
