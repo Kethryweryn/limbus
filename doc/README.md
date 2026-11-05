@@ -21,11 +21,11 @@ Toute évolution passe par ces documents, de l'idée à l'archive. La base grand
 
 1. **Idée** : une fiche dans `todo/` (statut `brouillon`, puis `à trancher` tant que des questions restent ouvertes, puis `prête`).
 2. **Spécification** : une fiche `prête` devient une `SPEC-NNN` dans `specs/`. La fiche todo part dans `archive/todo/`, avec un lien vers la spec.
-3. **Découpage** : la spec est découpée en epics (un epic par lot livrable) et en US. Chaque décision technique prise en chemin fait l'objet d'un ADR.
+3. **Découpage** : la spec est découpée en epics (un epic par lot livrable) et en US. Chaque décision technique prise en chemin fait l'objet d'un ADR. La spec passe à `en cours` avec son premier epic.
 4. **Implémentation** : les commits citent l'US (`US-012 : …`). Une US passe de `à faire` à `en cours` puis `terminée`, avec ses critères d'acceptation cochés et ses tests nommés.
-5. **Archive** : un epic dont toutes les US sont terminées part dans `archive/epics/`. La spec reste dans `specs/` comme description à jour du fonctionnement ; on la modifie quand le comportement change. Elle passe à `en cours` avec son premier epic et à `implémentée` quand tous ses epics sont archivés.
+5. **Archive** : un epic dont toutes les US sont terminées part dans `archive/epics/`. La spec reste dans `specs/` comme description à jour du fonctionnement ; on la modifie quand le comportement change. Elle passe à `implémentée` quand tous ses epics sont archivés.
 
-Une spec qui décrit un comportement déjà en production (documentation de l'existant) n'a ni epic ni US : elle est `validée` dès sa PR, puis `implémentée` une fois ses écarts corrigés ou tranchés. Quand une fiche donne plusieurs specs de ce type, elle reste dans `todo/` jusqu'à la dernière, puis part dans `archive/todo/` avec un lien vers chacune.
+Une spec qui décrit un comportement déjà en production (documentation de l'existant) n'a pas d'epic pour ce qui existe déjà : elle est `validée` dès sa PR. Seuls ses écarts à corriger ont un epic ; elle passe à `implémentée` une fois ces écarts corrigés ou tranchés. Quand une fiche donne plusieurs specs de ce type, elle reste dans `todo/` jusqu'à la dernière, puis part dans `archive/todo/` avec un lien vers chacune.
 
 Une revue suit un chemin plus court : la fiche todo `prête` donne directement un rapport dans `revues/`, sans spec, et part dans `archive/todo/` avec un lien vers lui. Les recommandations triées deviennent des fiches todo ou des ADR.
 

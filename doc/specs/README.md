@@ -1,6 +1,6 @@
 # Spécifications
 
-Fonctionnalités validées, décrites telles qu'elles marchent. Statut : `validée` avant le premier epic, `en cours` pendant les lots, `implémentée` quand tous ses epics sont archivés. Modèle : [`../modeles/spec.md`](../modeles/spec.md).
+Fonctionnalités validées : ce qu'elles font, ou feront tant que la spec n'est pas `implémentée`. Statut : `validée` avant le premier epic, `en cours` pendant les lots, `implémentée` quand tous ses epics sont archivés. Modèle : [`../modeles/spec.md`](../modeles/spec.md).
 
 | Spec | Titre | Statut | Epics |
 |---|---|---|---|
@@ -8,11 +8,11 @@ Fonctionnalités validées, décrites telles qu'elles marchent. Statut : `valid�
 | [SPEC-002](SPEC-002-copie-de-jeu.md) | Copie d'un jeu pour le léguer à une autre équipe | implémentée | [EPIC-002](../archive/epics/EPIC-002-legs-de-jeu/README.md) |
 | [SPEC-003](SPEC-003-ecriture-d-un-jeu.md) | Écriture d'un jeu (existant) | implémentée | [EPIC-003](../archive/epics/EPIC-003-ecarts-ecriture-d-un-jeu/README.md) (écarts) ; décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
 | [SPEC-004](SPEC-004-sessions.md) | Sessions, casting et chronologie de déroulé (existant) | implémentée | [EPIC-004](../archive/epics/EPIC-004-ecarts-sessions/README.md) (écarts, cycle de vie) ; décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
-| [SPEC-005](SPEC-005-trombinoscopes-et-pdf.md) | Trombinoscopes et documents PDF (existant) | implémentée | aucun : décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
-| [SPEC-006](SPEC-006-emails-et-paiements.md) | Envois d'emails et suivi des paiements (existant) | implémentée | aucun : décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
-| [SPEC-007](SPEC-007-participants-et-rgpd.md) | Participants et données personnelles (existant) | implémentée | aucun : décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
-| [SPEC-008](SPEC-008-comptes-et-partage.md) | Comptes et partage d'un jeu (existant) | implémentée | aucun : décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
-| [SPEC-009](SPEC-009-page-publique.md) | Page publique d'un jeu (existant) | implémentée | aucun : décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
+| [SPEC-005](SPEC-005-trombinoscopes-et-pdf.md) | Trombinoscopes et documents PDF (existant) | implémentée | [EPIC-005](../archive/epics/EPIC-005-ecarts-trombinoscopes/README.md) (écarts) ; décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
+| [SPEC-006](SPEC-006-emails-et-paiements.md) | Envois d'emails et suivi des paiements (existant) | implémentée | [EPIC-006](../archive/epics/EPIC-006-ecarts-envois-et-paiements/README.md) (écarts) ; décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
+| [SPEC-007](SPEC-007-participants-et-rgpd.md) | Participants et données personnelles (existant) | implémentée | [EPIC-007](../archive/epics/EPIC-007-ecarts-participants/README.md), [EPIC-014](../archive/epics/EPIC-014-notes-par-jeu/README.md), [EPIC-016](../archive/epics/EPIC-016-coordonnees-tenues-par-la-personne/README.md) (écarts) ; décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
+| [SPEC-008](SPEC-008-comptes-et-partage.md) | Comptes et partage d'un jeu (existant) | implémentée | [EPIC-008](../archive/epics/EPIC-008-ecarts-comptes/README.md), [EPIC-012](../archive/epics/EPIC-012-roles/README.md), [EPIC-013](../archive/epics/EPIC-013-inscription-et-compte/README.md) (écarts) ; décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
+| [SPEC-009](SPEC-009-page-publique.md) | Page publique d'un jeu (existant) | implémentée | [EPIC-009](../archive/epics/EPIC-009-ecarts-page-publique/README.md), [EPIC-020](../archive/epics/EPIC-020-formulaire-public/README.md) (écarts) ; décrit l'existant ([fiche](../archive/todo/documentation-de-l-existant.md)) |
 | [SPEC-010](SPEC-010-hors-ligne.md) | Mode hors ligne (existant) | implémentée | [EPIC-010](../archive/epics/EPIC-010-ecarts-hors-ligne/README.md) (écarts) |
 | [SPEC-011](SPEC-011-un-compte-pour-tout-le-monde.md) | Un compte pour tout le monde, organiser et participer | implémentée | [EPIC-012](../archive/epics/EPIC-012-roles/README.md) à [EPIC-018](../archive/epics/EPIC-018-documents-dans-le-compte/README.md) (lots 1 à 7) |
 | [SPEC-012](SPEC-012-photos-des-participants.md) | Photos des participants, information, durée de conservation et retrait | implémentée | [EPIC-028](../archive/epics/EPIC-028-photos-des-participants/README.md) |
