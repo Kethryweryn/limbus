@@ -56,7 +56,7 @@ Comme aujourd'hui ([SPEC-008](SPEC-008-comptes-et-partage.md)). En plus, une co-
 
 ### Inscription et compte (lot 2)
 
-- **R4** L'inscription libre est ouverte par un réglage du serveur ; elle reste fermée en production jusqu'à la publication des conditions d'utilisation et de la politique de confidentialité ([feuille de route](../feuille-de-route.md), étape 5). Fermée, l'écran de connexion ne propose pas de créer un compte.
+- **R4** L'inscription libre est ouverte par un réglage du serveur, quand l'utilisatrice le décide ; les conditions d'utilisation et la politique de confidentialité doivent être publiées avant ([feuille de route](../feuille-de-route.md), étape 5). Fermée, l'écran de connexion ne propose pas de créer un compte.
 - **R5** Un compte dont l'adresse n'est pas confirmée ne permet rien d'autre que renvoyer le lien de confirmation. Jamais confirmé, il est supprimé au bout de 7 jours. Un changement d'email prévient l'ancienne adresse.
 - **R6** Contre les robots : un nombre d'inscriptions limité par adresse IP, et un champ invisible que seuls les robots remplissent. Aucun service externe.
 - **R7** Chaque compte a un plafond de stockage (photos, RIB, documents téléversés), de 500 Mo par défaut, modifiable par l'administratrice. Les fichiers d'un jeu comptent pour sa propriétaire, quelle que soit la personne qui les téléverse. Aucune limite sur le nombre de jeux ou de participants.

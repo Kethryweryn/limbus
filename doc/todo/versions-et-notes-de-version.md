@@ -12,7 +12,7 @@ Limbus n'a ni numéro de version (`package.json` n'en déclare pas), ni étiquet
 
 ## Proposition
 
-- **Première version** : choisir le moment où Limbus est assez complet pour être annoncé, et le marquer comme version 1.0.0.
+- **Première version** : l'utilisatrice en choisit le moment, marqué comme version 1.0.0.
 - **Numéros de version** : version sémantique (majeure.mineure.correctif), portée par `package.json` et une étiquette git `vX.Y.Z` sur le commit publié.
 - **Notes de version** : pour chaque version, ce qui change pour les personnes qui utilisent Limbus, en français, sans vocabulaire technique. Elles sont rédigées à partir des US et des correctifs fusionnés depuis la version précédente.
 - **Affichage** : le numéro de version dans l'application (pied de page ou menu), et une page « Nouveautés » qui reprend les notes.
