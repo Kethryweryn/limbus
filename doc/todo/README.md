@@ -28,4 +28,4 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Indicateurs du questionnaire de casting](../archive/todo/indicateurs-du-questionnaire-de-casting.md) | [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) | 2026-11-03 |
 | [Aide à la conception du questionnaire de casting](../archive/todo/aide-a-la-conception-du-questionnaire.md) | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | 2026-11-03 |
 | [Numéros de version et notes de version](../archive/todo/versions-et-notes-de-version.md) | [SPEC-017](../specs/SPEC-017-nouveautes.md) | 2026-11-05 |
-| [Jeux de test à jour](../archive/todo/jeux-de-test.md) | [EPIC-044](../epics/EPIC-044-jeux-de-test/README.md) | 2026-11-05 |
+| [Jeux de test à jour](../archive/todo/jeux-de-test.md) | [EPIC-044](../archive/epics/EPIC-044-jeux-de-test/README.md) | 2026-11-05 |

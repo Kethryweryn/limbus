@@ -2,7 +2,7 @@
 titre: Jeux de test à jour
 statut: archivée
 date: 2026-11-05
-epic: ../../epics/EPIC-044-jeux-de-test/README.md
+epic: ../epics/EPIC-044-jeux-de-test/README.md
 ---
 
 # Jeux de test à jour
@@ -33,7 +33,7 @@ Le détail technique est dans [ADR-0066](../../adr/ADR-0066-jeux-de-test-recharg
 
 ## Découpage envisagé
 
-Un epic, [EPIC-044](../../epics/EPIC-044-jeux-de-test/README.md), en six US.
+Un epic, [EPIC-044](../epics/EPIC-044-jeux-de-test/README.md), en six US.
 
 ## Points à trancher
 

@@ -51,7 +51,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-041](../archive/epics/EPIC-041-prevision-du-questionnaire/README.md) | Aide à la conception du questionnaire, lot 2 : prévision | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | terminé |
 | [EPIC-042](../archive/epics/EPIC-042-relecture-et-melange-du-questionnaire/README.md) | Aide à la conception du questionnaire, lot 3 : relecture et mélange | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | terminé |
 | [EPIC-043](../archive/epics/EPIC-043-nouveautes/README.md) | Nouveautés et numéro de déploiement | [SPEC-017](../specs/SPEC-017-nouveautes.md) | terminé |
-| [EPIC-044](EPIC-044-jeux-de-test/README.md) | Jeux de test à jour pour tout essayer | [fiche](../archive/todo/jeux-de-test.md) | en cours |
+| [EPIC-044](../archive/epics/EPIC-044-jeux-de-test/README.md) | Jeux de test à jour pour tout essayer | [fiche](../archive/todo/jeux-de-test.md) | terminé |
 
 ## US
 
@@ -206,9 +206,9 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-147](../archive/epics/EPIC-043-nouveautes/US-147-page-nouveautes.md) | Lire les nouveautés de Limbus | EPIC-043 | terminée |
 | [US-148](../archive/epics/EPIC-043-nouveautes/US-148-numero-de-deploiement.md) | Donner le numéro du déploiement | EPIC-043 | terminée |
 | [US-149](../archive/epics/EPIC-043-nouveautes/US-149-lien-du-menu.md) | Trouver les nouveautés dans le menu | EPIC-043 | terminée |
-| [US-150](EPIC-044-jeux-de-test/US-150-rechargement-sur.md) | Recharger les jeux de test sans risque, avec des dates à jour | EPIC-044 | terminée |
-| [US-151](EPIC-044-jeux-de-test/US-151-comptes-de-test.md) | Se connecter avec des comptes de test | EPIC-044 | terminée |
-| [US-152](EPIC-044-jeux-de-test/US-152-jeu-inscriptions.md) | Essayer les inscriptions sur Station Meridian | EPIC-044 | terminée |
-| [US-153](EPIC-044-jeux-de-test/US-153-jeu-session-imminente.md) | Essayer une session imminente sur Les Cendres de Valombre | EPIC-044 | terminée |
-| [US-154](EPIC-044-jeux-de-test/US-154-jeu-apres-et-imprevus.md) | Essayer l'après-session et les imprévus sur Le Bal des Masques Brisés | EPIC-044 | terminée |
-| [US-155](EPIC-044-jeux-de-test/US-155-guide-et-verification.md) | Savoir où essayer chaque fonctionnalité, et garder le script à jour | EPIC-044 | terminée |
+| [US-150](../archive/epics/EPIC-044-jeux-de-test/US-150-rechargement-sur.md) | Recharger les jeux de test sans risque, avec des dates à jour | EPIC-044 | terminée |
+| [US-151](../archive/epics/EPIC-044-jeux-de-test/US-151-comptes-de-test.md) | Se connecter avec des comptes de test | EPIC-044 | terminée |
+| [US-152](../archive/epics/EPIC-044-jeux-de-test/US-152-jeu-inscriptions.md) | Essayer les inscriptions sur Station Meridian | EPIC-044 | terminée |
+| [US-153](../archive/epics/EPIC-044-jeux-de-test/US-153-jeu-session-imminente.md) | Essayer une session imminente sur Les Cendres de Valombre | EPIC-044 | terminée |
+| [US-154](../archive/epics/EPIC-044-jeux-de-test/US-154-jeu-apres-et-imprevus.md) | Essayer l'après-session et les imprévus sur Le Bal des Masques Brisés | EPIC-044 | terminée |
+| [US-155](../archive/epics/EPIC-044-jeux-de-test/US-155-guide-et-verification.md) | Savoir où essayer chaque fonctionnalité, et garder le script à jour | EPIC-044 | terminée |
