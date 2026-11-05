@@ -41,7 +41,7 @@ Limbus n'a pas de numéro de version à annoncer : personne n'installe une versi
 - **R5** La date d'une note est celle de la fusion de sa pull request. Tant qu'aucun déploiement ultérieur n'a eu lieu, c'est le jour du commit de la pull request qui a ajouté la note (ADR-0065).
 - **R6** Une note ne donne ni donnée personnelle, ni détail du serveur, ni moyen d'exploiter une faille corrigée.
 - **R7** En bas de la page, un texte discret donne le numéro de la pull request déployée : « Déploiement n° 141 ». Après un déploiement lancé à la main, c'est le numéro du dernier commit de `main`, même s'il ne touche que la documentation. Ce numéro sert à identifier ce qui tourne ; il ne dit rien de l'ordre ni de l'importance des changements. Sans numéro connu (poste de développement), le texte n'apparaît pas.
-- **R8** Le lien « Nouveautés » est en bas du menu, séparé des autres entrées et en plus petit, sur ordinateur comme sur téléphone. Menu replié, il se réduit à une icône avec son libellé en info-bulle.
+- **R8** Le lien « Nouveautés » est sous les autres entrées du menu, séparé d'elles et en plus petit, sur ordinateur comme sur téléphone. Menu replié, il se réduit à une icône avec son libellé en info-bulle.
 - **R9** Rien ne signale qu'une note n'a pas été lue : ni pastille, ni bandeau, ni email.
 - **R10** La page démarre avec une seule note, qui annonce la page elle-même. L'historique commence là.
 

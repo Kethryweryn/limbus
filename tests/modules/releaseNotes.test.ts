@@ -97,6 +97,20 @@ describe('buildReleaseNotes', () => {
     ])
   })
 
+  it('retrouve une note au nom accentué, et date une note renommée de son renommage', () => {
+    const folder = repository()
+    commitNote(folder, 'écran.json', '2026-11-03T09:00:00+01:00')
+    commitNote(folder, 'avant.json', '2026-11-04T09:00:00+01:00')
+    git(folder, ['mv', 'nouveautes/avant.json', 'nouveautes/apres.json'])
+    git(folder, ['commit', '-q', '-m', 'Renommage'], '2026-11-05T09:00:00+01:00')
+
+    const { notes } = buildReleaseNotes({ rootDir: folder, repo: folder })
+    expect(notes.map(({ titre, at }) => [titre, at])).toEqual([
+      ['avant.json', '2026-11-05T09:00:00+01:00'],
+      ['écran.json', '2026-11-03T09:00:00+01:00']
+    ])
+  })
+
   it('refuse une note absente de l’historique', () => {
     const folder = repository()
     commitNote(folder, 'suivie.json', '2026-11-05T09:00:00+01:00')

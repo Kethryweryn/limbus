@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { z } from 'zod'
 import { RELEASE_NOTE_TYPES, type ReleaseNotesData } from '../../utils/releaseNotes'
 
-export const NOTES_DIR = 'nouveautes'
+const NOTES_DIR = 'nouveautes'
 
 const noteSchema = z.strictObject({
   type: z.enum(RELEASE_NOTE_TYPES),
@@ -27,18 +27,19 @@ export function readNoteFiles(rootDir: string) {
 }
 
 function git(repo: string, ...args: string[]) {
-  return execFileSync('git', ['-C', repo, ...args], { encoding: 'utf8' }).trim()
+  // Noms de fichier tels quels, sans les guillemets et les codes que git met aux accents
+  return execFileSync('git', ['-C', repo, '-c', 'core.quotePath=false', ...args], { encoding: 'utf8' }).trim()
 }
 
 /** Moment du commit qui a ajouté chaque note ; le plus récent si une note a été supprimée puis remise. */
-export function noteDates(repo: string) {
+function noteDates(repo: string) {
   // Un dépôt tronqué ferait passer toutes les notes pour ajoutées par son plus ancien commit
   if (git(repo, 'rev-parse', '--is-shallow-repository') === 'true') {
     throw new Error(`Historique git tronqué dans ${repo} : les dates des notes seraient fausses`)
   }
   const dates = new Map<string, string>()
   let current = ''
-  for (const line of git(repo, 'log', '--diff-filter=A', '--name-only', '--format=%cI', '--', `${NOTES_DIR}/`).split('\n')) {
+  for (const line of git(repo, 'log', '--no-renames', '--diff-filter=A', '--name-only', '--format=%cI', '--', `${NOTES_DIR}/`).split('\n')) {
     if (line.startsWith(`${NOTES_DIR}/`)) {
       const file = line.slice(NOTES_DIR.length + 1)
       if (!dates.has(file)) dates.set(file, current)
@@ -50,10 +51,9 @@ export function noteDates(repo: string) {
 }
 
 /** Numéro donné par la CI, sinon celui du titre du dernier commit : « Titre (#141) ». */
-export function deployNumberOf(repo: string, prNumber?: string) {
-  const match = prNumber?.match(/^\d+$/) ?? git(repo, 'log', '-1', '--format=%s').match(/\(#(\d+)\)$/)
-  if (!match) return null
-  return Number(match[1] ?? match[0])
+function deployNumberOf(repo: string, prNumber?: string) {
+  const number = prNumber || git(repo, 'log', '-1', '--format=%s').match(/\(#(\d+)\)$/)?.[1]
+  return number ? Number(number) : null
 }
 
 /**

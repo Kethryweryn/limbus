@@ -10,9 +10,9 @@ test('les nouveautés se lisent sans compte', async ({ page }) => {
   await expect(page.getByText(/ · Nouveau$/)).toBeVisible()
   // Le lien du menu est réservé aux personnes connectées, et la page ne propose pas de se connecter
   await expect(page.getByRole('button', { name: 'Se connecter' })).toHaveCount(0)
-  // Dans une pull request, la CI donne son numéro au build (US-148) ; en local, il n'y en a pas
+  // La CI, en pull request comme sur main, donne un numéro au build (US-148) ; en local, il n'y en a pas
   const number = page.getByText(/^Déploiement n° \d+$/)
-  if (process.env.GITHUB_EVENT_NAME === 'pull_request') await expect(number).toBeVisible()
+  if (process.env.GITHUB_ACTIONS) await expect(number).toBeVisible()
   else await expect(number).toHaveCount(0)
 })
 
