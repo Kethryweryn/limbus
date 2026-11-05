@@ -1,7 +1,7 @@
 ---
 id: SPEC-017
 titre: Nouveautés et numéro de déploiement
-statut: en cours
+statut: implémentée
 date: 2026-11-05
 origine: ../archive/todo/versions-et-notes-de-version.md
 epics: [EPIC-043]
@@ -59,3 +59,13 @@ La page est publique et en lecture seule, sans route d'API. Ses textes viennent 
 - Tout signal de nouveauté non lue (R9).
 - Reprise de l'historique dans la page (R10).
 - Lecture hors ligne, filtres et recherche dans les notes.
+
+## Historique
+
+- 2026-11-05 : création, avec les choix de l'utilisatrice :
+  - une note par pull request, sans section « à venir », pour que la page reste fidèle à la production ;
+  - le numéro de la pull request déployée, sans autre numéro de version ;
+  - une page lisible par tout le monde, sans compte ;
+  - un lien de menu plus petit et séparé du reste, sans pastille ;
+  - un départ avec une seule note.
+- 2026-11-05 : lot unique livré ([EPIC-043](../archive/epics/EPIC-043-nouveautes/README.md), PR #143). Spec entièrement livrée.
