@@ -1,7 +1,7 @@
 ---
 id: US-150
 titre: Recharger les jeux de test sans risque, avec des dates à jour
-statut: à faire
+statut: terminée
 epic: EPIC-044
 regles: []
 adr: [ADR-0066]
@@ -13,18 +13,18 @@ En tant qu'utilisatrice, je veux recharger les jeux de test quand je le décide,
 
 ## Critères d'acceptation
 
-- [ ] Étant donné un lancement sans `SEED_ALLOW_ERASE=1`, alors le script s'arrête avant toute écriture, avec un message clair.
-- [ ] Étant donné un `SEED_EMAIL` sans compte correspondant, ou une adresse de page de jeu de test prise par un autre jeu, alors le script s'arrête aussi avant toute écriture.
-- [ ] Étant donné un jeu de test renommé, alors le rechargement le retrouve et le remplace, sans créer de doublon.
-- [ ] Étant donné une copie léguée déjà acceptée, alors le rechargement la laisse à sa destinataire ; seule une copie en attente disparaît.
-- [ ] Étant donné un fichier ajouté à un jeu de test pendant les essais, alors le rechargement le retire du disque (`deleteUnusedUploads`).
-- [ ] Étant donné un rechargement, alors toutes les dates sont calculées à partir de ce jour-là, et aucune session « à venir » n'est passée.
-- [ ] Étant donné un jeu, un compte ou une fiche hors des jeux de test, alors le rechargement n'y change rien, y compris une fiche rattachée à la fois à un jeu de test et à un autre jeu.
-- [ ] Étant donné deux rechargements de suite, alors le second réussit et donne le même contenu.
-- [ ] Étant donné un rechargement, alors aucun email n'est envoyé.
-- [ ] Étant donné un partage ou une autorisation d'assistant sur un jeu de test, alors il existe encore après le rechargement.
-- [ ] Le dépôt ne contient plus d'adresse réelle : le propriétaire et la base des adresses viennent de `SEED_EMAIL`.
-- [ ] Les photos sont enregistrées avec leur taille, là où l'application les lit, et le service peut les ouvrir après un rechargement lancé sur le serveur.
+- [x] Étant donné un lancement sans `SEED_ALLOW_ERASE=1`, alors le script s'arrête avant toute écriture, avec un message clair.
+- [x] Étant donné un `SEED_EMAIL` sans compte correspondant, ou une adresse de page de jeu de test prise par un autre jeu, alors le script s'arrête aussi avant toute écriture.
+- [x] Étant donné un jeu de test renommé, alors le rechargement le retrouve et le remplace, sans créer de doublon.
+- [x] Étant donné une copie léguée déjà acceptée, alors le rechargement la laisse à sa destinataire ; seule une copie en attente disparaît.
+- [x] Étant donné un fichier ajouté à un jeu de test pendant les essais, alors le rechargement le retire du disque (`deleteUnusedUploads`).
+- [x] Étant donné un rechargement, alors toutes les dates sont calculées à partir de ce jour-là, et aucune session « à venir » n'est passée.
+- [x] Étant donné un jeu, un compte ou une fiche hors des jeux de test, alors le rechargement n'y change rien, y compris une fiche rattachée à la fois à un jeu de test et à un autre jeu.
+- [x] Étant donné deux rechargements de suite, alors le second réussit et donne le même contenu.
+- [x] Étant donné un rechargement, alors aucun email n'est envoyé.
+- [x] Étant donné un partage ou une autorisation d'assistant sur un jeu de test, alors il existe encore après le rechargement.
+- [x] Le dépôt ne contient plus d'adresse réelle : le propriétaire et la base des adresses viennent de `SEED_EMAIL`.
+- [x] Les photos sont enregistrées avec leur taille, là où l'application les lit, et le service peut les ouvrir après un rechargement lancé sur le serveur.
 
 ## Notes techniques
 
@@ -34,4 +34,4 @@ En tant qu'utilisatrice, je veux recharger les jeux de test quand je le décide,
 
 ## Tests
 
-Test d'intégration du script : refus sans confirmation, deux lancements de suite, arrêts avant écriture, jeu renommé, copie acceptée et fichier retiré, jeu et fiche témoins hors périmètre intacts, partage et autorisation conservés. Dates : test unitaire de la fonction de calcul.
+`tests/integration/seed.test.ts` : refus sans confirmation, deux lancements de suite, arrêts avant écriture, jeu renommé, copie acceptée et fichier retiré, jeu et fiche témoins hors périmètre intacts, partage et autorisation conservés. Réglages, adresses et dates : `tests/prisma/seedOptions.test.ts`.

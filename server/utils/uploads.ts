@@ -1,7 +1,8 @@
 import { readFile, stat, unlink } from 'node:fs/promises'
 import { basename, join } from 'node:path'
-import { prisma } from '~/server/utils/prisma'
-import { isUploadUrl, PHOTO_UPLOAD_PREFIX, RIB_UPLOAD_PREFIX } from '~/utils/urls'
+import { isUploadUrl, PHOTO_UPLOAD_PREFIX, RIB_UPLOAD_PREFIX } from '../../utils/urls'
+// Chemins relatifs : `prisma/seed.ts` importe ce fichier hors de Nuxt
+import { prisma } from './prisma'
 
 export const UPLOAD_DIRS = {
   photos: 'session-assignment-photos',

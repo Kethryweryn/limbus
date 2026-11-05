@@ -1,7 +1,8 @@
 import { prisma } from '~/server/utils/prisma'
 import { setAuthCookie } from '~/server/utils/auth'
 import { passwordResetSchema, readZodBody } from '~/server/utils/schemas'
-import { ACCOUNT_TOKEN_KINDS, consumeAccountToken, hashPassword } from '~/server/utils/accounts'
+import { ACCOUNT_TOKEN_KINDS, consumeAccountToken } from '~/server/utils/accounts'
+import { hashPassword } from '~/server/utils/passwordHash'
 import { linkParticipantsToUser } from '~/server/utils/participantAccounts'
 
 // Nouveau mot de passe par le lien reçu (US-062, US-065) : déconnecte tous les appareils, puis connecte celui-ci

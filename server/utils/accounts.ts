@@ -1,8 +1,8 @@
-import bcrypt from 'bcrypt'
 import { randomBytes } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
 import { getSmtpSettings } from '~/server/utils/email'
+import { hashPassword } from '~/server/utils/passwordHash'
 import { createRegistrationToken, hashRegistrationToken } from '~/server/utils/registrations'
 
 // Liens de compte à usage unique (ADR-0039)
@@ -27,11 +27,6 @@ export function isSignupOpen() {
   return process.env.SIGNUP_OPEN === '1'
 }
 
-export const BCRYPT_ROUNDS = 10
-
-export async function hashPassword(password: string) {
-  return await bcrypt.hash(password, BCRYPT_ROUNDS)
-}
 
 // Mot de passe que personne ne connaît : le compte attend le lien pour en choisir un (US-065)
 export async function unusablePassword() {

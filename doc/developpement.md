@@ -15,11 +15,24 @@ cp .env.example .env      # puis renseigner DATABASE_URL, JWT_SECRET, SMTP_ENCRY
 npm install
 npx prisma migrate dev    # crée le schéma
 npm run user:create       # premier compte (rôle admin ou user)
-npx prisma db seed        # données de démonstration (optionnel), confiées au premier compte
+SEED_ALLOW_ERASE=1 npx prisma db seed   # jeux de test (optionnel), voir ci-dessous
 npm run dev               # http://localhost:3000
 ```
 
-Le seed efface les données métier de la base avant de recréer ses jeux de démonstration.
+## Jeux de test
+
+`prisma/seed.ts` remplace les trois jeux de test, et seulement eux ([ADR-0066](adr/ADR-0066-jeux-de-test-rechargeables-en-production.md)). Tout ce qui y a été modifié à la main est perdu. Les dates sont calculées à partir du jour du lancement, et aucun email ne part.
+
+| Variable | Rôle |
+|---|---|
+| `SEED_ALLOW_ERASE=1` | Obligatoire : sans elle, le script s'arrête sans rien écrire |
+| `SEED_EMAIL` | Compte propriétaire des jeux, qui doit exister, et base des adresses de test (`nom+camille.bernard@domaine`). Absente : le premier compte, et tout en `example.test` |
+| `SEED_PASSWORD` | Mot de passe des comptes de test, 8 caractères au moins. Absent : aucun compte de test n'est créé ni modifié |
+| `SEED_REPLACE_BY_SLUG=1` | Remplace aussi les jeux qui portent l'adresse de page d'un jeu de test sans avoir son identifiant fixe. Sert à la première fois, sur une base aux anciens jeux de test |
+
+Le script s'arrête aussi, avant toute écriture, si `SEED_EMAIL` ne correspond à aucun compte, ou si l'adresse de page d'un jeu de test est prise par un autre jeu.
+
+Ces valeurs ne vont pas dans le dépôt, qui est public. Sur le serveur, le script se lance depuis le dossier de l'application, avec sa base : ne le faire que sur demande de l'utilisatrice.
 
 ## Variables d'environnement
 

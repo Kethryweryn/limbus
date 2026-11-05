@@ -1,20 +1,20 @@
-import { PrismaClient } from '../generated/prisma/client'
-import { PrismaPg } from '@prisma/adapter-pg'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { deflateSync } from 'node:zlib'
 import slugify from 'slugify'
+import { hashPassword } from '../server/utils/passwordHash'
+import { prisma } from '../server/utils/prisma'
+import { collectUploadUrls, deleteUnusedUploads, uploadDir, UPLOAD_DIRS } from '../server/utils/uploads'
+import { TERMS_VERSION } from '../utils/legal'
+import { PHOTO_UPLOAD_PREFIX } from '../utils/urls'
+import { daysFromNow, personAddress, readSeedOptions, type SeedOptions } from './seed/options'
 
-const databaseUrl = process.env.DATABASE_URL
-if (!databaseUrl) {
-  throw new Error('DATABASE_URL is required')
-}
+type Db = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
 
-const prisma = new PrismaClient({
-  adapter: new PrismaPg({
-    connectionString: databaseUrl
-  })
-})
+// La transaction du rechargement, utilisée par toutes les fonctions du script : un échec laisse les jeux tels quels
+let db: Db
+
+const RELOAD_TIMEOUT_MS = 10 * 60 * 1000
 
 type CharacterSeed = {
   name: string
@@ -67,6 +67,8 @@ type ItemSeed = {
 }
 
 type GameSeed = {
+  // Identifiant fixe : un jeu renommé reste reconnu, et le jeu d'une autre personne n'est jamais pris pour lui (ADR-0066)
+  id: string
   title: string
   description: string
   noteIntention: string
@@ -78,22 +80,48 @@ type GameSeed = {
   items: ItemSeed[]
 }
 
-type PreservedGameShare = {
-  gameSlug: string
-  userId: string
-  role: string
+type PreservedAccess = {
+  gameId: string
+  shares: Array<{ userId: string, role: string }>
+  aiAuthorizationIds: string[]
 }
 
-function seedParticipantEmails() {
-  return [
-    ...games.flatMap((game) => game.participants.map((participant) => participant.email)),
-    'alex.morgan@example.test',
-    'morgan.dasilva@example.test'
-  ]
-}
+const TEST_ACCOUNTS = [
+  {
+    key: 'ines',
+    name: 'Inès Lefèvre',
+    email: 'ines.lefevre@example.test',
+    phone: '06 11 22 33 10',
+    emergencyContactName: 'Paul Lefèvre',
+    emergencyContactPhone: '06 55 00 00 10',
+    dietary: null
+  },
+  {
+    key: 'camille',
+    name: 'Camille Bernard',
+    email: 'camille.bernard@example.test',
+    phone: '06 11 22 33 01',
+    emergencyContactName: 'Aline Bernard',
+    emergencyContactPhone: '06 55 00 00 01',
+    dietary: 'Végétarienne, allergie aux fruits à coque'
+  },
+  {
+    key: 'lucie',
+    name: 'Lucie Moreau',
+    email: 'lucie.moreau@example.test',
+    phone: '06 11 22 33 02',
+    emergencyContactName: 'Marc Moreau',
+    emergencyContactPhone: '06 55 00 00 02',
+    dietary: null
+  }
+]
+
+// Inès co-organise ces jeux, et pas le troisième, pour montrer aussi un refus
+const CO_ORGANIZED_GAME_IDS = ['jeu-test-valombre', 'jeu-test-meridian']
 
 const games: GameSeed[] = [
   {
+    id: 'jeu-test-valombre',
     title: 'Les Cendres de Valombre',
     description: 'Un huis clos politique dans une baronnie frontalière où une succession fragile menace de rallumer une guerre ancienne.',
     noteIntention: 'Mettre en tension alliances familiales, secrets de guerre et choix moraux.',
@@ -164,8 +192,7 @@ const games: GameSeed[] = [
       { name: 'Antoine Durand', email: 'antoine.durand@example.test', phone: '06 11 22 33 07' },
       { name: 'Élise Leroy', email: 'elise.leroy@example.test', phone: '06 11 22 33 08' },
       { name: 'Thomas Garnier', email: 'thomas.garnier@example.test', phone: '06 11 22 33 09' },
-      { name: 'Inès Lefèvre', email: 'ines.lefevre@example.test', phone: '06 11 22 33 10' },
-      { name: 'Jean-Damien Mottot', email: 'kethryweryn@gmail.com', phone: '06 11 22 33 11' }
+      { name: 'Inès Lefèvre', email: 'ines.lefevre@example.test', phone: '06 11 22 33 10' }
     ],
     locations: [
       {
@@ -197,6 +224,7 @@ const games: GameSeed[] = [
     ]
   },
   {
+    id: 'jeu-test-meridian',
     title: 'Station Meridian',
     description: 'Une station scientifique coupée du reste du système solaire après la découverte d’un signal impossible.',
     noteIntention: 'Tester la paranoïa, la coopération sous pression et les dilemmes scientifiques.',
@@ -299,6 +327,7 @@ const games: GameSeed[] = [
     ]
   },
   {
+    id: 'jeu-test-bal',
     title: 'Le Bal des Masques Brisés',
     description: 'Une soirée mondaine où chaque invité cache une dette, une trahison ou une identité empruntée.',
     noteIntention: 'Favoriser le jeu social, les retournements publics et les révélations progressives.',
@@ -415,7 +444,7 @@ async function makeParticipantSlug(name: string) {
 
   while (
     usedParticipantSlugs.has(slug)
-    || await prisma.participant.findUnique({ where: { slug }, select: { id: true } })
+    || await db.participant.findUnique({ where: { slug }, select: { id: true } })
   ) {
     slug = `${baseSlug}-${suffix}`
     suffix += 1
@@ -425,30 +454,23 @@ async function makeParticipantSlug(name: string) {
   return slug
 }
 
-function uploadPhotoUrl(filename: string) {
-  return `/api/uploads/session-assignment-photos/${filename}`
-}
-
-function getSeedPhotoDir() {
-  return join(process.cwd(), '.data', 'uploads', 'session-assignment-photos')
-}
-
 async function createParticipantPhotos(gameId: string, participants: Array<{ id: string, name: string }>, gameIndex: number) {
-  await mkdir(getSeedPhotoDir(), { recursive: true })
+  const photoDir = uploadDir(UPLOAD_DIRS.photos)
+  await mkdir(photoDir, { recursive: true })
 
   const photos = new Map<string, string>()
   for (const [index, participant] of participants.entries()) {
     const filename = `seed-${gameIndex}-${makeSlug(participant.name)}.png`
-    await writeFile(
-      join(getSeedPhotoDir(), filename),
-      createSeedPortraitPng(index + gameIndex * 17)
-    )
-    const photoUrl = uploadPhotoUrl(filename)
-    await prisma.uploadedFile.create({
+    const content = createSeedPortraitPng(index + gameIndex * 17)
+    // Lisible par le service, même quand le script est lancé par un autre compte du serveur
+    await writeFile(join(photoDir, filename), content, { mode: 0o644 })
+    const photoUrl = `${PHOTO_UPLOAD_PREFIX}${filename}`
+    await db.uploadedFile.create({
       data: {
         kind: 'session-assignment-photo',
         filename,
         url: photoUrl,
+        size: content.length,
         gameId
       }
     })
@@ -577,245 +599,175 @@ function defaultTrombinoscopeNote(type: 'pj' | 'pnj') {
     : ''
 }
 
-async function clearBusinessData() {
-  const seedGameSlugs = games.map((game) => makeSlug(game.title))
-  const seedParticipantEmailList = seedParticipantEmails()
-  const seedGames = await prisma.game.findMany({
-    where: {
-      slug: { in: seedGameSlugs }
-    },
-    select: { id: true }
-  })
-  const seedGameIds = seedGames.map((game) => game.id)
+// Les jeux à remplacer, avec l'identifiant fixe de chacun. Rien n'est écrit tant que tout n'est pas vérifié.
+async function findGamesToReplace(options: SeedOptions) {
+  const fixedIdBySlug = new Map(games.map((game) => [makeSlug(game.title), game.id]))
+  const fixedIds = games.map((game) => game.id)
+  const slugs = [...fixedIdBySlug.keys()]
 
-  await prisma.sessionTrombinoscope.deleteMany({
-    where: {
-      session: { gameId: { in: seedGameIds } }
-    }
+  const found = await db.game.findMany({
+    where: { OR: [{ id: { in: fixedIds } }, { slug: { in: slugs } }] },
+    select: { id: true, slug: true, title: true }
   })
-  await prisma.characterTrombinoscopeEntry.deleteMany({
-    where: {
-      OR: [
-        { viewerCharacter: { gameId: { in: seedGameIds } } },
-        { targetCharacter: { gameId: { in: seedGameIds } } }
-      ]
+  const fixedIdOf = new Map<string, string>()
+  for (const game of found) {
+    if (fixedIds.includes(game.id)) {
+      fixedIdOf.set(game.id, game.id)
+    } else if (options.replaceBySlug) {
+      fixedIdOf.set(game.id, fixedIdBySlug.get(game.slug)!)
+    } else {
+      throw new Error(`L'adresse de page « ${game.slug} » est prise par un autre jeu (${game.title}) : rien n'a été modifié.`)
     }
-  })
-  await prisma.sessionPayment.deleteMany({
-    where: {
-      session: { gameId: { in: seedGameIds } }
-    }
-  })
-  await prisma.sessionDocumentDelivery.deleteMany({
-    where: {
-      OR: [
-        { session: { gameId: { in: seedGameIds } } },
-        { document: { gameId: { in: seedGameIds } } },
-        { character: { gameId: { in: seedGameIds } } }
-      ]
-    }
-  })
-  await prisma.timelineEventResponsible.deleteMany({
-    where: {
-      OR: [
-        { session: { gameId: { in: seedGameIds } } },
-        { timelineEvent: { gameId: { in: seedGameIds } } }
-      ]
-    }
-  })
-  await prisma.sessionAssignment.deleteMany({
-    where: {
-      OR: [
-        { session: { gameId: { in: seedGameIds } } },
-        { character: { gameId: { in: seedGameIds } } }
-      ]
-    }
-  })
-  await prisma.sessionParticipant.deleteMany({
-    where: {
-      session: { gameId: { in: seedGameIds } }
-    }
-  })
-  await prisma.session.deleteMany({
-    where: {
-      gameId: { in: seedGameIds }
-    }
-  })
-  await prisma.timelineEvent.deleteMany({
-    where: {
-      gameId: { in: seedGameIds }
-    }
-  })
-  await prisma.item.deleteMany({
-    where: {
-      gameId: { in: seedGameIds }
-    }
-  })
-  await prisma.uploadedFile.deleteMany({
-    where: {
-      OR: [
-        { gameId: { in: seedGameIds } },
-        { session: { gameId: { in: seedGameIds } } }
-      ]
-    }
-  })
-  await prisma.participantGame.deleteMany({
-    where: {
-      OR: [
-        { gameId: { in: seedGameIds } },
-        { participant: { email: { in: seedParticipantEmailList } } }
-      ]
-    }
-  })
-  await prisma.sessionParticipant.deleteMany({
-    where: {
-      participant: { email: { in: seedParticipantEmailList } }
-    }
-  })
-  await prisma.sessionAssignment.updateMany({
-    where: {
-      participant: { email: { in: seedParticipantEmailList } }
-    },
-    data: {
-      participantId: null,
-      photoUrl: null
-    }
-  })
-  await prisma.timelineEventResponsible.deleteMany({
-    where: {
-      participant: { email: { in: seedParticipantEmailList } }
-    }
-  })
-  await prisma.sessionPayment.deleteMany({
-    where: {
-      participant: { email: { in: seedParticipantEmailList } }
-    }
-  })
-  await prisma.sessionTrombinoscope.deleteMany({
-    where: {
-      participant: { email: { in: seedParticipantEmailList } }
-    }
-  })
-  await prisma.sessionDocumentDelivery.deleteMany({
-    where: {
-      participant: { email: { in: seedParticipantEmailList } }
-    }
-  })
-  await prisma.participant.deleteMany({
-    where: {
-      email: { in: seedParticipantEmailList }
-    }
-  })
-  await prisma.location.deleteMany({
-    where: {
-      gameId: { in: seedGameIds }
-    }
-  })
-  await prisma.document.deleteMany({
-    where: {
-      gameId: { in: seedGameIds }
-    }
-  })
-  await prisma.intrigue.deleteMany({
-    where: {
-      gameId: { in: seedGameIds }
-    }
-  })
-  await prisma.faction.deleteMany({
-    where: {
-      gameId: { in: seedGameIds }
-    }
-  })
-  await prisma.character.deleteMany({
-    where: {
-      gameId: { in: seedGameIds }
-    }
-  })
-  await prisma.gameInvitation.deleteMany({
-    where: {
-      gameId: { in: seedGameIds }
-    }
-  })
-  await prisma.gameShare.deleteMany({
-    where: {
-      gameId: { in: seedGameIds }
-    }
-  })
-  await prisma.game.deleteMany({
-    where: {
-      id: { in: seedGameIds }
-    }
-  })
+  }
+  return fixedIdOf
 }
 
-async function preserveSeedGameShares(): Promise<PreservedGameShare[]> {
-  const seedGameSlugs = games.map((game) => makeSlug(game.title))
-  const shares = await prisma.gameShare.findMany({
-    where: {
-      game: {
-        slug: { in: seedGameSlugs }
-      }
-    },
+async function findOwner(options: SeedOptions) {
+  if (!options.ownerEmail) {
+    return await db.user.findFirst({
+      where: { email: { notIn: TEST_ACCOUNTS.map((account) => account.email) } },
+      orderBy: [{ role: 'asc' }, { email: 'asc' }],
+      select: { id: true }
+    })
+  }
+  const owner = await db.user.findUnique({ where: { email: options.ownerEmail }, select: { id: true } })
+  if (!owner) {
+    throw new Error('Aucun compte ne correspond à SEED_EMAIL : rien n\'a été modifié.')
+  }
+  return owner
+}
+
+async function preserveAccess(fixedIdOf: Map<string, string>): Promise<PreservedAccess[]> {
+  const preserved = await db.game.findMany({
+    where: { id: { in: [...fixedIdOf.keys()] } },
     select: {
-      userId: true,
-      role: true,
-      game: {
-        select: {
-          slug: true
-        }
-      }
+      id: true,
+      shares: { select: { userId: true, role: true } },
+      aiAuthorizationGames: { select: { authorizationId: true } }
     }
   })
-
-  return shares.map((share) => ({
-    gameSlug: share.game.slug,
-    userId: share.userId,
-    role: share.role
+  return preserved.map((game) => ({
+    gameId: fixedIdOf.get(game.id)!,
+    shares: game.shares,
+    aiAuthorizationIds: game.aiAuthorizationGames.map((link) => link.authorizationId)
   }))
 }
 
-async function restoreSeedGameShares(
-  preservedShares: PreservedGameShare[],
-  createdGamesBySlug: Map<string, { id: string }>
-) {
-  for (const share of preservedShares) {
-    const game = createdGamesBySlug.get(share.gameSlug)
-    if (!game) continue
-
-    await prisma.gameShare.upsert({
-      where: {
-        gameId_userId: {
-          gameId: game.id,
-          userId: share.userId
-        }
-      },
-      create: {
-        gameId: game.id,
-        userId: share.userId,
-        role: share.role
-      },
-      update: {
-        role: share.role
-      }
+async function restoreAccess(preserved: PreservedAccess[]) {
+  for (const { gameId, shares, aiAuthorizationIds } of preserved) {
+    for (const { userId, role } of shares) {
+      await db.gameShare.upsert({
+        where: { gameId_userId: { gameId, userId } },
+        create: { gameId, userId, role },
+        update: { role }
+      })
+    }
+    await db.aiAuthorizationGame.createMany({
+      data: aiAuthorizationIds.map((authorizationId) => ({ authorizationId, gameId })),
+      skipDuplicates: true
     })
   }
 }
 
-async function createGame(seed: GameSeed, gameIndex: number, ownerId?: string) {
-  const game = await prisma.game.create({
+// Supprime les jeux de test, leurs copies léguées encore en attente et les fiches qu'aucun autre jeu n'utilise.
+// Une copie acceptée appartient à sa destinataire : elle reste. Rend les fichiers à retirer après la transaction.
+async function removeGames(replacedIds: string[]) {
+  const pendingCopies = await db.game.findMany({
+    where: { copiedFromGameId: { in: replacedIds }, bequestPending: true },
+    select: { id: true }
+  })
+  const gameIds = [...replacedIds, ...pendingCopies.map((game) => game.id)]
+
+  const uploadUrls = (await Promise.all(gameIds.map((gameId) => collectUploadUrls({ gameId })))).flat()
+
+  const outsideGames = { gameId: { notIn: gameIds } }
+  await db.participant.deleteMany({
+    where: {
+      gameLinks: { some: { gameId: { in: gameIds } } },
+      NOT: [
+        { gameLinks: { some: outsideGames } },
+        { sessionRoles: { some: { session: outsideGames } } },
+        { registrations: { some: { period: outsideGames } } }
+      ]
+    }
+  })
+  await db.game.deleteMany({ where: { id: { in: gameIds } } })
+  return uploadUrls
+}
+
+async function upsertTestAccounts(options: SeedOptions, password: string) {
+  const now = new Date()
+  for (const account of TEST_ACCOUNTS) {
+    const email = personAddress(account.email, options.ownerEmail)
+    const data = {
+      name: account.name,
+      password,
+      role: 'user',
+      emailConfirmedAt: now,
+      disabledAt: null,
+      phone: account.phone,
+      emergencyContactName: account.emergencyContactName,
+      emergencyContactPhone: account.emergencyContactPhone,
+      dietary: account.dietary,
+      healthConsentAt: account.dietary ? now : null,
+      profileUpdatedAt: now,
+      termsAcceptedVersion: TERMS_VERSION,
+      termsAcceptedAt: now,
+      lastSeenAt: now
+    }
+    await db.user.upsert({
+      where: { email },
+      create: { email, ...data },
+      // Mot de passe remis à neuf : les sessions ouvertes avec l'ancien se ferment
+      update: { ...data, sessionVersion: { increment: 1 } }
+    })
+  }
+}
+
+// Le compte confirmé de chaque adresse de test, y compris quand ce lancement ne touche pas aux comptes
+async function findTestAccounts(options: SeedOptions) {
+  const accounts = await db.user.findMany({
+    where: {
+      email: { in: TEST_ACCOUNTS.map((account) => personAddress(account.email, options.ownerEmail)) },
+      emailConfirmedAt: { not: null }
+    },
+    select: { id: true, email: true }
+  })
+  const idByAddress = new Map(accounts.map((account) => [account.email, account.id]))
+  const accountIdByEmail = new Map<string, string>()
+  for (const { email } of TEST_ACCOUNTS) {
+    const id = idByAddress.get(personAddress(email, options.ownerEmail))
+    if (id) accountIdByEmail.set(email, id)
+  }
+  return accountIdByEmail
+}
+
+async function createGame(
+  seed: GameSeed,
+  gameIndex: number,
+  options: SeedOptions,
+  accountIdByEmail: Map<string, string>,
+  ownerId?: string
+) {
+  const inesAccountId = accountIdByEmail.get('ines.lefevre@example.test')
+  const game = await db.game.create({
     data: {
+      id: seed.id,
       title: seed.title,
       slug: makeSlug(seed.title),
       description: seed.description,
       noteIntention: seed.noteIntention,
       teaserUrl: '',
       published: true,
-      ownerId
+      ownerId,
+      shares: inesAccountId && CO_ORGANIZED_GAME_IDS.includes(seed.id)
+        ? { create: { userId: inesAccountId } }
+        : undefined
     }
   })
 
   const characters = await Promise.all(seed.characters.map((character) =>
-    prisma.character.create({
+    db.character.create({
       data: {
         name: character.name,
         type: character.type || 'pj',
@@ -836,7 +788,7 @@ async function createGame(seed: GameSeed, gameIndex: number, ownerId?: string) {
   const characterByName = new Map(characters.map((character, index) => [seed.characters[index]!.name, character]))
 
   const factions = await Promise.all(seed.factions.map((faction) =>
-    prisma.faction.create({
+    db.faction.create({
       data: {
         name: faction.name,
         slug: makeSlug(`${seed.title}-${faction.name}`),
@@ -857,7 +809,7 @@ async function createGame(seed: GameSeed, gameIndex: number, ownerId?: string) {
   const factionByName = new Map(factions.map((faction, index) => [seed.factions[index]!.name, faction]))
 
   const intrigues = await Promise.all(seed.intrigues.map((intrigue) =>
-    prisma.intrigue.create({
+    db.intrigue.create({
       data: {
         name: intrigue.name,
         slug: makeSlug(`${seed.title}-${intrigue.name}`),
@@ -888,22 +840,22 @@ async function createGame(seed: GameSeed, gameIndex: number, ownerId?: string) {
   const participants = []
   for (const participant of seed.participants) {
     const slug = await makeParticipantSlug(participant.name)
-    participants.push(await prisma.participant.create({
+    participants.push(await db.participant.create({
       data: {
         name: participant.name,
         slug,
-        email: participant.email,
+        email: personAddress(participant.email, options.ownerEmail),
         phone: participant.phone,
-        notes: participant.notes || null,
+        userId: accountIdByEmail.get(participant.email) ?? null,
         gameLinks: {
-          create: [{ gameId: game.id }]
+          create: [{ gameId: game.id, notes: participant.notes || null }]
         },
         published: true
       }
     }))
   }
   const locations = await Promise.all(seed.locations.map((location) =>
-    prisma.location.create({
+    db.location.create({
       data: {
         name: location.name,
         slug: makeSlug(`${seed.title}-${location.name}`),
@@ -918,7 +870,7 @@ async function createGame(seed: GameSeed, gameIndex: number, ownerId?: string) {
   const items = await Promise.all(seed.items.map((item) => {
     const locationCharacter = item.locationCharacterName ? characterByName.get(item.locationCharacterName) : null
 
-    return prisma.item.create({
+    return db.item.create({
       data: {
         name: item.name,
         slug: makeSlug(`${seed.title}-${item.name}`),
@@ -962,7 +914,7 @@ async function createDocuments(
   gameId: string,
   gameTitle: string
 ) {
-  await prisma.document.createMany({
+  await db.document.createMany({
     data: [
       {
         title: `Feuille de route - ${gameTitle}`,
@@ -1017,7 +969,7 @@ async function createTrombinoscopeEntries(characters: Array<{ id: string, type: 
   const pjCharacters = characters.filter((character) => character.type !== 'pnj')
   if (pjCharacters.length < 3) return
 
-  await prisma.characterTrombinoscopeEntry.createMany({
+  await db.characterTrombinoscopeEntry.createMany({
     data: [
       {
         viewerCharacterId: pjCharacters[0]!.id,
@@ -1097,7 +1049,7 @@ async function createTimelineEvents(
   ]
 
   await Promise.all(timelineSeeds.map((timelineEvent) =>
-    prisma.timelineEvent.create({
+    db.timelineEvent.create({
       data: {
         name: timelineEvent.name,
         slug: makeSlug(`${gameTitle}-${timelineEvent.name}`),
@@ -1126,30 +1078,28 @@ async function createTimelineEvents(
 
 async function createCrossGameParticipants(gameIds: string[]) {
   const alexMorganSlug = await makeParticipantSlug('Alex Morgan')
-  await prisma.participant.create({
+  await db.participant.create({
     data: {
       name: 'Alex Morgan',
       slug: alexMorganSlug,
       email: 'alex.morgan@example.test',
       phone: '06 44 55 66 01',
-      notes: 'participant inscrit sur plusieurs jeux pour tester les filtres.',
       gameLinks: {
-        create: gameIds.slice(0, 2).map((gameId) => ({ gameId }))
+        create: gameIds.slice(0, 2).map((gameId) => ({ gameId, notes: 'Inscrit sur plusieurs jeux, pour essayer les filtres.' }))
       },
       published: true
     }
   })
 
   const morganDaSilvaSlug = await makeParticipantSlug('Morgan Da Silva')
-  await prisma.participant.create({
+  await db.participant.create({
     data: {
       name: 'Morgan Da Silva',
       slug: morganDaSilvaSlug,
       email: 'morgan.dasilva@example.test',
       phone: '06 44 55 66 02',
-      notes: 'Disponible sur tous les jeux de test.',
       gameLinks: {
-        create: gameIds.map((gameId) => ({ gameId }))
+        create: gameIds.map((gameId) => ({ gameId, notes: 'Disponible sur tous les jeux de test.' }))
       },
       published: true
     }
@@ -1165,15 +1115,14 @@ async function createSessions(
   locations: Array<{ id: string, name: string }>,
   participantPhotos: Map<string, string>
 ) {
-  const pastDate = new Date(Date.UTC(2025, 5 + gameIndex, 7, 12, 0, 0))
-  const firstDate = new Date(Date.UTC(2026, 8 + gameIndex, 12, 12, 0, 0))
-  const secondDate = new Date(Date.UTC(2026, 9 + gameIndex, 3, 12, 0, 0))
+  const pastDate = daysFromNow(-60)
+  const firstDate = daysFromNow(10 + 35 * gameIndex)
+  const secondDate = daysFromNow(75 + 5 * gameIndex)
   const pjCharacters = characters.filter((character) => character.type !== 'pnj')
   const pnjCharacters = characters.filter((character) => character.type === 'pnj')
   const organizer = participants[8]
   const sessionPnj = participants[9]
   const kitchen = participants[7]
-  const emailTestParticipant = participants.find((participant) => participant.name === 'Jean-Damien Mottot')
   const fixedSessionRoles = [
     organizer ? { participantId: organizer.id, role: 'organizer' } : null,
     sessionPnj ? { participantId: sessionPnj.id, role: 'npc' } : null,
@@ -1181,18 +1130,17 @@ async function createSessions(
   ].filter((role): role is { participantId: string, role: string } => Boolean(role))
 
   const sessionParticipantsFor = (
-    assignments: Array<{ character: { type: string }, participantId: string | null }>,
-    fixedRoles = fixedSessionRoles
+    assignments: Array<{ character: { type: string }, participantId: string | null }>
   ) => {
     const roles = new Map<string, { participantId: string, role: string }>()
-    for (const role of fixedRoles) {
+    for (const role of fixedSessionRoles) {
       roles.set(`${role.participantId}:${role.role}`, role)
     }
 
     for (const assignment of assignments) {
       if (!assignment.participantId) continue
 
-      const hasSessionRole = fixedRoles.some((role) => role.participantId === assignment.participantId)
+      const hasSessionRole = fixedSessionRoles.some((role) => role.participantId === assignment.participantId)
       if (hasSessionRole) continue
 
       const role = assignment.character.type === 'pnj' ? 'npc' : 'participant'
@@ -1227,7 +1175,7 @@ async function createSessions(
     notes: index === 0 ? 'Session passée complète utilisée pour tester les statistiques.' : assignment.notes
   }))
 
-  await prisma.session.create({
+  await db.session.create({
     data: {
       name: `${gameTitle} - Session archive`,
       slug: makeSlug(`${gameTitle}-session-archive`),
@@ -1246,14 +1194,8 @@ async function createSessions(
   })
 
   const firstAssignments = buildAssignments(Math.max(0, pjCharacters.length - 2), 1)
-  const firstSessionRoles = gameIndex === 0 && emailTestParticipant
-    ? [
-        ...fixedSessionRoles,
-        { participantId: emailTestParticipant.id, role: 'organizer' }
-      ]
-    : fixedSessionRoles
 
-  await prisma.session.create({
+  await db.session.create({
     data: {
       name: `${gameTitle} - Session alpha`,
       slug: makeSlug(`${gameTitle}-session-alpha`),
@@ -1263,7 +1205,7 @@ async function createSessions(
       status: 'scheduled',
       published: true,
       participants: {
-        create: sessionParticipantsFor(firstAssignments, firstSessionRoles)
+        create: sessionParticipantsFor(firstAssignments)
       },
       assignments: {
         create: firstAssignments.map(({ character, ...assignment }) => assignment)
@@ -1272,19 +1214,8 @@ async function createSessions(
   })
 
   const secondAssignments = buildAssignments(Math.max(0, pjCharacters.length - 1), 0)
-  if (gameIndex === 0 && emailTestParticipant) {
-    const openPjAssignment = secondAssignments.find((assignment) =>
-      assignment.character.type !== 'pnj'
-      && !assignment.participantId
-    )
-    if (openPjAssignment) {
-      openPjAssignment.participantId = emailTestParticipant.id
-      openPjAssignment.photoUrl = participantPhotos.get(emailTestParticipant.id) || null
-      openPjAssignment.notes = 'Assignation de test pour les emails.'
-    }
-  }
 
-  await prisma.session.create({
+  await db.session.create({
     data: {
       name: `${gameTitle} - Session beta`,
       slug: makeSlug(`${gameTitle}-session-beta`),
@@ -1304,29 +1235,37 @@ async function createSessions(
 }
 
 async function main() {
-  console.log('Suppression des anciennes données métier...')
-  const preservedGameShares = await preserveSeedGameShares()
-  await clearBusinessData()
+  const options = readSeedOptions(process.env)
+  const password = options.password ? await hashPassword(options.password) : null
 
-  console.log('Création du jeu de données de test...')
-  const owner = await prisma.user.findFirst({
-    orderBy: [
-      { role: 'asc' },
-      { email: 'asc' }
-    ],
-    select: { id: true }
-  })
-  const createdGameIds: string[] = []
-  const createdGamesBySlug = new Map<string, { id: string }>()
-  for (const [index, game] of games.entries()) {
-    const createdGame = await createGame(game, index, owner?.id)
-    createdGameIds.push(createdGame.id)
-    createdGamesBySlug.set(createdGame.slug, { id: createdGame.id })
-  }
-  await createCrossGameParticipants(createdGameIds)
-  await restoreSeedGameShares(preservedGameShares, createdGamesBySlug)
+  const removedUploads = await prisma.$transaction(async (tx) => {
+    db = tx
+    // Tout se vérifie avant la première écriture
+    const owner = await findOwner(options)
+    const fixedIdOf = await findGamesToReplace(options)
 
-  console.log(`Seed terminé. ${preservedGameShares.length} partage(s) utilisateur/jeu restauré(s).`)
+    const preservedAccess = await preserveAccess(fixedIdOf)
+    console.log('Suppression des anciens jeux de test...')
+    const uploadUrls = await removeGames([...fixedIdOf.keys()])
+
+    console.log('Création des jeux de test...')
+    if (password) await upsertTestAccounts(options, password)
+    const accountIdByEmail = await findTestAccounts(options)
+    const createdGameIds: string[] = []
+    for (const [index, game] of games.entries()) {
+      const createdGame = await createGame(game, index, options, accountIdByEmail, owner?.id)
+      createdGameIds.push(createdGame.id)
+    }
+    await createCrossGameParticipants(createdGameIds)
+    await restoreAccess(preservedAccess)
+
+    console.log(`${accountIdByEmail.size} compte(s) de test, ${preservedAccess.length} jeu(x) remplacé(s).`)
+    return uploadUrls
+  }, { timeout: RELOAD_TIMEOUT_MS })
+
+  // Après la validation : les fichiers que les nouveaux jeux ne reprennent pas quittent le disque
+  await deleteUnusedUploads(removedUploads)
+  console.log('Jeux de test rechargés.')
 }
 
 main()
