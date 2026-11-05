@@ -37,5 +37,5 @@ Il passe après [EPIC-040](../EPIC-040-qualite-du-questionnaire-estimation/READM
 - Limites connues au déploiement :
   - sur un questionnaire de test riche, de 22 à 23 personnages sur 60 sont « à surveiller », une ligne par personnage comme le prévoit R8. Un regroupement se décidera sur un vrai jeu, si la liste est trop longue ;
   - la partie « Prévision » n'a été vue à l'écran que par Playwright, sur le build testé ;
-  - le message affiché quand le calcul échoue n'a pas de test (voir US-143).
+  - le message affiché quand le calcul échoue n'a pas de test (voir US-143). Ajouté depuis par [US-146](../EPIC-042-relecture-et-melange-du-questionnaire/US-146-melange-des-options.md).
 - Epic archivé.

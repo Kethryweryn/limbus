@@ -99,7 +99,7 @@ Les personnes inscrites ne voient que l'ordre mélangé des options.
 
 1. **Essai par l'équipe** ([EPIC-038](../archive/epics/EPIC-038-essai-du-questionnaire/README.md)) : R1 à R3, hors mélange des options, qui vient avec R13. Fait.
 2. **Prévision** ([EPIC-041](../archive/epics/EPIC-041-prevision-du-questionnaire/README.md)) : R4 à R10. Fait.
-3. **Relecture et mélange** ([EPIC-042](../epics/EPIC-042-relecture-et-melange-du-questionnaire/README.md)) : R11 à R13, et le mélange des options dans l'essai (R1).
+3. **Relecture et mélange** ([EPIC-042](../archive/epics/EPIC-042-relecture-et-melange-du-questionnaire/README.md)) : R11 à R13, et le mélange des options dans l'essai (R1). Fait.
 
 Le lot 1 de SPEC-015 ([EPIC-037](../archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md)) crée l'encadré et sa route, dont l'essai et la prévision lisent les personnages PJ : il passe avant.
 
@@ -127,3 +127,4 @@ Le lot 1 de SPEC-015 ([EPIC-037](../archive/epics/EPIC-037-qualite-du-questionna
   - défauts groupés par question ;
   - aperçu de l'éditeur mélangé, comme le voit un joueur ;
   - l'assistant d'IA peut changer le réglage de mélange.
+- 2026-11-05 : lot 3 livré ([EPIC-042](../archive/epics/EPIC-042-relecture-et-melange-du-questionnaire/README.md), PR #137). Spec entièrement livrée.
