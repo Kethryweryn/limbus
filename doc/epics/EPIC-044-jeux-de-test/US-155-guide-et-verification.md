@@ -1,7 +1,7 @@
 ---
 id: US-155
 titre: Savoir où essayer chaque fonctionnalité, et garder le script à jour
-statut: à faire
+statut: terminée
 epic: EPIC-044
 regles: []
 adr: [ADR-0066]
@@ -13,12 +13,12 @@ En tant qu'utilisatrice, je veux une liste de ce que je peux essayer, et je veux
 
 ## Critères d'acceptation
 
-- [ ] Étant donné `doc/jeux-de-test.md`, alors chaque spec implémentée a sa ligne : quoi essayer, sur quel jeu, avec quel compte. Ce qui ne peut pas s'y essayer le dit.
-- [ ] Étant donné le guide, alors il indique quelles personnes reçoivent vraiment les emails, annonce les échecs attendus d'un envoi groupé vers `example.test`, et ne contient ni mot de passe, ni adresse réelle.
-- [ ] Étant donné `doc/README.md`, alors le guide figure dans son arborescence.
-- [ ] Étant donné `doc/developpement.md`, alors la commande de rechargement, en local et sur le serveur, et les variables `SEED_*` y sont décrites.
-- [ ] Étant donné une pull request qui casse le script, alors la CI échoue.
-- [ ] Étant donné `CLAUDE.md`, alors une fonctionnalité qui ajoute une donnée à essayer complète le script et le guide.
+- [x] Étant donné `doc/jeux-de-test.md`, alors chaque spec implémentée a sa ligne : quoi essayer, sur quel jeu, avec quel compte. Ce qui ne peut pas s'y essayer le dit.
+- [x] Étant donné le guide, alors il indique quelles personnes reçoivent vraiment les emails, annonce les échecs attendus d'un envoi groupé vers `example.test`, et ne contient ni mot de passe, ni adresse réelle.
+- [x] Étant donné `doc/README.md`, alors le guide figure dans son arborescence.
+- [x] Étant donné `doc/developpement.md`, alors la commande de rechargement, en local et sur le serveur, et les variables `SEED_*` y sont décrites.
+- [x] Étant donné une pull request qui casse le script, alors la CI échoue.
+- [x] Étant donné `CLAUDE.md`, alors une fonctionnalité qui ajoute une donnée à essayer complète le script et le guide.
 
 ## Notes techniques
 
@@ -26,4 +26,4 @@ Le test d'intégration lance le script sur la base jetable, puis lit les écrans
 
 ## Tests
 
-Le test d'intégration ci-dessus, dans `tests/integration/`.
+`tests/integration/seed.test.ts`. Le guide est de la documentation, relu en revue.

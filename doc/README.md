@@ -15,6 +15,7 @@ Toute évolution passe par ces documents, de l'idée à l'archive. La base grand
 | [`modeles/`](modeles/) | Gabarits de chaque type de fiche | |
 | [`feuille-de-route.md`](feuille-de-route.md) | L'ordre des chantiers à venir, et pourquoi | |
 | [`developpement.md`](developpement.md) | Installation, variables d'environnement, tests, CI et déploiement | |
+| [`jeux-de-test.md`](jeux-de-test.md) | Où essayer chaque fonctionnalité, sur quel jeu et avec quel compte | |
 | `images/` | Captures d'écran du README, prises sur des données fictives | |
 
 ## Cycle de vie

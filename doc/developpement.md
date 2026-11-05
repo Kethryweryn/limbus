@@ -32,7 +32,16 @@ npm run dev               # http://localhost:3000
 
 Le script s'arrête aussi, avant toute écriture, si `SEED_EMAIL` ne correspond à aucun compte, ou si l'adresse de page d'un jeu de test est prise par un autre jeu.
 
-Ces valeurs ne vont pas dans le dépôt, qui est public. Sur le serveur, le script se lance depuis le dossier de l'application, avec sa base : ne le faire que sur demande de l'utilisatrice.
+Ces valeurs ne vont pas dans le dépôt, qui est public. [`jeux-de-test.md`](jeux-de-test.md) dit où essayer chaque fonctionnalité.
+
+Sur le serveur, seulement à la demande de l'utilisatrice, depuis le dossier de l'application. `prisma db seed` n'y sert pas : `node` lit lui-même le fichier d'environnement, et le mot de passe ne passe pas dans l'historique du shell.
+
+```bash
+read -rs SEED_PASSWORD && export SEED_PASSWORD
+SEED_ALLOW_ERASE=1 SEED_EMAIL='adresse-du-compte' node --env-file=.env --import tsx prisma/seed.ts
+```
+
+La toute première fois, ajouter `SEED_REPLACE_BY_SLUG=1` : la base a encore les anciens jeux de test, sans identifiant fixe, et le script s'arrête sans cela.
 
 ## Variables d'environnement
 
