@@ -209,6 +209,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-150](EPIC-044-jeux-de-test/US-150-rechargement-sur.md) | Recharger les jeux de test sans risque, avec des dates à jour | EPIC-044 | terminée |
 | [US-151](EPIC-044-jeux-de-test/US-151-comptes-de-test.md) | Se connecter avec des comptes de test | EPIC-044 | terminée |
 | [US-152](EPIC-044-jeux-de-test/US-152-jeu-inscriptions.md) | Essayer les inscriptions sur Station Meridian | EPIC-044 | terminée |
-| [US-153](EPIC-044-jeux-de-test/US-153-jeu-session-imminente.md) | Essayer une session imminente sur Les Cendres de Valombre | EPIC-044 | à faire |
+| [US-153](EPIC-044-jeux-de-test/US-153-jeu-session-imminente.md) | Essayer une session imminente sur Les Cendres de Valombre | EPIC-044 | terminée |
 | [US-154](EPIC-044-jeux-de-test/US-154-jeu-apres-et-imprevus.md) | Essayer l'après-session et les imprévus sur Le Bal des Masques Brisés | EPIC-044 | à faire |
 | [US-155](EPIC-044-jeux-de-test/US-155-guide-et-verification.md) | Savoir où essayer chaque fonctionnalité, et garder le script à jour | EPIC-044 | à faire |

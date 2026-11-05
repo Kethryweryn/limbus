@@ -374,6 +374,124 @@ describe('Station Meridian, avant les sessions', () => {
   })
 })
 
+describe('Les Cendres de Valombre, session imminente', () => {
+  const valombre = 'jeu-test-valombre'
+  let owner: { id: string }
+  let sessionId: string
+
+  const accountOf = (localPart: string) => prisma.user.findUniqueOrThrow({ where: { email: `valombre-proprietaire+${localPart}@example.test` }, select: { id: true } })
+  const ficheOf = (localPart: string) => prisma.participant.findFirstOrThrow({
+    where: { email: `valombre-proprietaire+${localPart}@example.test`, gameLinks: { some: { gameId: valombre } } },
+    select: { id: true }
+  })
+
+  beforeAll(async () => {
+    owner = await prisma.user.create({ data: { email: 'valombre-proprietaire@example.test', name: 'Propriétaire', password: await bcrypt.hash(PASSWORD, 4) } })
+    expectSuccess(runSeed({ SEED_ALLOW_ERASE: '1', SEED_EMAIL: 'valombre-proprietaire@example.test', SEED_PASSWORD: PASSWORD }))
+    const session = await prisma.session.findFirstOrThrow({ where: { gameId: valombre, name: { contains: 'imminente' } }, select: { id: true, date: true } })
+    sessionId = session.id
+    const days = (session.date!.getTime() - Date.now()) / (24 * 3600 * 1000)
+    expect(days).toBeGreaterThan(8)
+    expect(days).toBeLessThan(11)
+  })
+
+  afterAll(async () => {
+    await prisma.participant.deleteMany({ where: { gameLinks: { some: { gameId: { in: GAME_IDS } } } } })
+    await prisma.game.deleteMany({ where: { id: { in: GAME_IDS } } })
+    await prisma.user.deleteMany({ where: { email: { startsWith: 'valombre-proprietaire' } } })
+  })
+
+  it('a un casting presque complet, avec un rôle libre et une équipe', async () => {
+    const rows = await prisma.sessionAssignment.findMany({ where: { sessionId }, select: { participantId: true, photoUrl: true } })
+    expect(rows.filter((row) => !row.participantId)).toHaveLength(1)
+    expect(rows.filter((row) => row.photoUrl)).toHaveLength(7)
+    const team = await prisma.sessionParticipant.findMany({ where: { sessionId }, select: { role: true } })
+    expect(new Set(team.map((row) => row.role))).toEqual(new Set(['participant', 'organizer', 'npc', 'kitchen']))
+  })
+
+  it('lit des paiements dans chaque situation, et son RIB', async () => {
+    const response = await api(owner, 'GET', `/api/sessions/${sessionId}/payments`)
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    const rows = await prisma.sessionPayment.findMany({ where: { sessionId }, select: { paidAt: true, offered: true, transferredToParticipantId: true, instalments: { select: { id: true } } } })
+    expect(rows.some((row) => row.paidAt)).toBe(true)
+    expect(rows.some((row) => !row.paidAt && !row.offered && !row.instalments.length)).toBe(true)
+    expect(rows.some((row) => row.instalments.length === 2)).toBe(true)
+    expect(rows.some((row) => row.offered)).toBe(true)
+    expect(rows.some((row) => row.transferredToParticipantId)).toBe(true)
+    expect(await prisma.sessionTariff.count({ where: { sessionId, baseTariffId: { not: null } } })).toBe(2)
+
+    const session = await prisma.session.findUniqueOrThrow({ where: { id: sessionId }, select: { paymentRibUrl: true } })
+    expect(existsSync(join(process.cwd(), '.data', 'uploads', 'session-payment-ribs', session.paymentRibUrl!.split('/').pop()!))).toBe(true)
+    const file = await prisma.uploadedFile.findUniqueOrThrow({ where: { url: session.paymentRibUrl! }, select: { size: true } })
+    expect(file.size).toBeGreaterThan(0)
+  })
+
+  it('lit la présence, avec chaque réponse', async () => {
+    const response = await api(owner, 'GET', `/api/sessions/${sessionId}/attendance`)
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    const rows = await prisma.sessionAttendance.findMany({ where: { sessionId }, select: { status: true, responseDueAt: true } })
+    expect(new Set(rows.map((row) => row.status))).toEqual(new Set(['pending', 'confirmed', 'declined']))
+    expect(rows.some((row) => row.status === 'pending' && row.responseDueAt.getTime() < Date.now())).toBe(true)
+  })
+
+  it('distingue un envoi à jour d\'un envoi dépassé', async () => {
+    const response = await api(owner, 'GET', `/api/sessions/${sessionId}/documents`)
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    const body = bodyOf<ApiResponse<'/api/sessions/:id/documents'>>(response)
+    const recipients = (start: string) => body.documents.find((document) => document.title.startsWith(start))!.recipients
+    const sent = (start: string) => recipients(start).filter((recipient) => recipient.sentAt)
+    expect(sent('Feuille de route').length).toBe(3)
+    expect(sent('Feuille de route').every((recipient) => !recipient.versionOutdated)).toBe(true)
+    expect(sent('Document monde').length).toBe(3)
+    expect(sent('Document monde').every((recipient) => recipient.versionOutdated)).toBe(true)
+    const sheet = body.characterSheets.find((row) => row.character.name === 'Aélis de Valombre')!
+    expect(sheet.sentAt).not.toBeNull()
+    expect(sheet.trombinoscopeOutdated).toBe(false)
+  })
+
+  it('signale les conflits et les responsables manquants du déroulé', async () => {
+    const response = await api(owner, 'GET', `/api/sessions/${sessionId}/timeline`)
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    expect(JSON.stringify(response.body)).toContain('Thomas Garnier')
+  })
+
+  it('montre à Camille sa session, ses documents, son trombinoscope et son paiement', async () => {
+    const camille = await accountOf('camille.bernard')
+    const space = await api(camille, 'GET', '/api/me/participations')
+    expect(space.status, JSON.stringify(space.body)).toBe(200)
+    const text = JSON.stringify(space.body)
+    for (const expected of ['Session imminente', 'Aélis de Valombre', 'Feuille de route', 'Tarif de soutien']) expect(text).toContain(expected)
+
+    const fiche = await ficheOf('camille.bernard')
+    const deliveries = await prisma.sessionDocumentDelivery.findMany({ where: { sessionId, participantId: fiche.id }, select: { id: true, kind: true } })
+    expect(new Set(deliveries.map((row) => row.kind))).toEqual(new Set(['document', 'character_sheet', 'trombinoscope']))
+    for (const delivery of deliveries) {
+      const read = await api(camille, 'GET', `/api/me/documents/${delivery.id}`)
+      expect(read.status, JSON.stringify(read.body)).toBe(200)
+      expect(bodyOf<{ source: string | null }>(read).source, delivery.kind).not.toBeNull()
+      if (delivery.kind !== 'trombinoscope') {
+        expect((await api(camille, 'GET', `/api/me/documents/${delivery.id}/pdf`)).status).toBe(200)
+      }
+    }
+  })
+
+  it('exporte une fiche, puis l\'efface sans erreur', async () => {
+    const fiche = await ficheOf('nicolas.martin')
+    const exported = await api(owner, 'GET', `/api/participants/${fiche.id}/export`)
+    expect(exported.status, JSON.stringify(exported.body)).toBe(200)
+    expect(JSON.stringify(exported.body)).toContain('Tarif réduit')
+    const erased = await api(owner, 'DELETE', `/api/participants/${fiche.id}`)
+    expect(erased.status, JSON.stringify(erased.body)).toBe(200)
+    expect(await prisma.participant.findUnique({ where: { id: fiche.id } })).toBeNull()
+  })
+
+  it('laisse les co-organisatrices y brancher un assistant', async () => {
+    const game = await prisma.game.findUniqueOrThrow({ where: { id: valombre }, select: { aiForCoorganizers: true } })
+    expect(game.aiForCoorganizers).toBe(true)
+    expect((await api(await accountOf('ines.lefevre'), 'GET', `/api/sessions/${sessionId}/payments`)).status).toBe(200)
+  })
+})
+
 async function seedCounts() {
   const where = { gameId: { in: GAME_IDS } }
   return {

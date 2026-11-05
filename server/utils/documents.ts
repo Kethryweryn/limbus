@@ -1,6 +1,6 @@
 import { gamePhotoInformation } from '~/utils/photoInformation'
 import { purgeExpiredPhotos } from '~/server/utils/photoRetention'
-import { createHash } from 'node:crypto'
+import { characterSheetContentHash, documentContentHash, type SheetCharacter } from '~/server/utils/deliveryHashes'
 import { prisma } from '~/server/utils/prisma'
 import { openEmailTransport, sendEmail, type EmailTransport } from '~/server/utils/email'
 import { DOCUMENT_AUDIENCES, SESSION_ROLES } from '~/utils/domain'
@@ -51,22 +51,6 @@ export async function validateDocumentRelations(gameId: string, characterId?: st
 }
 
 // Empreinte de ce qu'un envoi contient (ADR-0031) : elle dit si la version reçue est dépassée
-const contentHash = (parts: unknown[]) => createHash('sha256').update(JSON.stringify(parts)).digest('hex')
-
-export function documentContentHash(
-  session: { name: string, game: { title: string } },
-  document: { title: string, content: string | null, documentUrl: string | null }
-) {
-  return contentHash([session.game.title, session.name, document.title, document.content || '', document.documentUrl || ''])
-}
-
-// Relations visibles du joueur (US-097) : absentes, l'empreinte reste celle d'avant ADR-0050
-type SheetCharacter = { name: string, pitch: string | null, background: string | null, backgroundDocumentUrl: string | null, costumeIndications: string | null, relationLines?: string[] }
-
-export function characterSheetContentHash(session: { name: string }, character: SheetCharacter) {
-  return contentHash([session.name, character.name, character.pitch || '', character.background || '', character.backgroundDocumentUrl || '', character.costumeIndications || '', ...(character.relationLines ?? [])])
-}
-
 // Version reçue dépassée : empreinte différente, ou, pour un envoi sans empreinte, source modifiée depuis l'envoi
 export function isSentVersionOutdated(
   delivery: { sentAt: Date, contentHash: string | null } | null | undefined,

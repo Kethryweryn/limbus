@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { characterSheetContentHash, documentContentHash, isSentVersionOutdated } from '~/server/utils/documents'
+import { characterSheetContentHash, documentContentHash } from '~/server/utils/deliveryHashes'
+import { isSentVersionOutdated } from '~/server/utils/documents'
 
 const session = { name: 'Session', game: { title: 'Jeu' } }
 const character = { name: 'Lea', pitch: null, background: 'Histoire', backgroundDocumentUrl: null, costumeIndications: null }
