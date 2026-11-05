@@ -203,6 +203,16 @@ export function shuffledOptions(options: string[], random: () => number = Math.r
   return shuffled
 }
 
+/**
+ * Ordre à afficher pour une question mélangée : le premier affichage tire un ordre, puis chaque option garde sa place quand
+ * la liste change, et une nouvelle option vient à la fin. Les doublons d'une liste en cours de saisie comptent pour une, comme à l'enregistrement.
+ */
+export function optionsInDrawnOrder(drawn: string[] | undefined, options: string[], random: () => number = Math.random) {
+  const distinct = [...new Set(options)]
+  if (!drawn) return shuffledOptions(distinct, random)
+  return [...drawn.filter((option) => distinct.includes(option)), ...distinct.filter((option) => !drawn.includes(option))]
+}
+
 export function sameRegistrationFormDefinition(left: RegistrationFormDefinition, right: RegistrationFormDefinition) {
   return JSON.stringify(normalizeRegistrationFormDefinition(left)) === JSON.stringify(normalizeRegistrationFormDefinition(right))
 }

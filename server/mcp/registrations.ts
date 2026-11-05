@@ -33,7 +33,7 @@ export function registerRegistrationTools({ event, server }: ToolContext) {
 
   server.registerTool('lire_formulaire_inscription', {
     title: 'Lire le formulaire d’inscription',
-    description: 'Formulaire d’inscription en vigueur d’un jeu : numéro de version, champs demandés, questions propres au jeu (libellé, sorte, options), affinités demandées, question d’équilibre, et liens des réponses vers les personnages, factions et intrigues.',
+    description: 'Formulaire d’inscription en vigueur d’un jeu : numéro de version, champs demandés, questions propres au jeu (libellé, sorte, options, et shuffleOptions à true si ses options s’affichent dans un ordre tiré au hasard), affinités demandées, question d’équilibre, et liens des réponses vers les personnages, factions et intrigues.',
     inputSchema: z.object({ jeuId: z.string() }),
     annotations: READ_ONLY
   }, ({ jeuId }) => toolResult(async () => {

@@ -25,9 +25,9 @@
         <QualityFindingItem v-for="(item, index) in items" :key="index" v-bind="item" />
       </ul>
       <p class="text-xs text-gray-500">{{ scope }}</p>
-      <RegistrationFormForecast v-if="forecastInput" :input="forecastInput" :collapsed="quality.hasAnswers" />
+      <RegistrationFormForecast v-if="forecastInput" :input="forecastInput" :collapsed="collapsed" />
       <!-- Une lecture hors ligne d'avant US-144 n'a pas les signalements -->
-      <RegistrationFormDrafting v-if="quality.drafting && quality.drafting.wordCounts.length" :review="quality.drafting" :collapsed="quality.hasAnswers" />
+      <RegistrationFormDrafting v-if="quality.drafting && quality.drafting.wordCounts.length" :review="quality.drafting" :collapsed="collapsed" />
     </template>
   </section>
 </template>
@@ -72,6 +72,9 @@ const estimate = computed(() => {
   if (!quality.value?.estimate) return null
   return describeEstimate(quality.value.estimate, quality.value.findings.filter((finding) => finding.level === 'review').length)
 })
+
+// Une lecture hors ligne d'avant US-144 n'a pas hasAnswers : elle garde le repli qu'elle avait
+const collapsed = computed(() => quality.value?.hasAnswers ?? (quality.value?.respondentCount ?? 0) > 0)
 
 const scope = computed(() => qualityScope(quality.value?.respondentCount ?? 0))
 

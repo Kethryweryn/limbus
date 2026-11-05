@@ -17,6 +17,9 @@ const VAGUE_QUANTIFIERS = new Set([
   'habituellement', 'generalement', 'plusieurs', 'quelques'
 ])
 
+// Ce qui ressemble à une négation sans en être : le « n » de « n° » (seul « n' » en est une) et « pas à pas »
+const NOT_NEGATIONS = /\bn\b(?!['’])|\bpas[\s-][àa][\s-]pas\b/giu
+
 const withoutAccents = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '')
 const hasLetter = (text: string) => /[\p{L}\p{N}]/u.test(text)
 
@@ -51,8 +54,8 @@ const vagueQuantifiers = (words: string[]) => words.filter((word, index) => {
 
 /** Négations d'un texte : « ne » ou « n' », avec leur « pas » qui ne compte pas en plus, « sans », « non », et « pas » seul si la phrase n'a pas de « ne ». */
 export function negationCount(text: string) {
-  return text.split(/[.!?;]+/).reduce((total, sentence) => {
-    const words = wordsOf(sentence).map(withoutAccents)
+  return text.split(/[.!?;…]+/).reduce((total, sentence) => {
+    const words = wordsOf(sentence.replace(NOT_NEGATIONS, ' ')).map(withoutAccents)
     const count = (...kept: string[]) => words.filter((word) => kept.includes(word)).length
     const ne = count('ne', 'n')
     return total + ne + count('sans', 'non') + (ne ? 0 : count('pas'))

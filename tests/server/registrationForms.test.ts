@@ -5,6 +5,7 @@ import {
   DEFAULT_REGISTRATION_FORM_DEFINITION,
   normalizeRegistrationFormDefinition,
   sameRegistrationFormDefinition,
+  optionsInDrawnOrder,
   shuffledOptions,
   type RegistrationFormDefinition
 } from '~/utils/registrationForms'
@@ -133,6 +134,16 @@ describe('questions et affinités du formulaire', () => {
     expect(shuffledOptions(options, () => 0.999)).toEqual(options)
     expect([...shuffledOptions(options)].sort()).toEqual(options)
     expect(options).toEqual(['a', 'b', 'c', 'd'])
+  })
+
+  it('tire l’ordre une fois, puis chaque option garde sa place quand la liste change', () => {
+    expect(optionsInDrawnOrder(undefined, ['a', 'b', 'a', 'c'], () => 0)).toEqual(['b', 'c', 'a'])
+    const drawn = ['c', 'a', 'b']
+    expect(optionsInDrawnOrder(drawn, ['a', 'b', 'c'], () => 0)).toEqual(drawn)
+    // Une option corrigée : les autres ne bougent pas, la nouvelle vient à la fin
+    expect(optionsInDrawnOrder(drawn, ['a', 'bb', 'c'], () => 0)).toEqual(['c', 'a', 'bb'])
+    // Les doublons d'une saisie en cours comptent pour une
+    expect(optionsInDrawnOrder(['a', 'b'], ['a', 'b', 'b'], () => 0)).toEqual(['a', 'b'])
   })
 
   it('nettoie libellés et options, et rend facultative une affinité non demandée', () => {

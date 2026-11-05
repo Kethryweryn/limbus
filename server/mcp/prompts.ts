@@ -2,7 +2,7 @@ import * as z from 'zod'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { getCurrentRegistrationForm } from '~/server/utils/registrationForms'
 import { draftingReview, type DraftingQuestion } from '~/utils/questionnaireDrafting'
-import { describeDraftingFlag } from '~/utils/questionnaireDraftingText'
+import { DRAFTING_RULE_TEXTS, draftingFlagSentence } from '~/utils/questionnaireDraftingText'
 import { safeErrorMessage, type ToolContext } from '~/server/mcp/tools'
 
 // Consigne « Relire le questionnaire » (US-145, SPEC-016, R12, ADR-0062) : le formulaire de l'équipe et ses signalements, jamais
@@ -15,13 +15,9 @@ const QUESTION_TYPES: Record<DraftingQuestion['type'], string> = {
   scale: 'échelle de 1 à 5'
 }
 
-// Les règles étayées de l'état de l'art (fiche d'origine de SPEC-016), dont celles qu'une règle de mots ne repère pas
+// Les règles étayées de l'état de l'art (fiche d'origine de SPEC-016) : celles de Limbus, puis celles qu'une règle de mots ne repère pas
 const REVIEW_RULES = [
-  'Question à double sens : elle porte sur deux choses à la fois (Bradburn, Sudman et Wansink, 2004).',
-  'Double négation : à éviter (Artino et al., 2014).',
-  'Format « d’accord / pas d’accord » : il pousse à acquiescer ; préférer des options propres à la question (Saris, Revilla, Krosnick et Shaeffer, 2010).',
-  'Quantifieur vague : « souvent », « parfois »… chacun le comprend à sa façon (Bradburn et Miles, 1979 ; Schaeffer, 1991).',
-  'Question longue : en général moins fiable (Alwin et Beattie, 2016).',
+  ...Object.values(DRAFTING_RULE_TEXTS).map(({ name, todo, reference }) => `${name} : ${todo} (${reference})`),
   'Question orientée : sa formulation pousse vers une réponse (Bradburn, Sudman et Wansink, 2004).',
   'Présupposé : elle tient pour acquis ce qui n’est pas vrai de tout le monde (Willis et Lessler, 1999, QAS-99 ; Graesser et al., 2006).',
   'Options qui se chevauchent, ou qui ne couvrent pas tous les cas (Willis et Lessler, 1999, QAS-99).',
@@ -35,7 +31,7 @@ export function questionnaireReviewPrompt(questions: DraftingQuestion[]) {
   const lines = questions.map((question, index) => {
     const options = question.options.map((option) => `   - ${option}`)
     const flags = review.questions.find(({ questionId }) => questionId === question.id)?.flags ?? []
-    const flagged = flags.map((flag) => `   Signalé par Limbus : ${describeDraftingFlag(flag, review.wordCounts).sentence}`)
+    const flagged = flags.map((flag) => `   Signalé par Limbus : ${draftingFlagSentence(flag)}`)
     return [`${index + 1}. ${question.label} (${QUESTION_TYPES[question.type]})`, ...options, ...flagged].join('\n')
   })
   return [

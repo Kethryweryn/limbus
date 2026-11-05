@@ -84,14 +84,14 @@ Les mots sont comptés sur le texte découpé aux espaces et à l'apostrophe (dr
 - Le champ `shuffleOptions` (booléen, absent = faux) appartient à une question à choix de la définition versionnée (`registrationFormDefinitionSchema`). Le changer crée une version, comme tout ce que voit la personne.
 - L'ordre est tiré au hasard à chaque affichage, dans le formulaire public et dans l'essai, avec `Math.random` : il ne sert qu'à répartir l'effet d'ordre entre les options (Krosnick et Presser, 2010). Les réponses restent enregistrées par le texte de l'option.
 - Le tirage se fait dans le navigateur, après le montage du composant (`onMounted`). Le rendu serveur garde l'ordre saisi : un tirage côté serveur, puis un autre à l'hydratation, donneraient deux ordres différents.
-- L'ordre tiré reste celui de la question tant que ses options ne changent pas : répondre ne le refait pas. L'aperçu de l'éditeur mélange aussi, choix de l'utilisatrice, car il montre ce que voit un joueur.
+- L'ordre tiré reste celui de la question : répondre ne le refait pas, et une option corrigée dans l'éditeur laisse les autres à leur place, la nouvelle venant à la fin. L'aperçu de l'éditeur mélange aussi, choix de l'utilisatrice, car il montre ce que voit un joueur.
 - `modifier_formulaire_inscription` accepte `shuffleOptions`, choix de l'utilisatrice. Comme un outil de modification complète les champs donnés avec la fiche actuelle, une question existante renvoyée sans ce champ garde son réglage.
 - Le réglage ne change aucune note : il n'entre pas dans l'empreinte de la simulation.
 
 ## Conséquences
 
 - La prévision n'est aussi bonne que les hypothèses de réponse. Sans proportions, elle est optimiste, car de vraies réponses ne se répartissent jamais également. La phrase le rappelle.
-- L'encadré de SPEC-015 grandit. Les parties « Prévision » et « Rédaction » se replient une fois des réponses reçues, par choix de l'utilisatrice. Le repli des autres parties n'est pas décidé.
+- L'encadré de SPEC-015 grandit. Les parties « Prévision » et « Rédaction » se replient une fois des réponses reçues, par choix de l'utilisatrice. Le repli des autres parties n'est pas décidé. Il suit `hasAnswers` (au moins une personne a donné une réponse, à n'importe quelle question), rendu par la route de l'encadré : `respondentCount` ne compte que les réponses à une question reliée, alors que R4 et R11 parlent de toute réponse reçue.
 - La route de l'encadré rend aussi les personnages PJ avec leurs factions et intrigues (identifiants et noms), pour l'essai et la simulation.
 - Les seuils de R13, choisis au lot 3 de SPEC-015 ([ADR-0064](ADR-0064-estimation-generale-du-questionnaire.md)), s'appliqueront aussi à la prévision, directement à la médiane (SPEC-016, R9).
 

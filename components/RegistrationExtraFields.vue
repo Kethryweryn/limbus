@@ -94,7 +94,7 @@
 import {
   REGISTRATION_AFFINITIES,
   REGISTRATION_BALANCE_ANY,
-  shuffledOptions,
+  optionsInDrawnOrder,
   type AffinityAnswers,
   type NormalizedRegistrationFormDefinition,
   type QuestionAnswers,
@@ -121,15 +121,13 @@ const balanceItems = computed(() => [
 ])
 
 // Mélange des options (US-146, ADR-0062) : le rendu serveur garde l'ordre saisi, puis l'ordre tiré après le montage reste celui de
-// la question tant que ses options ne changent pas : répondre ne le refait pas
+// la question : ni répondre ni corriger une option ne le refait
 const mounted = ref(false)
 onMounted(() => { mounted.value = true })
 const drawnOrders = new Map<string, string[]>()
 function displayedOptions(question: RegistrationQuestion) {
   if (!mounted.value || !question.shuffleOptions) return question.options
-  const drawn = drawnOrders.get(question.id)
-  if (drawn?.length === question.options.length && question.options.every((option) => drawn.includes(option))) return drawn
-  const order = shuffledOptions(question.options)
+  const order = optionsInDrawnOrder(drawnOrders.get(question.id), question.options)
   drawnOrders.set(question.id, order)
   return order
 }

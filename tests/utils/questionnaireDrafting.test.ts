@@ -37,8 +37,15 @@ describe('double négation', () => {
     expect(flagsOf('Ne joues-tu pas ?')).toEqual([])
   })
 
+  it('ne compte ni « n° » ni « pas à pas »', () => {
+    expect(negationCount('Question n°2 : ne viens-tu pas ?')).toBe(1)
+    expect(negationCount('N° 2 : avances-tu pas à pas, ou pas-à-pas ?')).toBe(0)
+    expect(negationCount('N’avances-tu pas ?')).toBe(1)
+  })
+
   it('juge « pas » phrase par phrase, et le libellé seulement', () => {
     expect(negationCount('Tu ne joues pas. Pas de combat ?')).toBe(2)
+    expect(negationCount('Tu ne joues pas… Pas de combat ?')).toBe(2)
     expect(flagsOf('Ton style ?', ['Ne jamais fuir sans raison', 'Autre'])).toEqual([])
   })
 })
