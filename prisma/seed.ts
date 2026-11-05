@@ -7,9 +7,9 @@ import { prisma } from '../server/utils/prisma'
 import { collectUploadUrls, deleteUnusedUploads, uploadDir, UPLOAD_DIRS } from '../server/utils/uploads'
 import { TERMS_VERSION } from '../utils/legal'
 import { PHOTO_UPLOAD_PREFIX } from '../utils/urls'
+import type { Db } from './seed/db'
+import { createMeridianStage, MERIDIAN_EXTRA_PEOPLE, type StageContext } from './seed/meridian'
 import { daysFromNow, personAddress, readSeedOptions, type SeedOptions } from './seed/options'
-
-type Db = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
 
 // La transaction du rechargement, utilisée par toutes les fonctions du script : un échec laisse les jeux tels quels
 let db: Db
@@ -69,6 +69,8 @@ type ItemSeed = {
 type GameSeed = {
   // Identifiant fixe : un jeu renommé reste reconnu, et le jeu d'une autre personne n'est jamais pris pour lui (ADR-0066)
   id: string
+  // L'étape de la vie d'un jeu que ce jeu montre, avec ses sessions à venir (ADR-0066)
+  createStage?: (db: Db, context: StageContext) => Promise<void>
   title: string
   description: string
   noteIntention: string
@@ -225,8 +227,9 @@ const games: GameSeed[] = [
   },
   {
     id: 'jeu-test-meridian',
+    createStage: createMeridianStage,
     title: 'Station Meridian',
-    description: 'Une station scientifique coupée du reste du système solaire après la découverte d’un signal impossible.',
+    description: 'Jeu d’essai : ce jeu n’aura jamais lieu. Une station scientifique coupée du reste du système solaire après la découverte d’un signal impossible.',
     noteIntention: 'Tester la paranoïa, la coopération sous pression et les dilemmes scientifiques.',
     characters: [
       { name: 'Dr Lena Kovacs', pitch: 'Directrice scientifique de Meridian, responsable du protocole de contact.' },
@@ -295,7 +298,8 @@ const games: GameSeed[] = [
       { name: 'Nina Perrin', email: 'nina.perrin@example.test', phone: '06 22 33 44 07' },
       { name: 'Olivier Girard', email: 'olivier.girard@example.test', phone: '06 22 33 44 08' },
       { name: 'Maëlle Renaud', email: 'maelle.renaud@example.test', phone: '06 22 33 44 09' },
-      { name: 'Baptiste Collet', email: 'baptiste.collet@example.test', phone: '06 22 33 44 10' }
+      { name: 'Baptiste Collet', email: 'baptiste.collet@example.test', phone: '06 22 33 44 10' },
+      ...MERIDIAN_EXTRA_PEOPLE
     ],
     locations: [
       {
@@ -837,7 +841,7 @@ async function createGame(
   ))
   const intrigueByName = new Map(intrigues.map((intrigue, index) => [seed.intrigues[index]!.name, intrigue]))
 
-  const participants = []
+  const participants: Array<{ id: string, name: string, email: string | null }> = []
   for (const participant of seed.participants) {
     const slug = await makeParticipantSlug(participant.name)
     participants.push(await db.participant.create({
@@ -902,10 +906,23 @@ async function createGame(
   await createDocuments(game.id, seed.title)
   await createTrombinoscopeEntries(characters)
 
-  const participantPhotos = await createParticipantPhotos(game.id, participants, gameIndex)
-  await createSessions(game.id, seed.title, gameIndex, characters, participants, locations, participantPhotos)
+  // Seules les personnes qui reçoivent un rôle ont une photo : 6 PJ et 2 PNJ (voir createSessions)
+  const participantPhotos = await createParticipantPhotos(game.id, participants.filter((_, index) => index < 6 || index === 8 || index === 9), gameIndex)
+  await createSessions(game.id, seed.title, gameIndex, characters, participants, locations, participantPhotos, Boolean(seed.createStage))
+  if (seed.createStage) {
+    await seed.createStage(db, {
+      gameId: game.id,
+      title: seed.title,
+      ownerId,
+      locationId: locations[0]?.id,
+      characters,
+      people: new Map(seed.participants.map((participant, index) => [participant.email, participants[index]!])),
+      profiles: new Map(TEST_ACCOUNTS.map((account) => [account.email, account])),
+      makeSlug
+    })
+  }
 
-  console.log(`${seed.title}: ${characters.length} personnages, ${seed.factions.length} groupes, ${seed.intrigues.length} intrigues, ${seed.items.length} objets, ${participants.length} participants, ${locations.length} lieux, 3 sessions`)
+  console.log(`${seed.title} : ${characters.length} personnages, ${participants.length} participants.`)
 
   return game
 }
@@ -1113,7 +1130,8 @@ async function createSessions(
   characters: Array<{ id: string, name: string, type: string }>,
   participants: Array<{ id: string, name: string }>,
   locations: Array<{ id: string, name: string }>,
-  participantPhotos: Map<string, string>
+  participantPhotos: Map<string, string>,
+  pastSessionOnly: boolean
 ) {
   const pastDate = daysFromNow(-60)
   const firstDate = daysFromNow(10 + 35 * gameIndex)
@@ -1192,6 +1210,8 @@ async function createSessions(
       }
     }
   })
+
+  if (pastSessionOnly) return
 
   const firstAssignments = buildAssignments(Math.max(0, pjCharacters.length - 2), 1)
 

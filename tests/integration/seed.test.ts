@@ -6,7 +6,10 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import bcrypt from 'bcrypt'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { api } from './api'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import { registrationFormDefinitionSchema } from '~/server/utils/schemas'
+import { MERIDIAN_FORM_DEFINITIONS } from '../../prisma/seed/meridian'
+import { api, bodyOf } from './api'
 import { createTestPrisma, testDatabaseUrl } from './db'
 
 const prisma = createTestPrisma()
@@ -31,6 +34,10 @@ function plusAddress(localPart: string) {
   return `seed-proprietaire+${localPart}@example.test`
 }
 
+afterAll(async () => {
+  await prisma.$disconnect()
+})
+
 describe('rechargement des jeux de test', () => {
   let ownerId: string
 
@@ -46,7 +53,6 @@ describe('rechargement des jeux de test', () => {
     await prisma.game.deleteMany({ where: { id: { in: GAME_IDS } } })
     await prisma.user.deleteMany({ where: { email: { startsWith: 'seed-proprietaire' } } })
     await prisma.user.deleteMany({ where: { email: { in: ['ines.lefevre@example.test', 'camille.bernard@example.test', 'lucie.moreau@example.test'] } } })
-    await prisma.$disconnect()
   })
 
   it('refuse sans confirmation, sans rien écrire', async () => {
@@ -91,7 +97,8 @@ describe('rechargement des jeux de test', () => {
 
   it('écrit les photos avec leur taille, sur le disque', async () => {
     const photos = await prisma.uploadedFile.findMany({ where: { gameId: { in: GAME_IDS } }, select: { filename: true, size: true } })
-    expect(photos.length).toBeGreaterThan(0)
+    // Les 8 personnes du casting de chaque jeu, et pas les fiches ajoutées à Station Meridian
+    expect(photos.length).toBe(24)
     for (const photo of photos) {
       expect(photo.size).toBeGreaterThan(0)
       expect(existsSync(join(process.cwd(), '.data', 'uploads', 'session-assignment-photos', photo.filename))).toBe(true)
@@ -240,6 +247,130 @@ describe('rechargement des jeux de test', () => {
     for (const { email } of fiches) expect(email).toMatch(/^[^+]+@example\.test$/)
     const camille = await prisma.user.findUniqueOrThrow({ where: { email: 'camille.bernard@example.test' }, select: { id: true } })
     expect(await prisma.participant.count({ where: { email: 'camille.bernard@example.test', userId: camille.id } })).toBeGreaterThan(0)
+  })
+})
+
+describe('Station Meridian, avant les sessions', () => {
+  const meridian = 'jeu-test-meridian'
+  let owner: { id: string }
+
+  beforeAll(async () => {
+    owner = await prisma.user.create({ data: { email: 'meridian-proprietaire@example.test', name: 'Propriétaire', password: await bcrypt.hash(PASSWORD, 4) } })
+    expectSuccess(runSeed({ SEED_ALLOW_ERASE: '1', SEED_EMAIL: 'meridian-proprietaire@example.test', SEED_PASSWORD: PASSWORD }))
+  })
+
+  afterAll(async () => {
+    await prisma.participant.deleteMany({ where: { gameLinks: { some: { gameId: { in: GAME_IDS } } } } })
+    await prisma.game.deleteMany({ where: { id: { in: GAME_IDS } } })
+    await prisma.user.deleteMany({ where: { email: { startsWith: 'meridian-proprietaire' } } })
+  })
+
+  it('a des définitions de formulaire que le serveur accepte', () => {
+    for (const definition of MERIDIAN_FORM_DEFINITIONS) {
+      expect(registrationFormDefinitionSchema.safeParse(definition).success).toBe(true)
+    }
+  })
+
+  it('montre une page publique qui annonce un jeu d\'essai, sans prévenir l\'équipe', async () => {
+    const page = await api(null, 'GET', '/api/public/games/station-meridian')
+    expect(page.status, JSON.stringify(page.body)).toBe(200)
+    expect(JSON.stringify(page.body)).toContain('Jeu d’essai')
+    expect(JSON.stringify(page.body)).toContain('/i/essai-meridian-main')
+
+    const form = await api(null, 'GET', '/api/public/periods/essai-meridian-main')
+    expect(form.status, JSON.stringify(form.body)).toBe(200)
+    expect(JSON.stringify(form.body)).toContain('Quel type de rôle préférez-vous ?')
+    expect(await prisma.registrationPeriod.count({ where: { gameId: meridian, notifyTeam: true } })).toBe(0)
+  })
+
+  it('a chaque sorte de période', async () => {
+    const periods = await prisma.registrationPeriod.findMany({ where: { gameId: meridian }, select: { scope: true, entryMode: true, selectionMode: true, state: true } })
+    const has = (fields: Partial<typeof periods[number]>) => periods.some((period) => Object.entries(fields).every(([key, value]) => period[key as keyof typeof period] === value))
+    expect(has({ entryMode: 'form', selectionMode: 'chosen', state: 'open' })).toBe(true)
+    expect(has({ entryMode: 'invitation', state: 'open' })).toBe(true)
+    expect(has({ selectionMode: 'random', state: 'closed' })).toBe(true)
+    expect(has({ selectionMode: 'mixed', state: 'open' })).toBe(true)
+    expect(has({ scope: 'game', state: 'open' })).toBe(true)
+    expect(has({ state: 'draft' })).toBe(true)
+  })
+
+  it('a chaque statut d\'inscription, avec des décisions annoncées et d\'autres à annoncer', async () => {
+    const rows = await prisma.registration.findMany({ where: { period: { gameId: meridian } }, select: { status: true, announcedStatus: true } })
+    expect(new Set(rows.map((row) => row.status))).toEqual(new Set(['invited', 'received', 'retained', 'waitlisted', 'rejected', 'confirmed', 'withdrawn']))
+    expect(rows.some((row) => row.status === 'retained' && row.announcedStatus === 'retained')).toBe(true)
+    expect(rows.some((row) => row.status === 'retained' && !row.announcedStatus)).toBe(true)
+  })
+
+  it('montre la sélection, avec ses alertes et sa rejoueuse', async () => {
+    const period = await prisma.registrationPeriod.findFirstOrThrow({ where: { gameId: meridian, selectionMode: 'chosen', state: 'open', entryMode: 'form' }, select: { id: true } })
+    const selection = await api(owner, 'GET', `/api/registration-periods/${period.id}/selection`)
+    expect(selection.status, JSON.stringify(selection.body)).toBe(200)
+    const body = bodyOf<ApiResponse<'/api/registration-periods/:id/selection'>>(selection)
+    const amandine = await prisma.participant.findFirstOrThrow({ where: { email: 'amandine.blanc@example.test', gameLinks: { some: { gameId: meridian } } }, select: { id: true } })
+    expect(body.replayerParticipantIds).toContain(amandine.id)
+    expect(body.affinities.alerts.map((alert) => [alert.participantName, alert.targetName])).toEqual([['Nicolas Martin', 'Raphaël Chevalier']])
+    expect(Object.keys(body.affinities.wishes).length).toBeGreaterThan(0)
+    expect(Object.keys(body.affinities.toLink).length).toBeGreaterThan(0)
+  })
+
+  it('a un tirage reproductible et annulable', async () => {
+    const period = await prisma.registrationPeriod.findFirstOrThrow({ where: { gameId: meridian, selectionMode: 'random', state: 'closed' }, select: { id: true } })
+    const draws = await api(owner, 'GET', `/api/registration-periods/${period.id}/draws`)
+    expect(draws.status, JSON.stringify(draws.body)).toBe(200)
+    expect(JSON.stringify(draws.body)).toContain('graine-du-jeu-de-test')
+
+    const draw = await prisma.registrationDraw.findFirstOrThrow({ where: { periodId: period.id }, select: { id: true } })
+    const retained = await prisma.registration.count({ where: { periodId: period.id, status: 'retained' } })
+    expect(retained).toBe(6)
+    const cancelled = await api(owner, 'POST', `/api/registration-draws/${draw.id}/cancel`)
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+    expect(await prisma.registration.count({ where: { periodId: period.id, status: 'retained' } })).toBe(0)
+  })
+
+  it('donne des repères de qualité et une estimation sur le questionnaire', async () => {
+    const quality = await api(owner, 'GET', `/api/games/${meridian}/registration-form-quality`)
+    expect(quality.status, JSON.stringify(quality.body)).toBe(200)
+    const body = bodyOf<ApiResponse<'/api/games/:id/registration-form-quality'>>(quality)
+    expect(body.hasAnswers).toBe(true)
+    expect(body.respondentCount).toBeGreaterThanOrEqual(40)
+    expect(body.characterCount).toBe(6)
+    expect(body.estimate).not.toBeNull()
+    expect(body.drafting.questions.length).toBeGreaterThan(0)
+    for (const kind of ['dominantAnswer', 'duplicateQuestions', 'indistinctCharacters']) {
+      expect(body.findings.map((finding) => finding.kind)).toContain(kind)
+    }
+  })
+
+  it('propose une distribution avec l\'assistant de casting', async () => {
+    const session = await prisma.session.findFirstOrThrow({ where: { gameId: meridian, name: { contains: 'à la main' } }, select: { id: true } })
+    const casting = await api(owner, 'POST', `/api/sessions/${session.id}/casting-assistant`, { assignments: [] })
+    expect(casting.status, JSON.stringify(casting.body)).toBe(200)
+    expect(JSON.stringify(casting.body)).toContain('Lucie')
+  })
+
+  it('montre à Camille une session à venir et une inscription en cours dans deux jeux', async () => {
+    const account = await prisma.user.findUniqueOrThrow({ where: { email: 'meridian-proprietaire+camille.bernard@example.test' }, select: { id: true } })
+    const space = await api(account, 'GET', '/api/me/participations')
+    expect(space.status, JSON.stringify(space.body)).toBe(200)
+    const text = JSON.stringify(space.body)
+    expect(text).toContain('Station Meridian')
+    expect(text).toContain('Les Cendres de Valombre')
+  })
+
+  it('donne à Inès ses jeux partagés, et lui refuse le troisième', async () => {
+    const ines = await prisma.user.findUniqueOrThrow({ where: { email: 'meridian-proprietaire+ines.lefevre@example.test' }, select: { id: true } })
+    expect((await api(ines, 'GET', `/api/games/${meridian}`)).status).toBe(200)
+    expect((await api(ines, 'GET', '/api/games/jeu-test-valombre')).status).toBe(200)
+    expect([403, 404]).toContain((await api(ines, 'GET', '/api/games/jeu-test-bal')).status)
+  })
+
+  it('montre à chacune sa décision annoncée, jamais une décision non annoncée', async () => {
+    const spaceOf = async (localPart: string) => {
+      const account = await prisma.user.findUniqueOrThrow({ where: { email: `meridian-proprietaire+${localPart}@example.test` }, select: { id: true } })
+      return JSON.stringify((await api(account, 'GET', '/api/me/participations')).body)
+    }
+    expect(await spaceOf('lucie.moreau')).toContain('retained')
+    expect(await spaceOf('camille.bernard')).not.toContain('retained')
   })
 })
 
