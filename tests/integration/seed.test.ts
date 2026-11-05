@@ -27,6 +27,11 @@ function runSeed(env: Record<string, string> = { SEED_ALLOW_ERASE: '1', SEED_EMA
   return { status: run.status, output: `${run.stdout}${run.stderr}` }
 }
 
+async function removeSeedGames() {
+  await prisma.participant.deleteMany({ where: { gameLinks: { some: { gameId: { in: GAME_IDS } } } } })
+  await prisma.game.deleteMany({ where: { OR: [{ id: { in: GAME_IDS } }, { copiedFromGameId: { in: GAME_IDS } }] } })
+}
+
 function expectSuccess(run: ReturnType<typeof runSeed>) {
   expect(run.status, run.output).toBe(0)
 }
@@ -50,8 +55,7 @@ describe('rechargement des jeux de test', () => {
   })
 
   afterAll(async () => {
-    await prisma.participant.deleteMany({ where: { gameLinks: { some: { gameId: { in: GAME_IDS } } } } })
-    await prisma.game.deleteMany({ where: { id: { in: GAME_IDS } } })
+    await removeSeedGames()
     await prisma.user.deleteMany({ where: { email: { startsWith: 'seed-proprietaire' } } })
     await prisma.user.deleteMany({ where: { email: { in: ['ines.lefevre@example.test', 'camille.bernard@example.test', 'lucie.moreau@example.test'] } } })
   })
@@ -261,8 +265,7 @@ describe('Station Meridian, avant les sessions', () => {
   })
 
   afterAll(async () => {
-    await prisma.participant.deleteMany({ where: { gameLinks: { some: { gameId: { in: GAME_IDS } } } } })
-    await prisma.game.deleteMany({ where: { id: { in: GAME_IDS } } })
+    await removeSeedGames()
     await prisma.user.deleteMany({ where: { email: { startsWith: 'meridian-proprietaire' } } })
   })
 
@@ -397,8 +400,7 @@ describe('Les Cendres de Valombre, session imminente', () => {
   })
 
   afterAll(async () => {
-    await prisma.participant.deleteMany({ where: { gameLinks: { some: { gameId: { in: GAME_IDS } } } } })
-    await prisma.game.deleteMany({ where: { id: { in: GAME_IDS } } })
+    await removeSeedGames()
     await prisma.user.deleteMany({ where: { email: { startsWith: 'valombre-proprietaire' } } })
   })
 
@@ -530,6 +532,111 @@ describe('Les Cendres de Valombre, session imminente', () => {
     const game = await prisma.game.findUniqueOrThrow({ where: { id: valombre }, select: { aiForCoorganizers: true } })
     expect(game.aiForCoorganizers).toBe(true)
     expect((await api(await accountOf('ines.lefevre'), 'GET', `/api/sessions/${sessionId}/payments`)).status).toBe(200)
+  })
+})
+
+describe('Le Bal des Masques Brisés, après et imprévus', () => {
+  const bal = 'jeu-test-bal'
+  let owner: { id: string }
+  const OWNER_EMAIL = 'bal-proprietaire@example.test'
+  const reload = () => expectSuccess(runSeed({ SEED_ALLOW_ERASE: '1', SEED_EMAIL: OWNER_EMAIL, SEED_PASSWORD: PASSWORD }))
+  const sessionNamed = (name: string) => prisma.session.findFirstOrThrow({ where: { gameId: bal, name: { contains: name } }, select: { id: true, status: true, postponedToSessionId: true } })
+
+  beforeAll(async () => {
+    owner = await prisma.user.create({ data: { email: OWNER_EMAIL, name: 'Propriétaire', password: await bcrypt.hash(PASSWORD, 4) } })
+    reload()
+  })
+
+  afterAll(async () => {
+    await removeSeedGames()
+    await prisma.user.deleteMany({ where: { email: { startsWith: 'bal-proprietaire' } } })
+  })
+
+  it('a une session terminée récente, avec son casting et ses photos', async () => {
+    const session = await prisma.session.findFirstOrThrow({ where: { gameId: bal, status: 'completed' }, select: { date: true, assignments: { select: { photoUrl: true } } } })
+    expect(session.date!.getTime()).toBeLessThan(Date.now())
+    expect(session.date!.getTime()).toBeGreaterThan(Date.now() - 120 * 86_400_000)
+    expect(session.assignments.every((row) => row.photoUrl)).toBe(true)
+  })
+
+  it('lit les remboursements d\'une session annulée', async () => {
+    const session = await sessionNamed('annulée')
+    expect(session.status).toBe('cancelled')
+    const body = bodyOf<ApiResponse<'/api/sessions/:id/payments'>>(await api(owner, 'GET', `/api/sessions/${session.id}/payments`))
+    expect(body.refunds.map((row) => row.refundStatus).sort()).toEqual(['refunded', 'to_refund'])
+    expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id } })).toBe(2)
+  })
+
+  it('renvoie une session reportée à sa nouvelle session, avec un paiement reporté', async () => {
+    const session = await sessionNamed('Session reportée')
+    expect(session.status).toBe('postponed')
+    const replacement = await sessionNamed('remplacement')
+    expect(session.postponedToSessionId).toBe(replacement.id)
+    const body = bodyOf<ApiResponse<'/api/sessions/:id/payments'>>(await api(owner, 'GET', `/api/sessions/${session.id}/payments`))
+    expect(body.refunds.map((row) => row.refundStatus).sort()).toEqual(['carried_over', 'to_refund'])
+    expect(await prisma.sessionPayment.count({ where: { sessionId: session.id, carriedOverToSessionId: replacement.id } })).toBe(1)
+  })
+
+  it('a un refus de photo, et la durée de conservation du jeu', async () => {
+    expect(await prisma.participant.count({ where: { photoRefusedAt: { not: null }, gameLinks: { some: { gameId: bal } } } })).toBe(1)
+    const game = await prisma.game.findUniqueOrThrow({ where: { id: bal }, select: { photoRetentionMonths: true } })
+    expect(game.photoRetentionMonths).toBeGreaterThan(0)
+  })
+
+  it('montre à Lucie la session terminée, et la version actuelle du document reçu', async () => {
+    const lucie = await prisma.user.findUniqueOrThrow({ where: { email: 'bal-proprietaire+lucie.moreau@example.test' }, select: { id: true } })
+    const space = await api(lucie, 'GET', '/api/me/participations')
+    expect(JSON.stringify(space.body)).toContain('Session archive')
+    const delivery = await prisma.sessionDocumentDelivery.findFirstOrThrow({ where: { participant: { email: 'bal-proprietaire+lucie.moreau@example.test' }, session: { gameId: bal } }, select: { id: true } })
+    const read = await api(lucie, 'GET', `/api/me/documents/${delivery.id}`)
+    expect(read.status, JSON.stringify(read.body)).toBe(200)
+    expect(bodyOf<{ source: string | null }>(read).source).toBe('current')
+  })
+
+  it('garde le contenu d\'origine, dont l\'intrigue sans rattachement', async () => {
+    const orphan = await prisma.intrigue.findFirstOrThrow({ where: { gameId: bal, name: 'Le billet non signé' }, select: { characters: { select: { id: true } }, factions: { select: { id: true } } } })
+    expect(orphan).toEqual({ characters: [], factions: [] })
+    expect(await prisma.character.count({ where: { gameId: bal } })).toBe(8)
+  })
+
+  it('a un legs en attente que l\'application liste et sait renvoyer, et qu\'un rechargement remplace', async () => {
+    const list = await api(owner, 'GET', `/api/games/${bal}/bequests`)
+    expect(list.status, JSON.stringify(list.body)).toBe(200)
+    const [bequest] = bodyOf<ApiResponse<'/api/games/:id/bequests'>>(list)
+    expect(bequest!.email).toBe('bal-proprietaire+manon.richard@example.test')
+    const pending = await prisma.game.findFirstOrThrow({
+      where: { copiedFromGameId: bal, bequestPending: true },
+      select: { creditAuthorName: true, _count: { select: { characters: true, documents: true } } }
+    })
+    expect(pending.creditAuthorName).toBe('Propriétaire')
+    expect(pending._count.characters).toBeGreaterThan(0)
+    expect(pending._count.documents).toBeGreaterThan(0)
+
+    const smtp = await startTestSmtp(prisma)
+    try {
+      const resent = await api(owner, 'POST', `/api/games/${bal}/bequests/${bequest!.id}/resend`)
+      expect(resent.status, JSON.stringify(resent.body)).toBe(200)
+      expect(smtp.received.map((email) => email.to).flat()).toEqual(['bal-proprietaire+manon.richard@example.test'])
+    } finally {
+      await smtp.stop()
+    }
+
+    const before = await prisma.game.findFirstOrThrow({ where: { copiedFromGameId: bal, bequestPending: true }, select: { createdAt: true } })
+    reload()
+    const copies = await prisma.game.findMany({ where: { copiedFromGameId: bal, bequestPending: true }, select: { createdAt: true } })
+    expect(copies).toHaveLength(1)
+    expect(copies[0]!.createdAt.getTime()).toBeGreaterThan(before.createdAt.getTime())
+
+    // Une copie acceptée garde son adresse de page, et le rechargement suivant réussit quand même
+    await prisma.game.updateMany({ where: { copiedFromGameId: bal, bequestPending: true }, data: { bequestPending: false, ownerId: owner.id } })
+    reload()
+    expect(await prisma.game.count({ where: { slug: { startsWith: 'le-bal-des-masques-brises-copie-leguee' } } })).toBe(2)
+
+    // Seule la copie numérotée reste : la suivante prend une adresse libre
+    await prisma.game.deleteMany({ where: { slug: 'le-bal-des-masques-brises-copie-leguee' } })
+    await prisma.game.updateMany({ where: { copiedFromGameId: bal, bequestPending: true }, data: { bequestPending: false, ownerId: owner.id } })
+    reload()
+    await prisma.game.deleteMany({ where: { slug: { startsWith: 'le-bal-des-masques-brises-copie-leguee' } } })
   })
 })
 

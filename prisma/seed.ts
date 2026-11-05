@@ -7,6 +7,7 @@ import { prisma } from '../server/utils/prisma'
 import { collectUploadUrls, deleteUnusedUploads, uploadDir, UPLOAD_DIRS } from '../server/utils/uploads'
 import { TERMS_VERSION } from '../utils/legal'
 import { PHOTO_UPLOAD_PREFIX } from '../utils/urls'
+import { BAL_EXTRA_PEOPLE, createBalStage } from './seed/bal'
 import type { Db, StageContext } from './seed/db'
 import { createMeridianStage, MERIDIAN_EXTRA_PEOPLE } from './seed/meridian'
 import { daysFromNow, personAddress, readSeedOptions, type SeedOptions } from './seed/options'
@@ -71,7 +72,7 @@ type GameSeed = {
   // Identifiant fixe : un jeu renommé reste reconnu, et le jeu d'une autre personne n'est jamais pris pour lui (ADR-0066)
   id: string
   // L'étape de la vie d'un jeu que ce jeu montre, avec ses sessions à venir (ADR-0066)
-  createStage?: (db: Db, context: StageContext) => Promise<void>
+  createStage: (db: Db, context: StageContext) => Promise<void>
   title: string
   description: string
   noteIntention: string
@@ -334,6 +335,7 @@ const games: GameSeed[] = [
   },
   {
     id: 'jeu-test-bal',
+    createStage: createBalStage,
     title: 'Le Bal des Masques Brisés',
     description: 'Une soirée mondaine où chaque invité cache une dette, une trahison ou une identité empruntée.',
     noteIntention: 'Favoriser le jeu social, les retournements publics et les révélations progressives.',
@@ -404,7 +406,8 @@ const games: GameSeed[] = [
       { name: 'Jeanne Giraud', email: 'jeanne.giraud@example.test', phone: '06 33 44 55 07' },
       { name: 'Louis Lambert', email: 'louis.lambert@example.test', phone: '06 33 44 55 08' },
       { name: 'Anaïs Vidal', email: 'anais.vidal@example.test', phone: '06 33 44 55 09' },
-      { name: 'Pierre Moulin', email: 'pierre.moulin@example.test', phone: '06 33 44 55 10' }
+      { name: 'Pierre Moulin', email: 'pierre.moulin@example.test', phone: '06 33 44 55 10' },
+      ...BAL_EXTRA_PEOPLE
     ],
     locations: [
       {
@@ -910,20 +913,19 @@ async function createGame(
 
   // Seules les personnes qui reçoivent un rôle ont une photo : 6 PJ et 2 PNJ (voir createSessions)
   const participantPhotos = await createParticipantPhotos(game.id, participants.filter((_, index) => index < 6 || index === 8 || index === 9), gameIndex)
-  await createSessions(game.id, seed.title, gameIndex, characters, participants, locations, participantPhotos, Boolean(seed.createStage))
-  if (seed.createStage) {
-    await seed.createStage(db, {
-      gameId: game.id,
-      title: seed.title,
-      ownerId,
-      locationId: locations[0]?.id,
-      characters,
-      photos: participantPhotos,
-      people: new Map(seed.participants.map((participant, index) => [participant.email, participants[index]!])),
-      profiles: new Map(TEST_ACCOUNTS.map((account) => [account.email, account])),
-      makeSlug
-    })
-  }
+  await createArchiveSession(game.id, seed.title, characters, participants, locations, participantPhotos)
+  await seed.createStage(db, {
+    gameId: game.id,
+    title: seed.title,
+    ownerId,
+    locationId: locations[0]?.id,
+    characters,
+    photos: participantPhotos,
+    people: new Map(seed.participants.map((participant, index) => [participant.email, participants[index]!])),
+    profiles: new Map(TEST_ACCOUNTS.map((account) => [account.email, account])),
+    makeSlug,
+    address: (email) => personAddress(email, options.ownerEmail)
+  })
 
   console.log(`${seed.title} : ${characters.length} personnages, ${participants.length} participants.`)
 
@@ -1126,132 +1128,50 @@ async function createCrossGameParticipants(gameIds: string[]) {
   })
 }
 
-async function createSessions(
+// La session terminée, commune aux trois jeux. Le reste vient de l'étape de chaque jeu.
+async function createArchiveSession(
   gameId: string,
   gameTitle: string,
-  gameIndex: number,
   characters: Array<{ id: string, name: string, type: string }>,
   participants: Array<{ id: string, name: string }>,
   locations: Array<{ id: string, name: string }>,
-  participantPhotos: Map<string, string>,
-  pastSessionOnly: boolean
+  participantPhotos: Map<string, string>
 ) {
-  const pastDate = daysFromNow(-60)
-  const firstDate = daysFromNow(10 + 35 * gameIndex)
-  const secondDate = daysFromNow(75 + 5 * gameIndex)
   const pjCharacters = characters.filter((character) => character.type !== 'pnj')
   const pnjCharacters = characters.filter((character) => character.type === 'pnj')
-  const organizer = participants[8]
-  const sessionPnj = participants[9]
-  const kitchen = participants[7]
-  const fixedSessionRoles = [
-    organizer ? { participantId: organizer.id, role: 'organizer' } : null,
-    sessionPnj ? { participantId: sessionPnj.id, role: 'npc' } : null,
-    kitchen ? { participantId: kitchen.id, role: 'kitchen' } : null
-  ].filter((role): role is { participantId: string, role: string } => Boolean(role))
+  const organizer = participants[8]!
+  const sessionPnj = participants[9]!
+  const kitchen = participants[7]!
 
-  const sessionParticipantsFor = (
-    assignments: Array<{ character: { type: string }, participantId: string | null }>
-  ) => {
-    const roles = new Map<string, { participantId: string, role: string }>()
-    for (const role of fixedSessionRoles) {
-      roles.set(`${role.participantId}:${role.role}`, role)
-    }
-
-    for (const assignment of assignments) {
-      if (!assignment.participantId) continue
-
-      const hasSessionRole = fixedSessionRoles.some((role) => role.participantId === assignment.participantId)
-      if (hasSessionRole) continue
-
-      const role = assignment.character.type === 'pnj' ? 'npc' : 'participant'
-      roles.set(`${assignment.participantId}:${role}`, { participantId: assignment.participantId, role })
-    }
-    return [...roles.values()]
-  }
-
-  const buildAssignments = (assignedPjCount: number, assignedPnjCount: number) => [
-    ...pjCharacters.map((character, index) => ({
-      character,
-      characterId: character.id,
-      participantId: index < assignedPjCount ? participants[index]?.id || null : null,
-      photoUrl: index < assignedPjCount && participants[index]?.id ? participantPhotos.get(participants[index].id) || null : null,
-      notes: index === 0 ? 'Brief participant à vérifier avant impression.' : null
-    })),
-    ...pnjCharacters.map((character, index) => ({
-      character,
-      characterId: character.id,
-      participantId: index < assignedPnjCount
-        ? [organizer?.id, sessionPnj?.id][index] || null
-        : null,
-      photoUrl: index < assignedPnjCount
-        ? participantPhotos.get(([organizer?.id, sessionPnj?.id][index] || '')) || null
-        : null,
-      notes: index === 0 ? 'Rôle PNJ attribué à l’équipe de session.' : null
-    }))
+  const assignments = [
+    ...pjCharacters.map((character, index) => ({ character, participant: participants[index]! })),
+    ...pnjCharacters.map((character, index) => ({ character, participant: [organizer, sessionPnj][index]! }))
   ]
-
-  const pastAssignments = buildAssignments(pjCharacters.length, pnjCharacters.length).map((assignment, index) => ({
-    ...assignment,
-    notes: index === 0 ? 'Session passée complète utilisée pour tester les statistiques.' : assignment.notes
-  }))
+  const players = pjCharacters.map((_, index) => participants[index]!)
 
   await db.session.create({
     data: {
       name: `${gameTitle} - Session archive`,
       slug: makeSlug(`${gameTitle}-session-archive`),
-      date: pastDate,
+      date: daysFromNow(-60),
       gameId,
       locationId: locations[0]?.id,
       status: 'completed',
       published: true,
       participants: {
-        create: sessionParticipantsFor(pastAssignments)
+        create: [
+          { participantId: organizer.id, role: 'organizer' },
+          { participantId: sessionPnj.id, role: 'npc' },
+          { participantId: kitchen.id, role: 'kitchen' },
+          ...players.map((player) => ({ participantId: player.id, role: 'participant' }))
+        ]
       },
       assignments: {
-        create: pastAssignments.map(({ character, ...assignment }) => assignment)
-      }
-    }
-  })
-
-  if (pastSessionOnly) return
-
-  const firstAssignments = buildAssignments(Math.max(0, pjCharacters.length - 2), 1)
-
-  await db.session.create({
-    data: {
-      name: `${gameTitle} - Session alpha`,
-      slug: makeSlug(`${gameTitle}-session-alpha`),
-      date: firstDate,
-      gameId,
-      locationId: locations[0]?.id,
-      status: 'scheduled',
-      published: true,
-      participants: {
-        create: sessionParticipantsFor(firstAssignments)
-      },
-      assignments: {
-        create: firstAssignments.map(({ character, ...assignment }) => assignment)
-      }
-    }
-  })
-
-  const secondAssignments = buildAssignments(Math.max(0, pjCharacters.length - 1), 0)
-
-  await db.session.create({
-    data: {
-      name: `${gameTitle} - Session beta`,
-      slug: makeSlug(`${gameTitle}-session-beta`),
-      date: secondDate,
-      gameId,
-      locationId: locations[1]?.id,
-      status: 'postponed',
-      published: true,
-      participants: {
-        create: sessionParticipantsFor(secondAssignments)
-      },
-      assignments: {
-        create: secondAssignments.map(({ character, ...assignment }) => assignment)
+        create: assignments.map(({ character, participant }) => ({
+          characterId: character.id,
+          participantId: participant.id,
+          photoUrl: participantPhotos.get(participant.id) ?? null
+        }))
       }
     }
   })
