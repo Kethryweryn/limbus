@@ -8,7 +8,7 @@ statut: en cours
 
 L'ordre dans lequel on mène les chantiers, et pourquoi. Chaque étape suit le cycle habituel ([README](README.md)) : fiche, spec, epic et US. On met ce document à jour quand une étape se termine, ou quand l'ordre change.
 
-Le principe : rien n'est encore réellement utilisé en production, donc la sécurité n'est pas prioritaire. On finit d'abord ce qui existe, puis on construit les grosses fonctionnalités, qui ont le plus de valeur pour un GN, et on pose les fondations de sécurité et d'exploitation juste avant d'ouvrir Limbus à tout le monde.
+Le principe : rien n'est encore réellement utilisé en production, donc la sécurité n'est pas prioritaire. On finit d'abord ce qui existe, puis on construit les grosses fonctionnalités, qui ont le plus de valeur pour un GN, et on pose les fondations de sécurité et d'exploitation. Ce document ordonne les chantiers ; il ne fixe ni la date ni les conditions de l'ouverture de Limbus, que décide l'utilisatrice.
 
 ## Fait
 
@@ -65,7 +65,7 @@ La fiche [Un compte pour tout le monde](archive/todo/comptes-participants.md), t
 
 Elle passe avant la suite des inscriptions : le formulaire public devra rattacher une personne à son compte.
 
-Fusionner, c'est mettre en production : l'inscription libre (lot 2) reste fermée en production jusqu'à l'étape 5, qui l'ouvre avec les conditions d'utilisation et la politique de confidentialité que demande la fiche. L'effacement depuis le compte (lot 6) prévoit la durée de conservation, tranchée à l'étape 5, sans la figer.
+Fusionner, c'est mettre en production : l'inscription libre (lot 2) reste fermée en production tant que l'utilisatrice ne décide pas de l'ouvrir. Les conditions d'utilisation et la politique de confidentialité que demande la fiche sont à l'étape 5. L'effacement depuis le compte (lot 6) prévoit la durée de conservation, tranchée à l'étape 5, sans la figer.
 
 ## 4. Suite des inscriptions et du casting
 
@@ -79,18 +79,18 @@ Les lots 2 à 6 de [SPEC-001](specs/SPEC-001-inscriptions.md), un epic chacun (l
 
 Puis la [qualité du questionnaire de casting](specs/SPEC-015-qualite-du-questionnaire.md), en trois lots, faits : repères sur les liens ([EPIC-037](archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md)), repères sur les réponses ([EPIC-039](archive/epics/EPIC-039-qualite-du-questionnaire-reponses/README.md)), estimation générale ([EPIC-040](archive/epics/EPIC-040-qualite-du-questionnaire-estimation/README.md)). Ensuite, l'[aide à la conception du questionnaire](specs/SPEC-016-conception-du-questionnaire.md), en trois lots, faits : essai par l'équipe ([EPIC-038](archive/epics/EPIC-038-essai-du-questionnaire/README.md)), prévision ([EPIC-041](archive/epics/EPIC-041-prevision-du-questionnaire/README.md)), relecture et mélange des options ([EPIC-042](archive/epics/EPIC-042-relecture-et-melange-du-questionnaire/README.md)).
 
-## 5. Fondations avant d'ouvrir Limbus
+## 5. Fondations de sécurité et d'exploitation
 
-L'inscription libre fera venir des personnes inconnues, avec leurs données. Avant de l'ouvrir en production et d'annoncer l'ouverture :
+L'inscription libre, une fois ouverte, fera venir des personnes inconnues, avec leurs données. Ces chantiers s'y préparent, sans décider de son ouverture :
 
 1. [Photos et RGPD](archive/todo/photos-et-rgpd.md) : information des personnes et durée de conservation. Fait ([SPEC-012](specs/SPEC-012-photos-des-participants.md), [EPIC-028](archive/epics/EPIC-028-photos-des-participants/README.md)) : information sans accord préalable, choix de l'utilisatrice, à revoir après l'avis d'un juriste.
 2. [Durcissement web](todo/durcissement-web.md) : CSP, origine des écritures, cookie. Fait ([EPIC-027](archive/epics/EPIC-027-durcissement-web/README.md)), la CSP en mode rapport ; reste à la rendre bloquante après une semaine de rapports.
 3. [Supervision](todo/supervision.md) : être alerté quand le site tombe. Fait : page de santé ([EPIC-026](archive/epics/EPIC-026-supervision/README.md)) et sondes Better Stack ; les journaux structurés attendront un besoin.
-4. Conditions d'utilisation et politique de confidentialité ([fiche des comptes](archive/todo/comptes-participants.md)), puis ouverture de l'inscription libre ([SPEC-013](specs/SPEC-013-pages-legales-et-conservation.md)). Pages, acceptation et durées de conservation faites ([EPIC-029](archive/epics/EPIC-029-pages-legales/README.md), [EPIC-030](archive/epics/EPIC-030-durees-de-conservation/README.md)) ; reste l'ouverture (`SIGNUP_OPEN=1`, réglage du serveur).
+4. Conditions d'utilisation et politique de confidentialité ([fiche des comptes](archive/todo/comptes-participants.md), [SPEC-013](specs/SPEC-013-pages-legales-et-conservation.md)). Pages, acceptation et durées de conservation faites ([EPIC-029](archive/epics/EPIC-029-pages-legales/README.md), [EPIC-030](archive/epics/EPIC-030-durees-de-conservation/README.md)) . L'inscription libre s'ouvre par un réglage du serveur (`SIGNUP_OPEN=1`), quand l'utilisatrice le décide.
 
-## 6. Première version publique
+## 6. Numéros et notes de version
 
-La fiche [Numéros de version et notes de version](todo/versions-et-notes-de-version.md) : publier la 1.0.0 et ses notes, puis annoncer l'ouverture.
+La fiche [Numéros de version et notes de version](todo/versions-et-notes-de-version.md), à trancher, moment de la première version compris.
 
 ## Sans dépendance forte
 
