@@ -1,10 +1,10 @@
 ---
 id: SPEC-007
 titre: Participants et données personnelles
-statut: validée
+statut: implémentée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
-epics: [EPIC-007]
+epics: [EPIC-007, EPIC-014, EPIC-016]
 adr: [ADR-0007, ADR-0008]
 ---
 

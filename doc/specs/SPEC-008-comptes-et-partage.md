@@ -1,10 +1,10 @@
 ---
 id: SPEC-008
 titre: Comptes et partage d'un jeu
-statut: validée
+statut: implémentée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
-epics: [EPIC-008, EPIC-012]
+epics: [EPIC-008, EPIC-012, EPIC-013]
 adr: [ADR-0006, ADR-0007, ADR-0018]
 ---
 

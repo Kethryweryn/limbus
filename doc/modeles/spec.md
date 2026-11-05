@@ -1,7 +1,7 @@
 ---
 id: SPEC-NNN
 titre: Titre
-statut: validée # validée | en cours | implémentée
+statut: validée # validée | en cours (premier epic commencé) | implémentée (tous ses epics archivés)
 date: AAAA-MM-JJ
 origine: ../archive/todo/slug.md
 epics: []

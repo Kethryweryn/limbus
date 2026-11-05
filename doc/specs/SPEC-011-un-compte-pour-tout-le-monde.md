@@ -1,10 +1,10 @@
 ---
 id: SPEC-011
 titre: Un compte pour tout le monde, organiser et participer
-statut: validée
+statut: implémentée
 date: 2026-10-29
 origine: ../archive/todo/comptes-participants.md
-epics: [EPIC-012, EPIC-013, EPIC-014, EPIC-015, EPIC-016, EPIC-017]
+epics: [EPIC-012, EPIC-013, EPIC-014, EPIC-015, EPIC-016, EPIC-017, EPIC-018]
 adr: [ADR-0006, ADR-0007, ADR-0038, ADR-0039, ADR-0040, ADR-0041, ADR-0042, ADR-0043]
 ---
 

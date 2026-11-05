@@ -1,10 +1,10 @@
 ---
 id: SPEC-009
 titre: Page publique d'un jeu
-statut: validée
+statut: implémentée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
-epics: [EPIC-009]
+epics: [EPIC-009, EPIC-020]
 adr: [ADR-0007]
 ---
 

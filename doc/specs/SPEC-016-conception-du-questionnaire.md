@@ -1,7 +1,7 @@
 ---
 id: SPEC-016
 titre: Aide à la conception du questionnaire de casting
-statut: validée
+statut: implémentée
 date: 2026-11-03
 origine: ../archive/todo/aide-a-la-conception-du-questionnaire.md
 epics: [EPIC-038, EPIC-041, EPIC-042]

@@ -1,16 +1,16 @@
 ---
 id: SPEC-003
 titre: Écriture d'un jeu
-statut: validée
+statut: implémentée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
-epics: []
+epics: [EPIC-003]
 adr: [ADR-0007, ADR-0008]
 ---
 
 # SPEC-003 : Écriture d'un jeu
 
-Cette spec décrit un comportement déjà en production, avant la reprise du développement ([Documentation de l'existant](../archive/todo/documentation-de-l-existant.md)). Elle n'a ni epic ni US. Les écarts constatés entre le code et l'intention sont listés à la fin, sans être corrigés.
+Cette spec décrit un comportement déjà en production, avant la reprise du développement ([Documentation de l'existant](../archive/todo/documentation-de-l-existant.md)). Les écarts constatés entre le code et l'intention, listés à la fin, sont corrigés par [EPIC-003](../archive/epics/EPIC-003-ecarts-ecriture-d-un-jeu/README.md).
 
 ## Objectif
 
