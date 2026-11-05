@@ -98,7 +98,7 @@ Les personnes inscrites ne voient que l'ordre mélangé des options.
 ## Découpage
 
 1. **Essai par l'équipe** ([EPIC-038](../archive/epics/EPIC-038-essai-du-questionnaire/README.md)) : R1 à R3, hors mélange des options, qui vient avec R13. Fait.
-2. **Prévision** ([EPIC-041](../epics/EPIC-041-prevision-du-questionnaire/README.md)) : R4 à R10.
+2. **Prévision** ([EPIC-041](../archive/epics/EPIC-041-prevision-du-questionnaire/README.md)) : R4 à R10. Fait.
 3. **Relecture et mélange** : R11 à R13, et le mélange des options dans l'essai (R1).
 
 Le lot 1 de SPEC-015 ([EPIC-037](../archive/epics/EPIC-037-qualite-du-questionnaire-liens/README.md)) crée l'encadré et sa route, dont l'essai et la prévision lisent les personnages PJ : il passe avant.
@@ -121,3 +121,4 @@ Le lot 1 de SPEC-015 ([EPIC-037](../archive/epics/EPIC-037-qualite-du-questionna
 - 2026-11-04, choix de l'utilisatrice pour le lot 2 :
   - proportions saisies dans un volet replié sous chaque question reliée ;
   - partie « Prévision » dépliée tant qu'aucune réponse n'est reçue, repliée ensuite.
+- 2026-11-05 : lot 2 livré ([EPIC-041](../archive/epics/EPIC-041-prevision-du-questionnaire/README.md), PR #135).

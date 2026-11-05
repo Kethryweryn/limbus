@@ -31,3 +31,4 @@ En tant qu'organisatrice, je veux voir ce que donnerait une inscription typique,
 
 - Unitaires : les points additionnés égalent `castingScore` ; même entrée, même résultat, quel que soit l'ordre des liens ou des personnages ; un changement de proportions change le résultat ; niveaux à la médiane ; personnage peu ou trop demandé ; personnage sans lien écarté ; proportions (0 %, 100 %) respectées. La durée pour 60 personnages se mesure à la main : un seuil de temps serait instable en CI.
 - Bout en bout : le Web Worker tourne malgré la CSP, et la prévision change une fois des proportions enregistrées.
+- Non couvert : le message « Impossible de calculer la prévision. » n'est testé que dans son absence ; le chemin d'échec n'a pas été provoqué.

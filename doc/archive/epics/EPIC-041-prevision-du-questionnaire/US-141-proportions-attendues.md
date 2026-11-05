@@ -32,4 +32,4 @@ En tant qu'organisatrice, je veux indiquer la part de joueurs que j'attends pour
 
 - Unitaires : `gameCopy` classe tous les champs du nouveau modèle.
 - Intégration : aller-retour, 400 (option inconnue, parts toutes nulles), 409 sur une version périmée, y compris après une liste vidée, ligne d'une option disparue ignorée, copie du jeu ; `isolation.test.ts` avec témoin positif.
-- Bout en bout : saisir des proportions, enregistrer sans les changer sans les réécrire, renommer une option, rouvrir et les retrouver.
+- Bout en bout : saisir des proportions ; enregistrer sans les changer, et vérifier que leurs lignes ne sont pas réécrites ; renommer une option ; rouvrir et les retrouver.
