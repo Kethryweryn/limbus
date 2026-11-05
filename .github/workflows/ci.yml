@@ -97,11 +97,16 @@ jobs:
       DATABASE_URL: postgresql://limbus@localhost:5432/limbus
       PUBLIC_APP_URL: https://limbuslarp.fr
     steps:
+      # Tout l'historique : les dates des notes de « Nouveautés » en viennent (ADR-0065)
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/dependances
-      - run: npm run build
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - run: NOUVEAUTES_DEPOT="$GITHUB_WORKSPACE" npm run build
+        env:
+          NOUVEAUTES_PR: ${{ github.event.number }}
       - run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git rev-parse 'HEAD^{tree}' > BUILD_TREE
           node --version > BUILD_NODE
           tar -czf limbus-build.tar.gz .output BUILD_TREE BUILD_NODE

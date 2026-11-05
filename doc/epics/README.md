@@ -50,6 +50,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-040](../archive/epics/EPIC-040-qualite-du-questionnaire-estimation/README.md) | Qualité du questionnaire, lot 3 : estimation générale | [SPEC-015](../specs/SPEC-015-qualite-du-questionnaire.md) | terminé |
 | [EPIC-041](../archive/epics/EPIC-041-prevision-du-questionnaire/README.md) | Aide à la conception du questionnaire, lot 2 : prévision | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | terminé |
 | [EPIC-042](../archive/epics/EPIC-042-relecture-et-melange-du-questionnaire/README.md) | Aide à la conception du questionnaire, lot 3 : relecture et mélange | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | terminé |
+| [EPIC-043](EPIC-043-nouveautes/README.md) | Nouveautés et numéro de déploiement | [SPEC-017](../specs/SPEC-017-nouveautes.md) | en cours |
 
 ## US
 
@@ -201,3 +202,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-144](../archive/epics/EPIC-042-relecture-et-melange-du-questionnaire/US-144-relecture-par-regles.md) | Voir les questions à relire | EPIC-042 | terminée |
 | [US-145](../archive/epics/EPIC-042-relecture-et-melange-du-questionnaire/US-145-consigne-relire-le-questionnaire.md) | Demander une relecture à mon assistant d'IA | EPIC-042 | terminée |
 | [US-146](../archive/epics/EPIC-042-relecture-et-melange-du-questionnaire/US-146-melange-des-options.md) | Mélanger l'ordre des options d'une question | EPIC-042 | terminée |
+| [US-147](EPIC-043-nouveautes/US-147-page-nouveautes.md) | Lire les nouveautés de Limbus | EPIC-043 | terminée |
+| [US-148](EPIC-043-nouveautes/US-148-numero-de-deploiement.md) | Donner le numéro du déploiement | EPIC-043 | terminée |
+| [US-149](EPIC-043-nouveautes/US-149-lien-du-menu.md) | Trouver les nouveautés dans le menu | EPIC-043 | terminée |

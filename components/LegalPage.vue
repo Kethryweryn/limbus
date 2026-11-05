@@ -5,7 +5,7 @@
       <header class="space-y-1">
         <NuxtLink to="/" class="text-sm text-primary hover:underline">Limbus</NuxtLink>
         <h1 class="text-2xl font-bold">{{ title }}</h1>
-        <p class="text-sm text-gray-500">Version du {{ TERMS_VERSION_LABEL }}</p>
+        <p v-if="!undated" class="text-sm text-gray-500">Version du {{ TERMS_VERSION_LABEL }}</p>
       </header>
       <div class="legal-text space-y-4 text-sm leading-relaxed text-gray-800">
         <slot />
@@ -18,7 +18,7 @@
 <script setup lang="ts">
 import { TERMS_VERSION_LABEL } from '~/utils/legal'
 
-defineProps<{ title: string }>()
+defineProps<{ title: string, undated?: boolean }>()
 </script>
 
 <style scoped>

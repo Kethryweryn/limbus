@@ -62,7 +62,7 @@ icon="i-heroicons-bars-3" color="neutral" variant="ghost" class="md:hidden"
                     />
                 </div>
 
-                <nav class="flex-1 p-3 space-y-5 overflow-y-auto">
+                <nav class="p-3 space-y-5 overflow-y-auto">
                     <div>
                         <SidebarLink
                             :item="dashboardLink"
@@ -79,6 +79,15 @@ icon="i-heroicons-bars-3" color="neutral" variant="ghost" class="md:hidden"
                         :is-active="isActive"
                     />
                 </nav>
+                <!-- Sous les entrées, pas au bas de la barre : elle s'étire avec le contenu de la page -->
+                <div class="border-t border-gray-100 p-3">
+                    <SidebarLink
+                        :item="releaseNotesLink"
+                        :collapsed="sidebarCollapsed"
+                        :active="isActive(releaseNotesLink.to)"
+                        small
+                    />
+                </div>
             </aside>
 
             <!-- Page content -->
@@ -132,6 +141,14 @@ icon="i-heroicons-bars-3" color="neutral" variant="ghost" class="md:hidden"
                             @navigate="mobileOpen = false"
                         />
                     </nav>
+                    <div class="border-t border-gray-100 pt-3">
+                        <SidebarLink
+                            :item="releaseNotesLink"
+                            :active="isActive(releaseNotesLink.to)"
+                            small
+                            @click="mobileOpen = false"
+                        />
+                    </div>
                 </div>
             </template>
         </USlideover>
@@ -144,6 +161,8 @@ import { rememberSpace, spaceOfPath } from '~/utils/spaces'
 import { navigateTo } from '#app'
 import { getOfflineQueue } from '~/utils/offlineSync'
 
+// Nouveautés (US-149) : plus petit et séparé du reste du menu
+const releaseNotesLink: NavLink = { label: 'Nouveautés', icon: 'i-heroicons-sparkles', to: '/nouveautes' }
 const route = useRoute()
 const sidebarCollapsed = ref(false)
 const mobileOpen = ref(false)

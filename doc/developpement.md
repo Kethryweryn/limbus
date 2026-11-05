@@ -31,6 +31,13 @@ Le seed efface les données métier de la base avant de recréer ses jeux de dé
 | `PUBLIC_APP_URL` | URL publique, obligatoire en production. Sert aux liens absolus dans les emails et PDF ; on ne se fie jamais aux en-têtes Host |
 | `SIGNUP_OPEN` | `1` ouvre l'inscription libre ([ADR-0039](adr/ADR-0039-comptes-en-libre-service.md)). Absente : fermée, l'écran de connexion ne propose pas de créer un compte |
 
+Au build seulement, pour la page « Nouveautés » ([ADR-0065](adr/ADR-0065-nouveautes-et-numero-de-deploiement.md)), posées par la CI et `deploy.sh` :
+
+| Variable | Rôle |
+|---|---|
+| `NOUVEAUTES_DEPOT` | Dépôt git où lire les dates des notes ; le build échoue si l'historique manque. Absente : les notes prennent le jour du build et le numéro de déploiement n'apparaît pas |
+| `NOUVEAUTES_PR` | Numéro de la pull request déployée. Absente : il est relu dans le titre du dernier commit |
+
 Le serveur SMTP se règle dans l'application (Administration → SMTP), pas par variable.
 
 ## Vérifications
