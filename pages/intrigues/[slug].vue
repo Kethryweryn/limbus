@@ -152,7 +152,7 @@ const { data: factions } = await useFetch('/api/factions')
 
 if (error.value) {
   handleApiAuthError(error.value)
-  throw createError({ statusCode: 404, message: 'Intrigue introuvable' })
+  throw createError({ fatal: true, statusCode: 404, message: 'Intrigue introuvable' })
 }
 
 type IntriguePage = NonNullable<typeof intrigue.value>

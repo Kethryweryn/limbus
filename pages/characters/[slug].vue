@@ -193,6 +193,7 @@ const { data: character, error, refresh } = await useOfflineFetch(`/api/characte
 if (error.value) {
     handleApiAuthError(error.value)
     throw createError({
+        fatal: true,
         statusCode: 404,
         message: isOfflineMissing(error.value)
             ? 'Cette fiche n’a pas été consultée avec le réseau sur cet appareil : elle n’est pas disponible hors ligne.'

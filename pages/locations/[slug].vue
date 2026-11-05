@@ -62,7 +62,7 @@ const { data: games } = await useFetch('/api/games')
 
 if (error.value) {
   handleApiAuthError(error.value)
-  throw createError({ statusCode: error.value.statusCode || 404, message: 'Lieu introuvable' })
+  throw createError({ fatal: true, statusCode: error.value.statusCode || 404, message: 'Lieu introuvable' })
 }
 
 const { isEditing, draft: editableLocation, startEdit, cancelEdit, closeAfterSave } = useSheetEdit<LocationDraft>(() => location.value ? { ...location.value } : null)

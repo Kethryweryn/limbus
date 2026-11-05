@@ -19,7 +19,7 @@ En tant que personne qui ouvre une page interdite ou absente, je veux un message
 
 ## Notes techniques
 
-`error.vue`.
+`error.vue`. Ces pages se rendent dans le navigateur, où une erreur n'ouvre la page d'erreur que si elle est `fatal: true` : c'était la cause de l'écran sans message, sur toutes les fiches.
 
 ## Tests
 

@@ -40,7 +40,7 @@ const route = useRoute()
 const { data, error } = await useFetch(`/api/public/games/${route.params.slug}`)
 
 if (error.value) {
-  throw createError({ statusCode: error.value.statusCode || 404, message: 'Jeu non publié' })
+  throw createError({ fatal: true, statusCode: error.value.statusCode || 404, message: 'Jeu non publié' })
 }
 // Ancienne adresse d'un jeu renommé : redirection permanente vers la nouvelle (US-045)
 // La réponse d'un jeu renommé ne porte que sa nouvelle adresse

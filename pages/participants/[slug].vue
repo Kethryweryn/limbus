@@ -129,7 +129,7 @@ async function setPhotoRefusal(refused: boolean) {
 
 if (error.value) {
   handleApiAuthError(error.value)
-  throw createError({ statusCode: error.value.statusCode || 404, message: 'Participant introuvable' })
+  throw createError({ fatal: true, statusCode: error.value.statusCode || 404, message: 'Participant introuvable' })
 }
 
 const { isEditing, draft: editableParticipant, startEdit, cancelEdit, closeAfterSave } = useSheetEdit(() => participant.value ? normalizeParticipantForForm(participant.value) : null)

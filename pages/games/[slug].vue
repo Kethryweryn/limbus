@@ -122,7 +122,7 @@ const { data: authState } = await useFetch('/api/auth/me')
 
 if (error.value) {
     handleApiAuthError(error.value)
-    throw createError({ statusCode: error.value.statusCode || 404, message: 'Jeu introuvable' })
+    throw createError({ fatal: true, statusCode: error.value.statusCode || 404, message: 'Jeu introuvable' })
 }
 
 const { selectGame, clearGame, game: currentGame } = useGameFocus()
