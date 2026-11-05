@@ -1,0 +1,5 @@
+{
+  "type": "corrige",
+  "titre": "Un message quand une page n’est pas accessible",
+  "texte": "Une page qui n’existe pas, ou à laquelle vous n’avez pas accès, l’indique maintenant clairement, avec un bouton pour revenir à l’accueil."
+}

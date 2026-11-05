@@ -143,8 +143,8 @@ useConnectionRefresh(updateDashboard)
 const { data: authState } = await useFetch('/api/auth/me')
 
 onMounted(() => {
-  const spaces = (authState.value as { spaces?: { organize: boolean, participate: boolean } } | null)?.spaces
-  if (spaces && initialSpace(spaces) === 'participate') {
+  const auth = authState.value as { spaces?: { organize: boolean, participate: boolean }, user?: { id: string } } | null
+  if (auth?.spaces && initialSpace(auth.spaces, auth.user?.id) === 'participate') {
     navigateTo('/participer', { replace: true })
     return
   }

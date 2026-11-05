@@ -59,6 +59,86 @@ test('qui organise et participe passe d’un espace à l’autre, et retrouve le
   }
 })
 
+// Cahier de tests, A4 : le choix d'un autre compte ne bloque pas, et « Organiser un GN » laisse un chemin de retour
+test('qui ne fait que participer n’est jamais bloquée côté organisation', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const email = `${uniqueName('participante').toLowerCase().replace(/[^a-z0-9]+/g, '-')}@example.test`
+    const user = await prisma.user.create({ data: { email, name: 'Participante e2e', password: 'non-utilise' } })
+    const { session, game } = await parcoursSession(prisma, 'Session d’une participante')
+    await prisma.participant.create({
+      data: {
+        name: 'Participante e2e',
+        slug: email.replace(/[^a-z0-9]+/g, '-'),
+        email,
+        userId: user.id,
+        gameLinks: { create: { gameId: game.id } },
+        sessionRoles: { create: { sessionId: session.id, role: 'participant' } }
+      }
+    })
+
+    // Une autre personne a utilisé l'organisation sur ce navigateur
+    await page.goto('/nouveautes')
+    await page.evaluate(() => localStorage.setItem('limbusSpace', 'autre-compte:organize'))
+    await signIn(page, prisma, email)
+    await expect(page).toHaveURL(/\/participer$/)
+    await expect(page.getByText(session.name)).toBeVisible()
+    await expect(page.getByRole('link', { name: 'J’organise' })).toBeHidden()
+
+    // Elle essaie d'organiser, puis revient
+    await page.getByRole('link', { name: 'Organiser un GN' }).first().click()
+    await expect(page).toHaveURL(/\/games$/)
+    await page.getByRole('link', { name: 'Je participe' }).click()
+    await expect(page).toHaveURL(/\/participer$/)
+    await expect(page.getByText(session.name)).toBeVisible()
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
+// Cahier de tests, A3 : un jeu inaccessible montre un message et un chemin de retour
+test('un jeu inaccessible affiche un message, et le bouton ramène à l’accueil', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const email = `${uniqueName('sans-acces').toLowerCase().replace(/[^a-z0-9]+/g, '-')}@example.test`
+    await prisma.user.create({ data: { email, name: 'Sans accès e2e', password: 'non-utilise' } })
+    const { game } = await parcoursSession(prisma, 'Session hors de portée')
+    const { slug } = await prisma.game.findUniqueOrThrow({ where: { id: game.id }, select: { slug: true } })
+
+    await signIn(page, prisma, email)
+    await page.goto(`/games/${slug}`)
+    await expect(page.getByRole('heading', { name: 'Page introuvable' })).toBeVisible()
+    await expect(page.getByText('Cette page n’existe pas, ou vous n’y avez pas accès.')).toBeVisible()
+    await page.getByRole('button', { name: 'Retour à l’accueil' }).click()
+    await expect(page.getByRole('heading', { name: 'Page introuvable' })).toBeHidden()
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
+// Cahier de tests, A1 : le jeu actif se repère à sa carte
+test('la carte du jeu actif change de fond', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const email = `${uniqueName('jeu-actif').toLowerCase().replace(/[^a-z0-9]+/g, '-')}@example.test`
+    const user = await prisma.user.create({ data: { email, name: 'Jeu actif e2e', password: 'non-utilise' } })
+    const title = `Jeu ${email}`
+    await prisma.game.create({ data: { title, slug: email.replace(/[^a-z0-9]+/g, '-'), description: '', ownerId: user.id } })
+
+    await signIn(page, prisma, email)
+    await page.goto('/games')
+    await page.waitForLoadState('networkidle')
+    const card = page.getByRole('link').filter({ hasText: title }).first()
+    const background = () => card.evaluate((element) => getComputedStyle(element).backgroundColor)
+    const before = await background()
+    await card.getByRole('button', { name: 'Rendre actif' }).click()
+    await expect(card.getByText('Jeu actif')).toBeVisible()
+    await expect.poll(background).not.toBe(before)
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
 // US-079 : un document reçu se retrouve dans « Je participe » et se lit dans la page
 test('un document reçu s’ouvre depuis « Je participe »', async ({ page }) => {
   const prisma = createTestPrisma()

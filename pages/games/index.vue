@@ -26,7 +26,7 @@ v-model="searchQuery" placeholder="Rechercher un jeu..." icon="i-heroicons-magni
         v-for="game in paginatedGames"
         :key="game.id"
         class="cursor-pointer transition-shadow hover:shadow-md"
-        :class="{ 'opacity-60': !game.published }"
+        :class="{ 'opacity-60': !game.published, 'bg-green-50 ring-green-300': activeGame?.id === game.id }"
         role="link"
         tabindex="0"
         @click="openGamePage(game)"

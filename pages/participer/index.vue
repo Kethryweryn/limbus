@@ -173,7 +173,7 @@ const photoSaving = ref(false)
 const photoMessage = ref('')
 
 onMounted(async () => {
-  rememberSpace('participate')
+  rememberSpace('participate', currentUser.value?.id)
   try {
     // Gardée sur l'appareil : sur le lieu du jeu, sans réseau, on retrouve date et lieu
     participations.value = await useApiFetch('/api/me/participations', { offlineCache: true })

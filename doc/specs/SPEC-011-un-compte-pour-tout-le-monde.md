@@ -32,7 +32,7 @@ Donner à chacun un seul compte, pour organiser ses jeux et participer à ceux d
 
 ### Passer d'un espace à l'autre
 
-Un sélecteur « J'organise » / « Je participe » en haut de l'écran change le menu et les pages. Limbus rouvre le dernier espace utilisé ; la première fois, « J'organise » si la personne a un jeu à organiser, sinon « Je participe ». Une personne qui ne fait que participer ne voit pas le sélecteur.
+Un sélecteur « J'organise » / « Je participe » en haut de l'écran change le menu et les pages. Limbus rouvre le dernier espace utilisé ; la première fois, « J'organise » si la personne a un jeu à organiser, sinon « Je participe ». Une personne qui ne fait que participer ne voit pas le sélecteur, sauf si elle se trouve côté organisation (après « Organiser un GN ») : il lui sert alors à revenir. Le dernier espace est gardé pour chaque compte : celui d'une autre personne sur le même appareil ne s'applique pas.
 
 ### Participer
 
