@@ -38,8 +38,8 @@ L'utilisatrice recharge en une commande trois jeux de test aux dates toujours à
 - 2026-11-05 : déployé (PR #146 à #149, guide en #150), puis rechargé en production par l'utilisatrice, avec `SEED_REPLACE_BY_SLUG=1`. Vérifié ensuite : les trois jeux et leurs dates à venir, les périodes de Station Meridian, sa sélection, sa page publique et son formulaire, et l'accès conservé de l'assistant d'IA.
 - La revue a notamment rendu le rechargement atomique, gardé le rattachement des fiches sans `SEED_PASSWORD`, déplacé la présence vers une session reportée, seule situation où l'application la demande (US-024), et donné un PDF au trombinoscope.
 - Limites connues au déploiement :
-  - les comptes de test n'ont pas été essayés en production, et les écrans connectés n'ont été vus par personne à ce stade : les données sont vérifiées par `tests/integration/seed.test.ts` ;
-  - aucun vrai email n'est encore parti vers les adresses de test : les envois n'ont été joués que sur le faux serveur d'emails ;
+  - ce chantier n'a pas essayé les comptes de test en production ni regardé les écrans connectés : ses vérifications de ces données passent par `tests/integration/seed.test.ts` ;
+  - ce chantier n'a joué les envois que sur le faux serveur d'emails ;
   - un envoi groupé vers `example.test` montre des échecs attendus ;
   - les jeux vieillissent entre deux rechargements, et l'invitation du legs dure 14 jours.
 - Epic archivé.
