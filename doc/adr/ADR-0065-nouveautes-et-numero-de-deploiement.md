@@ -24,15 +24,15 @@ Le choix d'une note par pull request vient du fonctionnement de Limbus : c'est l
 ## Décision
 
 1. **Une note par fichier.** Chaque note est un fichier JSON de `nouveautes/` (`type`, `titre`, `texte`), ajouté dans la pull request du changement. Un fichier par note évite les conflits entre pull requests simultanées. Un test unitaire valide tous les fichiers avec un schéma zod. Le dossier n'étant ni `doc/` ni la racine, une note modifiée passe par la CI et se déploie ([ADR-0022](ADR-0022-pas-de-ci-pour-la-documentation.md)).
-2. **La date vient de git.** Un script de build prend le jour, à l'heure de Paris, du commit qui a ajouté le fichier (`git log --diff-filter=A`). Une fois fusionnée en squash, c'est la date de la fusion. Le build de la pull request ne la connaît pas encore : sa note porte le jour de son dernier commit jusqu'au déploiement suivant. La CI récupère donc tout l'historique git. On ne renomme pas un fichier de note.
-3. **Le numéro est celui de la pull request déployée.** La CI le donne au build par une variable d'environnement non secrète (`github.event.number`). Un build sur `main` (lancement manuel de la CI, `deploy.sh` à la main) le relit dans le titre du commit, qui finit par `(#N)`. Sans numéro, la page ne l'affiche pas.
+2. **La date vient de git.** Un script de build prend l'heure du commit qui a ajouté le fichier (`git log --diff-filter=A`), et en affiche le jour à l'heure de Paris. Cette heure classe aussi les notes d'un même jour. Une fois fusionnée en squash, c'est le moment de la fusion. Le build de la pull request ne le connaît pas encore : sa note porte le jour de ce commit de branche jusqu'au déploiement suivant. On ne renomme pas un fichier de note. L'historique doit être lisible partout où l'on construit : le job de build de la CI récupère tout l'historique et déclare `safe.directory` avant le build, et `deploy.sh`, dont le dossier de build n'a pas de `.git`, indique au script le dépôt de `$APP_DIR`. CI et `deploy.sh` demandent au script d'échouer sans historique, pour ne jamais déployer de fausses dates ; ailleurs (poste de développement, conteneur de test), les notes prennent le jour du build.
+3. **Le numéro est celui de la pull request déployée.** La CI le donne au build par une variable d'environnement non secrète (`github.event.number`). Un build sur `main` (lancement manuel de la CI, `deploy.sh` à la main) le relit dans le titre du dernier commit, qui finit par `(#N)`, même si c'est une pull request de documentation : le numéro désigne toujours ce commit. Sans numéro, la page ne l'affiche pas.
 4. **La revue vérifie la présence de la note.** Aucune règle automatique ne sait dire si un changement est visible. `CLAUDE.md` porte la règle ; `/code-review` applique ce fichier.
 
 ## Conséquences
 
 - La page dit toujours ce qui est en production, et une note n'a rien à attendre.
 - Le numéro affiché identifie ce qui tourne et renvoie à sa pull request, mais n'est pas un ordre : la #150 peut être fusionnée avant la #148. La date classe les notes.
-- Si une pull request attend après son dernier commit, sa note montre un jour trop tôt jusqu'au déploiement suivant. Le contenu reste juste.
+- Si une pull request attend après le commit de sa note, celle-ci montre une date trop ancienne jusqu'au déploiement suivant. Le contenu reste juste.
 - Une note oubliée en revue manque simplement à la page. La fusion suivante peut l'ajouter, avec la date de cette fusion.
 - Il n'y a pas de grande version à annoncer. Un moment marquant passe par une note.
 
