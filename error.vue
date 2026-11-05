@@ -16,8 +16,9 @@ import type { NuxtError } from '#app'
 
 const props = defineProps<{ error: NuxtError }>()
 
-// Refus et absence reçoivent le même message : la page ne dit pas si le jeu ou la fiche existe
-const notAvailable = computed(() => [403, 404].includes(props.error.statusCode))
+// Refus, absence et session expirée reçoivent le même message : la page ne dit pas si le jeu ou la fiche existe,
+// et l'accueil propose de se connecter à qui ne l'est plus
+const notAvailable = computed(() => [401, 403, 404].includes(props.error.statusCode ?? 500))
 const title = computed(() => notAvailable.value ? 'Page introuvable' : 'Une erreur est survenue')
 const text = computed(() => notAvailable.value
   ? 'Cette page n’existe pas, ou vous n’y avez pas accès.'

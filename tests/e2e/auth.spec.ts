@@ -22,6 +22,7 @@ test('la déconnexion efface les données gardées sur l’appareil', async ({ p
   await page.getByRole('menuitem', { name: 'Déconnexion' }).click()
 
   await expect(page.getByRole('heading', { name: 'Connexion' })).toBeVisible()
+  expect(await page.evaluate(() => localStorage.getItem('limbusSpace'))).toBeNull()
   expect(await page.evaluate(() => [localStorage.getItem('offlineAuth'), localStorage.getItem('offlineOwner')])).toEqual([null, null])
   expect(await offlineRecordCount(page)).toBe(0)
 })
