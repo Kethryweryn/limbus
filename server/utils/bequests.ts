@@ -3,10 +3,8 @@ import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
 import { deletePendingCopy } from '~/server/utils/gameCopy'
 import { sendGameBequestInvitationEmail } from '~/server/utils/email'
-import { GAME_INVITATION_KINDS, GAME_INVITATION_STATUSES } from '~/utils/domain'
+import { BEQUEST_INVITATION_DAYS, GAME_INVITATION_KINDS, GAME_INVITATION_STATUSES } from '~/utils/domain'
 
-// Validité d'une invitation de legs, comme celle d'une invitation de co-organisation (R8)
-const BEQUEST_INVITATION_DAYS = 14
 // Une copie sans invitation est peut-être en train d'être léguée (copie faite, invitation pas encore créée) :
 // on ne la considère abandonnée qu'après ce délai
 const ORPHAN_COPY_GRACE_MS = 60 * 60 * 1000

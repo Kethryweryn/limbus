@@ -564,6 +564,7 @@ describe('Le Bal des Masques Brisés, après et imprévus', () => {
     expect(session.status).toBe('cancelled')
     const body = bodyOf<ApiResponse<'/api/sessions/:id/payments'>>(await api(owner, 'GET', `/api/sessions/${session.id}/payments`))
     expect(body.refunds.map((row) => row.refundStatus).sort()).toEqual(['refunded', 'to_refund'])
+    expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id } })).toBe(2)
   })
 
   it('renvoie une session reportée à sa nouvelle session, avec un paiement reporté', async () => {
@@ -603,6 +604,13 @@ describe('Le Bal des Masques Brisés, après et imprévus', () => {
     expect(list.status, JSON.stringify(list.body)).toBe(200)
     const [bequest] = bodyOf<ApiResponse<'/api/games/:id/bequests'>>(list)
     expect(bequest!.email).toBe('bal-proprietaire+manon.richard@example.test')
+    const pending = await prisma.game.findFirstOrThrow({
+      where: { copiedFromGameId: bal, bequestPending: true },
+      select: { creditAuthorName: true, _count: { select: { characters: true, documents: true } } }
+    })
+    expect(pending.creditAuthorName).toBe('Propriétaire')
+    expect(pending._count.characters).toBeGreaterThan(0)
+    expect(pending._count.documents).toBeGreaterThan(0)
 
     const smtp = await startTestSmtp(prisma)
     try {
@@ -623,6 +631,11 @@ describe('Le Bal des Masques Brisés, après et imprévus', () => {
     await prisma.game.updateMany({ where: { copiedFromGameId: bal, bequestPending: true }, data: { bequestPending: false, ownerId: owner.id } })
     reload()
     expect(await prisma.game.count({ where: { slug: { startsWith: 'le-bal-des-masques-brises-copie-leguee' } } })).toBe(2)
+
+    // Seule la copie numérotée reste : la suivante prend une adresse libre
+    await prisma.game.deleteMany({ where: { slug: 'le-bal-des-masques-brises-copie-leguee' } })
+    await prisma.game.updateMany({ where: { copiedFromGameId: bal, bequestPending: true }, data: { bequestPending: false, ownerId: owner.id } })
+    reload()
     await prisma.game.deleteMany({ where: { slug: { startsWith: 'le-bal-des-masques-brises-copie-leguee' } } })
   })
 })

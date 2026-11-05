@@ -1,23 +1,30 @@
 // Le Bal des Masques Brisés, jeu de test « après et imprévus » : session terminée, annulée et reportée, remboursements,
 // photos et legs (US-154, ADR-0066)
-import { createHash, randomBytes } from 'node:crypto'
 import { documentContentHash } from '../../server/utils/deliveryHashes'
-import { GAME_INVITATION_KINDS, GAME_INVITATION_STATUSES, REFUND_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '../../utils/domain'
+import { BEQUEST_INVITATION_DAYS, GAME_INVITATION_KINDS, GAME_INVITATION_STATUSES, REFUND_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '../../utils/domain'
 import type { Db, StageContext } from './db'
 import { daysFromNow } from './options'
-
-// Une invitation de legs dure 14 jours (server/utils/bequests.ts) : après, l'application retire la copie
-const BEQUEST_INVITATION_DAYS = 14
 
 export const BAL_EXTRA_PEOPLE = [
   { name: 'Lucie Moreau', email: 'lucie.moreau@example.test', phone: '06 11 22 33 02' }
 ]
 
 export async function createBalStage(db: Db, context: StageContext) {
-  const { gameId, title, ownerId, locationId, people, makeSlug, address } = context
+  const { gameId, title, ownerId, locationId, characters, people, makeSlug, address } = context
   const person = (email: string) => people.get(`${email}@example.test`)!
-  const session = (name: string, slug: string, days: number, status: string, extra: { cancelledAt?: Date, postponedToSessionId?: string } = {}) => db.session.create({
-    data: { name: `${title} - ${name}`, slug: makeSlug(`${title}-${slug}`), date: daysFromNow(days), gameId, locationId, status, published: true, ...extra },
+  const session = (name: string, slug: string, days: number, status: string, team: string[], extra: { cancelledAt?: Date, postponedToSessionId?: string } = {}) => db.session.create({
+    data: {
+      name: `${title} - ${name}`,
+      slug: makeSlug(`${title}-${slug}`),
+      date: daysFromNow(days),
+      gameId,
+      locationId,
+      status,
+      published: true,
+      // Annuler ou reporter une session garde son équipe
+      participants: { create: team.map((email) => ({ participantId: person(email).id, role: SESSION_ROLES.participant })) },
+      ...extra
+    },
     select: { id: true, name: true }
   })
   const paid = (sessionId: string, email: string, refund: { refundStatus: string, refundedAt?: Date, carriedOverToSessionId?: string }) =>
@@ -49,31 +56,45 @@ export async function createBalStage(db: Db, context: StageContext) {
   await db.participant.update({ where: { id: person('jeanne.giraud').id }, data: { photoRefusedAt: daysFromNow(-2) } })
 
   // Annulée : un paiement à rembourser, un autre déjà remboursé
-  const cancelled = await session('Session annulée', 'session-annulee', 20, SESSION_STATUSES.cancelled, { cancelledAt: daysFromNow(-1) })
+  const cancelled = await session('Session annulée', 'session-annulee', 20, SESSION_STATUSES.cancelled, ['pauline.aubert', 'maxime.henry'], { cancelledAt: daysFromNow(-1) })
   await paid(cancelled.id, 'pauline.aubert', { refundStatus: REFUND_STATUSES.toRefund })
   await paid(cancelled.id, 'maxime.henry', { refundStatus: REFUND_STATUSES.refunded, refundedAt: daysFromNow(-1) })
 
   // Reportée : un paiement passe sur la nouvelle session, un autre reste à rembourser
-  const replacement = await session('Session de remplacement', 'session-de-remplacement', 90, SESSION_STATUSES.scheduled)
-  const postponed = await session('Session reportée', 'session-reportee', 30, SESSION_STATUSES.postponed, { postponedToSessionId: replacement.id })
+  const replacement = await session('Session de remplacement', 'session-de-remplacement', 90, SESSION_STATUSES.scheduled, ['chloe.renard', 'arthur.masson'])
+  const postponed = await session('Session reportée', 'session-reportee', 30, SESSION_STATUSES.postponed, ['chloe.renard', 'arthur.masson'], { postponedToSessionId: replacement.id })
   await paid(postponed.id, 'chloe.renard', { refundStatus: REFUND_STATUSES.carriedOver, carriedOverToSessionId: replacement.id })
   await paid(postponed.id, 'arthur.masson', { refundStatus: REFUND_STATUSES.toRefund })
-  await db.sessionParticipant.create({ data: { sessionId: replacement.id, participantId: person('chloe.renard').id, role: SESSION_ROLES.participant } })
 
-  // Legs en attente pour Manon, sans compte. Le jeton réel n'existe pas : renvoyer l'invitation depuis l'application en crée un.
+  // Legs en attente pour Manon, sans compte. Aucun lien n'existe encore : renvoyer l'invitation depuis l'application en crée un.
   if (!ownerId) return
   // Une copie acceptée lors d'un essai précédent garde son adresse de page
-  const copySlug = makeSlug(`${title}-copie-leguee`)
-  const acceptedCopies = await db.game.count({ where: { slug: { startsWith: copySlug } } })
+  const baseSlug = makeSlug(`${title}-copie-leguee`)
+  const takenSlugs = new Set((await db.game.findMany({ where: { slug: { startsWith: baseSlug } }, select: { slug: true } })).map((row) => row.slug))
+  let copySlug = baseSlug
+  for (let suffix = 2; takenSlugs.has(copySlug); suffix++) copySlug = `${baseSlug}-${suffix}`
+
+  // Quelques éléments, pour que le jeu reçu ne soit pas vide. L'adresse de la copie les distingue d'un rechargement à l'autre.
+  const owner = await db.user.findUniqueOrThrow({ where: { id: ownerId }, select: { name: true } })
   const copy = await db.game.create({
     data: {
       title: `${title} (copie léguée)`,
-      slug: acceptedCopies ? `${copySlug}-${acceptedCopies + 1}` : copySlug,
-      description: 'Copie léguée en attente de sa destinataire.',
+      slug: copySlug,
+      description: 'Une soirée mondaine où chaque invité cache une dette, une trahison ou une identité empruntée.',
       published: false,
       bequestPending: true,
       copiedFromGameId: gameId,
-      creditSourceTitle: title
+      creditSourceTitle: title,
+      creditAuthorName: owner.name,
+      characters: {
+        create: characters
+          .filter((row) => row.type === 'pj')
+          .slice(0, 3)
+          .map((row) => ({ name: row.name, slug: makeSlug(`${copySlug}-${row.name}`), type: row.type, pitch: 'Personnage repris du jeu d’origine.' }))
+      },
+      documents: {
+        create: { title: 'Feuille de route', slug: makeSlug(`${copySlug}-feuille-de-route`), content: 'Document repris du jeu d’origine.' }
+      }
     },
     select: { id: true }
   })
@@ -81,7 +102,6 @@ export async function createBalStage(db: Db, context: StageContext) {
     data: {
       gameId: copy.id,
       email: address('manon.richard@example.test'),
-      tokenHash: createHash('sha256').update(randomBytes(32)).digest('hex'),
       status: GAME_INVITATION_STATUSES.pending,
       kind: GAME_INVITATION_KINDS.bequest,
       invitedById: ownerId,

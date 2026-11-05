@@ -47,8 +47,8 @@ export async function createValombreStage(db: Db, context: StageContext) {
   })
 
   // La session approche et n'attend plus qu'un rôle : Bastian Lorme reste à distribuer
-  const roles: Array<[string, { id: string } | null]> = [
-    ['Aélis de Valombre', camille],
+  const roles: Array<[string, { id: string } | null, string?]> = [
+    ['Aélis de Valombre', camille, 'Brief à vérifier avant impression.'],
     ['Marceau Trelane', lucie],
     ['Sœur Ysilde', nicolas],
     ['Corvin le Noir', sarah],
@@ -73,8 +73,9 @@ export async function createValombreStage(db: Db, context: StageContext) {
       paymentLinkUrl: 'https://paiement.example.test/valombre',
       paymentSettingsUpdatedAt: daysFromNow(-30),
       assignments: {
-        create: roles.map(([name, holder]) => ({
+        create: roles.map(([name, holder, notes]) => ({
           characterId: character(name).id,
+          notes,
           participantId: holder?.id ?? null,
           photoUrl: holder ? photos.get(holder.id) ?? null : null
         }))

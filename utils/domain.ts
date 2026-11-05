@@ -134,6 +134,9 @@ export const GAME_INVITATION_STATUSES = {
 } as const
 
 // Co-organisation d'un jeu, ou legs d'une copie à une personne sans compte (SPEC-002 R8, ADR-0025)
+// Validité d'une invitation de legs, comme celle d'une invitation de co-organisation (R8)
+export const BEQUEST_INVITATION_DAYS = 14
+
 export const GAME_INVITATION_KINDS = {
   share: 'share',
   bequest: 'bequest'
