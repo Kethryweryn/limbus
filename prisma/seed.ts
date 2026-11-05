@@ -7,9 +7,10 @@ import { prisma } from '../server/utils/prisma'
 import { collectUploadUrls, deleteUnusedUploads, uploadDir, UPLOAD_DIRS } from '../server/utils/uploads'
 import { TERMS_VERSION } from '../utils/legal'
 import { PHOTO_UPLOAD_PREFIX } from '../utils/urls'
-import type { Db } from './seed/db'
-import { createMeridianStage, MERIDIAN_EXTRA_PEOPLE, type StageContext } from './seed/meridian'
+import type { Db, StageContext } from './seed/db'
+import { createMeridianStage, MERIDIAN_EXTRA_PEOPLE } from './seed/meridian'
 import { daysFromNow, personAddress, readSeedOptions, type SeedOptions } from './seed/options'
+import { createValombreStage } from './seed/valombre'
 
 // La transaction du rechargement, utilisée par toutes les fonctions du script : un échec laisse les jeux tels quels
 let db: Db
@@ -124,6 +125,7 @@ const CO_ORGANIZED_GAME_IDS = ['jeu-test-valombre', 'jeu-test-meridian']
 const games: GameSeed[] = [
   {
     id: 'jeu-test-valombre',
+    createStage: createValombreStage,
     title: 'Les Cendres de Valombre',
     description: 'Un huis clos politique dans une baronnie frontalière où une succession fragile menace de rallumer une guerre ancienne.',
     noteIntention: 'Mettre en tension alliances familiales, secrets de guerre et choix moraux.',
@@ -916,6 +918,7 @@ async function createGame(
       ownerId,
       locationId: locations[0]?.id,
       characters,
+      photos: participantPhotos,
       people: new Map(seed.participants.map((participant, index) => [participant.email, participants[index]!])),
       profiles: new Map(TEST_ACCOUNTS.map((account) => [account.email, account])),
       makeSlug

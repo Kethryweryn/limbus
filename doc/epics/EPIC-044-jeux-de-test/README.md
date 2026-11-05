@@ -19,7 +19,7 @@ L'utilisatrice recharge en une commande trois jeux de test aux dates toujours à
 | [US-150](US-150-rechargement-sur.md) | Recharger les jeux de test sans risque, avec des dates à jour | terminée |
 | [US-151](US-151-comptes-de-test.md) | Se connecter avec des comptes de test | terminée |
 | [US-152](US-152-jeu-inscriptions.md) | Essayer les inscriptions sur Station Meridian | terminée |
-| [US-153](US-153-jeu-session-imminente.md) | Essayer une session imminente sur Les Cendres de Valombre | à faire |
+| [US-153](US-153-jeu-session-imminente.md) | Essayer une session imminente sur Les Cendres de Valombre | terminée |
 | [US-154](US-154-jeu-apres-et-imprevus.md) | Essayer l'après-session et les imprévus sur Le Bal des Masques Brisés | à faire |
 | [US-155](US-155-guide-et-verification.md) | Savoir où essayer chaque fonctionnalité, et garder le script à jour | à faire |
 

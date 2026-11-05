@@ -14,25 +14,8 @@ import {
   SESSION_STATUSES
 } from '../../utils/domain'
 import type { Prisma } from '../../generated/prisma/client'
-import type { Db } from './db'
+import type { Db, StageContext } from './db'
 import { daysFromNow } from './options'
-
-type Person = { id: string, name: string, email: string | null }
-type Character = { id: string, name: string, type: string }
-type Profile = { phone: string, emergencyContactName: string, emergencyContactPhone: string, dietary: string | null }
-
-export type StageContext = {
-  gameId: string
-  title: string
-  ownerId: string | undefined
-  locationId: string | undefined
-  characters: Character[]
-  // Les fiches, par adresse fictive
-  people: Map<string, Person>
-  // Coordonnées des comptes de test, qui priment sur celles du formulaire (ADR-0042)
-  profiles: Map<string, Profile>
-  makeSlug: (value: string) => string
-}
 
 // Générées pour que les repères du questionnaire aient assez de réponses. Toutes restent en example.test.
 const FIRST_NAMES = ['Adèle', 'Bruno', 'Cécile', 'Damien', 'Estelle', 'Fabien', 'Gaëlle', 'Hector', 'Irène', 'Jules', 'Karine', 'Loïc', 'Maud', 'Nathan', 'Odile', 'Paul', 'Quentin']
