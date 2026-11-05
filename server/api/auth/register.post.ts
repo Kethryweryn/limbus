@@ -3,7 +3,7 @@ import { prisma } from '~/server/utils/prisma'
 import { setAuthCookie } from '~/server/utils/auth'
 import { acceptInvitationForUser, createInvitedUser, getValidInvitation, normalizeInvitationEmail } from '~/server/utils/invitations'
 import { invitationRegistrationSchema, readZodBody } from '~/server/utils/schemas'
-import { hashPassword } from '~/server/utils/accounts'
+import { hashPassword } from '~/server/utils/passwordHash'
 import { linkParticipantsToUser } from '~/server/utils/participantAccounts'
 
 export default defineEventHandler(async (event) => {

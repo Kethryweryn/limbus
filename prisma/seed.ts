@@ -1,15 +1,20 @@
-import bcrypt from 'bcrypt'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { deflateSync } from 'node:zlib'
 import slugify from 'slugify'
+import { hashPassword } from '../server/utils/passwordHash'
 import { prisma } from '../server/utils/prisma'
 import { collectUploadUrls, deleteUnusedUploads, uploadDir, UPLOAD_DIRS } from '../server/utils/uploads'
 import { TERMS_VERSION } from '../utils/legal'
 import { PHOTO_UPLOAD_PREFIX } from '../utils/urls'
 import { daysFromNow, personAddress, readSeedOptions, type SeedOptions } from './seed/options'
 
-const BCRYPT_ROUNDS = 12
+type Db = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
+
+// La transaction du rechargement, utilisée par toutes les fonctions du script : un échec laisse les jeux tels quels
+let db: Db
+
+const RELOAD_TIMEOUT_MS = 10 * 60 * 1000
 
 type CharacterSeed = {
   name: string
@@ -439,7 +444,7 @@ async function makeParticipantSlug(name: string) {
 
   while (
     usedParticipantSlugs.has(slug)
-    || await prisma.participant.findUnique({ where: { slug }, select: { id: true } })
+    || await db.participant.findUnique({ where: { slug }, select: { id: true } })
   ) {
     slug = `${baseSlug}-${suffix}`
     suffix += 1
@@ -460,7 +465,7 @@ async function createParticipantPhotos(gameId: string, participants: Array<{ id:
     // Lisible par le service, même quand le script est lancé par un autre compte du serveur
     await writeFile(join(photoDir, filename), content, { mode: 0o644 })
     const photoUrl = `${PHOTO_UPLOAD_PREFIX}${filename}`
-    await prisma.uploadedFile.create({
+    await db.uploadedFile.create({
       data: {
         kind: 'session-assignment-photo',
         filename,
@@ -600,7 +605,7 @@ async function findGamesToReplace(options: SeedOptions) {
   const fixedIds = games.map((game) => game.id)
   const slugs = [...fixedIdBySlug.keys()]
 
-  const found = await prisma.game.findMany({
+  const found = await db.game.findMany({
     where: { OR: [{ id: { in: fixedIds } }, { slug: { in: slugs } }] },
     select: { id: true, slug: true, title: true }
   })
@@ -619,9 +624,13 @@ async function findGamesToReplace(options: SeedOptions) {
 
 async function findOwner(options: SeedOptions) {
   if (!options.ownerEmail) {
-    return await prisma.user.findFirst({ orderBy: [{ role: 'asc' }, { email: 'asc' }], select: { id: true } })
+    return await db.user.findFirst({
+      where: { email: { notIn: TEST_ACCOUNTS.map((account) => account.email) } },
+      orderBy: [{ role: 'asc' }, { email: 'asc' }],
+      select: { id: true }
+    })
   }
-  const owner = await prisma.user.findUnique({ where: { email: options.ownerEmail }, select: { id: true } })
+  const owner = await db.user.findUnique({ where: { email: options.ownerEmail }, select: { id: true } })
   if (!owner) {
     throw new Error('Aucun compte ne correspond à SEED_EMAIL : rien n\'a été modifié.')
   }
@@ -629,7 +638,7 @@ async function findOwner(options: SeedOptions) {
 }
 
 async function preserveAccess(fixedIdOf: Map<string, string>): Promise<PreservedAccess[]> {
-  const preserved = await prisma.game.findMany({
+  const preserved = await db.game.findMany({
     where: { id: { in: [...fixedIdOf.keys()] } },
     select: {
       id: true,
@@ -647,13 +656,13 @@ async function preserveAccess(fixedIdOf: Map<string, string>): Promise<Preserved
 async function restoreAccess(preserved: PreservedAccess[]) {
   for (const { gameId, shares, aiAuthorizationIds } of preserved) {
     for (const { userId, role } of shares) {
-      await prisma.gameShare.upsert({
+      await db.gameShare.upsert({
         where: { gameId_userId: { gameId, userId } },
         create: { gameId, userId, role },
         update: { role }
       })
     }
-    await prisma.aiAuthorizationGame.createMany({
+    await db.aiAuthorizationGame.createMany({
       data: aiAuthorizationIds.map((authorizationId) => ({ authorizationId, gameId })),
       skipDuplicates: true
     })
@@ -661,9 +670,9 @@ async function restoreAccess(preserved: PreservedAccess[]) {
 }
 
 // Supprime les jeux de test, leurs copies léguées encore en attente et les fiches qu'aucun autre jeu n'utilise.
-// Une copie acceptée appartient à sa destinataire : elle reste.
+// Une copie acceptée appartient à sa destinataire : elle reste. Rend les fichiers à retirer après la transaction.
 async function removeGames(replacedIds: string[]) {
-  const pendingCopies = await prisma.game.findMany({
+  const pendingCopies = await db.game.findMany({
     where: { copiedFromGameId: { in: replacedIds }, bequestPending: true },
     select: { id: true }
   })
@@ -672,7 +681,7 @@ async function removeGames(replacedIds: string[]) {
   const uploadUrls = (await Promise.all(gameIds.map((gameId) => collectUploadUrls({ gameId })))).flat()
 
   const outsideGames = { gameId: { notIn: gameIds } }
-  await prisma.participant.deleteMany({
+  await db.participant.deleteMany({
     where: {
       gameLinks: { some: { gameId: { in: gameIds } } },
       NOT: [
@@ -682,15 +691,11 @@ async function removeGames(replacedIds: string[]) {
       ]
     }
   })
-  await prisma.game.deleteMany({ where: { id: { in: gameIds } } })
-  await deleteUnusedUploads(uploadUrls)
+  await db.game.deleteMany({ where: { id: { in: gameIds } } })
+  return uploadUrls
 }
 
-async function upsertTestAccounts(options: SeedOptions) {
-  const accountIdByEmail = new Map<string, string>()
-  if (!options.password) return accountIdByEmail
-
-  const password = await bcrypt.hash(options.password, BCRYPT_ROUNDS)
+async function upsertTestAccounts(options: SeedOptions, password: string) {
   const now = new Date()
   for (const account of TEST_ACCOUNTS) {
     const email = personAddress(account.email, options.ownerEmail)
@@ -710,13 +715,29 @@ async function upsertTestAccounts(options: SeedOptions) {
       termsAcceptedAt: now,
       lastSeenAt: now
     }
-    const user = await prisma.user.upsert({
+    await db.user.upsert({
       where: { email },
       create: { email, ...data },
-      update: data,
-      select: { id: true }
+      // Mot de passe remis à neuf : les sessions ouvertes avec l'ancien se ferment
+      update: { ...data, sessionVersion: { increment: 1 } }
     })
-    accountIdByEmail.set(account.email, user.id)
+  }
+}
+
+// Le compte confirmé de chaque adresse de test, y compris quand ce lancement ne touche pas aux comptes
+async function findTestAccounts(options: SeedOptions) {
+  const accounts = await db.user.findMany({
+    where: {
+      email: { in: TEST_ACCOUNTS.map((account) => personAddress(account.email, options.ownerEmail)) },
+      emailConfirmedAt: { not: null }
+    },
+    select: { id: true, email: true }
+  })
+  const idByAddress = new Map(accounts.map((account) => [account.email, account.id]))
+  const accountIdByEmail = new Map<string, string>()
+  for (const { email } of TEST_ACCOUNTS) {
+    const id = idByAddress.get(personAddress(email, options.ownerEmail))
+    if (id) accountIdByEmail.set(email, id)
   }
   return accountIdByEmail
 }
@@ -729,7 +750,7 @@ async function createGame(
   ownerId?: string
 ) {
   const inesAccountId = accountIdByEmail.get('ines.lefevre@example.test')
-  const game = await prisma.game.create({
+  const game = await db.game.create({
     data: {
       id: seed.id,
       title: seed.title,
@@ -746,7 +767,7 @@ async function createGame(
   })
 
   const characters = await Promise.all(seed.characters.map((character) =>
-    prisma.character.create({
+    db.character.create({
       data: {
         name: character.name,
         type: character.type || 'pj',
@@ -767,7 +788,7 @@ async function createGame(
   const characterByName = new Map(characters.map((character, index) => [seed.characters[index]!.name, character]))
 
   const factions = await Promise.all(seed.factions.map((faction) =>
-    prisma.faction.create({
+    db.faction.create({
       data: {
         name: faction.name,
         slug: makeSlug(`${seed.title}-${faction.name}`),
@@ -788,7 +809,7 @@ async function createGame(
   const factionByName = new Map(factions.map((faction, index) => [seed.factions[index]!.name, faction]))
 
   const intrigues = await Promise.all(seed.intrigues.map((intrigue) =>
-    prisma.intrigue.create({
+    db.intrigue.create({
       data: {
         name: intrigue.name,
         slug: makeSlug(`${seed.title}-${intrigue.name}`),
@@ -819,7 +840,7 @@ async function createGame(
   const participants = []
   for (const participant of seed.participants) {
     const slug = await makeParticipantSlug(participant.name)
-    participants.push(await prisma.participant.create({
+    participants.push(await db.participant.create({
       data: {
         name: participant.name,
         slug,
@@ -834,7 +855,7 @@ async function createGame(
     }))
   }
   const locations = await Promise.all(seed.locations.map((location) =>
-    prisma.location.create({
+    db.location.create({
       data: {
         name: location.name,
         slug: makeSlug(`${seed.title}-${location.name}`),
@@ -849,7 +870,7 @@ async function createGame(
   const items = await Promise.all(seed.items.map((item) => {
     const locationCharacter = item.locationCharacterName ? characterByName.get(item.locationCharacterName) : null
 
-    return prisma.item.create({
+    return db.item.create({
       data: {
         name: item.name,
         slug: makeSlug(`${seed.title}-${item.name}`),
@@ -893,7 +914,7 @@ async function createDocuments(
   gameId: string,
   gameTitle: string
 ) {
-  await prisma.document.createMany({
+  await db.document.createMany({
     data: [
       {
         title: `Feuille de route - ${gameTitle}`,
@@ -948,7 +969,7 @@ async function createTrombinoscopeEntries(characters: Array<{ id: string, type: 
   const pjCharacters = characters.filter((character) => character.type !== 'pnj')
   if (pjCharacters.length < 3) return
 
-  await prisma.characterTrombinoscopeEntry.createMany({
+  await db.characterTrombinoscopeEntry.createMany({
     data: [
       {
         viewerCharacterId: pjCharacters[0]!.id,
@@ -1028,7 +1049,7 @@ async function createTimelineEvents(
   ]
 
   await Promise.all(timelineSeeds.map((timelineEvent) =>
-    prisma.timelineEvent.create({
+    db.timelineEvent.create({
       data: {
         name: timelineEvent.name,
         slug: makeSlug(`${gameTitle}-${timelineEvent.name}`),
@@ -1057,7 +1078,7 @@ async function createTimelineEvents(
 
 async function createCrossGameParticipants(gameIds: string[]) {
   const alexMorganSlug = await makeParticipantSlug('Alex Morgan')
-  await prisma.participant.create({
+  await db.participant.create({
     data: {
       name: 'Alex Morgan',
       slug: alexMorganSlug,
@@ -1071,7 +1092,7 @@ async function createCrossGameParticipants(gameIds: string[]) {
   })
 
   const morganDaSilvaSlug = await makeParticipantSlug('Morgan Da Silva')
-  await prisma.participant.create({
+  await db.participant.create({
     data: {
       name: 'Morgan Da Silva',
       slug: morganDaSilvaSlug,
@@ -1109,18 +1130,17 @@ async function createSessions(
   ].filter((role): role is { participantId: string, role: string } => Boolean(role))
 
   const sessionParticipantsFor = (
-    assignments: Array<{ character: { type: string }, participantId: string | null }>,
-    fixedRoles = fixedSessionRoles
+    assignments: Array<{ character: { type: string }, participantId: string | null }>
   ) => {
     const roles = new Map<string, { participantId: string, role: string }>()
-    for (const role of fixedRoles) {
+    for (const role of fixedSessionRoles) {
       roles.set(`${role.participantId}:${role.role}`, role)
     }
 
     for (const assignment of assignments) {
       if (!assignment.participantId) continue
 
-      const hasSessionRole = fixedRoles.some((role) => role.participantId === assignment.participantId)
+      const hasSessionRole = fixedSessionRoles.some((role) => role.participantId === assignment.participantId)
       if (hasSessionRole) continue
 
       const role = assignment.character.type === 'pnj' ? 'npc' : 'participant'
@@ -1155,7 +1175,7 @@ async function createSessions(
     notes: index === 0 ? 'Session passée complète utilisée pour tester les statistiques.' : assignment.notes
   }))
 
-  await prisma.session.create({
+  await db.session.create({
     data: {
       name: `${gameTitle} - Session archive`,
       slug: makeSlug(`${gameTitle}-session-archive`),
@@ -1175,7 +1195,7 @@ async function createSessions(
 
   const firstAssignments = buildAssignments(Math.max(0, pjCharacters.length - 2), 1)
 
-  await prisma.session.create({
+  await db.session.create({
     data: {
       name: `${gameTitle} - Session alpha`,
       slug: makeSlug(`${gameTitle}-session-alpha`),
@@ -1195,7 +1215,7 @@ async function createSessions(
 
   const secondAssignments = buildAssignments(Math.max(0, pjCharacters.length - 1), 0)
 
-  await prisma.session.create({
+  await db.session.create({
     data: {
       name: `${gameTitle} - Session beta`,
       slug: makeSlug(`${gameTitle}-session-beta`),
@@ -1215,26 +1235,37 @@ async function createSessions(
 }
 
 async function main() {
-  // Tout se vérifie avant la première écriture
   const options = readSeedOptions(process.env)
-  const owner = await findOwner(options)
-  const fixedIdOf = await findGamesToReplace(options)
+  const password = options.password ? await hashPassword(options.password) : null
 
-  const preservedAccess = await preserveAccess(fixedIdOf)
-  console.log('Suppression des anciens jeux de test...')
-  await removeGames([...fixedIdOf.keys()])
+  const removedUploads = await prisma.$transaction(async (tx) => {
+    db = tx
+    // Tout se vérifie avant la première écriture
+    const owner = await findOwner(options)
+    const fixedIdOf = await findGamesToReplace(options)
 
-  console.log('Création des jeux de test...')
-  const accountIdByEmail = await upsertTestAccounts(options)
-  const createdGameIds: string[] = []
-  for (const [index, game] of games.entries()) {
-    const createdGame = await createGame(game, index, options, accountIdByEmail, owner?.id)
-    createdGameIds.push(createdGame.id)
-  }
-  await createCrossGameParticipants(createdGameIds)
-  await restoreAccess(preservedAccess)
+    const preservedAccess = await preserveAccess(fixedIdOf)
+    console.log('Suppression des anciens jeux de test...')
+    const uploadUrls = await removeGames([...fixedIdOf.keys()])
 
-  console.log(`Jeux de test rechargés. ${accountIdByEmail.size} compte(s) de test, ${preservedAccess.length} jeu(x) remplacé(s).`)
+    console.log('Création des jeux de test...')
+    if (password) await upsertTestAccounts(options, password)
+    const accountIdByEmail = await findTestAccounts(options)
+    const createdGameIds: string[] = []
+    for (const [index, game] of games.entries()) {
+      const createdGame = await createGame(game, index, options, accountIdByEmail, owner?.id)
+      createdGameIds.push(createdGame.id)
+    }
+    await createCrossGameParticipants(createdGameIds)
+    await restoreAccess(preservedAccess)
+
+    console.log(`${accountIdByEmail.size} compte(s) de test, ${preservedAccess.length} jeu(x) remplacé(s).`)
+    return uploadUrls
+  }, { timeout: RELOAD_TIMEOUT_MS })
+
+  // Après la validation : les fichiers que les nouveaux jeux ne reprennent pas quittent le disque
+  await deleteUnusedUploads(removedUploads)
+  console.log('Jeux de test rechargés.')
 }
 
 main()

@@ -45,6 +45,7 @@ describe('rechargement des jeux de test', () => {
     await prisma.participant.deleteMany({ where: { gameLinks: { some: { gameId: { in: GAME_IDS } } } } })
     await prisma.game.deleteMany({ where: { id: { in: GAME_IDS } } })
     await prisma.user.deleteMany({ where: { email: { startsWith: 'seed-proprietaire' } } })
+    await prisma.user.deleteMany({ where: { email: { in: ['ines.lefevre@example.test', 'camille.bernard@example.test', 'lucie.moreau@example.test'] } } })
     await prisma.$disconnect()
   })
 
@@ -188,11 +189,57 @@ describe('rechargement des jeux de test', () => {
     await prisma.aiClient.delete({ where: { id: client.id } })
   })
 
-  it('sans mot de passe, ne crée ni ne modifie de compte de test, et réussit', async () => {
+  it('sans mot de passe, ne modifie aucun compte de test, et garde les fiches rattachées', async () => {
     const email = plusAddress('camille.bernard')
-    const before = await prisma.user.findUniqueOrThrow({ where: { email }, select: { password: true } })
+    const before = await prisma.user.findUniqueOrThrow({ where: { email }, select: { id: true, password: true, sessionVersion: true } })
     expectSuccess(runSeed({ SEED_ALLOW_ERASE: '1', SEED_EMAIL: OWNER }))
-    expect(await prisma.user.findUniqueOrThrow({ where: { email }, select: { password: true } })).toEqual(before)
+    expect(await prisma.user.findUniqueOrThrow({ where: { email }, select: { id: true, password: true, sessionVersion: true } })).toEqual(before)
+    expect(await prisma.participant.count({ where: { email, userId: before.id } })).toBeGreaterThan(0)
+  })
+
+  it('coupe les sessions ouvertes quand le mot de passe est remis à neuf', async () => {
+    const email = plusAddress('camille.bernard')
+    const before = await prisma.user.findUniqueOrThrow({ where: { email }, select: { sessionVersion: true } })
+    expectSuccess(runSeed())
+    const after = await prisma.user.findUniqueOrThrow({ where: { email }, select: { sessionVersion: true } })
+    expect(after.sessionVersion).toBe(before.sessionVersion + 1)
+  })
+
+  it('un échec au milieu laisse les jeux et leurs accès tels quels', async () => {
+    // Une adresse de document prise fait échouer la création du dernier jeu, après toutes les suppressions
+    const other = await prisma.game.create({ data: { title: 'Jeu bloquant', slug: 'jeu-bloquant-seed', description: '', ownerId } })
+    await prisma.document.create({
+      data: { title: 'Bloquant', slug: 'feuille-de-route-le-bal-des-masques-brises-seed', content: '', gameId: other.id }
+    })
+    await prisma.document.updateMany({ where: { gameId: 'jeu-test-bal' }, data: { title: 'Titre gardé' } })
+    await prisma.document.updateMany({ where: { gameId: 'jeu-test-bal', slug: 'feuille-de-route-le-bal-des-masques-brises' }, data: { slug: 'feuille-de-route-renommee-seed' } })
+    await prisma.document.update({ where: { slug: 'feuille-de-route-le-bal-des-masques-brises-seed' }, data: { slug: 'feuille-de-route-le-bal-des-masques-brises' } })
+
+    const run = runSeed({ SEED_ALLOW_ERASE: '1', SEED_EMAIL: OWNER })
+    expect(run.status).not.toBe(0)
+    expect(await prisma.document.count({ where: { gameId: 'jeu-test-bal', title: 'Titre gardé' } })).toBeGreaterThan(0)
+
+    await prisma.game.delete({ where: { id: other.id } })
+    expectSuccess(runSeed())
+  })
+
+  it('sans adresse, prend le premier compte hors comptes de test, et ne dirige aucune adresse vers une vraie boîte', async () => {
+    expectSuccess(runSeed({ SEED_ALLOW_ERASE: '1', SEED_PASSWORD: PASSWORD }))
+    expectSuccess(runSeed({ SEED_ALLOW_ERASE: '1', SEED_PASSWORD: PASSWORD }))
+
+    const games = await prisma.game.findMany({ where: { id: { in: GAME_IDS } }, select: { owner: { select: { email: true } } } })
+    for (const game of games) {
+      expect(game.owner).not.toBeNull()
+      expect(game.owner!.email).not.toMatch(/^(ines\.lefevre|camille\.bernard|lucie\.moreau)@/)
+    }
+
+    const fiches = await prisma.participant.findMany({
+      where: { gameLinks: { some: { gameId: { in: GAME_IDS } } } },
+      select: { email: true }
+    })
+    for (const { email } of fiches) expect(email).toMatch(/^[^+]+@example\.test$/)
+    const camille = await prisma.user.findUniqueOrThrow({ where: { email: 'camille.bernard@example.test' }, select: { id: true } })
+    expect(await prisma.participant.count({ where: { email: 'camille.bernard@example.test', userId: camille.id } })).toBeGreaterThan(0)
   })
 })
 
