@@ -118,7 +118,8 @@ function registerFormTools({ event, server }: ToolContext) {
         label: z.string(),
         type: z.enum(['text', 'single', 'multiple', 'scale']),
         required: z.boolean().optional(),
-        options: z.array(z.string()).optional()
+        options: z.array(z.string()).optional(),
+        shuffleOptions: z.boolean().optional().describe('Question à choix : options dans un ordre tiré au hasard à chaque affichage. Absent, une question existante garde son réglage')
       })).max(100).optional().describe('Questions propres au jeu (liste complète)')
     }),
     annotations: WRITE
@@ -126,7 +127,14 @@ function registerFormTools({ event, server }: ToolContext) {
     requireWrite(event)
     await requireGameAccess(event, jeuId)
     const { definition } = await getCurrentRegistrationForm(jeuId)
-    const { baseVersionNumber: _base, ...parsed } = parseZod(registrationFormDefinitionSchema, { ...definition, ...given })
+    const shuffled = new Map(definition.questions.map((question) => [question.id, question.shuffleOptions]))
+    const { baseVersionNumber: _base, ...parsed } = parseZod(registrationFormDefinitionSchema, {
+      ...definition,
+      ...given,
+      ...(given.questions
+        ? { questions: given.questions.map((question) => ({ shuffleOptions: question.id ? shuffled.get(question.id) : undefined, ...question })) }
+        : {})
+    })
     const saved = await saveRegistrationFormDefinition(jeuId, parsed, read)
     await logWrite(event, 'modifier_formulaire_inscription', AI_LOG_ACTIONS.changed, { type: 'registrationForm', id: jeuId, name: FORM_NAME, gameId: jeuId })
     return { version: saved.version?.number ?? null }

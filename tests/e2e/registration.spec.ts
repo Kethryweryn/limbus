@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { expect } from '@playwright/test'
+import { DEFAULT_REGISTRATION_FORM_DEFINITION } from '../../utils/registrationForms'
 import { createTestPrisma } from '../integration/db'
 import { personalLinkToken } from '../integration/smtp'
 import { openMailbox } from './mailbox'
@@ -124,7 +125,7 @@ test('l’éditeur du formulaire ajoute une question et une affinité', async ({
     await dialog.getByLabel('Question', { exact: true }).fill('Ton style de jeu')
     await dialog.getByRole('combobox').last().click()
     await page.getByRole('option', { name: 'Choix unique' }).click()
-    await dialog.getByLabel('Options').fill('Combat\nIntrigue\n')
+    await dialog.getByLabel('Options', { exact: true }).fill('Combat\nIntrigue\n')
     // L'aperçu montre la question avant l'enregistrement
     await expect(dialog.getByText('Intrigue', { exact: true })).toBeVisible()
     await dialog.getByRole('button', { name: 'Enregistrer' }).click()
@@ -135,6 +136,63 @@ test('l’éditeur du formulaire ajoute une question et une affinité', async ({
     expect(definition.affinities.wantWith!.asked).toBe(true)
     expect(definition.questions).toEqual([expect.objectContaining({ label: 'Ton style de jeu', type: 'single', options: ['Combat', 'Intrigue'] })])
     expect(definition.questions[0]!.id).toBeTruthy()
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
+// EPIC-042 (US-146) : le formulaire réel, rendu côté serveur, mélange ses options sans erreur d'hydratation, et la réponse suit le texte de l'option
+test('une personne voit les options mélangées, et sa réponse suit le texte de l’option', async ({ otherPage }) => {
+  const prisma = createTestPrisma()
+  const mailbox = openMailbox()
+  try {
+    const key = `melange-${Date.now()}`
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+    const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id, noteIntention: 'Un jeu aux options mélangées.' } })
+    const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-01-15T09:00:00Z') } })
+    const options = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel']
+    await prisma.registrationForm.create({
+      data: {
+        gameId: game.id,
+        versions: { create: { number: 1, definition: { ...DEFAULT_REGISTRATION_FORM_DEFINITION, questions: [{ id: 'style', label: 'Ton style', type: 'single', required: true, options, shuffleOptions: true }] } } }
+      }
+    })
+    const period = await prisma.registrationPeriod.create({
+      data: { name: 'Printemps', gameId: game.id, publicId: `m${Date.now().toString(36)}`, entryMode: 'form', state: 'open', sessions: { create: { sessionId: session.id, seats: 3 } } }
+    })
+
+    const guest = await otherPage()
+    const hydrationErrors: string[] = []
+    guest.on('console', (message) => {
+      if (/hydrat/i.test(message.text())) hydrationErrors.push(message.text())
+    })
+    guest.on('pageerror', (error) => hydrationErrors.push(error.message))
+    await guest.goto(`/i/${period.publicId}`)
+    await guest.waitForLoadState('networkidle')
+    const order = () => guest.getByRole('radio').evaluateAll((radios) => radios.map((radio) => (radio as HTMLButtonElement).labels?.[0]?.textContent?.trim() ?? ''))
+    const shown = await order()
+    expect([...shown].sort()).toEqual(options)
+    expect(shown).not.toEqual(options)
+    expect(hydrationErrors).toEqual([])
+
+    await guest.getByLabel('Email').fill(`marie-${key}@example.test`)
+    await guest.getByLabel('Prénom').fill('Marie')
+    await guest.getByLabel('Nom', { exact: true }).fill('Curie')
+    await guest.getByLabel('Téléphone', { exact: true }).fill('0612345678')
+    await guest.getByLabel('Contact d’urgence : nom').fill('Pierre')
+    await guest.getByLabel('Contact d’urgence : téléphone').fill('0698765432')
+    const chosen = shown[2]!
+    await guest.getByRole('radio', { name: chosen }).click()
+    expect(await order()).toEqual(shown)
+    await guest.getByLabel('J’ai lu la note d’intention et j’y adhère').check()
+    await guest.getByRole('button', { name: 'M’inscrire' }).click()
+    await expect(guest.getByText('Vérifiez votre boîte mail.')).toBeVisible()
+
+    await expect.poll(() => mailbox.to(`marie-${key}@example.test`).length).toBe(1)
+    await guest.goto(`/inscription/${personalLinkToken(mailbox.to(`marie-${key}@example.test`)[0]!)}`)
+    await expect(guest.getByText('Votre adresse est confirmée : votre inscription est reçue.')).toBeVisible()
+    const registration = await prisma.registration.findFirstOrThrow({ where: { periodId: period.id }, select: { questionAnswers: true } })
+    expect(registration.questionAnswers).toEqual({ style: chosen })
   } finally {
     await prisma.$disconnect()
   }

@@ -65,7 +65,7 @@
         <URadioGroup
           v-else-if="question.type === 'single'"
           :model-value="singleAnswer(question.id)"
-          :items="question.options"
+          :items="displayedOptions(question)"
           :disabled="disabled"
           @update:model-value="setAnswer(question.id, $event)"
         />
@@ -73,7 +73,7 @@
         <UCheckboxGroup
           v-else-if="question.type === 'multiple'"
           :model-value="multipleAnswer(question.id)"
-          :items="question.options"
+          :items="displayedOptions(question)"
           :disabled="disabled"
           @update:model-value="setAnswer(question.id, $event)"
         />
@@ -94,10 +94,12 @@
 import {
   REGISTRATION_AFFINITIES,
   REGISTRATION_BALANCE_ANY,
+  optionsInDrawnOrder,
   type AffinityAnswers,
   type NormalizedRegistrationFormDefinition,
   type QuestionAnswers,
-  type RegistrationAffinityKey
+  type RegistrationAffinityKey,
+  type RegistrationQuestion
 } from '~/utils/registrationForms'
 import { REFUSED_RELATION_CHOICES, REFUSED_RELATION_NONE } from '~/utils/characterRelations'
 
@@ -117,6 +119,18 @@ const balanceItems = computed(() => [
   ...(props.definition.balance?.values || []).map((value) => ({ label: value, value })),
   { label: 'Peu importe', value: REGISTRATION_BALANCE_ANY }
 ])
+
+// Mélange des options (US-146, ADR-0062) : le rendu serveur garde l'ordre saisi, puis l'ordre tiré après le montage reste celui de
+// la question : ni répondre ni corriger une option ne le refait
+const mounted = ref(false)
+onMounted(() => { mounted.value = true })
+const drawnOrders = new Map<string, string[]>()
+function displayedOptions(question: RegistrationQuestion) {
+  if (!mounted.value || !question.shuffleOptions) return question.options
+  const order = optionsInDrawnOrder(drawnOrders.get(question.id), question.options)
+  drawnOrders.set(question.id, order)
+  return order
+}
 
 const SCALE = [1, 2, 3, 4, 5].map((value) => ({ label: String(value), value }))
 

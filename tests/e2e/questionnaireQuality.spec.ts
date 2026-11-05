@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator } from '@playwright/test'
 import { DEFAULT_REGISTRATION_FORM_DEFINITION } from '../../utils/registrationForms'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
@@ -107,7 +107,7 @@ test('l’essai du questionnaire classe les personnages selon les réponses, san
     await editor.getByLabel('Question', { exact: true }).last().fill('Ton envie')
     await editor.getByRole('combobox').last().click()
     await page.getByRole('option', { name: 'Choix unique' }).click()
-    await editor.getByLabel('Options').last().fill('Romance\nTrahison')
+    await editor.getByLabel('Options', { exact: true }).last().fill('Romance\nTrahison')
     await linkOption('Aldric Essai')
     await tryButton.click()
     await expect(trial.getByText('Aldric Essai, Bertrand Essai')).toBeVisible()
@@ -132,6 +132,113 @@ test('l’essai du questionnaire classe les personnages selon les réponses, san
     expect(await prisma.registrationQuestionLink.count({ where: { gameId: game.id } })).toBe(0)
     await tryButton.click()
     await expect(trial.getByText('Aldric Essai, Bertrand Essai')).toBeVisible()
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
+// EPIC-042 (US-144) : la partie « Rédaction » groupe ses signalements par question, et se replie une fois des réponses reçues
+// (US-146) : les options cochées se mélangent, dans l'aperçu et l'essai, et l'ordre tient pendant qu'on répond ; le formulaire enregistre le réglage
+test('la relecture signale les questions, et le mélange des options tient pendant la réponse', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const key = `redaction-${Date.now()}`
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+    const title = `Jeu ${key}`
+    const game = await prisma.game.create({ data: { title, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
+    await prisma.character.create({ data: { name: 'Aldric Rédaction', slug: `aldric-${key}`, gameId: game.id } })
+    const options = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel']
+    await prisma.registrationForm.create({
+      data: {
+        gameId: game.id,
+        versions: { create: { number: 1, definition: { ...DEFAULT_REGISTRATION_FORM_DEFINITION, questions: [{ id: 'style', label: 'Joues-tu souvent ?', type: 'single', required: false, options }] } } }
+      }
+    })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: 'Période', publicId: key, entryMode: 'form' } })
+    const openEditor = async () => {
+      await page.goto('/registrations')
+      await page.waitForLoadState('networkidle')
+      await gamePanel(page, title, 'Formulaire').getByRole('button', { name: 'Formulaire' }).click()
+    }
+    await signIn(page, prisma, E2E_USERS.orga)
+    await openEditor()
+    const editor = page.getByRole('dialog', { name: /Formulaire d’inscription/ })
+
+    // Rédaction : dépliée avant les réponses, le défaut sous sa question
+    const draftingTitle = editor.locator('summary').filter({ hasText: 'Rédaction' })
+    await expect(draftingTitle).toContainText('À surveiller')
+    await expect(draftingTitle).toContainText('1 signalement')
+    const flag = editor.getByText('Quantifieur vague : « souvent » dans le libellé.')
+    await expect(flag).toBeVisible()
+    await expect(editor.getByText('Chacun le comprend à sa façon', { exact: false })).toBeVisible()
+
+    // Mélange : coché, il crée une version, et l'aperçu tire un autre ordre
+    const orderIn = (scope: Locator) => scope.getByRole('radio').evaluateAll((radios) => radios.map((radio) => (radio as HTMLButtonElement).labels?.[0]?.textContent?.trim() ?? ''))
+    await editor.getByRole('checkbox', { name: 'Mélanger les options' }).check()
+    await editor.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect(editor.getByText('Version 2 enregistrée.')).toBeVisible()
+    const version = await prisma.registrationFormVersion.findFirstOrThrow({ where: { form: { gameId: game.id } }, orderBy: { number: 'desc' } })
+    expect((version.definition as { questions: Array<{ shuffleOptions?: boolean }> }).questions[0]!.shuffleOptions).toBe(true)
+    const previewOrder = await orderIn(editor)
+    expect([...previewOrder].sort()).toEqual(options)
+    expect(previewOrder).not.toEqual(options)
+
+    // L'essai présente un ordre tiré au hasard, qui ne bouge pas quand on répond
+    await editor.getByRole('button', { name: 'Essayer le questionnaire' }).click()
+    const trial = page.getByRole('dialog', { name: 'Essayer le questionnaire' })
+    await expect(trial.getByRole('radio', { name: 'Alpha' })).toBeVisible()
+    const names = await orderIn(trial)
+    expect([...names].sort()).toEqual(options)
+    expect(names).not.toEqual(options)
+    await trial.getByRole('radio', { name: names[3]! }).click()
+    await expect(trial.getByRole('radio', { name: names[3]! })).toBeChecked()
+    expect(await orderIn(trial)).toEqual(names)
+    await page.keyboard.press('Escape')
+
+    // Une fois des réponses reçues, même à une question sans lien, la partie reste là, repliée, avec son niveau
+    const email = `zoe-${key}@example.test`
+    const person = await prisma.participant.create({ data: { name: `Zoé ${key}`, slug: `zoe-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
+    await prisma.registration.create({ data: { periodId: period.id, participantId: person.id, status: 'received', source: 'form', email, questionAnswers: { style: 'Alpha' } } })
+    await openEditor()
+    await expect(draftingTitle).toContainText('À surveiller')
+    await expect(flag).toBeHidden()
+    await draftingTitle.click()
+    await expect(flag).toBeVisible()
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
+// Le calcul de la prévision échoue : le message le dit (limite connue d'EPIC-041, US-143)
+test('l’échec du calcul de la prévision s’affiche', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const key = `echec-${Date.now()}`
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+    const title = `Jeu ${key}`
+    const game = await prisma.game.create({ data: { title, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
+    const aldric = await prisma.character.create({ data: { name: 'Aldric Échec', slug: `aldric-${key}`, gameId: game.id } })
+    await prisma.registrationForm.create({
+      data: {
+        gameId: game.id,
+        versions: { create: { number: 1, definition: { ...DEFAULT_REGISTRATION_FORM_DEFINITION, questions: [{ id: 'style', label: 'Ton style', type: 'single', required: false, options: ['Intrigue', 'Combat'] }] } } }
+      }
+    })
+    await prisma.registrationQuestionLink.create({ data: { gameId: game.id, questionId: 'style', option: 'Intrigue', characterId: aldric.id } })
+    // Un Web Worker qui plante : Chromium ne laisse pas intercepter la requête de son script
+    await page.addInitScript(() => {
+      class FailingWorker {
+        onerror: ((event: Event) => void) | null = null
+        postMessage() { setTimeout(() => this.onerror?.(new Event('error'))) }
+        terminate() {}
+      }
+      Object.defineProperty(window, 'Worker', { value: FailingWorker })
+    })
+    await signIn(page, prisma, E2E_USERS.orga)
+    await page.goto('/registrations')
+    await page.waitForLoadState('networkidle')
+    await gamePanel(page, title, 'Formulaire').getByRole('button', { name: 'Formulaire' }).click()
+    await expect(page.getByRole('dialog', { name: /Formulaire d’inscription/ }).getByText('Impossible de calculer la prévision.')).toBeVisible()
   } finally {
     await prisma.$disconnect()
   }
@@ -200,7 +307,7 @@ test('la prévision du questionnaire suit les proportions attendues', async ({ p
     expect((await savedRow()).updatedAt).toEqual(firstVersion)
 
     // Une part suit son option renommée
-    await editor.getByLabel('Options').fill('Manigance\nCombat')
+    await editor.getByLabel('Options', { exact: true }).fill('Manigance\nCombat')
     await expect(editor.getByLabel('Part attendue : Manigance')).toHaveValue('100')
     await editor.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(editor.getByText('Version 2 enregistrée.')).toBeVisible()

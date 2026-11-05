@@ -555,6 +555,28 @@ describe('inscriptions', () => {
     expect((await call(client, 'relier_questionnaire', { jeuId: game.id, version: 2, questions: [{ questionId: question.id, links: [] }] })).error).toBe(true)
     expect((await call(client, 'lire_formulaire_inscription', { jeuId: game.id })).json.links).toHaveLength(2)
 
+    // Mélange des options (US-146) : l'assistant le coche ; une question renvoyée sans ce champ garde son réglage
+    const currentQuestions = async () => (await call(client, 'lire_formulaire_inscription', { jeuId: game.id })).json.questions
+    const [styleQuestion, envieQuestion] = await currentQuestions()
+    expect((await call(client, 'modifier_formulaire_inscription', { jeuId: game.id, version: 3, questions: [{ ...styleQuestion, shuffleOptions: true }, envieQuestion] })).json.version).toBe(4)
+    expect((await currentQuestions())[0].shuffleOptions).toBe(true)
+    const { shuffleOptions: _kept, ...withoutSetting } = (await currentQuestions())[0]
+    expect((await call(client, 'modifier_formulaire_inscription', { jeuId: game.id, version: 4, questions: [{ ...withoutSetting, label: 'Quel style de jeu ?' }, envieQuestion] })).json.version).toBe(5)
+    expect((await currentQuestions())[0]).toMatchObject({ label: 'Quel style de jeu ?', shuffleOptions: true })
+    expect((await call(client, 'modifier_formulaire_inscription', { jeuId: game.id, version: 5, questions: [{ ...withoutSetting, label: 'Quel style de jeu ?', shuffleOptions: false }, envieQuestion] })).json.version).toBe(6)
+    expect((await currentQuestions())[0]).not.toHaveProperty('shuffleOptions')
+
+    // Consigne de relecture (US-145) : rien n'est écrit au journal, et rien hors de l'autorisation
+    const logBefore = await prisma.aiLogEntry.count({ where: { gameId: game.id } })
+    expect((await client.listPrompts()).prompts.map((prompt) => prompt.name)).toContain('relire_questionnaire')
+    const prompt = await client.getPrompt({ name: 'relire_questionnaire', arguments: { jeuId: game.id } })
+    const promptText = (prompt.messages[0]!.content as { text: string }).text
+    expect(promptText).toContain('Quel style de jeu ?')
+    expect(promptText).toContain('   - Ruse')
+    expect(promptText).toContain('Question orientée')
+    expect(await prisma.aiLogEntry.count({ where: { gameId: game.id } })).toBe(logBefore)
+    await expect(client.getPrompt({ name: 'relire_questionnaire', arguments: { jeuId: b.game.id } })).rejects.toThrow('Jeu inaccessible')
+
     // Hors de l'autorisation
     const bPeriod = await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: b.registrationPeriod.id } })
     expect((await call(client, 'modifier_periode_inscription', { periodeId: bPeriod.id, version: bPeriod.updatedAt.toISOString(), name: 'Volée' })).error).toBe(true)

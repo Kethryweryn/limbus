@@ -564,7 +564,9 @@ const registrationQuestion = z.object({
   label: z.string().trim().min(1, 'Le libellé de la question est obligatoire').max(REGISTRATION_QUESTION_LABEL_MAX_LENGTH, 'Libellé trop long'),
   type: z.enum(['text', 'single', 'multiple', 'scale'] as const satisfies readonly RegistrationQuestionType[], { error: 'Sorte de question invalide' }),
   required: z.boolean().default(false),
-  options: z.array(z.string().trim().max(REGISTRATION_QUESTION_LABEL_MAX_LENGTH, 'Option trop longue')).max(REGISTRATION_QUESTION_OPTION_MAX, 'Trop d’options').default([])
+  options: z.array(z.string().trim().max(REGISTRATION_QUESTION_LABEL_MAX_LENGTH, 'Option trop longue')).max(REGISTRATION_QUESTION_OPTION_MAX, 'Trop d’options').default([]),
+  // Question à choix : ordre des options tiré au hasard à chaque affichage (US-146)
+  shuffleOptions: z.boolean().optional()
 }).refine((question) => !REGISTRATION_CHOICE_TYPES.includes(question.type) || question.options.filter(Boolean).length >= 2, {
   message: 'Une question à choix demande au moins deux options',
   path: ['options']

@@ -25,7 +25,9 @@
         <QualityFindingItem v-for="(item, index) in items" :key="index" v-bind="item" />
       </ul>
       <p class="text-xs text-gray-500">{{ scope }}</p>
-      <RegistrationFormForecast v-if="forecastInput" :input="forecastInput" :collapsed="quality.respondentCount > 0" />
+      <RegistrationFormForecast v-if="forecastInput" :input="forecastInput" :collapsed="collapsed" />
+      <!-- Une lecture hors ligne d'avant US-144 n'a pas les signalements -->
+      <RegistrationFormDrafting v-if="quality.drafting && quality.drafting.wordCounts.length" :review="quality.drafting" :collapsed="collapsed" />
     </template>
   </section>
 </template>
@@ -36,7 +38,7 @@ import { describeEstimate, describeFinding, QUALITY_LEVELS, qualityScope } from 
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
-// Encadré « Qualité du questionnaire » de l'éditeur du formulaire (US-133, US-134, US-136 à US-140, US-142, US-143, SPEC-015) : relu à chaque
+// Encadré « Qualité du questionnaire » de l'éditeur du formulaire (US-133, US-134, US-136 à US-140, US-142 à US-144, SPEC-015) : relu à chaque
 // enregistrement (refreshKey)
 const props = defineProps<{
   gameId: string
@@ -70,6 +72,9 @@ const estimate = computed(() => {
   if (!quality.value?.estimate) return null
   return describeEstimate(quality.value.estimate, quality.value.findings.filter((finding) => finding.level === 'review').length)
 })
+
+// Une lecture hors ligne d'avant US-144 n'a pas hasAnswers : elle garde le repli qu'elle avait
+const collapsed = computed(() => quality.value?.hasAnswers ?? (quality.value?.respondentCount ?? 0) > 0)
 
 const scope = computed(() => qualityScope(quality.value?.respondentCount ?? 0))
 
