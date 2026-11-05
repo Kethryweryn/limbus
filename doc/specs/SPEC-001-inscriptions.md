@@ -1,7 +1,7 @@
 ---
 id: SPEC-001
 titre: Inscriptions, sélection et aide au casting
-statut: validée
+statut: implémentée
 date: 2026-10-27
 origine: ../archive/todo/inscriptions.md
 epics: [EPIC-001, EPIC-019, EPIC-020, EPIC-021, EPIC-022, EPIC-023, EPIC-024, EPIC-025]

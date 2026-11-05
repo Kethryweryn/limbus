@@ -1,7 +1,7 @@
 ---
 id: SPEC-006
 titre: Envois d'emails et suivi des paiements
-statut: validée
+statut: implémentée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
 epics: [EPIC-006]

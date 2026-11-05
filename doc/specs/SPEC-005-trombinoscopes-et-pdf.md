@@ -1,7 +1,7 @@
 ---
 id: SPEC-005
 titre: Trombinoscopes et documents PDF
-statut: validée
+statut: implémentée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
 epics: [EPIC-005]

@@ -1,7 +1,7 @@
 ---
 id: SPEC-002
 titre: Copie d'un jeu pour le léguer à une autre équipe
-statut: validée
+statut: implémentée
 date: 2026-10-28
 origine: ../archive/todo/copie-de-jeu.md
 epics: [EPIC-002]

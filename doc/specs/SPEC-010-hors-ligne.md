@@ -1,7 +1,7 @@
 ---
 id: SPEC-010
 titre: Mode hors ligne
-statut: validée
+statut: implémentée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
 epics: [EPIC-010, EPIC-032]

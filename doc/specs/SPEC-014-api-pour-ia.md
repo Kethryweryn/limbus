@@ -1,7 +1,7 @@
 ---
 id: SPEC-014
 titre: Brancher une IA sur ses jeux
-statut: validée
+statut: implémentée
 date: 2026-11-02
 origine: ../archive/todo/api-pour-ia.md
 epics: [EPIC-033, EPIC-034, EPIC-035, EPIC-036]

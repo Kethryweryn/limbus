@@ -1,7 +1,7 @@
 ---
 id: SPEC-015
 titre: Qualité du questionnaire de casting
-statut: validée
+statut: implémentée
 date: 2026-11-03
 origine: ../archive/todo/indicateurs-du-questionnaire-de-casting.md
 epics: [EPIC-037, EPIC-039, EPIC-040]

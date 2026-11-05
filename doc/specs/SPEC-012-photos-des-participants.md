@@ -1,7 +1,7 @@
 ---
 id: SPEC-012
 titre: Photos des participants, information, durée de conservation et retrait
-statut: validée
+statut: implémentée
 date: 2026-11-01
 origine: ../archive/todo/photos-et-rgpd.md
 epics: [EPIC-028]
