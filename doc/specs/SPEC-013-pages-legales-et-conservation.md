@@ -87,7 +87,7 @@ Sources secondaires, sans fiche de la CNIL propre au cas. À confirmer avec un j
 
 ## Hors périmètre
 
-- L'ouverture de l'inscription libre en production : c'est un réglage du serveur (`SIGNUP_OPEN=1`), fait par l'utilisatrice une fois les deux epics déployés.
+- L'ouverture de l'inscription libre en production : c'est un réglage du serveur (`SIGNUP_OPEN=1`), fait par l'utilisatrice quand elle le décide.
 - Les registres de traitement et les contrats de sous-traitance entre les équipes et Limbus : les conditions d'utilisation en tiennent lieu.
 
 ## Découpage

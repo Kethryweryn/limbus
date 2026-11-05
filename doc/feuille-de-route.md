@@ -81,12 +81,12 @@ Puis la [qualité du questionnaire de casting](specs/SPEC-015-qualite-du-questio
 
 ## 5. Fondations de sécurité et d'exploitation
 
-L'inscription libre, une fois ouverte, fera venir des personnes inconnues, avec leurs données. Ces chantiers s'y préparent, sans décider de son ouverture :
+L'inscription libre peut faire venir des personnes inconnues, avec leurs données. Ces chantiers en posent les fondations, sans décider de son ouverture :
 
 1. [Photos et RGPD](archive/todo/photos-et-rgpd.md) : information des personnes et durée de conservation. Fait ([SPEC-012](specs/SPEC-012-photos-des-participants.md), [EPIC-028](archive/epics/EPIC-028-photos-des-participants/README.md)) : information sans accord préalable, choix de l'utilisatrice, à revoir après l'avis d'un juriste.
 2. [Durcissement web](todo/durcissement-web.md) : CSP, origine des écritures, cookie. Fait ([EPIC-027](archive/epics/EPIC-027-durcissement-web/README.md)), la CSP en mode rapport ; reste à la rendre bloquante après une semaine de rapports.
 3. [Supervision](todo/supervision.md) : être alerté quand le site tombe. Fait : page de santé ([EPIC-026](archive/epics/EPIC-026-supervision/README.md)) et sondes Better Stack ; les journaux structurés attendront un besoin.
-4. Conditions d'utilisation et politique de confidentialité ([fiche des comptes](archive/todo/comptes-participants.md), [SPEC-013](specs/SPEC-013-pages-legales-et-conservation.md)). Pages, acceptation et durées de conservation faites ([EPIC-029](archive/epics/EPIC-029-pages-legales/README.md), [EPIC-030](archive/epics/EPIC-030-durees-de-conservation/README.md)) . L'inscription libre s'ouvre par un réglage du serveur (`SIGNUP_OPEN=1`), quand l'utilisatrice le décide.
+4. Conditions d'utilisation et politique de confidentialité ([fiche des comptes](archive/todo/comptes-participants.md), [SPEC-013](specs/SPEC-013-pages-legales-et-conservation.md)). Pages, acceptation et durées de conservation faites ([EPIC-029](archive/epics/EPIC-029-pages-legales/README.md), [EPIC-030](archive/epics/EPIC-030-durees-de-conservation/README.md)). L'inscription libre s'ouvre par un réglage du serveur (`SIGNUP_OPEN=1`), quand l'utilisatrice le décide.
 
 ## 6. Numéros et notes de version
 
