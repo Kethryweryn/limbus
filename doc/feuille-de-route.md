@@ -99,4 +99,4 @@ La fiche [Numéros de version et notes de version](todo/versions-et-notes-de-ver
 
 ## Exploitation
 
-- Le 3 novembre 2026 : anciennes sauvegardes non chiffrées sur Dedibackup, à supprimer seulement avec son accord.
+- Anciennes sauvegardes non chiffrées sur Dedibackup, à supprimer seulement avec son accord.
