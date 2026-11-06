@@ -1,7 +1,7 @@
 ---
 id: US-163
 titre: Dire où je suis disponible en répondant au questionnaire
-statut: à faire
+statut: terminée
 epic: EPIC-046
 regles: [R7, R14, R29]
 adr: [../../adr/ADR-0069-vivier-unique-et-statut-par-session.md]
@@ -13,12 +13,12 @@ En tant que personne qui s'inscrit, je veux cocher les sessions où je suis disp
 
 ## Critères d'acceptation
 
-- [ ] Étant donné des sessions ouvertes, quand je remplis le questionnaire, alors une question les liste avec leurs dates, et je peux n'en cocher aucune.
-- [ ] Étant donné aucune session ouverte, alors la question n'apparaît pas.
-- [ ] Étant donné une session cochée, quand mon inscription est reçue, alors je suis pré-inscrite pour cette session.
-- [ ] Étant donné que je suis dans le vivier, quand je reviens par mon lien ou mon compte, alors je peux modifier mes réponses et mes disponibilités, même vivier fermé.
-- [ ] Étant donné que je décoche une session, alors l'effet est celui d'un « Pas disponible » (R29) : pré-inscrite, je passe à « pas disponible » ; en attente, je sors de la file ; retenue sans annonce, je suis retirée sans l'apprendre et l'équipe est prévenue.
-- [ ] Étant donné une place annoncée ou confirmée, alors décocher cette session ne change rien, et la page me renvoie vers l'annulation.
+- [x] Étant donné des sessions ouvertes, quand je remplis le questionnaire, alors une question les liste avec leurs dates, et je peux n'en cocher aucune.
+- [x] Étant donné aucune session ouverte, alors la question n'apparaît pas.
+- [x] Étant donné une session cochée, quand mon inscription est reçue, alors je suis pré-inscrite pour cette session.
+- [x] Étant donné que je suis dans le vivier, quand je reviens par mon lien ou mon compte, alors je peux modifier mes réponses et mes disponibilités, même vivier fermé.
+- [x] Étant donné que je décoche une session, alors l'effet est celui d'un « Pas disponible » (R29) : pré-inscrite, je passe à « pas disponible » ; en attente, je sors de la file ; retenue sans annonce, je suis retirée sans l'apprendre et l'équipe est prévenue.
+- [x] Étant donné une place annoncée ou confirmée, alors décocher cette session ne change rien, et la page me renvoie vers l'annulation.
 
 ## Notes techniques
 
@@ -26,4 +26,4 @@ En tant que personne qui s'inscrit, je veux cocher les sessions où je suis disp
 
 ## Tests
 
-Intégration : `formRegistrations.test.ts`. Playwright : `registration.spec.ts`.
+Intégration : `publicRegistrations.test.ts`, `formRegistrations.test.ts`. Playwright : `registration.spec.ts`.

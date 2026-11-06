@@ -1,59 +1,43 @@
 import type { H3Event } from 'h3'
 import type { z } from 'zod'
 import { prisma } from '~/server/utils/prisma'
-import type { registrationPeriodSchema, registrationPeriodUpdateSchema } from '~/server/utils/schemas'
+import type { registrationPeriodSchema, registrationPeriodUpdateSchema, registrationSessionSettingsSchema } from '~/server/utils/schemas'
 import { assertSameGame, requireGameAccess } from '~/server/utils/gameAccess'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import {
-  assertClosingDateAllowsState,
-  assertNoRegistrationsOnRemovedSessions,
-  assertSinglePermanentOpen,
   exposeRegistrationPeriod,
   findRegistrationPeriodOr404,
-  parseOptionalDate,
   registrationPeriodInclude,
-  resolveRegistrationPeriodSessions,
-  rethrowSessionAlreadyTaken,
+  rethrowPoolAlreadyExists,
   withFreshPublicId
 } from '~/server/utils/registrationPeriods'
-import { REGISTRATION_ENTRY_MODES, REGISTRATION_PERIOD_SCOPES, REGISTRATION_SELECTION_MODES } from '~/utils/domain'
+import { REGISTRATION_SELECTION_MODES } from '~/utils/domain'
+import { isOpenableSession } from '~/utils/registrationPeriods'
 
-// Écritures d'une période d'inscription, communes aux routes de l'interface et aux outils des assistants d'IA (US-130,
-// SPEC-014 R12) : mêmes contrôles d'accès, de version, de sessions du même jeu et d'état
+// Écritures d'un vivier, communes aux routes de l'interface et aux outils des assistants d'IA (US-130, SPEC-014 R12) :
+// mêmes contrôles d'accès, de version et de sessions du même jeu
 
 type Reader<S extends z.ZodType> = () => Promise<z.output<S>>
 
 export async function createRegistrationPeriod(event: H3Event, readBody: Reader<typeof registrationPeriodSchema>) {
   const body = await readBody()
   await requireGameAccess(event, body.gameId)
-  // L'inscription permanente n'a pas de date de clôture : les orgas la clôturent à la main (R30)
-  const permanent = body.scope === REGISTRATION_PERIOD_SCOPES.game
-  const closesAt = permanent ? null : parseOptionalDate(body.closesAt)
-  assertClosingDateAllowsState(body.state, closesAt)
-  await assertSinglePermanentOpen(body.gameId, body.scope, body.state)
-  const sessions = permanent ? [] : await resolveRegistrationPeriodSessions(body.gameId, body.sessions)
+  // Un jeu a au plus un vivier (R1)
+  if (await prisma.registrationPeriod.findUnique({ where: { gameId: body.gameId }, select: { id: true } })) {
+    throw createError({ statusCode: 409, message: 'Ce jeu a déjà un vivier.' })
+  }
 
   const period = await withFreshPublicId((publicId) => prisma.registrationPeriod.create({
     data: {
       gameId: body.gameId,
-      name: body.name,
-      scope: body.scope,
       publicId,
-      entryMode: body.entryMode,
       notifyTeam: body.notifyTeam,
       replayPolicy: body.replayPolicy,
-      selectionMode: body.selectionMode,
-      organizerPicks: body.selectionMode === REGISTRATION_SELECTION_MODES.mixed ? body.organizerPicks ?? 0 : null,
-      weightNotDrawnBefore: body.weightNotDrawnBefore,
-      weightBalance: body.weightBalance,
-      waitlistSize: body.waitlistSize,
       state: body.state,
-      closesAt,
-      responseDelayDays: body.responseDelayDays,
-      sessions: { create: sessions }
+      responseDelayDays: body.responseDelayDays
     },
     include: registrationPeriodInclude
-  })).catch(rethrowSessionAlreadyTaken)
+  })).catch(rethrowPoolAlreadyExists)
 
   return exposeRegistrationPeriod(period)
 }
@@ -66,47 +50,48 @@ export async function updateRegistrationPeriod(event: H3Event, periodId: string 
   const body = await readBody()
   assertSameGame(gameId, body.gameId)
   // Champs absents : valeurs actuelles (une modification partielle ne remet rien à zéro)
-  const current = await prisma.registrationPeriod.findUniqueOrThrow({ where: { id }, select: { state: true, closesAt: true, responseDelayDays: true, notifyTeam: true, replayPolicy: true, scope: true, entryMode: true, selectionMode: true, organizerPicks: true, weightNotDrawnBefore: true, weightBalance: true, waitlistSize: true } })
-  const permanent = current.scope === REGISTRATION_PERIOD_SCOPES.game
-  const state = body.state ?? current.state
-  const closesAt = permanent ? null : body.closesAt === undefined ? current.closesAt : parseOptionalDate(body.closesAt)
-  assertClosingDateAllowsState(state, closesAt)
-  await assertSinglePermanentOpen(gameId, current.scope, state, id)
-  if (permanent ? body.sessions.length : !body.sessions.length) {
-    throw createError({ statusCode: 400, message: permanent ? 'L’inscription permanente couvre tout le jeu : ne choisissez pas de session' : 'Choisissez au moins une session' })
-  }
-  // Tirage et mode mixte : périodes ordinaires en mode formulaire (US-092)
-  const selectionMode = body.selectionMode ?? current.selectionMode
-  if (selectionMode !== REGISTRATION_SELECTION_MODES.chosen && (permanent || current.entryMode !== REGISTRATION_ENTRY_MODES.form)) {
-    throw createError({ statusCode: 400, message: 'Le tirage concerne les périodes ordinaires en mode formulaire' })
-  }
-  const organizerPicks = selectionMode === REGISTRATION_SELECTION_MODES.mixed
-    ? (body.organizerPicks === undefined ? current.organizerPicks : body.organizerPicks) ?? 0
-    : null
-  const sessions = permanent ? [] : await resolveRegistrationPeriodSessions(gameId, body.sessions, id)
-  await assertNoRegistrationsOnRemovedSessions(id, sessions.map((session) => session.sessionId))
-
-  const period = await prisma.$transaction(async (tx) => {
-    await tx.registrationPeriodSession.deleteMany({ where: { periodId: id } })
-    return await tx.registrationPeriod.update({
-      where: { id },
-      data: {
-        name: body.name,
-        state,
-        closesAt,
-        responseDelayDays: body.responseDelayDays ?? current.responseDelayDays,
-        notifyTeam: body.notifyTeam ?? current.notifyTeam,
-        replayPolicy: body.replayPolicy ?? current.replayPolicy,
-        selectionMode,
-        organizerPicks,
-        weightNotDrawnBefore: body.weightNotDrawnBefore ?? current.weightNotDrawnBefore,
-        weightBalance: body.weightBalance ?? current.weightBalance,
-        waitlistSize: body.waitlistSize ?? current.waitlistSize,
-        sessions: { create: sessions }
-      },
-      include: registrationPeriodInclude
-    })
-  }).catch(rethrowSessionAlreadyTaken)
-
+  const period = await prisma.registrationPeriod.update({
+    where: { id },
+    data: {
+      state: body.state,
+      responseDelayDays: body.responseDelayDays,
+      notifyTeam: body.notifyTeam,
+      replayPolicy: body.replayPolicy
+    },
+    include: registrationPeriodInclude
+  })
   return exposeRegistrationPeriod(period)
+}
+
+/**
+ * Ouverture et sélection d'une session du vivier (R6, R22). Une session sans date, passée, annulée ou terminée ne
+ * s'ouvre pas. La refermer ne retire aucune pré-inscription. Un champ absent reste tel quel.
+ */
+export async function updateRegistrationSession(period: { id: string, gameId: string }, sessionId: string, body: z.output<typeof registrationSessionSettingsSchema>) {
+  const session = await prisma.session.findFirst({ where: { id: sessionId, gameId: period.gameId }, select: { id: true, date: true, status: true } })
+  if (!session) {
+    throw createError({ statusCode: 400, message: 'Session invalide pour ce jeu' })
+  }
+  if (body.open && !isOpenableSession(session)) {
+    throw createError({ statusCode: 409, message: 'Seule une session datée et à venir, ni annulée ni terminée, peut être ouverte.' })
+  }
+  const current = await prisma.registrationPeriodSession.findUnique({ where: { sessionId }, select: { selectionMode: true, organizerPicks: true } })
+  const selectionMode = body.selectionMode ?? current?.selectionMode ?? REGISTRATION_SELECTION_MODES.chosen
+  const organizerPicks = selectionMode === REGISTRATION_SELECTION_MODES.mixed
+    ? (body.organizerPicks === undefined ? current?.organizerPicks : body.organizerPicks) ?? 0
+    : null
+  const data = {
+    open: body.open,
+    selectionMode,
+    organizerPicks,
+    weightNotDrawnBefore: body.weightNotDrawnBefore,
+    weightBalance: body.weightBalance,
+    waitlistSize: body.waitlistSize
+  }
+  await prisma.registrationPeriodSession.upsert({
+    where: { sessionId },
+    update: data,
+    create: { ...data, periodId: period.id, sessionId }
+  })
+  return { success: true }
 }

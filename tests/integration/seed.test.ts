@@ -279,34 +279,38 @@ describe('Station Meridian, avant les sessions', () => {
     const page = await api(null, 'GET', '/api/public/games/station-meridian')
     expect(page.status, JSON.stringify(page.body)).toBe(200)
     expect(JSON.stringify(page.body)).toContain('Jeu d’essai')
-    expect(JSON.stringify(page.body)).toContain('/i/essai-meridian-main')
+    expect(JSON.stringify(page.body)).toContain('/i/essai-meridian-vivier')
 
-    const form = await api(null, 'GET', '/api/public/periods/essai-meridian-main')
+    const form = await api(null, 'GET', '/api/public/periods/essai-meridian-vivier')
     expect(form.status, JSON.stringify(form.body)).toBe(200)
     expect(JSON.stringify(form.body)).toContain('Quel type de rôle préférez-vous ?')
     expect(await prisma.registrationPeriod.count({ where: { gameId: meridian, notifyTeam: true } })).toBe(0)
   })
 
-  it('a chaque sorte de période', async () => {
-    const periods = await prisma.registrationPeriod.findMany({ where: { gameId: meridian }, select: { scope: true, entryMode: true, selectionMode: true, state: true } })
-    const has = (fields: Partial<typeof periods[number]>) => periods.some((period) => Object.entries(fields).every(([key, value]) => period[key as keyof typeof period] === value))
-    expect(has({ entryMode: 'form', selectionMode: 'chosen', state: 'open' })).toBe(true)
-    expect(has({ entryMode: 'invitation', state: 'open' })).toBe(true)
-    expect(has({ selectionMode: 'random', state: 'closed' })).toBe(true)
-    expect(has({ selectionMode: 'mixed', state: 'open' })).toBe(true)
-    expect(has({ scope: 'game', state: 'open' })).toBe(true)
-    expect(has({ state: 'draft' })).toBe(true)
+  it('a un seul vivier, ouvert, et chaque sorte de session', async () => {
+    const period = await prisma.registrationPeriod.findUniqueOrThrow({
+      where: { gameId: meridian },
+      select: { state: true, sessions: { select: { open: true, selectionMode: true } } }
+    })
+    expect(period.state).toBe('open')
+    const has = (fields: Partial<typeof period.sessions[number]>) => period.sessions.some((link) => Object.entries(fields).every(([key, value]) => link[key as keyof typeof link] === value))
+    expect(has({ selectionMode: 'chosen', open: true })).toBe(true)
+    expect(has({ selectionMode: 'random', open: false })).toBe(true)
+    expect(has({ selectionMode: 'mixed', open: true })).toBe(true)
+    expect(has({ selectionMode: 'chosen', open: false })).toBe(true)
   })
 
-  it('a chaque statut d\'inscription, avec des décisions annoncées et d\'autres à annoncer', async () => {
-    const rows = await prisma.registration.findMany({ where: { period: { gameId: meridian } }, select: { status: true, announcedStatus: true } })
-    expect(new Set(rows.map((row) => row.status))).toEqual(new Set(['invited', 'received', 'retained', 'waitlisted', 'rejected', 'confirmed', 'withdrawn']))
+  it('a chaque statut, pour le jeu et par session, avec des décisions annoncées et d\'autres à annoncer', async () => {
+    const people = await prisma.registration.findMany({ where: { period: { gameId: meridian } }, select: { status: true } })
+    expect(new Set(people.map((row) => row.status))).toEqual(new Set(['invited', 'received', 'withdrawn']))
+    const rows = await prisma.registrationSession.findMany({ where: { registration: { period: { gameId: meridian } } }, select: { status: true, announcedStatus: true } })
+    expect(new Set(rows.map((row) => row.status))).toEqual(new Set(['preregistered', 'unavailable', 'waitlisted', 'retained', 'confirmed', 'cancelled']))
     expect(rows.some((row) => row.status === 'retained' && row.announcedStatus === 'retained')).toBe(true)
     expect(rows.some((row) => row.status === 'retained' && !row.announcedStatus)).toBe(true)
   })
 
   it('montre la sélection, avec ses alertes et sa rejoueuse', async () => {
-    const period = await prisma.registrationPeriod.findFirstOrThrow({ where: { gameId: meridian, selectionMode: 'chosen', state: 'open', entryMode: 'form' }, select: { id: true } })
+    const period = await prisma.registrationPeriod.findUniqueOrThrow({ where: { gameId: meridian }, select: { id: true } })
     const selection = await api(owner, 'GET', `/api/registration-periods/${period.id}/selection`)
     expect(selection.status, JSON.stringify(selection.body)).toBe(200)
     const body = bodyOf<ApiResponse<'/api/registration-periods/:id/selection'>>(selection)
@@ -318,17 +322,17 @@ describe('Station Meridian, avant les sessions', () => {
   })
 
   it('a un tirage reproductible et annulable', async () => {
-    const period = await prisma.registrationPeriod.findFirstOrThrow({ where: { gameId: meridian, selectionMode: 'random', state: 'closed' }, select: { id: true } })
+    const period = await prisma.registrationPeriod.findUniqueOrThrow({ where: { gameId: meridian }, select: { id: true } })
     const draws = await api(owner, 'GET', `/api/registration-periods/${period.id}/draws`)
     expect(draws.status, JSON.stringify(draws.body)).toBe(200)
     expect(JSON.stringify(draws.body)).toContain('graine-du-jeu-de-test')
 
-    const draw = await prisma.registrationDraw.findFirstOrThrow({ where: { periodId: period.id }, select: { id: true } })
-    const retained = await prisma.registration.count({ where: { periodId: period.id, status: 'retained' } })
-    expect(retained).toBe(6)
+    const draw = await prisma.registrationDraw.findFirstOrThrow({ where: { periodId: period.id }, select: { id: true, sessionId: true } })
+    const where = { sessionId: draw.sessionId!, status: 'retained' }
+    expect(await prisma.registrationSession.count({ where })).toBe(6)
     const cancelled = await api(owner, 'POST', `/api/registration-draws/${draw.id}/cancel`)
     expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
-    expect(await prisma.registration.count({ where: { periodId: period.id, status: 'retained' } })).toBe(0)
+    expect(await prisma.registrationSession.count({ where })).toBe(0)
   })
 
   it('donne des repères de qualité et une estimation sur le questionnaire', async () => {

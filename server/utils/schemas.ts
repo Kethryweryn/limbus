@@ -8,17 +8,14 @@ import {
   DOCUMENT_AUDIENCES,
   INTRIGUE_LEVELS,
   REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS,
-  REGISTRATION_ENTRY_MODES,
   REGISTRATION_PERIOD_STATES,
   REFUND_STATUSES,
   SESSION_ROLES,
   SESSION_STATUSES,
   USER_ROLES,
-  REGISTRATION_PERIOD_SCOPES,
   REGISTRATION_REPLAY_POLICIES,
   REGISTRATION_SELECTION_ACTIONS,
-  REGISTRATION_SELECTION_MODES,
-  REGISTRATION_DEFAULT_WAITLIST_SIZE
+  REGISTRATION_SELECTION_MODES
 } from '~/utils/domain'
 import { isHttpUrl, isUploadUrl, PHOTO_UPLOAD_PREFIX, RIB_UPLOAD_PREFIX } from '~/utils/urls'
 import {
@@ -409,30 +406,15 @@ export const sessionSchema = z.object({
 // Schémas des inscriptions (SPEC-001) : messages en français, affichés tels quels dans l'interface
 const frenchText = (label: string) => z.string({ error: `${label} est obligatoire` }).trim().min(1, `${label} est obligatoire`)
 
-const registrationPeriodSessionSchema = z.object({
-  sessionId: frenchText('La session'),
-  // Absent : le nombre de personnages PJ du jeu (R5)
-  seats: z.number({ error: 'Le nombre de places doit être un nombre entier' })
-    .int('Le nombre de places doit être un nombre entier')
-    .min(0, 'Le nombre de places ne peut pas être négatif')
-    .max(1000, 'Pas plus de 1000 places')
-    .optional().nullable()
-})
-
 const registrationPeriodState = z.enum([
   REGISTRATION_PERIOD_STATES.draft,
   REGISTRATION_PERIOD_STATES.open,
   REGISTRATION_PERIOD_STATES.closed
-], { error: 'État de période inconnu' })
-const registrationClosesAt = optionalText.refine((value) => !value || !Number.isNaN(new Date(value).getTime()), 'Date de clôture invalide')
+], { error: 'État du vivier inconnu' })
 const registrationResponseDelay = z.number({ error: 'Le délai de réponse doit être un nombre de jours' })
   .int('Le délai de réponse doit être un nombre entier de jours')
   .min(1, 'Le délai de réponse est d’au moins 1 jour')
   .max(90, 'Le délai de réponse est de 90 jours au plus')
-// Au moins une session pour une période de sessions précises, aucune pour l'inscription permanente (R1, R30)
-const registrationPeriodSessions = z.array(registrationPeriodSessionSchema)
-  .refine((sessions) => new Set(sessions.map((session) => session.sessionId)).size === sessions.length, 'Une session est choisie deux fois')
-  .default([])
 
 const registrationSelectionMode = z.enum(
   [REGISTRATION_SELECTION_MODES.chosen, REGISTRATION_SELECTION_MODES.random, REGISTRATION_SELECTION_MODES.mixed],
@@ -447,63 +429,51 @@ const registrationReplayPolicy = z.enum(
   { error: 'Réglage des rejoueurs inconnu' }
 )
 
+// Le vivier d'un jeu (SPEC-018) : ni portée, ni mode d'entrée, ni date de clôture
 export const registrationPeriodSchema = z.object({
-  name: frenchText('Le nom'),
   gameId: frenchText('Le jeu'),
-  // Formulaire public et inscription permanente (US-083) ; le mode ne change plus après la création
-  entryMode: z.enum([REGISTRATION_ENTRY_MODES.invitation, REGISTRATION_ENTRY_MODES.form], { error: 'Mode d’entrée inconnu' }).default(REGISTRATION_ENTRY_MODES.invitation),
-  scope: z.enum([REGISTRATION_PERIOD_SCOPES.sessions, REGISTRATION_PERIOD_SCOPES.game], { error: 'Portée inconnue' }).default(REGISTRATION_PERIOD_SCOPES.sessions),
   state: registrationPeriodState.default(REGISTRATION_PERIOD_STATES.draft),
-  closesAt: registrationClosesAt,
   responseDelayDays: registrationResponseDelay.default(REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS),
   notifyTeam: z.boolean().default(false),
-  replayPolicy: registrationReplayPolicy.default(REGISTRATION_REPLAY_POLICIES.allowed),
-  organizerPicks: registrationOrganizerPicks,
-  selectionMode: registrationSelectionMode.default(REGISTRATION_SELECTION_MODES.chosen),
-  weightNotDrawnBefore: z.boolean().default(false),
-  weightBalance: z.boolean().default(false),
-  waitlistSize: registrationWaitlistSize.default(REGISTRATION_DEFAULT_WAITLIST_SIZE),
-  sessions: registrationPeriodSessions
-}).superRefine((period, context) => {
-  // Tirage et mode mixte : périodes ordinaires en mode formulaire (US-092)
-  if (period.selectionMode !== REGISTRATION_SELECTION_MODES.chosen
-    && (period.scope === REGISTRATION_PERIOD_SCOPES.game || period.entryMode !== REGISTRATION_ENTRY_MODES.form)) {
-    context.addIssue({ code: 'custom', path: ['selectionMode'], message: 'Le tirage concerne les périodes ordinaires en mode formulaire' })
-  }
-  if (period.scope === REGISTRATION_PERIOD_SCOPES.game) {
-    if (period.entryMode !== REGISTRATION_ENTRY_MODES.form) {
-      context.addIssue({ code: 'custom', path: ['entryMode'], message: 'L’inscription permanente est toujours en mode formulaire' })
-    }
-    if (period.sessions.length) {
-      context.addIssue({ code: 'custom', path: ['sessions'], message: 'L’inscription permanente couvre tout le jeu : ne choisissez pas de session' })
-    }
-  } else if (!period.sessions.length) {
-    context.addIssue({ code: 'custom', path: ['sessions'], message: 'Choisissez au moins une session' })
-  }
+  replayPolicy: registrationReplayPolicy.default(REGISTRATION_REPLAY_POLICIES.allowed)
 })
 
-// Modification : un champ absent est conservé, jamais remis à sa valeur par défaut ; closesAt à null retire la date
+// Modification : un champ absent est conservé, jamais remis à sa valeur par défaut
 export const registrationPeriodUpdateSchema = z.object({
-  name: frenchText('Le nom'),
   gameId: frenchText('Le jeu'),
   state: registrationPeriodState.optional(),
-  closesAt: registrationClosesAt,
   responseDelayDays: registrationResponseDelay.optional(),
   notifyTeam: z.boolean().optional(),
-  replayPolicy: registrationReplayPolicy.optional(),
-  organizerPicks: registrationOrganizerPicks,
-  selectionMode: registrationSelectionMode.optional(),
-  weightNotDrawnBefore: z.boolean().optional(),
-  weightBalance: z.boolean().optional(),
-  waitlistSize: registrationWaitlistSize.optional(),
-  sessions: registrationPeriodSessions
+  replayPolicy: registrationReplayPolicy.optional()
 })
 
-// Décision de sélection sur une inscription (US-087) ; la session est demandée pour retenir et la liste d'attente
+// Ouverture et sélection d'une session du vivier (R6, R22) : un champ absent est conservé
+export const registrationSessionSettingsSchema = z.object({
+  open: z.boolean().optional(),
+  selectionMode: registrationSelectionMode.optional(),
+  organizerPicks: registrationOrganizerPicks,
+  weightNotDrawnBefore: z.boolean().optional(),
+  weightBalance: z.boolean().optional(),
+  waitlistSize: registrationWaitlistSize.optional()
+})
+
+// La session d'une action sur une personne du vivier (relance, annulation…) ; absente, l'action vaut pour le jeu
+export const registrationTargetSchema = z.object({
+  sessionId: z.string().min(1).nullable().optional()
+}).default({})
+
+// La session d'une action de la personne (confirmer, annuler) : toujours donnée
+export const registrationSessionTargetSchema = z.object({
+  sessionId: frenchText('La session')
+})
+
+// Tirage d'une session (R22)
+export const registrationDrawSchema = registrationSessionTargetSchema
+
 export const registrationSelectionSchema = z.object({
   action: z.enum(REGISTRATION_SELECTION_ACTIONS, { error: 'Décision inconnue' }),
-  sessionId: z.string().min(1).nullable().optional()
-}).refine((body) => !['retain', 'waitlist', 'unwaitlist'].includes(body.action) || body.sessionId, { path: ['sessionId'], message: 'Choisissez la session' })
+  sessionId: frenchText('La session')
+})
 
 // Rattachement d'une ligne d'affinité (US-095) : une personne du jeu, « inconnue », ou rien pour détacher
 export const affinityLinkSchema = z.object({
@@ -523,9 +493,9 @@ export const registrationPoolSeatsSchema = z.object({
   seats: z.number().int('Nombre de places invalide').min(0, 'Nombre de places invalide').max(1000, 'Nombre de places invalide').nullable()
 })
 
-// Invitations d'une session de la période (US-003) : des participants du jeu et/ou une nouvelle personne
+// Invitations à rejoindre le vivier (R4), éventuellement pour une session : des participants du jeu et/ou une nouvelle personne
 export const registrationInvitationSchema = z.object({
-  sessionId: frenchText('La session'),
+  sessionId: z.string().min(1).nullable().optional(),
   participantIds: z.array(frenchText('Le participant')).optional().default([])
     .refine((ids) => new Set(ids).size === ids.length, 'Une personne est choisie deux fois'),
   newParticipant: z.object({
@@ -536,6 +506,7 @@ export const registrationInvitationSchema = z.object({
 
 // Prolongation de l'échéance d'une invitation sans réponse, à une date choisie (US-005, R20)
 export const registrationExtensionSchema = z.object({
+  sessionId: z.string().min(1).nullable().optional(),
   responseDueAt: frenchText('La nouvelle échéance')
     .refine((value) => !Number.isNaN(new Date(value).getTime()), 'Date d’échéance invalide')
     .transform((value) => new Date(value))

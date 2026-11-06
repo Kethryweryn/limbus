@@ -34,9 +34,9 @@ async function personInTwoTeams() {
     await prisma.registration.create({
       data: {
         periodId: period.id,
-        sessionId: session.id,
         participantId: participant.id,
-        status: 'confirmed',
+        status: 'received',
+        sessionLines: { create: { sessionId: session.id, status: 'confirmed' } },
         source: 'invitation',
         email: user.email,
         formVersionId: form.versions[0]!.id,
@@ -96,7 +96,9 @@ describe('inscriptions et coordonnées (US-074)', () => {
     const { user, teams } = await personInTwoTeams()
     await api(user, 'PUT', '/api/account/profile', profile)
     const { game, participant } = teams[0]!
-    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: `Invitation ${++counter}`, publicId: `invitation-profil-${counter}`, state: 'open' } })
+    // Le vivier du jeu, où cette personne n'a pas encore répondu
+    const period = await prisma.registrationPeriod.findUniqueOrThrow({ where: { gameId: game.id } })
+    await prisma.registration.deleteMany({ where: { periodId: period.id, participantId: participant.id } })
     const invited = await prisma.registration.create({
       data: { periodId: period.id, participantId: participant.id, status: 'invited', source: 'invitation', email: user.email, responseDueAt: new Date(Date.now() + 86_400_000) }
     })
@@ -128,7 +130,8 @@ describe('lien personnel (US-074)', () => {
     await api(user, 'PUT', '/api/account/profile', profile)
     const { game, participant } = teams[0]!
     const token = `${'x'.repeat(30)}${String(++counter).padStart(13, '0')}`
-    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: `Lien ${counter}`, publicId: `lien-profil-${counter}`, state: 'open' } })
+    const period = await prisma.registrationPeriod.findUniqueOrThrow({ where: { gameId: game.id } })
+    await prisma.registration.deleteMany({ where: { periodId: period.id, participantId: participant.id } })
     await prisma.registration.create({
       data: { periodId: period.id, participantId: participant.id, status: 'invited', source: 'invitation', email: user.email, tokenHash: createHash('sha256').update(token).digest('hex'), responseDueAt: new Date(Date.now() + 86_400_000) }
     })

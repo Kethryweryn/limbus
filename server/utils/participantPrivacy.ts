@@ -86,8 +86,8 @@ export async function exportParticipantData(participantId: string, gameIds: stri
           // Réponse à la question d'équilibre (US-091)
           balancePreference: true,
           formVersion: { select: { definition: true } },
-          // Sessions où la personne s'est dite disponible (R10)
-          availabilities: { select: { session: { select: { name: true, date: true } } } },
+          // Statut et disponibilité de la personne pour chaque session (SPEC-018)
+          sessionLines: { select: { status: true, answer: true, answeredAt: true, confirmedAt: true, cancelledAt: true, session: { select: { name: true, date: true } } } },
           // Affinités écrites par la personne, avec la personne rattachée ; jamais celles des autres qui la visent (US-095)
           affinities: {
             select: { kind: true, text: true, ...(forPerson ? {} : { targetUnknown: true, targetParticipant: { select: { name: true } } }) },

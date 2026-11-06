@@ -5,7 +5,7 @@ import { getCurrentRegistrationForm } from '~/server/utils/registrationForms'
 import { optionExpectationsOf } from '~/server/utils/registrationOptionExpectations'
 import { questionLinksOf } from '~/server/utils/registrationQuestionLinks'
 import { draftingReview } from '~/utils/questionnaireDrafting'
-import { latestAnswersPerPerson, questionnaireFindings } from '~/utils/questionnaireQuality'
+import { peopleWithAnswers, questionnaireFindings } from '~/utils/questionnaireQuality'
 
 // Repères sur le questionnaire de casting d'un jeu (SPEC-015, US-133, US-136 à US-139) : calculés à la lecture, rien n'est écrit.
 // Rend aussi les personnages PJ, pour l'essai du questionnaire (SPEC-016, US-135), et le reste de ce que la prévision calcule
@@ -20,11 +20,10 @@ export async function questionnaireQuality(gameId: string) {
     gameCharacters(gameId),
     prisma.registration.findMany({
       where: { period: { gameId }, questionAnswers: { not: Prisma.DbNull } },
-      select: { participantId: true, questionAnswers: true },
-      orderBy: { createdAt: 'desc' }
+      select: { questionAnswers: true }
     })
   ])
-  const people = latestAnswersPerPerson(registrations)
+  const people = peopleWithAnswers(registrations)
   return {
     // Une réponse, même à une question sans lien, ouvre le temps des repères : la prévision et la relecture se replient (US-142, US-144)
     hasAnswers: people.length > 0,

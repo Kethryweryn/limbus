@@ -21,15 +21,13 @@ async function aliceGame() {
   const sessions = await Promise.all([0, 1].map((index) => prisma.session.create({
     data: { name: `Session ${index + 1} ${key}`, slug: `session-${index + 1}-${key}`, gameId: game.id, date: new Date(Date.now() + (10 + index) * DAY) }
   })))
+  await prisma.character.createMany({ data: [1, 2, 3].map((index) => ({ name: `PJ ${index}`, slug: `pj-${index}-${key}`, gameId: game.id, type: 'pj' })) })
   const period = await prisma.registrationPeriod.create({
     data: {
       gameId: game.id,
-      name: `Période ${key}`,
       publicId: key,
-      entryMode: 'form',
       state: 'open',
-      selectionMode: 'chosen',
-      sessions: { create: sessions.map((session) => ({ sessionId: session.id, seats: 5 })) }
+      sessions: { create: sessions.map((session) => ({ sessionId: session.id })) }
     }
   })
   return { game, sessions, period }
@@ -48,11 +46,15 @@ async function registration(period: { id: string }, participant: { id: string },
     data: {
       periodId: period.id,
       participantId: participant.id,
-      status: extra.status ?? 'received',
+      status: 'received',
       source: 'form',
       email: `affinites-${++counter}@example.test`,
-      sessionId: extra.sessionId ?? null,
-      availabilities: { create: (extra.availableSessionIds ?? []).map((sessionId) => ({ sessionId })) },
+      sessionLines: {
+        create: [
+          ...(extra.sessionId ? [{ sessionId: extra.sessionId, status: extra.status ?? 'retained' }] : []),
+          ...(extra.availableSessionIds ?? []).map((sessionId) => ({ sessionId, status: 'preregistered', answer: 'available' }))
+        ]
+      },
       affinities: {
         create: (extra.affinities ?? []).map(([kind, text, targetParticipantId], position) => ({ kind, text, position, targetParticipantId: targetParticipantId ?? null }))
       }

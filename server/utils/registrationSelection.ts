@@ -1,46 +1,31 @@
-import { prisma } from '~/server/utils/prisma'
+import { prisma, type PrismaTx } from '~/server/utils/prisma'
 import { openEmailTransport } from '~/server/utils/email'
 import { countPlayableCharacters, takenSeatsWhere } from '~/server/utils/registrationPeriods'
 import { affinityOverview } from '~/server/utils/registrationAffinities'
 import { createRegistrationToken, registrationResponseDueAt, registrationUrl, selectionAnnouncementEmail } from '~/server/utils/registrations'
 import {
-  CLOSED_SESSION_STATUSES,
-  REGISTRATION_ENTRY_MODES,
-  REGISTRATION_PERIOD_SCOPES,
+  REGISTRATION_ANSWERS,
+  REGISTRATION_DEFAULT_WAITLIST_SIZE,
   REGISTRATION_REPLAY_POLICIES,
   REGISTRATION_SELECTION_MODES,
   REGISTRATION_SELECTION_STATUSES,
+  REGISTRATION_SESSION_STATUSES as LINE,
   REGISTRATION_STATUSES,
   SESSION_ROLES,
   SESSION_STATUSES
 } from '~/utils/domain'
 import type { REGISTRATION_SELECTION_ACTIONS } from '~/utils/domain'
-import { canConfirmPlace, isAnnouncementPending, isBackInPool } from '~/utils/registrations'
+import { isOpenableSession } from '~/utils/registrationPeriods'
+import { canConfirmPlace, isAnnouncementPending } from '~/utils/registrations'
 
 export type SelectionAction = typeof REGISTRATION_SELECTION_ACTIONS[number]
-
-// Statuts qu'une décision de sélection peut changer (US-087) ; confirmée ou désistée, on passe par le désistement
-const SORTABLE_STATUSES: string[] = [REGISTRATION_STATUSES.received, ...REGISTRATION_SELECTION_STATUSES]
-
 const selectionPeriodSelect = {
   id: true,
   gameId: true,
-  scope: true,
-  entryMode: true,
   replayPolicy: true,
   responseDelayDays: true,
   createdAt: true,
-  selectionMode: true,
-  organizerPicks: true,
-  weightNotDrawnBefore: true,
-  weightBalance: true,
-  waitlistSize: true,
-  game: { select: { title: true, balanceAttribute: true, balanceValues: true } },
-  // Dans l'ordre des dates : le tirage va session par session (ADR-0048)
-  sessions: {
-    orderBy: { session: { date: 'asc' } },
-    select: { sessionId: true, seats: true, session: { select: { id: true, name: true, date: true, status: true } } }
-  }
+  game: { select: { title: true, balanceAttribute: true, balanceValues: true } }
 } as const
 
 export type SelectionPeriod = NonNullable<Awaited<ReturnType<typeof findSelectionPeriod>>>
@@ -49,30 +34,43 @@ export async function findSelectionPeriod(periodId: string) {
   return await prisma.registrationPeriod.findUnique({ where: { id: periodId }, select: selectionPeriodSelect })
 }
 
-export function isPermanentPeriod(period: { scope: string }) {
-  return period.scope === REGISTRATION_PERIOD_SCOPES.game
+/**
+ * Sessions du jeu où l'on peut caster (R20) : toutes les sessions prévues, ouvertes ou non, dans l'ordre des dates.
+ * Une session sans ligne dans le vivier a les réglages par défaut : elle n'a encore rien de particulier.
+ */
+export async function selectableSessions(period: { gameId: string }) {
+  const [sessions, seats] = await Promise.all([
+    prisma.session.findMany({
+      where: { gameId: period.gameId, status: SESSION_STATUSES.scheduled },
+      orderBy: [{ date: { sort: 'asc', nulls: 'last' } }, { name: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        date: true,
+        status: true,
+        registrationPeriodLink: {
+          select: { open: true, selectionMode: true, organizerPicks: true, weightNotDrawnBefore: true, weightBalance: true, waitlistSize: true }
+        }
+      }
+    }),
+    countPlayableCharacters(period.gameId)
+  ])
+  return sessions.map(({ registrationPeriodLink: link, ...session }) => ({
+    ...session,
+    seats,
+    open: Boolean(link?.open),
+    // Proposée au vivier : ouverte par l'équipe, et encore datée et à venir (R6)
+    offered: Boolean(link?.open) && isOpenableSession(session),
+    openable: isOpenableSession(session),
+    selectionMode: link?.selectionMode ?? REGISTRATION_SELECTION_MODES.chosen,
+    organizerPicks: link?.organizerPicks ?? null,
+    weightNotDrawnBefore: link?.weightNotDrawnBefore ?? false,
+    weightBalance: link?.weightBalance ?? false,
+    waitlistSize: link?.waitlistSize ?? REGISTRATION_DEFAULT_WAITLIST_SIZE
+  }))
 }
 
-/**
- * Sessions pour lesquelles on trie (US-087, US-090), avec leurs places :
- * - période ordinaire : ses sessions ni annulées ni terminées, avec les places de la période ;
- * - inscription permanente : les sessions à venir du jeu sans période dédiée, avec `Session.poolSeats`,
- *   ou à défaut le nombre de personnages PJ (R5).
- */
-export async function selectableSessions(period: SelectionPeriod) {
-  if (!isPermanentPeriod(period)) {
-    return period.sessions
-      .filter((link) => !CLOSED_SESSION_STATUSES.includes(link.session.status))
-      .map((link) => ({ ...link.session, seats: link.seats, defaultSeats: false }))
-  }
-  const sessions = await prisma.session.findMany({
-    where: { gameId: period.gameId, status: { notIn: CLOSED_SESSION_STATUSES }, registrationPeriodLink: null },
-    orderBy: [{ date: { sort: 'asc', nulls: 'last' } }, { name: 'asc' }],
-    select: { id: true, name: true, date: true, status: true, poolSeats: true }
-  })
-  const playable = sessions.some((session) => session.poolSeats == null) ? await countPlayableCharacters(period.gameId) : 0
-  return sessions.map(({ poolSeats, ...session }) => ({ ...session, seats: poolSeats ?? playable, defaultSeats: poolSeats == null }))
-}
+export type SelectableSession = Awaited<ReturnType<typeof selectableSessions>>[number]
 
 // A déjà joué (R7) : participant d'une session terminée du jeu
 export async function replayerParticipantIds(gameId: string, participantIds: string[]) {
@@ -90,50 +88,54 @@ export async function replayerParticipantIds(gameId: string, participantIds: str
 }
 
 /**
- * Ce que l'écran de sélection ajoute à la liste des inscriptions (US-087, US-090) : les sessions à remplir avec
- * leurs places et les places prises, et les personnes qui ont déjà joué le jeu, quand la période les signale.
+ * Ce que l'écran de sélection ajoute à la liste du vivier : les sessions à caster avec leurs places et les places
+ * prises, le tirage en cours de chacune, et les personnes qui ont déjà joué le jeu, quand le vivier les signale.
  */
 export async function selectionOverview(periodId: string) {
   const period = (await findSelectionPeriod(periodId))!
   const sessions = await selectableSessions(period)
-  const taken = await prisma.registration.groupBy({
-    by: ['sessionId'],
-    where: takenSeatsWhere(sessions.map((session) => session.id)),
-    _count: { _all: true }
-  })
+  const sessionIds = sessions.map((session) => session.id)
+  const [taken, draws] = await Promise.all([
+    prisma.registrationSession.groupBy({ by: ['sessionId'], where: takenSeatsWhere(sessionIds), _count: { _all: true } }),
+    prisma.registrationDraw.findMany({ where: { sessionId: { in: sessionIds }, cancelledAt: null }, select: { id: true, sessionId: true } })
+  ])
   const takenBySession = new Map(taken.map((row) => [row.sessionId, row._count._all]))
+  const drawBySession = new Map(draws.map((draw) => [draw.sessionId, draw.id]))
   const flagged = period.replayPolicy !== REGISTRATION_REPLAY_POLICIES.allowed
   const participants = flagged
     ? await prisma.registration.findMany({ where: { periodId }, select: { participantId: true } })
     : []
   const replayers = await replayerParticipantIds(period.gameId, participants.map((row) => row.participantId))
   return {
-    permanent: isPermanentPeriod(period),
     replayPolicy: period.replayPolicy,
-    sessions: sessions.map((session) => ({ ...session, taken: takenBySession.get(session.id) ?? 0 })),
+    sessions: sessions.map((session) => ({
+      ...session,
+      taken: takenBySession.get(session.id) ?? 0,
+      activeDrawId: drawBySession.get(session.id) ?? null
+    })),
     replayerParticipantIds: [...replayers],
     // Alertes, personnes souhaitées et lignes à rattacher (US-095, US-096)
-    affinities: await affinityOverview(periodId, sessions.map((session) => session.id))
+    affinities: await affinityOverview(periodId, sessionIds)
   }
 }
 
-// Un tirage actif (non annulé) : il y en a au plus un par période (US-094)
-export async function activeDraw(periodId: string) {
-  return await prisma.registrationDraw.findFirst({ where: { periodId, cancelledAt: null }, select: { id: true, createdAt: true } })
+// Le tirage actif (non annulé) d'une session : il y en a au plus un (R22)
+export async function activeDraw(sessionId: string) {
+  return await prisma.registrationDraw.findFirst({ where: { sessionId, cancelledAt: null }, select: { id: true, createdAt: true } })
 }
 
 /**
  * Retenir à la main avant le tirage (US-092, ADR-0048) : refusé en mode hasard ; en mode mixte, chaque organisatrice
  * retient au plus `organizerPicks` personnes par session. Une fois un tirage fait, les corrections sont libres.
  */
-export async function assertManualRetainAllowed(period: SelectionPeriod, sessionId: string, userId: string) {
-  if (period.selectionMode === REGISTRATION_SELECTION_MODES.chosen || isPermanentPeriod(period)) return
-  if (await activeDraw(period.id)) return
-  if (period.selectionMode === REGISTRATION_SELECTION_MODES.random) {
-    throw createError({ statusCode: 409, message: 'Cette période sélectionne au hasard : lancez le tirage, puis corrigez à la main si besoin.' })
+export async function assertManualRetainAllowed(session: Pick<SelectableSession, 'id' | 'selectionMode' | 'organizerPicks'>, userId: string) {
+  if (session.selectionMode === REGISTRATION_SELECTION_MODES.chosen) return
+  if (await activeDraw(session.id)) return
+  if (session.selectionMode === REGISTRATION_SELECTION_MODES.random) {
+    throw createError({ statusCode: 409, message: 'Cette session sélectionne au hasard : lancez le tirage, puis corrigez à la main si besoin.' })
   }
-  const picks = period.organizerPicks ?? 0
-  const mine = await prisma.registration.count({ where: { ...takenSeatsWhere([sessionId]), retainedById: userId } })
+  const picks = session.organizerPicks ?? 0
+  const mine = await prisma.registrationSession.count({ where: { ...takenSeatsWhere([session.id]), retainedById: userId } })
   if (mine >= picks) {
     throw createError({
       statusCode: 409,
@@ -142,224 +144,194 @@ export async function assertManualRetainAllowed(period: SelectionPeriod, session
   }
 }
 
-export function assertFormPeriod(period: { entryMode: string }) {
-  if (period.entryMode !== REGISTRATION_ENTRY_MODES.form) {
-    throw createError({ statusCode: 409, message: 'La sélection concerne les périodes en mode formulaire : en mode invitation, on invite directement.' })
-  }
-}
-
-export async function lockSession(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0], sessionId: string) {
+export async function lockSession(tx: PrismaTx, sessionId: string) {
   // Deux décisions simultanées pour la même session comptent les places l'une après l'autre
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`registration-seats:${sessionId}`}))`
 }
 
+// Une session recrutée par le vivier a sa ligne, même si l'équipe ne l'a jamais ouverte (ADR-0069)
+export async function ensureSessionLink(tx: PrismaTx, periodId: string, sessionId: string) {
+  await tx.registrationPeriodSession.upsert({ where: { sessionId }, update: {}, create: { periodId, sessionId } })
+}
+
+// Message du refus quand une session est complète (R8)
+export function fullSessionMessage(session: { name: string, seats: number }) {
+  return `La session « ${session.name} » est complète (${session.seats} place${session.seats > 1 ? 's' : ''}) : créez un personnage pour ajouter une place.`
+}
+
 /**
- * Décision de sélection sur une inscription (US-087, US-090). Rien n'est envoyé : la décision est
- * « à annoncer » (US-088). Le statut lu est revérifié à l'écriture : un désistement simultané l'emporte.
+ * Décision de sélection pour une session (R20). Rien n'est envoyé : la décision est « à annoncer » (US-088).
+ * Une personne du vivier peut être retenue ou mise en attente même sans réponse, même « pas disponible » ou rejoueuse
+ * exclue : l'écran le signale. Inscrite ou transférée, on passe par l'annulation.
  */
-export async function applySelection(registrationId: string, action: SelectionAction, sessionId: string | null, author: { id: string }) {
+export async function applySelection(registrationId: string, action: SelectionAction, sessionId: string, author: { id: string }) {
   const registration = await prisma.registration.findUniqueOrThrow({
     where: { id: registrationId },
-    select: {
-      id: true,
-      status: true,
-      sessionId: true,
-      periodId: true,
-      participantId: true,
-      announcedStatus: true,
-      announcedSessionId: true,
-      session: { select: { status: true } },
-      availabilities: { select: { sessionId: true } },
-      waitlistEntries: { select: { sessionId: true } }
-    }
+    select: { id: true, status: true, periodId: true }
   })
+  if (registration.status !== REGISTRATION_STATUSES.received) {
+    throw createError({ statusCode: 409, message: 'Cette personne n’est pas dans le vivier : elle n’a pas répondu au questionnaire, ou elle en est sortie.' })
+  }
   const period = (await findSelectionPeriod(registration.periodId))!
-  assertFormPeriod(period)
-  const permanent = isPermanentPeriod(period)
-  const backInPool = permanent && isBackInPool(registration)
-  if (!SORTABLE_STATUSES.includes(registration.status) && !backInPool) {
-    throw createError({ statusCode: 409, message: 'Cette inscription ne peut plus être triée : la personne a confirmé ou s’est désistée.' })
+  const session = (await selectableSessions(period)).find((candidate) => candidate.id === sessionId)
+  if (!session) {
+    throw createError({ statusCode: 400, message: 'Session invalide pour ce vivier' })
   }
-  if (action === 'reject' && permanent) {
-    throw createError({ statusCode: 400, message: 'Dans le vivier, une personne qu’on ne retient pas y reste simplement.' })
-  }
+  if (action === 'retain') await assertManualRetainAllowed(session, author.id)
 
-  let session: Awaited<ReturnType<typeof selectableSessions>>[number] | undefined
-  if (action === 'retain' || action === 'waitlist') {
-    session = (await selectableSessions(period)).find((candidate) => candidate.id === sessionId)
-    if (!session) {
-      throw createError({ statusCode: 400, message: 'Session invalide pour cette période d’inscription' })
-    }
-    // Disponibilités : seulement dans une période ordinaire à plusieurs sessions (R10)
-    if (!permanent && period.sessions.length > 1 && !registration.availabilities.some((availability) => availability.sessionId === session!.id)) {
-      throw createError({ statusCode: 400, message: 'Cette personne n’est pas disponible pour cette session.' })
-    }
-    if (permanent && period.replayPolicy === REGISTRATION_REPLAY_POLICIES.excluded
-      && (await replayerParticipantIds(period.gameId, [registration.participantId])).size) {
-      throw createError({ statusCode: 409, message: 'Cette personne a déjà joué : les rejoueurs sont exclus du vivier.' })
-    }
-  }
-  if (action === 'retain') await assertManualRetainAllowed(period, session!.id, author.id)
-  if (action === 'unwaitlist' && !registration.waitlistEntries.some((entry) => entry.sessionId === sessionId)) {
-    throw createError({ statusCode: 400, message: 'Cette personne n’est pas sur la liste d’attente de cette session.' })
-  }
-
-  const unchanged = { id: registration.id, status: registration.status, sessionId: registration.sessionId }
-  // Une place retenue revenue au vivier repart sans réponse ; seule une place retenue garde qui l'a retenue
-  const cleared = { respondedAt: null, confirmedAt: null, retainedById: null }
+  const key = { registrationId_sessionId: { registrationId, sessionId } }
   await prisma.$transaction(async (tx) => {
-    const write = async (data: Record<string, unknown>) => {
-      const { count } = await tx.registration.updateMany({ where: unchanged, data })
-      if (!count) {
-        throw createError({ statusCode: 409, message: 'Cette inscription a changé entre-temps : rechargez la page.' })
-      }
+    await lockSession(tx, sessionId)
+    const line = await tx.registrationSession.findUnique({ where: key, select: { status: true, answer: true, announcedStatus: true } })
+    if (line?.status === LINE.confirmed || line?.status === LINE.transferred) {
+      throw createError({ statusCode: 409, message: 'Cette personne a confirmé sa présence : passez par l’annulation.' })
     }
+    await ensureSessionLink(tx, registration.periodId, sessionId)
+    // La version de la personne suit ses décisions : un assistant qui l'a lue avant ne les écrase pas
+    await tx.registration.update({ where: { id: registrationId }, data: { updatedAt: new Date() } })
+    // Une annulation repart de zéro : ce qui lui avait été annoncé ne vaut plus
+    const fromCancelled = line?.status === LINE.cancelled ? { announcedStatus: null, announcedAt: null, cancelledAt: null, cancelledById: null } : {}
 
     if (action === 'retain') {
-      await lockSession(tx, session!.id)
-      const taken = await tx.registration.count({ where: { ...takenSeatsWhere([session!.id]), id: { not: registration.id } } })
-      if (taken >= session!.seats) {
-        throw createError({
-          statusCode: 409,
-          message: `La session « ${session!.name} » est complète (${session!.seats} place${session!.seats > 1 ? 's' : ''}) : augmentez le nombre de places pour retenir une personne de plus.`
-        })
-      }
+      const taken = await tx.registrationSession.count({ where: { ...takenSeatsWhere([sessionId]), registrationId: { not: registrationId } } })
+      if (taken >= session.seats) throw createError({ statusCode: 409, message: fullSessionMessage(session) })
       // Une place retenue n'a d'échéance qu'une fois annoncée (ADR-0047) ; revenir à la place déjà annoncée garde la sienne
-      const announced = registration.announcedStatus === REGISTRATION_STATUSES.retained && registration.announcedSessionId === session!.id
-      await write({
-        status: REGISTRATION_STATUSES.retained,
-        sessionId: session!.id,
-        ...cleared,
+      const announced = line?.announcedStatus === LINE.retained && line.status !== LINE.cancelled
+      const data = {
+        status: LINE.retained,
+        waitlistPosition: null,
         retainedById: author.id,
+        ...fromCancelled,
         ...(announced ? {} : { responseDueAt: null, lastRemindedAt: null })
-      })
-      await tx.registrationWaitlistEntry.deleteMany({ where: { registrationId: registration.id } })
-    } else if (action === 'waitlist') {
-      if (!registration.waitlistEntries.some((entry) => entry.sessionId === session!.id)) {
-        const last = await tx.registrationWaitlistEntry.aggregate({ where: { sessionId: session!.id }, _max: { position: true } })
-        await tx.registrationWaitlistEntry.create({
-          data: { registrationId: registration.id, sessionId: session!.id, position: (last._max.position ?? 0) + 1 }
-        })
       }
-      await write({ status: REGISTRATION_STATUSES.waitlisted, sessionId: null, ...cleared })
-    } else if (action === 'unwaitlist') {
-      await tx.registrationWaitlistEntry.deleteMany({ where: { registrationId: registration.id, sessionId: sessionId! } })
-      // Sortie de sa dernière file, l'inscription est de nouveau à trier
-      const remaining = await tx.registrationWaitlistEntry.count({ where: { registrationId: registration.id } })
-      if (!remaining) await write({ status: REGISTRATION_STATUSES.received })
+      await tx.registrationSession.upsert({ where: key, update: data, create: { registrationId, sessionId, ...data } })
+      return
+    }
+
+    if (action === 'waitlist') {
+      if (line?.status !== LINE.waitlisted) {
+        const last = await tx.registrationSession.aggregate({ where: { sessionId, status: LINE.waitlisted }, _max: { waitlistPosition: true } })
+        const data = { status: LINE.waitlisted, waitlistPosition: (last._max.waitlistPosition ?? 0) + 1, retainedById: null, ...fromCancelled }
+        await tx.registrationSession.upsert({ where: key, update: data, create: { registrationId, sessionId, ...data } })
+      }
     } else {
-      await write({ status: action === 'reject' ? REGISTRATION_STATUSES.rejected : REGISTRATION_STATUSES.received, sessionId: null, ...cleared })
-      await tx.registrationWaitlistEntry.deleteMany({ where: { registrationId: registration.id } })
+      if (action === 'unwaitlist' && line?.status !== LINE.waitlisted) {
+        throw createError({ statusCode: 400, message: 'Cette personne n’est pas sur la liste d’attente de cette session.' })
+      }
+      if (line) await backToAnswer(tx, registrationId, sessionId, line, author.id)
     }
     // Plus retenue pour cette session : le personnage réservé redevient libre (US-100)
-    if (!(action === 'retain' && session!.id === registration.sessionId)) {
-      await tx.sessionAssignment.updateMany({ where: { reservedRegistrationId: registration.id }, data: { reservedRegistrationId: null } })
-    }
+    await tx.sessionAssignment.updateMany({ where: { sessionId, reservedRegistrationId: registrationId }, data: { reservedRegistrationId: null } })
   })
   return { success: true }
 }
 
-// Nouvel ordre de la liste d'attente d'une session (R19) : exactement les inscriptions de la période qui y attendent
+/**
+ * Une personne qui sort du cast ou de la liste d'attente revient à sa dernière réponse (R28). Sans réponse, sa ligne
+ * disparaît ; si une place lui avait été annoncée, elle passe à « annulation » (R17).
+ */
+async function backToAnswer(
+  tx: PrismaTx,
+  registrationId: string,
+  sessionId: string,
+  line: { status: string, answer: string | null, announcedStatus: string | null },
+  authorId: string
+) {
+  const key = { registrationId_sessionId: { registrationId, sessionId } }
+  const cleared = { waitlistPosition: null, retainedById: null, responseDueAt: null, lastRemindedAt: null }
+  if (line.status === LINE.cancelled) return
+  if (line.announcedStatus === LINE.retained || (line.announcedStatus && !line.answer)) {
+    await tx.registrationSession.update({ where: key, data: { ...cleared, status: LINE.cancelled, cancelledAt: new Date(), cancelledById: authorId } })
+  } else if (line.answer) {
+    const status = line.answer === REGISTRATION_ANSWERS.available ? LINE.preregistered : LINE.unavailable
+    await tx.registrationSession.update({ where: key, data: { ...cleared, status } })
+  } else {
+    await tx.registrationSession.delete({ where: key })
+  }
+}
+
+// Nouvel ordre de la liste d'attente d'une session (R23) : exactement les personnes du vivier qui y attendent
 export async function reorderWaitlist(periodId: string, sessionId: string, registrationIds: string[]) {
-  const entries = await prisma.registrationWaitlistEntry.findMany({
-    where: { sessionId, registration: { periodId } },
+  const lines = await prisma.registrationSession.findMany({
+    where: { sessionId, status: LINE.waitlisted, registration: { periodId } },
     select: { id: true, registrationId: true }
   })
-  const current = new Set(entries.map((entry) => entry.registrationId))
+  const current = new Set(lines.map((line) => line.registrationId))
   if (registrationIds.length !== current.size || new Set(registrationIds).size !== current.size || registrationIds.some((id) => !current.has(id))) {
     throw createError({ statusCode: 409, message: 'La liste d’attente a changé entre-temps : rechargez la page.' })
   }
-  const entryByRegistration = new Map(entries.map((entry) => [entry.registrationId, entry.id]))
+  const lineByRegistration = new Map(lines.map((line) => [line.registrationId, line.id]))
   await prisma.$transaction(registrationIds.map((registrationId, index) =>
-    prisma.registrationWaitlistEntry.update({ where: { id: entryByRegistration.get(registrationId)! }, data: { position: index + 1 } })
+    prisma.registrationSession.update({ where: { id: lineByRegistration.get(registrationId)! }, data: { waitlistPosition: index + 1 } })
   ))
   return { success: true }
 }
 
-// Places d'une session recrutée par l'inscription permanente (US-090) ; vide : le nombre de personnages PJ
-export async function setPoolSeats(periodId: string, sessionId: string, seats: number | null) {
-  const period = (await findSelectionPeriod(periodId))!
-  if (!isPermanentPeriod(period)) {
-    throw createError({ statusCode: 400, message: 'Les places d’une période ordinaire se règlent dans la période.' })
-  }
-  if (!(await selectableSessions(period)).some((session) => session.id === sessionId)) {
-    throw createError({ statusCode: 400, message: 'Session invalide pour cette période d’inscription' })
-  }
-  const playable = seats ?? await countPlayableCharacters(period.gameId)
-  // On ne descend pas sous le nombre de personnes retenues ou confirmées (US-087)
-  if (playable < await prisma.registration.count({ where: takenSeatsWhere([sessionId]) })) {
-    throw createError({ statusCode: 409, message: 'Cette session a plus de personnes retenues ou confirmées que de places : retirez-en avant de baisser le nombre de places.' })
-  }
-  // Sans toucher à updatedAt, version de la session pour ses écritures hors ligne (ADR-0028, ADR-0036)
-  await prisma.$executeRaw`UPDATE "Session" SET "poolSeats" = ${seats} WHERE "id" = ${sessionId}`
-  return { success: true }
-}
-
 /**
- * Annonce les décisions pas encore annoncées d'une période (US-088, ADR-0047) : un email par personne,
- * avec un nouveau lien personnel ; l'échéance d'une place retenue part de l'annonce (R20).
+ * Annonce les décisions pas encore annoncées d'un vivier (US-088, ADR-0047) : un email par place retenue, et un pour
+ * les listes d'attente, tous avec le même nouveau lien personnel ; l'échéance d'une place retenue part de l'annonce (R20).
  * Le jeton n'est enregistré qu'après l'envoi : un échec laisse l'ancien lien valable et la décision à annoncer.
  */
 export async function announceSelection(periodId: string) {
   const period = (await findSelectionPeriod(periodId))!
-  assertFormPeriod(period)
-  const registrations = (await prisma.registration.findMany({
-    where: { periodId, status: { in: REGISTRATION_SELECTION_STATUSES } },
+  const registrations = await prisma.registration.findMany({
+    where: { periodId, status: REGISTRATION_STATUSES.received, sessionLines: { some: { status: { in: REGISTRATION_SELECTION_STATUSES } } } },
     orderBy: { createdAt: 'asc' },
     select: {
       id: true,
-      status: true,
-      sessionId: true,
       email: true,
-      announcedStatus: true,
-      announcedSessionId: true,
       participant: { select: { name: true } },
-      session: { select: { name: true, date: true } },
-      waitlistEntries: { orderBy: { session: { date: 'asc' } }, select: { sessionId: true, session: { select: { name: true, date: true } } } }
+      sessionLines: {
+        where: { status: { in: REGISTRATION_SELECTION_STATUSES } },
+        orderBy: { session: { date: 'asc' } },
+        select: { id: true, status: true, announcedStatus: true, session: { select: { name: true, date: true } } }
+      }
     }
-  })).filter(isAnnouncementPending)
-  // L'email d'attente ne cite que les sessions encore à remplir
-  const openSessionIds = new Set((await selectableSessions(period)).map((session) => session.id))
+  })
 
   const results: Array<{ participantName: string, sent: boolean, message: string | null }> = []
   const transport = await openEmailTransport().catch(() => null)
   try {
     for (const registration of registrations) {
-      const now = new Date()
-      const retained = registration.status === REGISTRATION_STATUSES.retained
-      const responseDueAt = retained ? registrationResponseDueAt(period.responseDelayDays, now) : null
-      const { token, tokenHash } = createRegistrationToken()
-      const email = selectionAnnouncementEmail({
-        status: registration.status,
-        participantName: registration.participant.name,
-        gameTitle: period.game.title,
-        sessions: retained
-          ? [registration.session!]
-          : registration.waitlistEntries.filter((entry) => openSessionIds.has(entry.sessionId)).map((entry) => entry.session),
-        responseDueAt,
-        url: registrationUrl(token)
-      })
+      const pending = registration.sessionLines.filter(isAnnouncementPending)
+      if (!pending.length) continue
+      const participantName = registration.participant.name
       if (!transport) {
-        results.push({ participantName: registration.participant.name, sent: false, message: 'SMTP désactivé' })
+        results.push({ participantName, sent: false, message: 'SMTP désactivé' })
         continue
       }
-      try {
-        await transport.send({ to: registration.email, ...email })
-      } catch (error) {
-        results.push({ participantName: registration.participant.name, sent: false, message: (error as { message?: string })?.message || 'Erreur SMTP' })
-        continue
-      }
-      await prisma.registration.updateMany({
-        where: { id: registration.id, status: registration.status, sessionId: registration.sessionId },
-        data: {
-          tokenHash,
-          announcedStatus: registration.status,
-          announcedSessionId: registration.sessionId,
-          announcedAt: now,
-          ...(retained ? { responseDueAt } : {})
+      const now = new Date()
+      const responseDueAt = registrationResponseDueAt(period.responseDelayDays, now)
+      const { token, tokenHash } = createRegistrationToken()
+      const common = { participantName, gameTitle: period.game.title, url: registrationUrl(token) }
+      const waiting = pending.filter((line) => line.status === LINE.waitlisted)
+      const parts = [
+        ...pending.filter((line) => line.status === LINE.retained).map((line) => ({ lines: [line], email: selectionAnnouncementEmail({ ...common, status: LINE.retained, sessions: [line.session], responseDueAt }) })),
+        ...(waiting.length ? [{ lines: waiting, email: selectionAnnouncementEmail({ ...common, status: LINE.waitlisted, sessions: waiting.map((line) => line.session), responseDueAt: null }) }] : [])
+      ]
+      // Enregistré dès le premier email parti : son lien doit marcher, même si un email suivant échoue. Ce qui n'est pas
+      // parti reste à annoncer
+      let failure: string | null = null
+      let linkSaved = false
+      for (const { lines, email } of parts) {
+        try {
+          await transport.send({ to: registration.email, ...email })
+        } catch (error) {
+          failure = (error as { message?: string })?.message || 'Erreur SMTP'
+          break
         }
-      })
-      results.push({ participantName: registration.participant.name, sent: true, message: null })
+        await prisma.$transaction(async (tx) => {
+          if (!linkSaved) await tx.registration.update({ where: { id: registration.id }, data: { tokenHash } })
+          for (const line of lines) {
+            await tx.registrationSession.updateMany({
+              where: { id: line.id, status: line.status },
+              data: { announcedStatus: line.status, announcedAt: now, ...(line.status === LINE.retained ? { responseDueAt } : {}) }
+            })
+          }
+        })
+        linkSaved = true
+      }
+      results.push({ participantName, sent: !failure, message: failure })
     }
   } finally {
     transport?.close()
@@ -372,28 +344,38 @@ export async function announceSelection(periodId: string) {
 }
 
 /**
- * Confirmation d'une place retenue (US-089, R20, R22), même après l'échéance tant que la place n'est pas libérée :
- * la personne devient participante de la session, comme à l'acceptation d'une invitation.
+ * Confirmation d'une place retenue (US-089, R18), même après l'échéance tant que la place n'est pas libérée :
+ * la personne devient inscrite à cette session seulement, et participante de la session.
  */
-export async function confirmRetainedPlace(registration: { id: string, status: string, sessionId: string | null, participantId: string, announcedStatus: string | null, announcedSessionId: string | null }) {
-  if (!canConfirmPlace(registration)) {
-    throw createError({ statusCode: 409, message: 'Aucune place à confirmer pour cette inscription.' })
+export async function confirmRetainedPlace(registration: { id: string, participantId: string }, sessionId: string) {
+  const key = { registrationId_sessionId: { registrationId: registration.id, sessionId } }
+  const line = await prisma.registrationSession.findUnique({ where: key, select: { status: true, announcedStatus: true } })
+  if (!line || !canConfirmPlace(line)) {
+    throw createError({ statusCode: 409, message: 'Aucune place à confirmer pour cette session.' })
   }
+  await confirmLine(registration, sessionId)
+}
+
+export async function confirmLine(registration: { id: string, participantId: string }, sessionId: string) {
   const now = new Date()
   await prisma.$transaction(async (tx) => {
-    const { count } = await tx.registration.updateMany({
-      where: { id: registration.id, status: REGISTRATION_STATUSES.retained, sessionId: registration.sessionId },
-      data: { status: REGISTRATION_STATUSES.confirmed, respondedAt: now, confirmedAt: now }
+    const { count } = await tx.registrationSession.updateMany({
+      where: { registrationId: registration.id, sessionId, status: LINE.retained },
+      data: { status: LINE.confirmed, confirmedAt: now }
     })
     if (!count) {
       throw createError({ statusCode: 409, message: 'Votre inscription a changé entre-temps : rechargez la page.' })
     }
-    const key = { sessionId: registration.sessionId!, participantId: registration.participantId, role: SESSION_ROLES.participant }
-    await tx.sessionParticipant.upsert({ where: { sessionId_participantId_role: key }, update: {}, create: key })
-    // Le personnage qui lui était réservé devient le sien (US-100, ADR-0051)
-    await tx.sessionAssignment.updateMany({
-      where: { sessionId: registration.sessionId!, reservedRegistrationId: registration.id, participantId: null },
-      data: { participantId: registration.participantId, reservedRegistrationId: null }
-    })
+    await joinSession(tx, registration, sessionId)
+  })
+}
+
+// La personne entre dans la session (SPEC-001, R22) ; le personnage qui lui était réservé devient le sien (US-100, ADR-0051)
+export async function joinSession(tx: PrismaTx, registration: { id: string, participantId: string }, sessionId: string) {
+  const key = { sessionId, participantId: registration.participantId, role: SESSION_ROLES.participant }
+  await tx.sessionParticipant.upsert({ where: { sessionId_participantId_role: key }, update: {}, create: key })
+  await tx.sessionAssignment.updateMany({
+    where: { sessionId, reservedRegistrationId: registration.id, participantId: null },
+    data: { participantId: registration.participantId, reservedRegistrationId: null }
   })
 }

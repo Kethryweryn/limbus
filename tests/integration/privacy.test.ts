@@ -86,7 +86,7 @@ describe('inscriptions d’un participant (US-003)', () => {
     })
     for (const w of [a, b]) {
       await prisma.registration.create({
-        data: { periodId: w.registrationPeriod.id, sessionId: w.session.id, participantId: shared.id, status: 'confirmed', source: 'invitation', email: 'partout@example.test', dietary: `Allergie ${w.game.id}` }
+        data: { periodId: w.registrationPeriod.id, participantId: shared.id, status: 'received', source: 'invitation', email: 'partout@example.test', dietary: `Allergie ${w.game.id}`, sessionLines: { create: { sessionId: w.session.id, status: 'confirmed' } } }
       })
     }
 
@@ -125,7 +125,7 @@ describe('inscriptions d’un participant (US-003)', () => {
       data: { name: 'Inscrit effacé', slug: 'participant-inscrit-efface', email: 'inscrit-efface@example.test', gameLinks: { create: { gameId: a.game.id } } }
     })
     await prisma.registration.create({
-      data: { periodId: a.registrationPeriod.id, sessionId: a.session.id, participantId: participant.id, status: 'invited', source: 'invitation', email: 'inscrit-efface@example.test', phone: '0600000000' }
+      data: { periodId: a.registrationPeriod.id, invitedSessionId: a.session.id, participantId: participant.id, status: 'invited', source: 'invitation', email: 'inscrit-efface@example.test', phone: '0600000000' }
     })
 
     expect((await api(alice, 'DELETE', `/api/participants/${participant.id}`)).status).toBe(200)

@@ -1,19 +1,19 @@
 import { randomBytes } from 'node:crypto'
-import { prisma } from '~/server/utils/prisma'
+import { prisma, type PrismaTx } from '~/server/utils/prisma'
 import { takenSeatsWhere } from '~/server/utils/registrationPeriods'
 import {
-  assertFormPeriod,
   findSelectionPeriod,
   lockSession,
-  isPermanentPeriod,
   replayerParticipantIds,
   selectableSessions,
+  type SelectableSession,
   type SelectionPeriod
 } from '~/server/utils/registrationSelection'
 import {
   CHARACTER_TYPES,
   REGISTRATION_REPLAY_POLICIES,
   REGISTRATION_SELECTION_MODES,
+  REGISTRATION_SESSION_STATUSES as LINE,
   REGISTRATION_STATUSES
 } from '~/utils/domain'
 import { balanceReserves, computeDraw, type DrawResult, type DrawSessionInput, type DrawSettings } from '~/utils/registrationDraw'
@@ -34,21 +34,18 @@ export function balanceQuestion(game: { balanceAttribute: string | null, balance
     : null
 }
 
-// Personnes non retenues, ou restées en attente, lors d'une autre période du jeu (R17)
-async function notDrawnBeforeParticipantIds(period: SelectionPeriod, participantIds: string[]) {
-  if (!participantIds.length) return new Set<string>()
-  const rows = await prisma.registration.findMany({
-    where: {
-      participantId: { in: participantIds },
-      periodId: { not: period.id },
-      // Une période précédente : créée avant celle-ci (R17)
-      period: { gameId: period.gameId, createdAt: { lt: period.createdAt } },
-      status: { in: [REGISTRATION_STATUSES.rejected, REGISTRATION_STATUSES.waitlisted] }
-    },
-    distinct: ['participantId'],
-    select: { participantId: true }
+// Personnes restées sans place lors d'un tirage d'une session plus ancienne du jeu (R22)
+async function notDrawnBeforeRegistrationIds(period: SelectionPeriod, session: SelectableSession) {
+  if (!session.date) return new Set<string>()
+  const draws = await prisma.registrationDraw.findMany({
+    where: { periodId: period.id, cancelledAt: null, session: { date: { lt: session.date } } },
+    select: { result: true }
   })
-  return new Set(rows.map((row) => row.participantId))
+  // Colonne JSON écrite par le tirage
+  return new Set(draws.flatMap(({ result }) => {
+    const { sessions, rejected } = result as DrawResult
+    return [...sessions.flatMap((drawn) => drawn.waitlisted), ...rejected]
+  }))
 }
 
 // Nombre de PJ qui portent chaque valeur d'équilibre du jeu
@@ -62,116 +59,100 @@ async function characterValueCounts(period: SelectionPeriod) {
 }
 
 /**
- * Tire au sort les inscriptions reçues d'une période (US-093, ADR-0048) et enregistre le tirage dans le journal.
- * Les décisions sont à annoncer, comme à la main (ADR-0047).
+ * Tire au sort les pré-inscrits d'une session (R22, R23, ADR-0048) et enregistre le tirage dans le journal. Les personnes
+ * sans place vont en liste d'attente dans la limite réglée ; les autres restent pré-inscrites. Les décisions sont à
+ * annoncer, comme à la main (ADR-0047).
  */
-export async function drawPeriod(periodId: string, author: { id: string }) {
+export async function drawSession(periodId: string, sessionId: string, author: { id: string }) {
   const period = (await findSelectionPeriod(periodId))!
-  assertFormPeriod(period)
-  if (isPermanentPeriod(period) || period.selectionMode === REGISTRATION_SELECTION_MODES.chosen) {
-    throw createError({ statusCode: 409, message: 'Cette période sélectionne à la main : choisissez le mode « au hasard » ou « mixte » pour tirer au sort.' })
+  const session = (await selectableSessions(period)).find((candidate) => candidate.id === sessionId)
+  if (!session) {
+    throw createError({ statusCode: 400, message: 'Session invalide pour ce vivier' })
+  }
+  if (session.selectionMode === REGISTRATION_SELECTION_MODES.chosen) {
+    throw createError({ statusCode: 409, message: 'Cette session sélectionne à la main : choisissez le mode « au hasard » ou « mixte » pour tirer au sort.' })
   }
 
-  const sessions = await selectableSessions(period)
-  const registrations = await prisma.registration.findMany({
-    where: { periodId, status: REGISTRATION_STATUSES.received },
-    select: { id: true, participantId: true, balancePreference: true, availabilities: { select: { sessionId: true } } }
+  const lines = await prisma.registrationSession.findMany({
+    where: { sessionId, status: LINE.preregistered, registration: { status: REGISTRATION_STATUSES.received } },
+    select: { registrationId: true, registration: { select: { participantId: true, balancePreference: true } } }
   })
-  const participantIds = registrations.map((registration) => registration.participantId)
+  const participantIds = lines.map((line) => line.registration.participantId)
   const excluded = period.replayPolicy === REGISTRATION_REPLAY_POLICIES.excluded
     ? await replayerParticipantIds(period.gameId, participantIds)
     : new Set<string>()
-  const favoured = period.weightNotDrawnBefore ? await notDrawnBeforeParticipantIds(period, participantIds) : new Set<string>()
-  const candidates = registrations.filter((registration) => !excluded.has(registration.participantId))
+  const favoured = session.weightNotDrawnBefore ? await notDrawnBeforeRegistrationIds(period, session) : new Set<string>()
+  const candidates = lines.filter((line) => !excluded.has(line.registration.participantId))
 
-  const balanced = period.weightBalance && Boolean(period.game.balanceAttribute) && period.game.balanceValues.length > 0
+  const balanced = session.weightBalance && Boolean(period.game.balanceAttribute) && period.game.balanceValues.length > 0
   const valueCounts = balanced ? await characterValueCounts(period) : {}
-  const taken = await prisma.registration.findMany({
-    where: takenSeatsWhere(sessions.map((session) => session.id)),
-    select: { sessionId: true, balancePreference: true }
+  const taken = await prisma.registrationSession.findMany({
+    where: takenSeatsWhere([sessionId]),
+    select: { registration: { select: { balancePreference: true } } }
   })
 
-  // Une période d'une seule session ne demande pas de disponibilités (R10)
-  const askedAvailability = period.sessions.length > 1
-  const inputs: DrawSessionInput[] = sessions.map((session) => {
-    const takenHere = taken.filter((row) => row.sessionId === session.id)
-    return {
-      sessionId: session.id,
-      freeSeats: Math.max(0, session.seats - takenHere.length),
-      reserves: balanced ? balanceReserves(session.seats, valueCounts, takenHere.map((row) => balancedPreference(period, row.balancePreference))) : null,
-      candidates: candidates
-        .filter((registration) => !askedAvailability || registration.availabilities.some((availability) => availability.sessionId === session.id))
-        .map((registration) => ({
-          registrationId: registration.id,
-          weight: favoured.has(registration.participantId) ? 2 : 1,
-          preference: balanced ? balancedPreference(period, registration.balancePreference) : null
-        }))
-    }
-  })
+  const input: DrawSessionInput = {
+    sessionId,
+    freeSeats: Math.max(0, session.seats - taken.length),
+    reserves: balanced ? balanceReserves(session.seats, valueCounts, taken.map((row) => balancedPreference(period, row.registration.balancePreference))) : null,
+    candidates: candidates.map((line) => ({
+      registrationId: line.registrationId,
+      weight: favoured.has(line.registrationId) ? 2 : 1,
+      preference: balanced ? balancedPreference(period, line.registration.balancePreference) : null
+    }))
+  }
 
   const seed = randomBytes(16).toString('hex')
-  const result = await computeDraw(seed, inputs, period.waitlistSize)
+  const result = await computeDraw(seed, [input], session.waitlistSize)
+  const drawn = result.sessions[0]!
   const settings: DrawSettings = {
-    selectionMode: period.selectionMode,
-    weightNotDrawnBefore: period.weightNotDrawnBefore,
+    selectionMode: session.selectionMode,
+    weightNotDrawnBefore: session.weightNotDrawnBefore,
     weightBalance: balanced,
     balanceAttribute: balanced ? period.game.balanceAttribute : null,
-    waitlistSize: period.waitlistSize,
-    excludedReplayers: registrations.filter((registration) => excluded.has(registration.participantId)).map((registration) => registration.id),
+    waitlistSize: session.waitlistSize,
+    excludedReplayers: lines.filter((line) => excluded.has(line.registration.participantId)).map((line) => line.registrationId),
     // Entrées complètes du calcul (places, réserves, candidates avec poids et préférence) : avec la graine,
-    // computeDraw les rejoue à l'identique (R18)
-    sessions: inputs
+    // computeDraw les rejoue à l'identique (R18 de SPEC-001)
+    sessions: [input]
   }
 
   return await prisma.$transaction(async (tx) => {
-    // Deux tirages simultanés de la même période : le second voit le premier et refuse
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`registration-draw:${periodId}`}))`
-    if (await tx.registrationDraw.findFirst({ where: { periodId, cancelledAt: null }, select: { id: true } })) {
+    // Deux tirages simultanés de la même session : le second voit le premier et refuse
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`registration-draw:${sessionId}`}))`
+    if (await tx.registrationDraw.findFirst({ where: { sessionId, cancelledAt: null }, select: { id: true } })) {
       throw createError({ statusCode: 409, message: 'Un tirage est déjà en cours d’effet : annulez-le pour en refaire un.' })
     }
     // Places recomptées sous le verrou des retenues à la main : une retenue arrivée entre-temps ne fait pas déborder
-    for (const input of inputs) {
-      await lockSession(tx, input.sessionId)
-      const seats = sessions.find((session) => session.id === input.sessionId)!.seats
-      const takenNow = await tx.registration.count({ where: takenSeatsWhere([input.sessionId]) })
-      if (seats - takenNow < input.freeSeats) {
-        throw createError({ statusCode: 409, message: 'Des places ont été prises pendant le tirage : relancez-le.' })
-      }
+    await lockSession(tx, sessionId)
+    const takenNow = await tx.registrationSession.count({ where: takenSeatsWhere([sessionId]) })
+    if (session.seats - takenNow < input.freeSeats) {
+      throw createError({ statusCode: 409, message: 'Des places ont été prises pendant le tirage : relancez-le.' })
     }
-    const stillReceived = async (ids: string[], data: Record<string, unknown>) => {
+    const stillPreregistered = async (ids: string[], data: Record<string, unknown>) => {
       if (!ids.length) return
-      const { count } = await tx.registration.updateMany({ where: { id: { in: ids }, status: REGISTRATION_STATUSES.received }, data })
+      const { count } = await tx.registrationSession.updateMany({ where: { sessionId, registrationId: { in: ids }, status: LINE.preregistered }, data })
       if (count !== ids.length) {
-        throw createError({ statusCode: 409, message: 'Des inscriptions ont changé pendant le tirage : relancez-le.' })
+        throw createError({ statusCode: 409, message: 'Des personnes ont changé pendant le tirage : relancez-le.' })
       }
     }
-    for (const session of result.sessions) {
-      await stillReceived(session.retained, {
-        status: REGISTRATION_STATUSES.retained,
-        sessionId: session.sessionId,
-        retainedById: null,
-        responseDueAt: null,
-        lastRemindedAt: null
-      })
+    await stillPreregistered(drawn.retained, { status: LINE.retained, retainedById: null, responseDueAt: null, lastRemindedAt: null })
+    await touchRegistrations(tx, [...drawn.retained, ...drawn.waitlisted])
+    const last = await tx.registrationSession.aggregate({ where: { sessionId, status: LINE.waitlisted }, _max: { waitlistPosition: true } })
+    const start = last._max.waitlistPosition ?? 0
+    for (const [index, registrationId] of drawn.waitlisted.entries()) {
+      await stillPreregistered([registrationId], { status: LINE.waitlisted, waitlistPosition: start + index + 1 })
     }
-    // Une personne peut attendre dans plusieurs sessions : elle passe en attente une fois, puis rejoint chaque file
-    const waitlisted = [...new Set(result.sessions.flatMap((session) => session.waitlisted))]
-    await stillReceived(waitlisted, { status: REGISTRATION_STATUSES.waitlisted, sessionId: null })
-    for (const session of result.sessions) {
-      if (!session.waitlisted.length) continue
-      const last = await tx.registrationWaitlistEntry.aggregate({ where: { sessionId: session.sessionId }, _max: { position: true } })
-      const start = last._max.position ?? 0
-      await tx.registrationWaitlistEntry.createMany({
-        data: session.waitlisted.map((registrationId, index) => ({ registrationId, sessionId: session.sessionId, position: start + index + 1 })),
-        skipDuplicates: true
-      })
-    }
-    await stillReceived(result.rejected, { status: REGISTRATION_STATUSES.rejected, sessionId: null })
     return await tx.registrationDraw.create({
-      data: { periodId, seed, settings, result, createdById: author.id },
+      data: { periodId, sessionId, seed, settings, result, createdById: author.id },
       select: { id: true, createdAt: true }
     })
   })
+}
+
+// La version d'une personne suit ses décisions : un assistant qui l'a lue avant ne les écrase pas
+function touchRegistrations(tx: PrismaTx, ids: string[]) {
+  return tx.registration.updateMany({ where: { id: { in: ids } }, data: { updatedAt: new Date() } })
 }
 
 // Une réponse qui n'est plus une valeur du jeu compte comme « peu importe » (ADR-0048)
@@ -180,65 +161,67 @@ function balancedPreference(period: SelectionPeriod, preference: string | null) 
 }
 
 /**
- * Annule un tirage (US-094) tant qu'aucune de ses personnes n'a reçu d'annonce depuis : les inscriptions dont la
- * décision est encore celle du tirage repartent à « reçue ». Le tirage reste dans le journal, marqué annulé.
+ * Annule un tirage (US-094) tant qu'aucune de ses personnes n'a reçu d'annonce depuis : celles dont la décision est
+ * encore celle du tirage repartent pré-inscrites. Le tirage reste dans le journal, marqué annulé.
  */
 export async function cancelDraw(drawId: string, author: { id: string }) {
-  const draw = await prisma.registrationDraw.findUniqueOrThrow({ where: { id: drawId }, select: { id: true, cancelledAt: true, createdAt: true, result: true } })
+  const draw = await prisma.registrationDraw.findUniqueOrThrow({ where: { id: drawId }, select: { id: true, sessionId: true, cancelledAt: true, createdAt: true, result: true } })
   if (draw.cancelledAt) {
     throw createError({ statusCode: 409, message: 'Ce tirage est déjà annulé.' })
   }
+  const sessionId = draw.sessionId
+  if (!sessionId) {
+    throw createError({ statusCode: 409, message: 'Ce tirage d’une ancienne période reste au journal : il ne s’annule plus.' })
+  }
   const result = draw.result as DrawResult
-  const everyone = [...new Set([...result.sessions.flatMap((session) => [...session.retained, ...session.waitlisted]), ...result.rejected])]
-  if (await prisma.registration.count({ where: { id: { in: everyone }, announcedAt: { gt: draw.createdAt } } })) {
+  const retained = result.sessions.flatMap((session) => session.retained)
+  const waitlisted = result.sessions.flatMap((session) => session.waitlisted)
+  if (await prisma.registrationSession.count({ where: { sessionId, registrationId: { in: [...retained, ...waitlisted] }, announcedAt: { gt: draw.createdAt } } })) {
     throw createError({ statusCode: 409, message: 'Des résultats de ce tirage sont déjà annoncés : corrigez à la main.' })
   }
-  const back = { status: REGISTRATION_STATUSES.received, sessionId: null, responseDueAt: null, lastRemindedAt: null }
+  const back = { status: LINE.preregistered, waitlistPosition: null, responseDueAt: null, lastRemindedAt: null }
 
   await prisma.$transaction(async (tx) => {
+    await touchRegistrations(tx, [...retained, ...waitlisted])
     const { count } = await tx.registrationDraw.updateMany({ where: { id: draw.id, cancelledAt: null }, data: { cancelledAt: new Date(), cancelledById: author.id } })
     if (!count) {
       throw createError({ statusCode: 409, message: 'Ce tirage est déjà annulé.' })
     }
-    for (const session of result.sessions) {
-      await tx.registration.updateMany({
-        where: { id: { in: session.retained }, status: REGISTRATION_STATUSES.retained, sessionId: session.sessionId, retainedById: null },
-        data: back
-      })
-      // Les personnages réservés aux personnes revenues à trier redeviennent libres (US-100)
-      await tx.sessionAssignment.updateMany({
-        where: { reservedRegistration: { id: { in: session.retained }, status: REGISTRATION_STATUSES.received } },
-        data: { reservedRegistrationId: null }
-      })
-      await tx.registrationWaitlistEntry.deleteMany({ where: { registrationId: { in: session.waitlisted }, sessionId: session.sessionId } })
-    }
-    // En attente sans plus aucune file : de nouveau à trier
-    const waiting = [...new Set(result.sessions.flatMap((session) => session.waitlisted))]
-    await tx.registration.updateMany({
-      where: { id: { in: waiting }, status: REGISTRATION_STATUSES.waitlisted, waitlistEntries: { none: {} } },
+    await tx.registrationSession.updateMany({
+      where: { sessionId, registrationId: { in: retained }, status: LINE.retained, retainedById: null },
       data: back
     })
-    await tx.registration.updateMany({ where: { id: { in: result.rejected }, status: REGISTRATION_STATUSES.rejected }, data: back })
+    // Les personnages réservés aux personnes revenues pré-inscrites redeviennent libres (US-100)
+    await tx.sessionAssignment.updateMany({
+      where: { sessionId, reservedRegistration: { id: { in: retained }, sessionLines: { some: { sessionId, status: LINE.preregistered } } } },
+      data: { reservedRegistrationId: null }
+    })
+    await tx.registrationSession.updateMany({
+      where: { sessionId, registrationId: { in: waitlisted }, status: LINE.waitlisted },
+      data: back
+    })
   })
   return { success: true }
 }
 
-// Journal des tirages d'une période (US-094, R18), annulés compris, du plus récent au plus ancien
+// Journal des tirages d'un vivier (US-094), annulés compris, du plus récent au plus ancien
 export async function listDraws(periodId: string) {
   const draws = await prisma.registrationDraw.findMany({
     where: { periodId },
     orderBy: { createdAt: 'desc' },
     select: {
       id: true,
+      sessionId: true,
       seed: true,
       settings: true,
       result: true,
       createdAt: true,
       cancelledAt: true,
+      session: { select: { name: true } },
       createdBy: { select: { name: true } },
       cancelledBy: { select: { name: true } }
     }
   })
-  // Colonnes JSON écrites par drawRegistrations
+  // Colonnes JSON écrites par le tirage
   return draws.map((draw) => ({ ...draw, settings: draw.settings as DrawSettings, result: draw.result as DrawResult }))
 }

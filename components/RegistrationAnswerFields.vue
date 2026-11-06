@@ -21,7 +21,7 @@
     <UFormField
       v-if="availabilitySessions"
       label="Sessions où vous êtes disponible"
-      required
+      description="Facultatif : c’est une pré-inscription, sans place garantie. L’équipe choisit ensuite pour chaque session."
       :error="errors.availableSessionIds"
     >
       <!-- Un groupe, pas des cases isolées : dans un champ, chaque case prendrait le libellé du champ -->

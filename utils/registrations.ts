@@ -1,122 +1,81 @@
-import { CLOSED_SESSION_STATUSES, REGISTRATION_SELECTION_STATUSES, REGISTRATION_STATUSES } from './domain'
-
-const DAY_MS = 24 * 60 * 60 * 1000
-
-// Le lien personnel cesse de fonctionner 30 jours après la dernière session de la période (ADR-0018)
-export const REGISTRATION_LINK_GRACE_DAYS = 30
+import {
+  REGISTRATION_ANSWERS,
+  REGISTRATION_SELECTION_STATUSES,
+  REGISTRATION_SESSION_STATUSES,
+  REGISTRATION_SESSION_STATUS_META,
+  REGISTRATION_STATUSES,
+  REGISTRATION_STATUS_META
+} from './domain'
 
 type DateLike = Date | string | null | undefined
 
-// Invitation sans réponse, ou place retenue pas encore confirmée, dont l'échéance est passée (R20),
+// Invitation sans réponse, ou place retenue pas encore confirmée, dont l'échéance est passée (R20 de SPEC-001),
 // calculé à la lecture (ADR-0020). Une place retenue n'a d'échéance qu'une fois annoncée (ADR-0047).
 export function isResponseOverdue(
-  registration: { status: string, responseDueAt?: DateLike },
+  item: { status: string, responseDueAt?: DateLike },
   now: Date = new Date()
 ) {
-  return (registration.status === REGISTRATION_STATUSES.invited || registration.status === REGISTRATION_STATUSES.retained)
-    && Boolean(registration.responseDueAt)
-    && new Date(registration.responseDueAt!).getTime() < now.getTime()
+  return (item.status === REGISTRATION_STATUSES.invited || item.status === REGISTRATION_SESSION_STATUSES.retained)
+    && Boolean(item.responseDueAt)
+    && new Date(item.responseDueAt!).getTime() < now.getTime()
 }
 
 // Statut montré aux orgas (US-005) : « délai dépassé » n'est pas stocké, il se lit sur l'échéance (ADR-0020)
 export const REGISTRATION_OVERDUE = 'overdue'
 
 export const REGISTRATION_DISPLAY_STATUS_META: Record<string, { label: string, color: 'info' | 'success' | 'neutral' | 'warning' | 'primary' }> = {
-  [REGISTRATION_STATUSES.invited]: { label: 'Invitée', color: 'info' },
-  [REGISTRATION_STATUSES.received]: { label: 'Reçue', color: 'info' },
-  [REGISTRATION_STATUSES.retained]: { label: 'Retenue', color: 'primary' },
-  [REGISTRATION_STATUSES.waitlisted]: { label: 'Liste d’attente', color: 'warning' },
-  [REGISTRATION_STATUSES.rejected]: { label: 'Non retenue', color: 'neutral' },
-  [REGISTRATION_OVERDUE]: { label: 'Délai dépassé', color: 'warning' },
-  [REGISTRATION_STATUSES.confirmed]: { label: 'Confirmée', color: 'success' },
-  [REGISTRATION_STATUSES.withdrawn]: { label: 'Désistée', color: 'neutral' }
+  ...REGISTRATION_STATUS_META,
+  ...REGISTRATION_SESSION_STATUS_META,
+  [REGISTRATION_OVERDUE]: { label: 'Délai dépassé', color: 'warning' }
 }
 
 export function registrationDisplayStatus(
-  registration: { status: string, responseDueAt?: DateLike },
+  item: { status: string, responseDueAt?: DateLike },
   now: Date = new Date()
 ) {
-  return isResponseOverdue(registration, now) ? REGISTRATION_OVERDUE : registration.status
+  return isResponseOverdue(item, now) ? REGISTRATION_OVERDUE : item.status
 }
 
-type AnnouncedLike = { status: string, sessionId?: string | null, announcedStatus?: string | null, announcedSessionId?: string | null }
-
-// Décision de la sélection qui diffère de ce qui a été annoncé à la personne (US-088, ADR-0047) ;
-// une place retenue changée de session est à annoncer à nouveau
-export function isAnnouncementPending(registration: AnnouncedLike) {
-  if (!REGISTRATION_SELECTION_STATUSES.includes(registration.status)) return false
-  if (registration.announcedStatus !== registration.status) return true
-  return registration.status === REGISTRATION_STATUSES.retained && registration.announcedSessionId !== registration.sessionId
+// « Délai dépassé » se lit sur l'échéance (R20, ADR-0020) ; un statut inconnu s'affiche tel quel
+export function registrationStatusMeta(item: { status: string, responseDueAt?: DateLike }) {
+  return REGISTRATION_DISPLAY_STATUS_META[registrationDisplayStatus(item)] || { label: item.status, color: 'neutral' as const }
 }
 
-// Place retenue annoncée dans sa session : la personne peut la confirmer (US-089)
-export function canConfirmPlace(registration: { status: string, sessionId: string | null, announcedStatus: string | null, announcedSessionId: string | null }) {
-  return registration.status === REGISTRATION_STATUSES.retained
-    && Boolean(registration.sessionId)
-    && registration.announcedStatus === REGISTRATION_STATUSES.retained
-    && registration.announcedSessionId === registration.sessionId
+type LineLike = { status: string, announcedStatus?: string | null }
+
+// Décision de la sélection qui diffère de ce qui a été annoncé à la personne pour cette session (ADR-0047)
+export function isAnnouncementPending(line: LineLike) {
+  return REGISTRATION_SELECTION_STATUSES.includes(line.status) && line.announcedStatus !== line.status
+}
+
+// Place retenue et annoncée : la personne peut la confirmer (US-089)
+export function canConfirmPlace(line: LineLike) {
+  return line.status === REGISTRATION_SESSION_STATUSES.retained && line.announcedStatus === REGISTRATION_SESSION_STATUSES.retained
+}
+
+// Ce que dit la dernière réponse de la personne ; null si elle n'a jamais répondu pour cette session
+function answeredStatus(line: { answer?: string | null }) {
+  if (line.answer === REGISTRATION_ANSWERS.available) return REGISTRATION_SESSION_STATUSES.preregistered
+  if (line.answer === REGISTRATION_ANSWERS.unavailable) return REGISTRATION_SESSION_STATUSES.unavailable
+  return null
 }
 
 /**
- * Vivier de l'inscription permanente (R30, ADR-0047), calculé à la lecture : une inscription retenue ou confirmée
- * pour une session depuis annulée, terminée ou supprimée y est de nouveau.
+ * Statut que voit la personne pour une session (R28, ADR-0047) : ce qui lui a été annoncé, sinon sa dernière réponse ;
+ * null si elle n'a rien à voir. Une décision pas encore annoncée ne se voit jamais, ni un retrait qu'elle n'a pas à
+ * connaître.
  */
-export function isBackInPool(registration: { status: string, session?: { status: string } | null }) {
-  return (registration.status === REGISTRATION_STATUSES.retained || registration.status === REGISTRATION_STATUSES.confirmed)
-    && (!registration.session || CLOSED_SESSION_STATUSES.includes(registration.session.status))
-}
-
-// Statut que voit la personne : une décision pas encore annoncée ne se voit pas (ADR-0047)
-export function announcedRegistrationStatus(registration: AnnouncedLike) {
-  if (!isAnnouncementPending(registration)) return registration.status
-  return registration.announcedStatus && REGISTRATION_SELECTION_STATUSES.includes(registration.announcedStatus)
-    ? registration.announcedStatus
-    : REGISTRATION_STATUSES.received
-}
-
-// Compteur par statut d'une session, dans l'ordre d'affichage, sans les statuts absents
-export function countRegistrationsByStatus(registrations: Array<{ status: string, responseDueAt?: DateLike }>, now: Date = new Date()) {
-  const counts = new Map<string, number>()
-  for (const registration of registrations) {
-    const status = registrationDisplayStatus(registration, now)
-    counts.set(status, (counts.get(status) || 0) + 1)
+export function visibleLineStatus(line: LineLike & { answer?: string | null, cancelledById?: string | null }) {
+  if (REGISTRATION_SELECTION_STATUSES.includes(line.status)) {
+    if (line.announcedStatus && REGISTRATION_SELECTION_STATUSES.includes(line.announcedStatus)) return line.announcedStatus
+    return answeredStatus(line)
   }
-  return Object.keys(REGISTRATION_DISPLAY_STATUS_META)
-    .filter((status) => counts.has(status))
-    .map((status) => ({ status, count: counts.get(status)!, ...REGISTRATION_DISPLAY_STATUS_META[status]! }))
-}
-
-// Sans date de session connue, le lien n'expire pas : il reste révocable par renvoi ou suppression
-export function registrationLinkExpired(sessionDates: DateLike[], now: Date = new Date()) {
-  const times = sessionDates.filter(Boolean).map((date) => new Date(date!).getTime())
-  if (!times.length) return false
-  return now.getTime() > Math.max(...times) + REGISTRATION_LINK_GRACE_DAYS * DAY_MS
+  if (line.status === REGISTRATION_SESSION_STATUSES.cancelled && line.cancelledById && !line.announcedStatus) return answeredStatus(line)
+  return line.status
 }
 
 // Préremplissage du formulaire à partir du nom de la fiche : « Prénom Nom » ; la personne corrige au besoin
 export function splitParticipantName(name: string) {
   const [firstName = '', ...rest] = name.trim().split(/\s+/)
   return { firstName, lastName: rest.join(' ') }
-}
-
-// « Délai dépassé » se lit sur l'échéance (R20, ADR-0020) ; un statut inconnu s'affiche tel quel
-export function registrationStatusMeta(registration: { status: string, responseDueAt?: DateLike }) {
-  return REGISTRATION_DISPLAY_STATUS_META[registrationDisplayStatus(registration)] || { label: registration.status, color: 'neutral' as const }
-}
-
-type ListedRegistration = { sessionId: string | null, status: string, participant: { id: string } }
-
-// Une personne désistée libère sa place : elle ne compte plus face aux places
-export function invitedCount(registrations: ListedRegistration[], sessionId: string) {
-  return registrations.filter((registration) => registration.sessionId === sessionId && registration.status !== REGISTRATION_STATUSES.withdrawn).length
-}
-
-// Une personne qui a décliné ou s'est désistée peut être réinvitée (erreur de sa part) ; les autres ont déjà leur
-// inscription dans la période
-export function registeredParticipantIds(registrations: ListedRegistration[]) {
-  return registrations.filter((registration) => registration.status !== REGISTRATION_STATUSES.withdrawn).map((registration) => registration.participant.id)
-}
-
-export function withdrawnParticipantIds(registrations: ListedRegistration[]) {
-  return registrations.filter((registration) => registration.status === REGISTRATION_STATUSES.withdrawn).map((registration) => registration.participant.id)
 }

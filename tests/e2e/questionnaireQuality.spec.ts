@@ -21,7 +21,7 @@ test('l’encadré de qualité signale un personnage sans lien, puis les repère
         versions: { create: { number: 1, definition: { ...DEFAULT_REGISTRATION_FORM_DEFINITION, questions: [{ id: 'style', label: 'Ton style', type: 'single', required: false, options: ['Intrigue', 'Combat'] }] } } }
       }
     })
-    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: 'Période', publicId: key, entryMode: 'form' } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: key } })
     for (const name of ['zoe', 'ines', 'leo', 'hugo']) {
       const email = `${name}-${key}@example.test`
       const person = await prisma.participant.create({ data: { name: `${name} ${key}`, slug: `${name}-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
@@ -77,7 +77,7 @@ test('l’essai du questionnaire classe les personnages selon les réponses, san
         versions: { create: { number: 1, definition: { ...DEFAULT_REGISTRATION_FORM_DEFINITION, questions: [{ id: 'style', label: 'Ton style', type: 'single', required: false, options: ['Intrigue', 'Combat'] }] } } }
       }
     })
-    await prisma.registrationPeriod.create({ data: { gameId: game.id, name: 'Période', publicId: key, entryMode: 'form' } })
+    await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: key } })
 
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/registrations')
@@ -154,7 +154,7 @@ test('la relecture signale les questions, et le mélange des options tient penda
         versions: { create: { number: 1, definition: { ...DEFAULT_REGISTRATION_FORM_DEFINITION, questions: [{ id: 'style', label: 'Joues-tu souvent ?', type: 'single', required: false, options }] } } }
       }
     })
-    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: 'Période', publicId: key, entryMode: 'form' } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: key } })
     const openEditor = async () => {
       await page.goto('/registrations')
       await page.waitForLoadState('networkidle')
@@ -266,7 +266,7 @@ test('la prévision du questionnaire suit les proportions attendues', async ({ p
         { gameId: game.id, questionId: 'style', option: 'Combat', characterId: bertrand!.id }
       ]
     })
-    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: 'Période', publicId: key, entryMode: 'form' } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: key } })
 
     const openEditor = async () => {
       await page.goto('/registrations')

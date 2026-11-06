@@ -1,6 +1,7 @@
 import { requireUser } from '~/server/utils/auth'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { findRegistrationOr404, resendRegistrationInvitation } from '~/server/utils/registrations'
+import { readZodBody, registrationTargetSchema } from '~/server/utils/schemas'
 import { withSessionSendLock } from '~/server/utils/sendLock'
 import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
 
@@ -16,6 +17,7 @@ export default defineEventHandler(async (event) => {
     keyParts: [authUserRateLimitKey(event), registration.period.id]
   })
 
-  // Sans session (supprimée), le verrou porte sur l'inscription elle-même
-  return await withSessionSendLock(registration.sessionId || registration.id, () => resendRegistrationInvitation(registration.id, user))
+  const { sessionId } = await readZodBody(event, registrationTargetSchema)
+
+  return await withSessionSendLock(sessionId || registration.id, () => resendRegistrationInvitation(registration.id, user, sessionId))
 })

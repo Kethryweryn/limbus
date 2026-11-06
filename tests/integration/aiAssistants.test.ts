@@ -380,8 +380,8 @@ describe('sessions et participants', () => {
     expect((await call(client, 'modifier_casting', { sessionId: session.id, version, lines: [{ characterId: b.character.id, participantId: ana.id }] })).error).toBe(true)
 
     // Photos posées dans l'interface, et un personnage réservé pour une inscription retenue
-    const period = await prisma.registrationPeriod.create({ data: { name: 'Période de l’assistant', gameId: game.id, publicId: `ia-${Date.now()}` } })
-    const registration = await prisma.registration.create({ data: { periodId: period.id, sessionId: session.id, participantId: cleo.id, status: 'retained', source: 'invitation', email: 'cleo-ia@example.test' } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `ia-${Date.now()}` } })
+    const registration = await prisma.registration.create({ data: { periodId: period.id, participantId: cleo.id, status: 'received', source: 'invitation', email: 'cleo-ia@example.test', sessionLines: { create: { sessionId: session.id, status: 'retained' } } } })
     await prisma.sessionAssignment.updateMany({ where: { sessionId: session.id, characterId: { in: [hero.id, rival.id] } }, data: { photoUrl: 'https://exemple.test/photo.jpg' } })
     await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: reserved.id, reservedRegistrationId: registration.id } })
     version = (await call(client, 'lire_session', { sessionId: session.id })).json.updatedAt
@@ -466,8 +466,8 @@ describe('sessions et participants', () => {
   })
 })
 
-// EPIC-036 (US-130 à US-132) : périodes en brouillon et état gardé, formulaire et liens, décisions non annoncées,
-// listes d'attente, places du vivier et tirages ; rien d'annoncé ni d'envoyé
+// EPIC-036 (US-130 à US-132) : vivier en brouillon et état gardé, formulaire et liens, décisions non annoncées,
+// listes d'attente et tirages par session ; rien d'annoncé ni d'envoyé
 describe('inscriptions', () => {
   it('prépare les inscriptions d’un jeu sans rien ouvrir ni annoncer, et note chaque écriture', async () => {
     const { client } = await connectAssistant(alice, { canWrite: true, gameIds: [a.game.id] })
@@ -478,66 +478,74 @@ describe('inscriptions', () => {
     const person = async (name: string) => (await call(client, 'creer_participant', { jeuId: game.id, name })).json.id as string
     const [ana, ben, cleo, dan] = [await person('Ana Inscrite'), await person('Ben Inscrit'), await person('Cléo Inscrite'), await person('Dan Inscrit')]
 
-    // Période : en brouillon ; une session d'un autre jeu est refusée
-    const created = (await call(client, 'creer_periode_inscription', { jeuId: game.id, name: 'Printemps', entryMode: 'form', selectionMode: 'random', waitlistSize: 2, sessions: [{ sessionId: first.id, seats: 1 }] })).json
+    // Vivier : en brouillon, un seul par jeu
+    const created = (await call(client, 'creer_periode_inscription', { jeuId: game.id, notifyTeam: false })).json
     expect((await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: created.id } })).state).toBe('draft')
-    expect((await call(client, 'creer_periode_inscription', { jeuId: game.id, name: 'Volée', sessions: [{ sessionId: b.session.id }] })).error).toBe(true)
+    expect((await call(client, 'creer_periode_inscription', { jeuId: game.id })).error).toBe(true)
 
-    // Ouverte par l'équipe : l'assistant la modifie, son état et ses sessions restent
+    // Ouvert par l'équipe : l'assistant le règle, son état reste
     await prisma.registrationPeriod.update({ where: { id: created.id }, data: { state: 'open' } })
     const periodRead = (await call(client, 'lister_periodes_inscription', { jeuId: game.id })).json.find((row: { id: string }) => row.id === created.id)
-    const renamed = await call(client, 'modifier_periode_inscription', { periodeId: created.id, version: periodRead.updatedAt, name: 'Printemps renommé' })
-    expect(renamed.error).toBe(false)
-    expect(await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: created.id }, select: { name: true, state: true, sessions: { select: { sessionId: true, seats: true } } } }))
-      .toEqual({ name: 'Printemps renommé', state: 'open', sessions: [{ sessionId: first.id, seats: 1 }] })
-    expect((await call(client, 'modifier_periode_inscription', { periodeId: created.id, version: periodRead.updatedAt, name: 'Écrasée' })).error).toBe(true)
-    let version = renamed.json.version
+    const adjusted = await call(client, 'modifier_periode_inscription', { periodeId: created.id, version: periodRead.updatedAt, replayPolicy: 'flagged' })
+    expect(adjusted.error).toBe(false)
+    expect(await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: created.id }, select: { replayPolicy: true, state: true } }))
+      .toEqual({ replayPolicy: 'flagged', state: 'open' })
+    expect((await call(client, 'modifier_periode_inscription', { periodeId: created.id, version: periodRead.updatedAt, replayPolicy: 'allowed' })).error).toBe(true)
+    let version = adjusted.json.version
 
-    // Inscriptions reçues par le formulaire
-    const received = async (participantId: string, data: Record<string, unknown> = {}) => (await prisma.registration.create({
-      data: { periodId: created.id, participantId, status: 'received', source: 'form', email: `${participantId}@example.test`, ...data }
+    // L'assistant règle la sélection d'une session, sans pouvoir l'ouvrir
+    const tuned = await call(client, 'regler_selection_session', { periodeId: created.id, version, sessionId: first.id, selectionMode: 'random', waitlistSize: 2 })
+    expect(tuned.error).toBe(false)
+    expect(await prisma.registrationPeriodSession.findUniqueOrThrow({ where: { sessionId: first.id } })).toMatchObject({ open: false, selectionMode: 'random', waitlistSize: 2 })
+    expect((await call(client, 'regler_selection_session', { periodeId: created.id, version, sessionId: b.session.id, selectionMode: 'random' })).error).toBe(true)
+
+    // Pré-inscrites pour la première session
+    const received = async (participantId: string, line: Record<string, unknown> = {}) => (await prisma.registration.create({
+      data: { periodId: created.id, participantId, status: 'received', source: 'form', email: `${participantId}@example.test`, sessionLines: { create: { sessionId: first.id, status: 'preregistered', answer: 'available', ...line } } }
     })).id
     const [anaReg, benReg, cleoReg] = [await received(ana), await received(ben), await received(cleo)]
 
-    // Tirage, puis annulation : tout repart à « reçue »
-    const draw = (await call(client, 'tirer_au_sort', { periodeId: created.id, version })).json
-    expect(await prisma.registration.count({ where: { periodId: created.id, status: 'retained' } })).toBe(1)
+    // Tirage, puis annulation : tout repart pré-inscrit
+    const draw = (await call(client, 'tirer_au_sort', { periodeId: created.id, version, sessionId: first.id })).json
+    expect(await prisma.registrationSession.count({ where: { sessionId: first.id, status: 'retained' } })).toBe(1)
     version = (await call(client, 'lister_periodes_inscription', { jeuId: game.id })).json.find((row: { id: string }) => row.id === created.id).updatedAt
     expect((await call(client, 'annuler_tirage', { tirageId: draw.id, version })).error).toBe(false)
-    expect(await prisma.registration.count({ where: { periodId: created.id, status: { not: 'received' } } })).toBe(0)
+    expect(await prisma.registrationSession.count({ where: { sessionId: first.id, status: { not: 'preregistered' } } })).toBe(0)
 
-    // Une inscription déjà annoncée : ni décision ni tirage par l'assistant
-    const danReg = await received(dan, { announcedStatus: 'rejected', announcedAt: new Date() })
+    // Une personne à qui une décision a déjà été annoncée pour cette session : ni décision ni tirage par l'assistant
+    const danReg = await received(dan, { announcedStatus: 'waitlisted', announcedAt: new Date() })
     const danRead = await prisma.registration.findUniqueOrThrow({ where: { id: danReg } })
-    const onAnnounced = await call(client, 'decider_inscription', { inscriptionId: danReg, version: danRead.updatedAt.toISOString(), action: 'reset' })
+    const onAnnounced = await call(client, 'decider_inscription', { inscriptionId: danReg, version: danRead.updatedAt.toISOString(), action: 'reset', sessionId: first.id })
     expect(onAnnounced.error).toBe(true)
     expect(onAnnounced.text).toContain('annoncée')
-    expect((await call(client, 'tirer_au_sort', { periodeId: created.id, version })).error).toBe(true)
+    expect((await call(client, 'tirer_au_sort', { periodeId: created.id, version, sessionId: first.id })).error).toBe(true)
     await prisma.registration.delete({ where: { id: danReg } })
 
-    // Décisions à la main, avec la version lue de chaque inscription
+    // Décisions à la main, avec la version lue de chaque personne
     version = (await call(client, 'lister_periodes_inscription', { jeuId: game.id })).json.find((row: { id: string }) => row.id === created.id).updatedAt
-    expect((await call(client, 'modifier_periode_inscription', { periodeId: created.id, version, selectionMode: 'chosen' })).error).toBe(false)
+    expect((await call(client, 'regler_selection_session', { periodeId: created.id, version, sessionId: first.id, selectionMode: 'chosen' })).error).toBe(false)
     const registrationVersion = async (id: string) => (await call(client, 'lire_selection', { periodeId: created.id })).json.registrations.find((row: { id: string }) => row.id === id).updatedAt
     const anaVersion = await registrationVersion(anaReg)
     expect((await call(client, 'decider_inscription', { inscriptionId: anaReg, version: anaVersion, action: 'retain', sessionId: first.id })).error).toBe(false)
-    expect((await call(client, 'decider_inscription', { inscriptionId: anaReg, version: anaVersion, action: 'reject' })).error).toBe(true)
+    expect((await call(client, 'decider_inscription', { inscriptionId: anaReg, version: anaVersion, action: 'waitlist', sessionId: first.id })).error).toBe(true)
     for (const id of [benReg, cleoReg]) {
       expect((await call(client, 'decider_inscription', { inscriptionId: id, version: await registrationVersion(id), action: 'waitlist', sessionId: first.id })).error).toBe(false)
     }
-    expect(await prisma.registration.findUniqueOrThrow({ where: { id: anaReg }, select: { status: true, sessionId: true, announcedStatus: true } }))
-      .toEqual({ status: 'retained', sessionId: first.id, announcedStatus: null })
+    expect(await prisma.registrationSession.findFirstOrThrow({ where: { registrationId: anaReg, sessionId: first.id }, select: { status: true, announcedStatus: true } }))
+      .toEqual({ status: 'retained', announcedStatus: null })
+
+    // Une décision prise dans l'interface après sa lecture : l'assistant ne l'écrase pas
+    const cleoVersion = await registrationVersion(cleoReg)
+    expect((await api(alice, 'POST', `/api/registrations/${cleoReg}/selection`, { action: 'unwaitlist', sessionId: first.id })).status).toBe(200)
+    expect((await call(client, 'decider_inscription', { inscriptionId: cleoReg, version: cleoVersion, action: 'retain', sessionId: first.id })).error).toBe(true)
+    expect((await api(alice, 'POST', `/api/registrations/${cleoReg}/selection`, { action: 'waitlist', sessionId: first.id })).status).toBe(200)
 
     // Ordre de la liste d'attente
     version = (await call(client, 'lister_periodes_inscription', { jeuId: game.id })).json.find((row: { id: string }) => row.id === created.id).updatedAt
     expect((await call(client, 'ordonner_liste_attente', { periodeId: created.id, version, sessionId: first.id, inscriptionIds: [cleoReg, benReg] })).error).toBe(false)
-    expect((await prisma.registrationWaitlistEntry.findMany({ where: { sessionId: first.id }, orderBy: { position: 'asc' }, select: { registrationId: true } })).map((entry) => entry.registrationId))
+    expect((await prisma.registrationSession.findMany({ where: { sessionId: first.id, status: 'waitlisted' }, orderBy: { waitlistPosition: 'asc' }, select: { registrationId: true } })).map((line) => line.registrationId))
       .toEqual([cleoReg, benReg])
-
-    // Inscription permanente : places du vivier d'une session
-    const permanent = (await call(client, 'creer_periode_inscription', { jeuId: game.id, name: 'Toute l’année', scope: 'game', entryMode: 'form' })).json
-    expect((await call(client, 'regler_places_vivier', { periodeId: permanent.id, version: permanent.version, sessionId: second.id, seats: 3 })).error).toBe(false)
-    expect((await prisma.session.findUniqueOrThrow({ where: { id: second.id } })).poolSeats).toBe(3)
+    expect(second.id).toBeTruthy()
 
     // Formulaire : versions successives, parties données seules ; liens du questionnaire
     expect((await call(client, 'lire_formulaire_inscription', { jeuId: game.id })).json.version).toBeNull()
@@ -579,8 +587,8 @@ describe('inscriptions', () => {
 
     // Hors de l'autorisation
     const bPeriod = await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: b.registrationPeriod.id } })
-    expect((await call(client, 'modifier_periode_inscription', { periodeId: bPeriod.id, version: bPeriod.updatedAt.toISOString(), name: 'Volée' })).error).toBe(true)
-    expect((await call(client, 'decider_inscription', { inscriptionId: b.registration.id, version: new Date().toISOString(), action: 'reset' })).error).toBe(true)
+    expect((await call(client, 'modifier_periode_inscription', { periodeId: bPeriod.id, version: bPeriod.updatedAt.toISOString(), notifyTeam: true })).error).toBe(true)
+    expect((await call(client, 'decider_inscription', { inscriptionId: b.registration.id, version: new Date().toISOString(), action: 'reset', sessionId: b.session.id })).error).toBe(true)
 
     const log = await prisma.aiLogEntry.findMany({ where: { gameId: game.id } })
     expect(log.map((entry) => `${entry.action} ${entry.tool} ${entry.targetType}`)).toEqual(expect.arrayContaining([
@@ -590,7 +598,7 @@ describe('inscriptions', () => {
       'mise à jour annuler_tirage registrationDraw',
       'mise à jour decider_inscription registration',
       'mise à jour ordonner_liste_attente registrationPeriod',
-      'mise à jour regler_places_vivier registrationPeriod',
+      'mise à jour regler_selection_session registrationPeriod',
       'mise à jour modifier_formulaire_inscription registrationForm',
       'mise à jour relier_questionnaire registrationForm'
     ]))

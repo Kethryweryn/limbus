@@ -23,7 +23,7 @@
               <li>Les sessions, leur cast, paiements et envois</li>
               <li>Les participants</li>
               <li>Les co-organisateurs et invitations</li>
-              <li>Les périodes d’inscription et les inscriptions</li>
+              <li>Le vivier et les inscriptions</li>
             </ul>
           </div>
         </div>

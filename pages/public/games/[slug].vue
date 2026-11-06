@@ -19,7 +19,7 @@
           <h2 class="text-lg font-semibold">S’inscrire</h2>
           <div class="mt-3 flex flex-col items-start gap-2">
             <UButton v-for="link in game.registrationLinks" :key="link.url" :to="link.url" external color="primary" icon="i-heroicons-pencil-square">
-              {{ link.permanent ? 'S’inscrire au jeu' : `S’inscrire : ${link.name}` }}
+              S’inscrire au jeu
             </UButton>
           </div>
         </UCard>

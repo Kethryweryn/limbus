@@ -1,11 +1,17 @@
 <template>
-  <UModal v-model:open="open" :title="`Inviter · ${link.session.name}`">
+  <UModal v-model:open="open" title="Inviter à rejoindre le vivier">
     <template #body>
       <form class="space-y-5" @submit.prevent="submit">
         <p class="text-sm text-gray-500">
-          {{ invitedCount }} invitation{{ invitedCount > 1 ? 's' : '' }} pour {{ seats }} place{{ seats > 1 ? 's' : '' }}.
-          Chaque personne reçoit par email un lien personnel pour répondre.
+          Chaque personne reçoit par email un lien vers le questionnaire : elle entre dans le vivier en y répondant.
         </p>
+
+        <UFormField
+          label="Pour une session"
+          description="Facultatif. La personne y sera inscrite si elle répond en se disant disponible. Aucune place n’est réservée à l’envoi."
+        >
+          <USelect v-model="sessionId" :items="sessionItems" value-key="value" class="w-full" />
+        </UFormField>
 
         <UFormField label="Participants du jeu">
           <div class="space-y-2">
@@ -40,12 +46,6 @@
         </UFormField>
 
         <UAlert
-          v-if="overSeats"
-          color="warning"
-          variant="soft"
-          :description="`Avec ces invitations, la session dépasse ses ${seats} places.`"
-        />
-        <UAlert
           v-if="serverError"
           color="error"
           variant="soft"
@@ -67,9 +67,10 @@
 
 <script setup lang="ts">
 import { apiErrorMessage } from '~/utils/apiErrors'
-import { invitedCount as countInvited, registeredParticipantIds, withdrawnParticipantIds } from '~/utils/registrations'
+import { REGISTRATION_STATUSES } from '~/utils/domain'
+import { formatLongDate } from '~/utils/dates'
 import { fetchByUrl, type ApiResponse } from '~/composables/useApiFetch'
-import type { InvitationResult, PeriodSessionLink, RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
+import type { InvitationResult, RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
 
 type Participant = ApiResponse<'/api/participants'>[number]
 
@@ -78,8 +79,6 @@ const open = defineModel<boolean>('open', { default: false })
 const props = defineProps<{
   gameId: string
   period: RegistrationPeriod
-  // Session à laquelle on invite
-  link: PeriodSessionLink
 }>()
 
 const emit = defineEmits<{ invited: [result: InvitationResult] }>()
@@ -91,21 +90,34 @@ const newParticipant = reactive({ name: '', email: '' })
 const serverError = ref('')
 const saving = ref(false)
 
-const seats = computed(() => props.link.seats)
-const invitedCount = computed(() => countInvited(props.period.registrations, props.link.sessionId))
-// Une seule inscription en cours par personne dans la période ; qui a décliné ou s'est désisté repart avec un nouveau lien
-const registeredIds = computed(() => registeredParticipantIds(props.period.registrations))
-const withdrawnIds = computed(() => withdrawnParticipantIds(props.period.registrations))
+const NO_SESSION = 'aucune'
+const sessionId = ref(NO_SESSION)
+const sessions = ref<ApiResponse<'/api/registration-periods/:id/selection'>['sessions']>([])
+const sessionItems = computed(() => [
+  { label: 'Aucune : le vivier seulement', value: NO_SESSION },
+  ...sessions.value.map((session) => ({ label: session.date ? `${session.name} · ${formatLongDate(session.date)}` : session.name, value: session.id }))
+])
+
+// Une seule ligne par personne dans le vivier ; qui a décliné ou en est sorti repart avec un nouveau lien
+const peopleWithStatus = (keep: (status: string) => boolean) => props.period.registrations.filter((registration) => keep(registration.status)).map((registration) => registration.participant.id)
+const registeredIds = computed(() => peopleWithStatus((status) => status !== REGISTRATION_STATUSES.withdrawn))
+const withdrawnIds = computed(() => peopleWithStatus((status) => status === REGISTRATION_STATUSES.withdrawn))
 
 watch(open, async (value) => {
   if (!value) return
   selected.value = []
+  sessionId.value = NO_SESSION
   search.value = ''
   newParticipant.name = ''
   newParticipant.email = ''
   serverError.value = ''
   try {
-    participants.value = await fetchByUrl<Participant[]>(`/api/participants?gameId=${encodeURIComponent(props.gameId)}`)
+    const [people, overview] = await Promise.all([
+      fetchByUrl<Participant[]>(`/api/participants?gameId=${encodeURIComponent(props.gameId)}`),
+      useApiFetch(`/api/registration-periods/${props.period.id}/selection`)
+    ])
+    participants.value = people
+    sessions.value = overview.sessions
   } catch (err) {
     serverError.value = apiErrorMessage(err, 'Impossible de charger les participants')
   }
@@ -118,16 +130,15 @@ const visibleParticipants = computed(() => {
 
 const hasNewParticipant = computed(() => Boolean(newParticipant.name.trim() || newParticipant.email.trim()))
 const toInviteCount = computed(() => selected.value.length + (hasNewParticipant.value ? 1 : 0))
-const overSeats = computed(() => invitedCount.value + toInviteCount.value > seats.value)
 
 function canInvite(participant: Participant) {
   return Boolean(participant.email?.trim()) && !registeredIds.value.includes(participant.id)
 }
 
 function participantDescription(participant: Participant) {
-  if (registeredIds.value.includes(participant.id)) return 'Déjà inscrit dans cette période'
+  if (registeredIds.value.includes(participant.id)) return 'Déjà dans le vivier, ou déjà invitée'
   if (!participant.email?.trim()) return 'Sans email : ajoutez-en un sur sa fiche pour l’inviter'
-  if (withdrawnIds.value.includes(participant.id)) return `${participant.email} · a décliné ou s’est désisté·e : la réinviter lui envoie un nouveau lien`
+  if (withdrawnIds.value.includes(participant.id)) return `${participant.email} · a décliné ou est sortie du vivier : la réinviter lui envoie un nouveau lien`
   return participant.email
 }
 
@@ -142,7 +153,7 @@ async function submit() {
     const result = await useApiAction(`/api/registration-periods/${props.period.id}/invitations`, {
       method: 'POST',
       body: {
-        sessionId: props.link.sessionId,
+        sessionId: sessionId.value === NO_SESSION ? null : sessionId.value,
         participantIds: selected.value,
         newParticipant: hasNewParticipant.value ? { name: newParticipant.name, email: newParticipant.email } : null
       }

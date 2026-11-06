@@ -1,21 +1,28 @@
 import { describe, expect, it } from 'vitest'
-import { effectivePeriodState } from '~/utils/registrationPeriods'
+import { isOpenableSession, isUpcomingSession } from '~/utils/registrationPeriods'
 
 const now = new Date('2026-11-01T12:00:00Z')
 
-describe('effectivePeriodState', () => {
-  it('garde les états brouillon et clôturé tels quels', () => {
-    expect(effectivePeriodState({ state: 'draft', closesAt: '2026-10-01T00:00:00Z' }, now)).toBe('draft')
-    expect(effectivePeriodState({ state: 'closed', closesAt: null }, now)).toBe('closed')
+describe('isOpenableSession (R6)', () => {
+  it('une session prévue, datée et à venir', () => {
+    expect(isOpenableSession({ status: 'scheduled', date: '2026-12-01T00:00:00Z' }, now)).toBe(true)
+    expect(isOpenableSession({ status: 'scheduled', date: new Date('2026-12-01T00:00:00Z') }, now)).toBe(true)
   })
 
-  it('clôture une période ouverte dont la date de clôture est passée', () => {
-    expect(effectivePeriodState({ state: 'open', closesAt: '2026-11-01T11:59:59Z' }, now)).toBe('closed')
-    expect(effectivePeriodState({ state: 'open', closesAt: new Date('2026-11-01T12:00:00Z') }, now)).toBe('closed')
+  it('pas une session sans date, passée, annulée, terminée ou reportée', () => {
+    expect(isOpenableSession({ status: 'scheduled', date: null }, now)).toBe(false)
+    expect(isOpenableSession({ status: 'scheduled', date: '2026-10-01T00:00:00Z' }, now)).toBe(false)
+    expect(isOpenableSession({ status: 'cancelled', date: '2026-12-01T00:00:00Z' }, now)).toBe(false)
+    expect(isOpenableSession({ status: 'completed', date: '2026-12-01T00:00:00Z' }, now)).toBe(false)
+    expect(isOpenableSession({ status: 'postponed', date: '2026-12-01T00:00:00Z' }, now)).toBe(false)
   })
+})
 
-  it('laisse ouverte une période sans date ou dont la date est à venir', () => {
-    expect(effectivePeriodState({ state: 'open', closesAt: null }, now)).toBe('open')
-    expect(effectivePeriodState({ state: 'open', closesAt: '2026-11-02T00:00:00Z' }, now)).toBe('open')
+describe('isUpcomingSession (R4)', () => {
+  it('une session prévue, datée ou non, pas passée', () => {
+    expect(isUpcomingSession({ status: 'scheduled', date: null }, now)).toBe(true)
+    expect(isUpcomingSession({ status: 'scheduled', date: '2026-12-01T00:00:00Z' }, now)).toBe(true)
+    expect(isUpcomingSession({ status: 'scheduled', date: '2026-10-01T00:00:00Z' }, now)).toBe(false)
+    expect(isUpcomingSession({ status: 'cancelled', date: null }, now)).toBe(false)
   })
 })

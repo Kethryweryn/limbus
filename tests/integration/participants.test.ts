@@ -30,7 +30,7 @@ async function personInTwoGames() {
     await prisma.sessionAttendance.create({ data: { sessionId: session.id, participantId: participant.id, responseDueAt: new Date(Date.now() + 86_400_000) } })
     const period = await prisma.registrationPeriod.create({ data: { name: `Inscriptions ${game.slug}`, gameId: game.id, publicId: `periode-${game.slug}` } })
     await prisma.registration.create({
-      data: { periodId: period.id, sessionId: session.id, participantId: participant.id, status: 'confirmed', source: 'invitation', email: participant.email! }
+      data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'invitation', email: participant.email!, sessionLines: { create: { sessionId: session.id, status: 'confirmed' } } }
     })
     sessions.push(session)
   }
@@ -51,15 +51,16 @@ describe('retrait d’un jeu (US-035)', () => {
     expect(await prisma.sessionAssignment.count({ where: removed })).toBe(0)
     expect(await prisma.sessionAssignment.count({ where: { sessionId: p.sessions[0]!.id } })).toBe(1)
     expect(await prisma.sessionAttendance.count({ where: removed })).toBe(0)
-    const registration = await prisma.registration.findFirstOrThrow({ where: removed })
-    expect(registration).toMatchObject({ status: 'withdrawn', withdrawnById: alice.id })
+    const line = await prisma.registrationSession.findFirstOrThrow({ where: { sessionId: removed.sessionId, registration: { participantId: removed.participantId } }, include: { registration: true } })
+    expect(line).toMatchObject({ status: 'cancelled', cancelledById: alice.id, registration: { status: 'withdrawn', withdrawnById: alice.id, tokenHash: null } })
     // Le paiement reste, à traiter à part
     expect(await prisma.sessionPayment.count({ where: removed })).toBe(1)
 
     const kept = { sessionId: p.sessions[1]!.id, participantId: p.participant.id }
     expect(await prisma.sessionParticipant.count({ where: kept })).toBe(1)
     expect(await prisma.sessionAssignment.count({ where: kept })).toBe(1)
-    expect((await prisma.registration.findFirstOrThrow({ where: kept })).status).toBe('confirmed')
+    expect(await prisma.registrationSession.findFirstOrThrow({ where: { sessionId: kept.sessionId, registration: { participantId: kept.participantId } }, include: { registration: true } }))
+      .toMatchObject({ status: 'confirmed', registration: { status: 'received' } })
   })
 })
 

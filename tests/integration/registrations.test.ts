@@ -1,4 +1,4 @@
-// US-003 : inviter des participants (SPEC-001, R12, R13, R16, R20)
+// US-164 : inviter une personne à rejoindre le vivier, ou pour une session (SPEC-018, R4)
 import { createHash } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { api, errorMessage } from './api'
@@ -22,19 +22,18 @@ afterAll(async () => {
 
 const sha256 = (value: string) => createHash('sha256').update(value).digest('hex')
 
-// Un jeu d'Alice, une session dans une période ouverte, et un participant du jeu avec email
-async function openPeriod(options: { state?: string, seats?: number } = {}) {
+// Un jeu d'Alice, une session, un vivier ouvert, et un participant du jeu avec email
+async function openPeriod(options: { state?: string } = {}) {
   const key = `invitations-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
   const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2027-03-10T09:00:00Z') } })
   const period = await prisma.registrationPeriod.create({
     data: {
-      name: `Période ${key}`,
       gameId: game.id,
       publicId: `pub-${key}`,
       state: options.state ?? 'open',
       responseDelayDays: 10,
-      sessions: { create: { sessionId: session.id, seats: options.seats ?? 5 } }
+      sessions: { create: { sessionId: session.id } }
     }
   })
   const participant = await prisma.participant.create({
@@ -68,7 +67,7 @@ describe('inviter des participants', () => {
     const registrations = await prisma.registration.findMany({ where: { periodId: period.id }, include: { participant: true } })
     expect(registrations).toHaveLength(2)
     for (const registration of registrations) {
-      expect(registration).toMatchObject({ status: 'invited', source: 'invitation', sessionId: session.id, invitedById: alice.id })
+      expect(registration).toMatchObject({ status: 'invited', source: 'invitation', invitedSessionId: session.id, invitedById: alice.id })
       expect(registration.invitationSentAt).not.toBeNull()
       // Échéance : aujourd'hui + délai de la période (10 jours)
       const delay = registration.responseDueAt!.getTime() - before
@@ -125,7 +124,7 @@ describe('inviter des participants', () => {
     expect(await prisma.participantGame.count({ where: { participantId: world.b.participant.id } })).toBe(1)
   })
 
-  it('refuse une seconde inscription de la même personne dans la période', async () => {
+  it('refuse une personne déjà dans le vivier ou déjà invitée', async () => {
     const { session, period, participant } = await openPeriod()
     expect((await invite(period.id, { sessionId: session.id, participantIds: [participant.id] })).status).toBe(200)
 
@@ -150,7 +149,7 @@ describe('inviter des participants', () => {
     expect(errorMessage(response)).toContain('Sans Email')
   })
 
-  it('refuse d’inviter dans une période qui n’est pas ouverte', async () => {
+  it('refuse d’inviter dans un vivier qui n’est pas ouvert', async () => {
     const draft = await openPeriod({ state: 'draft' })
     expect((await invite(draft.period.id, { sessionId: draft.session.id, participantIds: [draft.participant.id] })).status).toBe(409)
 
@@ -158,25 +157,29 @@ describe('inviter des participants', () => {
     expect((await invite(closed.period.id, { sessionId: closed.session.id, participantIds: [closed.participant.id] })).status).toBe(409)
   })
 
-  it('refuse une session hors de la période, ou un participant d’un autre jeu', async () => {
+  it('refuse une session d’un autre jeu ou annulée, ou un participant d’un autre jeu', async () => {
     const { game, session, period, participant } = await openPeriod()
-    const outside = await prisma.session.create({ data: { name: 'Hors période', slug: `hors-periode-${counter}`, gameId: game.id } })
+    const cancelled = await prisma.session.create({ data: { name: 'Annulée', slug: `annulee-${counter}`, gameId: game.id, status: 'cancelled' } })
     const stranger = await openPeriod()
 
-    expect((await invite(period.id, { sessionId: outside.id, participantIds: [participant.id] })).status).toBe(400)
+    expect((await invite(period.id, { sessionId: stranger.session.id, participantIds: [participant.id] })).status).toBe(400)
+    expect((await invite(period.id, { sessionId: cancelled.id, participantIds: [participant.id] })).status).toBe(400)
     expect((await invite(period.id, { sessionId: session.id, participantIds: [stranger.participant.id] })).status).toBe(400)
     expect(await prisma.registration.count({ where: { periodId: period.id } })).toBe(0)
   })
 
-  it('dépasser les places est permis', async () => {
-    const { game, session, period, participant } = await openPeriod({ seats: 1 })
-    const second = await prisma.participant.create({
-      data: { name: 'Seconde', slug: `seconde-${counter}`, email: `seconde-${counter}@example.test`, gameLinks: { create: { gameId: game.id } } }
-    })
+  it('sans session, elle invite au vivier seulement', async () => {
+    const { period, participant, session } = await openPeriod()
+    const response = await invite(period.id, { participantIds: [participant.id] })
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    expect(await prisma.registration.findFirstOrThrow({ where: { periodId: period.id } })).toMatchObject({ status: 'invited', invitedSessionId: null })
+    expect(emailsTo(participant.email!)[0]!.text).not.toContain(session.name)
+  })
 
-    const response = await invite(period.id, { sessionId: session.id, participantIds: [participant.id, second.id] })
-    expect(response.status).toBe(200)
-    expect(response.body).toMatchObject({ invitedCount: 2 })
+  it('une invitée sans réponse n’est pas réservée : aucune ligne pour la session', async () => {
+    const { session, period, participant } = await openPeriod()
+    await invite(period.id, { sessionId: session.id, participantIds: [participant.id] })
+    expect(await prisma.registrationSession.count({ where: { sessionId: session.id } })).toBe(0)
   })
 
   it('un échec d’envoi est signalé sans annuler les invitations', async () => {
@@ -193,13 +196,13 @@ describe('inviter des participants', () => {
     expect(registration.invitationSentAt).toBeNull()
   })
 
-  it('liste les inscriptions de la période, sans le hash du jeton', async () => {
+  it('liste les personnes du vivier, sans le hash du jeton', async () => {
     const { session, period, participant } = await openPeriod()
     await invite(period.id, { sessionId: session.id, participantIds: [participant.id] })
 
     const response = await api(alice, 'GET', `/api/registration-periods/${period.id}/registrations`)
     expect(response.status).toBe(200)
-    expect(response.body).toMatchObject([{ sessionId: session.id, status: 'invited', participant: { id: participant.id } }])
+    expect(response.body).toMatchObject([{ invitedSessionId: session.id, status: 'invited', participant: { id: participant.id } }])
     expect(JSON.stringify(response.body)).not.toContain('tokenHash')
   })
 })
@@ -234,15 +237,14 @@ describe('renvoyer et annuler une invitation', () => {
     expect(await prisma.registration.count({ where: { id: registration.id } })).toBe(0)
   })
 
-  it('une invitation qui a reçu une réponse ne se renvoie ni ne s’annule', async () => {
+  it('une invitation qui a reçu une réponse ne s’annule pas', async () => {
     const { session, period, participant } = await openPeriod()
     await invite(period.id, { sessionId: session.id, participantIds: [participant.id] })
     const registration = await prisma.registration.update({
       where: { periodId_participantId: { periodId: period.id, participantId: participant.id } },
-      data: { status: 'confirmed', respondedAt: new Date() }
+      data: { status: 'received', respondedAt: new Date() }
     })
 
-    expect((await api(alice, 'POST', `/api/registrations/${registration.id}/resend`)).status).toBe(409)
     expect((await api(alice, 'DELETE', `/api/registrations/${registration.id}`)).status).toBe(409)
     expect(await prisma.registration.count({ where: { id: registration.id } })).toBe(1)
   })
@@ -286,32 +288,12 @@ describe('règles issues de la revue de code', () => {
     expect(emailsTo(`nouvelle-${counter}@example.test`)).toHaveLength(1)
   })
 
-  it('une session dont les inscriptions sont toutes déclinées peut être retirée de la période', async () => {
-    const { game, session, period, participant } = await openPeriod()
-    const other = await prisma.session.create({ data: { name: 'Autre', slug: `autre-retrait-${counter}`, gameId: game.id } })
-    await invite(period.id, { sessionId: session.id, participantIds: [participant.id] })
-    await prisma.registration.updateMany({ where: { periodId: period.id }, data: { status: 'withdrawn' } })
-
-    const response = await api(alice, 'PUT', `/api/registration-periods/${period.id}`, { name: period.name, gameId: game.id, sessions: [{ sessionId: other.id, seats: 3 }] })
-    expect(response.status, JSON.stringify(response.body)).toBe(200)
-  })
 })
 
-describe('période qui a des inscriptions', () => {
-  it('ne se supprime pas, et ne perd pas une session qui a des inscriptions', async () => {
-    const { game, session, period, participant } = await openPeriod()
-    const other = await prisma.session.create({ data: { name: 'Autre', slug: `autre-${counter}`, gameId: game.id } })
+describe('vivier qui a des personnes', () => {
+  it('ne se supprime pas', async () => {
+    const { session, period, participant } = await openPeriod()
     await invite(period.id, { sessionId: session.id, participantIds: [participant.id] })
-
     expect((await api(alice, 'DELETE', `/api/registration-periods/${period.id}`)).status).toBe(409)
-
-    const body = { name: period.name, gameId: game.id, state: 'open', sessions: [{ sessionId: other.id, seats: 3 }] }
-    const removed = await api(alice, 'PUT', `/api/registration-periods/${period.id}`, body)
-    expect(removed.status).toBe(409)
-    expect(errorMessage(removed)).toContain(session.name)
-
-    // Ajouter une session en gardant la première reste possible
-    const added = await api(alice, 'PUT', `/api/registration-periods/${period.id}`, { ...body, sessions: [{ sessionId: session.id, seats: 5 }, { sessionId: other.id, seats: 3 }] })
-    expect(added.status, JSON.stringify(added.body)).toBe(200)
   })
 })

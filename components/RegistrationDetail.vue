@@ -6,13 +6,12 @@
       <div v-else class="space-y-4 text-sm">
         <div class="flex flex-wrap items-center gap-2">
           <UBadge :color="statusMeta.color" variant="subtle">{{ statusMeta.label }}</UBadge>
-          <span v-if="registration.session" class="text-gray-600">{{ registration.session.name }}</span>
         </div>
         <UAlert
-          v-if="registration.missingFromSession"
+          v-if="registration.sessionLines.some((line) => line.missingFromSession)"
           color="warning"
           variant="soft"
-          description="Cette personne a confirmé, mais n’est plus participante de la session : elle en a été retirée depuis l’écran de session."
+          description="Cette personne a confirmé, mais n’est plus participante d’une session : elle en a été retirée depuis l’écran de session."
         />
 
         <section v-if="registration.respondedAt" class="space-y-1">

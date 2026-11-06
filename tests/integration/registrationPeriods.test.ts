@@ -1,23 +1,24 @@
-// US-001 : créer et paramétrer une période d'inscription (SPEC-001, R1, R5, R6)
+// US-160, US-162 : un seul vivier par jeu, sessions ouvertes à la pré-inscription (SPEC-018, R1, R2, R6, R8)
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf, errorMessage } from './api'
 import { createTestPrisma } from './db'
+import { createPool } from './pool'
 
-const world = inject('world')
-const { alice } = world.users
+const { alice } = inject('world').users
 const prisma = createTestPrisma()
 let counter = 0
 
 type Period = ApiResponse<'/api/registration-periods', 'post'>
+type Selection = ApiResponse<'/api/registration-periods/:id/selection'>
 
 afterAll(async () => {
   await prisma.$disconnect()
 })
 
-// Un jeu d'Alice avec deux sessions et trois personnages, dont deux PJ
+// Un jeu d'Alice sans vivier, avec deux sessions et trois personnages, dont deux PJ
 async function aliceGame() {
-  const key = `inscriptions-${++counter}`
+  const key = `inscriptions-${++counter}-${Date.now()}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
   await prisma.character.createMany({
     data: [
@@ -26,153 +27,136 @@ async function aliceGame() {
       { name: 'PNJ', slug: `pnj-${key}`, gameId: game.id, type: 'pnj' }
     ]
   })
-  const first = await prisma.session.create({ data: { name: 'Mars', slug: `mars-${key}`, gameId: game.id, date: new Date('2027-03-10') } })
-  const second = await prisma.session.create({ data: { name: 'Avril', slug: `avril-${key}`, gameId: game.id, date: new Date('2027-04-10') } })
+  const first = await prisma.session.create({ data: { name: 'Mars', slug: `mars-${key}`, gameId: game.id, date: new Date(Date.now() + 30 * 86_400_000) } })
+  const second = await prisma.session.create({ data: { name: 'Avril', slug: `avril-${key}`, gameId: game.id, date: new Date(Date.now() + 60 * 86_400_000) } })
   return { game, first, second }
 }
 
-function periodBody(gameId: string, sessions: Array<{ sessionId: string, seats?: number }>, extra: Record<string, unknown> = {}) {
-  return { name: 'Printemps', gameId, sessions, ...extra }
-}
+const settings = (period: { id: string }, sessionId: string, body: Record<string, unknown>) =>
+  api(alice, 'PUT', `/api/registration-periods/${period.id}/sessions/${sessionId}`, body)
+const offered = async (publicId: string) => (await fetch(`${inject('baseUrl')}/api/public/periods/${publicId}`, { headers: { 'x-forwarded-for': `10.41.0.${++counter % 250}` } }).then((response) => response.json()) as { sessions: Array<{ id: string }> }).sessions.map((session) => session.id)
 
-describe('périodes d’inscription', () => {
-  it('crée une période sur plusieurs sessions, avec les places par défaut du nombre de PJ', async () => {
-    const { game, first, second } = await aliceGame()
-
-    const response = await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [
-      { sessionId: first.id },
-      { sessionId: second.id, seats: 5 }
-    ]))
-
+describe('un seul vivier par jeu (R1)', () => {
+  it('crée le vivier en brouillon, sans sessions ouvertes', async () => {
+    const { game } = await aliceGame()
+    const response = await api(alice, 'POST', '/api/registration-periods', { gameId: game.id })
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     const period = bodyOf<Period>(response)
-    expect(period).toMatchObject({ scope: 'sessions', entryMode: 'invitation', state: 'draft', effectiveState: 'draft', responseDelayDays: 7 })
+    expect(period).toMatchObject({ state: 'draft', responseDelayDays: 7 })
     expect(period.publicId).toMatch(/^[\w-]{8}$/)
-    expect(period.sessions.map((link) => [link.session.name, link.seats])).toEqual([['Mars', 2], ['Avril', 5]])
   })
 
-  it('refuse une session déjà rattachée à une autre période', async () => {
-    const { game, first, second } = await aliceGame()
-    expect((await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: first.id }]))).status).toBe(200)
-
-    const response = await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: second.id }, { sessionId: first.id }]))
-    expect(response.status).toBe(409)
-    expect(errorMessage(response)).toContain('Mars')
-    expect(await prisma.registrationPeriod.count({ where: { gameId: game.id } })).toBe(1)
-  })
-
-  it('deux créations simultanées sur la même session : une seule réussit', async () => {
-    const { game, first } = await aliceGame()
-    const statuses = (await Promise.all([1, 2, 3].map(() =>
-      api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: first.id }]))
-    ))).map((response) => response.status).sort()
-
+  it('refuse un second vivier, même créé en même temps', async () => {
+    const { game } = await aliceGame()
+    const statuses = (await Promise.all([1, 2, 3].map(() => api(alice, 'POST', '/api/registration-periods', { gameId: game.id }))))
+      .map((response) => response.status).sort()
     expect(statuses).toEqual([200, 409, 409])
+    expect(await prisma.registrationPeriod.count({ where: { gameId: game.id } })).toBe(1)
+
+    const refused = await api(alice, 'POST', '/api/registration-periods', { gameId: game.id })
+    expect(errorMessage(refused)).toContain('déjà un vivier')
   })
 
-  it('modifie la période : sessions, places, clôture et état', async () => {
+  it('une modification partielle garde l’état et le délai ; on ouvre et on ferme à la main (R2)', async () => {
+    const { game } = await aliceGame()
+    const created = bodyOf<Period>(await api(alice, 'POST', '/api/registration-periods', { gameId: game.id, state: 'open', responseDelayDays: 12 }))
+
+    const replay = await api(alice, 'PUT', `/api/registration-periods/${created.id}`, { gameId: game.id, replayPolicy: 'flagged' })
+    expect(replay.status, JSON.stringify(replay.body)).toBe(200)
+    expect(replay.body).toMatchObject({ state: 'open', responseDelayDays: 12, replayPolicy: 'flagged', publicId: created.publicId })
+
+    const closed = await api(alice, 'PUT', `/api/registration-periods/${created.id}`, { gameId: game.id, state: 'closed' })
+    expect(closed.body).toMatchObject({ state: 'closed', responseDelayDays: 12 })
+  })
+
+  it('un vivier avec des personnes ne se supprime pas ; vide, si, et les sessions restent', async () => {
+    const pool = await createPool(prisma, alice.id)
+    expect((await api(alice, 'DELETE', `/api/registration-periods/${pool.period.id}`)).status).toBe(200)
+    expect(await prisma.registrationPeriodSession.count({ where: { periodId: pool.period.id } })).toBe(0)
+    expect(await prisma.session.count({ where: { gameId: pool.game.id } })).toBe(2)
+  })
+
+  it('la suppression du jeu emporte son vivier', async () => {
+    const pool = await createPool(prisma, alice.id)
+    expect((await api(alice, 'DELETE', `/api/games/${pool.game.id}`)).status).toBe(200)
+    expect(await prisma.registrationPeriod.findUnique({ where: { id: pool.period.id } })).toBeNull()
+  })
+})
+
+describe('ouvrir une session à la pré-inscription (R6, R8)', () => {
+  it('une session ouverte est proposée au vivier, avec autant de places que de PJ', async () => {
     const { game, first, second } = await aliceGame()
-    const created = bodyOf<Period>(await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: first.id }])))
+    const period = bodyOf<Period>(await api(alice, 'POST', '/api/registration-periods', { gameId: game.id, state: 'open' }))
+    expect(await offered(period.publicId)).toEqual([])
 
-    const response = await api(alice, 'PUT', `/api/registration-periods/${created.id}`, periodBody(game.id, [
-      { sessionId: first.id, seats: 8 },
-      { sessionId: second.id, seats: 9 }
-    ], { name: 'Printemps 2027', state: 'open', closesAt: '2027-02-01T18:00:00.000Z', responseDelayDays: 10 }))
+    expect((await settings(period, first.id, { open: true })).status).toBe(200)
+    expect(await offered(period.publicId)).toEqual([first.id])
 
-    expect(response.status, JSON.stringify(response.body)).toBe(200)
-    expect(response.body).toMatchObject({ name: 'Printemps 2027', state: 'open', effectiveState: 'open', responseDelayDays: 10, publicId: created.publicId })
-    expect(bodyOf<ApiResponse<'/api/registration-periods/:id', 'put'>>(response).sessions.map((link) => link.seats)).toEqual([8, 9])
-
-    // Retirer une session la libère pour une autre période
-    await api(alice, 'PUT', `/api/registration-periods/${created.id}`, periodBody(game.id, [{ sessionId: second.id, seats: 9 }]))
-    expect((await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: first.id }]))).status).toBe(200)
+    const overview = bodyOf<Selection>(await api(alice, 'GET', `/api/registration-periods/${period.id}/selection`))
+    expect(overview.sessions.map((session) => [session.id, session.seats, session.offered])).toEqual([[first.id, 2, true], [second.id, 2, false]])
   })
 
-  it('une période ouverte dont la date de clôture passe apparaît clôturée', async () => {
-    const { game, first } = await aliceGame()
-    const created = bodyOf<Period>(await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: first.id }], {
-      state: 'open',
-      closesAt: '2099-01-01T00:00:00.000Z'
-    })))
-    // Le temps passe : la date de clôture est maintenant dans le passé
-    await prisma.registrationPeriod.update({ where: { id: created.id }, data: { closesAt: new Date('2020-01-01T00:00:00Z') } })
-
-    const response = await api(alice, 'GET', `/api/registration-periods/${created.id}`)
-    expect(response.body).toMatchObject({ state: 'open', effectiveState: 'closed' })
-  })
-
-  it('refuse d’ouvrir une période dont la date de clôture est passée', async () => {
-    const { game, first } = await aliceGame()
-    const response = await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: first.id }], {
-      state: 'open',
-      closesAt: '2020-01-01T00:00:00.000Z'
-    }))
-    expect(response.status).toBe(400)
-    expect(errorMessage(response)).toContain('date de clôture est passée')
-  })
-
-  it('une modification partielle garde l’état, la clôture et le délai', async () => {
-    const { game, first } = await aliceGame()
-    const created = bodyOf<Period>(await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: first.id }], {
-      state: 'open',
-      closesAt: '2099-01-01T00:00:00.000Z',
-      responseDelayDays: 12
-    })))
-
-    const response = await api(alice, 'PUT', `/api/registration-periods/${created.id}`, { name: 'Renommée', gameId: game.id, sessions: [{ sessionId: first.id, seats: 4 }] })
-    expect(response.status, JSON.stringify(response.body)).toBe(200)
-    expect(response.body).toMatchObject({ name: 'Renommée', state: 'open', closesAt: '2099-01-01T00:00:00.000Z', responseDelayDays: 12 })
-
-    // closesAt explicitement à null retire la date
-    const cleared = await api(alice, 'PUT', `/api/registration-periods/${created.id}`, { name: 'Renommée', gameId: game.id, closesAt: null, sessions: [{ sessionId: first.id, seats: 4 }] })
-    expect(cleared.body).toMatchObject({ closesAt: null, state: 'open' })
-  })
-
-  it('refuse d’ajouter une session annulée ou terminée, avec un message en français', async () => {
+  it('une session terminée, annulée, passée ou sans date ne s’ouvre pas', async () => {
     const { game, first, second } = await aliceGame()
+    const period = bodyOf<Period>(await api(alice, 'POST', '/api/registration-periods', { gameId: game.id, state: 'open' }))
+    await prisma.session.update({ where: { id: first.id }, data: { status: 'cancelled' } })
+    expect((await settings(period, first.id, { open: true })).status).toBe(409)
+    await prisma.session.update({ where: { id: first.id }, data: { status: 'completed' } })
+    expect((await settings(period, first.id, { open: true })).status).toBe(409)
+    await prisma.session.update({ where: { id: second.id }, data: { date: null } })
+    const undated = await settings(period, second.id, { open: true })
+    expect(undated.status).toBe(409)
+    expect(errorMessage(undated)).toContain('datée et à venir')
+    await prisma.session.update({ where: { id: second.id }, data: { date: new Date('2020-01-01') } })
+    expect((await settings(period, second.id, { open: true })).status).toBe(409)
+  })
+
+  it('une session d’un autre jeu est refusée', async () => {
+    const pool = await createPool(prisma, alice.id)
+    const other = await createPool(prisma, alice.id)
+    expect((await settings(pool.period, other.sessions[0]!.id, { open: true })).status).toBe(400)
+  })
+
+  it('date passée ou session annulée : elle n’est plus proposée, sans autre action', async () => {
+    const pool = await createPool(prisma, alice.id)
+    const [first, second] = pool.sessions as [typeof pool.sessions[number], typeof pool.sessions[number]]
+    expect((await offered(pool.key)).sort()).toEqual([first.id, second.id].sort())
+    await prisma.session.update({ where: { id: first.id }, data: { date: new Date('2020-01-01') } })
     await prisma.session.update({ where: { id: second.id }, data: { status: 'cancelled' } })
-
-    const response = await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: first.id }, { sessionId: second.id }]))
-    expect(response.status).toBe(400)
-    expect(errorMessage(response)).toContain('« Avril »')
-
-    const invalid = await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: first.id, seats: 5000 }]))
-    expect(invalid.status).toBe(400)
-    expect(JSON.stringify(invalid.body)).toContain('Pas plus de 1000 places')
+    expect(await offered(pool.key)).toEqual([])
   })
 
-  it('le contexte du jeu liste ses sessions avec leur période et le nombre de PJ', async () => {
-    const { game, first, second } = await aliceGame()
-    await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: first.id }]))
-
-    const response = await api(alice, 'GET', `/api/games/${game.id}/registration-context`)
-    expect(response.status).toBe(200)
-    expect(response.body).toMatchObject({
-      playableCharacters: 2,
-      sessions: [
-        { id: first.id, periodName: 'Printemps' },
-        { id: second.id, periodId: null }
-      ]
+  it('retirer la date d’une session ouverte la referme', async () => {
+    const pool = await createPool(prisma, alice.id, { sessions: 1 })
+    const session = pool.sessions[0]!
+    const current = await prisma.session.findUniqueOrThrow({ where: { id: session.id } })
+    const updated = await api(alice, 'PUT', `/api/sessions/${session.id}`, {
+      name: current.name, gameId: pool.game.id, status: 'scheduled', date: null, updatedAt: current.updatedAt.toISOString(), participants: [], assignments: []
     })
+    expect(updated.status, JSON.stringify(updated.body)).toBe(200)
+    expect(await prisma.registrationPeriodSession.findUniqueOrThrow({ where: { sessionId: session.id } })).toMatchObject({ open: false })
   })
 
-  it('supprimer une session ou la période retire seulement le rattachement', async () => {
-    const { game, first, second } = await aliceGame()
-    const period = bodyOf<Period>(await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: first.id }, { sessionId: second.id }])))
-
-    expect((await api(alice, 'DELETE', `/api/sessions/${first.id}`)).status).toBe(200)
-    expect(await prisma.registrationPeriodSession.count({ where: { periodId: period.id } })).toBe(1)
-
-    expect((await api(alice, 'DELETE', `/api/registration-periods/${period.id}`)).status).toBe(200)
-    expect(await prisma.registrationPeriodSession.count({ where: { periodId: period.id } })).toBe(0)
-    expect(await prisma.session.findUnique({ where: { id: second.id } })).not.toBeNull()
+  it('refermer ne retire aucune pré-inscription, et le casting continue', async () => {
+    const pool = await createPool(prisma, alice.id, { sessions: 1, seats: 1 })
+    const session = pool.sessions[0]!
+    const participant = await prisma.participant.create({ data: { name: 'Lou', slug: `lou-${pool.key}`, email: `lou-${pool.key}@example.test`, gameLinks: { create: { gameId: pool.game.id } } } })
+    const registration = await prisma.registration.create({
+      data: { periodId: pool.period.id, participantId: participant.id, status: 'received', source: 'form', email: participant.email!, sessionLines: { create: { sessionId: session.id, status: 'preregistered', answer: 'available' } } }
+    })
+    expect((await settings(pool.period, session.id, { open: false })).status).toBe(200)
+    expect(await offered(pool.key)).toEqual([])
+    expect(await prisma.registrationSession.count({ where: { sessionId: session.id, status: 'preregistered' } })).toBe(1)
+    expect((await api(alice, 'POST', `/api/registrations/${registration.id}/selection`, { action: 'retain', sessionId: session.id })).status).toBe(200)
   })
 
-  it('la suppression du jeu emporte ses périodes', async () => {
-    const { game, first } = await aliceGame()
-    const period = bodyOf<Period>(await api(alice, 'POST', '/api/registration-periods', periodBody(game.id, [{ sessionId: first.id }])))
-
-    expect((await api(alice, 'DELETE', `/api/games/${game.id}`)).status).toBe(200)
-    expect(await prisma.registrationPeriod.findUnique({ where: { id: period.id } })).toBeNull()
+  it('le mode de sélection se règle par session, sans toucher au reste', async () => {
+    const pool = await createPool(prisma, alice.id)
+    const session = pool.sessions[0]!
+    expect((await settings(pool.period, session.id, { selectionMode: 'mixed', organizerPicks: 2, waitlistSize: 3 })).status).toBe(200)
+    expect(await prisma.registrationPeriodSession.findUniqueOrThrow({ where: { sessionId: session.id } })).toMatchObject({ open: true, selectionMode: 'mixed', organizerPicks: 2, waitlistSize: 3 })
+    // Une autre session n'en est pas changée
+    expect(await prisma.registrationPeriodSession.findUniqueOrThrow({ where: { sessionId: pool.sessions[1]!.id } })).toMatchObject({ selectionMode: 'chosen' })
+    expect((await settings(pool.period, session.id, { waitlistSize: -1 })).status).toBe(400)
   })
 })

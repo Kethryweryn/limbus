@@ -33,8 +33,7 @@ export default defineEventHandler(async (event) => {
       charterAcceptedAt: true,
       questionAnswers: true,
       balancePreference: true,
-      formVersion: { select: { number: true, definition: true } },
-      session: { select: { id: true, name: true } }
+      formVersion: { select: { number: true, definition: true } }
     }
   })
   const game = await prisma.game.findUnique({ where: { id: period.gameId }, select: { balanceAttribute: true, balanceValues: true } })

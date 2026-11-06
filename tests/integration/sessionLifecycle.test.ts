@@ -143,7 +143,7 @@ describe('supprimer une session oriente vers l’annulation (US-021)', () => {
 
     const registered = await aliceSession()
     const period = await prisma.registrationPeriod.create({ data: { gameId: registered.game.id, name: `Période ${registered.key}`, publicId: `periode-${registered.key}` } })
-    await prisma.registration.create({ data: { periodId: period.id, participantId: registered.lea.id, sessionId: registered.session.id, status: 'confirmed', source: 'invitation', email: 'lea@example.test' } })
+    await prisma.registration.create({ data: { periodId: period.id, participantId: registered.lea.id, status: 'received', source: 'invitation', email: 'lea@example.test', sessionLines: { create: { sessionId: registered.session.id, status: 'confirmed' } } } })
     expect((await api(alice, 'DELETE', `/api/sessions/${registered.session.id}`)).status).toBe(409)
 
     // Témoin : un paiement envoyé mais pas reçu n'empêche pas la suppression

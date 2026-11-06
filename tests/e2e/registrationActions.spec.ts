@@ -5,18 +5,18 @@ import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
 import { gamePanel, signIn, slugOf, uniqueName, type TestPrisma } from './helpers'
 
-// Jeu propre au test, avec une session et une période ouverte (sur invitation, sauf entryMode contraire)
-async function testPeriod(prisma: TestPrisma, key: string, periodData: { entryMode?: string, state?: string } = {}) {
+// Jeu propre au test, avec une session et un vivier ouvert
+async function testPeriod(prisma: TestPrisma, key: string) {
   const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
   const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-09-01T09:00:00Z') } })
   const period = await prisma.registrationPeriod.create({
-    data: { name: 'Période', gameId: game.id, publicId: `p${Date.now().toString(36)}`, state: 'open', ...periodData, sessions: { create: { sessionId: session.id, seats: 3 } } }
+    data: { gameId: game.id, publicId: `p${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id } } }
   })
   return { game, session, period }
 }
 
-// Personne invitée (email parti) ou confirmée dans la session
+// Personne invitée (email parti), ou inscrite à la session
 async function invitedPerson(prisma: TestPrisma, ids: { gameId: string, sessionId: string, periodId: string }, name: string, status: 'invited' | 'confirmed' = 'invited') {
   const slug = slugOf(uniqueName(name))
   const email = `${slug}@example.test`
@@ -24,10 +24,12 @@ async function invitedPerson(prisma: TestPrisma, ids: { gameId: string, sessionI
   if (status === 'confirmed') await prisma.sessionParticipant.create({ data: { sessionId: ids.sessionId, participantId: participant.id, role: 'participant' } })
   const registration = await prisma.registration.create({
     data: {
-      periodId: ids.periodId, sessionId: ids.sessionId, participantId: participant.id, status, source: 'invitation', email,
+      periodId: ids.periodId, participantId: participant.id, status: status === 'confirmed' ? 'received' : 'invited', source: 'invitation', email,
       tokenHash: createHash('sha256').update(randomBytes(32)).digest('hex'),
       invitationSentAt: new Date(), responseDueAt: new Date(Date.now() + 7 * 86_400_000),
-      ...(status === 'confirmed' ? { confirmedAt: new Date(), respondedAt: new Date() } : {})
+      ...(status === 'confirmed'
+        ? { respondedAt: new Date(), sessionLines: { create: { sessionId: ids.sessionId, status: 'confirmed', confirmedAt: new Date() } } }
+        : { invitedSessionId: ids.sessionId })
     }
   })
   return { participant, registration, email }
@@ -51,9 +53,9 @@ test('l’équipe relance, prolonge, renvoie, libère et annule des invitations'
     const ben = await invitedPerson(prisma, ids, 'Ben Actions')
 
     await openRegistrations(page, prisma)
-    const panel = gamePanel(page, game.title, 'Modifier')
+    const panel = gamePanel(page, game.title, 'Réglages')
     const row = (name: string) => panel.locator('li').filter({ hasText: name })
-    await expect(panel.getByText('2 invitations pour 3 places')).toBeVisible()
+    await expect(panel.getByText('Invitations sans réponse : 2')).toBeVisible()
 
     // Relance : un email de rappel, et la date de relance sur la ligne
     page.once('dialog', (dialog) => dialog.accept())
@@ -83,12 +85,13 @@ test('l’équipe relance, prolonge, renvoie, libère et annule des invitations'
     expect((await prisma.registration.findUniqueOrThrow({ where: { id: ben.registration.id }, select: { tokenHash: true } })).tokenHash).not.toBe(before)
     await expect.poll(() => mailbox.to(ben.email).length).toBe(1)
 
-    // Libération : la place est libérée par l'organisatrice, la ligne le dit et n'offre plus d'action d'invitation
+    // Libération : l'invitation est retirée par l'organisatrice, la personne est sortie du vivier
     page.once('dialog', (dialog) => dialog.accept())
     await row('Ben Actions').getByRole('button', { name: 'Libérer' }).click()
-    await expect(page.getByText('Place de Ben Actions libérée.')).toBeVisible()
-    await expect(row('Ben Actions').getByText(/place libérée le .* par /)).toBeVisible()
-    await expect(row('Ben Actions').getByRole('button', { name: 'Relancer' })).toBeHidden()
+    await expect(page.getByText('Invitation de Ben Actions libérée.')).toBeVisible()
+    await expect(panel.getByText('Sorties du vivier : 1')).toBeVisible()
+    await expect(row('Ben Actions')).toHaveCount(1)
+    await expect(row('Ben Actions').getByRole('button', { name: 'Relancer' })).toHaveCount(0)
     const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
     expect(await prisma.registration.findUniqueOrThrow({ where: { id: ben.registration.id }, select: { status: true, withdrawnById: true } }))
       .toEqual({ status: 'withdrawn', withdrawnById: owner.id })
@@ -104,8 +107,8 @@ test('l’équipe relance, prolonge, renvoie, libère et annule des invitations'
   }
 })
 
-// EPIC-001 (US-005) : détail d'une inscription confirmée, puis retrait de la session
-test('l’équipe consulte le détail d’une personne confirmée et la retire de la session', async ({ page }) => {
+// US-005, R19 : détail d'une personne inscrite, retrait de la session, puis du vivier
+test('l’équipe consulte le détail d’une personne inscrite, la retire de la session, puis du vivier', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
     const key = `retrait-${Date.now()}`
@@ -113,8 +116,8 @@ test('l’équipe consulte le détail d’une personne confirmée et la retire d
     const cleo = await invitedPerson(prisma, { gameId: game.id, sessionId: session.id, periodId: period.id }, 'Cléo Retrait', 'confirmed')
 
     await openRegistrations(page, prisma)
-    const panel = gamePanel(page, game.title, 'Modifier')
-    const row = panel.locator('li').filter({ hasText: 'Cléo Retrait' })
+    const panel = gamePanel(page, game.title, 'Réglages')
+    const row = panel.locator(`[data-session="${session.name}"] li`).filter({ hasText: 'Cléo Retrait' })
 
     await row.getByRole('button', { name: 'Détail' }).click()
     const dialog = page.getByRole('dialog')
@@ -127,40 +130,50 @@ test('l’équipe consulte le détail d’une personne confirmée et la retire d
     page.once('dialog', (dialog) => dialog.accept())
     await row.getByRole('button', { name: 'Retirer' }).click()
     await expect(page.getByText('Cléo Retrait a été retirée de la session.')).toBeVisible()
-    await expect(row.getByRole('button', { name: 'Retirer' })).toBeHidden()
+    await expect(row).toHaveCount(0)
     expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: cleo.participant.id } })).toBe(0)
+    expect((await prisma.registration.findUniqueOrThrow({ where: { id: cleo.registration.id }, select: { status: true } })).status).toBe('received')
+
+    // Elle reste dans le vivier, d'où on peut aussi la retirer
+    const inPool = panel.locator('li').filter({ hasText: 'Cléo Retrait' })
+    await expect(inPool.getByText(/annulation/)).toBeVisible()
+    page.once('dialog', (dialog) => dialog.accept())
+    await inPool.getByRole('button', { name: 'Retirer du vivier' }).click()
+    await expect(page.getByText('Cléo Retrait a été retirée du vivier.')).toBeVisible()
+    await expect(panel.getByText('Sorties du vivier : 1')).toBeVisible()
     expect((await prisma.registration.findUniqueOrThrow({ where: { id: cleo.registration.id }, select: { status: true } })).status).toBe('withdrawn')
   } finally {
     await prisma.$disconnect()
   }
 })
 
-// EPIC-001 (US-002, R32) : modifier une période, la clôturer, la rouvrir, copier son lien de diffusion, la supprimer
-test('l’équipe modifie, clôture, rouvre, copie le lien et supprime une période', async ({ page, context }) => {
+// US-160, US-162 : régler le vivier, le fermer, le rouvrir, copier son lien, ouvrir une session, le supprimer
+test('l’équipe règle, ferme, rouvre, copie le lien, ouvre une session et supprime le vivier', async ({ page, context }) => {
   const prisma = createTestPrisma()
   try {
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
     const key = `periode-${Date.now()}`
-    const { game, period } = await testPeriod(prisma, key, { entryMode: 'form' })
+    const { game, session, period } = await testPeriod(prisma, key)
+    await prisma.registrationPeriodSession.update({ where: { sessionId: session.id }, data: { open: false } })
 
     await openRegistrations(page, prisma)
-    const panel = gamePanel(page, game.title, 'Modifier')
+    const panel = gamePanel(page, game.title, 'Réglages')
 
-    // Modification du nom
-    await panel.getByRole('button', { name: 'Modifier' }).click()
+    // Réglages : le délai de réponse
+    await panel.getByRole('button', { name: 'Réglages' }).click()
     const dialog = page.getByRole('dialog')
-    await dialog.getByLabel('Nom').fill('Période renommée')
+    await dialog.getByLabel('Délai de réponse (jours)').fill('12')
     await dialog.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(dialog).toBeHidden()
-    await expect(panel.getByText('Période renommée')).toBeVisible()
-    expect((await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: period.id }, select: { name: true } })).name).toBe('Période renommée')
+    await expect(panel.getByText('Délai de réponse : 12 jours')).toBeVisible()
+    expect((await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: period.id }, select: { responseDelayDays: true } })).responseDelayDays).toBe(12)
 
-    // Clôture puis réouverture
-    await panel.getByRole('button', { name: 'Clôturer' }).click()
-    await expect(panel.getByRole('button', { name: 'Rouvrir' })).toBeVisible()
+    // Fermeture puis réouverture à la main
+    await panel.getByRole('button', { name: 'Fermer' }).click()
+    await expect(panel.getByRole('button', { name: 'Ouvrir', exact: true })).toBeVisible()
     expect((await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: period.id }, select: { state: true } })).state).toBe('closed')
-    await panel.getByRole('button', { name: 'Rouvrir' }).click()
-    await expect(panel.getByRole('button', { name: 'Clôturer' })).toBeVisible()
+    await panel.getByRole('button', { name: 'Ouvrir', exact: true }).click()
+    await expect(panel.getByRole('button', { name: 'Fermer' })).toBeVisible()
     expect((await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: period.id }, select: { state: true } })).state).toBe('open')
 
     // Lien de diffusion copié dans le presse-papier
@@ -168,11 +181,19 @@ test('l’équipe modifie, clôture, rouvre, copie le lien et supprime une péri
     await expect(page.getByText('Lien de diffusion copié.')).toBeVisible()
     expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(`/i/${period.publicId}`)
 
+    // Ouvrir la session à la pré-inscription, puis la refermer
+    const block = panel.locator(`[data-session="${session.name}"]`)
+    await expect(block.getByText('Pas proposée au vivier')).toBeVisible()
+    await block.getByRole('button', { name: 'Ouvrir à la pré-inscription' }).click()
+    await expect(block.getByText('Ouverte à la pré-inscription')).toBeVisible()
+    await block.getByRole('button', { name: 'Refermer' }).click()
+    await expect(block.getByText('Pas proposée au vivier')).toBeVisible()
+
     // Suppression
     page.once('dialog', (dialog) => dialog.accept())
     await panel.getByRole('button', { name: 'Supprimer' }).click()
-    await expect(panel.getByText('Période renommée')).toBeHidden()
-    expect(await prisma.registrationPeriod.count({ where: { id: period.id } })).toBe(0)
+    await expect.poll(() => prisma.registrationPeriod.count({ where: { id: period.id } })).toBe(0)
+    await expect(gamePanel(page, game.title, 'Créer le vivier').getByRole('button', { name: 'Créer le vivier' }).first()).toBeVisible()
   } finally {
     await prisma.$disconnect()
   }

@@ -53,7 +53,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-043](../archive/epics/EPIC-043-nouveautes/README.md) | Nouveautés et numéro de déploiement | [SPEC-017](../specs/SPEC-017-nouveautes.md) | terminé |
 | [EPIC-044](../archive/epics/EPIC-044-jeux-de-test/README.md) | Jeux de test à jour pour tout essayer | [fiche](../archive/todo/jeux-de-test.md) | terminé |
 | [EPIC-045](EPIC-045-retours-du-cahier-de-tests/README.md) | Retours du cahier de tests fonctionnels | [fiche](../archive/todo/retours-du-cahier-de-tests.md) | en cours |
-| [EPIC-046](EPIC-046-vivier-unique/README.md) | Vivier unique et statut par session | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | à faire |
+| [EPIC-046](EPIC-046-vivier-unique/README.md) | Vivier unique et statut par session | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | en cours |
 | [EPIC-047](EPIC-047-demande-de-disponibilites/README.md) | Demande de disponibilités au vivier | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | à faire |
 | [EPIC-048](EPIC-048-casting-depuis-le-vivier/README.md) | Casting depuis le vivier | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | à faire |
 
@@ -220,18 +220,18 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-157](EPIC-045-retours-du-cahier-de-tests/US-157-page-d-erreur.md) | Comprendre qu'une page n'est pas accessible | EPIC-045 | terminée |
 | [US-158](EPIC-045-retours-du-cahier-de-tests/US-158-carte-du-jeu-actif.md) | Repérer le jeu actif sur la page Jeux | EPIC-045 | terminée |
 | [US-159](EPIC-045-retours-du-cahier-de-tests/US-159-connexion-sans-blocage.md) | Se connecter sans rester bloquée | EPIC-045 | terminée |
-| [US-160](EPIC-046-vivier-unique/US-160-regrouper-en-un-vivier.md) | Avoir un seul vivier par jeu | EPIC-046 | à faire |
-| [US-161](EPIC-046-vivier-unique/US-161-statut-par-session.md) | Suivre une personne session par session | EPIC-046 | à faire |
-| [US-162](EPIC-046-vivier-unique/US-162-ouvrir-une-session.md) | Ouvrir une session à la pré-inscription | EPIC-046 | à faire |
-| [US-163](EPIC-046-vivier-unique/US-163-disponibilites-du-questionnaire.md) | Dire où je suis disponible en répondant au questionnaire | EPIC-046 | à faire |
-| [US-164](EPIC-046-vivier-unique/US-164-inviter-a-rejoindre.md) | Inviter une personne à rejoindre le vivier, ou pour une session | EPIC-046 | à faire |
-| [US-165](EPIC-046-vivier-unique/US-165-annuler-ou-quitter.md) | Annuler ma présence à une session, ou quitter le vivier | EPIC-046 | à faire |
+| [US-160](EPIC-046-vivier-unique/US-160-regrouper-en-un-vivier.md) | Avoir un seul vivier par jeu | EPIC-046 | terminée |
+| [US-161](EPIC-046-vivier-unique/US-161-statut-par-session.md) | Suivre une personne session par session | EPIC-046 | terminée |
+| [US-162](EPIC-046-vivier-unique/US-162-ouvrir-une-session.md) | Ouvrir une session à la pré-inscription | EPIC-046 | terminée |
+| [US-163](EPIC-046-vivier-unique/US-163-disponibilites-du-questionnaire.md) | Dire où je suis disponible en répondant au questionnaire | EPIC-046 | terminée |
+| [US-164](EPIC-046-vivier-unique/US-164-inviter-a-rejoindre.md) | Inviter une personne à rejoindre le vivier, ou pour une session | EPIC-046 | terminée |
+| [US-165](EPIC-046-vivier-unique/US-165-annuler-ou-quitter.md) | Annuler ma présence à une session, ou quitter le vivier | EPIC-046 | terminée |
 | [US-166](EPIC-047-demande-de-disponibilites/US-166-demander-au-vivier.md) | Demander au vivier qui est disponible | EPIC-047 | à faire |
 | [US-167](EPIC-047-demande-de-disponibilites/US-167-repondre-a-la-demande.md) | Répondre à une demande d'un clic | EPIC-047 | à faire |
 | [US-168](EPIC-047-demande-de-disponibilites/US-168-relancer-la-demande.md) | Relancer les personnes sans réponse | EPIC-047 | à faire |
 | [US-169](EPIC-047-demande-de-disponibilites/US-169-liens-et-derniere-version.md) | Revenir sur mes réponses avec un lien qui reste valable | EPIC-047 | à faire |
 | [US-170](EPIC-048-casting-depuis-le-vivier/US-170-assistant-sur-les-pre-inscrits.md) | Proposer le casting parmi les pré-inscrits | EPIC-048 | à faire |
-| [US-171](EPIC-046-vivier-unique/US-171-tirage-par-session.md) | Tirer au sort pour une session | EPIC-046 | à faire |
+| [US-171](EPIC-046-vivier-unique/US-171-tirage-par-session.md) | Tirer au sort pour une session | EPIC-046 | terminée |
 | [US-172](EPIC-048-casting-depuis-le-vivier/US-172-annoncer-le-casting.md) | Annoncer le casting, puis écrire au cas par cas | EPIC-048 | à faire |
 | [US-173](EPIC-048-casting-depuis-le-vivier/US-173-reponses-modifiees.md) | Être prévenue quand une personne castée change ses réponses | EPIC-048 | à faire |
 | [US-174](EPIC-048-casting-depuis-le-vivier/US-174-parcours-complet.md) | Lire le parcours complet d'une personne | EPIC-048 | à faire |

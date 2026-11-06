@@ -5,7 +5,7 @@ import { announceSelection } from '~/server/utils/registrationSelection'
 import { withSessionSendLock } from '~/server/utils/sendLock'
 import { assertRateLimit, authUserRateLimitKey } from '~/server/utils/rateLimit'
 
-// Annonce les décisions pas encore annoncées de la période, un email par personne (US-088)
+// Annonce les décisions pas encore annoncées du vivier (US-088)
 export default defineEventHandler(async (event) => {
   await requireUser(event)
 
@@ -18,6 +18,6 @@ export default defineEventHandler(async (event) => {
     keyParts: [authUserRateLimitKey(event), period.id]
   })
 
-  // Un double clic annoncerait deux fois : un seul envoi à la fois par période
+  // Un double clic annoncerait deux fois : un seul envoi à la fois par vivier
   return await withSessionSendLock(`announce:${period.id}`, () => announceSelection(period.id))
 })

@@ -7,34 +7,17 @@ import {
   registrationPermissions
 } from '~/server/utils/publicRegistrations'
 
-const open = { state: 'open', closesAt: null }
-const closed = { state: 'closed', closesAt: null }
-const period = (state: typeof open) => ({ ...state, gameId: 'g', game: { title: 'Jeu', noteIntention: null }, sessions: [] })
-const noSelection = { sessionId: null, announcedStatus: null, announcedSessionId: null }
-
-describe('registrationPermissions (R13)', () => {
-  it('une invitation s’accepte ou se décline, même après la clôture', () => {
-    expect(registrationPermissions({ ...noSelection, status: 'invited', period: period(open) })).toEqual({ canAccept: true, canDecline: true, canConfirmPlace: false, canEdit: false, canWithdraw: false })
-    expect(registrationPermissions({ ...noSelection, status: 'invited', period: period(closed) })).toEqual({ canAccept: true, canDecline: true, canConfirmPlace: false, canEdit: false, canWithdraw: false })
+describe('registrationPermissions (R14)', () => {
+  it('une invitation s’accepte ou se décline', () => {
+    expect(registrationPermissions({ status: 'invited' })).toEqual({ canAccept: true, canDecline: true, canEdit: false, canLeave: false })
   })
 
-  it('une inscription confirmée se modifie jusqu’à la clôture seulement', () => {
-    expect(registrationPermissions({ ...noSelection, status: 'confirmed', period: period(open) })).toMatchObject({ canEdit: true, canAccept: false, canWithdraw: true })
-    // Le désistement reste possible après la clôture (US-006)
-    expect(registrationPermissions({ ...noSelection, status: 'confirmed', period: period(closed) })).toMatchObject({ canEdit: false, canWithdraw: true })
-    const pastClosing = { state: 'open', closesAt: '2020-01-01T00:00:00Z' } as unknown as typeof open
-    expect(registrationPermissions({ ...noSelection, status: 'confirmed', period: period(pastClosing) })).toMatchObject({ canEdit: false })
+  it('dans le vivier, on modifie ses réponses et on peut le quitter', () => {
+    expect(registrationPermissions({ status: 'received' })).toEqual({ canAccept: false, canDecline: false, canEdit: true, canLeave: true })
   })
 
-  it('une place retenue se confirme seulement une fois annoncée dans sa session (US-089)', () => {
-    const retained = { status: 'retained', sessionId: 's1', period: period(closed) }
-    expect(registrationPermissions({ ...retained, announcedStatus: 'retained', announcedSessionId: 's1' })).toMatchObject({ canConfirmPlace: true, canWithdraw: true, canEdit: false })
-    expect(registrationPermissions({ ...retained, announcedStatus: null, announcedSessionId: null })).toMatchObject({ canConfirmPlace: false })
-    expect(registrationPermissions({ ...retained, announcedStatus: 'retained', announcedSessionId: 's2' })).toMatchObject({ canConfirmPlace: false })
-  })
-
-  it('une inscription désistée ne permet plus rien', () => {
-    expect(registrationPermissions({ ...noSelection, status: 'withdrawn', period: period(open) })).toEqual({ canAccept: false, canDecline: false, canConfirmPlace: false, canEdit: false, canWithdraw: false })
+  it('sortie du vivier, plus rien', () => {
+    expect(registrationPermissions({ status: 'withdrawn' })).toEqual({ canAccept: false, canDecline: false, canEdit: false, canLeave: false })
   })
 })
 
@@ -47,36 +30,34 @@ describe('findRegistrationByToken', () => {
     expect(findUnique).not.toHaveBeenCalled()
   })
 
-  it('cherche par le hash du jeton, et refuse un lien expiré', async () => {
+  it('cherche par le hash du jeton, et le lien n’expire pas (ADR-0070)', async () => {
     const token = 'a'.repeat(43)
-    const findUnique = vi.fn().mockResolvedValue({ session: { date: new Date('2020-01-01') }, period: { sessions: [] } })
+    const found = { id: 'r1' }
+    const findUnique = vi.fn().mockResolvedValue(found)
     Object.assign(prisma, { registration: { findUnique } })
-    expect(await findRegistrationByToken(token)).toBeNull()
+    expect(await findRegistrationByToken(token)).toBe(found)
     expect(findUnique.mock.calls[0]![0].where.tokenHash).toMatch(/^[0-9a-f]{64}$/)
   })
 })
 
 describe('email de confirmation', () => {
-  it('reprend le jeu, la session et le lien, sans données de santé', () => {
+  it('reprend le jeu et le lien, sans données de santé', () => {
     const text = registrationConfirmationEmailText({
       firstName: 'Zoé',
       gameTitle: 'Les Ombres',
-      sessionName: 'Printemps',
-      sessionDate: new Date('2027-03-10T09:00:00Z'),
       url: 'https://limbus.example/inscription/abc'
     })
     expect(text).toContain('Bonjour Zoé,')
-    expect(text).toContain('Votre inscription à « Les Ombres » pour la session Printemps (10 mars 2027) est confirmée.')
+    expect(text).toContain('Vos réponses au questionnaire de « Les Ombres » sont enregistrées.')
     expect(text).toContain('https://limbus.example/inscription/abc')
   })
 })
 
 describe('withdrawalReason', () => {
-  it('distingue refus, désistement, place réattribuée et retrait par l’équipe', () => {
-    expect(withdrawalReason({ confirmedAt: null, withdrawnById: null })).toBe('declined')
-    expect(withdrawalReason({ confirmedAt: new Date(), withdrawnById: null })).toBe('withdrawn')
-    expect(withdrawalReason({ confirmedAt: null, withdrawnById: 'orga' })).toBe('released')
-    expect(withdrawalReason({ confirmedAt: new Date(), withdrawnById: 'orga' })).toBe('removed')
+  it('distingue refus, sortie du vivier, invitation retirée et retrait par l’équipe', () => {
+    expect(withdrawalReason({ charterAcceptedAt: null, withdrawnById: null })).toBe('declined')
+    expect(withdrawalReason({ charterAcceptedAt: new Date(), withdrawnById: null })).toBe('left')
+    expect(withdrawalReason({ charterAcceptedAt: null, withdrawnById: 'orga' })).toBe('released')
+    expect(withdrawalReason({ charterAcceptedAt: new Date(), withdrawnById: 'orga' })).toBe('removed')
   })
 })
-

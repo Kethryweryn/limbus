@@ -3,7 +3,7 @@ import { requireUser } from '~/server/utils/auth'
 import { requireGameAccess } from '~/server/utils/gameAccess'
 import { cancelDraw } from '~/server/utils/registrationDraws'
 
-// Annuler un tirage tant que rien n'en est annoncé (US-094) : ses décisions repartent à « reçue »
+// Annuler un tirage tant que rien n'en est annoncé (US-094) : ses personnes repartent pré-inscrites
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
 

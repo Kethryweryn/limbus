@@ -60,16 +60,15 @@ async function createGameWorld(prisma: PrismaClient, key: string, ownerId: strin
   })
   const registrationPeriod = await prisma.registrationPeriod.create({
     data: {
-      name: `Inscriptions ${key}`,
       gameId,
       publicId: `periode-${key}`,
-      sessions: { create: { sessionId: session.id, seats: 10 } }
+      sessions: { create: { sessionId: session.id } }
     }
   })
   const registration = await prisma.registration.create({
     data: {
       periodId: registrationPeriod.id,
-      sessionId: session.id,
+      invitedSessionId: session.id,
       participantId: participant.id,
       status: 'invited',
       source: 'invitation',

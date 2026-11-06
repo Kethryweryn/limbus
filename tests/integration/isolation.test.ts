@@ -116,7 +116,7 @@ describe('création dans un jeu inaccessible', () => {
     ['timeline-events', { name: 'Intrus', day: 1, time: '10:00', gameId: b.game.id }],
     ['sessions', { name: 'Intrus', gameId: b.game.id }],
     ['participants', { name: 'Intrus', gameIds: [b.game.id] }],
-    ['registration-periods', { name: 'Intrus', gameId: b.game.id, sessions: [{ sessionId: b.session.id }] }]
+    ['registration-periods', { gameId: b.game.id }]
   ]
 
   it.each(creations)('POST /api/%s refusé', async (path, body) => {
@@ -154,14 +154,16 @@ describe('références croisées vers le jeu de Bob', () => {
     ['PUT', `/api/sessions/${a.session.id}/timeline`, { assignments: [{ timelineEventId: b.timelineEvent.id, participantIds: [] }] }],
     ['PUT', `/api/sessions/${a.session.id}/timeline`, { assignments: [{ timelineEventId: a.timelineEvent.id, participantIds: [b.participant.id] }] }],
     ['PUT', `/api/characters/${a.character.id}/trombinoscope`, { entries: [{ targetCharacterId: b.character.id, included: true, faceKnown: true }] }],
-    ['POST', '/api/registration-periods', { name: 'X', gameId: a.game.id, sessions: [{ sessionId: b.session.id }] }],
     ['POST', '/api/characters', { name: 'X', gameId: a.game.id, trombinoscopePhotoUrl: b.photo.url }],
     ['POST', '/api/sessions', { name: 'X', gameId: a.game.id, assignments: [{ characterId: a.character.id, photoUrl: b.photo.url }] }],
     ['PUT', `/api/sessions/${a.session.id}/payments/settings`, { paymentRibUrl: b.rib.url }],
     ['PUT', `/api/sessions/${a.session.id}`, { name: 'X', gameId: a.game.id, assignments: [{ characterId: a.character.id, photoUrl: b.photo.url }] }],
     ['POST', `/api/sessions/${a.session.id}/casting-assistant`, { assignments: [{ characterId: b.character.id, participantId: b.participant.id, locked: true }] }],
-    ['PUT', `/api/registration-periods/${a.registrationPeriod.id}`, { name: 'X', gameId: a.game.id, sessions: [{ sessionId: b.session.id }] }],
-    ['PUT', `/api/registration-periods/${a.registrationPeriod.id}`, { name: 'X', gameId: b.game.id, sessions: [{ sessionId: b.session.id }] }]
+    ['PUT', `/api/registration-periods/${a.registrationPeriod.id}`, { gameId: b.game.id }],
+    ['PUT', `/api/registration-periods/${a.registrationPeriod.id}/sessions/${b.session.id}`, { open: true }],
+    ['POST', `/api/registration-periods/${a.registrationPeriod.id}/draws`, { sessionId: b.session.id }],
+    ['POST', `/api/registration-periods/${a.registrationPeriod.id}/invitations`, { sessionId: b.session.id, participantIds: [a.participant.id] }],
+    ['POST', `/api/registrations/${a.registration.id}/selection`, { action: 'retain', sessionId: b.session.id }]
   ]
 
   it.each(references)('%s %s %j est rejeté', async (method, path, body) => {
@@ -231,7 +233,6 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['GET', `/api/uploads/session-assignment-photos/${b.photo.filename}`],
     ['GET', `/api/uploads/session-payment-ribs/${b.rib.filename}`],
     ['GET', `/api/participants/${b.participant.id}/export`],
-    ['GET', `/api/games/${b.game.id}/registration-context`],
     ['GET', `/api/games/${b.game.id}/registration-form`],
     ['POST', `/api/registration-periods/${b.registrationPeriod.id}/invitations`, { sessionId: b.session.id, participantIds: [b.participant.id] }],
     ['GET', `/api/registration-periods/${b.registrationPeriod.id}/registrations`],
@@ -250,10 +251,10 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['POST', `/api/registrations/${b.registration.id}/selection`, { action: 'retain', sessionId: b.session.id }],
     ['GET', `/api/registration-periods/${b.registrationPeriod.id}/selection`],
     ['PUT', `/api/registration-periods/${b.registrationPeriod.id}/waitlist`, { sessionId: b.session.id, registrationIds: [] }],
-    ['PUT', `/api/registration-periods/${b.registrationPeriod.id}/pool-seats`, { sessionId: b.session.id, seats: 3 }],
+    ['PUT', `/api/registration-periods/${b.registrationPeriod.id}/sessions/${b.session.id}`, { open: true }],
     ['POST', `/api/registration-periods/${b.registrationPeriod.id}/announce`],
     // Tirage (US-093, US-094)
-    ['POST', `/api/registration-periods/${b.registrationPeriod.id}/draws`],
+    ['POST', `/api/registration-periods/${b.registrationPeriod.id}/draws`, { sessionId: b.session.id }],
     ['GET', `/api/registration-periods/${b.registrationPeriod.id}/draws`],
     ['PUT', `/api/games/${b.game.id}/registration-form`, {
       standardFields: Object.fromEntries(['lastName', 'firstName', 'facebookName', 'phone', 'emergencyContact', 'dietary']
@@ -276,7 +277,6 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/ai-access`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/bequests`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/participants/${a.participant.id}/export`)).status).toBe(200)
-    expect((await api(alice, 'GET', `/api/games/${a.game.id}/registration-context`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/registration-form`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/registration-periods/${a.registrationPeriod.id}/registrations`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/sessions/${a.session.id}/allergies`)).status).toBe(200)
@@ -289,8 +289,8 @@ describe('sous-routes de session et de jeu chez Bob', () => {
 
   it('Alice n’annule pas un tirage de Bob ; témoin : le sien', async () => {
     const result = { sessions: [], rejected: [] }
-    const bobDraw = await prisma.registrationDraw.create({ data: { periodId: b.registrationPeriod.id, seed: 'b', settings: {}, result } })
-    const aliceDraw = await prisma.registrationDraw.create({ data: { periodId: a.registrationPeriod.id, seed: 'a', settings: {}, result } })
+    const bobDraw = await prisma.registrationDraw.create({ data: { periodId: b.registrationPeriod.id, sessionId: b.session.id, seed: 'b', settings: {}, result } })
+    const aliceDraw = await prisma.registrationDraw.create({ data: { periodId: a.registrationPeriod.id, sessionId: a.session.id, seed: 'a', settings: {}, result } })
     expect(DENIED).toContain((await api(alice, 'POST', `/api/registration-draws/${bobDraw.id}/cancel`)).status)
     expect((await prisma.registrationDraw.findUniqueOrThrow({ where: { id: bobDraw.id } })).cancelledAt).toBeNull()
     expect((await api(alice, 'POST', `/api/registration-draws/${aliceDraw.id}/cancel`)).status).toBe(200)
@@ -336,15 +336,16 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect(await prisma.registration.findUnique({ where: { id: b.registration.id } })).toMatchObject({ status: 'invited', tokenHash: 'hash-b', withdrawnById: null, lastRemindedAt: null })
   })
 
-  it('inviter dans sa période un participant ou une session de Bob est refusé', async () => {
-    // Période ouverte d'Alice, sur une session à elle (celle des fixtures est déjà rattachée)
-    const session = await prisma.session.create({ data: { name: 'Session invitations', slug: 'session-invitations-isolation', gameId: a.game.id } })
+  it('inviter dans son vivier un participant ou une session de Bob est refusé', async () => {
+    // Vivier ouvert d'Alice, sur un jeu à elle (celui des fixtures reste en brouillon)
+    const game = await prisma.game.create({ data: { title: 'Jeu invitations', slug: 'jeu-invitations-isolation', description: '', ownerId: alice.id } })
+    const session = await prisma.session.create({ data: { name: 'Session invitations', slug: 'session-invitations-isolation', gameId: game.id } })
     const period = await prisma.registrationPeriod.create({
-      data: { name: 'Ouverte', gameId: a.game.id, publicId: 'isolation-ouverte', state: 'open', sessions: { create: { sessionId: session.id, seats: 5 } } }
+      data: { gameId: game.id, publicId: 'isolation-ouverte', state: 'open', sessions: { create: { sessionId: session.id } } }
     })
     // Participant dédié : les tests de ressources modifient celui des fixtures (email effacé)
     const own = await prisma.participant.create({
-      data: { name: 'Invitée isolation', slug: 'invitee-isolation', email: 'invitee-isolation@example.test', gameLinks: { create: { gameId: a.game.id } } }
+      data: { name: 'Invitée isolation', slug: 'invitee-isolation', email: 'invitee-isolation@example.test', gameLinks: { create: { gameId: game.id } } }
     })
     const path = `/api/registration-periods/${period.id}/invitations`
 
@@ -466,7 +467,8 @@ describe('routes de l’espace participant', () => {
     expect((await api(alice, 'PUT', `/api/me/registrations/${b.registration.id}`, { email: 'x@example.test' })).status).toBe(404)
     expect((await api(alice, 'POST', `/api/me/registrations/${b.registration.id}/decline`)).status).toBe(404)
     expect((await api(alice, 'POST', `/api/me/registrations/${b.registration.id}/withdraw`)).status).toBe(404)
-    expect((await api(alice, 'POST', `/api/me/registrations/${b.registration.id}/accept`)).status).toBe(404)
+    expect((await api(alice, 'POST', `/api/me/registrations/${b.registration.id}/accept`, { sessionId: b.session.id })).status).toBe(404)
+    expect((await api(alice, 'POST', `/api/me/registrations/${b.registration.id}/cancel`, { sessionId: b.session.id })).status).toBe(404)
     expect((await api(alice, 'GET', `/api/me/sessions/${b.session.id}/rib`)).status).toBe(404)
     expect(JSON.stringify((await api(alice, 'GET', '/api/me/participations')).body)).not.toContain(b.game.id)
 

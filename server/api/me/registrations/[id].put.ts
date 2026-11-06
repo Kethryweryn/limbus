@@ -1,18 +1,18 @@
 import { requireUser } from '~/server/utils/auth'
 import { readZodBody } from '~/server/utils/schemas'
-import { readAvailability } from '~/server/utils/registrationAvailability'
 import { registrationAnswerSchema } from '~/server/utils/registrationForms'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
 import {
   answerFormDefinition,
   exposeMyRegistration,
   frozenFormVersionId,
+  readAvailability,
   requireMyRegistration,
   saveRegistrationAnswers,
   sendRegistrationConfirmationEmail
 } from '~/server/utils/publicRegistrations'
 
-// Accepter l'invitation ou modifier son inscription depuis le compte, comme par le lien personnel (US-072)
+// Répondre à l'invitation ou modifier ses réponses depuis le compte, comme par le lien personnel (US-072)
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const id = getRouterParam(event, 'id')
@@ -23,9 +23,9 @@ export default defineEventHandler(async (event) => {
   const answers = { ...body, email: user.email, availableSessionIds: await readAvailability(event, registration) }
 
   const versionId = await frozenFormVersionId(registration, form.versionId)
-  const { accepted } = await saveRegistrationAnswers(registration, versionId, answers, form.definition, true)
+  const { accepted, keptSessions } = await saveRegistrationAnswers(registration, versionId, answers, form.definition, true)
   // Le lien de l'email mène à l'espace « Je participe » : le jeton du lien personnel n'est pas connu ici
   const emailSent = accepted ? await sendRegistrationConfirmationEmail(registration, answers, absoluteAppUrl('/participer')) : null
 
-  return { ...(await exposeMyRegistration(await requireMyRegistration(user.id, id), user.email)), emailSent }
+  return { ...(await exposeMyRegistration(await requireMyRegistration(user.id, id), user.email)), emailSent, keptSessions }
 })

@@ -3,13 +3,13 @@ import { requireGameAccess } from '~/server/utils/gameAccess'
 import { extendRegistrationDeadline, findRegistrationOr404 } from '~/server/utils/registrations'
 import { readZodBody, registrationExtensionSchema } from '~/server/utils/schemas'
 
-// Prolonge l'échéance d'une invitation sans réponse (US-005, R20)
+// Prolonge l'échéance d'une invitation sans réponse, ou d'une place retenue (US-005, R20)
 export default defineEventHandler(async (event) => {
   await requireUser(event)
 
   const registration = await findRegistrationOr404(getRouterParam(event, 'id'))
   await requireGameAccess(event, registration.period.gameId)
-  const { responseDueAt } = await readZodBody(event, registrationExtensionSchema)
+  const { responseDueAt, sessionId } = await readZodBody(event, registrationExtensionSchema)
 
-  return await extendRegistrationDeadline(registration.id, responseDueAt)
+  return await extendRegistrationDeadline(registration.id, responseDueAt, sessionId)
 })

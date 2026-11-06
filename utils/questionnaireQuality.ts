@@ -225,16 +225,12 @@ function givenOptions(question: QualityQuestion, answer: unknown): string[] | nu
   return given.filter((option) => options.includes(option))
 }
 
-/** Dernière inscription de chaque personne qui contient des réponses (R7) ; les inscriptions arrivent de la plus récente à la plus ancienne. */
-export function latestAnswersPerPerson(registrations: Array<{ participantId: string, questionAnswers: unknown }>) {
-  const latest = new Map<string, Answers>()
-  for (const { participantId, questionAnswers } of registrations) {
-    if (latest.has(participantId) || !questionAnswers || typeof questionAnswers !== 'object') continue
-    const answers = questionAnswers as Answers
-    const answered = Object.values(answers).some((answer) => answer !== null && answer !== '' && !(Array.isArray(answer) && !answer.length))
-    if (answered) latest.set(participantId, answers)
-  }
-  return [...latest.values()]
+/** Réponses des personnes qui ont vraiment répondu (R7) : une seule ligne par personne dans le vivier (SPEC-018, R1). */
+export function peopleWithAnswers(registrations: Array<{ questionAnswers: unknown }>) {
+  return registrations
+    .map(({ questionAnswers }) => questionAnswers)
+    .filter((answers): answers is Answers => Boolean(answers) && typeof answers === 'object')
+    .filter((answers) => Object.values(answers).some((answer) => answer !== null && answer !== '' && !(Array.isArray(answer) && !answer.length)))
 }
 
 // R8 et R9 : la réponse qui écrase les autres, et les extrémités d'une échelle

@@ -1,6 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { openEmailTransport, sendEmail } from '~/server/utils/email'
 import { CHARACTER_TYPES, REFUND_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
+import { giveUpSeat } from '~/server/utils/registrations'
 import { readUpload } from '~/server/utils/uploads'
 import { isHttpUrl } from '~/utils/urls'
 import { PAYMENT_STATES, TARIFF_ROLES, TARIFF_ROLE_ORDER, eurosToCents, paymentAmountLines, type PaymentAmounts, paymentState, solidarityBalance, suggestedDepartureStatus, tariffForPerson, withdrawalDeadlineLine } from '~/utils/sessionTariffs'
@@ -184,6 +185,10 @@ export async function setSessionPaymentRefund(sessionId: string, participantId: 
     })
   }
 
+  // À rembourser ou remboursée : elle ne vient plus, sur l'ancienne session comme sur son report (R30)
+  if (status === REFUND_STATUSES.toRefund || status === REFUND_STATUSES.refunded) {
+    await giveUpSeat(sessionId, participantId, session.postponedToSessionId)
+  }
   return await prisma.sessionPayment.update({
     where: { id: payment.id },
     data: {
@@ -740,6 +745,10 @@ export async function setDepartedPaymentStatus(sessionId: string, participantId:
     throw createError({ statusCode: 400, message: 'Cette personne n’a pas de paiement à traiter : elle est encore dans le tableau, ou n’a rien payé.' })
   }
 
+  // Elle ne vient plus : sa ligne est en annulation, et retirer cette marque ne lui rend pas sa place (R30)
+  if (status === REFUND_STATUSES.toRefund || status === REFUND_STATUSES.refunded || status === REFUND_STATUSES.transferred) {
+    await giveUpSeat(sessionId, participantId)
+  }
   // Le remplaçant déjà crédité reste noté : revenir sur un transfert ne retire rien chez lui (ADR-0033)
   if (status !== REFUND_STATUSES.transferred) {
     return await prisma.sessionPayment.update({

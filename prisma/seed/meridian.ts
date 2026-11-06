@@ -1,13 +1,13 @@
-// Station Meridian, jeu de test « avant les sessions » : page publique, périodes d'inscription, questionnaire,
-// sélection, tirage, affinités et relations (US-152, ADR-0066)
+// Station Meridian, jeu de test « avant les sessions » : page publique, vivier, questionnaire, sélection session par
+// session, tirage, affinités et relations (US-152, ADR-0066, SPEC-018)
 import { computeDraw, type DrawSessionInput, type DrawSettings } from '../../utils/registrationDraw'
 import { REGISTRATION_STANDARD_FIELDS, type QuestionAnswers, type RegistrationFormDefinition } from '../../utils/registrationForms'
 import {
-  REGISTRATION_ENTRY_MODES as ENTRY,
-  REGISTRATION_PERIOD_SCOPES,
+  REGISTRATION_ANSWERS as ANSWER,
   REGISTRATION_PERIOD_STATES as STATE,
   REGISTRATION_REPLAY_POLICIES,
   REGISTRATION_SELECTION_MODES as SELECTION,
+  REGISTRATION_SESSION_STATUSES as LINE,
   REGISTRATION_SOURCES as SOURCE,
   REGISTRATION_STATUSES as STATUS,
   SESSION_ROLES,
@@ -159,7 +159,7 @@ export async function createMeridianStage(db: Db, context: StageContext) {
   })
 
   const castRows = characters.map((row) => ({ characterId: row.id }))
-  const createSession = (name: string, days: number, poolSeats?: number) => db.session.create({
+  const createSession = (name: string, days: number) => db.session.create({
     data: {
       name: `${title} - ${name}`,
       slug: makeSlug(`${title}-${name}`),
@@ -168,7 +168,6 @@ export async function createMeridianStage(db: Db, context: StageContext) {
       locationId,
       status: SESSION_STATUSES.scheduled,
       published: true,
-      poolSeats,
       assignments: { create: castRows }
     },
     select: { id: true }
@@ -178,59 +177,42 @@ export async function createMeridianStage(db: Db, context: StageContext) {
   const invitationSession = await createSession('Session sur invitation', 110)
   const mixedSession = await createSession('Session mixte', 140)
   const draftSession = await createSession('Session en préparation', 170)
-  const poolSessions = [await createSession('Soirée du vivier', 200, 6), await createSession('Week-end du vivier', 230, 8)]
+  const poolSessions = [await createSession('Soirée du vivier', 200), await createSession('Week-end du vivier', 230)]
 
-  const SEATS = 6
-  // Le lien public reste le même d'un rechargement à l'autre
-  const createPeriod = (
-    name: string,
-    fields: {
-      key: string
-      entryMode: string, selectionMode: string, state: string, sessionId?: string, permanent?: boolean, organizerPicks?: number, replayPolicy?: string, weightBalance?: boolean, weightNotDrawnBefore?: boolean, waitlistSize?: number, closesInDays?: number }
-  ) => db.registrationPeriod.create({
+  // Un seul vivier par jeu ; le lien public reste le même d'un rechargement à l'autre
+  const { id: periodId } = await db.registrationPeriod.create({
     data: {
       gameId,
-      name,
-      publicId: `essai-meridian-${fields.key}`,
-      scope: fields.permanent ? REGISTRATION_PERIOD_SCOPES.game : REGISTRATION_PERIOD_SCOPES.sessions,
-      entryMode: fields.entryMode,
-      selectionMode: fields.selectionMode,
-      state: fields.state,
-      closesAt: fields.closesInDays === undefined ? null : daysFromNow(fields.closesInDays),
+      publicId: 'essai-meridian-vivier',
+      state: STATE.open,
       // Page publique en production : une inscription extérieure ne doit prévenir personne (ADR-0066)
       notifyTeam: false,
-      organizerPicks: fields.organizerPicks ?? null,
-      replayPolicy: fields.replayPolicy ?? REGISTRATION_REPLAY_POLICIES.allowed,
-      weightBalance: fields.weightBalance ?? false,
-      weightNotDrawnBefore: fields.weightNotDrawnBefore ?? false,
-      waitlistSize: fields.waitlistSize ?? 3,
-      sessions: fields.sessionId ? { create: { sessionId: fields.sessionId, seats: SEATS } } : undefined
+      replayPolicy: REGISTRATION_REPLAY_POLICIES.flagged
     },
     select: { id: true }
   })
-  const drawPeriod = await createPeriod('Première vague, au tirage', { key: 'tirage', entryMode: ENTRY.form, selectionMode: SELECTION.random, state: STATE.closed, sessionId: drawSession.id, closesInDays: -5 })
-  const chosenPeriod = await createPeriod('Deuxième vague, à la main', { key: 'main', entryMode: ENTRY.form, selectionMode: SELECTION.chosen, state: STATE.open, sessionId: chosenSession.id, closesInDays: 30, replayPolicy: REGISTRATION_REPLAY_POLICIES.flagged })
-  const invitationPeriod = await createPeriod('Sur invitation', { key: 'invitation', entryMode: ENTRY.invitation, selectionMode: SELECTION.chosen, state: STATE.open, sessionId: invitationSession.id, closesInDays: 60 })
-  const mixedPeriod = await createPeriod('Vague mixte', { key: 'mixte', entryMode: ENTRY.form, selectionMode: SELECTION.mixed, state: STATE.open, sessionId: mixedSession.id, closesInDays: 90, organizerPicks: 2, weightBalance: true, weightNotDrawnBefore: true })
-  await createPeriod('Prochaine vague, en préparation', { key: 'preparation', entryMode: ENTRY.form, selectionMode: SELECTION.chosen, state: STATE.draft, sessionId: draftSession.id })
-  const poolPeriod = await createPeriod('Inscription permanente', { key: 'permanente', entryMode: ENTRY.form, selectionMode: SELECTION.random, state: STATE.open, permanent: true })
+  const SEATS = await db.character.count({ where: { gameId, type: 'pj' } })
+  const linkSession = (sessionId: string, open: boolean, settings: Partial<Prisma.RegistrationPeriodSessionUncheckedCreateInput> = {}) =>
+    db.registrationPeriodSession.create({ data: { periodId, sessionId, open, waitlistSize: 3, ...settings } })
+  await linkSession(drawSession.id, false, { selectionMode: SELECTION.random })
+  await linkSession(chosenSession.id, true)
+  await linkSession(invitationSession.id, false)
+  await linkSession(mixedSession.id, true, { selectionMode: SELECTION.mixed, organizerPicks: 2, weightBalance: true, weightNotDrawnBefore: true })
+  await linkSession(draftSession.id, false)
+  for (const session of poolSessions) await linkSession(session.id, true)
 
   let nextRank = 0
   const createRegistration = async (
-    periodId: string,
     fictionalEmail: string,
     fields: {
       status?: string
       source?: string
-      sessionId?: string
       answered?: boolean
       oldForm?: boolean
-      announced?: boolean
       extra?: Partial<Prisma.RegistrationUncheckedCreateInput>
     } = {}
   ) => {
     const person = people.get(fictionalEmail)!
-    const status = fields.status ?? STATUS.received
     const answered = fields.answered ?? true
     const rank = nextRank++
     const [firstName, ...lastName] = person.name.split(' ')
@@ -241,8 +223,7 @@ export async function createMeridianStage(db: Db, context: StageContext) {
       data: {
         periodId,
         participantId: person.id,
-        sessionId: fields.sessionId,
-        status,
+        status: fields.status ?? STATUS.received,
         source: fields.source ?? SOURCE.form,
         invitedById: fields.source === SOURCE.invitation ? ownerId : undefined,
         email: person.email!,
@@ -262,9 +243,6 @@ export async function createMeridianStage(db: Db, context: StageContext) {
               balancePreference: fields.oldForm ? null : preferences[rank % 3]
             }
           : {}),
-        ...(fields.announced
-          ? { announcedStatus: status, announcedSessionId: fields.sessionId, announcedAt: daysFromNow(-3) }
-          : {}),
         ...fields.extra
       },
       select: { id: true }
@@ -272,11 +250,21 @@ export async function createMeridianStage(db: Db, context: StageContext) {
     return registration.id
   }
 
-  // Première vague : un vrai tirage, jamais annoncé, donc encore annulable
+  // Statut d'une personne pour une session (R17) : par défaut, elle a répondu qu'elle y était disponible
+  const addLine = (registrationId: string, sessionId: string, status: string, extra: Partial<Prisma.RegistrationSessionUncheckedCreateInput> = {}) =>
+    db.registrationSession.create({
+      data: { registrationId, sessionId, status, answer: ANSWER.available, answeredAt: daysFromNow(-10), ...extra }
+    })
+  const announced = (status: string) => ({ announcedStatus: status, announcedAt: daysFromNow(-3) })
+  const retainedByHand = { retainedById: ownerId }
+
+  // Session du tirage : un vrai tirage, jamais annoncé, donc encore annulable
   const generatedEmails = GENERATED_PEOPLE.map((person) => person.email)
   const drawCandidates: string[] = []
   for (const [index, email] of generatedEmails.slice(0, 14).entries()) {
-    drawCandidates.push(await createRegistration(drawPeriod.id, email, { oldForm: index < 4 }))
+    const registrationId = await createRegistration(email, { oldForm: index < 4 })
+    drawCandidates.push(registrationId)
+    await addLine(registrationId, drawSession.id, LINE.preregistered)
   }
   const input: DrawSessionInput = {
     sessionId: drawSession.id,
@@ -297,41 +285,43 @@ export async function createMeridianStage(db: Db, context: StageContext) {
     sessions: [input]
   }
   const drawn = result.sessions[0]!
-  await db.registration.updateMany({ where: { id: { in: drawn.retained } }, data: { status: STATUS.retained, sessionId: drawSession.id } })
-  await db.registration.updateMany({ where: { id: { in: drawn.waitlisted } }, data: { status: STATUS.waitlisted } })
-  await db.registration.updateMany({ where: { id: { in: result.rejected } }, data: { status: STATUS.rejected } })
-  await db.registrationWaitlistEntry.createMany({
-    data: drawn.waitlisted.map((registrationId, index) => ({ registrationId, sessionId: drawSession.id, position: index + 1 }))
-  })
+  await db.registrationSession.updateMany({ where: { sessionId: drawSession.id, registrationId: { in: drawn.retained } }, data: { status: LINE.retained } })
+  for (const [index, registrationId] of drawn.waitlisted.entries()) {
+    await db.registrationSession.updateMany({ where: { sessionId: drawSession.id, registrationId }, data: { status: LINE.waitlisted, waitlistPosition: index + 1 } })
+  }
   await db.registrationDraw.create({
-    data: { periodId: drawPeriod.id, seed, settings: settings as object, result: result as object, createdById: ownerId }
+    data: { periodId, sessionId: drawSession.id, seed, settings: settings as object, result: result as object, createdById: ownerId }
   })
 
-  // Deuxième vague : chaque statut, avec des décisions annoncées et d'autres encore à annoncer
-  const retainedByHand = { retainedById: ownerId }
-  const camille = await createRegistration(chosenPeriod.id, 'camille.bernard@example.test')
-  const hugo = await createRegistration(chosenPeriod.id, 'hugo.fontaine@example.test')
-  const lucie = await createRegistration(chosenPeriod.id, 'lucie.moreau@example.test', {
-    status: STATUS.retained, sessionId: chosenSession.id, announced: true,
-    extra: { ...retainedByHand, responseDueAt: daysFromNow(5) }
-  })
-  const nicolas = await createRegistration(chosenPeriod.id, 'nicolas.martin@example.test', { status: STATUS.retained, sessionId: chosenSession.id, extra: retainedByHand })
-  await createRegistration(chosenPeriod.id, 'raphael.chevalier@example.test', { status: STATUS.retained, sessionId: chosenSession.id, extra: retainedByHand })
-  await createRegistration(chosenPeriod.id, 'sarah.petit@example.test', {
-    status: STATUS.confirmed, sessionId: chosenSession.id, announced: true,
-    extra: { ...retainedByHand, confirmedAt: daysFromNow(-1) }
-  })
-  const manon = await createRegistration(chosenPeriod.id, 'manon.richard@example.test', { status: STATUS.waitlisted, announced: true })
-  const otherWaiting = await createRegistration(chosenPeriod.id, generatedEmails[14]!, { status: STATUS.waitlisted })
-  await db.registrationWaitlistEntry.createMany({
-    data: [manon, otherWaiting].map((registrationId, index) => ({ registrationId, sessionId: chosenSession.id, position: index + 1 }))
-  })
-  await createRegistration(chosenPeriod.id, 'mehdi.laurent@example.test', { status: STATUS.rejected, announced: true })
-  await createRegistration(chosenPeriod.id, 'clara.rousseau@example.test', { status: STATUS.withdrawn, extra: { withdrawnAt: daysFromNow(-2) } })
+  // Session à la main : chaque statut, avec des décisions annoncées et d'autres encore à annoncer
+  const camille = await createRegistration('camille.bernard@example.test')
+  await addLine(camille, chosenSession.id, LINE.preregistered)
+  const hugo = await createRegistration('hugo.fontaine@example.test')
+  await addLine(hugo, chosenSession.id, LINE.preregistered)
+  const lucie = await createRegistration('lucie.moreau@example.test')
+  await addLine(lucie, chosenSession.id, LINE.retained, { ...retainedByHand, ...announced(LINE.retained), responseDueAt: daysFromNow(5) })
+  const nicolas = await createRegistration('nicolas.martin@example.test')
+  await addLine(nicolas, chosenSession.id, LINE.retained, retainedByHand)
+  const raphael = await createRegistration('raphael.chevalier@example.test')
+  await addLine(raphael, chosenSession.id, LINE.retained, retainedByHand)
+  const maelle = await createRegistration('maelle.renaud@example.test')
+  await addLine(maelle, chosenSession.id, LINE.confirmed, { ...retainedByHand, ...announced(LINE.retained), confirmedAt: daysFromNow(-1) })
+  const manon = await createRegistration('manon.richard@example.test')
+  await addLine(manon, chosenSession.id, LINE.waitlisted, { ...announced(LINE.waitlisted), waitlistPosition: 1 })
+  const otherWaiting = await createRegistration(generatedEmails[14]!)
+  await addLine(otherWaiting, chosenSession.id, LINE.waitlisted, { waitlistPosition: 2 })
+  // A répondu « pas disponible » : l'équipe distingue un refus d'une absence de réponse (R11)
+  const mehdi = await createRegistration('mehdi.laurent@example.test')
+  await addLine(mehdi, chosenSession.id, LINE.unavailable, { answer: ANSWER.unavailable })
+  // Sortie du vivier (R5)
+  const clara = await createRegistration('clara.rousseau@example.test', { status: STATUS.withdrawn, extra: { withdrawnAt: daysFromNow(-2), tokenHash: null } })
+  await addLine(clara, chosenSession.id, LINE.cancelled, { cancelledAt: daysFromNow(-2) })
   // A joué la session terminée du jeu : signalée comme rejoueuse
-  const amandine = await createRegistration(chosenPeriod.id, 'amandine.blanc@example.test')
-  const lea = await createRegistration(chosenPeriod.id, 'lea.mercier@example.test')
-  for (const email of generatedEmails.slice(15, 19)) await createRegistration(chosenPeriod.id, email)
+  const amandine = await createRegistration('amandine.blanc@example.test')
+  await addLine(amandine, chosenSession.id, LINE.preregistered)
+  const lea = await createRegistration('lea.mercier@example.test')
+  await addLine(lea, chosenSession.id, LINE.preregistered)
+  for (const email of generatedEmails.slice(15, 19)) await addLine(await createRegistration(email), chosenSession.id, LINE.preregistered)
 
   const affinity = (registrationId: string, kind: string, text: string, target?: string) => ({
     registrationId,
@@ -356,40 +346,31 @@ export async function createMeridianStage(db: Db, context: StageContext) {
     ]
   })
 
-  // Sur invitation : à envoyer, envoyée, acceptée et refusée
-  const invited = { source: SOURCE.invitation, answered: false }
-  await createRegistration(invitationPeriod.id, 'sarah.petit@example.test', { ...invited, status: STATUS.invited })
-  await createRegistration(invitationPeriod.id, 'nicolas.martin@example.test', {
-    ...invited, status: STATUS.invited,
-    extra: { invitationSentAt: daysFromNow(-2), responseDueAt: daysFromNow(5) }
-  })
-  await createRegistration(invitationPeriod.id, 'maelle.renaud@example.test', {
-    source: SOURCE.invitation, status: STATUS.confirmed, sessionId: invitationSession.id,
-    extra: { invitationSentAt: daysFromNow(-6), confirmedAt: daysFromNow(-4) }
-  })
-  await createRegistration(invitationPeriod.id, 'baptiste.collet@example.test', {
-    ...invited, status: STATUS.withdrawn,
-    extra: { invitationSentAt: daysFromNow(-6), withdrawnAt: daysFromNow(-4) }
-  })
+  // Invitations : pour une session, à envoyer ; au vivier, envoyée ; inscrite par son invitation
+  const invited = { source: SOURCE.invitation, answered: false, status: STATUS.invited }
+  await createRegistration('sarah.petit@example.test', { ...invited, extra: { invitedSessionId: invitationSession.id } })
+  await createRegistration('baptiste.collet@example.test', { ...invited, extra: { invitationSentAt: daysFromNow(-2), responseDueAt: daysFromNow(5) } })
+  const invitedPlayer = await createRegistration(generatedEmails[19]!, { source: SOURCE.invitation, extra: { invitationSentAt: daysFromNow(-6) } })
+  await addLine(invitedPlayer, invitationSession.id, LINE.confirmed, { ...announced(LINE.confirmed), confirmedAt: daysFromNow(-4) })
 
-  // Les confirmées occupent leur place dans la session, comme après une vraie confirmation
-  for (const [sessionId, email] of [[chosenSession.id, 'sarah.petit@example.test'], [invitationSession.id, 'maelle.renaud@example.test']] as const) {
+  // Les inscrites occupent leur place dans la session, comme après une vraie confirmation
+  const inscribed = [[chosenSession.id, 'maelle.renaud@example.test'], [invitationSession.id, generatedEmails[19]!]] as const
+  for (const [sessionId, email] of inscribed) {
     await db.session.update({
       where: { id: sessionId },
       data: { participants: { create: { participantId: people.get(email)!.id, role: SESSION_ROLES.participant } } }
     })
   }
 
-  for (const email of generatedEmails.slice(19, 27)) await createRegistration(mixedPeriod.id, email)
-  // Retenue à la main, pas encore annoncée : Camille la voit encore comme reçue (ADR-0047)
-  await createRegistration(mixedPeriod.id, 'camille.bernard@example.test', { status: STATUS.retained, sessionId: mixedSession.id, extra: retainedByHand })
+  for (const email of generatedEmails.slice(20, 27)) await addLine(await createRegistration(email), mixedSession.id, LINE.preregistered)
+  // Retenue à la main, pas encore annoncée, et pré-inscrite ailleurs : Camille se voit encore pré-inscrite (R17, R28)
+  await addLine(camille, mixedSession.id, LINE.retained, { ...retainedByHand })
 
   for (const [index, email] of generatedEmails.slice(27).entries()) {
-    const registrationId = await createRegistration(poolPeriod.id, email)
-    // Une personne sur deux peut venir aux deux sessions
+    const registrationId = await createRegistration(email)
+    // Une personne sur deux peut venir aux deux sessions ; certaines ne répondent rien : simplement intéressées
+    if (index % 5 === 4) continue
     const available = index % 2 === 0 ? poolSessions : [poolSessions[index % 4 === 1 ? 0 : 1]!]
-    await db.registrationAvailability.createMany({
-      data: available.map((session) => ({ registrationId, sessionId: session.id }))
-    })
+    for (const session of available) await addLine(registrationId, session.id, LINE.preregistered)
   }
 }

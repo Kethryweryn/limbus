@@ -109,7 +109,7 @@ describe('répondre depuis son compte (US-072)', () => {
     return { user, registration }
   }
 
-  it('accepte, modifie puis se désiste ; une autre personne ne voit pas l’inscription', async () => {
+  it('répond, puis quitte le vivier ; une autre personne ne voit pas l’inscription', async () => {
     const { user, registration } = await invited()
     const listed = (await api(user, 'GET', '/api/me/participations')).body as Array<{ registrations: Array<{ id: string, canAccept: boolean }> }>
     expect(listed.flatMap((item) => item.registrations).find((item) => item.id === registration.id)).toMatchObject({ canAccept: true })
@@ -122,7 +122,7 @@ describe('répondre depuis son compte (US-072)', () => {
     // Une autre adresse saisie ne détache pas la fiche : depuis le compte, c'est l'adresse du compte qui compte
     const accepted = await api(user, 'PUT', `/api/me/registrations/${registration.id}`, { ...answers, email: 'ailleurs@example.test' })
     expect(accepted.status, JSON.stringify(accepted.body)).toBe(200)
-    expect(accepted.body).toMatchObject({ status: 'confirmed', canWithdraw: true, answers: { email: user.email } })
+    expect(accepted.body).toMatchObject({ status: 'received', canLeave: true, answers: { email: user.email } })
     expect((await prisma.participant.findFirstOrThrow({ where: { registrations: { some: { id: registration.id } } } })).userId).toBe(user.id)
 
     expect((await api(user, 'POST', `/api/me/registrations/${registration.id}/withdraw`)).body).toMatchObject({ status: 'withdrawn' })

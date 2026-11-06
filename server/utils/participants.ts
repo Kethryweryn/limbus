@@ -1,8 +1,8 @@
-import { prisma } from '~/server/utils/prisma'
+import { prisma, type PrismaTx } from '~/server/utils/prisma'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
 import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
 import { publicAppUrl } from '~/server/utils/appUrl'
-import { REGISTRATION_STATUSES } from '~/utils/domain'
+import { REGISTRATION_SESSION_STATUSES, REGISTRATION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
 
 type ParticipantWithGameLinks = {
   gameLinks?: Array<{
@@ -60,8 +60,6 @@ export function exposeParticipantsGames<T extends ParticipantWithGameLinks>(part
  * restent, affichés à part (ADR-0033). Les trombinoscopes déjà générés sont refaits sans elle, sans
  * faire échouer le retrait.
  */
-type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
-
 /**
  * Retrait d'une personne de jeux (US-035), en deux temps : apply dans la transaction de l'appelant, avec la mise à
  * jour de la fiche ; afterCommit ensuite (fichiers, trombinoscopes), une fois le retrait enregistré.
@@ -78,7 +76,7 @@ export async function planParticipantRemoval(participantId: string, gameIds: str
   const sessionIds = [...new Set([...roles, ...assignments, ...responsibilities, ...attendances].map((item) => item.sessionId))]
   const now = new Date()
 
-  const apply = async (tx: Tx) => {
+  const apply = async (tx: PrismaTx) => {
     await tx.participantGame.deleteMany({ where: { participantId, gameId: { in: gameIds } } })
     await tx.sessionParticipant.deleteMany({ where: inSessions })
     await tx.timelineEventResponsible.deleteMany({ where: inSessions })
@@ -86,7 +84,20 @@ export async function planParticipantRemoval(participantId: string, gameIds: str
     await tx.sessionAttendance.deleteMany({ where: inSessions })
     await tx.registration.updateMany({
       where: { participantId, period: { gameId: { in: gameIds } }, status: { not: REGISTRATION_STATUSES.withdrawn } },
-      data: { status: REGISTRATION_STATUSES.withdrawn, withdrawnAt: now, withdrawnById: removedBy.id }
+      data: { status: REGISTRATION_STATUSES.withdrawn, withdrawnAt: now, withdrawnById: removedBy.id, tokenHash: null }
+    })
+    // Retirée du jeu, elle l'est de ses sessions à venir ; les sessions passées gardent leur trace
+    await tx.registrationSession.updateMany({
+      where: {
+        registration: { participantId, period: { gameId: { in: gameIds } } },
+        session: { status: SESSION_STATUSES.scheduled },
+        status: { notIn: [REGISTRATION_SESSION_STATUSES.cancelled, REGISTRATION_SESSION_STATUSES.unavailable] }
+      },
+      data: { status: REGISTRATION_SESSION_STATUSES.cancelled, cancelledAt: now, cancelledById: removedBy.id, waitlistPosition: null, retainedById: null }
+    })
+    await tx.sessionAssignment.updateMany({
+      where: { reservedRegistration: { participantId, period: { gameId: { in: gameIds } } } },
+      data: { reservedRegistrationId: null }
     })
     // L'équipe et le casting de ces sessions ont changé : leur version aussi (ADR-0028)
     if (sessionIds.length) await tx.session.updateMany({ where: { id: { in: sessionIds } }, data: { updatedAt: now } })

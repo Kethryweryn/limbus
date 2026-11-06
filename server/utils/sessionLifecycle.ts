@@ -2,7 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { openEmailTransport, sendEmail } from '~/server/utils/email'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { assertSessionLocation } from '~/server/utils/sessionAssignments'
-import { SESSION_STATUSES } from '~/utils/domain'
+import { REGISTRATION_SEAT_STATUSES, REGISTRATION_SESSION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
 
 // Seule une session prévue ou annulée se reporte (US-022) ; une session reportée l'est déjà
 export const POSTPONABLE_SESSION_STATUSES: string[] = [SESSION_STATUSES.scheduled, SESSION_STATUSES.cancelled]
@@ -17,7 +17,8 @@ function parseDate(value: string | null | undefined) {
  * Reporte une session sur une nouvelle session du même jeu (US-022, ADR-0029) : l'équipe et le casting
  * (notes et photos comprises) sont recopiés, et l'ancienne session passe « Reportée » en pointant vers la
  * nouvelle. Les photos recopiées servent aux deux sessions : leur fichier est rattaché au jeu, pour que
- * supprimer l'une des sessions ne l'emporte pas.
+ * supprimer l'une des sessions ne l'emporte pas. Les personnes castées ou inscrites gardent leur statut sur la nouvelle
+ * session et passent à « transférée » sur l'ancienne ; les pré-inscrites et la liste d'attente ne sont pas reprises (R30).
  */
 export async function postponeSession(sessionId: string, target: { name: string, date?: string | null, locationId?: string | null }) {
   const session = await prisma.session.findUniqueOrThrow({
@@ -50,8 +51,9 @@ export async function postponeSession(sessionId: string, target: { name: string,
             participantId: assignment.participantId,
             photoUrl: assignment.photoUrl,
             notes: assignment.notes,
-            // Le cadenas suit ; la réservation reste sur l'ancienne session, comme l'inscription (ADR-0051)
-            locked: assignment.locked
+            // Le cadenas et la réservation suivent, comme la personne retenue (ADR-0051)
+            locked: assignment.locked,
+            reservedRegistrationId: assignment.reservedRegistrationId
           }))
         }
       },
@@ -80,6 +82,19 @@ export async function postponeSession(sessionId: string, target: { name: string,
     })
     if (!updated.count) {
       throw createError({ statusCode: 409, message: 'Cette session vient d’être reportée ou modifiée : rechargez la page.' })
+    }
+
+    const placed = await tx.registrationSession.findMany({
+      where: { sessionId: session.id, status: { in: REGISTRATION_SEAT_STATUSES } },
+      select: { registrationId: true, status: true, answer: true, answeredAt: true, responseDueAt: true, confirmedAt: true, retainedById: true, announcedStatus: true, announcedAt: true, registration: { select: { periodId: true } } }
+    })
+    if (placed.length) {
+      await tx.registrationPeriodSession.create({ data: { periodId: placed[0]!.registration.periodId, sessionId: created.id } })
+      await tx.registrationSession.createMany({ data: placed.map(({ registration: _registration, ...line }) => ({ ...line, sessionId: created.id })) })
+      await tx.registrationSession.updateMany({
+        where: { sessionId: session.id, status: { in: REGISTRATION_SEAT_STATUSES } },
+        data: { status: REGISTRATION_SESSION_STATUSES.transferred }
+      })
     }
 
     if (photoUrls.length) {

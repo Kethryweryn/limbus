@@ -4,13 +4,16 @@ import { prisma } from '~/server/utils/prisma'
 import { accountIdForEmail, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 import { assertRateLimit } from '~/server/utils/rateLimit'
 import { sendEmail } from '~/server/utils/email'
-import { hashRegistrationToken, WITHDRAWABLE_STATUSES } from '~/server/utils/registrations'
-import { asksAvailability } from '~/server/utils/registrationAvailability'
+import { hashRegistrationToken, notifyGameTeam } from '~/server/utils/registrations'
+import { answerAvailability, availabilitySchema } from '~/server/utils/registrationAvailability'
 import { replaceAffinities } from '~/server/utils/registrationAffinities'
+import { countPlayableCharacters, offeredSessions, takenSeatsWhere } from '~/server/utils/registrationPeriods'
+import { joinSession, lockSession } from '~/server/utils/registrationSelection'
 import { getCurrentRegistrationForm, saveRegistrationFormDefinition, withGameBalanceQuestion, type AffinityAnswers, type QuestionAnswers } from '~/server/utils/registrationForms'
-import { REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES, isClosedSessionStatus } from '~/utils/domain'
-import { effectivePeriodState } from '~/utils/registrationPeriods'
-import { announcedRegistrationStatus, canConfirmPlace, isAnnouncementPending, isResponseOverdue, registrationLinkExpired, splitParticipantName } from '~/utils/registrations'
+import { readZodBody } from '~/server/utils/schemas'
+import { REGISTRATION_ANSWERS, REGISTRATION_CANCELLABLE_STATUSES, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
+import { isUpcomingSession } from '~/utils/registrationPeriods'
+import { canConfirmPlace, isResponseOverdue, splitParticipantName, visibleLineStatus } from '~/utils/registrations'
 import {
   DEFAULT_REGISTRATION_FORM_DEFINITION,
   REGISTRATION_BALANCE_ANY,
@@ -19,16 +22,17 @@ import {
   type RegistrationFormDefinition
 } from '~/utils/registrationForms'
 
-// Même réponse pour un jeton inconnu, invalidé ou expiré : on ne dit pas pourquoi (ADR-0018)
+// Même réponse pour un jeton inconnu ou invalidé : on ne dit pas pourquoi (ADR-0018)
 export const INVALID_LINK_MESSAGE = 'Ce lien n’est pas valide.'
 
 const TOKEN_PATTERN = /^[\w-]{43}$/
+
+const sessionView = { id: true, name: true, date: true, status: true, location: { select: { name: true, address: true } } } as const
 
 const publicRegistrationSelect = {
   id: true,
   status: true,
   source: true,
-  sessionId: true,
   participantId: true,
   email: true,
   firstName: true,
@@ -43,14 +47,23 @@ const publicRegistrationSelect = {
   questionAnswers: true,
   balancePreference: true,
   affinities: { select: { kind: true, text: true }, orderBy: { position: 'asc' as const } },
-  availabilities: { select: { sessionId: true } },
   responseDueAt: true,
   respondedAt: true,
-  confirmedAt: true,
   withdrawnById: true,
-  announcedStatus: true,
-  announcedSessionId: true,
-  waitlistEntries: { orderBy: { session: { date: 'asc' as const } }, select: { session: { select: { name: true, date: true } } } },
+  invitedSession: { select: sessionView },
+  sessionLines: {
+    orderBy: { session: { date: 'asc' as const } },
+    select: {
+      sessionId: true,
+      status: true,
+      answer: true,
+      announcedStatus: true,
+      cancelledById: true,
+      responseDueAt: true,
+      confirmedAt: true,
+      session: { select: sessionView }
+    }
+  },
   formVersion: { select: { id: true, definition: true } },
   participant: {
     select: {
@@ -60,15 +73,12 @@ const publicRegistrationSelect = {
       user: { select: { phone: true, emergencyContactName: true, emergencyContactPhone: true, dietary: true, healthConsentAt: true, profileUpdatedAt: true } }
     }
   },
-  session: { select: { name: true, date: true, location: { select: { name: true, address: true } } } },
   period: {
     select: {
+      id: true,
       gameId: true,
       state: true,
-      closesAt: true,
-      scope: true,
-      game: { select: { title: true, noteIntention: true, photoRetentionMonths: true, contactEmail: true, owner: { select: { email: true } } } },
-      sessions: { orderBy: { session: { date: 'asc' as const } }, select: { session: { select: { id: true, name: true, date: true, status: true } } } }
+      game: { select: { title: true, noteIntention: true, photoRetentionMonths: true, contactEmail: true, owner: { select: { email: true } } } }
     }
   }
 } as const
@@ -78,15 +88,10 @@ export type PublicRegistration = NonNullable<Awaited<ReturnType<typeof findRegis
 export async function findRegistrationByToken(token: string | undefined) {
   if (!token || !TOKEN_PATTERN.test(token)) return null
 
-  const registration = await prisma.registration.findUnique({
+  return await prisma.registration.findUnique({
     where: { tokenHash: hashRegistrationToken(token) },
     select: publicRegistrationSelect
   })
-  if (!registration) return null
-
-  const sessionDates = [registration.session?.date, ...registration.period.sessions.map((link) => link.session.date)]
-  if (registrationLinkExpired(sessionDates)) return null
-  return registration
 }
 
 /**
@@ -118,31 +123,64 @@ export async function requireRegistrationByToken(token: string | undefined) {
 }
 
 /**
- * Ce que permet le lien (R13, R20, ADR-0018) :
- * - une invitation sans réponse s'accepte ou se décline, même après l'échéance ou la clôture,
- *   tant que les orgas n'ont pas libéré la place (elle serait alors désistée) ;
- * - une inscription confirmée se modifie jusqu'à la clôture, et se désiste même après (US-006) ;
- * - une inscription reçue par le formulaire aussi : modifiable jusqu'à la clôture, retirée à tout moment (US-085) ;
- * - une place retenue et annoncée se confirme d'un bouton, même après l'échéance tant qu'elle n'est pas libérée (US-089) ;
- * - retenue, en attente ou non retenue, on peut se désister (ADR-0047) ;
- * - une inscription désistée ne permet plus rien.
+ * Ce que permet le lien (R14, ADR-0018), pour le jeu ; ce qu'il permet pour une session est sur sa ligne :
+ * - une invitation sans réponse s'accepte ou se décline, même après l'échéance, tant que les orgas ne l'ont pas libérée ;
+ * - dans le vivier, la personne modifie ses réponses à tout moment, même vivier fermé, et peut le quitter ;
+ * - sortie du vivier, plus rien.
  */
-export function registrationPermissions(
-  registration: { status: string, sessionId: string | null, announcedStatus: string | null, announcedSessionId: string | null, period: { state: string, closesAt: Date | null } },
-  now = new Date()
-) {
-  const open = effectivePeriodState(registration.period, now) === REGISTRATION_PERIOD_STATES.open
+export function registrationPermissions(registration: { status: string }) {
   const invited = registration.status === REGISTRATION_STATUSES.invited
-  // Une décision pas encore annoncée ne change rien pour la personne : elle modifie encore son inscription « reçue »
-  const visible = announcedRegistrationStatus(registration)
-  const editable = visible === REGISTRATION_STATUSES.confirmed || visible === REGISTRATION_STATUSES.received
-  return {
-    canAccept: invited,
-    canDecline: invited,
-    canConfirmPlace: canConfirmPlace(registration),
-    canEdit: editable && open,
-    canWithdraw: WITHDRAWABLE_STATUSES.includes(registration.status)
+  const inPool = registration.status === REGISTRATION_STATUSES.received
+  return { canAccept: invited, canDecline: invited, canEdit: inPool, canLeave: inPool }
+}
+
+/**
+ * Sessions d'une personne telles qu'elle les voit (R28, ADR-0047) : ce qui lui a été annoncé, sinon sa dernière réponse.
+ * Une décision pas encore annoncée ne se voit pas.
+ */
+export function visibleSessionLines(lines: PublicRegistration['sessionLines'], now = new Date()) {
+  return lines.flatMap((line) => {
+    const status = visibleLineStatus(line)
+    if (!status) return []
+    const confirmable = canConfirmPlace(line)
+    const toConfirm = confirmable || status === LINE.retained
+    return [{
+      sessionId: line.sessionId,
+      session: line.session,
+      status,
+      // Une échéance ne se montre qu'avec la place à confirmer
+      responseDueAt: toConfirm ? line.responseDueAt : null,
+      overdue: confirmable && isResponseOverdue(line, now),
+      confirmedAt: status === LINE.confirmed ? line.confirmedAt : null,
+      canConfirmPlace: confirmable,
+      canCancel: REGISTRATION_CANCELLABLE_STATUSES.includes(status) && line.session.status === SESSION_STATUSES.scheduled
+    }]
+  })
+}
+
+// Case cochée pour une session : sa dernière réponse (R28), sauf si elle a annulé depuis : elle peut alors s'y redire disponible (R19)
+const saysAvailable = (line: PublicRegistration['sessionLines'][number]) => line.answer === REGISTRATION_ANSWERS.available && visibleLineStatus(line) !== LINE.cancelled
+
+// La personne n'annule que ce qu'elle voit, pour une session à venir : le refus ne révèle rien d'une décision non annoncée (R28)
+export function assertCanCancelSession(registration: PublicRegistration, sessionId: string) {
+  if (!visibleSessionLines(registration.sessionLines).some((line) => line.sessionId === sessionId && line.canCancel)) {
+    throw createError({ statusCode: 409, message: 'Il n’y a pas de présence à annuler pour cette session.' })
   }
+}
+
+// Sessions que le questionnaire propose à cette personne (R7), et celle que vise son invitation (R4)
+async function proposedSessions(registration: PublicRegistration) {
+  const offered = await offeredSessions(registration.period.id)
+  const invitedTo = registration.status === REGISTRATION_STATUSES.invited ? registration.invitedSession : null
+  return invitedTo && isUpcomingSession(invitedTo) && !offered.some((session) => session.id === invitedTo.id)
+    ? [invitedTo, ...offered]
+    : offered
+}
+
+// Disponibilités envoyées par la personne, parmi ce qu'on lui propose (R7) ; aucune n'est obligatoire
+export async function readAvailability(event: H3Event, registration: PublicRegistration) {
+  const proposed = await proposedSessions(registration)
+  return (await readZodBody(event, availabilitySchema(proposed.map((session) => session.id)))).availableSessionIds
 }
 
 // Définition à remplir : celle que l'inscription a déjà remplie (R9), sinon la version en vigueur
@@ -179,13 +217,11 @@ export async function freezeFormVersion(gameId: string, versionId: string | null
   }
 }
 
-// Ce que la page dit d'une inscription désistée, selon qui y a mis fin et quand
-export function withdrawalReason(registration: Pick<PublicRegistration, 'confirmedAt' | 'withdrawnById'> & { source?: string, announcedStatus?: string | null }) {
-  if (registration.confirmedAt) return registration.withdrawnById ? 'removed' : 'withdrawn'
-  // Place retenue et annoncée, libérée par l'équipe faute de confirmation (US-089)
-  if (registration.withdrawnById && registration.announcedStatus === REGISTRATION_STATUSES.retained) return 'released'
-  // Inscription par le formulaire, retirée avant toute sélection (US-085)
-  if (registration.source === REGISTRATION_SOURCES.form) return registration.withdrawnById ? 'removed' : 'retracted'
+// Ce que la page dit d'une personne sortie du vivier, selon qui y a mis fin et quand
+export function withdrawalReason(registration: Pick<PublicRegistration, 'charterAcceptedAt' | 'withdrawnById'>) {
+  // Elle avait répondu au questionnaire
+  if (registration.charterAcceptedAt) return registration.withdrawnById ? 'removed' : 'left'
+  // Invitation libérée par l'équipe, ou déclinée
   return registration.withdrawnById ? 'released' : 'declined'
 }
 
@@ -193,7 +229,7 @@ export function withdrawalReason(registration: Pick<PublicRegistration, 'confirm
 export async function exposePublicRegistration(registration: PublicRegistration, now = new Date()) {
   const game = { title: registration.period.game.title }
   if (registration.status === REGISTRATION_STATUSES.withdrawn) {
-    // Refus, désistement, place réattribuée faute de réponse, ou retrait par l'équipe : seul le message change
+    // Refus, invitation libérée, sortie du vivier, ou retrait par l'équipe : seul le message change
     return { status: registration.status, game, withdrawalReason: withdrawalReason(registration) }
   }
 
@@ -201,25 +237,21 @@ export async function exposePublicRegistration(registration: PublicRegistration,
   const answered = Boolean(registration.respondedAt)
   // Invitation sans réponse d'une personne qui a enregistré ses coordonnées : elles préremplissent le formulaire
   const profile = !answered && registration.participant.user?.profileUpdatedAt ? registration.participant.user : null
-  // Une décision de sélection pas encore annoncée ne se voit pas : la personne voit la dernière annoncée (ADR-0047)
-  const status = announcedRegistrationStatus(registration)
+  const proposed = await proposedSessions(registration)
+  const proposedIds = new Set(proposed.map((session) => session.id))
   return {
-    status,
+    status: registration.status,
     game: { ...game, noteIntention: registration.period.game.noteIntention, photoInformation: gamePhotoInformation(registration.period.game) },
-    session: isAnnouncementPending(registration) ? null : registration.session,
-    // Sessions où la personne attend une place (US-088)
-    waitlistSessions: status === REGISTRATION_STATUSES.waitlisted ? registration.waitlistEntries.map((entry) => entry.session) : [],
-    periodState: effectivePeriodState(registration.period, now),
-    closesAt: registration.period.closesAt,
-    responseDueAt: registration.responseDueAt,
-    overdue: isResponseOverdue(registration, now),
-    confirmedAt: registration.confirmedAt,
-    ...registrationPermissions(registration, now),
+    poolState: registration.period.state,
+    responseDueAt: registration.status === REGISTRATION_STATUSES.invited ? registration.responseDueAt : null,
+    overdue: registration.status === REGISTRATION_STATUSES.invited && isResponseOverdue(registration, now),
+    invitedSession: registration.status === REGISTRATION_STATUSES.invited ? registration.invitedSession : null,
+    // Statut par session (R17, R28)
+    sessions: visibleSessionLines(registration.sessionLines, now),
+    ...registrationPermissions(registration),
     definition: await registrationFormDefinition(registration),
-    // Disponibilités d'une inscription par le formulaire à plusieurs sessions (R10)
-    availability: status === REGISTRATION_STATUSES.received && asksAvailability(registration.period)
-      ? { sessions: registration.period.sessions.map((link) => link.session).filter((session) => !isClosedSessionStatus(session.status)) }
-      : null,
+    // Disponibilités (R7) : absentes s'il n'y a aucune session à proposer
+    availability: proposed.length ? { sessions: proposed.map(({ id, name, date }) => ({ id, name, date })) } : null,
     answers: {
       email: registration.email,
       firstName: answered ? registration.firstName : registration.firstName ?? prefill.firstName,
@@ -235,7 +267,10 @@ export async function exposePublicRegistration(registration: PublicRegistration,
       questionAnswers: (registration.questionAnswers ?? {}) as QuestionAnswers,
       // Réponse déjà donnée : « peu importe » se relit comme tel
       balancePreference: registration.balancePreference ?? (answered ? REGISTRATION_BALANCE_ANY : null),
-      availableSessionIds: registration.availabilities.map((availability) => availability.sessionId)
+      // Sa dernière réponse (R28) : une décision non annoncée ne se devine pas ici
+      availableSessionIds: registration.sessionLines
+        .filter((line) => saysAvailable(line) && proposedIds.has(line.sessionId))
+        .map((line) => line.sessionId)
     }
   }
 }
@@ -250,7 +285,7 @@ export function groupAffinities(rows: Array<{ kind: string, text: string }>) {
 export type RegistrationAnswers = {
   affinities?: AffinityAnswers
   questionAnswers?: QuestionAnswers
-  // Inscription par le formulaire : sessions où la personne est disponible (R10) ; absent, rien ne change
+  // Sessions où la personne est disponible (R7) ; absent, rien ne change
   availableSessionIds?: string[]
   email: string
   firstName: string | null
@@ -264,21 +299,20 @@ export type RegistrationAnswers = {
 
 // Définition qui valide la réponse ; rien n'est écrit tant que la réponse n'est pas validée
 export async function answerFormDefinition(registration: PublicRegistration) {
-  const { status } = registration
   const permissions = registrationPermissions(registration)
-  if (status === REGISTRATION_STATUSES.invited ? !permissions.canAccept : !permissions.canEdit) {
+  if (!permissions.canAccept && !permissions.canEdit) {
     throw createError({ statusCode: 409, message: 'Votre inscription ne peut plus être modifiée.' })
   }
   return await formForRegistration(registration)
 }
 
 /**
- * Accepte l'invitation (statut confirmée) ou modifie une inscription confirmée.
- * L'acceptation crée le SessionParticipant dans la même transaction (ADR-0021, R22).
- * Les informations restent sur l'inscription (R14) ; seul l'email remonte sur la fiche du participant :
- * c'est l'adresse donnée par la personne qui fait foi pour tous les envois (R12).
+ * Enregistre les réponses au questionnaire (R14) : répondre à une invitation fait entrer dans le vivier. Les informations
+ * restent sur l'inscription ; seul l'email remonte sur la fiche du participant : c'est l'adresse donnée par la personne
+ * qui fait foi pour tous les envois (R12 de SPEC-001). Les disponibilités suivent R29, et l'invitation pour une session
+ * inscrite la personne si elle s'y dit disponible (R4).
+ * updateAccount : réponse faite connecté au compte rattaché (US-072) ; par le lien personnel, le compte ne change pas
  */
-// updateAccount : réponse faite connecté au compte rattaché (US-072) ; par le lien personnel, le compte ne change pas
 export async function saveRegistrationAnswers(registration: PublicRegistration, versionId: string, allAnswers: RegistrationAnswers, definition: RegistrationFormDefinition, updateAccount = false) {
   const now = new Date()
   const accepting = registration.status === REGISTRATION_STATUSES.invited
@@ -291,11 +325,14 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
     healthConsentAt: answers.dietary ? now : null,
     charterAcceptedAt: registration.charterAcceptedAt ?? now,
     formVersionId: versionId,
-    ...(accepting ? { status: REGISTRATION_STATUSES.confirmed, respondedAt: now, confirmedAt: now } : {})
+    ...(accepting ? { status: REGISTRATION_STATUSES.received, respondedAt: now, invitedSessionId: null } : {})
   }
+  const proposed = availableSessionIds ? await proposedSessions(registration) : []
+  const seats = accepting && registration.invitedSession ? await countPlayableCharacters(registration.period.gameId) : 0
+  const previouslyChecked = new Set(registration.sessionLines.filter(saysAvailable).map((line) => line.sessionId))
 
-  await prisma.$transaction(async (tx) => {
-    // Le statut est revérifié dans l'écriture : une libération ou un désistement simultané l'emporte
+  const outcome = await prisma.$transaction(async (tx) => {
+    // Le statut est revérifié dans l'écriture : une libération ou une sortie simultanée l'emporte
     const { count } = await tx.registration.updateMany({ where: { id: registration.id, status: registration.status }, data })
     if (!count) {
       throw createError({ statusCode: 409, message: 'Votre inscription a changé entre-temps : rechargez la page.' })
@@ -303,27 +340,37 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
     // Chaque enregistrement remplace les affinités : une ligne par personne ou relation citée (ADR-0045) ; une ligne
     // inchangée garde son rattachement (ADR-0049)
     await replaceAffinities(tx, registration.id, affinities)
-    if (availableSessionIds) {
-      await tx.registrationAvailability.deleteMany({ where: { registrationId: registration.id } })
-      if (availableSessionIds.length) {
-        await tx.registrationAvailability.createMany({ data: availableSessionIds.map((sessionId) => ({ registrationId: registration.id, sessionId })) })
+
+    const kept: string[] = []
+    const removed: string[] = []
+    for (const session of proposed) {
+      const checked = availableSessionIds!.includes(session.id)
+      // Une date jamais cochée reste sans réponse (R7)
+      if (checked === previouslyChecked.has(session.id)) continue
+      const effect = await answerAvailability(tx, registration.id, session.id, checked, now)
+      if (effect === 'kept') kept.push(session.name)
+      if (effect === 'removed') removed.push(session.name)
+    }
+
+    // Invitation pour une session (R4) : inscrite si elle s'y dit disponible et qu'il reste une place
+    let fullSession: string | null = null
+    const invitedTo = accepting ? registration.invitedSession : null
+    if (invitedTo && availableSessionIds?.includes(invitedTo.id)) {
+      await lockSession(tx, invitedTo.id)
+      if (await tx.registrationSession.count({ where: takenSeatsWhere([invitedTo.id]) }) >= seats) {
+        fullSession = invitedTo.name
+      } else {
+        await tx.registrationSession.update({
+          where: { registrationId_sessionId: { registrationId: registration.id, sessionId: invitedTo.id } },
+          data: { status: LINE.confirmed, confirmedAt: now, announcedStatus: LINE.confirmed, announcedAt: now }
+        })
+        await joinSession(tx, registration, invitedTo.id)
       }
     }
+
     // L'adresse donnée fait foi ; le rattachement au compte la suit (US-070)
     await tx.participant.update({ where: { id: registration.participantId }, data: { email: answers.email, userId: await accountIdForEmail(answers.email) } })
-    if (accepting && registration.sessionId) {
-      await tx.sessionParticipant.upsert({
-        where: {
-          sessionId_participantId_role: {
-            sessionId: registration.sessionId,
-            participantId: registration.participantId,
-            role: SESSION_ROLES.participant
-          }
-        },
-        update: {},
-        create: { sessionId: registration.sessionId, participantId: registration.participantId, role: SESSION_ROLES.participant }
-      })
-    }
+    return { kept, removed, fullSession }
   })
 
   // Réponse depuis le compte : elle met aussi à jour ses coordonnées, recopiées ensuite partout (US-074). Pas par
@@ -331,7 +378,21 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
   const linked = updateAccount ? await prisma.participant.findUnique({ where: { id: registration.participantId }, select: { userId: true } }) : null
   if (linked?.userId) await updateProfileFromAnswers(linked.userId, answers, definition)
 
-  return { accepted: accepting }
+  const name = registration.participant.name
+  const gameTitle = registration.period.game.title
+  const notify = (text: string, subject: string) => {
+    void notifyGameTeam(registration.period.gameId, text, subject)
+      .catch((error) => console.error('[inscription] équipe non prévenue', { registrationId: registration.id, error: (error as Error)?.message }))
+  }
+  // Retenue sans annonce puis plus disponible (R29) : l'équipe le sait, la personne n'apprend pas qu'elle était retenue
+  if (outcome.removed.length) {
+    notify(`${name} n’est plus disponible pour ${outcome.removed.map((session) => `« ${session} »`).join(', ')} (${gameTitle}) : la personne est retirée du cast, et le personnage qui lui était réservé est libre.`, `Plus disponible : ${name} (${gameTitle})`)
+  }
+  if (outcome.fullSession) {
+    notify(`${name} a répondu à votre invitation pour la session « ${outcome.fullSession} » (${gameTitle}), mais la session est complète : la personne reste pré-inscrite. Créez un personnage pour ajouter une place.`, `Session complète : ${name} (${gameTitle})`)
+  }
+
+  return { accepted: accepting, keptSessions: outcome.kept }
 }
 
 // Coordonnées du compte reprises d'une réponse faite connectée ; un champ que ce formulaire ne demande pas ne les touche pas
@@ -352,7 +413,7 @@ export async function updateProfileFromAnswers(userId: string, answers: Registra
   await syncProfileToParticipants(userId)
 }
 
-// Décliner une invitation sans réponse : l'inscription passe à désistée, sans formulaire (R16)
+// Décliner une invitation sans réponse : la personne n'entre pas dans le vivier
 export async function declineRegistration(registration: PublicRegistration) {
   if (!registrationPermissions(registration).canDecline) {
     throw createError({ statusCode: 409, message: 'Cette invitation a déjà reçu une réponse.' })
@@ -367,44 +428,31 @@ export async function declineRegistration(registration: PublicRegistration) {
   }
 }
 
-const formatDate = (value: Date) => value.toLocaleDateString('fr-FR', { dateStyle: 'long', timeZone: 'Europe/Paris' })
-
 export function registrationConfirmationEmailText(params: {
   firstName: string | null
   gameTitle: string
-  sessionName: string | null
-  sessionDate: Date | null
   url: string
 }) {
-  const session = params.sessionName
-    ? ` pour la session ${params.sessionName}${params.sessionDate ? ` (${formatDate(params.sessionDate)})` : ''}`
-    : ''
   return [
     `Bonjour${params.firstName ? ` ${params.firstName}` : ''},`,
     '',
-    `Votre inscription à « ${params.gameTitle} »${session} est confirmée.`,
+    `Vos réponses au questionnaire de « ${params.gameTitle} » sont enregistrées.`,
     '',
-    'Ce lien personnel vous permet de consulter et de modifier vos informations jusqu’à la clôture des inscriptions :',
+    'Ce lien personnel vous permet de revoir et de modifier vos réponses à tout moment :',
     params.url,
     '',
     'Ce lien vous est propre : ne le transférez pas.'
   ].join('\n')
 }
 
-// L'email de confirmation n'empêche pas la confirmation : un échec est seulement signalé.
+// L'email de confirmation n'empêche pas la réponse : un échec est seulement signalé.
 // url : le lien personnel, ou l'espace « Je participe » pour une réponse faite depuis le compte (US-072)
 export async function sendRegistrationConfirmationEmail(registration: PublicRegistration, answers: RegistrationAnswers, url: string) {
   try {
     const result = await sendEmail({
       to: answers.email,
-      subject: `Inscription confirmée : ${registration.period.game.title}`,
-      text: registrationConfirmationEmailText({
-        firstName: answers.firstName,
-        gameTitle: registration.period.game.title,
-        sessionName: registration.session?.name ?? null,
-        sessionDate: registration.session?.date ?? null,
-        url
-      })
+      subject: `Réponses enregistrées : ${registration.period.game.title}`,
+      text: registrationConfirmationEmailText({ firstName: answers.firstName, gameTitle: registration.period.game.title, url })
     })
     return result.sent
   } catch {

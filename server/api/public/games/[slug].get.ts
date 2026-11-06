@@ -1,8 +1,8 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireRouterParam } from '~/server/utils/routeParams'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
-import { REGISTRATION_ENTRY_MODES, REGISTRATION_PERIOD_STATES, SESSION_STATUSES } from '~/utils/domain'
-import { effectivePeriodState } from '~/utils/registrationPeriods'
+import { REGISTRATION_PERIOD_STATES, SESSION_STATUSES } from '~/utils/domain'
+import { startOfDay } from '~/utils/registrationPeriods'
 
 export default defineEventHandler(async (event) => {
   const slug = requireRouterParam(event, 'slug')
@@ -27,15 +27,14 @@ export default defineEventHandler(async (event) => {
       publicShowRegistration: true,
       // Sessions à venir marquées visibles (US-086, SPEC-004 R2b) : date et lieu seulement
       sessions: {
-        where: { published: true, status: SESSION_STATUSES.scheduled, OR: [{ date: null }, { date: { gte: startOfToday() } }] },
+        where: { published: true, status: SESSION_STATUSES.scheduled, OR: [{ date: null }, { date: { gte: startOfDay(new Date()) } }] },
         orderBy: { date: 'asc' },
         select: { name: true, date: true, location: { select: { name: true } } }
       },
-      // Périodes ouvertes en mode formulaire : leur lien de diffusion (US-086, R32)
+      // Vivier ouvert : son lien de diffusion (US-086, R32)
       registrationPeriods: {
-        where: { entryMode: REGISTRATION_ENTRY_MODES.form, state: REGISTRATION_PERIOD_STATES.open },
-        orderBy: { createdAt: 'asc' },
-        select: { name: true, publicId: true, scope: true, state: true, closesAt: true }
+        where: { state: REGISTRATION_PERIOD_STATES.open },
+        select: { publicId: true }
       }
     }
   })
@@ -58,15 +57,7 @@ export default defineEventHandler(async (event) => {
     ...presentation,
     upcomingSessions: publicShowSessions ? sessions : [],
     registrationLinks: publicShowRegistration
-      ? registrationPeriods
-        .filter((period) => effectivePeriodState(period) === REGISTRATION_PERIOD_STATES.open)
-        .map((period) => ({ name: period.name, permanent: period.scope === 'game', url: absoluteAppUrl(`/i/${period.publicId}`) }))
+      ? registrationPeriods.map((period) => ({ url: absoluteAppUrl(`/i/${period.publicId}`) }))
       : []
   }
 })
-
-function startOfToday() {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return today
-}

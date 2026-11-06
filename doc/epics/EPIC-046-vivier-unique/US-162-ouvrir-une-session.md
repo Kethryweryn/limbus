@@ -1,7 +1,7 @@
 ---
 id: US-162
 titre: Ouvrir une session à la pré-inscription
-statut: à faire
+statut: terminée
 epic: EPIC-046
 regles: [R6, R8]
 adr: [../../adr/ADR-0069-vivier-unique-et-statut-par-session.md]
@@ -13,11 +13,11 @@ En tant que organisatrice, je veux choisir quelles sessions sont proposées au v
 
 ## Critères d'acceptation
 
-- [ ] Étant donné une session à venir, quand je l'ouvre, alors elle est proposée au vivier, avec autant de places que de personnages PJ du jeu, sans réglage.
-- [ ] Étant donné une session terminée, annulée ou sans date, alors je ne peux pas l'ouvrir.
-- [ ] Étant donné une session ouverte, quand je retire sa date, alors elle est refermée.
-- [ ] Étant donné une session ouverte dont la date passe, ou annulée, alors elle n'est plus proposée ni relancée, sans autre action.
-- [ ] Étant donné une session ouverte avec des pré-inscrits, quand je la referme, alors elle n'est plus proposée, les pré-inscriptions restent, et je peux continuer le casting.
+- [x] Étant donné une session à venir, quand je l'ouvre, alors elle est proposée au vivier, avec autant de places que de personnages PJ du jeu, sans réglage.
+- [x] Étant donné une session terminée, annulée ou sans date, alors je ne peux pas l'ouvrir.
+- [x] Étant donné une session ouverte, quand je retire sa date, alors elle est refermée.
+- [x] Étant donné une session ouverte dont la date passe, ou annulée, alors elle n'est plus proposée ni relancée, sans autre action.
+- [x] Étant donné une session ouverte avec des pré-inscrits, quand je la referme, alors elle n'est plus proposée, les pré-inscriptions restent, et je peux continuer le casting.
 
 ## Notes techniques
 
@@ -25,4 +25,4 @@ En tant que organisatrice, je veux choisir quelles sessions sont proposées au v
 
 ## Tests
 
-Intégration : ouverture, refermeture, date passée, places. `isolation.test.ts`. Playwright : `registration.spec.ts`.
+Intégration : `registrationPeriods.test.ts`, `isolation.test.ts`. Unitaire : `tests/utils/registrationPeriods.test.ts`. Playwright : `registrationActions.spec.ts`.
