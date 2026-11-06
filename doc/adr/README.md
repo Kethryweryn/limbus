@@ -71,3 +71,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0065](ADR-0065-nouveautes-et-numero-de-deploiement.md) | Nouveautés datées, une note par pull request, numéro de la pull request déployée | accepté | 2026-11-05 |
 | [ADR-0066](ADR-0066-jeux-de-test-rechargeables-en-production.md) | Jeux de test rechargeables en production, dates relatives et script vérifié en CI | accepté | 2026-11-05 |
 | [ADR-0067](ADR-0067-tests-lies-avant-chaque-push.md) | Tests liés au changement joués en local avant chaque push de code | accepté | 2026-11-06 |
+| [ADR-0068](ADR-0068-organisation-des-instructions-de-claude.md) | Instructions de Claude Code par thème, hook avant push et skill de documentation | accepté | 2026-11-06 |
