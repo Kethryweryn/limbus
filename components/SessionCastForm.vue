@@ -6,19 +6,41 @@
           <h2 class="font-semibold">Cast</h2>
           <p class="text-sm text-gray-500">{{ assignments.length }} personnage(s)</p>
         </div>
-        <UButton
-          type="button"
-          color="neutral"
-          variant="soft"
-          icon="i-heroicons-sparkles"
-          :loading="assistantLoading"
-          @click="runAssistant"
-        >
-          Proposer une répartition
-        </UButton>
+        <div class="flex flex-wrap justify-end gap-2">
+          <UButton
+            v-if="isUpcoming && session.poolState === REGISTRATION_PERIOD_STATES.open"
+            type="button"
+            color="neutral"
+            variant="soft"
+            icon="i-heroicons-envelope"
+            :loading="inviteLoading"
+            @click="openInvite"
+          >
+            Inviter pour cette session
+          </UButton>
+          <UButton
+            type="button"
+            color="neutral"
+            variant="soft"
+            icon="i-heroicons-sparkles"
+            :loading="assistantLoading"
+            @click="runAssistant"
+          >
+            Proposer une répartition
+          </UButton>
+        </div>
       </div>
     </template>
 
+    <p v-if="isUpcoming" class="mb-4 text-sm text-gray-500">
+      Un joueur vient du vivier : choisir une personne du vivier la retient et lui réserve le personnage, puis elle confirme sa place.
+      <template v-if="session.poolState === null">
+        Ce jeu n’a pas encore de vivier : <NuxtLink to="/registrations" class="underline">créez-le dans Inscriptions</NuxtLink>.
+      </template>
+      <template v-else-if="session.poolState && session.poolState !== REGISTRATION_PERIOD_STATES.open">
+        Pour inviter une nouvelle personne, <NuxtLink to="/registrations" class="underline">ouvrez le vivier dans Inscriptions</NuxtLink>.
+      </template>
+    </p>
     <p v-if="assistantMessage" class="mb-4 text-sm text-primary-600">{{ assistantMessage }}</p>
 
     <form class="space-y-4" @submit.prevent="submit">
@@ -228,6 +250,15 @@
       </template>
     </UModal>
 
+    <RegistrationInviteForm
+      v-if="invitePeriod"
+      v-model:open="showInvite"
+      :game-id="session.gameId"
+      :period="invitePeriod"
+      :initial-session-id="session.id"
+      @invited="onInvited"
+    />
+
     <UModal v-model:open="showPhotoPreview">
       <template #body>
         <div class="flex justify-center p-2">
@@ -246,9 +277,11 @@
 <script setup lang="ts">
 import { formatScore } from '~/utils/castingAssistant'
 import { computed, ref, watch } from 'vue'
-import { CHARACTER_TYPES, SESSION_ROLES } from '~/utils/domain'
+import { CHARACTER_TYPES, REGISTRATION_PERIOD_STATES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
 import { apiErrorMessage } from '~/utils/apiErrors'
-import type { ApiResponse } from '~/composables/useApiFetch'
+import { registrationStatusMeta } from '~/utils/registrations'
+import { fetchByUrl, type ApiResponse } from '~/composables/useApiFetch'
+import type { InvitationResult, RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
 import type { CharacterOption } from '~/utils/writingDrafts'
 
 type Link = { id: string } | null
@@ -260,9 +293,12 @@ const props = defineProps<{
   session: {
     id: string
     gameId: string
+    status?: string
     participants?: Array<{ role: string, participantId?: string | null, participant?: Link }>
     assignments?: Array<{ characterId?: string, participantId?: string | null, reservedRegistrationId?: string | null, locked?: boolean, photoUrl?: string | null, notes?: string | null, character?: Link, participant?: Link }>
     retainedRegistrations?: Array<{ id: string, name: string }>
+    poolRegistrations?: Array<{ id: string, name: string, status: string, replayer: boolean }>
+    poolState?: string | null
   }
   characters: Array<CharacterOption & { factions?: Array<{ name: string }> }>
   participants: Array<{ id: string, name: string, email?: string | null, photoRefusedAt?: string | null, games?: Array<{ id: string }> }>
@@ -307,10 +343,20 @@ const paginationStart = computed(() => (currentPage.value - 1) * itemsPerPage)
 const paginationEnd = computed(() => Math.min(paginationStart.value + itemsPerPage, sortedAssignments.value.length))
 const paginatedAssignments = computed(() => sortedAssignments.value.slice(paginationStart.value, paginationEnd.value))
 
+const isUpcoming = computed(() => props.session.status === SESSION_STATUSES.scheduled)
+
+// Qui peut tenir un personnage : les joueurs, entrés par le vivier, les PNJ et l'organisation, pas la cuisine (R31 de
+// SPEC-018). Qui tient déjà une ligne reste affiché, même sans ce rôle
+const castableIds = computed(() => new Set([
+  ...(props.session.participants || [])
+    .filter((participant) => participant.role !== SESSION_ROLES.kitchen)
+    .map((participant) => participant.participantId || participant.participant?.id),
+  ...(props.session.assignments || []).map((assignment) => assignment.participantId || assignment.participant?.id)
+]))
 const participantOptions = computed(() => [
   { label: 'Aucun participant', value: '' },
   ...props.participants
-    .filter((participant) => participant.games?.some((game) => game.id === props.session.gameId))
+    .filter((participant) => castableIds.value.has(participant.id))
     .map((participant) => ({
       label: participant.email ? `${participant.name} - ${participant.email}` : participant.name,
       value: participant.id
@@ -336,13 +382,43 @@ function characterGroupLabel(character: { factions?: Array<{ name: string }> } |
   return character?.factions?.[0]?.name || 'Sans groupe'
 }
 
-// Personnes retenues non confirmées : un PJ leur est réservé, sans les faire entrer dans le cast (US-100)
+// Personnes retenues non confirmées : un PJ leur est réservé, sans les faire entrer dans le cast (US-100). Une autre
+// personne du vivier est retenue quand le cast s'enregistre (R20) : son statut est affiché, « pas disponible » compris
 const RESERVATION_PREFIX = 'reservation:'
-const retainedRegistrations = computed(() => props.session.retainedRegistrations || [])
-const reservationOptions = computed(() => retainedRegistrations.value.map((registration) => ({
-  label: `${registration.name} (retenue, en attente de confirmation)`,
-  value: `${RESERVATION_PREFIX}${registration.id}`
-})))
+const reservationOptions = computed(() => [
+  ...(props.session.retainedRegistrations || []).map((registration) => ({
+    label: `${registration.name} (retenue, en attente de confirmation)`,
+    value: `${RESERVATION_PREFIX}${registration.id}`
+  })),
+  ...(props.session.poolRegistrations || []).map((registration) => ({
+    label: `${registration.name} (vivier : ${registrationStatusMeta(registration).label.toLowerCase()}${registration.replayer ? ', a déjà joué' : ''})`,
+    value: `${RESERVATION_PREFIX}${registration.id}`
+  }))
+])
+
+// Inviter une personne pour cette session : elle entre dans le vivier en répondant au questionnaire (R4)
+const showInvite = ref(false)
+const inviteLoading = ref(false)
+const invitePeriod = ref<RegistrationPeriod | null>(null)
+
+async function openInvite() {
+  inviteLoading.value = true
+  serverError.value = ''
+  try {
+    const periods = await fetchByUrl<RegistrationPeriod[]>(`/api/registration-periods?gameId=${encodeURIComponent(props.session.gameId)}`)
+    invitePeriod.value = periods[0] ?? null
+    showInvite.value = Boolean(invitePeriod.value)
+  } catch (err) {
+    serverError.value = apiErrorMessage(err, 'Impossible de lire le vivier')
+  } finally {
+    inviteLoading.value = false
+  }
+}
+
+function onInvited(result: InvitationResult) {
+  const failed = result.failures.length ? ` Non envoyée(s) : ${result.failures.map((failure) => failure.participantName).join(', ')}.` : ''
+  assistantMessage.value = `${result.sentCount} invitation(s) envoyée(s) : la personne sera proposée ici une fois le questionnaire rempli.${failed}`
+}
 
 function participantOptionsForAssignment(assignment: CastLine) {
   const character = characterById(assignment.characterId)

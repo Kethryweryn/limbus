@@ -35,8 +35,8 @@ Organiser une représentation d'un jeu : une session réunit une date, un lieu, 
 ### Créer une session
 
 1. Depuis la page Sessions, l'organisatrice crée une session pour un jeu : un nom, une date (facultative), un lieu du jeu (facultatif), un statut, et si elle est visible sur la page publique.
-2. Elle compose l'équipe : des participants inscrits au jeu, avec leurs rôles.
-3. Elle fait le casting : pour chaque personnage, un participant, une photo propre à cette session et des notes.
+2. Elle compose l'équipe : des participants inscrits au jeu, avec leurs rôles d'organisation, de PNJ ou de cuisine. Les joueurs viennent du vivier ([SPEC-018](SPEC-018-vivier-permanent.md), R31).
+3. Elle fait le casting : pour chaque personnage, une personne de l'équipe ou du vivier, une photo propre à cette session et des notes. Une personne du vivier est alors retenue et le personnage lui est réservé, jusqu'à sa confirmation. Le même écran invite une personne pour cette session.
 
 ### Préparer le déroulé
 
@@ -81,7 +81,7 @@ Organiser une représentation d'un jeu : une session réunit une date, un lieu, 
 
   Un réglage du jeu, « Un seul PJ par participant et par session », coché par défaut, refuse un casting qui donne plusieurs PJ au même participant. On le décoche pour un jeu en plusieurs actes. Les PNJ ne sont jamais limités.
 - **R8** Un personnage PNJ ne peut être attribué qu'à un membre de l'équipe qui a le rôle organisateur ou PNJ.
-- **R9** Un participant casté sur un PJ sans aucun rôle dans l'équipe reçoit automatiquement le rôle « participant ».
+- **R9** Un participant casté sur un PJ sans rôle de PNJ ni d'organisation reçoit automatiquement le rôle « participant ». Un nouveau joueur doit être inscrit à la session par le vivier, sinon il est refusé ; les joueurs déjà dans la session restent, et un PNJ ou une organisatrice peut reprendre un PJ sans devenir joueur ([SPEC-018](SPEC-018-vivier-permanent.md), R31).
 - **R10** Chaque attribution peut avoir sa propre photo, qui sert aux trombinoscopes de la session. Une photo téléversée appartient au jeu et à la session. Elle est supprimée quand plus rien ne l'utilise ([ADR-0008](../adr/ADR-0008-fichiers-televerses.md)).
 - **R11** Enregistrer une session remplace en une fois son équipe et son casting. La page de la session, le formulaire de la liste et les modifications rejouées au retour du mode hors ligne envoient la version lue : une session modifiée ailleurs entre-temps n'est pas écrasée, l'enregistrement est refusé (409) avec un message qui demande de recharger ([ADR-0028](../adr/ADR-0028-version-d-une-session.md)).
 

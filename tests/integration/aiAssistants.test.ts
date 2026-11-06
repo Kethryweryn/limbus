@@ -369,6 +369,22 @@ describe('sessions et participants', () => {
     // Une date illisible est refusée, au lieu d'effacer la date
     expect((await call(client, 'creer_session', { jeuId: game.id, name: 'Sans date lisible', date: 'samedi prochain' })).error).toBe(true)
 
+    // Un joueur vient du vivier (US-176) : Ana et Ben y sont inscrits à la session, Dora y est sans place, Éli n'y est pas
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `ia-${Date.now()}` } })
+    const inPool = async (participantId: string, email: string, sessionLines: object = {}) => await prisma.registration.create({ data: { periodId: period.id, participantId, status: 'received', source: 'form', email, sessionLines } })
+    const inscribed = { create: { sessionId: session.id, status: 'confirmed' } }
+    await inPool(ana.id, 'ana-ia@example.test', inscribed)
+    await inPool(ben.id, 'ben-ia@example.test', inscribed)
+    const dora = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Dora Vivier' })).json
+    await inPool(dora.id, 'dora-ia@example.test')
+    const eli = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Éli Dehors' })).json
+    const refusedOutside = await call(client, 'modifier_equipe', { sessionId: session.id, version: (await call(client, 'lire_session', { sessionId: session.id })).json.updatedAt, team: [{ participantId: eli.id, role: 'participant' }] })
+    expect(refusedOutside.error).toBe(true)
+    expect(refusedOutside.text).toContain('Éli Dehors n’est pas dans le vivier')
+    const refusedInPool = await call(client, 'modifier_casting', { sessionId: session.id, version: (await call(client, 'lire_session', { sessionId: session.id })).json.updatedAt, lines: [{ characterId: hero.id, participantId: dora.id }] })
+    expect(refusedInPool.error).toBe(true)
+    expect(refusedInPool.text).toContain('retenez cette personne')
+
     // Équipe, puis casting ligne par ligne
     let version = (await call(client, 'modifier_equipe', { sessionId: session.id, version: session.version, team: [
       { participantId: ana.id, role: 'participant' }, { participantId: ben.id, role: 'participant' }, { participantId: cleo.id, role: 'organizer' }
@@ -380,7 +396,6 @@ describe('sessions et participants', () => {
     expect((await call(client, 'modifier_casting', { sessionId: session.id, version, lines: [{ characterId: b.character.id, participantId: ana.id }] })).error).toBe(true)
 
     // Photos posées dans l'interface, et un personnage réservé pour une inscription retenue
-    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `ia-${Date.now()}` } })
     const registration = await prisma.registration.create({ data: { periodId: period.id, participantId: cleo.id, status: 'received', source: 'invitation', email: 'cleo-ia@example.test', sessionLines: { create: { sessionId: session.id, status: 'retained' } } } })
     await prisma.sessionAssignment.updateMany({ where: { sessionId: session.id, characterId: { in: [hero.id, rival.id] } }, data: { photoUrl: 'https://exemple.test/photo.jpg' } })
     await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: reserved.id, reservedRegistrationId: registration.id } })
@@ -419,7 +434,7 @@ describe('sessions et participants', () => {
     expect((await call(client, 'modifier_deroule', { sessionId: 'session-inconnue', version, events: [{ timelineEventId: opening.id, participantIds: [] }] })).text).toBe('Session introuvable')
 
     // Une orga qui quitte ce rôle n'est plus responsable, et le déroulé reste modifiable
-    version = (await call(client, 'modifier_equipe', { sessionId: session.id, version, team: [{ participantId: ana.id, role: 'participant' }, { participantId: cleo.id, role: 'participant' }] })).json.version
+    version = (await call(client, 'modifier_equipe', { sessionId: session.id, version, team: [{ participantId: ana.id, role: 'participant' }, { participantId: cleo.id, role: 'kitchen' }] })).json.version
     expect(await prisma.timelineEventResponsible.count({ where: { sessionId: session.id } })).toBe(0)
     expect((await call(client, 'modifier_deroule', { sessionId: session.id, version, events: [{ timelineEventId: opening.id, participantIds: [] }] })).error).toBe(false)
 

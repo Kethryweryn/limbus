@@ -79,6 +79,8 @@ const open = defineModel<boolean>('open', { default: false })
 const props = defineProps<{
   gameId: string
   period: RegistrationPeriod
+  // Depuis le cast d'une session : cette session est déjà choisie
+  initialSessionId?: string
 }>()
 
 const emit = defineEmits<{ invited: [result: InvitationResult] }>()
@@ -106,7 +108,7 @@ const withdrawnIds = computed(() => peopleWithStatus((status) => status === REGI
 watch(open, async (value) => {
   if (!value) return
   selected.value = []
-  sessionId.value = NO_SESSION
+  sessionId.value = props.initialSessionId ?? NO_SESSION
   search.value = ''
   newParticipant.name = ''
   newParticipant.email = ''

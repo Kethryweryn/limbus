@@ -12,7 +12,7 @@ afterAll(async () => {
   await prisma.$disconnect()
 })
 
-// Un jeu d'Alice avec une session, deux PJ, un PNJ et deux personnes liées au jeu
+// Un jeu d'Alice avec une session, deux PJ, un PNJ et deux personnes liées au jeu ; Léa est déjà joueuse de la session
 async function aliceSession(options: { singlePjPerParticipant?: boolean } = {}) {
   const key = `cycle-${++counter}`
   const game = await prisma.game.create({
@@ -25,6 +25,7 @@ async function aliceSession(options: { singlePjPerParticipant?: boolean } = {}) 
     data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
   })
   const [lea, noe] = await Promise.all([person('Lea'), person('Noe')])
+  await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: lea.id, role: 'participant' } })
   return { key, game, session, aube, brume, garde, lea, noe }
 }
 
@@ -158,7 +159,7 @@ describe('reporter une session (US-022)', () => {
     const s = await aliceSession()
     const photoUrl = `/api/uploads/session-assignment-photos/report-${s.key}.png`
     await prisma.uploadedFile.create({ data: { kind: 'session-assignment-photo', filename: `report-${s.key}.png`, url: photoUrl, gameId: s.game.id, sessionId: s.session.id } })
-    await prisma.sessionParticipant.createMany({ data: [{ sessionId: s.session.id, participantId: s.lea.id, role: 'participant' }, { sessionId: s.session.id, participantId: s.noe.id, role: 'npc' }] })
+    await prisma.sessionParticipant.create({ data: { sessionId: s.session.id, participantId: s.noe.id, role: 'npc' } })
     await prisma.sessionAssignment.createMany({
       data: [
         { sessionId: s.session.id, characterId: s.aube.id, participantId: s.lea.id, photoUrl, notes: 'Arrive tard' },
@@ -196,7 +197,7 @@ describe('reporter une session (US-022)', () => {
 describe('remboursements d’une session annulée ou reportée (US-023)', () => {
   it('suit à rembourser et remboursé, et reporte un paiement sur la nouvelle session', async () => {
     const s = await aliceSession()
-    await prisma.sessionParticipant.createMany({ data: [{ sessionId: s.session.id, participantId: s.lea.id, role: 'participant' }, { sessionId: s.session.id, participantId: s.noe.id, role: 'participant' }] })
+    await prisma.sessionParticipant.create({ data: { sessionId: s.session.id, participantId: s.noe.id, role: 'participant' } })
     const paidAt = new Date('2026-09-01T10:00:00.000Z')
     await prisma.sessionPayment.createMany({ data: [{ sessionId: s.session.id, participantId: s.lea.id, paidAt }, { sessionId: s.session.id, participantId: s.noe.id, paidAt }] })
     const refund = (participantId: string, status: string | null) => api(alice, 'PUT', `/api/sessions/${s.session.id}/payments/${participantId}/refund`, { status })
@@ -225,7 +226,6 @@ describe('remboursements d’une session annulée ou reportée (US-023)', () => 
 
   it('refuse le report d’un paiement sans session de report, ou pour quelqu’un qui n’a pas payé', async () => {
     const s = await aliceSession()
-    await prisma.sessionParticipant.create({ data: { sessionId: s.session.id, participantId: s.lea.id, role: 'participant' } })
     await prisma.sessionPayment.create({ data: { sessionId: s.session.id, participantId: s.lea.id, paidAt: new Date() } })
     await prisma.session.update({ where: { id: s.session.id }, data: { status: 'cancelled' } })
     expect((await api(alice, 'PUT', `/api/sessions/${s.session.id}/payments/${s.lea.id}/refund`, { status: 'carried_over' })).status).toBe(400)

@@ -117,7 +117,7 @@ Cette spec remplace, dans [SPEC-001](SPEC-001-inscriptions.md), ce qui concerne 
   - **Remboursement** : une personne à rembourser ou remboursée ne vient plus, ou la session est annulée. Sa place devient « annulation », et elle reste intéressée pour le jeu. Retirer cette marque ne lui rend pas sa place : l'équipe la retient de nouveau si elle en a encore une.
   - **Remplacement** : la personne qui part est en « annulation », et sa place passe à la remplaçante, avec ou sans ses paiements. La remplaçante vient du vivier et suit son parcours, sauf un PNJ qui reprend le rôle (R31).
   - **Report** (SPEC-004, R15 à R17) : le report crée la nouvelle session, avec l'équipe et le casting. Sur l'ancienne, une personne castée ou inscrite passe à « transférée », et garde son statut sur la nouvelle. Si elle répond qu'elle n'est pas disponible à la demande de présence, elle passe à « annulation » sur les deux. Le paiement reporté la valide sur la nouvelle session ; la rembourser ensuite la désinscrit de ce report. Les personnes seulement pré-inscrites ou en attente ne sont pas reprises : la demande de disponibilités leur écrit si l'équipe ouvre la nouvelle session.
-- **R31** Un joueur ne s'ajoute plus directement au cast d'une session : il passe d'abord par le questionnaire, donc par le vivier. Les PNJ, l'équipe cuisine et les organisatrices restent ajoutés à la main, sans statut de parcours ni demande de disponibilités. Un PNJ qui reprend le rôle d'une personne qui a annulé garde ce fonctionnement.
+- **R31** Un joueur ne s'ajoute plus directement au cast d'une session : il passe d'abord par le questionnaire, donc par le vivier. Les PNJ, l'équipe cuisine et les organisatrices restent ajoutés à la main, sans statut de parcours ni demande de disponibilités. Un PNJ qui reprend le rôle d'une personne qui a annulé garde ce fonctionnement ; une organisatrice aussi peut tenir un PJ ainsi. Pas la cuisine : pour jouer, elle passe par le vivier.
 
 ## Données
 
@@ -151,5 +151,7 @@ Données personnelles : les disponibilités et les statuts par session sont couv
 
 - 2026-11-06 : création à partir du retour A4-4 du cahier de tests.
 - 2026-11-06 : EPIC-046 livré sauf US-176 (tout joueur passe par le questionnaire), qui suit dans sa propre PR.
+- 2026-11-06 : US-176 livrée : l'onglet Cast choisit dans le vivier, ce qui retient la personne (R20), ou invite pour la session ; toute autre personne est refusée comme joueur.
+- 2026-11-06 (revue d'US-176, choix de l'utilisatrice) : un PNJ ou une organisatrice peut tenir un PJ sans questionnaire, pas la cuisine (R31).
 - 2026-11-06 (seconde revue, choix de l'utilisatrice) : les places valent le nombre de PJ (R8) ; un joueur passe toujours par le questionnaire, et l'invitation peut viser une session (R4, R31) ; statut « transférée » au report (R30) ; un rejoueur exclu peut être retenu à la main (R24) ; le mode simple valide à la case « payé » (R17).
 - 2026-11-06 (revue, choix de l'utilisatrice) : effets d'un « Pas disponible » (R29), paiements remboursés, transférés ou reportés (R30), session ouverte forcément datée (R6), alerte limitée aux personnes castées ou inscrites (R16). Pas d'entité « place » : voir ADR-0069.

@@ -23,7 +23,7 @@ Chaque jeu a un seul vivier, une personne y répond une seule fois, dit où elle
 | [US-164](US-164-inviter-a-rejoindre.md) | Inviter une personne à rejoindre le vivier, ou pour une session | terminée |
 | [US-165](US-165-annuler-ou-quitter.md) | Annuler ma présence à une session, ou quitter le vivier | terminée |
 | [US-171](US-171-tirage-par-session.md) | Tirer au sort pour une session | terminée |
-| [US-176](US-176-joueur-par-le-questionnaire.md) | Faire passer tout joueur par le questionnaire | à faire |
+| [US-176](US-176-joueur-par-le-questionnaire.md) | Faire passer tout joueur par le questionnaire | terminée |
 
 ## Définition de terminé
 

@@ -135,6 +135,33 @@ describe('rechargement des jeux de test', () => {
     }
   })
 
+  it('fait passer tout joueur par le vivier : sa place dans la session est écrite (R31)', async () => {
+    const players = await prisma.sessionParticipant.findMany({ where: { role: 'participant', session: { gameId: { in: GAME_IDS } } }, select: { sessionId: true, participantId: true, session: { select: { gameId: true } } } })
+    expect(players.length).toBeGreaterThan(0)
+    for (const { sessionId, participantId, session } of players) {
+      const registration = await prisma.registration.findFirst({
+        where: { participantId, period: { gameId: session.gameId } },
+        select: { status: true, sessionLines: { where: { sessionId }, select: { status: true } } }
+      })
+      expect(registration).toBeTruthy()
+      // Une personne sortie depuis du vivier garde seulement sa réponse
+      if (registration?.status === 'received') expect(['confirmed', 'transferred']).toContain(registration.sessionLines[0]?.status)
+    }
+  })
+
+  it('reprend les allergies du compte dans les réponses du vivier fermé (fiche allergies)', async () => {
+    const registrations = await prisma.registration.findMany({
+      where: { period: { gameId: 'jeu-test-valombre' } },
+      select: { dietary: true, formVersionId: true, participant: { select: { user: { select: { dietary: true } } } } }
+    })
+    expect(registrations.length).toBeGreaterThan(0)
+    for (const { dietary, formVersionId, participant } of registrations) {
+      expect(dietary).toBe(participant.user?.dietary ?? null)
+      // Sans version, la réponse ne suit plus le compte
+      expect(formVersionId).toBeTruthy()
+    }
+  })
+
   it('fait co-organiser deux jeux à Inès, et pas le troisième', async () => {
     const ines = await prisma.user.findUniqueOrThrow({ where: { email: plusAddress('ines.lefevre') }, select: { id: true } })
     const shares = await prisma.gameShare.findMany({ where: { userId: ines.id }, select: { gameId: true } })

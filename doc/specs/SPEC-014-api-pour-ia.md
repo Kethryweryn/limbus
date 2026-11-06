@@ -100,7 +100,7 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
 - **R10 Écriture.** Avec une autorisation en lecture et écriture, sur les jeux de son autorisation, l'assistant peut :
   - créer un jeu et modifier un jeu, sauf ses réglages de page publique, de photos et de contact, et sans l'archiver ni le restaurer ;
   - créer, modifier et supprimer personnages, factions, intrigues, objets, documents (texte), lieux, événements de la chronologie et relations entre personnages. Il écrit leurs textes et leurs liens, marque une fiche ou un document « prêt à envoyer », et règle le trombinoscope d'un personnage (nom affiché, note, visage caché, exclusion), mais jamais sa photo. Une suppression est définitive, comme dans l'interface, et le journal garde le nom de l'élément ;
-  - créer et modifier une session (détails, équipe, casting, déroulé), sans l'annuler, la reporter ni la supprimer ;
+  - créer et modifier une session (détails, équipe, casting, déroulé), sans l'annuler, la reporter ni la supprimer. Un nouveau joueur doit être inscrit à la session par le vivier : sinon l'écriture est refusée ([SPEC-018](SPEC-018-vivier-permanent.md), R31) ;
   - lancer l'assistant de casting d'une session ;
   - créer et modifier une fiche participant (nom et notes d'organisation du jeu). Le nom d'une fiche rattachée à un compte reste celui du compte ([ADR-0042](../adr/ADR-0042-coordonnees-du-compte.md)) ;
   - préparer le vivier, qui reste fermé, régler la sélection d'une session sans l'ouvrir, et rédiger le formulaire du jeu ;

@@ -1,8 +1,9 @@
 import type { H3Event } from 'h3'
 import type { z } from 'zod'
 import { prisma } from '~/server/utils/prisma'
-import { requireGameAccess, requireSessionAccess, assertSameGame } from '~/server/utils/gameAccess'
-import { assertSessionCastRules, assertSessionLocation, castAssignmentInclude, normalizeAssignments, normalizeSessionParticipants, resolveCastLines, withCastReservations } from '~/server/utils/sessionAssignments'
+import { requireCurrentUser, requireGameAccess, requireSessionAccess, assertSameGame } from '~/server/utils/gameAccess'
+import { selectionTargets, writeSelection } from '~/server/utils/registrationSelection'
+import { assertPlayersFromPool, assertSessionCastRules, assertSessionLocation, castAssignmentInclude, normalizeAssignments, normalizeSessionParticipants, resolveCastLines, withCastReservations } from '~/server/utils/sessionAssignments'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { assertGameUploads, deleteUnusedUploads } from '~/server/utils/uploads'
@@ -14,6 +15,9 @@ import { SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
 // par `readBody` à la place qu'il a dans chaque route
 
 type Reader<S extends z.ZodType> = () => Promise<z.output<S>>
+
+// Un cast entier peut retenir plusieurs dizaines de personnes en une fois
+const CAST_TRANSACTION_TIMEOUT_MS = 30_000
 
 function parseDate(value: unknown): Date | null {
   if (!value || typeof value !== 'string') return null
@@ -28,6 +32,7 @@ export async function createSession(event: H3Event, readBody: Reader<typeof sess
   const { lines: assignments } = await resolveCastLines(gameId, null, normalizeAssignments(body.assignments))
   const participants = normalizeSessionParticipants(body.participants, assignments)
   await assertSessionCastRules(gameId, participants, assignments)
+  await assertPlayersFromPool(gameId, null, participants)
   await assertSessionLocation(gameId, locationId)
   await assertGameUploads(assignments.map((assignment) => assignment.photoUrl), gameId, { sessionFiles: true, label: 'Photo d’attribution' })
 
@@ -74,9 +79,10 @@ export async function updateSession(event: H3Event, id: string, readBody: Reader
   const { name, gameId, locationId, status, published } = body
   assertSameGame(existingSession.gameId, gameId)
   await requireGameAccess(event, gameId)
-  const { lines: assignments, reservedParticipants } = await resolveCastLines(gameId, existingSession.id, normalizeAssignments(body.assignments))
+  const { lines: assignments, reservedParticipants, toRetain } = await resolveCastLines(gameId, existingSession.id, normalizeAssignments(body.assignments))
   const participants = normalizeSessionParticipants(body.participants, assignments)
   await assertSessionCastRules(gameId, participants, assignments, reservedParticipants)
+  await assertPlayersFromPool(gameId, existingSession.id, participants)
   await assertSessionLocation(gameId, locationId)
 
   // Photos remplacées ou retirées de la distribution : effacées si plus rien ne les utilise
@@ -90,43 +96,50 @@ export async function updateSession(event: H3Event, id: string, readBody: Reader
   const cancelledAt = status === SESSION_STATUSES.cancelled
     ? (await prisma.session.findUniqueOrThrow({ where: { id: existingSession.id }, select: { cancelledAt: true } })).cancelledAt ?? new Date()
     : null
-  const session = await prisma.session.update({
-    where: { id: existingSession.id },
-    data: {
-      name,
-      slug: await generateUniqueSlug('session', name, existingSession.id),
-      gameId,
-      date: parseDate(body.date),
-      locationId: locationId || null,
-      status,
-      cancelledAt,
-      // Absent : la visibilité ne change pas (US-019)
-      published,
-      participants: {
-        deleteMany: {},
-        create: participants
-      },
-      assignments: {
-        deleteMany: {},
-        create: assignments
-      }
-    },
-    // Comme la lecture de la session : la page la remplace par cette réponse, report compris (US-022)
-    include: {
-      game: true,
-      location: true,
-      postponedTo: { select: { id: true, slug: true, name: true, date: true } },
-      postponedFrom: { select: { id: true, slug: true, name: true, date: true } },
-      participants: {
-        include: {
-          participant: true
+  // Une personne du vivier choisie dans le cast est retenue en même temps que son personnage lui est réservé (R20)
+  const retained = await selectionTargets(toRetain, existingSession.id)
+  const author = retained.length ? await requireCurrentUser(event) : null
+  const slug = await generateUniqueSlug('session', name, existingSession.id)
+  const session = await prisma.$transaction(async (tx) => {
+    for (const target of retained) await writeSelection(tx, target, 'retain', author!)
+    return await tx.session.update({
+      where: { id: existingSession.id },
+      data: {
+        name,
+        slug,
+        gameId,
+        date: parseDate(body.date),
+        locationId: locationId || null,
+        status,
+        cancelledAt,
+        // Absent : la visibilité ne change pas (US-019)
+        published,
+        participants: {
+          deleteMany: {},
+          create: participants
+        },
+        assignments: {
+          deleteMany: {},
+          create: assignments
         }
       },
-      assignments: {
-        include: castAssignmentInclude
+      // Comme la lecture de la session : la page la remplace par cette réponse, report compris (US-022)
+      include: {
+        game: true,
+        location: true,
+        postponedTo: { select: { id: true, slug: true, name: true, date: true } },
+        postponedFrom: { select: { id: true, slug: true, name: true, date: true } },
+        participants: {
+          include: {
+            participant: true
+          }
+        },
+        assignments: {
+          include: castAssignmentInclude
+        }
       }
-    }
-  })
+    })
+  }, { timeout: CAST_TRANSACTION_TIMEOUT_MS })
 
   // Responsables du déroulé : seulement des orgas et PNJ de l'équipe ; une personne qui en sort, ou change de rôle,
   // n'y reste pas (US-128)

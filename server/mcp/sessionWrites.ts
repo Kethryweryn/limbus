@@ -86,7 +86,7 @@ function registerSessionWriteTools({ event, server }: ToolContext) {
 
   server.registerTool('modifier_equipe', {
     title: 'Modifier l’équipe d’une session',
-    description: 'Donne l’équipe complète d’une session : chaque personne du jeu avec son rôle (participant, organizer, npc, kitchen). Une personne retirée perd son personnage dans la session ; son suivi de paiement ne change pas.',
+    description: 'Donne l’équipe complète d’une session : chaque personne du jeu avec son rôle (participant, organizer, npc, kitchen). Un nouveau joueur (participant) doit être inscrit à cette session par le vivier : sinon c’est refusé, et decider_inscription le retient s’il est dans le vivier. Une personne retirée perd son personnage dans la session ; son suivi de paiement ne change pas.',
     inputSchema: z.object({
       sessionId: z.string(),
       version,
@@ -107,7 +107,7 @@ function registerSessionWriteTools({ event, server }: ToolContext) {
 
   server.registerTool('modifier_casting', {
     title: 'Modifier le casting d’une session',
-    description: 'Enregistre des lignes du casting : pour un personnage du jeu, la personne (ou null), la note de la ligne et le cadenas. Les lignes non données restent telles quelles. La photo d’une ligne est retirée quand sa personne change. Un personnage réservé pour une inscription retenue ne change pas de personne ici.',
+    description: 'Enregistre des lignes du casting : pour un personnage du jeu, la personne (ou null), la note de la ligne et le cadenas. Les lignes non données restent telles quelles. La photo d’une ligne est retirée quand sa personne change. Un personnage réservé pour une inscription retenue ne change pas de personne ici. Une personne qui n’est pas encore dans l’équipe doit être inscrite à cette session par le vivier : sinon c’est refusé, et decider_inscription la retient si elle est dans le vivier.',
     inputSchema: z.object({
       sessionId: z.string(),
       version,
