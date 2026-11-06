@@ -112,7 +112,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { useGameFocus } from '@/composables/useGameFocus'
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { apiErrorMessage, pageLoadError } from '~/utils/apiErrors'
 import type { GameDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
@@ -122,7 +122,7 @@ const { data: authState } = await useFetch('/api/auth/me')
 
 if (error.value) {
     handleApiAuthError(error.value)
-    throw createError({ statusCode: error.value.statusCode || 404, message: 'Jeu introuvable' })
+    throw pageLoadError(error.value, 'Jeu introuvable')
 }
 
 const { selectGame, clearGame, game: currentGame } = useGameFocus()

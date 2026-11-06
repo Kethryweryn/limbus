@@ -52,6 +52,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-042](../archive/epics/EPIC-042-relecture-et-melange-du-questionnaire/README.md) | Aide à la conception du questionnaire, lot 3 : relecture et mélange | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | terminé |
 | [EPIC-043](../archive/epics/EPIC-043-nouveautes/README.md) | Nouveautés et numéro de déploiement | [SPEC-017](../specs/SPEC-017-nouveautes.md) | terminé |
 | [EPIC-044](../archive/epics/EPIC-044-jeux-de-test/README.md) | Jeux de test à jour pour tout essayer | [fiche](../archive/todo/jeux-de-test.md) | terminé |
+| [EPIC-045](EPIC-045-retours-du-cahier-de-tests/README.md) | Retours du cahier de tests fonctionnels | [fiche](../archive/todo/retours-du-cahier-de-tests.md) | en cours |
 
 ## US
 
@@ -212,3 +213,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-153](../archive/epics/EPIC-044-jeux-de-test/US-153-jeu-session-imminente.md) | Essayer une session imminente sur Les Cendres de Valombre | EPIC-044 | terminée |
 | [US-154](../archive/epics/EPIC-044-jeux-de-test/US-154-jeu-apres-et-imprevus.md) | Essayer l'après-session et les imprévus sur Le Bal des Masques Brisés | EPIC-044 | terminée |
 | [US-155](../archive/epics/EPIC-044-jeux-de-test/US-155-guide-et-verification.md) | Savoir où essayer chaque fonctionnalité, et garder le script à jour | EPIC-044 | terminée |
+| [US-156](EPIC-045-retours-du-cahier-de-tests/US-156-retrouver-ses-participations.md) | Retrouver ses participations depuis l'organisation | EPIC-045 | terminée |
+| [US-157](EPIC-045-retours-du-cahier-de-tests/US-157-page-d-erreur.md) | Comprendre qu'une page n'est pas accessible | EPIC-045 | terminée |
+| [US-158](EPIC-045-retours-du-cahier-de-tests/US-158-carte-du-jeu-actif.md) | Repérer le jeu actif sur la page Jeux | EPIC-045 | terminée |

@@ -99,7 +99,7 @@
 </template>
 
 <script setup lang="ts">
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { apiErrorMessage, pageLoadError } from '~/utils/apiErrors'
 import { withQueuedEdit, type ParticipantDraft } from '~/utils/writingDrafts'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
@@ -129,7 +129,7 @@ async function setPhotoRefusal(refused: boolean) {
 
 if (error.value) {
   handleApiAuthError(error.value)
-  throw createError({ statusCode: error.value.statusCode || 404, message: 'Participant introuvable' })
+  throw pageLoadError(error.value, 'Participant introuvable')
 }
 
 const { isEditing, draft: editableParticipant, startEdit, cancelEdit, closeAfterSave } = useSheetEdit(() => participant.value ? normalizeParticipantForForm(participant.value) : null)

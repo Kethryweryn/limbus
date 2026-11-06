@@ -53,6 +53,7 @@
 </template>
 
 <script setup lang="ts">
+import { pageLoadError } from '~/utils/apiErrors'
 import { isInArchivedGame } from '~/utils/games'
 import { withQueuedEdit, type LocationDraft } from '~/utils/writingDrafts'
 
@@ -62,7 +63,7 @@ const { data: games } = await useFetch('/api/games')
 
 if (error.value) {
   handleApiAuthError(error.value)
-  throw createError({ statusCode: error.value.statusCode || 404, message: 'Lieu introuvable' })
+  throw pageLoadError(error.value, 'Lieu introuvable')
 }
 
 const { isEditing, draft: editableLocation, startEdit, cancelEdit, closeAfterSave } = useSheetEdit<LocationDraft>(() => location.value ? { ...location.value } : null)

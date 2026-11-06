@@ -29,6 +29,7 @@
 </template>
 
 <script setup lang="ts">
+import { pageLoadError } from '~/utils/apiErrors'
 import { PARIS_TIME_ZONE, formatLongDate } from '~/utils/dates'
 
 definePageMeta({
@@ -40,7 +41,7 @@ const route = useRoute()
 const { data, error } = await useFetch(`/api/public/games/${route.params.slug}`)
 
 if (error.value) {
-  throw createError({ statusCode: error.value.statusCode || 404, message: 'Jeu non publié' })
+  throw pageLoadError(error.value, 'Jeu non publié')
 }
 // Ancienne adresse d'un jeu renommé : redirection permanente vers la nouvelle (US-045)
 // La réponse d'un jeu renommé ne porte que sa nouvelle adresse

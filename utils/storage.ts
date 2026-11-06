@@ -1,4 +1,5 @@
 import { deleteDB, openDB } from 'idb'
+import { forgetSpace } from './spaces'
 
 const DB_NAME = 'limbus-db'
 const OFFLINE_AUTH_KEY = 'offlineAuth'
@@ -128,6 +129,7 @@ export function forgetOfflineAuth() {
 // des participants), écritures en attente et photos mises en cache par le service worker
 export async function clearOfflineData() {
     forgetOfflineAuth()
+    forgetSpace()
     localStorage.removeItem(OFFLINE_OWNER_KEY)
     const current = dbPromise
     dbPromise = null

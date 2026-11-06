@@ -22,7 +22,7 @@ icon="i-heroicons-bars-3" color="neutral" variant="ghost" class="md:hidden"
                     size="sm"
                     :color="space === 'organize' ? 'primary' : 'neutral'"
                     :variant="space === 'organize' ? 'solid' : 'ghost'"
-                    @click="rememberSpace('organize')"
+                    @click="rememberSpace('organize', authState?.user.id)"
                 >
                     J’organise
                 </UButton>
@@ -31,7 +31,7 @@ icon="i-heroicons-bars-3" color="neutral" variant="ghost" class="md:hidden"
                     size="sm"
                     :color="space === 'participate' ? 'primary' : 'neutral'"
                     :variant="space === 'participate' ? 'solid' : 'ghost'"
-                    @click="rememberSpace('participate')"
+                    @click="rememberSpace('participate', authState?.user.id)"
                 >
                     Je participe
                 </UButton>
@@ -157,7 +157,7 @@ icon="i-heroicons-bars-3" color="neutral" variant="ghost" class="md:hidden"
 
 <script setup lang="ts">
 import type { NavLink, NavSection } from '~/utils/navigation'
-import { rememberSpace, spaceOfPath } from '~/utils/spaces'
+import { rememberSpace, showsSpaceSelector, spaceOfPath } from '~/utils/spaces'
 import { navigateTo } from '#app'
 import { getOfflineQueue } from '~/utils/offlineSync'
 
@@ -173,8 +173,8 @@ const isAdmin = computed(() => authState.value?.user.role === 'admin')
 
 // Espace affiché, déduit de l'adresse (US-073) ; le menu le suit
 const space = computed(() => spaceOfPath(route.path))
-const showSpaceSelector = computed(() => Boolean(authState.value?.spaces.organize && authState.value?.spaces.participate))
-watch(space, (value) => rememberSpace(value))
+const showSpaceSelector = computed(() => showsSpaceSelector(authState.value?.spaces, space.value))
+watch(space, (value) => rememberSpace(value, authState.value?.user.id))
 
 const dashboardLink = computed((): NavLink => space.value === 'participate'
     ? { label: 'Mes jeux', to: '/participer', icon: 'i-heroicons-ticket' }

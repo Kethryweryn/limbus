@@ -96,6 +96,7 @@
 </template>
 
 <script setup lang="ts">
+import { pageLoadError } from '~/utils/apiErrors'
 import { isInArchivedGame } from '~/utils/games'
 import ItemForm from '@/components/ItemForm.vue'
 import { withQueuedEdit, type ItemDraft } from '~/utils/writingDrafts'
@@ -108,7 +109,7 @@ const { data: intrigues } = await useFetch('/api/intrigues')
 
 if (error.value) {
   handleApiAuthError(error.value)
-  throw createError({ statusCode: error.value.statusCode || 404, message: 'Objet introuvable' })
+  throw pageLoadError(error.value, 'Objet introuvable')
 }
 
 type ItemPage = NonNullable<typeof item.value>

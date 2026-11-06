@@ -7,18 +7,28 @@ export function spaceOfPath(path: string): Space {
   return path === '/participer' || path.startsWith('/participer/') ? 'participate' : 'organize'
 }
 
-export function rememberSpace(space: Space) {
+// Le choix est gardé avec son compte : celui d'une autre personne sur le même appareil ne s'applique pas
+export function rememberSpace(space: Space, userId: string | undefined) {
+  if (!userId) return
   try {
-    localStorage.setItem(STORAGE_KEY, space)
+    localStorage.setItem(STORAGE_KEY, `${userId}:${space}`)
   } catch {
     // Stockage indisponible (navigation privée…) : l'espace se recalcule à l'ouverture
   }
 }
 
-function rememberedSpace(): Space | null {
+export function forgetSpace() {
   try {
-    const value = localStorage.getItem(STORAGE_KEY)
-    return value === 'organize' || value === 'participate' ? value : null
+    localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // Stockage indisponible : rien à oublier
+  }
+}
+
+function rememberedSpace(userId: string | undefined): Space | null {
+  try {
+    const [owner, value] = (localStorage.getItem(STORAGE_KEY) ?? '').split(':')
+    return owner === userId && (value === 'organize' || value === 'participate') ? value : null
   } catch {
     return null
   }
@@ -29,6 +39,12 @@ function rememberedSpace(): Space | null {
  * a un jeu à organiser, sinon « Je participe » (SPEC-011). Tout compte peut organiser : un choix d'organiser
  * est gardé même sans jeu encore.
  */
-export function initialSpace(spaces: { organize: boolean, participate: boolean }, remembered: Space | null = rememberedSpace()): Space {
+export function initialSpace(spaces: { organize: boolean, participate: boolean }, userId?: string, remembered: Space | null = rememberedSpace(userId)): Space {
   return remembered ?? (spaces.organize ? 'organize' : 'participate')
+}
+
+// Le sélecteur sert à qui organise et participe. Une personne qui ne fait que participer ne le voit que si elle se
+// trouve côté organisation : sans lui, elle n'aurait aucun moyen de revenir à ses participations.
+export function showsSpaceSelector(spaces: { organize: boolean, participate: boolean } | undefined, current: Space) {
+  return Boolean(spaces?.participate && (spaces.organize || current === 'organize'))
 }
