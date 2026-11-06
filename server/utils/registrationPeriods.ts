@@ -41,7 +41,9 @@ export const registrationListSelect = {
       confirmedAt: true,
       cancelledAt: true,
       announcedStatus: true,
-      announcedAt: true
+      announcedAt: true,
+      ignoredStatus: true,
+      cancelledById: true
     }
   },
   participant: { select: { id: true, name: true, slug: true } },

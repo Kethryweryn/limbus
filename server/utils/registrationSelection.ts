@@ -1,5 +1,5 @@
 import { prisma, type PrismaTx } from '~/server/utils/prisma'
-import { openEmailTransport } from '~/server/utils/email'
+import { openEmailTransport, type EmailTransport } from '~/server/utils/email'
 import { countPlayableCharacters, takenSeatsWhere } from '~/server/utils/registrationPeriods'
 import { affinityOverview } from '~/server/utils/registrationAffinities'
 import { createRegistrationToken, registrationResponseDueAt, registrationUrl, selectionAnnouncementEmail } from '~/server/utils/registrations'
@@ -17,7 +17,7 @@ import {
 } from '~/utils/domain'
 import type { REGISTRATION_SELECTION_ACTIONS } from '~/utils/domain'
 import { isOpenableSession } from '~/utils/registrationPeriods'
-import { canConfirmPlace, isAnnouncementPending } from '~/utils/registrations'
+import { ANNOUNCEMENT_REMOVED, canConfirmPlace, pendingAnnouncement } from '~/utils/registrations'
 
 export type SelectionAction = typeof REGISTRATION_SELECTION_ACTIONS[number]
 const selectionPeriodSelect = {
@@ -50,7 +50,7 @@ export async function selectableSessions(period: { gameId: string }) {
         date: true,
         status: true,
         registrationPeriodLink: {
-          select: { open: true, lastRequestedAt: true, selectionMode: true, organizerPicks: true, weightNotDrawnBefore: true, weightBalance: true, waitlistSize: true }
+          select: { open: true, lastRequestedAt: true, castAnnouncedAt: true, selectionMode: true, organizerPicks: true, weightNotDrawnBefore: true, weightBalance: true, waitlistSize: true }
         }
       }
     }),
@@ -64,6 +64,7 @@ export async function selectableSessions(period: { gameId: string }) {
     offered: Boolean(link?.open) && isOpenableSession(session),
     openable: isOpenableSession(session),
     lastRequestedAt: link?.lastRequestedAt ?? null,
+    castAnnouncedAt: link?.castAnnouncedAt ?? null,
     selectionMode: link?.selectionMode ?? REGISTRATION_SELECTION_MODES.chosen,
     organizerPicks: link?.organizerPicks ?? null,
     weightNotDrawnBefore: link?.weightNotDrawnBefore ?? false,
@@ -249,6 +250,7 @@ export async function writeSelection(tx: PrismaTx, { registration, session }: Se
       status: LINE.retained,
       waitlistPosition: null,
       retainedById: author.id,
+      ignoredStatus: null,
       ...fromCancelled,
       ...(announced ? {} : { responseDueAt: null, lastRemindedAt: null })
     }
@@ -259,7 +261,7 @@ export async function writeSelection(tx: PrismaTx, { registration, session }: Se
   if (action === 'waitlist') {
     if (line?.status !== LINE.waitlisted) {
       const last = await tx.registrationSession.aggregate({ where: { sessionId, status: LINE.waitlisted }, _max: { waitlistPosition: true } })
-      const data = { status: LINE.waitlisted, waitlistPosition: (last._max.waitlistPosition ?? 0) + 1, retainedById: null, ...fromCancelled }
+      const data = { status: LINE.waitlisted, waitlistPosition: (last._max.waitlistPosition ?? 0) + 1, retainedById: null, ignoredStatus: null, ...fromCancelled }
       await tx.registrationSession.upsert({ where: key, update: data, create: { registrationId, sessionId, ...data } })
     }
   } else {
@@ -295,7 +297,7 @@ async function backToAnswer(
   authorId: string
 ) {
   const key = { registrationId_sessionId: { registrationId, sessionId } }
-  const cleared = { waitlistPosition: null, retainedById: null, responseDueAt: null, lastRemindedAt: null }
+  const cleared = { waitlistPosition: null, retainedById: null, responseDueAt: null, lastRemindedAt: null, ignoredStatus: null }
   if (line.status === LINE.cancelled) return
   if (line.announcedStatus === LINE.retained || (line.announcedStatus && !line.answer)) {
     await tx.registrationSession.update({ where: key, data: { ...cleared, status: LINE.cancelled, cancelledAt: new Date(), cancelledById: authorId } })
@@ -324,81 +326,149 @@ export async function reorderWaitlist(periodId: string, sessionId: string, regis
   return { success: true }
 }
 
+const announcementLineSelect = {
+  id: true,
+  status: true,
+  announcedStatus: true,
+  ignoredStatus: true,
+  cancelledById: true,
+  session: { select: { name: true, date: true } }
+} as const
+
+type AnnouncementTarget = {
+  id: string
+  email: string
+  participant: { name: string }
+}
+type AnnouncementLine = { id: string, status: string, announcedStatus: string | null, ignoredStatus: string | null, cancelledById: string | null, session: { name: string, date: Date | null } }
+
 /**
- * Annonce les décisions pas encore annoncées d'un vivier (US-088, ADR-0047) : un email par place retenue, et un pour
- * les listes d'attente, tous avec le même nouveau lien personnel, qui s'ajoute aux précédents (ADR-0070) ; l'échéance
- * d'une place retenue part de l'annonce (R20). Le jeton n'est enregistré qu'après l'envoi : un échec laisse la décision à
- * annoncer.
+ * Écrit à une personne ce qu'il y a à lui annoncer pour une session. Chaque email a son lien (ADR-0070), créé avant
+ * l'envoi : un email parti ne porte jamais un lien mort, et un échec efface le lien et laisse l'annonce à faire.
+ * L'échéance d'une place retenue part de cet email (R20, R27). Un retrait annoncé ne se propose plus, et la personne voit
+ * son nouveau statut.
  */
-export async function announceSelection(periodId: string) {
+async function deliverAnnouncement(transport: EmailTransport, period: { responseDelayDays: number, game: { title: string } }, registration: AnnouncementTarget, line: AnnouncementLine, now = new Date()) {
+  const status = pendingAnnouncement(line)!
+  const responseDueAt = status === LINE.retained ? registrationResponseDueAt(period.responseDelayDays, now) : null
+  const { token, tokenHash } = createRegistrationToken()
+  const link = await prisma.registrationLink.create({ data: { registrationId: registration.id, tokenHash }, select: { id: true } })
+  try {
+    await transport.send({
+      to: registration.email,
+      ...selectionAnnouncementEmail({ status, participantName: registration.participant.name, gameTitle: period.game.title, url: registrationUrl(token), sessions: [line.session], responseDueAt })
+    })
+  } catch (error) {
+    await prisma.registrationLink.delete({ where: { id: link.id } })
+    throw error
+  }
+  const announcedStatus = status !== ANNOUNCEMENT_REMOVED ? status : line.status === LINE.cancelled ? LINE.cancelled : null
+  await prisma.registrationSession.updateMany({
+    where: { id: line.id, status: line.status },
+    data: { announcedStatus, announcedAt: now, ignoredStatus: null, ...(responseDueAt ? { responseDueAt } : {}) }
+  })
+}
+
+/**
+ * Annonce le casting d'une session (R26) : un email à chaque personne retenue, et à la liste d'attente si l'équipe l'a
+ * coché. Sans cette case, son email est écarté : il ne se propose pas ensuite. Une fois une annonce partie, chaque
+ * changement se propose sur sa ligne (R27) ; ce qui n'est pas parti y reste à envoyer.
+ */
+export async function announceCast(periodId: string, sessionId: string, includeWaitlist: boolean) {
   const period = (await findSelectionPeriod(periodId))!
+  const session = (await selectableSessions(period)).find((candidate) => candidate.id === sessionId)
+  if (!session) {
+    throw createError({ statusCode: 400, message: 'Session invalide pour ce vivier' })
+  }
+  if (session.castAnnouncedAt) {
+    throw createError({ statusCode: 409, message: 'Ce casting est déjà annoncé : chaque changement se propose sur sa ligne.' })
+  }
   const registrations = await prisma.registration.findMany({
-    where: { periodId, status: REGISTRATION_STATUSES.received, sessionLines: { some: { status: { in: REGISTRATION_SELECTION_STATUSES } } } },
+    where: { periodId, status: REGISTRATION_STATUSES.received, sessionLines: { some: { sessionId, status: { in: REGISTRATION_SELECTION_STATUSES } } } },
     orderBy: { createdAt: 'asc' },
     select: {
       id: true,
       email: true,
       participant: { select: { name: true } },
-      sessionLines: {
-        where: { status: { in: REGISTRATION_SELECTION_STATUSES } },
-        orderBy: { session: { date: 'asc' } },
-        select: { id: true, status: true, announcedStatus: true, session: { select: { name: true, date: true } } }
-      }
+      sessionLines: { where: { sessionId }, select: announcementLineSelect }
     }
   })
+  const lines = registrations.flatMap(({ sessionLines, ...registration }) => sessionLines.map((line) => ({ registration, line }))).filter(({ line }) => pendingAnnouncement(line))
 
-  const results: Array<{ participantName: string, sent: boolean, message: string | null }> = []
+  const failures: Array<{ participantName: string, message: string | null }> = []
+  let announcedCount = 0
   const transport = await openEmailTransport().catch(() => null)
   try {
-    for (const registration of registrations) {
-      const pending = registration.sessionLines.filter(isAnnouncementPending)
-      if (!pending.length) continue
+    for (const { registration, line } of lines) {
+      if (line.status === LINE.waitlisted && !includeWaitlist) continue
       const participantName = registration.participant.name
       if (!transport) {
-        results.push({ participantName, sent: false, message: 'SMTP désactivé' })
+        failures.push({ participantName, message: 'SMTP désactivé' })
         continue
       }
-      const now = new Date()
-      const responseDueAt = registrationResponseDueAt(period.responseDelayDays, now)
-      const { token, tokenHash } = createRegistrationToken()
-      const common = { participantName, gameTitle: period.game.title, url: registrationUrl(token) }
-      const waiting = pending.filter((line) => line.status === LINE.waitlisted)
-      const parts = [
-        ...pending.filter((line) => line.status === LINE.retained).map((line) => ({ lines: [line], email: selectionAnnouncementEmail({ ...common, status: LINE.retained, sessions: [line.session], responseDueAt }) })),
-        ...(waiting.length ? [{ lines: waiting, email: selectionAnnouncementEmail({ ...common, status: LINE.waitlisted, sessions: waiting.map((line) => line.session), responseDueAt: null }) }] : [])
-      ]
-      // Enregistré dès le premier email parti : son lien doit marcher, même si un email suivant échoue. Ce qui n'est pas
-      // parti reste à annoncer
-      let failure: string | null = null
-      let linkSaved = false
-      for (const { lines, email } of parts) {
-        try {
-          await transport.send({ to: registration.email, ...email })
-        } catch (error) {
-          failure = (error as { message?: string })?.message || 'Erreur SMTP'
-          break
-        }
-        await prisma.$transaction(async (tx) => {
-          if (!linkSaved) await tx.registrationLink.create({ data: { registrationId: registration.id, tokenHash } })
-          for (const line of lines) {
-            await tx.registrationSession.updateMany({
-              where: { id: line.id, status: line.status },
-              data: { announcedStatus: line.status, announcedAt: now, ...(line.status === LINE.retained ? { responseDueAt } : {}) }
-            })
-          }
-        })
-        linkSaved = true
+      try {
+        await deliverAnnouncement(transport, period, registration, line)
+        announcedCount++
+      } catch (error) {
+        failures.push({ participantName, message: (error as { message?: string })?.message || 'Erreur SMTP' })
       }
-      results.push({ participantName, sent: !failure, message: failure })
     }
   } finally {
     transport?.close()
   }
 
-  return {
-    announcedCount: results.filter((result) => result.sent).length,
-    failures: results.filter((result) => !result.sent).map(({ participantName, message }) => ({ participantName, message }))
+  if (announcedCount) {
+    await prisma.$transaction(async (tx) => {
+      await tx.registrationPeriodSession.update({ where: { sessionId }, data: { castAnnouncedAt: new Date() } })
+      if (!includeWaitlist) {
+        const waiting = lines.filter(({ line }) => line.status === LINE.waitlisted).map(({ line }) => line.id)
+        await tx.registrationSession.updateMany({ where: { id: { in: waiting }, status: LINE.waitlisted }, data: { ignoredStatus: LINE.waitlisted } })
+      }
+    })
   }
+  return { announcedCount, failures }
+}
+
+// La ligne à annoncer d'une session déjà annoncée (R27)
+async function requireProposedLine(registrationId: string, sessionId: string) {
+  const link = await prisma.registrationPeriodSession.findUnique({ where: { sessionId }, select: { castAnnouncedAt: true } })
+  const registration = await prisma.registration.findUniqueOrThrow({
+    where: { id: registrationId },
+    select: {
+      id: true,
+      email: true,
+      periodId: true,
+      participant: { select: { name: true } },
+      sessionLines: { where: { sessionId }, select: announcementLineSelect }
+    }
+  })
+  const line = registration.sessionLines[0]
+  if (!link?.castAnnouncedAt || !line || !pendingAnnouncement(line)) {
+    throw createError({ statusCode: 409, message: 'Il n’y a plus d’email à proposer pour cette personne : rechargez la page.' })
+  }
+  return { registration, line }
+}
+
+export async function sendLineAnnouncement(registrationId: string, sessionId: string) {
+  const { registration, line } = await requireProposedLine(registrationId, sessionId)
+  const period = (await findSelectionPeriod(registration.periodId))!
+  const transport = await openEmailTransport().catch(() => null)
+  if (!transport) throw createError({ statusCode: 502, message: 'L’envoi d’emails est désactivé : rien n’est parti.' })
+  try {
+    await deliverAnnouncement(transport, period, registration, line)
+  } catch (error) {
+    throw createError({ statusCode: 502, message: `L’email n’est pas parti : ${(error as { message?: string })?.message || 'erreur SMTP'}` })
+  } finally {
+    transport.close()
+  }
+  return { success: true }
+}
+
+// L'équipe n'écrit pas : la proposition disparaît, et la personne voit encore ce qui lui a été annoncé (R28)
+export async function ignoreLineAnnouncement(registrationId: string, sessionId: string) {
+  const { line } = await requireProposedLine(registrationId, sessionId)
+  await prisma.registrationSession.updateMany({ where: { id: line.id, status: line.status }, data: { ignoredStatus: line.status } })
+  return { success: true }
 }
 
 /**

@@ -60,7 +60,8 @@ export async function answerAvailability(tx: PrismaTx, registrationId: string, s
   const removed = line.status === LINE.retained
   await tx.registrationSession.update({
     where: key,
-    data: { ...answered, status: LINE.unavailable, waitlistPosition: null, retainedById: null }
+    // Sortie par sa propre réponse : il n'y a plus rien à lui annoncer (R27)
+    data: { ...answered, status: LINE.unavailable, waitlistPosition: null, retainedById: null, announcedStatus: null, announcedAt: null, ignoredStatus: null }
   })
   if (removed) {
     await tx.sessionAssignment.updateMany({ where: { sessionId, reservedRegistrationId: registrationId }, data: { reservedRegistrationId: null } })

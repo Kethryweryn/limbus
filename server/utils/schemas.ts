@@ -470,6 +470,14 @@ export const registrationSessionTargetSchema = z.object({
 // Tirage d'une session (R22)
 export const registrationDrawSchema = registrationSessionTargetSchema
 
+export const castAnnouncementSchema = z.object({
+  includeWaitlist: z.boolean().default(false)
+})
+
+export const registrationLineAnnouncementSchema = registrationSessionTargetSchema.extend({
+  action: z.enum(['send', 'ignore'], { error: 'Action inconnue' })
+})
+
 export const registrationAvailabilityAnswerSchema = registrationSessionTargetSchema.extend({
   available: z.boolean({ error: 'Réponse invalide' })
 })

@@ -258,7 +258,8 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['POST', `/api/registration-periods/${b.registrationPeriod.id}/sessions/${b.session.id}/availability-request`, {}],
     ['PUT', `/api/registration-periods/${b.registrationPeriod.id}/waitlist`, { sessionId: b.session.id, registrationIds: [] }],
     ['PUT', `/api/registration-periods/${b.registrationPeriod.id}/sessions/${b.session.id}`, { open: true }],
-    ['POST', `/api/registration-periods/${b.registrationPeriod.id}/announce`],
+    ['POST', `/api/registration-periods/${b.registrationPeriod.id}/sessions/${b.session.id}/announce`, {}],
+    ['POST', `/api/registrations/${b.registration.id}/announcement`, { sessionId: b.session.id, action: 'send' }],
     // Tirage (US-093, US-094)
     ['POST', `/api/registration-periods/${b.registrationPeriod.id}/draws`, { sessionId: b.session.id }],
     ['GET', `/api/registration-periods/${b.registrationPeriod.id}/draws`],

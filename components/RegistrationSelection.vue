@@ -7,21 +7,11 @@
           Sessions · {{ pool.length }} personne{{ pool.length > 1 ? 's' : '' }} dans le vivier
         </h3>
         <p class="text-xs text-gray-500">
-          Les décisions ne préviennent personne : « Annoncer les résultats » envoie les emails.
+          Les décisions ne préviennent personne : « Annoncer le casting » envoie les emails de chaque session.
           <span v-if="overview?.replayPolicy === REGISTRATION_REPLAY_POLICIES.flagged"> Les rejoueurs sont signalés.</span>
           <span v-else-if="overview?.replayPolicy === REGISTRATION_REPLAY_POLICIES.excluded"> Les rejoueurs ne reçoivent pas de demande et n’entrent pas dans le tirage ; vous pouvez les retenir à la main.</span>
         </p>
       </div>
-      <UButton
-        size="sm"
-        icon="i-heroicons-megaphone"
-        color="primary"
-        :disabled="!pendingCount"
-        :loading="announcing"
-        @click="announce"
-      >
-        Annoncer les résultats{{ pendingCount ? ` (${pendingCount})` : '' }}
-      </UButton>
     </div>
 
     <UAlert v-if="message" :color="messageColor" variant="soft" :description="message" :close="{ color: 'neutral', variant: 'link' }" @update:open="message = ''" />
@@ -81,6 +71,39 @@
             Tirer au sort
           </UButton>
         </div>
+      </div>
+
+      <!-- Annonce du casting (R26) : une seule fois ; ensuite, chaque changement se propose ci-dessous (R27) -->
+      <div v-if="!session.castAnnouncedAt" class="flex flex-wrap items-center gap-3 text-xs text-gray-500" data-cast-announcement>
+        <UButton
+          size="xs"
+          color="primary"
+          icon="i-heroicons-megaphone"
+          :disabled="!announceCount(session)"
+          :loading="announcing === session.id"
+          @click="announce(session)"
+        >
+          Annoncer le casting{{ announceCount(session) ? ` (${announceCount(session)})` : '' }}
+        </UButton>
+        <UCheckbox
+          v-if="waitlistedToAnnounce(session).length"
+          v-model="announceWaitlist[session.id]"
+          :label="`Prévenir aussi la liste d’attente (${waitlistedToAnnounce(session).length})`"
+        />
+      </div>
+      <p v-else class="text-xs text-gray-500">Casting annoncé le {{ formatLongDate(session.castAnnouncedAt) }}.</p>
+
+      <div v-if="session.castAnnouncedAt && proposals(session).length" class="space-y-1" data-announcement-proposals>
+        <p class="text-xs font-semibold text-gray-600">Emails à envoyer : {{ proposals(session).length }}</p>
+        <ul class="divide-y divide-gray-100 text-sm">
+          <li v-for="{ registration, label } in proposals(session)" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
+            <span><span class="font-medium text-gray-800">{{ registration.participant.name }}</span> · {{ label }}</span>
+            <div class="flex shrink-0 flex-wrap gap-2">
+              <UButton size="xs" color="primary" variant="soft" icon="i-heroicons-envelope" :loading="answeringProposal === registration.id" @click="answerProposal(registration, session, 'send')">Envoyer l’email</UButton>
+              <UButton size="xs" color="neutral" variant="ghost" :disabled="answeringProposal === registration.id" @click="answerProposal(registration, session, 'ignore')">Ignorer</UButton>
+            </div>
+          </li>
+        </ul>
       </div>
 
       <!-- Demande de disponibilités (R9, R12) : rien ne part sans ce clic -->
@@ -342,7 +365,7 @@ import {
   REGISTRATION_STATUSES,
   metaOf
 } from '~/utils/domain'
-import { canConfirmPlace, isAnnouncementPending } from '~/utils/registrations'
+import { ANNOUNCEMENT_REMOVED, canConfirmPlace, pendingAnnouncement } from '~/utils/registrations'
 import { formatLongDate, formatLongDateTime } from '~/utils/dates'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
@@ -373,7 +396,9 @@ const registrations = computed(() => props.period.registrations)
 const overview = ref<Overview | null>(null)
 const message = ref('')
 const messageColor = ref<MessageColor>('success')
-const announcing = ref(false)
+const announcing = ref<string | null>(null)
+const announceWaitlist = ref<Record<string, boolean>>({})
+const answeringProposal = ref<string | null>(null)
 
 const draws = ref<Draw[]>([])
 const drawing = ref<string | null>(null)
@@ -411,7 +436,6 @@ const registrationById = (id: string) => registrations.value.find((registration)
 // Les personnes du vivier, et celles qui en sont sorties ; une invitation sans réponse n'y est pas encore (R4)
 const pool = computed(() => registrations.value.filter((registration) => registration.status === REGISTRATION_STATUSES.received))
 const left = computed(() => registrations.value.filter((registration) => registration.status === REGISTRATION_STATUSES.withdrawn))
-const pendingCount = computed(() => pool.value.filter((registration) => registration.sessionLines.some(isAnnouncementPending)).length)
 
 const lineOf = (registration: PeriodRegistration, session: SelectionSession) => registration.sessionLines.find((line) => line.sessionId === session.id)
 const statusIn = (session: SelectionSession, statuses: string[]) => pool.value.filter((registration) => statuses.includes(lineOf(registration, session)?.status ?? ''))
@@ -557,23 +581,58 @@ async function cancelDraw(entry: Draw) {
   }
 }
 
-async function announce() {
-  if (!confirm(`Prévenir ${plural(pendingCount.value, 'personne')} par email ? Chacune reçoit un lien personnel ; les précédents restent valables.`)) return
-  announcing.value = true
+const linesToAnnounce = (session: SelectionSession, status: string) => pool.value.filter((registration) => {
+  const line = lineOf(registration, session)
+  return line && pendingAnnouncement(line) === status
+})
+const retainedToAnnounce = (session: SelectionSession) => linesToAnnounce(session, LINE.retained)
+const waitlistedToAnnounce = (session: SelectionSession) => linesToAnnounce(session, LINE.waitlisted)
+
+const announceCount = (session: SelectionSession) => retainedToAnnounce(session).length + (announceWaitlist.value[session.id] ? waitlistedToAnnounce(session).length : 0)
+
+const PROPOSAL_LABELS: Record<string, string> = {
+  [LINE.retained]: 'retenue depuis l’annonce',
+  [LINE.waitlisted]: 'passée en liste d’attente depuis l’annonce',
+  [ANNOUNCEMENT_REMOVED]: 'n’a plus ce qui lui a été annoncé'
+}
+
+// Après l'annonce, ce qui a changé pour une personne : l'équipe lui écrit, ou écarte l'email (R27)
+function proposals(session: SelectionSession) {
+  return pool.value.flatMap((registration) => {
+    const line = lineOf(registration, session)
+    const pending = line && pendingAnnouncement(line)
+    return pending ? [{ registration, label: PROPOSAL_LABELS[pending]! }] : []
+  })
+}
+
+async function announce(session: SelectionSession) {
+  const includeWaitlist = Boolean(announceWaitlist.value[session.id])
+  if (!confirm(`Annoncer le casting de « ${session.name} » à ${plural(announceCount(session), 'personne')} par email ? Ensuite, chaque changement se proposera personne par personne.`)) return
+  announcing.value = session.id
   message.value = ''
   try {
-    const result = await useApiAction(`/api/registration-periods/${props.period.id}/announce`, { method: 'POST' })
+    const result = await useApiAction(`/api/registration-periods/${props.period.id}/sessions/${session.id}/announce`, { method: 'POST', body: { includeWaitlist } })
     const failures = sendFailures(result.failures)
     showMessage([
       `${plural(result.announcedCount, 'personne')} prévenue${result.announcedCount > 1 ? 's' : ''}.`,
-      failures.length ? `Non prévenues : ${failures.join(', ')}. Elles restent à annoncer.` : ''
+      failures.length ? `Non prévenues : ${failures.join(', ')}. Elles restent à prévenir.` : ''
     ].filter(Boolean).join(' '), failures.length ? 'warning' : 'success')
   } catch (err) {
     showMessage(apiErrorMessage(err, 'Annonce impossible'), 'error')
   } finally {
-    announcing.value = false
+    announcing.value = null
   }
   await refresh()
+}
+
+async function answerProposal(registration: PeriodRegistration, session: SelectionSession, action: 'send' | 'ignore') {
+  answeringProposal.value = registration.id
+  await selectionWrite(
+    () => useApiAction(`/api/registrations/${registration.id}/announcement`, { method: 'POST', body: { action, sessionId: session.id } }),
+    'Email impossible',
+    action === 'send' ? `Email envoyé à ${registration.participant.name}.` : undefined
+  )
+  answeringProposal.value = null
 }
 
 // Sélection d'une session (R22)

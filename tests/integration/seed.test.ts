@@ -336,6 +336,16 @@ describe('Station Meridian, avant les sessions', () => {
     expect(rows.some((row) => row.status === 'retained' && !row.announcedStatus)).toBe(true)
   })
 
+  it('a une session à annoncer, et une session annoncée avec des emails à proposer (R26, R27)', async () => {
+    const links = await prisma.registrationPeriodSession.findMany({
+      where: { period: { gameId: meridian }, session: { status: 'scheduled' } },
+      select: { castAnnouncedAt: true, session: { select: { registrationLines: { select: { status: true, announcedStatus: true } } } } }
+    })
+    const pending = (link: typeof links[number]) => link.session.registrationLines.some((line) => line.status === 'retained' && line.announcedStatus !== 'retained')
+    expect(links.some((link) => !link.castAnnouncedAt && pending(link))).toBe(true)
+    expect(links.some((link) => link.castAnnouncedAt && pending(link))).toBe(true)
+  })
+
   it('a une session déjà demandée au vivier, à relancer (R12)', async () => {
     expect(await prisma.registrationPeriodSession.count({ where: { period: { gameId: meridian }, open: true, lastRequestedAt: { not: null } } })).toBe(1)
   })
