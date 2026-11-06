@@ -1,5 +1,7 @@
 // Tout joueur d'une session vient du vivier (R31 de SPEC-018, ADR-0069) : les joueurs des jeux de test y ont leur réponse
-// et leur place, comme après une vraie confirmation. Le jeu sans autre vivier en reçoit un fermé, sans lien à diffuser.
+// et leur place, comme après une vraie confirmation. Le jeu sans autre vivier en reçoit un fermé : son lien répond
+// « inscriptions closes ». Une réponse porte sa version du questionnaire : c'est elle qui lui fait suivre le compte.
+import { DEFAULT_REGISTRATION_FORM_DEFINITION } from '../../utils/registrationForms'
 import { splitParticipantName } from '../../utils/registrations'
 import { REGISTRATION_ANSWERS, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_SOURCES, REGISTRATION_STATUSES, REGISTRATION_PERIOD_STATES, SESSION_ROLES, SESSION_STATUSES } from '../../utils/domain'
 import type { Db } from './db'
@@ -32,6 +34,12 @@ export async function placePlayersInPool(db: Db, gameId: string) {
     create: { gameId, publicId: `essai-${gameId}`, state: REGISTRATION_PERIOD_STATES.closed, notifyTeam: false },
     select: { id: true }
   })
+  const { versions: [version] } = await db.registrationForm.upsert({
+    where: { gameId },
+    update: {},
+    create: { gameId, versions: { create: { number: 1, definition: DEFAULT_REGISTRATION_FORM_DEFINITION as object } } },
+    select: { versions: { orderBy: { number: 'desc' }, take: 1, select: { id: true } } }
+  })
   for (const { sessionId, session, participant } of players) {
     const { id: registrationId, status } = await db.registration.upsert({
       where: { periodId_participantId: { periodId, participantId: participant.id } },
@@ -41,6 +49,7 @@ export async function placePlayersInPool(db: Db, gameId: string) {
         participantId: participant.id,
         status: REGISTRATION_STATUSES.received,
         source: REGISTRATION_SOURCES.form,
+        formVersionId: version!.id,
         email: participant.email ?? `${participant.slug}@example.test`,
         ...splitParticipantName(participant.name),
         phone: participant.user?.phone ?? participant.phone,

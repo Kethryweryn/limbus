@@ -271,7 +271,7 @@ export async function assertPlayersFromPool(gameId: string, sessionId: string | 
   for (const { name, registrations } of people) {
     const [registration] = registrations
     if (!registration) {
-      throw createError({ statusCode: 400, message: `${name} n’est pas dans le vivier de ce jeu : un joueur répond d’abord au questionnaire. Invitez cette personne à le remplir, ou ajoutez-la à l’équipe comme PNJ, cuisine ou organisation.` })
+      throw createError({ statusCode: 400, message: `${name} n’est pas dans le vivier de ce jeu : un joueur répond d’abord au questionnaire. Invitez cette personne à le remplir, ou donnez-lui le rôle de PNJ ou d’organisation pour tenir un personnage sans questionnaire.` })
     }
     if (!registration.sessionLines.length) {
       throw createError({ statusCode: 400, message: `${name} est dans le vivier sans être inscrite à cette session : retenez cette personne si ce n’est pas fait. Elle entre dans la session en confirmant sa place, et son personnage se réserve dans l’onglet Cast.` })

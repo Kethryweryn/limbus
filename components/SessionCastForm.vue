@@ -34,10 +34,10 @@
 
     <p v-if="isUpcoming" class="mb-4 text-sm text-gray-500">
       Un joueur vient du vivier : choisir une personne du vivier la retient et lui réserve le personnage, puis elle confirme sa place.
-      <template v-if="!session.poolState">
+      <template v-if="session.poolState === null">
         Ce jeu n’a pas encore de vivier : <NuxtLink to="/registrations" class="underline">créez-le dans Inscriptions</NuxtLink>.
       </template>
-      <template v-else-if="session.poolState !== REGISTRATION_PERIOD_STATES.open">
+      <template v-else-if="session.poolState && session.poolState !== REGISTRATION_PERIOD_STATES.open">
         Pour inviter une nouvelle personne, <NuxtLink to="/registrations" class="underline">ouvrez le vivier dans Inscriptions</NuxtLink>.
       </template>
     </p>
@@ -345,10 +345,14 @@ const paginatedAssignments = computed(() => sortedAssignments.value.slice(pagina
 
 const isUpcoming = computed(() => props.session.status === SESSION_STATUSES.scheduled)
 
-// Qui peut tenir un personnage : les joueurs, entrés par le vivier, les PNJ et l'organisation, pas la cuisine (R31 de SPEC-018)
-const castableIds = computed(() => new Set(props.session.participants
-  ?.filter((participant) => participant.role !== SESSION_ROLES.kitchen)
-  .map((participant) => participant.participantId || participant.participant?.id)))
+// Qui peut tenir un personnage : les joueurs, entrés par le vivier, les PNJ et l'organisation, pas la cuisine (R31 de
+// SPEC-018). Qui tient déjà une ligne reste affiché, même sans ce rôle
+const castableIds = computed(() => new Set([
+  ...(props.session.participants || [])
+    .filter((participant) => participant.role !== SESSION_ROLES.kitchen)
+    .map((participant) => participant.participantId || participant.participant?.id),
+  ...(props.session.assignments || []).map((assignment) => assignment.participantId || assignment.participant?.id)
+]))
 const participantOptions = computed(() => [
   { label: 'Aucun participant', value: '' },
   ...props.participants

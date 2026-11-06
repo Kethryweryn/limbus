@@ -45,6 +45,7 @@ describe('joueur hors du vivier (R31)', () => {
     const onCharacter = await saveCast(pool, pool.session.id, [{ characterId: pool.characters[0]!.id, participantId: zoe.id }])
     expect(onCharacter.status).toBe(400)
     expect(errorMessage(onCharacter)).toContain('Zoé n’est pas dans le vivier')
+    expect(errorMessage(onCharacter)).not.toContain('cuisine')
 
     const inTeam = await saveCast(pool, pool.session.id, [], [{ participantId: zoe.id, role: 'participant' }])
     expect(inTeam.status).toBe(400)
