@@ -3,7 +3,7 @@ import { prisma } from '~/server/utils/prisma'
 import { myParticipantIds } from '~/server/utils/participantAccounts'
 import { myDeliveriesBySession } from '~/server/utils/myDocuments'
 import { getSessionPaymentDashboard } from '~/server/utils/sessionPayments'
-import { registrationPermissions, visibleSessionLines } from '~/server/utils/publicRegistrations'
+import { registrationPermissions, visibleSessionLines, withValidatedSessions } from '~/server/utils/publicRegistrations'
 import { SESSION_ROLES } from '~/utils/domain'
 
 const sessionSelect = {
@@ -79,6 +79,7 @@ export async function myParticipations(userId: string, now = new Date()) {
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
+        participantId: true,
         status: true,
         responseDueAt: true,
         period: { select: { gameId: true, state: true } },
@@ -117,6 +118,10 @@ export async function myParticipations(userId: string, now = new Date()) {
   const attendanceBySession = new Map(attendances.map((item) => [item.sessionId, item]))
   const participantIds = new Set(ids)
 
+  // Ce que voit la personne (R28), avec « inscrite validée » (R18)
+  const validatedByRegistration = new Map(await Promise.all(registrations.map(async (registration) =>
+    [registration.id, await withValidatedSessions(registration.participantId, visibleSessionLines(registration.sessionLines, now))] as const)))
+
   const sessionViews = await Promise.all([...sessions.values()].map(async (session) => ({
     id: session.id,
     gameId: session.gameId,
@@ -149,7 +154,7 @@ export async function myParticipations(userId: string, now = new Date()) {
           poolState: registration.period.state,
           responseDueAt: registration.responseDueAt,
           // Une décision de sélection pas encore annoncée ne se voit pas (R28, ADR-0047)
-          sessions: visibleSessionLines(registration.sessionLines, now),
+          sessions: validatedByRegistration.get(registration.id) ?? [],
           ...registrationPermissions(registration)
         }))
     }))

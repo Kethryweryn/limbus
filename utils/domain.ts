@@ -206,6 +206,8 @@ export const REGISTRATION_SESSION_STATUS_META = {
   [REGISTRATION_SESSION_STATUSES.waitlisted]: { label: 'En attente', color: 'warning' },
   [REGISTRATION_SESSION_STATUSES.retained]: { label: 'Castée', color: 'primary' },
   [REGISTRATION_SESSION_STATUSES.confirmed]: { label: 'Inscrite', color: 'success' },
+  // Pas un statut enregistré : une inscrite dont le paiement est en règle, calculé à la lecture (R18)
+  validated: { label: 'Inscrite validée', color: 'success' },
   [REGISTRATION_SESSION_STATUSES.transferred]: { label: 'Transférée', color: 'neutral' },
   [REGISTRATION_SESSION_STATUSES.cancelled]: { label: 'Annulation', color: 'neutral' }
 } as const

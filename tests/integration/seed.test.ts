@@ -346,6 +346,13 @@ describe('Station Meridian, avant les sessions', () => {
     expect(links.some((link) => link.castAnnouncedAt && pending(link))).toBe(true)
   })
 
+  it('a une inscrite validée et une inscrite pas encore validée (R18)', async () => {
+    const periods = bodyOf<ApiResponse<'/api/registration-periods'>>(await api(owner, 'GET', `/api/registration-periods?gameId=${meridian}`))
+    const confirmed = periods[0]!.registrations.flatMap((registration) => registration.sessionLines).filter((line) => line.status === 'confirmed')
+    expect(confirmed.some((line) => line.validated)).toBe(true)
+    expect(confirmed.some((line) => !line.validated)).toBe(true)
+  })
+
   it('a une personne castée dont les réponses ont changé (R16)', async () => {
     expect(await prisma.registrationSession.count({ where: { registration: { period: { gameId: meridian } }, answersChangedAt: { not: null } } })).toBe(1)
   })

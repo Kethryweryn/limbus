@@ -274,7 +274,7 @@ const WITHDRAWAL_MESSAGES: Record<string, string> = {
 const withdrawalMessage = computed(() => WITHDRAWAL_MESSAGES[withdrawn.value?.withdrawalReason ?? ''] || WITHDRAWAL_MESSAGES.declined)
 
 const statusMeta = computed(() => metaOf(REGISTRATION_STATUS_META, registration.value?.status ?? '') ?? { label: '', color: 'neutral' as const })
-const lineMeta = (line: { status: string }) => metaOf(REGISTRATION_SESSION_STATUS_META, line.status) ?? { label: line.status, color: 'neutral' as const }
+const lineMeta = (line: { status: string, validated: boolean }) => metaOf(REGISTRATION_SESSION_STATUS_META, line.validated ? 'validated' : line.status) ?? { label: line.status, color: 'neutral' as const }
 const readOnly = computed(() => !details.value?.canAccept && !details.value?.canEdit)
 
 

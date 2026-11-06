@@ -161,7 +161,7 @@ onMounted(async () => {
 
 const sessionMeta = (session: { status: string }) => sessionStatusMeta(session.status)
 const registrationMeta = (registration: { status: string }) => metaOf(REGISTRATION_STATUS_META, registration.status) || { label: registration.status, color: 'neutral' as const }
-const lineMeta = (line: { status: string }) => metaOf(REGISTRATION_SESSION_STATUS_META, line.status) || { label: line.status, color: 'neutral' as const }
+const lineMeta = (line: { status: string, validated: boolean }) => metaOf(REGISTRATION_SESSION_STATUS_META, line.validated ? 'validated' : line.status) || { label: line.status, color: 'neutral' as const }
 const confirmable = (registration: MyRegistration) => registration.sessions.some((line) => line.canConfirmPlace)
 // Casting et inscription confirmée : « PJ » plutôt que « Participant »
 const roleLabel = (role: string) => role === SESSION_ROLES.participant ? 'PJ' : metaOf(SESSION_ROLE_LABELS, role) || role

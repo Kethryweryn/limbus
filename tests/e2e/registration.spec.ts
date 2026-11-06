@@ -591,3 +591,34 @@ test('le repère « Réponses modifiées » se marque comme lu', async ({ page }
     await prisma.$disconnect()
   }
 })
+
+// US-174 : « inscrite validée » se lit de la même façon côté équipe et côté personne, et suit le paiement
+test('le parcours affiche « Inscrite validée » pour l’équipe et pour la personne', async ({ page, otherPage }) => {
+  const prisma = createTestPrisma()
+  try {
+    const key = `valide-${Date.now()}`
+    const token = randomBytes(32).toString('base64url')
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+    const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
+    const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-06-01T09:00:00Z') } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `v${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } } })
+    await prisma.character.create({ data: { name: 'Seul PJ', slug: `pj-${key}`, gameId: game.id, type: 'pj' } })
+    const email = `noa-${key}@example.test`
+    const participant = await prisma.participant.create({ data: { name: 'Noa Valide', slug: `noa-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
+    await prisma.registration.create({ data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, respondedAt: new Date(), links: { create: { tokenHash: createHash('sha256').update(token).digest('hex') } }, sessionLines: { create: { sessionId: session.id, status: 'confirmed', confirmedAt: new Date(), announcedStatus: 'retained' } } } })
+    await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
+    await prisma.sessionPayment.create({ data: { sessionId: session.id, participantId: participant.id, paidAt: new Date() } })
+
+    await signIn(page, prisma, E2E_USERS.orga)
+    await page.goto('/registrations')
+    await page.waitForLoadState('networkidle')
+    await expect(gamePanel(page, game.title, 'Sélection').locator(`[data-session="${session.name}"]`).getByText('Inscrite validée')).toBeVisible()
+
+    const guest = await otherPage()
+    await guest.goto(`/inscription/${token}`)
+    await guest.waitForLoadState('networkidle')
+    await expect(guest.locator(`[data-session="${session.name}"]`).getByText('Inscrite validée')).toBeVisible()
+  } finally {
+    await prisma.$disconnect()
+  }
+})

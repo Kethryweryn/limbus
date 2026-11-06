@@ -346,6 +346,80 @@ describe('réponses modifiées (US-173, R16)', () => {
   })
 })
 
+describe('parcours complet (US-174, R18)', () => {
+  async function inscribed() {
+    const pool = await createPool(prisma, alice.id, { key: 'valide', sessions: 1, seats: 2 })
+    const session = pool.sessions[0]!
+    const token = randomBytes(32).toString('base64url')
+    const lou = await addPerson(prisma, pool, 'Lou', [], { links: { create: { tokenHash: sha256(token) } } })
+    await prisma.registrationSession.create({ data: { registrationId: lou.id, sessionId: session.id, status: 'confirmed', confirmedAt: new Date(), announcedStatus: 'retained' } })
+    await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: lou.participantId, role: 'participant' } })
+    counter++
+    const seenByPerson = async () => (bodyOf<{ sessions: Array<{ status: string, validated: boolean }> }>(await publicApi('GET', `/api/public/registrations/${token}`))).sessions[0]
+    const seenByTeam = async () => {
+      const periods = bodyOf<ApiResponse<'/api/registration-periods'>>(await api(alice, 'GET', `/api/registration-periods?gameId=${pool.game.id}`))
+      return periods[0]!.registrations.find((registration) => registration.id === lou.id)!.sessionLines[0]
+    }
+    return { pool, session, lou, seenByPerson, seenByTeam, path: `/api/public/registrations/${token}` }
+  }
+
+  it('se valide au paiement pour la personne comme pour l’équipe, et redevient inscrite sans lui', async () => {
+    const { session, lou, seenByPerson, seenByTeam } = await inscribed()
+    expect(await seenByPerson()).toMatchObject({ status: 'confirmed', validated: false })
+    expect(await seenByTeam()).toMatchObject({ status: 'confirmed', validated: false })
+
+    const paid = await prisma.sessionPayment.create({ data: { sessionId: session.id, participantId: lou.participantId, paidAt: new Date() } })
+    expect(await seenByPerson()).toMatchObject({ validated: true })
+    expect(await seenByTeam()).toMatchObject({ validated: true })
+
+    await prisma.sessionPayment.delete({ where: { id: paid.id } })
+    expect(await seenByPerson()).toMatchObject({ validated: false })
+  })
+
+  it('à tarifs : le premier versement valide, et aucun tarif pour elle valide dès la confirmation', async () => {
+    const { session, lou, seenByPerson } = await inscribed()
+    const tariff = await prisma.sessionTariff.create({ data: { sessionId: session.id, name: 'Joueur', amountCents: 5000, defaultRole: 'pj' } })
+    expect(await seenByPerson()).toMatchObject({ validated: false })
+    const payment = await prisma.sessionPayment.create({ data: { sessionId: session.id, participantId: lou.participantId, tariffId: tariff.id } })
+    await prisma.sessionPaymentInstalment.create({ data: { paymentId: payment.id, amountCents: 1000, receivedAt: new Date() } })
+    expect(await seenByPerson()).toMatchObject({ validated: true })
+
+    await prisma.sessionPaymentInstalment.deleteMany({ where: { paymentId: payment.id } })
+    expect(await seenByPerson()).toMatchObject({ validated: false })
+    await prisma.sessionPayment.update({ where: { id: payment.id }, data: { tariffId: null } })
+    await prisma.sessionTariff.update({ where: { id: tariff.id }, data: { defaultRole: 'kitchen' } })
+    expect(await seenByPerson()).toMatchObject({ validated: true })
+  })
+
+  it('retirée de l’équipe sans avoir payé, elle n’est pas validée', async () => {
+    const { session, lou, seenByPerson } = await inscribed()
+    await prisma.sessionTariff.create({ data: { sessionId: session.id, name: 'Joueur', amountCents: 5000, defaultRole: 'pj' } })
+    await prisma.sessionParticipant.deleteMany({ where: { sessionId: session.id, participantId: lou.participantId } })
+    expect(await seenByPerson()).toMatchObject({ status: 'confirmed', validated: false })
+  })
+
+  it('reportée : l’ancienne session est transférée, et le paiement reporté valide sur la nouvelle', async () => {
+    const { session, lou, path, pool } = await inscribed()
+    await prisma.sessionPayment.create({ data: { sessionId: session.id, participantId: lou.participantId, paidAt: new Date() } })
+    const postponed = await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { name: `Report ${pool.key}`, date: new Date(Date.now() + 60 * 86_400_000).toISOString() })
+    expect(postponed.status, JSON.stringify(postponed.body)).toBe(200)
+    const created = (postponed.body as { id: string }).id
+    const carried = await api(alice, 'PUT', `/api/sessions/${session.id}/payments/${lou.participantId}/refund`, { status: 'carried_over' })
+    expect(carried.status, JSON.stringify(carried.body)).toBe(200)
+
+    const lines = bodyOf<{ sessions: Array<{ sessionId: string, status: string, validated: boolean }> }>(await publicApi('GET', path))
+    expect(lines.sessions.find((line) => line.sessionId === session.id)).toMatchObject({ status: 'transferred', validated: false })
+    expect(lines.sessions.find((line) => line.sessionId === created)).toMatchObject({ status: 'confirmed', validated: true })
+  })
+
+  it('une décision pas confirmée n’est jamais validée', async () => {
+    const { session, lou, seenByPerson } = await inscribed()
+    await prisma.sessionPayment.create({ data: { sessionId: session.id, participantId: lou.participantId, paidAt: new Date() } })
+    await prisma.registrationSession.update({ where: { registrationId_sessionId: { registrationId: lou.id, sessionId: session.id } }, data: { status: 'retained', confirmedAt: null } })
+    expect(await seenByPerson()).toMatchObject({ status: 'retained', validated: false })
+  })
+})
+
 describe('disponibilités (R7, R29)', () => {
   // Une personne du vivier avec un lien connu, pré-inscrite pour la première des deux sessions ouvertes
   async function member(options: { seats?: number } = {}) {

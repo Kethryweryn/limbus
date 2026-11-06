@@ -40,8 +40,8 @@ export function registrationDisplayStatus(
 }
 
 // « Délai dépassé » se lit sur l'échéance (R20, ADR-0020) ; un statut inconnu s'affiche tel quel
-export function registrationStatusMeta(item: { status: string, responseDueAt?: DateLike }) {
-  return REGISTRATION_DISPLAY_STATUS_META[registrationDisplayStatus(item)] || { label: item.status, color: 'neutral' as const }
+export function registrationStatusMeta(item: { status: string, responseDueAt?: DateLike, validated?: boolean }) {
+  return REGISTRATION_DISPLAY_STATUS_META[item.validated ? 'validated' : registrationDisplayStatus(item)] || { label: item.status, color: 'neutral' as const }
 }
 
 type LineLike = { status: string, announcedStatus?: string | null, ignoredStatus?: string | null, cancelledById?: string | null }

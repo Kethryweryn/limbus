@@ -365,6 +365,9 @@ export async function createMeridianStage(db: Db, context: StageContext) {
     })
   }
 
+  // Maëlle a payé : inscrite validée ; l'autre inscrite reste « inscrite » (R18)
+  await db.sessionPayment.create({ data: { sessionId: chosenSession.id, participantId: people.get('maelle.renaud@example.test')!.id, paidAt: daysFromNow(-1) } })
+
   for (const email of generatedEmails.slice(20, 27)) await addLine(await createRegistration(email), mixedSession.id, LINE.preregistered)
   // Retenue à la main, pas encore annoncée, et pré-inscrite ailleurs : Camille se voit encore pré-inscrite (R17, R28)
   await addLine(camille, mixedSession.id, LINE.retained, { ...retainedByHand })

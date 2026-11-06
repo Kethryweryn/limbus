@@ -4,7 +4,7 @@ import { CHARACTER_TYPES, REFUND_STATUSES, SESSION_ROLES, SESSION_STATUSES } fro
 import { giveUpSeat } from '~/server/utils/registrations'
 import { readUpload } from '~/server/utils/uploads'
 import { isHttpUrl } from '~/utils/urls'
-import { PAYMENT_STATES, TARIFF_ROLES, TARIFF_ROLE_ORDER, eurosToCents, paymentAmountLines, type PaymentAmounts, paymentState, solidarityBalance, suggestedDepartureStatus, tariffForPerson, withdrawalDeadlineLine } from '~/utils/sessionTariffs'
+import { PAYMENT_STATES, TARIFF_ROLES, TARIFF_ROLE_ORDER, eurosToCents, isPlaceValidated, paymentAmountLines, type PaymentAmounts, paymentState, solidarityBalance, suggestedDepartureStatus, tariffForPerson, withdrawalDeadlineLine } from '~/utils/sessionTariffs'
 
 function compactLines(lines: Array<string | null | undefined>) {
   return lines.filter((line) => typeof line === 'string' && line.trim()).join('\n')
@@ -313,6 +313,38 @@ export function buildTariffPaymentRows<P extends PaymentParticipant, C extends {
       state: paymentState({ dueCents, receivedCents: received, legacyPaid: Boolean(payment?.paidAt), offered })
     }
   })
+}
+
+/**
+ * Places validées (R18) parmi celles données, de personnes inscrites : rend de quoi les lire. Une personne retirée de
+ * l'équipe garde le tarif d'une joueuse : ne plus avoir de rôle ne la dispense pas de payer.
+ */
+export async function validatedPlaces(places: Array<{ sessionId: string, participantId: string }>) {
+  const placeKey = (sessionId: string, participantId: string) => `${sessionId}:${participantId}`
+  const validated = new Set<string>()
+  const isValidated = (sessionId: string, participantId: string) => validated.has(placeKey(sessionId, participantId))
+  if (!places.length) return isValidated
+  const participantIds = [...new Set(places.map((place) => place.participantId))]
+  const sessions = await prisma.session.findMany({
+    where: { id: { in: [...new Set(places.map((place) => place.sessionId))] } },
+    select: {
+      id: true,
+      tariffs: true,
+      assignments: { where: { participantId: { in: participantIds } }, select: { participantId: true, character: { select: { type: true } } } },
+      participants: { where: { participantId: { in: participantIds } }, select: { role: true, participant: { select: { id: true } } } },
+      payments: { where: { participantId: { in: participantIds } }, select: { participantId: true, paidAt: true, offered: true, tariffId: true, refundStatus: true, transferredToParticipantId: true, instalments: { select: { id: true } } } }
+    }
+  })
+  const byId = new Map(sessions.map((session) => [session.id, session]))
+  for (const { sessionId, participantId } of places) {
+    const session = byId.get(sessionId)
+    if (!session) continue
+    const payment = session.payments.find((row) => row.participantId === participantId)
+    const held = tariffRolesOf(participantId, session.assignments, session.participants)
+    const roles = held.length ? held : [TARIFF_ROLES.pj]
+    if (isPlaceValidated({ tariffs: session.tariffs, roles, payment })) validated.add(placeKey(sessionId, participantId))
+  }
+  return isValidated
 }
 
 // Rôles de tarif d'une personne : PJ ou PNJ selon les personnages qu'elle joue, inscrite sans personnage = PJ
