@@ -225,6 +225,29 @@ describe('annoncer (US-088) et confirmer sa place (R18)', () => {
 
   const proposal = (registrationId: string, sessionId: string, action: 'send' | 'ignore') => api(alice, 'POST', `/api/registrations/${registrationId}/announcement`, { sessionId, action })
 
+  it('annonce la seule liste d’attente si la case est cochée', async () => {
+    const pool = await createPool(prisma, alice.id, { sessions: 1, seats: 1 })
+    const session = pool.sessions[0]!
+    const max = await addPerson(prisma, pool, 'Max', [session.id])
+    await select(max.id, 'waitlist', session.id)
+    expect(bodyOf<Announcement>(await announce(pool, true)).announcedCount).toBe(1)
+    expect(await line(max.id, session.id)).toMatchObject({ announcedStatus: 'waitlisted' })
+  })
+
+  it('le report garde l’annonce : retirer une personne sur la nouvelle session propose l’email (R27)', async () => {
+    const pool = await createPool(prisma, alice.id, { sessions: 1, seats: 1 })
+    const session = pool.sessions[0]!
+    const lou = await addPerson(prisma, pool, 'Lou', [session.id])
+    await select(lou.id, 'retain', session.id)
+    await announce(pool)
+    const postponed = await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { name: `Report ${pool.key}`, date: new Date(Date.now() + 40 * DAY).toISOString() })
+    expect(postponed.status, JSON.stringify(postponed.body)).toBe(200)
+    const created = (postponed.body as { id: string }).id
+    expect((await prisma.registrationPeriodSession.findUniqueOrThrow({ where: { sessionId: created } })).castAnnouncedAt).not.toBeNull()
+    await select(lou.id, 'reset', created)
+    expect((await proposal(lou.id, created, 'send')).status).toBe(200)
+  })
+
   it('la case décochée n’écrit pas à la liste d’attente, et ne le propose pas ensuite (R26)', async () => {
     const pool = await createPool(prisma, alice.id, { sessions: 1, seats: 1 })
     const session = pool.sessions[0]!

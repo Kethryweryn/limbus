@@ -79,11 +79,11 @@
           size="xs"
           color="primary"
           icon="i-heroicons-megaphone"
-          :disabled="!retainedToAnnounce(session).length"
+          :disabled="!announceCount(session)"
           :loading="announcing === session.id"
           @click="announce(session)"
         >
-          Annoncer le casting{{ retainedToAnnounce(session).length ? ` (${retainedToAnnounce(session).length})` : '' }}
+          Annoncer le casting{{ announceCount(session) ? ` (${announceCount(session)})` : '' }}
         </UButton>
         <UCheckbox
           v-if="waitlistedToAnnounce(session).length"
@@ -588,6 +588,8 @@ const linesToAnnounce = (session: SelectionSession, status: string) => pool.valu
 const retainedToAnnounce = (session: SelectionSession) => linesToAnnounce(session, LINE.retained)
 const waitlistedToAnnounce = (session: SelectionSession) => linesToAnnounce(session, LINE.waitlisted)
 
+const announceCount = (session: SelectionSession) => retainedToAnnounce(session).length + (announceWaitlist.value[session.id] ? waitlistedToAnnounce(session).length : 0)
+
 const PROPOSAL_LABELS: Record<string, string> = {
   [LINE.retained]: 'retenue depuis l’annonce',
   [LINE.waitlisted]: 'passée en liste d’attente depuis l’annonce',
@@ -605,8 +607,7 @@ function proposals(session: SelectionSession) {
 
 async function announce(session: SelectionSession) {
   const includeWaitlist = Boolean(announceWaitlist.value[session.id])
-  const count = retainedToAnnounce(session).length + (includeWaitlist ? waitlistedToAnnounce(session).length : 0)
-  if (!confirm(`Annoncer le casting de « ${session.name} » à ${plural(count, 'personne')} par email ? Ensuite, chaque changement se proposera personne par personne.`)) return
+  if (!confirm(`Annoncer le casting de « ${session.name} » à ${plural(announceCount(session), 'personne')} par email ? Ensuite, chaque changement se proposera personne par personne.`)) return
   announcing.value = session.id
   message.value = ''
   try {

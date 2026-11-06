@@ -343,25 +343,29 @@ type AnnouncementTarget = {
 type AnnouncementLine = { id: string, status: string, announcedStatus: string | null, ignoredStatus: string | null, cancelledById: string | null, session: { name: string, date: Date | null } }
 
 /**
- * Écrit à une personne ce qu'il y a à lui annoncer pour une session. Chaque email crée son lien (ADR-0070) ; il n'est
- * enregistré qu'après l'envoi : un échec laisse l'annonce à faire. L'échéance d'une place retenue part de cet email (R20,
- * R27). Un retrait annoncé ne se propose plus, et la personne voit son nouveau statut.
+ * Écrit à une personne ce qu'il y a à lui annoncer pour une session. Chaque email a son lien (ADR-0070), créé avant
+ * l'envoi : un email parti ne porte jamais un lien mort, et un échec efface le lien et laisse l'annonce à faire.
+ * L'échéance d'une place retenue part de cet email (R20, R27). Un retrait annoncé ne se propose plus, et la personne voit
+ * son nouveau statut.
  */
 async function deliverAnnouncement(transport: EmailTransport, period: { responseDelayDays: number, game: { title: string } }, registration: AnnouncementTarget, line: AnnouncementLine, now = new Date()) {
   const status = pendingAnnouncement(line)!
   const responseDueAt = status === LINE.retained ? registrationResponseDueAt(period.responseDelayDays, now) : null
   const { token, tokenHash } = createRegistrationToken()
-  await transport.send({
-    to: registration.email,
-    ...selectionAnnouncementEmail({ status, participantName: registration.participant.name, gameTitle: period.game.title, url: registrationUrl(token), sessions: [line.session], responseDueAt })
-  })
-  const announcedStatus = status !== ANNOUNCEMENT_REMOVED ? status : line.status === LINE.cancelled ? LINE.cancelled : null
-  await prisma.$transaction(async (tx) => {
-    await tx.registrationLink.create({ data: { registrationId: registration.id, tokenHash } })
-    await tx.registrationSession.updateMany({
-      where: { id: line.id, status: line.status },
-      data: { announcedStatus, announcedAt: now, ignoredStatus: null, ...(responseDueAt ? { responseDueAt } : {}) }
+  const link = await prisma.registrationLink.create({ data: { registrationId: registration.id, tokenHash }, select: { id: true } })
+  try {
+    await transport.send({
+      to: registration.email,
+      ...selectionAnnouncementEmail({ status, participantName: registration.participant.name, gameTitle: period.game.title, url: registrationUrl(token), sessions: [line.session], responseDueAt })
     })
+  } catch (error) {
+    await prisma.registrationLink.delete({ where: { id: link.id } })
+    throw error
+  }
+  const announcedStatus = status !== ANNOUNCEMENT_REMOVED ? status : line.status === LINE.cancelled ? LINE.cancelled : null
+  await prisma.registrationSession.updateMany({
+    where: { id: line.id, status: line.status },
+    data: { announcedStatus, announcedAt: now, ignoredStatus: null, ...(responseDueAt ? { responseDueAt } : {}) }
   })
 }
 

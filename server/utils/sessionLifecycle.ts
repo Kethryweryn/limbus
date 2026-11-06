@@ -89,7 +89,9 @@ export async function postponeSession(sessionId: string, target: { name: string,
       select: { registrationId: true, status: true, answer: true, answeredAt: true, responseDueAt: true, confirmedAt: true, retainedById: true, announcedStatus: true, announcedAt: true, registration: { select: { periodId: true } } }
     })
     if (placed.length) {
-      await tx.registrationPeriodSession.create({ data: { periodId: placed[0]!.registration.periodId, sessionId: created.id } })
+      // Une annonce faite le reste : les changements sur la nouvelle session se proposent ligne par ligne (R27)
+      const previous = await tx.registrationPeriodSession.findUnique({ where: { sessionId: session.id }, select: { castAnnouncedAt: true } })
+      await tx.registrationPeriodSession.create({ data: { periodId: placed[0]!.registration.periodId, sessionId: created.id, castAnnouncedAt: previous?.castAnnouncedAt ?? null } })
       await tx.registrationSession.createMany({ data: placed.map(({ registration: _registration, ...line }) => ({ ...line, sessionId: created.id })) })
       await tx.registrationSession.updateMany({
         where: { sessionId: session.id, status: { in: REGISTRATION_SEAT_STATUSES } },
