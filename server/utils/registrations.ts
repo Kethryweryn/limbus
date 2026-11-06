@@ -749,6 +749,7 @@ export async function giveUpSeat(sessionId: string, participantId: string, postp
     where: { sessionId, registration: { participantId }, status: { in: REGISTRATION_CANCELLABLE_STATUSES } },
     data: { status: LINE.cancelled, cancelledAt: new Date(), waitlistPosition: null, retainedById: null }
   })
+  await prisma.registration.updateMany({ where: { participantId, sessionLines: { some: { sessionId } } }, data: { updatedAt: new Date() } })
   if (!postponedToSessionId) return
   const registration = await prisma.registration.findFirst({
     where: { participantId, sessionLines: { some: { sessionId: postponedToSessionId, status: { in: REGISTRATION_CANCELLABLE_STATUSES } } } },
