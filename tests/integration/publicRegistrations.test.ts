@@ -274,6 +274,55 @@ describe('modifier ses réponses (R14)', () => {
   })
 })
 
+describe('réponses modifiées (US-173, R16)', () => {
+  async function person(status?: string) {
+    const pool = await createPool(prisma, alice.id, { key: 'modif', sessions: 1, seats: 2 })
+    const session = pool.sessions[0]!
+    const token = randomBytes(32).toString('base64url')
+    const lou = await addPerson(prisma, pool, 'Lou', [], { links: { create: { tokenHash: sha256(token) } }, firstName: 'Lou', lastName: 'Dupont', phone: '0600000000', emergencyContactName: 'Maman', emergencyContactPhone: '0600000001', charterAcceptedAt: new Date() })
+    if (status) await prisma.registrationSession.create({ data: { registrationId: lou.id, sessionId: session.id, status, answer: 'available', announcedStatus: 'retained' } })
+    counter++
+    return { pool, session, lou, path: `/api/public/registrations/${token}` }
+  }
+  const emailsAboutChange = () => smtp.received.filter((email) => email.text.includes('a modifié ses réponses'))
+
+  it('castée : le repère apparaît et l’équipe est prévenue, sans recopier les réponses ; marqué comme lu, il disparaît', async () => {
+    const { session, lou, path } = await person('retained')
+    const before = emailsAboutChange().length
+    expect((await publicApi('PUT', path, answers({ phone: '0699999999' }))).status).toBe(200)
+    await expect.poll(() => emailsAboutChange().length).toBeGreaterThan(before)
+    const email = emailsAboutChange().at(-1)!
+    expect(email.text).toContain(session.name)
+    expect(email.text).not.toContain('0699999999')
+    expect((await lineOf(prisma, lou.id, session.id))?.answersChangedAt).not.toBeNull()
+
+    expect((await api(alice, 'POST', `/api/registrations/${lou.id}/answers-read`, { sessionId: session.id })).status).toBe(200)
+    expect((await lineOf(prisma, lou.id, session.id))?.answersChangedAt).toBeNull()
+  })
+
+  it('inscrite aussi ; un enregistrement sans changement ne déclenche rien', async () => {
+    const { session, lou, path } = await person('confirmed')
+    expect((await publicApi('PUT', path, answers())).status).toBe(200)
+    await prisma.registrationSession.update({ where: { registrationId_sessionId: { registrationId: lou.id, sessionId: session.id } }, data: { answersChangedAt: null } })
+    expect((await publicApi('PUT', path, answers())).status).toBe(200)
+    expect((await lineOf(prisma, lou.id, session.id))?.answersChangedAt).toBeNull()
+    expect((await publicApi('PUT', path, answers({ phone: '0688888888' }))).status).toBe(200)
+    expect((await lineOf(prisma, lou.id, session.id))?.answersChangedAt).not.toBeNull()
+  })
+
+  it('pré-inscrite, en attente ou simplement intéressée : rien ne se déclenche ; une session passée non plus', async () => {
+    for (const status of ['preregistered', 'waitlisted']) {
+      const { session, lou, path } = await person(status)
+      expect((await publicApi('PUT', path, answers({ phone: '0677777777' }))).status).toBe(200)
+      expect((await lineOf(prisma, lou.id, session.id))?.answersChangedAt).toBeNull()
+    }
+    const { session, lou, path } = await person('confirmed')
+    await prisma.session.update({ where: { id: session.id }, data: { date: new Date(Date.now() - 30 * 86_400_000) } })
+    expect((await publicApi('PUT', path, answers({ phone: '0677777778' }))).status).toBe(200)
+    expect((await lineOf(prisma, lou.id, session.id))?.answersChangedAt).toBeNull()
+  })
+})
+
 describe('disponibilités (R7, R29)', () => {
   // Une personne du vivier avec un lien connu, pré-inscrite pour la première des deux sessions ouvertes
   async function member(options: { seats?: number } = {}) {

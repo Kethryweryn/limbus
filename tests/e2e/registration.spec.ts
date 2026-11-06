@@ -564,3 +564,30 @@ test('après l’annonce du casting, chaque changement se propose personne par p
     await prisma.$disconnect()
   }
 })
+
+// US-173 : une personne castée change ses réponses ; le repère apparaît, et disparaît une fois marqué comme lu
+test('le repère « Réponses modifiées » se marque comme lu', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const key = `modif-${Date.now()}`
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+    const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
+    const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-06-01T09:00:00Z') } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `m${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } } })
+    await prisma.character.create({ data: { name: 'Seul PJ', slug: `pj-${key}`, gameId: game.id, type: 'pj' } })
+    const email = `noa-${key}@example.test`
+    const participant = await prisma.participant.create({ data: { name: 'Noa Modif', slug: `noa-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
+    await prisma.registration.create({ data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, respondedAt: new Date(), sessionLines: { create: { sessionId: session.id, status: 'retained', answer: 'available', answersChangedAt: new Date() } } } })
+
+    await signIn(page, prisma, E2E_USERS.orga)
+    await page.goto('/registrations')
+    await page.waitForLoadState('networkidle')
+    const block = gamePanel(page, game.title, 'Sélection').locator(`[data-session="${session.name}"]`)
+    await expect(block.getByText('Réponses modifiées')).toBeVisible()
+    await block.getByRole('button', { name: 'Marquer comme lu' }).click()
+    await expect(block.getByText('Réponses modifiées')).toHaveCount(0)
+    await expect.poll(async () => (await prisma.registrationSession.findFirst({ where: { sessionId: session.id }, select: { answersChangedAt: true } }))?.answersChangedAt).toBeNull()
+  } finally {
+    await prisma.$disconnect()
+  }
+})

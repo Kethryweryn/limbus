@@ -4,6 +4,7 @@
     <span class="font-medium text-gray-800">{{ registration.participant.name }}</span>
     <UBadge v-if="line" class="ml-2" size="sm" :color="statusMeta.color" variant="subtle">{{ statusMeta.label }}</UBadge>
     <UBadge v-if="line && pending" class="ml-1" size="sm" color="warning" variant="outline">À annoncer</UBadge>
+    <UBadge v-if="line?.answersChangedAt" class="ml-1" size="sm" color="warning" variant="subtle" icon="i-heroicons-pencil-square">Réponses modifiées</UBadge>
     <UBadge v-if="line && line.answer === REGISTRATION_ANSWERS.unavailable && line.status !== REGISTRATION_SESSION_STATUSES.unavailable" class="ml-1" size="sm" color="warning" variant="outline">A répondu « pas disponible »</UBadge>
     <UBadge v-if="replayer" class="ml-1" size="sm" color="neutral" variant="outline">A déjà joué</UBadge>
     <!-- Affinités (US-095, US-096) : alerte de la session, lignes à rattacher -->

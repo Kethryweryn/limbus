@@ -233,7 +233,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-170](EPIC-048-casting-depuis-le-vivier/US-170-assistant-sur-les-pre-inscrits.md) | Proposer le casting parmi les pré-inscrits | EPIC-048 | terminée |
 | [US-171](EPIC-046-vivier-unique/US-171-tirage-par-session.md) | Tirer au sort pour une session | EPIC-046 | terminée |
 | [US-172](EPIC-048-casting-depuis-le-vivier/US-172-annoncer-le-casting.md) | Annoncer le casting, puis écrire au cas par cas | EPIC-048 | terminée |
-| [US-173](EPIC-048-casting-depuis-le-vivier/US-173-reponses-modifiees.md) | Être prévenue quand une personne castée change ses réponses | EPIC-048 | à faire |
+| [US-173](EPIC-048-casting-depuis-le-vivier/US-173-reponses-modifiees.md) | Être prévenue quand une personne castée change ses réponses | EPIC-048 | terminée |
 | [US-174](EPIC-048-casting-depuis-le-vivier/US-174-parcours-complet.md) | Lire le parcours complet d'une personne | EPIC-048 | à faire |
 | [US-175](EPIC-048-casting-depuis-le-vivier/US-175-retirer-l-ancien-modele.md) | Retirer l'ancien modèle des inscriptions | EPIC-048 | à faire |
 | [US-176](EPIC-046-vivier-unique/US-176-joueur-par-le-questionnaire.md) | Faire passer tout joueur par le questionnaire | EPIC-046 | terminée |
