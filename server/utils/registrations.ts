@@ -8,7 +8,7 @@ import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
 import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
 import { REGISTRATION_CANCELLABLE_STATUSES, REGISTRATION_PERIOD_STATES, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
-import { AVAILABILITY_ANSWER_PARAMS, canConfirmPlace } from '~/utils/registrations'
+import { ANNOUNCEMENT_REMOVED, AVAILABILITY_ANSWER_PARAMS, canConfirmPlace } from '~/utils/registrations'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -175,6 +175,7 @@ export function availabilityRequestEmail(params: {
 }
 
 export function selectionAnnouncementEmail(params: {
+  // Statut annoncé, ou ANNOUNCEMENT_REMOVED pour une place ou une attente qui ne tient plus
   status: string
   participantName: string
   gameTitle: string
@@ -184,6 +185,19 @@ export function selectionAnnouncementEmail(params: {
 }) {
   const greeting = [`Bonjour ${params.participantName},`, '']
   const link = ['', 'Ce lien personnel vous est propre, ne le transférez pas.']
+  if (params.status === ANNOUNCEMENT_REMOVED) {
+    return {
+      subject: `Changement pour votre session : ${params.gameTitle}`,
+      text: [
+        ...greeting,
+        `L’équipe de « ${params.gameTitle} » revient sur ce qu’elle vous avait annoncé : vous n’avez plus de place ni d’attente pour la session ${sessionLabel(params.sessions[0]!)}.`,
+        '',
+        'Vous restez dans le vivier du jeu. Ce lien vous permet de revoir vos réponses :',
+        params.url,
+        ...link
+      ].join('\n')
+    }
+  }
   if (params.status === LINE.retained) {
     return {
       subject: `Place retenue : ${params.gameTitle}`,

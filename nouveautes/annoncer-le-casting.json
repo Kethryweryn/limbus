@@ -1,0 +1,5 @@
+{
+  "type": "modifie",
+  "titre": "Annoncer le casting session par session",
+  "texte": "Chaque session a son bouton « Annoncer le casting » : il écrit aux personnes retenues, et à la liste d’attente seulement si vous cochez la case. Ensuite, rien ne part tout seul : quand vous changez le casting, Limbus vous propose un email pour la personne concernée, que vous envoyez ou ignorez. Tant qu’aucun email ne lui est parti, la personne voit ce qui lui a été annoncé."
+}

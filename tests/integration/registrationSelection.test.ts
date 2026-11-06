@@ -31,12 +31,12 @@ async function publicApi(method: string, path: string, body?: unknown) {
 }
 
 type Selection = ApiResponse<'/api/registration-periods/:id/selection'>
-type Announcement = ApiResponse<'/api/registration-periods/:id/announce', 'post'>
+type Announcement = ApiResponse<'/api/registration-periods/:id/sessions/:sessionId/announce', 'post'>
 
 const select = (registrationId: string, action: string, sessionId: string) =>
   api(alice, 'POST', `/api/registrations/${registrationId}/selection`, { action, sessionId })
 const line = (registrationId: string, sessionId: string) => lineOf(prisma, registrationId, sessionId)
-const announce = (periodId: string) => api(alice, 'POST', `/api/registration-periods/${periodId}/announce`)
+const announce = (pool: { period: { id: string }, sessions: Array<{ id: string }> }, includeWaitlist = true, sessionId = pool.sessions[0]!.id) => api(alice, 'POST', `/api/registration-periods/${pool.period.id}/sessions/${sessionId}/announce`, { includeWaitlist })
 const emailsTo = (registration: { email: string }) => smtp.received.filter((email) => email.to.includes(registration.email))
 
 describe('une personne, session par session (R17)', () => {
@@ -170,7 +170,7 @@ describe('annoncer (US-088) et confirmer sa place (R18)', () => {
     await select(lou.id, 'retain', first.id)
     await select(max.id, 'waitlist', first.id)
 
-    expect((await announce(pool.period.id)).status).toBe(200)
+    expect((await announce(pool)).status).toBe(200)
     const louEmail = emailsTo(lou)[0]!
     expect(louEmail.text).toContain('est retenue pour la session')
     expect(emailsTo(max)[0]!.text).toContain('liste d’attente')
@@ -181,8 +181,8 @@ describe('annoncer (US-088) et confirmer sa place (R18)', () => {
     expect(announced).toMatchObject({ announcedStatus: 'retained' })
     expect(announced!.responseDueAt!.getTime()).toBeGreaterThan(Date.now() + 6 * DAY)
 
-    // Une seconde annonce n'envoie rien
-    expect(bodyOf<Announcement>(await announce(pool.period.id)).announcedCount).toBe(0)
+    // Une seconde annonce est refusée : chaque changement se propose sur sa ligne (R27)
+    expect((await announce(pool)).status).toBe(409)
 
     const token = personalLinkToken(louEmail)!
     const view = await publicApi('GET', `/api/public/registrations/${token}`)
@@ -202,7 +202,7 @@ describe('annoncer (US-088) et confirmer sa place (R18)', () => {
     const session = pool.sessions[0]!
     const lou = await addPerson(prisma, pool, 'Lou', [session.id])
     await select(lou.id, 'waitlist', session.id)
-    await announce(pool.period.id)
+    await announce(pool)
     const token = personalLinkToken(emailsTo(lou).at(-1)!)!
 
     // Retenue après l'annonce : elle voit toujours la liste d'attente
@@ -218,9 +218,79 @@ describe('annoncer (US-088) et confirmer sa place (R18)', () => {
     const lou = await addPerson(prisma, pool, 'Lou', [session.id])
     await prisma.registration.update({ where: { id: lou.id }, data: { email: `refuse-${lou.email}` } })
     await select(lou.id, 'retain', session.id)
-    expect(bodyOf<Announcement>(await announce(pool.period.id)).failures).toHaveLength(1)
+    expect(bodyOf<Announcement>(await announce(pool)).failures).toHaveLength(1)
     expect(await line(lou.id, session.id)).toMatchObject({ announcedStatus: null })
     expect(await prisma.registrationLink.count({ where: { registrationId: lou.id } })).toBe(1)
+  })
+
+  const proposal = (registrationId: string, sessionId: string, action: 'send' | 'ignore') => api(alice, 'POST', `/api/registrations/${registrationId}/announcement`, { sessionId, action })
+
+  it('la case décochée n’écrit pas à la liste d’attente, et ne le propose pas ensuite (R26)', async () => {
+    const pool = await createPool(prisma, alice.id, { sessions: 1, seats: 1 })
+    const session = pool.sessions[0]!
+    const lou = await addPerson(prisma, pool, 'Lou', [session.id])
+    const max = await addPerson(prisma, pool, 'Max', [session.id])
+    await select(lou.id, 'retain', session.id)
+    await select(max.id, 'waitlist', session.id)
+    expect(bodyOf<Announcement>(await announce(pool, false)).announcedCount).toBe(1)
+    expect(emailsTo(max)).toHaveLength(0)
+    expect(await line(max.id, session.id)).toMatchObject({ announcedStatus: null, ignoredStatus: 'waitlisted' })
+    expect((await proposal(max.id, session.id, 'send')).status).toBe(409)
+  })
+
+  it('après l’annonce, rien ne part seul : la ligne propose un email, qui fait partir l’échéance (R27)', async () => {
+    const pool = await createPool(prisma, alice.id, { sessions: 1, seats: 2 })
+    const session = pool.sessions[0]!
+    const lou = await addPerson(prisma, pool, 'Lou', [session.id])
+    const max = await addPerson(prisma, pool, 'Max', [session.id])
+    await select(lou.id, 'retain', session.id)
+    await announce(pool)
+    await select(max.id, 'retain', session.id)
+    expect(emailsTo(max)).toHaveLength(0)
+    expect(await line(max.id, session.id)).toMatchObject({ status: 'retained', announcedStatus: null, responseDueAt: null })
+
+    expect((await proposal(max.id, session.id, 'send')).status).toBe(200)
+    expect(emailsTo(max)[0]!.text).toContain('est retenue pour la session')
+    expect((await line(max.id, session.id))!.responseDueAt).not.toBeNull()
+    expect((await proposal(max.id, session.id, 'send')).status).toBe(409)
+  })
+
+  it('retirée après l’annonce : elle voit encore sa place tant qu’aucun email ne part ; ignorer fait disparaître la proposition (R27, R28)', async () => {
+    const pool = await createPool(prisma, alice.id, { sessions: 1, seats: 2 })
+    const session = pool.sessions[0]!
+    const lou = await addPerson(prisma, pool, 'Lou', [session.id])
+    const max = await addPerson(prisma, pool, 'Max', [session.id])
+    await select(lou.id, 'retain', session.id)
+    await select(max.id, 'retain', session.id)
+    await announce(pool)
+    const louToken = personalLinkToken(emailsTo(lou)[0]!)!
+    const statusSeen = async (token: string) => ((await publicApi('GET', `/api/public/registrations/${token}`)).body as { sessions: Array<{ status: string }> }).sessions[0]!.status
+
+    await select(lou.id, 'reset', session.id)
+    expect(await line(lou.id, session.id)).toMatchObject({ status: 'cancelled' })
+    expect(await statusSeen(louToken)).toBe('retained')
+    expect((await proposal(lou.id, session.id, 'send')).status).toBe(200)
+    expect(emailsTo(lou).at(-1)!.text).toContain('vous n’avez plus de place')
+    expect(await statusSeen(louToken)).toBe('cancelled')
+
+    await select(max.id, 'reset', session.id)
+    expect((await proposal(max.id, session.id, 'ignore')).status).toBe(200)
+    expect((await proposal(max.id, session.id, 'send')).status).toBe(409)
+    expect(emailsTo(max)).toHaveLength(1)
+  })
+
+  it('jamais prévenue et sortie par sa propre réponse : aucune proposition', async () => {
+    const pool = await createPool(prisma, alice.id, { sessions: 1, seats: 2 })
+    const session = pool.sessions[0]!
+    const lou = await addPerson(prisma, pool, 'Lou', [session.id])
+    const max = await addPerson(prisma, pool, 'Max', [session.id])
+    await select(lou.id, 'retain', session.id)
+    await announce(pool)
+    await select(max.id, 'retain', session.id)
+    const token = 'p'.repeat(40) + '001'
+    await prisma.registrationLink.create({ data: { registrationId: max.id, tokenHash: createHash('sha256').update(token).digest('hex') } })
+    expect((await publicApi('POST', `/api/public/registrations/${token}/availability`, { sessionId: session.id, available: false })).status).toBe(200)
+    expect((await proposal(max.id, session.id, 'send')).status).toBe(409)
   })
 
   it('délai dépassé : l’équipe prolonge ou libère, puis retient la suivante de la file', async () => {
@@ -230,7 +300,7 @@ describe('annoncer (US-088) et confirmer sa place (R18)', () => {
     const max = await addPerson(prisma, pool, 'Max', [sessionId])
     await select(lou.id, 'retain', sessionId)
     await select(max.id, 'waitlist', sessionId)
-    await announce(pool.period.id)
+    await announce(pool)
     const key = { registrationId_sessionId: { registrationId: lou.id, sessionId } }
     await prisma.registrationSession.update({ where: key, data: { responseDueAt: new Date(Date.now() - DAY) } })
 
@@ -263,7 +333,7 @@ describe('annoncer (US-088) et confirmer sa place (R18)', () => {
     const sessionId = pool.sessions[0]!.id
     const lou = await addPerson(prisma, pool, 'Lou', [sessionId])
     await select(lou.id, 'retain', sessionId)
-    await announce(pool.period.id)
+    await announce(pool)
     const { responseDueAt } = (await line(lou.id, sessionId))!
     await select(lou.id, 'waitlist', sessionId)
     await select(lou.id, 'retain', sessionId)

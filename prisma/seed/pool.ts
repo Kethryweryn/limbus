@@ -7,6 +7,16 @@ import { REGISTRATION_ANSWERS, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATI
 import type { Db } from './db'
 import { daysFromNow } from './options'
 
+// Une session dont une décision est annoncée a son annonce : ses changements se proposent ligne par ligne (R27)
+async function markAnnouncedSessions(db: Db, gameId: string) {
+  const lines = await db.registrationSession.findMany({
+    where: { announcedStatus: { not: null }, registration: { period: { gameId } } },
+    distinct: ['sessionId'],
+    select: { sessionId: true }
+  })
+  await db.registrationPeriodSession.updateMany({ where: { sessionId: { in: lines.map((line) => line.sessionId) } }, data: { castAnnouncedAt: daysFromNow(-5) } })
+}
+
 export async function placePlayersInPool(db: Db, gameId: string) {
   const players = await db.sessionParticipant.findMany({
     where: { role: SESSION_ROLES.participant, session: { gameId } },
@@ -72,4 +82,5 @@ export async function placePlayersInPool(db: Db, gameId: string) {
       create: { registrationId, sessionId, status: line, answer: REGISTRATION_ANSWERS.available, announcedStatus: LINE.retained, confirmedAt: daysFromNow(-60) }
     })
   }
+  await markAnnouncedSessions(db, gameId)
 }

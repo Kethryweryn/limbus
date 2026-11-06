@@ -143,7 +143,7 @@ test('la page Inscriptions et une inscription consultée se relisent sans résea
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/registrations')
     await page.waitForLoadState('networkidle')
-    const panel = gamePanel(page, game.title, /Annoncer les résultats/)
+    const panel = gamePanel(page, game.title, 'Sélection')
     await expect(panel.getByText('Sessions · 1 personne dans le vivier')).toBeVisible()
     await panel.getByRole('button', { name: 'Détail' }).first().click()
     await expect(page.getByRole('dialog').getByText('Arachides')).toBeVisible()

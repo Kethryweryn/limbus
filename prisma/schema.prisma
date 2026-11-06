@@ -371,6 +371,8 @@ model RegistrationPeriodSession {
   id        String             @id @default(cuid())
   // Dernière demande de disponibilités ou relance (R9, R12) : une personne sans réponse n'a pas de ligne RegistrationSession
   lastRequestedAt DateTime?
+  // Annonce du casting (R26) ; ensuite, chaque changement se propose ligne par ligne (R27)
+  castAnnouncedAt DateTime?
   periodId  String
   period    RegistrationPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
   sessionId String             @unique
@@ -499,6 +501,8 @@ model RegistrationSession {
   // Dernier statut annoncé à la personne (ADR-0047)
   announcedStatus String?
   announcedAt    DateTime?
+  // Statut pour lequel l'équipe a écarté l'email à la personne (R27)
+  ignoredStatus  String?
   // Repère « réponses modifiées », jusqu'à ce qu'une organisatrice le marque comme lu (R16)
   answersChangedAt DateTime?
   createdAt      DateTime     @default(now())

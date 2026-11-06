@@ -216,7 +216,7 @@ export const REGISTRATION_ANSWERS = {
   unavailable: 'unavailable'
 } as const
 
-// Décisions de la sélection, annoncées par « Annoncer les résultats » (US-088)
+// Décisions de la sélection, annoncées par « Annoncer le casting » (R26)
 export const REGISTRATION_SELECTION_STATUSES: string[] = [
   REGISTRATION_SESSION_STATUSES.retained,
   REGISTRATION_SESSION_STATUSES.waitlisted

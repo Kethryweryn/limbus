@@ -44,11 +44,28 @@ export function registrationStatusMeta(item: { status: string, responseDueAt?: D
   return REGISTRATION_DISPLAY_STATUS_META[registrationDisplayStatus(item)] || { label: item.status, color: 'neutral' as const }
 }
 
-type LineLike = { status: string, announcedStatus?: string | null }
+type LineLike = { status: string, announcedStatus?: string | null, ignoredStatus?: string | null, cancelledById?: string | null }
 
-// Décision de la sélection qui diffère de ce qui a été annoncé à la personne pour cette session (ADR-0047)
+export const ANNOUNCEMENT_REMOVED = 'removed'
+
+// Une place ou une liste d'attente qui lui a été annoncée
+const wasAnnounced = (line: LineLike) => Boolean(line.announcedStatus && REGISTRATION_SELECTION_STATUSES.includes(line.announcedStatus))
+
+/**
+ * Ce qu'il y a à dire à la personne pour une session (R27) : une décision différente de ce qui lui a été annoncé, ou le
+ * retrait de ce qui lui a été annoncé. Rien à une personne jamais prévenue, à qui a confirmé, à qui s'est retirée
+ * elle-même, ni quand l'équipe a écarté cet email pour ce statut.
+ */
+export function pendingAnnouncement(line: LineLike) {
+  if (line.ignoredStatus === line.status) return null
+  if (REGISTRATION_SELECTION_STATUSES.includes(line.status)) return line.announcedStatus === line.status ? null : line.status
+  if (!wasAnnounced(line) || line.status === REGISTRATION_SESSION_STATUSES.confirmed || line.status === REGISTRATION_SESSION_STATUSES.transferred) return null
+  if (line.status === REGISTRATION_SESSION_STATUSES.cancelled && !line.cancelledById) return null
+  return ANNOUNCEMENT_REMOVED
+}
+
 export function isAnnouncementPending(line: LineLike) {
-  return REGISTRATION_SELECTION_STATUSES.includes(line.status) && line.announcedStatus !== line.status
+  return pendingAnnouncement(line) !== null
 }
 
 // Place retenue et annoncée : la personne peut la confirmer (US-089)
@@ -65,15 +82,15 @@ function answeredStatus(line: { answer?: string | null }) {
 
 /**
  * Statut que voit la personne pour une session (R28, ADR-0047) : ce qui lui a été annoncé, sinon sa dernière réponse ;
- * null si elle n'a rien à voir. Une décision pas encore annoncée ne se voit jamais, ni un retrait qu'elle n'a pas à
- * connaître.
+ * null si elle n'a rien à voir. Une décision pas encore annoncée ne se voit jamais, ni un retrait que l'équipe ne lui a
+ * pas encore écrit. Une personne qui a confirmé sa place apprend son annulation aussitôt.
  */
-export function visibleLineStatus(line: LineLike & { answer?: string | null, cancelledById?: string | null }) {
-  if (REGISTRATION_SELECTION_STATUSES.includes(line.status)) {
-    if (line.announcedStatus && REGISTRATION_SELECTION_STATUSES.includes(line.announcedStatus)) return line.announcedStatus
-    return answeredStatus(line)
-  }
-  if (line.status === REGISTRATION_SESSION_STATUSES.cancelled && line.cancelledById && !line.announcedStatus) return answeredStatus(line)
+export function visibleLineStatus(line: LineLike & { answer?: string | null, cancelledById?: string | null, confirmedAt?: Date | string | null }) {
+  if (REGISTRATION_SELECTION_STATUSES.includes(line.status)) return wasAnnounced(line) ? line.announcedStatus! : answeredStatus(line)
+  const byTeam = line.status === REGISTRATION_SESSION_STATUSES.cancelled && Boolean(line.cancelledById)
+  if (byTeam && line.confirmedAt) return line.status
+  if (wasAnnounced(line) && (byTeam || line.status === REGISTRATION_SESSION_STATUSES.preregistered || line.status === REGISTRATION_SESSION_STATUSES.unavailable)) return line.announcedStatus!
+  if (byTeam && !line.announcedStatus) return answeredStatus(line)
   return line.status
 }
 

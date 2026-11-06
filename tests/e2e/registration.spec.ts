@@ -276,14 +276,14 @@ test('l’équipe retient une pré-inscrite, l’annonce, et la personne confirm
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/registrations')
     await page.waitForLoadState('networkidle')
-    const panel = gamePanel(page, game.title, /Annoncer les résultats/)
+    const panel = gamePanel(page, game.title, 'Sélection')
     const sessionBlock = panel.locator(`[data-session="${session.name}"]`)
     await sessionBlock.locator('li').filter({ hasText: 'Noa Selection' }).getByRole('button', { name: 'Retenir' }).click()
     await expect(sessionBlock.getByText('À annoncer')).toBeVisible()
     await expect(sessionBlock.getByText('1 / 1 place')).toBeVisible()
 
     page.once('dialog', (dialog) => dialog.accept())
-    await panel.getByRole('button', { name: 'Annoncer les résultats (1)' }).click()
+    await sessionBlock.getByRole('button', { name: 'Annoncer le casting (1)' }).click()
     await expect(panel.getByText('1 personne prévenue.')).toBeVisible()
 
     await expect.poll(() => mailbox.to(email).length).toBe(1)
@@ -335,7 +335,7 @@ test('l’équipe tire au sort, voit le journal, puis annule le tirage', async (
     page.once('dialog', (dialog) => dialog.accept())
     await panel.getByRole('button', { name: 'Tirer au sort' }).click()
     await expect(panel.getByText('Tirage effectué')).toBeVisible()
-    await expect(panel.getByRole('button', { name: 'Annoncer les résultats (2)' })).toBeVisible()
+    await expect(panel.getByRole('button', { name: /Annoncer le casting (d+)/ })).toBeVisible()
     await expect(panel.getByRole('button', { name: 'Annuler ce tirage' })).toBeVisible()
 
     const statuses = async () => (await prisma.registrationSession.findMany({ where: { sessionId: session.id }, select: { status: true } })).map((row) => row.status).sort()
@@ -378,7 +378,7 @@ test('l’équipe rattache une affinité et voit l’alerte de la session', asyn
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/registrations')
     await page.waitForLoadState('networkidle')
-    const panel = gamePanel(page, game.title, /Annoncer les résultats/)
+    const panel = gamePanel(page, game.title, 'Sélection')
     await expect(panel.getByText('1 affinité à rattacher').first()).toBeVisible()
     await panel.locator(`[data-session="${session.name}"] li`).filter({ hasText: 'Lou Affinite' }).getByRole('button', { name: 'Détail' }).click()
     const dialog = page.getByRole('dialog')
@@ -416,7 +416,7 @@ test('demander au vivier, répondre d’un clic, puis relancer', async ({ page }
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/registrations')
     await page.waitForLoadState('networkidle')
-    const panel = gamePanel(page, game.title, /Annoncer les résultats/)
+    const panel = gamePanel(page, game.title, 'Sélection')
     const block = panel.locator(`[data-session="${session.name}"]`)
 
     // Ouvrir propose la demande, sans rien envoyer
@@ -491,7 +491,7 @@ test('réessayer une demande de disponibilités n’écrit qu’aux personnes en
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/registrations')
     await page.waitForLoadState('networkidle')
-    const block = gamePanel(page, game.title, /Annoncer les résultats/).locator(`[data-session="${session.name}"]`)
+    const block = gamePanel(page, game.title, 'Sélection').locator(`[data-session="${session.name}"]`)
     page.once('dialog', (dialog) => dialog.accept())
     await block.getByRole('button', { name: 'Demander au vivier (2)' }).click()
     await expect(block.getByText('Demande non envoyée')).toBeVisible()
@@ -505,6 +505,61 @@ test('réessayer une demande de disponibilités n’écrit qu’aux personnes en
     await expect(block.getByText('Demande non envoyée')).toHaveCount(0)
     await expect.poll(() => mailbox.to(repaired).length).toBe(1)
     expect(mailbox.to(fine)).toHaveLength(1)
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
+// US-172 : après l'annonce, rien ne part seul ; la ligne propose un email, que l'équipe envoie ou ignore
+test('après l’annonce du casting, chaque changement se propose personne par personne', async ({ page }) => {
+  const prisma = createTestPrisma()
+  const mailbox = openMailbox()
+  try {
+    const key = `annonce-${Date.now()}`
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+    const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
+    const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-06-01T09:00:00Z') } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `a${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } } })
+    await prisma.character.createMany({ data: [1, 2, 3].map((index) => ({ name: `PJ ${index}`, slug: `pj-${index}-${key}`, gameId: game.id, type: 'pj' })) })
+    const person = async (name: string, status: string) => {
+      const email = `${name.toLowerCase()}-${key}@example.test`
+      const participant = await prisma.participant.create({ data: { name, slug: `${name.toLowerCase()}-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
+      await prisma.registration.create({ data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, respondedAt: new Date(), sessionLines: { create: { sessionId: session.id, status, answer: 'available' } } } })
+      return email
+    }
+    const noa = await person('Noa', 'retained')
+    const eli = await person('Eli', 'waitlisted')
+    const sam = await person('Sam', 'preregistered')
+
+    await signIn(page, prisma, E2E_USERS.orga)
+    await page.goto('/registrations')
+    await page.waitForLoadState('networkidle')
+    const block = gamePanel(page, game.title, 'Sélection').locator(`[data-session="${session.name}"]`)
+
+    // Case décochée : la liste d'attente n'est pas prévenue
+    await expect(block.getByText('Prévenir aussi la liste d’attente (1)')).toBeVisible()
+    page.once('dialog', (dialog) => dialog.accept())
+    await block.getByRole('button', { name: 'Annoncer le casting (1)' }).click()
+    await expect(block.getByText(/Casting annoncé le/)).toBeVisible()
+    await expect.poll(() => mailbox.to(noa).length).toBe(1)
+    expect(mailbox.to(eli)).toHaveLength(0)
+
+    // Retenue après l'annonce : rien ne part, la ligne propose l'email
+    await block.locator('li').filter({ hasText: 'Sam' }).getByRole('button', { name: 'Retenir' }).click()
+    const proposals = block.locator('[data-announcement-proposals]')
+    await expect(proposals.getByText('Sam')).toBeVisible()
+    expect(mailbox.to(sam)).toHaveLength(0)
+    await proposals.getByRole('button', { name: 'Envoyer l’email' }).click()
+    await expect.poll(() => mailbox.to(sam).length).toBe(1)
+    await expect(proposals).toHaveCount(0)
+
+    // Sortie du cast : la proposition s'ignore
+    await block.locator('li').filter({ hasText: 'Noa' }).getByRole('button', { name: 'Changer' }).click()
+    await page.getByRole('menuitem', { name: 'Retirer du cast' }).click()
+    await expect(proposals.getByText('Noa')).toBeVisible()
+    await proposals.getByRole('button', { name: 'Ignorer' }).click()
+    await expect(proposals).toHaveCount(0)
+    expect(mailbox.to(noa)).toHaveLength(1)
   } finally {
     await prisma.$disconnect()
   }

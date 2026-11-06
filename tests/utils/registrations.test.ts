@@ -3,6 +3,7 @@ import {
   canConfirmPlace,
   isAnnouncementPending,
   isResponseOverdue,
+  pendingAnnouncement,
   registrationDisplayStatus,
   registrationStatusMeta,
   splitParticipantName,
@@ -37,7 +38,7 @@ describe('décisions à annoncer pour une session (US-088, ADR-0047)', () => {
     expect(isAnnouncementPending({ status: 'retained', announcedStatus: 'retained' })).toBe(false)
     expect(isAnnouncementPending({ status: 'waitlisted', announcedStatus: 'waitlisted' })).toBe(false)
     // Pré-inscrite, inscrite ou en annulation : rien à annoncer
-    expect(isAnnouncementPending({ status: 'preregistered', announcedStatus: 'waitlisted' })).toBe(false)
+    expect(isAnnouncementPending({ status: 'preregistered', announcedStatus: null })).toBe(false)
     expect(isAnnouncementPending({ status: 'confirmed', announcedStatus: 'retained' })).toBe(false)
     expect(isAnnouncementPending({ status: 'cancelled', announcedStatus: null })).toBe(false)
   })
@@ -47,6 +48,25 @@ describe('décisions à annoncer pour une session (US-088, ADR-0047)', () => {
     expect(canConfirmPlace({ status: 'retained', announcedStatus: null })).toBe(false)
     expect(canConfirmPlace({ status: 'retained', announcedStatus: 'waitlisted' })).toBe(false)
     expect(canConfirmPlace({ status: 'confirmed', announcedStatus: 'retained' })).toBe(false)
+  })
+})
+
+describe('email à proposer (R27)', () => {
+  it('un changement de ce qui a été annoncé, ou son retrait', () => {
+    expect(pendingAnnouncement({ status: 'retained', announcedStatus: 'waitlisted' })).toBe('retained')
+    expect(pendingAnnouncement({ status: 'waitlisted', announcedStatus: 'retained' })).toBe('waitlisted')
+    expect(pendingAnnouncement({ status: 'preregistered', announcedStatus: 'waitlisted' })).toBe('removed')
+    expect(pendingAnnouncement({ status: 'cancelled', announcedStatus: 'retained', cancelledById: 'orga' })).toBe('removed')
+  })
+
+  it('rien à qui n’a jamais été prévenue, à qui a confirmé, à qui s’est retirée, ni une fois l’email écarté', () => {
+    expect(pendingAnnouncement({ status: 'preregistered', announcedStatus: null })).toBeNull()
+    expect(pendingAnnouncement({ status: 'cancelled', announcedStatus: null, cancelledById: 'orga' })).toBeNull()
+    expect(pendingAnnouncement({ status: 'confirmed', announcedStatus: 'retained' })).toBeNull()
+    expect(pendingAnnouncement({ status: 'cancelled', announcedStatus: 'retained', cancelledById: null })).toBeNull()
+    expect(pendingAnnouncement({ status: 'retained', announcedStatus: 'waitlisted', ignoredStatus: 'retained' })).toBeNull()
+    // Écartée pour un autre statut : le nouveau changement se propose
+    expect(pendingAnnouncement({ status: 'retained', announcedStatus: 'waitlisted', ignoredStatus: 'waitlisted' })).toBe('retained')
   })
 })
 
@@ -65,7 +85,12 @@ describe('ce que voit la personne pour une session (R28)', () => {
 
   it('une annulation par l’équipe sans annonce ne se voit pas ; la sienne, si', () => {
     expect(visibleLineStatus({ status: 'cancelled', announcedStatus: null, answer: 'available', cancelledById: 'orga' })).toBe('preregistered')
-    expect(visibleLineStatus({ status: 'cancelled', announcedStatus: 'retained', answer: 'available', cancelledById: 'orga' })).toBe('cancelled')
+    // Retirée sans email : elle voit encore ce qui lui a été annoncé ; l'email fait passer l'annonce à « annulation »
+    expect(visibleLineStatus({ status: 'cancelled', announcedStatus: 'retained', answer: 'available', cancelledById: 'orga' })).toBe('retained')
+    expect(visibleLineStatus({ status: 'preregistered', announcedStatus: 'waitlisted', answer: 'available' })).toBe('waitlisted')
+    expect(visibleLineStatus({ status: 'cancelled', announcedStatus: 'cancelled', answer: 'available', cancelledById: 'orga' })).toBe('cancelled')
+    // Inscrite puis annulée par l'équipe : elle l'apprend aussitôt
+    expect(visibleLineStatus({ status: 'cancelled', announcedStatus: 'retained', confirmedAt: '2027-01-01', cancelledById: 'orga' })).toBe('cancelled')
     expect(visibleLineStatus({ status: 'cancelled', announcedStatus: null, answer: 'available', cancelledById: null })).toBe('cancelled')
   })
 
