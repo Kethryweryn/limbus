@@ -87,6 +87,8 @@ test('une session consultée se rouvre et se modifie sans réseau, puis la modif
   const prisma = createTestPrisma()
   try {
     const { session, character, participant } = await parcoursSession(prisma, 'Session hors ligne e2e')
+    // Déjà dans l'équipe de la session : elle reçoit son personnage
+    await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant('Léa Parcours').id, role: 'participant' } })
     await signIn(page, prisma, E2E_USERS.orga)
     // Avec le réseau : la liste puis la session, gardées sur l'appareil
     await page.goto('/sessions')

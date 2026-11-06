@@ -11,6 +11,7 @@ import { BAL_EXTRA_PEOPLE, createBalStage } from './seed/bal'
 import type { Db, StageContext } from './seed/db'
 import { createMeridianStage, MERIDIAN_EXTRA_PEOPLE } from './seed/meridian'
 import { daysFromNow, personAddress, readSeedOptions, type SeedOptions } from './seed/options'
+import { placePlayersInPool } from './seed/pool'
 import { createValombreStage } from './seed/valombre'
 
 // La transaction du rechargement, utilisée par toutes les fonctions du script : un échec laisse les jeux tels quels
@@ -1200,6 +1201,7 @@ async function main() {
       createdGameIds.push(createdGame.id)
     }
     await createCrossGameParticipants(createdGameIds)
+    for (const gameId of createdGameIds) await placePlayersInPool(db, gameId)
     await restoreAccess(preservedAccess)
 
     console.log(`${accountIdByEmail.size} compte(s) de test, ${preservedAccess.length} jeu(x) remplacé(s).`)

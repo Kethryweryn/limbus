@@ -56,6 +56,16 @@ export default async function globalSetup() {
       data: { name: person.name, slug: person.slug, email: person.email, gameLinks: { create: { gameId: parcours.id } } }
     })
   }
+  // Vivier du jeu commun (SPEC-018) : Léa et Noé y ont répondu ; les tests les placent dans leur propre session
+  const inPool = await prisma.participant.findMany({ where: { name: { in: ['Léa Parcours', 'Noé Parcours'] } }, select: { id: true, email: true } })
+  await prisma.registrationPeriod.create({
+    data: {
+      gameId: parcours.id,
+      publicId: 'e2e-parcours',
+      state: 'closed',
+      registrations: { create: inPool.map((person) => ({ participantId: person.id, email: person.email!, status: 'received', source: 'form', respondedAt: new Date() })) }
+    }
+  })
   // Emails de toute la série : le serveur vit le temps des tests, et s'arrête avec eux
   const stopSmtp = await startSharedSmtp(prisma)
   await prisma.$disconnect()

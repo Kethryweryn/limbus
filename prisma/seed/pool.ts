@@ -1,0 +1,44 @@
+// Tout joueur d'une session vient du vivier (R31 de SPEC-018, ADR-0069) : les joueurs des jeux de test y ont leur réponse
+// et leur place, comme après une vraie confirmation. Le jeu sans autre vivier en reçoit un fermé, sans lien à diffuser.
+import { REGISTRATION_ANSWERS, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_SOURCES, REGISTRATION_STATUSES, REGISTRATION_PERIOD_STATES, SESSION_ROLES, SESSION_STATUSES } from '../../utils/domain'
+import type { Db } from './db'
+import { daysFromNow } from './options'
+
+export async function placePlayersInPool(db: Db, gameId: string) {
+  const players = await db.sessionParticipant.findMany({
+    where: { role: SESSION_ROLES.participant, session: { gameId } },
+    select: { sessionId: true, session: { select: { status: true } }, participant: { select: { id: true, slug: true, email: true } } }
+  })
+  if (!players.length) return
+
+  const { id: periodId } = await db.registrationPeriod.upsert({
+    where: { gameId },
+    update: {},
+    create: { gameId, publicId: `essai-${gameId}`, state: REGISTRATION_PERIOD_STATES.closed, notifyTeam: false },
+    select: { id: true }
+  })
+  for (const { sessionId, session, participant } of players) {
+    const { id: registrationId, status } = await db.registration.upsert({
+      where: { periodId_participantId: { periodId, participantId: participant.id } },
+      update: {},
+      create: {
+        periodId,
+        participantId: participant.id,
+        status: REGISTRATION_STATUSES.received,
+        source: REGISTRATION_SOURCES.form,
+        email: participant.email ?? `${participant.slug}@example.test`,
+        respondedAt: daysFromNow(-90)
+      },
+      select: { id: true, status: true }
+    })
+    // Sorti du vivier ou seulement invité : son histoire reste celle que le jeu raconte
+    if (status !== REGISTRATION_STATUSES.received) continue
+    await db.registrationPeriodSession.upsert({ where: { sessionId }, update: {}, create: { periodId, sessionId } })
+    const line = session.status === SESSION_STATUSES.postponed ? LINE.transferred : LINE.confirmed
+    await db.registrationSession.upsert({
+      where: { registrationId_sessionId: { registrationId, sessionId } },
+      update: {},
+      create: { registrationId, sessionId, status: line, answer: REGISTRATION_ANSWERS.available, announcedStatus: LINE.retained, confirmedAt: daysFromNow(-60) }
+    })
+  }
+}

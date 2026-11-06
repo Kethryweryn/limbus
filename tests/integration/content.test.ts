@@ -159,6 +159,7 @@ describe('fichiers remplacés', () => {
     const before = await upload('photo', game.id, session.id)
     const after = await upload('photo', game.id, session.id)
     await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id, photoUrl: before.url } })
+    await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
 
     const response = await api(alice, 'PUT', `/api/sessions/${session.id}`, {
       name: session.name,
