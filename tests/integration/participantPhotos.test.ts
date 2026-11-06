@@ -103,6 +103,9 @@ describe('retrait et refus (US-109)', () => {
     const picture = await photo(g.game.id)
     const session = await castSession(g, new Date(Date.now() + 30 * DAY), lou, picture.url)
 
+    const withoutRecord = await prisma.user.create({ data: { email: `sans-fiche-${g.key}@example.test`, name: 'Sans fiche', password: 'non-utilise' } })
+    expect((await api(withoutRecord, 'GET', '/api/me/photo-refusal')).body).toEqual({ concerned: false, refused: false })
+
     const refused = await api(user, 'POST', '/api/me/photo-refusal', { refused: true })
     expect(refused.status, JSON.stringify(refused.body)).toBe(200)
     expect((await api(user, 'GET', '/api/me/photo-refusal')).body).toEqual({ concerned: true, refused: true })
