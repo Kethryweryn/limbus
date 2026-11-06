@@ -49,9 +49,9 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0043](ADR-0043-effacement-du-compte.md) | Effacer son compte efface ses fiches participant, après avoir prévenu les équipes | accepté | 2026-10-29 |
 | [ADR-0044](ADR-0044-copies-des-envois.md) | Une copie de chaque envoi, gardée jusqu'au lendemain de la session | accepté | 2026-10-30 |
 | [ADR-0045](ADR-0045-questions-et-affinites-du-formulaire.md) | Questions propres au jeu et affinités dans la définition du formulaire | accepté | 2026-10-31 |
-| [ADR-0046](ADR-0046-formulaire-public-des-inscriptions.md) | Formulaire public des inscriptions : demande à confirmer, inscription reçue, inscription permanente | accepté | 2026-10-31 |
-| [ADR-0047](ADR-0047-selection-des-inscriptions.md) | Sélection des inscriptions : décisions préparées puis annoncées, liste d'attente par session, vivier calculé | accepté | 2026-10-31 |
-| [ADR-0048](ADR-0048-tirage-au-sort.md) | Tirage au sort reproductible, session par session, avec pondérations et places réservées par valeur d'équilibre | accepté | 2026-11-01 |
+| [ADR-0046](ADR-0046-formulaire-public-des-inscriptions.md) | Formulaire public des inscriptions : demande à confirmer, inscription reçue, inscription permanente | remplacé en partie par ADR-0069 | 2026-10-31 |
+| [ADR-0047](ADR-0047-selection-des-inscriptions.md) | Sélection des inscriptions : décisions préparées puis annoncées, liste d'attente par session, vivier calculé | remplacé par ADR-0069 | 2026-10-31 |
+| [ADR-0048](ADR-0048-tirage-au-sort.md) | Tirage au sort reproductible, session par session, avec pondérations et places réservées par valeur d'équilibre | remplacé en partie par ADR-0069 | 2026-11-01 |
 | [ADR-0049](ADR-0049-rattachement-des-affinites.md) | Affinités rattachées à une fiche participant, suggestions et alertes calculées à la lecture | accepté | 2026-11-01 |
 | [ADR-0050](ADR-0050-relations-et-questionnaire-relie.md) | Relations orientées entre personnages, liens du questionnaire hors des versions du formulaire, relations refusées en lignes d'affinité | accepté | 2026-11-01 |
 | [ADR-0051](ADR-0051-assistant-de-casting.md) | Assistant de casting calculé à la demande, cadenas et réservation sur l'attribution | accepté | 2026-11-01 |

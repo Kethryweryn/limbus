@@ -50,7 +50,7 @@ Présenter un jeu à des personnes qui n'ont pas de compte, par un lien à diffu
 
 ## Hors périmètre
 
-- Lien de diffusion et formulaire d'inscription : [SPEC-001](SPEC-001-inscriptions.md), R32.
+- Lien de diffusion et formulaire d'inscription : [SPEC-001](SPEC-001-inscriptions.md), R32, et le vivier du jeu : [SPEC-018](SPEC-018-vivier-permanent.md).
 - En-têtes de sécurité des pages (CSP…) : fiche [Durcissement web](../todo/durcissement-web.md).
 
 ## Écarts constatés

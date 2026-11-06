@@ -1,12 +1,14 @@
 ---
 id: ADR-0048
 titre: Tirage au sort reproductible, session par session, avec pondérations et places réservées par valeur d'équilibre
-statut: accepté
+statut: remplacé en partie par ADR-0069
 date: 2026-11-01
 liens: [../specs/SPEC-001-inscriptions.md, ADR-0045-questions-et-affinites-du-formulaire.md, ADR-0047-selection-des-inscriptions.md]
 ---
 
 # ADR-0048 : Tirage au sort reproductible, session par session, avec pondérations et places réservées par valeur d'équilibre
+
+> Remplacé en partie par [ADR-0069](ADR-0069-vivier-unique-et-statut-par-session.md) : les réglages et le tirage portent sur une session du vivier, et les anciens tirages restent au journal. L'algorithme et la reproductibilité restent.
 
 ## Contexte
 

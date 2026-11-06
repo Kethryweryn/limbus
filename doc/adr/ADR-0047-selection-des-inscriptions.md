@@ -1,12 +1,14 @@
 ---
 id: ADR-0047
 titre: Sélection des inscriptions : décisions préparées puis annoncées, liste d'attente par session, vivier calculé
-statut: accepté
+statut: remplacé par ADR-0069
 date: 2026-10-31
 liens: [../specs/SPEC-001-inscriptions.md, ADR-0018-jetons-des-liens-personnels.md, ADR-0019-modele-des-inscriptions.md, ADR-0020-echeances-evaluees-a-la-lecture.md, ADR-0046-formulaire-public-des-inscriptions.md]
 ---
 
 # ADR-0047 : Sélection des inscriptions : décisions préparées puis annoncées, liste d'attente par session, vivier calculé
+
+> Remplacé par [ADR-0069](ADR-0069-vivier-unique-et-statut-par-session.md) : les décisions et leur annonce se lisent session par session, sans ancienne période, et une seule annonce par session (SPEC-018, R26 à R28). Le principe reste : une décision ne se voit qu'annoncée.
 
 ## Contexte
 

@@ -1,12 +1,14 @@
 ---
 id: ADR-0046
 titre: Formulaire public des inscriptions : demande à confirmer, inscription reçue, inscription permanente
-statut: accepté
+statut: remplacé en partie par ADR-0069
 date: 2026-10-31
 liens: [../specs/SPEC-001-inscriptions.md, ../specs/SPEC-009-page-publique.md, ADR-0018-jetons-des-liens-personnels.md, ADR-0019-modele-des-inscriptions.md, ADR-0041-fiches-rattachees-a-un-compte.md]
 ---
 
 # ADR-0046 : Formulaire public des inscriptions : demande à confirmer, inscription reçue, inscription permanente
+
+> Remplacé en partie par [ADR-0069](ADR-0069-vivier-unique-et-statut-par-session.md) : il n'y a plus de période ni de mode d'entrée, seulement le vivier du jeu. Le principe reste : une demande à confirmer ne crée rien avant la confirmation.
 
 ## Contexte
 
