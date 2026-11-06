@@ -315,11 +315,15 @@ export function buildTariffPaymentRows<P extends PaymentParticipant, C extends {
   })
 }
 
-const placeKey = (sessionId: string, participantId: string) => `${sessionId}:${participantId}`
-
-/** Places validées (R18) parmi celles données, des personnes inscrites : les clés rendues par `isValidatedPlace`. */
+/**
+ * Places validées (R18) parmi celles données, de personnes inscrites : rend de quoi les lire. Une personne retirée de
+ * l'équipe garde le tarif d'une joueuse : ne plus avoir de rôle ne la dispense pas de payer.
+ */
 export async function validatedPlaces(places: Array<{ sessionId: string, participantId: string }>) {
-  if (!places.length) return new Set<string>()
+  const placeKey = (sessionId: string, participantId: string) => `${sessionId}:${participantId}`
+  const validated = new Set<string>()
+  const isValidated = (sessionId: string, participantId: string) => validated.has(placeKey(sessionId, participantId))
+  if (!places.length) return isValidated
   const participantIds = [...new Set(places.map((place) => place.participantId))]
   const sessions = await prisma.session.findMany({
     where: { id: { in: [...new Set(places.map((place) => place.sessionId))] } },
@@ -332,18 +336,16 @@ export async function validatedPlaces(places: Array<{ sessionId: string, partici
     }
   })
   const byId = new Map(sessions.map((session) => [session.id, session]))
-  const validated = new Set<string>()
   for (const { sessionId, participantId } of places) {
     const session = byId.get(sessionId)
     if (!session) continue
     const payment = session.payments.find((row) => row.participantId === participantId)
-    const roles = tariffRolesOf(participantId, session.assignments, session.participants)
+    const held = tariffRolesOf(participantId, session.assignments, session.participants)
+    const roles = held.length ? held : [TARIFF_ROLES.pj]
     if (isPlaceValidated({ tariffs: session.tariffs, roles, payment })) validated.add(placeKey(sessionId, participantId))
   }
-  return validated
+  return isValidated
 }
-
-export const isValidatedPlace = (validated: Set<string>, sessionId: string, participantId: string) => validated.has(placeKey(sessionId, participantId))
 
 // Rôles de tarif d'une personne : PJ ou PNJ selon les personnages qu'elle joue, inscrite sans personnage = PJ
 function tariffRolesOf(

@@ -360,7 +360,7 @@ describe('parcours complet (US-174, R18)', () => {
       const periods = bodyOf<ApiResponse<'/api/registration-periods'>>(await api(alice, 'GET', `/api/registration-periods?gameId=${pool.game.id}`))
       return periods[0]!.registrations.find((registration) => registration.id === lou.id)!.sessionLines[0]
     }
-    return { pool, session, lou, seenByPerson, seenByTeam }
+    return { pool, session, lou, seenByPerson, seenByTeam, path: `/api/public/registrations/${token}` }
   }
 
   it('se valide au paiement pour la personne comme pour l’équipe, et redevient inscrite sans lui', async () => {
@@ -389,6 +389,27 @@ describe('parcours complet (US-174, R18)', () => {
     await prisma.sessionPayment.update({ where: { id: payment.id }, data: { tariffId: null } })
     await prisma.sessionTariff.update({ where: { id: tariff.id }, data: { defaultRole: 'kitchen' } })
     expect(await seenByPerson()).toMatchObject({ validated: true })
+  })
+
+  it('retirée de l’équipe sans avoir payé, elle n’est pas validée', async () => {
+    const { session, lou, seenByPerson } = await inscribed()
+    await prisma.sessionTariff.create({ data: { sessionId: session.id, name: 'Joueur', amountCents: 5000, defaultRole: 'pj' } })
+    await prisma.sessionParticipant.deleteMany({ where: { sessionId: session.id, participantId: lou.participantId } })
+    expect(await seenByPerson()).toMatchObject({ status: 'confirmed', validated: false })
+  })
+
+  it('reportée : l’ancienne session est transférée, et le paiement reporté valide sur la nouvelle', async () => {
+    const { session, lou, path, pool } = await inscribed()
+    await prisma.sessionPayment.create({ data: { sessionId: session.id, participantId: lou.participantId, paidAt: new Date() } })
+    const postponed = await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { name: `Report ${pool.key}`, date: new Date(Date.now() + 60 * 86_400_000).toISOString() })
+    expect(postponed.status, JSON.stringify(postponed.body)).toBe(200)
+    const created = (postponed.body as { id: string }).id
+    const carried = await api(alice, 'PUT', `/api/sessions/${session.id}/payments/${lou.participantId}/refund`, { status: 'carried_over' })
+    expect(carried.status, JSON.stringify(carried.body)).toBe(200)
+
+    const lines = bodyOf<{ sessions: Array<{ sessionId: string, status: string, validated: boolean }> }>(await publicApi('GET', path))
+    expect(lines.sessions.find((line) => line.sessionId === session.id)).toMatchObject({ status: 'transferred', validated: false })
+    expect(lines.sessions.find((line) => line.sessionId === created)).toMatchObject({ status: 'confirmed', validated: true })
   })
 
   it('une décision pas confirmée n’est jamais validée', async () => {
