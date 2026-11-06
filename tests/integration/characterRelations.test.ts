@@ -138,7 +138,7 @@ describe('questionnaire relié aux rôles (US-098)', () => {
       { questionId: scale.id, option: '', characterId: ada.id }
     ] })
     const participant = await prisma.participant.create({ data: { name: 'Lou', slug: `${key}-lou`, gameLinks: { create: { gameId: game.id } } } })
-    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: 'P', publicId: key } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: key } })
     const registration = await prisma.registration.create({
       data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: `${key}-lou@example.test`, respondedAt: new Date(), questionAnswers: { [choice.id]: 'Combat', [scale.id]: 4 } }
     })

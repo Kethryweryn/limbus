@@ -18,6 +18,9 @@ ALTER TABLE "RegistrationWaitlistEntry" DROP CONSTRAINT "RegistrationWaitlistEnt
 ALTER TABLE "RegistrationWaitlistEntry" DROP CONSTRAINT "RegistrationWaitlistEntry_sessionId_fkey";
 
 -- DropIndex
+DROP INDEX "RegistrationPeriod_gameId_idx";
+
+-- DropIndex
 DROP INDEX "Registration_sessionId_idx";
 
 -- AlterTable
@@ -26,6 +29,7 @@ ALTER TABLE "Session" DROP COLUMN "poolSeats";
 -- AlterTable
 ALTER TABLE "RegistrationPeriod" DROP COLUMN "closesAt",
 DROP COLUMN "entryMode",
+DROP COLUMN "name",
 DROP COLUMN "organizerPicks",
 DROP COLUMN "scope",
 DROP COLUMN "selectionMode",

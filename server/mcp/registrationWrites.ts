@@ -37,7 +37,7 @@ async function requirePeriod(event: H3Event, periodId: string) {
   const period = await findRegistrationPeriodOr404(periodId)
   await requireGameAccess(event, period.gameId)
   await assertUnmodifiedSince(event, 'registrationPeriod', period.id)
-  return await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: period.id }, select: { id: true, name: true, gameId: true } })
+  return await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: period.id }, select: { id: true, gameId: true } })
 }
 
 function registerPeriodTools({ event, server }: ToolContext) {
@@ -53,7 +53,7 @@ function registerPeriodTools({ event, server }: ToolContext) {
       gameId: jeuId,
       state: REGISTRATION_PERIOD_STATES.draft
     }))
-    await logWrite(event, 'creer_periode_inscription', AI_LOG_ACTIONS.created, { type: 'registrationPeriod', id: period.id, name: period.name, gameId: period.gameId })
+    await logWrite(event, 'creer_periode_inscription', AI_LOG_ACTIONS.created, { type: 'registrationPeriod', id: period.id, name: POOL_NAME, gameId: period.gameId })
     return { id: period.id, version: period.updatedAt }
   }))
 
@@ -69,7 +69,7 @@ function registerPeriodTools({ event, server }: ToolContext) {
       // L'état n'est jamais envoyé : la modification garde l'état actuel
       return parseZod(registrationPeriodUpdateSchema, { gameId: current.gameId, ...fields })
     }))
-    await logWrite(event, 'modifier_periode_inscription', AI_LOG_ACTIONS.changed, { type: 'registrationPeriod', id: period.id, name: period.name, gameId: period.gameId })
+    await logWrite(event, 'modifier_periode_inscription', AI_LOG_ACTIONS.changed, { type: 'registrationPeriod', id: period.id, name: POOL_NAME, gameId: period.gameId })
     return { id: period.id, version: period.updatedAt }
   }))
 
@@ -92,13 +92,14 @@ function registerPeriodTools({ event, server }: ToolContext) {
     requireWrite(event)
     const period = await withVersion(event, read, () => requirePeriod(event, periodeId))
     const result = await updateRegistrationSession(period, sessionId, parseZod(registrationSessionSettingsSchema, fields))
-    await logWrite(event, 'regler_selection_session', AI_LOG_ACTIONS.changed, { type: 'registrationPeriod', id: period.id, name: period.name, gameId: period.gameId })
+    await logWrite(event, 'regler_selection_session', AI_LOG_ACTIONS.changed, { type: 'registrationPeriod', id: period.id, name: POOL_NAME, gameId: period.gameId })
     return result
   }))
 }
 
 // Le formulaire est celui du jeu : le journal le nomme ainsi, le jeu figurant déjà sur la ligne
 const FORM_NAME = 'formulaire d’inscription'
+const POOL_NAME = 'Vivier'
 
 function registerFormTools({ event, server }: ToolContext) {
   const setting = z.object({ asked: z.boolean(), required: z.boolean() })
@@ -215,7 +216,7 @@ function registerSelectionTools({ event, server }: ToolContext) {
     requireWrite(event)
     const period = await withVersion(event, read, () => requirePeriod(event, periodeId))
     const result = await reorderWaitlist(period.id, sessionId, inscriptionIds)
-    await logWrite(event, 'ordonner_liste_attente', AI_LOG_ACTIONS.changed, { type: 'registrationPeriod', id: period.id, name: period.name, gameId: period.gameId })
+    await logWrite(event, 'ordonner_liste_attente', AI_LOG_ACTIONS.changed, { type: 'registrationPeriod', id: period.id, name: POOL_NAME, gameId: period.gameId })
     return result
   }))
 
@@ -232,7 +233,7 @@ function registerSelectionTools({ event, server }: ToolContext) {
       throw createError({ statusCode: 409, message: 'Une personne à tirer a déjà reçu une annonce : lancez ce tirage depuis l’interface.' })
     }
     const draw = await drawSession(period.id, sessionId, await requireCurrentUser(event))
-    await logWrite(event, 'tirer_au_sort', AI_LOG_ACTIONS.created, { type: 'registrationDraw', id: draw.id, name: period.name, gameId: period.gameId })
+    await logWrite(event, 'tirer_au_sort', AI_LOG_ACTIONS.created, { type: 'registrationDraw', id: draw.id, name: POOL_NAME, gameId: period.gameId })
     return draw
   }))
 
@@ -247,7 +248,7 @@ function registerSelectionTools({ event, server }: ToolContext) {
     if (!draw) throw createError({ statusCode: 404, message: 'Tirage introuvable' })
     const period = await withVersion(event, read, () => requirePeriod(event, draw.periodId))
     const result = await cancelDraw(draw.id, await requireCurrentUser(event))
-    await logWrite(event, 'annuler_tirage', AI_LOG_ACTIONS.changed, { type: 'registrationDraw', id: draw.id, name: period.name, gameId: period.gameId })
+    await logWrite(event, 'annuler_tirage', AI_LOG_ACTIONS.changed, { type: 'registrationDraw', id: draw.id, name: POOL_NAME, gameId: period.gameId })
     return result
   }))
 }

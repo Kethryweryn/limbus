@@ -39,7 +39,7 @@ const resources: Resource[] = [
     path: 'registration-periods',
     model: 'registrationPeriod',
     entity: (w) => w.registrationPeriod,
-    body: (w) => ({ name: 'Renommé', gameId: w.game.id, sessions: [{ sessionId: w.session.id, seats: 10 }] })
+    body: (w) => ({ gameId: w.game.id, responseDelayDays: 3 })
   }
 ]
 
@@ -87,10 +87,15 @@ describe.each(resources)('/api/$path', (resource) => {
   it('modification : refusée chez Bob, même avec un corps valide', async () => {
     expect(DENIED).toContain((await api(alice, 'PUT', `/api/${resource.path}/${foreign.id}`, resource.body(b))).status)
     expect(DENIED).toContain((await api(alice, 'PUT', `/api/${resource.path}/${foreign.id}`, resource.body(a))).status)
-    // Le champ renommé : title pour un jeu ou un document, name ailleurs
-    const field = 'title' in resource.body(b) ? 'title' : 'name'
-    const unchanged = await readRow(resource.model, foreign.id, field === 'title' ? { id: true, title: true } : { id: true, name: true })
-    expect(unchanged?.[field]).not.toBe('Renommé')
+    if (resource.model === 'registrationPeriod') {
+      // Un vivier n'a pas de nom : c'est son délai de réponse qui ne doit pas changer
+      expect((await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: foreign.id }, select: { responseDelayDays: true } })).responseDelayDays).not.toBe(3)
+    } else {
+      // Le champ renommé : title pour un jeu ou un document, name ailleurs
+      const field = 'title' in resource.body(b) ? 'title' : 'name'
+      const unchanged = await readRow(resource.model, foreign.id, field === 'title' ? { id: true, title: true } : { id: true, name: true })
+      expect(unchanged?.[field]).not.toBe('Renommé')
+    }
 
     expect((await api(alice, 'PUT', `/api/${resource.path}/${own.id}`, resource.body(a))).status).toBe(200)
   })

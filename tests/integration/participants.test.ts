@@ -28,7 +28,7 @@ async function personInTwoGames() {
     await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
     await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id } })
     await prisma.sessionAttendance.create({ data: { sessionId: session.id, participantId: participant.id, responseDueAt: new Date(Date.now() + 86_400_000) } })
-    const period = await prisma.registrationPeriod.create({ data: { name: `Inscriptions ${game.slug}`, gameId: game.id, publicId: `periode-${game.slug}` } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `periode-${game.slug}` } })
     await prisma.registration.create({
       data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'invitation', email: participant.email!, sessionLines: { create: { sessionId: session.id, status: 'confirmed' } } }
     })

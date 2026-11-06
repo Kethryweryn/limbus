@@ -51,7 +51,7 @@ async function castingGame() {
   expect(links.status, JSON.stringify(links.body)).toBe(200)
   const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
   const period = await prisma.registrationPeriod.create({
-    data: { name: `Période ${key}`, gameId: game.id, publicId: `pub-${key}`, state: 'open', sessions: { create: { sessionId: session.id } } }
+    data: { gameId: game.id, publicId: `pub-${key}`, state: 'open', sessions: { create: { sessionId: session.id } } }
   })
   return { key, game, session, period, iseult: iseult!, bran: bran!, cy: cy!, style: style!.id, level: level!.id }
 }

@@ -84,7 +84,7 @@ async function sourceGame(owner: { id: string } = alice) {
   const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId } })
   const participant = await prisma.participant.create({ data: { name: `Joueuse ${key}`, slug: `joueuse-${key}`, gameLinks: { create: { gameId } } } })
   await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: hero.id, participantId: participant.id } })
-  await prisma.registrationPeriod.create({ data: { name: `Période ${key}`, gameId, publicId: `pub-${key}` } })
+  await prisma.registrationPeriod.create({ data: { gameId, publicId: `pub-${key}` } })
   await prisma.gameShare.create({ data: { gameId, userId: carol.id } })
 
   return { game, hero, twin, photoUrl, current }

@@ -345,8 +345,6 @@ model Session {
 // plus lus : la seconde migration les retire
 model RegistrationPeriod {
   id                String   @id @default(cuid())
-  // Nom au journal des assistants
-  name              String   @default("Vivier")
   // Un seul vivier par jeu (R1)
   gameId            String   @unique
   game              Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
@@ -366,8 +364,6 @@ model RegistrationPeriod {
   registrations     Registration[]
   requests          RegistrationRequest[]
   draws             RegistrationDraw[]
-
-  @@index([gameId])
 }
 
 // Session suivie par le vivier (ADR-0069) : le casting se fait sur toute session qui a une ligne
@@ -418,8 +414,6 @@ model RegistrationFormVersion {
 
 // Personne du vivier d'un jeu (ADR-0069) : ses réponses et ses coordonnées, une ligne par personne. Son statut pour
 // chaque session est dans RegistrationSession. Les champs standards ne modifient pas la fiche du participant.
-// sessionId, confirmedAt, announcedStatus, announcedSessionId, announcedAt et retainedById ne sont plus lus : la seconde
-// migration les retire, avec RegistrationAvailability et RegistrationWaitlistEntry
 model Registration {
   id                    String                   @id @default(cuid())
   periodId              String
