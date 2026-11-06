@@ -10,6 +10,8 @@ adr: [ADR-0007, ADR-0008, ADR-0011, ADR-0045, ADR-0046, ADR-0047, ADR-0048, ADR-
 
 # SPEC-001 : Inscriptions, sélection et aide au casting
 
+> **À venir :** [SPEC-018](SPEC-018-vivier-permanent.md) remplacera les périodes d'inscription par un vivier unique par jeu. Cette page décrit le fonctionnement actuel jusqu'à sa livraison.
+
 ## Objectif
 
 Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions :
@@ -238,3 +240,4 @@ Chaque lot devient un epic, livrable seul :
 - 2026-11-01 : EPIC-024 (lot 5) terminé et archivé ; ADR-0050 accepté.
 - 2026-11-01 (choix du lot 6) : l'assistant est dans l'onglet Cast de la session et répartit le cast et les personnes retenues non confirmées. La note ne vient que du questionnaire : une réponse reliée au personnage vaut 1, à sa faction ou à son intrigue ½, une échelle à proportion. « Veut jouer avec » ne concerne que la session. « Ne veut pas jouer avec » interdit deux personnages en relation directe ; « ne veut pas croiser » reste une alerte. Un cadenas par ligne ; appliquer remplit le formulaire sans enregistrer ; un personnage donné à une personne retenue lui est réservé jusqu'à sa confirmation (R27 à R29).
 - 2026-11-01 : EPIC-025 (lot 6) terminé et archivé ; ADR-0051 accepté. SPEC-001 terminée.
+- 2026-11-06 : [SPEC-018](SPEC-018-vivier-permanent.md) remplacera les périodes, les modes d'entrée et le statut unique d'une inscription (retour A4-4 du cahier de tests).
