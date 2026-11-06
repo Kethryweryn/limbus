@@ -222,7 +222,8 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
       withdrawnAt: null,
       withdrawnById: null,
       invitedSessionId: null,
-      ...(tokenHash ? { links: { create: { tokenHash } } } : {})
+      // Deux ouvertures simultanées du lien de confirmation visent le même jeton
+      ...(tokenHash ? { links: { connectOrCreate: { where: { tokenHash }, create: { tokenHash } } } } : {})
     }
     const { id: registrationId } = await tx.registration.upsert({
       where: { periodId_participantId: { periodId: period.id, participantId: participant.id } },

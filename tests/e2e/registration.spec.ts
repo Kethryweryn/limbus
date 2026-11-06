@@ -441,15 +441,70 @@ test('demander au vivier, répondre d’un clic, puis relancer', async ({ page }
     await expect(prompt).toHaveCount(0)
     expect(await prisma.registrationSession.findFirst({ where: { sessionId: session.id }, select: { status: true } })).toEqual({ status: 'preregistered' })
 
+    // Une place déjà annoncée ne change pas, et la page renvoie vers l'annulation
+    await prisma.registrationSession.updateMany({ where: { sessionId: session.id }, data: { status: 'confirmed', announcedStatus: 'retained', confirmedAt: new Date() } })
+    const refusal = /\/inscription\/[^\s]+reponse=indisponible/.exec(mailbox.to(noa)[0]!.text)![0]
+    await page.goto(refusal)
+    await prompt.getByRole('button', { name: 'Confirmer : pas disponible' }).click()
+    await expect(page.getByText('Vous avez une place pour cette session')).toBeVisible()
+    expect(await prisma.registrationSession.findFirst({ where: { sessionId: session.id }, select: { status: true } })).toEqual({ status: 'confirmed' })
+
+    // Session refermée : plus rien à confirmer pour une personne sans réponse
+    await prisma.registrationPeriodSession.update({ where: { sessionId: session.id }, data: { open: false } })
+    await page.goto(/\/inscription\/[^\s]+reponse=disponible/.exec(mailbox.to(eli)[0]!.text)![0])
+    await expect(page.getByText('Cette session n’est plus proposée.')).toBeVisible()
+    await expect(prompt).toHaveCount(0)
+    await prisma.registrationPeriodSession.update({ where: { sessionId: session.id }, data: { open: true } })
+
     // Relancer écrit seulement à celle qui n'a pas répondu
     await page.goto('/registrations')
     await page.waitForLoadState('networkidle')
-    await expect(block.getByText('1 réponse')).toBeVisible()
+    await expect(block.getByText(/1 réponse/)).toBeVisible()
     page.once('dialog', (dialog) => dialog.accept())
     await block.getByRole('button', { name: 'Relancer (1)' }).click()
     await expect(panel.getByText('1 email envoyé.')).toBeVisible()
     await expect.poll(() => mailbox.to(eli).length).toBe(2)
     expect(mailbox.to(noa)).toHaveLength(1)
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
+// US-166 : un envoi raté se signale par personne, et « Réessayer » n'écrit qu'à elle
+test('réessayer une demande de disponibilités n’écrit qu’aux personnes en échec', async ({ page }) => {
+  const prisma = createTestPrisma()
+  const mailbox = openMailbox()
+  try {
+    const key = `reessai-${Date.now()}`
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+    const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
+    const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-06-01T09:00:00Z') } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `r${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } } })
+    const person = async (name: string, email: string) => {
+      const participant = await prisma.participant.create({ data: { name, slug: `${name.toLowerCase()}-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
+      return await prisma.registration.create({ data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, respondedAt: new Date() } })
+    }
+    const fine = `recoit-${key}@example.test`
+    const failing = await person('Echoue', `refuse-echoue-${key}@example.test`)
+    await person('Recoit', fine)
+
+    await signIn(page, prisma, E2E_USERS.orga)
+    await page.goto('/registrations')
+    await page.waitForLoadState('networkidle')
+    const block = gamePanel(page, game.title, /Annoncer les résultats/).locator(`[data-session="${session.name}"]`)
+    page.once('dialog', (dialog) => dialog.accept())
+    await block.getByRole('button', { name: 'Demander au vivier (2)' }).click()
+    await expect(block.getByText('Demande non envoyée')).toBeVisible()
+    await expect(block.getByText(/Echoue/)).toBeVisible()
+    await expect.poll(() => mailbox.to(fine).length).toBe(1)
+
+    const repaired = `repare-${key}@example.test`
+    await prisma.registration.update({ where: { id: failing.id }, data: { email: repaired } })
+    page.once('dialog', (dialog) => dialog.accept())
+    await block.getByRole('button', { name: 'Réessayer' }).click()
+    await expect(block.getByText('Demande non envoyée')).toHaveCount(0)
+    await expect.poll(() => mailbox.to(repaired).length).toBe(1)
+    expect(mailbox.to(fine)).toHaveLength(1)
   } finally {
     await prisma.$disconnect()
   }

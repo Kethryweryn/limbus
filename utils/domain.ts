@@ -65,6 +65,9 @@ export const SESSION_ROLE_LABELS = {
   [SESSION_ROLES.participant]: 'Participant'
 } as const
 
+// Rôles qui tiennent un personnage ou une place dans la session ; la cuisine peut encore s'y porter joueuse (R31 de SPEC-018)
+export const SESSION_CAST_ROLES: string[] = [SESSION_ROLES.participant, SESSION_ROLES.organizer, SESSION_ROLES.npc]
+
 export const DOCUMENT_AUDIENCES = {
   targeted: 'targeted',
   everyone: 'everyone',

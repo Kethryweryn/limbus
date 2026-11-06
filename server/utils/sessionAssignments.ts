@@ -1,11 +1,8 @@
 import { prisma } from '~/server/utils/prisma'
 import { replayerParticipantIds } from '~/server/utils/registrationSelection'
-import { CHARACTER_TYPES, REGISTRATION_REPLAY_POLICIES, REGISTRATION_SEAT_STATUSES, REGISTRATION_SESSION_STATUSES, REGISTRATION_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
+import { CHARACTER_TYPES, REGISTRATION_REPLAY_POLICIES, REGISTRATION_SEAT_STATUSES, REGISTRATION_SESSION_STATUSES, REGISTRATION_STATUSES, SESSION_CAST_ROLES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
 
 type SessionParticipantRole = typeof SESSION_ROLES[keyof typeof SESSION_ROLES]
-// Rôles qui peuvent tenir un personnage : un PNJ ou une organisatrice reprend un PJ sans passer par le vivier (R31 de
-// SPEC-018), pas la cuisine
-const CAST_ROLES = [SESSION_ROLES.participant, SESSION_ROLES.organizer, SESSION_ROLES.npc]
 
 export function normalizeAssignments(assignments: Array<{
   characterId: string
@@ -118,7 +115,7 @@ export function normalizeSessionParticipants(participants: Array<{
   for (const assignment of assignments) {
     if (!assignment.participantId) continue
 
-    const hasCastRole = CAST_ROLES.some((role) => normalized.has(`${assignment.participantId}:${role}`))
+    const hasCastRole = SESSION_CAST_ROLES.some((role) => normalized.has(`${assignment.participantId}:${role}`))
     if (!hasCastRole) {
       normalized.set(`${assignment.participantId}:${SESSION_ROLES.participant}`, {
         participantId: assignment.participantId,
@@ -312,7 +309,7 @@ async function poolCandidates(session: { id: string, gameId: string }, period: {
     where: {
       status: REGISTRATION_STATUSES.received,
       periodId: period.id,
-      participant: { sessionRoles: { none: { sessionId: session.id, role: { in: CAST_ROLES } } } },
+      participant: { sessionRoles: { none: { sessionId: session.id, role: { in: SESSION_CAST_ROLES } } } },
       sessionLines: { none: { sessionId: session.id, status: { in: [...REGISTRATION_SEAT_STATUSES, REGISTRATION_SESSION_STATUSES.cancelled] } } }
     },
     select: {

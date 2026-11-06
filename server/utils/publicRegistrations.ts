@@ -63,7 +63,6 @@ const publicRegistrationSelect = {
       session: { select: sessionView }
     }
   },
-  formVersion: { select: { id: true, definition: true } },
   participant: {
     select: {
       name: true,
@@ -410,8 +409,12 @@ export async function answerSessionAvailability(registration: PublicRegistration
     throw createError({ statusCode: 409, message: 'Cette session n’est plus proposée.' })
   }
   const effect = await prisma.$transaction(async (tx) => {
-    // La version de la personne suit ses réponses : un assistant qui l'a lue avant ne les écrase pas
-    await tx.registration.update({ where: { id: registration.id }, data: { updatedAt: new Date() } })
+    // Une sortie du vivier simultanée l'emporte ; la version de la personne suit ses réponses : un assistant qui l'a lue
+    // avant ne les écrase pas
+    const { count } = await tx.registration.updateMany({ where: { id: registration.id, status: registration.status }, data: { updatedAt: new Date() } })
+    if (!count) {
+      throw createError({ statusCode: 409, message: 'Votre inscription a changé entre-temps : rechargez la page.' })
+    }
     return await answerAvailability(tx, registration.id, sessionId, available)
   })
   if (effect === 'removed') notifyRemovedFromCast(registration, [line!.session.name])

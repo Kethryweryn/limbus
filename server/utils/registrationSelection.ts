@@ -11,6 +11,7 @@ import {
   REGISTRATION_SELECTION_STATUSES,
   REGISTRATION_SESSION_STATUSES as LINE,
   REGISTRATION_STATUSES,
+  SESSION_CAST_ROLES,
   SESSION_ROLES,
   SESSION_STATUSES
 } from '~/utils/domain'
@@ -101,7 +102,11 @@ export async function selectionOverview(periodId: string) {
     prisma.registrationDraw.findMany({ where: { sessionId: { in: sessionIds }, cancelledAt: null }, select: { id: true, sessionId: true } }),
     prisma.registration.findMany({
       where: { periodId, status: REGISTRATION_STATUSES.received },
-      select: { participantId: true, sessionLines: { where: { sessionId: { in: sessionIds } }, select: { sessionId: true, answer: true } } }
+      select: {
+        participantId: true,
+        sessionLines: { where: { sessionId: { in: sessionIds } }, select: { sessionId: true, answer: true } },
+        participant: { select: { sessionRoles: { where: { sessionId: { in: sessionIds }, role: { in: SESSION_CAST_ROLES } }, select: { sessionId: true } } } }
+      }
     })
   ])
   const takenBySession = new Map(taken.map((row) => [row.sessionId, row._count._all]))
@@ -120,7 +125,8 @@ export async function selectionOverview(periodId: string) {
       ...session,
       taken: takenBySession.get(session.id) ?? 0,
       // Demande de disponibilités (R9, R12) : qui recevrait un email, et les réponses reçues
-      askableCount: askable.filter((person) => !person.sessionLines.some((line) => line.sessionId === session.id)).length,
+      askableCount: askable.filter((person) => !person.sessionLines.some((line) => line.sessionId === session.id)
+        && !person.participant.sessionRoles.some((role) => role.sessionId === session.id)).length,
       answeredCount: lines.filter((line) => line.sessionId === session.id && line.answer).length,
       activeDrawId: drawBySession.get(session.id) ?? null
     })),

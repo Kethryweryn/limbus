@@ -103,7 +103,7 @@
         color="info"
         variant="soft"
         title="Session ouverte"
-        :description="`Écrire au vivier pour demander qui est disponible ? ${plural(session.askableCount, 'personne')} recevraient la demande. Rien ne part sans votre clic.`"
+        :description="`Écrire au vivier pour demander qui est disponible ? La demande partirait à ${plural(session.askableCount, 'personne')}. Rien ne part sans votre clic.`"
         :actions="[{ label: 'Envoyer la demande', color: 'primary', onClick: () => askPool(session) }, { label: 'Plus tard', color: 'neutral', variant: 'ghost', onClick: () => { justOpened = null } }]"
       />
       <UAlert

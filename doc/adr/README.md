@@ -21,7 +21,7 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0015](ADR-0015-strategie-de-tests.md) | Trois niveaux de tests, contre l'application compilée et une base jetable | accepté | 2026-10-27 |
 | [ADR-0016](ADR-0016-mises-a-jour-des-dependances.md) | Mises à jour des dépendances par Dependabot, avec délai et majeures bloquées ignorées | accepté | 2026-10-27 |
 | [ADR-0017](ADR-0017-branches-et-pull-requests.md) | Travail par branches et pull requests, fusion dans `main` pour déployer | accepté | 2026-10-27 |
-| [ADR-0018](ADR-0018-jetons-des-liens-personnels.md) | Liens personnels des inscrits par jeton aléatoire stocké hashé | accepté | 2026-10-27 |
+| [ADR-0018](ADR-0018-jetons-des-liens-personnels.md) | Liens personnels des inscrits par jeton aléatoire stocké hashé | remplacé en partie par ADR-0070 | 2026-10-27 |
 | [ADR-0019](ADR-0019-modele-des-inscriptions.md) | Modèle des inscriptions, champs standards en colonnes, formulaire versionné | accepté | 2026-10-27 |
 | [ADR-0020](ADR-0020-echeances-evaluees-a-la-lecture.md) | Échéances évaluées à la lecture, sans tâche planifiée | accepté | 2026-10-27 |
 | [ADR-0021](ADR-0021-inscription-et-participation-de-session.md) | L'inscription crée la participation de session, la session reste la référence | accepté | 2026-10-27 |
@@ -73,4 +73,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0067](ADR-0067-tests-lies-avant-chaque-push.md) | Tests liés au changement joués en local avant chaque push de code | accepté | 2026-11-06 |
 | [ADR-0068](ADR-0068-organisation-des-instructions-de-claude.md) | Instructions de Claude Code par thème, hook avant push et skill de documentation | accepté | 2026-11-06 |
 | [ADR-0069](ADR-0069-vivier-unique-et-statut-par-session.md) | Vivier unique par jeu et statut d'inscription par session | accepté | 2026-11-06 |
-| [ADR-0070](ADR-0070-liens-personnels-durables.md) | Plusieurs liens personnels valides pour une personne du vivier | proposé | 2026-11-06 |
+| [ADR-0070](ADR-0070-liens-personnels-durables.md) | Plusieurs liens personnels valides pour une personne du vivier | accepté | 2026-11-06 |

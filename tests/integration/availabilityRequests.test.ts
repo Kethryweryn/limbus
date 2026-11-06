@@ -73,6 +73,24 @@ describe('demander au vivier (US-166, R9, R10)', () => {
     expect(await lineOf(prisma, silent.id, session.id)).toBeNull()
   })
 
+  it('n’écrit pas à une personne déjà dans l’équipe de la session, sauf la cuisine', async () => {
+    const pool = await createPool(prisma, alice.id, { key: 'equipe', sessions: 1, seats: 2 })
+    const session = pool.sessions[0]!
+    const npc = await addPerson(prisma, pool, 'Pnj')
+    const player = await addPerson(prisma, pool, 'Joueuse')
+    const cook = await addPerson(prisma, pool, 'Cuisine')
+    await prisma.sessionParticipant.createMany({ data: [
+      { sessionId: session.id, participantId: npc.participantId, role: 'npc' },
+      { sessionId: session.id, participantId: player.participantId, role: 'participant' },
+      { sessionId: session.id, participantId: cook.participantId, role: 'kitchen' }
+    ] })
+    expect((await overviewOf(pool, session.id)).askableCount).toBe(1)
+    expect(bodyOf<RequestResult>(await request(pool, session.id)).sentCount).toBe(1)
+    expect(emailsTo(npc)).toHaveLength(0)
+    expect(emailsTo(player)).toHaveLength(0)
+    expect(emailsTo(cook)).toHaveLength(1)
+  })
+
   it('n’écrit pas à une rejoueuse exclue, seulement si le vivier l’exclut (R24)', async () => {
     const pool = await createPool(prisma, alice.id, { key: 'rejoueuse', sessions: 1, seats: 2, replayPolicy: 'excluded' })
     const session = pool.sessions[0]!

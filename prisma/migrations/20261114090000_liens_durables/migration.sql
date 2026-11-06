@@ -1,6 +1,4 @@
 -- deploiement-incompatible : le lien personnel passe de Registration.tokenHash à RegistrationLink (ADR-0070), et requestedAt, jamais écrit, disparaît. Le client Prisma du build en service nomme encore ces colonnes : ses lectures échouent jusqu'à la bascule, très courte. Accepté tant que la production n'a que des données de test.
-BEGIN;
-
 CREATE TABLE "RegistrationLink" (
     "id" TEXT NOT NULL,
     "registrationId" TEXT NOT NULL,
@@ -25,5 +23,3 @@ ALTER TABLE "Registration" DROP COLUMN "tokenHash";
 ALTER TABLE "RegistrationSession" DROP COLUMN "requestedAt";
 
 ALTER TABLE "RegistrationPeriodSession" ADD COLUMN "lastRequestedAt" TIMESTAMP(3);
-
-COMMIT;
