@@ -231,7 +231,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-168](EPIC-047-demande-de-disponibilites/US-168-relancer-la-demande.md) | Relancer les personnes sans réponse | EPIC-047 | à faire |
 | [US-169](EPIC-047-demande-de-disponibilites/US-169-liens-et-derniere-version.md) | Revenir sur mes réponses avec un lien qui reste valable | EPIC-047 | à faire |
 | [US-170](EPIC-048-casting-depuis-le-vivier/US-170-assistant-sur-les-pre-inscrits.md) | Proposer le casting parmi les pré-inscrits | EPIC-048 | à faire |
-| [US-171](EPIC-048-casting-depuis-le-vivier/US-171-tirage-par-session.md) | Tirer au sort pour une session | EPIC-048 | à faire |
+| [US-171](EPIC-046-vivier-unique/US-171-tirage-par-session.md) | Tirer au sort pour une session | EPIC-046 | à faire |
 | [US-172](EPIC-048-casting-depuis-le-vivier/US-172-annoncer-le-casting.md) | Annoncer le casting, puis écrire au cas par cas | EPIC-048 | à faire |
 | [US-173](EPIC-048-casting-depuis-le-vivier/US-173-reponses-modifiees.md) | Être prévenue quand une personne castée change ses réponses | EPIC-048 | à faire |
 | [US-174](EPIC-048-casting-depuis-le-vivier/US-174-parcours-complet.md) | Lire le parcours complet d'une personne | EPIC-048 | à faire |

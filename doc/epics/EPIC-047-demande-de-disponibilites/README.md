@@ -25,3 +25,4 @@ Quand une session s'ouvre, l'équipe écrit au vivier pour demander qui est int�
 
 - Toutes les US terminées ; `npm run lint`, `npm run typecheck`, `npm test` et la CI passent.
 - Spec à jour, ADR écrits pour les décisions prises.
+- Les jeux de test (`prisma/seed/`) et `doc/jeux-de-test.md` couvrent ce que le lot ajoute, dans la même PR.

@@ -14,7 +14,7 @@ En tant que organisatrice, je veux écrire au vivier quand une session s'ouvre, 
 ## Critères d'acceptation
 
 - [ ] Étant donné une session que je viens d'ouvrir, alors Limbus me propose d'envoyer la demande, sans rien envoyer de lui-même.
-- [ ] Étant donné que je confirme, alors chaque personne sans réponse reçoit un email, sauf les rejoueurs exclus et les personnes sorties.
+- [ ] Étant donné que je confirme, alors chaque personne du vivier sans réponse ni place pour cette session reçoit un email, sauf les rejoueurs exclus, les personnes sorties et les invitées qui n'ont pas encore répondu au questionnaire.
 - [ ] Étant donné l'email, alors il dit que c'est une pré-inscription sans place garantie, donne la date, les deux réponses et le lien pour revoir ses réponses.
 - [ ] Étant donné un échec d'envoi, alors l'écran le signale pour cette personne, et je peux réessayer.
 

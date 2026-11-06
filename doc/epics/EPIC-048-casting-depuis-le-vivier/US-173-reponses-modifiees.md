@@ -13,9 +13,9 @@ En tant que organisatrice, je veux savoir qu'une personne castée a changé ses 
 
 ## Critères d'acceptation
 
-- [ ] Étant donné une personne retenue, en attente ou inscrite pour une session à venir, quand elle change ses réponses, alors chaque organisatrice reçoit un email, et un repère apparaît sur sa ligne.
+- [ ] Étant donné une personne castée ou inscrite pour une session à venir, quand elle change ses réponses, alors chaque organisatrice reçoit un email, et un repère apparaît sur sa ligne.
 - [ ] Étant donné le repère, quand une organisatrice le marque comme lu, alors il disparaît pour toute l'équipe.
-- [ ] Étant donné une personne seulement intéressée ou pré-inscrite, quand elle change ses réponses, alors rien ne se déclenche.
+- [ ] Étant donné une personne seulement intéressée, pré-inscrite ou en attente, quand elle change ses réponses, alors rien ne se déclenche.
 
 ## Notes techniques
 

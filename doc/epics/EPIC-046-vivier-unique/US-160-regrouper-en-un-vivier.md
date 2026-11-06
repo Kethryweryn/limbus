@@ -20,7 +20,7 @@ En tant que organisatrice, je veux un seul vivier par jeu, afin de ne plus crois
 
 ## Notes techniques
 
-Tables et colonnes d'ADR-0069, première migration seulement. `RegistrationPeriodForm`, `RegistrationPeriodCard`, `pages/registrations`, `server/utils/registrationPeriods.ts`, `registrationPeriodWrites.ts`, outils MCP `creer_periode_inscription` et `modifier_periode_inscription`.
+Tables et colonnes d'ADR-0069, première migration seulement. `RegistrationPeriodForm`, `RegistrationPeriodCard`, `pages/registrations`, `server/utils/registrationPeriods.ts`, `registrationPeriodWrites.ts`, outils MCP `creer_periode_inscription` et `modifier_periode_inscription`. Lisent aussi les périodes : `server/api/public/games/[slug].get.ts` et la page publique (SPEC-009), `registrationQuestionLinks.ts`, `registrationOptionExpectations.ts`, `questionnaireQuality.ts`. Livrée avec US-161 et US-171 (ADR-0069).
 
 ## Tests
 

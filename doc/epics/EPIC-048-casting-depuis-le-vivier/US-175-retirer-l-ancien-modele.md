@@ -14,7 +14,7 @@ En tant que développeuse, je veux retirer les anciennes tables et colonnes, afi
 ## Critères d'acceptation
 
 - [ ] Étant donné tout le code passé au nouveau modèle, quand la seconde migration passe, alors les anciennes tables et colonnes ont disparu, et la migration porte son commentaire `-- deploiement-incompatible`.
-- [ ] Étant donné les documents, alors SPEC-001, ADR-0046 à ADR-0048 et ADR-0018 renvoient vers ce qui les remplace, et ADR-0069 et ADR-0070 sont acceptés.
+- [ ] Étant donné les documents, alors SPEC-001, SPEC-009, SPEC-014, ADR-0046 à ADR-0048 et ADR-0018 renvoient vers ce qui les remplace ou sont à jour, SPEC-015 et SPEC-016 sont relues, et ADR-0069 et ADR-0070 sont acceptés.
 - [ ] Étant donné les outils d'IA, alors leur description ne parle plus de périodes par session.
 
 ## Notes techniques

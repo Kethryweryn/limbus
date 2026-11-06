@@ -52,15 +52,15 @@ Cette spec remplace, dans [SPEC-001](SPEC-001-inscriptions.md), ce qui concerne 
 
 ### Sessions ouvertes et disponibilités
 
-- **R6** Une session n'est proposée au vivier que si l'équipe l'a ouverte à la pré-inscription. Seule une session à venir, ni annulée ni terminée, peut l'être. La refermer ne retire aucune pré-inscription, mais elle n'est plus proposée.
-- **R7** Le questionnaire ajoute une question listant les sessions ouvertes. Elle est facultative, et absente s'il n'y en a aucune. Ne cocher aucune date laisse la personne simplement intéressée.
+- **R6** Une session n'est proposée au vivier que si l'équipe l'a ouverte à la pré-inscription. Seule une session datée et à venir, ni annulée ni terminée, peut l'être : une session sans date ne peut pas s'ouvrir, et retirer la date d'une session ouverte la referme. La refermer ne retire aucune pré-inscription et le casting peut continuer, mais elle n'est plus proposée.
+- **R7** Le questionnaire ajoute une question listant les sessions ouvertes. Elle est facultative, et absente s'il n'y en a aucune. Ne cocher aucune date laisse la personne simplement intéressée. Décocher plus tard une date vaut « Pas disponible » (R29) ; une date jamais cochée reste sans réponse.
 - **R8** Places d'une session : réglées quand on l'ouvre, le nombre de personnages PJ par défaut. On ne retient pas au-delà des places, et on ne descend pas sous le nombre de personnes retenues ou inscrites.
 
 ### Demande de disponibilités
 
-- **R9** Quand une session est ouverte, Limbus propose d'envoyer la demande au vivier. Rien ne part sans le clic d'une organisatrice. La demande part aux personnes du vivier sans réponse pour cette session, sauf les rejoueurs exclus (R24).
+- **R9** Quand une session est ouverte, Limbus propose d'envoyer la demande au vivier. Rien ne part sans le clic d'une organisatrice. La demande part aux personnes du vivier sans réponse ni place pour cette session, sauf les rejoueurs exclus (R24). Une personne invitée qui n'a pas encore répondu au questionnaire n'est pas encore dans le vivier (R4) : elle ne la reçoit pas.
 - **R10** L'email dit clairement que c'est une demande d'intérêt et de disponibilité, donc une pré-inscription, sans place garantie ni confirmation d'inscription. Il donne la date de la session, les deux réponses, et le lien pour revoir et modifier ses réponses.
-- **R11** Un bouton de l'email ouvre une page qui demande de confirmer d'un clic : ouvrir le lien ne change rien. « Disponible » la rend pré-inscrite, « Pas disponible » note sa réponse. L'équipe distingue donc un refus d'une absence de réponse. Elle peut changer de réponse tant qu'elle n'est pas castée pour cette session.
+- **R11** Un bouton de l'email ouvre une page qui demande de confirmer d'un clic : ouvrir le lien ne change rien. « Disponible » la rend pré-inscrite, « Pas disponible » note sa réponse. L'équipe distingue donc un refus d'une absence de réponse. Elle peut changer de réponse avec les effets de R29.
 - **R12** Un bouton « Relancer » écrit de nouveau aux seules personnes qui n'ont pas répondu pour cette session. Il indique la date de la dernière demande.
 - **R13** Le lien d'un email plus ancien continue de marcher quand un nouvel email part. Si l'équipe envoie un nouveau lien à la demande d'une personne, tous les anciens cessent de marcher.
 
@@ -68,7 +68,7 @@ Cette spec remplace, dans [SPEC-001](SPEC-001-inscriptions.md), ce qui concerne 
 
 - **R14** La personne peut revoir et modifier ses réponses à tout moment tant qu'elle est dans le vivier, même castée et même vivier fermé.
 - **R15** En revenant, elle voit la dernière version du questionnaire : ses anciennes réponses sont reprises, et les nouvelles questions s'ajoutent. Les nouvelles questions obligatoires ne sont exigées que si elle enregistre. Tant qu'elle ne revient pas, ses réponses restent telles quelles, avec leur version.
-- **R16** Quand une personne retenue, en attente ou inscrite pour une session à venir change ses réponses, chaque organisatrice du jeu reçoit un email, et un repère « réponses modifiées » apparaît sur la personne dans la sélection, jusqu'à ce qu'une organisatrice le marque comme lu. Un changement fait hors de ces cas ne déclenche rien.
+- **R16** Quand une personne castée ou inscrite pour une session à venir change ses réponses, chaque organisatrice du jeu reçoit un email, et un repère « réponses modifiées » apparaît sur la personne dans la sélection, jusqu'à ce qu'une organisatrice le marque comme lu. Un changement fait hors de ces cas, liste d'attente comprise, ne déclenche rien.
 
 ### Statut par session
 
@@ -85,12 +85,23 @@ Cette spec remplace, dans [SPEC-001](SPEC-001-inscriptions.md), ce qui concerne 
 | Inscrite validée | Inscrite, et premier versement reçu ; sans rien à payer (place offerte, session sans tarif), dès la confirmation |
 | Annulation | A annulé sa présence, ou a été retirée de la session |
 
-- **R18** « Inscrite » crée le participant de session (SPEC-001, R22). « Inscrite validée » se déduit des paiements, sans saisie : retirer le seul versement la ramène à « inscrite ».
+- **R18** « Inscrite » crée le participant de session (SPEC-001, R22). « Inscrite validée » se déduit des paiements, sans saisie : retirer le seul versement la ramène à « inscrite ». Le remboursement, le transfert et le report suivent R30.
 - **R19** Annuler vaut pour une seule session et laisse la personne dans le vivier. Les effets d'un désistement de SPEC-001 (R22) restent : participant retiré, personnage libéré, paiement à traiter à la main, équipe prévenue. Elle n'est plus proposée pour cette session sauf si elle s'y dit de nouveau disponible.
+- **R29** Effet d'un « Pas disponible » pour une session, par le bouton de l'email ou une date décochée :
+  - pré-inscrite : elle passe à « pas disponible » ;
+  - en attente : elle sort de la file, et les suivantes avancent ;
+  - retenue sans annonce : elle est retirée du cast, le personnage qui lui était réservé redevient libre, et l'équipe reçoit un email. La personne lit seulement « réponse enregistrée » : elle n'apprend pas qu'elle avait été retenue ;
+  - retenue et annoncée, ou inscrite : rien ne change, la page le lui dit et la renvoie vers l'annulation (R19).
+
+  Se redire disponible la rend pré-inscrite, sans lui rendre son rang ni sa place.
+- **R30** Paiements :
+  - **Remboursement** : une personne remboursée ne vient plus, ou la session est annulée. Sa place devient « annulation » et elle reste intéressée pour le jeu.
+  - **Transfert** : la personne ne vient plus, et sa place passe à la remplaçante, avec ou sans ses paiements. L'une est en « annulation », l'autre inscrite, validée si les paiements ou la gratuité le permettent.
+  - **Report** : le paiement reporté inscrit la personne à la session d'arrivée et l'y valide. Un report vers une session complète est refusé (R8). La rembourser ensuite la désinscrit de cette session.
 
 ### Casting
 
-- **R20** Une organisatrice peut retenir ou mettre en attente une personne pré-inscrite, ou ajouter à la main une autre personne du vivier, sans demande préalable. Une personne qui a répondu « pas disponible » peut aussi être ajoutée : l'écran le signale.
+- **R20** Une organisatrice peut retenir ou mettre en attente une personne pré-inscrite, ou ajouter à la main une autre personne du vivier, sans demande préalable. Une personne qui a répondu « pas disponible » peut aussi être ajoutée : l'écran le signale, et elle confirme ou non sa présence ensuite.
 - **R21** L'assistant de casting propose les personnages parmi le cast, les personnes retenues et les pré-inscrits de la session. Les autres personnes du vivier n'y figurent pas tant qu'elles n'ont pas été ajoutées à la main. Enregistrer une proposition retient les pré-inscrits concernés, dans la limite des places, et leur réserve le personnage (SPEC-001, R29).
 - **R22** Chaque session a son mode de sélection : à la main, au hasard, ou mixte (SPEC-001, R4). Le tirage porte sur les pré-inscrits de la session, et reste reproductible et annulable tant que rien n'est annoncé depuis (SPEC-001, R17 et R18). La priorité « non tirés avant » vise une personne restée sans place lors d'un tirage d'une session plus ancienne du jeu.
 - **R23** Après un tirage, les personnes sans place vont en liste d'attente dans la limite réglée. Les autres restent pré-inscrites, sans message, et peuvent être retenues à la main. La liste d'attente suit l'ordre du tirage ou celui que fixe l'équipe, et propose la suivante quand une place se libère (SPEC-001, R19 et R21).
@@ -100,8 +111,8 @@ Cette spec remplace, dans [SPEC-001](SPEC-001-inscriptions.md), ce qui concerne 
 ### Annonces
 
 - **R26** Une décision ne prévient personne d'elle-même. Le bouton « Annoncer le casting » d'une session écrit à toutes les personnes retenues. Une case, décochée par défaut, y ajoute les personnes en attente, sans leur rang.
-- **R27** Après la première annonce d'une session, un changement pour une personne (ajoutée, retirée, passée en attente ou sortie de la liste d'attente) fait apparaître sur sa ligne une proposition d'email individuel, que l'organisatrice envoie ou ignore. L'échéance de confirmation (SPEC-001, R20) part de l'email envoyé.
-- **R28** Tant qu'aucun email ne l'a prévenue, la personne voit ce qui lui a déjà été annoncé, sinon son statut de pré-inscrite.
+- **R27** Après la première annonce d'une session, un changement pour une personne (ajoutée, retirée, passée en attente ou sortie de la liste d'attente) fait apparaître sur sa ligne une proposition d'email individuel, que l'organisatrice envoie ou ignore. Changer seulement son personnage ne propose rien. L'échéance de confirmation (SPEC-001, R20) part de l'email envoyé.
+- **R28** Tant qu'aucun email ne l'a prévenue, la personne voit ce qui lui a déjà été annoncé, sinon sa dernière réponse pour cette session.
 
 ## Données
 
@@ -110,7 +121,7 @@ Cette spec remplace, dans [SPEC-001](SPEC-001-inscriptions.md), ce qui concerne 
 - **Liens personnels** : plusieurs par personne, gardés seulement sous forme de hash ([ADR-0070](../adr/ADR-0070-liens-personnels-durables.md)).
 - **Bascule** : les périodes de chaque jeu sont regroupées en un vivier. Une personne présente plusieurs fois garde ses réponses les plus récentes et l'ensemble de ses statuts par session. Les anciens liens de diffusion des périodes absorbées cessent de marcher. Les jeux de test sont ensuite rechargés à la demande de l'utilisatrice.
 
-Données personnelles : les disponibilités et les statuts par session sont couverts par `eraseParticipant`, `exportParticipantData`, `exportAccountData` et `deleteOwnAccount`. Ils suivent la durée de conservation des inscriptions. Une personne qui quitte le vivier reste visible de l'équipe selon cette même durée.
+Données personnelles : les disponibilités et les statuts par session sont couverts par `eraseParticipant`, `exportParticipantData`, `exportAccountData` et `deleteOwnAccount`. Ils suivent la règle d'effacement des fiches de participants (`eraseStaleParticipants`), comme leurs inscriptions. Une personne qui quitte le vivier reste visible de l'équipe selon cette même règle. La politique de confidentialité mentionne les disponibilités et les liens personnels durables.
 
 ## Sécurité et droits
 
@@ -121,9 +132,9 @@ Données personnelles : les disponibilités et les statuts par session sont couv
 
 ## Découpage
 
-1. Vivier unique et statut par session (R1 à R8, R14, R17 à R20, R24, R25), [EPIC-046](../epics/EPIC-046-vivier-unique/README.md).
+1. Vivier unique, statut par session et tirage par session (R1 à R8, R14, R17 à R20, R22 à R25, R29, R30), [EPIC-046](../epics/EPIC-046-vivier-unique/README.md).
 2. Demande de disponibilités et retour sur ses réponses (R9 à R13, R15), [EPIC-047](../epics/EPIC-047-demande-de-disponibilites/README.md).
-3. Casting : assistant, tirage, annonces, alertes et inscrites validées (R16, R21 à R23, R26 à R28), [EPIC-048](../epics/EPIC-048-casting-depuis-le-vivier/README.md).
+3. Casting : assistant, annonces, alertes et inscrites validées (R16, R18, R21, R26 à R28, R30), [EPIC-048](../epics/EPIC-048-casting-depuis-le-vivier/README.md).
 
 ## Hors périmètre
 
@@ -134,3 +145,4 @@ Données personnelles : les disponibilités et les statuts par session sont couv
 ## Historique
 
 - 2026-11-06 : création à partir du retour A4-4 du cahier de tests.
+- 2026-11-06 (revue, choix de l'utilisatrice) : effets d'un « Pas disponible » (R29), paiements remboursés, transférés ou reportés (R30), session ouverte forcément datée (R6), alerte limitée aux personnes castées ou inscrites (R16). Pas d'entité « place » : voir ADR-0069.

@@ -10,7 +10,7 @@ date: 2026-11-06
 
 ## Objectif
 
-Chaque jeu a un seul vivier, une personne y répond une seule fois, dit où elle est disponible, et son statut se lit session par session. Le casting à la main fonctionne sur ce nouveau modèle.
+Chaque jeu a un seul vivier, une personne y répond une seule fois, dit où elle est disponible, et son statut se lit session par session. Le casting à la main, le tirage et l'annonce fonctionnent sur ce nouveau modèle.
 
 ## US
 
@@ -22,6 +22,7 @@ Chaque jeu a un seul vivier, une personne y répond une seule fois, dit où elle
 | [US-163](US-163-disponibilites-du-questionnaire.md) | Dire où je suis disponible en répondant au questionnaire | à faire |
 | [US-164](US-164-inviter-a-rejoindre.md) | Inviter une personne à rejoindre le vivier | à faire |
 | [US-165](US-165-annuler-ou-quitter.md) | Annuler ma présence à une session, ou quitter le vivier | à faire |
+| [US-171](US-171-tirage-par-session.md) | Tirer au sort pour une session | à faire |
 
 ## Définition de terminé
 

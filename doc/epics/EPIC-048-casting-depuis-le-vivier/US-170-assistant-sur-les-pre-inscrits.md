@@ -20,7 +20,7 @@ En tant que organisatrice, je veux que l'assistant propose des personnages aux p
 
 ## Notes techniques
 
-`server/utils/castingAssistant.ts`, `sessionAssignments.ts`, onglet Cast, outil MCP `proposer_casting`.
+`server/utils/castingAssistant.ts`, `sessionAssignments.ts` (déjà passés au nouveau modèle par US-161), onglet Cast, outil MCP `proposer_casting`.
 
 ## Tests
 

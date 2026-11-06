@@ -38,15 +38,18 @@ Trois lots : le vivier unique avec un statut par session, la demande de disponib
 - **Invitation :** l'équipe invite à rejoindre le vivier ; il n'y a plus d'invitation directe sur une session.
 - **Plusieurs sessions :** le statut se lit session par session ; une personne peut avancer sur plusieurs sessions du même jeu.
 - **Castée :** retenue pour une session, avec ou sans personnage.
-- **Inscrite validée :** dès le premier versement. Sans rien à payer (place offerte, session sans tarif), dès la présence confirmée.
+- **Inscrite validée :** dès le premier versement. Sans rien à payer (place offerte, session sans tarif), dès la présence confirmée. Une personne remboursée ne vient plus et redevient intéressée. Un transfert passe sa place à la remplaçante. Un report valide la session d'arrivée, et le remboursement la désinscrit de ce report.
+- **Pas disponible :** en attente, elle sort de la file ; retenue sans annonce, elle est retirée du cast sans l'apprendre. Décocher une date vaut « pas disponible ».
+- **Session sans date :** elle ne peut pas être ouverte.
+- **Personne non disponible :** elle peut être ajoutée à la main, avec un signalement. Changer seulement un personnage ne propose pas d'email.
 - **Disponibilités :** question facultative, absente s'il n'y a aucune session ouverte.
 - **Session listée :** seulement si l'équipe l'a ouverte à la pré-inscription.
 - **Email de demande :** deux boutons « disponible » et « pas disponible » qui confirment sur une page, plus un lien vers ses réponses. Rien ne part sans clic de l'équipe ; une relance vise celles qui n'ont pas répondu ; les rejoueurs exclus ne le reçoivent pas.
 - **Sans place :** la liste d'attente reste, par session. « Non retenue » disparaît. Après un tirage, les personnes au-delà de la liste d'attente restent pré-inscrites.
 - **Ouverture du vivier :** à la main, un par jeu. Le fermer bloque les nouvelles entrées ; les personnes déjà dedans gardent leur accès.
 - **Revenir sur ses réponses :** la dernière version du questionnaire, avec ses anciennes réponses reprises.
-- **Personne castée qui change ses réponses :** c'est possible ; l'équipe reçoit un email et voit un repère jusqu'à ce qu'une organisatrice l'ait lu. Pas d'alerte avant le casting.
+- **Personne castée qui change ses réponses :** c'est possible ; l'équipe reçoit un email et voit un repère jusqu'à ce qu'une organisatrice l'ait lu. Pas d'alerte avant le casting ni en liste d'attente.
 - **Annulation :** vaut pour une session. « Quitter le vivier » est un autre bouton, qui retire tout.
 - **Annonces :** rien n'est automatique pour une personne castée. La première annonce écrit à toutes les personnes retenues ; ensuite, à chaque changement du cast, Limbus propose à l'organisatrice d'envoyer un email individuel. Prévenir la liste d'attente est au choix des organisatrices.
-- **Assistant de casting :** il ne propose que des personnes pré-inscrites. Une autre personne du vivier s'ajoute à la main.
+- **Assistant de casting :** il ne propose que des personnes pré-inscrites, et enregistrer sa proposition les retient. Une autre personne du vivier s'ajoute à la main.
 - **Bascule :** les périodes de chaque jeu sont regroupées en un vivier, avec les réponses les plus récentes d'une personne présente plusieurs fois ; les jeux de test sont ensuite rechargés.

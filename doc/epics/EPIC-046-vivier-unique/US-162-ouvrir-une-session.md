@@ -14,8 +14,9 @@ En tant que organisatrice, je veux choisir quelles sessions sont proposées au v
 ## Critères d'acceptation
 
 - [ ] Étant donné une session à venir, quand je l'ouvre, alors elle est proposée au vivier, avec par défaut autant de places que de personnages PJ.
-- [ ] Étant donné une session terminée ou annulée, alors je ne peux pas l'ouvrir.
-- [ ] Étant donné une session ouverte avec des pré-inscrits, quand je la referme, alors elle n'est plus proposée et les pré-inscriptions restent.
+- [ ] Étant donné une session terminée, annulée ou sans date, alors je ne peux pas l'ouvrir.
+- [ ] Étant donné une session ouverte, quand je retire sa date, alors elle est refermée.
+- [ ] Étant donné une session ouverte avec des pré-inscrits, quand je la referme, alors elle n'est plus proposée, les pré-inscriptions restent, et je peux continuer le casting.
 
 ## Notes techniques
 

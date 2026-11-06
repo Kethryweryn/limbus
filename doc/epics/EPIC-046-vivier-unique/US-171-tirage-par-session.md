@@ -2,7 +2,7 @@
 id: US-171
 titre: Tirer au sort pour une session
 statut: à faire
-epic: EPIC-048
+epic: EPIC-046
 regles: [R22, R23]
 adr: [../../adr/ADR-0069-vivier-unique-et-statut-par-session.md]
 ---

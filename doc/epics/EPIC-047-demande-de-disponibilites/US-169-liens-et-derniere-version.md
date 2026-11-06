@@ -20,8 +20,8 @@ En tant que personne du vivier, je veux que mes anciens emails marchent toujours
 
 ## Notes techniques
 
-Table `RegistrationLink` (ADR-0070). `frozenFormVersionId` et `formForRegistration` dans `server/utils/publicRegistrations.ts`. Purge dans `server/utils/retention.ts`.
+Table `RegistrationLink` (ADR-0070). `frozenFormVersionId` et `formForRegistration` dans `server/utils/publicRegistrations.ts`. Les liens disparaissent avec la fiche. `pages/confidentialite.vue` mentionne les liens durables.
 
 ## Tests
 
-Intégration : plusieurs liens, renouvellement, expiration, version du questionnaire. Playwright : retour sur ses réponses.
+Intégration : plusieurs liens, renouvellement, effacement avec la fiche, version du questionnaire. Playwright : retour sur ses réponses.

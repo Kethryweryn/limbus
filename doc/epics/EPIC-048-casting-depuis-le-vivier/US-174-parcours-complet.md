@@ -3,7 +3,7 @@ id: US-174
 titre: Lire le parcours complet d'une personne
 statut: à faire
 epic: EPIC-048
-regles: [R17, R18]
+regles: [R17, R18, R30]
 adr: [../../adr/ADR-0069-vivier-unique-et-statut-par-session.md]
 ---
 
@@ -16,6 +16,7 @@ En tant que organisatrice ou personne du vivier, je veux voir les statuts d'int�
 - [ ] Étant donné une inscrite avec un premier versement reçu, alors elle est inscrite validée, y compris pour un paiement en plusieurs fois.
 - [ ] Étant donné une place offerte ou une session sans tarif, alors elle est inscrite validée dès sa confirmation.
 - [ ] Étant donné le seul versement retiré, alors elle redevient inscrite.
+- [ ] Étant donné un paiement reporté, alors il la valide sur la session d'arrivée.
 - [ ] Étant donné la page Inscriptions et « Je participe », alors les libellés du parcours y sont les mêmes.
 
 ## Notes techniques

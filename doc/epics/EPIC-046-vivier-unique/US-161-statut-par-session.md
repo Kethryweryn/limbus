@@ -3,7 +3,7 @@ id: US-161
 titre: Suivre une personne session par session
 statut: à faire
 epic: EPIC-046
-regles: [R8, R17, R18, R20, R24, R25]
+regles: [R8, R17, R18, R20, R24, R25, R29, R30]
 adr: [../../adr/ADR-0069-vivier-unique-et-statut-par-session.md]
 ---
 
@@ -18,11 +18,13 @@ En tant que organisatrice, je veux voir et décider le statut d'une personne pou
 - [ ] Étant donné une personne du vivier sans réponse ou « pas disponible », quand je l'ajoute à la main, alors elle est retenue, et l'écran signale son refus éventuel.
 - [ ] Étant donné un rejoueur exclu, quand je tente de le retenir, alors c'est refusé.
 - [ ] Étant donné deux personnes qui ne veulent pas se croiser, retenues pour la même session, alors une alerte apparaît pour cette session seulement.
+- [ ] Étant donné une personne remboursée, ou dont la place est transférée, alors sa ligne passe à « annulation », et elle reste intéressée ; la remplaçante est inscrite.
+- [ ] Étant donné un paiement reporté vers une session avec de la place, alors la personne y est inscrite ; la session complète le refuse ; la rembourser ensuite la désinscrit.
 - [ ] Étant donné une personne retenue et annoncée, quand elle confirme, alors elle devient inscrite à cette session seulement et le participant de session est créé.
 
 ## Notes techniques
 
-`RegistrationSession` (ADR-0069). `server/utils/registrationSelection.ts`, `registrationAffinities.ts`, `participations.ts`, `allergies.ts`, `sessionAssignments.ts`, `RegistrationSelection.vue`, espace « Je participe ». Le statut « non retenue » disparaît.
+`RegistrationSession` (ADR-0069). `server/utils/registrationSelection.ts`, `registrationAffinities.ts`, `participations.ts`, `allergies.ts`, `sessionAssignments.ts`, `RegistrationSelection.vue`, espace « Je participe ». Le statut « non retenue » disparaît. `announceSelection` et `castingAssistant.ts` passent au nouveau modèle sans changer de comportement : l'annonce reste celle d'aujourd'hui jusqu'à US-172, et l'assistant garde ses candidats jusqu'à US-170. Remboursement, transfert et report : `server/utils/sessionPayments.ts`.
 
 ## Tests
 

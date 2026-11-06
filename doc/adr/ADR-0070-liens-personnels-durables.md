@@ -17,14 +17,14 @@ Le jeton du lien personnel n'est gardé que sous forme de hash (ADR-0018) : on n
 - Une table `RegistrationLink` (inscription, `tokenHash` unique, date de création) remplace `Registration.tokenHash`. Chaque email qui contient un lien en crée un.
 - Tous les liens d'une personne restent valides. Quand l'équipe envoie un nouveau lien à sa demande, tous les anciens sont effacés. Effacer l'inscription les efface aussi.
 - Quitter le vivier efface tous ses liens ; revenir passe par le formulaire (R5).
-- Une expiration remplace la règle des 30 jours : un lien cesse de marcher quand la durée de conservation de l'inscription est atteinte, et la purge l'efface.
+- La règle des 30 jours disparaît : un lien vit tant que la personne est dans le vivier. Il disparaît avec sa fiche, effacée sur demande ou par `eraseStaleParticipants` après la durée `RETENTION.participantWithoutAccountYears`. Il n'y a donc pas de nouvelle durée de conservation à déclarer.
 - Ouvrir un lien n'écrit jamais rien : les réponses se font par POST depuis la page, pour ne pas laisser un logiciel qui ouvre les liens d'un email répondre à la place de la personne (ADR-0046).
 - Le reste d'ADR-0018 est inchangé : 32 octets aléatoires, SHA-256, même réponse pour un lien inconnu ou invalidé, limite de débit, `Referrer-Policy: no-referrer`.
 
 ## Conséquences
 
-- Un email ancien, transféré ou retrouvé donne accès aux coordonnées de la personne tant que l'équipe n'a pas renouvelé le lien. C'est le prix d'un lien qui ne meurt pas ; la personne peut le demander.
-- Le nombre de lignes croît avec les envois, ce qui reste faible et est borné par la conservation.
+- Un email ancien, transféré ou retrouvé donne accès aux coordonnées de la personne tant que l'équipe n'a pas renouvelé le lien. C'est le prix d'un lien qui ne meurt pas ; la personne peut demander son renouvellement, et la politique de confidentialité le dit.
+- Le nombre de lignes croît avec les envois, ce qui reste faible et disparaît avec la fiche.
 
 ## Options écartées
 
