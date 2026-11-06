@@ -21,7 +21,12 @@ Une fonctionnalité qui ajoute une donnée à essayer complète `prisma/seed/` e
 
 ## Avant de considérer un changement terminé
 
-`npm run lint`, `npm run typecheck` et `npm test` doivent passer. Le build, les tests d'intégration et Playwright tournent dans la CI de la PR (ADR-0023) : inutile de les relancer en local avant d'ouvrir la PR. Sous Windows, le build échoue au prérendu.
+Avant chaque push, correction de revue comprise :
+
+- `npm run lint`, `npm run typecheck` et `npm test` passent ; lire leur résultat.
+- Les tests liés au changement passent : relever les écrans, routes et utilitaires touchés, puis jouer les fichiers Playwright et d'intégration qui les couvrent, pas seulement les tests ajoutés. Sous Windows, le build échoue au prérendu : passer par le conteneur Linux (voir Tests). Si ces tests ne peuvent pas tourner, le dire et demander avant de pousser.
+
+La CI de la PR joue ensuite la suite complète (ADR-0023) : inutile de la relancer entière en local.
 
 Revue de code : chaque PR passe par `/code-review`. Tout constat se corrige, nettoyages compris (réutilisation, simplification, efficacité), même dans du code antérieur à la PR. Aucun constat n'est écarté sans l'accord explicite de l'utilisatrice ; un constat jugé faux lui est présenté avec sa raison.
 
