@@ -1,0 +1,27 @@
+---
+id: US-160
+titre: Avoir un seul vivier par jeu
+statut: à faire
+epic: EPIC-046
+regles: [R1, R2, R3]
+adr: [../../adr/ADR-0069-vivier-unique-et-statut-par-session.md]
+---
+
+# US-160 : Avoir un seul vivier par jeu
+
+En tant que organisatrice, je veux un seul vivier par jeu, afin de ne plus croiser plusieurs listes d'inscrits.
+
+## Critères d'acceptation
+
+- [ ] Étant donné un jeu avec plusieurs périodes, quand la migration passe, alors il a un seul vivier, et une personne présente plusieurs fois y a une seule ligne, avec ses réponses les plus récentes et tous ses statuts par session.
+- [ ] Étant donné la page Inscriptions, quand je l'ouvre, alors chaque jeu montre son vivier, sans choix de portée ni de mode d'entrée.
+- [ ] Étant donné un vivier fermé, quand une nouvelle personne ouvre le lien de diffusion, alors elle lit « inscriptions closes », tandis qu'une personne déjà dedans garde son accès.
+- [ ] Étant donné un jeu qui a déjà un vivier, quand on tente d'en créer un second, alors c'est refusé.
+
+## Notes techniques
+
+Tables et colonnes d'ADR-0069, première migration seulement. `RegistrationPeriodForm`, `RegistrationPeriodCard`, `pages/registrations`, `server/utils/registrationPeriods.ts`, `registrationPeriodWrites.ts`, outils MCP `creer_periode_inscription` et `modifier_periode_inscription`.
+
+## Tests
+
+Intégration : migration (doublons, statuts repris), un vivier par jeu, vivier fermé. `isolation.test.ts`. Playwright : `tests/e2e/registration.spec.ts`.
