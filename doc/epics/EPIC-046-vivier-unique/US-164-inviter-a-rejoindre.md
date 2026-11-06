@@ -18,6 +18,7 @@ En tant que organisatrice, je veux inviter une personne par email à rejoindre l
 - [ ] Étant donné une personne invitée sans réponse, alors elle n'est ni proposée ni castable, et je peux relancer ou renvoyer un lien.
 - [ ] Étant donné une invitation pour une session, quand la personne répond en se disant disponible, alors elle y est inscrite.
 - [ ] Étant donné cette session complète à sa réponse, alors elle reste pré-inscrite, et l'équipe reçoit un email.
+- [ ] Étant donné cette session passée ou annulée à sa réponse, alors elle entre simplement dans le vivier.
 
 ## Notes techniques
 

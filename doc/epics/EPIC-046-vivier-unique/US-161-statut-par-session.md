@@ -18,7 +18,7 @@ En tant que organisatrice, je veux voir et décider le statut d'une personne pou
 - [ ] Étant donné une personne du vivier sans réponse ou « pas disponible », quand je l'ajoute à la main, alors elle est retenue, et l'écran signale son refus éventuel.
 - [ ] Étant donné un rejoueur exclu, quand je le retiens à la main, alors c'est possible, avec un signalement.
 - [ ] Étant donné deux personnes qui ne veulent pas se croiser, retenues pour la même session, alors une alerte apparaît pour cette session seulement.
-- [ ] Étant donné une personne à rembourser ou remboursée, ou remplacée, alors sa ligne passe à « annulation », et elle reste intéressée ; la remplaçante du vivier est inscrite, et un PNJ garde son fonctionnement.
+- [ ] Étant donné une personne à rembourser ou remboursée, ou remplacée, alors sa ligne passe à « annulation », et elle reste intéressée ; retirer la marque de remboursement ne lui rend pas sa place ; la remplaçante du vivier est inscrite, et un PNJ garde son fonctionnement.
 - [ ] Étant donné une session reportée, alors les personnes castées ou inscrites sont « transférées » sur l'ancienne et gardent leur statut sur la nouvelle ; les pré-inscrites et la liste d'attente ne sont pas reprises.
 - [ ] Étant donné une personne transférée, quand elle répond qu'elle n'est pas disponible à la demande de présence, alors elle est en « annulation » sur les deux ; la rembourser ensuite la désinscrit aussi.
 - [ ] Étant donné un personnage PJ supprimé alors que la session est pleine, alors personne n'est retiré, et la session est signalée en surnombre.

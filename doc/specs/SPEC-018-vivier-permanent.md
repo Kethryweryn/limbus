@@ -47,7 +47,7 @@ Cette spec remplace, dans [SPEC-001](SPEC-001-inscriptions.md), ce qui concerne 
 - **R1** Un jeu a au plus un vivier. Une personne y a une seule réponse au questionnaire.
 - **R2** L'équipe ouvre et ferme le vivier à la main. Il n'a pas de date de clôture. Fermé, il refuse les nouvelles entrées, et son lien de diffusion dit « inscriptions closes ». Les personnes déjà dedans gardent leur accès, leurs réponses et leurs disponibilités.
 - **R3** Il n'y a plus de période par session, de mode d'entrée ni de statut « non retenue ». Le lien de diffusion, le formulaire et sa confirmation par email restent ceux de SPEC-001 (R8, R11, R12, R32).
-- **R4** L'équipe peut inviter une personne par son nom et son email à rejoindre le vivier. La personne reçoit un lien vers le questionnaire ; elle entre dans le vivier en y répondant. L'invitation peut aussi viser une session : la personne y est alors inscrite dès qu'elle a répondu en se disant disponible. Si la session est complète à ce moment, elle reste pré-inscrite et l'équipe reçoit un email. Une place n'est pas réservée à l'envoi.
+- **R4** L'équipe peut inviter une personne par son nom et son email à rejoindre le vivier. La personne reçoit un lien vers le questionnaire ; elle entre dans le vivier en y répondant. L'invitation peut aussi viser une session : la personne y est alors inscrite dès qu'elle a répondu en se disant disponible. Si la session est complète à ce moment, elle reste pré-inscrite et l'équipe reçoit un email. Une place n'est pas réservée à l'envoi. Si la session n'est plus à venir, ou est annulée, à sa réponse, elle entre simplement dans le vivier.
 - **R5** Une personne qui quitte le vivier en sort entièrement : ses présences à venir sont annulées comme en R19. Elle y revient en remplissant de nouveau le questionnaire. L'équipe voit qu'elle est sortie.
 
 ### Sessions ouvertes et disponibilités
@@ -114,7 +114,7 @@ Cette spec remplace, dans [SPEC-001](SPEC-001-inscriptions.md), ce qui concerne 
 
   « Disponible » rend pré-inscrite une personne sans réponse, « pas disponible » ou en annulation, sans lui rendre son rang ni sa place. Pour une personne déjà pré-inscrite, en attente, retenue ou inscrite, ce bouton ne change rien, et la page ne révèle pas une décision non annoncée.
 - **R30** Paiements et places :
-  - **Remboursement** : une personne à rembourser ou remboursée ne vient plus, ou la session est annulée. Sa place devient « annulation », et elle reste intéressée pour le jeu.
+  - **Remboursement** : une personne à rembourser ou remboursée ne vient plus, ou la session est annulée. Sa place devient « annulation », et elle reste intéressée pour le jeu. Retirer cette marque ne lui rend pas sa place : l'équipe la retient de nouveau si elle en a encore une.
   - **Remplacement** : la personne qui part est en « annulation », et sa place passe à la remplaçante, avec ou sans ses paiements. La remplaçante vient du vivier et suit son parcours, sauf un PNJ qui reprend le rôle (R31).
   - **Report** (SPEC-004, R15 à R17) : le report crée la nouvelle session, avec l'équipe et le casting. Sur l'ancienne, une personne castée ou inscrite passe à « transférée », et garde son statut sur la nouvelle. Si elle répond qu'elle n'est pas disponible à la demande de présence, elle passe à « annulation » sur les deux. Le paiement reporté la valide sur la nouvelle session ; la rembourser ensuite la désinscrit de ce report. Les personnes seulement pré-inscrites ou en attente ne sont pas reprises : la demande de disponibilités leur écrit si l'équipe ouvre la nouvelle session.
 - **R31** Un joueur ne s'ajoute plus directement au cast d'une session : il passe d'abord par le questionnaire, donc par le vivier. Les PNJ, l'équipe cuisine et les organisatrices restent ajoutés à la main, sans statut de parcours ni demande de disponibilités. Un PNJ qui reprend le rôle d'une personne qui a annulé garde ce fonctionnement.
@@ -122,7 +122,7 @@ Cette spec remplace, dans [SPEC-001](SPEC-001-inscriptions.md), ce qui concerne 
 ## Données
 
 - **Par session et par personne** : statut, position en liste d'attente, dates de réponse, de demande, de relance, d'échéance, de confirmation et d'annulation, ce qui a été annoncé, qui a retenu, repère de réponses modifiées. Détail dans [ADR-0069](../adr/ADR-0069-vivier-unique-et-statut-par-session.md).
-- **Session ouverte** : ouverture, places, mode de sélection et réglages du tirage.
+- **Session ouverte** : ouverture, mode de sélection et réglages du tirage. Les places se calculent (R8), elles ne sont pas stockées.
 - **Liens personnels** : plusieurs par personne, gardés seulement sous forme de hash ([ADR-0070](../adr/ADR-0070-liens-personnels-durables.md)).
 - **Bascule** : les périodes de chaque jeu sont regroupées en un vivier. Une personne présente plusieurs fois garde ses réponses les plus récentes et l'ensemble de ses statuts par session. Les anciens liens de diffusion des périodes absorbées cessent de marcher. Les jeux de test sont ensuite rechargés à la demande de l'utilisatrice.
 
