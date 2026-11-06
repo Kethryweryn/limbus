@@ -1,6 +1,7 @@
 ---
 paths:
   - "server/**"
+  - "prisma/**"
   - "pages/confidentialite.vue"
   - "utils/legal.ts"
   - "nuxt.config.ts"

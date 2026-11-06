@@ -4,6 +4,7 @@ paths:
   - "components/**"
   - "layouts/**"
   - "composables/**"
+  - "stores/**"
   - "utils/**"
   - "app.vue"
   - "error.vue"

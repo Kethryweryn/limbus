@@ -9,7 +9,9 @@ describe('isGitPush', () => {
     'cd projet && git push -q',
     'git add . ; git push 2>&1 | grep -v remote',
     'git -C projet push',
-    'x=1\ngit push'
+    'x=1\ngit push',
+    'bash -c "git push"',
+    "bash -c 'git push -q'"
   ])('repère %s', (command) => {
     expect(isGitPush(command)).toBe(true)
   })

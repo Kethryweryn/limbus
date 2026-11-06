@@ -1,6 +1,6 @@
 ---
 name: cycle-documentation
-description: Fait avancer une évolution de Limbus dans sa documentation : créer une fiche, une spec, un epic et ses US, ou un ADR, passer une US à terminée, ou archiver un epic. À utiliser avant d'implémenter une demande, et à chaque changement de statut d'une de ces fiches.
+description: "Fait avancer une évolution de Limbus dans sa documentation : créer une fiche, une spec, un epic et ses US, ou un ADR, passer une US à terminée, ou archiver un epic. À utiliser avant d'implémenter une demande, et à chaque changement de statut d'une de ces fiches."
 ---
 
 # Cycle de documentation de Limbus

@@ -16,7 +16,7 @@ liens: [ADR-0067]
 
 1. **`CLAUDE.md`** garde ce qui sert à chaque tâche : documentation, nouveautés, jeux de test, vérifications, git et déploiement, et les renvois vers les règles.
 2. **`.claude/rules/`** reçoit le reste, sans changer le texte, avec un champ `paths` qui ne charge chaque règle que pour les fichiers concernés :
-   - `securite-api.md` : serveur, politique de confidentialité, `nuxt.config.ts`, tests d'intégration ;
+   - `securite-api.md` : serveur, schéma et migrations, politique de confidentialité, `nuxt.config.ts`, tests d'intégration ;
    - `conventions-api.md` : serveur, pages et composables ;
    - `interface.md` : pages, composants et utilitaires de l'interface ;
    - `tests.md` : dossier `tests/`.
