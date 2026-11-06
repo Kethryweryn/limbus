@@ -6,6 +6,7 @@ import { absoluteAppUrl, publicAppUrl } from '~/server/utils/appUrl'
 import { openEmailTransport, sendEmail, type EmailTransport } from '~/server/utils/email'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
+import { isValidatedPlace, validatedPlaces } from '~/server/utils/sessionPayments'
 import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
 import { REGISTRATION_CANCELLABLE_STATUSES, REGISTRATION_PERIOD_STATES, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
 import { ANNOUNCEMENT_REMOVED, AVAILABILITY_ANSWER_PARAMS, canConfirmPlace } from '~/utils/registrations'
@@ -658,11 +659,13 @@ export async function withSessionPresence<T extends { sessionLines: Array<{ stat
       })
     : []
   const keys = new Set(present.map((row) => `${row.sessionId}:${row.participantId}`))
+  const validated = await validatedPlaces(confirmed)
   return registrations.map((registration) => ({
     ...registration,
-    sessionLines: registration.sessionLines.map((line): T['sessionLines'][number] & { missingFromSession: boolean } => ({
+    sessionLines: registration.sessionLines.map((line): T['sessionLines'][number] & { missingFromSession: boolean, validated: boolean } => ({
       ...line,
-      missingFromSession: line.status === LINE.confirmed && !keys.has(`${line.sessionId}:${registration.participant.id}`)
+      missingFromSession: line.status === LINE.confirmed && !keys.has(`${line.sessionId}:${registration.participant.id}`),
+      validated: line.status === LINE.confirmed && isValidatedPlace(validated, line.sessionId, registration.participant.id)
     }))
   }))
 }

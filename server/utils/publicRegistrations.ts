@@ -5,6 +5,7 @@ import { accountIdForEmail, syncProfileToParticipants } from '~/server/utils/par
 import { assertRateLimit } from '~/server/utils/rateLimit'
 import { sendEmail } from '~/server/utils/email'
 import { hashRegistrationToken, notifyGameTeam } from '~/server/utils/registrations'
+import { isValidatedPlace, validatedPlaces } from '~/server/utils/sessionPayments'
 import { answerAvailability, availabilitySchema } from '~/server/utils/registrationAvailability'
 import { replaceAffinities } from '~/server/utils/registrationAffinities'
 import { countPlayableCharacters, offeredSessions, takenSeatsWhere } from '~/server/utils/registrationPeriods'
@@ -218,6 +219,12 @@ export function withdrawalReason(registration: Pick<PublicRegistration, 'charter
   return registration.withdrawnById ? 'released' : 'declined'
 }
 
+// Ses sessions, avec « inscrite validée » calculé des paiements (R18) : mêmes libellés que l'équipe
+export async function withValidatedSessions<T extends { sessionId: string, status: string }>(participantId: string, lines: T[]) {
+  const validated = await validatedPlaces(lines.filter((line) => line.status === LINE.confirmed).map(({ sessionId }) => ({ sessionId, participantId })))
+  return lines.map((line) => ({ ...line, validated: line.status === LINE.confirmed && isValidatedPlace(validated, line.sessionId, participantId) }))
+}
+
 // Données montrées à la personne : les siennes et celles du jeu, jamais celles des autres inscrits
 export async function exposePublicRegistration(registration: PublicRegistration, now = new Date()) {
   const game = { title: registration.period.game.title }
@@ -240,7 +247,7 @@ export async function exposePublicRegistration(registration: PublicRegistration,
     overdue: registration.status === REGISTRATION_STATUSES.invited && isResponseOverdue(registration, now),
     invitedSession: registration.status === REGISTRATION_STATUSES.invited ? registration.invitedSession : null,
     // Statut par session (R17, R28)
-    sessions: visibleSessionLines(registration.sessionLines, now),
+    sessions: await withValidatedSessions(registration.participantId, visibleSessionLines(registration.sessionLines, now)),
     ...registrationPermissions(registration),
     definition: await registrationFormDefinition(registration),
     // Disponibilités (R7) : absentes s'il n'y a aucune session à proposer

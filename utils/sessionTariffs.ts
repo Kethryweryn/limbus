@@ -59,6 +59,24 @@ export function tariffForPerson<T extends TariffLike>(roles: string[], tariffs: 
   return { tariff: null, chosen: false }
 }
 
+/**
+ * Inscrite validée (R18), calculé à la lecture : d'accord avec le tableau des paiements. Une place offerte ou rien à payer
+ * (aucun tarif pour elle, ou un tarif à zéro) valide dès la confirmation. Sinon le premier versement, ou en mode simple la
+ * case « payé ». Un paiement à rembourser, remboursé ou transféré à une autre personne ne compte pas.
+ */
+export function isPlaceValidated<T extends TariffLike>(params: {
+  tariffs: T[]
+  roles: string[]
+  payment?: { paidAt: Date | null, offered: boolean, tariffId: string | null, refundStatus: string | null, transferredToParticipantId: string | null, instalments: unknown[] } | null
+}) {
+  const { tariffs, roles, payment } = params
+  if (payment?.offered) return true
+  const paid = Boolean(payment && !payment.refundStatus && !payment.transferredToParticipantId && (payment.paidAt || payment.instalments.length))
+  if (!tariffs.length) return paid
+  const { tariff } = tariffForPerson(roles, tariffs, payment?.tariffId)
+  return !tariff?.amountCents || paid
+}
+
 // État calculé à la lecture (ADR-0032) ; un paiement validé en mode simple, sans versement, reste payé
 export function paymentState(params: { dueCents: number, receivedCents: number, legacyPaid: boolean, offered?: boolean }) {
   if (params.offered) return PAYMENT_STATES.offered
