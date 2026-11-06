@@ -1,0 +1,5 @@
+{
+  "type": "corrige",
+  "titre": "Se connecter sans rester bloqué",
+  "texte": "Un double clic sur « Se connecter » pouvait afficher « Le serveur ne répond pas » et bloquer l’onglet. Le bouton ne part plus qu’une fois, et un bouton « Réessayer » apparaît si le serveur ne répond vraiment pas."
+}

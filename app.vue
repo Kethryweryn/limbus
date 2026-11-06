@@ -141,6 +141,8 @@ const isPersonalLinkRoute = computed(() => ['/inscription/', '/presence/', '/i/'
 // d'un jeu (US-019)
 const isStandaloneRoute = computed(() => isPersonalLinkRoute.value || ['/acces/', '/public/'].some((prefix) => currentPath.value.startsWith(prefix)))
 let authCheckInProgress = false
+// Un réseau qui ne répond pas ne retient pas l'application : passé ce délai, elle ouvre ce qui est sur l'appareil
+const AUTH_CHECK_TIMEOUT_MS = 10_000
 
 function hasValidOfflineAuth() {
   return Boolean(getOfflineAuth())
@@ -190,7 +192,7 @@ const checkAuth = async (forceServerCheck = false) => {
 
   let authData
   try {
-    authData = await $fetch('/api/auth/me')
+    authData = await $fetch('/api/auth/me', { timeout: AUTH_CHECK_TIMEOUT_MS })
     setServerUnavailable(false)
     serverUnavailable.value = false
   } catch (error) {
@@ -296,7 +298,9 @@ onMounted(async () => {
   window.addEventListener('limbus:sync-queue-change', refreshQueueState)
   window.addEventListener('limbus:offline-queued', notifyOfflineQueued)
   window.addEventListener('limbus:auth-change', checkAuthAfterLogout)
-  await checkAuth()
+  // À l'ouverture, le serveur est toujours interrogé si le réseau est là : l'indisponibilité notée dans l'onglet
+  // peut être ancienne, ou venir d'une requête coupée par un rechargement
+  await checkAuth(true)
   // Modifications laissées en attente : elles partent dès l'ouverture, si le serveur répond (US-052)
   if (authenticated.value && navigator.onLine && !serverUnavailable.value) {
     await syncPendingChanges()

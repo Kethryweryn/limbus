@@ -6,6 +6,8 @@ import { serverMessage } from '~/utils/apiErrors'
 const email = ref('')
 const password = ref('')
 const error = ref('')
+// Une seule connexion à la fois : le rechargement qui suit la première couperait la seconde
+const submitting = ref(false)
 const isOffline = ref(false)
 const browserOnline = ref(true)
 const offlineMessage = computed(() => browserOnline.value ? 'Le serveur ne répond pas.' : 'Vous êtes hors ligne.')
@@ -18,20 +20,25 @@ const updateStatus = () => {
 }
 
 const login = async () => {
+    if (submitting.value) return
+    submitting.value = true
+    error.value = ''
     try {
         await $fetch('/api/auth/login', {
             method: 'POST',
             body: { email: email.value, password: password.value }
         })
 
+        setServerUnavailable(false)
         const currentPath = window.location.pathname.replace(/\/+$/, '') || '/'
         if (currentPath === '/logout') {
             window.location.replace('/')
         } else {
             window.location.reload()
         }
-        setServerUnavailable(false)
+        // Le bouton reste inactif jusqu'au rechargement
     } catch (err) {
+        submitting.value = false
         if (isServerUnavailableError(err)) {
             setServerUnavailable(true)
             updateStatus()
@@ -40,6 +47,12 @@ const login = async () => {
         }
         error.value = serverMessage(err, 'Erreur de connexion')
     }
+}
+
+// L'application revérifie le serveur à ce signal, et rend le formulaire s'il répond
+const retry = () => {
+    error.value = ''
+    setServerUnavailable(false)
 }
 
 onMounted(() => {
@@ -80,6 +93,9 @@ onUnmounted(() => {
                     :title="offlineMessage"
                     description="La connexion nécessite un accès au serveur."
                 />
+                <UButton v-if="browserOnline" color="primary" variant="soft" block @click="retry">
+                    Réessayer
+                </UButton>
             </div>
 
             <form v-else class="space-y-4" @submit.prevent="login">
@@ -105,7 +121,7 @@ onUnmounted(() => {
                     />
                 </UFormField>
 
-                <UButton type="submit" color="primary" size="lg" block>
+                <UButton type="submit" color="primary" size="lg" block :loading="submitting" :disabled="submitting">
                     Se connecter
                 </UButton>
 
