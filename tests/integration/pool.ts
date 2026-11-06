@@ -56,7 +56,8 @@ export async function addPerson(prisma: PrismaClient, pool: { game: { id: string
       email,
       respondedAt: new Date(),
       charterAcceptedAt: new Date(),
-      tokenHash: `hash-${suffix}`,
+      // Remplaçable par `extra`, pour un test qui connaît son jeton
+      links: { create: { tokenHash: `hash-${suffix}` } },
       sessionLines: { create: sessionIds.map((sessionId) => ({ sessionId, status: 'preregistered', answer: 'available', answeredAt: new Date() })) },
       ...extra
     }

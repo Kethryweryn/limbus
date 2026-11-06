@@ -369,6 +369,8 @@ model RegistrationPeriod {
 // Session suivie par le vivier (ADR-0069) : le casting se fait sur toute session qui a une ligne
 model RegistrationPeriodSession {
   id        String             @id @default(cuid())
+  // Dernière demande de disponibilités ou relance (R9, R12) : une personne sans réponse n'a pas de ligne RegistrationSession
+  lastRequestedAt DateTime?
   periodId  String
   period    RegistrationPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
   sessionId String             @unique
@@ -444,8 +446,6 @@ model Registration {
   // Réponses aux questions propres au jeu, par identifiant de question (US-081, ADR-0045)
   questionAnswers       Json?
 
-  // SHA-256 du jeton du lien personnel (ADR-0018) ; null quand le lien est invalidé
-  tokenHash             String?                  @unique
   invitationSentAt      DateTime?
   // Dernière relance par les orgas (US-005)
   lastRemindedAt        DateTime?
@@ -462,6 +462,7 @@ model Registration {
 
   affinities            RegistrationAffinity[]
   sessionLines          RegistrationSession[]
+  links                 RegistrationLink[]
   // Personnages réservés en attendant la confirmation (US-100, ADR-0051)
   reservedAssignments   SessionAssignment[]
 
@@ -483,8 +484,7 @@ model RegistrationSession {
   answer         String?
   answeredAt     DateTime?
   waitlistPosition Int?
-  // Demande de disponibilités et relance (R9, R12)
-  requestedAt    DateTime?
+  // Relance d'une place retenue pas confirmée
   lastRemindedAt DateTime?
   // Confirmation d'une place retenue (R20 de SPEC-001)
   responseDueAt  DateTime?
@@ -506,6 +506,18 @@ model RegistrationSession {
 
   @@unique([registrationId, sessionId])
   @@index([sessionId, status])
+}
+
+// Lien personnel d'une personne du vivier (ADR-0070) : un par email envoyé, tous valables jusqu'à un renouvellement par
+// l'équipe ou sa sortie du vivier. Seule l'empreinte du jeton est gardée (ADR-0018)
+model RegistrationLink {
+  id             String       @id @default(cuid())
+  registrationId String
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  tokenHash      String       @unique
+  createdAt      DateTime     @default(now())
+
+  @@index([registrationId])
 }
 
 // Formulaire public envoyé, en attente de la confirmation de l'email (US-084, US-085, ADR-0046) : ni fiche ni

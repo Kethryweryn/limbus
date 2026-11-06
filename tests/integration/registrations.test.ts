@@ -88,7 +88,7 @@ describe('inviter des participants', () => {
     const token = personalLinkToken(email)!
     expect(email.text).toContain(`/inscription/${token}`)
     const own = registrations.find((registration) => registration.participantId === participant.id)!
-    expect(own.tokenHash).toBe(sha256(token))
+    expect(await prisma.registrationLink.findMany({ where: { registrationId: own.id }, select: { tokenHash: true } })).toEqual([{ tokenHash: sha256(token) }])
     expect(JSON.stringify(registrations)).not.toContain(token)
     expect(emailsTo('nouvelle.venue@example.test')).toHaveLength(1)
   })
@@ -222,8 +222,8 @@ describe('renvoyer et annuler une invitation', () => {
     const newToken = personalLinkToken(emails[1]!)!
     expect(newToken).not.toBe(oldToken)
     const updated = await prisma.registration.findUniqueOrThrow({ where: { id: first.id } })
-    expect(updated.tokenHash).toBe(sha256(newToken))
-    expect(await prisma.registration.count({ where: { tokenHash: sha256(oldToken) } })).toBe(0)
+    expect(await prisma.registrationLink.findMany({ where: { registrationId: first.id }, select: { tokenHash: true } })).toEqual([{ tokenHash: sha256(newToken) }])
+    expect(await prisma.registrationLink.count({ where: { tokenHash: sha256(oldToken) } })).toBe(0)
     // L'échéance ne bouge pas : la prolonger est une autre action (US-005)
     expect(updated.responseDueAt).toEqual(first.responseDueAt)
   })
@@ -263,7 +263,8 @@ describe('règles issues de la revue de code', () => {
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     const reinvited = await prisma.registration.findUniqueOrThrow({ where: { id: declined.id } })
     expect(reinvited).toMatchObject({ status: 'invited', respondedAt: null, withdrawnAt: null, charterAcceptedAt: null, phone: '0612345678' })
-    expect(reinvited.tokenHash).not.toBe(declined.tokenHash)
+    // Réinvitée : un seul lien, le nouveau
+    expect(await prisma.registrationLink.findMany({ where: { registrationId: declined.id }, select: { tokenHash: true } })).toEqual([{ tokenHash: sha256(personalLinkToken(emailsTo(participant.email!).at(-1)!)!) }])
     expect(emailsTo(participant.email!)).toHaveLength(2)
   })
 

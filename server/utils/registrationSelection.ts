@@ -49,7 +49,7 @@ export async function selectableSessions(period: { gameId: string }) {
         date: true,
         status: true,
         registrationPeriodLink: {
-          select: { open: true, selectionMode: true, organizerPicks: true, weightNotDrawnBefore: true, weightBalance: true, waitlistSize: true }
+          select: { open: true, lastRequestedAt: true, selectionMode: true, organizerPicks: true, weightNotDrawnBefore: true, weightBalance: true, waitlistSize: true }
         }
       }
     }),
@@ -62,6 +62,7 @@ export async function selectableSessions(period: { gameId: string }) {
     // Proposée au vivier : ouverte par l'équipe, et encore datée et à venir (R6)
     offered: Boolean(link?.open) && isOpenableSession(session),
     openable: isOpenableSession(session),
+    lastRequestedAt: link?.lastRequestedAt ?? null,
     selectionMode: link?.selectionMode ?? REGISTRATION_SELECTION_MODES.chosen,
     organizerPicks: link?.organizerPicks ?? null,
     weightNotDrawnBefore: link?.weightNotDrawnBefore ?? false,
@@ -95,9 +96,13 @@ export async function selectionOverview(periodId: string) {
   const period = (await findSelectionPeriod(periodId))!
   const sessions = await selectableSessions(period)
   const sessionIds = sessions.map((session) => session.id)
-  const [taken, draws] = await Promise.all([
+  const [taken, draws, pool] = await Promise.all([
     prisma.registrationSession.groupBy({ by: ['sessionId'], where: takenSeatsWhere(sessionIds), _count: { _all: true } }),
-    prisma.registrationDraw.findMany({ where: { sessionId: { in: sessionIds }, cancelledAt: null }, select: { id: true, sessionId: true } })
+    prisma.registrationDraw.findMany({ where: { sessionId: { in: sessionIds }, cancelledAt: null }, select: { id: true, sessionId: true } }),
+    prisma.registration.findMany({
+      where: { periodId, status: REGISTRATION_STATUSES.received },
+      select: { participantId: true, sessionLines: { where: { sessionId: { in: sessionIds } }, select: { sessionId: true, answer: true } } }
+    })
   ])
   const takenBySession = new Map(taken.map((row) => [row.sessionId, row._count._all]))
   const drawBySession = new Map(draws.map((draw) => [draw.sessionId, draw.id]))
@@ -106,11 +111,17 @@ export async function selectionOverview(periodId: string) {
     ? await prisma.registration.findMany({ where: { periodId }, select: { participantId: true } })
     : []
   const replayers = await replayerParticipantIds(period.gameId, participants.map((row) => row.participantId))
+  // Une rejoueuse exclue ne reçoit pas de demande (R24)
+  const askable = period.replayPolicy === REGISTRATION_REPLAY_POLICIES.excluded ? pool.filter((person) => !replayers.has(person.participantId)) : pool
+  const lines = pool.flatMap((person) => person.sessionLines)
   return {
     replayPolicy: period.replayPolicy,
     sessions: sessions.map((session) => ({
       ...session,
       taken: takenBySession.get(session.id) ?? 0,
+      // Demande de disponibilités (R9, R12) : qui recevrait un email, et les réponses reçues
+      askableCount: askable.filter((person) => !person.sessionLines.some((line) => line.sessionId === session.id)).length,
+      answeredCount: lines.filter((line) => line.sessionId === session.id && line.answer).length,
       activeDrawId: drawBySession.get(session.id) ?? null
     })),
     replayerParticipantIds: [...replayers],
@@ -289,8 +300,9 @@ export async function reorderWaitlist(periodId: string, sessionId: string, regis
 
 /**
  * Annonce les décisions pas encore annoncées d'un vivier (US-088, ADR-0047) : un email par place retenue, et un pour
- * les listes d'attente, tous avec le même nouveau lien personnel ; l'échéance d'une place retenue part de l'annonce (R20).
- * Le jeton n'est enregistré qu'après l'envoi : un échec laisse l'ancien lien valable et la décision à annoncer.
+ * les listes d'attente, tous avec le même nouveau lien personnel, qui s'ajoute aux précédents (ADR-0070) ; l'échéance
+ * d'une place retenue part de l'annonce (R20). Le jeton n'est enregistré qu'après l'envoi : un échec laisse la décision à
+ * annoncer.
  */
 export async function announceSelection(periodId: string) {
   const period = (await findSelectionPeriod(periodId))!
@@ -341,7 +353,7 @@ export async function announceSelection(periodId: string) {
           break
         }
         await prisma.$transaction(async (tx) => {
-          if (!linkSaved) await tx.registration.update({ where: { id: registration.id }, data: { tokenHash } })
+          if (!linkSaved) await tx.registrationLink.create({ data: { registrationId: registration.id, tokenHash } })
           for (const line of lines) {
             await tx.registrationSession.updateMany({
               where: { id: line.id, status: line.status },

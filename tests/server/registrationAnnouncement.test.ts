@@ -9,7 +9,7 @@ describe('annonce en plusieurs emails (US-088)', () => {
   it('un email parti garde un lien valable, et ce qui n’est pas parti reste à annoncer', async () => {
     send.mockReset()
     send.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('Adresse refusée'))
-    const updateRegistration = vi.fn()
+    const createLink = vi.fn()
     const updateLines = vi.fn()
     Object.assign(prisma, {
       registrationPeriod: { findUnique: vi.fn().mockResolvedValue({ id: 'v1', responseDelayDays: 7, game: { title: 'Le Bal' } }) },
@@ -24,13 +24,13 @@ describe('annonce en plusieurs emails (US-088)', () => {
           ]
         }])
       },
-      $transaction: async (run: (tx: unknown) => Promise<void>) => await run({ registration: { update: updateRegistration }, registrationSession: { updateMany: updateLines } })
+      $transaction: async (run: (tx: unknown) => Promise<void>) => await run({ registrationLink: { create: createLink }, registrationSession: { updateMany: updateLines } })
     })
 
     const result = await announceSelection('v1')
 
     expect(send).toHaveBeenCalledTimes(2)
-    expect(updateRegistration).toHaveBeenCalledTimes(1)
+    expect(createLink).toHaveBeenCalledTimes(1)
     expect(updateLines).toHaveBeenCalledTimes(1)
     expect(updateLines.mock.calls[0]![0].where).toEqual({ id: 'l1', status: 'retained' })
     expect(result).toEqual({ announcedCount: 0, failures: [{ participantName: 'Lou', message: 'Adresse refusée' }] })

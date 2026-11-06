@@ -1,0 +1,68 @@
+import { prisma } from '~/server/utils/prisma'
+import { openEmailTransport } from '~/server/utils/email'
+import { findSelectionPeriod, replayerParticipantIds, selectableSessions } from '~/server/utils/registrationSelection'
+import { availabilityRequestEmail, createRegistrationToken, registrationUrl } from '~/server/utils/registrations'
+import { REGISTRATION_REPLAY_POLICIES, REGISTRATION_STATUSES } from '~/utils/domain'
+
+/**
+ * Demande de disponibilités (R9) et relance (R12) : écrit aux personnes du vivier sans ligne pour cette session, donc sans
+ * réponse ni place. Une personne invitée n'a pas encore répondu au questionnaire, une personne sortie n'y est plus, et une
+ * rejoueuse exclue ne reçoit rien (R24). Chaque email réussi crée son lien (ADR-0070). `registrationIds` limite l'envoi :
+ * réessayer après un échec n'écrit pas de nouveau aux autres. Rien ne part sans le clic d'une organisatrice.
+ */
+export async function sendAvailabilityRequest(periodId: string, sessionId: string, registrationIds?: string[]) {
+  const period = (await findSelectionPeriod(periodId))!
+  const session = (await selectableSessions(period)).find((candidate) => candidate.id === sessionId)
+  if (!session) {
+    throw createError({ statusCode: 400, message: 'Session invalide pour ce vivier' })
+  }
+  if (!session.offered) {
+    throw createError({ statusCode: 409, message: 'Ouvrez d’abord cette session à la pré-inscription.' })
+  }
+
+  const people = await prisma.registration.findMany({
+    where: {
+      periodId,
+      status: REGISTRATION_STATUSES.received,
+      sessionLines: { none: { sessionId } },
+      ...(registrationIds ? { id: { in: registrationIds } } : {})
+    },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true, email: true, participantId: true, participant: { select: { name: true } } }
+  })
+  const excluded = period.replayPolicy === REGISTRATION_REPLAY_POLICIES.excluded
+    ? await replayerParticipantIds(period.gameId, people.map((person) => person.participantId))
+    : new Set<string>()
+
+  const reminder = Boolean(session.lastRequestedAt)
+  const failures: Array<{ registrationId: string, participantName: string, message: string | null }> = []
+  let sentCount = 0
+  const transport = await openEmailTransport().catch(() => null)
+  try {
+    for (const person of people) {
+      if (excluded.has(person.participantId)) continue
+      const participantName = person.participant.name
+      if (!transport) {
+        failures.push({ registrationId: person.id, participantName, message: 'SMTP désactivé' })
+        continue
+      }
+      const { token, tokenHash } = createRegistrationToken()
+      try {
+        await transport.send({
+          to: person.email,
+          ...availabilityRequestEmail({ participantName, gameTitle: period.game.title, session, url: registrationUrl(token), reminder })
+        })
+      } catch (error) {
+        failures.push({ registrationId: person.id, participantName, message: (error as { message?: string })?.message || 'Erreur SMTP' })
+        continue
+      }
+      await prisma.registrationLink.create({ data: { registrationId: person.id, tokenHash } })
+      sentCount++
+    }
+  } finally {
+    transport?.close()
+  }
+
+  if (sentCount) await prisma.registrationPeriodSession.update({ where: { sessionId }, data: { lastRequestedAt: new Date() } })
+  return { sentCount, failures }
+}

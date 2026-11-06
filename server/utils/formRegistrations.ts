@@ -222,7 +222,7 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
       withdrawnAt: null,
       withdrawnById: null,
       invitedSessionId: null,
-      ...(tokenHash ? { tokenHash } : {})
+      ...(tokenHash ? { links: { create: { tokenHash } } } : {})
     }
     const { id: registrationId } = await tx.registration.upsert({
       where: { periodId_participantId: { periodId: period.id, participantId: participant.id } },

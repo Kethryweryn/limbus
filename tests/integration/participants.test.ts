@@ -52,7 +52,8 @@ describe('retrait d’un jeu (US-035)', () => {
     expect(await prisma.sessionAssignment.count({ where: { sessionId: p.sessions[0]!.id } })).toBe(1)
     expect(await prisma.sessionAttendance.count({ where: removed })).toBe(0)
     const line = await prisma.registrationSession.findFirstOrThrow({ where: { sessionId: removed.sessionId, registration: { participantId: removed.participantId } }, include: { registration: true } })
-    expect(line).toMatchObject({ status: 'cancelled', cancelledById: alice.id, registration: { status: 'withdrawn', withdrawnById: alice.id, tokenHash: null } })
+    expect(line).toMatchObject({ status: 'cancelled', cancelledById: alice.id, registration: { status: 'withdrawn', withdrawnById: alice.id } })
+    expect(await prisma.registrationLink.count({ where: { registrationId: line.registrationId } })).toBe(0)
     // Le paiement reste, à traiter à part
     expect(await prisma.sessionPayment.count({ where: removed })).toBe(1)
 

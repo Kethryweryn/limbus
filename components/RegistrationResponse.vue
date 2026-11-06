@@ -56,6 +56,27 @@
           :description="`Votre présence à ${keptSessions.join(', ')} reste enregistrée. Si vous ne pouvez plus venir, annulez-la ci-dessous.`"
         />
 
+        <!-- Lien d'une demande de disponibilités (R11) : ouvrir ne répond pas, la personne confirme ici -->
+        <UCard v-if="availabilityPrompt" data-availability-prompt>
+          <h2 class="font-semibold">
+            Session {{ availabilityPrompt.name }}<span v-if="availabilityPrompt.date"> · {{ formatLongDate(availabilityPrompt.date) }}</span>
+          </h2>
+          <p class="mt-2 text-sm text-gray-600">
+            Êtes-vous disponible ? Répondre « Disponible » vous pré-inscrit : cela ne garantit pas de place et ne confirme pas votre inscription.
+          </p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <UButton :variant="availabilityRequest?.available ? 'solid' : 'soft'" color="primary" :loading="answering" @click="answerAvailability(true)">
+              Confirmer : disponible
+            </UButton>
+            <UButton :variant="availabilityRequest?.available ? 'soft' : 'solid'" color="neutral" :loading="answering" @click="answerAvailability(false)">
+              Confirmer : pas disponible
+            </UButton>
+          </div>
+        </UCard>
+        <UAlert v-if="availabilityGone" color="warning" variant="soft" description="Cette session n’est plus proposée." />
+        <UAlert v-if="availabilityError" color="error" variant="soft" :description="availabilityError" />
+        <UAlert v-if="availabilityKept" color="warning" variant="soft" description="Vous avez une place pour cette session : votre réponse ne la change pas. Si vous ne pouvez plus venir, annulez votre présence ci-dessous." />
+
         <!-- Statut session par session (R17, R28) -->
         <UCard v-if="details.sessions.length">
           <h2 class="font-semibold">Vos sessions</h2>
@@ -146,7 +167,7 @@
 </template>
 
 <script setup lang="ts">
-import { REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_SESSION_STATUS_META, REGISTRATION_STATUS_META, metaOf } from '~/utils/domain'
+import { REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_SESSION_STATUS_META, REGISTRATION_STATUS_META, SESSION_STATUSES, metaOf } from '~/utils/domain'
 import { apiErrorMessage, apiFieldErrors } from '~/utils/apiErrors'
 import { emptyRegistrationAnswerForm } from '~/utils/registrationForms'
 import { formatLongDate } from '~/utils/dates'
@@ -157,7 +178,12 @@ import { publicFetch, type ApiResponse } from '~/composables/useApiFetch'
 type Exposed = ApiResponse<'/api/public/registrations/:token'>
 type Saved = ApiResponse<'/api/public/registrations/:token', 'put'>
 
-const props = withDefaults(defineProps<{ endpoint: string, personalLink?: boolean }>(), { personalLink: true })
+const props = withDefaults(defineProps<{
+  endpoint: string
+  personalLink?: boolean
+  // Réponse portée par le lien de l'email (R11), à confirmer
+  availabilityRequest?: { sessionId: string, available: boolean } | null
+}>(), { personalLink: true, availabilityRequest: null })
 
 const loading = ref(true)
 const invalid = ref(false)
@@ -178,6 +204,39 @@ const sessionError = ref('')
 const keptSessions = ref<string[]>([])
 
 // Les sous-routes répondent l'inscription telle que la personne la voit
+const answering = ref(false)
+const availabilityDone = ref(false)
+const availabilityError = ref('')
+const availabilityKept = ref(false)
+const requestedSession = computed(() => {
+  const sessionId = props.availabilityRequest?.sessionId
+  if (!sessionId || !details.value?.canEdit) return null
+  return details.value.availability?.sessions.find((session) => session.id === sessionId)
+    ?? details.value.sessions.find((line) => line.sessionId === sessionId && line.session.status === SESSION_STATUSES.scheduled)?.session
+    ?? null
+})
+const availabilityPrompt = computed(() => availabilityDone.value ? null : requestedSession.value)
+const availabilityGone = computed(() => Boolean(props.availabilityRequest && details.value?.canEdit && !availabilityDone.value && !requestedSession.value))
+
+async function answerAvailability(available: boolean) {
+  answering.value = true
+  availabilityError.value = ''
+  successMessage.value = ''
+  successDetail.value = ''
+  try {
+    const result = await publicFetch<Exposed & { availabilityEffect: string }>(`${props.endpoint}/availability`, { method: 'POST', body: { sessionId: props.availabilityRequest!.sessionId, available } })
+    apply(result)
+    availabilityDone.value = true
+    availabilityKept.value = result.availabilityEffect === 'kept'
+    // Aucun détail de plus : une décision pas encore annoncée ne se devine pas (R28)
+    if (!availabilityKept.value) successMessage.value = 'Votre réponse est enregistrée.'
+  } catch (err) {
+    availabilityError.value = apiErrorMessage(err, 'Votre réponse n’a pas pu être enregistrée.')
+  } finally {
+    answering.value = false
+  }
+}
+
 const post = (action: string, body?: { sessionId: string }) => publicFetch<Exposed>(`${props.endpoint}/${action}`, { method: 'POST', body })
 
 onMounted(load)

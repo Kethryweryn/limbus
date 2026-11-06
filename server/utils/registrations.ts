@@ -8,7 +8,7 @@ import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
 import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
 import { REGISTRATION_CANCELLABLE_STATUSES, REGISTRATION_PERIOD_STATES, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
-import { canConfirmPlace } from '~/utils/registrations'
+import { AVAILABILITY_ANSWER_PARAMS, canConfirmPlace } from '~/utils/registrations'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -139,6 +139,41 @@ function sessionLabel(session: { name: string, date: Date | null }) {
   return `${session.name}${session.date ? ` (${formatDate(session.date)})` : ''}`
 }
 
+/**
+ * Demande de disponibilités (R10) : une pré-inscription, sans place garantie ni confirmation d'inscription. Chaque lien
+ * ouvre une page qui demande de confirmer : ouvrir ne répond pas (R11).
+ */
+export function availabilityRequestEmail(params: {
+  participantName: string
+  gameTitle: string
+  session: { id: string, name: string, date: Date | null }
+  url: string
+  reminder: boolean
+}) {
+  const answerUrl = (answer: string) => `${params.url}?session=${encodeURIComponent(params.session.id)}&reponse=${answer}`
+  return {
+    subject: `${params.reminder ? 'Rappel – ' : ''}Êtes-vous disponible ? ${params.gameTitle}`,
+    text: [
+      `Bonjour ${params.participantName},`,
+      '',
+      `L’équipe de « ${params.gameTitle} » prépare la session ${sessionLabel(params.session)} et demande qui est intéressé et disponible.`,
+      '',
+      'Répondre « Disponible » vous pré-inscrit : cela ne garantit pas de place et ne confirme pas votre inscription. L’équipe vous écrira si une place vous est retenue.',
+      '',
+      `Disponible : ${answerUrl(AVAILABILITY_ANSWER_PARAMS.available)}`,
+      '',
+      `Pas disponible : ${answerUrl(AVAILABILITY_ANSWER_PARAMS.unavailable)}`,
+      '',
+      'Chaque lien ouvre une page qui vous demande de confirmer votre réponse.',
+      '',
+      'Pour revoir et modifier vos réponses :',
+      params.url,
+      '',
+      'Ce lien personnel vous est propre, ne le transférez pas.'
+    ].join('\n')
+  }
+}
+
 export function selectionAnnouncementEmail(params: {
   status: string
   participantName: string
@@ -148,7 +183,7 @@ export function selectionAnnouncementEmail(params: {
   url: string
 }) {
   const greeting = [`Bonjour ${params.participantName},`, '']
-  const link = ['', 'Ce lien personnel remplace ceux des emails précédents ; il vous est propre, ne le transférez pas.']
+  const link = ['', 'Ce lien personnel vous est propre, ne le transférez pas.']
   if (params.status === LINE.retained) {
     return {
       subject: `Place retenue : ${params.gameTitle}`,
@@ -334,7 +369,6 @@ export async function inviteToRegistrationPeriod(params: {
         status: REGISTRATION_STATUSES.invited,
         invitedById: params.inviter.id,
         email: participant.email,
-        tokenHash,
         responseDueAt
       }
       const previousId = reinvitedByParticipant.get(participant.id)
@@ -345,6 +379,8 @@ export async function inviteToRegistrationPeriod(params: {
             where: { id: previousId, status: REGISTRATION_STATUSES.withdrawn },
             data: {
               ...invitation,
+              // Réinvitée : seul le nouveau lien marche (ADR-0070)
+              links: { deleteMany: {}, create: { tokenHash } },
               invitationSentAt: null,
               respondedAt: null,
               withdrawnAt: null,
@@ -356,7 +392,7 @@ export async function inviteToRegistrationPeriod(params: {
             select: { id: true }
           })
         : await tx.registration.create({
-            data: { ...invitation, periodId: period.id, participantId: participant.id, source: REGISTRATION_SOURCES.invitation },
+            data: { ...invitation, links: { create: { tokenHash } }, periodId: period.id, participantId: participant.id, source: REGISTRATION_SOURCES.invitation },
             select: { id: true }
           })
       created.push({ registrationId: registration.id, token, to: participant.email, participantName: participant.name })
@@ -440,7 +476,7 @@ const invitationSelect = {
 } as const
 
 /**
- * Nouveau lien (R13) : l'ancien cesse de fonctionner (ADR-0018). L'email part à l'adresse de l'inscription : c'est elle
+ * Nouveau lien à la demande de la personne (R13) : tous les anciens cessent de marcher (ADR-0070). L'email part à l'adresse de l'inscription : c'est elle
  * qui fait foi. Invitation sans réponse : l'invitation ; place retenue (sessionId) : l'email de l'annonce ; sinon, un
  * simple rappel du lien, pour une personne du vivier qui a perdu ses emails.
  */
@@ -455,10 +491,14 @@ export async function resendRegistrationInvitation(registrationId: string, invit
 
   const { token, tokenHash } = createRegistrationToken()
   // Statut revérifié dans l'écriture : une réponse ou une sortie arrivée entre-temps garde son état
-  const { count } = await prisma.registration.updateMany({ where: { id: registrationId, status: registration.status }, data: { tokenHash } })
-  if (!count) {
-    throw createError({ statusCode: 409, message: 'Cette personne a déjà répondu entre-temps.' })
-  }
+  await prisma.$transaction(async (tx) => {
+    const { count } = await tx.registration.updateMany({ where: { id: registrationId, status: registration.status }, data: { updatedAt: new Date() } })
+    if (!count) {
+      throw createError({ statusCode: 409, message: 'Cette personne a déjà répondu entre-temps.' })
+    }
+    await tx.registrationLink.deleteMany({ where: { registrationId } })
+    await tx.registrationLink.create({ data: { registrationId, tokenHash } })
+  })
 
   if (!invited) {
     const gameTitle = registration.period.game.title
@@ -724,11 +764,12 @@ export async function leavePool(registrationId: string, leftBy: { id: string, na
   const cancelled = await prisma.$transaction(async (tx) => {
     const { count } = await tx.registration.updateMany({
       where: { id: registrationId, status: registration.status },
-      data: { status: REGISTRATION_STATUSES.withdrawn, withdrawnAt: new Date(), withdrawnById: leftBy?.id ?? null, tokenHash: null }
+      data: { status: REGISTRATION_STATUSES.withdrawn, withdrawnAt: new Date(), withdrawnById: leftBy?.id ?? null }
     })
     if (!count) {
       throw createError({ statusCode: 409, message: 'Cette inscription a changé entre-temps : rechargez la page.' })
     }
+    await tx.registrationLink.deleteMany({ where: { registrationId } })
     const results = []
     for (const line of lines) results.push({ line, ...await cancelLineInTx(tx, registration, line, leftBy) })
     return results

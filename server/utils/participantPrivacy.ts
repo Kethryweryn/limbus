@@ -117,7 +117,7 @@ export async function exportParticipantData(participantId: string, gameIds: stri
           balancePreference: true,
           formVersion: { select: { definition: true } },
           // Statut et disponibilité de la personne pour chaque session (SPEC-018)
-          sessionLines: { select: { status: true, answer: true, answeredAt: true, requestedAt: true, lastRemindedAt: true, responseDueAt: true, waitlistPosition: true, announcedStatus: true, announcedAt: true, confirmedAt: true, cancelledAt: true, cancelledById: true, cancelledBy: { select: { name: true } }, retainedBy: { select: { name: true } }, session: { select: { name: true, date: true } } } },
+          sessionLines: { select: { status: true, answer: true, answeredAt: true, lastRemindedAt: true, responseDueAt: true, waitlistPosition: true, announcedStatus: true, announcedAt: true, confirmedAt: true, cancelledAt: true, cancelledById: true, cancelledBy: { select: { name: true } }, retainedBy: { select: { name: true } }, session: { select: { name: true, date: true } } } },
           // Affinités écrites par la personne, avec la personne rattachée ; jamais celles des autres qui la visent (US-095)
           affinities: {
             select: { kind: true, text: true, ...(forPerson ? {} : { targetUnknown: true, targetParticipant: { select: { name: true } } }) },

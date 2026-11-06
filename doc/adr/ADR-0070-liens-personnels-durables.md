@@ -1,7 +1,7 @@
 ---
 id: ADR-0070
 titre: Plusieurs liens personnels valides pour une personne du vivier
-statut: proposé
+statut: accepté
 date: 2026-11-06
 liens: [../specs/SPEC-018-vivier-permanent.md, ADR-0018-jetons-des-liens-personnels.md, ADR-0047-selection-des-inscriptions.md, ADR-0069-vivier-unique-et-statut-par-session.md]
 ---

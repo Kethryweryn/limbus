@@ -336,6 +336,10 @@ describe('Station Meridian, avant les sessions', () => {
     expect(rows.some((row) => row.status === 'retained' && !row.announcedStatus)).toBe(true)
   })
 
+  it('a une session déjà demandée au vivier, à relancer (R12)', async () => {
+    expect(await prisma.registrationPeriodSession.count({ where: { period: { gameId: meridian }, open: true, lastRequestedAt: { not: null } } })).toBe(1)
+  })
+
   it('montre la sélection, avec ses alertes et sa rejoueuse', async () => {
     const period = await prisma.registrationPeriod.findUniqueOrThrow({ where: { gameId: meridian }, select: { id: true } })
     const selection = await api(owner, 'GET', `/api/registration-periods/${period.id}/selection`)

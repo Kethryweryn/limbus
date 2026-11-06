@@ -84,8 +84,10 @@ export async function planParticipantRemoval(participantId: string, gameIds: str
     await tx.sessionAttendance.deleteMany({ where: inSessions })
     await tx.registration.updateMany({
       where: { participantId, period: { gameId: { in: gameIds } }, status: { not: REGISTRATION_STATUSES.withdrawn } },
-      data: { status: REGISTRATION_STATUSES.withdrawn, withdrawnAt: now, withdrawnById: removedBy.id, tokenHash: null }
+      data: { status: REGISTRATION_STATUSES.withdrawn, withdrawnAt: now, withdrawnById: removedBy.id }
     })
+    // Sortie du vivier : ses liens ne marchent plus (ADR-0070)
+    await tx.registrationLink.deleteMany({ where: { registration: { participantId, period: { gameId: { in: gameIds } } } } })
     // Retirée du jeu, elle l'est de ses sessions à venir ; les sessions passées gardent leur trace
     await tx.registrationSession.updateMany({
       where: {

@@ -470,6 +470,15 @@ export const registrationSessionTargetSchema = z.object({
 // Tirage d'une session (R22)
 export const registrationDrawSchema = registrationSessionTargetSchema
 
+export const registrationAvailabilityAnswerSchema = registrationSessionTargetSchema.extend({
+  available: z.boolean({ error: 'Réponse invalide' })
+})
+
+// Demande de disponibilités : `registrationIds` limite l'envoi aux personnes pour qui il a échoué
+export const availabilityRequestSchema = z.object({
+  registrationIds: z.array(z.string()).max(5000).optional()
+})
+
 export const registrationSelectionSchema = z.object({
   action: z.enum(REGISTRATION_SELECTION_ACTIONS, { error: 'Décision inconnue' }),
   sessionId: frenchText('La session')

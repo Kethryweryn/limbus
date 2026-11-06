@@ -1,7 +1,7 @@
 ---
 id: US-169
 titre: Revenir sur mes réponses avec un lien qui reste valable
-statut: à faire
+statut: terminée
 epic: EPIC-047
 regles: [R13, R15]
 adr: [../../adr/ADR-0070-liens-personnels-durables.md]
@@ -13,10 +13,10 @@ En tant que personne du vivier, je veux que mes anciens emails marchent toujours
 
 ## Critères d'acceptation
 
-- [ ] Étant donné un email plus ancien, quand un nouvel email est parti, alors son lien marche encore.
-- [ ] Étant donné que l'équipe m'envoie un nouveau lien à ma demande, alors les anciens cessent de marcher.
-- [ ] Étant donné un questionnaire modifié depuis ma réponse, quand je reviens, alors mes réponses sont reprises et les nouvelles questions s'ajoutent.
-- [ ] Étant donné une nouvelle question obligatoire, quand j'enregistre, alors elle est exigée ; tant que je ne reviens pas, mes réponses gardent leur version.
+- [x] Étant donné un email plus ancien, quand un nouvel email est parti, alors son lien marche encore.
+- [x] Étant donné que l'équipe m'envoie un nouveau lien à ma demande, alors les anciens cessent de marcher.
+- [x] Étant donné un questionnaire modifié depuis ma réponse, quand je reviens, alors mes réponses sont reprises et les nouvelles questions s'ajoutent.
+- [x] Étant donné une nouvelle question obligatoire, quand j'enregistre, alors elle est exigée ; tant que je ne reviens pas, mes réponses gardent leur version.
 
 ## Notes techniques
 
@@ -24,4 +24,4 @@ Table `RegistrationLink` (ADR-0070). `frozenFormVersionId` et `formForRegistrati
 
 ## Tests
 
-Intégration : plusieurs liens, renouvellement, effacement avec la fiche, version du questionnaire. Playwright : retour sur ses réponses.
+Intégration : `tests/integration/availabilityRequests.test.ts` (plusieurs liens, renouvellement, effacement avec la fiche), `registrationQuestions.test.ts` (version du questionnaire). Playwright : `tests/e2e/registration.spec.ts`, `registrationActions.spec.ts`.

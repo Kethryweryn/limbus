@@ -133,7 +133,7 @@ describe('lien personnel (US-074)', () => {
     const period = await prisma.registrationPeriod.findUniqueOrThrow({ where: { gameId: game.id } })
     await prisma.registration.deleteMany({ where: { periodId: period.id, participantId: participant.id } })
     await prisma.registration.create({
-      data: { periodId: period.id, participantId: participant.id, status: 'invited', source: 'invitation', email: user.email, tokenHash: createHash('sha256').update(token).digest('hex'), responseDueAt: new Date(Date.now() + 86_400_000) }
+      data: { periodId: period.id, participantId: participant.id, status: 'invited', source: 'invitation', email: user.email, links: { create: { tokenHash: createHash('sha256').update(token).digest('hex') } }, responseDueAt: new Date(Date.now() + 86_400_000) }
     })
     const answers = { email: user.email, firstName: 'Quelqu’un', lastName: 'D’autre', phone: '0799999999', emergencyContactName: 'X', emergencyContactPhone: '0700000000', charterAccepted: true }
     const response = await api(null, 'PUT', `/api/public/registrations/${token}`, answers)

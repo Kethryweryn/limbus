@@ -112,7 +112,7 @@ function createActions(gameId: () => string) {
 
   async function resend(registration: PeriodRegistration, sessionId?: string) {
     const name = registration.participant.name
-    if (!confirm(`Envoyer un nouveau lien à ${name} ? Le lien envoyé précédemment ne fonctionnera plus.`)) return
+    if (!confirm(`Envoyer un nouveau lien à ${name} ? Les liens envoyés précédemment ne fonctionneront plus.`)) return
     await registrationAction(registration, 'resend', sessionId, `Nouveau lien envoyé à ${name}.`, 'Renvoi impossible')
   }
 
