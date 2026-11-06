@@ -61,7 +61,7 @@ describe('télécharger ses données (US-076)', () => {
     const { user, teams } = await player()
     const { game, participant } = teams[0]!
     const target = await prisma.participant.create({ data: { name: 'Cible Rattachée', slug: `cible-${++counter}`, gameLinks: { create: { gameId: game.id } } } })
-    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: 'Période', publicId: `efface-periode-${counter}`, entryMode: 'form' } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: 'Période', publicId: `efface-periode-${counter}` } })
     await prisma.registration.create({
       data: {
         periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: user.email,

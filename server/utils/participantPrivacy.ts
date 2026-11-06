@@ -87,28 +87,22 @@ export async function exportParticipantData(participantId: string, gameIds: stri
           balancePreference: true,
           formVersion: { select: { definition: true } },
           // Statut et disponibilité de la personne pour chaque session (SPEC-018)
-          sessionLines: { select: { status: true, answer: true, answeredAt: true, confirmedAt: true, cancelledAt: true, session: { select: { name: true, date: true } } } },
+          sessionLines: { select: { status: true, answer: true, answeredAt: true, waitlistPosition: true, announcedStatus: true, announcedAt: true, confirmedAt: true, cancelledAt: true, session: { select: { name: true, date: true } } } },
           // Affinités écrites par la personne, avec la personne rattachée ; jamais celles des autres qui la visent (US-095)
           affinities: {
             select: { kind: true, text: true, ...(forPerson ? {} : { targetUnknown: true, targetParticipant: { select: { name: true } } }) },
             orderBy: { position: 'asc' }
           },
-          // Sélection (US-087, US-088) : listes d'attente et décision annoncée
-          waitlistEntries: { select: { position: true, session: { select: { name: true, date: true } } } },
-          announcedStatus: true,
-          announcedAt: true,
           invitationSentAt: true,
           lastRemindedAt: true,
           responseDueAt: true,
           respondedAt: true,
-          confirmedAt: true,
           withdrawnAt: true,
           // Qui a invité ou retiré la personne : le droit d'accès porte sur toutes ses données (US-037)
           invitedBy: { select: { name: true } },
           withdrawnBy: { select: { name: true } },
           createdAt: true,
-          period: { select: { name: true, game: { select: { title: true } } } },
-          session: { select: { name: true, date: true } }
+          period: { select: { name: true, game: { select: { title: true } } } }
         }
       }
     }

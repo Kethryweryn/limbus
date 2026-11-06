@@ -58,7 +58,7 @@ describe('réglages et information (US-107)', () => {
 
   it('le formulaire public donne l’information, avec le contact du jeu', async () => {
     const { key, game } = await aliceGame({ photoRetentionMonths: 3, contactEmail: 'orga@example.test' })
-    await prisma.registrationPeriod.create({ data: { name: `Période ${key}`, gameId: game.id, publicId: `pub-${key}`, state: 'open', entryMode: 'form', scope: 'game' } })
+    await prisma.registrationPeriod.create({ data: { name: `Période ${key}`, gameId: game.id, publicId: `pub-${key}`, state: 'open' } })
     const read = await api(null, 'GET', `/api/public/periods/pub-${key}`)
     expect(read.status, JSON.stringify(read.body)).toBe(200)
     expect(bodyOf<PublicPeriod>(read).game.photoInformation).toContain('supprimée 3 mois après la session')
@@ -67,7 +67,7 @@ describe('réglages et information (US-107)', () => {
 
   it('sans adresse de contact, le lien de diffusion public ne montre pas celle de la propriétaire', async () => {
     const { key, game } = await aliceGame()
-    await prisma.registrationPeriod.create({ data: { name: `Période ${key}`, gameId: game.id, publicId: `pub-${key}`, state: 'open', entryMode: 'form', scope: 'game' } })
+    await prisma.registrationPeriod.create({ data: { name: `Période ${key}`, gameId: game.id, publicId: `pub-${key}`, state: 'open' } })
     const information = bodyOf<PublicPeriod>(await api(null, 'GET', `/api/public/periods/pub-${key}`)).game.photoInformation
     expect(information).toContain('« Je participe »')
     expect(information).not.toContain('alice@example.test')

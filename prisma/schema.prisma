@@ -318,8 +318,6 @@ model Session {
   updatedAt   DateTime   @updatedAt
   // Visible sur la page publique du jeu (US-019) ; non visible par défaut
   published   Boolean    @default(false)
-  // Places d'une session recrutée par l'inscription permanente (US-090, ADR-0047) ; vide : le nombre de PJ
-  poolSeats   Int?
   // Session sur laquelle celle-ci a été reportée (US-022, ADR-0029)
   postponedToSessionId String?   @unique
   postponedTo          Session?  @relation("SessionPostponements", fields: [postponedToSessionId], references: [id], onDelete: SetNull)
@@ -336,9 +334,6 @@ model Session {
   tariffs SessionTariff[]
   uploadedFiles UploadedFile[]
   registrationPeriodLink RegistrationPeriodSession?
-  registrations Registration[]
-  registrationAvailabilities RegistrationAvailability[]
-  registrationWaitlist RegistrationWaitlistEntry[]
   registrationLines RegistrationSession[]
   registrationDraws RegistrationDraw[]
   // Invitations qui visent cette session (SPEC-018, R4)
@@ -350,28 +345,20 @@ model Session {
 // plus lus : la seconde migration les retire
 model RegistrationPeriod {
   id                String   @id @default(cuid())
+  // Nom au journal des assistants
+  name              String   @default("Vivier")
   // Un seul vivier par jeu (R1)
   gameId            String   @unique
   game              Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  name              String   @default("Vivier")
-  scope             String   @default("game")
   // Identifiant aléatoire du lien de diffusion (R32), distinct de l'id et du slug du jeu
   publicId          String   @unique
-  entryMode         String   @default("form")
-  selectionMode     String   @default("chosen")
   // Ouvert et fermé à la main (R2)
   state             String   @default("draft")
-  closesAt          DateTime?
   responseDelayDays Int      @default(7)
   // Prévenir l'équipe de chaque inscription reçue par le formulaire (US-083)
   notifyTeam        Boolean  @default(false)
   // Rejoueurs (R7) : allowed, flagged ou excluded (US-087, ADR-0047)
   replayPolicy      String   @default("allowed")
-  // Tirage (US-092, ADR-0048) : places retenues par chaque organisatrice en mode mixte, pondérations, liste d'attente
-  organizerPicks       Int?
-  weightNotDrawnBefore Boolean  @default(false)
-  weightBalance        Boolean  @default(false)
-  waitlistSize         Int      @default(5)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -390,8 +377,6 @@ model RegistrationPeriodSession {
   period    RegistrationPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
   sessionId String             @unique
   session   Session            @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  // Plus lu : les places sont le nombre de PJ (R8) ; la seconde migration retire la colonne
-  seats     Int                @default(0)
   // Ouverte à la pré-inscription (R6) ; proposée seulement si elle est aussi datée, à venir, ni annulée ni terminée
   open      Boolean            @default(false)
   // Sélection de la session (R22, ADR-0048)
@@ -439,8 +424,6 @@ model Registration {
   id                    String                   @id @default(cuid())
   periodId              String
   period                RegistrationPeriod       @relation(fields: [periodId], references: [id], onDelete: Cascade)
-  sessionId             String?
-  session               Session?                 @relation(fields: [sessionId], references: [id], onDelete: SetNull)
   // Session visée par l'invitation (R4) : la personne y est inscrite si elle répond en se disant disponible
   invitedSessionId      String?
   invitedSession        Session?                 @relation("RegistrationInvitedSession", fields: [invitedSessionId], references: [id], onDelete: SetNull)
@@ -474,32 +457,21 @@ model Registration {
   lastRemindedAt        DateTime?
   responseDueAt         DateTime?
   respondedAt           DateTime?
-  confirmedAt           DateTime?
   withdrawnAt           DateTime?
   // Organisatrice qui a retiré la personne (US-005) ; null pour un refus ou un désistement par le lien
   withdrawnById         String?
   withdrawnBy           User?                    @relation("RegistrationWithdrawals", fields: [withdrawnById], references: [id], onDelete: SetNull)
-  // Dernière décision de sélection annoncée à la personne (US-088, ADR-0047) : une décision qui en diffère est à annoncer
-  announcedStatus       String?
-  announcedSessionId    String?
-  announcedAt           DateTime?
-  // Organisatrice qui a retenu la personne à la main (US-092) ; null pour le tirage
-  retainedById          String?
-  retainedBy            User?                    @relation("RegistrationRetentions", fields: [retainedById], references: [id], onDelete: SetNull)
   // Réponse à la question d'équilibre (US-091) ; null : peu importe
   balancePreference     String?
   createdAt             DateTime                 @default(now())
   updatedAt             DateTime                 @updatedAt
 
   affinities            RegistrationAffinity[]
-  availabilities        RegistrationAvailability[]
-  waitlistEntries       RegistrationWaitlistEntry[]
   sessionLines          RegistrationSession[]
   // Personnages réservés en attendant la confirmation (US-100, ADR-0051)
   reservedAssignments   SessionAssignment[]
 
   @@unique([periodId, participantId])
-  @@index([sessionId])
   @@index([participantId])
   @@index([invitedSessionId])
 }
@@ -561,18 +533,6 @@ model RegistrationRequest {
   @@index([createdAt])
 }
 
-// Session où une personne inscrite par le formulaire est disponible (R10)
-model RegistrationAvailability {
-  id             String       @id @default(cuid())
-  registrationId String
-  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
-  sessionId      String
-  session        Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  @@unique([registrationId, sessionId])
-  @@index([sessionId])
-}
-
 // Tirage au sort d'une période (US-093, US-094, ADR-0048) : graine, réglages et résultat, pour le rejouer à l'identique
 model RegistrationDraw {
   id            String             @id @default(cuid())
@@ -592,20 +552,6 @@ model RegistrationDraw {
   cancelledBy   User?              @relation("RegistrationDrawCancellations", fields: [cancelledById], references: [id], onDelete: SetNull)
 
   @@index([periodId])
-  @@index([sessionId])
-}
-
-// Place dans la liste d'attente d'une session (US-087, ADR-0047) : une inscription attend dans une ou plusieurs sessions
-model RegistrationWaitlistEntry {
-  id             String       @id @default(cuid())
-  registrationId String
-  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
-  sessionId      String
-  session        Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  position       Int
-  createdAt      DateTime     @default(now())
-
-  @@unique([registrationId, sessionId])
   @@index([sessionId])
 }
 
@@ -908,7 +854,6 @@ model User {
   acceptedInvitations GameInvitation[] @relation("AcceptedGameInvitations")
   sentRegistrationInvitations Registration[] @relation("SentRegistrationInvitations")
   registrationWithdrawals Registration[] @relation("RegistrationWithdrawals")
-  registrationRetentions Registration[] @relation("RegistrationRetentions")
   registrationSessionCancellations RegistrationSession[] @relation("RegistrationSessionCancellations")
   registrationSessionRetentions RegistrationSession[] @relation("RegistrationSessionRetentions")
   registrationDraws RegistrationDraw[] @relation("RegistrationDrawAuthors")
