@@ -12,42 +12,35 @@ import { freezeFormVersion, updateProfileFromAnswers, type RegistrationAnswers }
 import { replaceAffinities } from '~/server/utils/registrationAffinities'
 import { getCurrentRegistrationForm, registrationAnswerSchema, type AffinityAnswers, type QuestionAnswers } from '~/server/utils/registrationForms'
 import { readZodBody } from '~/server/utils/schemas'
-import { asksAvailability, availabilitySchema } from '~/server/utils/registrationAvailability'
-import { REGISTRATION_ENTRY_MODES, REGISTRATION_PERIOD_SCOPES, REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_STATUSES, isClosedSessionStatus } from '~/utils/domain'
-import { effectivePeriodState } from '~/utils/registrationPeriods'
+import { answerAvailability, availabilitySchema } from '~/server/utils/registrationAvailability'
+import { offeredSessions } from '~/server/utils/registrationPeriods'
+import { REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES } from '~/utils/domain'
 import { splitParticipantName } from '~/utils/registrations'
 import { youtubeVideoId } from '~/utils/urls'
 
-// Formulaire public d'une période en mode formulaire (US-084, US-085, ADR-0046)
+// Formulaire public du vivier (US-084, US-085, ADR-0046)
 
 const DAY_MS = 24 * 60 * 60 * 1000
 export const REGISTRATION_REQUEST_TTL_MS = 7 * DAY_MS
 const PUBLIC_ID_PATTERN = /^[\w-]{1,32}$/
 const TOKEN_PATTERN = /^[\w-]{43}$/
 
-const sessionSelect = { id: true, name: true, date: true, status: true, location: { select: { name: true, address: true } } } as const
-
 export const formPeriodSelect = {
   id: true,
   gameId: true,
-  name: true,
-  scope: true,
-  entryMode: true,
   state: true,
-  closesAt: true,
   notifyTeam: true,
   publicId: true,
-  game: { select: { id: true, title: true, slug: true, noteIntention: true, teaserUrl: true, ownerId: true, photoRetentionMonths: true, contactEmail: true } },
-  sessions: { orderBy: { session: { date: 'asc' as const } }, select: { session: { select: sessionSelect } } }
+  game: { select: { id: true, title: true, slug: true, noteIntention: true, teaserUrl: true, ownerId: true, photoRetentionMonths: true, contactEmail: true } }
 } as const
 
 type FormPeriod = NonNullable<Awaited<ReturnType<typeof findFormPeriod>>>
 
-// Une période en brouillon, ou en mode invitation, répond comme un lien inconnu (R32)
+// Un vivier en brouillon répond comme un lien inconnu (R32) ; fermé, son lien dit « inscriptions closes » (R2)
 export async function findFormPeriod(publicId: string | undefined) {
   if (!publicId || !PUBLIC_ID_PATTERN.test(publicId)) return null
   const period = await prisma.registrationPeriod.findUnique({ where: { publicId }, select: formPeriodSelect })
-  if (!period || period.entryMode !== REGISTRATION_ENTRY_MODES.form || period.state === REGISTRATION_PERIOD_STATES.draft) return null
+  if (!period || period.state === REGISTRATION_PERIOD_STATES.draft) return null
   return period
 }
 
@@ -57,22 +50,6 @@ export async function requireFormPeriod(publicId: string | undefined) {
     throw createError({ statusCode: 404, message: 'Ce lien d’inscription n’est pas valide.' })
   }
   return period
-}
-
-/**
- * Sessions que le formulaire montre : celles de la période ; pour l'inscription permanente, pour information,
- * les sessions à venir du jeu qui n'ont pas leur propre période (R30, R31)
- */
-export async function formPeriodSessions(period: Pick<FormPeriod, 'scope' | 'gameId' | 'sessions'>, now = new Date()) {
-  // Une session annulée ou terminée n'est plus proposée
-  if (period.scope !== REGISTRATION_PERIOD_SCOPES.game) return period.sessions.map((link) => link.session).filter((session) => !isClosedSessionStatus(session.status))
-  const today = new Date(now)
-  today.setHours(0, 0, 0, 0)
-  return await prisma.session.findMany({
-    where: { gameId: period.gameId, registrationPeriodLink: null, status: SESSION_STATUSES.scheduled, OR: [{ date: null }, { date: { gte: today } }] },
-    orderBy: { date: 'asc' },
-    select: sessionSelect
-  })
 }
 
 // Compte connecté à l'adresse confirmée, sinon personne : le formulaire reste ouvert à tous
@@ -102,19 +79,16 @@ async function accountPrefill(userId: string) {
   }
 }
 
-// Ce que le lien de diffusion montre : le jeu, la période et le formulaire, jamais rien des autres inscrits
+// Ce que le lien de diffusion montre : le jeu, ses sessions ouvertes et le formulaire, jamais rien des autres inscrits
 export async function exposeFormPeriod(period: FormPeriod, account: { id: string } | null, now = new Date()) {
   const form = await getCurrentRegistrationForm(period.gameId)
   return {
     publicId: period.publicId,
-    name: period.name,
-    state: effectivePeriodState(period, now) === REGISTRATION_PERIOD_STATES.open ? 'open' : 'closed',
-    permanent: period.scope === REGISTRATION_PERIOD_SCOPES.game,
-    closesAt: period.closesAt,
+    state: period.state === REGISTRATION_PERIOD_STATES.open ? 'open' : 'closed',
     game: { title: period.game.title, noteIntention: period.game.noteIntention, // Page publique et indexable : jamais l'adresse du compte de la propriétaire, seulement le contact du jeu (US-107)
     photoInformation: photoInformation({ retentionMonths: period.game.photoRetentionMonths, contactEmail: period.game.contactEmail || null }) },
-    sessions: await formPeriodSessions(period, now),
-    asksAvailability: asksAvailability(period),
+    // Sessions ouvertes, dont la question des disponibilités (R7)
+    sessions: await offeredSessions(period.id, now),
     definition: form.definition,
     ogImageUrl: youtubeVideoId(period.game.teaserUrl) ? absoluteAppUrl(`/api/public/periods/${period.publicId}/teaser-thumbnail`) : null,
     url: absoluteAppUrl(`/i/${period.publicId}`),
@@ -153,7 +127,7 @@ export async function submitFormRegistration(event: H3Event, publicId: string | 
   assertRateLimit(event, { name: 'public-form-submit', limit: 10, windowMs, keyParts: [String(publicId).slice(0, 32)] })
   assertRateLimit(event, { name: 'public-form-submit-ip', limit: 100, windowMs })
   const period = await requireFormPeriod(publicId)
-  if (effectivePeriodState(period) !== REGISTRATION_PERIOD_STATES.open) {
+  if (period.state !== REGISTRATION_PERIOD_STATES.open) {
     throw createError({ statusCode: 409, message: 'Les inscriptions sont closes.' })
   }
 
@@ -161,7 +135,8 @@ export async function submitFormRegistration(event: H3Event, publicId: string | 
   const raw = await readBody<Record<string, unknown> | null>(event).catch(() => null)
   const form = await getCurrentRegistrationForm(period.gameId)
   const { charterAccepted: _charterAccepted, healthConsent: _healthConsent, ...answers } = await readZodBody(event, registrationAnswerSchema(form.definition))
-  const { availableSessionIds } = await readZodBody(event, availabilitySchema(period))
+  const offered = await offeredSessions(period.id)
+  const { availableSessionIds } = await readZodBody(event, availabilitySchema(offered.map((session) => session.id)))
   const account = await optionalAccount(event)
   if (typeof raw?.website === 'string' && raw.website.trim()) {
     return { received: Boolean(account), emailSent: !account }
@@ -170,9 +145,7 @@ export async function submitFormRegistration(event: H3Event, publicId: string | 
   const versionId = await freezeFormVersion(period.gameId, form.version?.id ?? null)
   if (account) {
     const stored = { ...answers, email: account.email, availableSessionIds }
-    const result = await receiveRegistration(period, stored, versionId, null)
-    // Déjà inscrite à un autre statut : rien n'a changé, ni l'inscription ni ses coordonnées
-    if (!result?.applied) return { received: false, emailSent: false, alreadyRegistered: true }
+    await receiveRegistration(period, stored, versionId, null)
     await updateProfileFromAnswers(account.id, stored, form.definition)
     return { received: true, emailSent: false }
   }
@@ -205,12 +178,11 @@ export async function confirmRegistrationRequest(token: string | undefined, now 
   return await receiveRegistration(request.period, answers, request.formVersionId, request.tokenHash, request.id)
 }
 
-const RESTARTABLE: string[] = [REGISTRATION_STATUSES.received, REGISTRATION_STATUSES.withdrawn]
-
 /**
- * Inscription reçue (ADR-0046) : la personne est rapprochée de sa fiche par son email (R12), sinon une fiche est
- * créée dans le jeu. Une inscription reçue ou désistée repart avec les nouvelles réponses ; à un autre statut,
- * elle ne change pas et seul le lien personnel est renouvelé. requestId : la demande confirmée, supprimée ici.
+ * Réponse reçue (ADR-0046) : la personne est rapprochée de sa fiche par son email (R12 de SPEC-001), sinon une fiche est
+ * créée dans le jeu. Elle a une seule réponse par vivier (R1) : déjà dedans, invitée ou sortie, sa ligne prend les
+ * nouvelles réponses, et ses statuts par session restent. Chaque session cochée la rend pré-inscrite (R7, R29) ; une
+ * case vide ne change rien, car elle n'a pas vu ses réponses précédentes. requestId : la demande confirmée, supprimée ici.
  */
 async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, formVersionId: string | null, tokenHash: string | null, requestId?: string) {
   const { affinities, questionAnswers, availableSessionIds, ...standard } = answers
@@ -220,9 +192,9 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
   const slug = matched ? null : await generateUniqueSlug('participant', name)
   const userId = await accountIdForEmail(email)
   const now = new Date()
-  // Disponibilités encore valides : une session retirée de la période entre l'envoi et la confirmation est ignorée
-  const sessionIds = new Set(period.sessions.map((link) => link.session.id))
-  const availability = asksAvailability(period) ? availableSessionIds.filter((id) => sessionIds.has(id)) : []
+  // Disponibilités encore valides : une session refermée entre l'envoi et la confirmation est ignorée
+  const sessionIds = new Set((await offeredSessions(period.id)).map((session) => session.id))
+  const availability = availableSessionIds.filter((id) => sessionIds.has(id))
 
   const result = await prisma.$transaction(async (tx) => {
     if (requestId) {
@@ -239,7 +211,6 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
       create: { participantId: participant.id, gameId: period.gameId }
     })
 
-    const existing = await tx.registration.findUnique({ where: { periodId_participantId: { periodId: period.id, participantId: participant.id } }, select: { id: true, status: true } })
     const data = {
       ...standard,
       status: REGISTRATION_STATUSES.received,
@@ -248,46 +219,30 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
       formVersionId,
       questionAnswers,
       respondedAt: now,
-      confirmedAt: null,
       withdrawnAt: null,
       withdrawnById: null,
-      // Une nouvelle inscription : rien ne lui a encore été annoncé (ADR-0047)
-      announcedStatus: null,
-      announcedSessionId: null,
-      announcedAt: null,
+      invitedSessionId: null,
       ...(tokenHash ? { tokenHash } : {})
     }
-    let registrationId: string
-    let applied = true
-    if (!existing) {
-      registrationId = (await tx.registration.create({
-        data: { ...data, periodId: period.id, participantId: participant.id, source: REGISTRATION_SOURCES.form },
-        select: { id: true }
-      })).id
-    } else if (RESTARTABLE.includes(existing.status)) {
-      registrationId = (await tx.registration.update({ where: { id: existing.id }, data, select: { id: true } })).id
-    } else {
-      applied = false
-      registrationId = existing.id
-      if (tokenHash) await tx.registration.update({ where: { id: existing.id }, data: { tokenHash } })
-    }
-
-    if (applied) {
-      await replaceAffinities(tx, registrationId, affinities)
-      await tx.registrationAvailability.deleteMany({ where: { registrationId } })
-      if (availability.length) await tx.registrationAvailability.createMany({ data: availability.map((sessionId) => ({ registrationId, sessionId })) })
-    }
-    return { registrationId, applied, participantName: participant.name }
+    const { id: registrationId } = await tx.registration.upsert({
+      where: { periodId_participantId: { periodId: period.id, participantId: participant.id } },
+      update: data,
+      create: { ...data, periodId: period.id, participantId: participant.id, source: REGISTRATION_SOURCES.form },
+      select: { id: true }
+    })
+    await replaceAffinities(tx, registrationId, affinities)
+    for (const sessionId of availability) await answerAvailability(tx, registrationId, sessionId, true, now)
+    return { registrationId, participantName: participant.name }
   })
 
   // Après la réponse : la personne n'attend pas le serveur SMTP, et un échec ne change rien à son inscription
-  if (result?.applied && period.notifyTeam) {
+  if (result && period.notifyTeam) {
     void notifyGameTeam(
       period.gameId,
       [
-        `${result.participantName} s’est inscrit·e à « ${period.game.title} » (période « ${period.name} »).`,
+        `${result.participantName} a répondu au questionnaire de « ${period.game.title} ».`,
         '',
-        `Son inscription est reçue : retrouvez-la dans les inscriptions du jeu, ${absoluteAppUrl('/registrations')}.`
+        `Cette personne est dans le vivier : retrouvez-la dans les inscriptions du jeu, ${absoluteAppUrl('/registrations')}.`
       ].join('\n'),
       `Nouvelle inscription : ${result.participantName} (${period.game.title})`
     ).catch((error) => console.error('[inscription] équipe non prévenue', { periodId: period.id, error: (error as Error)?.message }))

@@ -39,13 +39,13 @@ test('la page publique suit un renommage et montre sessions et inscription', asy
       data: { title, slug: slugOf(title), description: '', ownerId: owner.id, publicPage: true, publicShowSessions: true, publicShowRegistration: true, slugRedirects: { create: { slug: `ancien-${slugOf(title)}` } } }
     })
     const session = await prisma.session.create({ data: { name: `Session ${title}`, slug: slugOf(`session ${title}`), gameId: game.id, published: true, date: new Date('2099-11-01T09:00:00Z') } })
-    await prisma.registrationPeriod.create({ data: { name: 'Hiver', gameId: game.id, publicId: `g${Date.now().toString(36)}`, entryMode: 'form', state: 'open', sessions: { create: { sessionId: session.id, seats: 3 } } } })
+    await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `g${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } } })
 
     await page.goto(`/public/games/ancien-${slugOf(title)}`)
     await expect(page).toHaveURL(new RegExp(`/public/games/${game.slug}$`))
     await expect(page.getByRole('heading', { name: 'Prochaines sessions' })).toBeVisible()
     await expect(page.getByText(session.name)).toBeVisible()
-    await expect(page.getByRole('link', { name: 'S’inscrire : Hiver' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'S’inscrire au jeu' })).toBeVisible()
   } finally {
     await prisma.$disconnect()
   }

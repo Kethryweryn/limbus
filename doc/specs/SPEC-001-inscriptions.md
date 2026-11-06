@@ -10,7 +10,7 @@ adr: [ADR-0007, ADR-0008, ADR-0011, ADR-0045, ADR-0046, ADR-0047, ADR-0048, ADR-
 
 # SPEC-001 : Inscriptions, sélection et aide au casting
 
-> **À venir :** [SPEC-018](SPEC-018-vivier-permanent.md) remplacera les périodes d'inscription par un vivier unique par jeu. Cette page décrit le fonctionnement actuel jusqu'à sa livraison.
+> **Remplacé en partie :** [SPEC-018](SPEC-018-vivier-permanent.md) remplace les périodes d'inscription, les modes d'entrée et le statut unique d'une inscription par un vivier unique par jeu et un statut par session. Le formulaire, les affinités, les relations et la note de l'assistant de casting restent décrits ici.
 
 ## Objectif
 

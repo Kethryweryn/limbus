@@ -2,13 +2,12 @@ import { prisma } from '~/server/utils/prisma'
 import { getCurrentRegistrationForm } from '~/server/utils/registrationForms'
 import { currentQuestionLinks } from '~/server/utils/registrationQuestionLinks'
 import { castingAssistant, type CastingCharacter, type CastingPlayer } from '~/utils/castingAssistant'
-import { CHARACTER_TYPES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
+import { CHARACTER_TYPES, REGISTRATION_SESSION_STATUSES, SESSION_ROLES } from '~/utils/domain'
 
 // Assistant de casting d'une session (US-101, US-102, ADR-0051) : calculé sur le cast en cours d'édition, rien n'est écrit
 
 type CastLine = { characterId: string, participantId?: string | null, reservedRegistrationId?: string | null, locked?: boolean }
 
-const PLACED_STATUSES: string[] = [REGISTRATION_STATUSES.retained, REGISTRATION_STATUSES.confirmed]
 const nameSelect = { select: { id: true, name: true } } as const
 
 export async function gameCharacters(gameId: string): Promise<CastingCharacter[]> {
@@ -35,13 +34,14 @@ export async function gameCharacters(gameId: string): Promise<CastingCharacter[]
 
 export async function sessionCastingAssistant(session: { id: string, gameId: string }, lines: CastLine[]) {
   const { id: sessionId, gameId } = session
-  const [characters, castPlayers, retained, { definition }, links] = await Promise.all([
+  const [characters, castPlayers, retainedLines, { definition }, links] = await Promise.all([
     gameCharacters(gameId),
     prisma.sessionParticipant.findMany({ where: { sessionId, role: SESSION_ROLES.participant }, select: { participantId: true } }),
-    prisma.registration.findMany({ where: { sessionId, status: REGISTRATION_STATUSES.retained }, select: { id: true, participantId: true } }),
+    prisma.registrationSession.findMany({ where: { sessionId, status: REGISTRATION_SESSION_STATUSES.retained }, select: { registration: { select: { id: true, participantId: true } } } }),
     getCurrentRegistrationForm(gameId),
     currentQuestionLinks(gameId)
   ])
+  const retained = retainedLines.map((line) => line.registration)
   const characterIds = new Set(characters.map((character) => character.id))
   const pjLines = lines.filter((line) => characterIds.has(line.characterId))
   // Les lignes ne citent que des personnages du jeu (les PNJ sont ignorés)
@@ -67,22 +67,16 @@ export async function sessionCastingAssistant(session: { id: string, gameId: str
       where: { participantId: { in: candidateIds }, period: { gameId } },
       select: {
         participantId: true,
-        sessionId: true,
-        status: true,
         questionAnswers: true,
         affinities: { select: { kind: true, text: true, targetParticipantId: true }, orderBy: { position: 'asc' } }
-      },
-      orderBy: { createdAt: 'desc' }
+      }
     })
   ])
-  // Réponses de son inscription à cette session, sinon de sa dernière inscription au jeu
-  const registrationOf = (participantId: string) => {
-    const own = registrations.filter((registration) => registration.participantId === participantId)
-    return own.find((registration) => registration.sessionId === sessionId && PLACED_STATUSES.includes(registration.status)) ?? own[0] ?? null
-  }
+  // Une seule réponse par personne et par vivier (R1)
+  const registrationByParticipant = new Map(registrations.map((registration) => [registration.participantId, registration]))
 
   const players = people.map((person) => {
-    const registration = registrationOf(person.id)
+    const registration = registrationByParticipant.get(person.id) ?? null
     const affinities = registration?.affinities ?? []
     const targets = (kind: string) => affinities.filter((affinity) => affinity.kind === kind && affinity.targetParticipantId).map((affinity) => affinity.targetParticipantId!)
     return {

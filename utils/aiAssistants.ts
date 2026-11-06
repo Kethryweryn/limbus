@@ -27,7 +27,7 @@ export const AI_TARGET_LABELS: Record<string, string> = {
   characterRelation: 'relation',
   session: 'session',
   participant: 'participant',
-  registrationPeriod: 'période d’inscription',
+  registrationPeriod: 'vivier',
   registrationForm: 'formulaire d’inscription',
   registration: 'inscription',
   registrationDraw: 'tirage au sort'

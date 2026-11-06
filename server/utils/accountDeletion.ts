@@ -5,7 +5,7 @@ import { eraseParticipant, exportParticipantData } from '~/server/utils/particip
 import { myParticipantIds } from '~/server/utils/participantAccounts'
 import { storageUsage } from '~/server/utils/uploads'
 import { exportAiData } from '~/server/utils/aiAccess'
-import { GAME_INVITATION_KINDS, GAME_INVITATION_STATUSES, REGISTRATION_STATUSES, USER_ROLES } from '~/utils/domain'
+import { GAME_INVITATION_KINDS, GAME_INVITATION_STATUSES, REGISTRATION_SEAT_STATUSES, USER_ROLES } from '~/utils/domain'
 
 // Export et effacement depuis le compte (US-076, US-077, ADR-0043)
 
@@ -62,8 +62,8 @@ async function teamNotices(participantIds: string[]) {
       select: { game: { select: { id: true, title: true, owner: { select: { email: true } }, shares: { select: { user: { select: { email: true } } } } } } }
     }),
     prisma.sessionParticipant.findMany({ where: inMine, select: { session: { select: { gameId: true, name: true } } } }),
-    prisma.registration.findMany({
-      where: { ...inMine, status: { not: REGISTRATION_STATUSES.withdrawn }, sessionId: { not: null } },
+    prisma.registrationSession.findMany({
+      where: { registration: inMine, status: { in: REGISTRATION_SEAT_STATUSES } },
       select: { session: { select: { gameId: true, name: true } } }
     }),
     prisma.sessionPayment.findMany({

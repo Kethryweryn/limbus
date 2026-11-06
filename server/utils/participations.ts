@@ -3,10 +3,8 @@ import { prisma } from '~/server/utils/prisma'
 import { myParticipantIds } from '~/server/utils/participantAccounts'
 import { myDeliveriesBySession } from '~/server/utils/myDocuments'
 import { getSessionPaymentDashboard } from '~/server/utils/sessionPayments'
-import { registrationPermissions } from '~/server/utils/publicRegistrations'
+import { registrationPermissions, visibleSessionLines } from '~/server/utils/publicRegistrations'
 import { SESSION_ROLES } from '~/utils/domain'
-import { effectivePeriodState } from '~/utils/registrationPeriods'
-import { announcedRegistrationStatus, isAnnouncementPending } from '~/utils/registrations'
 
 const sessionSelect = {
   id: true,
@@ -82,13 +80,21 @@ export async function myParticipations(userId: string, now = new Date()) {
       select: {
         id: true,
         status: true,
-        sessionId: true,
-        announcedStatus: true,
-        announcedSessionId: true,
         responseDueAt: true,
-        confirmedAt: true,
-        session: { select: { name: true, date: true } },
-        period: { select: { name: true, gameId: true, state: true, closesAt: true } }
+        period: { select: { gameId: true, state: true } },
+        sessionLines: {
+          orderBy: { session: { date: 'asc' } },
+          select: {
+            sessionId: true,
+            status: true,
+            answer: true,
+            announcedStatus: true,
+            cancelledById: true,
+            responseDueAt: true,
+            confirmedAt: true,
+            session: { select: { id: true, name: true, date: true, status: true, location: { select: { name: true, address: true } } } }
+          }
+        }
       }
     }),
     prisma.sessionAttendance.findMany({ where: inMine, select: { sessionId: true, status: true, responseDueAt: true } }),
@@ -139,14 +145,12 @@ export async function myParticipations(userId: string, now = new Date()) {
         .filter((registration) => registration.period.gameId === game.id)
         .map((registration) => ({
           id: registration.id,
-          // Une décision de sélection pas encore annoncée ne se voit pas (ADR-0047)
-          status: announcedRegistrationStatus(registration),
-          periodName: registration.period.name,
-          periodState: effectivePeriodState(registration.period, now),
-          session: isAnnouncementPending(registration) ? null : registration.session,
+          status: registration.status,
+          poolState: registration.period.state,
           responseDueAt: registration.responseDueAt,
-          confirmedAt: registration.confirmedAt,
-          ...registrationPermissions(registration, now)
+          // Une décision de sélection pas encore annoncée ne se voit pas (R28, ADR-0047)
+          sessions: visibleSessionLines(registration.sessionLines, now),
+          ...registrationPermissions(registration)
         }))
     }))
 }

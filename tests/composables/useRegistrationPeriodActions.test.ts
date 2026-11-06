@@ -11,13 +11,9 @@ const { provideRegistrationPeriodActions } = await import('~/composables/useRegi
 const registration = { id: 'r1', status: 'invited', participant: { id: 'p1', name: 'Léa' } }
 const period = {
   id: 'per1',
-  name: 'Printemps',
   gameId: 'g1',
   state: 'closed',
-  closesAt: '2020-01-01T00:00:00.000Z',
-  responseDelayDays: 7,
-  updatedAt: '2026-11-02T10:00:00.000Z',
-  sessions: [{ sessionId: 's1', seats: 10 }]
+  updatedAt: '2026-11-02T10:00:00.000Z'
 }
 
 beforeEach(() => {
@@ -31,7 +27,7 @@ describe('actions du bloc d’un jeu', () => {
     const actions = provideRegistrationPeriodActions(() => 'g1')
     await actions.remind(registration as never)
 
-    expect(actionMock).toHaveBeenCalledWith('/api/registrations/r1/remind', { method: 'POST' })
+    expect(actionMock).toHaveBeenCalledWith('/api/registrations/r1/remind', { method: 'POST', body: { sessionId: null } })
     expect(fetchByUrlMock).toHaveBeenCalledWith('/api/registration-periods?gameId=g1')
     expect(actions.infoMessage.value).toBe('Rappel envoyé à Léa.')
   })
@@ -46,25 +42,24 @@ describe('actions du bloc d’un jeu', () => {
     expect(actions.infoMessage.value).toBe('')
   })
 
-  it('rouvrir une période dont la clôture est passée retire la date', async () => {
+  it('une relance pour une session vise cette session', async () => {
     const actions = provideRegistrationPeriodActions(() => 'g1')
-    await actions.reopen(period as never)
+    await actions.remind(registration as never, 's1')
+
+    expect(actionMock).toHaveBeenCalledWith('/api/registrations/r1/remind', { method: 'POST', body: { sessionId: 's1' } })
+  })
+
+  it('ouvrir le vivier n’envoie que son état et sa version', async () => {
+    const actions = provideRegistrationPeriodActions(() => 'g1')
+    await actions.setState(period as never, 'open')
 
     expect(actionMock).toHaveBeenCalledWith('/api/registration-periods/per1', {
       method: 'PUT',
-      body: {
-        name: 'Printemps',
-        gameId: 'g1',
-        closesAt: null,
-        responseDelayDays: 7,
-        sessions: [{ sessionId: 's1', seats: 10 }],
-        updatedAt: '2026-11-02T10:00:00.000Z',
-        state: 'open'
-      }
+      body: { gameId: 'g1', state: 'open', updatedAt: '2026-11-02T10:00:00.000Z' }
     })
   })
 
-  it('une modification de période refusée s’affiche sans relire', async () => {
+  it('une modification du vivier refusée s’affiche sans relire', async () => {
     const actions = provideRegistrationPeriodActions(() => 'g1')
     actionMock.mockRejectedValueOnce(Object.assign(new Error('x'), { data: { message: 'Modifiée entre-temps' } }))
     await actions.setState(period as never, 'open')

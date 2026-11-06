@@ -339,21 +339,27 @@ model Session {
   registrations Registration[]
   registrationAvailabilities RegistrationAvailability[]
   registrationWaitlist RegistrationWaitlistEntry[]
+  registrationLines RegistrationSession[]
+  registrationDraws RegistrationDraw[]
+  // Invitations qui visent cette session (SPEC-018, R4)
+  invitedRegistrations Registration[] @relation("RegistrationInvitedSession")
 }
 
-// Période d'inscription : recrutement des PJ de sessions précises (scope "sessions")
-// ou de tout le jeu (scope "game", inscription permanente). Voir SPEC-001 et ADR-0019.
+// Vivier d'un jeu (SPEC-018, ADR-0069) : le nom de la table reste celui des anciennes périodes d'inscription.
+// scope, entryMode, closesAt, selectionMode, organizerPicks, weightNotDrawnBefore, weightBalance et waitlistSize ne sont
+// plus lus : la seconde migration les retire
 model RegistrationPeriod {
   id                String   @id @default(cuid())
-  gameId            String
+  // Un seul vivier par jeu (R1)
+  gameId            String   @unique
   game              Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  name              String
-  scope             String   @default("sessions")
+  name              String   @default("Vivier")
+  scope             String   @default("game")
   // Identifiant aléatoire du lien de diffusion (R32), distinct de l'id et du slug du jeu
   publicId          String   @unique
-  entryMode         String   @default("invitation")
+  entryMode         String   @default("form")
   selectionMode     String   @default("chosen")
-  // Clôture effective : state "closed", ou state "open" et closesAt passé (ADR-0020)
+  // Ouvert et fermé à la main (R2)
   state             String   @default("draft")
   closesAt          DateTime?
   responseDelayDays Int      @default(7)
@@ -377,14 +383,23 @@ model RegistrationPeriod {
   @@index([gameId])
 }
 
+// Session suivie par le vivier (ADR-0069) : le casting se fait sur toute session qui a une ligne
 model RegistrationPeriodSession {
   id        String             @id @default(cuid())
   periodId  String
   period    RegistrationPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
-  // Une session n'appartient qu'à une période d'inscription dédiée (R1)
   sessionId String             @unique
   session   Session            @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  seats     Int
+  // Plus lu : les places sont le nombre de PJ (R8) ; la seconde migration retire la colonne
+  seats     Int                @default(0)
+  // Ouverte à la pré-inscription (R6) ; proposée seulement si elle est aussi datée, à venir, ni annulée ni terminée
+  open      Boolean            @default(false)
+  // Sélection de la session (R22, ADR-0048)
+  selectionMode        String  @default("chosen")
+  organizerPicks       Int?
+  weightNotDrawnBefore Boolean @default(false)
+  weightBalance        Boolean @default(false)
+  waitlistSize         Int     @default(5)
 
   @@index([periodId])
 }
@@ -416,17 +431,22 @@ model RegistrationFormVersion {
   @@unique([formId, number])
 }
 
-// Inscription d'une personne à une période d'inscription (ADR-0019). Les champs standards sont
-// saisis à chaque inscription et ne modifient pas la fiche du participant (R14).
+// Personne du vivier d'un jeu (ADR-0069) : ses réponses et ses coordonnées, une ligne par personne. Son statut pour
+// chaque session est dans RegistrationSession. Les champs standards ne modifient pas la fiche du participant.
+// sessionId, confirmedAt, announcedStatus, announcedSessionId, announcedAt et retainedById ne sont plus lus : la seconde
+// migration les retire, avec RegistrationAvailability et RegistrationWaitlistEntry
 model Registration {
   id                    String                   @id @default(cuid())
   periodId              String
   period                RegistrationPeriod       @relation(fields: [periodId], references: [id], onDelete: Cascade)
-  // Session attribuée ; l'inscription reste si la session est supprimée
   sessionId             String?
   session               Session?                 @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  // Session visée par l'invitation (R4) : la personne y est inscrite si elle répond en se disant disponible
+  invitedSessionId      String?
+  invitedSession        Session?                 @relation("RegistrationInvitedSession", fields: [invitedSessionId], references: [id], onDelete: SetNull)
   participantId         String
   participant           Participant              @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  // invited, received (intéressée) ou withdrawn (sortie du vivier)
   status                String
   source                String
   invitedById           String?
@@ -474,12 +494,52 @@ model Registration {
   affinities            RegistrationAffinity[]
   availabilities        RegistrationAvailability[]
   waitlistEntries       RegistrationWaitlistEntry[]
+  sessionLines          RegistrationSession[]
   // Personnages réservés en attendant la confirmation (US-100, ADR-0051)
   reservedAssignments   SessionAssignment[]
 
   @@unique([periodId, participantId])
   @@index([sessionId])
   @@index([participantId])
+  @@index([invitedSessionId])
+}
+
+// Statut d'une personne du vivier pour une session (R17, ADR-0069)
+model RegistrationSession {
+  id             String       @id @default(cuid())
+  registrationId String
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  sessionId      String
+  session        Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  // preregistered, unavailable, waitlisted, retained, confirmed, transferred ou cancelled
+  status         String
+  // Dernière réponse de la personne : available, unavailable ; null sans réponse (R28, R29)
+  answer         String?
+  answeredAt     DateTime?
+  waitlistPosition Int?
+  // Demande de disponibilités et relance (R9, R12)
+  requestedAt    DateTime?
+  lastRemindedAt DateTime?
+  // Confirmation d'une place retenue (R20 de SPEC-001)
+  responseDueAt  DateTime?
+  confirmedAt    DateTime?
+  cancelledAt    DateTime?
+  // Organisatrice qui a retiré la personne ; null si elle a annulé elle-même
+  cancelledById  String?
+  cancelledBy    User?        @relation("RegistrationSessionCancellations", fields: [cancelledById], references: [id], onDelete: SetNull)
+  // Organisatrice qui a retenu la personne ; null pour le tirage ou l'assistant
+  retainedById   String?
+  retainedBy     User?        @relation("RegistrationSessionRetentions", fields: [retainedById], references: [id], onDelete: SetNull)
+  // Dernier statut annoncé à la personne (ADR-0047)
+  announcedStatus String?
+  announcedAt    DateTime?
+  // Repère « réponses modifiées », jusqu'à ce qu'une organisatrice le marque comme lu (R16)
+  answersChangedAt DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([registrationId, sessionId])
+  @@index([sessionId, status])
 }
 
 // Formulaire public envoyé, en attente de la confirmation de l'email (US-084, US-085, ADR-0046) : ni fiche ni
@@ -518,6 +578,9 @@ model RegistrationDraw {
   id            String             @id @default(cuid())
   periodId      String
   period        RegistrationPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  // Session tirée (R22) ; null : ancien tirage d'une période, gardé au journal et non annulable
+  sessionId     String?
+  session       Session?           @relation(fields: [sessionId], references: [id], onDelete: SetNull)
   seed          String
   settings      Json
   result        Json
@@ -529,6 +592,7 @@ model RegistrationDraw {
   cancelledBy   User?              @relation("RegistrationDrawCancellations", fields: [cancelledById], references: [id], onDelete: SetNull)
 
   @@index([periodId])
+  @@index([sessionId])
 }
 
 // Place dans la liste d'attente d'une session (US-087, ADR-0047) : une inscription attend dans une ou plusieurs sessions
@@ -845,6 +909,8 @@ model User {
   sentRegistrationInvitations Registration[] @relation("SentRegistrationInvitations")
   registrationWithdrawals Registration[] @relation("RegistrationWithdrawals")
   registrationRetentions Registration[] @relation("RegistrationRetentions")
+  registrationSessionCancellations RegistrationSession[] @relation("RegistrationSessionCancellations")
+  registrationSessionRetentions RegistrationSession[] @relation("RegistrationSessionRetentions")
   registrationDraws RegistrationDraw[] @relation("RegistrationDrawAuthors")
   cancelledRegistrationDraws RegistrationDraw[] @relation("RegistrationDrawCancellations")
   aiAuthorizations AiAuthorization[]

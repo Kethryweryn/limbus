@@ -27,6 +27,7 @@ describe('planParticipantRemoval', () => {
       sessionAssignment: write(),
       sessionAttendance: write(),
       registration: write(),
+      registrationSession: write(),
       session: write()
     }
 

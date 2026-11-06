@@ -3,50 +3,36 @@ import type { H3Event } from 'h3'
 import { prisma } from '~/server/utils/prisma'
 import { requireCurrentUser, requireGameAccess } from '~/server/utils/gameAccess'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
-import { parseZod, registrationFormDefinitionSchema, registrationPeriodSchema, registrationPeriodUpdateSchema, registrationQuestionLinksSchema, registrationSelectionSchema } from '~/server/utils/schemas'
-import { createRegistrationPeriod, updateRegistrationPeriod } from '~/server/utils/registrationPeriodWrites'
+import { parseZod, registrationFormDefinitionSchema, registrationPeriodSchema, registrationPeriodUpdateSchema, registrationQuestionLinksSchema, registrationSelectionSchema, registrationSessionSettingsSchema } from '~/server/utils/schemas'
+import { createRegistrationPeriod, updateRegistrationPeriod, updateRegistrationSession } from '~/server/utils/registrationPeriodWrites'
 import { findRegistrationPeriodOr404 } from '~/server/utils/registrationPeriods'
 import { findRegistrationOr404 } from '~/server/utils/registrations'
-import { applySelection, reorderWaitlist, setPoolSeats } from '~/server/utils/registrationSelection'
-import { cancelDraw, drawPeriod } from '~/server/utils/registrationDraws'
+import { applySelection, reorderWaitlist } from '~/server/utils/registrationSelection'
+import { cancelDraw, drawSession } from '~/server/utils/registrationDraws'
 import { getCurrentRegistrationForm, saveRegistrationFormDefinition } from '~/server/utils/registrationForms'
 import { currentQuestionLinks, saveQuestionLinks } from '~/server/utils/registrationQuestionLinks'
 import { AI_LOG_ACTIONS } from '~/utils/aiAssistants'
 import {
-  REGISTRATION_ENTRY_MODES,
-  REGISTRATION_PERIOD_SCOPES,
   REGISTRATION_PERIOD_STATES,
   REGISTRATION_REPLAY_POLICIES,
   REGISTRATION_SELECTION_ACTIONS,
   REGISTRATION_SELECTION_MODES,
-  REGISTRATION_STATUSES
+  REGISTRATION_SESSION_STATUSES
 } from '~/utils/domain'
 import { WRITE, logWrite, requireWrite, toolResult, version, withVersion, type ToolContext } from '~/server/mcp/tools'
 
 // Inscriptions écrites par un assistant (US-130 à US-132, SPEC-014 R10 à R13) : les fonctions de l'interface, avec la
-// version lue. Jamais : ouvrir, clore ou supprimer une période, inviter, annoncer, envoyer, ni décider pour une
-// inscription dont une décision a déjà été annoncée
+// version lue. Jamais : ouvrir, fermer ou supprimer un vivier, ouvrir une session, inviter, annoncer, envoyer, ni décider
+// pour une session dont une décision a déjà été annoncée
 
 const periodFields = {
-  name: z.string().max(200),
-  closesAt: z.string().nullable().optional().describe('Date de clôture, au format ISO 8601 ; null la retire'),
   responseDelayDays: z.number().int().optional().describe('Jours laissés pour répondre à une invitation ou confirmer une place'),
-  notifyTeam: z.boolean().optional().describe('L’équipe est prévenue de chaque nouvelle inscription'),
+  notifyTeam: z.boolean().optional().describe('L’équipe est prévenue de chaque nouvelle réponse au questionnaire'),
   replayPolicy: z.enum([REGISTRATION_REPLAY_POLICIES.allowed, REGISTRATION_REPLAY_POLICIES.flagged, REGISTRATION_REPLAY_POLICIES.excluded]).optional()
-    .describe('Personnes qui ont déjà joué : allowed, flagged (signalées) ou excluded'),
-  selectionMode: z.enum([REGISTRATION_SELECTION_MODES.chosen, REGISTRATION_SELECTION_MODES.random, REGISTRATION_SELECTION_MODES.mixed]).optional()
-    .describe('chosen (à la main), random (tirage) ou mixed'),
-  organizerPicks: z.number().int().nullable().optional().describe('Mode mixte : places retenues à la main par session'),
-  weightNotDrawnBefore: z.boolean().optional().describe('Tirage : chances doublées pour qui n’a pas été tiré avant'),
-  weightBalance: z.boolean().optional().describe('Tirage : tenir compte de l’équilibre du jeu'),
-  waitlistSize: z.number().int().optional().describe('Taille de la liste d’attente de chaque session'),
-  sessions: z.array(z.object({
-    sessionId: z.string(),
-    seats: z.number().int().nullable().optional().describe('Places ; absent, le nombre de personnages PJ du jeu')
-  })).max(200).optional().describe('Sessions de la période (liste complète) ; aucune pour une inscription permanente')
+    .describe('Personnes qui ont déjà joué : allowed, flagged (signalées) ou excluded')
 }
 
-/** Période d'un jeu de l'autorisation, et sa version lue contrôlée : listes d'attente, places et tirages en dépendent. */
+/** Vivier d'un jeu de l'autorisation, et sa version lue contrôlée : listes d'attente et tirages en dépendent. */
 async function requirePeriod(event: H3Event, periodId: string) {
   const period = await findRegistrationPeriodOr404(periodId)
   await requireGameAccess(event, period.gameId)
@@ -56,16 +42,9 @@ async function requirePeriod(event: H3Event, periodId: string) {
 
 function registerPeriodTools({ event, server }: ToolContext) {
   server.registerTool('creer_periode_inscription', {
-    title: 'Créer une période d’inscription',
-    description: 'Prépare une période d’inscription d’un jeu, en brouillon : l’équipe la relit et l’ouvre elle-même. Rien n’est envoyé ni diffusé.',
-    inputSchema: z.object({
-      jeuId: z.string(),
-      scope: z.enum([REGISTRATION_PERIOD_SCOPES.sessions, REGISTRATION_PERIOD_SCOPES.game]).optional()
-        .describe('sessions (période ordinaire) ou game (inscription permanente au jeu)'),
-      entryMode: z.enum([REGISTRATION_ENTRY_MODES.invitation, REGISTRATION_ENTRY_MODES.form]).optional()
-        .describe('invitation ou form (formulaire public) ; ne change plus ensuite'),
-      ...periodFields
-    }),
+    title: 'Créer le vivier d’un jeu',
+    description: 'Prépare le vivier d’un jeu, qui n’en a qu’un, en brouillon : l’équipe le relit et l’ouvre elle-même. Rien n’est envoyé ni diffusé.',
+    inputSchema: z.object({ jeuId: z.string(), ...periodFields }),
     annotations: WRITE
   }, ({ jeuId, ...fields }) => toolResult(async () => {
     requireWrite(event)
@@ -79,22 +58,42 @@ function registerPeriodTools({ event, server }: ToolContext) {
   }))
 
   server.registerTool('modifier_periode_inscription', {
-    title: 'Modifier une période d’inscription',
-    description: 'Change une période d’inscription, brouillon, ouverte ou close : les champs omis restent tels quels, et son état ne change jamais.',
-    inputSchema: z.object({ periodeId: z.string(), version, ...periodFields, name: periodFields.name.optional() }),
+    title: 'Modifier le vivier d’un jeu',
+    description: 'Change les réglages du vivier : les champs omis restent tels quels, et son état ne change jamais.',
+    inputSchema: z.object({ periodeId: z.string(), version, ...periodFields }),
     annotations: WRITE
   }, ({ periodeId, version: read, ...fields }) => toolResult(async () => {
     requireWrite(event)
     const period = await withVersion(event, read, () => updateRegistrationPeriod(event, periodeId, async () => {
-      const current = await prisma.registrationPeriod.findUniqueOrThrow({
-        where: { id: periodeId },
-        select: { name: true, gameId: true, sessions: { select: { sessionId: true, seats: true } } }
-      })
+      const current = await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: periodeId }, select: { gameId: true } })
       // L'état n'est jamais envoyé : la modification garde l'état actuel
-      return parseZod(registrationPeriodUpdateSchema, { name: current.name, gameId: current.gameId, sessions: current.sessions, ...fields })
+      return parseZod(registrationPeriodUpdateSchema, { gameId: current.gameId, ...fields })
     }))
     await logWrite(event, 'modifier_periode_inscription', AI_LOG_ACTIONS.changed, { type: 'registrationPeriod', id: period.id, name: period.name, gameId: period.gameId })
     return { id: period.id, version: period.updatedAt }
+  }))
+
+  server.registerTool('regler_selection_session', {
+    title: 'Régler la sélection d’une session',
+    description: 'Mode de sélection d’une session du vivier et réglages de son tirage : les champs omis restent tels quels. Ne l’ouvre ni ne la referme : c’est l’équipe qui le fait.',
+    inputSchema: z.object({
+      periodeId: z.string(),
+      version,
+      sessionId: z.string(),
+      selectionMode: z.enum([REGISTRATION_SELECTION_MODES.chosen, REGISTRATION_SELECTION_MODES.random, REGISTRATION_SELECTION_MODES.mixed]).optional()
+        .describe('chosen (à la main), random (tirage) ou mixed'),
+      organizerPicks: z.number().int().nullable().optional().describe('Mode mixte : places retenues à la main par organisatrice'),
+      weightNotDrawnBefore: z.boolean().optional().describe('Tirage : chances doublées pour qui est resté sans place lors d’un tirage d’une session plus ancienne'),
+      weightBalance: z.boolean().optional().describe('Tirage : tenir compte de l’équilibre du jeu'),
+      waitlistSize: z.number().int().optional().describe('Taille de la liste d’attente après le tirage')
+    }),
+    annotations: WRITE
+  }, ({ periodeId, version: read, sessionId, ...fields }) => toolResult(async () => {
+    requireWrite(event)
+    const period = await withVersion(event, read, () => requirePeriod(event, periodeId))
+    const result = await updateRegistrationSession(period, sessionId, parseZod(registrationSessionSettingsSchema, fields))
+    await logWrite(event, 'regler_selection_session', AI_LOG_ACTIONS.changed, { type: 'registrationPeriod', id: period.id, name: period.name, gameId: period.gameId })
+    return result
   }))
 }
 
@@ -180,13 +179,13 @@ function registerFormTools({ event, server }: ToolContext) {
 
 function registerSelectionTools({ event, server }: ToolContext) {
   server.registerTool('decider_inscription', {
-    title: 'Décider d’une inscription',
-    description: 'Retient une inscription pour une session (retain), la met en liste d’attente (waitlist) ou l’en retire (unwaitlist), l’écarte (reject) ou la remet à trier (reset). Rien n’est annoncé ni envoyé : l’équipe annonce elle-même. Une inscription dont une décision a déjà été annoncée se change dans l’interface.',
+    title: 'Décider d’une personne pour une session',
+    description: 'Retient une personne du vivier pour une session (retain), la met en liste d’attente (waitlist) ou l’en retire (unwaitlist), ou la remet à sa dernière réponse (reset). Rien n’est annoncé ni envoyé : l’équipe annonce elle-même. Une décision déjà annoncée pour cette session se change dans l’interface.',
     inputSchema: z.object({
       inscriptionId: z.string(),
       version,
       action: z.enum(REGISTRATION_SELECTION_ACTIONS),
-      sessionId: z.string().nullable().optional().describe('Session, pour retain, waitlist et unwaitlist')
+      sessionId: z.string().describe('La session concernée')
     }),
     annotations: WRITE
   }, ({ inscriptionId, version: read, action, sessionId }) => toolResult(async () => {
@@ -194,23 +193,24 @@ function registerSelectionTools({ event, server }: ToolContext) {
     const registration = await findRegistrationOr404(inscriptionId)
     await requireGameAccess(event, registration.period.gameId)
     const body = parseZod(registrationSelectionSchema, { action, sessionId })
-    const result = await withVersion(event, read, async () => {
+    const participant = await withVersion(event, read, async () => {
       await assertUnmodifiedSince(event, 'registration', registration.id)
-      const { announcedStatus, participant } = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { announcedStatus: true, participant: { select: { name: true } } } })
-      if (announcedStatus) {
-        throw createError({ statusCode: 409, message: 'Une décision a déjà été annoncée à cette personne : changez-la dans l’interface.' })
+      const line = await prisma.registrationSession.findUnique({ where: { registrationId_sessionId: { registrationId: registration.id, sessionId: body.sessionId } }, select: { announcedStatus: true } })
+      if (line?.announcedStatus) {
+        throw createError({ statusCode: 409, message: 'Une décision a déjà été annoncée à cette personne pour cette session : changez-la dans l’interface.' })
       }
-      await applySelection(registration.id, body.action, body.sessionId ?? null, await requireCurrentUser(event))
-      return participant
+      await applySelection(registration.id, body.action, body.sessionId, await requireCurrentUser(event))
+      // Nouvelle version de la personne, renvoyée pour l'écriture suivante
+      return (await prisma.registration.update({ where: { id: registration.id }, data: { updatedAt: new Date() }, select: { participant: { select: { name: true } } } })).participant
     })
     const { updatedAt } = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { updatedAt: true } })
-    await logWrite(event, 'decider_inscription', AI_LOG_ACTIONS.changed, { type: 'registration', id: registration.id, name: result.name, gameId: registration.period.gameId })
+    await logWrite(event, 'decider_inscription', AI_LOG_ACTIONS.changed, { type: 'registration', id: registration.id, name: participant.name, gameId: registration.period.gameId })
     return { id: registration.id, version: updatedAt }
   }))
 
   server.registerTool('ordonner_liste_attente', {
     title: 'Ordonner une liste d’attente',
-    description: 'Fixe l’ordre de la liste d’attente d’une session de la période : les inscriptions en attente, de la première à la dernière.',
+    description: 'Fixe l’ordre de la liste d’attente d’une session : les personnes en attente, de la première à la dernière.',
     inputSchema: z.object({ periodeId: z.string(), version, sessionId: z.string(), inscriptionIds: z.array(z.string()).max(1000) }),
     annotations: WRITE
   }, ({ periodeId, version: read, sessionId, inscriptionIds }) => toolResult(async () => {
@@ -221,40 +221,27 @@ function registerSelectionTools({ event, server }: ToolContext) {
     return result
   }))
 
-  server.registerTool('regler_places_vivier', {
-    title: 'Régler les places du vivier',
-    description: 'Places d’une session recrutée par l’inscription permanente du jeu ; null : le nombre de personnages PJ.',
-    inputSchema: z.object({ periodeId: z.string(), version, sessionId: z.string(), seats: z.number().int().min(0).max(1000).nullable() }),
-    annotations: WRITE
-  }, ({ periodeId, version: read, sessionId, seats }) => toolResult(async () => {
-    requireWrite(event)
-    const period = await withVersion(event, read, () => requirePeriod(event, periodeId))
-    const result = await setPoolSeats(period.id, sessionId, seats)
-    await logWrite(event, 'regler_places_vivier', AI_LOG_ACTIONS.changed, { type: 'registrationPeriod', id: period.id, name: period.name, gameId: period.gameId })
-    return result
-  }))
-
   server.registerTool('tirer_au_sort', {
     title: 'Tirer au sort',
-    description: 'Tire au sort les inscriptions reçues d’une période en mode tirage ou mixte. Les décisions restent à annoncer par l’équipe ; rien n’est envoyé.',
-    inputSchema: z.object({ periodeId: z.string(), version }),
+    description: 'Tire au sort les pré-inscrits d’une session en mode tirage ou mixte. Les personnes sans place vont en liste d’attente dans la limite réglée, les autres restent pré-inscrites. Les décisions restent à annoncer par l’équipe ; rien n’est envoyé.',
+    inputSchema: z.object({ periodeId: z.string(), version, sessionId: z.string() }),
     annotations: WRITE
-  }, ({ periodeId, version: read }) => toolResult(async () => {
+  }, ({ periodeId, version: read, sessionId }) => toolResult(async () => {
     requireWrite(event)
     const period = await withVersion(event, read, () => requirePeriod(event, periodeId))
-    // Le tirage décide pour les inscriptions reçues : aucune ne doit avoir déjà reçu une annonce
-    if (await prisma.registration.count({ where: { periodId: period.id, status: REGISTRATION_STATUSES.received, announcedStatus: { not: null } } })) {
-      throw createError({ statusCode: 409, message: 'Une inscription à tirer a déjà reçu une annonce : lancez ce tirage depuis l’interface.' })
+    // Le tirage décide pour les pré-inscrits : aucune ne doit avoir déjà reçu une annonce pour cette session
+    if (await prisma.registrationSession.count({ where: { sessionId, status: REGISTRATION_SESSION_STATUSES.preregistered, announcedStatus: { not: null } } })) {
+      throw createError({ statusCode: 409, message: 'Une personne à tirer a déjà reçu une annonce : lancez ce tirage depuis l’interface.' })
     }
-    const draw = await drawPeriod(period.id, await requireCurrentUser(event))
+    const draw = await drawSession(period.id, sessionId, await requireCurrentUser(event))
     await logWrite(event, 'tirer_au_sort', AI_LOG_ACTIONS.created, { type: 'registrationDraw', id: draw.id, name: period.name, gameId: period.gameId })
     return draw
   }))
 
   server.registerTool('annuler_tirage', {
     title: 'Annuler un tirage',
-    description: 'Annule un tirage tant que rien n’en est annoncé : ses décisions repartent à « reçue ».',
-    inputSchema: z.object({ tirageId: z.string(), version: version.describe('Version lue de la période du tirage') }),
+    description: 'Annule un tirage tant que rien n’en est annoncé : ses personnes repartent pré-inscrites.',
+    inputSchema: z.object({ tirageId: z.string(), version: version.describe('Version lue du vivier') }),
     annotations: { ...WRITE, destructiveHint: true }
   }, ({ tirageId, version: read }) => toolResult(async () => {
     requireWrite(event)

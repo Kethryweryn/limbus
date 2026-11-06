@@ -1,7 +1,7 @@
 ---
 id: US-160
 titre: Avoir un seul vivier par jeu
-statut: à faire
+statut: terminée
 epic: EPIC-046
 regles: [R1, R2, R3]
 adr: [../../adr/ADR-0069-vivier-unique-et-statut-par-session.md]
@@ -13,10 +13,10 @@ En tant que organisatrice, je veux un seul vivier par jeu, afin de ne plus crois
 
 ## Critères d'acceptation
 
-- [ ] Étant donné un jeu avec plusieurs périodes, quand la migration passe, alors il a un seul vivier, et une personne présente plusieurs fois y a une seule ligne, avec ses réponses les plus récentes et tous ses statuts par session.
-- [ ] Étant donné la page Inscriptions, quand je l'ouvre, alors chaque jeu montre son vivier, sans choix de portée ni de mode d'entrée.
-- [ ] Étant donné un vivier fermé, quand une nouvelle personne ouvre le lien de diffusion, alors elle lit « inscriptions closes », tandis qu'une personne déjà dedans garde son accès.
-- [ ] Étant donné un jeu qui a déjà un vivier, quand on tente d'en créer un second, alors c'est refusé.
+- [x] Étant donné un jeu avec plusieurs périodes, quand la migration passe, alors il a un seul vivier, et une personne présente plusieurs fois y a une seule ligne, avec ses réponses les plus récentes et tous ses statuts par session.
+- [x] Étant donné la page Inscriptions, quand je l'ouvre, alors chaque jeu montre son vivier, sans choix de portée ni de mode d'entrée.
+- [x] Étant donné un vivier fermé, quand une nouvelle personne ouvre le lien de diffusion, alors elle lit « inscriptions closes », tandis qu'une personne déjà dedans garde son accès.
+- [x] Étant donné un jeu qui a déjà un vivier, quand on tente d'en créer un second, alors c'est refusé.
 
 ## Notes techniques
 
@@ -24,4 +24,4 @@ Tables et colonnes d'ADR-0069, première migration seulement. `RegistrationPerio
 
 ## Tests
 
-Intégration : migration (doublons, statuts repris), un vivier par jeu, vivier fermé. `isolation.test.ts`. Playwright : `tests/e2e/registration.spec.ts`.
+Intégration : `registrationPeriods.test.ts`, `formRegistrations.test.ts`, `isolation.test.ts`. Playwright : `registrationActions.spec.ts`, `publicPage.spec.ts`. La migration, à usage unique, a été essayée sur des données à l'ancien format (doublons, statuts repris, réserve, demande) sur une base à part, sans test gardé : la seconde migration la rend sans objet.

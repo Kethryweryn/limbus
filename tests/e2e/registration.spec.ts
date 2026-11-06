@@ -7,8 +7,8 @@ import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
 import { expectLoggedIn, gamePanel, login, signIn, test } from './helpers'
 
-// EPIC-001 : invitation par l'organisatrice → réponse par le lien personnel → présence dans la session
-test('une personne invitée accepte par son lien et rejoint la session', async ({ page, otherPage }) => {
+// US-164 : invitation pour une session → réponse par le lien personnel, disponible → présence dans la session
+test('une personne invitée pour une session répond par son lien et y est inscrite', async ({ page, otherPage }) => {
   const prisma = createTestPrisma()
   const mailbox = openMailbox()
   try {
@@ -18,6 +18,8 @@ test('une personne invitée accepte par son lien et rejoint la session', async (
     await page.waitForLoadState('networkidle')
     // Le panneau de ce jeu : les tests voisins ajoutent leurs propres jeux à la page, en parallèle
     await gamePanel(page, 'Jeu des inscriptions', 'Inviter').getByRole('button', { name: 'Inviter', exact: true }).click()
+    await page.getByRole('dialog').getByRole('combobox').click()
+    await page.getByRole('option', { name: /^Session de printemps/ }).click()
     await page.getByText('Camille Invitée').click()
     await page.getByRole('button', { name: 'Inviter (1)' }).click()
     await expect(page.getByText('1 invitation, 1 email envoyé.')).toBeVisible()
@@ -38,15 +40,16 @@ test('une personne invitée accepte par son lien et rejoint la session', async (
     await guest.getByLabel('Contact d’urgence : nom').fill('Dominique')
     await guest.getByLabel('Contact d’urgence : téléphone').fill('0698765432')
     await guest.getByLabel('J’ai lu la note d’intention et j’y adhère').check()
-    await guest.getByRole('button', { name: 'Accepter l’invitation' }).click()
-    await expect(guest.getByText('Votre inscription est confirmée.')).toBeVisible()
+    await guest.getByLabel(/^Session de printemps/).check()
+    await guest.getByRole('button', { name: 'Envoyer mes réponses' }).click()
+    await expect(guest.getByText('Vos réponses sont enregistrées.')).toBeVisible()
 
-    // L'organisatrice la retrouve dans la session et dans la liste des inscriptions
+    // L'organisatrice la retrouve dans la session et dans la sélection
     const session = await prisma.session.findUniqueOrThrow({ where: { slug: 'session-printemps' } })
     const participants = await (await page.request.get(`/api/sessions/${session.id}`)).json()
     expect(JSON.stringify(participants)).toContain('Camille Invitée')
     await page.goto('/registrations')
-    await expect(gamePanel(page, 'Jeu des inscriptions', 'Inviter').locator('li').filter({ hasText: 'Camille Invitée' }).getByText('Confirmée', { exact: true })).toBeVisible()
+    await expect(gamePanel(page, 'Jeu des inscriptions', 'Inviter').locator('li').filter({ hasText: 'Camille Invitée' }).getByText('Inscrite', { exact: true })).toBeVisible()
 
     // Elle entre dans le circuit de paiement sans attendre le casting (US-007, R22)
     await page.goto('/sessions/session-printemps?tab=payments')
@@ -79,12 +82,12 @@ test('la personne invitée répond aux questions du jeu et à ses affinités', a
       data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id, noteIntention: 'Note', registrationForm: { create: { versions: { create: { number: 1, definition } } } } }
     })
     const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-05-01T09:00:00Z') } })
-    const period = await prisma.registrationPeriod.create({ data: { name: 'Période', gameId: game.id, publicId: `pub-${key}`, state: 'open', sessions: { create: { sessionId: session.id, seats: 3 } } } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `pub-${key}`, state: 'open', sessions: { create: { sessionId: session.id } } } })
     const participant = await prisma.participant.create({ data: { name: 'Lou Test', slug: `lou-${key}`, email: `lou-${key}@example.test`, gameLinks: { create: { gameId: game.id } } } })
     const token = randomBytes(32).toString('base64url')
     const registration = await prisma.registration.create({
       data: {
-        periodId: period.id, sessionId: session.id, participantId: participant.id, status: 'invited', source: 'invitation',
+        periodId: period.id, invitedSessionId: session.id, participantId: participant.id, status: 'invited', source: 'invitation',
         email: participant.email!, tokenHash: createHash('sha256').update(token).digest('hex'), responseDueAt: new Date(Date.now() + 7 * 86_400_000)
       }
     })
@@ -95,8 +98,8 @@ test('la personne invitée répond aux questions du jeu et à ses affinités', a
     await guest.getByLabel('Avec qui je veux jouer').fill('Léa\nNoé')
     await guest.getByLabel('Intrigue').check()
     await guest.getByLabel('J’ai lu la note d’intention et j’y adhère').check()
-    await guest.getByRole('button', { name: 'Accepter l’invitation' }).click()
-    await expect(guest.getByText('Votre inscription est confirmée.')).toBeVisible()
+    await guest.getByRole('button', { name: 'Envoyer mes réponses' }).click()
+    await expect(guest.getByText('Vos réponses sont enregistrées.')).toBeVisible()
 
     const saved = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { questionAnswers: true, affinities: { select: { text: true }, orderBy: { position: 'asc' } } } })
     expect(saved.questionAnswers).toEqual({ style: 'Intrigue' })
@@ -158,7 +161,7 @@ test('une personne voit les options mélangées, et sa réponse suit le texte de
       }
     })
     const period = await prisma.registrationPeriod.create({
-      data: { name: 'Printemps', gameId: game.id, publicId: `m${Date.now().toString(36)}`, entryMode: 'form', state: 'open', sessions: { create: { sessionId: session.id, seats: 3 } } }
+      data: { gameId: game.id, publicId: `m${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } }
     })
 
     const guest = await otherPage()
@@ -190,7 +193,7 @@ test('une personne voit les options mélangées, et sa réponse suit le texte de
 
     await expect.poll(() => mailbox.to(`marie-${key}@example.test`).length).toBe(1)
     await guest.goto(`/inscription/${personalLinkToken(mailbox.to(`marie-${key}@example.test`)[0]!)}`)
-    await expect(guest.getByText('Votre adresse est confirmée : votre inscription est reçue.')).toBeVisible()
+    await expect(guest.getByText('Votre adresse est confirmée : votre réponse est reçue.')).toBeVisible()
     const registration = await prisma.registration.findFirstOrThrow({ where: { periodId: period.id }, select: { questionAnswers: true } })
     expect(registration.questionAnswers).toEqual({ style: chosen })
   } finally {
@@ -198,8 +201,8 @@ test('une personne voit les options mélangées, et sa réponse suit le texte de
   }
 })
 
-// EPIC-020 : s'inscrire par le lien de diffusion, puis confirmer son adresse par le lien reçu
-test('une personne s’inscrit par le lien de diffusion et confirme son adresse', async ({ otherPage }) => {
+// US-163 : répondre par le lien de diffusion en cochant une session, confirmer son adresse, puis changer d'avis
+test('une personne répond par le lien de diffusion, confirme son adresse et modifie ses disponibilités', async ({ otherPage }) => {
   const prisma = createTestPrisma()
   const mailbox = openMailbox()
   try {
@@ -210,7 +213,7 @@ test('une personne s’inscrit par le lien de diffusion et confirme son adresse'
       data: { name: `Session ${index} ${key}`, slug: `session-${index}-${key}`, gameId: game.id, date: new Date(`2099-0${index}-15T09:00:00Z`) }
     })))
     const period = await prisma.registrationPeriod.create({
-      data: { name: 'Printemps', gameId: game.id, publicId: `d${Date.now().toString(36)}`, entryMode: 'form', state: 'open', sessions: { create: sessions.map((session) => ({ sessionId: session.id, seats: 3 })) } }
+      data: { gameId: game.id, publicId: `d${Date.now().toString(36)}`, state: 'open', sessions: { create: sessions.map((session) => ({ sessionId: session.id, open: true })) } }
     })
 
     const guest = await otherPage()
@@ -231,17 +234,28 @@ test('une personne s’inscrit par le lien de diffusion et confirme son adresse'
     await expect.poll(() => mailbox.to(`marie-${key}@example.test`).length).toBe(1)
     const token = personalLinkToken(mailbox.to(`marie-${key}@example.test`)[0]!)
     await guest.goto(`/inscription/${token}`)
-    await expect(guest.getByText('Votre adresse est confirmée : votre inscription est reçue.')).toBeVisible()
+    await expect(guest.getByText('Votre adresse est confirmée : votre réponse est reçue.')).toBeVisible()
 
-    const registration = await prisma.registration.findFirstOrThrow({ where: { periodId: period.id }, select: { status: true, availabilities: { select: { sessionId: true } } } })
-    expect(registration).toEqual({ status: 'received', availabilities: [{ sessionId: sessions[1]!.id }] })
+    const lines = () => prisma.registrationSession.findMany({ where: { registration: { periodId: period.id } }, select: { sessionId: true, status: true } })
+    expect(await prisma.registration.findFirstOrThrow({ where: { periodId: period.id }, select: { status: true } })).toEqual({ status: 'received' })
+    expect(await lines()).toEqual([{ sessionId: sessions[1]!.id, status: 'preregistered' }])
+    await expect(guest.locator(`[data-session="${sessions[1]!.name}"]`).getByText('Pré-inscrite')).toBeVisible()
+
+    // Elle revient : décocher vaut « pas disponible », et une date jamais cochée reste sans réponse
+    await guest.reload()
+    await guest.waitForLoadState('networkidle')
+    await guest.getByLabel(new RegExp(`^Session 2 ${key}`)).uncheck()
+    await guest.getByRole('button', { name: 'Enregistrer les modifications' }).click()
+    await expect(guest.getByText('Vos modifications sont enregistrées.')).toBeVisible()
+    await expect(guest.locator(`[data-session="${sessions[1]!.name}"]`).getByText('Pas disponible')).toBeVisible()
+    expect(await lines()).toEqual([{ sessionId: sessions[1]!.id, status: 'unavailable' }])
   } finally {
     await prisma.$disconnect()
   }
 })
 
-// EPIC-021 : l'équipe retient une inscription reçue, annonce, et la personne confirme sa place par le lien reçu
-test('l’équipe retient une inscription, l’annonce, et la personne confirme sa place', async ({ page, otherPage }) => {
+// US-161 : l'équipe retient une pré-inscrite, annonce, et la personne confirme sa place par le lien reçu
+test('l’équipe retient une pré-inscrite, l’annonce, et la personne confirme sa place', async ({ page, otherPage }) => {
   const prisma = createTestPrisma()
   const mailbox = openMailbox()
   try {
@@ -250,21 +264,23 @@ test('l’équipe retient une inscription, l’annonce, et la personne confirme 
     const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
     const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-06-01T09:00:00Z') } })
     const period = await prisma.registrationPeriod.create({
-      data: { name: 'Été', gameId: game.id, publicId: `s${Date.now().toString(36)}`, entryMode: 'form', state: 'open', sessions: { create: { sessionId: session.id, seats: 2 } } }
+      data: { gameId: game.id, publicId: `s${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } }
     })
+    await prisma.character.create({ data: { name: 'Seul PJ', slug: `pj-${key}`, gameId: game.id, type: 'pj' } })
     const email = `noa-${key}@example.test`
     const participant = await prisma.participant.create({ data: { name: 'Noa Selection', slug: `noa-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
     const registration = await prisma.registration.create({
-      data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, tokenHash: `hash-${key}` }
+      data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, tokenHash: `hash-${key}`, sessionLines: { create: { sessionId: session.id, status: 'preregistered', answer: 'available' } } }
     })
 
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/registrations')
     await page.waitForLoadState('networkidle')
     const panel = gamePanel(page, game.title, /Annoncer les résultats/)
-    await panel.getByRole('button', { name: 'Décider' }).click()
-    await page.getByRole('menuitem', { name: `Retenir pour ${session.name}` }).click()
-    await expect(panel.getByText('À annoncer')).toBeVisible()
+    const sessionBlock = panel.locator(`[data-session="${session.name}"]`)
+    await sessionBlock.locator('li').filter({ hasText: 'Noa Selection' }).getByRole('button', { name: 'Retenir' }).click()
+    await expect(sessionBlock.getByText('À annoncer')).toBeVisible()
+    await expect(sessionBlock.getByText('1 / 1 place')).toBeVisible()
 
     page.once('dialog', (dialog) => dialog.accept())
     await panel.getByRole('button', { name: 'Annoncer les résultats (1)' }).click()
@@ -278,14 +294,24 @@ test('l’équipe retient une inscription, l’annonce, et la personne confirme 
     await guest.getByRole('button', { name: 'Je confirme ma place' }).click()
     await expect(guest.getByText('Votre place est confirmée.')).toBeVisible()
 
-    expect(await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { status: true } })).toEqual({ status: 'confirmed' })
+    expect(await prisma.registrationSession.findUniqueOrThrow({ where: { registrationId_sessionId: { registrationId: registration.id, sessionId: session.id } }, select: { status: true } })).toEqual({ status: 'confirmed' })
+    await expect(guest.locator(`[data-session="${session.name}"]`).getByText('Inscrite')).toBeVisible()
+
+    // Elle annule sa présence, et reste dans le vivier
+    guest.once('dialog', (dialog) => dialog.accept())
+    await guest.getByRole('button', { name: 'Annuler ma présence' }).click()
+    await expect(guest.getByText('Votre présence est annulée.')).toBeVisible()
+    await expect(guest.getByRole('button', { name: 'Quitter le vivier' })).toBeVisible()
+    expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(0)
+    await prisma.registrationSession.update({ where: { registrationId_sessionId: { registrationId: registration.id, sessionId: session.id } }, data: { status: 'confirmed' } })
+    await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
     expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(1)
   } finally {
     await prisma.$disconnect()
   }
 })
 
-// EPIC-022 : l'équipe tire au sort une période en mode hasard ; le journal garde le tirage, qu'on annule
+// US-171 : l'équipe ouvre une session, la règle au hasard, tire au sort ; le journal garde le tirage, qu'on annule
 test('l’équipe tire au sort, voit le journal, puis annule le tirage', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
@@ -294,11 +320,12 @@ test('l’équipe tire au sort, voit le journal, puis annule le tirage', async (
     const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
     const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-07-01T09:00:00Z') } })
     const period = await prisma.registrationPeriod.create({
-      data: { name: 'Hiver', gameId: game.id, publicId: `t${Date.now().toString(36)}`, entryMode: 'form', state: 'open', selectionMode: 'random', waitlistSize: 1, sessions: { create: { sessionId: session.id, seats: 1 } } }
+      data: { gameId: game.id, publicId: `t${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, selectionMode: 'random', waitlistSize: 1 } } }
     })
+    await prisma.character.create({ data: { name: 'Seul PJ', slug: `pj-${key}`, gameId: game.id, type: 'pj' } })
     for (const name of ['Ana', 'Ben', 'Cy']) {
       const participant = await prisma.participant.create({ data: { name: `${name} Tirage`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } } })
-      await prisma.registration.create({ data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: participant.email! } })
+      await prisma.registration.create({ data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: participant.email!, sessionLines: { create: { sessionId: session.id, status: 'preregistered', answer: 'available' } } } })
     }
 
     await signIn(page, prisma, E2E_USERS.orga)
@@ -308,16 +335,16 @@ test('l’équipe tire au sort, voit le journal, puis annule le tirage', async (
     page.once('dialog', (dialog) => dialog.accept())
     await panel.getByRole('button', { name: 'Tirer au sort' }).click()
     await expect(panel.getByText('Tirage effectué')).toBeVisible()
-    await expect(panel.getByRole('button', { name: 'Annoncer les résultats (3)' })).toBeVisible()
+    await expect(panel.getByRole('button', { name: 'Annoncer les résultats (2)' })).toBeVisible()
     await expect(panel.getByRole('button', { name: 'Annuler ce tirage' })).toBeVisible()
 
-    const statuses = (await prisma.registration.findMany({ where: { periodId: period.id }, select: { status: true } })).map((row) => row.status).sort()
-    expect(statuses).toEqual(['rejected', 'retained', 'waitlisted'])
+    const statuses = async () => (await prisma.registrationSession.findMany({ where: { sessionId: session.id }, select: { status: true } })).map((row) => row.status).sort()
+    expect(await statuses()).toEqual(['preregistered', 'retained', 'waitlisted'])
 
     page.once('dialog', (dialog) => dialog.accept())
     await panel.getByRole('button', { name: 'Annuler ce tirage' }).click()
     await expect(panel.getByText(/Annulé le/)).toBeVisible()
-    expect((await prisma.registration.findMany({ where: { periodId: period.id }, select: { status: true } })).every((row) => row.status === 'received')).toBe(true)
+    expect(await statuses()).toEqual(['preregistered', 'preregistered', 'preregistered'])
   } finally {
     await prisma.$disconnect()
   }
@@ -333,7 +360,7 @@ test('l’équipe rattache une affinité et voit l’alerte de la session', asyn
     const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
     const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-08-01T09:00:00Z') } })
     const period = await prisma.registrationPeriod.create({
-      data: { name: 'Automne', gameId: game.id, publicId: `a${Date.now().toString(36)}`, entryMode: 'form', state: 'open', sessions: { create: { sessionId: session.id, seats: 5 } } }
+      data: { gameId: game.id, publicId: `a${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id } } }
     })
     const people = await Promise.all(['Lou Affinite', 'Max Durand'].map((name, index) => prisma.participant.create({
       data: { name, slug: `${index}-${key}`, email: `${index}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
@@ -341,7 +368,8 @@ test('l’équipe rattache une affinité et voit l’alerte de la session', asyn
     for (const participant of people) {
       await prisma.registration.create({
         data: {
-          periodId: period.id, participantId: participant.id, status: 'retained', sessionId: session.id, source: 'form', email: participant.email!, respondedAt: new Date(),
+          periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: participant.email!, respondedAt: new Date(),
+          sessionLines: { create: { sessionId: session.id, status: 'retained' } },
           affinities: participant.name.startsWith('Lou') ? { create: { kind: 'avoid', text: 'Max D.', position: 0 } } : undefined
         }
       })
@@ -351,8 +379,8 @@ test('l’équipe rattache une affinité et voit l’alerte de la session', asyn
     await page.goto('/registrations')
     await page.waitForLoadState('networkidle')
     const panel = gamePanel(page, game.title, /Annoncer les résultats/)
-    await expect(panel.getByText('1 affinité à rattacher')).toBeVisible()
-    await panel.locator('li').filter({ hasText: 'Lou Affinite' }).getByRole('button', { name: 'Détail' }).click()
+    await expect(panel.getByText('1 affinité à rattacher').first()).toBeVisible()
+    await panel.locator(`[data-session="${session.name}"] li`).filter({ hasText: 'Lou Affinite' }).getByRole('button', { name: 'Détail' }).click()
     const dialog = page.getByRole('dialog')
     await dialog.getByRole('button', { name: 'Max Durand' }).click()
     await expect(dialog.getByText('À rattacher')).toBeHidden()

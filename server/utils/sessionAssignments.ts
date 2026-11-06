@@ -1,5 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
-import { CHARACTER_TYPES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
+import { CHARACTER_TYPES, REGISTRATION_SESSION_STATUSES, SESSION_ROLES } from '~/utils/domain'
 
 type SessionParticipantRole = typeof SESSION_ROLES[keyof typeof SESSION_ROLES]
 const sessionParticipantRoles = Object.values(SESSION_ROLES)
@@ -65,7 +65,12 @@ export async function resolveCastLines(gameId: string, sessionId: string | null,
   const registrations = new Map((reservationIds.length
     ? await prisma.registration.findMany({
         where: { id: { in: reservationIds } },
-        select: { id: true, status: true, sessionId: true, participantId: true, period: { select: { gameId: true } } }
+        select: {
+          id: true,
+          participantId: true,
+          period: { select: { gameId: true } },
+          sessionLines: { where: { sessionId: sessionId ?? '' }, select: { status: true } }
+        }
       })
     : []).map((registration) => [registration.id, registration]))
   const reservedParticipants = new Map<string, string>()
@@ -75,13 +80,11 @@ export async function resolveCastLines(gameId: string, sessionId: string | null,
     if (!registration || registration.period.gameId !== gameId) {
       throw createError({ statusCode: 400, message: 'Une réservation vise une inscription d’un autre jeu.' })
     }
-    // Inscription passée à une autre session : la réservation tombe, comme si elle n'était plus retenue
-    if (registration.sessionId !== sessionId) {
-      line.reservedRegistrationId = null
-    } else if (registration.status === REGISTRATION_STATUSES.confirmed) {
+    const status = registration.sessionLines[0]?.status
+    if (status === REGISTRATION_SESSION_STATUSES.confirmed) {
       line.participantId = registration.participantId
       line.reservedRegistrationId = null
-    } else if (registration.status === REGISTRATION_STATUSES.retained) {
+    } else if (status === REGISTRATION_SESSION_STATUSES.retained) {
       reservedParticipants.set(line.characterId, registration.participantId)
     } else {
       line.reservedRegistrationId = null
@@ -251,28 +254,29 @@ export function participantWithSeveralPjs(
 export const castAssignmentInclude = {
   character: true,
   participant: true,
-  reservedRegistration: { select: { id: true, status: true, sessionId: true, participant: { select: { id: true, name: true } } } }
+  reservedRegistration: { select: { id: true, participant: { select: { id: true, name: true } } } }
 } as const
 
-type ReservedRow = { reservedRegistrationId: string | null, reservedRegistration?: { status: string, sessionId: string | null } | null }
+type ReservedRow = { reservedRegistrationId: string | null, reservedRegistration?: { id: string } | null }
 
 /**
- * Session lue par l'équipe : une réservation dont l'inscription n'est plus retenue pour la session n'est plus montrée,
+ * Session lue par l'équipe : une réservation dont la personne n'est plus retenue pour la session n'est plus montrée,
  * et les personnes retenues non confirmées sont listées pour être choisies dans le cast (US-100, ADR-0051).
  */
 export async function withCastReservations<T extends { id: string, assignments: ReservedRow[] }>(session: T) {
-  const retained = await prisma.registration.findMany({
-    where: { sessionId: session.id, status: REGISTRATION_STATUSES.retained },
-    select: { id: true, participantId: true, participant: { select: { name: true } } },
-    orderBy: { participant: { name: 'asc' } }
+  const retained = await prisma.registrationSession.findMany({
+    where: { sessionId: session.id, status: REGISTRATION_SESSION_STATUSES.retained },
+    select: { registration: { select: { id: true, participantId: true, participant: { select: { name: true } } } } },
+    orderBy: { registration: { participant: { name: 'asc' } } }
   })
+  const retainedIds = new Set(retained.map((line) => line.registration.id))
   return {
     ...session,
     // Chaque ligne garde son type (personnage, participant…) : la réponse de la route le reprend
     assignments: session.assignments.map((assignment): T['assignments'][number] => {
-      const live = assignment.reservedRegistration?.status === REGISTRATION_STATUSES.retained && assignment.reservedRegistration.sessionId === session.id
+      const live = Boolean(assignment.reservedRegistration) && retainedIds.has(assignment.reservedRegistration!.id)
       return live ? assignment : { ...assignment, reservedRegistrationId: null, reservedRegistration: null }
     }),
-    retainedRegistrations: retained.map((registration) => ({ id: registration.id, participantId: registration.participantId, name: registration.participant.name }))
+    retainedRegistrations: retained.map(({ registration }) => ({ id: registration.id, participantId: registration.participantId, name: registration.participant.name }))
   }
 }

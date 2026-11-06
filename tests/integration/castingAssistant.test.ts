@@ -19,8 +19,10 @@ const sha256 = (value: string) => createHash('sha256').update(value).digest('hex
 const off = { asked: false, required: false }
 const standardFields = { lastName: off, firstName: off, facebookName: off, phone: off, emergencyContact: off, dietary: off }
 
-async function publicApi(method: string, path: string) {
-  const response = await fetch(`${inject('baseUrl')}${path}`, { method, headers: { 'x-forwarded-for': `10.25.0.${counter}` } })
+async function publicApi(method: string, path: string, body?: unknown) {
+  const headers: Record<string, string> = { 'x-forwarded-for': `10.25.0.${counter}` }
+  if (body) headers['content-type'] = 'application/json'
+  const response = await fetch(`${inject('baseUrl')}${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined })
   return { status: response.status }
 }
 
@@ -49,7 +51,7 @@ async function castingGame() {
   expect(links.status, JSON.stringify(links.body)).toBe(200)
   const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
   const period = await prisma.registrationPeriod.create({
-    data: { name: `Période ${key}`, gameId: game.id, publicId: `pub-${key}`, state: 'open', entryMode: 'form', sessions: { create: { sessionId: session.id, seats: 5 } } }
+    data: { name: `Période ${key}`, gameId: game.id, publicId: `pub-${key}`, state: 'open', entryMode: 'form', sessions: { create: { sessionId: session.id } } }
   })
   return { key, game, session, period, iseult: iseult!, bran: bran!, cy: cy!, style: style!.id, level: level!.id }
 }
@@ -62,8 +64,8 @@ async function player(game: Game, name: string, status: 'retained' | 'confirmed'
   const token = randomBytes(32).toString('base64url')
   const registration = await prisma.registration.create({
     data: {
-      periodId: game.period.id, sessionId: game.session.id, participantId: participant.id, status, source: 'form', email: participant.email!,
-      tokenHash: sha256(token), announcedStatus: status, announcedSessionId: game.session.id, responseDueAt: new Date(Date.now() + 7 * 86_400_000),
+      periodId: game.period.id, participantId: participant.id, status: 'received', source: 'form', email: participant.email!, tokenHash: sha256(token),
+      sessionLines: { create: { sessionId: game.session.id, status, answer: 'available', announcedStatus: 'retained', responseDueAt: new Date(Date.now() + 7 * 86_400_000) } },
       questionAnswers: (extra.answers ?? {}) as object,
       affinities: { create: (extra.affinities ?? []).map((affinity, position) => ({ ...affinity, position })) }
     }
@@ -102,7 +104,7 @@ describe('cadenas et réservation (US-100)', () => {
     expect(bodyOf<SavedSession>(saved).retainedRegistrations).toEqual([{ id: max.registration.id, participantId: max.participant.id, name: 'Max' }])
     expect(await prisma.sessionParticipant.count({ where: { sessionId: game.session.id, participantId: max.participant.id } })).toBe(0)
 
-    expect((await publicApi('POST', `/api/public/registrations/${max.token}/accept`)).status).toBe(200)
+    expect((await publicApi('POST', `/api/public/registrations/${max.token}/accept`, { sessionId: game.session.id })).status).toBe(200)
     expect(await prisma.sessionAssignment.findFirst({ where: { sessionId: game.session.id, characterId: game.bran.id }, select: { participantId: true, reservedRegistrationId: true } }))
       .toEqual({ participantId: max.participant.id, reservedRegistrationId: null })
   })
@@ -114,7 +116,7 @@ describe('cadenas et réservation (US-100)', () => {
     const stranger = await player(other, 'Noa', 'retained')
     expect((await saveCast(game, [{ characterId: game.cy.id, reservedRegistrationId: stranger.registration.id }])).status).toBe(400)
     expect((await saveCast(game, [{ characterId: game.cy.id, reservedRegistrationId: zoe.registration.id }])).status).toBe(200)
-    expect((await api(alice, 'POST', `/api/registrations/${zoe.registration.id}/withdraw`)).status).toBe(200)
+    expect((await api(alice, 'POST', `/api/registrations/${zoe.registration.id}/withdraw`, { sessionId: game.session.id })).status).toBe(200)
     expect(await prisma.sessionAssignment.findFirst({ where: { sessionId: game.session.id, characterId: game.cy.id }, select: { reservedRegistrationId: true } })).toEqual({ reservedRegistrationId: null })
   })
 
@@ -123,9 +125,9 @@ describe('cadenas et réservation (US-100)', () => {
     const lou = await player(game, 'Lou', 'retained')
     const noa = await player(game, 'Noa', 'retained')
     expect((await saveCast(game, [{ characterId: game.cy.id, reservedRegistrationId: lou.registration.id }, { characterId: game.bran.id, reservedRegistrationId: noa.registration.id }])).status).toBe(200)
-    const released = await api(alice, 'POST', `/api/registrations/${lou.registration.id}/release`)
+    const released = await api(alice, 'POST', `/api/registrations/${lou.registration.id}/release`, { sessionId: game.session.id })
     expect(released.status, JSON.stringify(released.body)).toBe(200)
-    const rejected = await api(alice, 'POST', `/api/registrations/${noa.registration.id}/selection`, { action: 'reject' })
+    const rejected = await api(alice, 'POST', `/api/registrations/${noa.registration.id}/selection`, { action: 'reset', sessionId: game.session.id })
     expect(rejected.status, JSON.stringify(rejected.body)).toBe(200)
     expect(await prisma.sessionAssignment.count({ where: { sessionId: game.session.id, reservedRegistrationId: { not: null } } })).toBe(0)
   })

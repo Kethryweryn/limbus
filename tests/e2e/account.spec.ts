@@ -42,11 +42,11 @@ test('la personne accepte une invitation depuis « Je participe »', async ({ pa
     const title = uniqueName('Jeu compte')
     const game = await prisma.game.create({ data: { title, slug: slugOf(title), description: '', ownerId: owner.id } })
     const session = await prisma.session.create({ data: { name: `Session ${title}`, slug: slugOf(`session ${title}`), gameId: game.id, date: new Date('2099-10-01T09:00:00Z') } })
-    const period = await prisma.registrationPeriod.create({ data: { name: 'Période', gameId: game.id, publicId: `c${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, seats: 3 } } } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `c${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } } })
     const participant = await prisma.participant.create({ data: { name, slug: slugOf(name), email, userId: user.id, gameLinks: { create: { gameId: game.id } } } })
     const registration = await prisma.registration.create({
       data: {
-        periodId: period.id, sessionId: session.id, participantId: participant.id, status: 'invited', source: 'invitation', email,
+        periodId: period.id, invitedSessionId: session.id, participantId: participant.id, status: 'invited', source: 'invitation', email,
         tokenHash: createHash('sha256').update(randomBytes(32)).digest('hex'), invitationSentAt: new Date(), responseDueAt: new Date(Date.now() + 7 * 86_400_000)
       }
     })
@@ -66,9 +66,9 @@ test('la personne accepte une invitation depuis « Je participe »', async ({ pa
     await page.getByLabel('Contact d’urgence : nom', { exact: true }).fill('Dominique')
     await page.getByLabel('Contact d’urgence : téléphone', { exact: true }).fill('0698765432')
     await page.getByLabel('J’ai lu la note d’intention et j’y adhère').check()
-    await page.getByRole('button', { name: 'Accepter l’invitation' }).click()
-    await expect(page.getByText('Votre inscription est confirmée.')).toBeVisible()
-    expect((await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { status: true } })).status).toBe('confirmed')
+    await page.getByRole('button', { name: 'Envoyer mes réponses' }).click()
+    await expect(page.getByText('Vos réponses sont enregistrées.')).toBeVisible()
+    expect((await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { status: true } })).status).toBe('received')
   } finally {
     await prisma.$disconnect()
   }

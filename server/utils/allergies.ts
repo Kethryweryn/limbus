@@ -1,7 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { openEmailTransport } from '~/server/utils/email'
 import { generatedPdfFileName, renderTextPdf } from '~/server/utils/generatedPdfs'
-import { REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
+import { REGISTRATION_SESSION_STATUSES, SESSION_ROLES } from '~/utils/domain'
 
 type AllergySheetSource = {
   name: string
@@ -68,9 +68,9 @@ export async function getAllergySheet(sessionId: string) {
       name: true,
       date: true,
       game: { select: { title: true } },
-      registrations: {
-        where: { status: REGISTRATION_STATUSES.confirmed },
-        select: { dietary: true, participant: { select: { id: true, name: true } } }
+      registrationLines: {
+        where: { status: REGISTRATION_SESSION_STATUSES.confirmed },
+        select: { registration: { select: { dietary: true, participant: { select: { id: true, name: true } } } } }
       },
       participants: { select: { participantId: true, role: true, participant: { select: { name: true, user: { select: { dietary: true, healthConsentAt: true } } } } } },
       assignments: { select: { participantId: true, participant: { select: { name: true, user: { select: { dietary: true, healthConsentAt: true } } } } } }
@@ -80,7 +80,7 @@ export async function getAllergySheet(sessionId: string) {
   const accountDietaries = [...session.participants, ...session.assignments]
     .filter((entry) => entry.participantId && entry.participant?.user?.dietary && entry.participant.user.healthConsentAt)
     .map((entry) => ({ participantId: entry.participantId!, name: entry.participant!.name, dietary: entry.participant!.user!.dietary! }))
-  return buildAllergySheet({ ...session, accountDietaries: [...new Map(accountDietaries.map((entry) => [entry.participantId, entry])).values()] })
+  return buildAllergySheet({ ...session, registrations: session.registrationLines.map((line) => line.registration), accountDietaries: [...new Map(accountDietaries.map((entry) => [entry.participantId, entry])).values()] })
 }
 
 const formatDate = (value: Date) => value.toLocaleDateString('fr-FR', { dateStyle: 'long', timeZone: 'Europe/Paris' })

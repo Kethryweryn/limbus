@@ -4,16 +4,13 @@
       <div class="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 class="text-lg font-semibold">{{ gameTitle }}</h2>
-          <p class="text-sm text-gray-500">
-            {{ periods.length }} période{{ periods.length > 1 ? 's' : '' }} d’inscription
-          </p>
         </div>
         <div class="flex flex-wrap gap-2">
           <UButton icon="i-heroicons-clipboard-document-list" color="neutral" variant="soft" @click="showFormEditor = true">
             Formulaire
           </UButton>
-          <UButton icon="i-heroicons-plus" color="primary" @click="edit(null)">
-            Nouvelle période d’inscription
+          <UButton v-if="!periods.length" icon="i-heroicons-plus" color="primary" @click="edit(null)">
+            Créer le vivier
           </UButton>
         </div>
       </div>
@@ -40,7 +37,7 @@
       <RegistrationPeriodCard v-for="period in periods" :key="period.id" :period="period" />
 
       <p v-if="!periods.length" class="text-sm text-gray-500">
-        Aucune période d’inscription pour ce jeu.
+        Ce jeu n’a pas encore de vivier.
       </p>
     </div>
 
@@ -55,8 +52,7 @@
       v-if="inviteTarget"
       v-model:open="showInviteForm"
       :game-id="gameId"
-      :period="inviteTarget.period"
-      :link="inviteTarget.link"
+      :period="inviteTarget"
       @invited="invited"
     />
     <RegistrationDetail v-model:open="showDetailModal" :registration-id="detailId" @changed="refresh" />
@@ -67,13 +63,12 @@
 <script setup lang="ts">
 import { provideRegistrationPeriodActions, type RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
 
-// Bloc d'un jeu sur la page Inscriptions (R33) : ses périodes d'inscription et son formulaire (US-002). Découpé
-// en sections (US-117) qui partagent l'état et les actions du bloc.
+// Bloc d'un jeu sur la page Inscriptions : son vivier et son formulaire (SPEC-018). Découpé en sections (US-117) qui
+// partagent l'état et les actions du bloc.
 const props = defineProps<{
   gameId: string
   gameTitle: string
-  // Périodes lues par la page, avec leurs inscriptions ; une nouvelle lecture (changement de connexion, US-119) les
-  // remplace
+  // Vivier lu par la page, avec ses personnes ; une nouvelle lecture (changement de connexion, US-119) le remplace
   initialPeriods: RegistrationPeriod[]
 }>()
 

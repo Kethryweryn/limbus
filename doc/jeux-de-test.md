@@ -6,11 +6,11 @@ Où essayer chaque fonctionnalité de Limbus, sur quel jeu et avec quel compte. 
 
 | Jeu | Étape | Sessions |
 |---|---|---|
-| Station Meridian | Avant les sessions | terminée à J-60 ; à venir de J+45 à J+230, une par période d'inscription, et deux pour le vivier |
+| Station Meridian | Avant les sessions | terminée à J-60 ; à venir de J+45 à J+230, une par sorte de sélection, et deux qui ne reçoivent que des pré-inscriptions |
 | Les Cendres de Valombre | Session imminente | terminée à J-60 ; reportée, remplacée par la session imminente à J+10 ; une autre à J+75 |
 | Le Bal des Masques Brisés | Après et imprévus | terminée à J-60 ; annulée (J+20) ; reportée (J+30) vers sa remplaçante (J+90) |
 
-Les dates comptent à partir du jour du rechargement, et ne bougent plus ensuite : au bout de quelques jours, le délai de Lucie est dépassé ; après dix jours, la session imminente de Valombre est passée et ses copies d'envoi s'effacent. Il suffit alors de recharger. Un rechargement remplace ces trois jeux : ce qui y a été modifié à la main est perdu. Les partages, les autorisations d'assistants d'IA et les liens publics des périodes restent.
+Les dates comptent à partir du jour du rechargement, et ne bougent plus ensuite : au bout de quelques jours, le délai de Lucie est dépassé ; après dix jours, la session imminente de Valombre est passée et ses copies d'envoi s'effacent. Il suffit alors de recharger. Un rechargement remplace ces trois jeux : ce qui y a été modifié à la main est perdu. Les partages, les autorisations d'assistants d'IA et le lien public du vivier reste.
 
 ## Les comptes
 
@@ -18,7 +18,7 @@ Les dates comptent à partir du jour du rechargement, et ne bougent plus ensuite
 |---|---|---|
 | Le vôtre (`SEED_EMAIL`) | Propriétaire des trois jeux | Toutes les actions de l'équipe |
 | Inès Lefèvre | Co-organisatrice de Meridian et de Valombre | Un jeu partagé, et un refus sur le Bal |
-| Camille Bernard | Participante | Une session à venir et son paiement sur Valombre ; sur Meridian, une inscription reçue et une décision pas encore annoncée |
+| Camille Bernard | Participante | Une session à venir et son paiement sur Valombre ; sur Meridian, pré-inscrite pour une session, et une décision pas encore annoncée pour une autre |
 | Lucie Moreau | Participante | Une place à confirmer sur Meridian ; une session terminée sur le Bal |
 
 Le mot de passe des comptes de test est celui donné au rechargement (`SEED_PASSWORD`). Une session ouverte sous l'un de ces comptes se ferme quand un rechargement remet le mot de passe à neuf.
@@ -32,14 +32,15 @@ Toutes les autres personnes sont en `example.test`, qui ne reçoit rien. **Un en
 Aucun lien personnel n'est préparé, car Limbus ne garde que l'empreinte d'un lien. Ils arrivent avec les envois lancés depuis l'application :
 
 - présence : sur la session imminente de Valombre, la demande de présence écrit à Nicolas et à Inès, les seuls sans demande ;
-- invitation à s'inscrire : sur Meridian, Sarah attend la sienne dans la période « Sur invitation » ;
+- invitation à rejoindre le vivier : sur Meridian, Sarah attend la sienne, pour la « Session sur invitation » ;
 - legs : sur le Bal, renvoyer l'invitation de Manon crée son lien.
 
 ## Où essayer quoi
 
 | Spec | À essayer | Jeu | Compte |
 |---|---|---|---|
-| [SPEC-001](specs/SPEC-001-inscriptions.md) Inscriptions | Périodes à la main, sur invitation, au tirage, mixte, permanente et en préparation ; chaque statut ; annonce des décisions ; tirage et son annulation ; liste d'attente ; vivier ; affinités et alerte (Nicolas et Raphaël) ; rejoueurs (Amandine) ; relations ; assistant de casting | Meridian | Le vôtre, Inès ; Camille et Lucie côté personne |
+| [SPEC-001](specs/SPEC-001-inscriptions.md) Inscriptions | Questionnaire, relations et assistant de casting | Meridian | Le vôtre, Inès ; Camille et Lucie côté personne |
+| [SPEC-018](specs/SPEC-018-vivier-permanent.md) Vivier | Le vivier unique et son lien de diffusion (`/i/essai-meridian-vivier`) ; sessions ouvertes ou non ; sessions à la main, au tirage et mixte ; chaque statut par session ; annonce ; tirage et son annulation ; liste d'attente ; refus de Mehdi ; sortie de Clara ; invitations de Sarah et de Baptiste ; affinités et alerte (Nicolas et Raphaël) ; rejoueuse (Amandine) | Meridian | Le vôtre, Inès ; Camille et Lucie côté personne |
 | [SPEC-002](specs/SPEC-002-copie-de-jeu.md) Copie et legs | Legs en attente, renvoi et acceptation avec l'adresse de Manon. Son invitation dure 14 jours : au-delà, Limbus retire la copie, et un rechargement en recrée une. Léguer un nouveau jeu reste possible depuis n'importe quel jeu | Le Bal | Le vôtre |
 | [SPEC-003](specs/SPEC-003-ecriture-d-un-jeu.md) Écriture d'un jeu | Personnages, groupes, intrigues (dont une sans rattachement), objets, lieux, documents | Les trois | Le vôtre |
 | [SPEC-004](specs/SPEC-004-sessions.md) Sessions et déroulé | Casting avec un rôle libre et une note ; équipe ; déroulé avec responsables complets, manquants et en conflit (Thomas à 14 h 30). Annuler ou reporter une session pour de vrai | Valombre ; session annulée et reportée sur le Bal | Le vôtre, Inès |

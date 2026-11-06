@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
   })
 
   const body = await readZodBody(event, registrationInvitationSchema)
-  return await withSessionSendLock(body.sessionId, () => inviteToRegistrationPeriod({
+  return await withSessionSendLock(body.sessionId || period.id, () => inviteToRegistrationPeriod({
     periodId: period.id,
     sessionId: body.sessionId,
     participantIds: body.participantIds,

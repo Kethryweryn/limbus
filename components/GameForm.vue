@@ -31,7 +31,7 @@
         <AppCheckboxRow
           v-model="localGame.publicShowRegistration"
           label="Afficher le lien d’inscription"
-          description="Un bouton vers le formulaire de chaque période d’inscription ouverte en mode formulaire."
+          description="Un bouton vers le questionnaire du vivier, quand il est ouvert."
         />
       </div>
       <AppCheckboxRow

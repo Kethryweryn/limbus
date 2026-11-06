@@ -135,6 +135,9 @@ export async function updateSession(event: H3Event, id: string, readBody: Reader
     .map((participant) => participant.participantId)
   await prisma.timelineEventResponsible.deleteMany({ where: { sessionId: existingSession.id, participantId: { notIn: responsibleIds } } })
 
+  // Une session sans date ne peut pas rester ouverte à la pré-inscription (R6)
+  if (!session.date) await prisma.registrationPeriodSession.updateMany({ where: { sessionId: session.id, open: true }, data: { open: false } })
+
   await deleteUnusedUploads(previousPhotoUrls)
   return await withCastReservations(session)
 }

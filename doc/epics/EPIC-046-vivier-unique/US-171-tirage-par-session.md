@@ -1,7 +1,7 @@
 ---
 id: US-171
 titre: Tirer au sort pour une session
-statut: à faire
+statut: terminée
 epic: EPIC-046
 regles: [R22, R23]
 adr: [../../adr/ADR-0069-vivier-unique-et-statut-par-session.md]
@@ -13,10 +13,10 @@ En tant que organisatrice, je veux choisir le mode de sélection de chaque sessi
 
 ## Critères d'acceptation
 
-- [ ] Étant donné une session au hasard ou mixte, quand je lance le tirage, alors il porte sur ses pré-inscrits, hors rejoueurs exclus.
-- [ ] Étant donné la limite de liste d'attente, alors les personnes au-delà restent pré-inscrites, sans message.
-- [ ] Étant donné un tirage sans annonce depuis, quand je l'annule, alors la session revient à son état d'avant.
-- [ ] Étant donné la même graine et les mêmes entrées, alors le résultat est identique.
+- [x] Étant donné une session au hasard ou mixte, quand je lance le tirage, alors il porte sur ses pré-inscrits, hors rejoueurs exclus.
+- [x] Étant donné la limite de liste d'attente, alors les personnes au-delà restent pré-inscrites, sans message.
+- [x] Étant donné un tirage sans annonce depuis, quand je l'annule, alors la session revient à son état d'avant.
+- [x] Étant donné la même graine et les mêmes entrées, alors le résultat est identique.
 
 ## Notes techniques
 
@@ -24,4 +24,4 @@ En tant que organisatrice, je veux choisir le mode de sélection de chaque sessi
 
 ## Tests
 
-Unitaire : `utils/registrationDraw`. Intégration : `registrationDraws.test.ts`. Playwright : sélection.
+Unitaire : `utils/registrationDraw`. Intégration : `registrationDraws.test.ts`, `seed.test.ts`. Playwright : `registration.spec.ts`.

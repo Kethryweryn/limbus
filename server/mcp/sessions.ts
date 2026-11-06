@@ -33,7 +33,7 @@ export function registerSessionTools({ event, server }: ToolContext) {
       prisma.session.findUniqueOrThrow({
         where: { id: sessionId },
         select: {
-          id: true, gameId: true, name: true, date: true, status: true, cancelledAt: true, published: true, poolSeats: true, updatedAt: true,
+          id: true, gameId: true, name: true, date: true, status: true, cancelledAt: true, published: true, updatedAt: true,
           location: named,
           postponedTo: named,
           postponedFrom: named,

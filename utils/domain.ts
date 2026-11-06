@@ -142,17 +142,7 @@ export const GAME_INVITATION_KINDS = {
   bequest: 'bequest'
 } as const
 
-// Périodes d'inscription (SPEC-001)
-export const REGISTRATION_PERIOD_SCOPES = {
-  sessions: 'sessions',
-  game: 'game'
-} as const
-
-export const REGISTRATION_ENTRY_MODES = {
-  invitation: 'invitation',
-  form: 'form'
-} as const
-
+// Vivier d'un jeu (SPEC-018)
 export const REGISTRATION_SELECTION_MODES = {
   random: 'random',
   chosen: 'chosen',
@@ -176,44 +166,67 @@ export const REGISTRATION_PERIOD_STATES = {
 
 export const REGISTRATION_PERIOD_STATE_META = {
   [REGISTRATION_PERIOD_STATES.draft]: { label: 'Brouillon', color: 'neutral' },
-  [REGISTRATION_PERIOD_STATES.open]: { label: 'Ouverte', color: 'success' },
-  [REGISTRATION_PERIOD_STATES.closed]: { label: 'Clôturée', color: 'warning' }
+  [REGISTRATION_PERIOD_STATES.open]: { label: 'Ouvert', color: 'success' },
+  [REGISTRATION_PERIOD_STATES.closed]: { label: 'Fermé', color: 'warning' }
 } as const
 
 export const REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS = 7
 
-// Statuts d'une inscription (R16).
-// received : inscription par le formulaire, email confirmé, en attente de la sélection (ADR-0046)
-// retained, waitlisted, rejected : décisions de la sélection, annoncées à part (ADR-0047)
+// Statut d'une personne pour le jeu (SPEC-018, ADR-0069) : invitée sans réponse, intéressée (dans le vivier), ou sortie.
+// Son statut pour chaque session est dans REGISTRATION_SESSION_STATUSES
 export const REGISTRATION_STATUSES = {
   invited: 'invited',
   received: 'received',
-  retained: 'retained',
-  waitlisted: 'waitlisted',
-  rejected: 'rejected',
-  confirmed: 'confirmed',
   withdrawn: 'withdrawn'
 } as const
 
 export const REGISTRATION_STATUS_META = {
   [REGISTRATION_STATUSES.invited]: { label: 'Invitée', color: 'info' },
-  [REGISTRATION_STATUSES.received]: { label: 'Reçue', color: 'info' },
-  [REGISTRATION_STATUSES.retained]: { label: 'Retenue', color: 'primary' },
-  [REGISTRATION_STATUSES.waitlisted]: { label: 'Liste d’attente', color: 'warning' },
-  [REGISTRATION_STATUSES.rejected]: { label: 'Non retenue', color: 'neutral' },
-  [REGISTRATION_STATUSES.confirmed]: { label: 'Confirmée', color: 'success' },
-  [REGISTRATION_STATUSES.withdrawn]: { label: 'Désistée', color: 'neutral' }
+  [REGISTRATION_STATUSES.received]: { label: 'Intéressée', color: 'info' },
+  [REGISTRATION_STATUSES.withdrawn]: { label: 'Sortie du vivier', color: 'neutral' }
+} as const
+
+// Statut d'une personne pour une session (R17)
+export const REGISTRATION_SESSION_STATUSES = {
+  preregistered: 'preregistered',
+  unavailable: 'unavailable',
+  waitlisted: 'waitlisted',
+  retained: 'retained',
+  confirmed: 'confirmed',
+  transferred: 'transferred',
+  cancelled: 'cancelled'
+} as const
+
+export const REGISTRATION_SESSION_STATUS_META = {
+  [REGISTRATION_SESSION_STATUSES.preregistered]: { label: 'Pré-inscrite', color: 'info' },
+  [REGISTRATION_SESSION_STATUSES.unavailable]: { label: 'Pas disponible', color: 'neutral' },
+  [REGISTRATION_SESSION_STATUSES.waitlisted]: { label: 'En attente', color: 'warning' },
+  [REGISTRATION_SESSION_STATUSES.retained]: { label: 'Castée', color: 'primary' },
+  [REGISTRATION_SESSION_STATUSES.confirmed]: { label: 'Inscrite', color: 'success' },
+  [REGISTRATION_SESSION_STATUSES.transferred]: { label: 'Transférée', color: 'neutral' },
+  [REGISTRATION_SESSION_STATUSES.cancelled]: { label: 'Annulation', color: 'neutral' }
+} as const
+
+// Réponse d'une personne pour une session (R11)
+export const REGISTRATION_ANSWERS = {
+  available: 'available',
+  unavailable: 'unavailable'
 } as const
 
 // Décisions de la sélection, annoncées par « Annoncer les résultats » (US-088)
 export const REGISTRATION_SELECTION_STATUSES: string[] = [
-  REGISTRATION_STATUSES.retained,
-  REGISTRATION_STATUSES.waitlisted,
-  REGISTRATION_STATUSES.rejected
+  REGISTRATION_SESSION_STATUSES.retained,
+  REGISTRATION_SESSION_STATUSES.waitlisted
 ]
 
-// Décisions de sélection sur une inscription (US-087)
-export const REGISTRATION_SELECTION_ACTIONS = ['retain', 'waitlist', 'unwaitlist', 'reject', 'reset'] as const
+// Une place de la session est prise (R8)
+export const REGISTRATION_SEAT_STATUSES: string[] = [
+  REGISTRATION_SESSION_STATUSES.retained,
+  REGISTRATION_SESSION_STATUSES.confirmed
+]
+
+// Décisions de sélection pour une session (R20)
+export const REGISTRATION_SELECTION_ACTIONS = ['retain', 'waitlist', 'unwaitlist', 'reset'] as const
 
 // Rejoueurs (R7) : personne qui a participé à une session terminée du jeu
 export const REGISTRATION_REPLAY_POLICIES = {
@@ -225,7 +238,7 @@ export const REGISTRATION_REPLAY_POLICIES = {
 export const REGISTRATION_REPLAY_POLICY_OPTIONS = [
   { label: 'Autorisés', value: REGISTRATION_REPLAY_POLICIES.allowed },
   { label: 'Signalés', value: REGISTRATION_REPLAY_POLICIES.flagged },
-  { label: 'Exclus du tirage et du vivier', value: REGISTRATION_REPLAY_POLICIES.excluded }
+  { label: 'Exclus des demandes et du tirage', value: REGISTRATION_REPLAY_POLICIES.excluded }
 ] as const
 
 export const REGISTRATION_SOURCES = {

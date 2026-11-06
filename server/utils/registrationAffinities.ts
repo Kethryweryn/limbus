@@ -1,12 +1,9 @@
 import { prisma } from '~/server/utils/prisma'
-import { REGISTRATION_STATUSES } from '~/utils/domain'
+import { REGISTRATION_SEAT_STATUSES } from '~/utils/domain'
 import { ALERT_AFFINITY_KINDS, PERSON_AFFINITY_KINDS, affinityLineKey, isPersonAffinityKind, suggestPeople } from '~/utils/affinityMatching'
 import type { AffinityAnswers } from '~/server/utils/registrationForms'
 
 type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
-
-// Une personne est dans une session par une inscription retenue ou confirmée, ou comme participante (ADR-0049)
-const PLACED = [REGISTRATION_STATUSES.retained, REGISTRATION_STATUSES.confirmed]
 
 /**
  * Remplace les affinités d'une inscription par ses nouvelles réponses (ADR-0045). Une ligne de même sorte et de même
@@ -104,21 +101,25 @@ export async function linkAffinity(affinity: LinkableAffinity, link: { targetPar
 
 /**
  * Alertes et repères d'affinités des sessions de la sélection (US-096, ADR-0049), calculés à chaque lecture :
- * - une alerte par ligne « ne pas croiser » ou « ne pas jouer avec » d'une inscription retenue ou confirmée dans une
- *   session, dont la personne rattachée est présente dans la même session (inscription retenue ou confirmée, ou cast) ;
+ * - une alerte par ligne « ne pas croiser » ou « ne pas jouer avec » d'une personne retenue ou inscrite dans une session,
+ *   dont la personne rattachée est présente dans la même session (retenue, inscrite, ou dans le cast) (R25) ;
  * - pour chaque inscription de la période, ses personnes souhaitées rattachées et les sessions où elles sont présentes.
  */
 export async function affinityOverview(periodId: string, sessionIds: string[]) {
   const [placed, cast, periodRegistrations] = await Promise.all([
-    prisma.registration.findMany({
-      where: { sessionId: { in: sessionIds }, status: { in: PLACED } },
+    prisma.registrationSession.findMany({
+      where: { sessionId: { in: sessionIds }, status: { in: REGISTRATION_SEAT_STATUSES } },
       select: {
-        id: true,
         sessionId: true,
-        participant: { select: { id: true, name: true } },
-        affinities: {
-          where: { kind: { in: [...ALERT_AFFINITY_KINDS] }, targetParticipantId: { not: null } },
-          select: { kind: true, text: true, targetParticipantId: true }
+        registration: {
+          select: {
+            id: true,
+            participant: { select: { id: true, name: true } },
+            affinities: {
+              where: { kind: { in: [...ALERT_AFFINITY_KINDS] }, targetParticipantId: { not: null } },
+              select: { kind: true, text: true, targetParticipantId: true }
+            }
+          }
         }
       }
     }),
@@ -142,18 +143,19 @@ export async function affinityOverview(periodId: string, sessionIds: string[]) {
 
   // Personnes présentes par session, avec leur nom
   const present = new Map<string, Map<string, string>>(sessionIds.map((id) => [id, new Map()]))
-  for (const row of [...placed, ...cast]) present.get(row.sessionId!)?.set(row.participant.id, row.participant.name)
+  for (const row of placed) present.get(row.sessionId)?.set(row.registration.participant.id, row.registration.participant.name)
+  for (const row of cast) present.get(row.sessionId)?.set(row.participant.id, row.participant.name)
 
-  const alerts = placed.flatMap((registration) => registration.affinities
-    .filter((affinity) => affinity.targetParticipantId !== registration.participant.id && present.get(registration.sessionId!)?.has(affinity.targetParticipantId!))
+  const alerts = placed.flatMap(({ sessionId, registration }) => registration.affinities
+    .filter((affinity) => affinity.targetParticipantId !== registration.participant.id && present.get(sessionId)?.has(affinity.targetParticipantId!))
     .map((affinity) => ({
-      sessionId: registration.sessionId!,
+      sessionId,
       kind: affinity.kind,
       registrationId: registration.id,
       participantId: registration.participant.id,
       participantName: registration.participant.name,
       targetParticipantId: affinity.targetParticipantId!,
-      targetName: present.get(registration.sessionId!)!.get(affinity.targetParticipantId!)!
+      targetName: present.get(sessionId)!.get(affinity.targetParticipantId!)!
     })))
 
   const sessionsOf = (participantId: string) => sessionIds.filter((id) => present.get(id)!.has(participantId))

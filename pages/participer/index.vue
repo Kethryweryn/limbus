@@ -23,28 +23,29 @@
 
       <div class="space-y-6">
         <section v-if="entry.registrations.length" class="space-y-2">
-          <h3 class="font-medium">Inscriptions</h3>
-          <div v-for="registration in entry.registrations" :key="registration.id" class="flex flex-col gap-2 rounded border border-gray-200 p-3 sm:flex-row sm:items-center sm:justify-between">
-            <div class="text-sm">
+          <h3 class="font-medium">Inscription</h3>
+          <div v-for="registration in entry.registrations" :key="registration.id" class="flex flex-col gap-2 rounded border border-gray-200 p-3 sm:flex-row sm:items-start sm:justify-between">
+            <div class="text-sm space-y-1">
               <div class="flex flex-wrap items-center gap-2">
-                <span class="font-medium">{{ registration.periodName }}</span>
                 <UBadge :color="registrationMeta(registration).color" variant="subtle" size="sm">{{ registrationMeta(registration).label }}</UBadge>
               </div>
-              <div v-if="registration.session" class="text-gray-500">
-                Session {{ registration.session.name }}<span v-if="registration.session.date"> · {{ formatDate(registration.session.date) }}</span>
-              </div>
-              <div v-if="(registration.canAccept || registration.canConfirmPlace) && registration.responseDueAt" class="text-gray-500">
+              <div v-if="registration.canAccept && registration.responseDueAt" class="text-gray-500">
                 Réponse attendue avant le {{ formatDate(registration.responseDueAt) }}
+              </div>
+              <div v-for="line in registration.sessions" :key="line.sessionId" class="flex flex-wrap items-center gap-2 text-gray-600">
+                <span>{{ line.session.name }}<span v-if="line.session.date"> · {{ formatDate(line.session.date) }}</span></span>
+                <UBadge :color="lineMeta(line).color" variant="subtle" size="sm">{{ lineMeta(line).label }}</UBadge>
+                <span v-if="line.canConfirmPlace && line.responseDueAt" class="text-gray-500">à confirmer avant le {{ formatDate(line.responseDueAt) }}</span>
               </div>
             </div>
             <UButton
-              v-if="registration.canAccept || registration.canConfirmPlace || registration.canEdit || registration.canWithdraw"
+              v-if="registration.canAccept || registration.canEdit"
               :to="`/participer/inscriptions/${registration.id}`"
               size="sm"
-              :color="registration.canAccept || registration.canConfirmPlace ? 'primary' : 'neutral'"
-              :variant="registration.canAccept || registration.canConfirmPlace ? 'solid' : 'soft'"
+              :color="registration.canAccept || confirmable(registration) ? 'primary' : 'neutral'"
+              :variant="registration.canAccept || confirmable(registration) ? 'solid' : 'soft'"
             >
-              {{ registration.canAccept ? 'Répondre' : registration.canConfirmPlace ? 'Confirmer ma place' : 'Voir ou modifier' }}
+              {{ registration.canAccept ? 'Répondre' : confirmable(registration) ? 'Confirmer ma place' : 'Voir ou modifier' }}
             </UButton>
           </div>
         </section>
@@ -126,7 +127,7 @@
 </template>
 
 <script setup lang="ts">
-import { REFUND_STATUSES, REGISTRATION_STATUS_META, SESSION_ROLE_LABELS, SESSION_ROLES, metaOf } from '~/utils/domain'
+import { REFUND_STATUSES, REGISTRATION_SESSION_STATUS_META, REGISTRATION_STATUS_META, SESSION_ROLE_LABELS, SESSION_ROLES, metaOf } from '~/utils/domain'
 import { ATTENDANCE_STATUSES } from '~/utils/attendance'
 import { serverMessage } from '~/utils/apiErrors'
 import { rememberSpace } from '~/utils/spaces'
@@ -137,6 +138,7 @@ import type { ApiResponse } from '~/composables/useApiFetch'
 
 type Participation = ApiResponse<'/api/me/participations'>[number]
 type Payment = NonNullable<Participation['sessions'][number]['payment']>
+type MyRegistration = Participation['registrations'][number]
 
 // Espace « Je participe » (US-071)
 const { data: authState } = await useFetch('/api/auth/me')
@@ -159,6 +161,8 @@ onMounted(async () => {
 
 const sessionMeta = (session: { status: string }) => sessionStatusMeta(session.status)
 const registrationMeta = (registration: { status: string }) => metaOf(REGISTRATION_STATUS_META, registration.status) || { label: registration.status, color: 'neutral' as const }
+const lineMeta = (line: { status: string }) => metaOf(REGISTRATION_SESSION_STATUS_META, line.status) || { label: line.status, color: 'neutral' as const }
+const confirmable = (registration: MyRegistration) => registration.sessions.some((line) => line.canConfirmPlace)
 // Casting et inscription confirmée : « PJ » plutôt que « Participant »
 const roleLabel = (role: string) => role === SESSION_ROLES.participant ? 'PJ' : metaOf(SESSION_ROLE_LABELS, role) || role
 

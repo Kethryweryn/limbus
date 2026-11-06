@@ -1,58 +1,36 @@
 <template>
-  <!-- Sélection d'une période en mode formulaire (US-087 à US-090) : trier, puis annoncer -->
+  <!-- Le vivier, session par session (SPEC-018) : ouvrir la session, caster, puis annoncer -->
   <div class="mt-4 space-y-4 border-t border-gray-100 pt-3">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div>
         <h3 class="text-sm font-semibold text-gray-700">
-          {{ permanent ? 'Vivier' : 'Sélection' }} · {{ activeCount }} inscription{{ activeCount > 1 ? 's' : '' }}
+          Sessions · {{ pool.length }} personne{{ pool.length > 1 ? 's' : '' }} dans le vivier
         </h3>
         <p class="text-xs text-gray-500">
           Les décisions ne préviennent personne : « Annoncer les résultats » envoie les emails.
           <span v-if="overview?.replayPolicy === REGISTRATION_REPLAY_POLICIES.flagged"> Les rejoueurs sont signalés.</span>
-          <span v-else-if="overview?.replayPolicy === REGISTRATION_REPLAY_POLICIES.excluded"> Les rejoueurs sont exclus du tirage{{ permanent ? ' et du vivier' : '' }}.</span>
+          <span v-else-if="overview?.replayPolicy === REGISTRATION_REPLAY_POLICIES.excluded"> Les rejoueurs ne reçoivent pas de demande et n’entrent pas dans le tirage ; vous pouvez les retenir à la main.</span>
         </p>
       </div>
-      <div class="flex flex-wrap gap-2">
-        <!-- Tirage (US-093) : un seul actif ; pour refaire, on annule le précédent -->
-        <UButton
-          v-if="drawable"
-          size="sm"
-          icon="i-heroicons-sparkles"
-          color="neutral"
-          variant="soft"
-          :disabled="Boolean(activeDraw)"
-          :title="activeDraw ? 'Annulez le tirage en cours pour en refaire un' : undefined"
-          :loading="drawing"
-          @click="draw"
-        >
-          Tirer au sort
-        </UButton>
-        <UButton
-          size="sm"
-          icon="i-heroicons-megaphone"
-          color="primary"
-          :disabled="!pendingCount"
-          :loading="announcing"
-          @click="announce"
-        >
-          Annoncer les résultats{{ pendingCount ? ` (${pendingCount})` : '' }}
-        </UButton>
-      </div>
+      <UButton
+        size="sm"
+        icon="i-heroicons-megaphone"
+        color="primary"
+        :disabled="!pendingCount"
+        :loading="announcing"
+        @click="announce"
+      >
+        Annoncer les résultats{{ pendingCount ? ` (${pendingCount})` : '' }}
+      </UButton>
     </div>
-    <p v-if="drawable && !activeDraw" class="text-xs text-gray-500">
-      <template v-if="period.selectionMode === REGISTRATION_SELECTION_MODES.mixed">
-        Mode mixte : avant le tirage, chaque organisatrice retient jusqu’à {{ period.organizerPicks ?? 0 }} personne{{ (period.organizerPicks ?? 0) > 1 ? 's' : '' }} par session ; le tirage remplit le reste.
-      </template>
-      <template v-else>Sélection au hasard : lancez le tirage, puis corrigez à la main si besoin.</template>
-    </p>
 
     <UAlert v-if="message" :color="messageColor" variant="soft" :description="message" :close="{ color: 'neutral', variant: 'link' }" @update:open="message = ''" />
 
-    <p v-if="permanent && !sessions.length" class="text-sm text-gray-500">
-      Aucune session à venir sans période dédiée : créez une session pour y retenir des personnes du vivier.
+    <p v-if="overview && !sessions.length" class="text-sm text-gray-500">
+      Aucune session à venir : créez une session pour la proposer au vivier.
     </p>
 
-    <div v-for="session in sessions" :key="session.id" class="space-y-2 rounded border border-gray-100 p-3">
+    <div v-for="session in sessions" :key="session.id" class="space-y-2 rounded border border-gray-100 p-3" :data-session="session.name">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <h4 class="text-sm font-medium text-gray-800">
           {{ session.name }}<span v-if="session.date" class="text-gray-500"> · {{ formatLongDate(session.date) }}</span>
@@ -60,11 +38,64 @@
           <span :class="session.taken >= session.seats ? 'text-warning-600' : 'text-gray-600'">
             {{ session.taken }} / {{ session.seats }} place{{ session.seats > 1 ? 's' : '' }}
           </span>
+          <UBadge class="ml-2" size="sm" :color="session.offered ? 'success' : 'neutral'" variant="subtle">
+            {{ session.offered ? 'Ouverte à la pré-inscription' : 'Pas proposée au vivier' }}
+          </UBadge>
         </h4>
-        <UButton v-if="permanent" size="xs" color="neutral" variant="soft" icon="i-heroicons-pencil-square" @click="editSeats(session)">
-          Places
-        </UButton>
+        <div class="flex flex-wrap gap-2">
+          <UButton
+            v-if="session.open"
+            size="xs"
+            color="neutral"
+            variant="soft"
+            @click="setOpen(session, false)"
+          >
+            Refermer
+          </UButton>
+          <UButton
+            v-else
+            size="xs"
+            color="success"
+            variant="soft"
+            :disabled="!session.openable"
+            :title="session.openable ? undefined : 'Seule une session datée et à venir peut être ouverte'"
+            @click="setOpen(session, true)"
+          >
+            Ouvrir à la pré-inscription
+          </UButton>
+          <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-adjustments-horizontal" @click="editSettings(session)">
+            Sélection
+          </UButton>
+          <!-- Tirage (R22) : un seul actif par session ; pour refaire, on annule le précédent -->
+          <UButton
+            v-if="session.selectionMode !== REGISTRATION_SELECTION_MODES.chosen"
+            size="xs"
+            icon="i-heroicons-sparkles"
+            color="neutral"
+            variant="soft"
+            :disabled="Boolean(session.activeDrawId)"
+            :title="session.activeDrawId ? 'Annulez le tirage en cours pour en refaire un' : undefined"
+            :loading="drawing === session.id"
+            @click="draw(session)"
+          >
+            Tirer au sort
+          </UButton>
+        </div>
       </div>
+
+      <p v-if="session.selectionMode !== REGISTRATION_SELECTION_MODES.chosen && !session.activeDrawId" class="text-xs text-gray-500">
+        <template v-if="session.selectionMode === REGISTRATION_SELECTION_MODES.mixed">
+          Mode mixte : avant le tirage, chaque organisatrice retient jusqu’à {{ session.organizerPicks ?? 0 }} personne{{ (session.organizerPicks ?? 0) > 1 ? 's' : '' }} ; le tirage remplit le reste.
+        </template>
+        <template v-else>Sélection au hasard : lancez le tirage, puis corrigez à la main si besoin.</template>
+      </p>
+
+      <UAlert
+        v-if="session.taken > session.seats"
+        color="warning"
+        variant="soft"
+        :description="`Cette session est en surnombre : ${session.taken} personnes pour ${session.seats} personnages PJ.`"
+      />
 
       <!-- Affinités (US-096, R25) : prévenir sans bloquer -->
       <UAlert
@@ -77,17 +108,17 @@
 
       <ul v-if="placed(session).length" class="divide-y divide-gray-100 text-sm">
         <li v-for="registration in placed(session)" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
-          <RegistrationSelectionName :registration="registration" :replayer="isReplayer(registration)" :alert="alerted(session, registration)" :wishes="wishLabels(registration, session)" :to-link="toLink(registration)" />
+          <RegistrationSelectionName :registration="registration" :line="lineOf(registration, session)" :replayer="isReplayer(registration)" :alert="alerted(session, registration)" :wishes="wishLabels(registration, session)" :to-link="toLink(registration)" />
           <div class="flex shrink-0 flex-wrap gap-2">
             <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="showDetail(registration)">Détail</UButton>
-            <template v-if="registration.status === REGISTRATION_STATUSES.retained">
-              <template v-if="canConfirmPlace(registration)">
-                <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-bell-alert" @click="remind(registration)">Relancer</UButton>
-                <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-arrow-path" @click="resend(registration)">Nouveau lien</UButton>
-                <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-calendar-days" @click="askExtension(registration)">Prolonger</UButton>
-                <UButton size="xs" color="warning" variant="soft" icon="i-heroicons-user-minus" @click="release(registration)">Libérer</UButton>
+            <template v-if="lineOf(registration, session)?.status === LINE.retained">
+              <template v-if="canConfirmPlace(lineOf(registration, session)!)">
+                <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-bell-alert" @click="remind(registration, session.id)">Relancer</UButton>
+                <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-arrow-path" @click="resend(registration, session.id)">Nouveau lien</UButton>
+                <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-calendar-days" @click="askExtension(registration, session.id)">Prolonger</UButton>
+                <UButton size="xs" color="warning" variant="soft" icon="i-heroicons-user-minus" @click="release(registration, session.id)">Libérer</UButton>
               </template>
-              <UDropdownMenu :items="decisionItems(registration)">
+              <UDropdownMenu :items="placedItems(registration, session)">
                 <UButton size="xs" color="neutral" variant="soft" trailing-icon="i-heroicons-chevron-down">Changer</UButton>
               </UDropdownMenu>
             </template>
@@ -97,7 +128,7 @@
               color="error"
               variant="soft"
               icon="i-heroicons-user-minus"
-              @click="withdraw(registration)"
+              @click="withdraw(registration, session.id)"
             >
               Retirer
             </UButton>
@@ -107,7 +138,7 @@
 
       <div v-if="waiting(session).length" class="space-y-1">
         <p class="text-xs font-semibold text-gray-600">Liste d’attente</p>
-        <!-- Une place libre propose la première personne de la file (R21) : l'équipe la retient, puis l'annonce -->
+        <!-- Une place libre propose la première personne de la file (R23) : l'équipe la retient, puis l'annonce -->
         <UAlert
           v-if="session.taken < session.seats"
           color="info"
@@ -119,106 +150,146 @@
           <li v-for="(registration, index) in waiting(session)" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex min-w-0 items-start gap-2">
               <span class="w-5 shrink-0 text-right text-xs text-gray-500">{{ index + 1 }}.</span>
-              <RegistrationSelectionName :registration="registration" :replayer="isReplayer(registration)" :wishes="wishLabels(registration)" :to-link="toLink(registration)" />
+              <RegistrationSelectionName :registration="registration" :line="lineOf(registration, session)" :replayer="isReplayer(registration)" :wishes="wishLabels(registration, session)" :to-link="toLink(registration)" />
             </div>
             <div class="flex shrink-0 flex-wrap gap-2">
               <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-arrow-up" :disabled="index === 0" aria-label="Monter" @click="move(session, index, -1)" />
               <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-arrow-down" :disabled="index === waiting(session).length - 1" aria-label="Descendre" @click="move(session, index, 1)" />
               <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="showDetail(registration)">Détail</UButton>
               <UButton size="xs" color="primary" variant="soft" :disabled="session.taken >= session.seats" @click="decide(registration, 'retain', session.id)">Retenir</UButton>
-              <UDropdownMenu :items="decisionItems(registration)">
-                <UButton size="xs" color="neutral" variant="soft" trailing-icon="i-heroicons-chevron-down">Changer</UButton>
-              </UDropdownMenu>
+              <UButton size="xs" color="neutral" variant="soft" @click="decide(registration, 'unwaitlist', session.id)">Sortir de la liste</UButton>
             </div>
           </li>
         </ol>
       </div>
-      <p v-if="!placed(session).length && !waiting(session).length" class="text-xs text-gray-500">Personne pour l’instant.</p>
+
+      <div v-if="preregistered(session).length" class="space-y-1">
+        <p class="text-xs font-semibold text-gray-600">Pré-inscrites : {{ preregistered(session).length }}</p>
+        <ul class="divide-y divide-gray-100 text-sm">
+          <li v-for="registration in preregistered(session)" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
+            <RegistrationSelectionName :registration="registration" :line="lineOf(registration, session)" :replayer="isReplayer(registration)" :wishes="wishLabels(registration, session)" :to-link="toLink(registration)" />
+            <div class="flex shrink-0 flex-wrap gap-2">
+              <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="showDetail(registration)">Détail</UButton>
+              <UButton
+                v-if="manualRetainAllowed(session)"
+                size="xs"
+                color="primary"
+                variant="soft"
+                :disabled="session.taken >= session.seats"
+                :title="session.taken >= session.seats ? 'Session complète : créez un personnage pour ajouter une place' : undefined"
+                @click="decide(registration, 'retain', session.id)"
+              >
+                Retenir
+              </UButton>
+              <UButton size="xs" color="neutral" variant="soft" @click="decide(registration, 'waitlist', session.id)">Liste d’attente</UButton>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <p v-if="!placed(session).length && !waiting(session).length && !preregistered(session).length" class="text-xs text-gray-500">Personne pour l’instant.</p>
+
+      <!-- Ajout à la main d'une autre personne du vivier (R20) : un refus ou un rejoueur exclu se signale -->
+      <div v-if="others(session).length && manualRetainAllowed(session)" class="flex flex-wrap items-center gap-2 pt-1">
+        <USelectMenu
+          size="xs"
+          class="w-72"
+          :items="otherItems(session)"
+          value-key="value"
+          placeholder="Ajouter une autre personne du vivier…"
+          :disabled="session.taken >= session.seats"
+          @update:model-value="(id) => id && decide(registrationById(id), 'retain', session.id)"
+        />
+      </div>
     </div>
 
     <div class="space-y-1">
-      <p class="text-xs font-semibold text-gray-600">{{ permanent ? 'Dans le vivier' : 'À trier' }} : {{ toSort.length }}</p>
-      <ul v-if="toSort.length" class="divide-y divide-gray-100 text-sm">
-        <li v-for="registration in toSort" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
-          <RegistrationSelectionName :registration="registration" :replayer="isReplayer(registration)" :wishes="wishLabels(registration)" :to-link="toLink(registration)" :availability="availabilityLabel(registration)" />
+      <p class="text-xs font-semibold text-gray-600">Dans le vivier : {{ pool.length }}</p>
+      <ul v-if="pool.length" class="divide-y divide-gray-100 text-sm">
+        <li v-for="registration in pool" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
+          <RegistrationSelectionName :registration="registration" :replayer="isReplayer(registration)" :wishes="wishLabels(registration)" :to-link="toLink(registration)" :summary="lineSummary(registration)" />
           <div class="flex shrink-0 flex-wrap gap-2">
             <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="showDetail(registration)">Détail</UButton>
-            <UDropdownMenu :items="decisionItems(registration)">
-              <UButton size="xs" color="primary" variant="soft" trailing-icon="i-heroicons-chevron-down">Décider</UButton>
-            </UDropdownMenu>
-            <UButton size="xs" color="error" variant="soft" icon="i-heroicons-user-minus" @click="withdraw(registration)">Retirer</UButton>
+            <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-arrow-path" @click="resend(registration)">Nouveau lien</UButton>
+            <UButton size="xs" color="error" variant="soft" icon="i-heroicons-user-minus" @click="withdraw(registration)">Retirer du vivier</UButton>
           </div>
         </li>
       </ul>
-      <p v-else class="text-xs text-gray-500">{{ registrations.length ? 'Toutes les inscriptions sont triées.' : 'Aucune inscription pour l’instant : partagez le lien de diffusion.' }}</p>
-      <p v-if="outOfPool.length" class="text-xs text-gray-500">
-        Hors du vivier, car elles ont déjà joué : {{ outOfPool.map((registration) => registration.participant.name).join(', ') }}.
-      </p>
+      <p v-else class="text-xs text-gray-500">Personne pour l’instant : partagez le lien de diffusion.</p>
     </div>
 
-    <div v-if="rejected.length" class="space-y-1">
-      <p class="text-xs font-semibold text-gray-600">Non retenues : {{ rejected.length }}</p>
-      <ul class="divide-y divide-gray-100 text-sm">
-        <li v-for="registration in rejected" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
-          <RegistrationSelectionName :registration="registration" :replayer="isReplayer(registration)" :wishes="wishLabels(registration)" :to-link="toLink(registration)" />
-          <div class="flex shrink-0 flex-wrap gap-2">
-            <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="showDetail(registration)">Détail</UButton>
-            <UDropdownMenu :items="decisionItems(registration)">
-              <UButton size="xs" color="neutral" variant="soft" trailing-icon="i-heroicons-chevron-down">Changer</UButton>
-            </UDropdownMenu>
-          </div>
-        </li>
-      </ul>
-    </div>
-
-    <!-- Journal des tirages (US-094, R18) : graine, réglages et résultat de chacun, annulés compris -->
+    <!-- Journal des tirages (US-094) : graine, réglages et résultat de chacun, annulés compris -->
     <div v-if="draws.length" class="space-y-2">
       <p class="text-xs font-semibold text-gray-600">Tirages</p>
       <div v-for="entry in draws" :key="entry.id" class="space-y-1 rounded border border-gray-100 p-2 text-xs text-gray-600">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <span>
-            Le {{ formatLongDateTime(entry.createdAt) }}<span v-if="entry.createdBy"> par {{ entry.createdBy.name }}</span>
+            <span class="font-medium">{{ entry.session?.name || 'Ancienne période' }}</span>,
+            le {{ formatLongDateTime(entry.createdAt) }}<span v-if="entry.createdBy"> par {{ entry.createdBy.name }}</span>
             · graine <code>{{ entry.seed }}</code>
             <UBadge v-if="entry.cancelledAt" class="ml-1" size="sm" color="neutral" variant="outline">
               Annulé le {{ formatLongDateTime(entry.cancelledAt) }}<span v-if="entry.cancelledBy">&nbsp;par {{ entry.cancelledBy.name }}</span>
             </UBadge>
           </span>
-          <UButton v-if="!entry.cancelledAt" size="xs" color="warning" variant="soft" :loading="cancelling" @click="cancelDraw(entry)">
+          <UButton v-if="!entry.cancelledAt && entry.sessionId" size="xs" color="warning" variant="soft" :loading="cancelling" @click="cancelDraw(entry)">
             Annuler ce tirage
           </UButton>
         </div>
         <p>
-          {{ entry.settings.weightNotDrawnBefore ? 'Chances doublées pour les non retenus avant' : 'Sans priorité' }} ·
+          {{ entry.settings.weightNotDrawnBefore ? 'Chances doublées pour les personnes restées sans place' : 'Sans priorité' }} ·
           {{ entry.settings.weightBalance ? `équilibre selon « ${entry.settings.balanceAttribute} »` : 'sans équilibre' }} ·
           liste d’attente de {{ entry.settings.waitlistSize }}
           <span v-if="entry.settings.excludedReplayers?.length"> · {{ entry.settings.excludedReplayers.length }} rejoueur{{ entry.settings.excludedReplayers.length > 1 ? 's' : '' }} exclu{{ entry.settings.excludedReplayers.length > 1 ? 's' : '' }}</span>
         </p>
         <p v-for="result in entry.result.sessions" :key="result.sessionId">
-          <span class="font-medium">{{ sessionName(result.sessionId) }}</span> :
           retenues {{ names(result.retained) || 'aucune' }} ;
           en attente {{ names(result.waitlisted) || 'aucune' }}
           <span class="text-gray-400">(ordre : {{ names(result.order.map((item) => item.registrationId)) || '—' }})</span>
         </p>
-        <p v-if="entry.result.rejected.length">Non retenues : {{ names(entry.result.rejected) }}</p>
+        <p v-if="entry.result.rejected.length">Restées pré-inscrites : {{ names(entry.result.rejected) }}</p>
       </div>
     </div>
 
-    <div v-if="withdrawn.length" class="space-y-1">
-      <p class="text-xs font-semibold text-gray-600">Désistées : {{ withdrawn.length }}</p>
+    <div v-if="left.length" class="space-y-1">
+      <p class="text-xs font-semibold text-gray-600">Sorties du vivier : {{ left.length }}</p>
       <ul class="text-sm text-gray-600">
-        <li v-for="registration in withdrawn" :key="registration.id">{{ registration.participant.name }}</li>
+        <li v-for="registration in left" :key="registration.id">{{ registration.participant.name }}</li>
       </ul>
     </div>
 
-    <UModal v-model:open="showSeats" :title="seatsTarget ? `Places de ${seatsTarget.name}` : 'Places'">
+    <!-- Sélection d'une session (R22) -->
+    <UModal v-model:open="showSettings" :title="settingsTarget ? `Sélection de ${settingsTarget.name}` : 'Sélection'">
       <template #body>
-        <form class="space-y-4" @submit.prevent="saveSeats">
-          <UFormField label="Nombre de places" description="Vide : le nombre de personnages PJ du jeu." :error="seatsError || undefined">
-            <UInput v-model="seatsValue" type="number" min="0" max="1000" />
+        <form class="space-y-4" @submit.prevent="saveSettings">
+          <UFormField label="Mode de sélection">
+            <USelect v-model="settings.selectionMode" :items="SELECTION_MODE_ITEMS" value-key="value" class="w-full" />
           </UFormField>
+          <UFormField
+            v-if="settings.selectionMode === REGISTRATION_SELECTION_MODES.mixed"
+            label="Places choisies par organisatrice"
+            description="Avant le tirage."
+          >
+            <UInput v-model.number="settings.organizerPicks" type="number" min="0" max="1000" class="w-full sm:w-40" />
+          </UFormField>
+          <template v-if="settings.selectionMode !== REGISTRATION_SELECTION_MODES.chosen">
+            <AppCheckboxRow
+              v-model="settings.weightNotDrawnBefore"
+              label="Priorité aux personnes restées sans place"
+              description="Chances doublées pour qui est resté sans place lors d’un tirage d’une session plus ancienne du jeu."
+            />
+            <AppCheckboxRow
+              v-model="settings.weightBalance"
+              label="Équilibre selon l’attribut des personnages"
+              description="Places réservées par valeur (par exemple le genre du personnage), au prorata des PJ, selon la question d’équilibre du formulaire."
+            />
+            <UFormField label="Liste d’attente après le tirage" description="Les personnes au-delà restent pré-inscrites, sans message.">
+              <UInput v-model.number="settings.waitlistSize" type="number" min="0" max="1000" class="w-full sm:w-40" />
+            </UFormField>
+          </template>
+          <UAlert v-if="settingsError" color="error" variant="soft" :description="settingsError" />
           <div class="flex justify-end gap-2">
-            <UButton color="neutral" variant="soft" @click="showSeats = false">Annuler</UButton>
-            <UButton type="submit" color="primary" :loading="savingSeats">Enregistrer</UButton>
+            <UButton color="neutral" variant="soft" @click="showSettings = false">Annuler</UButton>
+            <UButton type="submit" color="primary" :loading="savingSettings">Enregistrer</UButton>
           </div>
         </form>
       </template>
@@ -228,8 +299,17 @@
 
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
-import { REGISTRATION_PERIOD_SCOPES, REGISTRATION_REPLAY_POLICIES, REGISTRATION_SELECTION_MODES, REGISTRATION_STATUSES } from '~/utils/domain'
-import { canConfirmPlace, isAnnouncementPending, isBackInPool } from '~/utils/registrations'
+import {
+  REGISTRATION_REPLAY_POLICIES,
+  REGISTRATION_SEAT_STATUSES,
+  REGISTRATION_SELECTION_MODE_OPTIONS,
+  REGISTRATION_SELECTION_MODES,
+  REGISTRATION_SESSION_STATUSES as LINE,
+  REGISTRATION_SESSION_STATUS_META,
+  REGISTRATION_STATUSES,
+  metaOf
+} from '~/utils/domain'
+import { canConfirmPlace, isAnnouncementPending } from '~/utils/registrations'
 import { formatLongDate, formatLongDateTime } from '~/utils/dates'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
@@ -244,8 +324,12 @@ import {
 type Overview = ApiResponse<'/api/registration-periods/:id/selection'>
 type SelectionSession = Overview['sessions'][number]
 type Draw = ApiResponse<'/api/registration-periods/:id/draws'>[number]
-type Decision = 'retain' | 'waitlist' | 'unwaitlist' | 'reject' | 'reset'
+type Decision = 'retain' | 'waitlist' | 'unwaitlist' | 'reset'
 type MessageColor = 'success' | 'warning' | 'error'
+// Un champ nombre vidé rend une chaîne vide : la validation le refuse
+type Count = number | ''
+
+const SELECTION_MODE_ITEMS: Array<{ value: string, label: string }> = [...REGISTRATION_SELECTION_MODE_OPTIONS]
 
 const props = defineProps<{ period: RegistrationPeriod }>()
 
@@ -259,7 +343,7 @@ const messageColor = ref<MessageColor>('success')
 const announcing = ref(false)
 
 const draws = ref<Draw[]>([])
-const drawing = ref(false)
+const drawing = ref<string | null>(null)
 const cancelling = ref(false)
 
 function showMessage(text: string, color: MessageColor) {
@@ -272,7 +356,7 @@ async function loadOverview() {
   try {
     const [selection, journal] = await Promise.all([
       useApiFetch(`/api/registration-periods/${props.period.id}/selection`, { offlineCache: true }),
-      permanent.value ? Promise.resolve([]) : useApiFetch(`/api/registration-periods/${props.period.id}/draws`, { offlineCache: true })
+      useApiFetch(`/api/registration-periods/${props.period.id}/draws`, { offlineCache: true })
     ])
     overview.value = selection
     draws.value = journal
@@ -280,63 +364,58 @@ async function loadOverview() {
     showMessage(apiErrorMessage(err, 'Impossible de charger la sélection'), 'error')
   }
 }
-// Chargée après le montage : une période créée plus tard monte ce bloc sans attente asynchrone
+// Chargée après le montage : un vivier créé plus tard monte ce bloc sans attente asynchrone
 onMounted(loadOverview)
 watch(registrations, loadOverview)
 
-const permanent = computed(() => props.period.scope === REGISTRATION_PERIOD_SCOPES.game)
-// Tirage : périodes ordinaires en mode hasard ou mixte (US-092) ; le journal reste lisible si le mode change ensuite
-const drawable = computed(() => !permanent.value && props.period.selectionMode !== REGISTRATION_SELECTION_MODES.chosen)
-const activeDraw = computed(() => draws.value.find((entry) => !entry.cancelledAt) || null)
-const registrationNames = computed(() => new Map(registrations.value.map((registration) => [registration.id, registration.participant.name])))
-const names = (ids: string[]) => ids.map((id) => registrationNames.value.get(id) || 'inscription effacée').join(', ')
-const sessionName = (id: string) => props.period.sessions.find((link) => link.sessionId === id)?.session.name || 'session retirée'
 const sessions = computed(() => overview.value?.sessions ?? [])
 const replayers = computed(() => new Set(overview.value?.replayerParticipantIds ?? []))
-const sessionIds = computed(() => new Set(sessions.value.map((session) => session.id)))
 const isReplayer = (registration: PeriodRegistration) => replayers.value.has(registration.participant.id)
-const pendingCount = computed(() => registrations.value.filter(isAnnouncementPending).length)
-const activeCount = computed(() => registrations.value.filter((registration) => registration.status !== REGISTRATION_STATUSES.withdrawn).length)
+const registrationNames = computed(() => new Map(registrations.value.map((registration) => [registration.id, registration.participant.name])))
+const names = (ids: string[]) => ids.map((id) => registrationNames.value.get(id) || 'inscription effacée').join(', ')
+const registrationById = (id: string) => registrations.value.find((registration) => registration.id === id)!
 
-// Une place retenue ou confirmée dans une session passée ou annulée remet la personne dans le vivier (ADR-0047)
-const backInPool = (registration: PeriodRegistration) => permanent.value && isBackInPool(registration)
-// En attente seulement dans des sessions passées : de nouveau à trier
-const waitingNowhere = (registration: PeriodRegistration) => registration.status === REGISTRATION_STATUSES.waitlisted
-  && !registration.waitlistEntries.some((entry) => sessionIds.value.has(entry.sessionId))
-const excludedFromPool = (registration: PeriodRegistration) => permanent.value && overview.value?.replayPolicy === REGISTRATION_REPLAY_POLICIES.excluded && isReplayer(registration)
+// Les personnes du vivier, et celles qui en sont sorties ; une invitation sans réponse n'y est pas encore (R4)
+const pool = computed(() => registrations.value.filter((registration) => registration.status === REGISTRATION_STATUSES.received))
+const left = computed(() => registrations.value.filter((registration) => registration.status === REGISTRATION_STATUSES.withdrawn))
+const pendingCount = computed(() => pool.value.filter((registration) => registration.sessionLines.some(isAnnouncementPending)).length)
 
-// Personnes retenues ou confirmées, et liste d'attente dans son ordre, par session : calculées une fois par relecture
-const PLACED_STATUSES: string[] = [REGISTRATION_STATUSES.retained, REGISTRATION_STATUSES.confirmed]
-const placedBySession = computed(() => {
-  const placed = new Map<string, PeriodRegistration[]>()
-  for (const registration of registrations.value) {
-    if (!registration.sessionId || !PLACED_STATUSES.includes(registration.status)) continue
-    placed.set(registration.sessionId, [...placed.get(registration.sessionId) ?? [], registration])
-  }
-  return placed
+const lineOf = (registration: PeriodRegistration, session: SelectionSession) => registration.sessionLines.find((line) => line.sessionId === session.id)
+const statusIn = (session: SelectionSession, statuses: string[]) => pool.value.filter((registration) => statuses.includes(lineOf(registration, session)?.status ?? ''))
+const placed = (session: SelectionSession) => statusIn(session, REGISTRATION_SEAT_STATUSES)
+const preregistered = (session: SelectionSession) => statusIn(session, [LINE.preregistered])
+const waiting = (session: SelectionSession) => statusIn(session, [LINE.waitlisted])
+  .sort((left, right) => (lineOf(left, session)?.waitlistPosition ?? 0) - (lineOf(right, session)?.waitlistPosition ?? 0))
+// Autres personnes du vivier : sans réponse, pas disponibles, ou annulées pour cette session
+const others = (session: SelectionSession) => pool.value.filter((registration) => {
+  const status = lineOf(registration, session)?.status
+  return !status || status === LINE.unavailable || status === LINE.cancelled
 })
-const placed = (session: SelectionSession) => placedBySession.value.get(session.id) ?? []
 
-const waitingBySession = computed(() => {
-  const entries = new Map<string, Array<{ registration: PeriodRegistration, position: number }>>()
-  for (const registration of registrations.value) {
-    if (registration.status !== REGISTRATION_STATUSES.waitlisted) continue
-    for (const entry of registration.waitlistEntries) {
-      entries.set(entry.sessionId, [...entries.get(entry.sessionId) ?? [], { registration, position: entry.position }])
-    }
-  }
-  return new Map([...entries].map(([sessionId, list]) => [
-    sessionId,
-    list.sort((left, right) => left.position - right.position).map(({ registration }) => registration)
-  ]))
-})
-const waiting = (session: SelectionSession) => waitingBySession.value.get(session.id) ?? []
+function otherItems(session: SelectionSession) {
+  const excluded = overview.value?.replayPolicy === REGISTRATION_REPLAY_POLICIES.excluded
+  return others(session).map((registration) => {
+    const status = lineOf(registration, session)?.status
+    const notes = [
+      status === LINE.unavailable ? 'a répondu « pas disponible »' : '',
+      status === LINE.cancelled ? 'a annulé' : '',
+      excluded && isReplayer(registration) ? 'rejoueur exclu' : ''
+    ].filter(Boolean)
+    return { label: notes.length ? `${registration.participant.name} (${notes.join(', ')})` : registration.participant.name, value: registration.id }
+  })
+}
 
-const sortable = computed(() => registrations.value.filter((registration) => registration.status === REGISTRATION_STATUSES.received || backInPool(registration) || waitingNowhere(registration)))
-const toSort = computed(() => sortable.value.filter((registration) => !excludedFromPool(registration)))
-const outOfPool = computed(() => sortable.value.filter(excludedFromPool))
-const rejected = computed(() => registrations.value.filter((registration) => registration.status === REGISTRATION_STATUSES.rejected))
-const withdrawn = computed(() => registrations.value.filter((registration) => registration.status === REGISTRATION_STATUSES.withdrawn))
+// Sa situation, session par session
+function lineSummary(registration: PeriodRegistration) {
+  return registration.sessionLines
+    .map((line) => {
+      const session = sessions.value.find((candidate) => candidate.id === line.sessionId)
+      const label = metaOf(REGISTRATION_SESSION_STATUS_META, line.status)?.label
+      return session && label ? `${session.name} : ${label.toLowerCase()}` : ''
+    })
+    .filter(Boolean)
+    .join(' · ')
+}
 
 // Affinités (US-095, US-096) : alertes par session, personnes souhaitées, lignes à rattacher
 const affinities = computed(() => overview.value?.affinities ?? { alerts: [], wishes: {}, toLink: {} })
@@ -355,46 +434,17 @@ function wishLabels(registration: PeriodRegistration, session: SelectionSession 
   })
 }
 
-// Une période à plusieurs sessions demande les disponibilités (R10) ; l'inscription permanente, non
-const asksAvailability = computed(() => !permanent.value && props.period.sessions.length > 1)
-function available(registration: PeriodRegistration, session: SelectionSession) {
-  return !asksAvailability.value || registration.availabilities.some((availability) => availability.sessionId === session.id)
-}
-
-function availabilityLabel(registration: PeriodRegistration) {
-  if (!asksAvailability.value) return ''
-  return sessions.value.filter((session) => available(registration, session)).map((session) => session.name).join(', ')
-}
-
 // Mode hasard : on ne retient à la main qu'après un tirage (US-092)
-const manualRetainAllowed = computed(() => !(props.period.selectionMode === REGISTRATION_SELECTION_MODES.random && !activeDraw.value))
+const manualRetainAllowed = (session: SelectionSession) => !(session.selectionMode === REGISTRATION_SELECTION_MODES.random && !session.activeDrawId)
 
-function decisionItems(registration: PeriodRegistration): DropdownMenuItem[][] {
-  const targets = sessions.value.filter((session) => available(registration, session))
-  const waitingIn = new Set(registration.waitlistEntries.map((entry) => entry.sessionId))
-  const retainHere = (session: SelectionSession) => registration.status === REGISTRATION_STATUSES.retained && registration.sessionId === session.id
-  const groups: DropdownMenuItem[][] = [
-    targets.filter((session) => manualRetainAllowed.value && !retainHere(session)).map((session) => ({
-      label: `Retenir pour ${session.name}`,
-      icon: 'i-heroicons-check',
-      disabled: session.taken >= session.seats,
-      onSelect: () => decide(registration, 'retain', session.id)
-    })),
-    targets.map((session) => waitingIn.has(session.id)
-      ? { label: `Sortir de la liste d’attente de ${session.name}`, icon: 'i-heroicons-minus', onSelect: () => decide(registration, 'unwaitlist', session.id) }
-      : { label: `Liste d’attente de ${session.name}`, icon: 'i-heroicons-queue-list', onSelect: () => decide(registration, 'waitlist', session.id) })
-  ]
-  const others: DropdownMenuItem[] = []
-  if (!permanent.value && registration.status !== REGISTRATION_STATUSES.rejected) {
-    others.push({ label: 'Non retenue', icon: 'i-heroicons-x-mark', onSelect: () => decide(registration, 'reject') })
-  }
-  if (registration.status !== REGISTRATION_STATUSES.received && !backInPool(registration)) {
-    others.push({ label: permanent.value ? 'Remettre dans le vivier' : 'Remettre à trier', icon: 'i-heroicons-arrow-uturn-left', onSelect: () => decide(registration, 'reset') })
-  }
-  return [...groups, others].filter((group) => group.length)
+function placedItems(registration: PeriodRegistration, session: SelectionSession): DropdownMenuItem[][] {
+  return [[
+    { label: 'Liste d’attente', icon: 'i-heroicons-queue-list', onSelect: () => decide(registration, 'waitlist', session.id) },
+    { label: 'Retirer du cast', icon: 'i-heroicons-arrow-uturn-left', onSelect: () => decide(registration, 'reset', session.id) }
+  ]]
 }
 
-// Une écriture de la sélection, puis la relecture des périodes, réussite ou échec
+// Une écriture de la sélection, puis la relecture du vivier, réussite ou échec
 async function selectionWrite(send: () => Promise<unknown>, failure: string, success?: string) {
   message.value = ''
   try {
@@ -406,7 +456,7 @@ async function selectionWrite(send: () => Promise<unknown>, failure: string, suc
   await refresh()
 }
 
-function decide(registration: PeriodRegistration, action: Decision, sessionId: string | null = null) {
+function decide(registration: PeriodRegistration, action: Decision, sessionId: string) {
   return selectionWrite(() => useApiAction(`/api/registrations/${registration.id}/selection`, { method: 'POST', body: { action, sessionId } }), 'Décision impossible')
 }
 
@@ -417,18 +467,22 @@ function move(session: SelectionSession, index: number, offset: number) {
   return selectionWrite(() => useApiAction(`/api/registration-periods/${props.period.id}/waitlist`, { method: 'PUT', body: { sessionId: session.id, registrationIds: ids } }), 'Réordonnancement impossible')
 }
 
-async function draw() {
-  if (!confirm('Tirer au sort les inscriptions à trier ? Le tirage range les inscriptions sans prévenir personne : vous pourrez corriger, puis annoncer.')) return
-  drawing.value = true
+function setOpen(session: SelectionSession, open: boolean) {
+  return selectionWrite(() => useApiAction(`/api/registration-periods/${props.period.id}/sessions/${session.id}`, { method: 'PUT', body: { open } }), 'Modification impossible')
+}
+
+async function draw(session: SelectionSession) {
+  if (!confirm(`Tirer au sort les pré-inscrites de « ${session.name} » ? Le tirage range les personnes sans prévenir personne : vous pourrez corriger, puis annoncer.`)) return
+  drawing.value = session.id
   try {
-    await selectionWrite(() => useApiAction(`/api/registration-periods/${props.period.id}/draws`, { method: 'POST' }), 'Tirage impossible', 'Tirage effectué : vérifiez le résultat, puis annoncez-le.')
+    await selectionWrite(() => useApiAction(`/api/registration-periods/${props.period.id}/draws`, { method: 'POST', body: { sessionId: session.id } }), 'Tirage impossible', 'Tirage effectué : vérifiez le résultat, puis annoncez-le.')
   } finally {
-    drawing.value = false
+    drawing.value = null
   }
 }
 
 async function cancelDraw(entry: Draw) {
-  if (!confirm('Annuler ce tirage ? Les inscriptions dont la décision vient encore de lui repartent à trier ; il reste dans le journal.')) return
+  if (!confirm('Annuler ce tirage ? Les personnes dont la décision vient encore de lui repartent pré-inscrites ; il reste dans le journal.')) return
   cancelling.value = true
   try {
     await selectionWrite(() => useApiAction(`/api/registration-draws/${entry.id}/cancel`, { method: 'POST' }), 'Annulation impossible')
@@ -456,36 +510,55 @@ async function announce() {
   await refresh()
 }
 
-// Places d'une session de l'inscription permanente (R30)
-const showSeats = ref(false)
-const seatsTarget = ref<SelectionSession | null>(null)
-const seatsValue = ref('')
-const seatsError = ref('')
-const savingSeats = ref(false)
+// Sélection d'une session (R22)
+const showSettings = ref(false)
+const settingsTarget = ref<SelectionSession | null>(null)
+const settingsError = ref('')
+const savingSettings = ref(false)
+const settings = ref({
+  selectionMode: REGISTRATION_SELECTION_MODES.chosen as string,
+  organizerPicks: 0 as Count,
+  weightNotDrawnBefore: false,
+  weightBalance: false,
+  waitlistSize: 5 as Count
+})
 
-function editSeats(session: SelectionSession) {
-  seatsTarget.value = session
-  seatsValue.value = session.defaultSeats ? '' : String(session.seats)
-  seatsError.value = ''
-  showSeats.value = true
+function editSettings(session: SelectionSession) {
+  settingsTarget.value = session
+  settingsError.value = ''
+  settings.value = {
+    selectionMode: session.selectionMode,
+    organizerPicks: session.organizerPicks ?? 0,
+    weightNotDrawnBefore: session.weightNotDrawnBefore,
+    weightBalance: session.weightBalance,
+    waitlistSize: session.waitlistSize
+  }
+  showSettings.value = true
 }
 
-async function saveSeats() {
-  if (!seatsTarget.value) return
-  savingSeats.value = true
-  seatsError.value = ''
+const isCount = (value: Count) => value !== '' && Number.isInteger(value) && value >= 0 && value <= 1000
+
+async function saveSettings() {
+  if (!settingsTarget.value) return
+  const { selectionMode, organizerPicks, waitlistSize, ...weights } = settings.value
+  const mixed = selectionMode === REGISTRATION_SELECTION_MODES.mixed
+  if ((mixed && !isCount(organizerPicks)) || !isCount(waitlistSize)) {
+    settingsError.value = 'Indiquez un nombre entre 0 et 1000.'
+    return
+  }
+  savingSettings.value = true
+  settingsError.value = ''
   try {
-    const raw = String(seatsValue.value ?? '').trim()
-    await useApiAction(`/api/registration-periods/${props.period.id}/pool-seats`, {
+    await useApiAction(`/api/registration-periods/${props.period.id}/sessions/${settingsTarget.value.id}`, {
       method: 'PUT',
-      body: { sessionId: seatsTarget.value.id, seats: raw === '' ? null : Number(raw) }
+      body: { selectionMode, organizerPicks: mixed ? Number(organizerPicks) : null, waitlistSize: Number(waitlistSize), ...weights }
     })
-    showSeats.value = false
+    showSettings.value = false
     await loadOverview()
   } catch (err) {
-    seatsError.value = apiErrorMessage(err, 'Enregistrement impossible')
+    settingsError.value = apiErrorMessage(err, 'Enregistrement impossible')
   } finally {
-    savingSeats.value = false
+    savingSettings.value = false
   }
 }
 </script>

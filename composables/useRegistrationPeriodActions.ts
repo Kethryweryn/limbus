@@ -1,16 +1,14 @@
 import { computed, inject, provide, ref, type InjectionKey } from 'vue'
 import { fetchByUrl, useApiAction, type ApiResponse } from '~/composables/useApiFetch'
 import { apiErrorMessage, apiFieldErrors } from '~/utils/apiErrors'
-import { REGISTRATION_PERIOD_STATES, REGISTRATION_STATUSES } from '~/utils/domain'
 import { getCachedResponse, saveCachedResponse } from '~/utils/storage'
 
-// Bloc d'un jeu sur la page Inscriptions (US-117) : les périodes, leurs inscriptions et les actions partagées par ses
-// sections (période, sélection, invitations, prolongation)
+// Bloc d'un jeu sur la page Inscriptions (US-117) : le vivier, ses personnes et les actions partagées par ses sections
+// (vivier, sélection, invitations, prolongation)
 
-/** Période lue avec ses inscriptions. */
+/** Vivier lu avec ses personnes. */
 export type RegistrationPeriod = ApiResponse<'/api/registration-periods'>[number]
 export type PeriodRegistration = RegistrationPeriod['registrations'][number]
-export type PeriodSessionLink = RegistrationPeriod['sessions'][number]
 export type InvitationResult = ApiResponse<'/api/registration-periods/:id/invitations', 'post'>
 
 type InfoColor = 'success' | 'warning'
@@ -55,7 +53,7 @@ function createActions(gameId: () => string) {
       // Un appareil sans stockage (navigation privée…) n'empêche pas d'afficher les périodes
       await keepPeriodsOffline(gameId(), periods.value).catch((error) => console.error('[storage] périodes d’inscription', error))
     } catch (err) {
-      errorMessage.value = apiErrorMessage(err, 'Impossible de charger les périodes d’inscription')
+      errorMessage.value = apiErrorMessage(err, 'Impossible de charger le vivier')
     }
   }
 
@@ -84,41 +82,38 @@ function createActions(gameId: () => string) {
   }
 
   // Actions d'une organisatrice sur une inscription (US-005)
-  function registrationAction(registration: PeriodRegistration, action: RegistrationAction, success: string, failure = 'Action impossible') {
-    return request(() => useApiAction<unknown, string, 'POST'>(`/api/registrations/${registration.id}/${action}`, { method: 'POST' }), success, failure)
+  // sessionId : l'action vise la place de la personne pour cette session ; sans elle, son invitation ou le vivier
+  function registrationAction(registration: PeriodRegistration, action: RegistrationAction, sessionId: string | undefined, success: string, failure = 'Action impossible') {
+    return request(() => useApiAction<unknown, string, 'POST'>(`/api/registrations/${registration.id}/${action}`, { method: 'POST', body: { sessionId: sessionId ?? null } }), success, failure)
   }
 
-  // Une place retenue se relance, se prolonge et se libère comme une invitation (US-089)
-  const isRetained = (registration: PeriodRegistration) => registration.status === REGISTRATION_STATUSES.retained
-
-  async function remind(registration: PeriodRegistration) {
+  async function remind(registration: PeriodRegistration, sessionId?: string) {
     const name = registration.participant.name
-    if (!confirm(`Relancer ${name} ? Un email de rappel l’invite à reprendre ${isRetained(registration) ? 'l’email qui annonce sa place' : 'son email d’invitation'}, dont le lien reste valable.`)) return
-    await registrationAction(registration, 'remind', `Rappel envoyé à ${name}.`)
+    if (!confirm(`Relancer ${name} ? Un email de rappel l’invite à reprendre ${sessionId ? 'l’email qui annonce sa place' : 'son email d’invitation'}, dont le lien reste valable.`)) return
+    await registrationAction(registration, 'remind', sessionId, `Rappel envoyé à ${name}.`)
   }
 
-  async function release(registration: PeriodRegistration) {
+  async function release(registration: PeriodRegistration, sessionId?: string) {
     const name = registration.participant.name
-    if (!confirm(isRetained(registration)
-      ? `Libérer la place de ${name} ? Son lien indiquera que, sans confirmation dans le délai, sa place a été réattribuée. La liste d’attente vous proposera la personne suivante.`
-      : `Libérer la place de ${name} ? Son lien indiquera que, sans réponse dans le délai, sa place a été réattribuée. Vous pourrez la réinviter.`)) return
-    await registrationAction(registration, 'release', `Place de ${name} libérée.`)
+    if (!confirm(sessionId
+      ? `Libérer la place de ${name} ? Son lien indiquera que sa présence à cette session est annulée. La liste d’attente vous proposera la personne suivante.`
+      : `Libérer l’invitation de ${name} ? Son lien ne permettra plus de répondre. Vous pourrez la réinviter.`)) return
+    await registrationAction(registration, 'release', sessionId, sessionId ? `Place de ${name} libérée.` : `Invitation de ${name} libérée.`)
   }
 
-  async function withdraw(registration: PeriodRegistration) {
+  // Avec une session : la personne en est retirée et reste dans le vivier (R19) ; sans session : elle sort du vivier (R5)
+  async function withdraw(registration: PeriodRegistration, sessionId?: string) {
     const name = registration.participant.name
-    // Inscription pas encore confirmée : pas encore de session ni de personnage
-    const received = registration.status !== REGISTRATION_STATUSES.confirmed
-    if (!confirm(received
-      ? `Retirer l’inscription de ${name} ? L’équipe sera prévenue par email.`
-      : `Retirer ${name} de la session ? Ses personnages (PJ et PNJ) seront libérés, les trombinoscopes régénérés et l’équipe prévenue par email.`)) return
-    await registrationAction(registration, 'withdraw', received ? `Inscription de ${name} retirée.` : `${name} a été retirée de la session.`)
+    if (!confirm(sessionId
+      ? `Retirer ${name} de la session ? Ses personnages (PJ et PNJ) seront libérés, les trombinoscopes régénérés et l’équipe prévenue par email. Cette personne reste dans le vivier.`
+      : `Retirer ${name} du vivier ? Ses présences aux sessions à venir seront annulées, son lien ne marchera plus et l’équipe sera prévenue par email.`)) return
+    await registrationAction(registration, 'withdraw', sessionId, sessionId ? `${name} a été retirée de la session.` : `${name} a été retirée du vivier.`)
   }
 
-  async function resend(registration: PeriodRegistration) {
+  async function resend(registration: PeriodRegistration, sessionId?: string) {
     const name = registration.participant.name
     if (!confirm(`Envoyer un nouveau lien à ${name} ? Le lien envoyé précédemment ne fonctionnera plus.`)) return
-    await registrationAction(registration, 'resend', `Nouveau lien envoyé à ${name}.`, 'Renvoi impossible')
+    await registrationAction(registration, 'resend', sessionId, `Nouveau lien envoyé à ${name}.`, 'Renvoi impossible')
   }
 
   async function cancel(registration: PeriodRegistration) {
@@ -138,14 +133,18 @@ function createActions(gameId: () => string) {
   // Prolongation d'une échéance (R20)
   const showExtension = ref(false)
   const extensionTarget = ref<PeriodRegistration | null>(null)
+  const extensionSessionId = ref<string | undefined>(undefined)
   const extensionDate = ref('')
   const extensionError = ref('')
   const extending = ref(false)
 
   // Proposition : une semaine après l'échéance actuelle, ou après aujourd'hui si elle est passée
-  function askExtension(registration: PeriodRegistration) {
+  function askExtension(registration: PeriodRegistration, sessionId?: string) {
     extensionTarget.value = registration
-    const current = registration.responseDueAt ? new Date(registration.responseDueAt) : null
+    extensionSessionId.value = sessionId
+    const line = registration.sessionLines.find((candidate) => candidate.sessionId === sessionId)
+    const due = sessionId ? line?.responseDueAt : registration.responseDueAt
+    const current = due ? new Date(due) : null
     const from = current && current.getTime() > Date.now() ? current : new Date()
     extensionDate.value = isoDate(new Date(from.getTime() + 7 * DAY_MS))
     extensionError.value = ''
@@ -160,7 +159,7 @@ function createActions(gameId: () => string) {
     try {
       // Fin du jour choisi, en heure locale
       const responseDueAt = new Date(`${extensionDate.value}T23:59:59`).toISOString()
-      await useApiAction(`/api/registrations/${registration.id}/extend`, { method: 'POST', body: { responseDueAt } })
+      await useApiAction(`/api/registrations/${registration.id}/extend`, { method: 'POST', body: { responseDueAt, sessionId: extensionSessionId.value ?? null } })
       showExtension.value = false
       await refresh()
       inform(`Échéance de ${registration.participant.name} prolongée.`)
@@ -171,18 +170,12 @@ function createActions(gameId: () => string) {
     }
   }
 
-  // Invitations d'une période sur invitation (US-003) : la période et la session sont relues avec les périodes, pour que
-  // la modale garde des décomptes à jour
+  // Invitations à rejoindre le vivier (R4) : le vivier est relu avec les autres, pour que la modale reste à jour
   const showInviteForm = ref(false)
-  const inviteIds = ref<{ periodId: string, sessionId: string } | null>(null)
-  const inviteTarget = computed(() => {
-    const ids = inviteIds.value
-    const period = ids ? periods.value.find((entry) => entry.id === ids.periodId) : undefined
-    const link = period?.sessions.find((entry) => entry.sessionId === ids?.sessionId)
-    return period && link ? { period, link } : null
-  })
-  function invite(period: RegistrationPeriod, link: PeriodSessionLink) {
-    inviteIds.value = { periodId: period.id, sessionId: link.sessionId }
+  const invitePeriodId = ref<string | null>(null)
+  const inviteTarget = computed(() => periods.value.find((period) => period.id === invitePeriodId.value) ?? null)
+  function invite(period: RegistrationPeriod) {
+    invitePeriodId.value = period.id
     showInviteForm.value = true
   }
 
@@ -195,7 +188,7 @@ function createActions(gameId: () => string) {
     await refresh()
   }
 
-  // Création et modification d'une période (US-002)
+  // Création et réglages du vivier
   const showForm = ref(false)
   const editedPeriod = ref<RegistrationPeriod | null>(null)
   function edit(period: RegistrationPeriod | null) {
@@ -203,34 +196,18 @@ function createActions(gameId: () => string) {
     showForm.value = true
   }
 
-  function savePeriod(period: RegistrationPeriod, changes: { state: string, closesAt?: null }) {
-    const body = {
-      name: period.name,
-      gameId: period.gameId,
-      closesAt: period.closesAt,
-      responseDelayDays: period.responseDelayDays,
-      sessions: period.sessions.map((link) => ({ sessionId: link.sessionId, seats: link.seats })),
-      updatedAt: period.updatedAt,
-      ...changes
-    }
+  // Ouvrir et fermer à la main (R2)
+  function setState(period: RegistrationPeriod, state: string) {
+    const body = { gameId: period.gameId, state, updatedAt: period.updatedAt }
     return periodWrite(() => useApiAction(`/api/registration-periods/${period.id}`, { method: 'PUT', body }), 'Modification impossible')
   }
 
-  const setState = (period: RegistrationPeriod, state: string) => savePeriod(period, { state })
-
-  // Une date de clôture passée garderait la période clôturée (ADR-0020) : la rouvrir retire cette date
-  async function reopen(period: RegistrationPeriod) {
-    const closedByDate = Boolean(period.closesAt) && new Date(period.closesAt!).getTime() <= Date.now()
-    if (closedByDate && !confirm('La date de clôture de cette période est passée. La rouvrir retire cette date. Continuer ?')) return
-    await savePeriod(period, { state: REGISTRATION_PERIOD_STATES.open, ...(closedByDate ? { closesAt: null } : {}) })
-  }
-
   async function remove(period: RegistrationPeriod) {
-    if (!confirm(`Supprimer la période d’inscription « ${period.name} » ?`)) return
+    if (!confirm('Supprimer le vivier de ce jeu ?')) return
     await periodWrite(() => useApiAction(`/api/registration-periods/${period.id}`, { method: 'DELETE' }), 'Suppression impossible')
   }
 
-  // Lien de diffusion d'une période en mode formulaire (R32), calculé par le serveur (absoluteAppUrl)
+  // Lien de diffusion du vivier (R32), calculé par le serveur (absoluteAppUrl)
   async function copyDiffusionUrl(period: RegistrationPeriod) {
     try {
       await navigator.clipboard.writeText(period.diffusionUrl)
@@ -246,7 +223,7 @@ function createActions(gameId: () => string) {
     showDetailModal, detailId, showDetail,
     showExtension, extensionTarget, extensionDate, extensionError, extending, askExtension, extend,
     showInviteForm, inviteTarget, invite, invited,
-    showForm, editedPeriod, edit, setState, reopen, remove, copyDiffusionUrl
+    showForm, editedPeriod, edit, setState, remove, copyDiffusionUrl
   }
 }
 

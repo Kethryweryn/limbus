@@ -1,8 +1,10 @@
 import { randomBytes } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
-import { CHARACTER_TYPES, REGISTRATION_PERIOD_SCOPES, REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
-import { effectivePeriodState } from '~/utils/registrationPeriods'
+import { CHARACTER_TYPES, REGISTRATION_SEAT_STATUSES } from '~/utils/domain'
+import { openableSessionWhere } from '~/utils/registrationPeriods'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
+
+// Le vivier d'un jeu (SPEC-018, ADR-0069). Le code garde le nom des tables, « period » ; l'interface dit « vivier »
 
 export const registrationPeriodInclude = {
   sessions: {
@@ -13,165 +15,71 @@ export const registrationPeriodInclude = {
   }
 } as const
 
-// Inscriptions telles que la liste des organisatrices les montre, sans les réponses au formulaire
+// Personnes du vivier telles que la liste des organisatrices les montre, sans les réponses au formulaire
 // (détail : GET /api/registrations/:id)
 export const registrationListSelect = {
   id: true,
-  sessionId: true,
   status: true,
   source: true,
   email: true,
+  invitedSessionId: true,
   invitationSentAt: true,
   lastRemindedAt: true,
   responseDueAt: true,
   respondedAt: true,
-  confirmedAt: true,
   withdrawnAt: true,
   createdAt: true,
-  // Sélection (ADR-0047) : décision annoncée, files d'attente, session pour le retour au vivier
-  announcedStatus: true,
-  announcedSessionId: true,
-  announcedAt: true,
-  waitlistEntries: { select: { sessionId: true, position: true } },
-  session: { select: { status: true } },
+  // Statut par session (R17)
+  sessionLines: {
+    select: {
+      sessionId: true,
+      status: true,
+      answer: true,
+      waitlistPosition: true,
+      responseDueAt: true,
+      lastRemindedAt: true,
+      confirmedAt: true,
+      cancelledAt: true,
+      announcedStatus: true,
+      announcedAt: true
+    }
+  },
   participant: { select: { id: true, name: true, slug: true } },
-  // Sessions où une personne inscrite par le formulaire est disponible (R10)
-  availabilities: { select: { sessionId: true } },
   invitedBy: { select: { name: true } },
   withdrawnBy: { select: { name: true } }
 } as const
 
-// Identifiant court du lien de diffusion (R32) : aléatoire, pour ne pas permettre de deviner les autres périodes
+// Identifiant court du lien de diffusion (R32) : aléatoire, pour ne pas permettre de deviner les autres viviers
 export function createRegistrationPeriodPublicId() {
   return randomBytes(6).toString('base64url')
 }
 
 // diffusionUrl : le lien de diffusion à copier (R32), par absoluteAppUrl, jamais d'après la requête
-export function exposeRegistrationPeriod<T extends { state: string, closesAt: Date | null, publicId: string }>(period: T) {
-  return { ...period, effectiveState: effectivePeriodState(period), diffusionUrl: absoluteAppUrl(`/i/${period.publicId}`) }
+export function exposeRegistrationPeriod<T extends { state: string, publicId: string }>(period: T) {
+  return { ...period, diffusionUrl: absoluteAppUrl(`/i/${period.publicId}`) }
 }
 
+// Le nombre de places d'une session (R8) : jamais stocké, pour l'augmenter on crée un personnage
 export async function countPlayableCharacters(gameId: string) {
   return await prisma.character.count({ where: { gameId, type: CHARACTER_TYPES.pj } })
 }
 
-/**
- * Vérifie les sessions demandées pour une période d'inscription et complète les places :
- * - chaque session appartient au jeu de la période ;
- * - aucune n'est déjà rattachée à une autre période (R1) ;
- * - sans nombre de places, on prend le nombre de personnages PJ du jeu (R5).
- */
-export async function resolveRegistrationPeriodSessions(
-  gameId: string,
-  requested: Array<{ sessionId: string, seats?: number | null }>,
-  periodId?: string
-) {
-  const sessionIds = requested.map((session) => session.sessionId)
-  const sessions = await prisma.session.findMany({
-    where: { id: { in: sessionIds }, gameId },
-    select: {
-      id: true,
-      name: true,
-      status: true,
-      registrationPeriodLink: { select: { periodId: true, period: { select: { name: true } } } }
-    }
-  })
-
-  if (sessions.length !== sessionIds.length) {
-    throw createError({ statusCode: 400, message: 'Session invalide pour ce jeu' })
-  }
-
-  const taken = sessions.filter((session) =>
-    session.registrationPeriodLink && session.registrationPeriodLink.periodId !== periodId
-  )
-  if (taken.length) {
-    const names = taken.map((session) => `« ${session.name} » (période « ${session.registrationPeriodLink!.period.name} »)`)
-    throw createError({
-      statusCode: 409,
-      message: `Une session ne peut appartenir qu’à une seule période d’inscription : ${names.join(', ')}`
-    })
-  }
-
-  // On ne recrute pas pour une session annulée ou terminée ; une session déjà rattachée peut le rester
-  const finished = sessions.filter((session) => {
-    const alreadyInPeriod = Boolean(periodId) && session.registrationPeriodLink?.periodId === periodId
-    return !alreadyInPeriod && ([SESSION_STATUSES.cancelled, SESSION_STATUSES.completed] as string[]).includes(session.status)
-  })
-  if (finished.length) {
-    throw createError({
-      statusCode: 400,
-      message: `Une session annulée ou terminée ne peut pas être ajoutée : ${finished.map((session) => `« ${session.name} »`).join(', ')}`
-    })
-  }
-
-  await assertNoPoolSelectionOnSessions(gameId, sessionIds)
-
-  const defaultSeats = requested.some((session) => session.seats == null)
-    ? await countPlayableCharacters(gameId)
-    : 0
-
-  const resolved = requested.map((session) => ({
-    sessionId: session.sessionId,
-    seats: session.seats ?? defaultSeats
-  }))
-  await assertSeatsCoverRetained(resolved)
-  return resolved
-}
-
-// Places prises dans des sessions (R5, US-087) : les inscriptions retenues ou confirmées par la sélection ;
-// le mode invitation peut dépasser ses places, il n'est qu'averti
+// Places prises dans des sessions (R8) : les personnes retenues ou inscrites
 export function takenSeatsWhere(sessionIds: string[]) {
   return {
     sessionId: { in: sessionIds },
-    source: REGISTRATION_SOURCES.form,
-    status: { in: [REGISTRATION_STATUSES.retained, REGISTRATION_STATUSES.confirmed] }
+    status: { in: REGISTRATION_SEAT_STATUSES }
   }
 }
 
-// Rattacher une session à une période dédiée la retire de l'inscription permanente (R31) : refusé si des
-// personnes du vivier y sont retenues, confirmées ou en attente (US-090)
-async function assertNoPoolSelectionOnSessions(gameId: string, sessionIds: string[]) {
-  const permanent = { gameId, scope: REGISTRATION_PERIOD_SCOPES.game }
-  const [selected, waiting] = await Promise.all([
-    prisma.registration.findMany({
-      where: { period: permanent, sessionId: { in: sessionIds }, status: { in: [REGISTRATION_STATUSES.retained, REGISTRATION_STATUSES.confirmed] } },
-      distinct: ['sessionId'],
-      select: { session: { select: { name: true } } }
-    }),
-    prisma.registrationWaitlistEntry.findMany({
-      where: { sessionId: { in: sessionIds }, registration: { period: permanent } },
-      distinct: ['sessionId'],
-      select: { session: { select: { name: true } } }
-    })
-  ])
-  const names = [...new Set([...selected.map((row) => row.session?.name), ...waiting.map((row) => row.session.name)].filter(Boolean))]
-  if (names.length) {
-    throw createError({
-      statusCode: 409,
-      message: `Des personnes de l’inscription permanente sont retenues ou en attente pour ${names.map((name) => `« ${name} »`).join(', ')} : retirez-les d’abord de cette session.`
-    })
-  }
-}
-
-// On ne descend pas sous le nombre de personnes retenues ou confirmées par la sélection (US-087)
-async function assertSeatsCoverRetained(sessions: Array<{ sessionId: string, seats: number }>) {
-  const taken = await prisma.registration.groupBy({
-    by: ['sessionId'],
-    where: takenSeatsWhere(sessions.map((session) => session.sessionId)),
-    _count: { _all: true }
+// Sessions que le vivier propose (R6) : ouvertes par l'équipe, et encore datées, à venir, ni annulées ni terminées
+export async function offeredSessions(periodId: string, now = new Date()) {
+  const links = await prisma.registrationPeriodSession.findMany({
+    where: { periodId, open: true, session: openableSessionWhere(now) },
+    orderBy: { session: { date: 'asc' } },
+    select: { session: { select: { id: true, name: true, date: true, status: true, location: { select: { name: true, address: true } } } } }
   })
-  const takenBySession = new Map(taken.map((row) => [row.sessionId, row._count._all]))
-  if (sessions.some((session) => session.seats < (takenBySession.get(session.sessionId) ?? 0))) {
-    throw createError({ statusCode: 409, message: 'Une session a plus de personnes retenues ou confirmées que de places : retirez-en avant de baisser le nombre de places.' })
-  }
-}
-
-// Une période ouverte dont la date de clôture est passée resterait clôturée (ADR-0020) : on le dit plutôt
-// que d'enregistrer un état qui ne s'appliquerait pas
-export function assertClosingDateAllowsState(state: string, closesAt: Date | null, now = new Date()) {
-  if (state === REGISTRATION_PERIOD_STATES.open && closesAt && closesAt.getTime() <= now.getTime()) {
-    throw createError({ statusCode: 400, message: 'La date de clôture est passée : retirez-la ou choisissez une date future pour ouvrir la période.' })
-  }
+  return links.map((link) => link.session)
 }
 
 // publicId est aléatoire (48 bits) : une collision, très improbable, se règle en tirant un autre identifiant
@@ -187,47 +95,13 @@ export async function withFreshPublicId<T>(create: (publicId: string) => Promise
   }
 }
 
-// Deux enregistrements simultanés peuvent passer la vérification ci-dessus : l'unicité de
-// RegistrationPeriodSession.sessionId tranche, et on renvoie le même refus qu'à la vérification.
-export function rethrowSessionAlreadyTaken(error: unknown): never {
+// Deux créations simultanées passent la vérification : l'unicité de gameId tranche, avec le même refus (R1)
+export function rethrowPoolAlreadyExists(error: unknown): never {
   const { code, meta } = (error || {}) as { code?: string, meta?: unknown }
-  if (code === 'P2002' && JSON.stringify(meta ?? {}).includes('sessionId')) {
-    throw createError({ statusCode: 409, message: 'Une session ne peut appartenir qu’à une seule période d’inscription' })
+  if (code === 'P2002' && JSON.stringify(meta ?? {}).includes('gameId')) {
+    throw createError({ statusCode: 409, message: 'Ce jeu a déjà un vivier.' })
   }
   throw error
-}
-
-// Retirer d'une période une session qui a des inscriptions en cours les laisserait hors de toute période ;
-// des inscriptions déclinées ou désistées n'empêchent pas de la retirer
-export async function assertNoRegistrationsOnRemovedSessions(periodId: string, keptSessionIds: string[]) {
-  const orphaned = await prisma.registration.findMany({
-    where: { periodId, sessionId: { notIn: keptSessionIds }, status: { not: REGISTRATION_STATUSES.withdrawn } },
-    distinct: ['sessionId'],
-    select: { session: { select: { name: true } } }
-  })
-  const names = orphaned.map((registration) => registration.session?.name).filter(Boolean)
-  if (names.length) {
-    throw createError({
-      statusCode: 409,
-      message: `Une session qui a des inscriptions ne peut pas être retirée de la période : ${names.map((name) => `« ${name} »`).join(', ')}`
-    })
-  }
-}
-
-// Un jeu n'a qu'une inscription permanente ouverte à la fois (R30)
-export async function assertSinglePermanentOpen(gameId: string, scope: string, state: string, periodId?: string) {
-  if (scope !== REGISTRATION_PERIOD_SCOPES.game || state !== REGISTRATION_PERIOD_STATES.open) return
-  const other = await prisma.registrationPeriod.findFirst({
-    where: { gameId, scope: REGISTRATION_PERIOD_SCOPES.game, state: REGISTRATION_PERIOD_STATES.open, ...(periodId ? { id: { not: periodId } } : {}) },
-    select: { name: true }
-  })
-  if (other) {
-    throw createError({ statusCode: 409, message: `Ce jeu a déjà une inscription permanente ouverte (« ${other.name} ») : clôturez-la d’abord.` })
-  }
-}
-
-export function parseOptionalDate(value?: string | null) {
-  return value ? new Date(value) : null
 }
 
 export async function findRegistrationPeriodOr404(id: string | undefined) {
@@ -236,7 +110,7 @@ export async function findRegistrationPeriodOr404(id: string | undefined) {
   }
   const period = await prisma.registrationPeriod.findUnique({ where: { id }, select: { id: true, gameId: true } })
   if (!period) {
-    throw createError({ statusCode: 404, message: 'Période d’inscription introuvable' })
+    throw createError({ statusCode: 404, message: 'Vivier introuvable' })
   }
   return period
 }

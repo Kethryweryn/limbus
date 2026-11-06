@@ -60,13 +60,13 @@ async function invitedWithForm() {
   const definition = bodyOf<SavedForm>(saved).definition
   const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-03-10T09:00:00Z') } })
   const period = await prisma.registrationPeriod.create({
-    data: { name: `Période ${key}`, gameId: game.id, publicId: `pub-${key}`, state: 'open', sessions: { create: { sessionId: session.id, seats: 5 } } }
+    data: { name: `Période ${key}`, gameId: game.id, publicId: `pub-${key}`, state: 'open', sessions: { create: { sessionId: session.id } } }
   })
   const participant = await prisma.participant.create({ data: { name: `Camille ${key}`, slug: `camille-${key}`, email: `camille-${key}@example.test`, gameLinks: { create: { gameId: game.id } } } })
   const token = randomBytes(32).toString('base64url')
   const registration = await prisma.registration.create({
     data: {
-      periodId: period.id, sessionId: session.id, participantId: participant.id, status: 'invited', source: 'invitation',
+      periodId: period.id, invitedSessionId: session.id, participantId: participant.id, status: 'invited', source: 'invitation',
       invitedById: alice.id, email: participant.email!, tokenHash: sha256(token), responseDueAt: new Date(Date.now() + 7 * 86_400_000)
     }
   })

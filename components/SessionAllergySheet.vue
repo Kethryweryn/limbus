@@ -50,7 +50,7 @@
     </ul>
     <p v-else-if="sheet" class="text-sm text-gray-500">Aucune allergie ni intolérance déclarée.</p>
     <p class="mt-3 text-xs text-gray-500">
-      Données de santé des personnes confirmées, générées à la demande et jamais stockées : la fiche suit les désistements.
+      Données de santé des personnes confirmées, générées à la demande et jamais stockées : la fiche suit les annulations.
     </p>
   </UCard>
 </template>

@@ -10,18 +10,15 @@
         <UCard>
           <div class="space-y-2">
             <h1 class="text-xl font-semibold">{{ period.game.title }}</h1>
-            <p class="text-sm text-gray-600">{{ period.permanent ? 'Inscription permanente' : period.name }}</p>
+            <p class="text-sm text-gray-600">Vous rejoignez les personnes intéressées par le jeu : l’équipe choisit ensuite pour chaque session.</p>
             <div v-if="period.sessions.length" class="text-sm text-gray-700">
-              <p class="font-medium">{{ period.permanent ? 'Prochaines sessions' : period.sessions.length > 1 ? 'Sessions' : 'Session' }}</p>
+              <p class="font-medium">Prochaines sessions</p>
               <ul class="list-disc pl-5">
                 <li v-for="session in period.sessions" :key="session.id">
                   {{ session.name }}<span v-if="session.date"> · {{ formatDate(session.date) }}</span>
                   <span v-if="session.location"> · {{ session.location.name }}</span>
                 </li>
               </ul>
-              <p v-if="period.permanent" class="mt-1 text-xs text-gray-500">
-                Vous rejoignez les personnes intéressées par le jeu : l’équipe choisit ensuite pour chaque session.
-              </p>
             </div>
           </div>
         </UCard>
@@ -35,8 +32,8 @@
           v-else-if="result"
           color="success"
           variant="soft"
-          :title="result.received ? 'Votre inscription est reçue.' : alreadyRegistered ? 'Vous êtes déjà inscrit·e.' : 'Vérifiez votre boîte mail.'"
-          :description="result.received || alreadyRegistered
+          :title="result.received ? 'Votre réponse est reçue.' : 'Vérifiez votre boîte mail.'"
+          :description="result.received
             ? 'Vous retrouvez votre inscription dans votre espace « Je participe ».'
             : result.emailSent
               ? 'Un email vient de vous être envoyé : ouvrez le lien qu’il contient pour confirmer votre adresse. Sans confirmation, l’inscription n’est pas transmise à l’équipe.'
@@ -62,7 +59,7 @@
               <RegistrationAnswerFields
                 v-model:form="form"
                 :definition="period.definition"
-                :availability-sessions="period.asksAvailability ? period.sessions : null"
+                :availability-sessions="period.sessions.length ? period.sessions : null"
                 :email-locked="Boolean(period.account)"
                 :errors="fieldErrors"
               >
@@ -93,7 +90,7 @@ import { publicFetch, type ApiResponse } from '~/composables/useApiFetch'
 
 type Submitted = ApiResponse<'/api/public/periods/:publicId', 'post'>
 
-// Lien de diffusion d'une période en mode formulaire (US-084, R32) : rendu côté serveur pour l'aperçu des réseaux sociaux
+// Lien de diffusion du vivier (US-084, R32) : rendu côté serveur pour l'aperçu des réseaux sociaux
 definePageMeta({
   layout: false,
   colorMode: 'light'
@@ -112,7 +109,6 @@ const saving = ref(false)
 const errorMessage = ref('')
 const fieldErrors = ref<Record<string, string>>({})
 const result = ref<Submitted | null>(null)
-const alreadyRegistered = computed(() => Boolean(result.value && 'alreadyRegistered' in result.value && result.value.alreadyRegistered))
 
 
 const formatDate = (value: string) => formatLongDate(value, PARIS_TIME_ZONE)

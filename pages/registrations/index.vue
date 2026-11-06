@@ -2,7 +2,7 @@
   <div class="p-6 space-y-4">
     <div>
       <h1 class="text-2xl font-bold">Inscriptions</h1>
-      <p class="text-sm text-gray-500">Périodes d’inscription et formulaire de chaque jeu, pour recruter les PJ des sessions.</p>
+      <p class="text-sm text-gray-500">Le vivier et le formulaire de chaque jeu, pour recruter les PJ des sessions.</p>
     </div>
 
     <GameContextBar />
@@ -59,7 +59,7 @@ const errorMessage = ref('')
 
 const periodsByGame = ref<Record<string, RegistrationPeriod[]>>({})
 const loaded = ref(false)
-// Même tableau d'un rendu à l'autre : un bloc ne reprend les périodes de la page qu'après une nouvelle lecture
+// Même tableau d'un rendu à l'autre : un bloc ne reprend le vivier de la page qu'après une nouvelle lecture
 const NO_PERIODS: RegistrationPeriod[] = []
 
 // Une seule requête pour toutes les périodes et leurs inscriptions ; chaque bloc se recharge ensuite seul. La page se

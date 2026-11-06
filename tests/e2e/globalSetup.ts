@@ -33,7 +33,11 @@ export default async function globalSetup() {
     data: { name: 'Session de printemps', slug: 'session-printemps', gameId: registrationGame.id, date: new Date('2099-04-10T09:00:00Z') }
   })
   await prisma.registrationPeriod.create({
-    data: { name: 'Inscriptions de printemps', gameId: registrationGame.id, publicId: 'e2e-printemps', state: 'open', sessions: { create: { sessionId: registrationSession.id, seats: 3 } } }
+    data: { gameId: registrationGame.id, publicId: 'e2e-printemps', state: 'open', sessions: { create: { sessionId: registrationSession.id, open: true } } }
+  })
+  // Trois PJ : trois places par session (R8)
+  await prisma.character.createMany({
+    data: [1, 2, 3].map((index) => ({ name: `PJ ${index} des inscriptions`, slug: `pj-${index}-inscriptions`, gameId: registrationGame.id, type: 'pj' }))
   })
   await prisma.participant.create({
     data: { name: 'Camille Invitée', slug: 'camille-invitee', email: 'camille.invitee@example.test', gameLinks: { create: { gameId: registrationGame.id } } }

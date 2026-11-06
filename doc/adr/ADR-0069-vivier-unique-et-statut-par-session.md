@@ -1,7 +1,7 @@
 ---
 id: ADR-0069
 titre: Vivier unique par jeu et statut d'inscription par session
-statut: proposé
+statut: accepté
 date: 2026-11-06
 liens: [../specs/SPEC-018-vivier-permanent.md, ADR-0019-modele-des-inscriptions.md, ADR-0021-inscription-et-participation-de-session.md, ADR-0024-migrations-compatibles-avec-le-build-en-service.md, ADR-0046-formulaire-public-des-inscriptions.md, ADR-0047-selection-des-inscriptions.md, ADR-0048-tirage-au-sort.md]
 ---
@@ -15,8 +15,8 @@ liens: [../specs/SPEC-018-vivier-permanent.md, ADR-0019-modele-des-inscriptions.
 ## Décision
 
 - **Vivier** : `RegistrationPeriod` reste la table, avec une contrainte unique sur `gameId`. Les colonnes `scope`, `entryMode`, `closesAt`, `selectionMode` et les réglages du tirage en sortent. L'interface et le nouveau code disent « vivier ».
-- **Personne du vivier** : `Registration` garde ses réponses, ses coordonnées et ses affinités, avec une ligne par personne et par vivier. Ses statuts se réduisent à `invited`, `received` (intéressée) et `withdrawn` (sortie du vivier).
-- **Statut par session** : une nouvelle table `RegistrationSession` (inscription, session, unique par couple) porte le statut `preregistered`, `unavailable`, `waitlisted`, `retained`, `confirmed`, `transferred` ou `cancelled`, ainsi que la position en liste d'attente, les dates de demande, de relance, de réponse, d'échéance, de confirmation et d'annulation, l'autrice de la décision, ce qui a été annoncé, et le repère de réponses modifiées. Elle remplace `RegistrationAvailability`, `RegistrationWaitlistEntry` et les colonnes de décision de `Registration`.
+- **Personne du vivier** : `Registration` garde ses réponses, ses coordonnées et ses affinités, avec une ligne par personne et par vivier. Ses statuts se réduisent à `invited`, `received` (intéressée) et `withdrawn` (sortie du vivier). `invitedSessionId` garde la session visée par une invitation sans réponse (R4).
+- **Statut par session** : une nouvelle table `RegistrationSession` (inscription, session, unique par couple) porte le statut `preregistered`, `unavailable`, `waitlisted`, `retained`, `confirmed`, `transferred` ou `cancelled`, la dernière réponse de la personne (`answer` : `available`, `unavailable` ou vide, à laquelle elle revient si elle sort du cast sans annonce, R28), ainsi que la position en liste d'attente, les dates de demande, de relance, de réponse, d'échéance, de confirmation et d'annulation, l'autrice de la décision, ce qui a été annoncé, et le repère de réponses modifiées. Elle remplace `RegistrationAvailability`, `RegistrationWaitlistEntry` et les colonnes de décision de `Registration`.
 - **Session ouverte** : `RegistrationPeriodSession` garde une ligne par session, avec `open`, `selectionMode`, `organizerPicks`, les pondérations et `waitlistSize`. Elle est proposée au vivier si `open` est vrai et si, à la lecture, elle est datée, à venir, ni annulée ni terminée. Le casting se fait sur toute session qui a une ligne.
 - **Places** : se calculent à la lecture, avec `countPlayableCharacters`. `RegistrationPeriodSession.seats` et `Session.poolSeats` disparaissent, ainsi que l'outil `regler_places_vivier`.
 - **Personnes hors vivier** : un PNJ, l'équipe cuisine ou une organisatrice restent dans `SessionParticipant` et le tableau des paiements, sans `Registration` ni ligne de statut. Un joueur ne peut plus être créé sans `Registration`.
@@ -28,10 +28,10 @@ liens: [../specs/SPEC-018-vivier-permanent.md, ADR-0019-modele-des-inscriptions.
   1. Une migration ajoute les tables et colonnes, puis recopie les données :
      - **Vivier** : par jeu, on garde la période permanente ouverte, sinon la plus ancienne, avec son lien de diffusion. Il est ouvert si une période du jeu l'était.
      - **Sessions** : une ligne pour chaque session d'une période et chaque session non close qui était proposée par la période permanente. `open` n'est vrai que pour une session datée et à venir.
-     - **Personnes** : pour une personne présente plusieurs fois, la ligne la plus récemment modifiée est gardée. Les affinités de cette ligne restent ; celles des autres lignes disparaissent avec leurs réponses. Listes d'attente, réserves de personnage et statuts par session sont rattachés à la ligne gardée.
+     - **Personnes** : pour une personne présente plusieurs fois, la ligne la plus récemment modifiée parmi celles qui ont répondu est gardée. Les affinités de cette ligne restent ; celles des autres lignes disparaissent avec leurs réponses. Listes d'attente, réserves de personnage et statuts par session sont rattachés à la ligne gardée.
      - **Statuts** : `retained`, `waitlisted` et `confirmed` donnent la même valeur sur la session concernée, annonce comprise. `received` et `rejected` donnent `preregistered` sur chaque session de ses disponibilités, ou sur l'unique session de sa période. `withdrawn` avec une session donne `cancelled`. `invited` avec une session reste une invitation pour cette session, sans ligne. Sur `Registration`, le statut devient `invited` pour une invitation restée sans réponse, `withdrawn` si toutes les lignes reprises de la personne l'étaient, et `received` sinon.
      - **Le reste** : les demandes (`RegistrationRequest`) et les tirages passent au vivier gardé. Les anciens tirages restent au journal, sans session et non annulables.
-     US-160, US-161 et US-171 sont livrées dans une même PR, avec cette migration : aucun déploiement ne fait cohabiter deux sources du statut. Une écriture faite par l'ancien build pendant le déploiement n'est pas recopiée, ce qui est accepté tant que la production n'a que des données de test.
+     US-160, US-161 et US-171 sont livrées dans une même PR, avec cette migration : aucun déploiement ne fait cohabiter deux sources du statut. Une écriture faite par l'ancien build pendant le déploiement n'est pas recopiée, ce qui est accepté tant que la production n'a que des données de test. La migration s'exécute en une seule transaction : une erreur ne laisse pas la base à moitié convertie.
   2. Une fois tout le code passé au nouveau modèle, une migration retire l'ancien, avec le commentaire `-- deploiement-incompatible`.
 - **Remplacement** : à la livraison d'EPIC-048, ADR-0047 passe à « remplacé par ADR-0069 ». ADR-0046 et ADR-0048 gardent ce qui n'est pas contredit ici, et le disent en tête.
 

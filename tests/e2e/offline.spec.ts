@@ -128,27 +128,27 @@ test('la page Inscriptions et une inscription consultée se relisent sans résea
     const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
     const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-06-01T09:00:00Z') } })
     const period = await prisma.registrationPeriod.create({
-      data: { name: 'Automne', gameId: game.id, publicId: `h${Date.now().toString(36)}`, entryMode: 'form', state: 'open', sessions: { create: { sessionId: session.id, seats: 2 } } }
+      data: { gameId: game.id, publicId: `h${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } }
     })
     const email = `iris-${key}@example.test`
     const participant = await prisma.participant.create({ data: { name: 'Iris Hors Ligne', slug: `iris-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
     await prisma.registration.create({
-      data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, tokenHash: `hash-${key}`, respondedAt: new Date(), dietary: 'Arachides' }
+      data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, tokenHash: `hash-${key}`, respondedAt: new Date(), dietary: 'Arachides', sessionLines: { create: { sessionId: session.id, status: 'preregistered', answer: 'available' } } }
     })
+    await prisma.character.create({ data: { name: 'Seul PJ', slug: `pj-${key}`, gameId: game.id, type: 'pj' } })
 
     // Avec le réseau : la page, puis le détail de l'inscription, gardés sur l'appareil
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/registrations')
     await page.waitForLoadState('networkidle')
     const panel = gamePanel(page, game.title, /Annoncer les résultats/)
-    await expect(panel.getByText('Sélection · 1 inscription')).toBeVisible()
-    await panel.getByRole('button', { name: 'Détail' }).click()
+    await expect(panel.getByText('Sessions · 1 personne dans le vivier')).toBeVisible()
+    await panel.getByRole('button', { name: 'Détail' }).first().click()
     await expect(page.getByRole('dialog').getByText('Arachides')).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(page.getByRole('dialog')).toBeHidden()
     // Une décision relit le bloc du jeu : l'appareil garde ce nouvel état
-    await panel.getByRole('button', { name: 'Décider' }).click()
-    await page.getByRole('menuitem', { name: `Retenir pour ${session.name}` }).click()
+    await panel.getByRole('button', { name: 'Retenir' }).click()
     await expect(panel.getByText('À annoncer')).toBeVisible()
 
     // Sans réseau : la page se rouvre depuis l'appareil, sélection et détail compris
@@ -156,10 +156,10 @@ test('la page Inscriptions et une inscription consultée se relisent sans résea
     await page.getByRole('link', { name: 'Sessions' }).first().click()
     await page.waitForURL('**/sessions')
     await page.goBack()
-    await expect(panel.getByText('Sélection · 1 inscription')).toBeVisible()
-    await expect(panel.getByText('Iris Hors Ligne')).toBeVisible()
+    await expect(panel.getByText('Sessions · 1 personne dans le vivier')).toBeVisible()
+    await expect(panel.getByText('Iris Hors Ligne').first()).toBeVisible()
     await expect(panel.getByText('À annoncer')).toBeVisible()
-    await panel.getByRole('button', { name: 'Détail' }).click()
+    await panel.getByRole('button', { name: 'Détail' }).first().click()
     await expect(page.getByRole('dialog').getByText('Arachides')).toBeVisible()
   } finally {
     await context.setOffline(false)

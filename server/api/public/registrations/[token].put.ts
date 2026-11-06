@@ -1,18 +1,18 @@
 import { readZodBody } from '~/server/utils/schemas'
-import { readAvailability } from '~/server/utils/registrationAvailability'
 import { registrationAnswerSchema } from '~/server/utils/registrationForms'
 import {
   answerFormDefinition,
   exposePublicRegistration,
   frozenFormVersionId,
   guardPublicRegistrationRequest,
+  readAvailability,
   requireRegistrationByToken,
   saveRegistrationAnswers,
   sendRegistrationConfirmationEmail
 } from '~/server/utils/publicRegistrations'
 import { registrationUrl } from '~/server/utils/registrations'
 
-// Accepter l'invitation, ou modifier une inscription confirmée jusqu'à la clôture (US-004, R13)
+// Répondre à l'invitation, ou modifier ses réponses à tout moment (R14)
 export default defineEventHandler(async (event) => {
   guardPublicRegistrationRequest(event, 'write')
 
@@ -24,8 +24,8 @@ export default defineEventHandler(async (event) => {
   const availableSessionIds = await readAvailability(event, registration)
 
   const versionId = await frozenFormVersionId(registration, form.versionId)
-  const { accepted } = await saveRegistrationAnswers(registration, versionId, { ...answers, availableSessionIds }, form.definition)
+  const { accepted, keptSessions } = await saveRegistrationAnswers(registration, versionId, { ...answers, availableSessionIds }, form.definition)
   const emailSent = accepted ? await sendRegistrationConfirmationEmail(registration, answers, registrationUrl(token)) : null
 
-  return { ...(await exposePublicRegistration(await requireRegistrationByToken(token))), emailSent }
+  return { ...(await exposePublicRegistration(await requireRegistrationByToken(token))), emailSent, keptSessions }
 })

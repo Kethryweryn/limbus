@@ -38,12 +38,11 @@ async function invited() {
   const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2027-03-10T09:00:00Z') } })
   const period = await prisma.registrationPeriod.create({
     data: {
-      name: `Période ${key}`,
       gameId: game.id,
       publicId: `pub-${key}`,
       state: 'open',
       responseDelayDays: 10,
-      sessions: { create: { sessionId: session.id, seats: 5 } }
+      sessions: { create: { sessionId: session.id } }
     }
   })
   const participant = await prisma.participant.create({
@@ -59,8 +58,9 @@ async function invited() {
 async function confirm(registrationId: string, sessionId: string, participantId: string) {
   await prisma.registration.update({
     where: { id: registrationId },
-    data: { status: 'confirmed', respondedAt: new Date(), confirmedAt: new Date(), phone: '0612345678', dietary: 'Arachides', healthConsentAt: new Date() }
+    data: { status: 'received', respondedAt: new Date(), charterAcceptedAt: new Date(), phone: '0612345678', dietary: 'Arachides', healthConsentAt: new Date(), invitedSessionId: null }
   })
+  await prisma.registrationSession.create({ data: { registrationId, sessionId, status: 'confirmed', confirmedAt: new Date(), answer: 'available' } })
   await prisma.sessionParticipant.create({ data: { sessionId, participantId, role: 'participant' } })
 }
 
@@ -123,7 +123,7 @@ describe('prolonger l’échéance', () => {
 })
 
 describe('libérer une place', () => {
-  it('passe l’inscription à désistée, avec l’organisatrice comme autrice ; le lien dit que la place est réattribuée', async () => {
+  it('une invitation libérée sort, avec l’organisatrice comme autrice ; le lien le dit', async () => {
     const { registration, token } = await invited()
     expect((await api(alice, 'POST', `/api/registrations/${registration.id}/release`)).status).toBe(200)
 
@@ -142,28 +142,33 @@ describe('libérer une place', () => {
     expect(await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })).toMatchObject({ status: 'invited', withdrawnById: null })
   })
 
-  it('refuse une inscription confirmée : c’est un retrait', async () => {
+  it('refuse une personne qui a répondu : c’est un retrait', async () => {
     const { session, participant, registration } = await invited()
     await confirm(registration.id, session.id, participant.id)
     expect((await api(alice, 'POST', `/api/registrations/${registration.id}/release`)).status).toBe(409)
   })
 })
 
-describe('retirer une personne confirmée', () => {
-  it('mêmes effets qu’un désistement, avec l’organisatrice comme autrice', async () => {
+describe('retirer une personne inscrite', () => {
+  it('d’une session : mêmes effets qu’une annulation, avec l’organisatrice comme autrice ; elle reste dans le vivier', async () => {
     const { session, participant, registration } = await invited()
     await confirm(registration.id, session.id, participant.id)
     const sentBefore = smtp.received.length
 
-    expect((await api(alice, 'POST', `/api/registrations/${registration.id}/withdraw`)).status).toBe(200)
-    expect(await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })).toMatchObject({ status: 'withdrawn', withdrawnById: alice.id })
+    expect((await api(alice, 'POST', `/api/registrations/${registration.id}/withdraw`, { sessionId: session.id })).status).toBe(200)
+    expect(await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })).toMatchObject({ status: 'received' })
+    expect(await prisma.registrationSession.findUniqueOrThrow({ where: { registrationId_sessionId: { registrationId: registration.id, sessionId: session.id } } })).toMatchObject({ status: 'cancelled', cancelledById: alice.id })
     expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(0)
     await expect.poll(() => smtp.received.slice(sentBefore).find((message) => message.to.includes('alice@example.test'))?.text, { timeout: 10_000 })
       .toContain(`a retiré ${participant.name}`)
   })
 
-  it('refuse une invitation sans réponse : c’est une libération de place', async () => {
-    const { registration } = await invited()
+  it('du vivier : ses présences à venir sont annulées, et son lien ne marche plus', async () => {
+    const { session, participant, registration } = await invited()
+    await confirm(registration.id, session.id, participant.id)
+    expect((await api(alice, 'POST', `/api/registrations/${registration.id}/withdraw`)).status).toBe(200)
+    expect(await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })).toMatchObject({ status: 'withdrawn', withdrawnById: alice.id, tokenHash: null })
+    expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(0)
     expect((await api(alice, 'POST', `/api/registrations/${registration.id}/withdraw`)).status).toBe(409)
   })
 })
@@ -174,13 +179,13 @@ describe('suivi dans la liste', () => {
     await confirm(registration.id, session.id, participant.id)
 
     const before = await api(alice, 'GET', `/api/registration-periods/${period.id}/registrations`)
-    expect(before.body).toMatchObject([{ id: registration.id, missingFromSession: false }])
+    expect(before.body).toMatchObject([{ id: registration.id, sessionLines: [{ sessionId: session.id, missingFromSession: false }] }])
 
     await prisma.sessionParticipant.deleteMany({ where: { sessionId: session.id, participantId: participant.id } })
     const after = await api(alice, 'GET', `/api/registration-periods/${period.id}/registrations`)
-    expect(after.body).toMatchObject([{ id: registration.id, missingFromSession: true }])
+    expect(after.body).toMatchObject([{ id: registration.id, sessionLines: [{ sessionId: session.id, missingFromSession: true }] }])
     const all = await api(alice, 'GET', `/api/registration-periods?gameId=${period.gameId}`)
-    expect(bodyOf<ApiResponse<'/api/registration-periods'>>(all)[0]?.registrations).toMatchObject([{ id: registration.id, missingFromSession: true }])
+    expect(bodyOf<ApiResponse<'/api/registration-periods'>>(all)[0]?.registrations).toMatchObject([{ id: registration.id, sessionLines: [{ missingFromSession: true }] }])
   })
 
   it('le détail montre les réponses, les allergies et la date du consentement ; la liste non', async () => {
@@ -189,7 +194,7 @@ describe('suivi dans la liste', () => {
 
     const detail = await api(alice, 'GET', `/api/registrations/${registration.id}`)
     expect(detail.status).toBe(200)
-    expect(detail.body).toMatchObject({ id: registration.id, phone: '0612345678', dietary: 'Arachides', session: { id: session.id } })
+    expect(detail.body).toMatchObject({ id: registration.id, phone: '0612345678', dietary: 'Arachides', sessionLines: [{ sessionId: session.id, status: 'confirmed' }] })
     expect(bodyOf<ApiResponse<'/api/registrations/:id'>>(detail).healthConsentAt).toBeTruthy()
     expect(detail.body).not.toHaveProperty('tokenHash')
 
@@ -212,7 +217,7 @@ describe('export CSV d’une session', () => {
     expect(response.headers.get('content-disposition')).toContain('attachment; filename="inscriptions-session-')
     const csv = await response.text()
     expect(csv).toContain('Nom;Email;Téléphone;Statut')
-    expect(csv).toContain(`${participant.name};${registration.email};0612345678;Confirmée`)
+    expect(csv).toContain(`${participant.name};${registration.email};0612345678;Inscrite`)
     expect(csv).not.toContain('Arachides')
     expect(csv).not.toContain('Urgence')
     expect(csv).not.toContain('0699999999')

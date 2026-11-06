@@ -26,7 +26,7 @@ async function sessionWithRegistrations() {
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
   const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
   const period = await prisma.registrationPeriod.create({
-    data: { name: `Période ${key}`, gameId: game.id, publicId: `pub-${key}`, state: 'open', sessions: { create: { sessionId: session.id, seats: 5 } } }
+    data: { name: `Période ${key}`, gameId: game.id, publicId: `pub-${key}`, state: 'open', sessions: { create: { sessionId: session.id } } }
   })
   const person = (name: string) => prisma.participant.create({
     data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
@@ -35,9 +35,9 @@ async function sessionWithRegistrations() {
   const registration = (participant: { id: string, email: string | null }, status: string, dietary: string | null) => prisma.registration.create({
     data: {
       periodId: period.id,
-      sessionId: session.id,
       participantId: participant.id,
-      status,
+      status: 'received',
+      sessionLines: { create: { sessionId: session.id, status } },
       source: 'invitation',
       email: participant.email!,
       dietary,

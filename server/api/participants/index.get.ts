@@ -3,7 +3,7 @@ import { requireUser } from '~/server/utils/auth'
 import { accessibleGameIds, queryGameFilter } from '~/server/utils/gameAccess'
 import { exposeParticipantsGames, participantGameLinksInclude } from '~/server/utils/participants'
 
-// ?gameId= limite la liste aux participants d'un jeu accessible (invitations d'une période d'inscription, US-117)
+// ?gameId= limite la liste aux participants d'un jeu accessible (invitations au vivier, US-117)
 export default defineEventHandler(async (event) => {
   await requireUser(event)
 

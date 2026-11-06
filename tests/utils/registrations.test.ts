@@ -1,16 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
-  announcedRegistrationStatus,
-  countRegistrationsByStatus,
-  invitedCount,
+  canConfirmPlace,
   isAnnouncementPending,
   isResponseOverdue,
   registrationDisplayStatus,
-  registeredParticipantIds,
-  registrationLinkExpired,
   registrationStatusMeta,
   splitParticipantName,
-  withdrawnParticipantIds
+  visibleLineStatus
 } from '~/utils/registrations'
 
 const now = new Date('2027-01-10T12:00:00Z')
@@ -21,7 +17,7 @@ describe('isResponseOverdue (R20)', () => {
     expect(isResponseOverdue({ status: 'invited', responseDueAt: '2027-01-10T12:01:00Z' }, now)).toBe(false)
   })
 
-  it('jamais pour une inscription qui a répondu, ni sans échéance', () => {
+  it('jamais pour une personne qui a répondu, ni sans échéance', () => {
     expect(isResponseOverdue({ status: 'confirmed', responseDueAt: '2027-01-01' }, now)).toBe(false)
     expect(isResponseOverdue({ status: 'withdrawn', responseDueAt: '2027-01-01' }, now)).toBe(false)
     expect(isResponseOverdue({ status: 'invited', responseDueAt: null }, now)).toBe(false)
@@ -34,35 +30,50 @@ describe('isResponseOverdue (R20)', () => {
   })
 })
 
-describe('décisions à annoncer (US-088, ADR-0047)', () => {
+describe('décisions à annoncer pour une session (US-088, ADR-0047)', () => {
   it('une décision de sélection qui diffère de l’annonce est à annoncer', () => {
-    expect(isAnnouncementPending({ status: 'retained', sessionId: 's1', announcedStatus: null, announcedSessionId: null })).toBe(true)
-    expect(isAnnouncementPending({ status: 'retained', sessionId: 's1', announcedStatus: 'retained', announcedSessionId: 's1' })).toBe(false)
-    // Changée de session : à annoncer de nouveau
-    expect(isAnnouncementPending({ status: 'retained', sessionId: 's2', announcedStatus: 'retained', announcedSessionId: 's1' })).toBe(true)
-    expect(isAnnouncementPending({ status: 'waitlisted', sessionId: null, announcedStatus: 'waitlisted', announcedSessionId: null })).toBe(false)
-    // Reçue, confirmée ou désistée : rien à annoncer
-    expect(isAnnouncementPending({ status: 'received', announcedStatus: 'waitlisted' })).toBe(false)
+    expect(isAnnouncementPending({ status: 'retained', announcedStatus: null })).toBe(true)
+    expect(isAnnouncementPending({ status: 'retained', announcedStatus: 'waitlisted' })).toBe(true)
+    expect(isAnnouncementPending({ status: 'retained', announcedStatus: 'retained' })).toBe(false)
+    expect(isAnnouncementPending({ status: 'waitlisted', announcedStatus: 'waitlisted' })).toBe(false)
+    // Pré-inscrite, inscrite ou en annulation : rien à annoncer
+    expect(isAnnouncementPending({ status: 'preregistered', announcedStatus: 'waitlisted' })).toBe(false)
     expect(isAnnouncementPending({ status: 'confirmed', announcedStatus: 'retained' })).toBe(false)
+    expect(isAnnouncementPending({ status: 'cancelled', announcedStatus: null })).toBe(false)
   })
 
-  it('la personne voit la dernière décision annoncée, ou « reçue »', () => {
-    expect(announcedRegistrationStatus({ status: 'retained', sessionId: 's1', announcedStatus: null })).toBe('received')
-    expect(announcedRegistrationStatus({ status: 'retained', sessionId: 's1', announcedStatus: 'waitlisted' })).toBe('waitlisted')
-    expect(announcedRegistrationStatus({ status: 'rejected', announcedStatus: 'rejected' })).toBe('rejected')
-    expect(announcedRegistrationStatus({ status: 'confirmed', announcedStatus: 'retained' })).toBe('confirmed')
+  it('une place se confirme seulement retenue et annoncée (US-089)', () => {
+    expect(canConfirmPlace({ status: 'retained', announcedStatus: 'retained' })).toBe(true)
+    expect(canConfirmPlace({ status: 'retained', announcedStatus: null })).toBe(false)
+    expect(canConfirmPlace({ status: 'retained', announcedStatus: 'waitlisted' })).toBe(false)
+    expect(canConfirmPlace({ status: 'confirmed', announcedStatus: 'retained' })).toBe(false)
   })
 })
 
-describe('registrationLinkExpired (ADR-0018)', () => {
-  it('expire 30 jours après la dernière session', () => {
-    expect(registrationLinkExpired(['2026-11-01', '2026-12-11T12:00:00Z'], now)).toBe(false)
-    expect(registrationLinkExpired(['2026-12-11T11:59:00Z', null], now)).toBe(true)
+describe('ce que voit la personne pour une session (R28)', () => {
+  it('une décision pas encore annoncée ne se voit pas : la dernière annonce, sinon sa dernière réponse', () => {
+    expect(visibleLineStatus({ status: 'retained', announcedStatus: null, answer: 'available' })).toBe('preregistered')
+    expect(visibleLineStatus({ status: 'retained', announcedStatus: null, answer: 'unavailable' })).toBe('unavailable')
+    expect(visibleLineStatus({ status: 'retained', announcedStatus: 'waitlisted', answer: 'available' })).toBe('waitlisted')
+    expect(visibleLineStatus({ status: 'waitlisted', announcedStatus: 'retained', answer: 'available' })).toBe('retained')
   })
 
-  it('n’expire pas sans date de session', () => {
-    expect(registrationLinkExpired([null, undefined], now)).toBe(false)
-    expect(registrationLinkExpired([], now)).toBe(false)
+  it('ajoutée à la main sans avoir répondu ni reçu d’annonce : elle ne voit rien', () => {
+    expect(visibleLineStatus({ status: 'retained', announcedStatus: null, answer: null })).toBeNull()
+    expect(visibleLineStatus({ status: 'cancelled', announcedStatus: null, answer: null, cancelledById: 'orga' })).toBeNull()
+  })
+
+  it('une annulation par l’équipe sans annonce ne se voit pas ; la sienne, si', () => {
+    expect(visibleLineStatus({ status: 'cancelled', announcedStatus: null, answer: 'available', cancelledById: 'orga' })).toBe('preregistered')
+    expect(visibleLineStatus({ status: 'cancelled', announcedStatus: 'retained', answer: 'available', cancelledById: 'orga' })).toBe('cancelled')
+    expect(visibleLineStatus({ status: 'cancelled', announcedStatus: null, answer: 'available', cancelledById: null })).toBe('cancelled')
+  })
+
+  it('ses propres réponses et sa confirmation se voient telles quelles', () => {
+    expect(visibleLineStatus({ status: 'preregistered', answer: 'available' })).toBe('preregistered')
+    expect(visibleLineStatus({ status: 'unavailable', answer: 'unavailable' })).toBe('unavailable')
+    expect(visibleLineStatus({ status: 'confirmed', announcedStatus: 'retained' })).toBe('confirmed')
+    expect(visibleLineStatus({ status: 'transferred', announcedStatus: 'retained' })).toBe('transferred')
   })
 })
 
@@ -81,41 +92,12 @@ describe('statut montré aux orgas (US-005)', () => {
     expect(registrationDisplayStatus({ status: 'withdrawn', responseDueAt: '2027-01-09' }, now)).toBe('withdrawn')
   })
 
-  it('compte par statut, dans l’ordre d’affichage, sans les statuts absents', () => {
-    const counts = countRegistrationsByStatus([
-      { status: 'confirmed' },
-      { status: 'invited', responseDueAt: '2027-01-09' },
-      { status: 'confirmed' },
-      { status: 'invited', responseDueAt: '2027-01-20' }
-    ], now)
-    expect(counts.map(({ status, count, label }) => [status, count, label])).toEqual([
-      ['invited', 1, 'Invitée'],
-      ['overdue', 1, 'Délai dépassé'],
-      ['confirmed', 2, 'Confirmée']
-    ])
-  })
-})
-
-// Listes d'une période sur invitation (US-117)
-describe('invitations d’une période', () => {
-  const registrations = [
-    { sessionId: 's1', status: 'invited', participant: { id: 'p1' } },
-    { sessionId: 's1', status: 'withdrawn', participant: { id: 'p2' } },
-    { sessionId: 's2', status: 'confirmed', participant: { id: 'p3' } }
-  ]
-
-  it('une personne désistée ne compte plus face aux places', () => {
-    expect(invitedCount(registrations, 's1')).toBe(1)
-    expect(invitedCount(registrations, 's3')).toBe(0)
-  })
-
-  it('une personne désistée peut être réinvitée ; les autres ont déjà leur inscription', () => {
-    expect(registeredParticipantIds(registrations)).toEqual(['p1', 'p3'])
-    expect(withdrawnParticipantIds(registrations)).toEqual(['p2'])
-  })
-
-  it('un statut inconnu s’affiche tel quel', () => {
+  it('les statuts du jeu et d’une session ont leur libellé ; un statut inconnu s’affiche tel quel', () => {
     expect(registrationStatusMeta({ status: 'invited', responseDueAt: '2020-01-01T00:00:00Z' }).label).toBe('Délai dépassé')
+    expect(registrationStatusMeta({ status: 'received' }).label).toBe('Intéressée')
+    expect(registrationStatusMeta({ status: 'retained' }).label).toBe('Castée')
+    expect(registrationStatusMeta({ status: 'confirmed' }).label).toBe('Inscrite')
+    expect(registrationStatusMeta({ status: 'cancelled' }).label).toBe('Annulation')
     expect(registrationStatusMeta({ status: 'inconnu' })).toEqual({ label: 'inconnu', color: 'neutral' })
   })
 })

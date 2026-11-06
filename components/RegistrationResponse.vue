@@ -24,9 +24,9 @@
               <h1 class="text-xl font-semibold">{{ details.game.title }}</h1>
               <UBadge :color="statusMeta.color" variant="subtle">{{ statusMeta.label }}</UBadge>
             </div>
-            <p v-if="details.session" class="text-sm text-gray-600">
-              Session {{ details.session.name }}<span v-if="details.session.date"> · {{ formatLongDate(details.session.date) }}</span>
-              <span v-if="details.session.location"> · {{ details.session.location.name }}<span v-if="details.session.location.address">, {{ details.session.location.address }}</span></span>
+            <p v-if="details.invitedSession" class="text-sm text-gray-600">
+              Invitation pour la session {{ details.invitedSession.name }}<span v-if="details.invitedSession.date"> · {{ formatLongDate(details.invitedSession.date) }}</span>.
+              Cochez-la si vous êtes disponible : vous y serez inscrit·e s’il reste une place.
             </p>
             <p v-if="details.canAccept && details.responseDueAt" class="text-sm text-gray-600">
               Réponse attendue avant le {{ formatLongDate(details.responseDueAt) }}.
@@ -45,40 +45,48 @@
           v-if="details.overdue"
           color="warning"
           variant="soft"
-          :description="`Le délai de réponse est dépassé. Vous pouvez encore ${details.canConfirmPlace ? 'confirmer' : 'accepter'} tant que l’équipe d’organisation n’a pas attribué votre place à quelqu’un d’autre.`"
+          description="Le délai de réponse est dépassé. Vous pouvez encore répondre tant que l’équipe d’organisation n’a pas retiré votre invitation."
         />
 
-        <!-- Place retenue par la sélection, à confirmer d'un bouton (US-089) -->
-        <UCard v-if="details.canConfirmPlace">
-          <h2 class="font-semibold">Votre place est retenue</h2>
-          <p class="mt-2 text-sm text-gray-600">
-            Confirmez votre place<span v-if="details.responseDueAt"> avant le {{ formatLongDate(details.responseDueAt) }}</span> : vous rejoindrez alors la session.
-            Vos réponses au formulaire restent celles que vous avez données.
-          </p>
-          <UAlert v-if="confirmError" class="mt-3" color="error" variant="soft" :description="confirmError" />
-          <UButton class="mt-3" color="primary" icon="i-heroicons-check" :loading="confirming" @click="confirmPlace">
-            Je confirme ma place
-          </UButton>
+        <!-- Une date décochée alors que la place est annoncée ne change rien : il faut annuler (R29) -->
+        <UAlert
+          v-if="keptSessions.length"
+          color="warning"
+          variant="soft"
+          :description="`Votre présence à ${keptSessions.join(', ')} reste enregistrée. Si vous ne pouvez plus venir, annulez-la ci-dessous.`"
+        />
+
+        <!-- Statut session par session (R17, R28) -->
+        <UCard v-if="details.sessions.length">
+          <h2 class="font-semibold">Vos sessions</h2>
+          <UAlert v-if="sessionError" class="mt-3" color="error" variant="soft" :description="sessionError" />
+          <ul class="mt-2 divide-y divide-gray-100">
+            <li v-for="line in details.sessions" :key="line.sessionId" class="space-y-2 py-3 text-sm" :data-session="line.session.name">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="font-medium">{{ line.session.name }}</span>
+                <span v-if="line.session.date" class="text-gray-600">{{ formatLongDate(line.session.date) }}</span>
+                <UBadge :color="lineMeta(line).color" variant="subtle" size="sm">{{ lineMeta(line).label }}</UBadge>
+              </div>
+              <p v-if="line.session.location" class="text-gray-600">{{ line.session.location.name }}<span v-if="line.session.location.address">, {{ line.session.location.address }}</span></p>
+              <p v-if="line.status === LINE.waitlisted" class="text-gray-600">Si une place se libère, l’équipe d’organisation vous écrira.</p>
+              <p v-if="line.status === LINE.transferred" class="text-gray-600">Cette session est reportée : votre place est passée à la nouvelle session.</p>
+              <template v-if="line.canConfirmPlace">
+                <p class="text-gray-600">
+                  Votre place est retenue. Confirmez-la<span v-if="line.responseDueAt"> avant le {{ formatLongDate(line.responseDueAt) }}</span> : vous rejoindrez alors la session.
+                </p>
+                <p v-if="line.overdue" class="text-warning-600">Le délai est dépassé : vous pouvez encore confirmer tant que l’équipe n’a pas attribué votre place à quelqu’un d’autre.</p>
+              </template>
+              <div class="flex flex-wrap gap-2">
+                <UButton v-if="line.canConfirmPlace" size="sm" color="primary" icon="i-heroicons-check" :loading="busySession === line.sessionId" @click="confirmPlace(line.sessionId)">
+                  Je confirme ma place
+                </UButton>
+                <UButton v-if="line.canCancel" size="sm" color="error" variant="soft" :loading="busySession === line.sessionId" @click="cancelSession(line.sessionId, line.session.name)">
+                  Annuler ma présence
+                </UButton>
+              </div>
+            </li>
+          </ul>
         </UCard>
-        <UAlert
-          v-else-if="details.status === REGISTRATION_STATUSES.waitlisted"
-          color="info"
-          variant="soft"
-          title="Vous êtes sur liste d’attente"
-          :description="`${details.waitlistSessions.length ? `Session${details.waitlistSessions.length > 1 ? 's' : ''} : ${details.waitlistSessions.map(sessionLabel).join(', ')}. ` : ''}Si une place se libère, l’équipe d’organisation vous écrira.`"
-        />
-        <UAlert
-          v-else-if="details.status === REGISTRATION_STATUSES.rejected"
-          color="neutral"
-          variant="soft"
-          description="Votre inscription n’a pas été retenue cette fois-ci. Merci de votre intérêt pour le jeu."
-        />
-        <UAlert
-          v-if="details.status === REGISTRATION_STATUSES.confirmed && !details.canEdit"
-          color="neutral"
-          variant="soft"
-          description="Les inscriptions sont closes : vos informations ne peuvent plus être modifiées. Pour toute correction, contactez l’équipe d’organisation."
-        />
 
         <UCard>
           <h2 class="font-semibold">Note d’intention</h2>
@@ -105,7 +113,7 @@
 
             <div v-if="!readOnly" class="flex flex-wrap gap-2">
               <UButton type="submit" color="primary" :loading="saving">
-                {{ details.canAccept ? 'Accepter l’invitation' : 'Enregistrer les modifications' }}
+                {{ details.canAccept ? 'Envoyer mes réponses' : 'Enregistrer les modifications' }}
               </UButton>
               <UButton
                 v-if="details.canDecline"
@@ -121,27 +129,14 @@
           </form>
         </UCard>
 
-        <UCard v-if="details.canWithdraw && details.status === REGISTRATION_STATUSES.received">
-          <h2 class="font-semibold">Retirer mon inscription</h2>
+        <UCard v-if="details.canLeave">
+          <h2 class="font-semibold">Quitter le vivier</h2>
           <p class="mt-2 text-sm text-gray-600">
-            Votre inscription est reçue par l’équipe d’organisation, qui n’a pas encore choisi les personnes retenues.
-            Si vous ne souhaitez plus participer, retirez-la.
+            Si vous ne souhaitez plus du tout participer à ce jeu, quittez le vivier : vos présences aux sessions à venir seront annulées et ce lien ne marchera plus.
+            Pour une seule session, annulez plutôt votre présence ci-dessus. Vous pourrez revenir en remplissant de nouveau le questionnaire.
           </p>
           <UButton class="mt-3" color="error" variant="soft" :loading="withdrawing" @click="withdraw">
-            Retirer mon inscription
-          </UButton>
-        </UCard>
-        <UCard v-else-if="details.canWithdraw && details.status !== REGISTRATION_STATUSES.rejected">
-          <h2 class="font-semibold">Me désister</h2>
-          <p v-if="details.status === REGISTRATION_STATUSES.waitlisted" class="mt-2 text-sm text-gray-600">
-            Si vous ne souhaitez plus participer, désistez-vous : vous quitterez la liste d’attente.
-          </p>
-          <p v-else class="mt-2 text-sm text-gray-600">
-            Si vous ne pouvez plus venir, prévenez l’équipe d’organisation en vous désistant : votre place sera libérée.
-            Pour un paiement déjà effectué, voyez directement avec elle.
-          </p>
-          <UButton class="mt-3" color="error" variant="soft" :loading="withdrawing" @click="withdraw">
-            Me désister
+            Quitter le vivier
           </UButton>
         </UCard>
       </template>
@@ -151,7 +146,7 @@
 </template>
 
 <script setup lang="ts">
-import { REGISTRATION_STATUS_META, REGISTRATION_STATUSES } from '~/utils/domain'
+import { REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_SESSION_STATUS_META, REGISTRATION_STATUS_META, metaOf } from '~/utils/domain'
 import { apiErrorMessage, apiFieldErrors } from '~/utils/apiErrors'
 import { emptyRegistrationAnswerForm } from '~/utils/registrationForms'
 import { formatLongDate } from '~/utils/dates'
@@ -178,11 +173,12 @@ const errorMessage = ref('')
 const fieldErrors = ref<Record<string, string>>({})
 const successMessage = ref('')
 const successDetail = ref('')
-const confirming = ref(false)
-const confirmError = ref('')
+const busySession = ref<string | null>(null)
+const sessionError = ref('')
+const keptSessions = ref<string[]>([])
 
 // Les sous-routes répondent l'inscription telle que la personne la voit
-const post = (action: string) => publicFetch<Exposed>(`${props.endpoint}/${action}`, { method: 'POST' })
+const post = (action: string, body?: { sessionId: string }) => publicFetch<Exposed>(`${props.endpoint}/${action}`, { method: 'POST', body })
 
 onMounted(load)
 
@@ -194,8 +190,8 @@ async function load() {
     const confirmed = props.personalLink ? await post('confirm').catch(() => null) : null
     if (confirmed) {
       apply(confirmed)
-      successMessage.value = 'Votre adresse est confirmée : votre inscription est reçue.'
-      successDetail.value = 'Gardez l’email reçu : son lien vous permet de revenir modifier ou retirer votre inscription.'
+      successMessage.value = 'Votre adresse est confirmée : votre réponse est reçue.'
+      successDetail.value = 'Gardez l’email reçu : son lien vous permet de revenir modifier vos réponses à tout moment.'
     } else {
       invalid.value = true
     }
@@ -212,17 +208,14 @@ function apply(data: Exposed) {
 
 const WITHDRAWAL_MESSAGES: Record<string, string> = {
   declined: 'Vous avez décliné l’invitation.',
-  withdrawn: 'Vous vous êtes désisté·e.',
-  released: 'Sans réponse de votre part dans le délai, votre place a été réattribuée.',
-  removed: 'L’équipe d’organisation a annulé votre inscription.',
-  retracted: 'Vous avez retiré votre inscription.'
+  released: 'Sans réponse de votre part dans le délai, votre invitation a été retirée.',
+  removed: 'L’équipe d’organisation vous a retiré·e du vivier de ce jeu.',
+  left: 'Vous avez quitté le vivier de ce jeu. Pour y revenir, remplissez de nouveau le questionnaire.'
 }
 const withdrawalMessage = computed(() => WITHDRAWAL_MESSAGES[withdrawn.value?.withdrawalReason ?? ''] || WITHDRAWAL_MESSAGES.declined)
 
-const statusMeta = computed(() => {
-  const status = registration.value?.status ?? ''
-  return status in REGISTRATION_STATUS_META ? REGISTRATION_STATUS_META[status as keyof typeof REGISTRATION_STATUS_META] : { label: '', color: 'neutral' as const }
-})
+const statusMeta = computed(() => metaOf(REGISTRATION_STATUS_META, registration.value?.status ?? '') ?? { label: '', color: 'neutral' as const })
+const lineMeta = (line: { status: string }) => metaOf(REGISTRATION_SESSION_STATUS_META, line.status) ?? { label: line.status, color: 'neutral' as const }
 const readOnly = computed(() => !details.value?.canAccept && !details.value?.canEdit)
 
 
@@ -242,13 +235,14 @@ async function submit() {
   try {
     const result = await publicFetch<Saved>(props.endpoint, { method: 'PUT', body: { ...form.value } })
     apply(result)
-    successMessage.value = accepting ? 'Votre inscription est confirmée.' : 'Vos modifications sont enregistrées.'
+    keptSessions.value = 'keptSessions' in result ? result.keptSessions : []
+    successMessage.value = accepting ? 'Vos réponses sont enregistrées.' : 'Vos modifications sont enregistrées.'
     successDetail.value = accepting
       ? result.emailSent
         ? props.personalLink
-          ? 'Un email de confirmation vous a été envoyé, avec ce même lien pour revenir modifier vos informations jusqu’à la clôture.'
-          : 'Un email de confirmation vous a été envoyé. Vous pouvez revenir modifier vos informations depuis votre compte jusqu’à la clôture.'
-        : props.personalLink ? 'Gardez ce lien : il vous permet de revenir modifier vos informations jusqu’à la clôture.' : ''
+          ? 'Un email de confirmation vous a été envoyé, avec ce même lien pour revenir modifier vos réponses à tout moment.'
+          : 'Un email de confirmation vous a été envoyé. Vous pouvez revenir modifier vos réponses depuis votre compte à tout moment.'
+        : props.personalLink ? 'Gardez ce lien : il vous permet de revenir modifier vos réponses à tout moment.' : ''
       : ''
     window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (err) {
@@ -271,37 +265,50 @@ async function decline() {
   }
 }
 
-async function confirmPlace() {
-  confirming.value = true
-  confirmError.value = ''
+async function confirmPlace(sessionId: string) {
+  busySession.value = sessionId
+  sessionError.value = ''
   successMessage.value = ''
   try {
-    apply(await post('accept'))
+    apply(await post('accept', { sessionId }))
     successMessage.value = 'Votre place est confirmée.'
     successDetail.value = 'L’équipe d’organisation vous retrouvera parmi les participants de la session.'
     window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (err) {
-    confirmError.value = apiErrorMessage(err, 'Confirmation impossible. Réessayez dans quelques minutes.')
+    sessionError.value = apiErrorMessage(err, 'Confirmation impossible. Réessayez dans quelques minutes.')
   } finally {
-    confirming.value = false
+    busySession.value = null
+  }
+}
+
+// Une seule session : la personne reste dans le vivier (R19)
+async function cancelSession(sessionId: string, name: string) {
+  if (!confirm(`Annuler votre présence à « ${name} » ? L’équipe sera prévenue, et vous restez dans le vivier du jeu. Pour un paiement déjà effectué, voyez directement avec elle.`)) return
+  busySession.value = sessionId
+  sessionError.value = ''
+  successMessage.value = ''
+  try {
+    apply(await post('cancel', { sessionId }))
+    keptSessions.value = []
+    successMessage.value = 'Votre présence est annulée.'
+    successDetail.value = 'Vous restez dans le vivier du jeu.'
+  } catch (err) {
+    sessionError.value = apiErrorMessage(err, 'Annulation impossible. Réessayez dans quelques minutes.')
+  } finally {
+    busySession.value = null
   }
 }
 
 async function withdraw() {
-  const received = registration.value?.status === REGISTRATION_STATUSES.received
-  if (!confirm(received
-    ? 'Retirer votre inscription ? Vous pourrez vous réinscrire par le formulaire tant que les inscriptions sont ouvertes.'
-    : 'Vous désister ? Votre place sera libérée et vous ne pourrez plus revenir sur votre inscription.')) return
+  if (!confirm('Quitter le vivier ? Vos présences aux sessions à venir seront annulées et ce lien ne marchera plus. Vous pourrez revenir en remplissant de nouveau le questionnaire.')) return
   withdrawing.value = true
   errorMessage.value = ''
   try {
     apply(await post('withdraw'))
   } catch (err) {
-    showError(err, 'Impossible de vous désister. Réessayez dans quelques minutes.')
+    showError(err, 'Impossible de quitter le vivier. Réessayez dans quelques minutes.')
   } finally {
     withdrawing.value = false
   }
 }
-
-const sessionLabel = (session: { name: string, date: string | null }) => session.date ? `${session.name} (${formatLongDate(session.date)})` : session.name
 </script>
