@@ -198,7 +198,7 @@
                   <td class="py-2 pr-3">
                     <span>{{ line.playerId ? assistantPlayerName(line.playerId) : '—' }}</span>
                     <UBadge v-if="line.locked" color="neutral" variant="subtle" size="xs" class="ml-1">verrouillée</UBadge>
-                    <UBadge v-else-if="line.reservedRegistrationId" color="warning" variant="subtle" size="xs" class="ml-1">à confirmer</UBadge>
+                    <UBadge v-else-if="line.reservedRegistrationId" color="warning" variant="subtle" size="xs" class="ml-1">retenue à l’enregistrement, à confirmer</UBadge>
                   </td>
                   <td class="py-2 pr-3">{{ formatScore(line.score) }}</td>
                   <td class="py-2 text-xs text-gray-500">

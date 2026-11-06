@@ -1,7 +1,7 @@
 import * as z from 'zod'
 import type { H3Event } from 'h3'
 import { prisma } from '~/server/utils/prisma'
-import { accessibleGameIds, requireSessionAccess } from '~/server/utils/gameAccess'
+import { accessibleGameIds, requireCurrentUser, requireSessionAccess } from '~/server/utils/gameAccess'
 import { participantCreateSchema, participantSchema, parseZod, sessionSchema, sessionTimelineSchema } from '~/server/utils/schemas'
 import { createSession, updateSession, updateSessionTimeline } from '~/server/utils/sessionWrites'
 import { createParticipant, updateParticipant } from '~/server/utils/participantWrites'
@@ -171,7 +171,7 @@ function registerSessionWriteTools({ event, server }: ToolContext) {
 
   server.registerTool('proposer_casting', {
     title: 'Proposer un casting',
-    description: 'Lance l’assistant de casting sur le cast actuel de la session : notes de chaque paire personne-personnage, interdits, alertes et proposition de répartition. Rien n’est écrit ; modifier_casting enregistre ensuite les lignes choisies.',
+    description: 'Lance l’assistant de casting sur le cast actuel de la session, ses personnes retenues et ses pré-inscrites : notes de chaque paire personne-personnage, interdits, alertes et proposition de répartition. Rien n’est écrit ; modifier_casting enregistre ensuite les lignes des personnes déjà dans l’équipe, et decider_inscription retient une pré-inscrite.',
     inputSchema: z.object({ sessionId: z.string() }),
     // Ne change rien, mais réservé aux autorisations en écriture (R10)
     annotations: { ...WRITE, readOnlyHint: true, idempotentHint: true }
@@ -179,7 +179,7 @@ function registerSessionWriteTools({ event, server }: ToolContext) {
     requireWrite(event)
     const session = await requireSessionAccess(event, sessionId)
     const { assignments } = await currentSession(sessionId)
-    const result = await sessionCastingAssistant(session, assignments.map(({ characterId, participantId, reservedRegistrationId, locked }) => ({ characterId, participantId, reservedRegistrationId, locked })))
+    const result = await sessionCastingAssistant(session, assignments.map(({ characterId, participantId, reservedRegistrationId, locked }) => ({ characterId, participantId, reservedRegistrationId, locked })), (await requireCurrentUser(event)).id)
     // Projection explicite : jamais le texte tapé des relations refusées (R8)
     return {
       players: result.players.map(({ id, name, reservedRegistrationId, hasAnswers }) => ({ id, name, reservedRegistrationId, hasAnswers })),
