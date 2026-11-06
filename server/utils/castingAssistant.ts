@@ -2,8 +2,8 @@ import { prisma } from '~/server/utils/prisma'
 import { getCurrentRegistrationForm } from '~/server/utils/registrationForms'
 import { currentQuestionLinks } from '~/server/utils/registrationQuestionLinks'
 import { castingAssistant, type CastingCharacter, type CastingPlayer } from '~/utils/castingAssistant'
-import { manualRetainRoom } from '~/server/utils/registrationSelection'
-import { CHARACTER_TYPES, REGISTRATION_SESSION_STATUSES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
+import { manualRetainRoom, replayerParticipantIds } from '~/server/utils/registrationSelection'
+import { CHARACTER_TYPES, REGISTRATION_REPLAY_POLICIES, REGISTRATION_SESSION_STATUSES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
 
 // Assistant de casting d'une session (US-101, US-102, ADR-0051) : calculé sur le cast en cours d'édition, rien n'est écrit
 
@@ -65,11 +65,16 @@ export async function sessionCastingAssistant(session: { id: string, gameId: str
   const chosen = chosenIds.length
     ? await prisma.registration.findMany({ where: { id: { in: chosenIds }, status: REGISTRATION_STATUSES.received, period: { gameId } }, select: { id: true, participantId: true } })
     : []
-  // Déjà dans le cast, une personne n'a rien à réserver
-  const inCast = new Set(castPlayers.map((player) => player.participantId))
-  const preregistered = preregisteredLines.map((line) => line.registration).filter((registration) => !inCast.has(registration.participantId))
-  const chosenIdsSet = new Set(chosen.map((registration) => registration.id))
-  const reservations = [...retained, ...chosen, ...preregistered.filter((registration) => !chosenIdsSet.has(registration.id))]
+  // Déjà dans le cast ou retenue, une personne n'est plus à retenir. Une rejoueuse exclue ne se propose pas : l'équipe peut
+  // seulement la retenir elle-même (R24)
+  const seated = new Set([...castPlayers.map((player) => player.participantId), ...retained.map((registration) => registration.participantId)])
+  const period = await prisma.registrationPeriod.findUnique({ where: { gameId }, select: { replayPolicy: true } })
+  const excluded = period?.replayPolicy === REGISTRATION_REPLAY_POLICIES.excluded
+    ? await replayerParticipantIds(gameId, preregisteredLines.map((line) => line.registration.participantId))
+    : new Set<string>()
+  const preregistered = preregisteredLines.map((line) => line.registration)
+    .filter((registration) => !seated.has(registration.participantId) && !excluded.has(registration.participantId))
+  const reservations = [...new Map([...retained, ...chosen, ...preregistered].map((registration) => [registration.id, registration])).values()]
   const reservedParticipant = new Map(reservations.map((registration) => [registration.id, registration.participantId]))
   const reservationOf = new Map(reservations.map((registration) => [registration.participantId, registration.id]))
   const holderOf = (line: CastLine) => line.participantId || (line.reservedRegistrationId && reservedParticipant.get(line.reservedRegistrationId)) || null
@@ -127,8 +132,7 @@ export async function sessionCastingAssistant(session: { id: string, gameId: str
 
   // Personnes que l'enregistrement retiendrait : sans aucune marge, elles n'entrent pas dans la répartition et n'y
   // prennent pas le personnage d'une personne déjà retenue
-  const retainedIdsOf = new Set(retained.map((registration) => registration.participantId))
-  const toRetain = new Set([...preregistered, ...chosen].map((registration) => registration.participantId).filter((id) => !retainedIdsOf.has(id) && !inCast.has(id)))
+  const toRetain = new Set([...preregistered, ...chosen].map((registration) => registration.participantId).filter((id) => !seated.has(id)))
   const held = new Set(pjLines.map(holderOf))
   const leftOut = new Set(retainRoom.room === 0 ? [...toRetain].filter((id) => !held.has(id)) : [])
   const distribute = () => castingAssistant({
@@ -152,9 +156,11 @@ export async function sessionCastingAssistant(session: { id: string, gameId: str
     result = distribute()
   }
 
-  // « Ne veut pas croiser » reste une alerte de la sélection (R25) : l'assistant la rappelle
-  const avoidWarnings = players.flatMap(({ player, avoidIds }) => avoidIds
-    .filter((id) => playerIds.has(id))
+  // « Ne veut pas croiser » reste une alerte de la sélection (R25) : l'assistant la rappelle, pour les personnes qui ont une
+  // place ou que la proposition place ; une pré-inscrite restée sans personnage n'est pas dans la session
+  const present = new Set<string | null>([...seated, ...held, ...result.proposal.map((line) => line.playerId)])
+  const avoidWarnings = players.filter(({ player }) => present.has(player.id)).flatMap(({ player, avoidIds }) => avoidIds
+    .filter((id) => present.has(id))
     .map((id) => `${player.name} ne veut pas croiser ${names.get(id)} : les deux sont dans la session.`))
 
   return {
@@ -162,6 +168,8 @@ export async function sessionCastingAssistant(session: { id: string, gameId: str
       id: player.id,
       name: player.name,
       reservedRegistrationId: reservationOf.get(player.id) ?? null,
+      // Pas encore retenue : l'enregistrement du cast le ferait
+      toRetain: toRetain.has(player.id),
       refusedTexts,
       hasAnswers
     })),
