@@ -198,7 +198,7 @@
                   <td class="py-2 pr-3">
                     <span>{{ line.playerId ? assistantPlayerName(line.playerId) : '—' }}</span>
                     <UBadge v-if="line.locked" color="neutral" variant="subtle" size="xs" class="ml-1">verrouillée</UBadge>
-                    <UBadge v-else-if="line.reservedRegistrationId" color="warning" variant="subtle" size="xs" class="ml-1">à confirmer</UBadge>
+                    <UBadge v-else-if="line.reservedRegistrationId" color="warning" variant="subtle" size="xs" class="ml-1">retenue à l’enregistrement, à confirmer</UBadge>
                   </td>
                   <td class="py-2 pr-3">{{ formatScore(line.score) }}</td>
                   <td class="py-2 text-xs text-gray-500">
@@ -228,7 +228,8 @@
             <details v-for="player in assistant.players" :key="player.id" class="mt-1">
               <summary class="cursor-pointer">
                 {{ player.name }}
-                <span v-if="player.reservedRegistrationId" class="text-xs text-warning-600">(en attente de confirmation)</span>
+                <span v-if="player.toRetain" class="text-xs text-gray-500">(pré-inscrite, pas encore retenue)</span>
+                <span v-else-if="player.reservedRegistrationId" class="text-xs text-warning-600">(en attente de confirmation)</span>
                 <span v-if="!player.hasAnswers" class="text-xs text-gray-500">(pas de réponses au questionnaire)</span>
               </summary>
               <ul class="mt-1 space-y-1 pl-4">

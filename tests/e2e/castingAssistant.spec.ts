@@ -4,6 +4,31 @@ import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
 import { parcoursSession, signIn } from './helpers'
 
+// US-170 : une pré-inscrite proposée est retenue à l'enregistrement, son personnage réservé
+test('l’assistant propose une pré-inscrite, retenue quand le cast s’enregistre', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const { session, game, participant } = await parcoursSession(prisma, 'Session pré-inscrite e2e')
+    const registration = await prisma.registration.findFirstOrThrow({ where: { participantId: participant('Léa Parcours').id, period: { gameId: game.id } } })
+    await prisma.registrationSession.create({ data: { registrationId: registration.id, sessionId: session.id, status: 'preregistered', answer: 'available' } })
+
+    await signIn(page, prisma, E2E_USERS.orga)
+    await page.goto(`/sessions/${session.slug}?tab=cast`)
+    await page.waitForLoadState('networkidle')
+    await page.getByRole('button', { name: 'Proposer une répartition' }).click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByText('retenue à l’enregistrement, à confirmer')).toBeVisible()
+    await dialog.getByRole('button', { name: 'Appliquer la proposition' }).click()
+    expect(await prisma.registrationSession.findFirst({ where: { registrationId: registration.id, sessionId: session.id }, select: { status: true } })).toEqual({ status: 'preregistered' })
+
+    await page.getByRole('button', { name: 'Enregistrer le cast' }).click()
+    await expect.poll(() => prisma.registrationSession.findFirst({ where: { registrationId: registration.id, sessionId: session.id }, select: { status: true } })).toEqual({ status: 'retained' })
+    expect(await prisma.sessionAssignment.count({ where: { sessionId: session.id, reservedRegistrationId: registration.id } })).toBe(1)
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
 test('l’assistant remplit le cast sans toucher à la ligne verrouillée, et rien n’est enregistré avant le clic', async ({ page }) => {
   const prisma = createTestPrisma()
   try {

@@ -161,6 +161,26 @@ async function assertManualRetainAllowed(db: PrismaTx, session: Pick<SelectableS
   }
 }
 
+/**
+ * Combien de personnes une organisatrice peut encore retenir à la main pour cette session, et ce qui l'en empêche sinon :
+ * les places (R8) et le mode de sélection (assertManualRetainAllowed). Sert à l'assistant de casting, qui ne propose pas
+ * plus de pré-inscrites que cela (R21).
+ */
+export async function manualRetainRoom(gameId: string, sessionId: string, userId: string) {
+  const session = (await selectableSessions({ gameId })).find((candidate) => candidate.id === sessionId)
+  if (!session) return { room: 0, reason: 'Cette session n’est plus prévue : personne ne peut y être retenu.' }
+  const taken = await prisma.registrationSession.count({ where: takenSeatsWhere([sessionId]) })
+  const free = Math.max(0, session.seats - taken)
+  const full = { room: free, reason: 'Plus de place libre pour cette session.' }
+  if (session.selectionMode === REGISTRATION_SELECTION_MODES.chosen || await activeDraw(sessionId)) return full
+  if (session.selectionMode === REGISTRATION_SELECTION_MODES.random) {
+    return { room: 0, reason: 'Cette session sélectionne au hasard : lancez d’abord le tirage.' }
+  }
+  const mine = await prisma.registrationSession.count({ where: { ...takenSeatsWhere([sessionId]), retainedById: userId } })
+  const picks = Math.max(0, (session.organizerPicks ?? 0) - mine)
+  return picks < free ? { room: picks, reason: 'Mode mixte : vous avez atteint votre nombre de personnes à retenir avant le tirage.' } : full
+}
+
 export async function lockSession(tx: PrismaTx, sessionId: string) {
   // Deux décisions simultanées pour la même session comptent les places l'une après l'autre
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`registration-seats:${sessionId}`}))`

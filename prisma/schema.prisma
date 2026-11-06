@@ -493,7 +493,7 @@ model RegistrationSession {
   // Organisatrice qui a retiré la personne ; null si elle a annulé elle-même
   cancelledById  String?
   cancelledBy    User?        @relation("RegistrationSessionCancellations", fields: [cancelledById], references: [id], onDelete: SetNull)
-  // Organisatrice qui a retenu la personne ; null pour le tirage ou l'assistant
+  // Organisatrice qui a retenu la personne, à la main ou en enregistrant le cast ; null pour le tirage
   retainedById   String?
   retainedBy     User?        @relation("RegistrationSessionRetentions", fields: [retainedById], references: [id], onDelete: SetNull)
   // Dernier statut annoncé à la personne (ADR-0047)

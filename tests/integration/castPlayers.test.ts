@@ -228,6 +228,60 @@ describe('choisir une personne du vivier dans le cast (R20)', () => {
     expect(await read(lone.id)).toMatchObject({ poolState: null, poolRegistrations: [] })
   })
 
+  it('l’assistant propose les pré-inscrites, pas le reste du vivier, et les retient à l’enregistrement (US-170)', async () => {
+    const pool = await castPool()
+    const anna = await addPerson(prisma, pool, 'Anna', [pool.session.id])
+    const bea = await addPerson(prisma, pool, 'Bea', [pool.session.id])
+    await addPerson(prisma, pool, 'Sans reponse')
+    const result = await api(alice, 'POST', `/api/sessions/${pool.session.id}/casting-assistant`, { assignments: [] })
+    expect(result.status, JSON.stringify(result.body)).toBe(200)
+    const body = bodyOf<ApiResponse<'/api/sessions/:id/casting-assistant', 'post'>>(result)
+    expect(body.players.map((player) => player.name).sort()).toEqual(['Anna', 'Bea'])
+    expect(body.unplaced).toEqual([])
+
+    const saved = await saveCast(pool, pool.session.id, body.proposal.map(({ characterId, reservedRegistrationId }) => ({ characterId, reservedRegistrationId })))
+    expect(saved.status, JSON.stringify(saved.body)).toBe(200)
+    for (const person of [anna, bea]) expect((await lineOf(prisma, person.id, pool.session.id))?.status).toBe('retained')
+  })
+
+  it('l’assistant ne propose pas plus de pré-inscrites que de places, et dit qui reste sans personnage (US-170)', async () => {
+    const pool = await castPool({ seats: 2 })
+    const taken = await addPerson(prisma, pool, 'Retenue')
+    await prisma.registrationSession.create({ data: { registrationId: taken.id, sessionId: pool.session.id, status: 'retained' } })
+    await addPerson(prisma, pool, 'Anna', [pool.session.id])
+    await addPerson(prisma, pool, 'Bea', [pool.session.id])
+    const body = bodyOf<ApiResponse<'/api/sessions/:id/casting-assistant', 'post'>>(await api(alice, 'POST', `/api/sessions/${pool.session.id}/casting-assistant`, { assignments: [] }))
+    const placed = body.proposal.filter((line) => line.playerId)
+    expect(placed).toHaveLength(2)
+    expect(placed.map((line) => line.playerId)).toContain(taken.participantId)
+    expect(body.unplaced).toEqual([expect.objectContaining({ reason: expect.stringContaining('Plus de place') })])
+  })
+
+  it('l’assistant ne propose pas une rejoueuse exclue (R24), et n’alerte que sur les personnes dans la session (R25)', async () => {
+    const pool = await castPool({ replayPolicy: 'excluded', seats: 1 })
+    const replayer = await addPerson(prisma, pool, 'Rejoueuse', [pool.session.id])
+    const past = await prisma.session.create({ data: { name: `Passée ${pool.key}`, slug: `passee-${pool.key}`, gameId: pool.game.id, status: 'completed' } })
+    await prisma.sessionParticipant.create({ data: { sessionId: past.id, participantId: replayer.participantId, role: 'participant' } })
+    const placed = await addPerson(prisma, pool, 'Anna', [pool.session.id])
+    const waiting = await addPerson(prisma, pool, 'Bea', [pool.session.id])
+    await prisma.registrationAffinity.create({ data: { registrationId: waiting.id, kind: 'avoid', text: 'Anna', position: 0, targetParticipantId: placed.participantId } })
+
+    const body = bodyOf<ApiResponse<'/api/sessions/:id/casting-assistant', 'post'>>(await api(alice, 'POST', `/api/sessions/${pool.session.id}/casting-assistant`, { assignments: [] }))
+    expect(body.players.map((player) => player.name).sort()).toEqual(['Anna', 'Bea'])
+    expect(body.players.every((player) => player.toRetain)).toBe(true)
+    // Une seule place : une seule des deux est dans la proposition, donc pas d'alerte
+    expect(body.proposal.filter((line) => line.playerId)).toHaveLength(1)
+    expect(body.avoidWarnings).toEqual([])
+  })
+
+  it('en mode hasard sans tirage, l’assistant écarte les pré-inscrites et le dit (US-170)', async () => {
+    const pool = await castPool({ selection: { selectionMode: 'random' } })
+    const anna = await addPerson(prisma, pool, 'Anna', [pool.session.id])
+    const body = bodyOf<ApiResponse<'/api/sessions/:id/casting-assistant', 'post'>>(await api(alice, 'POST', `/api/sessions/${pool.session.id}/casting-assistant`, { assignments: [] }))
+    expect(body.proposal.every((line) => !line.playerId)).toBe(true)
+    expect(body.unplaced).toEqual([{ playerId: anna.participantId, reason: expect.stringContaining('tirage') }])
+  })
+
   it('l’assistant de casting compte une personne choisie dans le formulaire, pas encore enregistrée', async () => {
     const pool = await castPool()
     const lea = await addPerson(prisma, pool, 'Léa', [pool.session.id])

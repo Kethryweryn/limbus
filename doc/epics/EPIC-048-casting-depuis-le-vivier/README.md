@@ -1,7 +1,7 @@
 ---
 id: EPIC-048
 titre: Casting depuis le vivier
-statut: à faire
+statut: en cours
 spec: ../../specs/SPEC-018-vivier-permanent.md
 date: 2026-11-06
 ---
@@ -16,7 +16,7 @@ L'assistant part des pré-inscrits, l'équipe garde la main sur chaque email, el
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-170](US-170-assistant-sur-les-pre-inscrits.md) | Proposer le casting parmi les pré-inscrits | à faire |
+| [US-170](US-170-assistant-sur-les-pre-inscrits.md) | Proposer le casting parmi les pré-inscrits | terminée |
 | [US-172](US-172-annoncer-le-casting.md) | Annoncer le casting, puis écrire au cas par cas | à faire |
 | [US-173](US-173-reponses-modifiees.md) | Être prévenue quand une personne castée change ses réponses | à faire |
 | [US-174](US-174-parcours-complet.md) | Lire le parcours complet d'une personne | à faire |
