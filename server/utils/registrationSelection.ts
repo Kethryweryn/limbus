@@ -251,6 +251,8 @@ export async function writeSelection(tx: PrismaTx, { registration, session }: Se
       waitlistPosition: null,
       retainedById: author.id,
       ignoredStatus: null,
+      // Un repère d'avant son retour au cast ne parle plus de ce casting (R16)
+      answersChangedAt: null,
       ...fromCancelled,
       ...(announced ? {} : { responseDueAt: null, lastRemindedAt: null })
     }

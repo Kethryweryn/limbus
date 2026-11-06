@@ -11,7 +11,7 @@ import { countPlayableCharacters, offeredSessions, takenSeatsWhere } from '~/ser
 import { joinSession, lockSession } from '~/server/utils/registrationSelection'
 import { readZodBody } from '~/server/utils/schemas'
 import { REGISTRATION_ANSWERS, REGISTRATION_CANCELLABLE_STATUSES, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
-import { isUpcomingSession } from '~/utils/registrationPeriods'
+import { isUpcomingSession, startOfDay } from '~/utils/registrationPeriods'
 import { canConfirmPlace, isResponseOverdue, splitParticipantName, visibleLineStatus } from '~/utils/registrations'
 import {
   DEFAULT_REGISTRATION_FORM_DEFINITION,
@@ -322,6 +322,7 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
   }
   const proposed = availableSessionIds ? await proposedSessions(registration) : []
   const seats = accepting && registration.invitedSession ? await countPlayableCharacters(registration.period.gameId) : 0
+  const changed = !accepting && answersDiffer(registration, allAnswers, definition)
   const previouslyChecked = new Set(registration.sessionLines.filter(saysAvailable).map((line) => line.sessionId))
 
   const outcome = await prisma.$transaction(async (tx) => {
@@ -345,6 +346,17 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
       if (effect === 'removed') removed.push(session.name)
     }
 
+    // Castée ou inscrite pour une session à venir : le repère apparaît, et l'équipe est prévenue (R16)
+    const changedLines = changed
+      ? await tx.registrationSession.findMany({
+          where: { registrationId: registration.id, status: { in: [LINE.retained, LINE.confirmed] }, session: { status: SESSION_STATUSES.scheduled, OR: [{ date: null }, { date: { gte: startOfDay(now) } }] } },
+          select: { id: true, session: { select: { name: true } } }
+        })
+      : []
+    if (changedLines.length) {
+      await tx.registrationSession.updateMany({ where: { id: { in: changedLines.map((line) => line.id) } }, data: { answersChangedAt: now } })
+    }
+
     // Invitation pour une session (R4) : inscrite si elle s'y dit disponible et qu'il reste une place
     let fullSession: string | null = null
     const invitedTo = accepting ? registration.invitedSession : null
@@ -363,7 +375,7 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
 
     // L'adresse donnée fait foi ; le rattachement au compte la suit (US-070)
     await tx.participant.update({ where: { id: registration.participantId }, data: { email: answers.email, userId: await accountIdForEmail(answers.email) } })
-    return { kept, removed, fullSession }
+    return { kept, removed, fullSession, changedSessions: changedLines.map((line) => line.session.name) }
   })
 
   // Réponse depuis le compte : elle met aussi à jour ses coordonnées, recopiées ensuite partout (US-074). Pas par
@@ -374,6 +386,10 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
   const name = registration.participant.name
   const gameTitle = registration.period.game.title
   notifyRemovedFromCast(registration, outcome.removed)
+  // Sans recopier les réponses : l'équipe les lit dans Limbus
+  if (outcome.changedSessions.length) {
+    notifyTeam(registration, `${name} a modifié ses réponses au questionnaire de « ${gameTitle} », alors qu’une place lui est retenue ou confirmée pour ${outcome.changedSessions.map((session) => `« ${session} »`).join(', ')}. Relisez-les depuis la page Inscriptions, et revoyez son casting si besoin.`, `Réponses modifiées : ${name} (${gameTitle})`)
+  }
   if (outcome.fullSession) {
     notifyTeam(registration, `${name} a répondu à votre invitation pour la session « ${outcome.fullSession} » (${gameTitle}), mais la session est complète : la personne reste pré-inscrite. Créez un personnage pour ajouter une place.`, `Session complète : ${name} (${gameTitle})`)
   }
@@ -419,6 +435,27 @@ export async function answerSessionAvailability(registration: PublicRegistration
   })
   if (effect === 'removed') notifyRemovedFromCast(registration, [line!.session.name])
   return effect
+}
+
+// Objet aux clés triées, listes vides retirées : deux réponses identiques se comparent à l'identique
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical)
+  if (value === null || typeof value !== 'object') return value === '' ? null : value ?? null
+  const entries = Object.entries(value)
+    .filter(([, item]) => item !== undefined && item !== null && item !== '' && !(Array.isArray(item) && !item.length))
+    .sort(([left], [right]) => left.localeCompare(right))
+  return Object.fromEntries(entries.map(([key, item]) => [key, canonical(item)]))
+}
+
+// Ce que la personne envoie diffère-t-il de ce qui est enregistré ? Ses disponibilités suivent leurs propres règles (R29),
+// et la réponse à une question retirée du questionnaire n'est pas un changement de sa part (R15)
+function answersDiffer(registration: PublicRegistration, { affinities, questionAnswers, availableSessionIds: _availability, ...fields }: RegistrationAnswers, definition: RegistrationFormDefinition) {
+  const saved = Object.fromEntries(Object.keys(fields).map((key) => [key, registration[key as keyof PublicRegistration]]))
+  const asked = new Set(definition.questions?.map((question) => question.id))
+  const savedAnswers = Object.fromEntries(Object.entries((registration.questionAnswers ?? {}) as QuestionAnswers).filter(([id]) => asked.has(id)))
+  const before = { ...saved, questionAnswers: savedAnswers, affinities: groupAffinities(registration.affinities) }
+  const after = { ...fields, questionAnswers: questionAnswers ?? {}, affinities: affinities ?? {} }
+  return JSON.stringify(canonical(before)) !== JSON.stringify(canonical(after))
 }
 
 // Coordonnées du compte reprises d'une réponse faite connectée ; un champ que ce formulaire ne demande pas ne les touche pas

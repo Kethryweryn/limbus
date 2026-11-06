@@ -166,6 +166,7 @@
           <RegistrationSelectionName :registration="registration" :line="lineOf(registration, session)" :replayer="isReplayer(registration)" :alert="alerted(session, registration)" :wishes="wishLabels(registration, session)" :to-link="toLink(registration)" />
           <div class="flex shrink-0 flex-wrap gap-2">
             <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="showDetail(registration)">Détail</UButton>
+            <UButton v-if="lineOf(registration, session)?.answersChangedAt" size="xs" color="warning" variant="soft" icon="i-heroicons-check" @click="markAnswersRead(registration, session)">Marquer comme lu</UButton>
             <template v-if="lineOf(registration, session)?.status === LINE.retained">
               <template v-if="canConfirmPlace(lineOf(registration, session)!)">
                 <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-bell-alert" @click="remind(registration, session.id)">Relancer</UButton>
@@ -623,6 +624,11 @@ async function announce(session: SelectionSession) {
     announcing.value = null
   }
   await refresh()
+}
+
+// Le repère disparaît pour toute l'équipe (R16)
+function markAnswersRead(registration: PeriodRegistration, session: SelectionSession) {
+  return selectionWrite(() => useApiAction(`/api/registrations/${registration.id}/answers-read`, { method: 'POST', body: { sessionId: session.id } }), 'Impossible de marquer comme lu')
 }
 
 async function answerProposal(registration: PeriodRegistration, session: SelectionSession, action: 'send' | 'ignore') {

@@ -346,6 +346,10 @@ describe('Station Meridian, avant les sessions', () => {
     expect(links.some((link) => link.castAnnouncedAt && pending(link))).toBe(true)
   })
 
+  it('a une personne castée dont les réponses ont changé (R16)', async () => {
+    expect(await prisma.registrationSession.count({ where: { registration: { period: { gameId: meridian } }, answersChangedAt: { not: null } } })).toBe(1)
+  })
+
   it('a une session déjà demandée au vivier, à relancer (R12)', async () => {
     expect(await prisma.registrationPeriodSession.count({ where: { period: { gameId: meridian }, open: true, lastRequestedAt: { not: null } } })).toBe(1)
   })

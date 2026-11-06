@@ -152,6 +152,7 @@ Données personnelles : les disponibilités et les statuts par session sont couv
 - 2026-11-06 : création à partir du retour A4-4 du cahier de tests.
 - 2026-11-06 : EPIC-046 livré sauf US-176 (tout joueur passe par le questionnaire), qui suit dans sa propre PR.
 - 2026-11-06 : US-176 livrée : l'onglet Cast choisit dans le vivier, ce qui retient la personne (R20), ou invite pour la session ; toute autre personne est refusée comme joueur.
+- 2026-11-06 : US-173 livrée : repère « réponses modifiées » et email à l'équipe (R16).
 - 2026-11-06 : US-172 livrée : annonce du casting par session, puis email proposé personne par personne (R26 à R28).
 - 2026-11-06 : US-170 livrée : l'assistant de casting propose les pré-inscrits, dans la limite des places et du mode de sélection (R21).
 - 2026-11-06 : EPIC-047 livré : demande de disponibilités, réponse d'un clic, relance, liens durables et dernière version du questionnaire.
