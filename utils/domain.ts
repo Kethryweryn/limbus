@@ -225,6 +225,15 @@ export const REGISTRATION_SEAT_STATUSES: string[] = [
   REGISTRATION_SESSION_STATUSES.confirmed
 ]
 
+// Une présence qu'on peut annuler (R19) ; « pas disponible » n'en est pas une, et une annulation l'est déjà
+export const REGISTRATION_CANCELLABLE_STATUSES: string[] = [
+  REGISTRATION_SESSION_STATUSES.preregistered,
+  REGISTRATION_SESSION_STATUSES.waitlisted,
+  REGISTRATION_SESSION_STATUSES.retained,
+  REGISTRATION_SESSION_STATUSES.confirmed,
+  REGISTRATION_SESSION_STATUSES.transferred
+]
+
 // Décisions de sélection pour une session (R20)
 export const REGISTRATION_SELECTION_ACTIONS = ['retain', 'waitlist', 'unwaitlist', 'reset'] as const
 

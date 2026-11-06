@@ -289,6 +289,12 @@ describe('disponibilités (R7, R29)', () => {
   const save = (path: string, availableSessionIds: string[]) => publicApi('PUT', path, answers({ availableSessionIds }))
   const key = (registrationId: string, sessionId: string) => ({ registrationId_sessionId: { registrationId, sessionId } })
 
+  it('un enregistrement sans ce champ ne change aucune disponibilité', async () => {
+    const { first, person, path } = await member()
+    expect((await publicApi('PUT', path, answers())).status).toBe(200)
+    expect(await lineOf(prisma, person.id, first.id)).toMatchObject({ status: 'preregistered', answer: 'available' })
+  })
+
   it('propose les sessions ouvertes, et aucune n’est obligatoire', async () => {
     const { first, second, person, path } = await member()
     const view = await publicApi('GET', path)
@@ -426,7 +432,7 @@ describe('annuler sa présence à une session (R19)', () => {
 
     // Après la réponse : trombinoscopes régénérés sans elle, puis email aux organisateurs
     await expect.poll(() => smtp.received.slice(sentBefore).find((message) => message.to.includes('alice@example.test'))?.text, { timeout: 10_000 })
-      .toContain(`${participant.name} a annulé sa présence de la session ${session.name}`)
+      .toContain(`${participant.name} a annulé sa présence à la session ${session.name}`)
     const notice = smtp.received.slice(sentBefore).find((message) => message.to.includes('alice@example.test'))!
     expect(notice.text).toContain('trombinoscopes de la session ont été régénérés')
     expect(await prisma.sessionTrombinoscope.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(0)
@@ -434,13 +440,27 @@ describe('annuler sa présence à une session (R19)', () => {
     // Une seconde annulation n'a rien à annuler ; elle peut se dire de nouveau disponible si la session est proposée
     expect((await publicApi('POST', `${path}/cancel`, { sessionId: session.id })).status).toBe(409)
     await prisma.registrationPeriodSession.update({ where: { sessionId: session.id }, data: { open: true } })
+    expect((await publicApi('GET', path)).body).toMatchObject({ answers: { availableSessionIds: [] } })
     expect((await publicApi('PUT', path, answers({ availableSessionIds: [session.id] }))).status).toBe(200)
+    expect(await lineOf(prisma, registration.id, session.id)).toMatchObject({ status: 'preregistered', answer: 'available', cancelledAt: null })
   })
 
-  it('une session sans présence n’a rien à annuler', async () => {
-    const { path, session } = await invitation()
+  it('une session sans présence n’a rien à annuler, et le refus ne révèle pas une décision non annoncée (R28)', async () => {
+    const { path, session, registration } = await invitation()
     await publicApi('PUT', path, answers())
     expect((await publicApi('POST', `${path}/cancel`, { sessionId: session.id })).status).toBe(409)
+    await prisma.registrationSession.create({ data: { registrationId: registration.id, sessionId: session.id, status: 'retained', retainedById: alice.id } })
+    expect((await publicApi('POST', `${path}/cancel`, { sessionId: session.id })).status).toBe(409)
+    expect(await lineOf(prisma, registration.id, session.id)).toMatchObject({ status: 'retained' })
+  })
+
+  it('une session qui n’est plus à venir ne s’annule pas', async () => {
+    const { path, session, registration } = await invitation()
+    await publicApi('PUT', path, answers())
+    await prisma.registrationSession.create({ data: { registrationId: registration.id, sessionId: session.id, status: 'confirmed', answer: 'available' } })
+    await prisma.session.update({ where: { id: session.id }, data: { status: 'completed' } })
+    expect((await publicApi('POST', `${path}/cancel`, { sessionId: session.id })).status).toBe(409)
+    expect(await lineOf(prisma, registration.id, session.id)).toMatchObject({ status: 'confirmed' })
   })
 })
 

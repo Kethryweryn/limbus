@@ -1,10 +1,11 @@
-import { prisma } from '~/server/utils/prisma'
+import { prisma, type PrismaTx } from '~/server/utils/prisma'
 import { openEmailTransport } from '~/server/utils/email'
 import { countPlayableCharacters, takenSeatsWhere } from '~/server/utils/registrationPeriods'
 import { affinityOverview } from '~/server/utils/registrationAffinities'
 import { createRegistrationToken, registrationResponseDueAt, registrationUrl, selectionAnnouncementEmail } from '~/server/utils/registrations'
 import {
   REGISTRATION_ANSWERS,
+  REGISTRATION_DEFAULT_WAITLIST_SIZE,
   REGISTRATION_REPLAY_POLICIES,
   REGISTRATION_SELECTION_MODES,
   REGISTRATION_SELECTION_STATUSES,
@@ -18,8 +19,6 @@ import { isOpenableSession } from '~/utils/registrationPeriods'
 import { canConfirmPlace, isAnnouncementPending } from '~/utils/registrations'
 
 export type SelectionAction = typeof REGISTRATION_SELECTION_ACTIONS[number]
-type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
-
 const selectionPeriodSelect = {
   id: true,
   gameId: true,
@@ -67,7 +66,7 @@ export async function selectableSessions(period: { gameId: string }) {
     organizerPicks: link?.organizerPicks ?? null,
     weightNotDrawnBefore: link?.weightNotDrawnBefore ?? false,
     weightBalance: link?.weightBalance ?? false,
-    waitlistSize: link?.waitlistSize ?? 5
+    waitlistSize: link?.waitlistSize ?? REGISTRATION_DEFAULT_WAITLIST_SIZE
   }))
 }
 
@@ -145,13 +144,13 @@ export async function assertManualRetainAllowed(session: Pick<SelectableSession,
   }
 }
 
-export async function lockSession(tx: Tx, sessionId: string) {
+export async function lockSession(tx: PrismaTx, sessionId: string) {
   // Deux décisions simultanées pour la même session comptent les places l'une après l'autre
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`registration-seats:${sessionId}`}))`
 }
 
 // Une session recrutée par le vivier a sa ligne, même si l'équipe ne l'a jamais ouverte (ADR-0069)
-export async function ensureSessionLink(tx: Tx, periodId: string, sessionId: string) {
+export async function ensureSessionLink(tx: PrismaTx, periodId: string, sessionId: string) {
   await tx.registrationPeriodSession.upsert({ where: { sessionId }, update: {}, create: { periodId, sessionId } })
 }
 
@@ -188,6 +187,8 @@ export async function applySelection(registrationId: string, action: SelectionAc
       throw createError({ statusCode: 409, message: 'Cette personne a confirmé sa présence : passez par l’annulation.' })
     }
     await ensureSessionLink(tx, registration.periodId, sessionId)
+    // La version de la personne suit ses décisions : un assistant qui l'a lue avant ne les écrase pas
+    await tx.registration.update({ where: { id: registrationId }, data: { updatedAt: new Date() } })
     // Une annulation repart de zéro : ce qui lui avait été annoncé ne vaut plus
     const fromCancelled = line?.status === LINE.cancelled ? { announcedStatus: null, announcedAt: null, cancelledAt: null, cancelledById: null } : {}
 
@@ -230,7 +231,7 @@ export async function applySelection(registrationId: string, action: SelectionAc
  * disparaît ; si une place lui avait été annoncée, elle passe à « annulation » (R17).
  */
 async function backToAnswer(
-  tx: Tx,
+  tx: PrismaTx,
   registrationId: string,
   sessionId: string,
   line: { status: string, answer: string | null, announcedStatus: string | null },
@@ -304,26 +305,33 @@ export async function announceSelection(periodId: string) {
       const { token, tokenHash } = createRegistrationToken()
       const common = { participantName, gameTitle: period.game.title, url: registrationUrl(token) }
       const waiting = pending.filter((line) => line.status === LINE.waitlisted)
-      const emails = [
-        ...pending.filter((line) => line.status === LINE.retained).map((line) => selectionAnnouncementEmail({ ...common, status: LINE.retained, sessions: [line.session], responseDueAt })),
-        ...(waiting.length ? [selectionAnnouncementEmail({ ...common, status: LINE.waitlisted, sessions: waiting.map((line) => line.session), responseDueAt: null })] : [])
+      const parts = [
+        ...pending.filter((line) => line.status === LINE.retained).map((line) => ({ lines: [line], email: selectionAnnouncementEmail({ ...common, status: LINE.retained, sessions: [line.session], responseDueAt }) })),
+        ...(waiting.length ? [{ lines: waiting, email: selectionAnnouncementEmail({ ...common, status: LINE.waitlisted, sessions: waiting.map((line) => line.session), responseDueAt: null }) }] : [])
       ]
-      try {
-        for (const email of emails) await transport.send({ to: registration.email, ...email })
-      } catch (error) {
-        results.push({ participantName, sent: false, message: (error as { message?: string })?.message || 'Erreur SMTP' })
-        continue
-      }
-      await prisma.$transaction(async (tx) => {
-        await tx.registration.update({ where: { id: registration.id }, data: { tokenHash } })
-        for (const line of pending) {
-          await tx.registrationSession.updateMany({
-            where: { id: line.id, status: line.status },
-            data: { announcedStatus: line.status, announcedAt: now, ...(line.status === LINE.retained ? { responseDueAt } : {}) }
-          })
+      // Enregistré dès le premier email parti : son lien doit marcher, même si un email suivant échoue. Ce qui n'est pas
+      // parti reste à annoncer
+      let failure: string | null = null
+      let linkSaved = false
+      for (const { lines, email } of parts) {
+        try {
+          await transport.send({ to: registration.email, ...email })
+        } catch (error) {
+          failure = (error as { message?: string })?.message || 'Erreur SMTP'
+          break
         }
-      })
-      results.push({ participantName, sent: true, message: null })
+        await prisma.$transaction(async (tx) => {
+          if (!linkSaved) await tx.registration.update({ where: { id: registration.id }, data: { tokenHash } })
+          for (const line of lines) {
+            await tx.registrationSession.updateMany({
+              where: { id: line.id, status: line.status },
+              data: { announcedStatus: line.status, announcedAt: now, ...(line.status === LINE.retained ? { responseDueAt } : {}) }
+            })
+          }
+        })
+        linkSaved = true
+      }
+      results.push({ participantName, sent: !failure, message: failure })
     }
   } finally {
     transport?.close()
@@ -363,7 +371,7 @@ export async function confirmLine(registration: { id: string, participantId: str
 }
 
 // La personne entre dans la session (SPEC-001, R22) ; le personnage qui lui était réservé devient le sien (US-100, ADR-0051)
-export async function joinSession(tx: Tx, registration: { id: string, participantId: string }, sessionId: string) {
+export async function joinSession(tx: PrismaTx, registration: { id: string, participantId: string }, sessionId: string) {
   const key = { sessionId, participantId: registration.participantId, role: SESSION_ROLES.participant }
   await tx.sessionParticipant.upsert({ where: { sessionId_participantId_role: key }, update: {}, create: key })
   await tx.sessionAssignment.updateMany({

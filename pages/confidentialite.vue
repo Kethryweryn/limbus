@@ -22,7 +22,7 @@
     <ul>
       <li><strong>Compte</strong> : nom, email, mot de passe (jamais en clair), date d’acceptation des conditions, et la date de votre dernière connexion. Pour vous connecter, organiser vos jeux et participer à ceux des autres.</li>
       <li><strong>Coordonnées</strong>, si vous les donnez : téléphone, contact d’urgence, régime alimentaire et allergies. Elles sont transmises aux équipes de vos jeux, pour l’organisation, votre sécurité et les repas.</li>
-      <li><strong>Inscription à un jeu</strong> : identité, coordonnées, réponses au questionnaire de l’équipe, personnes avec qui vous voulez jouer ou non, disponibilités. Pour la sélection et la distribution des rôles.</li>
+      <li><strong>Inscription à un jeu</strong> : identité, coordonnées, réponses au questionnaire de l’équipe, personnes avec qui vous voulez jouer ou non, disponibilités. Pour la sélection et la distribution des rôles. Votre lien personnel vous permet de revoir ces réponses : il reste valable tant que vous êtes dans le vivier du jeu, et l’équipe peut le renouveler à votre demande.</li>
       <li><strong>Photos</strong> ajoutées par l’équipe : pour le trombinoscope de la session. Le formulaire et les emails précisent leur usage et leur durée.</li>
       <li><strong>Paiements</strong> : montants, dates et remboursements notés par l’équipe, et le RIB que l’équipe dépose pour être payée, transmis aux joueurs de la session. Limbus ne traite aucun paiement en ligne et ne connaît aucune carte bancaire.</li>
       <li><strong>Emails envoyés</strong> par l’équipe (documents, fiches, trombinoscopes) : une copie est gardée pour que vous la retrouviez dans « Je participe ».</li>

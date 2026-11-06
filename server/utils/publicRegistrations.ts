@@ -11,7 +11,8 @@ import { countPlayableCharacters, offeredSessions, takenSeatsWhere } from '~/ser
 import { joinSession, lockSession } from '~/server/utils/registrationSelection'
 import { getCurrentRegistrationForm, saveRegistrationFormDefinition, withGameBalanceQuestion, type AffinityAnswers, type QuestionAnswers } from '~/server/utils/registrationForms'
 import { readZodBody } from '~/server/utils/schemas'
-import { REGISTRATION_ANSWERS, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
+import { REGISTRATION_ANSWERS, REGISTRATION_CANCELLABLE_STATUSES, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
+import { isUpcomingSession } from '~/utils/registrationPeriods'
 import { canConfirmPlace, isResponseOverdue, splitParticipantName, visibleLineStatus } from '~/utils/registrations'
 import {
   DEFAULT_REGISTRATION_FORM_DEFINITION,
@@ -152,17 +153,19 @@ export function visibleSessionLines(lines: PublicRegistration['sessionLines'], n
       overdue: confirmable && isResponseOverdue(line, now),
       confirmedAt: status === LINE.confirmed ? line.confirmedAt : null,
       canConfirmPlace: confirmable,
-      canCancel: [LINE.preregistered, LINE.waitlisted, LINE.retained, LINE.confirmed, LINE.transferred].includes(status as never)
-        && line.session.status === SESSION_STATUSES.scheduled
+      canCancel: REGISTRATION_CANCELLABLE_STATUSES.includes(status) && line.session.status === SESSION_STATUSES.scheduled
     }]
   })
 }
 
-// Une session encore à venir (R4), datée ou non
-function isUpcomingSession(session: { date: Date | null, status: string }, now = new Date()) {
-  const today = new Date(now)
-  today.setHours(0, 0, 0, 0)
-  return session.status === SESSION_STATUSES.scheduled && (!session.date || session.date.getTime() >= today.getTime())
+// Case cochée pour une session : sa dernière réponse (R28), sauf si elle a annulé depuis : elle peut alors s'y redire disponible (R19)
+const saysAvailable = (line: PublicRegistration['sessionLines'][number]) => line.answer === REGISTRATION_ANSWERS.available && visibleLineStatus(line) !== LINE.cancelled
+
+// La personne n'annule que ce qu'elle voit, pour une session à venir : le refus ne révèle rien d'une décision non annoncée (R28)
+export function assertCanCancelSession(registration: PublicRegistration, sessionId: string) {
+  if (!visibleSessionLines(registration.sessionLines).some((line) => line.sessionId === sessionId && line.canCancel)) {
+    throw createError({ statusCode: 409, message: 'Il n’y a pas de présence à annuler pour cette session.' })
+  }
 }
 
 // Sessions que le questionnaire propose à cette personne (R7), et celle que vise son invitation (R4)
@@ -266,7 +269,7 @@ export async function exposePublicRegistration(registration: PublicRegistration,
       balancePreference: registration.balancePreference ?? (answered ? REGISTRATION_BALANCE_ANY : null),
       // Sa dernière réponse (R28) : une décision non annoncée ne se devine pas ici
       availableSessionIds: registration.sessionLines
-        .filter((line) => line.answer === REGISTRATION_ANSWERS.available && proposedIds.has(line.sessionId))
+        .filter((line) => saysAvailable(line) && proposedIds.has(line.sessionId))
         .map((line) => line.sessionId)
     }
   }
@@ -326,7 +329,7 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
   }
   const proposed = availableSessionIds ? await proposedSessions(registration) : []
   const seats = accepting && registration.invitedSession ? await countPlayableCharacters(registration.period.gameId) : 0
-  const previousAnswers = new Map(registration.sessionLines.map((line) => [line.sessionId, line.answer]))
+  const previouslyChecked = new Set(registration.sessionLines.filter(saysAvailable).map((line) => line.sessionId))
 
   const outcome = await prisma.$transaction(async (tx) => {
     // Le statut est revérifié dans l'écriture : une libération ou une sortie simultanée l'emporte
@@ -342,9 +345,8 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
     const removed: string[] = []
     for (const session of proposed) {
       const checked = availableSessionIds!.includes(session.id)
-      const wasChecked = previousAnswers.get(session.id) === REGISTRATION_ANSWERS.available
       // Une date jamais cochée reste sans réponse (R7)
-      if (checked === wasChecked) continue
+      if (checked === previouslyChecked.has(session.id)) continue
       const effect = await answerAvailability(tx, registration.id, session.id, checked, now)
       if (effect === 'kept') kept.push(session.name)
       if (effect === 'removed') removed.push(session.name)

@@ -156,7 +156,7 @@ describe('rethrowAlreadyRegistered', () => {
 describe('email de désistement aux organisateurs (US-006)', () => {
   it('distingue le désistement par la personne du retrait par une organisatrice', () => {
     const base = { participantName: 'Zoé', gameTitle: 'Les Ombres', sessionName: 'Printemps', trombinoscopes: null }
-    expect(registrationWithdrawalEmailText({ ...base, withdrawnBy: null })).toContain('Zoé a annulé sa présence de la session Printemps au jeu « Les Ombres ».')
+    expect(registrationWithdrawalEmailText({ ...base, withdrawnBy: null })).toContain('Zoé a annulé sa présence à la session Printemps du jeu « Les Ombres ».')
     expect(registrationWithdrawalEmailText({ ...base, withdrawnBy: 'Alice' })).toContain('Alice a retiré Zoé de la session Printemps du jeu « Les Ombres ».')
     expect(registrationWithdrawalEmailText({ ...base, withdrawnBy: null, wasInSession: true })).toContain('à traiter à la main')
     expect(registrationWithdrawalEmailText({ ...base, withdrawnBy: null })).not.toContain('à traiter à la main')

@@ -1,18 +1,16 @@
 import { z } from 'zod'
-import type { prisma } from '~/server/utils/prisma'
+import type { PrismaTx } from '~/server/utils/prisma'
 import { REGISTRATION_ANSWERS, REGISTRATION_SESSION_STATUSES as LINE } from '~/utils/domain'
 import { canConfirmPlace } from '~/utils/registrations'
 
-type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
-
-// Sessions cochées par la personne (R7) : parmi celles qu'on lui propose, et aucune si elle veut
+// Sessions cochées par la personne (R7) : parmi celles qu'on lui propose, et aucune si elle veut. Champ absent : rien ne change
 export function availabilitySchema(sessionIds: string[]) {
   const ids = new Set(sessionIds)
   return z.object({
     availableSessionIds: z.array(z.string(), { error: 'Disponibilités invalides' })
-      .default([])
       .refine((values) => values.every((id) => ids.has(id)), 'Cette session n’est plus proposée : rechargez la page.')
       .transform((values) => [...new Set(values)])
+      .optional()
   })
 }
 
@@ -26,7 +24,7 @@ export type AvailabilityEffect = 'none' | 'changed' | 'kept' | 'removed'
  *   annonce, elle est retirée du cast et son personnage redevient libre (effet « removed » : l'équipe est prévenue) ;
  *   retenue et annoncée, inscrite ou transférée, rien ne change (effet « kept » : la page renvoie vers l'annulation).
  */
-export async function answerAvailability(tx: Tx, registrationId: string, sessionId: string, available: boolean, now = new Date()): Promise<AvailabilityEffect> {
+export async function answerAvailability(tx: PrismaTx, registrationId: string, sessionId: string, available: boolean, now = new Date()): Promise<AvailabilityEffect> {
   const key = { registrationId_sessionId: { registrationId, sessionId } }
   const line = await tx.registrationSession.findUnique({ where: key, select: { status: true, announcedStatus: true } })
   const answer = available ? REGISTRATION_ANSWERS.available : REGISTRATION_ANSWERS.unavailable

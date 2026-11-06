@@ -1,4 +1,4 @@
-import { prisma } from '~/server/utils/prisma'
+import { prisma, type PrismaTx } from '~/server/utils/prisma'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
 import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
 import { publicAppUrl } from '~/server/utils/appUrl'
@@ -60,8 +60,6 @@ export function exposeParticipantsGames<T extends ParticipantWithGameLinks>(part
  * restent, affichés à part (ADR-0033). Les trombinoscopes déjà générés sont refaits sans elle, sans
  * faire échouer le retrait.
  */
-type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
-
 /**
  * Retrait d'une personne de jeux (US-035), en deux temps : apply dans la transaction de l'appelant, avec la mise à
  * jour de la fiche ; afterCommit ensuite (fichiers, trombinoscopes), une fois le retrait enregistré.
@@ -78,7 +76,7 @@ export async function planParticipantRemoval(participantId: string, gameIds: str
   const sessionIds = [...new Set([...roles, ...assignments, ...responsibilities, ...attendances].map((item) => item.sessionId))]
   const now = new Date()
 
-  const apply = async (tx: Tx) => {
+  const apply = async (tx: PrismaTx) => {
     await tx.participantGame.deleteMany({ where: { participantId, gameId: { in: gameIds } } })
     await tx.sessionParticipant.deleteMany({ where: inSessions })
     await tx.timelineEventResponsible.deleteMany({ where: inSessions })

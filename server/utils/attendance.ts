@@ -4,7 +4,7 @@ import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
 import { openEmailTransport, sendEmail } from '~/server/utils/email'
 import { createRegistrationToken, hashRegistrationToken } from '~/server/utils/registrations'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
-import { REGISTRATION_SESSION_STATUSES as LINE } from '~/utils/domain'
+import { REFUND_STATUSES, REGISTRATION_SESSION_STATUSES as LINE } from '~/utils/domain'
 import {
   ATTENDANCE_STATUSES,
   attendanceDisplayStatus,
@@ -291,12 +291,21 @@ export async function exposeAttendanceByToken(token: string | undefined, now = n
 
 /**
  * Réponse à la demande de présence d'une session reportée (R30) : « pas disponible » met la personne en annulation sur
- * les deux sessions ; revenir sur cette réponse avant la date limite lui rend sa place et son transfert.
+ * les deux sessions. Revenir sur cette réponse avant la date limite ne rend que ce qu'elle a retiré : une annulation
+ * sans ce refus, ou un paiement marqué à rembourser depuis, ne se défait pas (R30).
  */
-async function followAttendanceAnswer(sessionId: string, participantId: string, answer: 'confirmed' | 'declined', now: Date) {
+async function followAttendanceAnswer(attendance: { sessionId: string, participantId: string, status: string }, answer: 'confirmed' | 'declined', now: Date) {
+  const { sessionId, participantId } = attendance
   const { postponedFrom } = await prisma.session.findUniqueOrThrow({ where: { id: sessionId }, select: { postponedFrom: { select: { id: true } } } })
   const registration = { participantId }
   const declined = answer === ATTENDANCE_STATUSES.declined
+  if (!declined) {
+    if (attendance.status !== ATTENDANCE_STATUSES.declined) return
+    const refunded = await prisma.sessionPayment.count({
+      where: { participantId, sessionId: { in: [sessionId, ...(postponedFrom ? [postponedFrom.id] : [])] }, refundStatus: { in: [REFUND_STATUSES.toRefund, REFUND_STATUSES.refunded] } }
+    })
+    if (refunded) return
+  }
   await prisma.registrationSession.updateMany({
     where: { sessionId, registration, status: declined ? LINE.confirmed : LINE.cancelled, cancelledById: null },
     data: declined ? { status: LINE.cancelled, cancelledAt: now } : { status: LINE.confirmed, cancelledAt: null }
@@ -319,6 +328,6 @@ export async function answerAttendanceByToken(token: string | undefined, answer:
     data: { status: answer, respondedAt: now }
   })
   if (!updated.count) throw createError({ statusCode: 404, message: INVALID_ATTENDANCE_LINK_MESSAGE })
-  await followAttendanceAnswer(attendance.sessionId, attendance.participantId, answer, now)
+  await followAttendanceAnswer(attendance, answer, now)
   return await exposeAttendanceByToken(token, now)
 }

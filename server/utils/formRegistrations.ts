@@ -136,7 +136,7 @@ export async function submitFormRegistration(event: H3Event, publicId: string | 
   const form = await getCurrentRegistrationForm(period.gameId)
   const { charterAccepted: _charterAccepted, healthConsent: _healthConsent, ...answers } = await readZodBody(event, registrationAnswerSchema(form.definition))
   const offered = await offeredSessions(period.id)
-  const { availableSessionIds } = await readZodBody(event, availabilitySchema(offered.map((session) => session.id)))
+  const { availableSessionIds = [] } = await readZodBody(event, availabilitySchema(offered.map((session) => session.id)))
   const account = await optionalAccount(event)
   if (typeof raw?.website === 'string' && raw.website.trim()) {
     return { received: Boolean(account), emailSent: !account }

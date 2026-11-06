@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cosineSimilarity, latestAnswersPerPerson, linkFindings, pointProfile, questionnaireFindings, type QualityCharacter, type QualityQuestion } from '~/utils/questionnaireQuality'
+import { cosineSimilarity, linkFindings, peopleWithAnswers, pointProfile, questionnaireFindings, type QualityCharacter, type QualityQuestion } from '~/utils/questionnaireQuality'
 
 const questions: QualityQuestion[] = [
   { id: 'style', label: 'Ton style', type: 'single', options: ['Intrigue', 'Combat', 'Mystère'] },
@@ -207,14 +207,13 @@ describe('estimation générale (US-140, R13)', () => {
 })
 
 describe('qui compte dans les réponses (US-136, R7)', () => {
-  it('une personne compte une fois, par sa dernière inscription qui contient des réponses', () => {
-    expect(latestAnswersPerPerson([
-      { participantId: 'a', questionAnswers: { style: 'Combat' } },
-      { participantId: 'a', questionAnswers: { style: 'Intrigue' } },
-      { participantId: 'b', questionAnswers: null },
-      { participantId: 'b', questionAnswers: { style: null, envies: [] } },
-      { participantId: 'b', questionAnswers: { style: 'Mystère' } },
-      { participantId: 'c', questionAnswers: {} }
+  it('ne compte que les personnes qui ont vraiment répondu', () => {
+    expect(peopleWithAnswers([
+      { questionAnswers: { style: 'Combat' } },
+      { questionAnswers: null },
+      { questionAnswers: { style: null, envies: [] } },
+      { questionAnswers: { style: 'Mystère' } },
+      { questionAnswers: {} }
     ])).toEqual([{ style: 'Combat' }, { style: 'Mystère' }])
   })
 

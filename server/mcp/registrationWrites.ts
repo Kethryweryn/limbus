@@ -193,17 +193,15 @@ function registerSelectionTools({ event, server }: ToolContext) {
     const registration = await findRegistrationOr404(inscriptionId)
     await requireGameAccess(event, registration.period.gameId)
     const body = parseZod(registrationSelectionSchema, { action, sessionId })
-    const participant = await withVersion(event, read, async () => {
+    await withVersion(event, read, async () => {
       await assertUnmodifiedSince(event, 'registration', registration.id)
       const line = await prisma.registrationSession.findUnique({ where: { registrationId_sessionId: { registrationId: registration.id, sessionId: body.sessionId } }, select: { announcedStatus: true } })
       if (line?.announcedStatus) {
         throw createError({ statusCode: 409, message: 'Une décision a déjà été annoncée à cette personne pour cette session : changez-la dans l’interface.' })
       }
       await applySelection(registration.id, body.action, body.sessionId, await requireCurrentUser(event))
-      // Nouvelle version de la personne, renvoyée pour l'écriture suivante
-      return (await prisma.registration.update({ where: { id: registration.id }, data: { updatedAt: new Date() }, select: { participant: { select: { name: true } } } })).participant
     })
-    const { updatedAt } = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { updatedAt: true } })
+    const { updatedAt, participant } = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { updatedAt: true, participant: { select: { name: true } } } })
     await logWrite(event, 'decider_inscription', AI_LOG_ACTIONS.changed, { type: 'registration', id: registration.id, name: participant.name, gameId: registration.period.gameId })
     return { id: registration.id, version: updatedAt }
   }))

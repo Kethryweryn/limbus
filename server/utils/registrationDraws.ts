@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { prisma } from '~/server/utils/prisma'
+import { prisma, type PrismaTx } from '~/server/utils/prisma'
 import { takenSeatsWhere } from '~/server/utils/registrationPeriods'
 import {
   findSelectionPeriod,
@@ -137,6 +137,7 @@ export async function drawSession(periodId: string, sessionId: string, author: {
       }
     }
     await stillPreregistered(drawn.retained, { status: LINE.retained, retainedById: null, responseDueAt: null, lastRemindedAt: null })
+    await touchRegistrations(tx, [...drawn.retained, ...drawn.waitlisted])
     const last = await tx.registrationSession.aggregate({ where: { sessionId, status: LINE.waitlisted }, _max: { waitlistPosition: true } })
     const start = last._max.waitlistPosition ?? 0
     for (const [index, registrationId] of drawn.waitlisted.entries()) {
@@ -147,6 +148,11 @@ export async function drawSession(periodId: string, sessionId: string, author: {
       select: { id: true, createdAt: true }
     })
   })
+}
+
+// La version d'une personne suit ses décisions : un assistant qui l'a lue avant ne les écrase pas
+function touchRegistrations(tx: PrismaTx, ids: string[]) {
+  return tx.registration.updateMany({ where: { id: { in: ids } }, data: { updatedAt: new Date() } })
 }
 
 // Une réponse qui n'est plus une valeur du jeu compte comme « peu importe » (ADR-0048)
@@ -176,6 +182,7 @@ export async function cancelDraw(drawId: string, author: { id: string }) {
   const back = { status: LINE.preregistered, waitlistPosition: null, responseDueAt: null, lastRemindedAt: null }
 
   await prisma.$transaction(async (tx) => {
+    await touchRegistrations(tx, [...retained, ...waitlisted])
     const { count } = await tx.registrationDraw.updateMany({ where: { id: draw.id, cancelledAt: null }, data: { cancelledAt: new Date(), cancelledById: author.id } })
     if (!count) {
       throw createError({ statusCode: 409, message: 'Ce tirage est déjà annulé.' })

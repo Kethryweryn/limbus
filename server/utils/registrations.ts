@@ -1,13 +1,13 @@
 import { gamePhotoInformation } from '~/utils/photoInformation'
 import { createHash, randomBytes } from 'node:crypto'
-import { prisma } from '~/server/utils/prisma'
+import { prisma, type PrismaTx } from '~/server/utils/prisma'
 import { accountIdForEmail } from '~/server/utils/participantAccounts'
 import { absoluteAppUrl, publicAppUrl } from '~/server/utils/appUrl'
 import { openEmailTransport, sendEmail, type EmailTransport } from '~/server/utils/email'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
 import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
-import { REGISTRATION_PERIOD_STATES, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
+import { REGISTRATION_CANCELLABLE_STATUSES, REGISTRATION_PERIOD_STATES, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
 import { canConfirmPlace } from '~/utils/registrations'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -580,6 +580,7 @@ export async function releaseRegistration(registrationId: string, releasedBy: { 
   if (!count) {
     throw createError({ statusCode: 409, message: 'Cette personne a déjà répondu, ou sa place n’est pas annoncée.' })
   }
+  await prisma.registration.update({ where: { id: registrationId }, data: { updatedAt: now } })
   await prisma.sessionAssignment.updateMany({ where: { reservedRegistrationId: registrationId, ...(sessionId ? { sessionId } : {}) }, data: { reservedRegistrationId: null } })
   return { success: true }
 }
@@ -621,11 +622,10 @@ export function registrationWithdrawalEmailText(params: {
   wasInSession?: boolean
   trombinoscopes: 'regenerated' | 'failed' | null
 }) {
-  const session = params.sessionName ? ` de la session ${params.sessionName}` : ''
   return [
     params.withdrawnBy
-      ? `${params.withdrawnBy} a retiré ${params.participantName}${session} du jeu « ${params.gameTitle} ».`
-      : `${params.participantName} a annulé sa présence${session} au jeu « ${params.gameTitle} ».`,
+      ? `${params.withdrawnBy} a retiré ${params.participantName}${params.sessionName ? ` de la session ${params.sessionName}` : ''} du jeu « ${params.gameTitle} ».`
+      : `${params.participantName} a annulé sa présence ${params.sessionName ? `à la session ${params.sessionName} du` : 'au'} jeu « ${params.gameTitle} ».`,
     '',
     params.wasInSession ? 'La personne ne fait plus partie des participants de la session, et ses personnages (PJ et PNJ) sont libres.' : null,
     params.trombinoscopes === 'regenerated'
@@ -653,11 +653,6 @@ export async function notifyGameTeam(gameId: string, text: string, subject: stri
   }
 }
 
-type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
-
-// Une présence qu'on peut annuler (R19) ; « pas disponible » n'est pas une présence, et une annulation l'est déjà
-const CANCELLABLE_LINE_STATUSES: string[] = [LINE.preregistered, LINE.waitlisted, LINE.retained, LINE.confirmed, LINE.transferred]
-
 /**
  * Annule une ligne dans une transaction (R19) : elle passe à « annulation », sort de sa liste d'attente, et son personnage
  * réservé redevient libre. Une personne inscrite quitte la session et tous les personnages (PJ et PNJ) qu'elle y avait,
@@ -665,7 +660,7 @@ const CANCELLABLE_LINE_STATUSES: string[] = [LINE.preregistered, LINE.waitlisted
  * Rend les photos à effacer, et si la personne était dans la session.
  */
 async function cancelLineInTx(
-  tx: Tx,
+  tx: PrismaTx,
   registration: { id: string, participantId: string },
   line: { sessionId: string, status: string, session: { status: string } },
   cancelledBy: { id: string } | null
@@ -678,6 +673,7 @@ async function cancelLineInTx(
   if (!count) {
     throw createError({ statusCode: 409, message: 'Cette inscription a changé entre-temps : rechargez la page.' })
   }
+  await tx.registration.update({ where: { id: registration.id }, data: { updatedAt: new Date() } })
   await tx.sessionAssignment.updateMany({ where: { sessionId: line.sessionId, reservedRegistrationId: registration.id }, data: { reservedRegistrationId: null } })
   if (line.status !== LINE.confirmed || line.session.status === SESSION_STATUSES.completed) return { photoUrls: [], wasInSession: false }
 
@@ -705,7 +701,7 @@ const withdrawalSelect = {
 export async function cancelRegistrationSession(registrationId: string, sessionId: string, cancelledBy: { id: string, name?: string | null } | null) {
   const registration = await prisma.registration.findUniqueOrThrow({ where: { id: registrationId }, select: withdrawalSelect })
   const line = registration.sessionLines.find((candidate) => candidate.sessionId === sessionId)
-  if (!line || !CANCELLABLE_LINE_STATUSES.includes(line.status)) {
+  if (!line || !REGISTRATION_CANCELLABLE_STATUSES.includes(line.status)) {
     throw createError({ statusCode: 409, message: 'Il n’y a pas de présence à annuler pour cette session.' })
   }
   const { photoUrls, wasInSession } = await prisma.$transaction((tx) => cancelLineInTx(tx, registration, line, cancelledBy))
@@ -724,7 +720,7 @@ export async function leavePool(registrationId: string, leftBy: { id: string, na
   if (registration.status === REGISTRATION_STATUSES.withdrawn) {
     throw createError({ statusCode: 409, message: 'Cette personne est déjà sortie du vivier.' })
   }
-  const lines = registration.sessionLines.filter((line) => CANCELLABLE_LINE_STATUSES.includes(line.status) && line.session.status === SESSION_STATUSES.scheduled)
+  const lines = registration.sessionLines.filter((line) => REGISTRATION_CANCELLABLE_STATUSES.includes(line.status) && line.session.status === SESSION_STATUSES.scheduled)
   const cancelled = await prisma.$transaction(async (tx) => {
     const { count } = await tx.registration.updateMany({
       where: { id: registrationId, status: registration.status },
@@ -750,12 +746,12 @@ export async function leavePool(registrationId: string, leftBy: { id: string, na
  */
 export async function giveUpSeat(sessionId: string, participantId: string, postponedToSessionId?: string | null) {
   await prisma.registrationSession.updateMany({
-    where: { sessionId, registration: { participantId }, status: { in: CANCELLABLE_LINE_STATUSES } },
+    where: { sessionId, registration: { participantId }, status: { in: REGISTRATION_CANCELLABLE_STATUSES } },
     data: { status: LINE.cancelled, cancelledAt: new Date(), waitlistPosition: null, retainedById: null }
   })
   if (!postponedToSessionId) return
   const registration = await prisma.registration.findFirst({
-    where: { participantId, sessionLines: { some: { sessionId: postponedToSessionId, status: { in: CANCELLABLE_LINE_STATUSES } } } },
+    where: { participantId, sessionLines: { some: { sessionId: postponedToSessionId, status: { in: REGISTRATION_CANCELLABLE_STATUSES } } } },
     select: withdrawalSelect
   })
   const line = registration?.sessionLines.find((candidate) => candidate.sessionId === postponedToSessionId)

@@ -300,6 +300,7 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
 import {
+  REGISTRATION_DEFAULT_WAITLIST_SIZE,
   REGISTRATION_REPLAY_POLICIES,
   REGISTRATION_SEAT_STATUSES,
   REGISTRATION_SELECTION_MODE_OPTIONS,
@@ -520,7 +521,7 @@ const settings = ref({
   organizerPicks: 0 as Count,
   weightNotDrawnBefore: false,
   weightBalance: false,
-  waitlistSize: 5 as Count
+  waitlistSize: REGISTRATION_DEFAULT_WAITLIST_SIZE as Count
 })
 
 function editSettings(session: SelectionSession) {

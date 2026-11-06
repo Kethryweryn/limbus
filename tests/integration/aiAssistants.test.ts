@@ -534,6 +534,12 @@ describe('inscriptions', () => {
     expect(await prisma.registrationSession.findFirstOrThrow({ where: { registrationId: anaReg, sessionId: first.id }, select: { status: true, announcedStatus: true } }))
       .toEqual({ status: 'retained', announcedStatus: null })
 
+    // Une décision prise dans l'interface après sa lecture : l'assistant ne l'écrase pas
+    const cleoVersion = await registrationVersion(cleoReg)
+    expect((await api(alice, 'POST', `/api/registrations/${cleoReg}/selection`, { action: 'unwaitlist', sessionId: first.id })).status).toBe(200)
+    expect((await call(client, 'decider_inscription', { inscriptionId: cleoReg, version: cleoVersion, action: 'retain', sessionId: first.id })).error).toBe(true)
+    expect((await api(alice, 'POST', `/api/registrations/${cleoReg}/selection`, { action: 'waitlist', sessionId: first.id })).status).toBe(200)
+
     // Ordre de la liste d'attente
     version = (await call(client, 'lister_periodes_inscription', { jeuId: game.id })).json.find((row: { id: string }) => row.id === created.id).updatedAt
     expect((await call(client, 'ordonner_liste_attente', { periodeId: created.id, version, sessionId: first.id, inscriptionIds: [cleoReg, benReg] })).error).toBe(false)

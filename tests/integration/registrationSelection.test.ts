@@ -342,6 +342,28 @@ describe('remboursement et report (R30)', () => {
     expect(await line(lou.id, created.id)).toMatchObject({ status: 'confirmed' })
   })
 
+  it('transférée, « je viens » ne rend ni une annulation qu’elle a faite, ni une place marquée à rembourser', async () => {
+    const { pool, session, lou } = await paidPerson()
+    expect((await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { name: `Report ${pool.key}`, date: new Date(Date.now() + 50 * DAY).toISOString() })).status).toBe(200)
+    const created = await prisma.session.findFirstOrThrow({ where: { name: `Report ${pool.key}` } })
+    const token = randomBytes(32).toString('base64url')
+    await prisma.sessionAttendance.create({ data: { sessionId: created.id, participantId: lou.participantId, responseDueAt: new Date(Date.now() + 7 * DAY), tokenHash: createHash('sha256').update(token).digest('hex') } })
+    const attend = (answer: string) => publicApi('POST', `/api/public/attendance/${token}`, { answer })
+
+    // Sans refus préalable : son annulation par son lien reste
+    await prisma.registrationSession.update({ where: { registrationId_sessionId: { registrationId: lou.id, sessionId: created.id } }, data: { status: 'cancelled', cancelledAt: new Date() } })
+    expect((await attend('confirmed')).status).toBe(200)
+    expect(await line(lou.id, created.id)).toMatchObject({ status: 'cancelled' })
+
+    // Refus, puis remboursement, puis « je viens » : la marque ne se défait pas
+    await prisma.registrationSession.update({ where: { registrationId_sessionId: { registrationId: lou.id, sessionId: created.id } }, data: { status: 'confirmed', cancelledAt: null } })
+    expect((await attend('declined')).status).toBe(200)
+    expect((await refund(session.id, lou.participantId, 'to_refund')).status).toBe(200)
+    expect((await attend('confirmed')).status).toBe(200)
+    expect(await line(lou.id, session.id)).toMatchObject({ status: 'cancelled' })
+    expect(await line(lou.id, created.id)).toMatchObject({ status: 'cancelled' })
+  })
+
   it('transférée, la rembourser ensuite la désinscrit aussi du report', async () => {
     const { pool, session, lou } = await paidPerson()
     const postponed = await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { name: `Report ${pool.key}`, date: new Date(Date.now() + 50 * DAY).toISOString() })

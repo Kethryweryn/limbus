@@ -1,6 +1,6 @@
 import { SESSION_STATUSES } from './domain'
 
-const startOfDay = (date: Date) => {
+export const startOfDay = (date: Date) => {
   const day = new Date(date)
   day.setHours(0, 0, 0, 0)
   return day
@@ -13,7 +13,12 @@ export function isOpenableSession(session: { date: Date | string | null, status:
     && new Date(session.date!).getTime() >= startOfDay(now).getTime()
 }
 
-// Condition Prisma équivalente, pour une liste de sessions
+// Une session encore à venir, datée ou non (R4)
+export function isUpcomingSession(session: { date: Date | string | null, status: string }, now: Date = new Date()) {
+  return session.status === SESSION_STATUSES.scheduled && (!session.date || new Date(session.date).getTime() >= startOfDay(now).getTime())
+}
+
+// Condition Prisma équivalente à isOpenableSession, pour une liste de sessions
 export function openableSessionWhere(now: Date = new Date()) {
   return { status: SESSION_STATUSES.scheduled, date: { gte: startOfDay(now) } }
 }

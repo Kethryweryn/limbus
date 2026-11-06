@@ -83,7 +83,7 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
   - les personnages, factions, intrigues, objets, documents (texte), lieux, la chronologie et les relations entre personnages ;
   - les sessions : détails, équipe, casting, déroulé ;
   - les participants : nom et notes d'organisation du jeu ;
-  - les périodes d'inscription, le formulaire, la sélection et le journal des tirages ;
+  - le vivier, le formulaire, la sélection par session et le journal des tirages ;
   - les réponses aux formulaires dans les limites de R8.
 - **R8 Jamais lu.**
   - Les coordonnées : email, téléphone, contact d'urgence.
@@ -103,13 +103,13 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
   - créer et modifier une session (détails, équipe, casting, déroulé), sans l'annuler, la reporter ni la supprimer ;
   - lancer l'assistant de casting d'une session ;
   - créer et modifier une fiche participant (nom et notes d'organisation du jeu). Le nom d'une fiche rattachée à un compte reste celui du compte ([ADR-0042](../adr/ADR-0042-coordonnees-du-compte.md)) ;
-  - préparer une période d'inscription, qui reste fermée, et rédiger le formulaire du jeu ;
-  - décider d'une inscription (retenue, en attente, non retenue) sans l'annoncer, et lancer ou annuler un tirage au sort.
+  - préparer le vivier, qui reste fermé, régler la sélection d'une session sans l'ouvrir, et rédiger le formulaire du jeu ;
+  - décider d'une personne pour une session (retenue, en attente) sans l'annoncer, et lancer ou annuler le tirage d'une session.
 
   Chaque écriture porte la version de l'élément que l'assistant a lu, et elle est refusée si l'élément a changé entre-temps (`assertUnmodifiedSince`).
 - **R11 Jamais fait.**
   - Rien ne part par email : invitations, relances, annonces, envoi des documents, présence, emails de test.
-  - Rien n'est publié ni partagé : page publique, ouverture d'une période, lien de diffusion, partage, transfert ou legs d'un jeu.
+  - Rien n'est publié ni partagé : page publique, ouverture du vivier ou d'une session, lien de diffusion, partage, transfert ou legs d'un jeu.
   - Rien n'est supprimé au-delà de R10 : ni un jeu, ni une session, ni un participant. Une session n'est pas non plus annulée ni reportée.
   - Les paiements et les tarifs restent hors de portée.
   - Aucun fichier n'est téléversé, et aucun lien n'est posé ni changé (vidéo de présentation, fichier d'un background ou d'un document) : un lien choisi par un assistant manipulé pourrait faire sortir des informations.
@@ -183,6 +183,7 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
 
 ## Historique
 
+- 2026-11-06 : [SPEC-018](SPEC-018-vivier-permanent.md) : les outils d'inscription portent sur le vivier et sur chaque session ; `regler_places_vivier` devient `regler_selection_session`, les places valant le nombre de PJ.
 - 2026-11-02 : création, avec les choix de l'utilisatrice.
 - 2026-11-02 (revue) : contenu public modifiable, lectures hors journal (choix de l'utilisatrice) ; une autorisation finie est effacée, sans délai inventé.
 - 2026-11-02 : lot 1 livré et essayé avec Claude ([EPIC-033](../archive/epics/EPIC-033-ia-connexion-et-lecture/README.md)) ; ChatGPT et Mistral seront essayés quand une organisatrice voudra s'en servir.

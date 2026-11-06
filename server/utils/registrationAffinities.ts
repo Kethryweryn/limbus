@@ -1,15 +1,13 @@
-import { prisma } from '~/server/utils/prisma'
+import { prisma, type PrismaTx } from '~/server/utils/prisma'
 import { REGISTRATION_SEAT_STATUSES } from '~/utils/domain'
 import { ALERT_AFFINITY_KINDS, PERSON_AFFINITY_KINDS, affinityLineKey, isPersonAffinityKind, suggestPeople } from '~/utils/affinityMatching'
 import type { AffinityAnswers } from '~/server/utils/registrationForms'
-
-type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
 
 /**
  * Remplace les affinités d'une inscription par ses nouvelles réponses (ADR-0045). Une ligne de même sorte et de même
  * texte reprend le rattachement de l'ancienne (US-095, ADR-0049).
  */
-export async function replaceAffinities(tx: Tx, registrationId: string, affinities: AffinityAnswers | undefined) {
+export async function replaceAffinities(tx: PrismaTx, registrationId: string, affinities: AffinityAnswers | undefined) {
   const previous = await tx.registrationAffinity.findMany({
     where: { registrationId, OR: [{ targetParticipantId: { not: null } }, { targetUnknown: true }] },
     select: { kind: true, text: true, targetParticipantId: true, targetUnknown: true }

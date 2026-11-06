@@ -2,6 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { requireRouterParam } from '~/server/utils/routeParams'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
 import { REGISTRATION_PERIOD_STATES, SESSION_STATUSES } from '~/utils/domain'
+import { startOfDay } from '~/utils/registrationPeriods'
 
 export default defineEventHandler(async (event) => {
   const slug = requireRouterParam(event, 'slug')
@@ -26,7 +27,7 @@ export default defineEventHandler(async (event) => {
       publicShowRegistration: true,
       // Sessions à venir marquées visibles (US-086, SPEC-004 R2b) : date et lieu seulement
       sessions: {
-        where: { published: true, status: SESSION_STATUSES.scheduled, OR: [{ date: null }, { date: { gte: startOfToday() } }] },
+        where: { published: true, status: SESSION_STATUSES.scheduled, OR: [{ date: null }, { date: { gte: startOfDay(new Date()) } }] },
         orderBy: { date: 'asc' },
         select: { name: true, date: true, location: { select: { name: true } } }
       },
@@ -60,9 +61,3 @@ export default defineEventHandler(async (event) => {
       : []
   }
 })
-
-function startOfToday() {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return today
-}
