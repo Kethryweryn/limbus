@@ -35,10 +35,13 @@ Trois lots : le vivier unique avec un statut par session, la demande de disponib
 ## Points tranchés avec l'utilisatrice
 
 - **Tirage au sort :** gardé, par session, parmi les pré-inscrits.
-- **Invitation :** l'équipe invite à rejoindre le vivier ; il n'y a plus d'invitation directe sur une session.
+- **Invitation :** l'équipe invite à rejoindre le vivier, ou pour une session : la personne est inscrite dès qu'elle a répondu en se disant disponible. Session complète : elle reste pré-inscrite, et l'équipe est prévenue.
+- **Places :** toujours le nombre de personnages PJ du jeu. Pour en ajouter, on crée un personnage.
+- **Joueurs :** plus d'ajout direct sans questionnaire. Un PNJ qui reprend un rôle n'a ni statut de parcours ni demande de disponibilités.
+- **Rejoueur exclu :** pas de demande ni de tirage, mais l'équipe peut le retenir à la main, avec un signalement.
 - **Plusieurs sessions :** le statut se lit session par session ; une personne peut avancer sur plusieurs sessions du même jeu.
 - **Castée :** retenue pour une session, avec ou sans personnage.
-- **Inscrite validée :** dès le premier versement. Sans rien à payer (place offerte, session sans tarif), dès la présence confirmée. Une personne remboursée ne vient plus et redevient intéressée. Un transfert passe sa place à la remplaçante. Un report valide la session d'arrivée, et le remboursement la désinscrit de ce report.
+- **Inscrite validée :** dès le premier versement. En mode simple, quand la case « payé » est cochée. Sans rien à payer (place offerte, aucun tarif pour elle dans une session à tarifs), dès la présence confirmée. Une personne remboursée ne vient plus et redevient intéressée. Un transfert passe sa place à la remplaçante. Au report, les personnes castées ou inscrites sont « transférées » sur l'ancienne session et gardent leur place sur la nouvelle ; elles passent à « annulation » si elles ne sont pas disponibles. Le paiement reporté valide la nouvelle session, et le remboursement désinscrit du report. Les pré-inscrites et la liste d'attente ne sont pas reprises.
 - **Pas disponible :** en attente, elle sort de la file ; retenue sans annonce, elle est retirée du cast sans l'apprendre. Décocher une date vaut « pas disponible ».
 - **Session sans date :** elle ne peut pas être ouverte.
 - **Personne non disponible :** elle peut être ajoutée à la main, avec un signalement. Changer seulement un personnage ne propose pas d'email.

@@ -15,6 +15,7 @@ En tant que organisatrice, je veux décider de chaque email, afin de ne préveni
 
 - [ ] Étant donné une session triée, quand j'annonce, alors toutes les personnes retenues reçoivent un email, et les personnes en attente seulement si j'ai coché la case.
 - [ ] Étant donné une annonce faite, quand j'ajoute ou retire une personne, ou la fais entrer ou sortir de la liste d'attente, alors rien ne part, et sa ligne me propose un email individuel ; changer seulement son personnage ne propose rien.
+- [ ] Étant donné une personne jamais prévenue, sortie du cast par sa propre réponse, alors aucune proposition n'apparaît.
 - [ ] Étant donné cette proposition, quand je l'envoie, alors l'échéance de confirmation part de cet email ; quand je l'ignore, elle disparaît.
 - [ ] Étant donné un changement non envoyé, alors la personne voit ce qui lui a déjà été annoncé, sinon sa dernière réponse pour cette session.
 

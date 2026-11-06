@@ -224,7 +224,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-161](EPIC-046-vivier-unique/US-161-statut-par-session.md) | Suivre une personne session par session | EPIC-046 | à faire |
 | [US-162](EPIC-046-vivier-unique/US-162-ouvrir-une-session.md) | Ouvrir une session à la pré-inscription | EPIC-046 | à faire |
 | [US-163](EPIC-046-vivier-unique/US-163-disponibilites-du-questionnaire.md) | Dire où je suis disponible en répondant au questionnaire | EPIC-046 | à faire |
-| [US-164](EPIC-046-vivier-unique/US-164-inviter-a-rejoindre.md) | Inviter une personne à rejoindre le vivier | EPIC-046 | à faire |
+| [US-164](EPIC-046-vivier-unique/US-164-inviter-a-rejoindre.md) | Inviter une personne à rejoindre le vivier, ou pour une session | EPIC-046 | à faire |
 | [US-165](EPIC-046-vivier-unique/US-165-annuler-ou-quitter.md) | Annuler ma présence à une session, ou quitter le vivier | EPIC-046 | à faire |
 | [US-166](EPIC-047-demande-de-disponibilites/US-166-demander-au-vivier.md) | Demander au vivier qui est disponible | EPIC-047 | à faire |
 | [US-167](EPIC-047-demande-de-disponibilites/US-167-repondre-a-la-demande.md) | Répondre à une demande d'un clic | EPIC-047 | à faire |
@@ -236,3 +236,4 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-173](EPIC-048-casting-depuis-le-vivier/US-173-reponses-modifiees.md) | Être prévenue quand une personne castée change ses réponses | EPIC-048 | à faire |
 | [US-174](EPIC-048-casting-depuis-le-vivier/US-174-parcours-complet.md) | Lire le parcours complet d'une personne | EPIC-048 | à faire |
 | [US-175](EPIC-048-casting-depuis-le-vivier/US-175-retirer-l-ancien-modele.md) | Retirer l'ancien modèle des inscriptions | EPIC-048 | à faire |
+| [US-176](EPIC-046-vivier-unique/US-176-joueur-par-le-questionnaire.md) | Faire passer tout joueur par le questionnaire | EPIC-046 | à faire |

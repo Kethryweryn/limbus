@@ -16,6 +16,7 @@ En tant que personne du vivier, je veux répondre depuis l'email, afin de me pr�
 - [ ] Étant donné un bouton de l'email, quand je l'ouvre, alors une page demande de confirmer, et rien n'est enregistré à l'ouverture.
 - [ ] Étant donné que je confirme « Disponible », alors je suis pré-inscrite pour la session.
 - [ ] Étant donné que je confirme « Pas disponible », alors l'équipe voit ce refus, distinct d'une absence de réponse.
+- [ ] Étant donné que je suis déjà pré-inscrite, en attente, retenue ou inscrite, quand je confirme « Disponible », alors rien ne change, et une décision non annoncée reste invisible.
 - [ ] Étant donné que je suis en attente et réponds « Pas disponible », alors je sors de la file et les suivantes avancent.
 - [ ] Étant donné que je suis retenue sans annonce et réponds « Pas disponible », alors je lis seulement « réponse enregistrée », je suis retirée du cast, le personnage réservé est libéré et l'équipe reçoit un email.
 - [ ] Étant donné une place annoncée ou confirmée, alors la page me le dit, ne change rien, et me renvoie vers l'annulation.

@@ -20,7 +20,7 @@ En tant que organisatrice, je veux choisir le mode de sélection de chaque sessi
 
 ## Notes techniques
 
-`RegistrationDraw.sessionId`, réglages sur `RegistrationPeriodSession`. `server/utils/registrationDraws.ts`, routes `registration-periods/[id]/draws` et `registration-draws`, outils MCP `tirer_au_sort` et `annuler_tirage`.
+`RegistrationDraw.sessionId`, réglages sur `RegistrationPeriodSession`, places calculées selon le nombre de PJ. `server/utils/registrationDraws.ts`, routes `registration-periods/[id]/draws` et `registration-draws`, outils MCP `tirer_au_sort` et `annuler_tirage`.
 
 ## Tests
 
