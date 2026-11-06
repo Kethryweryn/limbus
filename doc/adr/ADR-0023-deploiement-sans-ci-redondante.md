@@ -68,7 +68,7 @@ Autre point : une vérification obligatoire nourrie par un job qui peut être ig
 
    Il ne construit plus rien. Les dépendances du serveur, qui servent aux migrations et aux scripts, sont reprises par liens physiques quand `package-lock.json` et Node n'ont pas changé. Lancé à la main, sans archive, il reconstruit sur le serveur comme avant : c'est la voie de secours.
 7. **Documentation seule** : `check` n'est pas lancé sur la PR (le verdict le constate), et la fusion ne déploie rien (`paths-ignore` sur le push, [ADR-0022](ADR-0022-pas-de-ci-pour-la-documentation.md)).
-8. **Plus de build local** avant d'ouvrir une PR : lint, typecheck et tests unitaires suffisent en local, la CI de la PR fait le reste.
+8. **Plus de build local** avant d'ouvrir une PR : lint, typecheck et tests unitaires suffisent en local, la CI de la PR fait le reste. Point remplacé par [ADR-0067](ADR-0067-tests-lies-avant-chaque-push.md).
 
 ## Conséquences
 
