@@ -20,9 +20,12 @@ const props = defineProps<{ error: NuxtError }>()
 // et l'accueil propose de se connecter à qui ne l'est plus
 const notAvailable = computed(() => [401, 403, 404].includes(props.error.statusCode ?? 500))
 const title = computed(() => notAvailable.value ? 'Page introuvable' : 'Une erreur est survenue')
-const text = computed(() => notAvailable.value
-  ? 'Cette page n’existe pas, ou vous n’y avez pas accès.'
-  : 'Réessayez dans un instant. Si cela continue, revenez à l’accueil.')
+const text = computed(() => {
+  if (notAvailable.value) return 'Cette page n’existe pas, ou vous n’y avez pas accès.'
+  // 503 : pageLoadError dit que la fiche n'est pas disponible hors ligne
+  if (props.error.statusCode === 503 && props.error.message) return props.error.message
+  return 'Réessayez dans un instant. Si cela continue, revenez à l’accueil.'
+})
 
 useHead({ title: () => `${title.value} - Limbus` })
 

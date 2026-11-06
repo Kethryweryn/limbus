@@ -116,6 +116,26 @@ test('un jeu inaccessible affiche un message, et le bouton ramène à l’accuei
   }
 })
 
+// Cahier de tests, A3 : une panne ne se fait pas passer pour une page absente
+test('une panne au chargement invite à réessayer', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const email = `${uniqueName('panne').toLowerCase().replace(/[^a-z0-9]+/g, '-')}@example.test`
+    const user = await prisma.user.create({ data: { email, name: 'Panne e2e', password: 'non-utilise' } })
+    const slug = email.replace(/[^a-z0-9]+/g, '-')
+    await prisma.game.create({ data: { title: `Jeu ${slug}`, slug, description: '', ownerId: user.id } })
+
+    await signIn(page, prisma, email)
+    await page.route('**/api/games/slug/**', (route) => route.abort('connectionfailed'))
+    await page.goto(`/games/${slug}`)
+    await expect(page.getByRole('heading', { name: 'Une erreur est survenue' })).toBeVisible()
+    await expect(page.getByText('Réessayez dans un instant.')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Page introuvable' })).toBeHidden()
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
 // Cahier de tests, A1 : le jeu actif se repère à sa carte
 test('la carte du jeu actif change de fond', async ({ page }) => {
   const prisma = createTestPrisma()

@@ -1,3 +1,4 @@
+import { isOfflineMissing } from './connection'
 // Message lisible d'une erreur d'API : le détail d'une validation zod (rangé par h3 sous data.data)
 // plutôt que « Invalid request body », sinon le message du serveur, sinon le texte par défaut.
 export function apiErrorMessage(err: unknown, fallback: string) {
@@ -20,4 +21,16 @@ export function apiFieldErrors(err: unknown): Record<string, string> {
 // détail d'une validation et le message technique
 export function serverMessage(err: unknown, fallback: string) {
   return (err as { data?: { message?: string } } | null)?.data?.message || fallback
+}
+
+/**
+ * Erreur de chargement d'une page, à lever : `fatal` ouvre `error.vue`, aussi dans le navigateur.
+ * Une panne garde son code (Nuxt donne 500 à un réseau coupé) : ce n'est pas une page absente.
+ * Une fiche jamais lue sur l'appareil, hors ligne, le dit : `error.vue` affiche ce message.
+ */
+export function pageLoadError(error: { statusCode?: number } | null | undefined, message: string) {
+  if (isOfflineMissing(error)) {
+    return createError({ fatal: true, statusCode: 503, message: 'Cette fiche n’a pas été consultée avec le réseau sur cet appareil : elle n’est pas disponible hors ligne.' })
+  }
+  return createError({ fatal: true, statusCode: error?.statusCode ?? 500, message })
 }

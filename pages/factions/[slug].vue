@@ -191,6 +191,7 @@
 </template>
 
 <script setup lang="ts">
+import { pageLoadError } from '~/utils/apiErrors'
 import { isInArchivedGame } from '~/utils/games'
 import type { FactionDraft } from '~/utils/writingDrafts'
 
@@ -203,7 +204,7 @@ const { data: intrigues, refresh: refreshIntrigues } = await useFetch('/api/intr
 
 if (error.value) {
   handleApiAuthError(error.value)
-  throw createError({ fatal: true, statusCode: 404, message: 'Groupe introuvable' })
+  throw pageLoadError(error.value, 'Groupe introuvable')
 }
 
 type FactionPage = NonNullable<typeof faction.value>

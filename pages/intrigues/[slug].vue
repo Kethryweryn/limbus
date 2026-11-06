@@ -139,6 +139,7 @@
 </template>
 
 <script setup lang="ts">
+import { pageLoadError } from '~/utils/apiErrors'
 import { isInArchivedGame } from '~/utils/games'
 import { formatIntrigueLevel } from '~/utils/intrigueLevels'
 import type { IntrigueDraft } from '~/utils/writingDrafts'
@@ -152,7 +153,7 @@ const { data: factions } = await useFetch('/api/factions')
 
 if (error.value) {
   handleApiAuthError(error.value)
-  throw createError({ fatal: true, statusCode: 404, message: 'Intrigue introuvable' })
+  throw pageLoadError(error.value, 'Intrigue introuvable')
 }
 
 type IntriguePage = NonNullable<typeof intrigue.value>

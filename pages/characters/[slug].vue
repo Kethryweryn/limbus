@@ -180,9 +180,9 @@
 </template>
 
 <script setup lang="ts">
+import { pageLoadError } from '~/utils/apiErrors'
 import { isInArchivedGame } from '~/utils/games'
 import { CHARACTER_TYPES } from '~/utils/domain'
-import { isOfflineMissing } from '~/utils/connection'
 import type { CharacterDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
@@ -192,13 +192,7 @@ const { data: character, error, refresh } = await useOfflineFetch(`/api/characte
 // Introuvable : la page s'arrête avant de charger les listes de son jeu
 if (error.value) {
     handleApiAuthError(error.value)
-    throw createError({
-        fatal: true,
-        statusCode: 404,
-        message: isOfflineMissing(error.value)
-            ? 'Cette fiche n’a pas été consultée avec le réseau sur cet appareil : elle n’est pas disponible hors ligne.'
-            : 'Personnage introuvable'
-    })
+    throw pageLoadError(error.value, 'Personnage introuvable')
 }
 const { data: games } = await useOfflineFetch('/api/games')
 // Groupes, intrigues et personnages du jeu du personnage seulement (relations, US-097)

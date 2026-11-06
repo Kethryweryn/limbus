@@ -15,12 +15,12 @@ En tant que personne qui ouvre une page interdite ou absente, je veux un message
 
 - [x] Étant donné une page refusée, absente ou une session expirée, alors la page dit qu'elle n'existe pas ou n'est pas accessible, sans préciser laquelle des deux.
 - [x] Étant donné ce message, alors un bouton ramène à l'accueil.
-- [x] Étant donné une autre erreur, alors un message invite à réessayer.
+- [x] Étant donné une autre erreur, ou une panne du réseau ou du serveur, alors un message invite à réessayer.
 
 ## Notes techniques
 
-`error.vue`. Ces pages se rendent dans le navigateur, où une erreur n'ouvre la page d'erreur que si elle est `fatal: true` : c'était la cause de l'écran sans message, sur toutes les fiches.
+`error.vue`, `pageLoadError` (`utils/apiErrors.ts`). Ces pages se rendent dans le navigateur, où une erreur n'ouvre la page d'erreur que si elle est `fatal: true` : c'était la cause de l'écran sans message, sur toutes les fiches.
 
 ## Tests
 
-`tests/e2e/participate.spec.ts`.
+`tests/utils/pageLoadError.test.ts`, `tests/e2e/participate.spec.ts`.
