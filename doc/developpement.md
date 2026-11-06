@@ -70,6 +70,8 @@ npm run typecheck
 npm test                  # unitaires (Vitest)
 ```
 
+Avant chaque push de code, ces trois commandes passent, ainsi que les tests d'intégration et Playwright liés au changement ; la CI joue la suite complète ([ADR-0067](adr/ADR-0067-tests-lies-avant-chaque-push.md)). Sous Claude Code, un hook refuse le push tant que ces trois commandes échouent ([ADR-0068](adr/ADR-0068-organisation-des-instructions-de-claude.md)).
+
 Le build, les tests d'intégration et Playwright demandent une base jetable, dont le nom doit contenir « test » car elle est vidée :
 
 ```bash
