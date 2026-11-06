@@ -310,6 +310,29 @@ describe('réponses modifiées (US-173, R16)', () => {
     expect((await lineOf(prisma, lou.id, session.id))?.answersChangedAt).not.toBeNull()
   })
 
+  it('changer seulement ses disponibilités ne déclenche rien, et une nouvelle retenue efface un vieux repère', async () => {
+    const { pool, session, lou, path } = await person('confirmed')
+    expect((await publicApi('PUT', path, answers())).status).toBe(200)
+    await prisma.registrationSession.update({ where: { registrationId_sessionId: { registrationId: lou.id, sessionId: session.id } }, data: { answersChangedAt: null } })
+    const other = await prisma.session.create({ data: { name: `Autre ${pool.key}`, slug: `autre-${pool.key}`, gameId: pool.game.id, date: new Date(Date.now() + 40 * 86_400_000) } })
+    await prisma.registrationPeriodSession.create({ data: { periodId: pool.period.id, sessionId: other.id, open: true } })
+    expect((await publicApi('PUT', path, answers({ availableSessionIds: [other.id] }))).status).toBe(200)
+    expect((await lineOf(prisma, lou.id, session.id))?.answersChangedAt).toBeNull()
+
+    await prisma.registrationSession.update({ where: { registrationId_sessionId: { registrationId: lou.id, sessionId: other.id } }, data: { answersChangedAt: new Date() } })
+    expect((await api(alice, 'POST', `/api/registrations/${lou.id}/selection`, { action: 'retain', sessionId: other.id })).status).toBe(200)
+    expect((await lineOf(prisma, lou.id, other.id))?.answersChangedAt).toBeNull()
+  })
+
+  it('une réponse à une question retirée du questionnaire n’est pas un changement (R15)', async () => {
+    const { session, lou, path } = await person('confirmed')
+    expect((await publicApi('PUT', path, answers())).status).toBe(200)
+    await prisma.registrationSession.update({ where: { registrationId_sessionId: { registrationId: lou.id, sessionId: session.id } }, data: { answersChangedAt: null } })
+    await prisma.registration.update({ where: { id: lou.id }, data: { questionAnswers: { 'question-retiree': 'Ancienne réponse' } } })
+    expect((await publicApi('PUT', path, answers())).status).toBe(200)
+    expect((await lineOf(prisma, lou.id, session.id))?.answersChangedAt).toBeNull()
+  })
+
   it('pré-inscrite, en attente ou simplement intéressée : rien ne se déclenche ; une session passée non plus', async () => {
     for (const status of ['preregistered', 'waitlisted']) {
       const { session, lou, path } = await person(status)
