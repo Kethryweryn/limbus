@@ -141,6 +141,8 @@ const isPersonalLinkRoute = computed(() => ['/inscription/', '/presence/', '/i/'
 // d'un jeu (US-019)
 const isStandaloneRoute = computed(() => isPersonalLinkRoute.value || ['/acces/', '/public/'].some((prefix) => currentPath.value.startsWith(prefix)))
 let authCheckInProgress = false
+// Un réseau qui ne répond pas ne retient pas l'application : passé ce délai, elle ouvre ce qui est sur l'appareil
+const AUTH_CHECK_TIMEOUT_MS = 10_000
 
 function hasValidOfflineAuth() {
   return Boolean(getOfflineAuth())
@@ -190,7 +192,7 @@ const checkAuth = async (forceServerCheck = false) => {
 
   let authData
   try {
-    authData = await $fetch('/api/auth/me')
+    authData = await $fetch('/api/auth/me', { timeout: AUTH_CHECK_TIMEOUT_MS })
     setServerUnavailable(false)
     serverUnavailable.value = false
   } catch (error) {

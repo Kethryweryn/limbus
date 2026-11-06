@@ -18,7 +18,7 @@ Continuer à consulter un jeu sur le lieu du GN, où le réseau manque souvent, 
 
 ## Vocabulaire
 
-- **Hors ligne** : le navigateur n'a plus de réseau, ou le serveur ne répond pas (pas de réponse, ou erreur 502, 503, 504).
+- **Hors ligne** : le navigateur n'a plus de réseau, ou le serveur ne répond pas (pas de réponse sous 10 secondes à l'ouverture, ou erreur 502, 503, 504). Avec du réseau, toute ouverture de page interroge le serveur : une indisponibilité notée plus tôt, ou due à une requête coupée par un rechargement, ne bloque pas.
 - **Cache de l'appareil** : les données gardées dans le navigateur (base IndexedDB `limbus-db`, cache des photos, identité hors ligne).
 - **File d'attente** : les modifications faites hors ligne, en attente d'envoi.
 - **Resynchronisation** : l'envoi de la file d'attente au retour du réseau.

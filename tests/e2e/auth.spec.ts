@@ -1,6 +1,9 @@
 import { expect } from '@playwright/test'
+import bcrypt from 'bcrypt'
+import { TERMS_VERSION } from '~/utils/legal'
+import { createTestPrisma } from '../integration/db'
 import { E2E_PASSWORD, E2E_USERS } from './constants'
-import { expectLoggedIn, login, offlineRecordCount, openUserMenu, test } from './helpers'
+import { expectLoggedIn, login, offlineRecordCount, openUserMenu, test, uniqueName } from './helpers'
 
 test('un mauvais mot de passe est refusé, le bon connecte', async ({ page }) => {
   await login(page, E2E_USERS.orga, 'mauvais-mot-de-passe')
@@ -90,15 +93,28 @@ test('« Déconnecter tous mes appareils » ferme aussi la session des autres na
   await expect(phone.getByRole('heading', { name: 'Connexion' })).toBeVisible()
 })
 
+// Un compte par test : l'écran de connexion limite à 10 tentatives par email (ADR-0037)
+async function loginAccount() {
+  const prisma = createTestPrisma()
+  try {
+    const email = `${uniqueName('connexion').toLowerCase().replace(/[^a-z0-9]+/g, '-')}@example.test`
+    await prisma.user.create({ data: { email, name: 'Connexion e2e', password: await bcrypt.hash(E2E_PASSWORD, 4), termsAcceptedVersion: TERMS_VERSION, termsAcceptedAt: new Date() } })
+    return email
+  } finally {
+    await prisma.$disconnect()
+  }
+}
+
 // Un double clic envoyait deux connexions : le rechargement coupait la seconde, prise pour une panne du serveur
 test('un double clic sur « Se connecter » ne bloque pas l’onglet', async ({ page }) => {
+  const email = await loginAccount()
   let logins = 0
   page.on('request', (request) => {
     if (request.method() === 'POST' && request.url().endsWith('/api/auth/login')) logins++
   })
   await page.goto('/')
   await page.waitForLoadState('networkidle')
-  await page.getByLabel('Email').fill(E2E_USERS.orga)
+  await page.getByLabel('Email').fill(email)
   await page.getByLabel('Mot de passe').fill(E2E_PASSWORD)
   await page.getByRole('button', { name: 'Se connecter' }).dblclick()
   await expectLoggedIn(page)
@@ -116,10 +132,11 @@ test('à l’ouverture, un onglet marqué hors ligne revérifie le serveur', asy
 })
 
 test('après une vraie panne, « Réessayer » rend la connexion sans recharger', async ({ page }) => {
+  const email = await loginAccount()
   await page.goto('/')
   await page.waitForLoadState('networkidle')
   await page.route('**/api/auth/login', (route) => route.abort('connectionfailed'))
-  await page.getByLabel('Email').fill(E2E_USERS.orga)
+  await page.getByLabel('Email').fill(email)
   await page.getByLabel('Mot de passe').fill(E2E_PASSWORD)
   await page.getByRole('button', { name: 'Se connecter' }).click()
   await expect(page.getByText('Le serveur ne répond pas.')).toBeVisible()
@@ -127,7 +144,7 @@ test('après une vraie panne, « Réessayer » rend la connexion sans recharger'
   await page.unroute('**/api/auth/login')
   await page.getByRole('button', { name: 'Réessayer' }).click()
   await expect(page.getByRole('button', { name: 'Se connecter' })).toBeVisible()
-  await page.getByLabel('Email').fill(E2E_USERS.orga)
+  await page.getByLabel('Email').fill(email)
   await page.getByLabel('Mot de passe').fill(E2E_PASSWORD)
   await page.getByRole('button', { name: 'Se connecter' }).click()
   await expectLoggedIn(page)
