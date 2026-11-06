@@ -20,7 +20,7 @@ L'assistant part des pré-inscrits, l'équipe garde la main sur chaque email, el
 | [US-172](US-172-annoncer-le-casting.md) | Annoncer le casting, puis écrire au cas par cas | terminée |
 | [US-173](US-173-reponses-modifiees.md) | Être prévenue quand une personne castée change ses réponses | terminée |
 | [US-174](US-174-parcours-complet.md) | Lire le parcours complet d'une personne | terminée |
-| [US-175](US-175-retirer-l-ancien-modele.md) | Retirer l'ancien modèle des inscriptions | à faire |
+| [US-175](US-175-retirer-l-ancien-modele.md) | Retirer l'ancien modèle des inscriptions | terminée |
 
 ## Définition de terminé
 

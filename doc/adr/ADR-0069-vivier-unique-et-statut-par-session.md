@@ -33,7 +33,7 @@ liens: [../specs/SPEC-018-vivier-permanent.md, ADR-0019-modele-des-inscriptions.
      - **Le reste** : les demandes (`RegistrationRequest`) et les tirages passent au vivier gardé. Les anciens tirages restent au journal, sans session et non annulables.
      US-160, US-161 et US-171 sont livrées dans une même PR, avec cette migration : aucun déploiement ne fait cohabiter deux sources du statut. Une écriture faite par l'ancien build pendant le déploiement n'est pas recopiée, ce qui est accepté tant que la production n'a que des données de test. La migration s'exécute en une seule transaction : une erreur ne laisse pas la base à moitié convertie.
   2. Une fois tout le code passé au nouveau modèle, une migration retire l'ancien, avec le commentaire `-- deploiement-incompatible`.
-- **Remplacement** : à la livraison d'EPIC-048, ADR-0047 passe à « remplacé par ADR-0069 ». ADR-0046 et ADR-0048 gardent ce qui n'est pas contredit ici, et le disent en tête.
+- **Remplacement** : ADR-0047 est remplacé par celui-ci. ADR-0046 et ADR-0048 gardent ce qui n'est pas contredit ici, et le disent en tête.
 
 ## Conséquences
 

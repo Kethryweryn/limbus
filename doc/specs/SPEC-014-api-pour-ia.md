@@ -183,6 +183,7 @@ Fiche d'origine : [API pour une IA](../archive/todo/api-pour-ia.md). État de l'
 
 ## Historique
 
+- 2026-11-06 : les outils gardent leur nom (`creer_periode_inscription`, `periodeId`) pour ne pas casser les assistants déjà branchés ; leurs descriptions parlent du vivier et de la session.
 - 2026-11-06 : [SPEC-018](SPEC-018-vivier-permanent.md) : les outils d'inscription portent sur le vivier et sur chaque session ; `regler_places_vivier` devient `regler_selection_session`, les places valant le nombre de PJ.
 - 2026-11-02 : création, avec les choix de l'utilisatrice.
 - 2026-11-02 (revue) : contenu public modifiable, lectures hors journal (choix de l'utilisatrice) ; une autorisation finie est effacée, sans délai inventé.

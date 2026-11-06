@@ -235,6 +235,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-172](EPIC-048-casting-depuis-le-vivier/US-172-annoncer-le-casting.md) | Annoncer le casting, puis écrire au cas par cas | EPIC-048 | terminée |
 | [US-173](EPIC-048-casting-depuis-le-vivier/US-173-reponses-modifiees.md) | Être prévenue quand une personne castée change ses réponses | EPIC-048 | terminée |
 | [US-174](EPIC-048-casting-depuis-le-vivier/US-174-parcours-complet.md) | Lire le parcours complet d'une personne | EPIC-048 | terminée |
-| [US-175](EPIC-048-casting-depuis-le-vivier/US-175-retirer-l-ancien-modele.md) | Retirer l'ancien modèle des inscriptions | EPIC-048 | à faire |
+| [US-175](EPIC-048-casting-depuis-le-vivier/US-175-retirer-l-ancien-modele.md) | Retirer l'ancien modèle des inscriptions | EPIC-048 | terminée |
 | [US-176](EPIC-046-vivier-unique/US-176-joueur-par-le-questionnaire.md) | Faire passer tout joueur par le questionnaire | EPIC-046 | terminée |
 | [US-177](EPIC-045-retours-du-cahier-de-tests/US-177-mes-photos-dans-le-compte.md) | Retrouver « Mes photos » dans mon compte | EPIC-045 | terminée |

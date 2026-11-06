@@ -105,6 +105,7 @@ Le lot 1 de SPEC-015 ([EPIC-037](../archive/epics/EPIC-037-qualite-du-questionna
 
 ## Historique
 
+- 2026-11-06 : relue pour [SPEC-018](SPEC-018-vivier-permanent.md) : rien à changer, la conception porte sur le questionnaire avant les réponses.
 - 2026-11-03 : création, avec les choix de l'utilisatrice :
   - pistes retenues : essai par l'équipe, prévision, relecture, mélange des options ; test pilote écarté ;
   - spec à part ;
