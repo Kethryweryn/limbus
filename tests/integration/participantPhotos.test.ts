@@ -105,7 +105,7 @@ describe('retrait et refus (US-109)', () => {
 
     const refused = await api(user, 'POST', '/api/me/photo-refusal', { refused: true })
     expect(refused.status, JSON.stringify(refused.body)).toBe(200)
-    expect((await api(user, 'GET', '/api/me/photo-refusal')).body).toEqual({ refused: true })
+    expect((await api(user, 'GET', '/api/me/photo-refusal')).body).toEqual({ concerned: true, refused: true })
     expect((await prisma.sessionAssignment.findFirstOrThrow({ where: { sessionId: session.id } })).photoUrl).toBeNull()
     expect(existsSync(picture.path)).toBe(false)
 

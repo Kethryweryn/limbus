@@ -586,7 +586,7 @@ describe('Le Bal des Masques Brisés, après et imprévus', () => {
   it('montre à Lucie la session terminée, et la version actuelle du document reçu', async () => {
     const lucie = await prisma.user.findUniqueOrThrow({ where: { email: 'bal-proprietaire+lucie.moreau@example.test' }, select: { id: true } })
     const space = await api(lucie, 'GET', '/api/me/participations')
-    expect(JSON.stringify(space.body)).toContain('Session archive')
+    expect(JSON.stringify(space.body)).toContain('Session terminée')
     const delivery = await prisma.sessionDocumentDelivery.findFirstOrThrow({ where: { participant: { email: 'bal-proprietaire+lucie.moreau@example.test' }, session: { gameId: bal } }, select: { id: true } })
     const read = await api(lucie, 'GET', `/api/me/documents/${delivery.id}`)
     expect(read.status, JSON.stringify(read.body)).toBe(200)

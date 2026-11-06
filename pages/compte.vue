@@ -91,6 +91,8 @@
         <p v-if="messages.profile" class="mt-2 text-sm text-green-700">{{ messages.profile }}</p>
       </UCard>
 
+      <AccountPhotosCard />
+
       <UCard>
         <template #header><h2 class="font-semibold">Stockage</h2></template>
         <p class="text-sm text-gray-600">
