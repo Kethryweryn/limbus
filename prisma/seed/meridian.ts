@@ -199,7 +199,9 @@ export async function createMeridianStage(db: Db, context: StageContext) {
   await linkSession(invitationSession.id, false)
   await linkSession(mixedSession.id, true, { selectionMode: SELECTION.mixed, organizerPicks: 2, weightBalance: true, weightNotDrawnBefore: true })
   await linkSession(draftSession.id, false)
-  for (const session of poolSessions) await linkSession(session.id, true)
+  // La première a déjà reçu une demande : « Relancer » écrit aux personnes sans réponse (R12)
+  await linkSession(poolSessions[0]!.id, true, { lastRequestedAt: daysFromNow(-3) })
+  await linkSession(poolSessions[1]!.id, true)
 
   let nextRank = 0
   const createRegistration = async (
@@ -314,7 +316,7 @@ export async function createMeridianStage(db: Db, context: StageContext) {
   const mehdi = await createRegistration('mehdi.laurent@example.test')
   await addLine(mehdi, chosenSession.id, LINE.unavailable, { answer: ANSWER.unavailable })
   // Sortie du vivier (R5)
-  const clara = await createRegistration('clara.rousseau@example.test', { status: STATUS.withdrawn, extra: { withdrawnAt: daysFromNow(-2), tokenHash: null } })
+  const clara = await createRegistration('clara.rousseau@example.test', { status: STATUS.withdrawn, extra: { withdrawnAt: daysFromNow(-2) } })
   await addLine(clara, chosenSession.id, LINE.cancelled, { cancelledAt: daysFromNow(-2) })
   // A joué la session terminée du jeu : signalée comme rejoueuse
   const amandine = await createRegistration('amandine.blanc@example.test')

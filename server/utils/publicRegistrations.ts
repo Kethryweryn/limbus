@@ -9,7 +9,6 @@ import { answerAvailability, availabilitySchema } from '~/server/utils/registrat
 import { replaceAffinities } from '~/server/utils/registrationAffinities'
 import { countPlayableCharacters, offeredSessions, takenSeatsWhere } from '~/server/utils/registrationPeriods'
 import { joinSession, lockSession } from '~/server/utils/registrationSelection'
-import { getCurrentRegistrationForm, saveRegistrationFormDefinition, withGameBalanceQuestion, type AffinityAnswers, type QuestionAnswers } from '~/server/utils/registrationForms'
 import { readZodBody } from '~/server/utils/schemas'
 import { REGISTRATION_ANSWERS, REGISTRATION_CANCELLABLE_STATUSES, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
 import { isUpcomingSession } from '~/utils/registrationPeriods'
@@ -64,7 +63,6 @@ const publicRegistrationSelect = {
       session: { select: sessionView }
     }
   },
-  formVersion: { select: { id: true, definition: true } },
   participant: {
     select: {
       name: true,
@@ -88,8 +86,8 @@ export type PublicRegistration = NonNullable<Awaited<ReturnType<typeof findRegis
 export async function findRegistrationByToken(token: string | undefined) {
   if (!token || !TOKEN_PATTERN.test(token)) return null
 
-  return await prisma.registration.findUnique({
-    where: { tokenHash: hashRegistrationToken(token) },
+  return await prisma.registration.findFirst({
+    where: { links: { some: { tokenHash: hashRegistrationToken(token) } } },
     select: publicRegistrationSelect
   })
 }
@@ -183,14 +181,9 @@ export async function readAvailability(event: H3Event, registration: PublicRegis
   return (await readZodBody(event, availabilitySchema(proposed.map((session) => session.id)))).availableSessionIds
 }
 
-// Définition à remplir : celle que l'inscription a déjà remplie (R9), sinon la version en vigueur
+// Définition à remplir : toujours la version en vigueur (R15). Les anciennes réponses sont reprises, les nouvelles questions
+// s'ajoutent, et la version change seulement quand la personne enregistre
 async function formForRegistration(registration: PublicRegistration) {
-  if (registration.formVersion) {
-    return {
-      versionId: registration.formVersion.id,
-      definition: await withGameBalanceQuestion(registration.period.gameId, normalizeRegistrationFormDefinition(registration.formVersion.definition as RegistrationFormDefinition))
-    }
-  }
   const current = await getCurrentRegistrationForm(registration.period.gameId)
   return { versionId: current.version?.id ?? null, definition: current.definition }
 }
@@ -380,19 +373,52 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
 
   const name = registration.participant.name
   const gameTitle = registration.period.game.title
-  const notify = (text: string, subject: string) => {
-    void notifyGameTeam(registration.period.gameId, text, subject)
-      .catch((error) => console.error('[inscription] équipe non prévenue', { registrationId: registration.id, error: (error as Error)?.message }))
-  }
-  // Retenue sans annonce puis plus disponible (R29) : l'équipe le sait, la personne n'apprend pas qu'elle était retenue
-  if (outcome.removed.length) {
-    notify(`${name} n’est plus disponible pour ${outcome.removed.map((session) => `« ${session} »`).join(', ')} (${gameTitle}) : la personne est retirée du cast, et le personnage qui lui était réservé est libre.`, `Plus disponible : ${name} (${gameTitle})`)
-  }
+  notifyRemovedFromCast(registration, outcome.removed)
   if (outcome.fullSession) {
-    notify(`${name} a répondu à votre invitation pour la session « ${outcome.fullSession} » (${gameTitle}), mais la session est complète : la personne reste pré-inscrite. Créez un personnage pour ajouter une place.`, `Session complète : ${name} (${gameTitle})`)
+    notifyTeam(registration, `${name} a répondu à votre invitation pour la session « ${outcome.fullSession} » (${gameTitle}), mais la session est complète : la personne reste pré-inscrite. Créez un personnage pour ajouter une place.`, `Session complète : ${name} (${gameTitle})`)
   }
 
   return { accepted: accepting, keptSessions: outcome.kept }
+}
+
+function notifyTeam(registration: PublicRegistration, text: string, subject: string) {
+  void notifyGameTeam(registration.period.gameId, text, subject)
+    .catch((error) => console.error('[inscription] équipe non prévenue', { registrationId: registration.id, error: (error as Error)?.message }))
+}
+
+// Retenue sans annonce puis plus disponible (R29) : l'équipe le sait, la personne n'apprend pas qu'elle était retenue
+function notifyRemovedFromCast(registration: PublicRegistration, sessionNames: string[]) {
+  if (!sessionNames.length) return
+  const name = registration.participant.name
+  const gameTitle = registration.period.game.title
+  notifyTeam(registration, `${name} n’est plus disponible pour ${sessionNames.map((session) => `« ${session} »`).join(', ')} (${gameTitle}) : la personne est retirée du cast, et le personnage qui lui était réservé est libre.`, `Plus disponible : ${name} (${gameTitle})`)
+}
+
+/**
+ * Réponse à une demande de disponibilités pour une session (R11, R29). Une session proposée accepte toute réponse. Une
+ * session refermée depuis accepte encore « Pas disponible » d'une personne qui y a une ligne, et ne la fait pas revenir.
+ */
+export async function answerSessionAvailability(registration: PublicRegistration, sessionId: string, available: boolean) {
+  if (!registrationPermissions(registration).canEdit) {
+    throw createError({ statusCode: 409, message: 'Votre inscription ne peut plus être modifiée.' })
+  }
+  const proposed = (await proposedSessions(registration)).some((session) => session.id === sessionId)
+  const line = registration.sessionLines.find((candidate) => candidate.sessionId === sessionId)
+  const comesBack = line?.status === LINE.unavailable || line?.status === LINE.cancelled
+  if (!proposed && (line?.session.status !== SESSION_STATUSES.scheduled || (available && comesBack))) {
+    throw createError({ statusCode: 409, message: 'Cette session n’est plus proposée.' })
+  }
+  const effect = await prisma.$transaction(async (tx) => {
+    // Une sortie du vivier simultanée l'emporte ; la version de la personne suit ses réponses : un assistant qui l'a lue
+    // avant ne les écrase pas
+    const { count } = await tx.registration.updateMany({ where: { id: registration.id, status: registration.status }, data: { updatedAt: new Date() } })
+    if (!count) {
+      throw createError({ statusCode: 409, message: 'Votre inscription a changé entre-temps : rechargez la page.' })
+    }
+    return await answerAvailability(tx, registration.id, sessionId, available)
+  })
+  if (effect === 'removed') notifyRemovedFromCast(registration, [line!.session.name])
+  return effect
 }
 
 // Coordonnées du compte reprises d'une réponse faite connectée ; un champ que ce formulaire ne demande pas ne les touche pas

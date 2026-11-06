@@ -9,6 +9,9 @@ import {
 
 type DateLike = Date | string | null | undefined
 
+// Réponse portée par le lien d'une demande de disponibilités (R11) : la page demande de la confirmer
+export const AVAILABILITY_ANSWER_PARAMS = { available: 'disponible', unavailable: 'indisponible' } as const
+
 // Invitation sans réponse, ou place retenue pas encore confirmée, dont l'échéance est passée (R20 de SPEC-001),
 // calculé à la lecture (ADR-0020). Une place retenue n'a d'échéance qu'une fois annoncée (ADR-0047).
 export function isResponseOverdue(

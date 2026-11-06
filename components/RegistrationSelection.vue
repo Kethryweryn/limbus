@@ -83,6 +83,38 @@
         </div>
       </div>
 
+      <!-- Demande de disponibilités (R9, R12) : rien ne part sans ce clic -->
+      <div v-if="session.offered" class="flex flex-wrap items-center gap-2 text-xs text-gray-500" data-availability-request>
+        <span>{{ requestSummary(session) }}</span>
+        <UButton
+          size="xs"
+          color="primary"
+          variant="soft"
+          icon="i-heroicons-envelope"
+          :disabled="!session.askableCount"
+          :loading="asking === session.id"
+          @click="askPool(session)"
+        >
+          {{ session.lastRequestedAt ? 'Relancer' : 'Demander au vivier' }}{{ session.askableCount ? ` (${session.askableCount})` : '' }}
+        </UButton>
+      </div>
+      <UAlert
+        v-if="justOpened === session.id && session.offered && session.askableCount && !session.lastRequestedAt"
+        color="info"
+        variant="soft"
+        title="Session ouverte"
+        :description="`Écrire au vivier pour demander qui est disponible ? La demande partirait à ${plural(session.askableCount, 'personne')}. Rien ne part sans votre clic.`"
+        :actions="[{ label: 'Envoyer la demande', color: 'primary', onClick: () => askPool(session) }, { label: 'Plus tard', color: 'neutral', variant: 'ghost', onClick: () => { justOpened = null } }]"
+      />
+      <UAlert
+        v-if="askFailures[session.id]?.length"
+        color="warning"
+        variant="soft"
+        title="Demande non envoyée"
+        :description="sendFailures(askFailures[session.id]!).join(', ')"
+        :actions="[{ label: 'Réessayer', color: 'primary', onClick: () => askPool(session, askFailures[session.id]!.map((failure) => failure.registrationId)) }]"
+      />
+
       <p v-if="session.selectionMode !== REGISTRATION_SELECTION_MODES.chosen && !session.activeDrawId" class="text-xs text-gray-500">
         <template v-if="session.selectionMode === REGISTRATION_SELECTION_MODES.mixed">
           Mode mixte : avant le tirage, chaque organisatrice retient jusqu’à {{ session.organizerPicks ?? 0 }} personne{{ (session.organizerPicks ?? 0) > 1 ? 's' : '' }} ; le tirage remplit le reste.
@@ -468,7 +500,40 @@ function move(session: SelectionSession, index: number, offset: number) {
   return selectionWrite(() => useApiAction(`/api/registration-periods/${props.period.id}/waitlist`, { method: 'PUT', body: { sessionId: session.id, registrationIds: ids } }), 'Réordonnancement impossible')
 }
 
+// Après l'ouverture, la demande est proposée, sans rien envoyer (R9)
+const justOpened = ref<string | null>(null)
+const asking = ref<string | null>(null)
+const askFailures = ref<Record<string, Array<{ registrationId: string, participantName: string, message: string | null }>>>({})
+
+function requestSummary(session: SelectionSession) {
+  const waiting = `${plural(session.askableCount, 'personne')} sans réponse`
+  return session.lastRequestedAt
+    ? `Dernière demande le ${formatLongDate(session.lastRequestedAt)} · ${plural(session.answeredCount, 'réponse')} · ${waiting}`
+    : `Pas encore de demande · ${waiting}`
+}
+
+// Écrit aux personnes sans réponse ; `registrationIds` : seulement celles pour qui l'envoi a échoué
+async function askPool(session: SelectionSession, registrationIds?: string[]) {
+  const count = registrationIds?.length ?? session.askableCount
+  const verb = session.lastRequestedAt ? 'Relancer' : 'Demander à'
+  if (!confirm(`${verb} ${plural(count, 'personne')} par email pour « ${session.name} » ?`)) return
+  asking.value = session.id
+  message.value = ''
+  try {
+    const result = await useApiAction(`/api/registration-periods/${props.period.id}/sessions/${session.id}/availability-request`, { method: 'POST', body: { registrationIds } })
+    askFailures.value = { ...askFailures.value, [session.id]: result.failures }
+    justOpened.value = null
+    showMessage(`${plural(result.sentCount, 'email')} envoyé${result.sentCount > 1 ? 's' : ''}.`, result.failures.length ? 'warning' : 'success')
+    await loadOverview()
+  } catch (err) {
+    showMessage(apiErrorMessage(err, 'Demande impossible'), 'error')
+  } finally {
+    asking.value = null
+  }
+}
+
 function setOpen(session: SelectionSession, open: boolean) {
+  justOpened.value = open ? session.id : null
   return selectionWrite(() => useApiAction(`/api/registration-periods/${props.period.id}/sessions/${session.id}`, { method: 'PUT', body: { open } }), 'Modification impossible')
 }
 
@@ -493,7 +558,7 @@ async function cancelDraw(entry: Draw) {
 }
 
 async function announce() {
-  if (!confirm(`Prévenir ${plural(pendingCount.value, 'personne')} par email ? Chacune reçoit un nouveau lien personnel ; l’ancien ne fonctionnera plus.`)) return
+  if (!confirm(`Prévenir ${plural(pendingCount.value, 'personne')} par email ? Chacune reçoit un lien personnel ; les précédents restent valables.`)) return
   announcing.value = true
   message.value = ''
   try {

@@ -67,7 +67,7 @@ async function invitedWithForm() {
   const registration = await prisma.registration.create({
     data: {
       periodId: period.id, invitedSessionId: session.id, participantId: participant.id, status: 'invited', source: 'invitation',
-      invitedById: alice.id, email: participant.email!, tokenHash: sha256(token), responseDueAt: new Date(Date.now() + 7 * 86_400_000)
+      invitedById: alice.id, email: participant.email!, links: { create: { tokenHash: sha256(token) } }, responseDueAt: new Date(Date.now() + 7 * 86_400_000)
     }
   })
   const [text, single, multiple, scale] = definition.questions as Array<{ id: string }>
@@ -174,13 +174,27 @@ describe('répondre aux questions et aux affinités (US-081, US-082)', () => {
     expect(detail.affinityLines.filter((line) => line.kind === 'refusedRelationTypes').map((line) => line.text)).toEqual(['romance', 'family'])
   })
 
-  it('l’inscription garde sa version du formulaire (R9)', async () => {
-    const { game, path, ids, definition } = await invitedWithForm()
+  it('en revenant, la personne voit la dernière version : ses réponses reprises, la nouvelle question exigée à l’enregistrement (R15)', async () => {
+    const { game, path, ids, definition, registration } = await invitedWithForm()
     expect((await publicApi('PUT', path, body(ids))).status).toBe(200)
-    await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, { standardFields, affinities, questions: [{ ...definition.questions[0], label: 'Nouvelle question' }] })
+    const answeredVersion = (await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })).formVersionId
+    const saved = await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, {
+      standardFields,
+      affinities,
+      questions: [...definition.questions, { label: 'Nouvelle question obligatoire', type: 'text', required: true, options: [] }]
+    })
+    expect(saved.status, JSON.stringify(saved.body)).toBe(200)
 
-    const read = await publicApi('GET', path)
-    expect(bodyOf<PersonalRegistration>(read).definition.questions.map((question) => question.label)).toEqual(questions.map((question) => question.label))
-    expect(bodyOf<PersonalRegistration>(read).answers.questionAnswers[ids.scale]).toBe(4)
+    const read = bodyOf<PersonalRegistration>(await publicApi('GET', path))
+    expect(read.definition.questions.map((question) => question.label)).toContain('Nouvelle question obligatoire')
+    expect(read.answers.questionAnswers[ids.scale]).toBe(4)
+    // Tant qu'elle n'enregistre pas, ses réponses gardent leur version
+    expect((await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })).formVersionId).toBe(answeredVersion)
+
+    expect((await publicApi('PUT', path, body(ids))).status).toBe(400)
+    const added = read.definition.questions.find((question) => question.label === 'Nouvelle question obligatoire')!
+    const complete = body(ids)
+    expect((await publicApi('PUT', path, { ...complete, questionAnswers: { ...complete.questionAnswers, [added.id]: 'Ma réponse' } })).status).toBe(200)
+    expect((await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })).formVersionId).not.toBe(answeredVersion)
   })
 })

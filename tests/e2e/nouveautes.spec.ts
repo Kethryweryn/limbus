@@ -7,7 +7,7 @@ test('les nouveautés se lisent sans compte', async ({ page }) => {
   await page.goto('/nouveautes')
   await expect(page.getByRole('heading', { name: 'Nouveautés', level: 1 })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Une page pour suivre les nouveautés' })).toBeVisible()
-  await expect(page.getByText(/ · Nouveau$/)).toBeVisible()
+  await expect(page.getByText(/ · Nouveau$/).first()).toBeVisible()
   // Le lien du menu est réservé aux personnes connectées, et la page ne propose pas de se connecter
   await expect(page.getByRole('button', { name: 'Se connecter' })).toHaveCount(0)
   // La CI, en pull request comme sur main, donne un numéro au build (US-148) ; en local, il n'y en a pas

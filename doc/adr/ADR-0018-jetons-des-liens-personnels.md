@@ -1,12 +1,14 @@
 ---
 id: ADR-0018
 titre: Liens personnels des inscrits par jeton aléatoire stocké hashé
-statut: accepté
+statut: remplacé en partie par ADR-0070
 date: 2026-10-27
 liens: [SPEC-001, EPIC-001, ADR-0013]
 ---
 
 # ADR-0018 : Liens personnels des inscrits par jeton aléatoire stocké hashé
+
+> Remplacé en partie par [ADR-0070](ADR-0070-liens-personnels-durables.md) pour les inscriptions : plusieurs liens valables par personne, sans expiration à 30 jours. Le jeton et son hash restent tels quels.
 
 ## Contexte
 

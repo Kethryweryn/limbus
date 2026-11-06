@@ -25,7 +25,7 @@ async function invitedPerson(prisma: TestPrisma, ids: { gameId: string, sessionI
   const registration = await prisma.registration.create({
     data: {
       periodId: ids.periodId, participantId: participant.id, status: status === 'confirmed' ? 'received' : 'invited', source: 'invitation', email,
-      tokenHash: createHash('sha256').update(randomBytes(32)).digest('hex'),
+      links: { create: { tokenHash: createHash('sha256').update(randomBytes(32)).digest('hex') } },
       invitationSentAt: new Date(), responseDueAt: new Date(Date.now() + 7 * 86_400_000),
       ...(status === 'confirmed'
         ? { respondedAt: new Date(), sessionLines: { create: { sessionId: ids.sessionId, status: 'confirmed', confirmedAt: new Date() } } }
@@ -78,11 +78,14 @@ test('l’équipe relance, prolonge, renvoie, libère et annule des invitations'
     expect(extended.responseDueAt!.toISOString().slice(0, 10)).toBe(due)
 
     // Nouveau lien : l'ancien jeton ne vaut plus, un email part
-    const before = ben.registration.tokenHash
+    const linksOfBen = async () => (await prisma.registrationLink.findMany({ where: { registrationId: ben.registration.id }, select: { tokenHash: true } })).map((link) => link.tokenHash)
+    const before = await linksOfBen()
     page.once('dialog', (dialog) => dialog.accept())
     await row('Ben Actions').getByRole('button', { name: 'Nouveau lien' }).click()
     await expect(page.getByText('Nouveau lien envoyé à Ben Actions.')).toBeVisible()
-    expect((await prisma.registration.findUniqueOrThrow({ where: { id: ben.registration.id }, select: { tokenHash: true } })).tokenHash).not.toBe(before)
+    const after = await linksOfBen()
+    expect(after).toHaveLength(1)
+    expect(before).not.toContain(after[0])
     await expect.poll(() => mailbox.to(ben.email).length).toBe(1)
 
     // Libération : l'invitation est retirée par l'organisatrice, la personne est sortie du vivier

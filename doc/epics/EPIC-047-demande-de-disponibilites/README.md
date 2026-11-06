@@ -1,7 +1,7 @@
 ---
 id: EPIC-047
 titre: Demande de disponibilités au vivier
-statut: à faire
+statut: en cours
 spec: ../../specs/SPEC-018-vivier-permanent.md
 date: 2026-11-06
 ---
@@ -16,10 +16,10 @@ Quand une session s'ouvre, l'équipe écrit au vivier pour demander qui est int�
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-166](US-166-demander-au-vivier.md) | Demander au vivier qui est disponible | à faire |
-| [US-167](US-167-repondre-a-la-demande.md) | Répondre à une demande d'un clic | à faire |
-| [US-168](US-168-relancer-la-demande.md) | Relancer les personnes sans réponse | à faire |
-| [US-169](US-169-liens-et-derniere-version.md) | Revenir sur mes réponses avec un lien qui reste valable | à faire |
+| [US-166](US-166-demander-au-vivier.md) | Demander au vivier qui est disponible | terminée |
+| [US-167](US-167-repondre-a-la-demande.md) | Répondre à une demande d'un clic | terminée |
+| [US-168](US-168-relancer-la-demande.md) | Relancer les personnes sans réponse | terminée |
+| [US-169](US-169-liens-et-derniere-version.md) | Revenir sur mes réponses avec un lien qui reste valable | terminée |
 
 ## Définition de terminé
 

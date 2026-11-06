@@ -74,7 +74,7 @@ async function createGameWorld(prisma: PrismaClient, key: string, ownerId: strin
       source: 'invitation',
       invitedById: ownerId,
       email: participant.email!,
-      tokenHash: `hash-${key}`
+      links: { create: { tokenHash: `hash-${key}` } }
     }
   })
   // Tarif et versement (US-031, US-032) : la session est en mode tarifs

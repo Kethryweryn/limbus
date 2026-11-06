@@ -47,7 +47,7 @@ test('la personne accepte une invitation depuis « Je participe »', async ({ pa
     const registration = await prisma.registration.create({
       data: {
         periodId: period.id, invitedSessionId: session.id, participantId: participant.id, status: 'invited', source: 'invitation', email,
-        tokenHash: createHash('sha256').update(randomBytes(32)).digest('hex'), invitationSentAt: new Date(), responseDueAt: new Date(Date.now() + 7 * 86_400_000)
+        links: { create: { tokenHash: createHash('sha256').update(randomBytes(32)).digest('hex') } }, invitationSentAt: new Date(), responseDueAt: new Date(Date.now() + 7 * 86_400_000)
       }
     })
 

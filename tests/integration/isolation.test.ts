@@ -255,6 +255,7 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     // Sélection (US-087 à US-090)
     ['POST', `/api/registrations/${b.registration.id}/selection`, { action: 'retain', sessionId: b.session.id }],
     ['GET', `/api/registration-periods/${b.registrationPeriod.id}/selection`],
+    ['POST', `/api/registration-periods/${b.registrationPeriod.id}/sessions/${b.session.id}/availability-request`, {}],
     ['PUT', `/api/registration-periods/${b.registrationPeriod.id}/waitlist`, { sessionId: b.session.id, registrationIds: [] }],
     ['PUT', `/api/registration-periods/${b.registrationPeriod.id}/sessions/${b.session.id}`, { open: true }],
     ['POST', `/api/registration-periods/${b.registrationPeriod.id}/announce`],
@@ -338,7 +339,8 @@ describe('sous-routes de session et de jeu chez Bob', () => {
   })
 
   it('les inscriptions de Bob sont intactes', async () => {
-    expect(await prisma.registration.findUnique({ where: { id: b.registration.id } })).toMatchObject({ status: 'invited', tokenHash: 'hash-b', withdrawnById: null, lastRemindedAt: null })
+    expect(await prisma.registration.findUnique({ where: { id: b.registration.id } })).toMatchObject({ status: 'invited', withdrawnById: null, lastRemindedAt: null })
+    expect(await prisma.registrationLink.count({ where: { registrationId: b.registration.id, tokenHash: 'hash-b' } })).toBe(1)
   })
 
   it('inviter dans son vivier un participant ou une session de Bob est refusé', async () => {

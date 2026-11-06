@@ -175,8 +175,8 @@ describe('annoncer (US-088) et confirmer sa place (R18)', () => {
     expect(louEmail.text).toContain('est retenue pour la session')
     expect(emailsTo(max)[0]!.text).toContain('liste d’attente')
 
-    // Nouveau lien ; l'échéance part de l'annonce
-    expect((await prisma.registration.findUniqueOrThrow({ where: { id: lou.id } })).tokenHash).not.toBe(lou.tokenHash)
+    // Un lien de plus, l'ancien reste valable (ADR-0070) ; l'échéance part de l'annonce
+    expect(await prisma.registrationLink.count({ where: { registrationId: lou.id } })).toBe(2)
     const announced = await line(lou.id, first.id)
     expect(announced).toMatchObject({ announcedStatus: 'retained' })
     expect(announced!.responseDueAt!.getTime()).toBeGreaterThan(Date.now() + 6 * DAY)
@@ -212,7 +212,7 @@ describe('annoncer (US-088) et confirmer sa place (R18)', () => {
     expect((await publicApi('POST', `/api/public/registrations/${token}/accept`, { sessionId: session.id })).status).toBe(409)
   })
 
-  it('un échec d’envoi laisse la décision à annoncer, et l’ancien lien valable', async () => {
+  it('un échec d’envoi laisse la décision à annoncer, et ne crée pas de lien', async () => {
     const pool = await createPool(prisma, alice.id, { sessions: 1, seats: 1 })
     const session = pool.sessions[0]!
     const lou = await addPerson(prisma, pool, 'Lou', [session.id])
@@ -220,7 +220,7 @@ describe('annoncer (US-088) et confirmer sa place (R18)', () => {
     await select(lou.id, 'retain', session.id)
     expect(bodyOf<Announcement>(await announce(pool.period.id)).failures).toHaveLength(1)
     expect(await line(lou.id, session.id)).toMatchObject({ announcedStatus: null })
-    expect(await prisma.registration.findUniqueOrThrow({ where: { id: lou.id } })).toMatchObject({ tokenHash: lou.tokenHash })
+    expect(await prisma.registrationLink.count({ where: { registrationId: lou.id } })).toBe(1)
   })
 
   it('délai dépassé : l’équipe prolonge ou libère, puis retient la suivante de la file', async () => {

@@ -1,7 +1,7 @@
 ---
 id: US-168
 titre: Relancer les personnes sans réponse
-statut: à faire
+statut: terminée
 epic: EPIC-047
 regles: [R12]
 adr: []
@@ -13,13 +13,13 @@ En tant que organisatrice, je veux relancer celles qui n'ont pas répondu, afin 
 
 ## Critères d'acceptation
 
-- [ ] Étant donné une session avec des réponses partielles, quand je relance, alors seules les personnes sans réponse reçoivent l'email.
-- [ ] Étant donné une relance envoyée, alors je vois sa date et le nombre de réponses reçues.
+- [x] Étant donné une session avec des réponses partielles, quand je relance, alors seules les personnes sans réponse reçoivent l'email.
+- [x] Étant donné une relance envoyée, alors je vois sa date et le nombre de réponses reçues.
 
 ## Notes techniques
 
-Même envoi qu'US-166, filtré. Date de relance sur `RegistrationSession`.
+Même envoi qu'US-166 : il écrit aux personnes sans réponse, avec « Rappel » une fois une demande partie. Date sur `RegistrationPeriodSession.lastRequestedAt`.
 
 ## Tests
 
-Intégration : filtre des destinataires. Playwright : bouton Relancer.
+Intégration : `tests/integration/availabilityRequests.test.ts`. Playwright : `tests/e2e/registration.spec.ts`.
