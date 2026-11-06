@@ -152,6 +152,7 @@ Données personnelles : les disponibilités et les statuts par session sont couv
 - 2026-11-06 : création à partir du retour A4-4 du cahier de tests.
 - 2026-11-06 : EPIC-046 livré sauf US-176 (tout joueur passe par le questionnaire), qui suit dans sa propre PR.
 - 2026-11-06 : US-176 livrée : l'onglet Cast choisit dans le vivier, ce qui retient la personne (R20), ou invite pour la session ; toute autre personne est refusée comme joueur.
+- 2026-11-06 : l'ancien modèle des inscriptions est retiré de la base (seconde migration d'ADR-0069). L'export d'une personne détaille chaque session, sans décision pas encore annoncée (R28, choix de l'utilisatrice).
 - 2026-11-06 (revue d'US-176, choix de l'utilisatrice) : un PNJ ou une organisatrice peut tenir un PJ sans questionnaire, pas la cuisine (R31).
 - 2026-11-06 (seconde revue, choix de l'utilisatrice) : les places valent le nombre de PJ (R8) ; un joueur passe toujours par le questionnaire, et l'invitation peut viser une session (R4, R31) ; statut « transférée » au report (R30) ; un rejoueur exclu peut être retenu à la main (R24) ; le mode simple valide à la case « payé » (R17).
 - 2026-11-06 (revue, choix de l'utilisatrice) : effets d'un « Pas disponible » (R29), paiements remboursés, transférés ou reportés (R30), session ouverte forcément datée (R6), alerte limitée aux personnes castées ou inscrites (R16). Pas d'entité « place » : voir ADR-0069.

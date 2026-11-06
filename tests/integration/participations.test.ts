@@ -102,7 +102,7 @@ describe('répondre depuis son compte (US-072)', () => {
     const k = key()
     const game = await prisma.game.create({ data: { title: `Jeu ${k}`, slug: `jeu-${k}`, description: '', ownerId: bob.id } })
     const participant = await prisma.participant.create({ data: { name: 'Camille Invitée', slug: `camille-${k}`, email: user.email, userId: user.id, gameLinks: { create: { gameId: game.id } } } })
-    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: `Période ${k}`, publicId: `periode-${k}`, state: 'open' } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `periode-${k}`, state: 'open' } })
     const registration = await prisma.registration.create({
       data: { periodId: period.id, participantId: participant.id, status: 'invited', source: 'invitation', email: user.email, responseDueAt: new Date(Date.now() + 86_400_000) }
     })

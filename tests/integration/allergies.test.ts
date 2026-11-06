@@ -26,7 +26,7 @@ async function sessionWithRegistrations() {
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
   const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
   const period = await prisma.registrationPeriod.create({
-    data: { name: `Période ${key}`, gameId: game.id, publicId: `pub-${key}`, state: 'open', sessions: { create: { sessionId: session.id } } }
+    data: { gameId: game.id, publicId: `pub-${key}`, state: 'open', sessions: { create: { sessionId: session.id } } }
   })
   const person = (name: string) => prisma.participant.create({
     data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }

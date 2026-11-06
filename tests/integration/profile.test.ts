@@ -28,7 +28,7 @@ async function personInTwoTeams() {
     const participant = await prisma.participant.create({
       data: { name: 'Nom saisi par l’équipe', slug: `fiche-${k}`, email: user.email, phone: '0100000000', userId: user.id, gameLinks: { create: { gameId: game.id } } }
     })
-    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: `Période ${k}`, publicId: `periode-${k}`, state: 'open' } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `periode-${k}`, state: 'open' } })
     const definition = owner.id === alice.id ? FULL_FORM : NO_DIETARY_FORM
     const form = await prisma.registrationForm.create({ data: { gameId: game.id, versions: { create: { number: 1, definition } } }, include: { versions: true } })
     await prisma.registration.create({

@@ -57,11 +57,40 @@ describe('télécharger ses données (US-076)', () => {
     expect(text).not.toContain('sessionVersion')
   })
 
+  it('dit pour chaque session ce que montre sa page : pas de décision non annoncée (R28), l’équipe garde tout', async () => {
+    const { user, teams } = await player()
+    const { game, participant, owner, session } = teams[0]!
+    const announced = await prisma.session.create({ data: { name: `Annoncée ${++counter}`, slug: `annoncee-${counter}`, gameId: game.id } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `export-lignes-${counter}` } })
+    const remindedAt = new Date('2026-10-20T10:00:00.000Z')
+    await prisma.registration.create({
+      data: {
+        periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: user.email,
+        sessionLines: { create: [
+          // Mise en attente sans annonce : elle se voit encore pré-inscrite
+          { sessionId: session.id, status: 'waitlisted', waitlistPosition: 2, answer: 'available', retainedById: owner.id },
+          { sessionId: announced.id, status: 'waitlisted', waitlistPosition: 3, answer: 'available', announcedStatus: 'waitlisted', lastRemindedAt: remindedAt }
+        ] }
+      }
+    })
+    type Line = { status: string, waitlistPosition: number | null, lastRemindedAt: string | null, retainedBy?: { name: string } | null, session: { name: string } }
+    type Export = { registrations: Array<{ sessionLines: Line[] }> }
+    const linesOf = (exported: Export | undefined) => exported!.registrations.flatMap((registration) => registration.sessionLines)
+    const byPerson = (await api(user, 'GET', '/api/account/export')).body as { participantRecords: Export[] }
+    const mine = byPerson.participantRecords.flatMap(linesOf)
+    expect(mine.find((line) => line.session.name === session.name)).toMatchObject({ status: 'preregistered', waitlistPosition: null })
+    expect(mine.find((line) => line.session.name === session.name)).not.toHaveProperty('retainedBy')
+    expect(mine.find((line) => line.session.name === announced.name)).toMatchObject({ status: 'waitlisted', waitlistPosition: 3, lastRemindedAt: remindedAt.toISOString() })
+
+    const byTeam = linesOf((await api(owner, 'GET', `/api/participants/${participant.id}/export`)).body as Export)
+    expect(byTeam.find((line) => line.session.name === session.name)).toMatchObject({ status: 'waitlisted', waitlistPosition: 2, retainedBy: { name: owner.name } })
+  })
+
   it('contient ses affinités, sans la personne que l’équipe y a rattachée (R24, US-095)', async () => {
     const { user, teams } = await player()
     const { game, participant } = teams[0]!
     const target = await prisma.participant.create({ data: { name: 'Cible Rattachée', slug: `cible-${++counter}`, gameLinks: { create: { gameId: game.id } } } })
-    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, name: 'Période', publicId: `efface-periode-${counter}`, entryMode: 'form' } })
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `efface-periode-${counter}` } })
     await prisma.registration.create({
       data: {
         periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: user.email,

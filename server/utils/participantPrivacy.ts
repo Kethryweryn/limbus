@@ -1,7 +1,37 @@
 import { prisma } from '~/server/utils/prisma'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
 import { NO_COPY } from '~/server/utils/deliveryCopies'
+import { REGISTRATION_SESSION_STATUSES as LINE } from '~/utils/domain'
 import { normalizeRegistrationFormDefinition, type RegistrationFormDefinition } from '~/utils/registrationForms'
+import { visibleLineStatus } from '~/utils/registrations'
+
+type ExportedLine = {
+  status: string
+  answer: string | null
+  announcedStatus: string | null
+  waitlistPosition: number | null
+  responseDueAt: Date | null
+  cancelledAt: Date | null
+  cancelledById: string | null
+  cancelledBy: { name: string } | null
+  retainedBy: { name: string } | null
+}
+
+// La personne lit dans son export ce que montre sa page : une décision pas encore annoncée n'y figure pas (R28,
+// ADR-0069). L'export demandé à l'équipe garde tout
+function lineForPerson<T extends ExportedLine>({ cancelledById, retainedBy: _retainedBy, ...line }: T) {
+  const status = visibleLineStatus({ ...line, cancelledById })
+  if (!status) return []
+  const cancelled = status === LINE.cancelled
+  return [{
+    ...line,
+    status,
+    waitlistPosition: status === LINE.waitlisted ? line.waitlistPosition : null,
+    responseDueAt: status === LINE.retained ? line.responseDueAt : null,
+    cancelledAt: cancelled ? line.cancelledAt : null,
+    cancelledBy: cancelled ? line.cancelledBy : null
+  }]
+}
 
 /**
  * Efface un participant et tout ce qui le concerne (RGPD, droit à l'effacement) :
@@ -87,28 +117,23 @@ export async function exportParticipantData(participantId: string, gameIds: stri
           balancePreference: true,
           formVersion: { select: { definition: true } },
           // Statut et disponibilité de la personne pour chaque session (SPEC-018)
-          sessionLines: { select: { status: true, answer: true, answeredAt: true, confirmedAt: true, cancelledAt: true, session: { select: { name: true, date: true } } } },
+          sessionLines: { select: { status: true, answer: true, answeredAt: true, requestedAt: true, lastRemindedAt: true, responseDueAt: true, waitlistPosition: true, announcedStatus: true, announcedAt: true, confirmedAt: true, cancelledAt: true, cancelledById: true, cancelledBy: { select: { name: true } }, retainedBy: { select: { name: true } }, session: { select: { name: true, date: true } } } },
           // Affinités écrites par la personne, avec la personne rattachée ; jamais celles des autres qui la visent (US-095)
           affinities: {
             select: { kind: true, text: true, ...(forPerson ? {} : { targetUnknown: true, targetParticipant: { select: { name: true } } }) },
             orderBy: { position: 'asc' }
           },
-          // Sélection (US-087, US-088) : listes d'attente et décision annoncée
-          waitlistEntries: { select: { position: true, session: { select: { name: true, date: true } } } },
-          announcedStatus: true,
-          announcedAt: true,
           invitationSentAt: true,
           lastRemindedAt: true,
           responseDueAt: true,
           respondedAt: true,
-          confirmedAt: true,
           withdrawnAt: true,
           // Qui a invité ou retiré la personne : le droit d'accès porte sur toutes ses données (US-037)
           invitedBy: { select: { name: true } },
           withdrawnBy: { select: { name: true } },
           createdAt: true,
-          period: { select: { name: true, game: { select: { title: true } } } },
-          session: { select: { name: true, date: true } }
+          invitedSession: { select: { name: true, date: true } },
+          period: { select: { game: { select: { title: true } } } }
         }
       }
     }
@@ -119,8 +144,9 @@ export async function exportParticipantData(participantId: string, gameIds: stri
     exportedAt: new Date().toISOString(),
     ...rest,
     // Réponses aux questions avec leur libellé, lu dans la version remplie (US-081)
-    registrations: registrations.map(({ questionAnswers, formVersion, ...registration }) => ({
+    registrations: registrations.map(({ questionAnswers, formVersion, sessionLines, ...registration }) => ({
       ...registration,
+      sessionLines: forPerson ? sessionLines.flatMap(lineForPerson) : sessionLines.map(({ cancelledById: _author, ...line }) => line),
       questionAnswers: formVersion
         ? normalizeRegistrationFormDefinition(formVersion.definition as RegistrationFormDefinition).questions
           .filter((question) => (questionAnswers as Record<string, unknown> | null)?.[question.id] !== undefined)

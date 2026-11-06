@@ -41,6 +41,8 @@ liens: [../specs/SPEC-018-vivier-permanent.md, ADR-0019-modele-des-inscriptions.
 - Les joueurs déjà au cast sans `Registration` restent tels quels après la bascule : ils ne viennent que de données de test, que le rechargement remplace.
 - Une session peut être en surnombre après la suppression d'un personnage : l'écran le signale.
 - Les noms de tables « Period » ne correspondent plus au vocabulaire. C'est assumé pour limiter le risque de la migration.
+- La seconde migration est livrée (`20261113090000_retire_ancien_vivier`) : l'ancien modèle n'existe plus, ni `RegistrationPeriod.name`, puisqu'un vivier n'a plus de nom.
+- L'export d'une personne suit `visibleLineStatus` : une décision pas encore annoncée n'y figure pas, comme sur sa page. L'export demandé à l'équipe garde tout. Choix de l'utilisatrice à la revue.
 - Les liens de diffusion des périodes absorbées cessent de marcher. Seules des données de test sont concernées aujourd'hui.
 
 ## Options écartées
