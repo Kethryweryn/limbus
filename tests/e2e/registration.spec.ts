@@ -335,7 +335,7 @@ test('l’équipe tire au sort, voit le journal, puis annule le tirage', async (
     page.once('dialog', (dialog) => dialog.accept())
     await panel.getByRole('button', { name: 'Tirer au sort' }).click()
     await expect(panel.getByText('Tirage effectué')).toBeVisible()
-    await expect(panel.getByRole('button', { name: /Annoncer le casting (d+)/ })).toBeVisible()
+    await expect(panel.getByRole('button', { name: 'Annoncer le casting (1)' })).toBeVisible()
     await expect(panel.getByRole('button', { name: 'Annuler ce tirage' })).toBeVisible()
 
     const statuses = async () => (await prisma.registrationSession.findMany({ where: { sessionId: session.id }, select: { status: true } })).map((row) => row.status).sort()
