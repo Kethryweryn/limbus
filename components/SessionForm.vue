@@ -222,13 +222,16 @@ watch(() => localSession.value.gameId, () => {
   ) || []
 })
 
+// Qui quitte l'organisation ou les PNJ perd ses PNJ, et aussi le PJ qu'il avait repris s'il n'est pas joueur (R31 de SPEC-018)
 watch([() => localSession.value.organizerIds, () => localSession.value.npcIds], () => {
+  const players = new Set(sessionRoleIds(localSession.value, SESSION_ROLES.participant))
   localSession.value.assignments = (localSession.value.assignments || []).map((assignment) => {
+    const holder = assignment.participantId
+    if (!holder || pnjCastableIds.value.has(holder)) return assignment
     const character = characterById(assignment.characterId || '')
-    if (character?.type === CHARACTER_TYPES.pnj && assignment.participantId && !pnjCastableIds.value.has(assignment.participantId)) {
-      return { ...assignment, participantId: '' }
-    }
-    return assignment
+    return character?.type === CHARACTER_TYPES.pnj || !players.has(holder)
+      ? { ...assignment, participantId: '', photoUrl: '' }
+      : assignment
   })
 }, { deep: true })
 

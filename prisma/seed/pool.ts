@@ -1,5 +1,6 @@
 // Tout joueur d'une session vient du vivier (R31 de SPEC-018, ADR-0069) : les joueurs des jeux de test y ont leur réponse
 // et leur place, comme après une vraie confirmation. Le jeu sans autre vivier en reçoit un fermé, sans lien à diffuser.
+import { splitParticipantName } from '../../utils/registrations'
 import { REGISTRATION_ANSWERS, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_SOURCES, REGISTRATION_STATUSES, REGISTRATION_PERIOD_STATES, SESSION_ROLES, SESSION_STATUSES } from '../../utils/domain'
 import type { Db } from './db'
 import { daysFromNow } from './options'
@@ -7,7 +8,21 @@ import { daysFromNow } from './options'
 export async function placePlayersInPool(db: Db, gameId: string) {
   const players = await db.sessionParticipant.findMany({
     where: { role: SESSION_ROLES.participant, session: { gameId } },
-    select: { sessionId: true, session: { select: { status: true } }, participant: { select: { id: true, slug: true, email: true } } }
+    select: {
+      sessionId: true,
+      session: { select: { status: true } },
+      participant: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          email: true,
+          phone: true,
+          // Ses coordonnées et ses allergies sont celles de son compte, comme après une vraie réponse
+          user: { select: { phone: true, emergencyContactName: true, emergencyContactPhone: true, dietary: true, healthConsentAt: true } }
+        }
+      }
+    }
   })
   if (!players.length) return
 
@@ -27,6 +42,13 @@ export async function placePlayersInPool(db: Db, gameId: string) {
         status: REGISTRATION_STATUSES.received,
         source: REGISTRATION_SOURCES.form,
         email: participant.email ?? `${participant.slug}@example.test`,
+        ...splitParticipantName(participant.name),
+        phone: participant.user?.phone ?? participant.phone,
+        emergencyContactName: participant.user?.emergencyContactName,
+        emergencyContactPhone: participant.user?.emergencyContactPhone,
+        dietary: participant.user?.dietary,
+        healthConsentAt: participant.user?.healthConsentAt,
+        charterAcceptedAt: daysFromNow(-90),
         respondedAt: daysFromNow(-90)
       },
       select: { id: true, status: true }

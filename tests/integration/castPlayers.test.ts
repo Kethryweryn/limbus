@@ -93,6 +93,21 @@ describe('joueur hors du vivier (R31)', () => {
     ]))
   })
 
+  it('la cuisine ne tient pas un PJ sans passer par le vivier ; une orga, si', async () => {
+    const pool = await castPool()
+    const cook = await outsider(pool, 'Cuisine')
+    const organizer = await outsider(pool, 'Orga')
+    const characterId = pool.characters[0]!.id
+
+    const refused = await saveCast(pool, pool.session.id, [{ characterId, participantId: cook.id }], [{ participantId: cook.id, role: 'kitchen' }])
+    expect(refused.status).toBe(400)
+    expect(errorMessage(refused)).toContain('Cuisine n’est pas dans le vivier')
+
+    const accepted = await saveCast(pool, pool.session.id, [{ characterId, participantId: organizer.id }], [{ participantId: organizer.id, role: 'organizer' }])
+    expect(accepted.status, JSON.stringify(accepted.body)).toBe(200)
+    expect(await rows(pool.session.id)).toEqual([{ participantId: organizer.id, role: 'organizer' }])
+  })
+
   it('ajoute à la main un PNJ, la cuisine et une orga, et un PNJ peut reprendre un personnage de joueur', async () => {
     const pool = await castPool()
     const npc = await outsider(pool, 'Pnj')
@@ -179,15 +194,47 @@ describe('choisir une personne du vivier dans le cast (R20)', () => {
     const inTeam = await addPerson(prisma, pool, 'Dora')
     await prisma.sessionParticipant.create({ data: { sessionId: pool.session.id, participantId: inTeam.participantId, role: 'npc' } })
     await addPerson(prisma, pool, 'Sortie', [], { status: 'withdrawn' })
+    // A annulé : plus proposée tant qu'elle ne s'y redit pas disponible (R19)
+    const gone = await addPerson(prisma, pool, 'Élise')
+    await prisma.registrationSession.create({ data: { registrationId: gone.id, sessionId: pool.session.id, status: 'cancelled', answer: 'available' } })
+    // En cuisine, elle peut encore être choisie comme joueuse
+    const cook = await addPerson(prisma, pool, 'Fanny')
+    await prisma.sessionParticipant.create({ data: { sessionId: pool.session.id, participantId: cook.participantId, role: 'kitchen' } })
     const past = await prisma.session.create({ data: { name: `Passée ${pool.key}`, slug: `passee-${pool.key}`, gameId: pool.game.id, status: 'completed' } })
     await prisma.sessionParticipant.create({ data: { sessionId: past.id, participantId: interested.participantId, role: 'participant' } })
 
     const read = await api(alice, 'GET', `/api/sessions/${pool.session.id}`)
     const body = bodyOf<ApiResponse<'/api/sessions/:id'>>(read)
-    expect(body.registrationPeriodId).toBe(pool.period.id)
+    expect(body.poolState).toBe('open')
     expect(body.poolRegistrations).toEqual([
       { id: preregistered.id, name: 'Anna', status: 'preregistered', replayer: false },
-      { id: interested.id, name: 'Bea', status: 'received', replayer: true }
+      { id: interested.id, name: 'Bea', status: 'received', replayer: true },
+      { id: cook.id, name: 'Fanny', status: 'received', replayer: false }
     ])
+  })
+
+  it('ne propose personne sur une session qui n’est plus prévue, et dit quand un vivier est fermé ou absent', async () => {
+    const pool = await castPool({ state: 'closed' })
+    await addPerson(prisma, pool, 'Anna', [pool.session.id])
+    const read = async (id: string) => bodyOf<ApiResponse<'/api/sessions/:id'>>(await api(alice, 'GET', `/api/sessions/${id}`))
+    expect(await read(pool.session.id)).toMatchObject({ poolState: 'closed', poolRegistrations: [expect.objectContaining({ name: 'Anna' })] })
+
+    await prisma.session.update({ where: { id: pool.session.id }, data: { status: 'completed' } })
+    expect((await read(pool.session.id)).poolRegistrations).toEqual([])
+
+    const bare = await prisma.game.create({ data: { title: `Sans vivier ${pool.key}`, slug: `sans-vivier-${pool.key}`, description: '', ownerId: alice.id } })
+    const lone = await prisma.session.create({ data: { name: `Seule ${pool.key}`, slug: `seule-${pool.key}`, gameId: bare.id } })
+    expect(await read(lone.id)).toMatchObject({ poolState: null, poolRegistrations: [] })
+  })
+
+  it('l’assistant de casting compte une personne choisie dans le formulaire, pas encore enregistrée', async () => {
+    const pool = await castPool()
+    const lea = await addPerson(prisma, pool, 'Léa', [pool.session.id])
+    const characterId = pool.characters[0]!.id
+    const result = await api(alice, 'POST', `/api/sessions/${pool.session.id}/casting-assistant`, { assignments: [{ characterId, reservedRegistrationId: lea.id, locked: true }] })
+    expect(result.status, JSON.stringify(result.body)).toBe(200)
+    const body = bodyOf<ApiResponse<'/api/sessions/:id/casting-assistant', 'post'>>(result)
+    expect(body.proposal.find((line) => line.characterId === characterId)).toMatchObject({ playerId: lea.participantId, reservedRegistrationId: lea.id, locked: true })
+    expect((await lineOf(prisma, lea.id, pool.session.id))?.status).toBe('preregistered')
   })
 })

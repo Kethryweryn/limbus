@@ -2,7 +2,7 @@
 import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS, PARCOURS } from './constants'
-import { choose, signIn, uniqueName } from './helpers'
+import { choose, parcoursSession, signIn, uniqueName } from './helpers'
 
 test('une session créée depuis la liste se caste depuis le vivier, et ses réservations restent (US-176)', async ({ page }) => {
   const prisma = createTestPrisma()
@@ -49,6 +49,34 @@ test('une session créée depuis la liste se caste depuis le vivier, et ses rés
     const invitation = page.getByRole('dialog')
     await expect(invitation.getByText('Inviter à rejoindre le vivier')).toBeVisible()
     await expect(invitation.getByRole('combobox').first()).toContainText(name)
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
+test('les détails d’une session gardent les joueurs sans personnage, et un PNJ retiré rend le PJ qu’il avait repris', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const { session, character, participant } = await parcoursSession(prisma, 'Session détails e2e')
+    const sam = participant('Sam Parcours')
+    const noe = participant('Noé Parcours')
+    await prisma.sessionParticipant.createMany({ data: [
+      { sessionId: session.id, participantId: sam.id, role: 'participant' },
+      { sessionId: session.id, participantId: noe.id, role: 'npc' }
+    ] })
+    await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character('Aube').id, participantId: noe.id } })
+
+    await signIn(page, prisma, E2E_USERS.orga)
+    await page.goto(`/sessions/${session.slug}`)
+    await page.waitForLoadState('networkidle')
+    await page.getByRole('button', { name: 'Modifier' }).click()
+    await choose(page, page.getByLabel('PNJ de session'), /Noé Parcours/)
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Enregistrer' }).click()
+
+    await expect.poll(() => prisma.sessionParticipant.findMany({ where: { sessionId: session.id }, select: { participantId: true, role: true } }))
+      .toEqual([{ participantId: sam.id, role: 'participant' }])
+    expect(await prisma.sessionAssignment.findFirst({ where: { sessionId: session.id, characterId: character('Aube').id }, select: { participantId: true } })).toEqual({ participantId: null })
   } finally {
     await prisma.$disconnect()
   }

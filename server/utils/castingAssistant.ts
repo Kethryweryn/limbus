@@ -2,7 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { getCurrentRegistrationForm } from '~/server/utils/registrationForms'
 import { currentQuestionLinks } from '~/server/utils/registrationQuestionLinks'
 import { castingAssistant, type CastingCharacter, type CastingPlayer } from '~/utils/castingAssistant'
-import { CHARACTER_TYPES, REGISTRATION_SESSION_STATUSES, SESSION_ROLES } from '~/utils/domain'
+import { CHARACTER_TYPES, REGISTRATION_SESSION_STATUSES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
 
 // Assistant de casting d'une session (US-101, US-102, ADR-0051) : calculé sur le cast en cours d'édition, rien n'est écrit
 
@@ -50,9 +50,16 @@ export async function sessionCastingAssistant(session: { id: string, gameId: str
     throw createError({ statusCode: 400, message: 'Un personnage du cast n’appartient pas au jeu de la session' })
   }
 
-  // Une réservation n'a de sens que pour une inscription retenue de la session
-  const reservedParticipant = new Map(retained.map((registration) => [registration.id, registration.participantId]))
-  const reservationOf = new Map(retained.map((registration) => [registration.participantId, registration.id]))
+  // Une réservation vise une inscription retenue de la session, ou une personne du vivier choisie dans le formulaire,
+  // qui sera retenue à l'enregistrement (R20)
+  const retainedIds = new Set(retained.map((registration) => registration.id))
+  const chosenIds = [...new Set(pjLines.map((line) => line.reservedRegistrationId).filter((id): id is string => Boolean(id && !retainedIds.has(id))))]
+  const chosen = chosenIds.length
+    ? await prisma.registration.findMany({ where: { id: { in: chosenIds }, status: REGISTRATION_STATUSES.received, period: { gameId } }, select: { id: true, participantId: true } })
+    : []
+  const reservations = [...retained, ...chosen]
+  const reservedParticipant = new Map(reservations.map((registration) => [registration.id, registration.participantId]))
+  const reservationOf = new Map(reservations.map((registration) => [registration.participantId, registration.id]))
   const holderOf = (line: CastLine) => line.participantId || (line.reservedRegistrationId && reservedParticipant.get(line.reservedRegistrationId)) || null
 
   // Joueurs : le cast, les personnes retenues non confirmées, et celles déjà placées dans le formulaire, du même jeu

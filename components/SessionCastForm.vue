@@ -8,7 +8,7 @@
         </div>
         <div class="flex flex-wrap justify-end gap-2">
           <UButton
-            v-if="session.registrationPeriodId"
+            v-if="isUpcoming && session.poolState === REGISTRATION_PERIOD_STATES.open"
             type="button"
             color="neutral"
             variant="soft"
@@ -32,10 +32,13 @@
       </div>
     </template>
 
-    <p class="mb-4 text-sm text-gray-500">
+    <p v-if="isUpcoming" class="mb-4 text-sm text-gray-500">
       Un joueur vient du vivier : choisir une personne du vivier la retient et lui réserve le personnage, puis elle confirme sa place.
-      <template v-if="!session.registrationPeriodId">
+      <template v-if="!session.poolState">
         Ce jeu n’a pas encore de vivier : <NuxtLink to="/registrations" class="underline">créez-le dans Inscriptions</NuxtLink>.
+      </template>
+      <template v-else-if="session.poolState !== REGISTRATION_PERIOD_STATES.open">
+        Pour inviter une nouvelle personne, <NuxtLink to="/registrations" class="underline">ouvrez le vivier dans Inscriptions</NuxtLink>.
       </template>
     </p>
     <p v-if="assistantMessage" class="mb-4 text-sm text-primary-600">{{ assistantMessage }}</p>
@@ -274,7 +277,7 @@
 <script setup lang="ts">
 import { formatScore } from '~/utils/castingAssistant'
 import { computed, ref, watch } from 'vue'
-import { CHARACTER_TYPES, SESSION_ROLES } from '~/utils/domain'
+import { CHARACTER_TYPES, REGISTRATION_PERIOD_STATES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import { registrationStatusMeta } from '~/utils/registrations'
 import { fetchByUrl, type ApiResponse } from '~/composables/useApiFetch'
@@ -290,11 +293,12 @@ const props = defineProps<{
   session: {
     id: string
     gameId: string
+    status?: string
     participants?: Array<{ role: string, participantId?: string | null, participant?: Link }>
     assignments?: Array<{ characterId?: string, participantId?: string | null, reservedRegistrationId?: string | null, locked?: boolean, photoUrl?: string | null, notes?: string | null, character?: Link, participant?: Link }>
     retainedRegistrations?: Array<{ id: string, name: string }>
     poolRegistrations?: Array<{ id: string, name: string, status: string, replayer: boolean }>
-    registrationPeriodId?: string | null
+    poolState?: string | null
   }
   characters: Array<CharacterOption & { factions?: Array<{ name: string }> }>
   participants: Array<{ id: string, name: string, email?: string | null, photoRefusedAt?: string | null, games?: Array<{ id: string }> }>
@@ -339,12 +343,16 @@ const paginationStart = computed(() => (currentPage.value - 1) * itemsPerPage)
 const paginationEnd = computed(() => Math.min(paginationStart.value + itemsPerPage, sortedAssignments.value.length))
 const paginatedAssignments = computed(() => sortedAssignments.value.slice(paginationStart.value, paginationEnd.value))
 
-// L'équipe de la session : un joueur n'y entre pas directement, il vient du vivier (R31 de SPEC-018)
-const teamIds = computed(() => new Set(props.session.participants?.map((participant) => participant.participantId || participant.participant?.id)))
+const isUpcoming = computed(() => props.session.status === SESSION_STATUSES.scheduled)
+
+// Qui peut tenir un personnage : les joueurs, entrés par le vivier, les PNJ et l'organisation, pas la cuisine (R31 de SPEC-018)
+const castableIds = computed(() => new Set(props.session.participants
+  ?.filter((participant) => participant.role !== SESSION_ROLES.kitchen)
+  .map((participant) => participant.participantId || participant.participant?.id)))
 const participantOptions = computed(() => [
   { label: 'Aucun participant', value: '' },
   ...props.participants
-    .filter((participant) => teamIds.value.has(participant.id))
+    .filter((participant) => castableIds.value.has(participant.id))
     .map((participant) => ({
       label: participant.email ? `${participant.name} - ${participant.email}` : participant.name,
       value: participant.id

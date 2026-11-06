@@ -159,24 +159,29 @@ export function fullSessionMessage(session: { name: string, seats: number }) {
   return `La session « ${session.name} » est complète (${session.seats} place${session.seats > 1 ? 's' : ''}) : créez un personnage pour ajouter une place.`
 }
 
-/** La personne et la session d'une décision, contrôlées avant de l'écrire. */
-export async function selectionTarget(registrationId: string, sessionId: string) {
-  const registration = await prisma.registration.findUniqueOrThrow({
-    where: { id: registrationId },
+/** Les personnes d'un même vivier et la session d'une décision, contrôlées avant de l'écrire. */
+export async function selectionTargets(registrationIds: string[], sessionId: string) {
+  const registrations = await prisma.registration.findMany({
+    where: { id: { in: registrationIds } },
     select: { id: true, status: true, periodId: true }
   })
-  if (registration.status !== REGISTRATION_STATUSES.received) {
+  if (registrations.length !== registrationIds.length) {
+    throw createError({ statusCode: 404, message: 'Inscription introuvable' })
+  }
+  if (registrations.some((registration) => registration.status !== REGISTRATION_STATUSES.received)) {
     throw createError({ statusCode: 409, message: 'Cette personne n’est pas dans le vivier : elle n’a pas répondu au questionnaire, ou elle en est sortie.' })
   }
-  const period = (await findSelectionPeriod(registration.periodId))!
+  const [first] = registrations
+  if (!first) return []
+  const period = (await findSelectionPeriod(first.periodId))!
   const session = (await selectableSessions(period)).find((candidate) => candidate.id === sessionId)
   if (!session) {
     throw createError({ statusCode: 400, message: 'Session invalide pour ce vivier' })
   }
-  return { registration, session }
+  return registrations.map((registration) => ({ registration, session }))
 }
 
-export type SelectionTarget = Awaited<ReturnType<typeof selectionTarget>>
+export type SelectionTarget = Awaited<ReturnType<typeof selectionTargets>>[number]
 
 /**
  * Écrit une décision dans la transaction donnée : le cast y retient une personne du vivier en même temps qu'il lui
@@ -236,8 +241,8 @@ export async function writeSelection(tx: PrismaTx, { registration, session }: Se
  * exclue : l'écran le signale. Inscrite ou transférée, on passe par l'annulation.
  */
 export async function applySelection(registrationId: string, action: SelectionAction, sessionId: string, author: { id: string }) {
-  const target = await selectionTarget(registrationId, sessionId)
-  await prisma.$transaction((tx) => writeSelection(tx, target, action, author))
+  const [target] = await selectionTargets([registrationId], sessionId)
+  await prisma.$transaction((tx) => writeSelection(tx, target!, action, author))
   return { success: true }
 }
 

@@ -1,9 +1,11 @@
 import { prisma } from '~/server/utils/prisma'
 import { replayerParticipantIds } from '~/server/utils/registrationSelection'
-import { CHARACTER_TYPES, REGISTRATION_REPLAY_POLICIES, REGISTRATION_SEAT_STATUSES, REGISTRATION_SESSION_STATUSES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
+import { CHARACTER_TYPES, REGISTRATION_REPLAY_POLICIES, REGISTRATION_SEAT_STATUSES, REGISTRATION_SESSION_STATUSES, REGISTRATION_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
 
 type SessionParticipantRole = typeof SESSION_ROLES[keyof typeof SESSION_ROLES]
-const sessionParticipantRoles = Object.values(SESSION_ROLES)
+// Rôles qui peuvent tenir un personnage : un PNJ ou une organisatrice reprend un PJ sans passer par le vivier (R31 de
+// SPEC-018), pas la cuisine
+const CAST_ROLES = [SESSION_ROLES.participant, SESSION_ROLES.organizer, SESSION_ROLES.npc]
 
 export function normalizeAssignments(assignments: Array<{
   characterId: string
@@ -116,10 +118,8 @@ export function normalizeSessionParticipants(participants: Array<{
   for (const assignment of assignments) {
     if (!assignment.participantId) continue
 
-    const hasSessionRole = sessionParticipantRoles.some((role) =>
-      normalized.has(`${assignment.participantId}:${role}`)
-    )
-    if (!hasSessionRole) {
+    const hasCastRole = CAST_ROLES.some((role) => normalized.has(`${assignment.participantId}:${role}`))
+    if (!hasCastRole) {
       normalized.set(`${assignment.participantId}:${SESSION_ROLES.participant}`, {
         participantId: assignment.participantId,
         role: SESSION_ROLES.participant
@@ -244,7 +244,8 @@ export async function assertSessionCastRules(
 
 /**
  * Un joueur passe par le questionnaire (R31, ADR-0069) : un nouveau joueur de la session doit y être inscrit. Ceux déjà
- * dans la session restent, et les rôles d'équipe s'ajoutent à la main : un PNJ peut reprendre un PJ sans devenir joueur.
+ * dans la session restent, et les rôles d'équipe s'ajoutent à la main : un PNJ ou une organisatrice peut reprendre un
+ * PJ sans devenir joueur.
  * Appelé après le contrôle du jeu : le nom lu est celui d'une personne de ce jeu.
  */
 export async function assertPlayersFromPool(gameId: string, sessionId: string | null, sessionParticipants: ReturnType<typeof normalizeSessionParticipants>) {
@@ -273,7 +274,7 @@ export async function assertPlayersFromPool(gameId: string, sessionId: string | 
       throw createError({ statusCode: 400, message: `${name} n’est pas dans le vivier de ce jeu : un joueur répond d’abord au questionnaire. Invitez cette personne à le remplir, ou ajoutez-la à l’équipe comme PNJ, cuisine ou organisation.` })
     }
     if (!registration.sessionLines.length) {
-      throw createError({ statusCode: 400, message: `${name} est dans le vivier sans être inscrite à cette session : retenez cette personne, elle confirmera ensuite.` })
+      throw createError({ statusCode: 400, message: `${name} est dans le vivier sans être inscrite à cette session : retenez cette personne si ce n’est pas fait. Elle entre dans la session en confirmant sa place, et son personnage se réserve dans l’onglet Cast.` })
     }
   }
 }
@@ -302,28 +303,29 @@ export const castAssignmentInclude = {
 type ReservedRow = { reservedRegistrationId: string | null, reservedRegistration?: { id: string } | null }
 
 /**
- * Personnes du vivier que le cast peut ajouter à la session (R20) : ni déjà dans son équipe, ni déjà avec une place. Le
- * statut et le fait d'avoir déjà joué, quand le vivier le signale, s'affichent à côté du nom (R20, R24).
+ * Personnes du vivier que le cast peut ajouter à la session (R20) : sans rôle qui tient déjà un personnage, sans place,
+ * et sans annulation tant qu'elles ne s'y redisent pas disponibles (R19). Le statut et le fait d'avoir déjà joué, quand
+ * le vivier le signale, s'affichent à côté du nom (R20, R24).
  */
-async function poolCandidates(session: { id: string, gameId: string }) {
+async function poolCandidates(session: { id: string, gameId: string }, period: { id: string, replayPolicy: string }) {
   const rows = await prisma.registration.findMany({
     where: {
       status: REGISTRATION_STATUSES.received,
-      period: { gameId: session.gameId },
-      participant: { sessionRoles: { none: { sessionId: session.id } } },
-      sessionLines: { none: { sessionId: session.id, status: { in: REGISTRATION_SEAT_STATUSES } } }
+      periodId: period.id,
+      participant: { sessionRoles: { none: { sessionId: session.id, role: { in: CAST_ROLES } } } },
+      sessionLines: { none: { sessionId: session.id, status: { in: [...REGISTRATION_SEAT_STATUSES, REGISTRATION_SESSION_STATUSES.cancelled] } } }
     },
     select: {
       id: true,
       participantId: true,
       participant: { select: { name: true } },
-      period: { select: { replayPolicy: true } },
       sessionLines: { where: { sessionId: session.id }, select: { status: true } }
     },
     orderBy: { participant: { name: 'asc' } }
   })
-  const flagged = rows.some((row) => row.period.replayPolicy !== REGISTRATION_REPLAY_POLICIES.allowed)
-  const replayers = flagged ? await replayerParticipantIds(session.gameId, rows.map((row) => row.participantId)) : new Set<string>()
+  const replayers = period.replayPolicy === REGISTRATION_REPLAY_POLICIES.allowed
+    ? new Set<string>()
+    : await replayerParticipantIds(session.gameId, rows.map((row) => row.participantId))
   return rows.map((row) => ({
     id: row.id,
     name: row.participant.name,
@@ -335,18 +337,18 @@ async function poolCandidates(session: { id: string, gameId: string }) {
 /**
  * Session lue par l'équipe : une réservation dont la personne n'est plus retenue pour la session n'est plus montrée,
  * et les personnes retenues non confirmées (US-100, ADR-0051) comme les autres personnes du vivier (US-176) sont listées
- * pour être choisies dans le cast. Le vivier du jeu, s'il existe, reçoit l'invitation pour la session.
+ * pour être choisies dans le cast, seulement sur une session encore prévue. L'état du vivier dit si le cast peut inviter.
  */
-export async function withCastReservations<T extends { id: string, gameId: string, assignments: ReservedRow[] }>(session: T) {
-  const [retained, pool, period] = await Promise.all([
+export async function withCastReservations<T extends { id: string, gameId: string, status: string, assignments: ReservedRow[] }>(session: T) {
+  const [retained, period] = await Promise.all([
     prisma.registrationSession.findMany({
       where: { sessionId: session.id, status: REGISTRATION_SESSION_STATUSES.retained },
       select: { registration: { select: { id: true, participantId: true, participant: { select: { name: true } } } } },
       orderBy: { registration: { participant: { name: 'asc' } } }
     }),
-    poolCandidates(session),
-    prisma.registrationPeriod.findUnique({ where: { gameId: session.gameId }, select: { id: true } })
+    prisma.registrationPeriod.findUnique({ where: { gameId: session.gameId }, select: { id: true, state: true, replayPolicy: true } })
   ])
+  const pool = period && session.status === SESSION_STATUSES.scheduled ? await poolCandidates(session, period) : []
   const retainedIds = new Set(retained.map((line) => line.registration.id))
   return {
     ...session,
@@ -357,6 +359,6 @@ export async function withCastReservations<T extends { id: string, gameId: strin
     }),
     retainedRegistrations: retained.map(({ registration }) => ({ id: registration.id, participantId: registration.participantId, name: registration.participant.name })),
     poolRegistrations: pool,
-    registrationPeriodId: period?.id ?? null
+    poolState: period?.state ?? null
   }
 }

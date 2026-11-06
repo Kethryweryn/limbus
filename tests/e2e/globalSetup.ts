@@ -62,7 +62,7 @@ export default async function globalSetup() {
     data: {
       gameId: parcours.id,
       publicId: 'e2e-parcours',
-      state: 'closed',
+      state: 'open',
       registrations: { create: inPool.map((person) => ({ participantId: person.id, email: person.email!, status: 'received', source: 'form', respondedAt: new Date() })) }
     }
   })

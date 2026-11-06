@@ -2,7 +2,7 @@ import type { H3Event } from 'h3'
 import type { z } from 'zod'
 import { prisma } from '~/server/utils/prisma'
 import { requireCurrentUser, requireGameAccess, requireSessionAccess, assertSameGame } from '~/server/utils/gameAccess'
-import { selectionTarget, writeSelection } from '~/server/utils/registrationSelection'
+import { selectionTargets, writeSelection } from '~/server/utils/registrationSelection'
 import { assertPlayersFromPool, assertSessionCastRules, assertSessionLocation, castAssignmentInclude, normalizeAssignments, normalizeSessionParticipants, resolveCastLines, withCastReservations } from '~/server/utils/sessionAssignments'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
@@ -15,6 +15,9 @@ import { SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
 // par `readBody` à la place qu'il a dans chaque route
 
 type Reader<S extends z.ZodType> = () => Promise<z.output<S>>
+
+// Un cast entier peut retenir plusieurs dizaines de personnes en une fois
+const CAST_TRANSACTION_TIMEOUT_MS = 30_000
 
 function parseDate(value: unknown): Date | null {
   if (!value || typeof value !== 'string') return null
@@ -94,15 +97,16 @@ export async function updateSession(event: H3Event, id: string, readBody: Reader
     ? (await prisma.session.findUniqueOrThrow({ where: { id: existingSession.id }, select: { cancelledAt: true } })).cancelledAt ?? new Date()
     : null
   // Une personne du vivier choisie dans le cast est retenue en même temps que son personnage lui est réservé (R20)
-  const retained = await Promise.all(toRetain.map((registrationId) => selectionTarget(registrationId, existingSession.id)))
+  const retained = await selectionTargets(toRetain, existingSession.id)
   const author = retained.length ? await requireCurrentUser(event) : null
+  const slug = await generateUniqueSlug('session', name, existingSession.id)
   const session = await prisma.$transaction(async (tx) => {
     for (const target of retained) await writeSelection(tx, target, 'retain', author!)
     return await tx.session.update({
       where: { id: existingSession.id },
       data: {
         name,
-        slug: await generateUniqueSlug('session', name, existingSession.id),
+        slug,
         gameId,
         date: parseDate(body.date),
         locationId: locationId || null,
@@ -135,7 +139,7 @@ export async function updateSession(event: H3Event, id: string, readBody: Reader
         }
       }
     })
-  })
+  }, { timeout: CAST_TRANSACTION_TIMEOUT_MS })
 
   // Responsables du déroulé : seulement des orgas et PNJ de l'équipe ; une personne qui en sort, ou change de rôle,
   // n'y reste pas (US-128)
