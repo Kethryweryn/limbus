@@ -2,7 +2,7 @@
   <div class="p-6 space-y-6 max-w-3xl">
     <div>
       <h1 class="text-2xl font-bold">Mon compte</h1>
-      <p class="text-sm text-gray-500">Votre nom, votre adresse et votre mot de passe.</p>
+      <p class="text-sm text-gray-500">Votre nom, votre adresse, votre mot de passe, vos coordonnées et vos photos.</p>
     </div>
 
     <UAlert v-if="loadError" color="error" variant="soft" :description="loadError" />
@@ -90,6 +90,8 @@
         </form>
         <p v-if="messages.profile" class="mt-2 text-sm text-green-700">{{ messages.profile }}</p>
       </UCard>
+
+      <AccountPhotosCard />
 
       <UCard>
         <template #header><h2 class="font-semibold">Stockage</h2></template>

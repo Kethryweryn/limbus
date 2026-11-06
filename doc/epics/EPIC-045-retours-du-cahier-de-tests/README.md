@@ -20,6 +20,7 @@ Corriger ce que l'utilisatrice signale en déroulant son cahier de tests ([fiche
 | [US-157](US-157-page-d-erreur.md) | Comprendre qu'une page n'est pas accessible | terminée |
 | [US-158](US-158-carte-du-jeu-actif.md) | Repérer le jeu actif sur la page Jeux | terminée |
 | [US-159](US-159-connexion-sans-blocage.md) | Se connecter sans rester bloquée | terminée |
+| [US-177](US-177-mes-photos-dans-le-compte.md) | Retrouver « Mes photos » dans mon compte | terminée |
 
 ## Définition de terminé
 

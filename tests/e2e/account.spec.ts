@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { signIn, slugOf, testUser, uniqueName } from './helpers'
+import { parcoursSession, signIn, slugOf, testUser, uniqueName } from './helpers'
 
 // EPIC-031 (US-118) : nom et coordonnées depuis « Mon compte »
 test('la personne change son nom et ses coordonnées depuis son compte', async ({ page }) => {
@@ -69,6 +69,48 @@ test('la personne accepte une invitation depuis « Je participe »', async ({ pa
     await page.getByRole('button', { name: 'Accepter l’invitation' }).click()
     await expect(page.getByText('Votre inscription est confirmée.')).toBeVisible()
     expect((await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { status: true } })).status).toBe('confirmed')
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
+// Cahier de tests, A4-2 (US-177) : le réglage des photos est dans « Mon compte », plus dans « Je participe »
+test('« Mes photos » se règle depuis le compte, pour qui a une fiche', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const { user, email } = await testUser(prisma, 'Compte Photos')
+    await signIn(page, prisma, email)
+
+    // Sans fiche chez une équipe, rien à régler
+    await page.goto('/compte')
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByRole('heading', { name: 'Mon compte', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Mes photos' })).toBeHidden()
+
+    const { game } = await parcoursSession(prisma, 'Session des photos du compte')
+    await prisma.participant.create({
+      data: {
+        name: 'Compte Photos',
+        slug: email.replace(/[^a-z0-9]+/g, '-'),
+        email,
+        userId: user.id,
+        gameLinks: { create: { gameId: game.id } }
+      }
+    })
+
+    await page.goto('/participer')
+    await expect(page.getByRole('heading', { name: 'Je participe' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: game.title })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Mes photos' })).toBeHidden()
+
+    await page.goto('/compte')
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByRole('heading', { name: 'Mes photos' })).toBeVisible()
+    page.once('dialog', (dialog) => dialog.accept())
+    await page.getByRole('button', { name: 'Retirer mes photos' }).click()
+    await expect(page.getByText('Vos photos sont retirées.')).toBeVisible()
+    await page.getByRole('button', { name: 'Accepter de nouveau une photo' }).click()
+    await expect(page.getByText('Les équipes peuvent de nouveau ajouter votre photo.')).toBeVisible()
   } finally {
     await prisma.$disconnect()
   }

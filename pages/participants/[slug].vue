@@ -71,7 +71,7 @@
           </p>
           <p v-else class="text-sm text-gray-600">Cette personne n’a pas refusé l’usage de sa photo.</p>
           <p v-if="participant.photoRefusedAt && participant.userId" class="mt-2 text-xs text-gray-500">
-            Elle a un compte : elle seule peut lever ce refus, depuis « Je participe ».
+            Elle a un compte : elle seule peut lever ce refus, depuis « Mon compte ».
           </p>
           <div class="mt-3 flex items-center gap-3">
             <UButton

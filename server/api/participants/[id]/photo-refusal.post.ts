@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   if (!refused) {
     const participant = await prisma.participant.findUniqueOrThrow({ where: { id }, select: { userId: true } })
     if (participant.userId) {
-      throw createError({ statusCode: 403, message: 'Cette personne a un compte : elle seule peut accepter de nouveau une photo, depuis « Je participe ».' })
+      throw createError({ statusCode: 403, message: 'Cette personne a un compte : elle seule peut accepter de nouveau une photo, depuis « Mon compte ».' })
     }
   }
   const result = await setPhotoRefusal([id], refused)

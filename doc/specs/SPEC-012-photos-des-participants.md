@@ -41,7 +41,7 @@ Pour la CNIL, l'image d'une personne identifiable est une donnée personnelle, e
   - À l'échéance, les photos de la session (lignes du cast) et ses trombinoscopes générés sont supprimés.
   - Une session sans date n'a pas d'échéance.
   - La photo par défaut d'un personnage fait partie du jeu : elle n'a pas d'échéance. Si elle montre une personne, l'équipe la retire sur demande.
-- **P4 Retrait par la personne.** Depuis « Je participe », une personne qui a un compte retire ses photos d'un bouton.
+- **P4 Retrait par la personne.** Depuis « Mon compte », une personne qui a une fiche chez une équipe retire ses photos d'un bouton.
   - Ses photos de toutes ses sessions sont supprimées, et les trombinoscopes déjà générés de ces sessions sont refaits.
   - Ses fiches participant passent à « photo refusée ».
   - Elle peut lever ce refus au même endroit.
@@ -68,3 +68,4 @@ Un epic, [EPIC-028](../archive/epics/EPIC-028-photos-des-participants/README.md)
 
 - 2026-11-01 : création à partir de la fiche, avec les choix de l'utilisatrice.
 - 2026-11-01 : EPIC-028 terminé et archivé ; ADR-0054 accepté.
+- 2026-11-06 : le réglage passe de « Je participe » à « Mon compte » (US-177, retour A4-2 du cahier de tests).

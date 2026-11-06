@@ -1151,8 +1151,8 @@ async function createArchiveSession(
 
   await db.session.create({
     data: {
-      name: `${gameTitle} - Session archive`,
-      slug: makeSlug(`${gameTitle}-session-archive`),
+      name: `${gameTitle} - Session terminée`,
+      slug: makeSlug(`${gameTitle}-session-terminee`),
       date: daysFromNow(-60),
       gameId,
       locationId: locations[0]?.id,
