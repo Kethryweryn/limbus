@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test'
-import { E2E_USERS } from './constants'
+import { E2E_PASSWORD, E2E_USERS } from './constants'
 import { expectLoggedIn, login, offlineRecordCount, openUserMenu, test } from './helpers'
 
 test('un mauvais mot de passe est refusé, le bon connecte', async ({ page }) => {
@@ -88,4 +88,47 @@ test('« Déconnecter tous mes appareils » ferme aussi la session des autres na
 
   await phone.reload()
   await expect(phone.getByRole('heading', { name: 'Connexion' })).toBeVisible()
+})
+
+// Un double clic envoyait deux connexions : le rechargement coupait la seconde, prise pour une panne du serveur
+test('un double clic sur « Se connecter » ne bloque pas l’onglet', async ({ page }) => {
+  let logins = 0
+  page.on('request', (request) => {
+    if (request.method() === 'POST' && request.url().endsWith('/api/auth/login')) logins++
+  })
+  await page.goto('/')
+  await page.waitForLoadState('networkidle')
+  await page.getByLabel('Email').fill(E2E_USERS.orga)
+  await page.getByLabel('Mot de passe').fill(E2E_PASSWORD)
+  await page.getByRole('button', { name: 'Se connecter' }).dblclick()
+  await expectLoggedIn(page)
+  expect(logins).toBe(1)
+  expect(await page.evaluate(() => sessionStorage.getItem('limbusServerUnavailable'))).toBeNull()
+})
+
+test('à l’ouverture, un onglet marqué hors ligne revérifie le serveur', async ({ page }) => {
+  await page.goto('/')
+  await page.waitForLoadState('networkidle')
+  await page.evaluate(() => sessionStorage.setItem('limbusServerUnavailable', 'true'))
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Se connecter' })).toBeVisible()
+  await expect(page.getByText('Le serveur ne répond pas.')).toBeHidden()
+})
+
+test('après une vraie panne, « Réessayer » rend la connexion sans recharger', async ({ page }) => {
+  await page.goto('/')
+  await page.waitForLoadState('networkidle')
+  await page.route('**/api/auth/login', (route) => route.abort('connectionfailed'))
+  await page.getByLabel('Email').fill(E2E_USERS.orga)
+  await page.getByLabel('Mot de passe').fill(E2E_PASSWORD)
+  await page.getByRole('button', { name: 'Se connecter' }).click()
+  await expect(page.getByText('Le serveur ne répond pas.')).toBeVisible()
+
+  await page.unroute('**/api/auth/login')
+  await page.getByRole('button', { name: 'Réessayer' }).click()
+  await expect(page.getByRole('button', { name: 'Se connecter' })).toBeVisible()
+  await page.getByLabel('Email').fill(E2E_USERS.orga)
+  await page.getByLabel('Mot de passe').fill(E2E_PASSWORD)
+  await page.getByRole('button', { name: 'Se connecter' }).click()
+  await expectLoggedIn(page)
 })

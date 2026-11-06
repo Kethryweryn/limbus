@@ -216,3 +216,4 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-156](EPIC-045-retours-du-cahier-de-tests/US-156-retrouver-ses-participations.md) | Retrouver ses participations depuis l'organisation | EPIC-045 | terminée |
 | [US-157](EPIC-045-retours-du-cahier-de-tests/US-157-page-d-erreur.md) | Comprendre qu'une page n'est pas accessible | EPIC-045 | terminée |
 | [US-158](EPIC-045-retours-du-cahier-de-tests/US-158-carte-du-jeu-actif.md) | Repérer le jeu actif sur la page Jeux | EPIC-045 | terminée |
+| [US-159](EPIC-045-retours-du-cahier-de-tests/US-159-connexion-sans-blocage.md) | Se connecter sans rester bloquée | EPIC-045 | terminée |

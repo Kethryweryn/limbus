@@ -19,6 +19,7 @@ Corriger ce que l'utilisatrice signale en déroulant son cahier de tests ([fiche
 | [US-156](US-156-retrouver-ses-participations.md) | Retrouver ses participations depuis l'organisation | terminée |
 | [US-157](US-157-page-d-erreur.md) | Comprendre qu'une page n'est pas accessible | terminée |
 | [US-158](US-158-carte-du-jeu-actif.md) | Repérer le jeu actif sur la page Jeux | terminée |
+| [US-159](US-159-connexion-sans-blocage.md) | Se connecter sans rester bloquée | terminée |
 
 ## Définition de terminé
 
