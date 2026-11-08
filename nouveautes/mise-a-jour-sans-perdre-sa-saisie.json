@@ -1,0 +1,5 @@
+{
+  "type": "corrige",
+  "titre": "Une mise à jour ne fait plus perdre ce que vous tapez",
+  "texte": "Quand une nouvelle version de Limbus arrive, la page ouverte ne se recharge plus d’elle-même : la nouvelle version se charge quand vous changez de page."
+}

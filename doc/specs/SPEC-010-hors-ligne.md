@@ -54,6 +54,8 @@ Continuer à consulter un jeu sur le lieu du GN, où le réseau manque souvent, 
 - **R8** Toute écriture mise en file porte la version lue de l'élément, suppressions et sous-routes comprises ; elle est refusée (409, conflit) si l'élément a été modifié entre-temps sur le serveur. Deux modifications du même élément passent l'une après l'autre : la seconde reprend la version laissée par la première ([ADR-0036](../adr/ADR-0036-protocole-de-resynchronisation.md)).
 - **R9** Une modification refusée reste dans la file, en erreur ou en conflit ; elle retient les suivantes du même élément, et les autres partent. Le panneau des modifications liste chacune (élément, action, date, cause du refus). On renvoie une modification en erreur ; face à un conflit, on voit côte à côte les seuls champs qui diffèrent, puis on garde sa version (elle remplace celle du serveur) ou celle du serveur. On abandonne une modification, ou toute la file, sans se déconnecter ([US-049](../archive/epics/EPIC-010-ecarts-hors-ligne/US-049-panneau-des-modifications-en-attente.md), [US-050](../archive/epics/EPIC-010-ecarts-hors-ligne/US-050-conflit-a-la-resynchronisation.md)).
 
+- **R14** Une nouvelle version de l'application ne recharge jamais la page ouverte : elle se charge au prochain changement de page fait en ligne : la page arrivée se recharge aussitôt. Changer seulement d'onglet ou de filtre n'est pas changer de page. Hors ligne, ou serveur indisponible, rien ne change ([US-184](../epics/EPIC-045-retours-du-cahier-de-tests/US-184-mise-a-jour-sans-perdre-sa-saisie.md), [ADR-0071](../adr/ADR-0071-mise-a-jour-au-changement-de-page.md)).
+
 ### Appareil partagé
 
 - **R10** La déconnexion efface tout le cache de l'appareil : données, file d'attente, photos et identité locale. S'il reste des modifications en attente, elle demande d'abord de confirmer leur perte. Sans réseau, l'appareil est effacé aussitôt, et la déconnexion part au serveur dès son retour, avant toute autre requête ([US-051](../archive/epics/EPIC-010-ecarts-hors-ligne/US-051-deconnexion-sans-reseau.md)).
@@ -71,7 +73,7 @@ Continuer à consulter un jeu sur le lieu du GN, où le réseau manque souvent, 
 
 ## Hors périmètre
 
-- Installation de l'application (PWA) et mise à jour du service worker : comportement standard de `@vite-pwa/nuxt`.
+- Installation de l'application (PWA) : comportement standard de `@vite-pwa/nuxt`. Sa mise à jour suit R14.
 
 ## Écarts constatés
 
@@ -96,3 +98,6 @@ Relevés le 29 octobre 2026. Les écarts 1 et 2 ont été confirmés par l'utili
 - **Écart 4, sous-routes** : les modifications sur une sous-route (déroulé, paiement validé, réglages de paiement, trombinoscope d'un personnage) partent en file sans fausser le cache, et un paiement validé hors ligne garde sa date réelle.
 - **Écart 5** : la file en attente part aussi à l'ouverture de l'application, quand le réseau est là.
 
+## Historique
+
+- 2026-11-08 : R14, une nouvelle version se charge au changement de page, et non plus aussitôt (US-184, retour A6-2 du cahier de tests).

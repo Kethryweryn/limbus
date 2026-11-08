@@ -25,6 +25,9 @@ Corriger ce que l'utilisatrice signale en déroulant son cahier de tests ([fiche
 | [US-179](US-179-carte-participant-cliquable.md) | Ouvrir une fiche en cliquant sur sa carte | terminée |
 | [US-180](US-180-afficher-le-mot-de-passe.md) | Afficher le mot de passe pendant la saisie | terminée |
 | [US-181](US-181-urgence-et-allergies-toujours-demandees.md) | Toujours demander le contact d'urgence et les allergies | terminée |
+| [US-182](US-182-nom-du-contact-d-urgence.md) | Lire le nom du contact d'urgence sur la fiche | terminée |
+| [US-183](US-183-sessions-sur-la-fiche.md) | Ouvrir les sessions d'une personne depuis sa fiche | terminée |
+| [US-184](US-184-mise-a-jour-sans-perdre-sa-saisie.md) | Recevoir une nouvelle version sans perdre sa saisie | terminée |
 
 ## Définition de terminé
 

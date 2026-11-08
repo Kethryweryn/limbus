@@ -74,3 +74,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0068](ADR-0068-organisation-des-instructions-de-claude.md) | Instructions de Claude Code par thème, hook avant push et skill de documentation | accepté | 2026-11-06 |
 | [ADR-0069](ADR-0069-vivier-unique-et-statut-par-session.md) | Vivier unique par jeu et statut d'inscription par session | accepté | 2026-11-06 |
 | [ADR-0070](ADR-0070-liens-personnels-durables.md) | Plusieurs liens personnels valides pour une personne du vivier | accepté | 2026-11-06 |
+| [ADR-0071](ADR-0071-mise-a-jour-au-changement-de-page.md) | Une nouvelle version de l'application se charge au changement de page | accepté | 2026-11-08 |

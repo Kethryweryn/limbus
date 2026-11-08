@@ -44,6 +44,10 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
     await prisma.registration.create({
       data: { periodId: period.id, participantId: created.id, status: 'received', source: 'form', email: created.email!, respondedAt: new Date(), emergencyContactName: 'Paul Secours', emergencyContactPhone: '0699999999', dietary: 'Sans gluten' }
     })
+    // Une session où elle est PNJ, à ouvrir depuis sa fiche (US-183)
+    const sessionName = uniqueName('Session fiche')
+    const session = await prisma.session.create({ data: { name: sessionName, slug: slugOf(sessionName), gameId: game.id, date: new Date('2099-04-12T09:00:00Z') } })
+    await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: created.id, role: 'npc' } })
 
     // Modifier, sur la carte, n'ouvre pas la fiche (US-179) ; la recherche ne laisse que cette carte
     await page.getByPlaceholder('Rechercher un participant...').fill(name)
@@ -63,9 +67,12 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
     await page.getByText('Vient en covoiturage.').click()
     await expect(page.getByRole('heading', { name, level: 1 })).toBeVisible()
     await expect(page.getByText('Vient en covoiturage.')).toBeVisible()
-    await expect(page.getByText('Paul Secours · 0699999999')).toBeVisible()
+    // Nom et téléphone du contact sur deux lignes (US-182)
+    await expect(page.getByText('Paul Secours', { exact: true })).toBeVisible()
+    await expect(page.getByText('0699999999', { exact: true })).toBeVisible()
     await expect(page.getByText('Sans gluten')).toBeVisible()
     await expect(page.getByText(`D’après son inscription à ${title}.`)).toBeVisible()
+    await expect(page.getByText('12 avril 2099 · PNJ')).toBeVisible()
 
     page.once('dialog', (dialog) => dialog.accept())
     await page.getByRole('button', { name: 'Noter un refus de photo' }).click()
@@ -83,6 +90,10 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
     const saved = await prisma.participant.findUniqueOrThrow({ where: { id: created.id }, select: { name: true, slug: true } })
     expect(saved.name).toBe(renamed)
     await expect(page).toHaveURL(new RegExp(`/participants/${saved.slug}$`))
+
+    // La session s'ouvre depuis la fiche (US-183)
+    await page.getByRole('link', { name: sessionName }).click()
+    await expect(page).toHaveURL(new RegExp(`/sessions/${session.slug}$`))
   } finally {
     await prisma.$disconnect()
   }
