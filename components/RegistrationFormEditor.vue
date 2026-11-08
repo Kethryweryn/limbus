@@ -20,15 +20,17 @@
               <div v-if="field.description" class="text-xs text-gray-500">{{ field.description }}</div>
             </div>
             <div class="flex shrink-0 gap-4">
+              <!-- Contact d'urgence et allergies : toujours posés, réglage figé (US-181) -->
               <UCheckbox
                 :model-value="settings[field.key].asked"
                 label="Demandé"
+                :disabled="field.key in LOCKED_REGISTRATION_FIELDS"
                 @update:model-value="setAsked(settings[field.key], $event)"
               />
               <UCheckbox
                 v-model="settings[field.key].required"
                 label="Obligatoire"
-                :disabled="!settings[field.key].asked"
+                :disabled="!settings[field.key].asked || field.key in LOCKED_REGISTRATION_FIELDS"
               />
             </div>
           </div>
@@ -226,6 +228,7 @@ import {
   REGISTRATION_HEALTH_CONSENT_LABEL,
   REGISTRATION_QUESTION_TYPES,
   REGISTRATION_STANDARD_FIELDS,
+  LOCKED_REGISTRATION_FIELDS,
   askedRegistrationInputs,
   type RegistrationFieldSetting,
   type RegistrationQuestion,

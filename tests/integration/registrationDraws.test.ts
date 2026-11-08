@@ -53,7 +53,7 @@ describe('attribut et question d’équilibre (US-091)', () => {
     const submit = (balancePreference: unknown) => fetch(`${inject('baseUrl')}/api/public/periods/${period.publicId}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-forwarded-for': `10.40.1.${++counter % 250}` },
-      body: JSON.stringify({ email: `eq-${counter}@example.test`, charterAccepted: true, balancePreference })
+      body: JSON.stringify({ email: `eq-${counter}@example.test`, emergencyContactName: 'Paul Secours', emergencyContactPhone: '0699999999', charterAccepted: true, balancePreference })
     })
     expect((await submit('X')).status).toBe(400)
     expect((await submit(undefined)).status).toBe(400)

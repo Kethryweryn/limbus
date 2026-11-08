@@ -42,8 +42,9 @@ const standardFields = {
   firstName: { asked: true, required: true },
   facebookName: { asked: false, required: false },
   phone: { asked: true, required: false },
-  emergencyContact: { asked: false, required: false },
-  dietary: { asked: false, required: false }
+  // Toujours demandés (US-181)
+  emergencyContact: { asked: true, required: true },
+  dietary: { asked: true, required: false }
 }
 
 // Un jeu d'Alice avec deux sessions et un formulaire enregistré
@@ -64,7 +65,7 @@ async function aliceGame(options: { notifyTeam?: boolean } = {}) {
 }
 
 const answers = (email: string, sessionIds: string[], extra: Record<string, unknown> = {}) => ({
-  email, firstName: 'Lou', lastName: 'Dupont', phone: '0600000000', charterAccepted: true,
+  email, firstName: 'Lou', lastName: 'Dupont', phone: '0600000000', emergencyContactName: 'Paul Secours', emergencyContactPhone: '0699999999', charterAccepted: true,
   availableSessionIds: sessionIds, affinities: { wantWith: ['Léa'] }, ...extra
 })
 

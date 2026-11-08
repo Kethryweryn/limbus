@@ -63,8 +63,9 @@ export async function placePlayersInPool(db: Db, gameId: string) {
         email: participant.email ?? `${participant.slug}@example.test`,
         ...splitParticipantName(participant.name),
         phone: participant.user?.phone ?? participant.phone,
-        emergencyContactName: participant.user?.emergencyContactName,
-        emergencyContactPhone: participant.user?.emergencyContactPhone,
+        // Toujours demandé (US-181) : sans compte, un proche fictif
+        emergencyContactName: participant.user?.emergencyContactName ?? `Proche de ${splitParticipantName(participant.name).firstName || participant.name}`,
+        emergencyContactPhone: participant.user?.emergencyContactPhone ?? '07 00 00 03 00',
         dietary: participant.user?.dietary,
         healthConsentAt: participant.user?.healthConsentAt,
         charterAcceptedAt: daysFromNow(-90),

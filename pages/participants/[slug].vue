@@ -56,9 +56,13 @@
         <!-- Contact d'urgence et allergies, tenus par la personne : lus, jamais modifiés ici (R1b, US-178) -->
         <UCard>
           <template #header>Urgence et allergies</template>
-          <div class="space-y-3 text-sm">
+          <!-- Une lecture ratée ne doit pas se lire comme « rien de déclaré » -->
+          <p v-if="emergencyError" class="text-sm text-gray-600">
+            Lecture impossible pour l’instant : rechargez la page pour voir son contact d’urgence et ses allergies.
+          </p>
+          <div v-else class="space-y-3 text-sm">
             <div>
-              <span class="text-gray-500">Contact d'urgence</span>
+              <span class="text-gray-500">Contact d’urgence</span>
               <div>{{ emergencyContact || 'Non renseigné' }}</div>
             </div>
             <div>
@@ -66,7 +70,7 @@
               <div class="whitespace-pre-line">{{ emergency?.dietary?.trim() || 'Non renseigné' }}</div>
             </div>
             <p v-if="emergency?.source" class="text-xs text-gray-500">
-              {{ emergency.source === 'registration' ? `D'après son inscription à ${emergency.gameTitle}.` : 'D’après son compte.' }}
+              {{ emergency.source === 'registration' ? `D’après son inscription à ${emergency.gameTitle}.` : 'D’après son compte.' }}
             </p>
           </div>
         </UCard>
@@ -151,7 +155,7 @@ if (error.value) {
 }
 
 // Lu à part de la fiche (R1b) : la liste, les assistants et le cache hors ligne ne reçoivent pas ces données
-const { data: emergency } = await useFetch(() => `/api/participants/${participant.value?.id}/emergency`, { immediate: Boolean(participant.value) })
+const { data: emergency, error: emergencyError } = await useFetch(`/api/participants/${participant.value?.id}/emergency`)
 const emergencyContact = computed(() => [emergency.value?.emergencyContactName, emergency.value?.emergencyContactPhone]
   .map((value) => value?.trim())
   .filter(Boolean)

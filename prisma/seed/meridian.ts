@@ -57,7 +57,8 @@ const QUESTIONS: NonNullable<RegistrationFormDefinition['questions']> = [
 ]
 
 const STANDARD_FIELDS = Object.fromEntries(REGISTRATION_STANDARD_FIELDS.map(({ key }) =>
-  [key, { asked: true, required: key === 'firstName' || key === 'lastName' }]
+  // Le contact d'urgence est toujours obligatoire (US-181)
+  [key, { asked: true, required: key === 'firstName' || key === 'lastName' || key === 'emergencyContact' }]
 )) as RegistrationFormDefinition['standardFields']
 
 const AFFINITIES = {

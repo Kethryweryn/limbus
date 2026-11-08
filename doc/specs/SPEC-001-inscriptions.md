@@ -94,7 +94,7 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 
 - **R8** Le formulaire est défini au niveau du jeu et contient :
   - la note d'intention, suivie d'une case d'adhésion obligatoire ;
-  - les champs standards, chacun activable et rendu obligatoire ou non : nom, prénom, email (toujours obligatoire), nom Facebook, téléphone, contact d'urgence (nom et téléphone), allergies et intolérances ;
+  - les champs standards, chacun activable et rendu obligatoire ou non : nom, prénom, email (toujours obligatoire), nom Facebook, téléphone, contact d'urgence (nom et téléphone, toujours demandé et obligatoire), allergies et intolérances (toujours demandées, réponse facultative) ([US-181](../epics/EPIC-045-retours-du-cahier-de-tests/US-181-urgence-et-allergies-toujours-demandees.md)) ;
   - les affinités, chacune activable et rendue obligatoire ou non comme les champs standards : avec qui je veux jouer, avec qui je ne veux pas jouer, les relations que je ne veux pas jouer, les personnes que je ne veux pas croiser. La personne en écrit une par ligne. Pour les relations, elle coche aussi des types (romance, famille, rivalité, alliance, hiérarchie) ou « Aucune, tout me va » ;
   - des questions propres au jeu (texte libre, choix unique, choix multiple, échelle de 1 à 5), chacune obligatoire ou non, dont chaque option d'une question à choix, et chaque question sur une échelle, peut être reliée à des personnages, factions ou intrigues ;
   - une question d'équilibre facultative (R17).
@@ -221,6 +221,7 @@ Chaque lot devient un epic, livrable seul :
 
 ## Historique
 
+- 2026-11-08 : le contact d'urgence est toujours demandé et obligatoire, les allergies toujours demandées (R8, US-181, à la suite du retour A5-1 du cahier de tests). Une version de formulaire enregistrée avant se lit avec ce réglage.
 - 2026-10-27 : création à partir de la fiche todo.
 - 2026-10-27 : « campagne » renommé « période d'inscription » (le mot a un autre sens en GN). En mode invitation, accepter vaut confirmation (R16). Un délai dépassé est signalé, puis traité par les orgas (R20). Les inscrits confirmés sans personnage apparaissent dans les paiements (R22). La fiche allergies (R15) passe au lot 1, qui collecte les allergies.
 - 2026-10-28 : les orgas annoncent leurs jeux et sessions avec un lien vers le formulaire, valable pour une session, quelques sessions, ou tout le jeu. Ajout de l'inscription permanente, qui couvre toutes les sessions présentes et futures (R1, R10, R30, R31), et du lien de diffusion avec aperçu pour les réseaux sociaux (R32).

@@ -24,6 +24,7 @@ Corriger ce que l'utilisatrice signale en déroulant son cahier de tests ([fiche
 | [US-178](US-178-urgence-et-allergies-sur-la-fiche.md) | Voir le contact d'urgence et les allergies sur la fiche participante | terminée |
 | [US-179](US-179-carte-participant-cliquable.md) | Ouvrir une fiche en cliquant sur sa carte | terminée |
 | [US-180](US-180-afficher-le-mot-de-passe.md) | Afficher le mot de passe pendant la saisie | terminée |
+| [US-181](US-181-urgence-et-allergies-toujours-demandees.md) | Toujours demander le contact d'urgence et les allergies | terminée |
 
 ## Définition de terminé
 
