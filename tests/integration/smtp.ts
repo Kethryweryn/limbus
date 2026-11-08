@@ -1,5 +1,6 @@
 import { createServer, type Server } from 'node:net'
 import type { PrismaClient } from '~/generated/prisma/client'
+import { escapeRegExp } from '../regexp'
 
 export type ReceivedEmail = { to: string[], raw: string, text: string }
 
@@ -118,8 +119,7 @@ export async function startTestSmtp(prisma: PrismaClient) {
 
 // Jeton d'un lien reçu par email (/inscription/…, /acces/mot-de-passe/…)
 export function linkToken(email: ReceivedEmail, path: string) {
-  const escaped = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return email.text.match(new RegExp(`${escaped}([\\w-]+)`))?.[1]
+  return email.text.match(new RegExp(`${escapeRegExp(path)}([\\w-]+)`))?.[1]
 }
 
 export function personalLinkToken(email: ReceivedEmail) {
