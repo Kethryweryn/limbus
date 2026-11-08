@@ -107,7 +107,8 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
     await form.getByLabel('Nom').fill('Doublon')
     await form.getByLabel('Email').fill(created.email!.toUpperCase())
     await form.getByRole('button', { name: 'Créer' }).click()
-    await expect(page.getByText(`Le jeu est ajouté à la fiche de ${renamed}.`)).toBeVisible()
+    // Texte exact : la notification le répète aussi, avec son titre, dans une zone lue par les lecteurs d'écran
+    await expect(page.getByText(`Le jeu est ajouté à la fiche de ${renamed}.`, { exact: true })).toBeVisible()
     expect(await prisma.participant.count({ where: { name: 'Doublon' } })).toBe(0)
     expect((await prisma.participantGame.findMany({ where: { participantId: created.id }, select: { gameId: true } })).map((link) => link.gameId).sort()).toEqual([game.id, second.id].sort())
   } finally {
