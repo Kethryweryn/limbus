@@ -19,7 +19,7 @@ Un document avait un public unique (`Document.audience`) : ciblage manuel, tout 
 - Destinataires dans une session, chacun une fois : organisateurs et cuisine par leur rôle dans l'équipe ; PNJ par leur rôle dans l'équipe ou parce qu'ils tiennent un personnage PNJ ; PJ parce qu'ils tiennent un personnage PJ ; puis ceux qui tiennent un personnage choisi ou un personnage d'un groupe choisi.
 - Le champ unique « Personnage » (`characterId`) rejoint la liste des personnages : la migration le recopie dans `characters` et le vide, et l'application ne l'écrit plus.
 - La migration remplit `audiences` à partir de `audience` : tout le monde donne les quatre rôles, un rôle donne ce rôle, le ciblage manuel ne donne aucun rôle.
-- Compatibilité (ADR-0024) : `audience` et `characterId` restent en base. L'application écrit encore dans `audience` la valeur la plus proche, pour le build encore en service pendant le déploiement. Une écriture qui n'envoie que l'ancien `audience` ou `characterId` (onglet resté ouvert, file hors ligne) est convertie par le serveur.
+- Compatibilité (ADR-0024) : `audience` et `characterId` restent en base. L'application écrit encore dans `audience` la valeur la plus proche, pour le build encore en service pendant le déploiement. Une écriture qui n'envoie que l'ancien `audience` ou `characterId` (onglet resté ouvert, file hors ligne) est convertie par le serveur. À la lecture, un document sans rôles prend ceux de l'ancien public (`documentRoles`) : document gardé sur l'appareil d'avant, ou créé par l'ancien build pendant le déploiement.
 
 ## Conséquences
 

@@ -70,7 +70,7 @@ const legacyDocumentAudience = z.enum([
   DOCUMENT_AUDIENCES.npcs,
   DOCUMENT_AUDIENCES.kitchen
 ])
-const documentRole = z.enum(ALL_DOCUMENT_ROLES as [DocumentRole, ...DocumentRole[]])
+export const documentRoleSchema = z.enum(ALL_DOCUMENT_ROLES as [DocumentRole, ...DocumentRole[]])
 const timelineTime = z.string().trim().regex(/^\d{2}:\d{2}$/, 'Time must use HH:mm format')
 const userRole = z.enum([USER_ROLES.admin, USER_ROLES.user])
 const optionalEmail = z.string().trim().default('').refine(
@@ -276,7 +276,7 @@ export const documentSchema = z.object({
   title: requiredText('Title'),
   content: optionalText,
   documentUrl: externalUrl,
-  audiences: z.array(documentRole).optional(),
+  audiences: z.array(documentRoleSchema).optional(),
   audience: legacyDocumentAudience.optional(),
   readyToSend: optionalBoolean,
   gameId: requiredId('Game'),

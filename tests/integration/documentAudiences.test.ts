@@ -85,6 +85,12 @@ describe('public d’un document', () => {
     expect(saved).toMatchObject({ audience: 'everyone', characterId: null, characters: [{ id: pjCharacter.id }] })
   })
 
+  it('un document écrit par le build d’avant (sans rôles) garde ses destinataires', async () => {
+    const { key, game, session, people } = await sessionWithEveryone()
+    await prisma.document.create({ data: { title: `Ancien build ${key}`, slug: `ancien-build-${key}`, content: 'Texte', gameId: game.id, audience: 'kitchen' } })
+    expect(await recipientsOf(session.id, `Ancien build ${key}`)).toEqual([people.cook.name])
+  })
+
   it('refuse un rôle inconnu', async () => {
     const { key, game } = await sessionWithEveryone()
     expect((await api(alice, 'POST', '/api/documents', { title: `Inconnu ${key}`, content: 'Texte', gameId: game.id, audiences: ['everyone'] })).status).toBe(400)

@@ -4,7 +4,7 @@ import { characterSheetContentHash, documentContentHash, type SheetCharacter } f
 import { prisma } from '~/server/utils/prisma'
 import { openEmailTransport, sendEmail, type EmailTransport } from '~/server/utils/email'
 import { CHARACTER_TYPES, SESSION_ROLES } from '~/utils/domain'
-import { DOCUMENT_ROLES } from '~/utils/documentAudiences'
+import { DOCUMENT_ROLES, documentRoles } from '~/utils/documentAudiences'
 import { generatedPdfFileName, renderTextPdf, type TextPdfInput } from '~/server/utils/generatedPdfs'
 import { currentTrombinoscopeFingerprints, getSessionTrombinoscope, isTrombinoscopeOutdated } from '~/server/utils/trombinoscopes'
 import { copyData, expiredSessionIds, purgeExpiredCopies, textCopy, trombinoscopeCopy, type DeliveryCopy } from '~/server/utils/deliveryCopies'
@@ -176,7 +176,7 @@ export async function getSessionDocumentDashboard(sessionId: string) {
       if (!assignment?.participantId || !assignment.participant) return []
       return [{ participant: assignment.participant, character: assignment.character, targetLabel: assignment.character.name }]
     })
-    const baseRecipients = uniqueRecipients([...selectedRecipients, ...document.audiences.flatMap((role) => recipientsByRole[role] ?? [])])
+    const baseRecipients = uniqueRecipients([...selectedRecipients, ...documentRoles(document).flatMap((role) => recipientsByRole[role] ?? [])])
 
     const currentHash = documentContentHash(session, document)
     const recipients = baseRecipients.map((recipient) => {

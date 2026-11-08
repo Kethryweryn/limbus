@@ -6,6 +6,7 @@ import {
   createCharacterSchema,
   createGameSchema,
   documentSchema,
+  documentRoleSchema,
   factionSchema,
   intrigueSchema,
   itemSchema,
@@ -18,7 +19,6 @@ import {
 import * as writes from '~/server/utils/contentWrites'
 import { AI_LOG_ACTIONS } from '~/utils/aiAssistants'
 import { CHARACTER_TYPES, INTRIGUE_LEVELS } from '~/utils/domain'
-import { ALL_DOCUMENT_ROLES, type DocumentRole } from '~/utils/documentAudiences'
 import { CHARACTER_RELATION_TYPE_VALUES } from '~/utils/characterRelations'
 import { DESTRUCTIVE, WRITE, logWrite, requireWrite, text, toolResult, version, withVersion, type ToolContext } from '~/server/mcp/tools'
 
@@ -141,7 +141,7 @@ const KINDS: ContentKind[] = [
     fields: {
       title: z.string().max(200).optional(),
       content: text('Texte du document'),
-      audiences: z.array(z.enum(ALL_DOCUMENT_ROLES as [DocumentRole, ...DocumentRole[]])).optional().describe('Rôles destinataires (liste complète) : organizers, npcs (rôle PNJ ou personnage PNJ), kitchen, pjs (personnage PJ) ; les quatre pour tout le monde'),
+      audiences: z.array(documentRoleSchema).optional().describe('Rôles destinataires (liste complète) : organizers, npcs (rôle PNJ ou personnage PNJ), kitchen, pjs (personnage PJ) ; les quatre pour tout le monde'),
       readyToSend: z.boolean().optional().describe('Prêt à envoyer (rien ne part)'),
       characterIds: ids('Personnages destinataires, en plus des rôles (liste complète)'),
       factionIds: ids('Groupes destinataires, en plus des rôles (liste complète)')

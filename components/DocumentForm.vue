@@ -111,7 +111,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { CHARACTER_TYPES } from '~/utils/domain'
-import { ALL_DOCUMENT_ROLES, DOCUMENT_ROLE_OPTIONS, isDocumentTargeted, isEveryone, type DocumentRole } from '~/utils/documentAudiences'
+import { ALL_DOCUMENT_ROLES, DOCUMENT_ROLE_OPTIONS, documentRoles, isDocumentTargeted, isEveryone, type DocumentRole } from '~/utils/documentAudiences'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { CharacterOption, DocumentDraft, FactionOption, GameOption } from '~/utils/writingDrafts'
 
@@ -184,7 +184,7 @@ watch(() => props.document, (newDocument) => {
   const factionIds = newDocument.factionIds || newDocument.factions?.map((faction) => faction.id) || []
   localDocument.value = {
     ...newDocument,
-    audiences: [...(newDocument.audiences || [])],
+    audiences: documentRoles(newDocument),
     readyToSend: Boolean(newDocument.readyToSend),
     content: newDocument.content || '',
     documentUrl: newDocument.documentUrl || '',

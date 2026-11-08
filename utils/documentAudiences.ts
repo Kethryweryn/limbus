@@ -39,15 +39,31 @@ export function legacyAudience(roles: readonly string[]): string {
   return roles.length === 1 && only && LEGACY_SINGLE_ROLES.includes(only) ? only : DOCUMENT_AUDIENCES.targeted
 }
 
-type AudienceDocument = { audiences: readonly string[], characters?: readonly unknown[] | null, factions?: readonly unknown[] | null }
+type AudienceDocument = {
+  audiences?: readonly string[] | null
+  audience?: string | null
+  characters?: readonly unknown[] | null
+  factions?: readonly unknown[] | null
+}
+
+/**
+ * Rôles d'un document : `audiences`, sinon ceux de l'ancien public. Couvre un document gardé sur l'appareil avant ADR-0072
+ * (sans `audiences`) et un document écrit par le build encore en service pendant le déploiement (`audiences` vide).
+ * L'application écrit toujours dans `audience` l'ancien public le plus proche des rôles : sans rôle, c'est le ciblage
+ * manuel, qui n'en donne aucun.
+ */
+export function documentRoles(document: Pick<AudienceDocument, 'audiences' | 'audience'>): string[] {
+  return document.audiences?.length ? [...document.audiences] : rolesFromLegacyAudience(document.audience)
+}
 
 const plural = (count: number, word: string) => `${count} ${word}${count > 1 ? 's' : ''}`
 
 /** Libellé court : « Tout le monde », ou les rôles cochés, puis la sélection avancée ; « Non ciblé » sans rien. */
 export function documentAudienceLabel(document: AudienceDocument) {
-  const roles = isEveryone(document.audiences)
+  const audiences = documentRoles(document)
+  const roles = isEveryone(audiences)
     ? ['Tout le monde']
-    : DOCUMENT_ROLE_OPTIONS.filter((option) => document.audiences.includes(option.value)).map((option) => option.label)
+    : DOCUMENT_ROLE_OPTIONS.filter((option) => audiences.includes(option.value)).map((option) => option.label)
   const characters = document.characters?.length ?? 0
   const factions = document.factions?.length ?? 0
   const selection = [characters ? plural(characters, 'personnage') : null, factions ? plural(factions, 'groupe') : null].filter(Boolean)
@@ -55,4 +71,4 @@ export function documentAudienceLabel(document: AudienceDocument) {
 }
 
 export const isDocumentTargeted = (document: AudienceDocument) =>
-  document.audiences.length > 0 || Boolean(document.characters?.length || document.factions?.length)
+  documentRoles(document).length > 0 || Boolean(document.characters?.length || document.factions?.length)
