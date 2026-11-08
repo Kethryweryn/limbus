@@ -71,6 +71,7 @@ model Game {
 
   @@index([ownerId])
   @@index([copiedFromGameId])
+  @@index([transferToUserId])
 }
 
 model Character {
@@ -112,6 +113,8 @@ model Character {
   relationsFrom         CharacterRelation[] @relation("RelationFrom")
   relationsTo           CharacterRelation[] @relation("RelationTo")
   questionLinks         RegistrationQuestionLink[]
+
+  @@index([gameId])
 }
 
 // Relation entre deux personnages du jeu (US-097, ADR-0050) : un type, une description commune, et pour chaque côté
@@ -155,6 +158,9 @@ model RegistrationQuestionLink {
   intrigue    Intrigue?  @relation(fields: [intrigueId], references: [id], onDelete: Cascade)
 
   @@index([gameId])
+  @@index([characterId])
+  @@index([factionId])
+  @@index([intrigueId])
 }
 
 // Part attendue d'une option d'une question du formulaire, ou d'un niveau d'une échelle (US-141, ADR-0062) ; hors des
@@ -207,6 +213,9 @@ model Item {
   characters            Character[]   @relation("CharacterItems")
   intrigues             Intrigue[]    @relation("IntrigueItems")
   timelineEvents        TimelineEvent[] @relation("TimelineEventItems")
+
+  @@index([gameId])
+  @@index([locationCharacterId])
 }
 
 model Faction {
@@ -229,6 +238,8 @@ model Faction {
   timelineEvents        TimelineEvent[] @relation("TimelineEventFactions")
   documents             Document[]  @relation("DocumentFactions")
   questionLinks         RegistrationQuestionLink[]
+
+  @@index([gameId])
 }
 
 model Intrigue {
@@ -249,6 +260,8 @@ model Intrigue {
   factions    Faction[]   @relation("FactionIntrigues")
   items       Item[]      @relation("IntrigueItems")
   timelineEvents TimelineEvent[] @relation("TimelineEventIntrigues")
+
+  @@index([gameId])
 }
 
 model TimelineEvent {
@@ -298,6 +311,9 @@ model Document {
 
   factions    Faction[]   @relation("DocumentFactions")
   deliveries  SessionDocumentDelivery[]
+
+  @@index([gameId])
+  @@index([characterId])
 }
 
 model Session {
@@ -308,7 +324,7 @@ model Session {
   gameId      String
   game        Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
   locationId  String?
-  location    Location?  @relation(fields: [locationId], references: [id])
+  location    Location?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
   paymentRibUrl String?
   paymentLinkUrl String?
   // Date limite de désistement (US-040, ADR-0033) : après elle, une place n'est remboursée qu'au choix des orgas
@@ -342,11 +358,12 @@ model Session {
   registrationDraws RegistrationDraw[]
   // Invitations qui visent cette session (SPEC-018, R4)
   invitedRegistrations Registration[] @relation("RegistrationInvitedSession")
+
+  @@index([gameId])
+  @@index([locationId])
 }
 
-// Vivier d'un jeu (SPEC-018, ADR-0069) : le nom de la table reste celui des anciennes périodes d'inscription.
-// scope, entryMode, closesAt, selectionMode, organizerPicks, weightNotDrawnBefore, weightBalance et waitlistSize ne sont
-// plus lus : la seconde migration les retire
+// Vivier d'un jeu (SPEC-018, ADR-0069) : le nom de la table reste celui des anciennes périodes d'inscription
 model RegistrationPeriod {
   id                String   @id @default(cuid())
   // Un seul vivier par jeu (R1)
@@ -475,6 +492,9 @@ model Registration {
   @@unique([periodId, participantId])
   @@index([participantId])
   @@index([invitedSessionId])
+  @@index([formVersionId])
+  @@index([invitedById])
+  @@index([withdrawnById])
 }
 
 // Statut d'une personne du vivier pour une session (R17, ADR-0069)
@@ -514,6 +534,8 @@ model RegistrationSession {
 
   @@unique([registrationId, sessionId])
   @@index([sessionId, status])
+  @@index([cancelledById])
+  @@index([retainedById])
 }
 
 // Lien personnel d'une personne du vivier (ADR-0070) : un par email envoyé, tous valables jusqu'à un renouvellement par
@@ -545,6 +567,7 @@ model RegistrationRequest {
 
   @@index([periodId])
   @@index([createdAt])
+  @@index([formVersionId])
 }
 
 // Tirage au sort d'une période (US-093, US-094, ADR-0048) : graine, réglages et résultat, pour le rejouer à l'identique
@@ -567,6 +590,8 @@ model RegistrationDraw {
 
   @@index([periodId])
   @@index([sessionId])
+  @@index([createdById])
+  @@index([cancelledById])
 }
 
 // Une personne ou une relation citée dans une affinité, une par ligne (US-082, ADR-0045)
@@ -602,10 +627,13 @@ model SessionAssignment {
   reservedRegistration   Registration? @relation(fields: [reservedRegistrationId], references: [id], onDelete: SetNull)
   session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  participant Participant? @relation(fields: [participantId], references: [id])
+  participant Participant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
 
   @@unique([sessionId, characterId])
   @@index([reservedRegistrationId])
+  @@index([characterId])
+  @@index([participantId])
 }
 
 model SessionParticipant {
@@ -615,6 +643,7 @@ model SessionParticipant {
   role          String
   session       Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
 
   @@unique([sessionId, participantId, role])
   @@index([participantId])
@@ -633,6 +662,8 @@ model Location {
   published   Boolean    @default(true)
 
   sessions    Session[]
+
+  @@index([gameId])
 }
 
 model Participant {
@@ -650,6 +681,7 @@ model Participant {
   notes       String?
   gameLinks   ParticipantGame[]
   published   Boolean    @default(true)
+  createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
   assignments SessionAssignment[]
@@ -695,6 +727,9 @@ model SessionPayment {
 
   @@unique([sessionId, participantId])
   @@index([participantId])
+  @@index([tariffId])
+  @@index([transferredToParticipantId])
+  @@index([carriedOverToSessionId])
 }
 
 // Tarif de la PAF d'une session (US-031, ADR-0032) : montant en centimes d'euro
@@ -716,6 +751,7 @@ model SessionTariff {
   payments           SessionPayment[]
 
   @@unique([sessionId, defaultRole])
+  @@index([baseTariffId])
 }
 
 // Versement reçu pour un paiement (US-032) : le reçu est la somme des versements
@@ -751,6 +787,7 @@ model SessionTrombinoscope {
 
   @@unique([sessionId, viewerCharacterId, participantId])
   @@index([participantId])
+  @@index([viewerCharacterId])
 }
 
 model SessionDocumentDelivery {
@@ -945,6 +982,7 @@ model GameInvitation {
   @@index([gameId])
   @@index([email])
   @@index([invitedById])
+  @@index([acceptedById])
 }
 
 model SmtpSettings {
@@ -1026,10 +1064,13 @@ model AiAuthorizationRequest {
   // Empreinte du code rendu à l'assistant, et autorisation qu'il permet d'obtenir
   codeHash        String?  @unique
   authorizationId String?
+  authorization   AiAuthorization? @relation(fields: [authorizationId], references: [id], onDelete: Cascade)
   expiresAt       DateTime
   createdAt       DateTime @default(now())
 
   @@index([expiresAt])
+  @@index([clientId])
+  @@index([authorizationId])
 }
 
 // Accord donné par un compte à un assistant (SPEC-014, R4 à R6) : effacé à sa fin, le journal en garde la trace
@@ -1045,10 +1086,12 @@ model AiAuthorization {
   lastUsedAt     DateTime @default(now())
   createdAt      DateTime @default(now())
 
-  games  AiAuthorizationGame[]
-  tokens AiToken[]
+  games    AiAuthorizationGame[]
+  tokens   AiToken[]
+  requests AiAuthorizationRequest[]
 
   @@index([userId])
+  @@index([clientId])
 }
 
 model AiAuthorizationGame {
