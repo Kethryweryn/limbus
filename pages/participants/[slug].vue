@@ -53,6 +53,24 @@
           </div>
         </UCard>
 
+        <!-- Contact d'urgence et allergies, tenus par la personne : lus, jamais modifiés ici (R1b, US-178) -->
+        <UCard>
+          <template #header>Urgence et allergies</template>
+          <div class="space-y-3 text-sm">
+            <div>
+              <span class="text-gray-500">Contact d'urgence</span>
+              <div>{{ emergencyContact || 'Non renseigné' }}</div>
+            </div>
+            <div>
+              <span class="text-gray-500">Allergies et régime</span>
+              <div class="whitespace-pre-line">{{ emergency?.dietary?.trim() || 'Non renseigné' }}</div>
+            </div>
+            <p v-if="emergency?.source" class="text-xs text-gray-500">
+              {{ emergency.source === 'registration' ? `D'après son inscription à ${emergency.gameTitle}.` : 'D’après son compte.' }}
+            </p>
+          </div>
+        </UCard>
+
         <UCard>
           <template #header>Jeux</template>
           <div class="flex flex-wrap gap-2">
@@ -131,6 +149,13 @@ if (error.value) {
   handleApiAuthError(error.value)
   throw pageLoadError(error.value, 'Participant introuvable')
 }
+
+// Lu à part de la fiche (R1b) : la liste, les assistants et le cache hors ligne ne reçoivent pas ces données
+const { data: emergency } = await useFetch(() => `/api/participants/${participant.value?.id}/emergency`, { immediate: Boolean(participant.value) })
+const emergencyContact = computed(() => [emergency.value?.emergencyContactName, emergency.value?.emergencyContactPhone]
+  .map((value) => value?.trim())
+  .filter(Boolean)
+  .join(' · '))
 
 const { isEditing, draft: editableParticipant, startEdit, cancelEdit, closeAfterSave } = useSheetEdit(() => participant.value ? normalizeParticipantForForm(participant.value) : null)
 

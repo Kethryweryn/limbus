@@ -42,9 +42,8 @@
             <UInput v-model="form.username" autocomplete="username" class="w-full" />
           </UFormField>
           <UFormField :label="settings?.hasPassword ? 'Nouveau mot de passe SMTP' : 'Mot de passe SMTP'">
-            <UInput
+            <PasswordInput
               v-model="form.password"
-              type="password"
               autocomplete="new-password"
               :placeholder="settings?.hasPassword ? 'Laisser vide pour conserver le mot de passe actuel' : ''"
               class="w-full"

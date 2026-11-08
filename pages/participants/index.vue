@@ -22,13 +22,19 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      <UCard v-for="participant in paginatedParticipants" :key="participant.id">
+      <!-- Toute la carte ouvre la fiche, comme les autres listes (US-179) ; le lien du nom reste pour le clavier -->
+      <UCard
+        v-for="participant in paginatedParticipants"
+        :key="participant.id"
+        class="cursor-pointer transition-shadow hover:shadow-md"
+        @click="openParticipant(participant)"
+      >
         <template #header>
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3 min-w-0">
               <UAvatar icon="i-heroicons-user" />
               <div class="min-w-0">
-                <NuxtLink :to="`/participants/${participant.slug}`" class="block font-semibold truncate hover:underline">
+                <NuxtLink :to="`/participants/${participant.slug}`" class="block font-semibold truncate hover:underline" @click.stop>
                   {{ participant.name }}
                 </NuxtLink>
                 <div class="flex flex-wrap gap-1 mt-1" :title="formatParticipantGames(participant)">
@@ -54,7 +60,7 @@
                 </div>
               </div>
             </div>
-            <div class="flex gap-2">
+            <div class="flex gap-2" @click.stop>
               <UButton size="xs" color="primary" @click="startEdit(participant)">Modifier</UButton>
               <UButton size="xs" color="error" @click="deleteParticipant(participant.id)">Supprimer</UButton>
             </div>
@@ -202,6 +208,10 @@ function startCreate() {
   }
   formMode.value = 'create'
   showFormSlideover.value = true
+}
+
+function openParticipant(participant: ParticipantRow) {
+  void navigateTo(`/participants/${participant.slug}`)
 }
 
 function startEdit(participant: ParticipantRow) {

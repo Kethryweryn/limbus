@@ -238,3 +238,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-175](EPIC-048-casting-depuis-le-vivier/US-175-retirer-l-ancien-modele.md) | Retirer l'ancien modèle des inscriptions | EPIC-048 | terminée |
 | [US-176](EPIC-046-vivier-unique/US-176-joueur-par-le-questionnaire.md) | Faire passer tout joueur par le questionnaire | EPIC-046 | terminée |
 | [US-177](EPIC-045-retours-du-cahier-de-tests/US-177-mes-photos-dans-le-compte.md) | Retrouver « Mes photos » dans mon compte | EPIC-045 | terminée |
+| [US-178](EPIC-045-retours-du-cahier-de-tests/US-178-urgence-et-allergies-sur-la-fiche.md) | Voir le contact d'urgence et les allergies sur la fiche participante | EPIC-045 | terminée |
+| [US-179](EPIC-045-retours-du-cahier-de-tests/US-179-carte-participant-cliquable.md) | Ouvrir une fiche en cliquant sur sa carte | EPIC-045 | terminée |
+| [US-180](EPIC-045-retours-du-cahier-de-tests/US-180-afficher-le-mot-de-passe.md) | Afficher le mot de passe pendant la saisie | EPIC-045 | terminée |

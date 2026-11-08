@@ -2,10 +2,10 @@
   <AccessCard title="Choisir mon mot de passe">
     <form class="space-y-4" @submit.prevent="save">
       <UFormField label="Nouveau mot de passe" help="8 caractères au moins.">
-        <UInput v-model="password" type="password" required minlength="8" autocomplete="new-password" class="w-full" />
+        <PasswordInput v-model="password" required minlength="8" autocomplete="new-password" class="w-full" />
       </UFormField>
       <UFormField label="Confirmation">
-        <UInput v-model="confirmation" type="password" required autocomplete="new-password" class="w-full" />
+        <PasswordInput v-model="confirmation" required autocomplete="new-password" class="w-full" />
       </UFormField>
       <UButton type="submit" color="primary" size="lg" block :loading="saving">
         Enregistrer et me connecter

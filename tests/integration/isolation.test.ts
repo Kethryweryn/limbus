@@ -238,6 +238,7 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     ['GET', `/api/uploads/session-assignment-photos/${b.photo.filename}`],
     ['GET', `/api/uploads/session-payment-ribs/${b.rib.filename}`],
     ['GET', `/api/participants/${b.participant.id}/export`],
+    ['GET', `/api/participants/${b.participant.id}/emergency`],
     ['GET', `/api/games/${b.game.id}/registration-form`],
     ['POST', `/api/registration-periods/${b.registrationPeriod.id}/invitations`, { sessionId: b.session.id, participantIds: [b.participant.id] }],
     ['GET', `/api/registration-periods/${b.registrationPeriod.id}/registrations`],
@@ -285,6 +286,7 @@ describe('sous-routes de session et de jeu chez Bob', () => {
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/ai-access`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/bequests`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/participants/${a.participant.id}/export`)).status).toBe(200)
+    expect((await api(alice, 'GET', `/api/participants/${a.participant.id}/emergency`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/games/${a.game.id}/registration-form`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/registration-periods/${a.registrationPeriod.id}/registrations`)).status).toBe(200)
     expect((await api(alice, 'GET', `/api/sessions/${a.session.id}/allergies`)).status).toBe(200)

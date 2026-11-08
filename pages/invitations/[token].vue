@@ -69,7 +69,7 @@
               <UInput :model-value="invitation.email" type="email" disabled />
             </UFormField>
             <UFormField label="Mot de passe" help="8 caractères au moins.">
-              <UInput v-model="form.password" type="password" required minlength="8" autocomplete="new-password" />
+              <PasswordInput v-model="form.password" required minlength="8" autocomplete="new-password" />
             </UFormField>
             <!-- Conditions d'utilisation (US-111) -->
             <UCheckbox v-model="form.termsAccepted" required>
@@ -88,7 +88,7 @@
               <UInput v-model="loginForm.email" type="email" required />
             </UFormField>
             <UFormField label="Mot de passe">
-              <UInput v-model="loginForm.password" type="password" required />
+              <PasswordInput v-model="loginForm.password" required />
             </UFormField>
             <UButton type="submit" color="primary" :loading="saving">
               {{ isBequest ? 'Me connecter et recevoir la copie' : 'Me connecter et accepter' }}

@@ -39,11 +39,28 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
     const created = await prisma.participant.findFirstOrThrow({ where: { name }, include: { gameLinks: true } })
     expect(created.gameLinks).toEqual([expect.objectContaining({ gameId: game.id, notes: 'Vient en covoiturage.' })])
 
-    // La fiche : notes du jeu, refus de photo noté puis levé
+    // Le contact d'urgence et les allergies viennent de son inscription (US-178)
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: slugOf(title), state: 'open' } })
+    await prisma.registration.create({
+      data: { periodId: period.id, participantId: created.id, status: 'received', source: 'form', email: created.email!, respondedAt: new Date(), emergencyContactName: 'Paul Secours', emergencyContactPhone: '0699999999', dietary: 'Sans gluten' }
+    })
+
+    // Modifier, sur la carte, n'ouvre pas la fiche (US-179)
     await page.getByPlaceholder('Rechercher un participant...').fill(name)
-    await page.getByRole('link', { name }).click()
+    const card = page.locator('.cursor-pointer').filter({ hasText: name })
+    await card.getByRole('button', { name: 'Modifier' }).click()
+    await expect(form).toBeVisible()
+    await form.getByRole('button', { name: 'Annuler' }).click()
+    await expect(form).toBeHidden()
+    await expect(page).toHaveURL(/\/participants$/)
+
+    // La fiche s'ouvre d'un clic sur la carte, hors du nom : notes du jeu, urgence et allergies, refus de photo noté puis levé
+    await card.getByText('Vient en covoiturage.').click()
     await expect(page.getByRole('heading', { name, level: 1 })).toBeVisible()
     await expect(page.getByText('Vient en covoiturage.')).toBeVisible()
+    await expect(page.getByText('Paul Secours · 0699999999')).toBeVisible()
+    await expect(page.getByText('Sans gluten')).toBeVisible()
+    await expect(page.getByText(`D'après son inscription à ${title}.`)).toBeVisible()
 
     page.once('dialog', (dialog) => dialog.accept())
     await page.getByRole('button', { name: 'Noter un refus de photo' }).click()

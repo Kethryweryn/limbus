@@ -1,0 +1,48 @@
+import { prisma } from '~/server/utils/prisma'
+
+type EmergencyFields = {
+  emergencyContactName: string | null
+  emergencyContactPhone: string | null
+  dietary: string | null
+}
+
+const emergencySelect = { emergencyContactName: true, emergencyContactPhone: true, dietary: true } as const
+
+/**
+ * Contact d'urgence et allergies montrés sur la fiche (SPEC-007, R1b) : ceux de l'inscription la plus récente dans les
+ * jeux de l'organisatrice ; sans inscription, ceux du compte, les allergies seulement avec l'accord santé (comme la
+ * fiche allergies, US-074). Lus à la demande de la fiche seule : ni la liste, ni les assistants, ni le cache hors ligne.
+ * L'accès à la fiche est vérifié par l'appelant.
+ */
+export async function readParticipantEmergency(participantId: string, gameIds: string[] | null) {
+  const participant = await prisma.participant.findUniqueOrThrow({
+    where: { id: participantId },
+    select: {
+      // Une invitation sans réponse n'a encore rien de rempli
+      registrations: {
+        where: { respondedAt: { not: null }, ...(gameIds === null ? {} : { period: { gameId: { in: gameIds } } }) },
+        orderBy: { updatedAt: 'desc' },
+        take: 1,
+        select: { ...emergencySelect, period: { select: { game: { select: { title: true } } } } }
+      },
+      user: { select: { ...emergencySelect, healthConsentAt: true, profileUpdatedAt: true } }
+    }
+  })
+
+  const [registration] = participant.registrations
+  if (registration) {
+    const { period, ...fields } = registration
+    return { source: 'registration' as const, gameTitle: period.game.title, ...fields }
+  }
+  const { user } = participant
+  // Coordonnées jamais enregistrées dans le compte : rien à montrer
+  if (user?.profileUpdatedAt) {
+    const fields: EmergencyFields = {
+      emergencyContactName: user.emergencyContactName,
+      emergencyContactPhone: user.emergencyContactPhone,
+      dietary: user.healthConsentAt ? user.dietary : null
+    }
+    return { source: 'account' as const, gameTitle: null, ...fields }
+  }
+  return { source: null, gameTitle: null, emergencyContactName: null, emergencyContactPhone: null, dietary: null }
+}

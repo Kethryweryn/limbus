@@ -132,6 +132,8 @@ export async function requireParticipantAccess(event: H3Event, participantId: st
   if (!participant) {
     throw createError({ statusCode: 404, message: 'Participant introuvable' })
   }
+  // Les jeux accessibles servent ensuite à limiter ce qu'on lit de la fiche
+  return gameIds
 }
 
 /** Liste limitée à un jeu (?gameId=) : une page qui n'a besoin que d'un jeu ne charge pas tous les autres. */
