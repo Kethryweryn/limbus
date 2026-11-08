@@ -44,7 +44,7 @@ async function world() {
   })
   await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'npc' } })
   const document = await prisma.document.create({
-    data: { title: `Lettre ${k}`, slug: `lettre-${k}`, gameId: game.id, content: 'Version envoyée', readyToSend: true, audience: 'everyone' }
+    data: { title: `Lettre ${k}`, slug: `lettre-${k}`, gameId: game.id, content: 'Version envoyée', readyToSend: true, audiences: ['organizers', 'npcs', 'kitchen', 'pjs'] }
   })
   return { k, owner, player, game, session, participant, document }
 }

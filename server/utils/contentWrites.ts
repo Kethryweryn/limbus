@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
 import type { z } from 'zod'
 import type { Prisma } from '~/generated/prisma/client'
+import { legacyAudience } from '~/utils/documentAudiences'
 import { prisma } from '~/server/utils/prisma'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { assertSameGame, requireCurrentUser, requireGameAccess } from '~/server/utils/gameAccess'
@@ -417,7 +418,7 @@ export async function createDocument(event: H3Event, readBody: Reader<typeof doc
   await requireGameAccess(event, body.gameId)
   const characterIds = [...new Set(body.characterIds)]
   const factionIds = [...new Set(body.factionIds)]
-  await validateDocumentRelations(body.gameId, body.characterId, characterIds, factionIds)
+  await validateDocumentRelations(body.gameId, characterIds, factionIds)
 
   return await prisma.document.create({
     data: {
@@ -425,10 +426,12 @@ export async function createDocument(event: H3Event, readBody: Reader<typeof doc
       slug: await generateUniqueSlug('document', body.title),
       content: body.content,
       documentUrl: body.documentUrl,
-      audience: body.audience,
+      audiences: body.audiences,
+      // Pour le build encore en service pendant un déploiement ; le champ unique « Personnage » n'est plus écrit (ADR-0072)
+      audience: legacyAudience(body.audiences),
       readyToSend: body.readyToSend ?? false,
       gameId: body.gameId,
-      characterId: body.characterId || null,
+      characterId: null,
       characters: { connect: characterIds.map((characterId) => ({ id: characterId })) },
       factions: { connect: factionIds.map((factionId) => ({ id: factionId })) }
     },
@@ -446,7 +449,7 @@ export async function updateDocument(event: H3Event, id: string, readBody: Reade
   await requireGameAccess(event, body.gameId)
   const characterIds = [...new Set(body.characterIds)]
   const factionIds = [...new Set(body.factionIds)]
-  await validateDocumentRelations(body.gameId, body.characterId, characterIds, factionIds)
+  await validateDocumentRelations(body.gameId, characterIds, factionIds)
 
   return await prisma.document.update({
     where: { id },
@@ -455,10 +458,12 @@ export async function updateDocument(event: H3Event, id: string, readBody: Reade
       slug: await generateUniqueSlug('document', body.title, id),
       content: body.content,
       documentUrl: body.documentUrl,
-      audience: body.audience,
+      audiences: body.audiences,
+      // Pour le build encore en service pendant un déploiement ; le champ unique « Personnage » n'est plus écrit (ADR-0072)
+      audience: legacyAudience(body.audiences),
       readyToSend: body.readyToSend ?? false,
       gameId: body.gameId,
-      characterId: body.characterId || null,
+      characterId: null,
       characters: { set: characterIds.map((characterId) => ({ id: characterId })) },
       factions: { set: factionIds.map((factionId) => ({ id: factionId })) }
     },

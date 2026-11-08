@@ -23,9 +23,6 @@
               </p>
             </div>
             <div class="flex flex-wrap gap-1">
-              <UBadge v-if="document.character" color="neutral" variant="subtle" size="xs">
-                {{ document.character.name }}
-              </UBadge>
               <UBadge
                 v-for="character in document.characters || []"
                 :key="character.id"
@@ -48,7 +45,7 @@
                 Fichier lié
               </UBadge>
               <UBadge color="neutral" variant="outline" size="xs">
-                {{ audienceLabel(document.audience) }}
+                {{ documentAudienceLabel(document) }}
               </UBadge>
               <UBadge :color="document.readyToSend ? 'success' : 'neutral'" variant="subtle" size="xs">
                 {{ document.readyToSend ? 'Prêt' : 'Brouillon' }}
@@ -136,7 +133,7 @@
 </template>
 
 <script setup lang="ts">
-import { DOCUMENT_AUDIENCE_LABELS } from '~/utils/domain'
+import { documentAudienceLabel } from '~/utils/documentAudiences'
 import { coolDown } from '~/composables/useCooldown'
 import { useSessionDocumentActions, type SessionDocument } from '~/composables/useSessionDocumentActions'
 import { formatEventDate } from '~/utils/sessions'
@@ -149,7 +146,6 @@ const documentSendCooldownId = ref('')
 const sentRecipients = (document: SessionDocument) => document.recipients.filter((recipient) => recipient.sentAt)
 const pendingRecipients = (document: SessionDocument) => document.recipients.filter((recipient) => !recipient.sentAt)
 const outdatedRecipients = (document: SessionDocument) => document.recipients.filter((recipient) => recipient.versionOutdated && recipient.participant.email)
-const audienceLabel = (audience: string) => DOCUMENT_AUDIENCE_LABELS[audience] || DOCUMENT_AUDIENCE_LABELS.targeted
 
 async function sendDocument(documentId: string) {
   if (!confirm('Envoyer ce document aux destinataires manquants ?')) return

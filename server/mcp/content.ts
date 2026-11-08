@@ -48,7 +48,7 @@ async function listContent(type: ContentType, gameId: string, search: string | u
     case 'documents': {
       const where = { gameId, ...(search ? { title: contains(search) } : {}) }
       const [items, total] = await Promise.all([
-        prisma.document.findMany({ where, orderBy: { title: 'asc' }, skip, take, select: { id: true, title: true, audience: true, readyToSend: true, published: true } }),
+        prisma.document.findMany({ where, orderBy: { title: 'asc' }, skip, take, select: { id: true, title: true, audiences: true, readyToSend: true, published: true } }),
         prisma.document.count({ where })
       ])
       return pageOf(items, page, total)
@@ -99,7 +99,7 @@ async function readContent(type: ContentType, where: Record<string, unknown>) {
     case 'documents':
       return await prisma.document.findFirst({
         where,
-        select: { ...common, title: true, content: true, audience: true, readyToSend: true, character: named, characters: named, factions: named }
+        select: { ...common, title: true, content: true, audiences: true, readyToSend: true, characters: named, factions: named }
       })
     case 'lieux':
       return await prisma.location.findFirst({ where, select: { ...common, name: true, address: true, notes: true } })

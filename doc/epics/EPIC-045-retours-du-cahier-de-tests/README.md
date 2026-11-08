@@ -30,6 +30,7 @@ Corriger ce que l'utilisatrice signale en déroulant son cahier de tests ([fiche
 | [US-184](US-184-mise-a-jour-sans-perdre-sa-saisie.md) | Recevoir une nouvelle version sans perdre sa saisie | terminée |
 | [US-185](US-185-une-fiche-par-personne.md) | Une seule fiche par personne dans mes jeux | terminée |
 | [US-186](US-186-supprimer-depuis-la-fiche.md) | Supprimer un élément depuis sa fiche | terminée |
+| [US-187](US-187-public-des-documents.md) | Choisir le public d'un document par rôles et par personnages | terminée |
 
 ## Définition de terminé
 

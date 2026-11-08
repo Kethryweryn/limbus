@@ -68,6 +68,7 @@ export const SESSION_ROLE_LABELS = {
 // Rôles qui tiennent un personnage ou une place dans la session ; la cuisine peut encore s'y porter joueuse (R31 de SPEC-018)
 export const SESSION_CAST_ROLES: string[] = [SESSION_ROLES.participant, SESSION_ROLES.organizer, SESSION_ROLES.npc]
 
+// Ancien public unique d'un document, lu seulement pour convertir une écriture d'avant ADR-0072 (utils/documentAudiences.ts)
 export const DOCUMENT_AUDIENCES = {
   targeted: 'targeted',
   everyone: 'everyone',
@@ -76,17 +77,6 @@ export const DOCUMENT_AUDIENCES = {
   kitchen: 'kitchen'
 } as const
 
-export const DOCUMENT_AUDIENCE_OPTIONS = [
-  { label: 'Ciblage manuel', value: DOCUMENT_AUDIENCES.targeted },
-  { label: 'Tout le monde', value: DOCUMENT_AUDIENCES.everyone },
-  { label: 'Organisateurs', value: DOCUMENT_AUDIENCES.organizers },
-  { label: 'PNJs', value: DOCUMENT_AUDIENCES.npcs },
-  { label: 'Équipe cuisine', value: DOCUMENT_AUDIENCES.kitchen }
-]
-
-export const DOCUMENT_AUDIENCE_LABELS = Object.fromEntries(
-  DOCUMENT_AUDIENCE_OPTIONS.map((option) => [option.value, option.label])
-) as Record<string, string>
 
 export const INTRIGUE_LEVELS = {
   mainStory: 'main_story',

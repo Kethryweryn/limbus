@@ -13,7 +13,7 @@
           {{ documentItem.readyToSend ? 'Prêt' : 'Brouillon' }}
         </UBadge>
         <UBadge color="neutral" variant="outline">
-          {{ audienceLabel(documentItem.audience) }}
+          {{ documentAudienceLabel(documentItem) }}
         </UBadge>
         <UBadge v-if="isInArchivedGame(documentItem)" color="neutral" variant="solid">
           Archivé
@@ -78,14 +78,6 @@
             <h2 class="text-sm font-semibold mb-2">Personnages</h2>
             <div class="flex flex-wrap gap-1">
               <NuxtLink
-                v-if="documentItem.character"
-                :to="`/characters/${documentItem.character.slug}`"
-              >
-                <UBadge color="neutral" variant="subtle" class="cursor-pointer">
-                  {{ documentItem.character.name }}
-                </UBadge>
-              </NuxtLink>
-              <NuxtLink
                 v-for="character in documentItem.characters || []"
                 :key="character.id"
                 :to="`/characters/${character.slug}`"
@@ -95,7 +87,7 @@
                 </UBadge>
               </NuxtLink>
               <span
-                v-if="!documentItem.character && !documentItem.characters?.length"
+                v-if="!documentItem.characters?.length"
                 class="text-sm text-gray-500"
               >
                 Aucun
@@ -135,7 +127,7 @@ import { isInArchivedGame } from '~/utils/games'
 import { computed, onMounted, ref } from 'vue'
 import { serverMessage } from '~/utils/apiErrors'
 import DocumentForm from '@/components/DocumentForm.vue'
-import { DOCUMENT_AUDIENCE_LABELS } from '~/utils/domain'
+import { documentAudienceLabel } from '~/utils/documentAudiences'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { withQueuedEdit, type DocumentDraft } from '~/utils/writingDrafts'
 
@@ -167,8 +159,6 @@ const documentBackLabel = computed(() =>
   returnContext.value?.source === 'session' ? 'Documents de session' : 'Documents'
 )
 
-const audienceLabel = (audience: string) => DOCUMENT_AUDIENCE_LABELS[audience] || DOCUMENT_AUDIENCE_LABELS.targeted
-
 async function loadData() {
   const [data, gamesData, charactersData, factionsData] = await Promise.all([
     useApiFetch(`/api/documents/slug/${route.params.slug}`),
@@ -190,7 +180,6 @@ function documentFormPayload(document: DocumentDetail): DocumentDraft {
     ...document,
     content: document.content || '',
     documentUrl: document.documentUrl || '',
-    characterId: document.characterId || document.character?.id || '',
     characterIds: document.characters?.map((character) => character.id) || [],
     factionIds: document.factions?.map((faction) => faction.id) || []
   }

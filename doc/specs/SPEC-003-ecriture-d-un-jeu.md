@@ -61,7 +61,7 @@ Depuis la liste des jeux, la propriétaire ou une co-organisatrice archive un je
 - **R8** **Faction** : un nom, un pitch, une histoire (texte ou lien), des indications de costume et des membres (personnages). Elle est liée à des intrigues. Elle peut figurer sur les trombinoscopes.
 - **R9** **Intrigue** : un nom, un pitch, une description et un niveau. Elle n'est envoyée à personne. Les niveaux sont, du plus au moins important : trame principale scénario, trame principale personnage, intrigue majeure, intrigue mineure (par défaut). Elle relie des personnages, des factions et des objets.
 - **R10** **Objet** : un nom, une description, une quantité (un entier d'au moins 1, 1 par défaut), et un emplacement : un texte libre ou un personnage qui le détient. Il est lié à des personnages et à des intrigues.
-- **R11** **Document** : un titre, et un contenu ou un lien vers un document externe (au moins l'un des deux). Son audience est un ciblage manuel (par défaut), tout le monde, les organisateurs, les PNJ ou l'équipe cuisine. En ciblage manuel, il vise un personnage (champ « Personnage »), des personnages et des factions. Il est marqué « prêt à envoyer » quand il peut partir aux participants. Les envois sont décrits dans [SPEC-006](SPEC-006-emails-et-paiements.md).
+- **R11** **Document** : un titre, et un contenu ou un lien vers un document externe (au moins l'un des deux). Son public se choisit par cases : organisateurs, PNJ, cuisine, PJ, et « Tout le monde », qui coche les quatre. La sélection avancée y ajoute des personnages et des groupes du jeu, à choix multiple. Sans case ni sélection, il est signalé « non ciblé » ([US-187](../epics/EPIC-045-retours-du-cahier-de-tests/US-187-public-des-documents.md), [ADR-0072](../adr/ADR-0072-public-des-documents.md)). Il est marqué « prêt à envoyer » quand il peut partir aux participants. Les envois sont décrits dans [SPEC-006](SPEC-006-emails-et-paiements.md).
 - **R12** **Événement de chronologie** : un nom, une description, un jour (à partir de 1), une heure et un nombre de responsables requis. Il relie des personnages, des factions, des intrigues et des objets. La chronologie se lit par jour, puis par heure, puis par nom. L'affectation des responsables à une session est décrite dans la spec sur les sessions.
 - **R13** **Lieu** : un nom, une adresse et des notes. Une session se tient dans un lieu.
 - **R14** Supprimer un élément supprime ses liens, jamais les éléments liés. Exceptions :
@@ -115,3 +115,4 @@ Relevés le 29 octobre 2026 en comparant le code aux règles ci-dessus. Les quat
 ## Historique
 
 - 2026-11-08 : R14b, suppression depuis la fiche (US-186, retour B1-1 du cahier de tests).
+- 2026-11-08 : R11, public d'un document par cases et sélection avancée (US-187, retour B3-1).

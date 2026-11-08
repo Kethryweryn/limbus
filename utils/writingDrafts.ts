@@ -20,8 +20,9 @@ export type IntrigueDraft = Draft<ApiResponse<'/api/intrigues/:id'>, 'game' | 'c
 export type ItemDraft = Draft<ApiResponse<'/api/items/:id'>, 'game' | 'locationCharacter' | 'characters' | 'intrigues'>
   & { characterIds?: string[], intrigueIds?: string[], characters?: Linked, intrigues?: Linked, locationCharacter?: { id: string } | null }
 
-export type DocumentDraft = Draft<ApiResponse<'/api/documents/:id'>, 'game' | 'character' | 'characters' | 'factions'>
-  & { characterIds?: string[], factionIds?: string[], characters?: Linked, factions?: Linked, character?: { id: string } | null }
+// Public : rôles cochés (`audiences`) et sélection avancée de personnages et de groupes (US-187)
+export type DocumentDraft = Draft<ApiResponse<'/api/documents/:id'>, 'game' | 'characters' | 'factions'>
+  & { characterIds?: string[], factionIds?: string[], characters?: Linked, factions?: Linked }
 
 export type LocationDraft = Draft<ApiResponse<'/api/locations/:id'>, 'game'>
 

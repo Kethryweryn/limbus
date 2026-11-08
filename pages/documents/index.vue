@@ -50,7 +50,7 @@
                 Fichier lié
               </UBadge>
               <UBadge color="neutral" variant="outline" size="xs">
-                {{ audienceLabel(document.audience) }}
+                {{ documentAudienceLabel(document) }}
               </UBadge>
               <UBadge :color="document.readyToSend ? 'success' : 'neutral'" variant="subtle" size="xs">
                 {{ document.readyToSend ? 'Prêt' : 'Brouillon' }}
@@ -68,9 +68,6 @@
           </p>
 
           <div class="flex flex-wrap gap-1">
-            <UBadge v-if="document.character" color="neutral" variant="subtle" size="xs" class="max-w-44 truncate">
-              {{ document.character.name }}
-            </UBadge>
             <UBadge
               v-for="character in document.characters || []"
               :key="character.id"
@@ -141,7 +138,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import DocumentForm from '@/components/DocumentForm.vue'
 import GameContextBar from '@/components/GameContextBar.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
-import { DOCUMENT_AUDIENCES, DOCUMENT_AUDIENCE_LABELS } from '~/utils/domain'
+import { documentAudienceLabel, isDocumentTargeted } from '~/utils/documentAudiences'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import type { DocumentDraft } from '~/utils/writingDrafts'
 
@@ -181,7 +178,6 @@ const filteredDocuments = computed(() => {
         document.content,
         document.documentUrl,
         document.game?.title,
-        document.character?.name,
         ...(document.characters || []).map((character) => character.name),
         ...(document.factions || []).map((faction) => faction.name)
       ].some((field) => field?.toLowerCase().includes(term))
@@ -208,10 +204,7 @@ const prevPage = () => {
   if (page.value > 1) page.value--
 }
 
-const hasTargets = (document: DocumentRow) =>
-  document.audience !== DOCUMENT_AUDIENCES.targeted
-  || Boolean(document.character || document.characters?.length || document.factions?.length)
-const audienceLabel = (audience: string) => DOCUMENT_AUDIENCE_LABELS[audience] || DOCUMENT_AUDIENCE_LABELS[DOCUMENT_AUDIENCES.targeted]
+const hasTargets = (document: DocumentRow) => isDocumentTargeted(document)
 
 const fetchDocuments = async () => {
   documents.value = await fetchOfflineList('documents', '/api/documents')
@@ -242,11 +235,9 @@ onMounted(async () => {
 function documentFormPayload(document: DocumentRow): DocumentDraft {
   return {
     ...document,
-    audience: document.audience || DOCUMENT_AUDIENCES.targeted,
     readyToSend: Boolean(document.readyToSend),
     content: document.content || '',
     documentUrl: document.documentUrl || '',
-    characterId: document.characterId || document.character?.id || '',
     characterIds: document.characters?.map((character) => character.id) || [],
     factionIds: document.factions?.map((faction) => faction.id) || []
   }
@@ -255,12 +246,11 @@ function documentFormPayload(document: DocumentRow): DocumentDraft {
 function startCreate() {
   activeFormDocument.value = {
     title: '',
-    audience: DOCUMENT_AUDIENCES.targeted,
+    audiences: [],
     readyToSend: false,
     content: '',
     documentUrl: '',
     gameId: selectedGame.value?.id || games.value[0]?.id || '',
-    characterId: '',
     characterIds: [],
     factionIds: []
   }

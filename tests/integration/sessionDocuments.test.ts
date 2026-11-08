@@ -115,7 +115,7 @@ describe('envoi des documents d’une session', () => {
       await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id } })
     }
     const document = await prisma.document.create({
-      data: { title: `Lettre ${key}`, slug: `lettre-${key}`, gameId: game.id, content: 'Version 1', readyToSend: true, audience: 'everyone' }
+      data: { title: `Lettre ${key}`, slug: `lettre-${key}`, gameId: game.id, content: 'Version 1', readyToSend: true, audiences: ['organizers', 'npcs', 'kitchen', 'pjs'] }
     })
     const mailsTo = (email: string) => smtp.received.filter((received) => received.to.includes(email))
     const dashboard = async () => (await api(alice, 'GET', `/api/sessions/${session.id}/documents`)).body as {

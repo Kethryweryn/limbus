@@ -247,3 +247,4 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-184](EPIC-045-retours-du-cahier-de-tests/US-184-mise-a-jour-sans-perdre-sa-saisie.md) | Recevoir une nouvelle version sans perdre sa saisie | EPIC-045 | terminée |
 | [US-185](EPIC-045-retours-du-cahier-de-tests/US-185-une-fiche-par-personne.md) | Une seule fiche par personne dans mes jeux | EPIC-045 | terminée |
 | [US-186](EPIC-045-retours-du-cahier-de-tests/US-186-supprimer-depuis-la-fiche.md) | Supprimer un élément depuis sa fiche | EPIC-045 | terminée |
+| [US-187](EPIC-045-retours-du-cahier-de-tests/US-187-public-des-documents.md) | Choisir le public d'un document par rôles et par personnages | EPIC-045 | terminée |

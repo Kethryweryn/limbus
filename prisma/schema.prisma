@@ -280,7 +280,10 @@ model Document {
   slug        String      @unique
   content     String?
   documentUrl String?
+  // Ancien public unique, encore écrit pour le build en service pendant un déploiement (ADR-0072)
   audience    String      @default("targeted")
+  // Rôles visés : organizers, npcs, kitchen, pjs (US-187, ADR-0072) ; la sélection avancée est characters et factions
+  audiences   String[]    @default([])
   readyToSend Boolean     @default(false)
   gameId      String
   game        Game        @relation(fields: [gameId], references: [id], onDelete: Cascade)
@@ -288,6 +291,7 @@ model Document {
   updatedAt   DateTime    @updatedAt
   published   Boolean     @default(true)
 
+  // Ancien champ « Personnage », vidé par la migration d'ADR-0072 et plus écrit : les personnages sont dans characters
   characterId String?
   character   Character?  @relation(fields: [characterId], references: [id], onDelete: SetNull)
   characters  Character[]  @relation("DocumentCharacters")

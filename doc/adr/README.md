@@ -75,3 +75,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0069](ADR-0069-vivier-unique-et-statut-par-session.md) | Vivier unique par jeu et statut d'inscription par session | accepté | 2026-11-06 |
 | [ADR-0070](ADR-0070-liens-personnels-durables.md) | Plusieurs liens personnels valides pour une personne du vivier | accepté | 2026-11-06 |
 | [ADR-0071](ADR-0071-mise-a-jour-au-changement-de-page.md) | Une nouvelle version de l'application se charge au changement de page | accepté | 2026-11-08 |
+| [ADR-0072](ADR-0072-public-des-documents.md) | Le public d'un document est une liste de rôles, plus des personnages et des groupes | accepté | 2026-11-08 |
