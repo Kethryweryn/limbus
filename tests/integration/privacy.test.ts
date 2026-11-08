@@ -57,6 +57,8 @@ describe('export des données d’un participant', () => {
     const response = await api(alice, 'GET', `/api/participants/${a.participant.id}/export`)
     expect(response.status).toBe(200)
     expect(response.body).toMatchObject({ name: participant.name, email: participant.email, games: [{ title: game.title }] })
+    // Date de création de la fiche (US-188)
+    expect(response.body).toMatchObject({ createdAt: participant.createdAt.toISOString() })
   })
 
   it('un participant inscrit chez Alice et chez Bob n’expose que le jeu d’Alice', async () => {
@@ -71,9 +73,10 @@ describe('export des données d’un participant', () => {
 
     const response = await api(alice, 'GET', `/api/participants/${shared.id}/export`)
     expect(response.status).toBe(200)
-    const body = response.body as { games: unknown[], sessionRoles: unknown[] }
+    const body = response.body as { games: unknown[], sessionRoles: Array<{ createdAt: string }> }
     expect(body.games).toHaveLength(1)
     expect(body.sessionRoles).toHaveLength(1)
+    expect(Date.parse(body.sessionRoles[0]!.createdAt)).not.toBeNaN()
     expect(JSON.stringify(body)).not.toContain(b.game.title)
     expect(JSON.stringify(body)).not.toContain(b.session.name)
   })

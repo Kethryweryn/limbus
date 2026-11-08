@@ -19,6 +19,9 @@ describe('schéma de données', () => {
         AND NOT EXISTS (
           SELECT 1 FROM pg_index i
           WHERE i.indrelid = c.conrelid
+            -- Un index partiel ou sur une expression ne sert pas aux recherches sur toute la clé
+            AND i.indpred IS NULL
+            AND i.indexprs IS NULL
             AND (i.indkey::int2[])[0:cardinality(c.conkey) - 1] @> c.conkey
             AND (i.indkey::int2[])[0:cardinality(c.conkey) - 1] <@ c.conkey
         )
