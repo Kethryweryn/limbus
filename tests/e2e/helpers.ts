@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { JWT_SECRET } from '../integration/constants'
 import { E2E_PASSWORD, PARCOURS } from './constants'
+import { escapeRegExp } from '../regexp'
 
 // Tests des parcours : `otherPage()` ouvre un navigateur à part (autre personne, autre appareil), fermé à la fin du test
 export const test = base.extend<{ otherPage: () => Promise<Page> }>({
@@ -74,16 +75,21 @@ export function uniqueName(base: string) {
 }
 
 // Le plus petit bloc de la page Inscriptions qui porte à la fois le titre du jeu et le bouton donné
+// Bloc d'un jeu sur la page Inscriptions, dont le titre est un titre de niveau 2. Jamais un bloc qui contient aussi le
+// titre d'un autre jeu : tant que le bouton n'est pas affiché (sessions encore en lecture), on attend, au lieu de
+// prendre la liste de tous les jeux, où un autre jeu peut avoir le même texte
 export function gamePanel(page: Page, title: string, button: string | RegExp) {
-  return blockWith(page, page.getByRole('heading', { name: title, exact: true }), button)
+  const otherGame = page.getByRole('heading', { level: 2 }).filter({ hasNotText: new RegExp(`^\\s*${escapeRegExp(title)}\\s*$`) })
+  return blockWith(page, page.getByRole('heading', { name: title, exact: true }), button, otherGame)
 }
 
-// Le plus petit bloc qui contient à la fois l'élément donné (titre, lien) et le bouton donné : une carte, un panneau
-export function blockWith(page: Page, has: Locator, button: string | RegExp) {
-  return page.locator('div')
+// Le plus petit bloc qui contient à la fois l'élément donné (titre, lien) et le bouton donné : une carte, un panneau.
+// `hasNot` écarte les blocs trop larges, qui contiennent aussi un élément d'un autre bloc
+export function blockWith(page: Page, has: Locator, button: string | RegExp, hasNot?: Locator) {
+  const blocks = page.locator('div')
     .filter({ has })
     .filter({ has: page.getByRole('button', { name: button }) })
-    .last()
+  return (hasNot ? blocks.filter({ hasNot }) : blocks).last()
 }
 
 // Compte propre au test, confirmé, aux conditions acceptées et au mot de passe des tests : ses changements ne touchent pas
