@@ -88,10 +88,11 @@ export async function exportParticipantData(participantId: string, gameIds: stri
       userId: true,
       // Refus de l'usage de sa photo (US-109)
       photoRefusedAt: true,
+      createdAt: true,
       updatedAt: true,
       gameLinks: { where: inGames, select: { createdAt: true, notes: true, game: { select: { title: true } } } },
-      sessionRoles: { where: inSessions, select: { role: true, session } },
-      assignments: { where: inSessions, select: { photoUrl: true, notes: true, character: { select: { name: true } }, session } },
+      sessionRoles: { where: inSessions, select: { role: true, createdAt: true, session } },
+      assignments: { where: inSessions, select: { photoUrl: true, notes: true, createdAt: true, character: { select: { name: true } }, session } },
       payments: { where: inSessions, select: { paidAt: true, paymentEmailSentAt: true, paymentReminderSentAt: true, refundStatus: true, refundedAt: true, tariff: { select: { name: true, amountCents: true } }, instalments: { select: { amountCents: true, receivedAt: true } }, session } },
       documentDeliveries: { where: inSessions, select: { kind: true, sentAt: true, copyContent: true, document: { select: { title: true } }, character: { select: { name: true } }, session } },
       timelineResponsibilities: { where: inSessions, select: { timelineEvent: { select: { name: true, day: true, time: true } }, session } },
