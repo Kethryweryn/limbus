@@ -71,6 +71,7 @@
 
 <script setup lang="ts">
 import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
+import { confirmedDelete } from '~/composables/useConfirmedDelete'
 import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import { computed, onMounted, ref, watch } from 'vue'
 import GameContextBar from '@/components/GameContextBar.vue'
@@ -243,10 +244,7 @@ async function handleEventFormSubmit() {
 }
 
 async function deleteTimelineEvent(id: string) {
-  if (!confirm(DELETE_CONFIRMATIONS.timelineEvent)) return
-
-  await useApiFetch(`/api/timeline-events/${id}`, { method: 'DELETE' })
-  await fetchTimelineEvents()
+  if (await confirmedDelete(`/api/timeline-events/${id}`, DELETE_CONFIRMATIONS.timelineEvent)) await fetchTimelineEvents()
 }
 
 watch(() => [route.query.gameId, route.query.game], () => {

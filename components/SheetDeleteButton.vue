@@ -12,6 +12,7 @@
 <script setup lang="ts">
 import type { RouteLocationRaw } from 'vue-router'
 import { apiErrorMessage } from '~/utils/apiErrors'
+import { confirmedDelete } from '~/composables/useConfirmedDelete'
 
 const props = defineProps<{
   // Route de l'API qui supprime l'élément, par son identifiant
@@ -25,13 +26,11 @@ const deleting = ref(false)
 const error = ref('')
 
 async function remove() {
-  if (!confirm(props.confirmText)) return
   deleting.value = true
   error.value = ''
   try {
-    // Hors ligne, la suppression part en file (ADR-0036) : la fiche se quitte aussi
-    await useApiFetch(props.url, { method: 'DELETE' })
-    await navigateTo(props.listPath)
+    // Hors ligne, la suppression part en file : la fiche se quitte aussi
+    if (await confirmedDelete(props.url, props.confirmText)) await navigateTo(props.listPath)
   } catch (err) {
     error.value = apiErrorMessage(err, 'La suppression a échoué.')
   } finally {

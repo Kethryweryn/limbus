@@ -137,6 +137,7 @@
 
 <script setup lang="ts">
 import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
+import { confirmedDelete } from '~/composables/useConfirmedDelete'
 import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import { isInArchivedGame, isVisibleContent } from '~/utils/games'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -326,9 +327,6 @@ async function handleIntrigueFormSubmit() {
 }
 
 async function deleteIntrigue(id: string) {
-  if (!confirm(DELETE_CONFIRMATIONS.intrigue)) return
-
-  await useApiFetch(`/api/intrigues/${id}`, { method: 'DELETE' })
-  await fetchIntrigues()
+  if (await confirmedDelete(`/api/intrigues/${id}`, DELETE_CONFIRMATIONS.intrigue)) await fetchIntrigues()
 }
 </script>

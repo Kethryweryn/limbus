@@ -82,6 +82,7 @@
 
 <script setup lang="ts">
 import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
+import { confirmedDelete } from '~/composables/useConfirmedDelete'
 import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import { isInArchivedGame, isVisibleContent } from '~/utils/games'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -203,9 +204,6 @@ async function handleLocationFormSubmit() {
 }
 
 async function deleteLocation(id: string) {
-  if (!confirm(DELETE_CONFIRMATIONS.location)) return
-
-  await useApiFetch(`/api/locations/${id}`, { method: 'DELETE' })
-  await fetchLocations()
+  if (await confirmedDelete(`/api/locations/${id}`, DELETE_CONFIRMATIONS.location)) await fetchLocations()
 }
 </script>

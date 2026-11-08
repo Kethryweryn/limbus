@@ -136,9 +136,17 @@ for (const sheet of SHEETS) {
       ])
       await signIn(page, prisma, E2E_USERS.orga)
 
-      // En lecture
+      // En lecture ; un refus du serveur s'affiche sous le bouton, et la fiche reste ouverte
       await page.goto(`${sheet.list}/${read.slug}`)
       await page.waitForLoadState('networkidle')
+      await page.route(`**/api/**/${read.id}`, (route) => route.request().method() === 'DELETE'
+        ? route.fulfill({ status: 403, json: { message: 'Refus de test' } })
+        : route.continue(), { times: 1 })
+      page.once('dialog', (dialog) => dialog.accept())
+      await page.getByRole('button', { name: 'Supprimer', exact: true }).click()
+      await expect(page.getByText('Refus de test')).toBeVisible()
+      await expect(page).toHaveURL(new RegExp(`${sheet.list}/${read.slug}$`))
+      expect(await sheet.exists(prisma, read.id)).not.toBeNull()
       page.once('dialog', (dialog) => dialog.accept())
       await page.getByRole('button', { name: 'Supprimer', exact: true }).click()
       await expect(page).toHaveURL(new RegExp(`${sheet.list}(\\?.*)?$`))
