@@ -57,6 +57,16 @@
       </div>
 
       <p v-if="serverError" class="text-red-500 text-sm mt-2">{{ serverError }}</p>
+      <!-- Adresse déjà sur une autre fiche de vos jeux (US-185) : on lui ajoute le jeu plutôt que d'en créer une deuxième -->
+      <UButton
+        v-if="existingParticipant"
+        :to="`/participants/${existingParticipant.slug}?edit=1`"
+        color="neutral"
+        variant="outline"
+        icon="i-heroicons-arrow-right"
+      >
+        Ouvrir la fiche de {{ existingParticipant.name }}
+      </UButton>
     </form>
   </UCard>
 </template>
@@ -79,6 +89,7 @@ const emit = defineEmits<{ cancel: [], 'update:participant': [participant: Parti
 const localParticipant = ref<ParticipantDraft & { gameNotes: Record<string, string | null> }>({ ...props.participant, gameNotes: {} })
 const errors = ref<Record<string, string>>({})
 const serverError = ref('')
+const existingParticipant = ref<{ slug: string, name: string } | null>(null)
 
 const gameOptions = computed(() => props.games.map((game) => ({
   label: game.title,
@@ -93,6 +104,7 @@ watch(() => props.participant, (newParticipant) => {
   localParticipant.value = { ...newParticipant, gameNotes: { ...(newParticipant.gameNotes || {}) } }
   errors.value = {}
   serverError.value = ''
+  existingParticipant.value = null
 }, { immediate: true })
 
 function validate() {
@@ -127,8 +139,10 @@ async function submit() {
     emit('update:participant', localParticipant.value)
     await props.onSubmit()
     serverError.value = ''
+    existingParticipant.value = null
   } catch (err) {
     serverError.value = apiErrorMessage(err, 'Erreur inconnue')
+    existingParticipant.value = (err as { data?: { data?: { existingParticipant?: { slug: string, name: string } } } } | null)?.data?.data?.existingParticipant ?? null
   }
 }
 </script>

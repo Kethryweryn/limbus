@@ -94,6 +94,21 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
     // La session s'ouvre depuis la fiche (US-183)
     await page.getByRole('link', { name: sessionName }).click()
     await expect(page).toHaveURL(new RegExp(`/sessions/${session.slug}$`))
+
+    // Une deuxième fiche avec la même adresse est refusée, avec un bouton vers la première (US-185)
+    await page.goto('/participants')
+    await page.waitForLoadState('networkidle')
+    await page.getByRole('button', { name: 'Créer un participant' }).click()
+    await form.getByRole('button', { name: 'Jeux' }).click()
+    await page.getByRole('option', { name: title }).click()
+    await page.keyboard.press('Escape')
+    await form.getByLabel('Nom').fill('Doublon')
+    await form.getByLabel('Email').fill(created.email!.toUpperCase())
+    await form.getByRole('button', { name: 'Créer' }).click()
+    await expect(form.getByText(`Une fiche existe déjà pour cette adresse dans vos jeux : ${renamed}.`)).toBeVisible()
+    await form.getByRole('link', { name: `Ouvrir la fiche de ${renamed}` }).click()
+    await expect(page).toHaveURL(new RegExp(`/participants/${saved.slug}\\?edit=1$`))
+    expect(await prisma.participant.count({ where: { name: 'Doublon' } })).toBe(0)
   } finally {
     await prisma.$disconnect()
   }

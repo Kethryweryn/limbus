@@ -446,6 +446,8 @@ function makeSlug(value: string) {
 }
 
 const usedParticipantSlugs = new Set<string>()
+// Fiches déjà créées dans ce rechargement, par adresse fictive : une personne n'en a qu'une pour les trois jeux (US-185)
+const participantByEmail = new Map<string, { id: string, name: string, email: string | null }>()
 
 async function makeParticipantSlug(name: string) {
   const baseSlug = makeSlug(name) || 'participant'
@@ -849,6 +851,13 @@ async function createGame(
 
   const participants: Array<{ id: string, name: string, email: string | null }> = []
   for (const participant of seed.participants) {
+    // Une personne déjà présente dans un autre jeu de test garde sa fiche, qui reçoit ce jeu (US-185)
+    const existing = participantByEmail.get(participant.email)
+    if (existing) {
+      await db.participantGame.create({ data: { participantId: existing.id, gameId: game.id, notes: participant.notes || null } })
+      participants.push(existing)
+      continue
+    }
     const slug = await makeParticipantSlug(participant.name)
     participants.push(await db.participant.create({
       data: {
@@ -863,6 +872,7 @@ async function createGame(
         published: true
       }
     }))
+    participantByEmail.set(participant.email, participants.at(-1)!)
   }
   const locations = await Promise.all(seed.locations.map((location) =>
     db.location.create({

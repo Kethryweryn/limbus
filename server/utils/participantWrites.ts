@@ -14,6 +14,33 @@ import { accountIdForEmail, syncProfileToParticipants } from '~/server/utils/par
 
 type Reader<S extends z.ZodType> = () => Promise<z.output<S>>
 
+const sameAddress = (left: string | null | undefined, right: string | null | undefined) =>
+  (left?.trim().toLowerCase() || null) === (right?.trim().toLowerCase() || null)
+
+/**
+ * Une seule fiche par adresse dans les jeux de l'équipe (SPEC-007, R5, US-185) : une autre fiche de ses jeux avec la
+ * même adresse refuse la création ou le changement d'email, en la désignant pour que l'équipe lui ajoute le jeu.
+ */
+async function assertNoOtherFiche(email: string | null | undefined, gameIds: string[] | null, exceptId?: string) {
+  const address = email?.trim()
+  if (!address) return
+  const other = await prisma.participant.findFirst({
+    where: {
+      email: { equals: address, mode: 'insensitive' },
+      ...(exceptId ? { id: { not: exceptId } } : {}),
+      ...(gameIds === null ? {} : { gameLinks: { some: { gameId: { in: gameIds } } } })
+    },
+    select: { id: true, slug: true, name: true }
+  })
+  if (other) {
+    throw createError({
+      statusCode: 409,
+      message: `Une fiche existe déjà pour cette adresse dans vos jeux : ${other.name}. Ajoutez-lui ce jeu depuis sa fiche.`,
+      data: { existingParticipant: other }
+    })
+  }
+}
+
 export async function createParticipant(event: H3Event, readBody: Reader<typeof participantCreateSchema>) {
   const body = await readBody()
   const { name, email, phone, gameNotes, gameIds } = body
@@ -23,6 +50,7 @@ export async function createParticipant(event: H3Event, readBody: Reader<typeof 
   if (allowedGameIds !== null && [...uniqueGameIds, ...Object.keys(gameNotes)].some((gameId) => !allowedGameIds.includes(gameId))) {
     throw createError({ statusCode: 403, message: 'Jeu inaccessible' })
   }
+  await assertNoOtherFiche(email, allowedGameIds)
 
   const participant = await prisma.participant.create({
     data: {
@@ -58,6 +86,9 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
   }
 
   await assertUnmodifiedSince(event, 'participant', id)
+  // Seulement si l'adresse change : un doublon plus ancien reste modifiable
+  const before = await prisma.participant.findUniqueOrThrow({ where: { id }, select: { email: true } })
+  if (!sameAddress(before.email, email)) await assertNoOtherFiche(email, allowedGameIds, id)
 
   const existingLinks = await prisma.participantGame.findMany({
     where: { participantId: id },

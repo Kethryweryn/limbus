@@ -57,7 +57,7 @@ Depuis la liste, « Supprimer » efface la fiche et ses données, après une con
 - **R3** Une organisatrice ne lie une fiche qu'à des jeux auxquels elle a accès. En modifiant une fiche, elle ne touche qu'aux liens de ces jeux : ceux des autres jeux restent.
 - **R3b** Une fiche a toujours au moins un jeu : la créer en demande un, et retirer son dernier lien la supprime avec ses données (R10), après une confirmation ; une fiche encore liée au jeu d'une autre équipe reste ([US-036](../archive/epics/EPIC-007-ecarts-participants/US-036-une-fiche-a-toujours-un-jeu.md)).
 - **R4** Retirer le lien à un jeu retire aussi la personne des sessions de ce jeu : équipe, casting (le personnage reste sans joueur ni photo), déroulé et présence. Ses inscriptions à ce jeu passent au statut « retirée » ; ses paiements restent, affichés à part ([US-035](../archive/epics/EPIC-007-ecarts-participants/US-035-retrait-d-un-jeu-et-de-ses-sessions.md)).
-- **R5** À l'inscription, une personne est rapprochée d'une fiche existante par son email, parmi les jeux de la même propriétaire seulement ([SPEC-001](SPEC-001-inscriptions.md), R12). Hors inscription, rien ne rapproche deux fiches : la même personne peut en avoir plusieurs.
+- **R5** À l'inscription, une personne est rapprochée d'une fiche existante par son email, parmi les jeux de la même propriétaire seulement ([SPEC-001](SPEC-001-inscriptions.md), R12). Hors inscription, une adresse n'a qu'une fiche dans les jeux de l'organisatrice : créer une fiche, ou changer son email, avec l'adresse d'une autre fiche de ses jeux est refusé, avec un lien vers celle-ci pour lui ajouter le jeu. Un doublon plus ancien reste modifiable, et une fiche d'une autre équipe ne bloque rien ([US-185](../epics/EPIC-045-retours-du-cahier-de-tests/US-185-une-fiche-par-personne.md)).
 - **R6** Deux organisatrices qui modifient la même fiche en même temps ne s'écrasent pas : la seconde est refusée (409).
 
 ### Droit d'accès
@@ -127,3 +127,4 @@ Pour l'écart 5 : `Participant.published` est retiré de l'API et de l'interface
 
 - 2026-11-08 : R1b, contact d'urgence et allergies sur la fiche (US-178, retours A5-1 et A5-2 du cahier de tests).
 - 2026-11-08 : R1c, sessions de la personne sur la fiche (US-183, retour A5-4) ; nom et téléphone du contact d'urgence sur deux lignes (US-182, retour A5-2).
+- 2026-11-08 : R5, une adresse n'a qu'une fiche dans les jeux de l'organisatrice (US-185, retour A5-5).
