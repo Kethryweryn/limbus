@@ -20,7 +20,7 @@ En tant qu'organisatrice, je veux supprimer un personnage, un groupe, une intrig
 
 ## Notes techniques
 
-`components/SheetDeleteButton.vue`, `utils/deleteConfirmations.ts`, les sept pages `pages/*/[slug].vue`. [SPEC-003](../../specs/SPEC-003-ecriture-d-un-jeu.md), R14b. Choix de l'utilisatrice le 2026-11-08 : toutes les fiches d'écriture, pas seulement les quatre citées.
+`components/SheetDeleteButton.vue` ; `composables/useConfirmedDelete.ts` et `utils/deleteConfirmations.ts`, communs aux listes et aux fiches ; les sept pages `pages/*/[slug].vue`. [SPEC-003](../../specs/SPEC-003-ecriture-d-un-jeu.md), R14b. Choix de l'utilisatrice le 2026-11-08 : toutes les fiches d'écriture, pas seulement les quatre citées.
 
 ## Tests
 
