@@ -6,7 +6,7 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 |---|---|---|---|
 | [Durcissement web](durcissement-web.md) | en partie traitée | 2026-10-29 | CSP et COOP sur les pages, origine des écritures, cookie `__Host-` (revue R-01 à R-03) |
 | [Supervision](supervision.md) | en partie traitée | 2026-10-29 | Route de santé et sondes Better Stack faites ; reste les journaux structurés, si besoin (revue R-15, R-16) |
-| [Revue du schéma de données](schema-de-donnees.md) | à trancher | 2026-11-08 | Index des clés étrangères, contraintes sur les valeurs et les règles métier, dates avec fuseau, restes de transitions |
+| [Un compte pour chaque participant](compte-pour-chaque-participant.md) | à trancher | 2026-11-09 | Chaque fiche appartient à la personne, par un compte pré-créé ; une seule fiche par personne dans tout Limbus |
 
 ## Archivées
 
@@ -32,3 +32,4 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Jeux de test à jour](../archive/todo/jeux-de-test.md) | [EPIC-044](../archive/epics/EPIC-044-jeux-de-test/README.md) | 2026-11-05 |
 | [Retours du cahier de tests fonctionnels](../archive/todo/retours-du-cahier-de-tests.md) | [EPIC-045](../epics/EPIC-045-retours-du-cahier-de-tests/README.md) | 2026-11-06 |
 | [Un seul mode d'inscription, le vivier permanent](../archive/todo/vivier-permanent.md) | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | 2026-11-06 |
+| [Revue du schéma de données](../archive/todo/schema-de-donnees.md) | [EPIC-049](../epics/EPIC-049-schema-de-donnees/README.md) | 2026-11-09 |
