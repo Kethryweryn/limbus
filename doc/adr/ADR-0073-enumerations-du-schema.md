@@ -14,7 +14,7 @@ Une trentaine de colonnes `String` n'acceptent que quelques valeurs (statuts, r�
 
 ## Décision
 
-- **Énumérations.** Chaque colonne à liste fermée devient un `enum` Prisma, donc un type énuméré PostgreSQL ; `Document.audiences` devient une liste de ce type. Le client Prisma les type, et le code reprend ces types au lieu de ses unions de chaînes. Les valeurs gardent leur orthographe actuelle : aucune donnée n'est réécrite.
+- **Énumérations.** Chaque colonne à liste fermée devient un `enum` Prisma, donc un type énuméré PostgreSQL ; `Document.audiences` devient une liste de ce type. Le client Prisma les type, et le code reprend ces types au lieu de ses unions de chaînes. Les valeurs gardent leur orthographe actuelle : aucune valeur ne change, même si la conversion réécrit physiquement chaque table concernée.
 - **Changer une liste.** Ajouter une valeur (`ALTER TYPE … ADD VALUE`) est compatible avec le build en service. En retirer ou en renommer une demande de recréer le type : migration marquée `-- deploiement-incompatible`, après que plus aucune ligne ni aucun build ne l'utilise.
 - **Règles entre colonnes.** Une règle qui ne se réduit pas à une liste de valeurs s'écrit en contrainte `CHECK` à la main dans la migration (`migrate dev --create-only`). Prisma ne la décrit pas dans le schéma et `migrate diff` ne la compare pas, donc ne la retire pas ([documentation de Prisma](https://www.prisma.io/docs/orm/v7/prisma-migrate/workflows/unsupported-database-features)) ; chaque contrainte est nommée et citée en commentaire au-dessus du modèle.
 

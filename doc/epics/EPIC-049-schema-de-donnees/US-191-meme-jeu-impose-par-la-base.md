@@ -20,7 +20,7 @@ En tant que mainteneuse de Limbus, je veux que la base refuse un lien entre él�
 
 ## Notes techniques
 
-Lot le plus lourd ; à découper à l'implémentation si besoin (contenu de l'écriture, puis sessions). Références facultatives à effacement (`Item.locationCharacterId`, `Session.locationId`) : voir les conséquences d'ADR-0074. Migrations marquées incompatibles ; anciennes tables de liaison retirées au déploiement suivant.
+Lot le plus lourd ; à découper à l'implémentation si besoin (contenu de l'écriture, puis sessions). Les liens d'une session au vivier, aux envois et aux trombinoscopes sont compris. Références facultatives à effacement (`Item.locationCharacterId`, `Session.locationId`, `RegistrationDraw.sessionId`, `Registration.invitedSessionId`) : `onDelete: NoAction`, la suppression vide la référence d'abord (ADR-0074). Migrations marquées incompatibles ; anciennes tables de liaison retirées au déploiement suivant.
 
 ADR :
 - [ADR-0074](../../adr/ADR-0074-meme-jeu-impose-par-la-base.md)

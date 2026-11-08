@@ -1,6 +1,6 @@
 ---
 titre: Revue du schéma de données
-statut: prête
+statut: archivée
 epic: ../../epics/EPIC-049-schema-de-donnees/README.md
 date: 2026-11-08
 ---
