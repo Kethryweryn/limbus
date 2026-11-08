@@ -25,6 +25,7 @@ Un document avait un public unique (`Document.audience`) : ciblage manuel, tout 
 
 - « Tout le monde » écrit aux mêmes personnes qu'avant : le cast, PJ comme PNJ, l'organisation, les PNJ et la cuisine.
 - Un document visé à « PNJ » atteint maintenant aussi une organisatrice qui tient un personnage PNJ.
+- Pendant les quelques minutes d'un déploiement, l'ancien build qui modifie le public d'un document existant change `audience` sans toucher `audiences` : le nouveau public n'est pas pris en compte. Il suffit de rouvrir le document et de l'enregistrer.
 - Les colonnes `audience` et `characterId` pourront être retirées dans une migration ultérieure, une fois aucun build ne les lisant plus.
 
 ## Options écartées
