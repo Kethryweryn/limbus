@@ -16,7 +16,7 @@
         <UInput v-model="form.email" type="email" required autocomplete="email" class="w-full" />
       </UFormField>
       <UFormField label="Mot de passe" help="8 caractères au moins.">
-        <UInput v-model="form.password" type="password" required minlength="8" autocomplete="new-password" class="w-full" />
+        <PasswordInput v-model="form.password" required minlength="8" autocomplete="new-password" class="w-full" />
       </UFormField>
       <!-- Conditions d'utilisation (US-111) -->
       <UCheckbox v-model="form.termsAccepted" required>

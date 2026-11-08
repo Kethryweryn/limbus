@@ -110,7 +110,7 @@ function registerFormTools({ event, server }: ToolContext) {
     inputSchema: z.object({
       jeuId: z.string(),
       version: z.number().int().nullable().describe('Numéro de version lu (lire_formulaire_inscription) ; null s’il n’y en a pas encore'),
-      standardFields: z.record(z.string(), setting).optional().describe('Champs demandés, par clé (asked, required)'),
+      standardFields: z.record(z.string(), setting).optional().describe('Champs demandés, par clé (asked, required). Le contact d’urgence (toujours obligatoire) et les allergies (toujours demandées) ne se règlent pas'),
       affinities: z.record(z.string(), setting).optional().describe('Affinités demandées, par clé'),
       balance: setting.optional().describe('Question d’équilibre'),
       questions: z.array(z.object({

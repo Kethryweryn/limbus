@@ -9,6 +9,15 @@ test('un mauvais mot de passe est refusé, le bon connecte', async ({ page }) =>
   await login(page, E2E_USERS.orga, 'mauvais-mot-de-passe')
   await expect(page.getByText('Email ou mot de passe incorrect')).toBeVisible()
 
+  // Le mot de passe s'affiche pendant la saisie, puis se masque de nouveau (US-180)
+  const password = page.getByLabel('Mot de passe')
+  await expect(password).toHaveAttribute('type', 'password')
+  await page.getByRole('button', { name: 'Afficher les caractères' }).click()
+  await expect(password).toHaveAttribute('type', 'text')
+  await expect(password).toHaveValue('mauvais-mot-de-passe')
+  await page.getByRole('button', { name: 'Masquer les caractères' }).click()
+  await expect(password).toHaveAttribute('type', 'password')
+
   await login(page, E2E_USERS.orga)
   await expectLoggedIn(page)
 })

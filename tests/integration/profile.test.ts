@@ -12,9 +12,10 @@ afterAll(async () => {
   await prisma.$disconnect()
 })
 
-// Formulaire du jeu d'Alice : tout est demandé ; celui de Bob ne demande pas les allergies
+// Formulaire du jeu d'Alice : tout est demandé ; celui de Bob ne demande pas le téléphone. Contact d'urgence et
+// allergies sont toujours demandés (US-181)
 const FULL_FORM = { standardFields: { lastName: { asked: true, required: true }, firstName: { asked: true, required: true }, facebookName: { asked: false, required: false }, phone: { asked: true, required: true }, emergencyContact: { asked: true, required: true }, dietary: { asked: true, required: false } } }
-const NO_DIETARY_FORM = { standardFields: { ...FULL_FORM.standardFields, dietary: { asked: false, required: false } } }
+const NO_PHONE_FORM = { standardFields: { ...FULL_FORM.standardFields, phone: { asked: false, required: false } } }
 
 // Une personne avec un compte, inscrite et confirmée dans un jeu d'Alice et un jeu de Bob
 async function personInTwoTeams() {
@@ -29,7 +30,7 @@ async function personInTwoTeams() {
       data: { name: 'Nom saisi par l’équipe', slug: `fiche-${k}`, email: user.email, phone: '0100000000', userId: user.id, gameLinks: { create: { gameId: game.id } } }
     })
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `periode-${k}`, state: 'open' } })
-    const definition = owner.id === alice.id ? FULL_FORM : NO_DIETARY_FORM
+    const definition = owner.id === alice.id ? FULL_FORM : NO_PHONE_FORM
     const form = await prisma.registrationForm.create({ data: { gameId: game.id, versions: { create: { number: 1, definition } } }, include: { versions: true } })
     await prisma.registration.create({
       data: {
@@ -59,15 +60,14 @@ describe('mes coordonnées (US-074)', () => {
     for (const { participant } of teams) {
       expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id } })).toMatchObject({ name: 'Camille Dupont', phone: '0612345678' })
       expect(await prisma.registration.findFirstOrThrow({ where: { participantId: participant.id } })).toMatchObject({
-        firstName: 'Camille', lastName: 'Dupont', phone: '0612345678', emergencyContactName: 'Dominique'
+        firstName: 'Camille', lastName: 'Dupont', emergencyContactName: 'Dominique', dietary: 'Sans gluten'
       })
     }
-    // Allergies : chez Alice, qui les demande ; jamais chez Bob, dont le formulaire ne les demande pas
+    // Téléphone : chez Alice, qui le demande ; jamais sur l'inscription chez Bob, dont le formulaire ne le demande pas
     const [aliceTeam, bobTeam] = teams
-    expect((await prisma.registration.findFirstOrThrow({ where: { participantId: aliceTeam!.participant.id } })).dietary).toBe('Sans gluten')
-    expect((await prisma.registration.findFirstOrThrow({ where: { participantId: bobTeam!.participant.id } })).dietary).toBeNull()
+    expect((await prisma.registration.findFirstOrThrow({ where: { participantId: aliceTeam!.participant.id } })).phone).toBe('0612345678')
+    expect((await prisma.registration.findFirstOrThrow({ where: { participantId: bobTeam!.participant.id } })).phone).toBeNull()
     expect(JSON.stringify((await api(alice, 'GET', `/api/sessions/${aliceTeam!.session.id}/allergies`)).body)).toContain('Sans gluten')
-    expect(JSON.stringify((await api(bob, 'GET', `/api/sessions/${bobTeam!.session.id}/allergies`)).body)).not.toContain('Sans gluten')
     expect((await api(user, 'GET', '/api/account')).body).toMatchObject({ profile: { phone: '0612345678', dietary: 'Sans gluten', healthConsent: true } })
   })
 
@@ -107,8 +107,8 @@ describe('inscriptions et coordonnées (US-074)', () => {
     const answers = { email: user.email, firstName: 'Camille', lastName: 'Martin', phone: '0611111111', emergencyContactName: 'Dominique', emergencyContactPhone: '0698765432', dietary: '', charterAccepted: true }
     expect((await api(user, 'PUT', `/api/me/registrations/${invited.id}`, answers)).status).toBe(200)
     expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({ name: 'Camille Martin', phone: '0611111111', dietary: null })
-    // Recopié aussi dans l'autre équipe
-    expect(await prisma.registration.findFirstOrThrow({ where: { participantId: teams[1]!.participant.id } })).toMatchObject({ lastName: 'Martin', phone: '0611111111', dietary: null })
+    // Recopié aussi dans l'autre équipe, qui ne demande pas le téléphone
+    expect(await prisma.registration.findFirstOrThrow({ where: { participantId: teams[1]!.participant.id } })).toMatchObject({ lastName: 'Martin', phone: null, dietary: null })
   })
 })
 

@@ -1,0 +1,5 @@
+{
+  "type": "nouveau",
+  "titre": "Afficher son mot de passe pendant la saisie",
+  "texte": "Chaque champ de mot de passe a un bouton en forme d’œil : il affiche ce que vous avez tapé, pour le vérifier, puis le masque de nouveau."
+}

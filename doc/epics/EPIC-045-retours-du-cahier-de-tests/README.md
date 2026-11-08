@@ -21,6 +21,10 @@ Corriger ce que l'utilisatrice signale en déroulant son cahier de tests ([fiche
 | [US-158](US-158-carte-du-jeu-actif.md) | Repérer le jeu actif sur la page Jeux | terminée |
 | [US-159](US-159-connexion-sans-blocage.md) | Se connecter sans rester bloquée | terminée |
 | [US-177](US-177-mes-photos-dans-le-compte.md) | Retrouver « Mes photos » dans mon compte | terminée |
+| [US-178](US-178-urgence-et-allergies-sur-la-fiche.md) | Voir le contact d'urgence et les allergies sur la fiche participante | terminée |
+| [US-179](US-179-carte-participant-cliquable.md) | Ouvrir une fiche en cliquant sur sa carte | terminée |
+| [US-180](US-180-afficher-le-mot-de-passe.md) | Afficher le mot de passe pendant la saisie | terminée |
+| [US-181](US-181-urgence-et-allergies-toujours-demandees.md) | Toujours demander le contact d'urgence et les allergies | terminée |
 
 ## Définition de terminé
 

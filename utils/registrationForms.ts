@@ -5,8 +5,8 @@ export const REGISTRATION_STANDARD_FIELDS = [
   { key: 'firstName', label: 'Prénom' },
   { key: 'facebookName', label: 'Nom Facebook', description: 'Pour retrouver la personne dans un groupe Facebook du jeu.' },
   { key: 'phone', label: 'Téléphone' },
-  { key: 'emergencyContact', label: 'Contact d’urgence', description: 'Nom et téléphone d’une personne à prévenir.' },
-  { key: 'dietary', label: 'Allergies et intolérances alimentaires', description: 'Données de santé : leur saisie demande un consentement explicite.' }
+  { key: 'emergencyContact', label: 'Contact d’urgence', description: 'Nom et téléphone d’une personne à prévenir. Toujours demandé et obligatoire.' },
+  { key: 'dietary', label: 'Allergies et intolérances alimentaires', description: 'Toujours demandées, réponse facultative. Données de santé : leur saisie demande un consentement explicite.' }
 ] as const
 
 export type RegistrationStandardFieldKey = typeof REGISTRATION_STANDARD_FIELDS[number]['key']
@@ -153,16 +153,24 @@ export const DEFAULT_REGISTRATION_FORM_DEFINITION: RegistrationFormDefinition = 
   }
 }
 
+// Toujours posés, quel que soit le réglage de l'équipe (US-181) : le contact d'urgence est obligatoire ; les allergies
+// restent facultatives, car toute réponse demande l'accord santé
+export const LOCKED_REGISTRATION_FIELDS: Partial<Record<RegistrationStandardFieldKey, RegistrationFieldSetting>> = {
+  emergencyContact: { asked: true, required: true },
+  dietary: { asked: true, required: false }
+}
+
 const NOT_ASKED: RegistrationFieldSetting = { asked: false, required: false }
 const setting = (value: RegistrationFieldSetting | undefined, fallback: RegistrationFieldSetting) => {
   const chosen = value ?? fallback
   return { asked: chosen.asked, required: chosen.asked && chosen.required }
 }
 
-// Un champ non demandé ne peut pas être obligatoire ; une question sans choix n'a pas d'options
+// Un champ non demandé ne peut pas être obligatoire ; un champ verrouillé garde son réglage, même dans une version
+// enregistrée avant ; une question sans choix n'a pas d'options
 export function normalizeRegistrationFormDefinition(definition: RegistrationFormDefinition): NormalizedRegistrationFormDefinition {
   const standardFields = Object.fromEntries(REGISTRATION_STANDARD_FIELDS.map(({ key }) =>
-    [key, setting(definition.standardFields[key], DEFAULT_REGISTRATION_FORM_DEFINITION.standardFields[key])]
+    [key, setting(LOCKED_REGISTRATION_FIELDS[key] ?? definition.standardFields[key], DEFAULT_REGISTRATION_FORM_DEFINITION.standardFields[key])]
   )) as NormalizedRegistrationFormDefinition['standardFields']
   const affinities = Object.fromEntries(REGISTRATION_AFFINITIES.map(({ key }) =>
     [key, setting(definition.affinities?.[key], NOT_ASKED)]

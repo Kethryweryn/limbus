@@ -111,9 +111,8 @@ onUnmounted(() => {
                 </UFormField>
 
                 <UFormField label="Mot de passe">
-                    <UInput
+                    <PasswordInput
                         v-model="password"
-                        type="password"
                         autocomplete="current-password"
                         required
                         size="lg"

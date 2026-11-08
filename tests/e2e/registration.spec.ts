@@ -98,6 +98,10 @@ test('la personne invitée répond aux questions du jeu et à ses affinités', a
     await guest.getByLabel('Avec qui je veux jouer').fill('Léa\nNoé')
     await guest.getByLabel('Intrigue').check()
     await guest.getByLabel('J’ai lu la note d’intention et j’y adhère').check()
+    // Ce formulaire ne les demande pas : contact d'urgence et allergies sont posés quand même (US-181)
+    await expect(guest.getByLabel('Allergies et intolérances alimentaires')).toBeVisible()
+    await guest.getByLabel('Contact d’urgence : nom').fill('Dominique')
+    await guest.getByLabel('Contact d’urgence : téléphone').fill('0698765432')
     await guest.getByRole('button', { name: 'Envoyer mes réponses' }).click()
     await expect(guest.getByText('Vos réponses sont enregistrées.')).toBeVisible()
 
@@ -123,6 +127,11 @@ test('l’éditeur du formulaire ajoute une question et une affinité', async ({
     await panel.getByRole('button', { name: 'Formulaire' }).click()
 
     const dialog = page.getByRole('dialog')
+    // Contact d'urgence et allergies (5e et 6e champs) : toujours demandés, réglage figé (US-181)
+    const asked = dialog.getByRole('checkbox', { name: 'Demandé', exact: true })
+    await expect(asked.nth(3)).toBeEnabled()
+    await expect(asked.nth(4)).toBeDisabled()
+    await expect(asked.nth(5)).toBeDisabled()
     await dialog.getByRole('checkbox', { name: 'Demandée' }).first().check()
     await dialog.getByRole('button', { name: 'Ajouter une question' }).click()
     await dialog.getByLabel('Question', { exact: true }).fill('Ton style de jeu')

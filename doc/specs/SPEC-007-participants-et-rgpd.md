@@ -51,6 +51,7 @@ Depuis la liste, « Supprimer » efface la fiche et ses données, après une con
 ### Fiche et liens aux jeux
 
 - **R1** Une fiche a un nom (obligatoire), un email, un téléphone et des notes, sans format imposé pour l'email ni le téléphone. Elle a un slug unique, qui suit le nom. Elle n'a pas d'état « publié » ([US-038](../archive/epics/EPIC-007-ecarts-participants/US-038-retirer-participant-published.md)).
+- **R1b** La fiche montre aussi le contact d'urgence et les allergies de la personne, sans que l'équipe puisse les modifier. Ils viennent de son inscription la plus récente dans les jeux de l'organisatrice, avec le nom du jeu ; sans inscription, de son compte, les allergies seulement avec son accord santé ; sinon « Non renseigné ». Seule la fiche les demande : ni la liste, ni les assistants d'IA, ni le cache hors ligne ([US-178](../epics/EPIC-045-retours-du-cahier-de-tests/US-178-urgence-et-allergies-sur-la-fiche.md)).
 - **R2** Une fiche est commune à tous les jeux auxquels elle est liée : une modification se voit dans tous ces jeux. Sauf les notes : chaque jeu a la sienne, que seule l'équipe de ce jeu lit et modifie. Et dès que la personne a un compte, elle seule modifie son nom, son téléphone, son contact d'urgence et ses allergies, recopiés sur ses fiches ([EPIC-016](../archive/epics/EPIC-016-coordonnees-tenues-par-la-personne/README.md)) ([EPIC-014](../archive/epics/EPIC-014-notes-par-jeu/README.md), [US-069](../archive/epics/EPIC-014-notes-par-jeu/US-069-une-note-par-jeu.md)).
 - **R3** Une organisatrice ne lie une fiche qu'à des jeux auxquels elle a accès. En modifiant une fiche, elle ne touche qu'aux liens de ces jeux : ceux des autres jeux restent.
 - **R3b** Une fiche a toujours au moins un jeu : la créer en demande un, et retirer son dernier lien la supprime avec ses données (R10), après une confirmation ; une fiche encore liée au jeu d'une autre équipe reste ([US-036](../archive/epics/EPIC-007-ecarts-participants/US-036-une-fiche-a-toujours-un-jeu.md)).
@@ -121,3 +122,6 @@ Pour l'écart 4 (export) : la date de la dernière relance d'une inscription et 
 
 Pour l'écart 5 : `Participant.published` est retiré de l'API et de l'interface ; la colonne reste en base, sans usage.
 
+## Historique
+
+- 2026-11-08 : R1b, contact d'urgence et allergies sur la fiche (US-178, retours A5-1 et A5-2 du cahier de tests).

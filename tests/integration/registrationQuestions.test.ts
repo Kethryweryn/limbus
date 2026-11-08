@@ -35,8 +35,9 @@ const standardFields = {
   firstName: { asked: true, required: false },
   facebookName: { asked: false, required: false },
   phone: { asked: false, required: false },
-  emergencyContact: { asked: false, required: false },
-  dietary: { asked: false, required: false }
+  // Toujours demandés (US-181)
+  emergencyContact: { asked: true, required: true },
+  dietary: { asked: true, required: false }
 }
 const affinities = {
   wantWith: { asked: true, required: true },
@@ -77,6 +78,8 @@ async function invitedWithForm() {
 const body = (ids: { text: string, single: string, multiple: string, scale: string }, extra: Record<string, unknown> = {}) => ({
   email: `reponse-${counter}@example.test`,
   firstName: 'Camille',
+  emergencyContactName: 'Paul Secours',
+  emergencyContactPhone: '0699999999',
   charterAccepted: true,
   affinities: { wantWith: ['Léa', '', ' Noé '], notWith: [], avoid: ['Max'], refusedRelations: ['ignorée'] },
   questionAnswers: { [ids.text]: 'Pour l’ambiance', [ids.single]: 'Intrigue', [ids.multiple]: ['Romance', 'Mystère'], [ids.scale]: 4, inconnue: 'ignorée' },

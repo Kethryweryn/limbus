@@ -34,7 +34,7 @@
             <UInput v-model="emailForm.email" type="email" required autocomplete="email" class="w-full" />
           </UFormField>
           <UFormField label="Mot de passe actuel">
-            <UInput v-model="emailForm.password" type="password" required autocomplete="current-password" class="w-full" />
+            <PasswordInput v-model="emailForm.password" required autocomplete="current-password" class="w-full" />
           </UFormField>
           <div class="sm:col-span-2">
             <UButton type="submit" color="primary" :loading="saving === 'email'">Recevoir le lien de confirmation</UButton>
@@ -46,10 +46,10 @@
         <template #header><h2 class="font-semibold">Mot de passe</h2></template>
         <form class="grid grid-cols-1 sm:grid-cols-2 gap-3" @submit.prevent="changePassword">
           <UFormField label="Mot de passe actuel">
-            <UInput v-model="passwordForm.currentPassword" type="password" required autocomplete="current-password" class="w-full" />
+            <PasswordInput v-model="passwordForm.currentPassword" required autocomplete="current-password" class="w-full" />
           </UFormField>
           <UFormField label="Nouveau mot de passe" help="8 caractères au moins. Vos autres appareils seront déconnectés.">
-            <UInput v-model="passwordForm.password" type="password" required minlength="8" autocomplete="new-password" class="w-full" />
+            <PasswordInput v-model="passwordForm.password" required minlength="8" autocomplete="new-password" class="w-full" />
           </UFormField>
           <div class="sm:col-span-2">
             <UButton type="submit" color="primary" :loading="saving === 'password'">Changer le mot de passe</UButton>
@@ -119,7 +119,7 @@
               Chaque équipe est prévenue par email que vos places sont libérées. Si vous possédez des jeux, transférez-les ou supprimez-les d’abord.
             </p>
             <UFormField label="Mot de passe">
-              <UInput v-model="deletePassword" type="password" required autocomplete="current-password" class="w-full sm:w-80" />
+              <PasswordInput v-model="deletePassword" required autocomplete="current-password" class="w-full sm:w-80" />
             </UFormField>
             <UButton type="submit" color="error" variant="soft" :loading="saving === 'delete'">Effacer mon compte</UButton>
           </form>

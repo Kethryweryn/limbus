@@ -76,11 +76,24 @@ describe('réponses d’un inscrit', () => {
   it('ignore un champ non demandé, même s’il est envoyé', () => {
     const schema = registrationAnswerSchema(definitionWith({
       phone: { asked: false, required: false },
-      dietary: { asked: false, required: false }
+      facebookName: { asked: false, required: false }
     }))
-    const parsed = schema.parse({ ...answers, phone: undefined, dietary: 'Arachides' })
+    const parsed = schema.parse({ ...answers, phone: undefined, facebookName: 'Léa M.' })
     expect(parsed.phone).toBeNull()
-    expect(parsed.dietary).toBeNull()
+    expect(parsed.facebookName).toBeNull()
+  })
+
+  // US-181 : une version qui ne les demandait pas les pose quand même
+  it('pose toujours le contact d’urgence, obligatoire, et les allergies, facultatives', () => {
+    const definition = definitionWith({ emergencyContact: { asked: false, required: false }, dietary: { asked: false, required: true } })
+    expect(normalizeRegistrationFormDefinition(definition).standardFields).toMatchObject({
+      emergencyContact: { asked: true, required: true },
+      dietary: { asked: true, required: false }
+    })
+    const schema = registrationAnswerSchema(definition)
+    expect(schema.safeParse({ ...answers, emergencyContactName: '' }).success).toBe(false)
+    expect(schema.parse({ ...answers, dietary: 'Arachides', healthConsent: true }).dietary).toBe('Arachides')
+    expect(schema.parse(answers).dietary).toBeNull()
   })
 
   it('laisse vide un champ facultatif', () => {
@@ -183,7 +196,8 @@ describe('questions et affinités du formulaire', () => {
 describe('question d’équilibre (US-091)', () => {
   const base = { ...DEFAULT_REGISTRATION_FORM_DEFINITION, standardFields: Object.fromEntries(Object.keys(DEFAULT_REGISTRATION_FORM_DEFINITION.standardFields).map((key) => [key, { asked: false, required: false }])) } as typeof DEFAULT_REGISTRATION_FORM_DEFINITION
   const withBalance = (required: boolean) => ({ ...base, balance: { asked: true, required, label: 'Genre', values: ['F', 'H'] } })
-  const answer = (balancePreference?: unknown) => ({ email: 'a@example.test', charterAccepted: true, balancePreference })
+  // Le contact d'urgence reste obligatoire, même quand rien d'autre n'est demandé (US-181)
+  const answer = (balancePreference?: unknown) => ({ email: 'a@example.test', emergencyContactName: 'Paul', emergencyContactPhone: '0611111111', charterAccepted: true, balancePreference })
 
   it('accepte une valeur du jeu, « peu importe » enregistré comme null, et refuse une autre valeur', () => {
     const schema = registrationAnswerSchema(withBalance(true))
