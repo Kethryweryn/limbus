@@ -83,6 +83,9 @@
         <!-- Chaque jeu avec les sessions où la personne a un rôle ou un personnage, chacune vers sa page (R1c, US-183) -->
         <UCard>
           <template #header>Jeux et sessions</template>
+          <p v-if="sessionsError" class="mb-3 text-sm text-gray-600">
+            Sessions illisibles pour l’instant : rechargez la page pour les voir.
+          </p>
           <div v-if="shownGames.length" class="space-y-3 text-sm">
             <div v-for="game in shownGames" :key="game.id">
               <div class="font-medium">{{ game.title }}</div>
@@ -92,7 +95,7 @@
                   <span class="text-gray-500">{{ sessionDetails(session) }}</span>
                 </li>
               </ul>
-              <p v-else class="text-gray-500">Aucune session</p>
+              <p v-else-if="!sessionsError" class="text-gray-500">Aucune session</p>
             </div>
           </div>
           <span v-else class="text-sm text-gray-500">Aucun jeu</span>
@@ -136,7 +139,7 @@
 <script setup lang="ts">
 import { apiErrorMessage, pageLoadError } from '~/utils/apiErrors'
 import { formatLongDate, PARIS_TIME_ZONE } from '~/utils/dates'
-import { SESSION_ROLE_LABELS, SESSION_ROLES } from '~/utils/domain'
+import { SESSION_ROLE_LABELS, SESSION_ROLES, SESSION_STATUS_META, SESSION_STATUSES } from '~/utils/domain'
 import { withQueuedEdit, type ParticipantDraft } from '~/utils/writingDrafts'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
@@ -170,17 +173,21 @@ if (error.value) {
 }
 
 // Lu à part de la fiche (R1b) : la liste, les assistants et le cache hors ligne ne reçoivent pas ces données
-const { data: emergency, error: emergencyError } = await useFetch(`/api/participants/${participant.value?.id}/emergency`)
+// Sessions de la fiche (R1c), lues en même temps
+const [{ data: emergency, error: emergencyError }, { data: sessions, error: sessionsError }] = await Promise.all([
+  useFetch(`/api/participants/${participant.value?.id}/emergency`),
+  useFetch(`/api/participants/${participant.value?.id}/sessions`)
+])
 
 type ParticipantSession = ApiResponse<'/api/participants/:id/sessions'>[number]
-const { data: sessions } = await useFetch(`/api/participants/${participant.value?.id}/sessions`)
 const sessionsOf = (gameId: string) => (sessions.value || []).filter((session) => session.gameId === gameId)
-// Date, puis ses personnages et ses rôles ; « Participant » seulement sans personnage, qui le dit déjà
+// Date, statut s'il n'est pas « prévue », puis ses personnages et ses rôles ; « Participant » seulement sans personnage
 function sessionDetails(session: ParticipantSession) {
   const roles = session.roles
     .filter((role) => !(role === SESSION_ROLES.participant && session.characters.length))
     .map((role) => SESSION_ROLE_LABELS[role as keyof typeof SESSION_ROLE_LABELS] ?? role)
-  return [session.date ? formatLongDate(session.date, PARIS_TIME_ZONE) : null, ...session.characters, ...roles]
+  const status = session.status === SESSION_STATUSES.scheduled ? null : SESSION_STATUS_META[session.status as keyof typeof SESSION_STATUS_META]?.label
+  return [session.date ? formatLongDate(session.date, PARIS_TIME_ZONE) : null, status, ...session.characters, ...roles]
     .filter(Boolean)
     .map((part) => ` · ${part}`)
     .join('')

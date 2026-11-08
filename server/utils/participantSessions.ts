@@ -1,6 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 
-const sessionSelect = { select: { id: true, slug: true, name: true, date: true, gameId: true } } as const
+// Le statut distingue une session annulée ou reportée de sa remplaçante
+const sessionSelect = { select: { id: true, slug: true, name: true, date: true, status: true, gameId: true } } as const
 
 /**
  * Sessions d'une personne dans les jeux accessibles (SPEC-007, R1c) : chaque session où elle a un rôle (joueuse, PNJ,

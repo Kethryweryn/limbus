@@ -23,11 +23,11 @@ describe('sessions de la fiche', () => {
     const participant = await prisma.participant.create({
       data: { name: `Zoé ${key}`, slug: `zoe-${key}`, gameLinks: { create: [{ gameId: mine.id }, { gameId: other.id }] } }
     })
-    const session = (gameId: string, name: string, date: Date | null) =>
-      prisma.session.create({ data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, gameId, date } })
+    const session = (gameId: string, name: string, date: Date | null, status = 'scheduled') =>
+      prisma.session.create({ data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, gameId, date, status } })
     const [later, past, undated, bobs] = await Promise.all([
       session(mine.id, 'Printemps', new Date('2099-04-01T09:00:00Z')),
-      session(mine.id, 'Passée', new Date('2020-04-01T09:00:00Z')),
+      session(mine.id, 'Passée', new Date('2020-04-01T09:00:00Z'), 'cancelled'),
       session(mine.id, 'Sansdate', null),
       session(other.id, 'Bob', new Date('2099-05-01T09:00:00Z'))
     ])
@@ -47,7 +47,7 @@ describe('sessions de la fiche', () => {
     const sessions = bodyOf<Sessions>(response)
     expect(sessions.map((row) => row.id)).toEqual([past!.id, later!.id, undated!.id])
     expect(sessions[1]).toMatchObject({ slug: later!.slug, gameId: mine.id, roles: ['participant'], characters: [character.name] })
-    expect(sessions[0]).toMatchObject({ roles: ['npc'], characters: [] })
+    expect(sessions[0]).toMatchObject({ status: 'cancelled', roles: ['npc'], characters: [] })
 
     // Témoin : Bob voit la sienne
     const forBob = bodyOf<Sessions>(await api(bob, 'GET', `/api/participants/${participant.id}/sessions`))

@@ -14,8 +14,8 @@ En tant que personne qui utilise Limbus, je veux que la nouvelle version se char
 ## Critères d'acceptation
 
 - [x] Étant donné une nouvelle version déployée pendant que je remplis un formulaire, alors la page ne se recharge pas d'elle-même.
-- [x] Étant donné une nouvelle version qui attend, quand je change de page en ligne, alors la page visée s'ouvre dans la nouvelle version.
-- [x] Hors ligne, un changement de page ne recharge rien.
+- [x] Étant donné une nouvelle version qui attend, quand je change de page en ligne, alors la page arrivée se recharge aussitôt dans la nouvelle version. Changer seulement d'onglet ou de filtre ne recharge rien.
+- [x] Hors ligne, ou quand le serveur est indisponible, un changement de page ne recharge rien.
 
 ## Notes techniques
 

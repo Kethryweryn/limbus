@@ -15,9 +15,10 @@ Limbus est une PWA servie par `@vite-pwa/nuxt` en mode `autoUpdate` : après un 
 ## Décision
 
 - Le module passe en mode `prompt` : une nouvelle version attend, sans rien recharger.
-- `plugins/pwaUpdate.client.ts` la charge au prochain changement de page : si une version attend et que l'appareil est en ligne, la navigation de l'application s'arrête, l'adresse visée s'affiche, le nouveau service worker est activé et le module recharge la page, qui est donc la page visée. Si le service worker ne prend pas la main sous 4 secondes, la page visée se charge quand même (`utils/pwaUpdate.ts`).
-- Hors ligne, rien ne change : recharger une page que le réseau ne peut pas servir laisserait l'écran vide.
-- Pas de bandeau : celui que le module proposait (en anglais, jamais visible en mode `autoUpdate`) est retiré.
+- `plugins/pwaUpdate.client.ts` la charge au prochain changement de page : juste après la navigation, si une version attend, le nouveau service worker est activé et le module recharge la page arrivée, où rien n'a encore été saisi. Si le service worker ne prend pas la main sous 4 secondes, la page se recharge quand même (`utils/pwaUpdate.ts`). Agir après la navigation laisse l'historique tel que l'application l'a écrit, ajout ou remplacement.
+- Un changement de la seule requête (onglet, filtre, `?edit=1`) n'est pas un changement de page.
+- Hors ligne, ou quand le serveur est marqué indisponible, rien ne change : recharger une page qu'on ne peut pas servir laisserait l'écran vide.
+- Pas de bandeau : celui de `layouts/default.vue` (en anglais, jamais visible en mode `autoUpdate`) est retiré.
 
 ## Conséquences
 

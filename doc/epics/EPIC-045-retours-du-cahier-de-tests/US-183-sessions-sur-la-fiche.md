@@ -13,9 +13,9 @@ En tant qu'organisatrice, je veux voir sous chaque jeu de la fiche les sessions 
 
 ## Critères d'acceptation
 
-- [x] Étant donné une personne qui a un rôle dans une session (joueuse, PNJ, organisation, cuisine) ou y tient un personnage, alors la session figure sous son jeu, avec sa date, ses personnages et ses rôles, et un lien vers sa page.
+- [x] Étant donné une personne qui a un rôle dans une session (joueuse, PNJ, organisation, cuisine) ou y tient un personnage, alors la session figure sous son jeu, avec sa date, son statut si elle est annulée, reportée ou terminée, ses personnages et ses rôles, et un lien vers sa page.
 - [x] Les sessions passées y figurent aussi, dans l'ordre des dates.
-- [x] Étant donné un jeu sans session pour elle, alors il indique « Aucune session ».
+- [x] Étant donné un jeu sans session pour elle, alors il indique « Aucune session » ; si la lecture échoue, la fiche le dit au lieu de l'indiquer.
 - [x] Une session d'un jeu d'une autre équipe n'apparaît pas.
 
 ## Notes techniques
