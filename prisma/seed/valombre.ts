@@ -199,7 +199,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
   })
 
   // Envois déjà faits : l'un à jour, l'autre dépassé parce que le document a changé depuis
-  const documents = await db.document.findMany({ where: { gameId, audience: 'everyone' }, select: { id: true, title: true, content: true, documentUrl: true } })
+  const documents = await db.document.findMany({ where: { gameId, audiences: { has: 'pjs' } }, select: { id: true, title: true, content: true, documentUrl: true } })
   const roadmap = documents.find((row) => row.title.startsWith('Feuille de route'))!
   const world = documents.find((row) => row.title.startsWith('Document monde'))!
   const sessionForHash = { name: session.name, game: { title } }

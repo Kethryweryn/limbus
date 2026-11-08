@@ -18,6 +18,7 @@ import {
   REGISTRATION_SELECTION_MODES
 } from '~/utils/domain'
 import { isHttpUrl, isUploadUrl, PHOTO_UPLOAD_PREFIX, RIB_UPLOAD_PREFIX } from '~/utils/urls'
+import { ALL_DOCUMENT_ROLES, rolesFromLegacyAudience, type DocumentRole } from '~/utils/documentAudiences'
 import {
   REGISTRATION_AFFINITIES,
   REGISTRATION_CHOICE_TYPES,
@@ -61,13 +62,15 @@ const sessionParticipantRole = z.enum([
   SESSION_ROLES.npc,
   SESSION_ROLES.kitchen
 ])
-const documentAudience = z.enum([
+// Ancien public unique, encore accepté d'un onglet resté ouvert ou de la file hors ligne (ADR-0072)
+const legacyDocumentAudience = z.enum([
   DOCUMENT_AUDIENCES.targeted,
   DOCUMENT_AUDIENCES.everyone,
   DOCUMENT_AUDIENCES.organizers,
   DOCUMENT_AUDIENCES.npcs,
   DOCUMENT_AUDIENCES.kitchen
 ])
+const documentRole = z.enum(ALL_DOCUMENT_ROLES as [DocumentRole, ...DocumentRole[]])
 const timelineTime = z.string().trim().regex(/^\d{2}:\d{2}$/, 'Time must use HH:mm format')
 const userRole = z.enum([USER_ROLES.admin, USER_ROLES.user])
 const optionalEmail = z.string().trim().default('').refine(
@@ -267,11 +270,14 @@ export const itemSchema = z.object({
   intrigueIds: z.array(requiredId('Intrigue')).optional().default([])
 })
 
+// Public : rôles cochés et sélection avancée (US-187, ADR-0072). Une écriture d'avant, avec `audience` ou le champ
+// unique `characterId`, est convertie : rôles de l'ancien public, personnage ajouté à la liste
 export const documentSchema = z.object({
   title: requiredText('Title'),
   content: optionalText,
   documentUrl: externalUrl,
-  audience: documentAudience.optional().default(DOCUMENT_AUDIENCES.targeted),
+  audiences: z.array(documentRole).optional(),
+  audience: legacyDocumentAudience.optional(),
   readyToSend: optionalBoolean,
   gameId: requiredId('Game'),
   characterId: optionalText,
@@ -280,7 +286,11 @@ export const documentSchema = z.object({
 }).refine((value) => Boolean(value.content?.trim() || value.documentUrl?.trim()), {
   message: 'Content or document URL is required',
   path: ['content']
-})
+}).transform(({ audience, characterId, audiences, characterIds, ...value }) => ({
+  ...value,
+  audiences: [...new Set(audiences ?? rolesFromLegacyAudience(audience))],
+  characterIds: [...new Set([...(characterId ? [characterId] : []), ...characterIds])]
+}))
 
 export const timelineEventSchema = z.object({
   name: requiredText('Name'),

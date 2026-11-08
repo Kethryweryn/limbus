@@ -61,10 +61,12 @@ Remettre à chaque personne d'une session ce qui la concerne, par email : docume
 
 ### Documents, fiches et trombinoscopes
 
-- **R7** Les destinataires d'un document dans une session dépendent de son audience ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), R11) :
-  - tout le monde : les personnes castées, les organisateurs, les PNJ et la cuisine de la session, chacun une seule fois ;
-  - organisateurs, PNJ ou cuisine : les membres de l'équipe qui ont ce rôle ;
-  - ciblage manuel : les personnes qui jouent dans la session le personnage choisi, les personnages ciblés ou les membres des factions ciblées. Un personnage sans participant dans la session n'a pas de destinataire.
+- **R7** Les destinataires d'un document dans une session dépendent de son public ([SPEC-003](SPEC-003-ecriture-d-un-jeu.md), R11), chacun une seule fois :
+  - organisateurs ou cuisine : les membres de l'équipe qui ont ce rôle ;
+  - PNJ : les membres de l'équipe au rôle PNJ, et les personnes qui tiennent un personnage PNJ ;
+  - PJ : les personnes qui tiennent un personnage PJ ;
+  - sélection avancée : les personnes qui tiennent dans la session un personnage choisi ou un personnage d'un groupe choisi. Un personnage sans participant dans la session n'a pas de destinataire.
+  « Tout le monde » (les quatre cases) atteint donc le cast, l'organisation, les PNJ et la cuisine ([US-187](../epics/EPIC-045-retours-du-cahier-de-tests/US-187-public-des-documents.md)).
 - **R8** Seul un document marqué « prêt à envoyer » peut être envoyé. Le test, lui, est toujours possible.
 - **R9** L'email d'un document reprend son contenu et son lien externe, avec le PDF du document en pièce jointe ([SPEC-005](SPEC-005-trombinoscopes-et-pdf.md), R12).
 - **R10** Les fiches partent aux personnes castées dont le personnage, PJ ou PNJ, est « prêt à envoyer », avec le PDF de la fiche ([SPEC-005](SPEC-005-trombinoscopes-et-pdf.md), R11). Les trombinoscopes partent aux personnes dont le trombinoscope a été généré, avec son PDF.
@@ -137,3 +139,6 @@ Pour l'écart 3 (montant), d'après les usages des PAF (tarif PJ, tarif PNJ, gra
 - **Relance** : elle rappelle le dû, le déjà reçu et le reste à payer. Demandes et relances partent à toute personne qui doit encore quelque chose.
 - **Session sans tarif** : le tableau garde le mode simple d'aujourd'hui (case « payé ») ; dès qu'un tarif existe, on passe aux montants calculés.
 
+## Historique
+
+- 2026-11-08 : R7, destinataires d'un document selon les rôles cochés et la sélection avancée (US-187, ADR-0072).

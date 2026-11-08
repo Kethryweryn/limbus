@@ -3,7 +3,8 @@ import { purgeExpiredPhotos } from '~/server/utils/photoRetention'
 import { characterSheetContentHash, documentContentHash, type SheetCharacter } from '~/server/utils/deliveryHashes'
 import { prisma } from '~/server/utils/prisma'
 import { openEmailTransport, sendEmail, type EmailTransport } from '~/server/utils/email'
-import { DOCUMENT_AUDIENCES, SESSION_ROLES } from '~/utils/domain'
+import { CHARACTER_TYPES, SESSION_ROLES } from '~/utils/domain'
+import { DOCUMENT_ROLES } from '~/utils/documentAudiences'
 import { generatedPdfFileName, renderTextPdf, type TextPdfInput } from '~/server/utils/generatedPdfs'
 import { currentTrombinoscopeFingerprints, getSessionTrombinoscope, isTrombinoscopeOutdated } from '~/server/utils/trombinoscopes'
 import { copyData, expiredSessionIds, purgeExpiredCopies, textCopy, trombinoscopeCopy, type DeliveryCopy } from '~/server/utils/deliveryCopies'
@@ -11,7 +12,6 @@ import { sheetRelationsInclude, withSheetRelationLines } from '~/server/utils/ch
 
 export const documentInclude = {
   game: true,
-  character: true,
   characters: {
     orderBy: [{ type: 'asc' as const }, { name: 'asc' as const }]
   },
@@ -25,11 +25,8 @@ export const documentInclude = {
   }
 }
 
-export async function validateDocumentRelations(gameId: string, characterId?: string | null, characterIds: string[] = [], factionIds: string[] = []) {
-  const allCharacterIds = [...new Set([
-    ...(characterId ? [characterId] : []),
-    ...characterIds
-  ])]
+export async function validateDocumentRelations(gameId: string, characterIds: string[] = [], factionIds: string[] = []) {
+  const allCharacterIds = [...new Set(characterIds)]
 
   if (allCharacterIds.length) {
     const count = await prisma.character.count({
@@ -158,40 +155,28 @@ export async function getSessionDocumentDashboard(sessionId: string) {
     return [...byParticipantId.values()]
   }
 
+  // Destinataires de chaque rôle coché (US-187, ADR-0072) : PNJ par leur rôle dans l'équipe ou leur personnage PNJ, PJ par
+  // leur personnage PJ
+  type Recipient = (typeof castRecipients)[number] | (typeof organizerRecipients)[number]
+  const recipientsByRole: Record<string, Recipient[]> = {
+    [DOCUMENT_ROLES.organizers]: organizerRecipients,
+    [DOCUMENT_ROLES.kitchen]: kitchenRecipients,
+    [DOCUMENT_ROLES.npcs]: [...castRecipients.filter((recipient) => recipient.character.type === CHARACTER_TYPES.pnj), ...npcRecipients],
+    [DOCUMENT_ROLES.pjs]: castRecipients.filter((recipient) => recipient.character.type !== CHARACTER_TYPES.pnj)
+  }
+
   const documentsWithRecipients = documents.map((document) => {
-    const baseRecipients = (() => {
-      if (document.audience === DOCUMENT_AUDIENCES.everyone) {
-        return uniqueRecipients([...castRecipients, ...organizerRecipients, ...npcRecipients, ...kitchenRecipients])
-      }
-      if (document.audience === DOCUMENT_AUDIENCES.organizers) return organizerRecipients
-      if (document.audience === DOCUMENT_AUDIENCES.npcs) return npcRecipients
-      if (document.audience === DOCUMENT_AUDIENCES.kitchen) return kitchenRecipients
-
-      const targetCharacterIds = new Set<string>()
-      if (document.characterId) {
-        targetCharacterIds.add(document.characterId)
-      }
-      for (const character of document.characters || []) {
-        targetCharacterIds.add(character.id)
-      }
-
-      for (const faction of document.factions || []) {
-        for (const character of faction.characters || []) {
-          targetCharacterIds.add(character.id)
-        }
-      }
-
-      return [...targetCharacterIds].flatMap((characterId) => {
-        const assignment = castByCharacterId.get(characterId)
-        if (!assignment?.participantId || !assignment.participant) return []
-
-        return [{
-          participant: assignment.participant,
-          character: assignment.character,
-          targetLabel: assignment.character.name
-        }]
-      })
-    })()
+    // Sélection avancée : les personnages choisis et ceux des groupes choisis
+    const targetCharacterIds = new Set([
+      ...document.characters.map((character) => character.id),
+      ...document.factions.flatMap((faction) => faction.characters.map((character) => character.id))
+    ])
+    const selectedRecipients = [...targetCharacterIds].flatMap((characterId) => {
+      const assignment = castByCharacterId.get(characterId)
+      if (!assignment?.participantId || !assignment.participant) return []
+      return [{ participant: assignment.participant, character: assignment.character, targetLabel: assignment.character.name }]
+    })
+    const baseRecipients = uniqueRecipients([...selectedRecipients, ...document.audiences.flatMap((role) => recipientsByRole[role] ?? [])])
 
     const currentHash = documentContentHash(session, document)
     const recipients = baseRecipients.map((recipient) => {

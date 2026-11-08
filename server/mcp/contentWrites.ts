@@ -17,7 +17,8 @@ import {
 } from '~/server/utils/schemas'
 import * as writes from '~/server/utils/contentWrites'
 import { AI_LOG_ACTIONS } from '~/utils/aiAssistants'
-import { CHARACTER_TYPES, DOCUMENT_AUDIENCES, INTRIGUE_LEVELS } from '~/utils/domain'
+import { CHARACTER_TYPES, INTRIGUE_LEVELS } from '~/utils/domain'
+import { ALL_DOCUMENT_ROLES, type DocumentRole } from '~/utils/documentAudiences'
 import { CHARACTER_RELATION_TYPE_VALUES } from '~/utils/characterRelations'
 import { DESTRUCTIVE, WRITE, logWrite, requireWrite, text, toolResult, version, withVersion, type ToolContext } from '~/server/mcp/tools'
 
@@ -140,14 +141,13 @@ const KINDS: ContentKind[] = [
     fields: {
       title: z.string().max(200).optional(),
       content: text('Texte du document'),
-      audience: z.enum(Object.values(DOCUMENT_AUDIENCES) as [string, ...string[]]).optional().describe('Destinataires : targeted (ciblage), everyone, organizers, npcs, kitchen'),
+      audiences: z.array(z.enum(ALL_DOCUMENT_ROLES as [DocumentRole, ...DocumentRole[]])).optional().describe('Rôles destinataires (liste complète) : organizers, npcs (rôle PNJ ou personnage PNJ), kitchen, pjs (personnage PJ) ; les quatre pour tout le monde'),
       readyToSend: z.boolean().optional().describe('Prêt à envoyer (rien ne part)'),
-      characterId: z.string().nullable().optional().describe('Personnage dont c’est le document'),
-      characterIds: ids('Personnages destinataires (liste complète)'),
-      factionIds: ids('Factions destinataires (liste complète)')
+      characterIds: ids('Personnages destinataires, en plus des rôles (liste complète)'),
+      factionIds: ids('Groupes destinataires, en plus des rôles (liste complète)')
     },
     current: async (id) => {
-      const document = await prisma.document.findUnique({ where: { id }, select: { title: true, content: true, documentUrl: true, audience: true, readyToSend: true, characterId: true, gameId: true, characters: { select: { id: true } }, factions: { select: { id: true } } } })
+      const document = await prisma.document.findUnique({ where: { id }, select: { title: true, content: true, documentUrl: true, audiences: true, readyToSend: true, gameId: true, characters: { select: { id: true } }, factions: { select: { id: true } } } })
       return document && { ...document, characters: undefined, factions: undefined, characterIds: idsOf(document.characters), factionIds: idsOf(document.factions) }
     },
     create: (event, body) => writes.createDocument(event, async () => parseZod(documentSchema, body)),

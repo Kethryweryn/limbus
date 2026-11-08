@@ -29,30 +29,37 @@
         <UInput v-model.nullable="localDocument.documentUrl" size="lg" class="w-full" placeholder="Lien PDF, docx, Google Docs..." />
       </UFormField>
 
-      <UFormField label="Destinataires">
-        <USelect
-          v-model="localDocument.audience"
-          :items="audienceOptions"
-          value-key="value"
-          size="lg"
-          class="w-full"
-        />
-      </UFormField>
+      <!-- Public par cases (US-187) : « Tout le monde » coche les quatre rôles. Un groupe de cases, pas un champ : chaque
+           case garde son propre libellé -->
+      <fieldset class="space-y-2">
+        <legend class="text-sm font-medium text-default">Destinataires</legend>
+        <div class="flex flex-wrap gap-x-6 gap-y-2">
+          <UCheckbox :model-value="everyone" label="Tout le monde" @update:model-value="setEveryone($event === true)" />
+          <UCheckbox
+            v-for="role in DOCUMENT_ROLE_OPTIONS"
+            :key="role.value"
+            :model-value="localDocument.audiences.includes(role.value)"
+            :label="role.label"
+            @update:model-value="toggleRole(role.value, $event === true)"
+          />
+        </div>
+      </fieldset>
 
       <AppCheckboxRow
-        v-model="localDocument.readyToSend"
-        label="Document prêt à être envoyé"
-        description="Décochez pour repasser le document en brouillon."
+        v-model="advanced"
+        label="Sélection avancée"
+        description="Ajoutez des personnages ou des groupes, en plus des cases cochées."
       />
 
-      <div v-if="localDocument.audience === DOCUMENT_AUDIENCES.targeted" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <UFormField label="Personnage">
-          <USelect
-            v-model="characterIdModel"
+      <div v-if="advanced" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <UFormField label="Personnages">
+          <USelectMenu
+            v-model="localDocument.characterIds"
             :items="characterOptions"
             value-key="value"
+            multiple
             :disabled="!localDocument.gameId"
-            placeholder="Associer un personnage"
+            placeholder="Choisir des personnages"
             size="lg"
             class="w-full"
           />
@@ -65,12 +72,18 @@
             value-key="value"
             multiple
             :disabled="!factionOptions.length"
-            placeholder="Associer des groupes"
+            placeholder="Choisir des groupes"
             size="lg"
             class="w-full"
           />
         </UFormField>
       </div>
+
+      <AppCheckboxRow
+        v-model="localDocument.readyToSend"
+        label="Document prêt à être envoyé"
+        description="Décochez pour repasser le document en brouillon."
+      />
 
       <UAlert
         v-if="!hasTargets"
@@ -78,7 +91,7 @@
         variant="soft"
         icon="i-heroicons-exclamation-triangle"
         title="Document non ciblé"
-        description="Associez au moins un personnage ou un groupe, ou choisissez une audience générale."
+        description="Cochez au moins un public, ou ajoutez des personnages ou des groupes."
       />
 
       <div class="flex flex-wrap gap-2 pt-2">
@@ -97,15 +110,12 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import {
-  CHARACTER_TYPES,
-  DOCUMENT_AUDIENCES,
-  DOCUMENT_AUDIENCE_OPTIONS,
-  VIRTUAL_CHARACTER_GROUP_OPTIONS,
-  VIRTUAL_CHARACTER_GROUPS
-} from '~/utils/domain'
+import { CHARACTER_TYPES } from '~/utils/domain'
+import { ALL_DOCUMENT_ROLES, DOCUMENT_ROLE_OPTIONS, isDocumentTargeted, isEveryone, type DocumentRole } from '~/utils/documentAudiences'
 import { apiErrorMessage } from '~/utils/apiErrors'
-import { emptyStringModel, type CharacterOption, type DocumentDraft, type FactionOption, type GameOption } from '~/utils/writingDrafts'
+import type { CharacterOption, DocumentDraft, FactionOption, GameOption } from '~/utils/writingDrafts'
+
+type EditedDocument = DocumentDraft & { audiences: string[], characterIds: string[], factionIds: string[] }
 
 const props = withDefaults(defineProps<{
   // Enregistrement par le parent (`@submit`), attendu pour afficher ici son erreur
@@ -119,51 +129,49 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ cancel: [], 'update:document': [document: DocumentDraft] }>()
 
-const localDocument = ref<DocumentDraft>({ ...props.document })
+const localDocument = ref<EditedDocument>({ ...props.document, audiences: [], characterIds: [], factionIds: [] })
+const advanced = ref(false)
 const errors = ref<Record<string, string>>({})
 const serverError = ref('')
-
-const characterIdModel = emptyStringModel(localDocument, 'characterId')
-
-const audienceOptions: Array<{ label: string, value: string }> = [...DOCUMENT_AUDIENCE_OPTIONS]
 
 const gameOptions = computed(() => props.games.map((game) => ({
   label: game.title,
   value: game.id
 })))
 
-const characterOptions = computed(() => [
-  { label: 'Aucun personnage', value: '' },
-  ...props.characters
-    .filter((character) => character.gameId === localDocument.value.gameId)
-    .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === CHARACTER_TYPES.pj ? -1 : 1))
-    .map((character) => ({
-      label: `${character.type === CHARACTER_TYPES.pnj ? 'PNJ' : 'PJ'} - ${character.name}`,
-      value: character.id
-    }))
-])
+const characterOptions = computed(() => props.characters
+  .filter((character) => character.gameId === localDocument.value.gameId)
+  .sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === CHARACTER_TYPES.pj ? -1 : 1))
+  .map((character) => ({
+    label: `${character.type === CHARACTER_TYPES.pnj ? 'PNJ' : 'PJ'} - ${character.name}`,
+    value: character.id
+  })))
 
-const virtualFactionOptions: Array<{ label: string, value: string }> = [...VIRTUAL_CHARACTER_GROUP_OPTIONS]
+// Les groupes du jeu seulement : « tous les PJ » ou « tous les PNJ » se cochent dans les cases (US-187)
+const factionOptions = computed(() => props.factions
+  .filter((faction) => faction.gameId === localDocument.value.gameId)
+  .sort((a, b) => a.name.localeCompare(b.name))
+  .map((faction) => ({
+    label: faction.name,
+    value: faction.id
+  })))
 
-const realFactionOptions = computed(() =>
-  props.factions
-    .filter((faction) => faction.gameId === localDocument.value.gameId)
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((faction) => ({
-      label: faction.name,
-      value: faction.id
-    }))
-)
+const everyone = computed(() => isEveryone(localDocument.value.audiences))
 
-const factionOptions = computed(() => [
-  ...virtualFactionOptions,
-  ...realFactionOptions.value
-])
+function setEveryone(checked: boolean) {
+  localDocument.value.audiences = checked ? [...ALL_DOCUMENT_ROLES] : []
+}
 
-const hasTargets = computed(() =>
-  localDocument.value.audience !== DOCUMENT_AUDIENCES.targeted
-  || Boolean(localDocument.value.characterId || localDocument.value.characterIds?.length || localDocument.value.factionIds?.length)
-)
+function toggleRole(role: DocumentRole, checked: boolean) {
+  const others = localDocument.value.audiences.filter((value) => value !== role)
+  localDocument.value.audiences = checked ? [...others, role] : others
+}
+
+const hasTargets = computed(() => isDocumentTargeted({
+  audiences: localDocument.value.audiences,
+  characters: advanced.value ? localDocument.value.characterIds : [],
+  factions: advanced.value ? localDocument.value.factionIds : []
+}))
 
 const canSubmit = computed(() =>
   localDocument.value.title?.trim()
@@ -172,16 +180,19 @@ const canSubmit = computed(() =>
 )
 
 watch(() => props.document, (newDocument) => {
+  const characterIds = newDocument.characterIds || newDocument.characters?.map((character) => character.id) || []
+  const factionIds = newDocument.factionIds || newDocument.factions?.map((faction) => faction.id) || []
   localDocument.value = {
     ...newDocument,
-    audience: newDocument.audience || DOCUMENT_AUDIENCES.targeted,
+    audiences: [...(newDocument.audiences || [])],
     readyToSend: Boolean(newDocument.readyToSend),
     content: newDocument.content || '',
     documentUrl: newDocument.documentUrl || '',
-    characterId: newDocument.characterId || newDocument.character?.id || '',
-    characterIds: newDocument.characterIds || newDocument.characters?.map((character) => character.id) || [],
-    factionIds: newDocument.factionIds || newDocument.factions?.map((faction) => faction.id) || []
+    characterIds,
+    factionIds
   }
+  // La sélection avancée s'ouvre d'elle-même pour un document qui en a une
+  advanced.value = Boolean(characterIds.length || factionIds.length)
   errors.value = {}
   serverError.value = ''
 }, { immediate: true })
@@ -189,10 +200,8 @@ watch(() => props.document, (newDocument) => {
 watch(() => localDocument.value.gameId, () => {
   const validCharacterIds = new Set(characterOptions.value.map((character) => character.value))
   const validFactionIds = new Set(factionOptions.value.map((faction) => faction.value))
-  if (localDocument.value.characterId && !validCharacterIds.has(localDocument.value.characterId)) {
-    localDocument.value.characterId = ''
-  }
-  localDocument.value.factionIds = (localDocument.value.factionIds || []).filter((id) => validFactionIds.has(id))
+  localDocument.value.characterIds = localDocument.value.characterIds.filter((id) => validCharacterIds.has(id))
+  localDocument.value.factionIds = localDocument.value.factionIds.filter((id) => validFactionIds.has(id))
 })
 
 function validate() {
@@ -205,40 +214,12 @@ function validate() {
   return Object.keys(errors.value).length === 0
 }
 
-function expandVirtualFactionSelection(value: DocumentDraft): DocumentDraft {
-  if (value.audience !== DOCUMENT_AUDIENCES.targeted) {
-    return {
-      ...value,
-      characterId: '',
-      characterIds: [],
-      factionIds: []
-    }
-  }
-
-  const factionIds = value.factionIds || []
-  const selectedVirtualIds = new Set(factionIds.filter((id) => id.startsWith('__')))
-  const realFactionIds = factionIds.filter((id) => !id.startsWith('__'))
-  const gameCharacters = props.characters.filter((character) => character.gameId === value.gameId)
-  const expandedCharacterIds = gameCharacters
-    .filter((character) =>
-      selectedVirtualIds.has(VIRTUAL_CHARACTER_GROUPS.allCharacters)
-      || (selectedVirtualIds.has(VIRTUAL_CHARACTER_GROUPS.allPj) && character.type !== CHARACTER_TYPES.pnj)
-      || (selectedVirtualIds.has(VIRTUAL_CHARACTER_GROUPS.allPnj) && character.type === CHARACTER_TYPES.pnj)
-    )
-    .map((character) => character.id)
-
-  return {
-    ...value,
-    factionIds: realFactionIds,
-    characterIds: [...new Set([...(value.characterIds || []), ...expandedCharacterIds])]
-  }
-}
-
 async function submit() {
   if (!validate()) return
 
   try {
-    emit('update:document', expandVirtualFactionSelection(localDocument.value))
+    // Sélection avancée décochée : ses personnages et groupes ne sont pas gardés
+    emit('update:document', advanced.value ? { ...localDocument.value } : { ...localDocument.value, characterIds: [], factionIds: [] })
     await props.onSubmit()
     serverError.value = ''
   } catch (err) {

@@ -953,7 +953,7 @@ async function createDocuments(
         title: `Feuille de route - ${gameTitle}`,
         slug: slugify(`Feuille de route - ${gameTitle}`, { lower: true, strict: true }),
         content: 'Adresse du lieu, horaires d’arrivée, consignes de stationnement, affaires à prévoir : serviette, gel douche, sac de couchage, vêtements chauds et gourde.',
-        audience: 'everyone',
+        audiences: ['organizers', 'npcs', 'kitchen', 'pjs'],
         readyToSend: true,
         gameId,
         published: true
@@ -962,7 +962,17 @@ async function createDocuments(
         title: `Document monde - ${gameTitle}`,
         slug: slugify(`Document monde - ${gameTitle}`, { lower: true, strict: true }),
         content: 'Présentation synthétique de l’univers, des conventions de jeu, des informations connues de tous et du niveau de transparence attendu.',
-        audience: 'everyone',
+        audiences: ['organizers', 'npcs', 'kitchen', 'pjs'],
+        readyToSend: true,
+        gameId,
+        published: true
+      },
+      {
+        // Deux publics à la fois (US-187)
+        title: `Règles de jeu - ${gameTitle}`,
+        slug: slugify(`Règles de jeu - ${gameTitle}`, { lower: true, strict: true }),
+        content: 'Mots de sécurité, gestion des combats, zones hors jeu et signes pour sortir d’une scène : ce que doivent connaître les PJ et les PNJ.',
+        audiences: ['pjs', 'npcs'],
         readyToSend: true,
         gameId,
         published: true
@@ -971,7 +981,7 @@ async function createDocuments(
         title: `Cadrage orga - ${gameTitle}`,
         slug: slugify(`Cadrage orga - ${gameTitle}`, { lower: true, strict: true }),
         content: 'Rappels logistiques internes, répartition des responsabilités, points de vigilance sécurité et contacts d’urgence.',
-        audience: 'organizers',
+        audiences: ['organizers'],
         readyToSend: false,
         gameId,
         published: true
@@ -980,7 +990,7 @@ async function createDocuments(
         title: `Instructions PNJs - ${gameTitle}`,
         slug: slugify(`Instructions PNJs - ${gameTitle}`, { lower: true, strict: true }),
         content: 'Consignes générales pour les PNJs, rythme des interventions, limites d’improvisation et coordination avec l’équipe d’organisation.',
-        audience: 'npcs',
+        audiences: ['npcs'],
         readyToSend: false,
         gameId,
         published: true
@@ -989,7 +999,7 @@ async function createDocuments(
         title: `Recettes cuisine - ${gameTitle}`,
         slug: slugify(`Recettes cuisine - ${gameTitle}`, { lower: true, strict: true }),
         content: 'Menus prévus, quantités par repas, contraintes alimentaires connues, plan de préparation et consignes de service pour l’équipe cuisine.',
-        audience: 'kitchen',
+        audiences: ['kitchen'],
         readyToSend: false,
         gameId,
         published: true

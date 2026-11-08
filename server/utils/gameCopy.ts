@@ -82,7 +82,7 @@ export const GAME_COPY_FIELDS = {
     omitted: ['id', 'slug', 'gameId', 'createdAt', 'updatedAt', 'game', 'responsibles']
   },
   Document: {
-    copied: ['title', 'content', 'documentUrl', 'audience', 'readyToSend', 'published'],
+    copied: ['title', 'content', 'documentUrl', 'audience', 'audiences', 'readyToSend', 'published'],
     remapped: ['characterId'],
     relinked: ['character', 'characters', 'factions'],
     omitted: ['id', 'slug', 'gameId', 'createdAt', 'updatedAt', 'game', 'deliveries']
