@@ -245,3 +245,4 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-182](EPIC-045-retours-du-cahier-de-tests/US-182-nom-du-contact-d-urgence.md) | Lire le nom du contact d'urgence sur la fiche | EPIC-045 | terminée |
 | [US-183](EPIC-045-retours-du-cahier-de-tests/US-183-sessions-sur-la-fiche.md) | Ouvrir les sessions d'une personne depuis sa fiche | EPIC-045 | terminée |
 | [US-184](EPIC-045-retours-du-cahier-de-tests/US-184-mise-a-jour-sans-perdre-sa-saisie.md) | Recevoir une nouvelle version sans perdre sa saisie | EPIC-045 | terminée |
+| [US-185](EPIC-045-retours-du-cahier-de-tests/US-185-une-fiche-par-personne.md) | Une seule fiche par personne dans mes jeux | EPIC-045 | terminée |

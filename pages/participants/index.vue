@@ -128,6 +128,7 @@ const showFormSlideover = ref(false)
 const activeFormParticipant = ref<ParticipantDraft | null>(null)
 const formMode = ref<'create' | 'edit'>('create')
 const { game: selectedGame } = useGameFocus()
+const toast = useToast()
 
 const gameFilterOptions = computed(() => [
   { label: 'Tous les jeux', value: 'all' },
@@ -231,10 +232,18 @@ function closeFormSlideover() {
 async function handleParticipantFormSubmit() {
   if (!activeFormParticipant.value) return
   if (formMode.value === 'create') {
-    await useApiFetch('/api/participants', {
+    const created = await useApiFetch('/api/participants', {
       method: 'POST',
       body: activeFormParticipant.value
     })
+    // Adresse déjà portée par une fiche : le jeu y a été ajouté, sans créer de deuxième fiche (US-185)
+    if (!isOfflineQueued(created) && created.joinedExisting) {
+      toast.add({
+        title: 'Cette personne avait déjà une fiche',
+        description: `Le jeu est ajouté à la fiche de ${created.name}.`,
+        color: 'info'
+      })
+    }
   } else {
     await useApiFetch(`/api/participants/${activeFormParticipant.value.id}`, {
       method: 'PUT',

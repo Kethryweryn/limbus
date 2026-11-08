@@ -83,9 +83,12 @@ describe('mes coordonnées (US-074)', () => {
   })
 
   it('une fiche rattachée après coup prend les coordonnées du compte', async () => {
-    const { user, teams } = await personInTwoTeams()
+    const { user } = await personInTwoTeams()
     await api(user, 'PUT', '/api/account/profile', profile)
-    const created = await api(alice, 'POST', '/api/participants', { name: 'Saisie', email: user.email, phone: '0000', gameIds: [teams[0]!.game.id] })
+    // Une autre équipe, qui n'a pas encore de fiche pour cette adresse (une seule fiche par adresse, US-185)
+    const { carol } = inject('world').users
+    const game = await prisma.game.create({ data: { title: `Jeu de Carol ${++counter}`, slug: `jeu-carol-${counter}`, description: '', ownerId: carol.id } })
+    const created = await api(carol, 'POST', '/api/participants', { name: 'Saisie', email: user.email, phone: '0000', gameIds: [game.id] })
     expect(created.status).toBe(200)
     expect(created.body).toMatchObject({ name: 'Camille Dupont', phone: '0612345678' })
   })

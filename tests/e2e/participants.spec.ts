@@ -94,6 +94,22 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
     // La session s'ouvre depuis la fiche (US-183)
     await page.getByRole('link', { name: sessionName }).click()
     await expect(page).toHaveURL(new RegExp(`/sessions/${session.slug}$`))
+
+    // Créer une fiche avec la même adresse ajoute le jeu à la fiche existante, sans en créer une deuxième (US-185)
+    const secondTitle = uniqueName('Jeu second')
+    const second = await prisma.game.create({ data: { title: secondTitle, slug: slugOf(secondTitle), description: '', ownerId: owner.id } })
+    await page.goto('/participants')
+    await page.waitForLoadState('networkidle')
+    await page.getByRole('button', { name: 'Créer un participant' }).click()
+    await form.getByRole('button', { name: 'Jeux' }).click()
+    await page.getByRole('option', { name: secondTitle }).click()
+    await page.keyboard.press('Escape')
+    await form.getByLabel('Nom').fill('Doublon')
+    await form.getByLabel('Email').fill(created.email!.toUpperCase())
+    await form.getByRole('button', { name: 'Créer' }).click()
+    await expect(page.getByText(`Le jeu est ajouté à la fiche de ${renamed}.`)).toBeVisible()
+    expect(await prisma.participant.count({ where: { name: 'Doublon' } })).toBe(0)
+    expect((await prisma.participantGame.findMany({ where: { participantId: created.id }, select: { gameId: true } })).map((link) => link.gameId).sort()).toEqual([game.id, second.id].sort())
   } finally {
     await prisma.$disconnect()
   }

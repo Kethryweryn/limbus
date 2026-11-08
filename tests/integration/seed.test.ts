@@ -279,6 +279,12 @@ describe('rechargement des jeux de test', () => {
     for (const { email } of fiches) expect(email).toMatch(/^[^+]+@example\.test$/)
     const camille = await prisma.user.findUniqueOrThrow({ where: { email: 'camille.bernard@example.test' }, select: { id: true } })
     expect(await prisma.participant.count({ where: { email: 'camille.bernard@example.test', userId: camille.id } })).toBeGreaterThan(0)
+
+    // Une seule fiche par personne pour les trois jeux (US-185) : Lucie est sur les trois
+    const emails = fiches.map(({ email }) => email)
+    expect(new Set(emails).size).toBe(emails.length)
+    const lucie = await prisma.participant.findFirstOrThrow({ where: { email: 'lucie.moreau@example.test' }, select: { _count: { select: { gameLinks: true } } } })
+    expect(lucie._count.gameLinks).toBe(3)
   })
 })
 
