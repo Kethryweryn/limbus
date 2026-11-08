@@ -242,3 +242,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-179](EPIC-045-retours-du-cahier-de-tests/US-179-carte-participant-cliquable.md) | Ouvrir une fiche en cliquant sur sa carte | EPIC-045 | terminée |
 | [US-180](EPIC-045-retours-du-cahier-de-tests/US-180-afficher-le-mot-de-passe.md) | Afficher le mot de passe pendant la saisie | EPIC-045 | terminée |
 | [US-181](EPIC-045-retours-du-cahier-de-tests/US-181-urgence-et-allergies-toujours-demandees.md) | Toujours demander le contact d'urgence et les allergies | EPIC-045 | terminée |
+| [US-182](EPIC-045-retours-du-cahier-de-tests/US-182-nom-du-contact-d-urgence.md) | Lire le nom du contact d'urgence sur la fiche | EPIC-045 | terminée |
+| [US-183](EPIC-045-retours-du-cahier-de-tests/US-183-sessions-sur-la-fiche.md) | Ouvrir les sessions d'une personne depuis sa fiche | EPIC-045 | terminée |
+| [US-184](EPIC-045-retours-du-cahier-de-tests/US-184-mise-a-jour-sans-perdre-sa-saisie.md) | Recevoir une nouvelle version sans perdre sa saisie | EPIC-045 | terminée |

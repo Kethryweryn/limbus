@@ -1,0 +1,5 @@
+{
+  "type": "nouveau",
+  "titre": "Les sessions d’une personne sur sa fiche",
+  "texte": "La fiche d’une personne liste, sous chaque jeu, les sessions où elle joue, fait un PNJ, organise ou cuisine, avec la date et son personnage. Un clic ouvre la session."
+}

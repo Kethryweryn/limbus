@@ -100,7 +100,9 @@ export default defineNuxtConfig({
     port: 3000,
   },
   pwa: {
-    registerType: 'autoUpdate',
+    // Une nouvelle version attend le prochain changement de page (plugins/pwaUpdate.client.ts, ADR-0071) : le mode
+    // automatique rechargeait la page ouverte, saisie en cours comprise
+    registerType: 'prompt',
     injectRegister: false,
     pwaAssets: {
       disabled: false,

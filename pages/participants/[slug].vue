@@ -61,9 +61,14 @@
             Lecture impossible pour l’instant : rechargez la page pour voir son contact d’urgence et ses allergies.
           </p>
           <div v-else class="space-y-3 text-sm">
+            <!-- Nom et téléphone sur deux lignes nommées, pour qu'un nom ne se confonde pas avec le libellé (US-182) -->
             <div>
-              <span class="text-gray-500">Contact d’urgence</span>
-              <div>{{ emergencyContact || 'Non renseigné' }}</div>
+              <span class="text-gray-500">Contact d’urgence : nom</span>
+              <div>{{ emergency?.emergencyContactName?.trim() || 'Non renseigné' }}</div>
+            </div>
+            <div>
+              <span class="text-gray-500">Contact d’urgence : téléphone</span>
+              <div>{{ emergency?.emergencyContactPhone?.trim() || 'Non renseigné' }}</div>
             </div>
             <div>
               <span class="text-gray-500">Allergies et régime</span>
@@ -75,14 +80,22 @@
           </div>
         </UCard>
 
+        <!-- Chaque jeu avec les sessions où la personne a un rôle ou un personnage, chacune vers sa page (R1c, US-183) -->
         <UCard>
-          <template #header>Jeux</template>
-          <div class="flex flex-wrap gap-2">
-            <UBadge v-for="game in shownGames" :key="game.id" color="neutral" variant="subtle">
-              {{ game.title }}
-            </UBadge>
-            <span v-if="!shownGames.length" class="text-sm text-gray-500">Aucun jeu</span>
+          <template #header>Jeux et sessions</template>
+          <div v-if="shownGames.length" class="space-y-3 text-sm">
+            <div v-for="game in shownGames" :key="game.id">
+              <div class="font-medium">{{ game.title }}</div>
+              <ul v-if="sessionsOf(game.id).length" class="mt-1 space-y-1">
+                <li v-for="session in sessionsOf(game.id)" :key="session.id">
+                  <NuxtLink :to="`/sessions/${session.slug}`" class="text-primary hover:underline">{{ session.name }}</NuxtLink>
+                  <span class="text-gray-500">{{ sessionDetails(session) }}</span>
+                </li>
+              </ul>
+              <p v-else class="text-gray-500">Aucune session</p>
+            </div>
           </div>
+          <span v-else class="text-sm text-gray-500">Aucun jeu</span>
         </UCard>
 
         <!-- Refus de l'usage de sa photo (US-109) : posé ou levé à la demande de la personne -->
@@ -122,6 +135,8 @@
 
 <script setup lang="ts">
 import { apiErrorMessage, pageLoadError } from '~/utils/apiErrors'
+import { formatLongDate, PARIS_TIME_ZONE } from '~/utils/dates'
+import { SESSION_ROLE_LABELS, SESSION_ROLES } from '~/utils/domain'
 import { withQueuedEdit, type ParticipantDraft } from '~/utils/writingDrafts'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
@@ -156,10 +171,20 @@ if (error.value) {
 
 // Lu à part de la fiche (R1b) : la liste, les assistants et le cache hors ligne ne reçoivent pas ces données
 const { data: emergency, error: emergencyError } = await useFetch(`/api/participants/${participant.value?.id}/emergency`)
-const emergencyContact = computed(() => [emergency.value?.emergencyContactName, emergency.value?.emergencyContactPhone]
-  .map((value) => value?.trim())
-  .filter(Boolean)
-  .join(' · '))
+
+type ParticipantSession = ApiResponse<'/api/participants/:id/sessions'>[number]
+const { data: sessions } = await useFetch(`/api/participants/${participant.value?.id}/sessions`)
+const sessionsOf = (gameId: string) => (sessions.value || []).filter((session) => session.gameId === gameId)
+// Date, puis ses personnages et ses rôles ; « Participant » seulement sans personnage, qui le dit déjà
+function sessionDetails(session: ParticipantSession) {
+  const roles = session.roles
+    .filter((role) => !(role === SESSION_ROLES.participant && session.characters.length))
+    .map((role) => SESSION_ROLE_LABELS[role as keyof typeof SESSION_ROLE_LABELS] ?? role)
+  return [session.date ? formatLongDate(session.date, PARIS_TIME_ZONE) : null, ...session.characters, ...roles]
+    .filter(Boolean)
+    .map((part) => ` · ${part}`)
+    .join('')
+}
 
 const { isEditing, draft: editableParticipant, startEdit, cancelEdit, closeAfterSave } = useSheetEdit(() => participant.value ? normalizeParticipantForForm(participant.value) : null)
 

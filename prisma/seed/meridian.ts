@@ -236,7 +236,8 @@ export async function createMeridianStage(db: Db, context: StageContext) {
               firstName,
               lastName: lastName.join(' '),
               phone: profile?.phone ?? `07 00 00 01 ${String(rank % 100).padStart(2, '0')}`,
-              emergencyContactName: profile?.emergencyContactName ?? 'Contact d\'urgence',
+              // Un vrai nom, comme celui qu'une personne donnerait (US-182) : pas un libellé qu'on confondrait avec le champ
+              emergencyContactName: profile?.emergencyContactName ?? `Proche de ${firstName}`,
               emergencyContactPhone: profile?.emergencyContactPhone ?? '07 00 00 02 00',
               dietary,
               healthConsentAt: dietary ? daysFromNow(-10) : null,
