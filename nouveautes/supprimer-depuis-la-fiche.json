@@ -1,0 +1,5 @@
+{
+  "type": "nouveau",
+  "titre": "Supprimer un élément depuis sa fiche",
+  "texte": "La fiche d’un personnage, d’un groupe, d’une intrigue, d’un objet, d’un lieu, d’un document ou d’un événement a maintenant un bouton « Supprimer », que vous la lisiez ou la modifiiez. Limbus demande confirmation, puis vous ramène à la liste."
+}

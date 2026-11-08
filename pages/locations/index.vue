@@ -81,6 +81,7 @@
 </template>
 
 <script setup lang="ts">
+import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import { isInArchivedGame, isVisibleContent } from '~/utils/games'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -202,7 +203,7 @@ async function handleLocationFormSubmit() {
 }
 
 async function deleteLocation(id: string) {
-  if (!confirm('Supprimer ce lieu ? Les sessions liées seront conservées sans lieu.')) return
+  if (!confirm(DELETE_CONFIRMATIONS.location)) return
 
   await useApiFetch(`/api/locations/${id}`, { method: 'DELETE' })
   await fetchLocations()

@@ -22,6 +22,12 @@
           Modifier
         </UButton>
       </div>
+      <SheetDeleteButton
+        v-if="documentItem"
+        :url="`/api/documents/${documentItem.id}`"
+        :confirm-text="DELETE_CONFIRMATIONS.document"
+        :list-path="documentBackTo"
+      />
     </div>
 
     <DocumentForm
@@ -124,6 +130,7 @@
 </template>
 
 <script setup lang="ts">
+import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { isInArchivedGame } from '~/utils/games'
 import { computed, onMounted, ref } from 'vue'
 import { serverMessage } from '~/utils/apiErrors'

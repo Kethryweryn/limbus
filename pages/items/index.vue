@@ -127,6 +127,7 @@
 </template>
 
 <script setup lang="ts">
+import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import { isInArchivedGame, isVisibleContent } from '~/utils/games'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -293,7 +294,7 @@ async function handleItemFormSubmit() {
 }
 
 async function deleteItem(id: string) {
-  if (!confirm('Supprimer cet objet ?')) return
+  if (!confirm(DELETE_CONFIRMATIONS.item)) return
 
   await useApiFetch(`/api/items/${id}`, { method: 'DELETE' })
   await fetchItems()

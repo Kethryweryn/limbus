@@ -114,6 +114,52 @@ for (const [label, element] of Object.entries(ELEMENTS)) {
   })
 }
 
+// US-186 : chaque fiche d'écriture se supprime depuis elle-même, en lecture comme en modification, puis ramène à la liste
+const SHEETS: Array<{ noun: string, list: string, create: (prisma: TestPrisma, gameId: string, name: string) => Promise<{ id: string, slug: string }>, exists: (prisma: TestPrisma, id: string) => Promise<unknown> }> = [
+  { noun: 'personnage', list: '/characters', create: (prisma, gameId, name) => prisma.character.create({ data: { name, slug: slugOf(name), gameId } }), exists: (prisma, id) => prisma.character.findUnique({ where: { id } }) },
+  { noun: 'groupe', list: '/factions', create: (prisma, gameId, name) => prisma.faction.create({ data: { name, slug: slugOf(name), gameId } }), exists: (prisma, id) => prisma.faction.findUnique({ where: { id } }) },
+  { noun: 'intrigue', list: '/intrigues', create: (prisma, gameId, name) => prisma.intrigue.create({ data: { name, slug: slugOf(name), gameId } }), exists: (prisma, id) => prisma.intrigue.findUnique({ where: { id } }) },
+  { noun: 'objet', list: '/items', create: (prisma, gameId, name) => prisma.item.create({ data: { name, slug: slugOf(name), gameId } }), exists: (prisma, id) => prisma.item.findUnique({ where: { id } }) },
+  { noun: 'lieu', list: '/locations', create: (prisma, gameId, name) => prisma.location.create({ data: { name, slug: slugOf(name), gameId } }), exists: (prisma, id) => prisma.location.findUnique({ where: { id } }) },
+  { noun: 'document', list: '/documents', create: (prisma, gameId, name) => prisma.document.create({ data: { title: name, slug: slugOf(name), content: 'Texte', gameId } }), exists: (prisma, id) => prisma.document.findUnique({ where: { id } }) },
+  { noun: 'événement', list: '/timeline', create: (prisma, gameId, name) => prisma.timelineEvent.create({ data: { name, slug: slugOf(name), gameId, day: 1, time: '10:00' } }), exists: (prisma, id) => prisma.timelineEvent.findUnique({ where: { id } }) }
+]
+
+for (const sheet of SHEETS) {
+  test(`un ${sheet.noun} se supprime depuis sa fiche, en lecture et en modification`, async ({ page }) => {
+    const prisma = createTestPrisma()
+    try {
+      const game = await writingGame(prisma, `Jeu suppression ${sheet.noun}`)
+      const [read, edited] = await Promise.all([
+        sheet.create(prisma, game.id, uniqueName(`${sheet.noun} lu`)),
+        sheet.create(prisma, game.id, uniqueName(`${sheet.noun} modifié`))
+      ])
+      await signIn(page, prisma, E2E_USERS.orga)
+
+      // En lecture
+      await page.goto(`${sheet.list}/${read.slug}`)
+      await page.waitForLoadState('networkidle')
+      page.once('dialog', (dialog) => dialog.accept())
+      await page.getByRole('button', { name: 'Supprimer', exact: true }).click()
+      await expect(page).toHaveURL(new RegExp(`${sheet.list}(\\?.*)?$`))
+      expect(await sheet.exists(prisma, read.id)).toBeNull()
+
+      // En modification ; refuser la confirmation ne supprime rien
+      await page.goto(`${sheet.list}/${edited.slug}?edit=1`)
+      await page.waitForLoadState('networkidle')
+      page.once('dialog', (dialog) => dialog.dismiss())
+      await page.getByRole('button', { name: 'Supprimer', exact: true }).click()
+      expect(await sheet.exists(prisma, edited.id)).not.toBeNull()
+      page.once('dialog', (dialog) => dialog.accept())
+      await page.getByRole('button', { name: 'Supprimer', exact: true }).click()
+      await expect(page).toHaveURL(new RegExp(`${sheet.list}(\\?.*)?$`))
+      expect(await sheet.exists(prisma, edited.id)).toBeNull()
+    } finally {
+      await prisma.$disconnect()
+    }
+  })
+}
+
 // EPIC-003 (SPEC-003) : un événement de la timeline, placé par jour et heure
 test('un événement de la timeline se crée et se renomme', async ({ page }) => {
   const prisma = createTestPrisma()

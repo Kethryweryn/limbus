@@ -139,6 +139,7 @@
 </template>
 
 <script setup lang="ts">
+import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import { isInArchivedGame, isVisibleContent } from '~/utils/games'
 import { ref, computed, onMounted, watch } from 'vue'
@@ -339,7 +340,7 @@ async function handleFormSubmit() {
 }
 
 const deleteCharacter = async (id: string) => {
-    if (confirm('Supprimer ce personnage ?')) {
+    if (confirm(DELETE_CONFIRMATIONS.character)) {
         await useApiFetch(`/api/characters/${id}`, { method: 'DELETE' })
         await Promise.all([fetchCharacters(), fetchFactions()])
     }

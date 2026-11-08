@@ -119,6 +119,7 @@
 </template>
 
 <script setup lang="ts">
+import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
 import { isInArchivedGame, isVisibleContent } from '~/utils/games'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -286,7 +287,7 @@ async function handleFactionFormSubmit() {
 }
 
 async function deleteFaction(id: string) {
-  if (!confirm('Supprimer ce groupe ? Les personnages liés seront conservés.')) return
+  if (!confirm(DELETE_CONFIRMATIONS.faction)) return
 
   await useApiFetch(`/api/factions/${id}`, { method: 'DELETE' })
   await Promise.all([fetchFactions(), fetchCharacters()])

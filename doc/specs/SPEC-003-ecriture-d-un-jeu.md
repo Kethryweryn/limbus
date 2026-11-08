@@ -69,6 +69,7 @@ Depuis la liste des jeux, la propriétaire ou une co-organisatrice archive un je
   - supprimer un personnage qui détient un objet laisse l'objet sans emplacement ;
   - supprimer le personnage choisi dans le champ « Personnage » d'un document laisse ce champ vide ;
   - supprimer un lieu laisse ses sessions sans lieu.
+- **R14b** Un élément se supprime depuis sa liste ou depuis sa fiche, en lecture comme en modification, avec la même confirmation ; la fiche ramène ensuite à la liste ([US-186](../epics/EPIC-045-retours-du-cahier-de-tests/US-186-supprimer-depuis-la-fiche.md)).
 - **R15** Les URL saisies (teaser, histoire, document externe) sont des liens http(s). Un fichier téléversé n'est accepté que s'il appartient au même jeu.
 
 ## Données
@@ -110,3 +111,7 @@ Relevés le 29 octobre 2026 en comparant le code aux règles ci-dessus. Les quat
 2. **Quantité d'un objet (R10)** : elle se saisit maintenant (US-014).
 3. **Intrigue « prête à envoyer » (R9)** : le champ sans effet est retiré (US-015).
 4. **Jeu archivé et page publique (R3)** : restaurer un jeu republiait sa page ; archiver la dépublie maintenant (US-016).
+
+## Historique
+
+- 2026-11-08 : R14b, suppression depuis la fiche (US-186, retour B1-1 du cahier de tests).

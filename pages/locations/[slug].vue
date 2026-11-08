@@ -4,14 +4,17 @@
       <UButton to="/locations" icon="i-heroicons-arrow-left" color="neutral" variant="ghost">
         Lieux
       </UButton>
-      <UButton
-        v-if="!isEditing"
-        icon="i-heroicons-pencil-square"
-        color="primary"
-        @click="startEdit"
-      >
-        Modifier
-      </UButton>
+      <div class="flex flex-wrap items-start gap-2">
+        <UButton
+          v-if="!isEditing"
+          icon="i-heroicons-pencil-square"
+          color="primary"
+          @click="startEdit"
+        >
+          Modifier
+        </UButton>
+        <SheetDeleteButton :url="`/api/locations/${location.id}`" :confirm-text="DELETE_CONFIRMATIONS.location" list-path="/locations" />
+      </div>
     </div>
 
     <LocationForm
@@ -53,6 +56,7 @@
 </template>
 
 <script setup lang="ts">
+import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { pageLoadError } from '~/utils/apiErrors'
 import { isInArchivedGame } from '~/utils/games'
 import { withQueuedEdit, type LocationDraft } from '~/utils/writingDrafts'
