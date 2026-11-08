@@ -18,7 +18,7 @@ type SessionDocuments = ApiResponse<'/api/sessions/:id/documents'>
 // Une session avec chaque sorte de personne : PJ, organisatrice qui tient un PNJ, PNJ de l'équipe, cuisine, et une
 // joueuse d'un groupe
 async function sessionWithEveryone() {
-  const key = `public-${++counter}`
+  const key = `public-document-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
   const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
   const person = (name: string) => prisma.participant.create({ data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } } })
