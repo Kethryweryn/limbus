@@ -33,7 +33,7 @@ async function ficheForAddress(client: PrismaTx, address: string, gameIds: strin
   return await client.participant.findFirst({
     where: { OR: games.map((game) => participantEmailMatchWhere(game, address)), ...(exceptId ? { id: { not: exceptId } } : {}) },
     orderBy: { updatedAt: 'desc' },
-    select: { id: true, slug: true, name: true, gameLinks: { select: { gameId: true } } }
+    select: { id: true, slug: true, name: true, gameLinks: { select: { gameId: true, notes: true } } }
   })
 }
 
@@ -53,39 +53,48 @@ export async function createParticipant(event: H3Event, readBody: Reader<typeof 
   }
 
   const address = email?.trim()
-  const slug = await generateUniqueSlug('participant', name)
-  const userId = await accountIdForEmail(email)
-  const { id, joinedExisting } = await prisma.$transaction(async (tx) => {
+  const { id, userId, joinedExisting } = await prisma.$transaction(async (tx) => {
     if (address) {
       await lockAddress(tx, address)
       const existing = await ficheForAddress(tx, address, uniqueGameIds)
       if (existing) {
-        const linked = new Set(existing.gameLinks.map((link) => link.gameId))
+        const notesByGame = new Map(existing.gameLinks.map((link) => [link.gameId, link.notes]))
         await tx.participantGame.createMany({
-          data: uniqueGameIds.filter((gameId) => !linked.has(gameId)).map((gameId) => ({ participantId: existing.id, gameId, notes: gameNotes[gameId] || null }))
+          data: uniqueGameIds.filter((gameId) => !notesByGame.has(gameId)).map((gameId) => ({ participantId: existing.id, gameId, notes: gameNotes[gameId] || null }))
         })
+        // Jeu déjà lié : la note donnée s'ajoute à la sienne, sans l'effacer
+        for (const gameId of uniqueGameIds.filter((gameId) => notesByGame.has(gameId))) {
+          const added = gameNotes[gameId]?.trim()
+          const current = notesByGame.get(gameId)?.trim()
+          if (!added || added === current) continue
+          await tx.participantGame.update({
+            where: { participantId_gameId: { participantId: existing.id, gameId } },
+            data: { notes: current ? `${current}\n\n${added}` : added }
+          })
+        }
         // Ses jeux ont changé : sa version aussi, pour l'équipe qui la modifierait en même temps (ADR-0028)
         await tx.participant.update({ where: { id: existing.id }, data: { updatedAt: new Date() } })
-        return { id: existing.id, joinedExisting: true }
+        return { id: existing.id, userId: null, joinedExisting: true }
       }
     }
+    // Rattachée au compte de son adresse (US-070) ; slug et compte ne se calculent que pour une vraie création
+    const accountId = await accountIdForEmail(email)
     const created = await tx.participant.create({
       data: {
         name,
-        slug,
+        slug: await generateUniqueSlug('participant', name),
         email: email || null,
         phone: phone || null,
-        // Rattachée au compte de son adresse (US-070)
-        userId,
+        userId: accountId,
         gameLinks: { create: uniqueGameIds.map((gameId) => ({ gameId, notes: gameNotes[gameId] || null })) }
       },
       select: { id: true }
     })
-    return { id: created.id, joinedExisting: false }
+    return { id: created.id, userId: accountId, joinedExisting: false }
   })
 
   // Fiche rattachée dès sa création : elle prend les coordonnées du compte (US-074)
-  if (userId && !joinedExisting) await syncProfileToParticipants(userId)
+  if (userId) await syncProfileToParticipants(userId)
   const participant = await prisma.participant.findUniqueOrThrow({ where: { id }, include: participantGameLinksInclude(allowedGameIds) })
   return { ...exposeParticipantGames(participant), joinedExisting }
 }

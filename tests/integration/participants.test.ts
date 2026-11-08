@@ -180,6 +180,10 @@ describe('une seule fiche par adresse (US-185)', () => {
     expect(await prisma.participant.count({ where: { email: { equals: existing.email!, mode: 'insensitive' } } })).toBe(1)
     expect(await prisma.participant.findUniqueOrThrow({ where: { id: existing.id }, select: { phone: true } })).toEqual({ phone: '0601010101' })
 
+    // Jeu déjà lié : la note donnée s'ajoute à la sienne, sans l'effacer
+    await api(alice, 'POST', '/api/participants', { name: 'Encore', email: existing.email, gameIds: [game.id], gameNotes: { [game.id]: 'Ajout' } })
+    expect((await prisma.participantGame.findFirstOrThrow({ where: { participantId: existing.id, gameId: game.id } })).notes).toBe('Note du premier jeu\n\nAjout')
+
     // Témoin : une autre adresse crée une fiche
     const fresh = await api(alice, 'POST', '/api/participants', { name: 'Autre', email: `autre-${key}@example.test`, gameIds: [other.id] })
     expect((fresh.body as Created).joinedExisting).toBe(false)
