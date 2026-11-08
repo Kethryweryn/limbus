@@ -4,14 +4,17 @@
       <UButton to="/intrigues" icon="i-heroicons-arrow-left" color="neutral" variant="ghost">
         Intrigues
       </UButton>
-      <UButton
-        v-if="!isEditing"
-        icon="i-heroicons-pencil-square"
-        color="primary"
-        @click="startEdit"
-      >
-        Modifier
-      </UButton>
+      <div class="flex flex-wrap items-start gap-2">
+        <UButton
+          v-if="!isEditing"
+          icon="i-heroicons-pencil-square"
+          color="primary"
+          @click="startEdit"
+        >
+          Modifier
+        </UButton>
+        <SheetDeleteButton :url="`/api/intrigues/${intrigue.id}`" :confirm-text="DELETE_CONFIRMATIONS.intrigue" list-path="/intrigues" />
+      </div>
     </div>
 
     <IntrigueForm
@@ -139,6 +142,7 @@
 </template>
 
 <script setup lang="ts">
+import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { pageLoadError } from '~/utils/apiErrors'
 import { isInArchivedGame } from '~/utils/games'
 import { formatIntrigueLevel } from '~/utils/intrigueLevels'

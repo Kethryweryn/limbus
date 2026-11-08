@@ -9,14 +9,17 @@
         <h1 class="text-2xl font-bold">{{ timelineEvent?.name || 'Événement' }}</h1>
         <p class="text-sm text-gray-500">{{ timelineEvent?.game?.title || 'Jeu inconnu' }}</p>
       </div>
-      <UButton
-        v-if="timelineEvent && !isEditing"
-        icon="i-heroicons-pencil-square"
-        color="primary"
-        @click="startEdit"
-      >
-        Modifier
-      </UButton>
+      <div v-if="timelineEvent" class="flex flex-wrap items-start gap-2">
+        <UButton
+          v-if="!isEditing"
+          icon="i-heroicons-pencil-square"
+          color="primary"
+          @click="startEdit"
+        >
+          Modifier
+        </UButton>
+        <SheetDeleteButton :url="`/api/timeline-events/${timelineEvent.id}`" :confirm-text="DELETE_CONFIRMATIONS.timelineEvent" :list-path="timelineBackTo" />
+      </div>
     </div>
 
     <TimelineEventForm
@@ -137,6 +140,7 @@
 </template>
 
 <script setup lang="ts">
+import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { computed, onMounted, ref } from 'vue'
 import { serverMessage } from '~/utils/apiErrors'
 import TimelineEventForm from '@/components/TimelineEventForm.vue'

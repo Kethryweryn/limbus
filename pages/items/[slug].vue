@@ -4,14 +4,17 @@
       <UButton to="/items" icon="i-heroicons-arrow-left" color="neutral" variant="ghost">
         Objets
       </UButton>
-      <UButton
-        v-if="!isEditing"
-        icon="i-heroicons-pencil-square"
-        color="primary"
-        @click="startEdit"
-      >
-        Modifier
-      </UButton>
+      <div class="flex flex-wrap items-start gap-2">
+        <UButton
+          v-if="!isEditing"
+          icon="i-heroicons-pencil-square"
+          color="primary"
+          @click="startEdit"
+        >
+          Modifier
+        </UButton>
+        <SheetDeleteButton :url="`/api/items/${item.id}`" :confirm-text="DELETE_CONFIRMATIONS.item" list-path="/items" />
+      </div>
     </div>
 
     <ItemForm
@@ -96,6 +99,7 @@
 </template>
 
 <script setup lang="ts">
+import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { pageLoadError } from '~/utils/apiErrors'
 import { isInArchivedGame } from '~/utils/games'
 import ItemForm from '@/components/ItemForm.vue'

@@ -4,22 +4,25 @@
             <UButton to="/characters" icon="i-heroicons-arrow-left" color="neutral" variant="ghost">
                 Personnages
             </UButton>
-            <div v-if="!isEditing" class="flex flex-wrap gap-2">
-                <UButton
-                    icon="i-heroicons-identification"
-                    color="neutral"
-                    variant="soft"
-                    @click="openTrombinoscopeModal"
-                >
-                    Trombinoscope
-                </UButton>
-                <UButton
-                    icon="i-heroicons-pencil-square"
-                    color="primary"
-                    @click="startEdit"
-                >
-                    Modifier
-                </UButton>
+            <div class="flex flex-wrap items-start gap-2">
+                <template v-if="!isEditing">
+                    <UButton
+                        icon="i-heroicons-identification"
+                        color="neutral"
+                        variant="soft"
+                        @click="openTrombinoscopeModal"
+                    >
+                        Trombinoscope
+                    </UButton>
+                    <UButton
+                        icon="i-heroicons-pencil-square"
+                        color="primary"
+                        @click="startEdit"
+                    >
+                        Modifier
+                    </UButton>
+                </template>
+                <SheetDeleteButton :url="`/api/characters/${character.id}`" :confirm-text="DELETE_CONFIRMATIONS.character" list-path="/characters" />
             </div>
         </div>
 
@@ -180,6 +183,7 @@
 </template>
 
 <script setup lang="ts">
+import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { pageLoadError } from '~/utils/apiErrors'
 import { isInArchivedGame } from '~/utils/games'
 import { CHARACTER_TYPES } from '~/utils/domain'
