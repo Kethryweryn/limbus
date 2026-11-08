@@ -57,7 +57,7 @@
       </div>
 
       <p v-if="serverError" class="text-red-500 text-sm mt-2">{{ serverError }}</p>
-      <!-- Adresse déjà sur une autre fiche de vos jeux (US-185) : on lui ajoute le jeu plutôt que d'en créer une deuxième -->
+      <!-- Email changé vers celui d'une autre fiche que vous voyez (US-185) : on ouvre plutôt celle-ci -->
       <UButton
         v-if="existingParticipant"
         :to="`/participants/${existingParticipant.slug}?edit=1`"

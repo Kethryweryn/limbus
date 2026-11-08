@@ -155,46 +155,74 @@ describe('notes propres à chaque jeu (US-069)', () => {
 })
 
 describe('une seule fiche par adresse (US-185)', () => {
-  type Refusal = { data?: { existingParticipant?: { id: string, slug: string, name: string } } }
+  type Created = { id: string, joinedExisting: boolean, name: string, games: Array<{ id: string }>, gameNotes: Record<string, string | null> }
+  type Refusal = { message?: string, data?: { existingParticipant?: { slug: string, name: string } } }
+  const { bob, carol } = world.users
 
   async function aliceFiche() {
     const key = `adresse-${++counter}`
     const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
     const other = await prisma.game.create({ data: { title: `Autre ${key}`, slug: `autre-${key}`, description: '', ownerId: alice.id } })
     const existing = await prisma.participant.create({
-      data: { name: `Camille ${key}`, slug: `camille-${key}`, email: `camille-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
+      data: { name: `Camille ${key}`, slug: `camille-${key}`, email: `camille-${key}@example.test`, phone: '0601010101', gameLinks: { create: { gameId: game.id, notes: 'Note du premier jeu' } } }
     })
     return { key, game, other, existing }
   }
 
-  it('refuse une deuxième fiche avec la même adresse dans mes jeux, et désigne la première', async () => {
-    const { key, other, existing } = await aliceFiche()
-    const refused = await api(alice, 'POST', '/api/participants', { name: 'Doublon', email: ` Camille-${key}@EXAMPLE.test `, gameIds: [other.id] })
-    expect(refused.status).toBe(409)
-    expect((refused.body as Refusal).data?.existingParticipant).toEqual({ id: existing.id, slug: existing.slug, name: existing.name })
+  it('créer avec une adresse déjà connue ajoute le jeu à la fiche existante, sans toucher à son nom ni à son téléphone', async () => {
+    const { key, game, other, existing } = await aliceFiche()
+    const response = await api(alice, 'POST', '/api/participants', { name: 'Autre nom', email: ` Camille-${key}@EXAMPLE.test `, phone: '0700000000', gameIds: [other.id], gameNotes: { [other.id]: 'Note du second jeu' } })
+    expect(response.status).toBe(200)
+    const created = response.body as Created
+    expect(created).toMatchObject({ id: existing.id, joinedExisting: true, name: existing.name })
+    expect(created.games.map((row) => row.id).sort()).toEqual([game.id, other.id].sort())
+    expect(created.gameNotes).toEqual({ [game.id]: 'Note du premier jeu', [other.id]: 'Note du second jeu' })
     expect(await prisma.participant.count({ where: { email: { equals: existing.email!, mode: 'insensitive' } } })).toBe(1)
+    expect(await prisma.participant.findUniqueOrThrow({ where: { id: existing.id }, select: { phone: true } })).toEqual({ phone: '0601010101' })
 
-    // Témoin : une autre adresse passe
-    expect((await api(alice, 'POST', '/api/participants', { name: 'Autre', email: `autre-${key}@example.test`, gameIds: [other.id] })).status).toBe(200)
+    // Témoin : une autre adresse crée une fiche
+    const fresh = await api(alice, 'POST', '/api/participants', { name: 'Autre', email: `autre-${key}@example.test`, gameIds: [other.id] })
+    expect((fresh.body as Created).joinedExisting).toBe(false)
   })
 
-  it('refuse de donner à une fiche l’adresse d’une autre, mais laisse modifier le reste d’un doublon ancien', async () => {
+  it('une co-organisatrice qui ne voit pas le jeu de la fiche y ajoute le sien, et n’en voit que son jeu', async () => {
+    const { game, other, existing } = await aliceFiche()
+    await prisma.gameShare.create({ data: { gameId: other.id, userId: carol.id } })
+    const response = await api(carol, 'POST', '/api/participants', { name: 'Saisie par Carol', email: existing.email, gameIds: [other.id] })
+    expect(response.status).toBe(200)
+    const created = response.body as Created
+    expect(created).toMatchObject({ id: existing.id, joinedExisting: true })
+    expect(created.games.map((row) => row.id)).toEqual([other.id])
+    expect(Object.keys(created.gameNotes)).toEqual([other.id])
+    expect(JSON.stringify(created)).not.toContain(game.id)
+  })
+
+  it('une fiche d’une autre propriétaire ne compte pas', async () => {
+    const key = `adresse-bob-${++counter}`
+    const bobGame = await prisma.game.create({ data: { title: `Bob ${key}`, slug: `bob-${key}`, description: '', ownerId: bob.id } })
+    const bobs = await prisma.participant.create({ data: { name: `Chez Bob ${key}`, slug: `chez-bob-${key}`, email: `partage-${key}@example.test`, gameLinks: { create: { gameId: bobGame.id } } } })
+    const game = await prisma.game.create({ data: { title: `Alice ${key}`, slug: `alice-${key}`, description: '', ownerId: alice.id } })
+    const created = (await api(alice, 'POST', '/api/participants', { name: 'Chez Alice', email: bobs.email, gameIds: [game.id] })).body as Created
+    expect(created.joinedExisting).toBe(false)
+    expect(created.id).not.toBe(bobs.id)
+  })
+
+  it('refuse de donner à une fiche l’adresse d’une autre, sans la nommer si elle est hors de vue', async () => {
     const { key, other, existing } = await aliceFiche()
     const second = await prisma.participant.create({ data: { name: `Second ${key}`, slug: `second-${key}`, email: `second-${key}@example.test`, gameLinks: { create: { gameId: other.id } } } })
-    const changed = await api(alice, 'PUT', `/api/participants/${second.id}`, { name: second.name, email: existing.email, gameIds: [other.id] })
-    expect(changed.status).toBe(409)
+    const visible = await api(alice, 'PUT', `/api/participants/${second.id}`, { name: second.name, email: existing.email, gameIds: [other.id] })
+    expect(visible.status).toBe(409)
+    expect((visible.body as Refusal).data?.existingParticipant).toEqual({ slug: existing.slug, name: existing.name })
+
+    // Carol ne voit que le second jeu : le refus ne nomme pas la fiche du premier
+    await prisma.gameShare.create({ data: { gameId: other.id, userId: carol.id } })
+    const hidden = await api(carol, 'PUT', `/api/participants/${second.id}`, { name: second.name, email: existing.email, gameIds: [other.id] })
+    expect(hidden.status).toBe(409)
+    expect((hidden.body as Refusal).data).toBeUndefined()
+    expect(JSON.stringify(hidden.body)).not.toContain(existing.name)
 
     // Doublon d'avant la règle : renommer sans toucher à l'adresse reste possible
     const legacy = await prisma.participant.create({ data: { name: `Ancien ${key}`, slug: `ancien-${key}`, email: existing.email, gameLinks: { create: { gameId: other.id } } } })
-    const renamed = await api(alice, 'PUT', `/api/participants/${legacy.id}`, { name: `Ancien renommé ${key}`, email: existing.email, gameIds: [other.id] })
-    expect(renamed.status).toBe(200)
-  })
-
-  it('une fiche d’une autre équipe ne bloque rien', async () => {
-    const key = `adresse-bob-${++counter}`
-    const bobGame = await prisma.game.create({ data: { title: `Bob ${key}`, slug: `bob-${key}`, description: '', ownerId: world.users.bob.id } })
-    await prisma.participant.create({ data: { name: `Chez Bob ${key}`, slug: `chez-bob-${key}`, email: `partage-${key}@example.test`, gameLinks: { create: { gameId: bobGame.id } } } })
-    const game = await prisma.game.create({ data: { title: `Alice ${key}`, slug: `alice-${key}`, description: '', ownerId: alice.id } })
-    expect((await api(alice, 'POST', '/api/participants', { name: 'Chez Alice', email: `partage-${key}@example.test`, gameIds: [game.id] })).status).toBe(200)
+    expect((await api(alice, 'PUT', `/api/participants/${legacy.id}`, { name: `Ancien renommé ${key}`, email: existing.email, gameIds: [other.id] })).status).toBe(200)
   })
 })
