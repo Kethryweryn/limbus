@@ -6,6 +6,7 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 |---|---|---|---|
 | [Durcissement web](durcissement-web.md) | en partie traitée | 2026-10-29 | CSP et COOP sur les pages, origine des écritures, cookie `__Host-` (revue R-01 à R-03) |
 | [Supervision](supervision.md) | en partie traitée | 2026-10-29 | Route de santé et sondes Better Stack faites ; reste les journaux structurés, si besoin (revue R-15, R-16) |
+| [Revue du schéma de données](schema-de-donnees.md) | à trancher | 2026-11-08 | Index des clés étrangères, contraintes sur les valeurs et les règles métier, dates avec fuseau, restes de transitions |
 
 ## Archivées
 
