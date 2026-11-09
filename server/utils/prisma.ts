@@ -2,6 +2,7 @@
 import { randomBytes } from 'node:crypto'
 import { PrismaClient } from '../../generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { pgAdapterOptions } from './databaseConnection'
 
 function getDatabaseUrl() {
     const databaseUrl = process.env.DATABASE_URL
@@ -35,9 +36,7 @@ async function withSlugRetry<A extends { data?: unknown }, T>(args: A, query: (a
 
 function createPrismaClient() {
     return new PrismaClient({
-        adapter: new PrismaPg({
-            connectionString: getDatabaseUrl()
-        }),
+        adapter: new PrismaPg(pgAdapterOptions(getDatabaseUrl())),
         log: ['error', 'warn'],
     }).$extends({
         query: {
