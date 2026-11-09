@@ -25,14 +25,10 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      <UCard
+      <ContentCard
         v-for="intrigue in paginatedIntrigues"
         :key="intrigue.id"
-        class="cursor-pointer transition-shadow hover:shadow-md"
-        role="link"
-        tabindex="0"
-        @click="openIntriguePage(intrigue)"
-        @keydown.enter="openIntriguePage(intrigue)"
+        :to="`/intrigues/${intrigue.slug}`"
       >
         <template #header>
           <div class="space-y-2">
@@ -105,7 +101,7 @@
             </UButton>
           </div>
         </div>
-      </UCard>
+      </ContentCard>
     </div>
 
     <div class="flex items-center justify-center gap-4 mt-6">
@@ -163,7 +159,6 @@ const sortOption = ref('updated-desc')
 const showFormSlideover = ref(false)
 const activeFormIntrigue = ref<IntrigueDraft | null>(null)
 const formMode = ref<'create' | 'edit'>('create')
-const router = useRouter()
 const { game: selectedGame } = useGameFocus()
 
 const gameFilterOptions = computed(() => [
@@ -301,11 +296,6 @@ function startEdit(intrigue: IntrigueItem) {
 function closeFormSlideover() {
   activeFormIntrigue.value = null
   showFormSlideover.value = false
-}
-
-function openIntriguePage(intrigue: IntrigueItem) {
-  if (!intrigue?.slug) return
-  router.push(`/intrigues/${intrigue.slug}`)
 }
 
 async function handleIntrigueFormSubmit() {

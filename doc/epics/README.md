@@ -258,3 +258,4 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-194](../archive/epics/EPIC-049-schema-de-donnees/US-194-dates-avec-fuseau.md) | Stocker les dates avec leur fuseau horaire | EPIC-049 | terminée |
 | [US-195](../archive/epics/EPIC-049-schema-de-donnees/US-195-meme-jeu-sessions-et-vivier.md) | Faire refuser par la base un lien entre deux jeux dans les sessions et le vivier | EPIC-049 | terminée |
 | [US-196](EPIC-045-retours-du-cahier-de-tests/US-196-reperer-la-nouvelle-version.md) | Repérer une nouvelle version sans recharger la page | EPIC-045 | terminée |
+| [US-197](EPIC-045-retours-du-cahier-de-tests/US-197-carte-lieu-cliquable.md) | Ouvrir un lieu en cliquant sur sa carte | EPIC-045 | terminée |

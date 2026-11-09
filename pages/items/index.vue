@@ -23,14 +23,10 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      <UCard
+      <ContentCard
         v-for="item in paginatedItems"
         :key="item.id"
-        class="cursor-pointer transition-shadow hover:shadow-md"
-        role="link"
-        tabindex="0"
-        @click="openItemPage(item)"
-        @keydown.enter="openItemPage(item)"
+        :to="`/items/${item.slug}`"
       >
         <template #header>
           <div class="space-y-2">
@@ -96,7 +92,7 @@
             </UButton>
           </div>
         </div>
-      </UCard>
+      </ContentCard>
     </div>
 
     <div class="flex items-center justify-center gap-4 mt-6">
@@ -150,7 +146,6 @@ const showArchived = ref(false)
 const showFormSlideover = ref(false)
 const activeFormItem = ref<ItemDraft | null>(null)
 const formMode = ref<'create' | 'edit'>('create')
-const router = useRouter()
 const { game: selectedGame } = useGameFocus()
 
 const gameFilterOptions = computed(() => [
@@ -269,11 +264,6 @@ function startEdit(item: ItemRow) {
 function closeFormSlideover() {
   activeFormItem.value = null
   showFormSlideover.value = false
-}
-
-function openItemPage(item: ItemRow) {
-  if (!item?.slug && !item?.id) return
-  router.push(`/items/${item.slug}`)
 }
 
 async function handleItemFormSubmit() {

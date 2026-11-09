@@ -22,15 +22,11 @@ v-model="searchQuery" placeholder="Rechercher un jeu..." icon="i-heroicons-magni
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      <UCard
+      <ContentCard
         v-for="game in paginatedGames"
         :key="game.id"
-        class="cursor-pointer transition-shadow hover:shadow-md"
         :class="{ 'opacity-60': !game.published, 'bg-green-50 ring-green-300': activeGame?.id === game.id }"
-        role="link"
-        tabindex="0"
-        @click="openGamePage(game)"
-        @keydown.enter="openGamePage(game)"
+        :to="`/games/${game.slug}`"
       >
         <template #header>
           <div class="flex items-start justify-between gap-3">
@@ -131,7 +127,7 @@ v-model="searchQuery" placeholder="Rechercher un jeu..." icon="i-heroicons-magni
             </UButton>
           </div>
         </div>
-      </UCard>
+      </ContentCard>
     </div>
 
     <div class="flex items-center justify-center gap-4 mt-6">
@@ -299,11 +295,6 @@ function closeFormSlideover() {
     delete query.edit
     router.replace({ path: route.path, query })
   }
-}
-
-function openGamePage(game: GameListItem) {
-  if (!game?.slug) return
-  router.push(`/games/${game.slug}`)
 }
 
 async function setPublicPage(game: GameListItem, publicPage: boolean) {
