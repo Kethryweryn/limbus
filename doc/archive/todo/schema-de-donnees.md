@@ -1,7 +1,7 @@
 ---
 titre: Revue du schéma de données
 statut: archivée
-epic: ../../epics/EPIC-049-schema-de-donnees/README.md
+epic: ../epics/EPIC-049-schema-de-donnees/README.md
 date: 2026-11-08
 ---
 
@@ -57,15 +57,18 @@ Corriger ces écarts par des migrations compatibles avec le build en service ([A
 
 ## Découpage
 
-Un epic technique, [EPIC-049](../../epics/EPIC-049-schema-de-donnees/README.md), avec cette fiche pour spec :
+Un epic technique, [EPIC-049](../epics/EPIC-049-schema-de-donnees/README.md), avec cette fiche pour spec :
 
-1. Index des clés étrangères et homogénéité (§ 1, § 6, § 7) : [US-188](../../epics/EPIC-049-schema-de-donnees/US-188-index-et-homogeneite.md).
-2. Valeurs à liste fermée en énumérations (§ 2) : [US-189](../../epics/EPIC-049-schema-de-donnees/US-189-enumerations.md).
-3. Règles des liens du questionnaire et des relations (§ 3) : [US-190](../../epics/EPIC-049-schema-de-donnees/US-190-regles-des-liens-et-des-relations.md).
-4. Même jeu imposé par la base (§ 3) : [US-191](../../epics/EPIC-049-schema-de-donnees/US-191-meme-jeu-impose-par-la-base.md).
-5. Emails comparés sans tenir compte de la casse (§ 3) : [US-192](../../epics/EPIC-049-schema-de-donnees/US-192-emails-sans-casse.md).
-6. Restes de transitions et PDF du trombinoscope en binaire (§ 5, § 6) : [US-193](../../epics/EPIC-049-schema-de-donnees/US-193-restes-de-transitions-et-pdf.md).
-7. Dates avec fuseau horaire (§ 4) : [US-194](../../epics/EPIC-049-schema-de-donnees/US-194-dates-avec-fuseau.md).
+1. Index des clés étrangères et homogénéité (§ 1, § 6, § 7) : [US-188](../epics/EPIC-049-schema-de-donnees/US-188-index-et-homogeneite.md).
+2. Valeurs à liste fermée en énumérations (§ 2) : [US-189](../epics/EPIC-049-schema-de-donnees/US-189-enumerations.md).
+3. Règles des liens du questionnaire et des relations (§ 3) : [US-190](../epics/EPIC-049-schema-de-donnees/US-190-regles-des-liens-et-des-relations.md).
+4. Même jeu imposé par la base (§ 3) : [US-191](../epics/EPIC-049-schema-de-donnees/US-191-meme-jeu-impose-par-la-base.md).
+5. Emails comparés sans tenir compte de la casse (§ 3) : [US-192](../epics/EPIC-049-schema-de-donnees/US-192-emails-sans-casse.md).
+6. Restes de transitions et PDF du trombinoscope en binaire (§ 5, § 6) : [US-193](../epics/EPIC-049-schema-de-donnees/US-193-restes-de-transitions-et-pdf.md).
+7. Dates avec fuseau horaire (§ 4) : [US-194](../epics/EPIC-049-schema-de-donnees/US-194-dates-avec-fuseau.md).
+8. Même jeu imposé dans les sessions et le vivier, détachée de l'US-191 : [US-195](../epics/EPIC-049-schema-de-donnees/US-195-meme-jeu-sessions-et-vivier.md).
+
+Réalisé et archivé le 2026-11-09 : voir le suivi de l'[EPIC-049](../epics/EPIC-049-schema-de-donnees/README.md#suivi).
 
 ## Décisions
 

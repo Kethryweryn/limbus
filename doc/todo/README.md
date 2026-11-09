@@ -32,4 +32,4 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Jeux de test à jour](../archive/todo/jeux-de-test.md) | [EPIC-044](../archive/epics/EPIC-044-jeux-de-test/README.md) | 2026-11-05 |
 | [Retours du cahier de tests fonctionnels](../archive/todo/retours-du-cahier-de-tests.md) | [EPIC-045](../epics/EPIC-045-retours-du-cahier-de-tests/README.md) | 2026-11-06 |
 | [Un seul mode d'inscription, le vivier permanent](../archive/todo/vivier-permanent.md) | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | 2026-11-06 |
-| [Revue du schéma de données](../archive/todo/schema-de-donnees.md) | [EPIC-049](../epics/EPIC-049-schema-de-donnees/README.md) | 2026-11-09 |
+| [Revue du schéma de données](../archive/todo/schema-de-donnees.md) | [EPIC-049](../archive/epics/EPIC-049-schema-de-donnees/README.md) | 2026-11-09 |

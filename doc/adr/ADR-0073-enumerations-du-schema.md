@@ -3,7 +3,7 @@ id: ADR-0073
 titre: Les valeurs à liste fermée sont des énumérations, les règles entre colonnes des contraintes CHECK
 statut: accepté
 date: 2026-11-09
-liens: [../archive/todo/schema-de-donnees.md, ../epics/EPIC-049-schema-de-donnees/US-189-enumerations.md, ../epics/EPIC-049-schema-de-donnees/US-190-regles-des-liens-et-des-relations.md, ADR-0024-migrations-compatibles-avec-le-build-en-service.md]
+liens: [../archive/todo/schema-de-donnees.md, ../archive/epics/EPIC-049-schema-de-donnees/US-189-enumerations.md, ../archive/epics/EPIC-049-schema-de-donnees/US-190-regles-des-liens-et-des-relations.md, ADR-0024-migrations-compatibles-avec-le-build-en-service.md]
 ---
 
 # ADR-0073 : Les valeurs à liste fermée sont des énumérations, les règles entre colonnes des contraintes CHECK

@@ -26,14 +26,14 @@ Les liens des sessions, du vivier, des paiements et des fichiers suivent dans l'
 - Les modèles de liaison (`CharacterFaction`, `DocumentCharacter`…) ont pour clé primaire (élément A, jeu, élément B), qui sert aussi d'index à la première clé étrangère. Ils s'écrivent par `linkCreate` et `linkSet`, qui ignorent un identifiant donné deux fois, et se lisent par `unlinked`, qui rend à toute profondeur la liste des éléments sous leur nom d'avant (`server/utils/contentLinks.ts`) : l'API garde sa forme.
 - Les références d'un élément vers d'autres éléments passent par une seule vérification, `assertSameGameIds` (`contentWrites.ts`), qui donne le message de refus avant que la base ne refuse.
 - Chaque clé composée a `onUpdate: NoAction` : changer le jeu d'un élément relié est refusé, au lieu de déplacer sans bruit ce qui le référence.
-- `Item.locationCharacterId` et `Document.characterId` sont passées en `onDelete: NoAction`, vidées par `deleteCharacter` ; l'US-195 les a fait passer à `ON DELETE SET NULL (colonne)`, vidées par la base ([ADR-0077](../../adr/ADR-0077-references-videes-par-la-base.md)).
+- `Item.locationCharacterId` et `Document.characterId` sont passées en `onDelete: NoAction`, vidées par `deleteCharacter` ; l'US-195 les a fait passer à `ON DELETE SET NULL (colonne)`, vidées par la base ([ADR-0077](../../../adr/ADR-0077-references-videes-par-la-base.md)).
 - Côté personnage, l'ancien champ « Personnage » des documents s'appelle désormais `legacyDocuments`, pour laisser `documents` aux documents ciblés. L'outil de lecture des assistants rend ces derniers, au lieu de l'ancien champ vide depuis ADR-0072.
 - Les fiches des personnages, groupes et intrigues sont lues par `sheetReads.ts`, comme les documents et les objets.
 - Migration écrite à la main et marquée incompatible : les anciennes tables restent telles quelles jusqu'à l'[US-193](US-193-restes-de-transitions-et-pdf.md). D'ici là, `migrate diff` propose de les supprimer : une migration générée entre-temps retire ces lignes.
 - Production relevée le 2026-11-09 : aucun lien ne relie deux jeux. Pendant les secondes du déploiement, un lien que le build d'avant ajoute ou retire n'est pas recopié, et il ne peut ni créer une case de trombinoscope ni supprimer un personnage qui porte un objet (accepté).
 
 ADR :
-- [ADR-0074](../../adr/ADR-0074-meme-jeu-impose-par-la-base.md)
+- [ADR-0074](../../../adr/ADR-0074-meme-jeu-impose-par-la-base.md)
 
 ## Tests
 

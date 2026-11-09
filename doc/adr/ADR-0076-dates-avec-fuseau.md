@@ -3,7 +3,7 @@ id: ADR-0076
 titre: Les dates sont stockées avec leur fuseau horaire (timestamptz)
 statut: accepté
 date: 2026-11-09
-liens: [../archive/todo/schema-de-donnees.md, ../epics/EPIC-049-schema-de-donnees/US-194-dates-avec-fuseau.md, ADR-0024-migrations-compatibles-avec-le-build-en-service.md]
+liens: [../archive/todo/schema-de-donnees.md, ../archive/epics/EPIC-049-schema-de-donnees/US-194-dates-avec-fuseau.md, ADR-0024-migrations-compatibles-avec-le-build-en-service.md]
 ---
 
 # ADR-0076 : Les dates sont stockées avec leur fuseau horaire (timestamptz)
@@ -18,7 +18,7 @@ Prisma crée les colonnes `DateTime` en `timestamp(3)`, sans fuseau ; aucune mig
 - La migration convertit chaque colonne en lisant l'existant comme de l'UTC : `ALTER COLUMN … TYPE timestamptz(3) USING … AT TIME ZONE 'UTC'`. Exception : une date posée par la base pendant une migration (`DEFAULT CURRENT_TIMESTAMP`) l'a été dans le fuseau de la session de migration (Europe/Paris en production), et se relit dans ce fuseau.
 - Les connexions de Prisma ouvrent leur session en UTC (`-c TimeZone=UTC`, `server/utils/databaseConnection.ts`), quel que soit le fuseau de la base. L'adaptateur pg de Prisma 7 échange les dates sans fuseau, que PostgreSQL lit dans celui de la session : sur une colonne `timestamptz`, une base en Europe/Paris, comme la production, décale chaque instant d'une à deux heures ([prisma/orm#26786](https://github.com/prisma/orm/issues/26786), [prisma/orm#28629](https://github.com/prisma/orm/issues/28629) ; vérifié à l'implémentation).
 - Deux déploiements (choix de l'utilisatrice) : d'abord le réglage de la connexion, sans effet sur les colonnes `timestamp` actuelles, puis la conversion, que le build en service lit et écrit alors correctement.
-- C'est le dernier lot de [EPIC-049](../epics/EPIC-049-schema-de-donnees/README.md). Avant lui, une copie de la base de production est convertie et le build en service y est joué : il doit lire et écrire les mêmes instants.
+- C'est le dernier lot de [EPIC-049](../archive/epics/EPIC-049-schema-de-donnees/README.md). Avant lui, une copie de la base de production est convertie et le build en service y est joué : il doit lire et écrire les mêmes instants.
 
 ## Conséquences
 
