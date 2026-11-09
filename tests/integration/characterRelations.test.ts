@@ -205,9 +205,12 @@ describe('règles tenues par la base (US-190)', () => {
     const faction = await prisma.faction.create({ data: { name: 'Guilde', slug: `${game.slug}-guilde`, gameId: game.id } })
     const intrigue = await prisma.intrigue.create({ data: { name: 'Complot', slug: `${game.slug}-complot`, gameId: game.id } })
     const link = { gameId: game.id, questionId: 'q1', option: 'Combat' }
-    for (const target of [{ characterId: ada.id }, { factionId: faction.id }, { intrigueId: intrigue.id }]) {
+    for (const [index, target] of [['personnage', { characterId: ada.id }], ['groupe', { factionId: faction.id }], ['intrigue', { intrigueId: intrigue.id }]] as const) {
       await prisma.registrationQuestionLink.create({ data: { ...link, ...target } })
-      await expect(prisma.registrationQuestionLink.create({ data: { ...link, ...target } })).rejects.toThrow(/Unique constraint/)
+      // L'index de la sorte de cible refuse le doublon : l'erreur le nomme
+      const duplicate = await prisma.registrationQuestionLink.create({ data: { ...link, ...target } }).then(() => null, (error: { code?: string, meta?: unknown }) => error)
+      expect(duplicate?.code).toBe('P2002')
+      expect(JSON.stringify(duplicate?.meta)).toContain(`RegistrationQuestionLink_${index}_unique_key`)
     }
     // Témoins : autre cible, autre option, même question dans la copie d'un jeu
     await prisma.registrationQuestionLink.createMany({ data: [

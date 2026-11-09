@@ -11,9 +11,14 @@ function getDatabaseUrl() {
     return databaseUrl
 }
 
-export function isSlugConflict(error: unknown) {
+/** Violation d'une contrainte d'unicité, sur un champ donné si `field` est précisé. */
+export function isUniqueConflict(error: unknown, field?: string) {
     const { code, meta } = (error || {}) as { code?: string, meta?: unknown }
-    return code === 'P2002' && JSON.stringify(meta ?? {}).includes('slug')
+    return code === 'P2002' && (!field || JSON.stringify(meta ?? {}).includes(field))
+}
+
+export function isSlugConflict(error: unknown) {
+    return isUniqueConflict(error, 'slug')
 }
 
 // Deux enregistrements simultanés du même nom calculent le même slug (generateUniqueSlug lit puis écrit) :

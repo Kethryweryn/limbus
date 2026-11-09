@@ -44,15 +44,14 @@ export function errorMessage(response: { body: unknown }) {
   return (response.body as { message: string }).message
 }
 
-/** Champs refusés par la validation d'un corps (readZodBody), dans l'ordre des erreurs. */
-export function invalidPaths(response: { body: unknown }) {
-  return (response.body as { data: { data: Array<{ path: string }> } }).data.data.map((issue) => issue.path)
-}
+/** Refus de la validation d'un corps (readZodBody), dans l'ordre des erreurs. */
+const invalidIssues = (response: { body: unknown }) => (response.body as { data: { data: Array<{ path: string, message: string }> } }).data.data
 
-/** Messages des champs refusés par la validation d'un corps, dans le même ordre. */
-export function invalidMessages(response: { body: unknown }) {
-  return (response.body as { data: { data: Array<{ message: string }> } }).data.data.map((issue) => issue.message)
-}
+/** Champs refusés par la validation d'un corps, dans l'ordre des erreurs. */
+export const invalidPaths = (response: { body: unknown }) => invalidIssues(response).map((issue) => issue.path)
+
+/** Messages des champs refusés, dans le même ordre. */
+export const invalidMessages = (response: { body: unknown }) => invalidIssues(response).map((issue) => issue.message)
 
 // Refus attendu : 403 (accès interdit) ou 404 (ressource introuvable pour cet utilisateur)
 export const DENIED = [403, 404]

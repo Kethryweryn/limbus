@@ -26,6 +26,8 @@ Un index `NULLS NOT DISTINCT` sur les cinq colonnes a été essayé : Prisma ne 
 
 Production relevée le 2026-11-09 : 14 liens et 3 relations, aucun n'enfreint ces règles. Le build en service les vérifiait déjà avant d'écrire : migration compatible.
 
+Deux enregistrements simultanés des liens se heurtent désormais aux index : le second répond 409 (« rechargez la page »). La copie d'un jeu ignore un lien dont la cible a été créée pendant sa lecture, au lieu de l'écrire sans cible.
+
 ADR :
 - [ADR-0073](../../adr/ADR-0073-enumerations-du-schema.md)
 
