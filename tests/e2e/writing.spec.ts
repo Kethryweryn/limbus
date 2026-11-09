@@ -87,10 +87,19 @@ for (const [label, element] of Object.entries(ELEMENTS)) {
       const created = await element.find(prisma, name)
       expect(created).not.toBeNull()
 
+      // La fiche s'ouvre d'un clic sur la carte, hors du nom et des boutons (US-179, US-197)
+      await page.getByPlaceholder(element.search).fill(name)
+      const card = page.locator('[role="link"]').filter({ has: page.getByRole('heading', { name, exact: true }) })
+      const box = (await card.boundingBox())!
+      await card.click({ position: { x: 4, y: box.height - 4 } })
+      await expect(page).toHaveURL(new RegExp(`${element.list}/${created!.slug}$`))
+      // Navigation dans l'application : la liste reste affichée tant que la fiche charge, avec le nom en titre de carte
+      // (h2) ; la fiche est prête quand son titre principal s'affiche
+      await expect(page.getByRole('heading', { level: 1, name, exact: true })).toBeVisible()
+      await page.waitForLoadState('networkidle')
+
       // Renommage depuis la fiche
       const renamed = uniqueName(`${element.noun} renommé`)
-      await page.goto(`${element.list}/${created!.slug}`)
-      await page.waitForLoadState('networkidle')
       await page.getByRole('button', { name: 'Modifier' }).first().click()
       await page.getByLabel(element.nameLabel, { exact: true }).fill(renamed)
       await page.getByRole('button', { name: 'Enregistrer' }).click()

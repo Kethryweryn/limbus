@@ -23,33 +23,49 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      <UCard v-for="location in paginatedLocations" :key="location.id">
+      <UCard
+        v-for="location in paginatedLocations"
+        :key="location.id"
+        class="cursor-pointer transition-shadow hover:shadow-md"
+        role="link"
+        tabindex="0"
+        @click="openLocationPage(location)"
+        @keydown.enter="openLocationPage(location)"
+      >
         <template #header>
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <NuxtLink :to="`/locations/${location.slug}`" class="block font-semibold truncate hover:underline">
-                {{ location.name }}
-              </NuxtLink>
-              <p class="text-sm text-gray-500 truncate">
+          <div class="space-y-2">
+            <h2 class="text-lg font-semibold leading-tight">{{ location.name }}</h2>
+            <div class="flex flex-wrap gap-1">
+              <UBadge color="neutral" variant="subtle" size="xs" class="max-w-full truncate">
                 {{ location.game?.title || 'Jeu inconnu' }}
-                <UBadge v-if="isInArchivedGame(location)" color="neutral" variant="solid" size="xs" class="ml-1">Archivé</UBadge>
-              </p>
-            </div>
-            <div class="flex gap-2">
-              <UButton size="xs" color="primary" @click="startEdit(location)">Modifier</UButton>
-              <UButton size="xs" color="error" @click="deleteLocation(location.id)">Supprimer</UButton>
+              </UBadge>
+              <UBadge v-if="isInArchivedGame(location)" color="neutral" variant="solid" size="xs">
+                Archivé
+              </UBadge>
             </div>
           </div>
         </template>
 
-        <div class="space-y-2 text-sm">
-          <div v-if="location.address">
-            <span class="text-gray-500">Adresse</span>
-            <div class="whitespace-pre-line">{{ location.address }}</div>
+        <div class="space-y-4">
+          <div class="space-y-2 text-sm">
+            <div v-if="location.address">
+              <span class="text-gray-500">Adresse</span>
+              <div class="whitespace-pre-line line-clamp-3">{{ location.address }}</div>
+            </div>
+            <div v-if="location.notes">
+              <span class="text-gray-500">Notes</span>
+              <div class="whitespace-pre-line line-clamp-4">{{ location.notes }}</div>
+            </div>
+            <p v-if="!location.address && !location.notes" class="text-gray-600">Aucune adresse ni note renseignée.</p>
           </div>
-          <div v-if="location.notes">
-            <span class="text-gray-500">Notes</span>
-            <div class="whitespace-pre-line">{{ location.notes }}</div>
+
+          <div class="flex flex-wrap gap-2 pt-1">
+            <UButton icon="i-heroicons-pencil-square" size="xs" color="primary" @click.stop="startEdit(location)">
+              Modifier
+            </UButton>
+            <UButton icon="i-heroicons-trash" size="xs" color="error" variant="soft" @click.stop="deleteLocation(location.id)">
+              Supprimer
+            </UButton>
           </div>
         </div>
       </UCard>
@@ -102,6 +118,7 @@ const showArchived = ref(false)
 const showFormSlideover = ref(false)
 const activeFormLocation = ref<LocationDraft | null>(null)
 const formMode = ref<'create' | 'edit'>('create')
+const router = useRouter()
 const { game: selectedGame } = useGameFocus()
 
 const gameFilterOptions = computed(() => [
@@ -183,6 +200,11 @@ function startEdit(location: LocationRow) {
 function closeFormSlideover() {
   activeFormLocation.value = null
   showFormSlideover.value = false
+}
+
+// US-197 : la carte entière ouvre la fiche, comme dans les autres listes du jeu
+function openLocationPage(location: LocationRow) {
+  void router.push(`/locations/${location.slug}`)
 }
 
 async function handleLocationFormSubmit() {
