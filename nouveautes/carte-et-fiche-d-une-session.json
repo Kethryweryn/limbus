@@ -1,0 +1,5 @@
+{
+  "type": "modifie",
+  "titre": "Sessions : la carte s’ouvre d’un clic",
+  "texte": "Sur la page Sessions, un clic sur la carte d’une session l’ouvre, comme dans les autres listes. Son bouton « Organisation » s’appelle maintenant « Modifier », et une session se supprime aussi depuis sa propre page, avec la même confirmation."
+}

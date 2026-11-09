@@ -11,14 +11,13 @@
           :items="gameOptions"
           value-key="value"
           placeholder="Choisissez un jeu"
-          required
           size="lg"
           class="w-full"
         />
       </UFormField>
 
       <UFormField label="Nom" :error="errors.name">
-        <UInput v-model="localSession.name" required size="lg" class="w-full" />
+        <UInput v-model="localSession.name" size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Statut">

@@ -17,7 +17,7 @@ Chaque écran de Limbus a plusieurs tests Playwright, sur quatre axes : ses acti
 | US | Titre | Statut |
 |---|---|---|
 | [US-198](US-198-tests-ecriture.md) | Tester chaque écran de l'écriture d'un jeu | terminée |
-| [US-199](US-199-tests-sessions.md) | Tester chaque écran des sessions | à faire |
+| [US-199](US-199-tests-sessions.md) | Tester chaque écran des sessions | en cours |
 | [US-200](US-200-tests-participants.md) | Tester chaque écran des participants | à faire |
 | [US-201](US-201-tests-compte-et-administration.md) | Tester les écrans du compte, de l'accès et de l'administration | à faire |
 | [US-202](US-202-tests-espace-participant.md) | Tester l'espace « Je participe », le lien public d'inscription et les assistants | à faire |
@@ -27,6 +27,7 @@ Chaque écran de Limbus a plusieurs tests Playwright, sur quatre axes : ses acti
 | [US-206](US-206-erreur-du-serveur-dans-le-formulaire.md) | Voir le refus du serveur dans le formulaire d'un personnage ou d'un jeu | terminée |
 | [US-207](US-207-supprimer-un-jeu-archive.md) | Supprimer définitivement un jeu archivé | terminée |
 | [US-208](US-208-description-une-seule-fois.md) | Lire la description d'un jeu une seule fois | terminée |
+| [US-209](US-209-carte-et-fiche-d-une-session.md) | Ouvrir une session d'un clic sur sa carte, et la supprimer depuis sa fiche | terminée |
 
 ## Définition de terminé
 
