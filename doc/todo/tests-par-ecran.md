@@ -8,7 +8,7 @@ date: 2026-11-09
 
 ## Besoin
 
-En déroulant son cahier de tests, l'utilisatrice constate que beaucoup de fonctionnalités anciennes n'ont aucun test automatique, quand celles écrites depuis la reprise en ont plusieurs. Le 2026-11-09, la suite Playwright compte 86 tests pour 43 écrans. Un écran ancien en a un ou deux. Par exemple, Lieux, Groupes, Intrigues et Objets n'ont que « créer, renommer, supprimer » et « supprimer depuis la fiche ». La recherche, les filtres, les archives, la pagination, les liens entre éléments, les erreurs de saisie, les droits et le hors ligne n'y sont vérifiés par aucun test de bout en bout. Les routes, elles, sont couvertes par les tests d'intégration (`tests/integration/`), mais pas l'écran qui les appelle.
+En déroulant son cahier de tests, l'utilisatrice constate que beaucoup de fonctionnalités anciennes n'ont aucun test automatique, quand celles écrites depuis la reprise en ont plusieurs. Le 2026-11-09, la suite Playwright joue 94 tests (CI de la PR #187) pour 43 écrans. Un écran ancien en a un ou deux. Par exemple, Lieux, Groupes, Intrigues et Objets n'ont que « créer, renommer, supprimer » et « supprimer depuis la fiche ». La recherche, les filtres, les archives, la pagination, les liens entre éléments, les erreurs de saisie, les droits et le hors ligne n'y sont vérifiés par aucun test de bout en bout. Les routes, elles, sont couvertes par les tests d'intégration (`tests/integration/`), mais pas l'écran qui les appelle.
 
 ## Proposition
 
@@ -23,11 +23,11 @@ Les tests suivent `.claude/rules/tests.md` : chaque test crée ses données, éc
 
 ### Écriture d'un jeu (SPEC-002, SPEC-003, SPEC-009)
 
-Existant : chaque élément se crée, se renomme, se supprime et s'ouvre d'un clic sur sa carte (`writing.spec.ts`) ; il se supprime aussi depuis sa fiche. S'y ajoutent une introuvable pour documents et timeline, le jeu qui se crée, se renomme et se partage, et le legs (`bequest.spec.ts`).
+Existant : chaque élément se crée, se renomme et se supprime (`writing.spec.ts`), et se supprime aussi depuis sa fiche ; la PR #188 y ajoute l'ouverture depuis la carte, au clic et par Entrée. S'y ajoutent une introuvable pour documents et timeline, le jeu qui se crée, se renomme et se partage, et le legs (`bequest.spec.ts`).
 
 | Écran | À ajouter |
 |---|---|
-| Listes (jeux, personnages, groupes, intrigues, objets, documents, lieux) | Recherche par nom et par champ secondaire ; filtre par jeu et barre du jeu actif ; « Afficher les archives » ; pagination (plus de 9 éléments, page 2, retour à la page 1 après une recherche) ; formulaire de création : nom vide refusé, jeu imposé quand un jeu est actif |
+| Listes (jeux, personnages, groupes, intrigues, objets, documents, lieux) | Recherche par nom et par champ secondaire ; filtre par jeu et barre du jeu actif ; « Afficher les archives » ; pagination (une page de plus que la taille de la liste : 5 jeux, 6 personnages, 9 pour les autres ; page 2, retour à la page 1 après une recherche) ; formulaire de création : nom vide refusé, jeu imposé quand un jeu est actif |
 | Jeux | Archiver et restaurer (le contenu suit, R3) ; publier et dépublier la page publique (R1, R3, R4) ; jeu actif choisi depuis sa carte ; supprimer un jeu et tout son contenu (R4) ; teaser : lien non http(s) refusé, YouTube intégré (R1, R15) ; co-organisatrice : modifie, mais ne supprime pas, ne partage pas et ne lègue pas (R16, R17) ; quitter un jeu partagé (SPEC-011, R2) ; transfert de propriété proposé puis accepté (SPEC-011, R3) |
 | Personnage | Type PJ ou PNJ ; histoire en texte ou en lien ; groupes et intrigues associés depuis la fiche ; relations (ajout, sens, suppression) ; réglages du trombinoscope (exclusion, visage caché, nom affiché) ; photo par défaut |
 | Groupe | Membres et intrigues ; « afficher dans le trombinoscope » (SPEC-005, R2) ; suppression qui laisse les personnages (R14) |
@@ -46,7 +46,7 @@ Existant : création, détails et équipe (`sessions.spec.ts`), casting et assis
 
 | Écran | À ajouter |
 |---|---|
-| Liste des sessions | Recherche ; filtre par jeu et par statut ; tri par date ; pagination |
+| Liste des sessions | Recherche ; barre du jeu actif ; sessions à venir triées par date, sessions passées, annulées ou terminées à part, les plus récentes d'abord ; pagination |
 | Détails | Date facultative ; lieu du même jeu seulement (R1) ; statut changé librement (R2) ; visible ou non sur la page publique (R2b) ; suppression refusée avec un paiement ou une inscription (R3) |
 | Équipe et casting | Plusieurs rôles par personne (R5) ; un personnage à une seule personne (R6) ; plusieurs personnages pour une personne selon le réglage (R7) ; PNJ seulement à l'organisation ou aux PNJ (R8) ; rôle « participant » ajouté au casting d'un PJ (R9) ; photo d'attribution (R10) ; conflit avec un enregistrement concurrent (R11) |
 | Déroulé | Responsables parmi l'organisation et les PNJ (R12) ; enregistrement qui remplace les affectations (R13) |
@@ -83,7 +83,7 @@ Existant : la connexion et la déconnexion (8 tests), l'accès au compte et ses 
 
 | Écran | À ajouter |
 |---|---|
-| Inscription libre | Mot de passe de moins de 8 caractères refusé ; adresse déjà prise (sans le dire, R2) ; champ invisible anti-robot (SPEC-011, R6) |
+| Inscription libre | Mot de passe de moins de 8 caractères refusé (SPEC-008, R1) ; adresse d'un compte confirmé : même réponse qu'une inscription, et un email « compte existant » avec le lien de mot de passe oublié ; champ invisible anti-robot (SPEC-011, R6) ; inscription fermée : pas de lien depuis la connexion (SPEC-011, R4) |
 | Compte | Changement de nom et de coordonnées recopiés sur les fiches ; « Déconnecter tous mes appareils » (R4) |
 | Invitation à co-organiser | Invitation expirée ou annulée ; compte d'une autre adresse refusé (R12) ; invitation de la propriétaire ou d'une personne qui a déjà accès refusée (R10) |
 | Administration | Création d'un compte, avec un lien pour choisir le mot de passe (SPEC-011, R9) ; désactivation ; plafond de stockage ; réglage SMTP et email de test ; mode administrateur, activé puis désactivé (R7) |
