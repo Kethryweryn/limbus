@@ -3,7 +3,7 @@ id: ADR-0075
 titre: Les adresses email sont comparées sans tenir compte de la casse par le type citext
 statut: accepté
 date: 2026-11-09
-liens: [../archive/todo/schema-de-donnees.md, ../epics/EPIC-049-schema-de-donnees/US-192-emails-sans-casse.md]
+liens: [../archive/todo/schema-de-donnees.md, ../archive/epics/EPIC-049-schema-de-donnees/US-192-emails-sans-casse.md]
 ---
 
 # ADR-0075 : Les adresses email sont comparées sans tenir compte de la casse par le type citext

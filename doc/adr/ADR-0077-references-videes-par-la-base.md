@@ -3,7 +3,7 @@ id: ADR-0077
 titre: Une référence composée avec le jeu se vide par la base, sans toucher au jeu
 statut: accepté
 date: 2026-11-09
-liens: [ADR-0074-meme-jeu-impose-par-la-base.md, ../epics/EPIC-049-schema-de-donnees/US-195-meme-jeu-sessions-et-vivier.md, ../epics/EPIC-049-schema-de-donnees/US-191-meme-jeu-impose-par-la-base.md]
+liens: [ADR-0074-meme-jeu-impose-par-la-base.md, ../archive/epics/EPIC-049-schema-de-donnees/US-195-meme-jeu-sessions-et-vivier.md, ../archive/epics/EPIC-049-schema-de-donnees/US-191-meme-jeu-impose-par-la-base.md]
 ---
 
 # ADR-0077 : Une référence composée avec le jeu se vide par la base, sans toucher au jeu

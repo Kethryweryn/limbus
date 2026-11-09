@@ -28,7 +28,7 @@ Dernier lot de l'epic, en deux déploiements (ADR-0076) :
 Exception relevée à la revue : une date posée par la base pendant une migration (`DEFAULT CURRENT_TIMESTAMP` d'une colonne ajoutée) a été écrite dans le fuseau de la session de migration, Europe/Paris. En production, la migration de l'US-188 s'est terminée à 23:44:54 UTC, mais 66 fiches et 96 lignes de casting portent `createdAt = 00:44:52` : une heure d'avance. Même cas pour `User.lastSeenAt` et `emailConfirmedAt` des comptes existants à leur migration. La conversion ramène d'abord en UTC, sur les vingt colonnes qu'une migration a ajoutées avec une date par défaut, toute valeur comprise dans la durée d'une migration lue en heure de Paris (à 5 secondes près) ; en production : 66 fiches, 96 lignes de casting, 46 équipes de session et 6 dates de compte. Aucune autre colonne n'a de valeur dans ces fenêtres. Sur une base en UTC, rien ne change. Une sous-requête n'est pas permise dans `USING` : la correction est un `UPDATE` avant la conversion.
 
 ADR :
-- [ADR-0076](../../adr/ADR-0076-dates-avec-fuseau.md)
+- [ADR-0076](../../../adr/ADR-0076-dates-avec-fuseau.md)
 
 ## Tests
 

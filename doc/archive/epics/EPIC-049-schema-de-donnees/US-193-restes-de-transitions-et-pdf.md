@@ -17,7 +17,7 @@ En tant que mainteneuse de Limbus, je veux retirer les colonnes qui ne servent p
 - [x] `Document.audience` et `Document.characterId` (avec `Character.legacyDocuments`) sont retirées, une fois le build qui les écrit remplacé.
 - [x] Les onze anciennes tables de liaison (`_CharacterFactions`…), recopiées par l'[US-191](US-191-meme-jeu-impose-par-la-base.md), sont retirées.
 - [x] Le PDF du trombinoscope est écrit dans une colonne `Bytes`, remplie depuis l'existant ; l'ancienne colonne base64 est retirée au déploiement suivant.
-- [x] Les PDF générés restent en base ([ADR-0044](../../adr/ADR-0044-copies-des-envois.md)).
+- [x] Les PDF générés restent en base ([ADR-0044](../../../adr/ADR-0044-copies-des-envois.md)).
 
 ## Notes techniques
 

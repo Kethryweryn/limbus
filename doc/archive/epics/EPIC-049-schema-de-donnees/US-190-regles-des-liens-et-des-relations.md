@@ -29,7 +29,7 @@ Production relevée le 2026-11-09 : 14 liens et 3 relations, aucun n'enfreint ce
 Deux enregistrements simultanés des liens se heurtent désormais aux index : le second répond 409 (« rechargez la page »). La copie d'un jeu ignore un lien dont la cible a été créée pendant sa lecture, au lieu de l'écrire sans cible.
 
 ADR :
-- [ADR-0073](../../adr/ADR-0073-enumerations-du-schema.md)
+- [ADR-0073](../../../adr/ADR-0073-enumerations-du-schema.md)
 
 ## Tests
 

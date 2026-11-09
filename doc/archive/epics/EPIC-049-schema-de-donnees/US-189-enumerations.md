@@ -24,7 +24,7 @@ En tant que mainteneuse de Limbus, je veux que la base refuse une valeur hors li
 Migration `20261118090000_enumerations`, écrite à la main : Prisma générait une suppression puis un ajout de chaque colonne, qui aurait effacé ses valeurs ; chaque colonne change de type sur place (`USING … ::text::"Type"`). Les deux index uniques partiels de `SessionDocumentDelivery`, créés à la main en mai et absents du schéma, comparent `kind` à du texte : la migration les recrée sur le nouveau type. Le journal des assistants (`AiLogEntry.action`, `targetType`) reste en texte : journal sans liste fermée, vide en production.
 
 ADR :
-- [ADR-0073](../../adr/ADR-0073-enumerations-du-schema.md)
+- [ADR-0073](../../../adr/ADR-0073-enumerations-du-schema.md)
 
 ## Tests
 

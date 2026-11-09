@@ -56,7 +56,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-046](EPIC-046-vivier-unique/README.md) | Vivier unique et statut par session | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | en cours |
 | [EPIC-047](EPIC-047-demande-de-disponibilites/README.md) | Demande de disponibilités au vivier | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | à faire |
 | [EPIC-048](EPIC-048-casting-depuis-le-vivier/README.md) | Casting depuis le vivier | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | à faire |
-| [EPIC-049](EPIC-049-schema-de-donnees/README.md) | Schéma de données | [fiche](../archive/todo/schema-de-donnees.md) | en cours |
+| [EPIC-049](../archive/epics/EPIC-049-schema-de-donnees/README.md) | Schéma de données | [fiche](../archive/todo/schema-de-donnees.md) | terminé |
 
 ## US
 
@@ -249,11 +249,11 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-185](EPIC-045-retours-du-cahier-de-tests/US-185-une-fiche-par-personne.md) | Une seule fiche par personne dans mes jeux | EPIC-045 | terminée |
 | [US-186](EPIC-045-retours-du-cahier-de-tests/US-186-supprimer-depuis-la-fiche.md) | Supprimer un élément depuis sa fiche | EPIC-045 | terminée |
 | [US-187](EPIC-045-retours-du-cahier-de-tests/US-187-public-des-documents.md) | Choisir le public d'un document par rôles et par personnages | EPIC-045 | terminée |
-| [US-188](EPIC-049-schema-de-donnees/US-188-index-et-homogeneite.md) | Indexer les clés étrangères et rendre le schéma homogène | EPIC-049 | terminée |
-| [US-189](EPIC-049-schema-de-donnees/US-189-enumerations.md) | Faire refuser par la base les valeurs inconnues | EPIC-049 | terminée |
-| [US-190](EPIC-049-schema-de-donnees/US-190-regles-des-liens-et-des-relations.md) | Faire tenir par la base les règles des liens du questionnaire et des relations | EPIC-049 | terminée |
-| [US-191](EPIC-049-schema-de-donnees/US-191-meme-jeu-impose-par-la-base.md) | Faire refuser par la base un lien entre éléments du contenu de deux jeux | EPIC-049 | terminée |
-| [US-192](EPIC-049-schema-de-donnees/US-192-emails-sans-casse.md) | Comparer les adresses email sans tenir compte de la casse dans la base | EPIC-049 | terminée |
-| [US-193](EPIC-049-schema-de-donnees/US-193-restes-de-transitions-et-pdf.md) | Retirer les colonnes inutiles et garder le PDF du trombinoscope en binaire | EPIC-049 | terminée |
-| [US-194](EPIC-049-schema-de-donnees/US-194-dates-avec-fuseau.md) | Stocker les dates avec leur fuseau horaire | EPIC-049 | terminée |
-| [US-195](EPIC-049-schema-de-donnees/US-195-meme-jeu-sessions-et-vivier.md) | Faire refuser par la base un lien entre deux jeux dans les sessions et le vivier | EPIC-049 | terminée |
+| [US-188](../archive/epics/EPIC-049-schema-de-donnees/US-188-index-et-homogeneite.md) | Indexer les clés étrangères et rendre le schéma homogène | EPIC-049 | terminée |
+| [US-189](../archive/epics/EPIC-049-schema-de-donnees/US-189-enumerations.md) | Faire refuser par la base les valeurs inconnues | EPIC-049 | terminée |
+| [US-190](../archive/epics/EPIC-049-schema-de-donnees/US-190-regles-des-liens-et-des-relations.md) | Faire tenir par la base les règles des liens du questionnaire et des relations | EPIC-049 | terminée |
+| [US-191](../archive/epics/EPIC-049-schema-de-donnees/US-191-meme-jeu-impose-par-la-base.md) | Faire refuser par la base un lien entre éléments du contenu de deux jeux | EPIC-049 | terminée |
+| [US-192](../archive/epics/EPIC-049-schema-de-donnees/US-192-emails-sans-casse.md) | Comparer les adresses email sans tenir compte de la casse dans la base | EPIC-049 | terminée |
+| [US-193](../archive/epics/EPIC-049-schema-de-donnees/US-193-restes-de-transitions-et-pdf.md) | Retirer les colonnes inutiles et garder le PDF du trombinoscope en binaire | EPIC-049 | terminée |
+| [US-194](../archive/epics/EPIC-049-schema-de-donnees/US-194-dates-avec-fuseau.md) | Stocker les dates avec leur fuseau horaire | EPIC-049 | terminée |
+| [US-195](../archive/epics/EPIC-049-schema-de-donnees/US-195-meme-jeu-sessions-et-vivier.md) | Faire refuser par la base un lien entre deux jeux dans les sessions et le vivier | EPIC-049 | terminée |
