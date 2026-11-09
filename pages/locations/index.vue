@@ -23,14 +23,10 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      <UCard
+      <ContentCard
         v-for="location in paginatedLocations"
         :key="location.id"
-        class="cursor-pointer transition-shadow hover:shadow-md"
-        role="link"
-        tabindex="0"
-        @click="openLocationPage(location)"
-        @keydown.enter="openLocationPage(location)"
+        :to="`/locations/${location.slug}`"
       >
         <template #header>
           <div class="space-y-2">
@@ -68,7 +64,7 @@
             </UButton>
           </div>
         </div>
-      </UCard>
+      </ContentCard>
     </div>
 
     <div class="flex items-center justify-center gap-4 mt-6">
@@ -118,7 +114,6 @@ const showArchived = ref(false)
 const showFormSlideover = ref(false)
 const activeFormLocation = ref<LocationDraft | null>(null)
 const formMode = ref<'create' | 'edit'>('create')
-const router = useRouter()
 const { game: selectedGame } = useGameFocus()
 
 const gameFilterOptions = computed(() => [
@@ -138,6 +133,8 @@ const filteredLocations = computed(() => {
         field?.toLowerCase().includes(term)
       )
     )
+    // Dernier modifié en tête, comme les autres listes du jeu
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
 })
 
 const page = ref(1)
@@ -200,11 +197,6 @@ function startEdit(location: LocationRow) {
 function closeFormSlideover() {
   activeFormLocation.value = null
   showFormSlideover.value = false
-}
-
-// US-197 : la carte entière ouvre la fiche, comme dans les autres listes du jeu
-function openLocationPage(location: LocationRow) {
-  void router.push(`/locations/${location.slug}`)
 }
 
 async function handleLocationFormSubmit() {

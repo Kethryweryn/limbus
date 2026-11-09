@@ -87,11 +87,24 @@ for (const [label, element] of Object.entries(ELEMENTS)) {
       const created = await element.find(prisma, name)
       expect(created).not.toBeNull()
 
-      // La fiche s'ouvre d'un clic sur la carte, hors du nom et des boutons (US-179, US-197)
+      // Carte de la liste (US-179, US-197) : Entrée sur « Modifier » ouvre le formulaire sans ouvrir la fiche…
       await page.getByPlaceholder(element.search).fill(name)
       const card = page.locator('[role="link"]').filter({ has: page.getByRole('heading', { name, exact: true }) })
-      const box = (await card.boundingBox())!
-      await card.click({ position: { x: 4, y: box.height - 4 } })
+      await card.getByRole('button', { name: 'Modifier' }).focus()
+      await page.keyboard.press('Enter')
+      await expect(page.getByRole('dialog')).toBeVisible()
+      await expect(page).toHaveURL(new RegExp(`${element.list}$`))
+      await page.keyboard.press('Escape')
+      await expect(page.getByRole('dialog')).toBeHidden()
+      // … Entrée sur la carte ouvre la fiche…
+      await card.focus()
+      await page.keyboard.press('Enter')
+      await expect(page).toHaveURL(new RegExp(`${element.list}/${created!.slug}$`))
+      await expect(page.getByRole('heading', { level: 1, name, exact: true })).toBeVisible()
+      // … et un clic sur la carte, hors du nom et des boutons, aussi
+      await page.goBack()
+      await page.getByPlaceholder(element.search).fill(name)
+      await card.getByText(game.title, { exact: true }).click()
       await expect(page).toHaveURL(new RegExp(`${element.list}/${created!.slug}$`))
       // Navigation dans l'application : la liste reste affichée tant que la fiche charge, avec le nom en titre de carte
       // (h2) ; la fiche est prête quand son titre principal s'affiche

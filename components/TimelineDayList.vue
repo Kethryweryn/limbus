@@ -19,7 +19,7 @@
           role="link"
           tabindex="0"
           @click="emit('open', timelineEvent)"
-          @keydown.enter="emit('open', timelineEvent)"
+          @keydown.enter.self="emit('open', timelineEvent)"
         >
           <div class="flex lg:block items-center gap-2">
             <UBadge color="neutral" variant="subtle">{{ timelineEvent.time }}</UBadge>
