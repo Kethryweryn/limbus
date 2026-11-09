@@ -1366,15 +1366,6 @@ enum DocumentRole {
   pjs
 }
 
-// Ancien public unique d'un document, encore écrit pour le build d'avant (ADR-0072)
-enum DocumentAudience {
-  targeted
-  everyone
-  organizers
-  npcs
-  kitchen
-}
-
 enum SessionStatus {
   scheduled
   postponed

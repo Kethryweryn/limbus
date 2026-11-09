@@ -1,7 +1,7 @@
 ---
 id: US-193
 titre: Retirer les colonnes inutiles et garder le PDF du trombinoscope en binaire
-statut: en cours
+statut: terminée
 epic: EPIC-049
 regles: []
 adr: []
@@ -13,11 +13,11 @@ En tant que mainteneuse de Limbus, je veux retirer les colonnes qui ne servent p
 
 ## Critères d'acceptation
 
-- [ ] `Participant.notes` et `GameInvitation.token` sont retirées.
-- [ ] `Document.audience` et `Document.characterId` (avec `Character.legacyDocuments`) sont retirées, une fois le build qui les écrit remplacé.
+- [x] `Participant.notes` et `GameInvitation.token` sont retirées.
+- [x] `Document.audience` et `Document.characterId` (avec `Character.legacyDocuments`) sont retirées, une fois le build qui les écrit remplacé.
 - [x] Les onze anciennes tables de liaison (`_CharacterFactions`…), recopiées par l'[US-191](US-191-meme-jeu-impose-par-la-base.md), sont retirées.
-- [ ] Le PDF du trombinoscope est écrit dans une colonne `Bytes`, remplie depuis l'existant ; l'ancienne colonne base64 est retirée au déploiement suivant.
-- [ ] Les PDF générés restent en base ([ADR-0044](../../adr/ADR-0044-copies-des-envois.md)).
+- [x] Le PDF du trombinoscope est écrit dans une colonne `Bytes`, remplie depuis l'existant ; l'ancienne colonne base64 est retirée au déploiement suivant.
+- [x] Les PDF générés restent en base ([ADR-0044](../../adr/ADR-0044-copies-des-envois.md)).
 
 ## Notes techniques
 
@@ -28,4 +28,4 @@ En deux déploiements (ADR-0024) : le client Prisma du build en service lit tout
 
 ## Tests
 
-Premier déploiement : intégration et Playwright complets, dont `documentAudiences.test.ts` (écriture d'avant refusée) et `offline.spec.ts` (mise à niveau de la base de l'appareil) ; migration jouée sur une base au schéma d'avant (PDF recopié à l'identique, anciennes tables retirées). Second déploiement : à compléter.
+Premier déploiement : intégration et Playwright complets, dont `documentAudiences.test.ts` (écriture d'avant refusée) et `offline.spec.ts` (mise à niveau de la base de l'appareil) ; migration jouée sur une base au schéma d'avant (PDF recopié à l'identique, anciennes tables retirées). Second déploiement : migration jouée sur une base neuve, différence avec le schéma vide ; `tests/integration/schema.test.ts` et `sameGame.test.ts` sans l'ancien public ni l'ancien personnage ; intégration et Playwright complets.

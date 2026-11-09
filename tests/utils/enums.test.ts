@@ -8,7 +8,6 @@ import { CHARACTER_RELATION_TYPE_VALUES } from '~/utils/characterRelations'
 import { DOCUMENT_ROLES } from '~/utils/documentAudiences'
 import {
   CHARACTER_TYPES,
-  DOCUMENT_AUDIENCES,
   GAME_INVITATION_KINDS,
   GAME_INVITATION_STATUSES,
   GAME_SHARE_ROLES,
@@ -36,7 +35,6 @@ describe('listes du code et énumérations de la base', () => {
     ['CharacterRelationType', CHARACTER_RELATION_TYPE_VALUES],
     ['IntrigueLevel', INTRIGUE_LEVELS],
     ['DocumentRole', DOCUMENT_ROLES],
-    ['DocumentAudience', DOCUMENT_AUDIENCES],
     ['SessionStatus', SESSION_STATUSES],
     ['RegistrationPeriodState', REGISTRATION_PERIOD_STATES],
     ['ReplayPolicy', REGISTRATION_REPLAY_POLICIES],

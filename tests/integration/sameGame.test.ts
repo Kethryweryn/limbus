@@ -176,7 +176,6 @@ describe('liens entre éléments de deux jeux (US-191, US-195)', () => {
         AND EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid = c.conrelid AND a.attnum = ANY (c.conkey) AND a.attname = 'gameId' AND a.attnotnull)
       ORDER BY 1`
     expect(rows.map((row) => row.constraint)).toEqual([
-      'Document_characterId_gameId_fkey',
       'Item_locationCharacterId_gameId_fkey',
       'RegistrationDraw_sessionId_gameId_fkey',
       'RegistrationRequest_formVersionId_gameId_fkey',

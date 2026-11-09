@@ -77,16 +77,6 @@ export type SessionRole = typeof SESSION_ROLES[keyof typeof SESSION_ROLES]
 
 export const SESSION_CAST_ROLES: SessionRole[] = [SESSION_ROLES.participant, SESSION_ROLES.organizer, SESSION_ROLES.npc]
 
-// Ancien public unique d'un document, lu seulement pour convertir une écriture d'avant ADR-0072 (utils/documentAudiences.ts)
-export const DOCUMENT_AUDIENCES = {
-  targeted: 'targeted',
-  everyone: 'everyone',
-  organizers: 'organizers',
-  npcs: 'npcs',
-  kitchen: 'kitchen'
-} as const
-
-
 export const INTRIGUE_LEVELS = {
   mainStory: 'main_story',
   mainCharacter: 'main_character',
