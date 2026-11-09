@@ -203,6 +203,7 @@ export async function updateSessionTimeline(event: H3Event, id: string, readBody
     }
 
     return participantIds.map((participantId) => ({
+      gameId: session.gameId,
       sessionId: session.id,
       timelineEventId: assignment.timelineEventId,
       participantId

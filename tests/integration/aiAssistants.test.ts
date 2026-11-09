@@ -382,7 +382,7 @@ describe('sessions et participants', () => {
 
     // Un joueur vient du vivier (US-176) : Ana et Ben y sont inscrits à la session, Dora y est sans place, Éli n'y est pas
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `ia-${Date.now()}` } })
-    const inPool = async (participantId: string, email: string, sessionLines: object = {}) => await prisma.registration.create({ data: { periodId: period.id, participantId, status: 'received', source: 'form', email, sessionLines } })
+    const inPool = async (participantId: string, email: string, sessionLines: object = {}) => await prisma.registration.create({ data: { gameId: period.gameId, periodId: period.id, participantId, status: 'received', source: 'form', email, sessionLines } })
     const inscribed = { create: { sessionId: session.id, status: 'confirmed' } }
     await inPool(ana.id, 'ana-ia@example.test', inscribed)
     await inPool(ben.id, 'ben-ia@example.test', inscribed)
@@ -407,9 +407,9 @@ describe('sessions et participants', () => {
     expect((await call(client, 'modifier_casting', { sessionId: session.id, version, lines: [{ characterId: b.character.id, participantId: ana.id }] })).error).toBe(true)
 
     // Photos posées dans l'interface, et un personnage réservé pour une inscription retenue
-    const registration = await prisma.registration.create({ data: { periodId: period.id, participantId: cleo.id, status: 'received', source: 'invitation', email: 'cleo-ia@example.test', sessionLines: { create: { sessionId: session.id, status: 'retained' } } } })
+    const registration = await prisma.registration.create({ data: { gameId: period.gameId, periodId: period.id, participantId: cleo.id, status: 'received', source: 'invitation', email: 'cleo-ia@example.test', sessionLines: { create: { sessionId: session.id, status: 'retained' } } } })
     await prisma.sessionAssignment.updateMany({ where: { sessionId: session.id, characterId: { in: [hero.id, rival.id] } }, data: { photoUrl: 'https://exemple.test/photo.jpg' } })
-    await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: reserved.id, reservedRegistrationId: registration.id } })
+    await prisma.sessionAssignment.create({ data: { gameId: game.id, sessionId: session.id, characterId: reserved.id, reservedRegistrationId: registration.id } })
     version = (await call(client, 'lire_session', { sessionId: session.id })).json.updatedAt
 
     // Une ligne qui change de personne perd sa photo ; une ligne non donnée garde tout ; la réservation ne bouge pas
@@ -527,7 +527,7 @@ describe('inscriptions', () => {
 
     // Pré-inscrites pour la première session
     const received = async (participantId: string, line: Record<string, unknown> = {}) => (await prisma.registration.create({
-      data: { periodId: created.id, participantId, status: 'received', source: 'form', email: `${participantId}@example.test`, sessionLines: { create: { sessionId: first.id, status: 'preregistered', answer: 'available', ...line } } }
+      data: { gameId: game.id, periodId: created.id, participantId, status: 'received', source: 'form', email: `${participantId}@example.test`, sessionLines: { create: { sessionId: first.id, status: 'preregistered', answer: 'available', ...line } } }
     })).id
     const [anaReg, benReg, cleoReg] = [await received(ana), await received(ben), await received(cleo)]
 

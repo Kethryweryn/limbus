@@ -55,6 +55,7 @@ export async function placePlayersInPool(db: Db, gameId: string) {
       where: { periodId_participantId: { periodId, participantId: participant.id } },
       update: {},
       create: {
+        gameId,
         periodId,
         participantId: participant.id,
         status: REGISTRATION_STATUSES.received,
@@ -75,12 +76,12 @@ export async function placePlayersInPool(db: Db, gameId: string) {
     })
     // Sorti du vivier ou seulement invité : son histoire reste celle que le jeu raconte
     if (status !== REGISTRATION_STATUSES.received) continue
-    await db.registrationPeriodSession.upsert({ where: { sessionId }, update: {}, create: { periodId, sessionId } })
+    await db.registrationPeriodSession.upsert({ where: { sessionId }, update: {}, create: { gameId, periodId, sessionId } })
     const line = session.status === SESSION_STATUSES.postponed ? LINE.transferred : LINE.confirmed
     await db.registrationSession.upsert({
       where: { registrationId_sessionId: { registrationId, sessionId } },
       update: {},
-      create: { registrationId, sessionId, status: line, answer: REGISTRATION_ANSWERS.available, announcedStatus: LINE.retained, confirmedAt: daysFromNow(-60) }
+      create: { gameId, registrationId, sessionId, status: line, answer: REGISTRATION_ANSWERS.available, announcedStatus: LINE.retained, confirmedAt: daysFromNow(-60) }
     })
   }
   await markAnnouncedSessions(db, gameId)

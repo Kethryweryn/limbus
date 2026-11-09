@@ -42,7 +42,7 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
     // Le contact d'urgence et les allergies viennent de son inscription (US-178)
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: slugOf(title), state: 'open' } })
     await prisma.registration.create({
-      data: { periodId: period.id, participantId: created.id, status: 'received', source: 'form', email: created.email!, respondedAt: new Date(), emergencyContactName: 'Paul Secours', emergencyContactPhone: '0699999999', dietary: 'Sans gluten' }
+      data: { gameId: period.gameId, periodId: period.id, participantId: created.id, status: 'received', source: 'form', email: created.email!, respondedAt: new Date(), emergencyContactName: 'Paul Secours', emergencyContactPhone: '0699999999', dietary: 'Sans gluten' }
     })
     // Une session où elle est PNJ, à ouvrir depuis sa fiche (US-183)
     const sessionName = uniqueName('Session fiche')

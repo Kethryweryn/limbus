@@ -195,7 +195,7 @@ export async function createMeridianStage(db: Db, context: StageContext) {
   })
   const SEATS = await db.character.count({ where: { gameId, type: 'pj' } })
   const linkSession = (sessionId: string, open: boolean, settings: Partial<Prisma.RegistrationPeriodSessionUncheckedCreateInput> = {}) =>
-    db.registrationPeriodSession.create({ data: { periodId, sessionId, open, waitlistSize: 3, ...settings } })
+    db.registrationPeriodSession.create({ data: { gameId, periodId, sessionId, open, waitlistSize: 3, ...settings } })
   await linkSession(drawSession.id, false, { selectionMode: SELECTION.random })
   await linkSession(chosenSession.id, true)
   await linkSession(invitationSession.id, false)
@@ -225,6 +225,7 @@ export async function createMeridianStage(db: Db, context: StageContext) {
     const preferences = ['Posé', 'Tendu', null]
     const registration = await db.registration.create({
       data: {
+        gameId,
         periodId,
         participantId: person.id,
         status: fields.status ?? STATUS.received,
@@ -258,7 +259,7 @@ export async function createMeridianStage(db: Db, context: StageContext) {
   // Statut d'une personne pour une session (R17) : par défaut, elle a répondu qu'elle y était disponible
   const addLine = (registrationId: string, sessionId: string, status: RegistrationSessionStatus, extra: Partial<Prisma.RegistrationSessionUncheckedCreateInput> = {}) =>
     db.registrationSession.create({
-      data: { registrationId, sessionId, status, answer: ANSWER.available, answeredAt: daysFromNow(-10), ...extra }
+      data: { gameId, registrationId, sessionId, status, answer: ANSWER.available, answeredAt: daysFromNow(-10), ...extra }
     })
   const announced = (status: RegistrationSessionStatus) => ({ announcedStatus: status, announcedAt: daysFromNow(-3) })
   const retainedByHand = { retainedById: ownerId }
@@ -295,7 +296,7 @@ export async function createMeridianStage(db: Db, context: StageContext) {
     await db.registrationSession.updateMany({ where: { sessionId: drawSession.id, registrationId }, data: { status: LINE.waitlisted, waitlistPosition: index + 1 } })
   }
   await db.registrationDraw.create({
-    data: { periodId, sessionId: drawSession.id, seed, settings: settings as object, result: result as object, createdById: ownerId }
+    data: { gameId, periodId, sessionId: drawSession.id, seed, settings: settings as object, result: result as object, createdById: ownerId }
   })
 
   // Session à la main : chaque statut, avec des décisions annoncées et d'autres encore à annoncer
@@ -369,7 +370,7 @@ export async function createMeridianStage(db: Db, context: StageContext) {
   }
 
   // Maëlle a payé : inscrite validée ; l'autre inscrite reste « inscrite » (R18)
-  await db.sessionPayment.create({ data: { sessionId: chosenSession.id, participantId: people.get('maelle.renaud@example.test')!.id, paidAt: daysFromNow(-1) } })
+  await db.sessionPayment.create({ data: { gameId, sessionId: chosenSession.id, participantId: people.get('maelle.renaud@example.test')!.id, paidAt: daysFromNow(-1) } })
 
   for (const email of generatedEmails.slice(20, 27)) await addLine(await createRegistration(email), mixedSession.id, LINE.preregistered)
   // Retenue à la main, pas encore annoncée, et pré-inscrite ailleurs : Camille se voit encore pré-inscrite (R17, R28)

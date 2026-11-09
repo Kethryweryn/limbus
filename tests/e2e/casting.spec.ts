@@ -64,7 +64,7 @@ test('les détails d’une session gardent les joueurs sans personnage, et un PN
       { sessionId: session.id, participantId: sam.id, role: 'participant' },
       { sessionId: session.id, participantId: noe.id, role: 'npc' }
     ] })
-    await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character('Aube').id, participantId: noe.id } })
+    await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: character('Aube').id, participantId: noe.id } })
 
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto(`/sessions/${session.slug}`)

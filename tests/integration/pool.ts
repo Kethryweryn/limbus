@@ -42,7 +42,7 @@ export async function createPool(prisma: PrismaClient, ownerId: string, options:
 }
 
 // Une personne du vivier ; `sessionIds` : les sessions où elle s'est dite disponible (pré-inscrite)
-export async function addPerson(prisma: PrismaClient, pool: { game: { id: string }, period: { id: string } }, name: string, sessionIds: string[] = [], extra: Record<string, unknown> = {}) {
+export async function addPerson(prisma: PrismaClient, pool: { game: { id: string }, period: { id: string, gameId: string } }, name: string, sessionIds: string[] = [], extra: Record<string, unknown> = {}) {
   const suffix = `${name.toLowerCase()}-${++counter}-${Math.random().toString(36).slice(2, 8)}`
   const email = `${suffix}@example.test`
   const participant = await prisma.participant.create({
@@ -50,7 +50,7 @@ export async function addPerson(prisma: PrismaClient, pool: { game: { id: string
   })
   return await prisma.registration.create({
     data: {
-      periodId: pool.period.id,
+      gameId: pool.period.gameId, periodId: pool.period.id,
       participantId: participant.id,
       status: 'received',
       source: 'form',

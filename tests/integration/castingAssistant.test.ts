@@ -65,7 +65,7 @@ async function player(game: Game, name: string, status: 'retained' | 'confirmed'
   const token = randomBytes(32).toString('base64url')
   const registration = await prisma.registration.create({
     data: {
-      periodId: game.period.id, participantId: participant.id, status: 'received', source: 'form', email: participant.email!, links: { create: { tokenHash: sha256(token) } },
+      gameId: game.period.gameId, periodId: game.period.id, participantId: participant.id, status: 'received', source: 'form', email: participant.email!, links: { create: { tokenHash: sha256(token) } },
       sessionLines: { create: { sessionId: game.session.id, status, answer: 'available', announcedStatus: 'retained', responseDueAt: new Date(Date.now() + 7 * 86_400_000) } },
       questionAnswers: (extra.answers ?? {}) as object,
       affinities: { create: (extra.affinities ?? []).map((affinity, position) => ({ ...affinity, position })) }

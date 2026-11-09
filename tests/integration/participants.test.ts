@@ -26,11 +26,11 @@ async function personInTwoGames() {
     const character = await prisma.character.create({ data: { name: `Rôle ${game.slug}`, slug: `role-${game.slug}`, gameId: game.id } })
     const session = await prisma.session.create({ data: { name: `Session ${game.slug}`, slug: `session-${game.slug}`, gameId: game.id } })
     await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
-    await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id } })
+    await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: character.id, participantId: participant.id } })
     await prisma.sessionAttendance.create({ data: { sessionId: session.id, participantId: participant.id, responseDueAt: new Date(Date.now() + 86_400_000) } })
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `periode-${game.slug}` } })
     await prisma.registration.create({
-      data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'invitation', email: participant.email!, sessionLines: { create: { sessionId: session.id, status: 'confirmed' } } }
+      data: { gameId: period.gameId, periodId: period.id, participantId: participant.id, status: 'received', source: 'invitation', email: participant.email!, sessionLines: { create: { sessionId: session.id, status: 'confirmed' } } }
     })
     sessions.push(session)
   }
@@ -41,7 +41,7 @@ async function personInTwoGames() {
 describe('retrait d’un jeu (US-035)', () => {
   it('retire la personne des sessions du jeu et marque ses inscriptions « retirée », sans toucher l’autre jeu', async () => {
     const p = await personInTwoGames()
-    await prisma.sessionPayment.create({ data: { sessionId: p.sessions[0]!.id, participantId: p.participant.id, paidAt: new Date() } })
+    await prisma.sessionPayment.create({ data: { gameId: p.sessions[0]!.gameId, sessionId: p.sessions[0]!.id, participantId: p.participant.id, paidAt: new Date() } })
 
     const response = await p.update([p.games[1]!.id])
     expect(response.status, JSON.stringify(response.body)).toBe(200)

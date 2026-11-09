@@ -84,7 +84,7 @@ describe('une personne, session par session (R17)', () => {
     const session = pool.sessions[0]!
     const silent = await addPerson(prisma, pool, 'Silencieuse')
     const refusing = await addPerson(prisma, pool, 'Refus')
-    await prisma.registrationSession.create({ data: { registrationId: refusing.id, sessionId: session.id, status: 'unavailable', answer: 'unavailable' } })
+    await prisma.registrationSession.create({ data: { registrationId: refusing.id, gameId: session.gameId, sessionId: session.id, status: 'unavailable', answer: 'unavailable' } })
 
     expect((await select(silent.id, 'retain', session.id)).status).toBe(200)
     expect(await line(silent.id, session.id)).toMatchObject({ status: 'retained', answer: null })
@@ -375,7 +375,7 @@ describe('remboursement et report (R30)', () => {
       data: { status: 'confirmed', confirmedAt: new Date(), announcedStatus: 'retained' }
     })
     await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: lou.participantId, role: 'participant' } })
-    await prisma.sessionPayment.create({ data: { sessionId: session.id, participantId: lou.participantId, paidAt: new Date() } })
+    await prisma.sessionPayment.create({ data: { gameId: session.gameId, sessionId: session.id, participantId: lou.participantId, paidAt: new Date() } })
     return { pool, session, lou }
   }
   const refund = (sessionId: string, participantId: string, refundStatus: string | null) =>

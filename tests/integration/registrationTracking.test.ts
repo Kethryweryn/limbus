@@ -55,12 +55,13 @@ async function invited() {
   return { key, game, session, period, participant, registration, token }
 }
 
-async function confirm(registrationId: string, sessionId: string, participantId: string) {
+async function confirm(registrationId: string, session: { id: string, gameId: string }, participantId: string) {
+  const sessionId = session.id
   await prisma.registration.update({
     where: { id: registrationId },
     data: { status: 'received', respondedAt: new Date(), charterAcceptedAt: new Date(), phone: '0612345678', dietary: 'Arachides', healthConsentAt: new Date(), invitedSessionId: null }
   })
-  await prisma.registrationSession.create({ data: { registrationId, sessionId, status: 'confirmed', confirmedAt: new Date(), answer: 'available' } })
+  await prisma.registrationSession.create({ data: { gameId: session.gameId, registrationId, sessionId, status: 'confirmed', confirmedAt: new Date(), answer: 'available' } })
   await prisma.sessionParticipant.create({ data: { sessionId, participantId, role: 'participant' } })
 }
 
@@ -95,7 +96,7 @@ describe('relancer une invitation sans réponse', () => {
     const { session, participant, registration } = await invited()
     await prisma.registration.update({ where: { id: registration.id }, data: { invitationSentAt: null } })
     expect((await api(alice, 'POST', `/api/registrations/${registration.id}/remind`)).status).toBe(409)
-    await confirm(registration.id, session.id, participant.id)
+    await confirm(registration.id, session, participant.id)
     expect((await api(alice, 'POST', `/api/registrations/${registration.id}/remind`)).status).toBe(409)
   })
 })
@@ -144,7 +145,7 @@ describe('libérer une place', () => {
 
   it('refuse une personne qui a répondu : c’est un retrait', async () => {
     const { session, participant, registration } = await invited()
-    await confirm(registration.id, session.id, participant.id)
+    await confirm(registration.id, session, participant.id)
     expect((await api(alice, 'POST', `/api/registrations/${registration.id}/release`)).status).toBe(409)
   })
 })
@@ -152,7 +153,7 @@ describe('libérer une place', () => {
 describe('retirer une personne inscrite', () => {
   it('d’une session : mêmes effets qu’une annulation, avec l’organisatrice comme autrice ; elle reste dans le vivier', async () => {
     const { session, participant, registration } = await invited()
-    await confirm(registration.id, session.id, participant.id)
+    await confirm(registration.id, session, participant.id)
     const sentBefore = smtp.received.length
 
     expect((await api(alice, 'POST', `/api/registrations/${registration.id}/withdraw`, { sessionId: session.id })).status).toBe(200)
@@ -165,7 +166,7 @@ describe('retirer une personne inscrite', () => {
 
   it('du vivier : ses présences à venir sont annulées, et son lien ne marche plus', async () => {
     const { session, participant, registration } = await invited()
-    await confirm(registration.id, session.id, participant.id)
+    await confirm(registration.id, session, participant.id)
     expect((await api(alice, 'POST', `/api/registrations/${registration.id}/withdraw`)).status).toBe(200)
     expect(await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })).toMatchObject({ status: 'withdrawn', withdrawnById: alice.id })
     expect(await prisma.registrationLink.count({ where: { registrationId: registration.id } })).toBe(0)
@@ -177,7 +178,7 @@ describe('retirer une personne inscrite', () => {
 describe('suivi dans la liste', () => {
   it('signale une personne confirmée retirée à la main de la session (ADR-0021)', async () => {
     const { session, period, participant, registration } = await invited()
-    await confirm(registration.id, session.id, participant.id)
+    await confirm(registration.id, session, participant.id)
 
     const before = await api(alice, 'GET', `/api/registration-periods/${period.id}/registrations`)
     expect(before.body).toMatchObject([{ id: registration.id, sessionLines: [{ sessionId: session.id, missingFromSession: false }] }])
@@ -191,7 +192,7 @@ describe('suivi dans la liste', () => {
 
   it('le détail montre les réponses, les allergies et la date du consentement ; la liste non', async () => {
     const { session, period, participant, registration } = await invited()
-    await confirm(registration.id, session.id, participant.id)
+    await confirm(registration.id, session, participant.id)
 
     const detail = await api(alice, 'GET', `/api/registrations/${registration.id}`)
     expect(detail.status).toBe(200)
@@ -207,7 +208,7 @@ describe('suivi dans la liste', () => {
 describe('export CSV d’une session', () => {
   it('nom, email, téléphone, statut ; jamais d’allergies ni de contact d’urgence', async () => {
     const { session, participant, registration } = await invited()
-    await confirm(registration.id, session.id, participant.id)
+    await confirm(registration.id, session, participant.id)
     await prisma.registration.update({ where: { id: registration.id }, data: { emergencyContactName: 'Maman Urgence', emergencyContactPhone: '0699999999' } })
 
     const response = await fetch(`${inject('baseUrl')}/api/sessions/${session.id}/registrations/export`, {

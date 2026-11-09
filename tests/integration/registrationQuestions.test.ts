@@ -67,7 +67,7 @@ async function invitedWithForm() {
   const token = randomBytes(32).toString('base64url')
   const registration = await prisma.registration.create({
     data: {
-      periodId: period.id, invitedSessionId: session.id, participantId: participant.id, status: 'invited', source: 'invitation',
+      gameId: period.gameId, periodId: period.id, invitedSessionId: session.id, participantId: participant.id, status: 'invited', source: 'invitation',
       invitedById: alice.id, email: participant.email!, links: { create: { tokenHash: sha256(token) } }, responseDueAt: new Date(Date.now() + 7 * 86_400_000)
     }
   })

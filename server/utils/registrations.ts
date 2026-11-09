@@ -350,7 +350,7 @@ export async function inviteToRegistrationPeriod(params: {
   const slug = newParticipant && !matched ? await generateUniqueSlug('participant', newParticipant.name) : null
 
   const targets = await prisma.$transaction(async (tx) => {
-    if (invitedSession) await tx.registrationPeriodSession.upsert({ where: { sessionId: invitedSession.id }, update: {}, create: { periodId: period.id, sessionId: invitedSession.id } })
+    if (invitedSession) await tx.registrationPeriodSession.upsert({ where: { sessionId: invitedSession.id }, update: {}, create: { gameId: period.gameId, periodId: period.id, sessionId: invitedSession.id } })
     const invited = participants.map((participant) => ({ id: participant.id, name: participant.name, email: participant.email!.trim() }))
     if (newParticipant && matched) {
       await tx.participantGame.upsert({
@@ -407,7 +407,7 @@ export async function inviteToRegistrationPeriod(params: {
             select: { id: true }
           })
         : await tx.registration.create({
-            data: { ...invitation, links: { create: { tokenHash } }, periodId: period.id, participantId: participant.id, source: REGISTRATION_SOURCES.invitation },
+            data: { ...invitation, links: { create: { tokenHash } }, gameId: period.gameId, periodId: period.id, participantId: participant.id, source: REGISTRATION_SOURCES.invitation },
             select: { id: true }
           })
       created.push({ registrationId: registration.id, token, to: participant.email, participantName: participant.name })

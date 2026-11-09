@@ -212,8 +212,8 @@ model Item {
   quantity              Int          @default(1)
   locationText          String?
   locationCharacterId   String?
-  // NoAction : la suppression du personnage vide d'abord la référence (ADR-0074)
-  locationCharacter     Character?   @relation("ItemLocationCharacter", fields: [locationCharacterId, gameId], references: [id, gameId], onDelete: NoAction, onUpdate: NoAction)
+  // La base n'efface que l'identifiant à la suppression du personnage (ADR-0077)
+  locationCharacter     Character?   @relation("ItemLocationCharacter", fields: [locationCharacterId, gameId], references: [id, gameId], onDelete: SetNull, onUpdate: NoAction)
   gameId                String
   game                  Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
   createdAt             DateTime     @default(now())
@@ -324,7 +324,7 @@ model Document {
 
   // Ancien champ « Personnage », vidé par la migration d'ADR-0072 et plus écrit : les personnages sont dans characters
   characterId String?
-  character   Character?  @relation(fields: [characterId, gameId], references: [id, gameId], onDelete: NoAction, onUpdate: NoAction)
+  character   Character?  @relation(fields: [characterId, gameId], references: [id, gameId], onDelete: SetNull, onUpdate: NoAction)
   characterLinks DocumentCharacter[]
 
   factionLinks DocumentFaction[]
@@ -480,7 +480,7 @@ model Session {
   gameId      String
   game        Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
   locationId  String?
-  location    Location?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  location    Location?  @relation(fields: [locationId, gameId], references: [id, gameId], onDelete: SetNull, onUpdate: NoAction)
   paymentRibUrl String?
   paymentLinkUrl String?
   // Date limite de désistement (US-040, ADR-0033) : après elle, une place n'est remboursée qu'au choix des orgas
@@ -496,7 +496,7 @@ model Session {
   published   Boolean    @default(false)
   // Session sur laquelle celle-ci a été reportée (US-022, ADR-0029)
   postponedToSessionId String?   @unique
-  postponedTo          Session?  @relation("SessionPostponements", fields: [postponedToSessionId], references: [id], onDelete: SetNull)
+  postponedTo          Session?  @relation("SessionPostponements", fields: [postponedToSessionId, gameId], references: [id, gameId], onDelete: SetNull, onUpdate: NoAction)
   postponedFrom        Session?  @relation("SessionPostponements")
   carriedOverPayments  SessionPayment[] @relation("PaymentCarryOvers")
   attendances          SessionAttendance[]
@@ -516,7 +516,11 @@ model Session {
   invitedRegistrations Registration[] @relation("RegistrationInvitedSession")
 
   @@index([gameId])
-  @@index([locationId])
+  @@index([locationId, gameId])
+  // Cible des clés composées avec le jeu (US-195, ADR-0074)
+  @@unique([id, gameId])
+  // Relation un-à-un composée avec le jeu : Prisma demande l'unicité de ses colonnes (déjà unique par postponedToSessionId)
+  @@unique([postponedToSessionId, gameId])
 }
 
 // Vivier d'un jeu (SPEC-018, ADR-0069) : le nom de la table reste celui des anciennes périodes d'inscription
@@ -541,6 +545,8 @@ model RegistrationPeriod {
   registrations     Registration[]
   requests          RegistrationRequest[]
   draws             RegistrationDraw[]
+  // Cible des clés composées avec le jeu (US-195, ADR-0074)
+  @@unique([id, gameId])
 }
 
 // Session suivie par le vivier (ADR-0069) : le casting se fait sur toute session qui a une ligne
@@ -550,10 +556,12 @@ model RegistrationPeriodSession {
   lastRequestedAt DateTime?
   // Annonce du casting (R26) ; ensuite, chaque changement se propose ligne par ligne (R27)
   castAnnouncedAt DateTime?
+  // Jeu du vivier et de la session (US-195, ADR-0074)
+  gameId    String
   periodId  String
-  period    RegistrationPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  period    RegistrationPeriod @relation(fields: [periodId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   sessionId String             @unique
-  session   Session            @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session   Session            @relation(fields: [sessionId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   // Ouverte à la pré-inscription (R6) ; proposée seulement si elle est aussi datée, à venir, ni annulée ni terminée
   open      Boolean            @default(false)
   // Sélection de la session (R22, ADR-0048)
@@ -563,7 +571,9 @@ model RegistrationPeriodSession {
   weightBalance        Boolean @default(false)
   waitlistSize         Int     @default(5)
 
-  @@index([periodId])
+  @@index([periodId, gameId])
+  // Relation un-à-un composée avec le jeu : Prisma demande l'unicité de ses colonnes (déjà unique par sessionId)
+  @@unique([sessionId, gameId])
 }
 
 // Formulaire d'inscription d'un jeu (R8). Chaque modification crée une version immuable :
@@ -576,12 +586,16 @@ model RegistrationForm {
   updatedAt DateTime @updatedAt
 
   versions  RegistrationFormVersion[]
+  // Cible des clés composées avec le jeu (US-195, ADR-0074)
+  @@unique([id, gameId])
 }
 
 model RegistrationFormVersion {
   id         String           @id @default(cuid())
+  // Jeu du formulaire (US-195, ADR-0074)
+  gameId     String
   formId     String
-  form       RegistrationForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  form       RegistrationForm @relation(fields: [formId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   number     Int
   // Définition validée par registrationFormDefinitionSchema (server/utils/schemas.ts)
   definition Json
@@ -591,17 +605,22 @@ model RegistrationFormVersion {
   requests      RegistrationRequest[]
 
   @@unique([formId, number])
+  // Cible des clés composées avec le jeu (US-195, ADR-0074)
+  @@unique([id, gameId])
+  @@index([formId, gameId])
 }
 
 // Personne du vivier d'un jeu (ADR-0069) : ses réponses et ses coordonnées, une ligne par personne. Son statut pour
 // chaque session est dans RegistrationSession. Les champs standards ne modifient pas la fiche du participant.
 model Registration {
   id                    String                   @id @default(cuid())
+  // Jeu du vivier (US-195, ADR-0074)
+  gameId                String
   periodId              String
-  period                RegistrationPeriod       @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  period                RegistrationPeriod       @relation(fields: [periodId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   // Session visée par l'invitation (R4) : la personne y est inscrite si elle répond en se disant disponible
   invitedSessionId      String?
-  invitedSession        Session?                 @relation("RegistrationInvitedSession", fields: [invitedSessionId], references: [id], onDelete: SetNull)
+  invitedSession        Session?                 @relation("RegistrationInvitedSession", fields: [invitedSessionId, gameId], references: [id, gameId], onDelete: SetNull, onUpdate: NoAction)
   participantId         String
   participant           Participant              @relation(fields: [participantId], references: [id], onDelete: Cascade)
   // invited, received (intéressée) ou withdrawn (sortie du vivier)
@@ -610,7 +629,7 @@ model Registration {
   invitedById           String?
   invitedBy             User?                    @relation("SentRegistrationInvitations", fields: [invitedById], references: [id], onDelete: SetNull)
   formVersionId         String?
-  formVersion           RegistrationFormVersion? @relation(fields: [formVersionId], references: [id], onDelete: SetNull)
+  formVersion           RegistrationFormVersion? @relation(fields: [formVersionId, gameId], references: [id, gameId], onDelete: SetNull, onUpdate: NoAction)
 
   email                 String
   firstName             String?
@@ -647,19 +666,24 @@ model Registration {
 
   @@unique([periodId, participantId])
   @@index([participantId])
-  @@index([invitedSessionId])
-  @@index([formVersionId])
+  @@index([invitedSessionId, gameId])
+  @@index([formVersionId, gameId])
   @@index([invitedById])
   @@index([withdrawnById])
+  // Cible des clés composées avec le jeu (US-195, ADR-0074)
+  @@unique([id, gameId])
+  @@index([periodId, gameId])
 }
 
 // Statut d'une personne du vivier pour une session (R17, ADR-0069)
 model RegistrationSession {
   id             String       @id @default(cuid())
+  // Jeu de l'inscription et de la session (US-195, ADR-0074)
+  gameId         String
   registrationId String
-  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  registration   Registration @relation(fields: [registrationId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   sessionId      String
-  session        Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session        Session      @relation(fields: [sessionId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   // preregistered, unavailable, waitlisted, retained, confirmed, transferred ou cancelled
   status         RegistrationSessionStatus
   // Dernière réponse de la personne : available, unavailable ; null sans réponse (R28, R29)
@@ -692,6 +716,8 @@ model RegistrationSession {
   @@index([sessionId, status])
   @@index([cancelledById])
   @@index([retainedById])
+  @@index([registrationId, gameId])
+  @@index([sessionId, gameId])
 }
 
 // Lien personnel d'une personne du vivier (ADR-0070) : un par email envoyé, tous valables jusqu'à un renouvellement par
@@ -710,30 +736,34 @@ model RegistrationLink {
 // inscription avant la confirmation ; supprimé à la confirmation, ou au bout de 7 jours
 model RegistrationRequest {
   id            String             @id @default(cuid())
+  // Jeu du vivier (US-195, ADR-0074)
+  gameId        String
   periodId      String
-  period        RegistrationPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  period        RegistrationPeriod @relation(fields: [periodId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   email         String
   // Réponses validées : champs standards, affinités, questions et disponibilités
   answers       Json
   formVersionId String?
-  formVersion   RegistrationFormVersion? @relation(fields: [formVersionId], references: [id], onDelete: SetNull)
+  formVersion   RegistrationFormVersion? @relation(fields: [formVersionId, gameId], references: [id, gameId], onDelete: SetNull, onUpdate: NoAction)
   // SHA-256 du jeton du lien envoyé, qui devient le lien personnel (ADR-0018)
   tokenHash     String             @unique
   createdAt     DateTime           @default(now())
 
-  @@index([periodId])
+  @@index([periodId, gameId])
   @@index([createdAt])
-  @@index([formVersionId])
+  @@index([formVersionId, gameId])
 }
 
 // Tirage au sort d'une période (US-093, US-094, ADR-0048) : graine, réglages et résultat, pour le rejouer à l'identique
 model RegistrationDraw {
   id            String             @id @default(cuid())
+  // Jeu du vivier (US-195, ADR-0074)
+  gameId        String
   periodId      String
-  period        RegistrationPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  period        RegistrationPeriod @relation(fields: [periodId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   // Session tirée (R22) ; null : ancien tirage d'une période, gardé au journal et non annulable
   sessionId     String?
-  session       Session?           @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  session       Session?           @relation(fields: [sessionId, gameId], references: [id, gameId], onDelete: SetNull, onUpdate: NoAction)
   seed          String
   settings      Json
   result        Json
@@ -744,8 +774,8 @@ model RegistrationDraw {
   cancelledById String?
   cancelledBy   User?              @relation("RegistrationDrawCancellations", fields: [cancelledById], references: [id], onDelete: SetNull)
 
-  @@index([periodId])
-  @@index([sessionId])
+  @@index([periodId, gameId])
+  @@index([sessionId, gameId])
   @@index([createdById])
   @@index([cancelledById])
 }
@@ -771,6 +801,8 @@ model RegistrationAffinity {
 
 model SessionAssignment {
   id          String   @id @default(cuid())
+  // Jeu de la session (US-195, ADR-0074)
+  gameId      String
   sessionId   String
   characterId String
   participantId String?
@@ -780,16 +812,17 @@ model SessionAssignment {
   locked      Boolean  @default(false)
   // Personnage réservé à une personne retenue qui n'a pas encore confirmé ; participantId reste vide (US-100)
   reservedRegistrationId String?
-  reservedRegistration   Registration? @relation(fields: [reservedRegistrationId], references: [id], onDelete: SetNull)
-  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  reservedRegistration   Registration? @relation(fields: [reservedRegistrationId, gameId], references: [id, gameId], onDelete: SetNull, onUpdate: NoAction)
+  session     Session  @relation(fields: [sessionId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+  character   Character @relation(fields: [characterId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   participant Participant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
 
   @@unique([sessionId, characterId])
-  @@index([reservedRegistrationId])
-  @@index([characterId])
+  @@index([reservedRegistrationId, gameId])
+  @@index([characterId, gameId])
   @@index([participantId])
+  @@index([sessionId, gameId])
 }
 
 model SessionParticipant {
@@ -820,6 +853,8 @@ model Location {
   sessions    Session[]
 
   @@index([gameId])
+  // Cible des clés composées avec le jeu (US-195, ADR-0074)
+  @@unique([id, gameId])
 }
 
 model Participant {
@@ -856,6 +891,8 @@ model Participant {
 
 model SessionPayment {
   id                  String      @id @default(cuid())
+  // Jeu de la session (US-195, ADR-0074)
+  gameId              String
   sessionId           String
   participantId       String
   paidAt              DateTime?
@@ -874,10 +911,10 @@ model SessionPayment {
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
-  session             Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session             Session     @relation(fields: [sessionId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   participant         Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
   transferredTo       Participant? @relation("PaymentTransfers", fields: [transferredToParticipantId], references: [id], onDelete: SetNull)
-  carriedOverTo       Session?    @relation("PaymentCarryOvers", fields: [carriedOverToSessionId], references: [id], onDelete: SetNull)
+  carriedOverTo       Session?    @relation("PaymentCarryOvers", fields: [carriedOverToSessionId, gameId], references: [id, gameId], onDelete: SetNull, onUpdate: NoAction)
   tariff              SessionTariff? @relation(fields: [tariffId], references: [id], onDelete: SetNull)
   instalments         SessionPaymentInstalment[]
 
@@ -885,7 +922,8 @@ model SessionPayment {
   @@index([participantId])
   @@index([tariffId])
   @@index([transferredToParticipantId])
-  @@index([carriedOverToSessionId])
+  @@index([carriedOverToSessionId, gameId])
+  @@index([sessionId, gameId])
 }
 
 // Tarif de la PAF d'une session (US-031, ADR-0032) : montant en centimes d'euro
@@ -925,6 +963,8 @@ model SessionPaymentInstalment {
 
 model SessionTrombinoscope {
   id                String      @id @default(cuid())
+  // Jeu de la session (US-195, ADR-0074)
+  gameId            String
   sessionId         String
   viewerCharacterId String
   participantId     String
@@ -937,17 +977,20 @@ model SessionTrombinoscope {
   contentJson       Json?
   generatedAt       DateTime    @default(now())
 
-  session           Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  viewerCharacter   Character   @relation("TrombinoscopeViewerDocuments", fields: [viewerCharacterId], references: [id], onDelete: Cascade)
+  session           Session     @relation(fields: [sessionId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+  viewerCharacter   Character   @relation("TrombinoscopeViewerDocuments", fields: [viewerCharacterId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   participant       Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
 
   @@unique([sessionId, viewerCharacterId, participantId])
   @@index([participantId])
-  @@index([viewerCharacterId])
+  @@index([viewerCharacterId, gameId])
+  @@index([sessionId, gameId])
 }
 
 model SessionDocumentDelivery {
   id            String      @id @default(cuid())
+  // Jeu de la session (US-195, ADR-0074)
+  gameId        String
   sessionId     String
   participantId String
   documentId    String?
@@ -960,29 +1003,33 @@ model SessionDocumentDelivery {
   copyContent   Json?
   copySize      Int?
 
-  session       Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session       Session     @relation(fields: [sessionId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
-  document      Document?   @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  character     Character?  @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  document      Document?   @relation(fields: [documentId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+  character     Character?  @relation(fields: [characterId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([sessionId, kind])
   @@index([participantId])
-  @@index([documentId])
-  @@index([characterId])
+  @@index([documentId, gameId])
+  @@index([characterId, gameId])
+  @@index([sessionId, gameId])
 }
 
 model TimelineEventResponsible {
   id              String        @id @default(cuid())
+  // Jeu de la session (US-195, ADR-0074)
+  gameId          String
   sessionId       String
   timelineEventId String
   participantId   String
-  session         Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  timelineEvent   TimelineEvent @relation(fields: [timelineEventId], references: [id], onDelete: Cascade)
+  session         Session       @relation(fields: [sessionId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+  timelineEvent   TimelineEvent @relation(fields: [timelineEventId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   participant     Participant   @relation(fields: [participantId], references: [id], onDelete: Cascade)
 
   @@unique([sessionId, timelineEventId, participantId])
   @@index([participantId])
-  @@index([timelineEventId])
+  @@index([timelineEventId, gameId])
+  @@index([sessionId, gameId])
 }
 
 model ParticipantGame {
@@ -1005,17 +1052,18 @@ model UploadedFile {
   kind      UploadKind
   filename  String   @unique
   url       String   @unique
-  gameId    String?
-  game      Game?    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  // Jeu du fichier, toujours connu : il compte dans son stockage, et la clé de sa session le compare (US-195)
+  gameId    String
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
   sessionId String?
-  session   Session? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session   Session? @relation(fields: [sessionId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   // Octets ; vide pour un fichier d'avant US-066, relevé sur le disque au premier calcul
   size      Int?
   createdAt DateTime @default(now())
 
   @@index([kind])
   @@index([gameId])
-  @@index([sessionId])
+  @@index([sessionId, gameId])
 }
 
 model User {

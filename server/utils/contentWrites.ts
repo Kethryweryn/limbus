@@ -236,13 +236,8 @@ export async function deleteCharacter(event: H3Event, id: string) {
 
   // Ses assignations de session partent avec lui, photos comprises
   const uploadUrls = await collectUploadUrls({ characterId: id })
-  // Les références facultatives au personnage se vident d'abord : leur clé composée avec le jeu ne s'efface pas seule
-  // (ADR-0074)
-  const deleted = await prisma.$transaction(async (tx) => {
-    await tx.item.updateMany({ where: { locationCharacterId: id }, data: { locationCharacterId: null } })
-    await tx.document.updateMany({ where: { characterId: id }, data: { characterId: null } })
-    return await tx.character.delete({ where: { id } })
-  })
+  // Un objet qu'il porte reste, sans porteur : la base vide la référence (ADR-0077)
+  const deleted = await prisma.character.delete({ where: { id } })
   await deleteUnusedUploads(uploadUrls)
   return deleted
 }
@@ -522,6 +517,8 @@ export async function deleteLocation(event: H3Event, id: string) {
   // Suppression rejouée hors ligne : refusée si l'élément a changé depuis sa lecture (ADR-0036)
   await assertUnmodifiedSince(event, 'location', id)
 
+  // Ses sessions restent, sans lieu. La base viderait la référence seule (ADR-0077) ; l'écrire ici fait aussi avancer
+  // leur version, qu'une modification faite hors ligne avant la suppression compare (ADR-0036)
   await prisma.session.updateMany({ where: { locationId: id }, data: { locationId: null } })
   return await prisma.location.delete({ where: { id } })
 }

@@ -107,7 +107,7 @@ describe('repères sur les réponses reçues', () => {
       data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
     })))
     const register = (person: { id: string, email: string | null }, answers: Record<string, string>) => prisma.registration.create({
-      data: { periodId: period.id, participantId: person.id, status: 'received', source: 'form', email: person.email!, questionAnswers: answers }
+      data: { gameId: period.gameId, periodId: period.id, participantId: person.id, status: 'received', source: 'form', email: person.email!, questionAnswers: answers }
     })
     await Promise.all(people.map((person) => register(person, { [style!.id]: 'Intrigue', [car!.id]: 'Oui' })))
 

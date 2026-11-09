@@ -30,7 +30,7 @@ export async function createBalStage(db: Db, context: StageContext) {
   })
   const paid = (sessionId: string, email: string, refund: { refundStatus: RefundStatus, refundedAt?: Date, carriedOverToSessionId?: string }) =>
     db.sessionPayment.create({
-      data: { sessionId, participantId: person(email).id, paidAt: daysFromNow(-40), ...refund }
+      data: { gameId, sessionId, participantId: person(email).id, paidAt: daysFromNow(-40), ...refund }
     })
 
   // Session terminée : Lucie y retrouve ce qui lui a été envoyé. La copie s'efface après la session (ADR-0044) :
@@ -44,6 +44,7 @@ export async function createBalStage(db: Db, context: StageContext) {
   })
   await db.sessionDocumentDelivery.create({
     data: {
+      gameId,
       sessionId: archive.id,
       participantId: lucie.id,
       documentId: roadmap.id,

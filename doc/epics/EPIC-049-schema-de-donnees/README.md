@@ -23,7 +23,7 @@ Corriger les écarts du schéma de données avec les pratiques reconnues de Post
 | [US-192](US-192-emails-sans-casse.md) | Comparer les adresses email sans tenir compte de la casse dans la base | à faire |
 | [US-193](US-193-restes-de-transitions-et-pdf.md) | Retirer les colonnes inutiles et garder le PDF du trombinoscope en binaire | à faire |
 | [US-194](US-194-dates-avec-fuseau.md) | Stocker les dates avec leur fuseau horaire | à faire |
-| [US-195](US-195-meme-jeu-sessions-et-vivier.md) | Faire refuser par la base un lien entre deux jeux dans les sessions et le vivier | à faire |
+| [US-195](US-195-meme-jeu-sessions-et-vivier.md) | Faire refuser par la base un lien entre deux jeux dans les sessions et le vivier | terminée |
 
 Ordre : US-188 d'abord, US-194 en dernier ; une PR par US. L'US-195, détachée de l'US-191 trop lourde pour une PR, la suit.
 
@@ -31,4 +31,4 @@ Ordre : US-188 d'abord, US-194 en dernier ; une PR par US. L'US-195, détachée 
 
 - Toutes les US terminées ; `npm run lint`, `npm run typecheck`, `npm test` et la CI passent.
 - Chaque migration vérifiée contre les données de production avant la fusion, et marquée incompatible quand elle change un type ou supprime une colonne ([ADR-0024](../../adr/ADR-0024-migrations-compatibles-avec-le-build-en-service.md)).
-- Fiche à jour, ADR-0073 à ADR-0076 acceptés ou remplacés.
+- Fiche à jour, ADR-0073 à ADR-0077 acceptés ou remplacés.

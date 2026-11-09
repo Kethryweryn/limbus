@@ -28,7 +28,7 @@ async function castSession() {
     data: { name: `Joueur ${key}`, slug: `joueur-${key}`, email: `joueur-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
   })
   const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
-  const assignment = await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: viewer.id, participantId: participant.id } })
+  const assignment = await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: viewer.id, participantId: participant.id } })
   return { game, viewer, other, participant, session, assignment }
 }
 
@@ -73,7 +73,7 @@ describe('trombinoscopes périmés (US-028)', () => {
     expect((await generate(s.session.id)).status).toBe(200)
     expect((await sheet(s.session.id)).trombinoscopeOutdated).toBe(false)
 
-    await prisma.sessionAssignment.create({ data: { sessionId: s.session.id, characterId: s.other.id, photoUrl: '/api/uploads/session-assignment-photos/absente.png' } })
+    await prisma.sessionAssignment.create({ data: { gameId: s.session.gameId, sessionId: s.session.id, characterId: s.other.id, photoUrl: '/api/uploads/session-assignment-photos/absente.png' } })
     expect((await sheet(s.session.id)).trombinoscopeOutdated).toBe(true)
 
     expect((await generate(s.session.id)).status).toBe(200)

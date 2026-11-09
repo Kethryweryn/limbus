@@ -89,7 +89,7 @@ describe('inscriptions d’un participant (US-003)', () => {
     })
     for (const w of [a, b]) {
       await prisma.registration.create({
-        data: { periodId: w.registrationPeriod.id, participantId: shared.id, status: 'received', source: 'invitation', email: 'partout@example.test', dietary: `Allergie ${w.game.id}`, sessionLines: { create: { sessionId: w.session.id, status: 'confirmed' } } }
+        data: { gameId: w.registrationPeriod.gameId, periodId: w.registrationPeriod.id, participantId: shared.id, status: 'received', source: 'invitation', email: 'partout@example.test', dietary: `Allergie ${w.game.id}`, sessionLines: { create: { sessionId: w.session.id, status: 'confirmed' } } }
       })
     }
 
@@ -108,7 +108,7 @@ describe('inscriptions d’un participant (US-003)', () => {
     const remindedAt = new Date('2026-10-20T10:00:00.000Z')
     await prisma.registration.create({
       data: {
-        periodId: a.registrationPeriod.id, participantId: person.id, status: 'withdrawn', source: 'invitation', email: 'relancee@example.test',
+        gameId: a.registrationPeriod.gameId, periodId: a.registrationPeriod.id, participantId: person.id, status: 'withdrawn', source: 'invitation', email: 'relancee@example.test',
         lastRemindedAt: remindedAt, invitedById: alice.id, withdrawnById: alice.id, withdrawnAt: new Date()
       }
     })
@@ -128,7 +128,7 @@ describe('inscriptions d’un participant (US-003)', () => {
       data: { name: 'Inscrit effacé', slug: 'participant-inscrit-efface', email: 'inscrit-efface@example.test', gameLinks: { create: { gameId: a.game.id } } }
     })
     await prisma.registration.create({
-      data: { periodId: a.registrationPeriod.id, invitedSessionId: a.session.id, participantId: participant.id, status: 'invited', source: 'invitation', email: 'inscrit-efface@example.test', phone: '0600000000' }
+      data: { gameId: a.registrationPeriod.gameId, periodId: a.registrationPeriod.id, invitedSessionId: a.session.id, participantId: participant.id, status: 'invited', source: 'invitation', email: 'inscrit-efface@example.test', phone: '0600000000' }
     })
 
     expect((await api(alice, 'DELETE', `/api/participants/${participant.id}`)).status).toBe(200)
@@ -151,12 +151,12 @@ describe('suppression d’un participant', () => {
     await writeFile(join(dir, filename), 'png')
     await prisma.uploadedFile.create({ data: { kind: 'sessionAssignmentPhoto', filename, url, gameId: a.game.id, sessionId: a.session.id } })
     const assignment = await prisma.sessionAssignment.create({
-      data: { sessionId: a.session.id, characterId: character.id, participantId: participant.id, photoUrl: url }
+      data: { gameId: a.session.gameId, sessionId: a.session.id, characterId: character.id, participantId: participant.id, photoUrl: url }
     })
-    await prisma.sessionPayment.create({ data: { sessionId: a.session.id, participantId: participant.id } })
+    await prisma.sessionPayment.create({ data: { gameId: a.session.gameId, sessionId: a.session.id, participantId: participant.id } })
     // Trombinoscope d'un autre participant de la session, qui contient cette photo
     await prisma.sessionTrombinoscope.create({
-      data: { sessionId: a.session.id, viewerCharacterId: a.character.id, participantId: a.participant.id, fileName: 't.pdf', contentHtml: url }
+      data: { gameId: a.session.gameId, sessionId: a.session.id, viewerCharacterId: a.character.id, participantId: a.participant.id, fileName: 't.pdf', contentHtml: url }
     })
 
     const response = await api(alice, 'DELETE', `/api/participants/${participant.id}`)
@@ -182,7 +182,7 @@ describe('suppression d’un participant', () => {
     })
     await prisma.uploadedFile.create({ data: { kind: 'sessionAssignmentPhoto', filename: 'photo-partagee.png', url, gameId: a.game.id } })
     await prisma.sessionAssignment.create({
-      data: { sessionId: a.session.id, characterId: character.id, participantId: participant.id, photoUrl: url }
+      data: { gameId: a.session.gameId, sessionId: a.session.id, characterId: character.id, participantId: participant.id, photoUrl: url }
     })
 
     const response = await api(alice, 'DELETE', `/api/participants/${participant.id}`)

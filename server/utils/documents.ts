@@ -388,16 +388,16 @@ async function trombinoscopeMessage(dashboard: Dashboard, sheet: DashboardSheet,
 }
 
 // Un renvoi remplace la copie : seule la dernière version reçue est gardée (US-078)
-async function recordDocumentDelivery(sessionId: string, documentId: string, participantId: string, contentHash: string, copy?: DeliveryCopy) {
+async function recordDocumentDelivery(session: { id: string, gameId: string }, documentId: string, participantId: string, contentHash: string, copy?: DeliveryCopy) {
   const existing = await prisma.sessionDocumentDelivery.findFirst({
-    where: { sessionId, documentId, participantId, kind: 'document' },
+    where: { sessionId: session.id, documentId, participantId, kind: 'document' },
     orderBy: { sentAt: 'desc' }
   })
   if (existing) {
     await prisma.sessionDocumentDelivery.update({ where: { id: existing.id }, data: { sentAt: new Date(), contentHash, ...copyData(copy) } })
     return
   }
-  await prisma.sessionDocumentDelivery.create({ data: { sessionId, documentId, participantId, kind: 'document', contentHash, ...copyData(copy) } })
+  await prisma.sessionDocumentDelivery.create({ data: { gameId: session.gameId, sessionId: session.id, documentId, participantId, kind: 'document', contentHash, ...copyData(copy) } })
 }
 
 export async function markDocumentDeliveries(sessionId: string, documentIds: string[]) {
@@ -418,7 +418,7 @@ export async function markDocumentDeliveries(sessionId: string, documentIds: str
     sessionId,
     targets,
     ({ document, participant }) => documentMessage(dashboard, document, participant),
-    ({ document, participant }, copies) => recordDocumentDelivery(sessionId, document.id, participant.id, document.contentHash, copies.document)
+    ({ document, participant }, copies) => recordDocumentDelivery(dashboard.session, document.id, participant.id, document.contentHash, copies.document)
   )
 }
 
@@ -432,13 +432,14 @@ export async function markCharacterSheetDeliveries(sessionId: string) {
     sessionId,
     targets,
     (sheet) => characterSheetMessage(dashboard, sheet),
-    (sheet, copies) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'character_sheet', contentHash: sheet.sheetContentHash }, copies.character_sheet)
+    (sheet, copies) => upsertDelivery({ gameId: dashboard.session.gameId, sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'character_sheet', contentHash: sheet.sheetContentHash }, copies.character_sheet)
   )
 }
 
 // Dernier envoi d'un type à une personne pour un personnage : un renvoi met à jour sa date, son empreinte (ADR-0031)
 // et sa copie (ADR-0044)
 async function upsertDelivery(data: {
+  gameId: string
   sessionId: string
   participantId: string
   characterId: string
@@ -483,7 +484,7 @@ export async function markTrombinoscopeDeliveries(sessionId: string) {
     sessionId,
     targets,
     (sheet) => trombinoscopeMessage(dashboard, sheet),
-    (sheet, copies) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'trombinoscope', contentHash: sheet.trombinoscopeContentHash }, copies.trombinoscope)
+    (sheet, copies) => upsertDelivery({ gameId: dashboard.session.gameId, sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'trombinoscope', contentHash: sheet.trombinoscopeContentHash }, copies.trombinoscope)
   )
 }
 
@@ -517,7 +518,7 @@ export async function markCharacterSheetBundleDeliveries(sessionId: string) {
       copies: { character_sheet: characterSheet.copy, trombinoscope: trombinoscope.copy }
     }
   }, async (sheet, copies) => {
-    const base = { sessionId, participantId: sheet.participant.id, characterId: sheet.character.id }
+    const base = { gameId: dashboard.session.gameId, sessionId, participantId: sheet.participant.id, characterId: sheet.character.id }
     await upsertDelivery({ ...base, kind: 'character_sheet', contentHash: sheet.sheetContentHash }, copies.character_sheet)
     await upsertDelivery({ ...base, kind: 'trombinoscope', contentHash: sheet.trombinoscopeContentHash }, copies.trombinoscope)
     await upsertDelivery({ ...base, kind: 'character_sheet_bundle', contentHash: null })
@@ -556,7 +557,7 @@ export async function resendDeliveries(sessionId: string, request: {
     sessionId,
       targets,
       (recipient) => documentMessage(dashboard, document, recipient.participant, true),
-      (recipient, copies) => recordDocumentDelivery(sessionId, document.id, recipient.participant.id, document.contentHash, copies.document)
+      (recipient, copies) => recordDocumentDelivery(dashboard.session, document.id, recipient.participant.id, document.contentHash, copies.document)
     )
   }
 
@@ -569,7 +570,7 @@ export async function resendDeliveries(sessionId: string, request: {
     sessionId,
       targets,
       (sheet) => characterSheetMessage(dashboard, sheet, true),
-      (sheet, copies) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'character_sheet', contentHash: sheet.sheetContentHash }, copies.character_sheet)
+      (sheet, copies) => upsertDelivery({ gameId: dashboard.session.gameId, sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'character_sheet', contentHash: sheet.sheetContentHash }, copies.character_sheet)
     )
   }
 
@@ -581,7 +582,7 @@ export async function resendDeliveries(sessionId: string, request: {
     sessionId,
     targets,
     (sheet) => trombinoscopeMessage(dashboard, sheet, true),
-    (sheet, copies) => upsertDelivery({ sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'trombinoscope', contentHash: sheet.trombinoscopeContentHash }, copies.trombinoscope)
+    (sheet, copies) => upsertDelivery({ gameId: dashboard.session.gameId, sessionId, participantId: sheet.participant.id, characterId: sheet.character.id, kind: 'trombinoscope', contentHash: sheet.trombinoscopeContentHash }, copies.trombinoscope)
   )
 }
 

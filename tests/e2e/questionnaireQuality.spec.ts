@@ -25,7 +25,7 @@ test('l’encadré de qualité signale un personnage sans lien, puis les repère
     for (const name of ['zoe', 'ines', 'leo', 'hugo']) {
       const email = `${name}-${key}@example.test`
       const person = await prisma.participant.create({ data: { name: `${name} ${key}`, slug: `${name}-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
-      await prisma.registration.create({ data: { periodId: period.id, participantId: person.id, status: 'received', source: 'form', email, questionAnswers: { style: 'Intrigue' } } })
+      await prisma.registration.create({ data: { gameId: period.gameId, periodId: period.id, participantId: person.id, status: 'received', source: 'form', email, questionAnswers: { style: 'Intrigue' } } })
     }
 
     await signIn(page, prisma, E2E_USERS.orga)
@@ -198,7 +198,7 @@ test('la relecture signale les questions, et le mélange des options tient penda
     // Une fois des réponses reçues, même à une question sans lien, la partie reste là, repliée, avec son niveau
     const email = `zoe-${key}@example.test`
     const person = await prisma.participant.create({ data: { name: `Zoé ${key}`, slug: `zoe-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
-    await prisma.registration.create({ data: { periodId: period.id, participantId: person.id, status: 'received', source: 'form', email, questionAnswers: { style: 'Alpha' } } })
+    await prisma.registration.create({ data: { gameId: period.gameId, periodId: period.id, participantId: person.id, status: 'received', source: 'form', email, questionAnswers: { style: 'Alpha' } } })
     await openEditor()
     await expect(draftingTitle).toContainText('À surveiller')
     await expect(flag).toBeHidden()
@@ -322,7 +322,7 @@ test('la prévision du questionnaire suit les proportions attendues', async ({ p
     // Une fois des réponses reçues, la partie reste là, repliée
     const email = `zoe-${key}@example.test`
     const person = await prisma.participant.create({ data: { name: `Zoé ${key}`, slug: `zoe-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
-    await prisma.registration.create({ data: { periodId: period.id, participantId: person.id, status: 'received', source: 'form', email, questionAnswers: { style: 'Manigance' } } })
+    await prisma.registration.create({ data: { gameId: period.gameId, periodId: period.id, participantId: person.id, status: 'received', source: 'form', email, questionAnswers: { style: 'Manigance' } } })
     await openEditor()
     const forecastTitle = editor.locator('summary').filter({ hasText: 'Prévision' })
     await expect(forecastTitle).toContainText('À revoir')

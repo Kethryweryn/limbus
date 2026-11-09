@@ -160,7 +160,7 @@ describe('répondre d’un clic (US-167, R11, R29)', () => {
     const pool = await createPool(prisma, alice.id, { key: 'clic', sessions: 1, seats: 2 })
     const session = pool.sessions[0]!
     const registration = await addPerson(prisma, pool, 'Lou')
-    if (status) await prisma.registrationSession.create({ data: { registrationId: registration.id, sessionId: session.id, status, ...line } })
+    if (status) await prisma.registrationSession.create({ data: { registrationId: registration.id, gameId: session.gameId, sessionId: session.id, status, ...line } })
     return { pool, session, registration, token: await linkOf(registration.id) }
   }
 
@@ -191,7 +191,7 @@ describe('répondre d’un clic (US-167, R11, R29)', () => {
   it('retenue sans annonce, « Pas disponible » libère le personnage, sans le lui dire', async () => {
     const { pool, session, registration, token } = await person('retained', { answer: 'available' })
     const character = await prisma.character.findFirstOrThrow({ where: { gameId: pool.game.id } })
-    const row = await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, reservedRegistrationId: registration.id } })
+    const row = await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: character.id, reservedRegistrationId: registration.id } })
     const { body } = await answer(token, session.id, false)
     expect(body.availabilityEffect).toBe('removed')
     expect(body.sessions.find((line) => line.sessionId === session.id)?.status).toBe('unavailable')

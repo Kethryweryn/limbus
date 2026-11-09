@@ -41,7 +41,7 @@ describe('sessions de la fiche', () => {
         { sessionId: bobs!.id, participantId: participant.id, role: 'participant' }
       ]
     })
-    await prisma.sessionAssignment.create({ data: { sessionId: later!.id, characterId: character.id, participantId: participant.id } })
+    await prisma.sessionAssignment.create({ data: { gameId: later!.gameId, sessionId: later!.id, characterId: character.id, participantId: participant.id } })
 
     const response = await api(alice, 'GET', `/api/participants/${participant.id}/sessions`)
     expect(response.status).toBe(200)

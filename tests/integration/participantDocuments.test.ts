@@ -107,8 +107,8 @@ describe('copie de chaque envoi (US-078) et lecture dans « Je participe » (US-
     const photoUrl = `/api/uploads/session-assignment-photos/${filename}`
     await prisma.uploadedFile.create({ data: { kind: 'sessionAssignmentPhoto', filename, url: photoUrl, gameId: game.id, size: PNG.length } })
     const otherPlayer = await prisma.participant.create({ data: { name: 'Autre', slug: `autre-${k}`, email: `autre-${k}@example.test`, gameLinks: { create: { gameId: game.id } } } })
-    await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: viewer!.id, participantId: participant.id } })
-    await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: other!.id, participantId: otherPlayer.id, photoUrl } })
+    await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: viewer!.id, participantId: participant.id } })
+    await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: other!.id, participantId: otherPlayer.id, photoUrl } })
     await prisma.characterTrombinoscopeEntry.create({ data: { gameId: viewer!.gameId, viewerCharacterId: viewer!.id, targetCharacterId: other!.id, included: true, faceKnown: true } })
 
     expect((await api(owner, 'POST', `/api/sessions/${session.id}/trombinoscopes/generate`, {})).status).toBe(200)
@@ -189,7 +189,7 @@ describe('copies effacées après la session (US-080)', () => {
   it('une fiche n’est plus lisible, sans copie, quand le rôle est distribué à quelqu’un d’autre', async () => {
     const { k, owner, player, game, session, participant } = await world()
     const character = await prisma.character.create({ data: { name: `Role ${k}`, slug: `role-${k}`, gameId: game.id, background: 'Pour la joueuse', sheetReadyToSend: true } })
-    await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id } })
+    await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: character.id, participantId: participant.id } })
     expect((await api(owner, 'POST', `/api/sessions/${session.id}/documents/send-character-sheets`, {})).body).toMatchObject({ sentCount: 1 })
     const { id } = await deliveryOf(participant.id, 'character_sheet')
 

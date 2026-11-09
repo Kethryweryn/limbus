@@ -1,12 +1,14 @@
 ---
 id: ADR-0074
 titre: Les liens entre éléments d'un jeu passent par des clés étrangères composées avec le jeu
-statut: accepté
+statut: remplacé en partie par ADR-0077
 date: 2026-11-09
 liens: [../archive/todo/schema-de-donnees.md, ../epics/EPIC-049-schema-de-donnees/US-191-meme-jeu-impose-par-la-base.md, ../epics/EPIC-049-schema-de-donnees/US-195-meme-jeu-sessions-et-vivier.md, ADR-0024-migrations-compatibles-avec-le-build-en-service.md]
 ---
 
 # ADR-0074 : Les liens entre éléments d'un jeu passent par des clés étrangères composées avec le jeu
+
+> Remplacé en partie par [ADR-0077](ADR-0077-references-videes-par-la-base.md) : une référence facultative qui se vide à la suppression de sa cible n'est plus en `NoAction` vidée par le code, mais en `ON DELETE SET NULL (colonne)`, vidée par la base. Le reste de la décision tient.
 
 ## Contexte
 

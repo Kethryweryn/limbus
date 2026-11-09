@@ -30,7 +30,7 @@ describe('envoi des documents d’une session', () => {
       prisma.character.create({ data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, gameId: game.id } })
     ))
     await prisma.sessionAssignment.createMany({
-      data: [first!, second!].map((character) => ({ sessionId: session.id, characterId: character.id, participantId: participant.id }))
+      data: [first!, second!].map((character) => ({ gameId: session.gameId, sessionId: session.id, characterId: character.id, participantId: participant.id }))
     })
     const document = await prisma.document.create({
       data: {
@@ -62,7 +62,7 @@ describe('envoi des documents d’une session', () => {
     const character = await prisma.character.create({
       data: { name: `Héraut ${key}`, slug: `heraut-${key}`, gameId: game.id, background: 'Histoire', sheetReadyToSend: true }
     })
-    await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id } })
+    await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: character.id, participantId: participant.id } })
     const mailsTo = () => smtp.received.filter((received) => received.to.includes(participant.email!)).length
 
     const response = await api(alice, 'POST', `/api/sessions/${session.id}/documents/send-character-sheets`, {})
@@ -86,7 +86,7 @@ describe('envoi des documents d’une session', () => {
       const character = await prisma.character.create({
         data: { name: `Rôle ${index} ${key}`, slug: `role-${index}-${key}`, gameId: game.id, background: 'Histoire', sheetReadyToSend: true }
       })
-      await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id } })
+      await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: character.id, participantId: participant.id } })
     }
 
     const response = await api(alice, 'POST', `/api/sessions/${session.id}/documents/send-character-sheets`, {})
@@ -112,7 +112,7 @@ describe('envoi des documents d’une session', () => {
         data: { name: `Rôle ${index} ${key}`, slug: `role-${index}-${key}`, gameId: game.id, background: 'Histoire', sheetReadyToSend: true }
       })
       characters.push(character)
-      await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id } })
+      await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: character.id, participantId: participant.id } })
     }
     const document = await prisma.document.create({
       data: { title: `Lettre ${key}`, slug: `lettre-${key}`, gameId: game.id, content: 'Version 1', readyToSend: true, audiences: ['organizers', 'npcs', 'kitchen', 'pjs'] }

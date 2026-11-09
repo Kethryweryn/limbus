@@ -33,7 +33,7 @@ async function aliceGameWith(email: string) {
   const character = await prisma.character.create({ data: { name: `Secret ${k}`, slug: `secret-${k}`, gameId: game.id } })
   const participant = await prisma.participant.create({ data: { name: `Joueuse ${k}`, slug: `joueuse-${k}`, email, gameLinks: { create: { gameId: game.id, notes: 'Note de l’équipe' } } } })
   await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
-  await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id } })
+  await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: character.id, participantId: participant.id } })
   return { game, session, character, participant }
 }
 
@@ -104,7 +104,7 @@ describe('répondre depuis son compte (US-072)', () => {
     const participant = await prisma.participant.create({ data: { name: 'Camille Invitée', slug: `camille-${k}`, email: user.email, userId: user.id, gameLinks: { create: { gameId: game.id } } } })
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `periode-${k}`, state: 'open' } })
     const registration = await prisma.registration.create({
-      data: { periodId: period.id, participantId: participant.id, status: 'invited', source: 'invitation', email: user.email, responseDueAt: new Date(Date.now() + 86_400_000) }
+      data: { gameId: period.gameId, periodId: period.id, participantId: participant.id, status: 'invited', source: 'invitation', email: user.email, responseDueAt: new Date(Date.now() + 86_400_000) }
     })
     return { user, registration }
   }

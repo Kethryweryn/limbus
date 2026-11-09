@@ -36,8 +36,8 @@ async function team() {
   const [hero, guard] = await Promise.all([character('Aube', 'pj'), character('Garde', 'pnj')])
   await prisma.sessionAssignment.createMany({
     data: [
-      { sessionId: session.id, characterId: hero.id, participantId: player.id },
-      { sessionId: session.id, characterId: guard.id, participantId: npc.id }
+      { gameId: session.gameId, sessionId: session.id, characterId: hero.id, participantId: player.id },
+      { gameId: session.gameId, sessionId: session.id, characterId: guard.id, participantId: npc.id }
     ]
   })
   await prisma.sessionParticipant.createMany({

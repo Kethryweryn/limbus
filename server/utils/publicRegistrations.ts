@@ -50,6 +50,8 @@ const publicRegistrationSelect = {
   responseDueAt: true,
   respondedAt: true,
   withdrawnById: true,
+  // Jeu de l'inscription, que ses lignes reçoivent (US-195)
+  gameId: true,
   invitedSession: { select: sessionView },
   sessionLines: {
     orderBy: { session: { date: 'asc' as const } },
@@ -348,7 +350,7 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
       const checked = availableSessionIds!.includes(session.id)
       // Une date jamais cochée reste sans réponse (R7)
       if (checked === previouslyChecked.has(session.id)) continue
-      const effect = await answerAvailability(tx, registration.id, session.id, checked, now)
+      const effect = await answerAvailability(tx, registration, session.id, checked, now)
       if (effect === 'kept') kept.push(session.name)
       if (effect === 'removed') removed.push(session.name)
     }
@@ -438,7 +440,7 @@ export async function answerSessionAvailability(registration: PublicRegistration
     if (!count) {
       throw createError({ statusCode: 409, message: 'Votre inscription a changé entre-temps : rechargez la page.' })
     }
-    return await answerAvailability(tx, registration.id, sessionId, available)
+    return await answerAvailability(tx, registration, sessionId, available)
   })
   if (effect === 'removed') notifyRemovedFromCast(registration, [line!.session.name])
   return effect
