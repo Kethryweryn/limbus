@@ -354,7 +354,7 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
       update: {
         fileName,
         contentHtml: html,
-        contentPdfBase64: Buffer.from(pdfBytes).toString('base64'),
+        contentPdf: Buffer.from(pdfBytes),
         missingPhotos: rows.filter((row) => row.missingPhoto).length,
         sourceHash,
         contentJson,
@@ -367,7 +367,7 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
         participantId: assignment.participant.id,
         fileName,
         contentHtml: html,
-        contentPdfBase64: Buffer.from(pdfBytes).toString('base64'),
+        contentPdf: Buffer.from(pdfBytes),
         missingPhotos: rows.filter((row) => row.missingPhoto).length,
         sourceHash,
         contentJson

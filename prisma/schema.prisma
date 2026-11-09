@@ -99,8 +99,6 @@ model Character {
 
   factionLinks          CharacterFaction[]
   intrigueLinks         CharacterIntrigue[]
-  // Documents de l'ancien champ « Personnage » (Document.characterId), vide depuis ADR-0072 et retiré par l'US-193
-  legacyDocuments       Document[]
   documentLinks         DocumentCharacter[]
   sessionAssignments    SessionAssignment[]
   itemLinks             CharacterItem[]
@@ -311,8 +309,6 @@ model Document {
   slug        String      @unique
   content     String?
   documentUrl String?
-  // Ancien public unique, encore écrit pour le build en service pendant un déploiement (ADR-0072)
-  audience    DocumentAudience @default(targeted)
   // Rôles visés : organizers, npcs, kitchen, pjs (US-187, ADR-0072) ; la sélection avancée est characters et factions
   audiences   DocumentRole[] @default([])
   readyToSend Boolean     @default(false)
@@ -322,16 +318,12 @@ model Document {
   updatedAt   DateTime    @updatedAt
   published   Boolean     @default(true)
 
-  // Ancien champ « Personnage », vidé par la migration d'ADR-0072 et plus écrit : les personnages sont dans characters
-  characterId String?
-  character   Character?  @relation(fields: [characterId, gameId], references: [id, gameId], onDelete: SetNull, onUpdate: NoAction)
   characterLinks DocumentCharacter[]
 
   factionLinks DocumentFaction[]
   deliveries  SessionDocumentDelivery[]
 
   @@index([gameId])
-  @@index([characterId, gameId])
   // Cible des clés composées avec le jeu (US-191, ADR-0074)
   @@unique([id, gameId])
 }
@@ -868,8 +860,6 @@ model Participant {
   user        User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
   // Photo refusée (US-109, ADR-0054) : aucune photo de la personne dans le cast ni les trombinoscopes
   photoRefusedAt DateTime?
-  // Vidé par la migration d'ADR-0040 : les notes vivent sur ParticipantGame. Colonne à supprimer
-  notes       String?
   gameLinks   ParticipantGame[]
   published   Boolean    @default(true)
   createdAt   DateTime   @default(now())
@@ -970,7 +960,8 @@ model SessionTrombinoscope {
   participantId     String
   fileName          String
   contentHtml       String
-  contentPdfBase64  String?
+  // PDF généré, en binaire comme les copies des envois (US-193, ADR-0044)
+  contentPdf        Bytes?
   missingPhotos     Int         @default(0)
   sourceHash        String?
   // Cartes du trombinoscope, pour le lire dans « Je participe » (US-079, ADR-0044)
@@ -1165,8 +1156,6 @@ model GameInvitation {
   id           String    @id @default(cuid())
   gameId       String
   email        String   @db.Citext
-  // Jeton en clair des invitations d'avant ADR-0034 : plus écrit, vide après la migration
-  token        String?   @unique
   // Empreinte SHA-256 du jeton du lien (ADR-0034) : le jeton lui-même n'est pas gardé
   tokenHash    String?   @unique
   status       GameInvitationStatus @default(pending)

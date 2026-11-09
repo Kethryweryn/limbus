@@ -5,7 +5,6 @@ import { CHARACTER_RELATION_DESCRIPTION_MAX_LENGTH, CHARACTER_RELATION_LABEL_MAX
 import type { H3Event } from 'h3'
 import {
   CHARACTER_TYPES,
-  DOCUMENT_AUDIENCES,
   INTRIGUE_LEVELS,
   REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS,
   REGISTRATION_PERIOD_STATES,
@@ -18,7 +17,7 @@ import {
   REGISTRATION_SELECTION_MODES
 } from '~/utils/domain'
 import { isHttpUrl, isUploadUrl, PHOTO_UPLOAD_PREFIX, RIB_UPLOAD_PREFIX } from '~/utils/urls'
-import { ALL_DOCUMENT_ROLES, rolesFromLegacyAudience, type DocumentRole } from '~/utils/documentAudiences'
+import { ALL_DOCUMENT_ROLES, type DocumentRole } from '~/utils/documentAudiences'
 import {
   REGISTRATION_AFFINITIES,
   REGISTRATION_CHOICE_TYPES,
@@ -61,14 +60,6 @@ const sessionParticipantRole = z.enum([
   SESSION_ROLES.organizer,
   SESSION_ROLES.npc,
   SESSION_ROLES.kitchen
-])
-// Ancien public unique, encore accepté d'un onglet resté ouvert ou de la file hors ligne (ADR-0072)
-const legacyDocumentAudience = z.enum([
-  DOCUMENT_AUDIENCES.targeted,
-  DOCUMENT_AUDIENCES.everyone,
-  DOCUMENT_AUDIENCES.organizers,
-  DOCUMENT_AUDIENCES.npcs,
-  DOCUMENT_AUDIENCES.kitchen
 ])
 export const documentRoleSchema = z.enum(ALL_DOCUMENT_ROLES as [DocumentRole, ...DocumentRole[]])
 const timelineTime = z.string().trim().regex(/^\d{2}:\d{2}$/, 'Time must use HH:mm format')
@@ -270,26 +261,27 @@ export const itemSchema = z.object({
   intrigueIds: z.array(requiredId('Intrigue')).optional().default([])
 })
 
-// Public : rôles cochés et sélection avancée (US-187, ADR-0072). Une écriture d'avant, avec `audience` ou le champ
-// unique `characterId`, est convertie : rôles de l'ancien public, personnage ajouté à la liste
+// Public : rôles cochés et sélection avancée (US-187, ADR-0072). Une écriture d'avant, avec l'ancien public ou le champ
+// unique « Personnage », vient d'une page périmée : refusée plutôt qu'enregistrée sans public (US-193)
+const outdatedDocumentField = z.undefined({ error: 'Cette page est d’une ancienne version : rechargez-la avant d’enregistrer.' }).optional()
 export const documentSchema = z.object({
   title: requiredText('Title'),
   content: optionalText,
   documentUrl: externalUrl,
-  audiences: z.array(documentRoleSchema).optional(),
-  audience: legacyDocumentAudience.optional(),
+  audiences: z.array(documentRoleSchema).optional().default([]),
+  audience: outdatedDocumentField,
+  characterId: outdatedDocumentField,
   readyToSend: optionalBoolean,
   gameId: requiredId('Game'),
-  characterId: optionalText,
   characterIds: z.array(requiredId('Character')).optional().default([]),
   factionIds: z.array(requiredId('Faction')).optional().default([])
 }).refine((value) => Boolean(value.content?.trim() || value.documentUrl?.trim()), {
   message: 'Content or document URL is required',
   path: ['content']
-}).transform(({ audience, characterId, audiences, characterIds, ...value }) => ({
+}).transform(({ audience: _audience, characterId: _characterId, audiences, characterIds, ...value }) => ({
   ...value,
-  audiences: [...new Set(audiences ?? rolesFromLegacyAudience(audience))],
-  characterIds: [...new Set([...(characterId ? [characterId] : []), ...characterIds])]
+  audiences: [...new Set(audiences)],
+  characterIds: [...new Set(characterIds)]
 }))
 
 export const timelineEventSchema = z.object({

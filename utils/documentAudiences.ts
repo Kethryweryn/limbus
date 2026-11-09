@@ -1,5 +1,3 @@
-import { DOCUMENT_AUDIENCES } from '~/utils/domain'
-
 // Public d'un document (US-187, ADR-0072) : des rôles cochés, plus une sélection avancée de personnages et de groupes
 
 export const DOCUMENT_ROLES = {
@@ -24,38 +22,15 @@ export const ALL_DOCUMENT_ROLES: DocumentRole[] = DOCUMENT_ROLE_OPTIONS.map((opt
 // « Tout le monde » n'est pas stocké : c'est les quatre cases cochées
 export const isEveryone = (roles: readonly string[]) => ALL_DOCUMENT_ROLES.every((role) => roles.includes(role))
 
-const LEGACY_SINGLE_ROLES: readonly string[] = [DOCUMENT_ROLES.organizers, DOCUMENT_ROLES.npcs, DOCUMENT_ROLES.kitchen]
-
-/** Rôles d'un ancien public unique (`Document.audience`), pour une écriture d'avant ADR-0072. */
-export function rolesFromLegacyAudience(audience: string | null | undefined): DocumentRole[] {
-  if (audience === DOCUMENT_AUDIENCES.everyone) return [...ALL_DOCUMENT_ROLES]
-  return audience && LEGACY_SINGLE_ROLES.includes(audience) ? [audience as DocumentRole] : []
-}
-
-/** Ancien public le plus proche des rôles, écrit pour le build encore en service pendant un déploiement (ADR-0024). */
-type LegacyAudience = typeof DOCUMENT_AUDIENCES[keyof typeof DOCUMENT_AUDIENCES]
-
-export function legacyAudience(roles: readonly string[]): LegacyAudience {
-  if (isEveryone(roles)) return DOCUMENT_AUDIENCES.everyone
-  const [only] = roles
-  return roles.length === 1 && only && LEGACY_SINGLE_ROLES.includes(only) ? only as LegacyAudience : DOCUMENT_AUDIENCES.targeted
-}
-
 type AudienceDocument = {
   audiences?: readonly DocumentRole[] | null
-  audience?: string | null
   characters?: readonly unknown[] | null
   factions?: readonly unknown[] | null
 }
 
-/**
- * Rôles d'un document : `audiences`, sinon ceux de l'ancien public. Couvre un document gardé sur l'appareil avant ADR-0072
- * (sans `audiences`) et un document écrit par le build encore en service pendant le déploiement (`audiences` vide).
- * L'application écrit toujours dans `audience` l'ancien public le plus proche des rôles : sans rôle, c'est le ciblage
- * manuel, qui n'en donne aucun.
- */
-export function documentRoles(document: Pick<AudienceDocument, 'audiences' | 'audience'>): DocumentRole[] {
-  return document.audiences?.length ? [...document.audiences] : rolesFromLegacyAudience(document.audience)
+/** Rôles cochés d'un document ; aucun pour un document sans `audiences` (ciblage manuel seul). */
+export function documentRoles(document: Pick<AudienceDocument, 'audiences'>): DocumentRole[] {
+  return [...(document.audiences ?? [])]
 }
 
 const plural = (count: number, word: string) => `${count} ${word}${count > 1 ? 's' : ''}`

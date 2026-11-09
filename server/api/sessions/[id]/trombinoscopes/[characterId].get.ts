@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const session = await requireSessionAccess(event, id)
 
   const trombinoscope = await getSessionTrombinoscope(session.id, characterId)
-  if (!trombinoscope.contentPdfBase64) {
+  if (!trombinoscope.contentPdf) {
     throw createError({ statusCode: 404, message: 'PDF non généré' })
   }
 
@@ -20,5 +20,5 @@ export default defineEventHandler(async (event) => {
   setHeader(event, 'x-content-type-options', 'nosniff')
   setHeader(event, 'cache-control', 'no-store')
 
-  return Buffer.from(trombinoscope.contentPdfBase64, 'base64')
+  return Buffer.from(trombinoscope.contentPdf)
 })

@@ -24,11 +24,21 @@ async function ensureStore(store: string) {
     }
 
     if (!dbPromise) {
-        dbPromise = openDB(DB_NAME, 12, {
-            upgrade(upgradeDb) {
+        dbPromise = openDB(DB_NAME, 13, {
+            async upgrade(upgradeDb, oldVersion, _newVersion, transaction) {
                 for (const storeName of STORES) {
                     if (!upgradeDb.objectStoreNames.contains(storeName)) {
                         upgradeDb.createObjectStore(storeName)
+                    }
+                }
+                // Version 13 (US-193) : un document gardé avant ADR-0072 n'a pas ses rôles, que le serveur ne déduit plus
+                // de l'ancien public. Les documents gardés sur l'appareil sont relus au retour du réseau ; les écritures
+                // en attente restent
+                if (oldVersion && oldVersion < 13) {
+                    await transaction.objectStore('documents').clear()
+                    const responses = transaction.objectStore('responses')
+                    for (const key of await responses.getAllKeys()) {
+                        if (String(key).startsWith('/api/documents')) await responses.delete(key)
                     }
                 }
             },

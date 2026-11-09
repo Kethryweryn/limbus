@@ -1,7 +1,7 @@
 // US-187 : public d'un document par rôles et sélection avancée (ADR-0072, SPEC-006 R7)
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
-import { api, bodyOf } from './api'
+import { api, bodyOf, invalidMessages } from './api'
 import { createTestPrisma } from './db'
 import type { CharacterType } from '~/generated/prisma/enums'
 
@@ -76,20 +76,15 @@ describe('public d’un document', () => {
     expect(await recipientsOf(session.id, `Guilde ${key}`)).toEqual([people.member.name])
   })
 
-  it('convertit une écriture d’avant : ancien public et champ « Personnage »', async () => {
+  // US-193 : une page d'avant ADR-0072 envoie l'ancien public ; elle est refusée plutôt qu'enregistrée sans public
+  it('refuse une écriture d’avant, avec l’ancien public ou le champ « Personnage »', async () => {
     const { key, game, pjCharacter } = await sessionWithEveryone()
-    const response = await api(alice, 'POST', '/api/documents', { title: `Ancien ${key}`, content: 'Texte', gameId: game.id, audience: 'everyone', characterId: pjCharacter.id })
-    expect(response.status).toBe(200)
-    const saved = await prisma.document.findFirstOrThrow({ where: { title: `Ancien ${key}` }, select: { audiences: true, audience: true, characterId: true, characterLinks: { select: { characterId: true } } } })
-    expect([...saved.audiences].sort()).toEqual(['kitchen', 'npcs', 'organizers', 'pjs'])
-    // L'ancien public reste écrit pour le build en service pendant un déploiement ; le champ unique ne l'est plus
-    expect(saved).toMatchObject({ audience: 'everyone', characterId: null, characterLinks: [{ characterId: pjCharacter.id }] })
-  })
-
-  it('un document écrit par le build d’avant (sans rôles) garde ses destinataires', async () => {
-    const { key, game, session, people } = await sessionWithEveryone()
-    await prisma.document.create({ data: { title: `Ancien build ${key}`, slug: `ancien-build-${key}`, content: 'Texte', gameId: game.id, audience: 'kitchen' } })
-    expect(await recipientsOf(session.id, `Ancien build ${key}`)).toEqual([people.cook.name])
+    for (const legacy of [{ audience: 'everyone' }, { characterId: pjCharacter.id }]) {
+      const refused = await api(alice, 'POST', '/api/documents', { title: `Ancien ${key}`, content: 'Texte', gameId: game.id, ...legacy })
+      expect(refused.status).toBe(400)
+      expect(invalidMessages(refused)).toEqual(['Cette page est d’une ancienne version : rechargez-la avant d’enregistrer.'])
+    }
+    expect(await prisma.document.count({ where: { title: `Ancien ${key}` } })).toBe(0)
   })
 
   it('refuse un rôle inconnu', async () => {

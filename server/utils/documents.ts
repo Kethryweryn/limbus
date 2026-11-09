@@ -80,6 +80,8 @@ export async function getSessionDocumentDashboard(sessionId: string) {
     }),
     prisma.sessionTrombinoscope.findMany({
       where: { sessionId: session.id },
+      // Le tableau n'en lit que les dates et les empreintes
+      omit: { contentPdf: true, contentHtml: true, contentJson: true },
       include: {
         viewerCharacter: true,
         participant: true
@@ -730,14 +732,14 @@ async function buildCharacterSheetPdfAttachment(session: { id: string }, charact
 // photoCache null : pas de copie (email de test)
 async function buildTrombinoscopePdfAttachment(session: { id: string, name: string }, characterId: string, photoCache: Map<string, Promise<Uint8Array | null>> | null) {
   const trombinoscope = await getSessionTrombinoscope(session.id, characterId)
-  if (!trombinoscope.contentPdfBase64) {
+  if (!trombinoscope.contentPdf) {
     throw createError({ statusCode: 404, message: 'Trombinoscope PDF introuvable' })
   }
 
   return {
     attachment: {
       filename: trombinoscope.fileName,
-      content: Buffer.from(trombinoscope.contentPdfBase64, 'base64'),
+      content: Buffer.from(trombinoscope.contentPdf),
       contentType: 'application/pdf'
     },
     copy: photoCache ? await trombinoscopeCopy(trombinoscope, trombinoscopeHeading(session), photoCache) : undefined

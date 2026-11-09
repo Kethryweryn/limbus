@@ -146,7 +146,6 @@ describe('références croisées vers le jeu de Bob', () => {
     ['POST', '/api/items', { name: 'X', gameId: a.game.id, characterIds: [b.character.id] }],
     ['POST', '/api/items', { name: 'X', gameId: a.game.id, intrigueIds: [b.intrigue.id] }],
     ['POST', '/api/items', { name: 'X', gameId: a.game.id, locationCharacterId: b.character.id }],
-    ['POST', '/api/documents', { title: 'X', content: 'x', gameId: a.game.id, characterId: b.character.id }],
     ['POST', '/api/documents', { title: 'X', content: 'x', gameId: a.game.id, characterIds: [b.character.id] }],
     ['POST', '/api/documents', { title: 'X', content: 'x', gameId: a.game.id, factionIds: [b.faction.id] }],
     ['POST', '/api/timeline-events', { name: 'X', day: 1, time: '10:00', gameId: a.game.id, characterIds: [b.character.id] }],
