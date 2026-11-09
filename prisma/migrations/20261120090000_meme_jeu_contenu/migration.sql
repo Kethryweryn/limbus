@@ -22,11 +22,10 @@ CREATE TABLE "CharacterFaction" (
     "characterId" TEXT NOT NULL,
     "factionId" TEXT NOT NULL,
 
-    CONSTRAINT "CharacterFaction_pkey" PRIMARY KEY ("characterId","factionId")
+    CONSTRAINT "CharacterFaction_pkey" PRIMARY KEY ("characterId","gameId","factionId")
 );
 INSERT INTO "CharacterFaction" ("gameId", "characterId", "factionId")
   SELECT a."gameId", l."A", l."B" FROM "_CharacterFactions" l JOIN "Character" a ON a."id" = l."A";
-CREATE INDEX "CharacterFaction_characterId_gameId_idx" ON "CharacterFaction"("characterId", "gameId");
 CREATE INDEX "CharacterFaction_factionId_gameId_idx" ON "CharacterFaction"("factionId", "gameId");
 ALTER TABLE "CharacterFaction" ADD CONSTRAINT "CharacterFaction_characterId_gameId_fkey" FOREIGN KEY ("characterId", "gameId") REFERENCES "Character"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
 ALTER TABLE "CharacterFaction" ADD CONSTRAINT "CharacterFaction_factionId_gameId_fkey" FOREIGN KEY ("factionId", "gameId") REFERENCES "Faction"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
@@ -35,11 +34,10 @@ CREATE TABLE "CharacterIntrigue" (
     "characterId" TEXT NOT NULL,
     "intrigueId" TEXT NOT NULL,
 
-    CONSTRAINT "CharacterIntrigue_pkey" PRIMARY KEY ("characterId","intrigueId")
+    CONSTRAINT "CharacterIntrigue_pkey" PRIMARY KEY ("characterId","gameId","intrigueId")
 );
 INSERT INTO "CharacterIntrigue" ("gameId", "characterId", "intrigueId")
   SELECT a."gameId", l."A", l."B" FROM "_CharacterIntrigues" l JOIN "Character" a ON a."id" = l."A";
-CREATE INDEX "CharacterIntrigue_characterId_gameId_idx" ON "CharacterIntrigue"("characterId", "gameId");
 CREATE INDEX "CharacterIntrigue_intrigueId_gameId_idx" ON "CharacterIntrigue"("intrigueId", "gameId");
 ALTER TABLE "CharacterIntrigue" ADD CONSTRAINT "CharacterIntrigue_characterId_gameId_fkey" FOREIGN KEY ("characterId", "gameId") REFERENCES "Character"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
 ALTER TABLE "CharacterIntrigue" ADD CONSTRAINT "CharacterIntrigue_intrigueId_gameId_fkey" FOREIGN KEY ("intrigueId", "gameId") REFERENCES "Intrigue"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
@@ -48,11 +46,10 @@ CREATE TABLE "CharacterItem" (
     "characterId" TEXT NOT NULL,
     "itemId" TEXT NOT NULL,
 
-    CONSTRAINT "CharacterItem_pkey" PRIMARY KEY ("characterId","itemId")
+    CONSTRAINT "CharacterItem_pkey" PRIMARY KEY ("characterId","gameId","itemId")
 );
 INSERT INTO "CharacterItem" ("gameId", "characterId", "itemId")
   SELECT a."gameId", l."A", l."B" FROM "_CharacterItems" l JOIN "Character" a ON a."id" = l."A";
-CREATE INDEX "CharacterItem_characterId_gameId_idx" ON "CharacterItem"("characterId", "gameId");
 CREATE INDEX "CharacterItem_itemId_gameId_idx" ON "CharacterItem"("itemId", "gameId");
 ALTER TABLE "CharacterItem" ADD CONSTRAINT "CharacterItem_characterId_gameId_fkey" FOREIGN KEY ("characterId", "gameId") REFERENCES "Character"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
 ALTER TABLE "CharacterItem" ADD CONSTRAINT "CharacterItem_itemId_gameId_fkey" FOREIGN KEY ("itemId", "gameId") REFERENCES "Item"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
@@ -61,11 +58,10 @@ CREATE TABLE "DocumentCharacter" (
     "documentId" TEXT NOT NULL,
     "characterId" TEXT NOT NULL,
 
-    CONSTRAINT "DocumentCharacter_pkey" PRIMARY KEY ("documentId","characterId")
+    CONSTRAINT "DocumentCharacter_pkey" PRIMARY KEY ("documentId","gameId","characterId")
 );
 INSERT INTO "DocumentCharacter" ("gameId", "documentId", "characterId")
   SELECT a."gameId", l."B", l."A" FROM "_DocumentCharacters" l JOIN "Document" a ON a."id" = l."B";
-CREATE INDEX "DocumentCharacter_documentId_gameId_idx" ON "DocumentCharacter"("documentId", "gameId");
 CREATE INDEX "DocumentCharacter_characterId_gameId_idx" ON "DocumentCharacter"("characterId", "gameId");
 ALTER TABLE "DocumentCharacter" ADD CONSTRAINT "DocumentCharacter_documentId_gameId_fkey" FOREIGN KEY ("documentId", "gameId") REFERENCES "Document"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
 ALTER TABLE "DocumentCharacter" ADD CONSTRAINT "DocumentCharacter_characterId_gameId_fkey" FOREIGN KEY ("characterId", "gameId") REFERENCES "Character"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
@@ -74,11 +70,10 @@ CREATE TABLE "DocumentFaction" (
     "documentId" TEXT NOT NULL,
     "factionId" TEXT NOT NULL,
 
-    CONSTRAINT "DocumentFaction_pkey" PRIMARY KEY ("documentId","factionId")
+    CONSTRAINT "DocumentFaction_pkey" PRIMARY KEY ("documentId","gameId","factionId")
 );
 INSERT INTO "DocumentFaction" ("gameId", "documentId", "factionId")
   SELECT a."gameId", l."A", l."B" FROM "_DocumentFactions" l JOIN "Document" a ON a."id" = l."A";
-CREATE INDEX "DocumentFaction_documentId_gameId_idx" ON "DocumentFaction"("documentId", "gameId");
 CREATE INDEX "DocumentFaction_factionId_gameId_idx" ON "DocumentFaction"("factionId", "gameId");
 ALTER TABLE "DocumentFaction" ADD CONSTRAINT "DocumentFaction_documentId_gameId_fkey" FOREIGN KEY ("documentId", "gameId") REFERENCES "Document"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
 ALTER TABLE "DocumentFaction" ADD CONSTRAINT "DocumentFaction_factionId_gameId_fkey" FOREIGN KEY ("factionId", "gameId") REFERENCES "Faction"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
@@ -87,11 +82,10 @@ CREATE TABLE "FactionIntrigue" (
     "factionId" TEXT NOT NULL,
     "intrigueId" TEXT NOT NULL,
 
-    CONSTRAINT "FactionIntrigue_pkey" PRIMARY KEY ("factionId","intrigueId")
+    CONSTRAINT "FactionIntrigue_pkey" PRIMARY KEY ("factionId","gameId","intrigueId")
 );
 INSERT INTO "FactionIntrigue" ("gameId", "factionId", "intrigueId")
   SELECT a."gameId", l."A", l."B" FROM "_FactionIntrigues" l JOIN "Faction" a ON a."id" = l."A";
-CREATE INDEX "FactionIntrigue_factionId_gameId_idx" ON "FactionIntrigue"("factionId", "gameId");
 CREATE INDEX "FactionIntrigue_intrigueId_gameId_idx" ON "FactionIntrigue"("intrigueId", "gameId");
 ALTER TABLE "FactionIntrigue" ADD CONSTRAINT "FactionIntrigue_factionId_gameId_fkey" FOREIGN KEY ("factionId", "gameId") REFERENCES "Faction"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
 ALTER TABLE "FactionIntrigue" ADD CONSTRAINT "FactionIntrigue_intrigueId_gameId_fkey" FOREIGN KEY ("intrigueId", "gameId") REFERENCES "Intrigue"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
@@ -100,11 +94,10 @@ CREATE TABLE "IntrigueItem" (
     "intrigueId" TEXT NOT NULL,
     "itemId" TEXT NOT NULL,
 
-    CONSTRAINT "IntrigueItem_pkey" PRIMARY KEY ("intrigueId","itemId")
+    CONSTRAINT "IntrigueItem_pkey" PRIMARY KEY ("intrigueId","gameId","itemId")
 );
 INSERT INTO "IntrigueItem" ("gameId", "intrigueId", "itemId")
   SELECT a."gameId", l."A", l."B" FROM "_IntrigueItems" l JOIN "Intrigue" a ON a."id" = l."A";
-CREATE INDEX "IntrigueItem_intrigueId_gameId_idx" ON "IntrigueItem"("intrigueId", "gameId");
 CREATE INDEX "IntrigueItem_itemId_gameId_idx" ON "IntrigueItem"("itemId", "gameId");
 ALTER TABLE "IntrigueItem" ADD CONSTRAINT "IntrigueItem_intrigueId_gameId_fkey" FOREIGN KEY ("intrigueId", "gameId") REFERENCES "Intrigue"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
 ALTER TABLE "IntrigueItem" ADD CONSTRAINT "IntrigueItem_itemId_gameId_fkey" FOREIGN KEY ("itemId", "gameId") REFERENCES "Item"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
@@ -113,11 +106,10 @@ CREATE TABLE "TimelineEventCharacter" (
     "timelineEventId" TEXT NOT NULL,
     "characterId" TEXT NOT NULL,
 
-    CONSTRAINT "TimelineEventCharacter_pkey" PRIMARY KEY ("timelineEventId","characterId")
+    CONSTRAINT "TimelineEventCharacter_pkey" PRIMARY KEY ("timelineEventId","gameId","characterId")
 );
 INSERT INTO "TimelineEventCharacter" ("gameId", "timelineEventId", "characterId")
   SELECT a."gameId", l."B", l."A" FROM "_TimelineEventCharacters" l JOIN "TimelineEvent" a ON a."id" = l."B";
-CREATE INDEX "TimelineEventCharacter_timelineEventId_gameId_idx" ON "TimelineEventCharacter"("timelineEventId", "gameId");
 CREATE INDEX "TimelineEventCharacter_characterId_gameId_idx" ON "TimelineEventCharacter"("characterId", "gameId");
 ALTER TABLE "TimelineEventCharacter" ADD CONSTRAINT "TimelineEventCharacter_timelineEventId_gameId_fkey" FOREIGN KEY ("timelineEventId", "gameId") REFERENCES "TimelineEvent"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
 ALTER TABLE "TimelineEventCharacter" ADD CONSTRAINT "TimelineEventCharacter_characterId_gameId_fkey" FOREIGN KEY ("characterId", "gameId") REFERENCES "Character"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
@@ -126,11 +118,10 @@ CREATE TABLE "TimelineEventFaction" (
     "timelineEventId" TEXT NOT NULL,
     "factionId" TEXT NOT NULL,
 
-    CONSTRAINT "TimelineEventFaction_pkey" PRIMARY KEY ("timelineEventId","factionId")
+    CONSTRAINT "TimelineEventFaction_pkey" PRIMARY KEY ("timelineEventId","gameId","factionId")
 );
 INSERT INTO "TimelineEventFaction" ("gameId", "timelineEventId", "factionId")
   SELECT a."gameId", l."B", l."A" FROM "_TimelineEventFactions" l JOIN "TimelineEvent" a ON a."id" = l."B";
-CREATE INDEX "TimelineEventFaction_timelineEventId_gameId_idx" ON "TimelineEventFaction"("timelineEventId", "gameId");
 CREATE INDEX "TimelineEventFaction_factionId_gameId_idx" ON "TimelineEventFaction"("factionId", "gameId");
 ALTER TABLE "TimelineEventFaction" ADD CONSTRAINT "TimelineEventFaction_timelineEventId_gameId_fkey" FOREIGN KEY ("timelineEventId", "gameId") REFERENCES "TimelineEvent"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
 ALTER TABLE "TimelineEventFaction" ADD CONSTRAINT "TimelineEventFaction_factionId_gameId_fkey" FOREIGN KEY ("factionId", "gameId") REFERENCES "Faction"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
@@ -139,11 +130,10 @@ CREATE TABLE "TimelineEventIntrigue" (
     "timelineEventId" TEXT NOT NULL,
     "intrigueId" TEXT NOT NULL,
 
-    CONSTRAINT "TimelineEventIntrigue_pkey" PRIMARY KEY ("timelineEventId","intrigueId")
+    CONSTRAINT "TimelineEventIntrigue_pkey" PRIMARY KEY ("timelineEventId","gameId","intrigueId")
 );
 INSERT INTO "TimelineEventIntrigue" ("gameId", "timelineEventId", "intrigueId")
   SELECT a."gameId", l."B", l."A" FROM "_TimelineEventIntrigues" l JOIN "TimelineEvent" a ON a."id" = l."B";
-CREATE INDEX "TimelineEventIntrigue_timelineEventId_gameId_idx" ON "TimelineEventIntrigue"("timelineEventId", "gameId");
 CREATE INDEX "TimelineEventIntrigue_intrigueId_gameId_idx" ON "TimelineEventIntrigue"("intrigueId", "gameId");
 ALTER TABLE "TimelineEventIntrigue" ADD CONSTRAINT "TimelineEventIntrigue_timelineEventId_gameId_fkey" FOREIGN KEY ("timelineEventId", "gameId") REFERENCES "TimelineEvent"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
 ALTER TABLE "TimelineEventIntrigue" ADD CONSTRAINT "TimelineEventIntrigue_intrigueId_gameId_fkey" FOREIGN KEY ("intrigueId", "gameId") REFERENCES "Intrigue"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
@@ -152,11 +142,10 @@ CREATE TABLE "TimelineEventItem" (
     "timelineEventId" TEXT NOT NULL,
     "itemId" TEXT NOT NULL,
 
-    CONSTRAINT "TimelineEventItem_pkey" PRIMARY KEY ("timelineEventId","itemId")
+    CONSTRAINT "TimelineEventItem_pkey" PRIMARY KEY ("timelineEventId","gameId","itemId")
 );
 INSERT INTO "TimelineEventItem" ("gameId", "timelineEventId", "itemId")
   SELECT a."gameId", l."B", l."A" FROM "_TimelineEventItems" l JOIN "TimelineEvent" a ON a."id" = l."B";
-CREATE INDEX "TimelineEventItem_timelineEventId_gameId_idx" ON "TimelineEventItem"("timelineEventId", "gameId");
 CREATE INDEX "TimelineEventItem_itemId_gameId_idx" ON "TimelineEventItem"("itemId", "gameId");
 ALTER TABLE "TimelineEventItem" ADD CONSTRAINT "TimelineEventItem_timelineEventId_gameId_fkey" FOREIGN KEY ("timelineEventId", "gameId") REFERENCES "TimelineEvent"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;
 ALTER TABLE "TimelineEventItem" ADD CONSTRAINT "TimelineEventItem_itemId_gameId_fkey" FOREIGN KEY ("itemId", "gameId") REFERENCES "Item"("id", "gameId") ON DELETE CASCADE ON UPDATE NO ACTION;

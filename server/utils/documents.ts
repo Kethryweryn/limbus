@@ -28,28 +28,6 @@ export const documentInclude = {
   }
 }
 
-export async function validateDocumentRelations(gameId: string, characterIds: string[] = [], factionIds: string[] = []) {
-  const allCharacterIds = [...new Set(characterIds)]
-
-  if (allCharacterIds.length) {
-    const count = await prisma.character.count({
-      where: { id: { in: allCharacterIds }, gameId }
-    })
-    if (count !== allCharacterIds.length) {
-      throw createError({ statusCode: 400, message: 'Personnages invalides pour ce jeu' })
-    }
-  }
-
-  if (factionIds.length) {
-    const count = await prisma.faction.count({
-      where: { id: { in: factionIds }, gameId }
-    })
-    if (count !== factionIds.length) {
-      throw createError({ statusCode: 400, message: 'Groupes invalides pour ce jeu' })
-    }
-  }
-}
-
 // Empreinte de ce qu'un envoi contient (ADR-0031) : elle dit si la version reçue est dépassée
 // Version reçue dépassée : empreinte différente, ou, pour un envoi sans empreinte, source modifiée depuis l'envoi
 export function isSentVersionOutdated(

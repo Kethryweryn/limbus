@@ -35,7 +35,8 @@ function unlink(value: unknown): unknown {
   const result: Record<string, unknown> = {}
   for (const [key, field] of Object.entries(value)) {
     const link = LINKS[key as LinkKey]
-    if (link) {
+    // Une liste de liens Prisma, pas une clé du même nom dans une valeur JSON
+    if (link && Array.isArray(field) && field.every((row) => isPlainObject(row) && link[0] in row)) {
       const [entity, plural] = link
       result[plural] = (field as Array<Record<string, unknown>>).map((row) => unlink(row[entity]))
     } else {
@@ -50,9 +51,9 @@ export function unlinked<T>(value: T): Unlinked<T> {
   return unlink(value) as Unlinked<T>
 }
 
-/** Liens à écrire vers des éléments du même jeu ; le jeu vient de l'élément qui les porte. */
+/** Liens à écrire vers des éléments du même jeu, un par élément ; le jeu vient de l'élément qui les porte. */
 export const linkCreate = <F extends string>(field: F, ids: readonly string[]) =>
-  ({ create: ids.map((id) => ({ [field]: id }) as Record<F, string>) })
+  ({ create: [...new Set(ids)].map((id) => ({ [field]: id }) as Record<F, string>) })
 
 /** Remplace tous les liens d'une sorte. */
 export const linkSet = <F extends string>(field: F, ids: readonly string[]) =>

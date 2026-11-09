@@ -8,9 +8,9 @@ import { assertSameGame, requireCurrentUser, requireGameAccess } from '~/server/
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
 import { assertGameUploads, collectUploadUrls, deleteUnusedUploads } from '~/server/utils/uploads'
 import { assertBalanceValue } from '~/server/utils/registrationDraws'
-import { itemInclude, validateItemRelations } from '~/server/utils/items'
-import { documentInclude, validateDocumentRelations } from '~/server/utils/documents'
-import { timelineEventInclude, validateTimelineEventRelations } from '~/server/utils/timelineEvents'
+import { itemInclude } from '~/server/utils/items'
+import { documentInclude } from '~/server/utils/documents'
+import { timelineEventInclude } from '~/server/utils/timelineEvents'
 import { characterRelationInclude, findCharacterRelationOr404, relationGameId } from '~/server/utils/characterRelations'
 import { linkCreate, linkSet, unlinked } from '~/server/utils/contentLinks'
 import { factionInclude, intrigueInclude } from '~/server/utils/sheetReads'
@@ -41,13 +41,29 @@ async function findOr404<T>(found: Promise<T | null>, message: string) {
   return record
 }
 
-/** Références d'un élément vers d'autres éléments : du même jeu seulement. */
-async function assertSameGameIds(model: 'character' | 'faction', ids: string[], gameId: string, message: string) {
-  if (!ids.length) return
-  const count = model === 'character'
-    ? await prisma.character.count({ where: { id: { in: ids }, gameId } })
-    : await prisma.faction.count({ where: { id: { in: ids }, gameId } })
-  if (count !== ids.length) throw createError({ statusCode: 400, message })
+// Message de refus d'une référence hors du jeu, par sorte d'élément
+const INVALID_IDS = {
+  character: 'Personnages invalides pour ce jeu',
+  faction: 'Groupes invalides pour ce jeu',
+  intrigue: 'Intrigues invalides pour ce jeu',
+  item: 'Objets invalides pour ce jeu'
+} as const
+
+/**
+ * Références d'un élément vers d'autres éléments : du même jeu seulement. Un identifiant donné deux fois compte une
+ * fois, comme dans `linkCreate`. La base refuse aussi un lien entre deux jeux (ADR-0074) : ce contrôle donne le message.
+ */
+async function assertSameGameIds(references: Partial<Record<keyof typeof INVALID_IDS, ReadonlyArray<string | null | undefined>>>, gameId: string) {
+  for (const [model, ids] of Object.entries(references) as Array<[keyof typeof INVALID_IDS, ReadonlyArray<string | null | undefined>]>) {
+    const unique = [...new Set(ids.filter((id): id is string => Boolean(id)))]
+    if (!unique.length) continue
+    const where = { id: { in: unique }, gameId }
+    const count = model === 'character' ? await prisma.character.count({ where })
+      : model === 'faction' ? await prisma.faction.count({ where })
+        : model === 'intrigue' ? await prisma.intrigue.count({ where })
+          : await prisma.item.count({ where })
+    if (count !== unique.length) throw createError({ statusCode: 400, message: INVALID_IDS[model] })
+  }
 }
 
 // Jeux
@@ -145,7 +161,7 @@ export async function createCharacter(event: H3Event, readBody: Reader<typeof cr
   await requireGameAccess(event, body.gameId)
   await assertGameUploads([body.trombinoscopePhotoUrl], body.gameId, { sessionFiles: false, label: 'Photo de trombinoscope' })
   await assertBalanceValue(body.gameId, body.balanceValue)
-  await assertSameGameIds('faction', body.factionIds, body.gameId, 'Groupes invalides pour ce jeu')
+  await assertSameGameIds({ faction: body.factionIds }, body.gameId)
 
   return unlinked(await prisma.character.create({
     data: {
@@ -184,7 +200,7 @@ export async function updateCharacter(event: H3Event, id: string, readBody: Read
   const gameId = existing.gameId
   await assertGameUploads([body.trombinoscopePhotoUrl], gameId, { sessionFiles: false, keep: [existing.trombinoscopePhotoUrl], label: 'Photo de trombinoscope' })
   await assertBalanceValue(gameId, body.balanceValue)
-  if (body.factionIds) await assertSameGameIds('faction', body.factionIds, gameId, 'Groupes invalides pour ce jeu')
+  if (body.factionIds) await assertSameGameIds({ faction: body.factionIds }, gameId)
 
   const data: Prisma.CharacterUpdateInput = {
     pitch: body.pitch,
@@ -236,7 +252,7 @@ export async function deleteCharacter(event: H3Event, id: string) {
 export async function createFaction(event: H3Event, readBody: Reader<typeof factionSchema>) {
   const body = await readBody()
   await requireGameAccess(event, body.gameId)
-  await assertSameGameIds('character', body.characterIds, body.gameId, 'Personnages invalides pour ce jeu')
+  await assertSameGameIds({ character: body.characterIds }, body.gameId)
 
   return unlinked(await prisma.faction.create({
     data: {
@@ -262,7 +278,7 @@ export async function updateFaction(event: H3Event, id: string, readBody: Reader
   const body = await readBody()
   assertSameGame(faction.gameId, body.gameId)
   await requireGameAccess(event, body.gameId)
-  await assertSameGameIds('character', body.characterIds, body.gameId, 'Personnages invalides pour ce jeu')
+  await assertSameGameIds({ character: body.characterIds }, body.gameId)
 
   return unlinked(await prisma.faction.update({
     where: { id },
@@ -292,15 +308,10 @@ export async function deleteFaction(event: H3Event, id: string) {
 
 // Intrigues
 
-async function validateIntrigueRelations(gameId: string, characterIds: string[], factionIds: string[]) {
-  await assertSameGameIds('character', characterIds, gameId, 'Personnages invalides pour ce jeu')
-  await assertSameGameIds('faction', factionIds, gameId, 'Groupes invalides pour ce jeu')
-}
-
 export async function createIntrigue(event: H3Event, readBody: Reader<typeof intrigueSchema>) {
   const body = await readBody()
   await requireGameAccess(event, body.gameId)
-  await validateIntrigueRelations(body.gameId, body.characterIds, body.factionIds)
+  await assertSameGameIds({ character: body.characterIds, faction: body.factionIds }, body.gameId)
 
   return unlinked(await prisma.intrigue.create({
     data: {
@@ -325,7 +336,7 @@ export async function updateIntrigue(event: H3Event, id: string, readBody: Reade
   const body = await readBody()
   assertSameGame(intrigue.gameId, body.gameId)
   await requireGameAccess(event, body.gameId)
-  await validateIntrigueRelations(body.gameId, body.characterIds, body.factionIds)
+  await assertSameGameIds({ character: body.characterIds, faction: body.factionIds }, body.gameId)
 
   return unlinked(await prisma.intrigue.update({
     where: { id },
@@ -357,9 +368,7 @@ export async function deleteIntrigue(event: H3Event, id: string) {
 export async function createItem(event: H3Event, readBody: Reader<typeof itemSchema>) {
   const body = await readBody()
   await requireGameAccess(event, body.gameId)
-  const characterIds = [...new Set(body.characterIds)]
-  const intrigueIds = [...new Set(body.intrigueIds)]
-  await validateItemRelations(body.gameId, characterIds, intrigueIds, body.locationCharacterId)
+  await assertSameGameIds({ character: [...body.characterIds, body.locationCharacterId], intrigue: body.intrigueIds }, body.gameId)
 
   return unlinked(await prisma.item.create({
     data: {
@@ -370,8 +379,8 @@ export async function createItem(event: H3Event, readBody: Reader<typeof itemSch
       locationText: body.locationCharacterId ? null : body.locationText,
       locationCharacterId: body.locationCharacterId || null,
       gameId: body.gameId,
-      characterLinks: linkCreate('characterId', characterIds),
-      intrigueLinks: linkCreate('intrigueId', intrigueIds)
+      characterLinks: linkCreate('characterId', body.characterIds),
+      intrigueLinks: linkCreate('intrigueId', body.intrigueIds)
     },
     include: itemInclude
   }))
@@ -385,9 +394,7 @@ export async function updateItem(event: H3Event, id: string, readBody: Reader<ty
   const body = await readBody()
   assertSameGame(item.gameId, body.gameId)
   await requireGameAccess(event, body.gameId)
-  const characterIds = [...new Set(body.characterIds)]
-  const intrigueIds = [...new Set(body.intrigueIds)]
-  await validateItemRelations(body.gameId, characterIds, intrigueIds, body.locationCharacterId)
+  await assertSameGameIds({ character: [...body.characterIds, body.locationCharacterId], intrigue: body.intrigueIds }, body.gameId)
 
   return unlinked(await prisma.item.update({
     where: { id },
@@ -399,8 +406,8 @@ export async function updateItem(event: H3Event, id: string, readBody: Reader<ty
       locationText: body.locationCharacterId ? null : body.locationText,
       locationCharacterId: body.locationCharacterId || null,
       gameId: body.gameId,
-      characterLinks: linkSet('characterId', characterIds),
-      intrigueLinks: linkSet('intrigueId', intrigueIds)
+      characterLinks: linkSet('characterId', body.characterIds),
+      intrigueLinks: linkSet('intrigueId', body.intrigueIds)
     },
     include: itemInclude
   }))
@@ -420,9 +427,7 @@ export async function deleteItem(event: H3Event, id: string) {
 export async function createDocument(event: H3Event, readBody: Reader<typeof documentSchema>) {
   const body = await readBody()
   await requireGameAccess(event, body.gameId)
-  const characterIds = [...new Set(body.characterIds)]
-  const factionIds = [...new Set(body.factionIds)]
-  await validateDocumentRelations(body.gameId, characterIds, factionIds)
+  await assertSameGameIds({ character: body.characterIds, faction: body.factionIds }, body.gameId)
 
   return unlinked(await prisma.document.create({
     data: {
@@ -436,8 +441,8 @@ export async function createDocument(event: H3Event, readBody: Reader<typeof doc
       readyToSend: body.readyToSend ?? false,
       gameId: body.gameId,
       characterId: null,
-      characterLinks: linkCreate('characterId', characterIds),
-      factionLinks: linkCreate('factionId', factionIds)
+      characterLinks: linkCreate('characterId', body.characterIds),
+      factionLinks: linkCreate('factionId', body.factionIds)
     },
     include: documentInclude
   }))
@@ -451,9 +456,7 @@ export async function updateDocument(event: H3Event, id: string, readBody: Reade
   const body = await readBody()
   assertSameGame(document.gameId, body.gameId)
   await requireGameAccess(event, body.gameId)
-  const characterIds = [...new Set(body.characterIds)]
-  const factionIds = [...new Set(body.factionIds)]
-  await validateDocumentRelations(body.gameId, characterIds, factionIds)
+  await assertSameGameIds({ character: body.characterIds, faction: body.factionIds }, body.gameId)
 
   return unlinked(await prisma.document.update({
     where: { id },
@@ -468,8 +471,8 @@ export async function updateDocument(event: H3Event, id: string, readBody: Reade
       readyToSend: body.readyToSend ?? false,
       gameId: body.gameId,
       characterId: null,
-      characterLinks: linkSet('characterId', characterIds),
-      factionLinks: linkSet('factionId', factionIds)
+      characterLinks: linkSet('characterId', body.characterIds),
+      factionLinks: linkSet('factionId', body.factionIds)
     },
     include: documentInclude
   }))
@@ -528,11 +531,7 @@ export async function deleteLocation(event: H3Event, id: string) {
 export async function createTimelineEvent(event: H3Event, readBody: Reader<typeof timelineEventSchema>) {
   const body = await readBody()
   await requireGameAccess(event, body.gameId)
-  const characterIds = [...new Set(body.characterIds)]
-  const factionIds = [...new Set(body.factionIds)]
-  const intrigueIds = [...new Set(body.intrigueIds)]
-  const itemIds = [...new Set(body.itemIds)]
-  await validateTimelineEventRelations(body.gameId, characterIds, factionIds, intrigueIds, itemIds)
+  await assertSameGameIds({ character: body.characterIds, faction: body.factionIds, intrigue: body.intrigueIds, item: body.itemIds }, body.gameId)
 
   return unlinked(await prisma.timelineEvent.create({
     data: {
@@ -543,10 +542,10 @@ export async function createTimelineEvent(event: H3Event, readBody: Reader<typeo
       time: body.time,
       requiredResponsibles: body.requiredResponsibles,
       gameId: body.gameId,
-      characterLinks: linkCreate('characterId', characterIds),
-      factionLinks: linkCreate('factionId', factionIds),
-      intrigueLinks: linkCreate('intrigueId', intrigueIds),
-      itemLinks: linkCreate('itemId', itemIds)
+      characterLinks: linkCreate('characterId', body.characterIds),
+      factionLinks: linkCreate('factionId', body.factionIds),
+      intrigueLinks: linkCreate('intrigueId', body.intrigueIds),
+      itemLinks: linkCreate('itemId', body.itemIds)
     },
     include: timelineEventInclude
   }))
@@ -560,11 +559,7 @@ export async function updateTimelineEvent(event: H3Event, id: string, readBody: 
   const body = await readBody()
   assertSameGame(timelineEvent.gameId, body.gameId)
   await requireGameAccess(event, body.gameId)
-  const characterIds = [...new Set(body.characterIds)]
-  const factionIds = [...new Set(body.factionIds)]
-  const intrigueIds = [...new Set(body.intrigueIds)]
-  const itemIds = [...new Set(body.itemIds)]
-  await validateTimelineEventRelations(body.gameId, characterIds, factionIds, intrigueIds, itemIds)
+  await assertSameGameIds({ character: body.characterIds, faction: body.factionIds, intrigue: body.intrigueIds, item: body.itemIds }, body.gameId)
 
   return unlinked(await prisma.timelineEvent.update({
     where: { id },
@@ -576,10 +571,10 @@ export async function updateTimelineEvent(event: H3Event, id: string, readBody: 
       time: body.time,
       requiredResponsibles: body.requiredResponsibles,
       gameId: body.gameId,
-      characterLinks: linkSet('characterId', characterIds),
-      factionLinks: linkSet('factionId', factionIds),
-      intrigueLinks: linkSet('intrigueId', intrigueIds),
-      itemLinks: linkSet('itemId', itemIds)
+      characterLinks: linkSet('characterId', body.characterIds),
+      factionLinks: linkSet('factionId', body.factionIds),
+      intrigueLinks: linkSet('intrigueId', body.intrigueIds),
+      itemLinks: linkSet('itemId', body.itemIds)
     },
     include: timelineEventInclude
   }))

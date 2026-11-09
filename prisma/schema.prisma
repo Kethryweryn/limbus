@@ -348,8 +348,7 @@ model CharacterFaction {
   factionId   String
   faction     Faction @relation(fields: [factionId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
 
-  @@id([characterId, factionId])
-  @@index([characterId, gameId])
+  @@id([characterId, gameId, factionId])
   @@index([factionId, gameId])
 }
 
@@ -361,8 +360,7 @@ model CharacterIntrigue {
   intrigueId  String
   intrigue    Intrigue @relation(fields: [intrigueId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
 
-  @@id([characterId, intrigueId])
-  @@index([characterId, gameId])
+  @@id([characterId, gameId, intrigueId])
   @@index([intrigueId, gameId])
 }
 
@@ -374,8 +372,7 @@ model CharacterItem {
   itemId      String
   item        Item @relation(fields: [itemId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
 
-  @@id([characterId, itemId])
-  @@index([characterId, gameId])
+  @@id([characterId, gameId, itemId])
   @@index([itemId, gameId])
 }
 
@@ -387,8 +384,7 @@ model DocumentCharacter {
   characterId String
   character   Character @relation(fields: [characterId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
 
-  @@id([documentId, characterId])
-  @@index([documentId, gameId])
+  @@id([documentId, gameId, characterId])
   @@index([characterId, gameId])
 }
 
@@ -400,8 +396,7 @@ model DocumentFaction {
   factionId  String
   faction    Faction @relation(fields: [factionId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
 
-  @@id([documentId, factionId])
-  @@index([documentId, gameId])
+  @@id([documentId, gameId, factionId])
   @@index([factionId, gameId])
 }
 
@@ -413,8 +408,7 @@ model FactionIntrigue {
   intrigueId String
   intrigue   Intrigue @relation(fields: [intrigueId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
 
-  @@id([factionId, intrigueId])
-  @@index([factionId, gameId])
+  @@id([factionId, gameId, intrigueId])
   @@index([intrigueId, gameId])
 }
 
@@ -426,8 +420,7 @@ model IntrigueItem {
   itemId     String
   item       Item @relation(fields: [itemId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
 
-  @@id([intrigueId, itemId])
-  @@index([intrigueId, gameId])
+  @@id([intrigueId, gameId, itemId])
   @@index([itemId, gameId])
 }
 
@@ -439,8 +432,7 @@ model TimelineEventCharacter {
   characterId     String
   character       Character @relation(fields: [characterId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
 
-  @@id([timelineEventId, characterId])
-  @@index([timelineEventId, gameId])
+  @@id([timelineEventId, gameId, characterId])
   @@index([characterId, gameId])
 }
 
@@ -452,8 +444,7 @@ model TimelineEventFaction {
   factionId       String
   faction         Faction @relation(fields: [factionId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
 
-  @@id([timelineEventId, factionId])
-  @@index([timelineEventId, gameId])
+  @@id([timelineEventId, gameId, factionId])
   @@index([factionId, gameId])
 }
 
@@ -465,8 +456,7 @@ model TimelineEventIntrigue {
   intrigueId      String
   intrigue        Intrigue @relation(fields: [intrigueId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
 
-  @@id([timelineEventId, intrigueId])
-  @@index([timelineEventId, gameId])
+  @@id([timelineEventId, gameId, intrigueId])
   @@index([intrigueId, gameId])
 }
 
@@ -478,8 +468,7 @@ model TimelineEventItem {
   itemId          String
   item            Item @relation(fields: [itemId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
 
-  @@id([timelineEventId, itemId])
-  @@index([timelineEventId, gameId])
+  @@id([timelineEventId, gameId, itemId])
   @@index([itemId, gameId])
 }
 

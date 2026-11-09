@@ -1,5 +1,3 @@
-import { prisma } from '~/server/utils/prisma'
-
 export const timelineEventInclude = {
   game: true,
   // Liens par les tables qui portent le jeu (US-191) : la lecture passe par unlinked
@@ -27,44 +25,6 @@ type ConflictResource = {
   name: string
   eventIds: string[]
   eventNames: string[]
-}
-
-export async function validateTimelineEventRelations(gameId: string, characterIds: string[], factionIds: string[], intrigueIds: string[], itemIds: string[]) {
-  if (characterIds.length) {
-    const count = await prisma.character.count({
-      where: { id: { in: characterIds }, gameId }
-    })
-    if (count !== characterIds.length) {
-      throw createError({ statusCode: 400, message: 'Personnages invalides pour ce jeu' })
-    }
-  }
-
-  if (factionIds.length) {
-    const count = await prisma.faction.count({
-      where: { id: { in: factionIds }, gameId }
-    })
-    if (count !== factionIds.length) {
-      throw createError({ statusCode: 400, message: 'Groupes invalides pour ce jeu' })
-    }
-  }
-
-  if (intrigueIds.length) {
-    const count = await prisma.intrigue.count({
-      where: { id: { in: intrigueIds }, gameId }
-    })
-    if (count !== intrigueIds.length) {
-      throw createError({ statusCode: 400, message: 'Intrigues invalides pour ce jeu' })
-    }
-  }
-
-  if (itemIds.length) {
-    const count = await prisma.item.count({
-      where: { id: { in: itemIds }, gameId }
-    })
-    if (count !== itemIds.length) {
-      throw createError({ statusCode: 400, message: 'Objets invalides pour ce jeu' })
-    }
-  }
 }
 
 export function withTimelineConflicts<T extends TimelineEventWithRelations>(events: T[]) {

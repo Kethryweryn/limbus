@@ -38,17 +38,17 @@ export const intrigueInclude = {
 
 export async function readCharacter(event: H3Event, key: SheetKey) {
   const character = await prisma.character.findFirst({ where: await gameScopedWhere(event, key), include: characterSheetInclude })
-  return unlinked(character ?? notFound('Personnage introuvable'))
+  return unlinked(character ?? notFound('Introuvable'))
 }
 
 export async function readFaction(event: H3Event, key: SheetKey) {
   const faction = await prisma.faction.findFirst({ where: await gameScopedWhere(event, key), include: factionInclude })
-  return unlinked(faction ?? notFound('Groupe introuvable'))
+  return unlinked(faction ?? notFound('Introuvable'))
 }
 
 export async function readIntrigue(event: H3Event, key: SheetKey) {
   const intrigue = await prisma.intrigue.findFirst({ where: await gameScopedWhere(event, key), include: intrigueInclude })
-  return unlinked(intrigue ?? notFound('Intrigue introuvable'))
+  return unlinked(intrigue ?? notFound('Introuvable'))
 }
 
 export async function readDocument(event: H3Event, key: SheetKey) {

@@ -1,6 +1,6 @@
 // US-191 (ADR-0074) : la base refuse un lien entre éléments de deux jeux, chaque clé étrangère comparant aussi le jeu
 import { afterAll, describe, expect, inject, it } from 'vitest'
-import { api } from './api'
+import { api, errorMessage } from './api'
 import { createTestPrisma } from './db'
 
 const prisma = createTestPrisma()
@@ -65,6 +65,16 @@ describe('liens entre éléments de deux jeux (US-191)', () => {
     await expect(prisma.character.update({ where: { id: a.character.id }, data: { gameId: b.gameId } })).rejects.toThrow(FOREIGN_KEY)
   })
 
+  it('un élément relié donné deux fois n’est relié qu’une fois, et un élément d’un autre jeu est refusé avec son message', async () => {
+    const [a, b] = await Promise.all([gameWithContent(), gameWithContent()])
+    const twice = await api(alice, 'POST', '/api/characters', { name: 'Cy', gameId: a.gameId, factionIds: [a.faction.id, a.faction.id] })
+    expect(twice.status, JSON.stringify(twice.body)).toBe(200)
+    expect(await prisma.characterFaction.count({ where: { factionId: a.faction.id } })).toBe(1)
+    const foreign = await api(alice, 'POST', '/api/characters', { name: 'Dee', gameId: a.gameId, factionIds: [b.faction.id] })
+    expect(foreign.status).toBe(400)
+    expect(errorMessage(foreign)).toBe('Groupes invalides pour ce jeu')
+  })
+
   it('supprimer un personnage vide l’objet qu’il porte, sans supprimer l’objet', async () => {
     const a = await gameWithContent()
     await prisma.item.update({ where: { id: a.item.id }, data: { locationCharacterId: a.character.id } })
@@ -98,6 +108,28 @@ describe('liens entre éléments de deux jeux (US-191)', () => {
       'Session_locationId_fkey',
       'Session_postponedToSessionId_fkey',
       'UploadedFile_sessionId_fkey'
+    ])
+  })
+
+  // Une table qui relie deux éléments d'un jeu porte elle-même le jeu, sans quoi le contrôle ci-dessus ne la voit pas
+  it('donne le jeu à chaque table qui relie deux éléments d’un jeu', async () => {
+    const rows = await prisma.$queryRaw<Array<{ table: string }>>`
+      SELECT c.conrelid::regclass::text AS "table"
+      FROM pg_constraint c
+      JOIN pg_attribute target ON target.attrelid = c.confrelid AND target.attname = 'gameId' AND NOT target.attisdropped
+      WHERE c.contype = 'f'
+        AND c.connamespace = 'public'::regnamespace
+        AND c.confrelid <> '"Game"'::regclass
+        AND NOT EXISTS (SELECT 1 FROM pg_attribute own WHERE own.attrelid = c.conrelid AND own.attname = 'gameId' AND NOT own.attisdropped)
+        -- Anciennes tables de liaison implicites, gardées jusqu'à l'US-193
+        AND left(c.conrelid::regclass::text, 2) <> '"_'
+      GROUP BY c.conrelid
+      HAVING count(*) >= 2
+      ORDER BY 1`
+    // US-195
+    expect(rows.map((row) => row.table)).toEqual([
+      '"Registration"', '"RegistrationDraw"', '"RegistrationPeriodSession"', '"SessionAssignment"',
+      '"SessionDocumentDelivery"', '"SessionPayment"', '"SessionTrombinoscope"', '"TimelineEventResponsible"'
     ])
   })
 })

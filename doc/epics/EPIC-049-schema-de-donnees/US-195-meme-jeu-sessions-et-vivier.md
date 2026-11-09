@@ -18,7 +18,7 @@ Suite de l'[US-191](US-191-meme-jeu-impose-par-la-base.md), qui a traité le con
 - [ ] `Location` et `Session` ont une unicité `(id, gameId)`.
 - [ ] Reçoivent le jeu et référencent `(id, gameId)` de chaque côté : `SessionAssignment` (session, personnage, place réservée), `TimelineEventResponsible`, `SessionDocumentDelivery`, `SessionTrombinoscope`, `RegistrationPeriodSession`, `RegistrationDraw`, `Registration` (jeu de son vivier : session d'invitation, version du formulaire), `RegistrationSession`.
 - [ ] Référencent `(id, gameId)` : `Session.locationId`, `Session.postponedToSessionId`, `SessionPayment.carriedOverToSessionId`, `UploadedFile.sessionId`.
-- [ ] Le garde-fou de `tests/integration/sameGame.test.ts` n'a plus d'exception.
+- [ ] Les deux garde-fous de `tests/integration/sameGame.test.ts` n'ont plus d'exception.
 - [ ] Avant la migration, aucune ligne de production n'enfreint ces règles.
 
 ## Notes techniques
