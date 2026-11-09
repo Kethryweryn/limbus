@@ -3,6 +3,7 @@ import { copyFile, unlink } from 'node:fs/promises'
 import { extname } from 'node:path'
 import type { Prisma } from '~/generated/prisma/client'
 import { prisma } from '~/server/utils/prisma'
+import { linkCreate, unlinked } from '~/server/utils/contentLinks'
 import { generateUniqueSlugs } from '~/server/utils/generateUniqueSlug'
 import { collectUploadUrls, deleteUnusedUploads, uploadFilePath } from '~/server/utils/uploads'
 import { isUploadUrl, PHOTO_UPLOAD_PREFIX } from '~/utils/urls'
@@ -27,25 +28,25 @@ export const GAME_COPY_FIELDS = {
   Character: {
     copied: ['name', 'type', 'pitch', 'background', 'backgroundDocumentUrl', 'sheetReadyToSend', 'costumeIndications', 'excludeFromTrombinoscope', 'trombinoscopeFaceHidden', 'trombinoscopeNote', 'trombinoscopeDisplayName', 'balanceValue', 'published'],
     remapped: ['trombinoscopePhotoUrl'],
-    relinked: ['factions', 'intrigues', 'documents', 'targetedDocuments', 'items', 'locatedItems', 'timelineEvents', 'trombinoscopeViewerEntries', 'trombinoscopeTargetEntries', 'relationsFrom', 'relationsTo', 'questionLinks'],
+    relinked: ['factionLinks', 'intrigueLinks', 'legacyDocuments', 'documentLinks', 'itemLinks', 'locatedItems', 'timelineEventLinks', 'trombinoscopeViewerEntries', 'trombinoscopeTargetEntries', 'relationsFrom', 'relationsTo', 'questionLinks'],
     omitted: ['id', 'slug', 'gameId', 'createdAt', 'updatedAt', 'game', 'sessionAssignments', 'documentDeliveries', 'trombinoscopeDocuments']
   },
   CharacterTrombinoscopeEntry: {
     copied: ['included', 'faceKnown', 'displayName', 'note'],
     remapped: ['viewerCharacterId', 'targetCharacterId'],
     relinked: ['viewerCharacter', 'targetCharacter'],
-    omitted: ['id', 'createdAt', 'updatedAt']
+    omitted: ['id', 'gameId', 'createdAt', 'updatedAt']
   },
   Faction: {
     copied: ['name', 'pitch', 'background', 'backgroundDocumentUrl', 'costumeIndications', 'showInTrombinoscope', 'published'],
     remapped: [],
-    relinked: ['characters', 'intrigues', 'timelineEvents', 'documents', 'questionLinks'],
+    relinked: ['characterLinks', 'intrigueLinks', 'timelineEventLinks', 'documentLinks', 'questionLinks'],
     omitted: ['id', 'slug', 'gameId', 'createdAt', 'updatedAt', 'game']
   },
   Intrigue: {
     copied: ['name', 'pitch', 'description', 'level', 'published'],
     remapped: [],
-    relinked: ['characters', 'factions', 'items', 'timelineEvents', 'questionLinks'],
+    relinked: ['characterLinks', 'factionLinks', 'itemLinks', 'timelineEventLinks', 'questionLinks'],
     omitted: ['id', 'slug', 'gameId', 'createdAt', 'updatedAt', 'game']
   },
   // Relations entre personnages (US-097, ADR-0050)
@@ -72,19 +73,19 @@ export const GAME_COPY_FIELDS = {
   Item: {
     copied: ['name', 'description', 'quantity', 'locationText', 'published'],
     remapped: ['locationCharacterId'],
-    relinked: ['locationCharacter', 'characters', 'intrigues', 'timelineEvents'],
+    relinked: ['locationCharacter', 'characterLinks', 'intrigueLinks', 'timelineEventLinks'],
     omitted: ['id', 'slug', 'gameId', 'createdAt', 'updatedAt', 'game']
   },
   TimelineEvent: {
     copied: ['name', 'description', 'day', 'time', 'requiredResponsibles', 'published'],
     remapped: [],
-    relinked: ['characters', 'factions', 'intrigues', 'items'],
+    relinked: ['characterLinks', 'factionLinks', 'intrigueLinks', 'itemLinks'],
     omitted: ['id', 'slug', 'gameId', 'createdAt', 'updatedAt', 'game', 'responsibles']
   },
   Document: {
     copied: ['title', 'content', 'documentUrl', 'audience', 'audiences', 'readyToSend', 'published'],
     remapped: ['characterId'],
-    relinked: ['character', 'characters', 'factions'],
+    relinked: ['character', 'characterLinks', 'factionLinks'],
     omitted: ['id', 'slug', 'gameId', 'createdAt', 'updatedAt', 'game', 'deliveries']
   },
   Location: {
@@ -118,23 +119,27 @@ function pickCopied<M extends CopiedModel, R extends Record<CopiedFields<M>, unk
 }
 
 async function loadSourceGame(gameId: string) {
-  const ids = { select: { id: true } }
-  const game = await prisma.game.findUnique({
+  // Éléments reliés par les tables de liaison (US-191), rendus en listes d'identifiants par unlinked
+  const character = { select: { character: { select: { id: true } } } }
+  const faction = { select: { faction: { select: { id: true } } } }
+  const intrigue = { select: { intrigue: { select: { id: true } } } }
+  const item = { select: { item: { select: { id: true } } } }
+  const game = unlinked(await prisma.game.findUnique({
     where: { id: gameId },
     include: {
       characters: { orderBy: { createdAt: 'asc' }, include: { trombinoscopeViewerEntries: true } },
-      factions: { orderBy: { createdAt: 'asc' }, include: { characters: ids, intrigues: ids } },
-      intrigues: { orderBy: { createdAt: 'asc' }, include: { characters: ids } },
-      items: { orderBy: { createdAt: 'asc' }, include: { characters: ids, intrigues: ids } },
-      timelineEvents: { orderBy: { createdAt: 'asc' }, include: { characters: ids, factions: ids, intrigues: ids, items: ids } },
-      documents: { orderBy: { createdAt: 'asc' }, include: { characters: ids, factions: ids } },
+      factions: { orderBy: { createdAt: 'asc' }, include: { characterLinks: character, intrigueLinks: intrigue } },
+      intrigues: { orderBy: { createdAt: 'asc' }, include: { characterLinks: character } },
+      items: { orderBy: { createdAt: 'asc' }, include: { characterLinks: character, intrigueLinks: intrigue } },
+      timelineEvents: { orderBy: { createdAt: 'asc' }, include: { characterLinks: character, factionLinks: faction, intrigueLinks: intrigue, itemLinks: item } },
+      documents: { orderBy: { createdAt: 'asc' }, include: { characterLinks: character, factionLinks: faction } },
       locations: { orderBy: { createdAt: 'asc' } },
       registrationForm: { include: { versions: { orderBy: { number: 'desc' }, take: 1 } } },
       characterRelations: { orderBy: { createdAt: 'asc' } },
       registrationQuestionLinks: true,
       registrationOptionExpectations: true
     }
-  })
+  }))
   if (!game) {
     throw createError({ statusCode: 404, message: 'Jeu introuvable' })
   }
@@ -243,10 +248,10 @@ async function copyGameOnce(sourceGameId: string, options: GameCopyOptions) {
 
       const newIds = new Map<string, string>()
       const mapped = (id: string | null) => (id ? newIds.get(id) ?? null : null)
-      // Un lien vers un élément créé pendant la lecture du jeu source (modification concurrente) est ignoré
-      const connect = (rows: Array<{ id: string }>) => ({
-        connect: rows.flatMap((row) => (newIds.has(row.id) ? [{ id: newIds.get(row.id)! }] : []))
-      })
+      // Liens vers les éléments de la copie ; un lien vers un élément créé pendant la lecture du jeu source (modification
+      // concurrente) est ignoré
+      const relink = <F extends string>(field: F, rows: Array<{ id: string }>) =>
+        linkCreate(field, rows.flatMap((row) => (newIds.has(row.id) ? [newIds.get(row.id)!] : [])))
 
       // Les slugs sont uniques : ils relient chaque ligne créée à sa ligne source
       const characters = await tx.character.createManyAndReturn({
@@ -264,6 +269,7 @@ async function copyGameOnce(sourceGameId: string, options: GameCopyOptions) {
       await tx.characterTrombinoscopeEntry.createMany({
         data: source.characters.flatMap((row) => row.trombinoscopeViewerEntries.filter((entry) => newIds.has(entry.targetCharacterId)).map((entry) => ({
           ...pickCopied('CharacterTrombinoscopeEntry', entry),
+          gameId,
           viewerCharacterId: newIds.get(entry.viewerCharacterId)!,
           targetCharacterId: newIds.get(entry.targetCharacterId)!
         })))
@@ -271,7 +277,7 @@ async function copyGameOnce(sourceGameId: string, options: GameCopyOptions) {
 
       for (const [index, row] of source.intrigues.entries()) {
         const created = await tx.intrigue.create({
-          data: { ...pickCopied('Intrigue', row), slug: intrigueSlugs[index]!, gameId, characters: connect(row.characters) },
+          data: { ...pickCopied('Intrigue', row), slug: intrigueSlugs[index]!, gameId, characterLinks: relink('characterId', row.characters) },
           select: { id: true }
         })
         newIds.set(row.id, created.id)
@@ -283,8 +289,8 @@ async function copyGameOnce(sourceGameId: string, options: GameCopyOptions) {
             ...pickCopied('Faction', row),
             slug: factionSlugs[index]!,
             gameId,
-            characters: connect(row.characters),
-            intrigues: connect(row.intrigues)
+            characterLinks: relink('characterId', row.characters),
+            intrigueLinks: relink('intrigueId', row.intrigues)
           },
           select: { id: true }
         })
@@ -298,8 +304,8 @@ async function copyGameOnce(sourceGameId: string, options: GameCopyOptions) {
             slug: itemSlugs[index]!,
             gameId,
             locationCharacterId: mapped(row.locationCharacterId),
-            characters: connect(row.characters),
-            intrigues: connect(row.intrigues)
+            characterLinks: relink('characterId', row.characters),
+            intrigueLinks: relink('intrigueId', row.intrigues)
           },
           select: { id: true }
         })
@@ -312,10 +318,10 @@ async function copyGameOnce(sourceGameId: string, options: GameCopyOptions) {
             ...pickCopied('TimelineEvent', row),
             slug: eventSlugs[index]!,
             gameId,
-            characters: connect(row.characters),
-            factions: connect(row.factions),
-            intrigues: connect(row.intrigues),
-            items: connect(row.items)
+            characterLinks: relink('characterId', row.characters),
+            factionLinks: relink('factionId', row.factions),
+            intrigueLinks: relink('intrigueId', row.intrigues),
+            itemLinks: relink('itemId', row.items)
           }
         })
       }
@@ -327,8 +333,8 @@ async function copyGameOnce(sourceGameId: string, options: GameCopyOptions) {
             slug: documentSlugs[index]!,
             gameId,
             characterId: mapped(row.characterId),
-            characters: connect(row.characters),
-            factions: connect(row.factions)
+            characterLinks: relink('characterId', row.characters),
+            factionLinks: relink('factionId', row.factions)
           }
         })
       }

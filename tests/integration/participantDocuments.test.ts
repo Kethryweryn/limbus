@@ -109,7 +109,7 @@ describe('copie de chaque envoi (US-078) et lecture dans « Je participe » (US-
     const otherPlayer = await prisma.participant.create({ data: { name: 'Autre', slug: `autre-${k}`, email: `autre-${k}@example.test`, gameLinks: { create: { gameId: game.id } } } })
     await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: viewer!.id, participantId: participant.id } })
     await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: other!.id, participantId: otherPlayer.id, photoUrl } })
-    await prisma.characterTrombinoscopeEntry.create({ data: { viewerCharacterId: viewer!.id, targetCharacterId: other!.id, included: true, faceKnown: true } })
+    await prisma.characterTrombinoscopeEntry.create({ data: { gameId: viewer!.gameId, viewerCharacterId: viewer!.id, targetCharacterId: other!.id, included: true, faceKnown: true } })
 
     expect((await api(owner, 'POST', `/api/sessions/${session.id}/trombinoscopes/generate`, {})).status).toBe(200)
     const sent = await api(owner, 'POST', `/api/sessions/${session.id}/documents/send-trombinoscopes`, {})

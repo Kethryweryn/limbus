@@ -2,6 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
 import { gameScopedWhere, queryGameFilter } from '~/server/utils/gameAccess'
 import { timelineEventInclude, withTimelineConflicts } from '~/server/utils/timelineEvents'
+import { unlinked } from '~/server/utils/contentLinks'
 
 export default defineEventHandler(async (event) => {
   await requireUser(event)
@@ -12,5 +13,5 @@ export default defineEventHandler(async (event) => {
     include: timelineEventInclude
   })
 
-  return withTimelineConflicts(events)
+  return withTimelineConflicts(unlinked(events))
 })

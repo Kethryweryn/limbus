@@ -19,12 +19,13 @@ Corriger les écarts du schéma de données avec les pratiques reconnues de Post
 | [US-188](US-188-index-et-homogeneite.md) | Indexer les clés étrangères et rendre le schéma homogène | terminée |
 | [US-189](US-189-enumerations.md) | Faire refuser par la base les valeurs inconnues | terminée |
 | [US-190](US-190-regles-des-liens-et-des-relations.md) | Faire tenir par la base les règles des liens du questionnaire et des relations | terminée |
-| [US-191](US-191-meme-jeu-impose-par-la-base.md) | Faire refuser par la base un lien entre deux jeux | à faire |
+| [US-191](US-191-meme-jeu-impose-par-la-base.md) | Faire refuser par la base un lien entre éléments du contenu de deux jeux | terminée |
 | [US-192](US-192-emails-sans-casse.md) | Comparer les adresses email sans tenir compte de la casse dans la base | à faire |
 | [US-193](US-193-restes-de-transitions-et-pdf.md) | Retirer les colonnes inutiles et garder le PDF du trombinoscope en binaire | à faire |
 | [US-194](US-194-dates-avec-fuseau.md) | Stocker les dates avec leur fuseau horaire | à faire |
+| [US-195](US-195-meme-jeu-sessions-et-vivier.md) | Faire refuser par la base un lien entre deux jeux dans les sessions et le vivier | à faire |
 
-Ordre : US-188 d'abord, US-194 en dernier ; une PR par US.
+Ordre : US-188 d'abord, US-194 en dernier ; une PR par US. L'US-195, détachée de l'US-191 trop lourde pour une PR, la suit.
 
 ## Définition de terminé
 

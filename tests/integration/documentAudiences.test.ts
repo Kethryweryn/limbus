@@ -26,7 +26,7 @@ async function sessionWithEveryone() {
   const [pj, orga, npc, cook, member] = await Promise.all(['Pj', 'Orga', 'Pnj', 'Cuisine', 'Membre'].map(person))
   const faction = await prisma.faction.create({ data: { name: `Guilde ${key}`, slug: `guilde-${key}`, gameId: game.id } })
   const character = (name: string, type: CharacterType, factionId?: string) => prisma.character.create({
-    data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, type, gameId: game.id, ...(factionId ? { factions: { connect: { id: factionId } } } : {}) }
+    data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, type, gameId: game.id, ...(factionId ? { factionLinks: { create: { factionId } } } : {}) }
   })
   const [pjCharacter, pnjCharacter, memberCharacter] = await Promise.all([character('Heros', 'pj'), character('Garde', 'pnj'), character('Marchand', 'pj', faction.id)])
   await prisma.sessionAssignment.createMany({
@@ -80,10 +80,10 @@ describe('public d’un document', () => {
     const { key, game, pjCharacter } = await sessionWithEveryone()
     const response = await api(alice, 'POST', '/api/documents', { title: `Ancien ${key}`, content: 'Texte', gameId: game.id, audience: 'everyone', characterId: pjCharacter.id })
     expect(response.status).toBe(200)
-    const saved = await prisma.document.findFirstOrThrow({ where: { title: `Ancien ${key}` }, select: { audiences: true, audience: true, characterId: true, characters: { select: { id: true } } } })
+    const saved = await prisma.document.findFirstOrThrow({ where: { title: `Ancien ${key}` }, select: { audiences: true, audience: true, characterId: true, characterLinks: { select: { characterId: true } } } })
     expect([...saved.audiences].sort()).toEqual(['kitchen', 'npcs', 'organizers', 'pjs'])
     // L'ancien public reste écrit pour le build en service pendant un déploiement ; le champ unique ne l'est plus
-    expect(saved).toMatchObject({ audience: 'everyone', characterId: null, characters: [{ id: pjCharacter.id }] })
+    expect(saved).toMatchObject({ audience: 'everyone', characterId: null, characterLinks: [{ characterId: pjCharacter.id }] })
   })
 
   it('un document écrit par le build d’avant (sans rôles) garde ses destinataires', async () => {

@@ -1,28 +1,9 @@
-import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
-import { gameScopedWhere } from '~/server/utils/gameAccess'
 import { requireRouterParam } from '~/server/utils/routeParams'
+import { readFaction } from '~/server/utils/sheetReads'
 
+// Par slug, pour les pages ; l'API qui modifie ou relie utilise l'identifiant ([id].get.ts)
 export default defineEventHandler(async (event) => {
   await requireUser(event)
-
-  const slug = requireRouterParam(event, 'slug')
-
-  const record = await prisma.faction.findFirst({
-    where: await gameScopedWhere(event, { slug }),
-    include: {
-      game: true,
-      characters: {
-        orderBy: { name: 'asc' }
-      },
-      intrigues: {
-        orderBy: { updatedAt: 'desc' }
-      }
-    }
-  })
-  if (!record) {
-    throw createError({ statusCode: 404, message: 'Introuvable' })
-  }
-
-  return record
+  return await readFaction(event, { slug: requireRouterParam(event, 'slug') })
 })

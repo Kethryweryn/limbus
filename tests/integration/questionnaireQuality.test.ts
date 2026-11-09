@@ -21,7 +21,7 @@ describe('repères sur les liens du questionnaire', () => {
     const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
     const loups = await prisma.faction.create({ data: { name: 'Loups', slug: `${key}-loups`, gameId: game.id } })
     const [aldric, bertrand] = await Promise.all(['Aldric', 'Bertrand'].map((name) => prisma.character.create({
-      data: { name, slug: `${key}-${name.toLowerCase()}`, gameId: game.id, factions: { connect: { id: loups.id } } }
+      data: { name, slug: `${key}-${name.toLowerCase()}`, gameId: game.id, factionLinks: { create: { factionId: loups.id } } }
     })))
     await prisma.character.create({ data: { name: 'Cyrielle', slug: `${key}-cyrielle`, gameId: game.id } })
     await prisma.character.create({ data: { name: 'Garde', slug: `${key}-garde`, gameId: game.id, type: 'pnj' } })

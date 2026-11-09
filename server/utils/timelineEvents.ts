@@ -1,24 +1,13 @@
-import { prisma } from '~/server/utils/prisma'
-
 export const timelineEventInclude = {
   game: true,
-  characters: {
-    orderBy: [{ type: 'asc' as const }, { name: 'asc' as const }],
-    include: {
-      factions: {
-        orderBy: { name: 'asc' as const }
-      }
-    }
+  // Liens par les tables qui portent le jeu (US-191) : la lecture passe par unlinked
+  characterLinks: {
+    select: { character: { include: { factionLinks: { select: { faction: true }, orderBy: { faction: { name: 'asc' as const } } } } } },
+    orderBy: [{ character: { type: 'asc' as const } }, { character: { name: 'asc' as const } }]
   },
-  factions: {
-    orderBy: { name: 'asc' as const }
-  },
-  intrigues: {
-    orderBy: { name: 'asc' as const }
-  },
-  items: {
-    orderBy: { name: 'asc' as const }
-  }
+  factionLinks: { select: { faction: true }, orderBy: { faction: { name: 'asc' as const } } },
+  intrigueLinks: { select: { intrigue: true }, orderBy: { intrigue: { name: 'asc' as const } } },
+  itemLinks: { select: { item: true }, orderBy: { item: { name: 'asc' as const } } }
 }
 
 type TimelineEventWithRelations = {
@@ -36,44 +25,6 @@ type ConflictResource = {
   name: string
   eventIds: string[]
   eventNames: string[]
-}
-
-export async function validateTimelineEventRelations(gameId: string, characterIds: string[], factionIds: string[], intrigueIds: string[], itemIds: string[]) {
-  if (characterIds.length) {
-    const count = await prisma.character.count({
-      where: { id: { in: characterIds }, gameId }
-    })
-    if (count !== characterIds.length) {
-      throw createError({ statusCode: 400, message: 'Personnages invalides pour ce jeu' })
-    }
-  }
-
-  if (factionIds.length) {
-    const count = await prisma.faction.count({
-      where: { id: { in: factionIds }, gameId }
-    })
-    if (count !== factionIds.length) {
-      throw createError({ statusCode: 400, message: 'Groupes invalides pour ce jeu' })
-    }
-  }
-
-  if (intrigueIds.length) {
-    const count = await prisma.intrigue.count({
-      where: { id: { in: intrigueIds }, gameId }
-    })
-    if (count !== intrigueIds.length) {
-      throw createError({ statusCode: 400, message: 'Intrigues invalides pour ce jeu' })
-    }
-  }
-
-  if (itemIds.length) {
-    const count = await prisma.item.count({
-      where: { id: { in: itemIds }, gameId }
-    })
-    if (count !== itemIds.length) {
-      throw createError({ statusCode: 400, message: 'Objets invalides pour ce jeu' })
-    }
-  }
 }
 
 export function withTimelineConflicts<T extends TimelineEventWithRelations>(events: T[]) {

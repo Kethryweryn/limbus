@@ -21,6 +21,7 @@ import { AI_LOG_ACTIONS } from '~/utils/aiAssistants'
 import { CHARACTER_TYPES, INTRIGUE_LEVELS } from '~/utils/domain'
 import { CHARACTER_RELATION_TYPE_VALUES } from '~/utils/characterRelations'
 import { DESTRUCTIVE, WRITE, logWrite, requireWrite, text, toolResult, version, withVersion, type ToolContext } from '~/server/mcp/tools'
+import { unlinked } from '~/server/utils/contentLinks'
 
 // Écriture du contenu d'un jeu par un assistant (US-125, US-126, SPEC-014 R10 à R13) : les fonctions de l'interface
 // (contentWrites), avec la version lue, sans lien ni fichier, et chaque écriture notée au journal
@@ -83,7 +84,7 @@ const KINDS: ContentKind[] = [
       characterIds: ids('Membres (liste complète)')
     },
     current: async (id) => {
-      const faction = await prisma.faction.findUnique({ where: { id }, select: { name: true, pitch: true, background: true, backgroundDocumentUrl: true, costumeIndications: true, showInTrombinoscope: true, gameId: true, characters: { select: { id: true } } } })
+      const faction = unlinked(await prisma.faction.findUnique({ where: { id }, select: { name: true, pitch: true, background: true, backgroundDocumentUrl: true, costumeIndications: true, showInTrombinoscope: true, gameId: true, characterLinks: { select: { character: { select: { id: true } } } } } }))
       return faction && { ...faction, characters: undefined, characterIds: idsOf(faction.characters) }
     },
     create: (event, body) => writes.createFaction(event, async () => parseZod(factionSchema, body)),
@@ -104,7 +105,7 @@ const KINDS: ContentKind[] = [
       factionIds: ids('Factions impliquées (liste complète)')
     },
     current: async (id) => {
-      const intrigue = await prisma.intrigue.findUnique({ where: { id }, select: { name: true, pitch: true, description: true, level: true, gameId: true, characters: { select: { id: true } }, factions: { select: { id: true } } } })
+      const intrigue = unlinked(await prisma.intrigue.findUnique({ where: { id }, select: { name: true, pitch: true, description: true, level: true, gameId: true, characterLinks: { select: { character: { select: { id: true } } } }, factionLinks: { select: { faction: { select: { id: true } } } } } }))
       return intrigue && { ...intrigue, characters: undefined, factions: undefined, characterIds: idsOf(intrigue.characters), factionIds: idsOf(intrigue.factions) }
     },
     create: (event, body) => writes.createIntrigue(event, async () => parseZod(intrigueSchema, body)),
@@ -126,7 +127,7 @@ const KINDS: ContentKind[] = [
       intrigueIds: ids('Intrigues liées (liste complète)')
     },
     current: async (id) => {
-      const item = await prisma.item.findUnique({ where: { id }, select: { name: true, description: true, quantity: true, locationText: true, locationCharacterId: true, gameId: true, characters: { select: { id: true } }, intrigues: { select: { id: true } } } })
+      const item = unlinked(await prisma.item.findUnique({ where: { id }, select: { name: true, description: true, quantity: true, locationText: true, locationCharacterId: true, gameId: true, characterLinks: { select: { character: { select: { id: true } } } }, intrigueLinks: { select: { intrigue: { select: { id: true } } } } } }))
       return item && { ...item, characters: undefined, intrigues: undefined, characterIds: idsOf(item.characters), intrigueIds: idsOf(item.intrigues) }
     },
     create: (event, body) => writes.createItem(event, async () => parseZod(itemSchema, body)),
@@ -147,7 +148,7 @@ const KINDS: ContentKind[] = [
       factionIds: ids('Groupes destinataires, en plus des rôles (liste complète)')
     },
     current: async (id) => {
-      const document = await prisma.document.findUnique({ where: { id }, select: { title: true, content: true, documentUrl: true, audiences: true, readyToSend: true, gameId: true, characters: { select: { id: true } }, factions: { select: { id: true } } } })
+      const document = unlinked(await prisma.document.findUnique({ where: { id }, select: { title: true, content: true, documentUrl: true, audiences: true, readyToSend: true, gameId: true, characterLinks: { select: { character: { select: { id: true } } } }, factionLinks: { select: { faction: { select: { id: true } } } } } }))
       return document && { ...document, characters: undefined, factions: undefined, characterIds: idsOf(document.characters), factionIds: idsOf(document.factions) }
     },
     create: (event, body) => writes.createDocument(event, async () => parseZod(documentSchema, body)),
@@ -189,10 +190,10 @@ const KINDS: ContentKind[] = [
       itemIds: ids('Objets liés (liste complète)')
     },
     current: async (id) => {
-      const timelineEvent = await prisma.timelineEvent.findUnique({
+      const timelineEvent = unlinked(await prisma.timelineEvent.findUnique({
         where: { id },
-        select: { name: true, description: true, day: true, time: true, requiredResponsibles: true, gameId: true, characters: { select: { id: true } }, factions: { select: { id: true } }, intrigues: { select: { id: true } }, items: { select: { id: true } } }
-      })
+        select: { name: true, description: true, day: true, time: true, requiredResponsibles: true, gameId: true, characterLinks: { select: { character: { select: { id: true } } } }, factionLinks: { select: { faction: { select: { id: true } } } }, intrigueLinks: { select: { intrigue: { select: { id: true } } } }, itemLinks: { select: { item: { select: { id: true } } } } }
+      }))
       return timelineEvent && {
         ...timelineEvent, characters: undefined, factions: undefined, intrigues: undefined, items: undefined,
         characterIds: idsOf(timelineEvent.characters), factionIds: idsOf(timelineEvent.factions), intrigueIds: idsOf(timelineEvent.intrigues), itemIds: idsOf(timelineEvent.items)

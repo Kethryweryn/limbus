@@ -70,7 +70,7 @@ test('l’essai du questionnaire classe les personnages selon les réponses, san
     const game = await prisma.game.create({ data: { title, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
     await prisma.character.create({ data: { name: 'Aldric Essai', slug: `aldric-${key}`, gameId: game.id } })
     const loups = await prisma.faction.create({ data: { name: 'Loups', slug: `loups-${key}`, gameId: game.id } })
-    await prisma.character.create({ data: { name: 'Bertrand Essai', slug: `bertrand-${key}`, gameId: game.id, factions: { connect: { id: loups.id } } } })
+    await prisma.character.create({ data: { name: 'Bertrand Essai', slug: `bertrand-${key}`, gameId: game.id, factionLinks: { create: { factionId: loups.id } } } })
     await prisma.registrationForm.create({
       data: {
         gameId: game.id,

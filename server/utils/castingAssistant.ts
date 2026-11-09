@@ -4,6 +4,7 @@ import { currentQuestionLinks } from '~/server/utils/registrationQuestionLinks'
 import { castingAssistant, type CastingCharacter, type CastingPlayer } from '~/utils/castingAssistant'
 import { manualRetainRoom, replayerParticipantIds } from '~/server/utils/registrationSelection'
 import { CHARACTER_TYPES, REGISTRATION_REPLAY_POLICIES, REGISTRATION_SESSION_STATUSES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
+import { unlinked } from '~/server/utils/contentLinks'
 
 // Assistant de casting d'une session (US-101, US-102, ADR-0051) : calculé sur le cast en cours d'édition, rien n'est écrit
 
@@ -17,14 +18,14 @@ export async function gameCharacters(gameId: string): Promise<CastingCharacter[]
     select: {
       id: true,
       name: true,
-      factions: nameSelect,
-      intrigues: nameSelect,
+      factionLinks: { select: { faction: nameSelect } },
+      intrigueLinks: { select: { intrigue: nameSelect } },
       relationsFrom: { select: { type: true, toCharacter: nameSelect } },
       relationsTo: { select: { type: true, fromCharacter: nameSelect } }
     },
     orderBy: { name: 'asc' }
   })
-  return rows.map(({ relationsFrom, relationsTo, ...character }) => ({
+  return unlinked(rows).map(({ relationsFrom, relationsTo, ...character }) => ({
     ...character,
     relations: [
       ...relationsFrom.map((relation) => ({ otherId: relation.toCharacter.id, otherName: relation.toCharacter.name, type: relation.type })),

@@ -4,6 +4,7 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf
 import { CHARACTER_TYPES } from '~/utils/domain'
 import { readUpload, uploadFilePath } from '~/server/utils/uploads'
 import { fetchPublicImage } from '~/server/utils/remoteImage'
+import { unlinked } from '~/server/utils/contentLinks'
 
 type CharacterLike = {
   id: string
@@ -96,9 +97,9 @@ export async function getCharacterTrombinoscopeConfig(viewerCharacterId: string)
   const [characters, entries] = await Promise.all([
     prisma.character.findMany({
       where: { gameId: viewer.gameId },
-      include: { factions: { orderBy: { name: 'asc' } } },
+      include: { factionLinks: { select: { faction: true }, orderBy: { faction: { name: 'asc' } } } },
       orderBy: [{ type: 'asc' }, { name: 'asc' }]
-    }),
+    }).then(unlinked),
     prisma.characterTrombinoscopeEntry.findMany({
       where: { viewerCharacterId }
     })
@@ -164,6 +165,7 @@ export async function saveCharacterTrombinoscopeConfig(
         note: entry.note
       },
       create: {
+        gameId: viewer.gameId,
         viewerCharacterId,
         targetCharacterId: entry.targetCharacterId,
         included: entry.included,
@@ -213,7 +215,7 @@ const trombinoscopeSessionInclude = {
     include: {
       participant: true,
       character: {
-        include: { factions: { orderBy: { name: 'asc' as const } } }
+        include: { factionLinks: { select: { faction: true }, orderBy: { faction: { name: 'asc' as const } } } }
       }
     }
   }
@@ -221,8 +223,8 @@ const trombinoscopeSessionInclude = {
 
 type TrombinoscopeSession = NonNullable<Awaited<ReturnType<typeof findTrombinoscopeSession>>>
 
-const findTrombinoscopeSession = (sessionId: string) =>
-  prisma.session.findUnique({ where: { id: sessionId }, include: trombinoscopeSessionInclude })
+const findTrombinoscopeSession = async (sessionId: string) =>
+  unlinked(await prisma.session.findUnique({ where: { id: sessionId }, include: trombinoscopeSessionInclude }))
 
 // loaded : la session déjà lue par l'appelant avec au moins ces liens (tableau des envois), pour ne pas la relire
 async function loadTrombinoscopeSources(sessionId: string, loaded?: TrombinoscopeSession) {
@@ -235,9 +237,9 @@ async function loadTrombinoscopeSources(sessionId: string, loaded?: Trombinoscop
   const [characters, entries] = await Promise.all([
     prisma.character.findMany({
       where: { gameId: session.gameId },
-      include: { factions: { orderBy: { name: 'asc' } } },
+      include: { factionLinks: { select: { faction: true }, orderBy: { faction: { name: 'asc' } } } },
       orderBy: [{ type: 'asc' }, { name: 'asc' }]
-    }),
+    }).then(unlinked),
     prisma.characterTrombinoscopeEntry.findMany({
       where: { viewerCharacter: { gameId: session.gameId } }
     })

@@ -10,41 +10,21 @@ import { generatedPdfFileName, renderTextPdf, type TextPdfInput } from '~/server
 import { currentTrombinoscopeFingerprints, getSessionTrombinoscope, isTrombinoscopeOutdated } from '~/server/utils/trombinoscopes'
 import { copyData, expiredSessionIds, purgeExpiredCopies, textCopy, trombinoscopeCopy, type DeliveryCopy } from '~/server/utils/deliveryCopies'
 import { sheetRelationsInclude, withSheetRelationLines } from '~/server/utils/characterRelations'
+import { unlinked } from '~/server/utils/contentLinks'
 
 export const documentInclude = {
   game: true,
-  characters: {
-    orderBy: [{ type: 'asc' as const }, { name: 'asc' as const }]
-  },
-  factions: {
-    include: {
-      characters: {
-        orderBy: [{ type: 'asc' as const }, { name: 'asc' as const }]
+  // Liens par les tables qui portent le jeu (US-191) : la lecture passe par unlinked
+  characterLinks: { select: { character: true }, orderBy: [{ character: { type: 'asc' as const } }, { character: { name: 'asc' as const } }] },
+  factionLinks: {
+    select: {
+      faction: {
+        include: {
+          characterLinks: { select: { character: true }, orderBy: [{ character: { type: 'asc' as const } }, { character: { name: 'asc' as const } }] }
+        }
       }
     },
-    orderBy: { name: 'asc' as const }
-  }
-}
-
-export async function validateDocumentRelations(gameId: string, characterIds: string[] = [], factionIds: string[] = []) {
-  const allCharacterIds = [...new Set(characterIds)]
-
-  if (allCharacterIds.length) {
-    const count = await prisma.character.count({
-      where: { id: { in: allCharacterIds }, gameId }
-    })
-    if (count !== allCharacterIds.length) {
-      throw createError({ statusCode: 400, message: 'Personnages invalides pour ce jeu' })
-    }
-  }
-
-  if (factionIds.length) {
-    const count = await prisma.faction.count({
-      where: { id: { in: factionIds }, gameId }
-    })
-    if (count !== factionIds.length) {
-      throw createError({ statusCode: 400, message: 'Groupes invalides pour ce jeu' })
-    }
+    orderBy: { faction: { name: 'asc' as const } }
   }
 }
 
@@ -61,7 +41,7 @@ export function isSentVersionOutdated(
 }
 
 export async function getSessionDocumentDashboard(sessionId: string) {
-  const session = await prisma.session.findUnique({
+  const session = unlinked(await prisma.session.findUnique({
     where: { id: sessionId },
     include: {
       // Propriétaire : adresse donnée pour le retrait d'une photo, faute de contact du jeu (US-107)
@@ -73,12 +53,12 @@ export async function getSessionDocumentDashboard(sessionId: string) {
         include: {
           // Relations visibles du joueur, pour sa fiche (US-097)
           // Groupes : pour l'empreinte des trombinoscopes, calculée sans relire la session
-          character: { include: { ...sheetRelationsInclude, factions: { orderBy: { name: 'asc' as const } } } },
+          character: { include: { ...sheetRelationsInclude, factionLinks: { select: { faction: true }, orderBy: { faction: { name: 'asc' as const } } } } },
           participant: true
         }
       }
     }
-  })
+  }))
 
   if (!session) {
     throw createError({ statusCode: 404, message: 'Session introuvable' })
@@ -89,7 +69,7 @@ export async function getSessionDocumentDashboard(sessionId: string) {
       where: { gameId: session.gameId },
       orderBy: [{ updatedAt: 'desc' }, { title: 'asc' }],
       include: documentInclude
-    }),
+    }).then(unlinked),
     prisma.sessionDocumentDelivery.findMany({
       where: { sessionId: session.id },
       include: {
