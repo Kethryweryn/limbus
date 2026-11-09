@@ -42,6 +42,15 @@
                     Léguer une copie
                 </UButton>
                 <UButton
+                    v-if="canDelete"
+                    icon="i-heroicons-trash"
+                    color="error"
+                    variant="soft"
+                    @click="showDelete = true"
+                >
+                    Supprimer définitivement
+                </UButton>
+                <UButton
                     v-if="game.sharedWithMe"
                     icon="i-heroicons-arrow-right-start-on-rectangle"
                     color="error"
@@ -106,6 +115,7 @@
 
         <GameShareModal v-model:open="showShares" :game="game" :is-owner="isOwner" @changed="refresh" />
         <GameBequestModal v-model:open="showBequest" :game="game" :owner-name="ownerName" />
+        <GameDeleteModal v-if="canDelete" v-model:open="showDelete" :game="game" />
     </div>
 </template>
 
@@ -132,6 +142,7 @@ const isCurrentGame = computed(() => currentGame?.value?.id === game.value?.id)
 const { isEditing, draft: editableGame, startEdit, cancelEdit, closeAfterSave } = useSheetEdit<GameDraft>(() => game.value ? { ...game.value } : null)
 const showShares = ref(false)
 const showBequest = ref(false)
+const showDelete = ref(false)
 // Léguer est réservé à la propriétaire, même en mode administrateur (SPEC-002 R1)
 const isOwner = computed(() => Boolean(game.value?.ownerId) && game.value?.ownerId === currentUser.value?.id)
 const transferProposedToMe = computed(() => Boolean(game.value?.transferToUserId) && game.value?.transferToUserId === currentUser.value?.id)
@@ -185,6 +196,9 @@ const canManageShares = computed(() =>
     Boolean(game.value?.id)
     && Boolean(authState.value?.authenticated && (authState.value.adminMode || game.value?.ownerId === authState.value.user.id))
 )
+
+// Seul un jeu archivé se supprime, par sa propriétaire ou en mode administrateur (US-207, SPEC-003 R17)
+const canDelete = computed(() => canManageShares.value && !game.value?.published)
 
 async function handleGameFormSubmit() {
     if (!editableGame.value?.id) return

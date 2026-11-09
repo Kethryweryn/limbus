@@ -55,15 +55,7 @@
         >
           Voir le teaser
         </UButton>
-
-        <UCard variant="outline" class="bg-white text-gray-900">
-          <template #header>
-            Description
-          </template>
-          <p class="text-base leading-7 text-gray-700 whitespace-pre-line">
-            {{ game.description || 'Aucune description renseignée.' }}
-          </p>
-        </UCard>
+        <!-- La description n'est affichée qu'une fois, sous le titre (US-208) -->
       </section>
 
       <aside class="xl:col-span-4 space-y-6">

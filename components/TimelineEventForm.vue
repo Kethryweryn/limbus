@@ -92,7 +92,7 @@
       </UFormField>
 
       <div class="flex flex-wrap gap-2 pt-2">
-        <UButton type="submit" color="primary" size="lg" :disabled="!canSubmit">
+        <UButton type="submit" color="primary" size="lg">
           {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
         </UButton>
         <UButton type="button" color="neutral" size="lg" @click="$emit('cancel')">
@@ -180,13 +180,6 @@ const itemOptions = computed(() =>
       label: item.name,
       value: item.id
     }))
-)
-
-const canSubmit = computed(() =>
-  localEvent.value.name?.trim()
-  && localEvent.value.gameId
-  && Number(localEvent.value.day) >= 1
-  && /^\d{2}:\d{2}$/.test(localEvent.value.time || '')
 )
 
 watch(() => props.event, (newEvent) => {

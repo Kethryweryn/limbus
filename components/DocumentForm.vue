@@ -95,7 +95,7 @@
       />
 
       <div class="flex flex-wrap gap-2 pt-2">
-        <UButton type="submit" color="primary" size="lg" :disabled="!canSubmit">
+        <UButton type="submit" color="primary" size="lg">
           {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
         </UButton>
         <UButton type="button" color="neutral" size="lg" @click="$emit('cancel')">
@@ -172,12 +172,6 @@ const hasTargets = computed(() => isDocumentTargeted({
   characters: advanced.value ? localDocument.value.characterIds : [],
   factions: advanced.value ? localDocument.value.factionIds : []
 }))
-
-const canSubmit = computed(() =>
-  localDocument.value.title?.trim()
-  && localDocument.value.gameId
-  && Boolean(localDocument.value.content?.trim() || localDocument.value.documentUrl?.trim())
-)
 
 watch(() => props.document, (newDocument) => {
   const characterIds = newDocument.characterIds || newDocument.characters?.map((character) => character.id) || []

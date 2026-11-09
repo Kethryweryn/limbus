@@ -1,4 +1,5 @@
-import { computed, type Ref } from 'vue'
+import type { Ref } from 'vue'
+import { selectModel } from '~/utils/selectOptions'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
 // Éléments du jeu en cours d'édition (US-115) : leurs champs tels que l'API les rend, sans les éléments liés, que
@@ -52,10 +53,7 @@ type NullableTextKey<T> = { [K in keyof T]-?: T[K] extends string | null | undef
 
 /** Liste de choix dont « Aucun » vaut une chaîne vide (personnage d'un document, d'un objet) : un champ facultatif du brouillon. */
 export function emptyStringModel<T extends object, K extends NullableTextKey<T>>(draft: Ref<T>, key: K) {
-  return computed({
-    get: () => (draft.value[key] as string | null | undefined) || '',
-    set: (value: string) => { draft.value[key] = value as T[K] }
-  })
+  return selectModel(() => draft.value[key] as string | null | undefined, (value) => { draft.value[key] = value as T[K] })
 }
 
 /** Groupe proposé dans un formulaire : seuls ceux du jeu choisi sont proposés. */

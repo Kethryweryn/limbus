@@ -157,7 +157,7 @@ v-model="localCharacter.gameId"
             </UFormField>
 
             <div class="flex flex-wrap gap-2 pt-2">
-                <UButton type="submit" color="primary" size="lg" :disabled="!localCharacter.name?.trim() || !localCharacter.gameId">
+                <UButton type="submit" color="primary" size="lg">
                     {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
                 </UButton>
                 <UButton color="neutral" size="lg" @click="$emit('cancel')">
@@ -174,6 +174,7 @@ v-model="localCharacter.gameId"
 import { computed, ref, watch } from 'vue'
 import { CHARACTER_TYPE_OPTIONS, CHARACTER_TYPES } from '~/utils/domain'
 import { apiErrorMessage } from '~/utils/apiErrors'
+import { fromSelectValue, noneOption, toSelectValue } from '~/utils/selectOptions'
 import type { CharacterDraft, FactionOption, GameOption } from '~/utils/writingDrafts'
 
 const props = withDefaults(defineProps<{
@@ -190,18 +191,17 @@ const emit = defineEmits<{ cancel: [], 'update:character': [character: Character
 const localCharacter = ref<CharacterDraft>({ ...props.character })
 
 // Jeu du personnage, s'il a un attribut d'équilibre ; « Non renseigné » s'envoie comme une valeur vide
-const NO_BALANCE_VALUE = '__none'
 const balanceGame = computed(() => {
     const game = props.games.find((candidate) => candidate.id === localCharacter.value.gameId)
     return game?.balanceAttribute && game.balanceValues?.length ? game : null
 })
 const balanceItems = computed(() => [
-    { label: 'Non renseigné', value: NO_BALANCE_VALUE },
+    noneOption('Non renseigné'),
     ...(balanceGame.value?.balanceValues || []).map((value) => ({ label: value, value }))
 ])
 const balanceSelection = computed({
-    get: () => localCharacter.value.balanceValue || NO_BALANCE_VALUE,
-    set: (value: string) => { localCharacter.value.balanceValue = value === NO_BALANCE_VALUE ? null : value }
+    get: () => toSelectValue(localCharacter.value.balanceValue),
+    set: (value: string) => { localCharacter.value.balanceValue = fromSelectValue(value) || null }
 })
 const errors = ref<Record<string, string>>({})
 const serverError = ref('')

@@ -315,25 +315,22 @@ function openShareModal(game: GameListItem) {
   showShares.value = true
 }
 
+// Une erreur remonte au formulaire, qui l'affiche (US-206)
 async function handleGameFormSubmit() {
   if (!activeFormGame.value) return
-  try {
-    if (formMode.value === 'create') {
-      await useApiFetch('/api/games', {
-        method: 'POST',
-        body: activeFormGame.value
-      })
-    } else if (formMode.value === 'edit') {
-      await useApiFetch(`/api/games/${activeFormGame.value.id}`, {
-        method: 'PUT',
-        body: activeFormGame.value
-      })
-    }
-    closeFormSlideover()
-    await fetchGames()
-  } catch (error) {
-    console.error('Erreur lors de la soumission du formulaire de jeu', error)
+  if (formMode.value === 'create') {
+    await useApiFetch('/api/games', {
+      method: 'POST',
+      body: activeFormGame.value
+    })
+  } else if (formMode.value === 'edit') {
+    await useApiFetch(`/api/games/${activeFormGame.value.id}`, {
+      method: 'PUT',
+      body: activeFormGame.value
+    })
   }
+  closeFormSlideover()
+  await fetchGames()
 }
 
 watch([searchQuery, filteredGames], () => {

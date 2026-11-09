@@ -89,7 +89,7 @@
       />
 
       <div class="flex flex-wrap gap-2 pt-2">
-        <UButton type="submit" color="primary" size="lg" :disabled="!localItem.name?.trim() || !localItem.gameId">
+        <UButton type="submit" color="primary" size="lg">
           {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
         </UButton>
         <UButton type="button" color="neutral" size="lg" @click="$emit('cancel')">
@@ -106,6 +106,7 @@
 import { computed, ref, watch } from 'vue'
 import { CHARACTER_TYPES } from '~/utils/domain'
 import { apiErrorMessage } from '~/utils/apiErrors'
+import { noneOption } from '~/utils/selectOptions'
 import { emptyStringModel, type CharacterOption, type GameOption, type ItemDraft } from '~/utils/writingDrafts'
 
 const props = withDefaults(defineProps<{
@@ -140,7 +141,7 @@ const characterOptions = computed(() =>
 )
 
 const locationCharacterOptions = computed(() => [
-  { label: 'Aucun personnage', value: '' },
+  noneOption('Aucun personnage'),
   ...characterOptions.value
 ])
 

@@ -1,0 +1,5 @@
+{
+  "type": "modifie",
+  "titre": "Description d’un jeu affichée une fois",
+  "texte": "Sur la fiche et sur la page publique d’un jeu, la description ne s’affiche plus qu’une fois, sous le titre."
+}

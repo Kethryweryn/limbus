@@ -86,7 +86,7 @@ Depuis la liste des jeux, la propriétaire ou une co-organisatrice archive un je
 ## Sécurité et droits
 
 - **R16** La propriétaire, les co-organisatrices et l'administratrice en mode administrateur lisent et modifient tout le contenu du jeu. Elles peuvent aussi archiver ou restaurer le jeu (confirmé par l'utilisatrice le 29 octobre 2026), même si cela masque le jeu de la liste de la propriétaire et coupe sa page publique.
-- **R17** Seule la propriétaire, ou l'administratrice en mode administrateur, supprime le jeu et gère ses partages. Seule la propriétaire le lègue ([SPEC-002](SPEC-002-copie-de-jeu.md)).
+- **R17** Seule la propriétaire, ou l'administratrice en mode administrateur, supprime le jeu et gère ses partages. Depuis l'écran, seul un jeu archivé se supprime, en retapant son titre ([US-207](../epics/EPIC-050-tests-par-ecran/US-207-supprimer-un-jeu-archive.md)). Seule la propriétaire le lègue ([SPEC-002](SPEC-002-copie-de-jeu.md)).
 - **R18** Une organisatrice n'atteint rien d'un jeu auquel elle n'a pas accès : ni lecture, ni écriture, ni lien depuis son propre contenu ([ADR-0007](../adr/ADR-0007-isolation-par-jeu.md), `tests/integration/isolation.test.ts`).
 
 ## Hors périmètre
@@ -116,3 +116,4 @@ Relevés le 29 octobre 2026 en comparant le code aux règles ci-dessus. Les quat
 
 - 2026-11-08 : R14b, suppression depuis la fiche (US-186, retour B1-1 du cahier de tests).
 - 2026-11-08 : R11, public d'un document par cases et sélection avancée (US-187, retour B3-1).
+- 2026-11-09 : R17, suppression d'un jeu archivé depuis sa fiche (US-207).

@@ -81,12 +81,12 @@
     <div v-if="tariffMode" class="mt-3 space-y-2 border-t border-gray-100 pt-3 text-sm">
       <div class="flex flex-wrap items-center gap-2">
         <USelect
-          :model-value="row.tariffChosen ? row.tariff?.id : ''"
+          :model-value="row.tariffChosen ? row.tariff?.id : NONE_VALUE"
           :items="tariffOptions"
           value-key="value"
           :disabled="updating"
           class="w-full md:w-72"
-          @update:model-value="(value) => writeRow(row, '/tariff', { tariffId: value || null })"
+          @update:model-value="(value) => writeRow(row, '/tariff', { tariffId: fromSelectValue(value) || null })"
         />
         <span>Dû {{ formatEuros(row.dueCents) }} · reçu {{ formatEuros(row.receivedCents) }} · reste {{ formatEuros(row.remainingCents) }}</span>
       </div>
@@ -118,6 +118,7 @@ import { PAYMENT_STATE_DISPLAY, TARIFF_ROLE_LABELS, formatEuros } from '~/utils/
 import { coolDown } from '~/composables/useCooldown'
 import { useSessionPaymentActions, type PaymentRow } from '~/composables/useSessionPaymentActions'
 import { formatEventDate } from '~/utils/sessions'
+import { fromSelectValue, NONE_VALUE, noneOption } from '~/utils/selectOptions'
 
 const props = defineProps<{ row: PaymentRow }>()
 
@@ -137,7 +138,7 @@ const formatDay = (value: string | Date) => new Date(value).toLocaleDateString('
 const tariffOptions = computed(() => {
   const roleTariff = props.row.tariffChosen ? null : props.row.tariff
   return [
-    { label: roleTariff ? `Tarif du rôle : ${roleTariff.name}` : 'Tarif du rôle', value: '' },
+    noneOption(roleTariff ? `Tarif du rôle : ${roleTariff.name}` : 'Tarif du rôle'),
     ...tariffs.value.map((tariff) => ({ label: `${tariff.name} (${formatEuros(tariff.amountCents)})`, value: tariff.id }))
   ]
 })

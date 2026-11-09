@@ -111,6 +111,7 @@
 import { computed, ref, watch } from 'vue'
 import { CHARACTER_TYPES, SESSION_ROLES, SESSION_STATUS_OPTIONS } from '~/utils/domain'
 import { apiErrorMessage } from '~/utils/apiErrors'
+import { noneOption } from '~/utils/selectOptions'
 import { emptyStringModel, type CharacterOption, type GameOption, type SessionDraft } from '~/utils/writingDrafts'
 
 // Détails d'une session : nom, date, lieu, statut, équipe. Le cast se distribue dans son onglet (SessionCastForm).
@@ -142,7 +143,7 @@ const locationIdModel = emptyStringModel(localSession, 'locationId')
 const statusOptions: Array<{ label: string, value: string }> = [...SESSION_STATUS_OPTIONS]
 
 const locationOptions = computed(() => [
-  { label: 'Aucun lieu', value: '' },
+  noneOption('Aucun lieu'),
   ...props.locations
     .filter((location) => !localSession.value.gameId || location.gameId === localSession.value.gameId)
     .map((location) => ({
@@ -151,8 +152,7 @@ const locationOptions = computed(() => [
     }))
 ])
 
-const participantOptions = computed(() => [
-  { label: 'Aucun participant', value: '' },
+const sessionParticipantOptions = computed(() => [
   ...props.participants
     .filter((participant) => !localSession.value.gameId || participant.games?.some((game) => game.id === localSession.value.gameId))
     .map((participant) => ({
@@ -160,8 +160,6 @@ const participantOptions = computed(() => [
       value: participant.id
     }))
 ])
-
-const sessionParticipantOptions = computed(() => participantOptions.value.filter((participant) => participant.value))
 
 const selectedOrganizerIds = computed(() => new Set(localSession.value.organizerIds || []))
 const selectedNpcIds = computed(() => new Set(localSession.value.npcIds || []))

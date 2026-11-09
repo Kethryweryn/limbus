@@ -280,6 +280,7 @@ import { formatScore } from '~/utils/castingAssistant'
 import { computed, ref, watch } from 'vue'
 import { CHARACTER_TYPES, REGISTRATION_PERIOD_STATES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
 import { apiErrorMessage } from '~/utils/apiErrors'
+import { fromSelectValue, NONE_VALUE, noneOption, toSelectValue } from '~/utils/selectOptions'
 import { registrationStatusMeta } from '~/utils/registrations'
 import { fetchByUrl, type ApiResponse } from '~/composables/useApiFetch'
 import type { InvitationResult, RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
@@ -355,7 +356,7 @@ const castableIds = computed(() => new Set([
   ...(props.session.assignments || []).map((assignment) => assignment.participantId || assignment.participant?.id)
 ]))
 const participantOptions = computed(() => [
-  { label: 'Aucun participant', value: '' },
+  noneOption('Aucun participant'),
   ...props.participants
     .filter((participant) => castableIds.value.has(participant.id))
     .map((participant) => ({
@@ -425,17 +426,17 @@ function participantOptionsForAssignment(assignment: CastLine) {
   const character = characterById(assignment.characterId)
   if (character?.type !== CHARACTER_TYPES.pnj) return [...participantOptions.value, ...reservationOptions.value]
 
-  return participantOptions.value.filter((participant) => !participant.value || pnjCastableIds.value.has(participant.value))
+  return participantOptions.value.filter((participant) => participant.value === NONE_VALUE || pnjCastableIds.value.has(participant.value))
 }
 
 function choiceOf(assignment: CastLine) {
-  return assignment.reservedRegistrationId ? `${RESERVATION_PREFIX}${assignment.reservedRegistrationId}` : assignment.participantId
+  return assignment.reservedRegistrationId ? `${RESERVATION_PREFIX}${assignment.reservedRegistrationId}` : toSelectValue(assignment.participantId)
 }
 
 function setChoice(assignment: CastLine, value: string | null) {
   const reserved = typeof value === 'string' && value.startsWith(RESERVATION_PREFIX)
   assignment.reservedRegistrationId = reserved ? value.slice(RESERVATION_PREFIX.length) : ''
-  assignment.participantId = reserved ? '' : value || ''
+  assignment.participantId = reserved ? '' : fromSelectValue(value)
 }
 
 // Assistant de casting (US-101, US-102) : calculé sur le formulaire en cours, appliqué seulement à la demande

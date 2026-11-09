@@ -75,7 +75,7 @@
       </UFormField>
 
       <div class="flex flex-wrap gap-2 pt-2">
-        <UButton type="submit" color="primary" size="lg" :disabled="!localFaction.name?.trim() || !localFaction.gameId">
+        <UButton type="submit" color="primary" size="lg">
           {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
         </UButton>
         <UButton type="button" color="neutral" size="lg" @click="$emit('cancel')">
