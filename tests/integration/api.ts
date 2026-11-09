@@ -49,5 +49,10 @@ export function invalidPaths(response: { body: unknown }) {
   return (response.body as { data: { data: Array<{ path: string }> } }).data.data.map((issue) => issue.path)
 }
 
+/** Messages des champs refusés par la validation d'un corps, dans le même ordre. */
+export function invalidMessages(response: { body: unknown }) {
+  return (response.body as { data: { data: Array<{ message: string }> } }).data.data.map((issue) => issue.message)
+}
+
 // Refus attendu : 403 (accès interdit) ou 404 (ressource introuvable pour cet utilisateur)
 export const DENIED = [403, 404]

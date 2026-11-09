@@ -118,7 +118,8 @@ model Character {
 }
 
 // Relation entre deux personnages du jeu (US-097, ADR-0050) : un type, une description commune, et pour chaque côté
-// un libellé facultatif et une visibilité dans la fiche envoyée au joueur
+// un libellé facultatif et une visibilité dans la fiche envoyée au joueur. Écrite à la main (US-190, ADR-0073) :
+// CharacterRelation_deux_personnages_check, un personnage n'est pas relié à lui-même
 model CharacterRelation {
   id              String    @id @default(cuid())
   gameId          String
@@ -143,7 +144,9 @@ model CharacterRelation {
 }
 
 // Une option d'une question du formulaire (vide pour une question sur une échelle) reliée à un personnage, une faction
-// ou une intrigue (US-098, ADR-0050) ; hors des versions du formulaire
+// ou une intrigue (US-098, ADR-0050) ; hors des versions du formulaire. Écrits à la main (US-190, ADR-0073) :
+// RegistrationQuestionLink_une_cible_check, une seule cible ; RegistrationQuestionLink_{personnage,groupe,intrigue}_unique_key,
+// index uniques partiels qui refusent deux liens identiques (même jeu, question, option et cible)
 model RegistrationQuestionLink {
   id          String     @id @default(cuid())
   gameId      String
