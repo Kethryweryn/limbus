@@ -8,6 +8,8 @@ liens: [../specs/SPEC-011-un-compte-pour-tout-le-monde.md, ADR-0007-isolation-pa
 
 # ADR-0040 : Les notes sur une personne sont portées par son lien à chaque jeu
 
+> Colonne `Participant.notes` retirée par l'US-193 (EPIC-049) : les notes ne vivent plus que sur `ParticipantGame`.
+
 ## Contexte
 
 Une fiche participant est commune à tous ses jeux ([SPEC-007](../specs/SPEC-007-participants-et-rgpd.md), R2) ; son champ `notes` aussi, si bien qu'une équipe lit et modifie ce qu'une autre a écrit. [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) (R10) veut des notes propres à chaque équipe.

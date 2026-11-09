@@ -20,7 +20,7 @@ PostgreSQL 15, celui du serveur, sait n'effacer que certaines colonnes de la cl�
 
 - Une référence facultative composée avec le jeu, qui doit se vider à la suppression de sa cible, est déclarée `onDelete: SetNull` dans le schéma Prisma. Sa clé étrangère est écrite à la main dans la migration avec `ON DELETE SET NULL ("colonne")` : la base n'efface que l'identifiant et garde le jeu.
 - Le code ne vide plus ces références avant une suppression.
-- Les deux références de l'US-191 (`Item.locationCharacterId`, `Document.characterId`) passent au même régime.
+- Les deux références de l'US-191 (`Item.locationCharacterId`, `Document.characterId`) passent au même régime. `Document.characterId` est retirée par l'US-193 : il en reste neuf.
 
 ## Conséquences
 

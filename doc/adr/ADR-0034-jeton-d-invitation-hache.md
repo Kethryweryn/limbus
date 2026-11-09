@@ -8,6 +8,8 @@ liens: [../specs/SPEC-008-comptes-et-partage.md, ADR-0018-jetons-des-liens-perso
 
 # ADR-0034 : Le jeton d'une invitation est gardé haché
 
+> Colonne `GameInvitation.token` retirée par l'US-193 (EPIC-049) : seule l'empreinte `tokenHash` reste.
+
 ## Contexte
 
 Les liens personnels des inscriptions et de la présence ne gardent que l'empreinte SHA-256 de leur jeton ([ADR-0018](ADR-0018-jetons-des-liens-personnels.md)). Les invitations à co-organiser et les legs (`GameInvitation`) gardent leur jeton en clair : une copie de la base suffirait à accepter les invitations en attente ([SPEC-008](../specs/SPEC-008-comptes-et-partage.md), écart 5).

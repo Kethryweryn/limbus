@@ -35,7 +35,6 @@ describe('schéma de données', () => {
       ['Character', 'type', 'CharacterType'],
       ['CharacterRelation', 'type', 'CharacterRelationType'],
       ['Intrigue', 'level', 'IntrigueLevel'],
-      ['Document', 'audience', 'DocumentAudience'],
       ['Document', 'audiences', '_DocumentRole'],
       ['Session', 'status', 'SessionStatus'],
       ['RegistrationPeriod', 'state', 'RegistrationPeriodState'],
