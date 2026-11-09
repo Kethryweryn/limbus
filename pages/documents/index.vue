@@ -23,14 +23,11 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      <UCard
+      <ContentCard
         v-for="document in paginatedDocuments"
         :key="document.id"
-        class="cursor-pointer transition-shadow hover:shadow-md"
-        role="link"
-        tabindex="0"
-        @click="openDocumentPage(document)"
-        @keydown.enter="openDocumentPage(document)"
+        :to="`/documents/${document.slug}`"
+        @open="rememberDocumentReturn(document)"
       >
         <template #header>
           <div class="space-y-2">
@@ -99,7 +96,7 @@
             </UButton>
           </div>
         </div>
-      </UCard>
+      </ContentCard>
     </div>
 
     <div class="flex items-center justify-center gap-4 mt-6">
@@ -155,7 +152,6 @@ const showFormSlideover = ref(false)
 const activeFormDocument = ref<DocumentDraft | null>(null)
 const formMode = ref<'create' | 'edit'>('create')
 const { game: selectedGame } = useGameFocus()
-const router = useRouter()
 
 const page = ref(1)
 const itemsPerPage = 9
@@ -271,12 +267,6 @@ function rememberDocumentReturn(document: DocumentRow) {
     source: 'documents',
     documentId: document.id
   }))
-}
-
-function openDocumentPage(document: DocumentRow) {
-  if (!document?.slug) return
-  rememberDocumentReturn(document)
-  router.push(`/documents/${document.slug}`)
 }
 
 function closeFormSlideover() {

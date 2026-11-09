@@ -32,6 +32,7 @@ Corriger ce que l'utilisatrice signale en déroulant son cahier de tests ([fiche
 | [US-186](US-186-supprimer-depuis-la-fiche.md) | Supprimer un élément depuis sa fiche | terminée |
 | [US-187](US-187-public-des-documents.md) | Choisir le public d'un document par rôles et par personnages | terminée |
 | [US-196](US-196-reperer-la-nouvelle-version.md) | Repérer une nouvelle version sans recharger la page | terminée |
+| [US-197](US-197-carte-lieu-cliquable.md) | Ouvrir un lieu en cliquant sur sa carte | terminée |
 
 ## Définition de terminé
 

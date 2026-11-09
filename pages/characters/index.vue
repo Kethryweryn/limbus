@@ -28,14 +28,10 @@
 
         <!-- Liste des personnages -->
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            <UCard
+            <ContentCard
                 v-for="char in paginatedCharacters"
                 :key="char.id"
-                class="cursor-pointer transition-shadow hover:shadow-md"
-                role="link"
-                tabindex="0"
-                @click="openCharacterPage(char)"
-                @keydown.enter="openCharacterPage(char)"
+                :to="`/characters/${char.slug}`"
             >
                 <template #header>
                     <div class="flex items-start justify-between gap-3">
@@ -105,7 +101,7 @@
                         </UButton>
                     </div>
                 </div>
-            </UCard>
+            </ContentCard>
         </div>
 
         <div class="flex items-center justify-center gap-4 mt-6">
@@ -161,7 +157,6 @@ const gameFilter = ref('all')
 const showArchived = ref(false)
 const games = ref<GameItem[]>([])
 const factions = ref<FactionItem[]>([])
-const router = useRouter()
 
 const gameStore = useGameStore()
 const selectedGame = computed(() => gameStore.currentGame)
@@ -312,11 +307,6 @@ function startEdit(char: CharacterItem) {
 function closeSlideover() {
     activeFormCharacter.value = null
     showSlideover.value = false
-}
-
-function openCharacterPage(char: CharacterItem) {
-    if (!char?.slug) return
-    router.push(`/characters/${char.slug}`)
 }
 
 async function handleFormSubmit() {

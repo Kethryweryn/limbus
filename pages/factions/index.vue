@@ -29,14 +29,10 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      <UCard
+      <ContentCard
         v-for="faction in paginatedFactions"
         :key="faction.id"
-        class="cursor-pointer transition-shadow hover:shadow-md"
-        role="link"
-        tabindex="0"
-        @click="openFactionPage(faction)"
-        @keydown.enter="openFactionPage(faction)"
+        :to="`/factions/${faction.slug}`"
       >
         <template #header>
           <div class="flex items-start justify-between gap-3">
@@ -89,7 +85,7 @@
             </UButton>
           </div>
         </div>
-      </UCard>
+      </ContentCard>
     </div>
 
     <div class="flex items-center justify-center gap-4 mt-6">
@@ -142,7 +138,6 @@ const sortOption = ref('updated-desc')
 const showFormSlideover = ref(false)
 const activeFormFaction = ref<FactionDraft | null>(null)
 const formMode = ref<'create' | 'edit'>('create')
-const router = useRouter()
 const { game: selectedGame } = useGameFocus()
 
 const gameFilterOptions = computed(() => [
@@ -262,11 +257,6 @@ function startEdit(faction: FactionItem) {
 function closeFormSlideover() {
   activeFormFaction.value = null
   showFormSlideover.value = false
-}
-
-function openFactionPage(faction: FactionItem) {
-  if (!faction?.slug) return
-  router.push(`/factions/${faction.slug}`)
 }
 
 async function handleFactionFormSubmit() {
