@@ -5,7 +5,7 @@ statut: implémentée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
 epics: [EPIC-010, EPIC-032]
-adr: [ADR-0006, ADR-0012, ADR-0036]
+adr: [ADR-0006, ADR-0012, ADR-0036, ADR-0071, ADR-0078]
 ---
 
 # SPEC-010 : Mode hors ligne
@@ -54,7 +54,7 @@ Continuer à consulter un jeu sur le lieu du GN, où le réseau manque souvent, 
 - **R8** Toute écriture mise en file porte la version lue de l'élément, suppressions et sous-routes comprises ; elle est refusée (409, conflit) si l'élément a été modifié entre-temps sur le serveur. Deux modifications du même élément passent l'une après l'autre : la seconde reprend la version laissée par la première ([ADR-0036](../adr/ADR-0036-protocole-de-resynchronisation.md)).
 - **R9** Une modification refusée reste dans la file, en erreur ou en conflit ; elle retient les suivantes du même élément, et les autres partent. Le panneau des modifications liste chacune (élément, action, date, cause du refus). On renvoie une modification en erreur ; face à un conflit, on voit côte à côte les seuls champs qui diffèrent, puis on garde sa version (elle remplace celle du serveur) ou celle du serveur. On abandonne une modification, ou toute la file, sans se déconnecter ([US-049](../archive/epics/EPIC-010-ecarts-hors-ligne/US-049-panneau-des-modifications-en-attente.md), [US-050](../archive/epics/EPIC-010-ecarts-hors-ligne/US-050-conflit-a-la-resynchronisation.md)).
 
-- **R14** Une nouvelle version de l'application ne recharge jamais la page ouverte : elle se charge au prochain changement de page fait en ligne : la page arrivée se recharge aussitôt. Changer seulement d'onglet ou de filtre n'est pas changer de page. Hors ligne, ou serveur indisponible, rien ne change ([US-184](../epics/EPIC-045-retours-du-cahier-de-tests/US-184-mise-a-jour-sans-perdre-sa-saisie.md), [ADR-0071](../adr/ADR-0071-mise-a-jour-au-changement-de-page.md)).
+- **R14** Une nouvelle version de l'application ne recharge jamais la page ouverte : elle se charge au prochain changement de page fait en ligne : la page arrivée se recharge aussitôt. Changer seulement d'onglet ou de filtre n'est pas changer de page. Hors ligne, ou serveur indisponible, rien ne change ([US-184](../epics/EPIC-045-retours-du-cahier-de-tests/US-184-mise-a-jour-sans-perdre-sa-saisie.md), [ADR-0071](../adr/ADR-0071-mise-a-jour-au-changement-de-page.md)). Pour la repérer, Limbus la cherche à chaque changement de page fait en ligne, une fois par minute au plus, et toutes les heures ([US-196](../epics/EPIC-045-retours-du-cahier-de-tests/US-196-reperer-la-nouvelle-version.md), [ADR-0078](../adr/ADR-0078-recherche-de-la-nouvelle-version.md)).
 
 ### Appareil partagé
 
@@ -101,3 +101,4 @@ Relevés le 29 octobre 2026. Les écarts 1 et 2 ont été confirmés par l'utili
 ## Historique
 
 - 2026-11-08 : R14, une nouvelle version se charge au changement de page, et non plus aussitôt (US-184, retour A6-2 du cahier de tests).
+- 2026-11-09 : R14, Limbus cherche une nouvelle version à chaque changement de page et toutes les heures (US-196).

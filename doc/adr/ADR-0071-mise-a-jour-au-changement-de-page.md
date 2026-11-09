@@ -26,6 +26,8 @@ Limbus est une PWA servie par `@vite-pwa/nuxt` en mode `autoUpdate` : après un 
 - Le premier déploiement de ce réglage ne recharge rien : les onglets ouverts avec l'ancienne version gardent l'ancien service worker jusqu'à leur fermeture.
 - Un changement de page vers une nouvelle version coûte un chargement complet au lieu d'une navigation dans l'application, une fois par déploiement.
 
+La recherche de la nouvelle version, qui ne se faisait qu'au chargement complet d'une page, est complétée par [ADR-0078](ADR-0078-recherche-de-la-nouvelle-version.md).
+
 ## Options écartées
 
 - **Garder `autoUpdate`** : c'est la cause du défaut.

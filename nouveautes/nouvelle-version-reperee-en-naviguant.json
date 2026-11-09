@@ -1,0 +1,5 @@
+{
+  "type": "corrige",
+  "titre": "Nouvelle version chargée plus vite",
+  "texte": "Quand une nouvelle version de Limbus est publiée pendant que vous l’utilisez, elle est maintenant repérée dès que vous changez de page, et se charge au changement de page suivant. Elle pouvait jusqu’ici attendre longtemps."
+}
