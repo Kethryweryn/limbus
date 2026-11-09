@@ -4,8 +4,76 @@
 --
 -- deploiement-incompatible : changement de type de toutes les dates. Vérifié avec le client Prisma du build en service
 -- sur une base migrée : il lit les mêmes instants qu'avant, et ceux qu'il écrit sont relus à l'identique.
--- Production relevée le 2026-11-09 : 115 colonnes, 15 Mo ; createdAt et updatedAt écrits par Prisma concordent (UTC).
+-- Production relevée le 2026-11-09 : 115 colonnes, 15 Mo ; les dates écrites par Prisma sont en UTC, celles posées par
+-- la base pendant une migration en heure de Paris (66 fiches et 96 lignes de casting à 00:44:52 pour une migration
+-- terminée à 23:44:54 UTC).
 
+-- Dates posées par la base pendant une migration (DEFAULT CURRENT_TIMESTAMP d'une colonne ajoutée) : écrites dans le
+-- fuseau de la session de migration, Europe/Paris en production, elles avaient une à deux heures d'avance. Une valeur
+-- comprise dans la durée d'une migration, lue en heure de Paris, est ramenée en UTC avant la conversion. Sur une base
+-- en UTC, aucune valeur ne tombe dans ces fenêtres : rien ne change.
+UPDATE "Item" SET "createdAt" = ("createdAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "Item"."createdAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "Item" SET "updatedAt" = ("updatedAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "Item"."updatedAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "Faction" SET "createdAt" = ("createdAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "Faction"."createdAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "Faction" SET "updatedAt" = ("updatedAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "Faction"."updatedAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "Intrigue" SET "createdAt" = ("createdAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "Intrigue"."createdAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "Intrigue" SET "updatedAt" = ("updatedAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "Intrigue"."updatedAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "Session" SET "createdAt" = ("createdAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "Session"."createdAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "Session" SET "updatedAt" = ("updatedAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "Session"."updatedAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "Location" SET "createdAt" = ("createdAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "Location"."createdAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "Location" SET "updatedAt" = ("updatedAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "Location"."updatedAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "Document" SET "createdAt" = ("createdAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "Document"."createdAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "Document" SET "updatedAt" = ("updatedAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "Document"."updatedAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "User" SET "createdAt" = ("createdAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "User"."createdAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "User" SET "updatedAt" = ("updatedAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "User"."updatedAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "User" SET "emailConfirmedAt" = ("emailConfirmedAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "User"."emailConfirmedAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "User" SET "lastSeenAt" = ("lastSeenAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "User"."lastSeenAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "Participant" SET "createdAt" = ("createdAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "Participant"."createdAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "Participant" SET "updatedAt" = ("updatedAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "Participant"."updatedAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "SessionAssignment" SET "createdAt" = ("createdAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "SessionAssignment"."createdAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+UPDATE "SessionParticipant" SET "createdAt" = ("createdAt" AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'
+WHERE EXISTS (SELECT 1 FROM "_prisma_migrations" m WHERE m.finished_at IS NOT NULL
+  AND "SessionParticipant"."createdAt" BETWEEN (m.started_at AT TIME ZONE 'Europe/Paris') - interval '5 seconds' AND (m.finished_at AT TIME ZONE 'Europe/Paris') + interval '5 seconds');
+
+-- Conversion : chaque valeur lue comme de l'UTC
 ALTER TABLE "AccountToken" ALTER COLUMN "expiresAt" SET DATA TYPE TIMESTAMPTZ(3) USING "expiresAt" AT TIME ZONE 'UTC',
 ALTER COLUMN "usedAt" SET DATA TYPE TIMESTAMPTZ(3) USING "usedAt" AT TIME ZONE 'UTC',
 ALTER COLUMN "createdAt" SET DATA TYPE TIMESTAMPTZ(3) USING "createdAt" AT TIME ZONE 'UTC';

@@ -108,6 +108,21 @@ describe('schéma de données', () => {
     }
   })
 
+  // US-194 (ADR-0076) : toute date est stockée avec son fuseau ; vaut pour les colonnes à venir
+  it('stocke toute date avec son fuseau', async () => {
+    const columns = await prisma.$queryRaw<Array<{ column: string }>>`
+      SELECT table_name || '.' || column_name AS "column"
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND data_type = 'timestamp without time zone'
+      ORDER BY 1`
+    expect(columns.map((row) => row.column)).toEqual([])
+    const [count] = await prisma.$queryRaw<Array<{ total: number }>>`
+      SELECT count(*)::int AS total FROM information_schema.columns
+      WHERE table_schema = 'public' AND data_type = 'timestamp with time zone' AND datetime_precision = 3`
+    // Témoin : les dates du schéma sont bien là, en millisecondes
+    expect(count!.total).toBeGreaterThanOrEqual(115)
+  })
+
   it('refuse une valeur hors liste', async () => {
     const session = await prisma.session.findFirstOrThrow({ select: { id: true, status: true } })
     // Valeur écrite en littéral, comme dans une migration : seule l'énumération peut la refuser
