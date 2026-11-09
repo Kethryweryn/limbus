@@ -19,8 +19,8 @@ En tant qu'organisatrice sur le lieu du jeu, sans réseau, je veux rouvrir toute
 
 ## Notes techniques
 
-Choix de l'utilisatrice le 2026-11-09 : toutes les fiches. Les fiches passent par `useOfflineFetch` (rendues côté serveur), ou par `useApiFetch(url, { offlineCache: true })` pour les documents et les événements, comme la fiche d'un personnage depuis l'US-047 ; la route `/api/participants/:id/emergency` reste lue par `useFetch`. La politique de confidentialité parle déjà de la copie des pages consultées, effacée à la déconnexion.
+Choix de l'utilisatrice le 2026-11-09 : toutes les fiches. Les fiches passent par `useOfflineFetch` (rendues côté serveur), ou par `useApiFetch(url, { offlineCache: true })` pour les documents et les événements, comme la fiche d'un personnage depuis l'US-047 ; la route `/api/participants/:id/emergency` reste lue par `useFetch`. Revue de la PR #193 : après un enregistrement mis en file, toute fiche montre la modification sans relire sa copie, encore ancienne (`closeAfterQueued`, `composables/useSheetEdit.ts`) ; une réponse identique à la dernière gardée n'est pas réécrite sur l'appareil (`saveCachedResponse`), sauf après une écriture de la file ou un effacement. La politique de confidentialité parle déjà de la copie des pages consultées, effacée à la déconnexion.
 
 ## Tests
 
-`tests/e2e/offlineSheets.spec.ts` : chaque fiche consultée se rouvre sans réseau, l'urgence n'est pas gardée, une fiche jamais consultée le dit. `tests/e2e/participantScreens.spec.ts` : une modification de fiche participant faite hors ligne part au retour du réseau.
+`tests/e2e/offlineSheets.spec.ts` : chaque fiche consultée se rouvre sans réseau, l'urgence n'est pas sur l'appareil, une fiche jamais consultée le dit, et une modification de chaque fiche faite hors ligne s'affiche aussitôt puis part. `tests/utils/storageResponses.test.ts`. `tests/e2e/participantScreens.spec.ts` : une modification de fiche participant faite hors ligne part au retour du réseau.

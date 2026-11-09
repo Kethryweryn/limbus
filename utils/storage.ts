@@ -97,8 +97,21 @@ export async function listStoreEntries<T = unknown>(store: string): Promise<Arra
 }
 
 // Réponse d'une lecture, gardée pour la rouvrir sans réseau (US-047) ; la clé est l'URL demandée
+// Dernière réponse gardée par adresse pendant la visite : une fiche relit les mêmes listes (jeux, personnages…) que la
+// précédente, et une réponse identique n'est pas réécrite sur l'appareil (US-212). Vidée avec l'appareil
+const lastSavedResponses = new Map<string, string>()
+
+// Une écriture faite hors de saveCachedResponse (copie « en attente » de la file) : la prochaine réponse du serveur la
+// remplace, même identique à la précédente
+export function forgetSavedResponse(request: string) {
+    lastSavedResponses.delete(request)
+}
+
 export async function saveCachedResponse<T = unknown>(request: string, value: T) {
+    const serialized = JSON.stringify(value)
+    if (lastSavedResponses.get(request) === serialized) return
     await saveToStore('responses', request, value)
+    lastSavedResponses.set(request, serialized)
 }
 
 export async function getCachedResponse<T = unknown>(request: string): Promise<T | null> {
@@ -138,6 +151,7 @@ export function forgetOfflineAuth() {
 // Efface tout ce que l'appli garde sur l'appareil : données en cache (dont les coordonnées
 // des participants), écritures en attente et photos mises en cache par le service worker
 export async function clearOfflineData() {
+    lastSavedResponses.clear()
     forgetOfflineAuth()
     forgetSpace()
     localStorage.removeItem(OFFLINE_OWNER_KEY)

@@ -103,7 +103,7 @@ import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { pageLoadError } from '~/utils/apiErrors'
 import { isInArchivedGame } from '~/utils/games'
 import ItemForm from '@/components/ItemForm.vue'
-import { withQueuedEdit, type ItemDraft } from '~/utils/writingDrafts'
+import type { ItemDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
 const { data: item, error, refresh } = await useOfflineFetch(`/api/items/slug/${route.params.slug}`)
@@ -118,7 +118,7 @@ if (error.value) {
 
 type ItemPage = NonNullable<typeof item.value>
 
-const { isEditing, draft: editableItem, startEdit, cancelEdit, closeAfterSave } = useSheetEdit(() => item.value ? itemFormPayload(item.value) : null)
+const { isEditing, draft: editableItem, startEdit, cancelEdit, closeAfterSave, closeAfterQueued } = useSheetEdit(() => item.value ? itemFormPayload(item.value) : null)
 const isUnassigned = computed(() => !(item.value?.characters?.length || item.value?.intrigues?.length))
 
 function itemFormPayload(value: ItemPage): ItemDraft {
@@ -144,11 +144,7 @@ async function saveItem() {
     method: 'PUT',
     body: editableItem.value
   })
-  if (isOfflineQueued(updated)) {
-    if (item.value) item.value = withQueuedEdit(item.value, editableItem.value)
-    cancelEdit()
-    return
-  }
+  if (isOfflineQueued(updated)) return closeAfterQueued(item)
   item.value = updated
   await closeAfterSave(`/items/${updated.slug}`, refresh)
 }

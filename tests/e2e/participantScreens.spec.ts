@@ -83,6 +83,8 @@ test('fiche : un jeu ajouté puis retiré, ses notes propres, et le retrait du d
     await page.keyboard.press('Escape')
     await page.getByLabel(`Notes — ${second.title}`).fill('Note du second jeu')
     await page.getByRole('button', { name: 'Enregistrer' }).click()
+    // Le formulaire se ferme : l'adresse perd son « ?edit=1 » avant tout rechargement
+    await expect(page.getByRole('button', { name: 'Modifier' })).toBeVisible()
     await expect.poll(() => prisma.participantGame.findMany({ where: { participantId: person.id }, select: { gameId: true, notes: true }, orderBy: { createdAt: 'asc' } }))
       .toEqual([{ gameId: first.id, notes: null }, { gameId: second.id, notes: 'Note du second jeu' }])
     await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: person.id, role: 'participant' } })
@@ -96,6 +98,7 @@ test('fiche : un jeu ajouté puis retiré, ses notes propres, et le retrait du d
     await page.keyboard.press('Escape')
     page.once('dialog', (dialog) => dialog.accept())
     await page.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect(page.getByRole('button', { name: 'Modifier' })).toBeVisible()
     await expect.poll(() => prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: person.id } })).toBe(0)
     expect(await prisma.participantGame.count({ where: { participantId: person.id } })).toBe(1)
 
@@ -218,7 +221,7 @@ test('droits et conflit : une fiche d’une autre équipe est introuvable, et de
     await expect.poll(async () => (await prisma.participant.findUniqueOrThrow({ where: { id: person.id } })).phone).toBe('0611111111')
     await second.getByLabel('Téléphone', { exact: true }).fill('0622222222')
     await second.getByRole('button', { name: 'Enregistrer' }).click()
-    await expect(second.getByText(/modifié|entre-temps|rechargez/i).first()).toBeVisible()
+    await expect(second.getByText('Cet élément a été modifié par quelqu’un d’autre entre-temps.', { exact: false })).toBeVisible()
     expect((await prisma.participant.findUniqueOrThrow({ where: { id: person.id } })).phone).toBe('0611111111')
   } finally {
     await prisma.$disconnect()

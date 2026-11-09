@@ -129,7 +129,7 @@ import { serverMessage } from '~/utils/apiErrors'
 import DocumentForm from '@/components/DocumentForm.vue'
 import { documentAudienceLabel } from '~/utils/documentAudiences'
 import type { ApiResponse } from '~/composables/useApiFetch'
-import { withQueuedEdit, type DocumentDraft } from '~/utils/writingDrafts'
+import type { DocumentDraft } from '~/utils/writingDrafts'
 
 type DocumentDetail = ApiResponse<'/api/documents/:id'>
 // D'où l'on vient : la liste des documents ou l'onglet Documents d'une session
@@ -140,7 +140,7 @@ const documentItem = ref<DocumentDetail | null>(null)
 const games = ref<ApiResponse<'/api/games'>>([])
 const characters = ref<ApiResponse<'/api/characters'>>([])
 const factions = ref<ApiResponse<'/api/factions'>>([])
-const { isEditing, draft: editableDocument, startEdit, cancelEdit, closeAfterSave } = useSheetEdit(() => documentItem.value ? documentFormPayload(documentItem.value) : null)
+const { isEditing, draft: editableDocument, startEdit, cancelEdit, closeAfterSave, closeAfterQueued } = useSheetEdit(() => documentItem.value ? documentFormPayload(documentItem.value) : null)
 const returnContext = ref<ReturnContext | null>(null)
 
 const documentBackTo = computed(() => {
@@ -193,11 +193,7 @@ async function saveDocument() {
     body: editableDocument.value
   })
 
-  if (isOfflineQueued(updatedDocument)) {
-    if (documentItem.value) documentItem.value = withQueuedEdit(documentItem.value, editableDocument.value)
-    cancelEdit()
-    return
-  }
+  if (isOfflineQueued(updatedDocument)) return closeAfterQueued(documentItem)
   documentItem.value = updatedDocument
   await closeAfterSave(`/documents/${updatedDocument.slug}`)
 }

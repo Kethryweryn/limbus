@@ -1,4 +1,4 @@
-import { deleteFromStore, getFromStore, listStoreEntries, saveToStore } from '~/utils/storage'
+import { deleteFromStore, forgetSavedResponse, getFromStore, listStoreEntries, saveToStore } from '~/utils/storage'
 import { getErrorStatus, isServerUnavailableError, setServerUnavailable } from '~/utils/connection'
 
 // Corps d'une écriture, élément gardé sur l'appareil, version relue du serveur : des objets JSON
@@ -467,7 +467,10 @@ async function applyOptimisticCache(operation: OfflineSyncOperation, detailRespo
   const current = await getFromStore<JsonRecord[]>(operation.store, 'list') || []
   if (operation.method === 'DELETE') {
     await saveToStore(operation.store, 'list', current.filter((item) => item.id !== operation.entityId))
-    for (const entry of detailResponses) await deleteFromStore('responses', entry.key)
+    for (const entry of detailResponses) {
+      forgetSavedResponse(entry.key)
+      await deleteFromStore('responses', entry.key)
+    }
     return
   }
 
@@ -485,6 +488,7 @@ async function applyOptimisticCache(operation: OfflineSyncOperation, detailRespo
   // Pages de détail gardées : leurs champs simples suivent (nom, description…)
   const scalars = scalarFields(operation.body)
   for (const entry of detailResponses) {
+    forgetSavedResponse(entry.key)
     await saveToStore('responses', entry.key, { ...entry.value, ...scalars, updatedAt: entry.value.updatedAt, __offlinePending: true })
   }
 }

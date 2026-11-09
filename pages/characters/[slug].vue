@@ -208,7 +208,7 @@ const { data: allCharacters } = await useOfflineFetch(`/api/characters${gameQuer
 
 type CharacterPage = NonNullable<typeof character.value>
 
-const { isEditing, draft: editableCharacter, startEdit, cancelEdit, closeAfterSave } = useSheetEdit(() => character.value ? characterFormPayload(character.value) : null)
+const { isEditing, draft: editableCharacter, startEdit, cancelEdit, closeAfterSave, closeAfterQueued } = useSheetEdit(() => character.value ? characterFormPayload(character.value) : null)
 const showIntrigueModal = ref(false)
 const showTrombinoscopeModal = ref(false)
 const selectedIntrigueIds = ref<string[]>(character.value?.intrigues?.map((intrigue) => intrigue.id) || [])
@@ -245,7 +245,9 @@ async function handleFormSubmit() {
         body: editableCharacter.value
     })
 
-    await closeAfterSave(isOfflineQueued(updatedCharacter) ? null : `/characters/${updatedCharacter.slug}`, refresh)
+    if (isOfflineQueued(updatedCharacter)) return closeAfterQueued(character)
+
+    await closeAfterSave(`/characters/${updatedCharacter.slug}`, refresh)
 }
 
 async function saveCharacterIntrigues() {

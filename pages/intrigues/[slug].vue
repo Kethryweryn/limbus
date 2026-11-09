@@ -162,7 +162,7 @@ if (error.value) {
 
 type IntriguePage = NonNullable<typeof intrigue.value>
 
-const { isEditing, draft: editableIntrigue, startEdit, cancelEdit, closeAfterSave } = useSheetEdit(() => intrigue.value ? intrigueFormPayload(intrigue.value) : null)
+const { isEditing, draft: editableIntrigue, startEdit, cancelEdit, closeAfterSave, closeAfterQueued } = useSheetEdit(() => intrigue.value ? intrigueFormPayload(intrigue.value) : null)
 const isUnassigned = computed(() => !(intrigue.value?.characters?.length || intrigue.value?.factions?.length || intrigue.value?.items?.length))
 
 function intrigueFormPayload(value: IntriguePage): IntrigueDraft {
@@ -181,6 +181,8 @@ async function handleFormSubmit() {
     body: editableIntrigue.value
   })
 
-  await closeAfterSave(isOfflineQueued(updatedIntrigue) ? null : `/intrigues/${updatedIntrigue.slug}`, refresh)
+  if (isOfflineQueued(updatedIntrigue)) return closeAfterQueued(intrigue)
+
+  await closeAfterSave(`/intrigues/${updatedIntrigue.slug}`, refresh)
 }
 </script>

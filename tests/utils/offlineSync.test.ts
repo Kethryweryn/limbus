@@ -21,6 +21,7 @@ vi.mock('~/utils/storage', () => ({
   getFromStore: async (name: string, key: string) => structuredClone(store(name).get(key) ?? null),
   saveToStore: async (name: string, key: string, value: unknown) => { store(name).set(key, structuredClone(value)) },
   deleteFromStore: async (name: string, key: string) => { store(name).delete(key) },
+  forgetSavedResponse: () => {},
   listStoreEntries: async (name: string) => [...store(name).entries()].map(([key, value]) => ({ key, value: structuredClone(value) }))
 }))
 

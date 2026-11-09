@@ -59,7 +59,7 @@
 import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { pageLoadError } from '~/utils/apiErrors'
 import { isInArchivedGame } from '~/utils/games'
-import { withQueuedEdit, type LocationDraft } from '~/utils/writingDrafts'
+import type { LocationDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
 const { data: location, error, refresh } = await useOfflineFetch(`/api/locations/slug/${route.params.slug}`)
@@ -70,7 +70,7 @@ if (error.value) {
   throw pageLoadError(error.value, 'Lieu introuvable')
 }
 
-const { isEditing, draft: editableLocation, startEdit, cancelEdit, closeAfterSave } = useSheetEdit<LocationDraft>(() => location.value ? { ...location.value } : null)
+const { isEditing, draft: editableLocation, startEdit, cancelEdit, closeAfterSave, closeAfterQueued } = useSheetEdit<LocationDraft>(() => location.value ? { ...location.value } : null)
 
 async function saveLocation() {
   if (!editableLocation.value?.id) return
@@ -79,11 +79,7 @@ async function saveLocation() {
     method: 'PUT',
     body: editableLocation.value
   })
-  if (isOfflineQueued(updated)) {
-    if (location.value) location.value = withQueuedEdit(location.value, editableLocation.value)
-    cancelEdit()
-    return
-  }
+  if (isOfflineQueued(updated)) return closeAfterQueued(location)
   location.value = updated
   await closeAfterSave(`/locations/${updated.slug}`, refresh)
 }

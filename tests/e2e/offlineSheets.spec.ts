@@ -11,6 +11,25 @@ async function navigate(page: Page, path: string) {
     .__vue_app__.config.globalProperties.$router.push(target), path)
 }
 
+// Clés de toutes les données gardées sur l'appareil (IndexedDB de Limbus)
+async function deviceKeys(page: Page) {
+  return await page.evaluate(() => new Promise<string[]>((resolve) => {
+    const request = indexedDB.open('limbus-db')
+    request.onsuccess = () => {
+      const db = request.result
+      const stores = [...db.objectStoreNames]
+      if (!stores.length) { db.close(); resolve([]); return }
+      const tx = db.transaction(stores)
+      const keys: string[] = []
+      for (const store of stores) {
+        const all = tx.objectStore(store).getAllKeys()
+        all.onsuccess = () => { keys.push(...all.result.map((key) => `${store}:${String(key)}`)) }
+      }
+      tx.oncomplete = () => { db.close(); resolve(keys) }
+    }
+  }))
+}
+
 async function online(page: Page, path: string, title: string) {
   await page.goto(path)
   await page.waitForLoadState('networkidle')
@@ -51,13 +70,35 @@ test('chaque fiche consultée avec le réseau se rouvre sans réseau, et une fic
       await expect(page.getByRole('heading', { level: 1, name: title }), path).toBeVisible()
     }
 
-    // Le contact d'urgence et les allergies ne sont pas sur l'appareil, et la fiche le dit
+    // Le contact d'urgence et les allergies ne sont pas sur l'appareil, et la fiche le dit (SPEC-007 R1b)
     await navigate(page, `/participants/${person.slug}`)
     await expect(page.getByText(/ne sont pas gardés sur l’appareil/)).toBeVisible()
+    expect((await deviceKeys(page)).filter((key) => key.includes('/emergency'))).toEqual([])
 
     // Une fiche jamais consultée avec le réseau le dit, au lieu d'une erreur générale
     await navigate(page, `/games/${never.slug}`)
     await expect(page.getByText(/pas été consultée avec le réseau sur cet appareil/)).toBeVisible()
+
+    // Une modification faite sans réseau s'affiche aussitôt sur la fiche, puis part au retour du réseau (US-212)
+    const edits: Array<[string, string, string, () => Promise<string | null | undefined>]> = [
+      [`/games/${game.slug}`, 'Titre', uniqueName('Jeu renommé hors ligne'), async () => (await prisma.game.findUnique({ where: { id: game.id } }))?.title],
+      [`/factions/${faction.slug}`, 'Nom', uniqueName('Groupe renommé hors ligne'), async () => (await prisma.faction.findUnique({ where: { id: faction.id } }))?.name],
+      [`/intrigues/${intrigue.slug}`, 'Nom', uniqueName('Intrigue renommée hors ligne'), async () => (await prisma.intrigue.findUnique({ where: { id: intrigue.id } }))?.name],
+      [`/items/${item.slug}`, 'Nom', uniqueName('Objet renommé hors ligne'), async () => (await prisma.item.findUnique({ where: { id: item.id } }))?.name],
+      [`/locations/${location.slug}`, 'Nom', uniqueName('Lieu renommé hors ligne'), async () => (await prisma.location.findUnique({ where: { id: location.id } }))?.name],
+      [`/documents/${document.slug}`, 'Titre', uniqueName('Document renommé hors ligne'), async () => (await prisma.document.findUnique({ where: { id: document.id } }))?.title],
+      [`/timeline/${event.slug}`, 'Nom', uniqueName('Événement renommé hors ligne'), async () => (await prisma.timelineEvent.findUnique({ where: { id: event.id } }))?.name]
+    ]
+    for (const [path, label, renamed] of edits) {
+      await navigate(page, path)
+      await page.getByRole('button', { name: 'Modifier' }).first().click()
+      await page.getByLabel(label, { exact: true }).fill(renamed)
+      await page.getByRole('button', { name: 'Enregistrer' }).click()
+      await expect(page.getByRole('heading', { level: 1, name: renamed }), path).toBeVisible()
+    }
+    await context.setOffline(false)
+    for (const [path, , renamed, read] of edits) await expect.poll(read, { message: path, timeout: 20_000 }).toBe(renamed)
+
   } finally {
     await prisma.$disconnect()
   }

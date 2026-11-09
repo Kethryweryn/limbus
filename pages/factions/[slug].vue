@@ -213,7 +213,7 @@ if (error.value) {
 
 type FactionPage = NonNullable<typeof faction.value>
 
-const { isEditing, draft: editableFaction, startEdit, cancelEdit, closeAfterSave } = useSheetEdit(() => faction.value ? factionFormPayload(faction.value) : null)
+const { isEditing, draft: editableFaction, startEdit, cancelEdit, closeAfterSave, closeAfterQueued } = useSheetEdit(() => faction.value ? factionFormPayload(faction.value) : null)
 const showIntrigueModal = ref(false)
 const showTrombinoscopeModal = ref(false)
 const trombinoscopeOptions = ref({
@@ -257,7 +257,9 @@ async function handleFormSubmit() {
     body: editableFaction.value
   })
 
-  await closeAfterSave(isOfflineQueued(updatedFaction) ? null : `/factions/${updatedFaction.slug}`, refresh)
+  if (isOfflineQueued(updatedFaction)) return closeAfterQueued(faction)
+
+  await closeAfterSave(`/factions/${updatedFaction.slug}`, refresh)
 }
 
 async function saveFactionIntrigues() {
