@@ -351,13 +351,14 @@ async function copyGameOnce(sourceGameId: string, options: GameCopyOptions) {
       }
       if (source.registrationQuestionLinks.length) {
         await tx.registrationQuestionLink.createMany({
-          data: source.registrationQuestionLinks.map((row) => ({
-            ...pickCopied('RegistrationQuestionLink', row),
-            gameId,
-            characterId: mapped(row.characterId),
-            factionId: mapped(row.factionId),
-            intrigueId: mapped(row.intrigueId)
-          }))
+          // Un lien vers un élément créé pendant la lecture du jeu source n'a pas de cible copiée : ignoré, la base
+          // refusant un lien sans cible (US-190)
+          data: source.registrationQuestionLinks.flatMap((row) => {
+            const target = { characterId: mapped(row.characterId), factionId: mapped(row.factionId), intrigueId: mapped(row.intrigueId) }
+            return target.characterId || target.factionId || target.intrigueId
+              ? [{ ...pickCopied('RegistrationQuestionLink', row), gameId, ...target }]
+              : []
+          })
         })
       }
       if (source.registrationOptionExpectations.length) {

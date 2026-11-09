@@ -1,4 +1,4 @@
-import { prisma } from '~/server/utils/prisma'
+import { isUniqueConflict, prisma } from '~/server/utils/prisma'
 import { getCurrentRegistrationForm } from '~/server/utils/registrationForms'
 import { REGISTRATION_CHOICE_TYPES, type RegistrationQuestion } from '~/utils/registrationForms'
 
@@ -71,9 +71,15 @@ export async function saveQuestionLinks(gameId: string, links: LinkInput[]) {
     [link.questionId, link.option, link.characterId ?? '', link.factionId ?? '', link.intrigueId ?? ''].join('\u0000'),
     { gameId, questionId: link.questionId, option: link.option, characterId: link.characterId ?? null, factionId: link.factionId ?? null, intrigueId: link.intrigueId ?? null }
   ]))
-  await prisma.$transaction([
-    prisma.registrationQuestionLink.deleteMany({ where: { gameId } }),
-    prisma.registrationQuestionLink.createMany({ data: [...unique.values()] })
-  ])
+  try {
+    await prisma.$transaction([
+      prisma.registrationQuestionLink.deleteMany({ where: { gameId } }),
+      prisma.registrationQuestionLink.createMany({ data: [...unique.values()] })
+    ])
+  } catch (error) {
+    // Deux enregistrements simultanés insèrent les mêmes liens : les index uniques refusent le second (US-190)
+    if (isUniqueConflict(error)) throw createError({ statusCode: 409, message: 'Les liens viennent d’être modifiés par quelqu’un d’autre : rechargez la page avant d’enregistrer.' })
+    throw error
+  }
   return await currentQuestionLinks(gameId)
 }

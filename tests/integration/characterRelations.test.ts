@@ -1,7 +1,7 @@
 // EPIC-024 : relations entre personnages (US-097), questionnaire relié aux rôles (US-098), relations refusées (US-099)
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
-import { api, bodyOf } from './api'
+import { api, bodyOf, invalidMessages } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
 
@@ -47,8 +47,20 @@ describe('relations entre personnages (US-097)', () => {
 
     expect(bodyOf<ApiResponse<'/api/characters/:id/relations'>>(await api(alice, 'GET', `/api/characters/${bran.id}/relations`)).map((row) => row.id)).toEqual([bodyOf<Relation>(created).id])
     expect((await api(alice, 'POST', '/api/character-relations', relation(ada, other.ada))).status).toBe(400)
-    expect((await api(alice, 'POST', '/api/character-relations', relation(ada, ada))).status).toBe(400)
+    const self = await api(alice, 'POST', '/api/character-relations', relation(ada, ada))
+    expect(self.status).toBe(400)
+    expect(invalidMessages(self)).toEqual(['Un personnage ne peut pas être relié à lui-même'])
     expect((await api(alice, 'POST', '/api/character-relations', relation(ada, bran, { type: 'inconnu' }))).status).toBe(400)
+  })
+
+  // US-190 : plusieurs relations entre deux personnages, dans un sens ou dans l'autre
+  it('garde plusieurs relations entre deux personnages, dans les deux sens', async () => {
+    const { ada, bran } = await aliceGame()
+    for (const body of [relation(ada, bran), relation(ada, bran, { type: 'rivalry' }), relation(bran, ada)]) {
+      const created = await api(alice, 'POST', '/api/character-relations', body)
+      expect(created.status, JSON.stringify(created.body)).toBe(200)
+    }
+    expect(await prisma.characterRelation.count({ where: { OR: [{ fromCharacterId: ada.id }, { toCharacterId: ada.id }] } })).toBe(3)
   })
 
   it('modifie avec la version lue, refuse une version dépassée, et supprime', async () => {
@@ -124,7 +136,12 @@ describe('questionnaire relié aux rôles (US-098)', () => {
     expect((await put([{ questionId: choice.id, option: 'Inconnue', characterId: ada.id }])).status).toBe(400)
     expect((await put([{ questionId: text.id, option: '', characterId: ada.id }])).status).toBe(400)
     expect((await put([{ questionId: choice.id, option: 'Combat', characterId: other.ada.id }])).status).toBe(400)
-    expect((await put([{ questionId: choice.id, option: 'Combat', characterId: ada.id, factionId: faction.id }])).status).toBe(400)
+    // US-190 : sans cible ou à deux cibles, un message clair avant la base
+    for (const link of [{ questionId: choice.id, option: 'Combat', characterId: ada.id, factionId: faction.id }, { questionId: choice.id, option: 'Combat' }]) {
+      const refused = await put([link])
+      expect(refused.status).toBe(400)
+      expect(invalidMessages(refused)).toEqual(['Un lien vise un seul personnage, une faction ou une intrigue'])
+    }
 
     const read = bodyOf<ApiResponse<'/api/games/:id/registration-question-links'>>(await api(alice, 'GET', `/api/games/${game.id}/registration-question-links`))
     expect(read.targets.characters.map((entry) => entry.name)).toEqual(['Ada', 'Bran', 'Cy'])
@@ -167,5 +184,60 @@ describe('questionnaire relié aux rôles (US-098)', () => {
     expect(copy.registrationQuestionLinks).toHaveLength(1)
     expect(copy.registrationQuestionLinks[0]).toMatchObject({ questionId: choice.id, option: 'Politique' })
     expect(copy.registrationQuestionLinks[0]!.faction!.gameId).toBe(copy.id)
+  })
+})
+
+// US-190 (ADR-0073) : la base tient elle-même ces règles, que le code vérifie avant d'écrire
+describe('règles tenues par la base (US-190)', () => {
+  it('refuse un lien du questionnaire sans cible ou à deux cibles', async () => {
+    const { game, ada } = await aliceGame()
+    const faction = await prisma.faction.create({ data: { name: 'Guilde', slug: `${game.slug}-guilde`, gameId: game.id } })
+    const link = { gameId: game.id, questionId: 'q1', option: 'Combat' }
+    await expect(prisma.registrationQuestionLink.create({ data: link })).rejects.toThrow(/RegistrationQuestionLink_une_cible_check/)
+    await expect(prisma.registrationQuestionLink.create({ data: { ...link, characterId: ada.id, factionId: faction.id } })).rejects.toThrow(/RegistrationQuestionLink_une_cible_check/)
+    // Témoin : une seule cible passe
+    await expect(prisma.registrationQuestionLink.create({ data: { ...link, characterId: ada.id } })).resolves.toMatchObject({ characterId: ada.id })
+  })
+
+  it('refuse deux liens identiques, et garde deux liens qui diffèrent par la cible, l’option ou le jeu', async () => {
+    const { game, ada, bran } = await aliceGame()
+    const other = await aliceGame()
+    const faction = await prisma.faction.create({ data: { name: 'Guilde', slug: `${game.slug}-guilde`, gameId: game.id } })
+    const intrigue = await prisma.intrigue.create({ data: { name: 'Complot', slug: `${game.slug}-complot`, gameId: game.id } })
+    const link = { gameId: game.id, questionId: 'q1', option: 'Combat' }
+    for (const [index, target] of [['personnage', { characterId: ada.id }], ['groupe', { factionId: faction.id }], ['intrigue', { intrigueId: intrigue.id }]] as const) {
+      await prisma.registrationQuestionLink.create({ data: { ...link, ...target } })
+      // L'index de la sorte de cible refuse le doublon : l'erreur le nomme
+      const duplicate = await prisma.registrationQuestionLink.create({ data: { ...link, ...target } }).then(() => null, (error: { code?: string, meta?: unknown }) => error)
+      expect(duplicate?.code).toBe('P2002')
+      expect(JSON.stringify(duplicate?.meta)).toContain(`RegistrationQuestionLink_${index}_unique_key`)
+    }
+    // Témoins : autre cible, autre option, même question dans la copie d'un jeu
+    await prisma.registrationQuestionLink.createMany({ data: [
+      { ...link, characterId: bran.id },
+      { ...link, option: 'Politique', characterId: ada.id },
+      { ...link, gameId: other.game.id, characterId: other.ada.id }
+    ] })
+    expect(await prisma.registrationQuestionLink.count({ where: { questionId: 'q1', gameId: { in: [game.id, other.game.id] } } })).toBe(6)
+  })
+
+  it('l’enregistrement des liens ne garde qu’un exemplaire d’un lien envoyé deux fois', async () => {
+    const { game, ada } = await aliceGame()
+    const saved = await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, {
+      standardFields, questions: [{ label: 'Votre jeu ?', type: 'single', required: false, options: ['Politique', 'Combat'] }]
+    })
+    const [choice] = bodyOf<ApiResponse<'/api/games/:id/registration-form', 'put'>>(saved).definition.questions
+    const twice = { questionId: choice!.id, option: 'Combat', characterId: ada.id }
+    const put = await api(alice, 'PUT', `/api/games/${game.id}/registration-question-links`, { links: [twice, twice] })
+    expect(put.status, JSON.stringify(put.body)).toBe(200)
+    expect(await prisma.registrationQuestionLink.count({ where: { gameId: game.id } })).toBe(1)
+  })
+
+  it('refuse une relation d’un personnage avec lui-même', async () => {
+    const { game, ada, bran } = await aliceGame()
+    const data = { gameId: game.id, type: 'family' as const, fromCharacterId: ada.id, toCharacterId: ada.id }
+    await expect(prisma.characterRelation.create({ data })).rejects.toThrow(/CharacterRelation_deux_personnages_check/)
+    const kept = await prisma.characterRelation.create({ data: { ...data, toCharacterId: bran.id } })
+    await expect(prisma.characterRelation.update({ where: { id: kept.id }, data: { toCharacterId: ada.id } })).rejects.toThrow(/CharacterRelation_deux_personnages_check/)
   })
 })

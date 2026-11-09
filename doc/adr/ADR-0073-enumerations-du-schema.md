@@ -27,6 +27,7 @@ Une trentaine de colonnes `String` n'acceptent que quelques valeurs (statuts, r�
 - Un tri sur une colonne énumérée suit l'ordre de déclaration des valeurs, plus l'ordre alphabétique. Les tris existants (personnages PJ puis PNJ, comptes admin puis user) gardent leur ordre, leurs valeurs étant déclarées dans l'ordre alphabétique ; un nouveau tri sur une énumération choisit l'ordre de déclaration en conséquence.
 - Une valeur avec tiret n'est pas un nom d'énumération Prisma : elle garde sa valeur en base par `@map`, et le code emploie le nom sans tiret.
 - Vérifié à l'implémentation (US-189) : le client Prisma du build d'avant écrit et filtre les colonnes converties, mais ne lit pas une liste d'énumération (`Document.audiences`), que le pilote `pg` lui rend en texte brut.
+- Vérifié à l'implémentation (US-190) : `migrate diff` ignore les contraintes `CHECK` et les index uniques partiels écrits à la main, mais retire un index unique complet absent du schéma, même `NULLS NOT DISTINCT`. Une unicité sur des colonnes facultatives s'écrit donc en index partiels.
 
 ## Options écartées
 

@@ -18,7 +18,7 @@ Corriger les écarts du schéma de données avec les pratiques reconnues de Post
 |---|---|---|
 | [US-188](US-188-index-et-homogeneite.md) | Indexer les clés étrangères et rendre le schéma homogène | terminée |
 | [US-189](US-189-enumerations.md) | Faire refuser par la base les valeurs inconnues | terminée |
-| [US-190](US-190-regles-des-liens-et-des-relations.md) | Faire tenir par la base les règles des liens du questionnaire et des relations | à faire |
+| [US-190](US-190-regles-des-liens-et-des-relations.md) | Faire tenir par la base les règles des liens du questionnaire et des relations | terminée |
 | [US-191](US-191-meme-jeu-impose-par-la-base.md) | Faire refuser par la base un lien entre deux jeux | à faire |
 | [US-192](US-192-emails-sans-casse.md) | Comparer les adresses email sans tenir compte de la casse dans la base | à faire |
 | [US-193](US-193-restes-de-transitions-et-pdf.md) | Retirer les colonnes inutiles et garder le PDF du trombinoscope en binaire | à faire |
