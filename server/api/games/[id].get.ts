@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!game) {
-    throw createError({ statusCode: 404, message: 'Not Found' })
+    throw createError({ statusCode: 404, message: 'Jeu introuvable' })
   }
 
   return game

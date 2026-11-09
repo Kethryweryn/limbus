@@ -1,0 +1,5 @@
+{
+  "type": "corrige",
+  "titre": "Messages d’erreur en français",
+  "texte": "Certains refus s’affichaient en anglais, comme « Too many recipients » ou « Name is required ». Ils sont maintenant en français, et un lien refusé dit qu’il doit commencer par https://."
+}

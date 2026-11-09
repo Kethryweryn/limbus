@@ -19,14 +19,14 @@ export default defineEventHandler(async (event) => {
   const filename = basename(rawFilename || '')
 
   if (!filename || filename !== rawFilename) {
-    throw createError({ statusCode: 400, message: 'Invalid filename' })
+    throw createError({ statusCode: 400, message: 'Nom de fichier invalide' })
   }
 
   const filePath = join(uploadDir(UPLOAD_DIRS.photos), filename)
   const contentType = CONTENT_TYPES[extname(filename)]
 
   if (!contentType) {
-    throw createError({ statusCode: 404, message: 'File not found' })
+    throw createError({ statusCode: 404, message: 'Fichier introuvable' })
   }
 
   const uploadedFile = await prisma.uploadedFile.findUnique({
@@ -34,20 +34,20 @@ export default defineEventHandler(async (event) => {
     select: { kind: true, gameId: true, sessionId: true }
   })
   if (!uploadedFile || uploadedFile.kind !== 'sessionAssignmentPhoto') {
-    throw createError({ statusCode: 404, message: 'File not found' })
+    throw createError({ statusCode: 404, message: 'Fichier introuvable' })
   }
   if (uploadedFile.sessionId) {
     await requireSessionAccess(event, uploadedFile.sessionId)
   } else if (uploadedFile.gameId) {
     await requireGameAccess(event, uploadedFile.gameId)
   } else {
-    throw createError({ statusCode: 404, message: 'File not found' })
+    throw createError({ statusCode: 404, message: 'Fichier introuvable' })
   }
 
   try {
     await access(filePath)
   } catch {
-    throw createError({ statusCode: 404, message: 'File not found' })
+    throw createError({ statusCode: 404, message: 'Fichier introuvable' })
   }
 
   setHeader(event, 'Content-Type', contentType)

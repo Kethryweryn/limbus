@@ -46,19 +46,19 @@ export default defineEventHandler(async (event) => {
   const gameId = parts?.find((part) => part.name === 'gameId')?.data?.toString('utf8')?.trim()
 
   if (!file?.data?.length) {
-    throw createError({ statusCode: 400, message: 'Photo is required' })
+    throw createError({ statusCode: 400, message: 'Photo requise' })
   }
 
   if (file.data.length > MAX_SIZE) {
-    throw createError({ statusCode: 400, message: 'Photo is too large' })
+    throw createError({ statusCode: 400, message: 'Photo trop volumineuse' })
   }
 
   const extension = ALLOWED_TYPES.get(file.type || '')
   if (!extension) {
-    throw createError({ statusCode: 400, message: 'Unsupported photo format' })
+    throw createError({ statusCode: 400, message: 'Format de photo non pris en charge' })
   }
   if (!hasValidImageSignature(file.data, extension)) {
-    throw createError({ statusCode: 400, message: 'Invalid photo content' })
+    throw createError({ statusCode: 400, message: 'Contenu de photo invalide' })
   }
 
   const filename = `${randomUUID()}.${extension}`
