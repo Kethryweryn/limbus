@@ -19,7 +19,8 @@ En déroulant son cahier de tests, l'utilisatrice a constaté que les écrans é
   - **erreurs de saisie** : chaque champ obligatoire ou valeur refusée, avec le message attendu, et rien d'enregistré ;
   - **droits** : la co-organisatrice, une organisatrice sans accès, une participante, selon ce que l'écran permet ;
   - **hors ligne** : l'écran se relit sans réseau, et une modification part au retour du réseau, si l'écran est consultable hors ligne (SPEC-010).
-- Un axe qui ne s'applique pas est écrit dans l'US, avec sa raison (par exemple « page publique : pas de droits », « action d'envoi : refusée hors ligne »).
+- Les tests portent sur ce que la PR ajoute ou change, pas sur tout l'écran : un écran ancien pas encore couvert par l'EPIC-050 reçoit les tests de la partie touchée, le reste attend son lot.
+- Un axe qui ne s'applique pas est écrit dans l'US, avec sa raison (par exemple « page publique : pas de droits », « action d'envoi : refusée hors ligne ») ; un correctif sans US l'écrit dans la description de sa PR.
 - La section « Tests » de l'US liste les quatre axes et les tests qui les couvrent ; le modèle d'US (`doc/modeles/us.md`) les propose.
 - La revue de code le vérifie, comme les notes de nouveautés : un axe sans test ni raison est un constat.
 - Les tests d'intégration et unitaires restent demandés là où ils s'appliquent (`isolation.test.ts` pour toute route liée à un jeu, utilitaires) : cette règle s'y ajoute.
