@@ -517,7 +517,9 @@ export async function deleteLocation(event: H3Event, id: string) {
   // Suppression rejouée hors ligne : refusée si l'élément a changé depuis sa lecture (ADR-0036)
   await assertUnmodifiedSince(event, 'location', id)
 
-  // Ses sessions restent, sans lieu : la base vide la référence (ADR-0077)
+  // Ses sessions restent, sans lieu. La base viderait la référence seule (ADR-0077) ; l'écrire ici fait aussi avancer
+  // leur version, qu'une modification faite hors ligne avant la suppression compare (ADR-0036)
+  await prisma.session.updateMany({ where: { locationId: id }, data: { locationId: null } })
   return await prisma.location.delete({ where: { id } })
 }
 

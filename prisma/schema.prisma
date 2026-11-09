@@ -1052,8 +1052,9 @@ model UploadedFile {
   kind      UploadKind
   filename  String   @unique
   url       String   @unique
-  gameId    String?
-  game      Game?    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  // Jeu du fichier, toujours connu : il compte dans son stockage, et la clé de sa session le compare (US-195)
+  gameId    String
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
   sessionId String?
   session   Session? @relation(fields: [sessionId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   // Octets ; vide pour un fichier d'avant US-066, relevé sur le disque au premier calcul

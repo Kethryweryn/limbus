@@ -9,8 +9,9 @@
 -- Prisma n'écrit pas et ne compare pas (ADR-0077). Une migration générée qui recrée une de ces clés doit le réécrire.
 -- Production relevée le 2026-11-09 : aucun lien ne relie deux jeux.
 
--- Le RIB d'essai du jeu Valombre n'avait pas de jeu : il reçoit celui de sa session
+-- Le RIB d'essai du jeu Valombre n'avait pas de jeu : il reçoit celui de sa session, et un fichier a toujours un jeu
 UPDATE "UploadedFile" u SET "gameId" = s."gameId" FROM "Session" s WHERE s."id" = u."sessionId" AND u."gameId" IS NULL;
+ALTER TABLE "UploadedFile" ALTER COLUMN "gameId" SET NOT NULL;
 
 -- Le jeu de chaque ligne
 ALTER TABLE "SessionAssignment" ADD COLUMN "gameId" TEXT;
