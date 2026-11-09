@@ -177,7 +177,7 @@ describe('une seule fiche par adresse (US-185)', () => {
     expect(created).toMatchObject({ id: existing.id, joinedExisting: true, name: existing.name })
     expect(created.games.map((row) => row.id).sort()).toEqual([game.id, other.id].sort())
     expect(created.gameNotes).toEqual({ [game.id]: 'Note du premier jeu', [other.id]: 'Note du second jeu' })
-    expect(await prisma.participant.count({ where: { email: { equals: existing.email!, mode: 'insensitive' } } })).toBe(1)
+    expect(await prisma.participant.count({ where: { email: existing.email! } })).toBe(1)
     expect(await prisma.participant.findUniqueOrThrow({ where: { id: existing.id }, select: { phone: true } })).toEqual({ phone: '0601010101' })
 
     // Jeu déjà lié : la note donnée s'ajoute à la sienne, sans l'effacer

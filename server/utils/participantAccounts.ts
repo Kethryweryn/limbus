@@ -13,10 +13,10 @@ export async function accountIdForEmail(email: string | null | undefined) {
   return user?.emailConfirmedAt ? user.id : null
 }
 
-// À la confirmation d'une adresse : toutes les fiches qui la portent, sans tenir compte de la casse
+// À la confirmation d'une adresse : toutes les fiches qui la portent, la base comparant sans la casse (ADR-0075)
 export async function linkParticipantsToUser(user: { id: string, email: string }) {
   await prisma.participant.updateMany({
-    where: { email: { equals: user.email.trim(), mode: 'insensitive' } },
+    where: { email: user.email.trim() },
     data: { userId: user.id }
   })
   // Une fiche qui vient d'être rattachée reçoit les coordonnées du compte (US-074)

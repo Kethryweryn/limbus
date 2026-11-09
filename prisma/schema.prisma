@@ -631,7 +631,7 @@ model Registration {
   formVersionId         String?
   formVersion           RegistrationFormVersion? @relation(fields: [formVersionId, gameId], references: [id, gameId], onDelete: SetNull, onUpdate: NoAction)
 
-  email                 String
+  email                 String   @db.Citext
   firstName             String?
   lastName              String?
   facebookName          String?
@@ -740,7 +740,7 @@ model RegistrationRequest {
   gameId        String
   periodId      String
   period        RegistrationPeriod @relation(fields: [periodId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
-  email         String
+  email         String   @db.Citext
   // Réponses validées : champs standards, affinités, questions et disponibilités
   answers       Json
   formVersionId String?
@@ -861,7 +861,7 @@ model Participant {
   id          String     @id @default(cuid())
   name        String
   slug        String     @unique
-  email       String?
+  email       String?  @db.Citext
   phone       String?
   // Compte rattaché par l'adresse confirmée (US-070, ADR-0041)
   userId      String?
@@ -1068,7 +1068,7 @@ model UploadedFile {
 
 model User {
   id        String   @id @default(cuid())
-  email     String   @unique
+  email     String   @unique @db.Citext
   name      String
   password  String
   // admin ou user (ADR-0038)
@@ -1126,7 +1126,7 @@ model AccountToken {
   kind      AccountTokenKind
   tokenHash String    @unique
   // Nouvelle adresse, pour un changement d'email
-  email     String?
+  email     String?  @db.Citext
   // Mot de passe choisi à l'inscription : appliqué par ce lien seulement, pas par celui d'une autre inscription
   passwordHash String?
   expiresAt DateTime
@@ -1164,7 +1164,7 @@ model GameSlugRedirect {
 model GameInvitation {
   id           String    @id @default(cuid())
   gameId       String
-  email        String
+  email        String   @db.Citext
   // Jeton en clair des invitations d'avant ADR-0034 : plus écrit, vide après la migration
   token        String?   @unique
   // Empreinte SHA-256 du jeton du lien (ADR-0034) : le jeton lui-même n'est pas gardé

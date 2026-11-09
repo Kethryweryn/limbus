@@ -78,6 +78,6 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0072](ADR-0072-public-des-documents.md) | Le public d'un document est une liste de rôles, plus des personnages et des groupes | accepté | 2026-11-08 |
 | [ADR-0073](ADR-0073-enumerations-du-schema.md) | Les valeurs à liste fermée sont des énumérations, les règles entre colonnes des contraintes CHECK | accepté | 2026-11-09 |
 | [ADR-0074](ADR-0074-meme-jeu-impose-par-la-base.md) | Les liens entre éléments d'un jeu passent par des clés étrangères composées avec le jeu | remplacé en partie par ADR-0077 | 2026-11-09 |
-| [ADR-0075](ADR-0075-emails-en-citext.md) | Les adresses email sont comparées sans tenir compte de la casse par le type citext | proposé | 2026-11-09 |
+| [ADR-0075](ADR-0075-emails-en-citext.md) | Les adresses email sont comparées sans tenir compte de la casse par le type citext | accepté | 2026-11-09 |
 | [ADR-0076](ADR-0076-dates-avec-fuseau.md) | Les dates sont stockées avec leur fuseau horaire (timestamptz) | proposé | 2026-11-09 |
 | [ADR-0077](ADR-0077-references-videes-par-la-base.md) | Une référence composée avec le jeu se vide par la base, sans toucher au jeu | accepté | 2026-11-09 |

@@ -35,12 +35,12 @@ export function registrationResponseDueAt(responseDelayDays: number, now = new D
 }
 
 /**
- * Participants rapprochables par email (R12) : sans tenir compte de la casse, et seulement parmi
+ * Participants rapprochables par email (R12) : sans tenir compte de la casse (citext, ADR-0075), et seulement parmi
  * les participants des jeux de la même propriétaire. Un jeu sans propriétaire ne regarde que lui-même.
  */
 export function participantEmailMatchWhere(game: { id: string, ownerId: string | null }, email: string) {
   return {
-    email: { equals: email.trim(), mode: 'insensitive' as const },
+    email: email.trim(),
     gameLinks: { some: game.ownerId ? { game: { ownerId: game.ownerId } } : { gameId: game.id } }
   }
 }

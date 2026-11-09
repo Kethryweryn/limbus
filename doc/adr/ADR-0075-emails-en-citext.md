@@ -1,7 +1,7 @@
 ---
 id: ADR-0075
 titre: Les adresses email sont comparées sans tenir compte de la casse par le type citext
-statut: proposé
+statut: accepté
 date: 2026-11-09
 liens: [../archive/todo/schema-de-donnees.md, ../epics/EPIC-049-schema-de-donnees/US-192-emails-sans-casse.md]
 ---
@@ -23,7 +23,8 @@ L'unicité de `User.email` dépend de la mise en minuscules faite par le code (s
 - La contrainte d'unicité de `User.email` refuse « Lea@x.fr » à côté de « lea@x.fr ».
 - Passer de `text` à `citext` est un changement de type : migration marquée incompatible. Le build d'avant écrit du texte, que PostgreSQL convertit en `citext` ; à vérifier sur une copie.
 - La migration échoue si deux comptes ne diffèrent que par la casse : vérifié d'abord en production.
-- Reste à vérifier la déclaration de l'extension dans le schéma Prisma 7 (`extensions` de la source de données).
+- Vérifié à l'implémentation (US-192) : Prisma 7 accepte `@db.Citext` sans déclarer l'extension ; la migration la crée, et `migrate diff` n'y touche pas. La propriétaire de la base de production peut la créer.
+- citext ignore la casse, pas les espaces : le code retire toujours les espaces d'une adresse avant de la comparer.
 
 ## Options écartées
 
