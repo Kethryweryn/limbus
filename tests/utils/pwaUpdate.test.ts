@@ -1,6 +1,7 @@
 // US-184 : la nouvelle version se charge au prochain changement de page (ADR-0071)
+// US-196 : un changement de page la fait chercher, une fois par minute au plus (ADR-0078)
 import { describe, expect, it, vi } from 'vitest'
-import { loadNewVersionAfterNavigation, PWA_UPDATE_FALLBACK_MS } from '~/utils/pwaUpdate'
+import { checkForNewVersion, loadNewVersionAfterNavigation, PWA_UPDATE_CHECK_MS, PWA_UPDATE_FALLBACK_MS } from '~/utils/pwaUpdate'
 
 function setup(needRefresh: boolean, reachable = true, update = async () => {}) {
   const pwa = { needRefresh, updateServiceWorker: vi.fn(update) }
@@ -42,5 +43,35 @@ describe('nouvelle version au changement de page', () => {
     expect(loadNewVersionAfterNavigation(same.pwa, '/sessions/a', '/sessions/a', same.browser)).toBe(false)
     expect(unreachable.pwa.updateServiceWorker).not.toHaveBeenCalled()
     expect(same.pwa.updateServiceWorker).not.toHaveBeenCalled()
+  })
+})
+
+describe('recherche d’une nouvelle version au changement de page', () => {
+  const registration = (installing: unknown = null, update = async () => {}) => ({ installing, update: vi.fn(update) })
+
+  it('cherche une fois par minute au plus', () => {
+    const r = registration()
+    const first = checkForNewVersion(r, true, 1_000_000, Number.NEGATIVE_INFINITY)
+    expect(first).toBe(1_000_000)
+    expect(checkForNewVersion(r, true, first + PWA_UPDATE_CHECK_MS - 1, first)).toBe(first)
+    expect(r.update).toHaveBeenCalledTimes(1)
+    expect(checkForNewVersion(r, true, first + PWA_UPDATE_CHECK_MS, first)).toBe(first + PWA_UPDATE_CHECK_MS)
+    expect(r.update).toHaveBeenCalledTimes(2)
+  })
+
+  it('ne cherche pas hors ligne, sans service worker, ni pendant un téléchargement', () => {
+    const r = registration()
+    expect(checkForNewVersion(r, false, 1_000_000, Number.NEGATIVE_INFINITY)).toBe(Number.NEGATIVE_INFINITY)
+    expect(checkForNewVersion(undefined, true, 1_000_000, Number.NEGATIVE_INFINITY)).toBe(Number.NEGATIVE_INFINITY)
+    const installing = registration({})
+    expect(checkForNewVersion(installing, true, 1_000_000, Number.NEGATIVE_INFINITY)).toBe(Number.NEGATIVE_INFINITY)
+    expect(r.update).not.toHaveBeenCalled()
+    expect(installing.update).not.toHaveBeenCalled()
+  })
+
+  it('un échec de la recherche ne remonte pas', async () => {
+    const r = registration(null, async () => { throw new Error('réseau') })
+    expect(checkForNewVersion(r, true, 1_000_000, Number.NEGATIVE_INFINITY)).toBe(1_000_000)
+    await Promise.resolve()
   })
 })

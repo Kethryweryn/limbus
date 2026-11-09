@@ -25,3 +25,20 @@ export function loadNewVersionAfterNavigation(pwa: PwaUpdate | undefined, toPath
   browser.setTimeout(browser.reload, PWA_UPDATE_FALLBACK_MS)
   return true
 }
+
+// Le navigateur ne cherche un nouveau service worker qu'au chargement complet d'une page : une navigation dans
+// l'application le lui demande, une fois par minute au plus (US-196, ADR-0078)
+export const PWA_UPDATE_CHECK_MS = 60_000
+
+export type UpdateRegistration = { installing: unknown, update: () => Promise<unknown> }
+
+/**
+ * Appelé après un changement de page sans version en attente : demande au navigateur de chercher une nouvelle version,
+ * qui se chargera au changement de page suivant. Rend l'heure de la recherche faite, ou `lastCheck` inchangé.
+ */
+export function checkForNewVersion(registration: UpdateRegistration | undefined, reachable: boolean, now: number, lastCheck: number) {
+  if (!registration || registration.installing || !reachable || now - lastCheck < PWA_UPDATE_CHECK_MS) return lastCheck
+  // Un échec (réseau coupé entre-temps) attend la recherche suivante
+  registration.update().catch(() => {})
+  return now
+}
