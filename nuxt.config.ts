@@ -104,13 +104,6 @@ export default defineNuxtConfig({
     // automatique rechargeait la page ouverte, saisie en cours comprise
     registerType: 'prompt',
     injectRegister: false,
-    // Une page restée ouverte cherche une nouvelle version toutes les heures ; un changement de page la cherche aussi
-    // (plugins/pwaUpdate.client.ts, ADR-0078)
-    client: {
-      registerPlugin: true,
-      installPrompt: false,
-      periodicSyncForUpdates: 60 * 60
-    },
     pwaAssets: {
       disabled: false,
       config: true

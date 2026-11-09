@@ -20,7 +20,7 @@ En tant que personne qui utilise Limbus, je veux que la nouvelle version soit re
 
 ## Notes techniques
 
-Le navigateur ne cherche un nouveau service worker qu'au chargement complet d'une page : une navigation dans l'application n'en déclenche aucune, et `@vite-pwa/nuxt` ne vérifie rien de lui-même (`periodicSyncForUpdates` vaut 0). `utils/pwaUpdate.ts` (`checkForNewVersion`), `plugins/pwaUpdate.client.ts`, `nuxt.config.ts` (`pwa.client.periodicSyncForUpdates`). [ADR-0078](../../adr/ADR-0078-recherche-de-la-nouvelle-version.md). Choix de l'utilisatrice le 2026-11-09 : à chaque changement de page, une fois par minute au plus, et toutes les heures.
+Le navigateur ne cherche un nouveau service worker qu'au chargement complet d'une page : une navigation dans l'application n'en déclenche aucune, et `@vite-pwa/nuxt` ne vérifie rien de lui-même (`periodicSyncForUpdates` vaut 0). `utils/pwaUpdate.ts` (`NewVersionCheck`, `afterNavigation`), `plugins/pwaUpdate.client.ts`. Revue de la PR : une seule recherche pour la navigation et l'heure, qui part du chargement de la page et tient compte du serveur indisponible. [ADR-0078](../../adr/ADR-0078-recherche-de-la-nouvelle-version.md). Choix de l'utilisatrice le 2026-11-09 : à chaque changement de page, une fois par minute au plus, et toutes les heures.
 
 ## Tests
 

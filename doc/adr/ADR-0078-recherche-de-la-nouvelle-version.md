@@ -14,8 +14,9 @@ ADR-0071 charge une nouvelle version au changement de page qui suit son arrivée
 
 ## Décision
 
-- Après chaque changement de page fait en ligne, serveur joignable, `plugins/pwaUpdate.client.ts` appelle `registration.update()`, une fois par minute au plus (`checkForNewVersion`, `utils/pwaUpdate.ts`). Rien n'est demandé pendant qu'une version se télécharge, ni quand une version attend déjà : elle se charge alors (ADR-0071).
-- Le module cherche aussi toutes les heures (`periodicSyncForUpdates: 3600`), pour une page restée ouverte.
+- Après chaque changement de page, et toutes les heures pour une page restée ouverte, `plugins/pwaUpdate.client.ts` appelle `registration.update()`, une fois par minute au plus (`NewVersionCheck` et `afterNavigation`, `utils/pwaUpdate.ts`). La minute part du chargement de la page, où le navigateur vient de chercher ; une recherche qui échoue ne fait pas attendre la suivante.
+- Rien n'est demandé hors ligne, quand le serveur est indisponible, pendant qu'une version se télécharge, ni quand une version attend déjà : elle se charge alors (ADR-0071).
+- La recherche horaire est celle de Limbus, et non l'option `periodicSyncForUpdates` du module : celle-ci ignore le serveur indisponible et ne partagerait pas la limite d'une minute.
 - La version trouvée se télécharge en arrière-plan et se charge au changement de page suivant, selon ADR-0071 : jamais sur la page ouverte.
 
 ## Conséquences

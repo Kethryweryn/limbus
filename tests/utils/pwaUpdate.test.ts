@@ -1,27 +1,38 @@
 // US-184 : la nouvelle version se charge au prochain changement de page (ADR-0071)
-// US-196 : un changement de page la fait chercher, une fois par minute au plus (ADR-0078)
+// US-196 : elle est cherchée à chaque changement de page, une fois par minute au plus (ADR-0078)
 import { describe, expect, it, vi } from 'vitest'
-import { checkForNewVersion, loadNewVersionAfterNavigation, PWA_UPDATE_CHECK_MS, PWA_UPDATE_FALLBACK_MS } from '~/utils/pwaUpdate'
+import { afterNavigation, NewVersionCheck, PWA_UPDATE_CHECK_MS, PWA_UPDATE_FALLBACK_MS } from '~/utils/pwaUpdate'
 
-function setup(needRefresh: boolean, reachable = true, update = async () => {}) {
-  const pwa = { needRefresh, updateServiceWorker: vi.fn(update) }
+const START = 1_000_000
+
+function registration(installing: unknown = null, update: () => Promise<unknown> = async () => {}) {
+  return { installing, update: vi.fn(update) }
+}
+
+function setup(needRefresh: boolean, reachable = true, activate = async () => {}) {
+  const reg = registration()
+  const pwa = { needRefresh, updateServiceWorker: vi.fn(activate), getSWRegistration: () => reg }
   const timers: Array<{ callback: () => void, delay: number }> = []
   const browser = { reachable, reload: vi.fn(), setTimeout: (callback: () => void, delay: number) => timers.push({ callback, delay }) }
-  return { pwa, browser, timers }
+  // Page chargée il y a plus d'une minute
+  const check = new NewVersionCheck(START - PWA_UPDATE_CHECK_MS)
+  return { pwa, reg, browser, timers, check }
 }
 
 describe('nouvelle version au changement de page', () => {
-  it('sans nouvelle version, ne fait rien', () => {
-    const { pwa, browser } = setup(false)
-    expect(loadNewVersionAfterNavigation(pwa, '/participants', '/', browser)).toBe(false)
+  it('sans nouvelle version, la fait chercher', () => {
+    const { pwa, reg, browser, check } = setup(false)
+    expect(afterNavigation(pwa, '/participants', '/', browser, check, START)).toBe('check')
     expect(pwa.updateServiceWorker).not.toHaveBeenCalled()
-    expect(loadNewVersionAfterNavigation(undefined, '/participants', '/', browser)).toBe(false)
+    expect(reg.update).toHaveBeenCalledTimes(1)
+    expect(afterNavigation(undefined, '/participants', '/', browser, check, START)).toBe('nothing')
   })
 
   it('avec une nouvelle version, active le service worker, et recharge quand même s’il ne prend pas la main', () => {
-    const { pwa, browser, timers } = setup(true)
-    expect(loadNewVersionAfterNavigation(pwa, '/participants', '/', browser)).toBe(true)
+    const { pwa, reg, browser, timers, check } = setup(true)
+    expect(afterNavigation(pwa, '/participants', '/', browser, check, START)).toBe('reload')
     expect(pwa.updateServiceWorker).toHaveBeenCalled()
+    expect(reg.update).not.toHaveBeenCalled()
     expect(browser.reload).not.toHaveBeenCalled()
     expect(timers).toHaveLength(1)
     expect(timers[0]!.delay).toBe(PWA_UPDATE_FALLBACK_MS)
@@ -30,48 +41,51 @@ describe('nouvelle version au changement de page', () => {
   })
 
   it('un échec d’activation ne remonte pas', async () => {
-    const { pwa, browser, timers } = setup(true, true, async () => { throw new Error('refus') })
-    expect(loadNewVersionAfterNavigation(pwa, '/participants', '/', browser)).toBe(true)
+    const { pwa, browser, timers, check } = setup(true, true, async () => { throw new Error('refus') })
+    expect(afterNavigation(pwa, '/participants', '/', browser, check, START)).toBe('reload')
     await Promise.resolve()
     expect(timers).toHaveLength(1)
   })
 
-  it('hors ligne, serveur indisponible ou même page (requête seule), ne recharge rien', () => {
-    const unreachable = setup(true, false)
-    expect(loadNewVersionAfterNavigation(unreachable.pwa, '/participants', '/', unreachable.browser)).toBe(false)
-    const same = setup(true)
-    expect(loadNewVersionAfterNavigation(same.pwa, '/sessions/a', '/sessions/a', same.browser)).toBe(false)
-    expect(unreachable.pwa.updateServiceWorker).not.toHaveBeenCalled()
-    expect(same.pwa.updateServiceWorker).not.toHaveBeenCalled()
+  it('hors ligne, serveur indisponible ou même page (requête seule), ne recharge ni ne cherche rien', () => {
+    for (const [needRefresh, reachable, to, from] of [[true, false, '/participants', '/'], [false, false, '/participants', '/'], [true, true, '/sessions/a', '/sessions/a'], [false, true, '/sessions/a', '/sessions/a']] as const) {
+      const { pwa, reg, browser, check } = setup(needRefresh, reachable)
+      expect(afterNavigation(pwa, to, from, browser, check, START)).toBe('nothing')
+      expect(pwa.updateServiceWorker).not.toHaveBeenCalled()
+      expect(reg.update).not.toHaveBeenCalled()
+    }
   })
 })
 
-describe('recherche d’une nouvelle version au changement de page', () => {
-  const registration = (installing: unknown = null, update = async () => {}) => ({ installing, update: vi.fn(update) })
-
-  it('cherche une fois par minute au plus', () => {
-    const r = registration()
-    const first = checkForNewVersion(r, true, 1_000_000, Number.NEGATIVE_INFINITY)
-    expect(first).toBe(1_000_000)
-    expect(checkForNewVersion(r, true, first + PWA_UPDATE_CHECK_MS - 1, first)).toBe(first)
-    expect(r.update).toHaveBeenCalledTimes(1)
-    expect(checkForNewVersion(r, true, first + PWA_UPDATE_CHECK_MS, first)).toBe(first + PWA_UPDATE_CHECK_MS)
-    expect(r.update).toHaveBeenCalledTimes(2)
+describe('recherche d’une nouvelle version', () => {
+  it('cherche une fois par minute au plus, et pas juste après le chargement de la page', () => {
+    const reg = registration()
+    const check = new NewVersionCheck(START)
+    expect(check.run(reg, true, START + PWA_UPDATE_CHECK_MS - 1)).toBe(false)
+    expect(check.run(reg, true, START + PWA_UPDATE_CHECK_MS)).toBe(true)
+    expect(check.run(reg, true, START + 2 * PWA_UPDATE_CHECK_MS - 1)).toBe(false)
+    expect(check.run(reg, true, START + 2 * PWA_UPDATE_CHECK_MS)).toBe(true)
+    expect(reg.update).toHaveBeenCalledTimes(2)
   })
 
   it('ne cherche pas hors ligne, sans service worker, ni pendant un téléchargement', () => {
-    const r = registration()
-    expect(checkForNewVersion(r, false, 1_000_000, Number.NEGATIVE_INFINITY)).toBe(Number.NEGATIVE_INFINITY)
-    expect(checkForNewVersion(undefined, true, 1_000_000, Number.NEGATIVE_INFINITY)).toBe(Number.NEGATIVE_INFINITY)
+    const check = new NewVersionCheck(START - PWA_UPDATE_CHECK_MS)
+    const reg = registration()
     const installing = registration({})
-    expect(checkForNewVersion(installing, true, 1_000_000, Number.NEGATIVE_INFINITY)).toBe(Number.NEGATIVE_INFINITY)
-    expect(r.update).not.toHaveBeenCalled()
+    expect(check.run(reg, false, START)).toBe(false)
+    expect(check.run(undefined, true, START)).toBe(false)
+    expect(check.run(installing, true, START)).toBe(false)
+    expect(reg.update).not.toHaveBeenCalled()
     expect(installing.update).not.toHaveBeenCalled()
   })
 
-  it('un échec de la recherche ne remonte pas', async () => {
-    const r = registration(null, async () => { throw new Error('réseau') })
-    expect(checkForNewVersion(r, true, 1_000_000, Number.NEGATIVE_INFINITY)).toBe(1_000_000)
+  it('un échec ne remonte pas et ne fait pas attendre la recherche suivante', async () => {
+    const check = new NewVersionCheck(START - PWA_UPDATE_CHECK_MS)
+    const failing = registration(null, async () => { throw new Error('réseau') })
+    expect(check.run(failing, true, START)).toBe(true)
     await Promise.resolve()
+    await Promise.resolve()
+    const reg = registration()
+    expect(check.run(reg, true, START + 1)).toBe(true)
   })
 })

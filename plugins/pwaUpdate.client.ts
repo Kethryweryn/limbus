@@ -1,21 +1,21 @@
 import { isServerUnavailable } from '~/utils/connection'
-import { checkForNewVersion, loadNewVersionAfterNavigation } from '~/utils/pwaUpdate'
+import { afterNavigation, NewVersionCheck, PWA_UPDATE_PERIOD_MS } from '~/utils/pwaUpdate'
 
 // Une nouvelle version de Limbus se charge au prochain changement de page, jamais pendant une saisie (US-184, ADR-0071).
 // Après la navigation : l'historique est déjà juste (ajout ou remplacement), et le rechargement porte sur la page arrivée.
-// Sans version en attente, la navigation en fait chercher une (US-196, ADR-0078)
+// Elle est cherchée à chaque changement de page et toutes les heures (US-196, ADR-0078)
 export default defineNuxtPlugin((nuxtApp) => {
-  let lastCheck = Number.NEGATIVE_INFINITY
+  const check = new NewVersionCheck(Date.now())
+  const reachable = () => navigator.onLine && !isServerUnavailable()
   useRouter().afterEach((to, from, failure) => {
     if (failure) return
-    const reachable = navigator.onLine && !isServerUnavailable()
-    const loading = loadNewVersionAfterNavigation(nuxtApp.$pwa, to.path, from.path, {
-      reachable,
+    afterNavigation(nuxtApp.$pwa, to.path, from.path, {
+      reachable: reachable(),
       reload: () => window.location.reload(),
       setTimeout: (callback, delay) => window.setTimeout(callback, delay)
-    })
-    if (!loading && !nuxtApp.$pwa?.needRefresh && to.path !== from.path) {
-      lastCheck = checkForNewVersion(nuxtApp.$pwa?.getSWRegistration(), reachable, Date.now(), lastCheck)
-    }
+    }, check, Date.now())
   })
+  window.setInterval(() => {
+    if (!nuxtApp.$pwa?.needRefresh) check.run(nuxtApp.$pwa?.getSWRegistration(), reachable(), Date.now())
+  }, PWA_UPDATE_PERIOD_MS)
 })
