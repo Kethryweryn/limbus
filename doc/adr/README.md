@@ -82,3 +82,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0076](ADR-0076-dates-avec-fuseau.md) | Les dates sont stockées avec leur fuseau horaire (timestamptz) | accepté | 2026-11-09 |
 | [ADR-0077](ADR-0077-references-videes-par-la-base.md) | Une référence composée avec le jeu se vide par la base, sans toucher au jeu | accepté | 2026-11-09 |
 | [ADR-0078](ADR-0078-recherche-de-la-nouvelle-version.md) | Limbus cherche une nouvelle version à chaque changement de page et toutes les heures | accepté | 2026-11-09 |
+| [ADR-0079](ADR-0079-tests-de-chaque-developpement.md) | Tout développement ajoute ses tests de bout en bout sur quatre axes | accepté | 2026-11-10 |
