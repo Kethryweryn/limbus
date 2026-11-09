@@ -13,8 +13,8 @@
       </div>
     </section>
 
-    <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
-      <section class="xl:col-span-8 space-y-6">
+    <div v-if="hasTeaser || game.noteIntention" class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+      <section v-if="hasTeaser" class="xl:col-span-8 space-y-6">
         <div v-if="teaserEmbedUrl" class="w-full aspect-video overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
           <iframe
             v-if="teaserPlaying"
@@ -55,11 +55,11 @@
         >
           Voir le teaser
         </UButton>
-        <!-- La description n'est affichée qu'une fois, sous le titre (US-208) -->
       </section>
 
-      <aside class="xl:col-span-4 space-y-6">
-        <UCard v-if="game.noteIntention" variant="outline" class="bg-white text-gray-900">
+      <!-- La description n'est affichée qu'une fois, sous le titre (US-208) ; sans teaser, la note prend la largeur -->
+      <aside v-if="game.noteIntention" class="space-y-6" :class="hasTeaser ? 'xl:col-span-4' : 'xl:col-span-12'">
+        <UCard variant="outline" class="bg-white text-gray-900">
           <template #header>
             Note d’intention
           </template>
@@ -86,4 +86,5 @@ const thumbnailFailed = ref(false)
 const creditText = computed(() => gameCreditText(props.game))
 const teaserEmbedUrl = computed(() => youtubeEmbedUrl(props.game.teaserUrl))
 const teaserLinkUrl = computed(() => props.game.teaserUrl && isHttpUrl(props.game.teaserUrl) ? props.game.teaserUrl : null)
+const hasTeaser = computed(() => Boolean(teaserEmbedUrl.value || teaserLinkUrl.value))
 </script>

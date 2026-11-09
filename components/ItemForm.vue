@@ -11,14 +11,13 @@
           :items="gameOptions"
           value-key="value"
           placeholder="Choisissez un jeu"
-          required
           size="lg"
           class="w-full"
         />
       </UFormField>
 
       <UFormField label="Nom" :error="errors.name">
-        <UInput v-model="localItem.name" required autofocus size="lg" class="w-full" />
+        <UInput v-model="localItem.name" autofocus size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Description">
@@ -26,7 +25,7 @@
       </UFormField>
 
       <UFormField label="Quantité" :error="errors.quantity">
-        <UInput v-model.number="localItem.quantity" type="number" :min="1" step="1" size="lg" class="w-full md:w-40" />
+        <UInput v-model.number="localItem.quantity" type="number" step="1" size="lg" class="w-full md:w-40" />
       </UFormField>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -11,7 +11,6 @@
           :items="gameOptions"
           value-key="value"
           placeholder="Choisissez un jeu"
-          required
           size="lg"
           class="w-full"
         />
@@ -19,7 +18,7 @@
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <UFormField label="Nom" :error="errors.name">
-          <UInput v-model="localIntrigue.name" required autofocus size="lg" class="w-full" />
+          <UInput v-model="localIntrigue.name" autofocus size="lg" class="w-full" />
         </UFormField>
 
         <UFormField label="Niveau" :error="errors.level">

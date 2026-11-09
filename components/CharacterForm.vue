@@ -9,11 +9,11 @@
                 <USelect
 v-model="localCharacter.gameId"
                     :items="gameItems" value-key="value" placeholder="Choisissez un jeu"
-                    required size="lg" class="w-full" />
+                    size="lg" class="w-full" />
             </UFormField>
 
             <UFormField label="Nom" :error="errors.name">
-                <UInput v-model="localCharacter.name" required autofocus size="lg" class="w-full" />
+                <UInput v-model="localCharacter.name" autofocus size="lg" class="w-full" />
             </UFormField>
 
             <UFormField label="Type">
@@ -72,7 +72,6 @@ v-model="localCharacter.gameId"
             <UFormField label="Lien vers un background externe" :error="errors.backgroundDocumentUrl">
                 <UInput
                     v-model.nullable="localCharacter.backgroundDocumentUrl"
-                    type="url"
                     size="lg"
                     class="w-full"
                     placeholder="Google Docs, PDF, DOCX ou ODT hébergé ailleurs"
@@ -104,7 +103,6 @@ v-model="localCharacter.gameId"
                         <div class="flex flex-col gap-2 sm:flex-row">
                             <UInput
                                 v-model.nullable="localCharacter.trombinoscopePhotoUrl"
-                                type="url"
                                 size="lg"
                                 class="w-full"
                                 placeholder="URL ou photo téléversée utilisée à la place de la photo de session"

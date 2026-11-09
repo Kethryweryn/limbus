@@ -2,22 +2,12 @@
 import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { signIn, slugOf, test, uniqueName, type TestPrisma } from './helpers'
-
-async function ownGame(prisma: TestPrisma, base: string, data: { published?: boolean, publicPage?: boolean } = {}) {
-  const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
-  const title = uniqueName(base)
-  return await prisma.game.create({ data: { title, slug: slugOf(title), description: 'Présentation', ownerId: owner.id, ...data } })
-}
+import { cardByTitle as gameCard, orgaGame, signIn, slugOf, test, uniqueName, type TestPrisma } from './helpers'
 
 async function shareWithAutre(prisma: TestPrisma, gameId: string) {
   const autre = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.autre } })
   await prisma.gameShare.create({ data: { gameId, userId: autre.id } })
   return autre
-}
-
-function gameCard(page: Page, title: string) {
-  return page.locator('[role="link"]').filter({ has: page.getByRole('heading', { name: title, exact: true }) })
 }
 
 async function openGames(page: Page, title: string) {
@@ -35,7 +25,7 @@ async function openGameSheet(page: Page, game: { slug: string, title: string }) 
 test('archiver un jeu archive son contenu et retire sa page publique, qui ne revient pas à la restauration', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
-    const game = await ownGame(prisma, 'Jeu à archiver', { publicPage: true })
+    const game = await orgaGame(prisma, 'Jeu à archiver', { publicPage: true })
     const character = uniqueName('personnage du jeu archivé')
     await prisma.character.create({ data: { name: character, slug: slugOf(character), gameId: game.id } })
     await signIn(page, prisma, E2E_USERS.orga)
@@ -75,7 +65,7 @@ test('archiver un jeu archive son contenu et retire sa page publique, qui ne rev
 test('publier puis dépublier la page publique depuis la fiche du jeu', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
-    const game = await ownGame(prisma, 'Jeu à publier')
+    const game = await orgaGame(prisma, 'Jeu à publier')
     await signIn(page, prisma, E2E_USERS.orga)
     await openGameSheet(page, game)
 
@@ -94,7 +84,7 @@ test('publier puis dépublier la page publique depuis la fiche du jeu', async ({
 test('un lien de teaser sans https:// est refusé, avec son message, et rien n’est enregistré (R15)', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
-    const game = await ownGame(prisma, 'Jeu au teaser')
+    const game = await orgaGame(prisma, 'Jeu au teaser')
     await signIn(page, prisma, E2E_USERS.orga)
     await openGames(page, game.title)
     await gameCard(page, game.title).getByRole('button', { name: 'Modifier' }).click()
@@ -118,8 +108,8 @@ test('un lien de teaser sans https:// est refusé, avec son message, et rien n�
 test('seul un jeu archivé se supprime, en retapant son titre, et tout son contenu part avec lui (US-207, R4)', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
-    const active = await ownGame(prisma, 'Jeu actif non supprimable')
-    const game = await ownGame(prisma, 'Jeu à supprimer', { published: false })
+    const active = await orgaGame(prisma, 'Jeu actif non supprimable')
+    const game = await orgaGame(prisma, 'Jeu à supprimer', { published: false })
     const character = uniqueName('personnage supprimé')
     const created = await prisma.character.create({ data: { name: character, slug: slugOf(character), gameId: game.id } })
     await signIn(page, prisma, E2E_USERS.orga)
@@ -149,7 +139,7 @@ test('seul un jeu archivé se supprime, en retapant son titre, et tout son conte
 test('une co-organisatrice modifie le jeu, sans le partager, le léguer ni le supprimer, et peut le quitter (R16, R17)', async ({ otherPage }) => {
   const prisma = createTestPrisma()
   try {
-    const game = await ownGame(prisma, 'Jeu de la co-organisatrice', { published: false })
+    const game = await orgaGame(prisma, 'Jeu de la co-organisatrice', { published: false })
     const autre = await shareWithAutre(prisma, game.id)
     const guest = await otherPage()
     await signIn(guest, prisma, E2E_USERS.autre)
@@ -175,7 +165,7 @@ test('une co-organisatrice modifie le jeu, sans le partager, le léguer ni le su
 test('la propriétaire propose le transfert du jeu, la co-organisatrice l’accepte et en devient propriétaire (SPEC-011 R3)', async ({ page, otherPage }) => {
   const prisma = createTestPrisma()
   try {
-    const game = await ownGame(prisma, 'Jeu à transférer')
+    const game = await orgaGame(prisma, 'Jeu à transférer')
     const autre = await shareWithAutre(prisma, game.id)
     await signIn(page, prisma, E2E_USERS.orga)
     await openGameSheet(page, game)

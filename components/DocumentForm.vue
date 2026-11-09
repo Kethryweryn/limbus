@@ -11,14 +11,13 @@
           :items="gameOptions"
           value-key="value"
           placeholder="Choisissez un jeu"
-          required
           size="lg"
           class="w-full"
         />
       </UFormField>
 
       <UFormField label="Titre" :error="errors.title">
-        <UInput v-model="localDocument.title" required autofocus size="lg" class="w-full" />
+        <UInput v-model="localDocument.title" autofocus size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Corps" :error="errors.content">

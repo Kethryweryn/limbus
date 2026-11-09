@@ -6,7 +6,7 @@
 
     <form class="w-full space-y-6" @submit.prevent="submit">
       <UFormField label="Titre" :error="errors.title">
-        <UInput v-model="localGame.title" required size="lg" class="w-full" />
+        <UInput v-model="localGame.title" size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Description" :error="errors.description">

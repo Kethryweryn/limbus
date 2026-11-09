@@ -3,14 +3,7 @@ import { createTestPrisma } from '../integration/db'
 import { linkToken } from '../integration/smtp'
 import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
-import { blockWith, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
-
-// Jeu propre au test, de l'organisatrice des parcours
-async function writingGame(prisma: TestPrisma, base: string) {
-  const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
-  const title = uniqueName(base)
-  return await prisma.game.create({ data: { title, slug: slugOf(title), description: '', ownerId: owner.id } })
-}
+import { blockWith, orgaGame, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
 
 async function chooseGame(page: Page, form: Locator, title: string) {
   await form.getByLabel('Jeu', { exact: true }).click()
@@ -71,7 +64,7 @@ for (const [label, element] of Object.entries(ELEMENTS)) {
   test(`${label} se crée, se renomme et se supprime`, async ({ page }) => {
     const prisma = createTestPrisma()
     try {
-      const game = await writingGame(prisma, `Jeu ${element.noun}`)
+      const game = await orgaGame(prisma, `Jeu ${element.noun}`)
       const name = uniqueName(`${element.noun} créé`)
 
       await signIn(page, prisma, E2E_USERS.orga)
@@ -151,7 +144,7 @@ for (const sheet of SHEETS) {
   test(`un ${sheet.noun} se supprime depuis sa fiche, en lecture et en modification`, async ({ page }) => {
     const prisma = createTestPrisma()
     try {
-      const game = await writingGame(prisma, `Jeu suppression ${sheet.noun}`)
+      const game = await orgaGame(prisma, `Jeu suppression ${sheet.noun}`)
       const [read, edited] = await Promise.all([
         sheet.create(prisma, game.id, uniqueName(`${sheet.noun} lu`)),
         sheet.create(prisma, game.id, uniqueName(`${sheet.noun} modifié`))
@@ -194,7 +187,7 @@ for (const sheet of SHEETS) {
 test('un événement de la timeline se crée et se renomme', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
-    const game = await writingGame(prisma, 'Jeu timeline')
+    const game = await orgaGame(prisma, 'Jeu timeline')
     const name = uniqueName('Arrivée des invités')
 
     await signIn(page, prisma, E2E_USERS.orga)
@@ -202,7 +195,8 @@ test('un événement de la timeline se crée et se renomme', async ({ page }) =>
     await page.waitForLoadState('networkidle')
     // La timeline s'ouvre jeu par jeu
     await page.getByPlaceholder('Rechercher un jeu...').fill(game.title)
-    await blockWith(page, page.getByText(game.title, { exact: true }), 'Ouvrir').getByRole('button', { name: 'Ouvrir' }).click()
+    // Le jeu se choisit dans la liste de la recherche ; les cartes « Ouvrir » de la page dépendent des autres tests
+    await page.getByRole('button', { name: game.title, exact: true }).click()
     await page.getByRole('button', { name: 'Créer un événement' }).click()
     const form = page.getByRole('dialog')
     await chooseGame(page, form, game.title)

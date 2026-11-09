@@ -11,6 +11,9 @@ export default defineEventHandler(async (event) => {
 
   const id = requireRouterParam(event, 'id')
   await requireGameOwner(event, id)
+  // Seul un jeu archivé se supprime (US-207) : archiver d'abord laisse le temps de se raviser
+  const { published } = await prisma.game.findUniqueOrThrow({ where: { id }, select: { published: true } })
+  if (published) throw createError({ statusCode: 409, statusMessage: 'Archivez ce jeu avant de le supprimer.' })
   // Suppression rejouée hors ligne : refusée si l'élément a changé depuis sa lecture (ADR-0036)
   await assertUnmodifiedSince(event, 'game', id)
 

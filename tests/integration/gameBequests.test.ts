@@ -197,6 +197,8 @@ describe('legs d’un jeu à une organisatrice qui a un compte', () => {
     const photo = copy!.characters.find((character) => character.trombinoscopePhotoUrl?.startsWith('/api/'))!.trombinoscopePhotoUrl!
 
     await prisma.character.updateMany({ where: { gameId: game.id }, data: { pitch: 'Modifié' } })
+    // Seul un jeu archivé se supprime (US-207)
+    await prisma.game.update({ where: { id: game.id }, data: { published: false } })
     expect((await api(alice, 'DELETE', `/api/games/${game.id}`)).status).toBe(200)
 
     const after = await prisma.game.findUnique({ where: { id: copy!.id }, include: { characters: true, uploadedFiles: true } })
@@ -335,6 +337,8 @@ describe('legs à une personne sans compte (US-011)', () => {
 
   it('supprime les legs en attente avec le jeu source', async () => {
     const { game, copy, token } = await pendingBequest()
+    // Seul un jeu archivé se supprime (US-207)
+    await prisma.game.update({ where: { id: game.id }, data: { published: false } })
     expect((await api(bob, 'DELETE', `/api/games/${game.id}`)).status).toBe(200)
     expect(await prisma.game.findUnique({ where: { id: copy.id } })).toBeNull()
     expect(existsSync(join(PHOTOS, basename(copy.uploadedFiles[0]!.url)))).toBe(false)

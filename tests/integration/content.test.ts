@@ -4,7 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import bcrypt from 'bcrypt'
 import { afterAll, describe, expect, inject, it } from 'vitest'
-import { api } from './api'
+import { api, errorMessage } from './api'
 import { createTestPrisma } from './db'
 
 const world = inject('world')
@@ -104,6 +104,12 @@ describe('suppressions', () => {
     })
     await prisma.faction.create({ data: { name: 'Groupe', slug: 'groupe-contenu-supprime', gameId: game.id } })
 
+    // Seul un jeu archivé se supprime (US-207) : un jeu actif est refusé, et rien ne part
+    const refused = await api(alice, 'DELETE', `/api/games/${game.id}`)
+    expect(refused.status).toBe(409)
+    expect(errorMessage(refused)).toBe('Archivez ce jeu avant de le supprimer.')
+    expect(await prisma.character.count({ where: { gameId: game.id } })).toBe(1)
+    await prisma.game.update({ where: { id: game.id }, data: { published: false } })
     expect((await api(alice, 'DELETE', `/api/games/${game.id}`)).status).toBe(200)
 
     expect(await prisma.game.findUnique({ where: { id: game.id } })).toBeNull()

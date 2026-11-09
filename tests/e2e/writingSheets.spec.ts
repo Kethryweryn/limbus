@@ -2,19 +2,7 @@
 import { expect, type Locator, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { choose, signIn, slugOf, test, uniqueName, type TestPrisma } from './helpers'
-import { escapeRegExp } from '../regexp'
-
-async function ownGame(prisma: TestPrisma, base: string) {
-  const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
-  const title = uniqueName(base)
-  return await prisma.game.create({ data: { title, slug: slugOf(title), description: '', ownerId: owner.id } })
-}
-
-// Carte par son titre ; celui d'un objet en plusieurs exemplaires finit par sa quantité (« × 3 »)
-function card(page: Page, name: string) {
-  return page.locator('[role="link"]').filter({ has: page.getByRole('heading', { name: new RegExp(`^${escapeRegExp(name)}( × \\d+)?$`) }) })
-}
+import { cardByTitle as card, choose, orgaGame, signIn, slugOf, test, uniqueName } from './helpers'
 
 // Formulaire d'un élément ouvert depuis sa carte, dans la liste filtrée sur son nom
 async function editFromList(page: Page, list: string, search: string, name: string) {
@@ -31,6 +19,9 @@ async function openSheet(page: Page, path: string, name: string) {
   await expect(page.getByRole('heading', { level: 1, name, exact: true })).toBeVisible()
 }
 
+// Image réduite à sa signature PNG, suffisante pour le contrôle du type (tests/integration/accounts.test.ts)
+const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...Array(200).fill(0)])
+
 function field(form: Locator, label: string) {
   return form.getByLabel(label, { exact: true })
 }
@@ -38,7 +29,7 @@ function field(form: Locator, label: string) {
 test('objet : quantité d’au moins 1, emplacement chez un personnage puis « Aucun personnage », badge « Non associé »', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
-    const game = await ownGame(prisma, 'Jeu objet')
+    const game = await orgaGame(prisma, 'Jeu objet')
     const name = uniqueName('objet fiche')
     const holder = uniqueName('porteur')
     const intrigue = uniqueName('intrigue de l’objet')
@@ -47,11 +38,11 @@ test('objet : quantité d’au moins 1, emplacement chez un personnage puis « A
     await prisma.intrigue.create({ data: { name: intrigue, slug: slugOf(intrigue), gameId: game.id } })
     await signIn(page, prisma, E2E_USERS.orga)
 
-    // Quantité 0 : refusée par le champ, rien n'est enregistré (R10)
+    // Quantité 0 : refusée avec son message, rien n'est enregistré (R10, US-204)
     let form = await editFromList(page, '/items', 'Rechercher un objet...', name)
     await field(form, 'Quantité').fill('0')
     await form.getByRole('button', { name: 'Enregistrer', exact: true }).click()
-    await expect(form).toBeVisible()
+    await expect(form.getByText('La quantité doit être un nombre entier d’au moins 1.')).toBeVisible()
     expect((await prisma.item.findUniqueOrThrow({ where: { id: item.id } })).quantity).toBe(1)
 
     // Quantité 3, porté par un personnage ; seul dans aucune intrigue : « Non associé »
@@ -88,7 +79,7 @@ test('objet : quantité d’au moins 1, emplacement chez un personnage puis « A
 test('document : un corps ou un lien est demandé, et une adresse sans https:// est refusée', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
-    const game = await ownGame(prisma, 'Jeu document')
+    const game = await orgaGame(prisma, 'Jeu document')
     const name = uniqueName('document fiche')
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/documents')
@@ -123,7 +114,7 @@ test('document : un corps ou un lien est demandé, et une adresse sans https:// 
 test('personnage : PNJ, groupe choisi dans le formulaire, intrigues associées depuis la fiche, lien d’histoire sans https:// refusé', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
-    const game = await ownGame(prisma, 'Jeu personnage')
+    const game = await orgaGame(prisma, 'Jeu personnage')
     const name = uniqueName('personnage fiche')
     const faction = uniqueName('groupe du personnage')
     const intrigue = uniqueName('intrigue du personnage')
@@ -138,14 +129,17 @@ test('personnage : PNJ, groupe choisi dans le formulaire, intrigues associées d
     await page.keyboard.press('Escape')
     await field(form, 'Lien vers un background externe').fill('docs.google.com/document/d/histoire')
     await form.getByRole('button', { name: 'Enregistrer', exact: true }).click()
-    // Adresse sans https:// : le champ est une adresse web, le navigateur la refuse et le dit ; rien n'est enregistré (R15)
-    await expect(form).toBeVisible()
-    expect(await field(form, 'Lien vers un background externe').evaluate((input: HTMLInputElement) => input.validity.valid)).toBe(false)
+    // Adresse sans https:// : le serveur la refuse et le formulaire le dit (R15, US-206) ; rien n'est enregistré
+    await expect(form.getByText(/http/i).first()).toBeVisible()
     expect((await prisma.character.findUniqueOrThrow({ where: { id: character.id } })).type).toBe('pj')
 
     await field(form, 'Lien vers un background externe').fill('https://exemple.fr/histoire')
+    // Une photo téléversée a une adresse relative, que le champ accepte (US-204)
+    await form.locator('input[type="file"]').setInputFiles({ name: 'photo.png', mimeType: 'image/png', buffer: PNG })
+    await expect(field(form, 'Photo de trombinoscope par défaut')).toHaveValue(/^\/api\/uploads\//)
     await form.getByRole('button', { name: 'Enregistrer', exact: true }).click()
     await expect(form).toBeHidden()
+    await expect.poll(async () => (await prisma.character.findUniqueOrThrow({ where: { id: character.id } })).trombinoscopePhotoUrl).toMatch(/^\/api\/uploads\//)
     await expect(card(page, name).getByText('PNJ', { exact: true })).toBeVisible()
     await expect(card(page, name).getByText(faction)).toBeVisible()
 
@@ -168,7 +162,7 @@ test('personnage : PNJ, groupe choisi dans le formulaire, intrigues associées d
 test('groupe : ses membres s’affichent sur sa fiche, et sa suppression garde les personnages (R14)', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
-    const game = await ownGame(prisma, 'Jeu groupe')
+    const game = await orgaGame(prisma, 'Jeu groupe')
     const name = uniqueName('groupe fiche')
     const member = uniqueName('membre')
     const faction = await prisma.faction.create({ data: { name, slug: slugOf(name), gameId: game.id } })
@@ -196,7 +190,7 @@ test('groupe : ses membres s’affichent sur sa fiche, et sa suppression garde l
 test('intrigue : le filtre par niveau ne garde que ce niveau (R9)', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
-    const game = await ownGame(prisma, 'Jeu intrigue')
+    const game = await orgaGame(prisma, 'Jeu intrigue')
     const major = uniqueName('intrigue majeure')
     const minor = uniqueName('intrigue mineure')
     await prisma.intrigue.create({ data: { name: major, slug: slugOf(major), gameId: game.id, level: 'major' } })
@@ -219,7 +213,7 @@ test('intrigue : le filtre par niveau ne garde que ce niveau (R9)', async ({ pag
 test('lieu : son adresse s’affiche sur sa fiche, et une session qui s’y tient garde le lieu renommé (R13)', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
-    const game = await ownGame(prisma, 'Jeu lieu')
+    const game = await orgaGame(prisma, 'Jeu lieu')
     const name = uniqueName('lieu fiche')
     const location = await prisma.location.create({ data: { name, slug: slugOf(name), gameId: game.id, address: '12 rue des Lilas\n75020 Paris' } })
     const sessionName = uniqueName('session au lieu')
@@ -246,7 +240,7 @@ test('lieu : son adresse s’affiche sur sa fiche, et une session qui s’y tien
 test('timeline : le jour est demandé, et l’événement s’affiche à son jour (R12)', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
-    const game = await ownGame(prisma, 'Jeu des événements')
+    const game = await orgaGame(prisma, 'Jeu des événements')
     const name = uniqueName('événement fiche')
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/timeline')
@@ -257,11 +251,10 @@ test('timeline : le jour est demandé, et l’événement s’affiche à son jou
     await page.getByRole('button', { name: /Créer un événement/ }).click()
     const form = page.getByRole('dialog')
     await field(form, 'Nom').fill(name)
-    // Jour vide : le champ, obligatoire et d'au moins 1, est refusé par le navigateur, qui le dit ; rien n'est créé
+    // Jour vide : refusé avec son message (US-204), rien n'est créé
     await field(form, 'Jour').fill('')
     await form.getByRole('button', { name: 'Créer', exact: true }).click()
-    await expect(form).toBeVisible()
-    expect(await field(form, 'Jour').evaluate((input: HTMLInputElement) => input.validity.valid)).toBe(false)
+    await expect(form.getByText('Le jour est requis.')).toBeVisible()
     expect(await prisma.timelineEvent.findFirst({ where: { name } })).toBeNull()
 
     await field(form, 'Jour').fill('2')

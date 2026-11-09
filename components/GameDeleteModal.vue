@@ -22,6 +22,7 @@
 
 <script setup lang="ts">
 import { apiErrorMessage } from '~/utils/apiErrors'
+import { isOfflineMode } from '~/utils/connection'
 import { useGameFocus } from '@/composables/useGameFocus'
 
 const props = defineProps<{ game: { id: string, title: string } }>()
@@ -43,11 +44,20 @@ watch(open, (value) => {
 async function remove() {
   mismatch.value = typed.value.trim() !== props.game.title.trim()
   if (mismatch.value) return
+  // Suppression définitive : elle demande le réseau, plutôt que d'attendre sans le dire dans la file hors ligne
+  if (isOfflineMode()) {
+    error.value = 'Supprimer un jeu demande le réseau : réessayez une fois en ligne.'
+    return
+  }
   deleting.value = true
   error.value = ''
   try {
-    // Hors ligne, la suppression part en file, comme celle d'un élément (ADR-0036)
-    await useApiFetch(`/api/games/${props.game.id}`, { method: 'DELETE' })
+    const result = await useApiFetch(`/api/games/${props.game.id}`, { method: 'DELETE' })
+    // Serveur tombé entre-temps : la suppression attend dans la file, et la fenêtre le dit
+    if (isOfflineQueued(result)) {
+      error.value = 'Le serveur ne répond pas : la suppression partira à son retour.'
+      return
+    }
     if (currentGame.value?.id === props.game.id) clearGame()
     open.value = false
     await navigateTo('/games')

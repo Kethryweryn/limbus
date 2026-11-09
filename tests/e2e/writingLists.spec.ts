@@ -1,9 +1,9 @@
 // US-198 : listes de l'écriture d'un jeu (SPEC-003) : recherche, filtre par jeu, archives, pages, jeu actif et saisie
 // refusée, pour chaque élément du contenu d'un jeu
-import { expect, type Page } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { signIn, slugOf, test, uniqueName, type TestPrisma } from './helpers'
+import { cardByTitle as card, orgaGame, signIn, slugOf, test, uniqueName, type TestPrisma } from './helpers'
 
 type List = {
   // Élément, pour les données du test
@@ -21,6 +21,8 @@ type List = {
   notFound: string
   // Crée un élément ; `secondary` va dans un champ cherché autre que le nom
   seed: (prisma: TestPrisma, gameId: string, name: string, secondary?: string) => Promise<{ slug: string }>
+  // Champs obligatoires en plus du nom, remplis à la création
+  fillRequired?: (form: Locator) => Promise<void>
   // Élément lu par son nom, après une création par l'écran
   find: (prisma: TestPrisma, name: string) => Promise<unknown>
 }
@@ -48,6 +50,7 @@ const LISTS: List[] = [
   },
   {
     noun: 'document', list: '/documents', heading: 'Documents', create: 'Créer un document', search: 'Rechercher un document...', pageSize: 9, nameLabel: 'Titre', nameRequired: 'Le titre est requis.', notFound: 'Document introuvable',
+    fillRequired: (form) => form.getByLabel('Corps', { exact: true }).fill('Texte du document'),
     find: (prisma, name) => prisma.document.findFirst({ where: { title: name } }),
     seed: (prisma, gameId, name, secondary) => prisma.document.create({ data: { title: name, slug: slugOf(name), gameId, content: secondary ?? 'Texte' } })
   },
@@ -57,18 +60,6 @@ const LISTS: List[] = [
     seed: (prisma, gameId, name, secondary) => prisma.location.create({ data: { name, slug: slugOf(name), gameId, address: secondary } })
   }
 ]
-
-// Jeu propre au test, de l'organisatrice des parcours ; `archived` le dépublie (un jeu archivé est dépublié, ADR-0027)
-async function ownGame(prisma: TestPrisma, base: string, archived = false) {
-  const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
-  const title = uniqueName(base)
-  return await prisma.game.create({ data: { title, slug: slugOf(title), description: '', ownerId: owner.id, published: !archived } })
-}
-
-// Carte d'un élément, par son titre exact
-function card(page: Page, name: string) {
-  return page.locator('[role="link"]').filter({ has: page.getByRole('heading', { name, exact: true }) })
-}
 
 async function openList(page: Page, item: List) {
   await page.goto(item.list)
@@ -80,13 +71,12 @@ for (const item of LISTS) {
   test(`${item.heading} : recherche, filtre par jeu, archives et pages`, async ({ page }) => {
     const prisma = createTestPrisma()
     try {
-      const game = await ownGame(prisma, `Jeu liste ${item.noun}`)
-      const archived = await ownGame(prisma, `Jeu archivé ${item.noun}`, true)
+      const game = await orgaGame(prisma, `Jeu liste ${item.noun}`)
+      const archived = await orgaGame(prisma, `Jeu archivé ${item.noun}`, { published: false })
       const base = uniqueName(`${item.noun} liste`)
       // Une page pleine et un élément de plus, dont un qui ne se trouve que par son champ secondaire
-      for (let index = 1; index <= item.pageSize + 1; index++) {
-        await item.seed(prisma, game.id, `${base} ${String(index).padStart(2, '0')}`, index === 1 ? `secondaire ${base}` : undefined)
-      }
+      await Promise.all(Array.from({ length: item.pageSize + 1 }, (_, index) =>
+        item.seed(prisma, game.id, `${base} ${String(index + 1).padStart(2, '0')}`, index === 0 ? `secondaire ${base}` : undefined)))
       const hidden = `${base} archivé`
       await item.seed(prisma, archived.id, hidden)
 
@@ -130,8 +120,8 @@ for (const item of LISTS) {
     test.setTimeout(90_000)
     const prisma = createTestPrisma()
     try {
-      const game = await ownGame(prisma, `Jeu actif ${item.noun}`)
-      const other = await ownGame(prisma, `Autre jeu ${item.noun}`)
+      const game = await orgaGame(prisma, `Jeu actif ${item.noun}`)
+      const other = await orgaGame(prisma, `Autre jeu ${item.noun}`)
       const mine = uniqueName(`${item.noun} du jeu actif`)
       const foreign = uniqueName(`${item.noun} d'un autre jeu`)
       await item.seed(prisma, game.id, mine)
@@ -156,10 +146,13 @@ for (const item of LISTS) {
       await expect(card(page, mine)).toBeVisible()
       await expect(card(page, foreign)).toBeHidden()
 
-      // Création : le jeu actif est déjà choisi ; un nom fait d'espaces est refusé, et rien n'est créé
+      // Création : le jeu actif est déjà choisi ; un nom vide est refusé avec le message de Limbus (US-204), puis un nom
+      // fait d'espaces aussi
       await page.getByRole('button', { name: item.create }).click()
       const form = page.getByRole('dialog')
       await expect(form.getByRole('combobox').filter({ hasText: game.title })).toBeVisible()
+      await form.getByRole('button', { name: 'Créer', exact: true }).click()
+      await expect(form.getByText(item.nameRequired)).toBeVisible()
       await form.getByLabel(item.nameLabel, { exact: true }).fill('   ')
       await form.getByRole('button', { name: 'Créer', exact: true }).click()
       await expect(form.getByText(item.nameRequired)).toBeVisible()
@@ -178,8 +171,8 @@ for (const item of LISTS) {
   test(`${item.heading} : une organisatrice sans accès ne voit rien, une co-organisatrice voit tout`, async ({ otherPage }) => {
     const prisma = createTestPrisma()
     try {
-      const game = await ownGame(prisma, `Jeu droits ${item.noun}`)
-      const shared = await ownGame(prisma, `Jeu partagé ${item.noun}`)
+      const game = await orgaGame(prisma, `Jeu droits ${item.noun}`)
+      const shared = await orgaGame(prisma, `Jeu partagé ${item.noun}`)
       const privateName = uniqueName(`${item.noun} privé`)
       const sharedName = uniqueName(`${item.noun} partagé`)
       const hidden = await item.seed(prisma, game.id, privateName)
@@ -210,7 +203,7 @@ for (const item of LISTS) {
     test.setTimeout(90_000)
     const prisma = createTestPrisma()
     try {
-      const game = await ownGame(prisma, `Jeu hors ligne ${item.noun}`)
+      const game = await orgaGame(prisma, `Jeu hors ligne ${item.noun}`)
       const known = uniqueName(`${item.noun} connu`)
       await item.seed(prisma, game.id, known)
       const created = uniqueName(`${item.noun} hors ligne`)
@@ -238,7 +231,7 @@ for (const item of LISTS) {
       await form.getByLabel('Jeu', { exact: true }).click()
       await page.getByRole('option', { name: game.title, exact: true }).click()
       await form.getByLabel(item.nameLabel, { exact: true }).fill(created)
-      if (item.noun === 'document') await form.getByLabel('Corps', { exact: true }).fill('Texte écrit hors ligne')
+      await item.fillRequired?.(form)
       await form.getByRole('button', { name: 'Créer', exact: true }).click()
       await expect(page.getByText(/Modifications faites hors ligne : 1 en attente/)).toBeVisible()
       expect(await item.find(prisma, created)).toBeNull()
@@ -258,7 +251,7 @@ test('une modification hors ligne d’un lieu changé entre-temps est en conflit
   test.setTimeout(90_000)
   const prisma = createTestPrisma()
   try {
-    const game = await ownGame(prisma, 'Jeu conflit')
+    const game = await orgaGame(prisma, 'Jeu conflit')
     const name = uniqueName('lieu en conflit')
     const location = await prisma.location.create({ data: { name, slug: slugOf(name), gameId: game.id, notes: 'Notes de départ' } })
     await signIn(page, prisma, E2E_USERS.orga)
