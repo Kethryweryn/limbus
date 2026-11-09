@@ -66,7 +66,7 @@ async function loadAuthUser(event: H3Event): Promise<AuthUser> {
   const payload = getAuthUser(event)
   const id = payload?.id
   if (typeof id !== 'string' || !id) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
+    throw createError({ statusCode: 401, message: 'Connexion requise' })
   }
 
   const record = await prisma.user.findUnique({
@@ -87,7 +87,7 @@ async function loadAuthUser(event: H3Event): Promise<AuthUser> {
   // Un jeton émis avant la dernière révocation n'est plus valable (jeton sans version : 0) ; un compte désactivé non plus
   const tokenVersion = payload?.v ?? 0
   if (!record || tokenVersion !== record.sessionVersion || record.disabledAt) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
+    throw createError({ statusCode: 401, message: 'Connexion requise' })
   }
 
   // Activité du compte (US-112), sans faire attendre la requête
@@ -153,7 +153,7 @@ export async function requireUser(event: H3Event): Promise<AuthUser> {
 export async function requireAdmin(event: H3Event): Promise<AuthUser> {
   const user = await requireAuthUser(event)
   if (user.role !== USER_ROLES.admin) {
-    throw createError({ statusCode: 403, message: 'Forbidden' })
+    throw createError({ statusCode: 403, message: 'Réservé à l’administration' })
   }
   return user
 }

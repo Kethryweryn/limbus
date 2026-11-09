@@ -169,8 +169,24 @@ export async function orgaSession(prisma: TestPrisma, gameId: string, base: stri
   return await prisma.session.create({ data: { name, slug: slugOf(name), gameId, ...data } })
 }
 
-// Personne liée au jeu donné, sans email : aucun envoi ne lui part (US-199)
-export async function gamePerson(prisma: TestPrisma, gameId: string, base: string) {
+// Personne liée au jeu donné (US-199). Sans `emailPrefix`, elle n'a pas d'email et aucun envoi ne lui part ; avec, son
+// adresse lui est propre (un préfixe « refuse » la fait rejeter par le serveur d'emails de test)
+export async function gamePerson(prisma: TestPrisma, gameId: string, base: string, emailPrefix?: string) {
   const name = uniqueName(base)
-  return await prisma.participant.create({ data: { name, slug: slugOf(name), gameLinks: { create: { gameId } } } })
+  const email = emailPrefix === undefined ? undefined : `${emailPrefix}${slugOf(name)}@example.test`
+  return await prisma.participant.create({ data: { name, slug: slugOf(name), email, gameLinks: { create: { gameId } } } })
+}
+
+// Personnage du jeu donné (US-199)
+export async function gameCharacter(prisma: TestPrisma, gameId: string, base: string, data: { type?: 'pj' | 'pnj', excludeFromTrombinoscope?: boolean, sheetReadyToSend?: boolean } = {}) {
+  const name = uniqueName(base)
+  return await prisma.character.create({ data: { name, slug: slugOf(name), gameId, ...data } })
+}
+
+// Session castée du jeu donné : chaque personne joue son personnage, avec le rôle « participant » (US-199)
+export async function castSession(prisma: TestPrisma, gameId: string, base: string, cast: Array<[{ id: string }, { id: string }]>) {
+  const session = await orgaSession(prisma, gameId, base)
+  await prisma.sessionParticipant.createMany({ data: cast.map(([, who]) => ({ sessionId: session.id, participantId: who.id, role: 'participant' as const })) })
+  await prisma.sessionAssignment.createMany({ data: cast.map(([role, who]) => ({ gameId, sessionId: session.id, characterId: role.id, participantId: who.id })) })
+  return session
 }

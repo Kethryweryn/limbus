@@ -3,28 +3,7 @@ import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
-import { orgaGame, orgaSession, signIn, slugOf, test, uniqueName, type TestPrisma } from './helpers'
-
-// Personnage du jeu
-async function character(prisma: TestPrisma, gameId: string, base: string, data: { type?: 'pj' | 'pnj', excludeFromTrombinoscope?: boolean, sheetReadyToSend?: boolean } = {}) {
-  const name = uniqueName(base)
-  return await prisma.character.create({ data: { name, slug: slugOf(name), gameId, ...data } })
-}
-
-// Personne du jeu ; avec `email`, une adresse propre au test (un préfixe « refuse » la fait rejeter par le serveur de test)
-async function person(prisma: TestPrisma, gameId: string, base: string, email?: string) {
-  const name = uniqueName(base)
-  const address = email === undefined ? undefined : `${email}${slugOf(name)}@example.test`
-  return await prisma.participant.create({ data: { name, slug: slugOf(name), email: address, gameLinks: { create: { gameId } } } })
-}
-
-// Session castée : chaque personne joue son personnage
-async function castSession(prisma: TestPrisma, gameId: string, cast: Array<[{ id: string }, { id: string }]>) {
-  const session = await orgaSession(prisma, gameId, 'Session des documents')
-  await prisma.sessionParticipant.createMany({ data: cast.map(([, who]) => ({ sessionId: session.id, participantId: who.id, role: 'participant' as const })) })
-  await prisma.sessionAssignment.createMany({ data: cast.map(([role, who]) => ({ gameId, sessionId: session.id, characterId: role.id, participantId: who.id })) })
-  return session
-}
+import { castSession as castOf, gameCharacter as character, gamePerson, orgaGame, signIn, slugOf, test, uniqueName } from './helpers'
 
 async function openDocumentsTab(page: Page, session: { slug: string, name: string }) {
   await page.goto(`/sessions/${session.slug}?tab=documents`)
@@ -42,9 +21,9 @@ test('trombinoscope : les réglages d’un personnage et l’étiquette d’un g
     const excluded = await character(prisma, game.id, 'Garde exclue', { type: 'pnj', excludeFromTrombinoscope: true })
     const clan = uniqueName('Clan du nord')
     await prisma.faction.create({ data: { name: clan, slug: slugOf(clan), gameId: game.id, showInTrombinoscope: true, characterLinks: { create: { characterId: renamed.id } } } })
-    const lea = await person(prisma, game.id, 'Léa trombi')
-    const noe = await person(prisma, game.id, 'Noé trombi')
-    const session = await castSession(prisma, game.id, [[viewer, lea], [renamed, noe]])
+    const lea = await gamePerson(prisma, game.id, 'Léa trombi')
+    const noe = await gamePerson(prisma, game.id, 'Noé trombi')
+    const session = await castOf(prisma, game.id, 'Session des documents', [[viewer, lea], [renamed, noe]])
     await signIn(page, prisma, E2E_USERS.orga)
 
     // Réglages du trombinoscope d'Aube, depuis sa fiche (R3) : un nom affiché, un personnage écarté ; l'exclu global ne
@@ -88,8 +67,8 @@ test('document : un brouillon ne s’envoie pas mais se teste, à 10 adresses au
   try {
     const game = await orgaGame(prisma, 'Jeu du brouillon')
     const role = await character(prisma, game.id, 'Aube du brouillon')
-    const lea = await person(prisma, game.id, 'Léa brouillon', '')
-    const session = await castSession(prisma, game.id, [[role, lea]])
+    const lea = await gamePerson(prisma, game.id, 'Léa brouillon', '')
+    const session = await castOf(prisma, game.id, 'Session des documents', [[role, lea]])
     const title = uniqueName('Lettre en brouillon')
     await prisma.document.create({ data: { title, slug: slugOf(title), content: 'Pas encore prête.', gameId: game.id, audiences: ['pjs'] } })
     const tester = `test-${slugOf(title)}@example.test`
@@ -125,10 +104,10 @@ test('document : l’envoi part aux seuls manquants, liste un échec, et ignore 
   try {
     const game = await orgaGame(prisma, 'Jeu des envois')
     const [aube, brume, ciel] = await Promise.all(['Aube envoi', 'Brume envoi', 'Ciel envoi'].map((base) => character(prisma, game.id, base)))
-    const lea = await person(prisma, game.id, 'Léa envoi', '')
-    const noe = await person(prisma, game.id, 'Noé envoi', 'refuse-')
-    const sam = await person(prisma, game.id, 'Sam sans email')
-    const session = await castSession(prisma, game.id, [[aube!, lea], [brume!, noe], [ciel!, sam]])
+    const lea = await gamePerson(prisma, game.id, 'Léa envoi', '')
+    const noe = await gamePerson(prisma, game.id, 'Noé envoi', 'refuse-')
+    const sam = await gamePerson(prisma, game.id, 'Sam sans email')
+    const session = await castOf(prisma, game.id, 'Session des documents', [[aube!, lea], [brume!, noe], [ciel!, sam]])
     const title = uniqueName('Feuille de route envoyée')
     await prisma.document.create({ data: { title, slug: slugOf(title), content: 'Rendez-vous à 9 h.', gameId: game.id, audiences: ['pjs'], readyToSend: true } })
     await signIn(page, prisma, E2E_USERS.orga)
@@ -167,9 +146,9 @@ test('fiches personnage : seules les fiches prêtes partent, en PDF (R10)', asyn
     const game = await orgaGame(prisma, 'Jeu des fiches')
     const ready = await character(prisma, game.id, 'Aube prête', { sheetReadyToSend: true })
     const draft = await character(prisma, game.id, 'Brume en brouillon')
-    const lea = await person(prisma, game.id, 'Léa fiche', '')
-    const noe = await person(prisma, game.id, 'Noé fiche', '')
-    const session = await castSession(prisma, game.id, [[ready, lea], [draft, noe]])
+    const lea = await gamePerson(prisma, game.id, 'Léa fiche', '')
+    const noe = await gamePerson(prisma, game.id, 'Noé fiche', '')
+    const session = await castOf(prisma, game.id, 'Session des documents', [[ready, lea], [draft, noe]])
     await signIn(page, prisma, E2E_USERS.orga)
     await openDocumentsTab(page, session)
 
@@ -191,8 +170,8 @@ test('PDF : la fiche d’un personnage, un document et la fiche allergies s’ou
   try {
     const game = await orgaGame(prisma, 'Jeu des PDF')
     const role = await character(prisma, game.id, 'Aube en PDF')
-    const lea = await person(prisma, game.id, 'Léa PDF')
-    const session = await castSession(prisma, game.id, [[role, lea]])
+    const lea = await gamePerson(prisma, game.id, 'Léa PDF')
+    const session = await castOf(prisma, game.id, 'Session des documents', [[role, lea]])
     const title = uniqueName('Document en PDF')
     const document = await prisma.document.create({ data: { title, slug: slugOf(title), content: 'Contenu du PDF.', gameId: game.id, audiences: ['pjs'] } })
     await signIn(page, prisma, E2E_USERS.orga)

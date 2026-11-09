@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
-import { choose, orgaGame, orgaSession, signIn, slugOf, test, uniqueName, type TestPrisma } from './helpers'
+import { blockWith, choose, gameCharacter, gamePerson, orgaGame, orgaSession, signIn, test, type TestPrisma } from './helpers'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -11,16 +11,12 @@ const DAY_MS = 24 * 60 * 60 * 1000
 async function paidSession(prisma: TestPrisma, base: string, people: string[]) {
   const game = await orgaGame(prisma, `Jeu ${base}`)
   const session = await orgaSession(prisma, game.id, base)
-  const cast = []
-  for (const who of people) {
-    const name = uniqueName(who)
-    const participant = await prisma.participant.create({ data: { name, slug: slugOf(name), email: `${slugOf(name)}@example.test`, gameLinks: { create: { gameId: game.id } } } })
-    const roleName = uniqueName(`Rôle de ${who}`)
-    const character = await prisma.character.create({ data: { name: roleName, slug: slugOf(roleName), gameId: game.id } })
-    await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
-    await prisma.sessionAssignment.create({ data: { gameId: game.id, sessionId: session.id, characterId: character.id, participantId: participant.id } })
-    cast.push({ participant, character })
-  }
+  const cast = await Promise.all(people.map(async (who) => ({
+    participant: await gamePerson(prisma, game.id, who, ''),
+    character: await gameCharacter(prisma, game.id, `Rôle de ${who}`)
+  })))
+  await prisma.sessionParticipant.createMany({ data: cast.map(({ participant }) => ({ sessionId: session.id, participantId: participant.id, role: 'participant' as const })) })
+  await prisma.sessionAssignment.createMany({ data: cast.map(({ participant, character }) => ({ gameId: game.id, sessionId: session.id, characterId: character.id, participantId: participant.id })) })
   return { game, session, cast }
 }
 
@@ -125,7 +121,7 @@ test('présence : une réponse en retard est signalée, et libérer la place ret
     await signIn(page, prisma, E2E_USERS.orga)
     await openTab(page, session, 'presence')
 
-    const lateRow = page.locator('article, li, div').filter({ hasText: late!.participant.name }).filter({ has: page.getByRole('button', { name: 'Libérer la place' }) }).last()
+    const lateRow = blockWith(page, page.getByText(late!.participant.name, { exact: true }), 'Libérer la place')
     await expect(lateRow.getByText('Délai dépassé')).toBeVisible()
     // Rien ne change tout seul (R19) : la personne est encore dans l'équipe et le casting
     expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: late!.participant.id } })).toBe(1)

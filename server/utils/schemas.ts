@@ -30,8 +30,6 @@ import {
   type RegistrationStandardFieldKey
 } from '~/utils/registrationForms'
 
-// Messages par défaut de zod en français : l'écran montre le détail d'une validation (US-210)
-z.config(z.locales.fr())
 
 const optionalText = z.string().trim().optional().nullable()
 const optionalBoolean = z.boolean().optional()

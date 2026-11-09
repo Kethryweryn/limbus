@@ -20,7 +20,7 @@ En tant que personne qui utilise Limbus, je veux que les refus affichés par un 
 
 ## Notes techniques
 
-`server/utils/schemas.ts` : `z.config(z.locales.fr())` pour les messages par défaut de zod ; `requiredText` et `requiredId` prennent un libellé français (« Le nom ») et reprennent la forme de `frenchText`, qu'ils remplacent ; les messages restés en anglais sont traduits. `server/api/uploads/session-assignment-photos*.ts`, `server/utils/auth.ts`. « Invalid request body » devient « Requête invalide » (`utils/apiErrors.ts` le remplace déjà par le détail de la validation).
+`server/plugins/zodLocale.ts` : `z.config(z.locales.fr())` au démarrage du serveur, pour les messages par défaut de zod, routes comme outils des assistants ; `server/utils/schemas.ts` : `requiredText` et `requiredId` prennent un libellé français (« Le nom ») et reprennent la forme de `frenchText`, qu'ils remplacent ; les messages restés en anglais sont traduits. `server/api/uploads/session-assignment-photos*.ts` ; `server/utils/auth.ts` (« Connexion requise », « Réservé à l’administration »), `server/api/games/[id].get.ts` (« Jeu introuvable »). Revue de la PR #192 : ces trois derniers refus étaient restés en anglais, et la configuration de zod passe dans un plugin. « Invalid request body » devient « Requête invalide » (`utils/apiErrors.ts` le remplace déjà par le détail de la validation).
 
 ## Tests
 
