@@ -27,6 +27,8 @@ Avant chaque push de code, correction de revue comprise (ADR-0067) :
 - `npm run lint`, `npm run typecheck` et `npm test` passent ; lire leur résultat.
 - Les tests liés au changement passent : relever les écrans, routes et utilitaires touchés, puis jouer les fichiers Playwright et d'intégration qui les couvrent, pas seulement les tests ajoutés. Sous Windows, le build échoue au prérendu : passer par le conteneur Linux (voir `.claude/rules/tests.md`). Si ces tests ne peuvent pas tourner, le dire et demander avant de pousser.
 
+Tests à écrire (ADR-0079) : une PR qui ajoute ou change ce qu'une personne voit ou peut faire ajoute ses tests Playwright sur quatre axes : actions, erreurs de saisie, droits, hors ligne. Un axe qui ne s'applique pas est écrit dans l'US, avec sa raison. La revue de code le vérifie.
+
 `.claude/hooks/avant-push.mjs` refuse un `git push` de code tant que le premier point échoue (ADR-0068). Une PR de documentation seule vérifie ses liens. La CI de la PR joue ensuite la suite complète (ADR-0023) : inutile de la relancer entière en local.
 
 Revue de code : chaque PR passe par `/code-review`. Tout constat se corrige, nettoyages compris (réutilisation, simplification, efficacité), même dans du code antérieur à la PR. Aucun constat n'est écarté sans l'accord explicite de l'utilisatrice ; un constat jugé faux lui est présenté avec sa raison.
