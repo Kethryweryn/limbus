@@ -162,3 +162,15 @@ export async function orgaGame(prisma: TestPrisma, base: string, data: { publish
 export function cardByTitle(page: Page, title: string) {
   return page.locator('[role="link"]').filter({ has: page.getByRole('heading', { name: new RegExp(`^${escapeRegExp(title)}( × \\d+)?$`) }) })
 }
+
+// Session d'un jeu propre au test (US-199)
+export async function orgaSession(prisma: TestPrisma, gameId: string, base: string, data: { date?: Date, status?: 'scheduled' | 'postponed' | 'cancelled' | 'completed', locationId?: string } = {}) {
+  const name = uniqueName(base)
+  return await prisma.session.create({ data: { name, slug: slugOf(name), gameId, ...data } })
+}
+
+// Personne liée au jeu donné, sans email : aucun envoi ne lui part (US-199)
+export async function gamePerson(prisma: TestPrisma, gameId: string, base: string) {
+  const name = uniqueName(base)
+  return await prisma.participant.create({ data: { name, slug: slugOf(name), gameLinks: { create: { gameId } } } })
+}

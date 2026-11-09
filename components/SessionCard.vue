@@ -1,6 +1,7 @@
 <template>
-  <!-- Une session de la liste : état, raccourcis vers ses onglets, avancement du cast (US-116, découpé de pages/sessions/index.vue) -->
-  <UCard class="mb-4">
+  <!-- Une session de la liste : état, raccourcis vers ses onglets, avancement du cast (US-116, découpé de pages/sessions/index.vue).
+       La carte entière ouvre la session, comme les autres listes (US-209) ; ses boutons arrêtent leur clic -->
+  <ContentCard :to="`/sessions/${session.slug}`" class="mb-4">
     <template #header>
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
@@ -21,11 +22,11 @@
             </UBadge>
           </div>
           <div class="flex flex-wrap gap-2">
-            <UButton v-for="tab in TABS" :key="tab.key" size="xs" color="neutral" variant="soft" :to="`/sessions/${session.slug}?tab=${tab.key}`">
+            <UButton v-for="tab in TABS" :key="tab.key" size="xs" color="neutral" variant="soft" :to="`/sessions/${session.slug}?tab=${tab.key}`" @click.stop>
               {{ tab.label }}
             </UButton>
-            <UButton size="xs" color="primary" @click="emit('edit')">Organisation</UButton>
-            <UButton size="xs" color="error" @click="emit('delete')">Supprimer</UButton>
+            <UButton size="xs" color="primary" @click.stop="emit('edit')">Modifier</UButton>
+            <UButton size="xs" color="error" @click.stop="emit('delete')">Supprimer</UButton>
           </div>
         </div>
       </div>
@@ -63,7 +64,7 @@
               type="button"
               class="size-20 shrink-0 overflow-hidden rounded border border-gray-200 bg-gray-50 flex items-center justify-center"
               :class="assignment.photoUrl ? 'cursor-pointer' : 'cursor-default'"
-              @click="assignment.photoUrl && emit('preview', assignment.photoUrl)"
+              @click.stop="assignment.photoUrl && emit('preview', assignment.photoUrl)"
             >
               <img
                 v-if="assignment.photoUrl"
@@ -85,7 +86,7 @@
         </div>
       </div>
     </div>
-  </UCard>
+  </ContentCard>
 </template>
 
 <script setup lang="ts">

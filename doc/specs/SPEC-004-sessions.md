@@ -66,7 +66,7 @@ Organiser une représentation d'un jeu : une session réunit une date, un lieu, 
   - « Annulée » et « Terminée » empêchent d'ajouter la session à une période d'inscription ([SPEC-001](SPEC-001-inscriptions.md)).
   - « Reportée » est donnée par le report (R15).
 - **R2b** Une session est visible ou non sur la page publique du jeu ; elle ne l'est pas par défaut. La page publique montre les sessions visibles si l'équipe l'a choisi ([SPEC-009](SPEC-009-page-publique.md), R1).
-- **R3** Supprimer une session qui a un paiement reçu ou une inscription est refusé : Limbus oriente vers l'annulation ou le report. Sinon, après une confirmation, la suppression efface :
+- **R3** Supprimer une session, depuis la liste ou depuis sa fiche ([US-209](../epics/EPIC-050-tests-par-ecran/US-209-carte-et-fiche-d-une-session.md)), qui a un paiement reçu ou une inscription est refusé : Limbus oriente vers l'annulation ou le report. Sinon, après une confirmation, la suppression efface :
   - son équipe, son casting, ses photos et ses responsables ;
   - ses paiements, ses envois, ses trombinoscopes et ses confirmations de présence.
 

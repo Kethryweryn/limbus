@@ -102,6 +102,7 @@ import GameContextBar from '@/components/GameContextBar.vue'
 import SessionForm from '@/components/SessionForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import { SESSION_STATUSES, isClosedSessionStatus } from '~/utils/domain'
+import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import { sessionFormPayload } from '~/utils/sessions'
 import type { ApiResponse } from '~/composables/useApiFetch'
@@ -298,7 +299,7 @@ async function handleSessionFormSubmit() {
 }
 
 async function deleteSession(id: string) {
-  if (!confirm('Supprimer cette session ?')) return
+  if (!confirm(DELETE_CONFIRMATIONS.session)) return
 
   deleteError.value = ''
   try {

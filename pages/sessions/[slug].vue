@@ -53,6 +53,14 @@
         >
           Prévenir l’équipe
         </UButton>
+        <!-- Supprimer depuis la fiche, avec la même confirmation que la liste (US-209) ; le serveur refuse une session qui a un
+             paiement reçu ou une inscription (R3) -->
+        <SheetDeleteButton
+          v-if="!isEditingDetails"
+          :url="`/api/sessions/${session.id}`"
+          :confirm-text="DELETE_CONFIRMATIONS.session"
+          list-path="/sessions"
+        />
       </div>
     </div>
 
@@ -135,6 +143,7 @@ import SessionTimelineForm from '@/components/SessionTimelineForm.vue'
 import SessionDocumentsManager from '@/components/SessionDocumentsManager.vue'
 import SessionPaymentsManager from '@/components/SessionPaymentsManager.vue'
 import { SESSION_STATUSES } from '~/utils/domain'
+import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import { isOfflineMissing } from '~/utils/connection'
 import { formatSessionDate as formatDate, sessionFormPayload, sessionStatusMeta as statusMeta, toDatetimeLocal } from '~/utils/sessions'

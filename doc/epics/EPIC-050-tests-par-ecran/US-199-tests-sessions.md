@@ -1,7 +1,7 @@
 ---
 id: US-199
 titre: Tester chaque écran des sessions
-statut: à faire
+statut: en cours
 epic: EPIC-050
 regles: []
 adr: []
@@ -20,6 +20,13 @@ En tant qu'organisatrice, je veux que la liste des sessions et chaque onglet d'u
 
 Specs : SPEC-004, SPEC-005, SPEC-006, SPEC-010. Tests Playwright dans `tests/e2e/`, selon `.claude/rules/tests.md`.
 
+## Avancement
+
+Le lot se livre en deux PR.
+
+- **Première PR (faite)** : liste des sessions (parties à venir et passées, période, recherche, pages), carte et suppression (US-209), détails (nom vide, lieu du même jeu, statut, page publique), cast (PNJ, réglage « un seul PJ », « Aucun participant »), déroulé (responsables), droits, création hors ligne. Défaut trouvé : la carte, le bouton « Organisation » et la suppression depuis la fiche ([US-209](US-209-carte-et-fiche-d-une-session.md)) ; le formulaire de session avait le même `required` que ceux de l'écriture ([US-204](US-204-champ-obligatoire-explique.md)).
+- **Seconde PR (à faire)** : trombinoscopes et PDF (avec les réglages d'un personnage et l'étiquette d'un groupe, reportés de l'US-198), documents et envois (avec « prêt à envoyer »), paiements, présence.
+
 ## Tests
 
-À compléter à la fin du lot.
+`tests/e2e/sessionScreens.spec.ts` : 7 tests.
