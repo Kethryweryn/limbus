@@ -275,3 +275,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-210](EPIC-050-tests-par-ecran/US-210-messages-en-francais.md) | Lire en français les refus du serveur | EPIC-050 | terminée |
 | [US-211](EPIC-050-tests-par-ecran/US-211-supprimer-un-participant-depuis-sa-fiche.md) | Supprimer un participant depuis sa fiche, et voir pourquoi c'est refusé | EPIC-050 | terminée |
 | [US-212](EPIC-050-tests-par-ecran/US-212-fiches-hors-ligne.md) | Rouvrir hors ligne toute fiche consultée | EPIC-050 | terminée |
+| [US-213](EPIC-050-tests-par-ecran/US-213-refus-explique-acces-et-compte.md) | Lire la raison d'un refus dans les formulaires de l'accès, du compte et de l'administration | EPIC-050 | à faire |
+| [US-214](EPIC-050-tests-par-ecran/US-214-action-sans-reseau.md) | Savoir qu'une action demande le réseau | EPIC-050 | à faire |
+| [US-215](EPIC-050-tests-par-ecran/US-215-page-d-administration-refusee.md) | Voir pourquoi une page d'administration est refusée | EPIC-050 | à faire |
+| [US-216](EPIC-050-tests-par-ecran/US-216-message-dans-la-carte.md) | Lire le résultat d'un formulaire du compte à côté de son bouton | EPIC-050 | à faire |

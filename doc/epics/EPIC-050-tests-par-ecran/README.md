@@ -31,6 +31,10 @@ Chaque écran de Limbus a plusieurs tests Playwright, sur quatre axes : ses acti
 | [US-210](US-210-messages-en-francais.md) | Lire en français les refus du serveur | terminée |
 | [US-211](US-211-supprimer-un-participant-depuis-sa-fiche.md) | Supprimer un participant depuis sa fiche, et voir pourquoi c'est refusé | terminée |
 | [US-212](US-212-fiches-hors-ligne.md) | Rouvrir hors ligne toute fiche consultée | terminée |
+| [US-213](US-213-refus-explique-acces-et-compte.md) | Lire la raison d'un refus dans les formulaires de l'accès, du compte et de l'administration | à faire |
+| [US-214](US-214-action-sans-reseau.md) | Savoir qu'une action demande le réseau | à faire |
+| [US-215](US-215-page-d-administration-refusee.md) | Voir pourquoi une page d'administration est refusée | à faire |
+| [US-216](US-216-message-dans-la-carte.md) | Lire le résultat d'un formulaire du compte à côté de son bouton | à faire |
 
 ## Définition de terminé
 
