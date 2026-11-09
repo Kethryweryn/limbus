@@ -90,6 +90,8 @@ describe('formulaire d’inscription d’un jeu', () => {
     const game = await aliceGame()
     await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, definition())
 
+    // Seul un jeu archivé se supprime (US-207)
+    await prisma.game.update({ where: { id: game.id }, data: { published: false } })
     expect((await api(alice, 'DELETE', `/api/games/${game.id}`)).status).toBe(200)
     expect(await prisma.registrationForm.count({ where: { gameId: game.id } })).toBe(0)
     expect(await prisma.registrationFormVersion.count({ where: { form: { gameId: game.id } } })).toBe(0)

@@ -11,7 +11,6 @@
           :items="gameOptions"
           value-key="value"
           placeholder="Choisissez un jeu"
-          required
           size="lg"
           class="w-full"
         />
@@ -19,11 +18,11 @@
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <UFormField label="Jour" :error="errors.day">
-          <UInput v-model="localEvent.day" type="number" min="1" required size="lg" class="w-full" />
+          <UInput v-model="localEvent.day" type="number" size="lg" class="w-full" />
         </UFormField>
 
         <UFormField label="Heure" :error="errors.time">
-          <UInput v-model="localEvent.time" type="time" required size="lg" class="w-full" />
+          <UInput v-model="localEvent.time" type="time" size="lg" class="w-full" />
         </UFormField>
 
         <UFormField label="Responsables nécessaires">
@@ -32,7 +31,7 @@
       </div>
 
       <UFormField label="Nom" :error="errors.name">
-        <UInput v-model="localEvent.name" required autofocus size="lg" class="w-full" />
+        <UInput v-model="localEvent.name" autofocus size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Description">
@@ -92,7 +91,7 @@
       </UFormField>
 
       <div class="flex flex-wrap gap-2 pt-2">
-        <UButton type="submit" color="primary" size="lg" :disabled="!canSubmit">
+        <UButton type="submit" color="primary" size="lg">
           {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
         </UButton>
         <UButton type="button" color="neutral" size="lg" @click="$emit('cancel')">
@@ -180,13 +179,6 @@ const itemOptions = computed(() =>
       label: item.name,
       value: item.id
     }))
-)
-
-const canSubmit = computed(() =>
-  localEvent.value.name?.trim()
-  && localEvent.value.gameId
-  && Number(localEvent.value.day) >= 1
-  && /^\d{2}:\d{2}$/.test(localEvent.value.time || '')
 )
 
 watch(() => props.event, (newEvent) => {

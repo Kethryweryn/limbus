@@ -57,6 +57,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-047](EPIC-047-demande-de-disponibilites/README.md) | Demande de disponibilités au vivier | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | à faire |
 | [EPIC-048](EPIC-048-casting-depuis-le-vivier/README.md) | Casting depuis le vivier | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | à faire |
 | [EPIC-049](../archive/epics/EPIC-049-schema-de-donnees/README.md) | Schéma de données | [fiche](../archive/todo/schema-de-donnees.md) | terminé |
+| [EPIC-050](EPIC-050-tests-par-ecran/README.md) | Plusieurs tests de bout en bout par écran | [fiche](../archive/todo/tests-par-ecran.md) | en cours |
 
 ## US
 
@@ -259,3 +260,14 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-195](../archive/epics/EPIC-049-schema-de-donnees/US-195-meme-jeu-sessions-et-vivier.md) | Faire refuser par la base un lien entre deux jeux dans les sessions et le vivier | EPIC-049 | terminée |
 | [US-196](EPIC-045-retours-du-cahier-de-tests/US-196-reperer-la-nouvelle-version.md) | Repérer une nouvelle version sans recharger la page | EPIC-045 | terminée |
 | [US-197](EPIC-045-retours-du-cahier-de-tests/US-197-carte-lieu-cliquable.md) | Ouvrir un lieu en cliquant sur sa carte | EPIC-045 | terminée |
+| [US-198](EPIC-050-tests-par-ecran/US-198-tests-ecriture.md) | Tester chaque écran de l'écriture d'un jeu | EPIC-050 | terminée |
+| [US-199](EPIC-050-tests-par-ecran/US-199-tests-sessions.md) | Tester chaque écran des sessions | EPIC-050 | à faire |
+| [US-200](EPIC-050-tests-par-ecran/US-200-tests-participants.md) | Tester chaque écran des participants | EPIC-050 | à faire |
+| [US-201](EPIC-050-tests-par-ecran/US-201-tests-compte-et-administration.md) | Tester les écrans du compte, de l'accès et de l'administration | EPIC-050 | à faire |
+| [US-202](EPIC-050-tests-par-ecran/US-202-tests-espace-participant.md) | Tester l'espace « Je participe », le lien public d'inscription et les assistants | EPIC-050 | à faire |
+| [US-203](EPIC-050-tests-par-ecran/US-203-tests-inscriptions.md) | Tester chaque règle des inscriptions | EPIC-050 | à faire |
+| [US-204](EPIC-050-tests-par-ecran/US-204-champ-obligatoire-explique.md) | Savoir quel champ obligatoire manque | EPIC-050 | terminée |
+| [US-205](EPIC-050-tests-par-ecran/US-205-option-aucun.md) | Choisir « Aucun » dans une liste de choix | EPIC-050 | terminée |
+| [US-206](EPIC-050-tests-par-ecran/US-206-erreur-du-serveur-dans-le-formulaire.md) | Voir le refus du serveur dans le formulaire d'un personnage ou d'un jeu | EPIC-050 | terminée |
+| [US-207](EPIC-050-tests-par-ecran/US-207-supprimer-un-jeu-archive.md) | Supprimer définitivement un jeu archivé | EPIC-050 | terminée |
+| [US-208](EPIC-050-tests-par-ecran/US-208-description-une-seule-fois.md) | Lire la description d'un jeu une seule fois | EPIC-050 | terminée |

@@ -309,25 +309,22 @@ function closeSlideover() {
     showSlideover.value = false
 }
 
+// Une erreur remonte au formulaire, qui l'affiche (US-206)
 async function handleFormSubmit() {
     if (!activeFormCharacter.value) return
-    try {
-        if (formMode.value === 'create') {
-            await useApiFetch('/api/characters', {
-                method: 'POST',
-                body: activeFormCharacter.value
-            })
-        } else if (formMode.value === 'edit') {
-            await useApiFetch(`/api/characters/${activeFormCharacter.value.id}`, {
-                method: 'PUT',
-                body: activeFormCharacter.value
-            })
-        }
-        closeSlideover()
-        await Promise.all([fetchCharacters(), fetchFactions()])
-    } catch (error) {
-        console.error('Erreur lors de la soumission du formulaire', error)
+    if (formMode.value === 'create') {
+        await useApiFetch('/api/characters', {
+            method: 'POST',
+            body: activeFormCharacter.value
+        })
+    } else if (formMode.value === 'edit') {
+        await useApiFetch(`/api/characters/${activeFormCharacter.value.id}`, {
+            method: 'PUT',
+            body: activeFormCharacter.value
+        })
     }
+    closeSlideover()
+    await Promise.all([fetchCharacters(), fetchFactions()])
 }
 
 const deleteCharacter = async (id: string) => {

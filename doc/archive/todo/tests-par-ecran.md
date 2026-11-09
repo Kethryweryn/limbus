@@ -1,7 +1,8 @@
 ---
 titre: Plusieurs tests de bout en bout par écran
-statut: prête
+statut: archivée
 date: 2026-11-09
+epic: ../../epics/EPIC-050-tests-par-ecran/README.md
 ---
 
 # Plusieurs tests de bout en bout par écran

@@ -1,0 +1,5 @@
+{
+  "type": "corrige",
+  "titre": "« Aucun » se choisit de nouveau",
+  "texte": "Dans les listes de choix, les options « Aucun personnage », « Aucun lieu », « Aucun participant », « À décider » ou « Aucun rôle » s’affichaient mal et ne pouvaient pas être choisies. Elles permettent de nouveau de retirer un choix."
+}

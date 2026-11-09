@@ -51,6 +51,30 @@ test('la page publique suit un renommage et montre sessions et inscription', asy
   }
 })
 
+// US-198 : sans les deux cases, la page ne montre que la présentation (SPEC-009 R1) ; une copie léguée montre son crédit (R2)
+test('sans les cases de la fiche, ni sessions ni inscription ; une copie léguée montre son crédit', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+    const title = uniqueName('Jeu public discret')
+    const game = await prisma.game.create({
+      data: { title, slug: slugOf(title), description: 'Une présentation seule', ownerId: owner.id, publicPage: true, creditSourceTitle: 'Le jeu d’origine', creditAuthorName: 'Autrice d’origine' }
+    })
+    const session = await prisma.session.create({ data: { name: `Session ${title}`, slug: slugOf(`session ${title}`), gameId: game.id, published: true, date: new Date('2099-11-01T09:00:00Z') } })
+    await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `d${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } } })
+
+    await page.goto(`/public/games/${game.slug}`)
+    await expect(page.getByRole('heading', { name: title })).toBeVisible()
+    await expect(page.getByText('Une présentation seule')).toBeVisible()
+    await expect(page.getByText('D’après « Le jeu d’origine », de Autrice d’origine')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Prochaines sessions' })).toHaveCount(0)
+    await expect(page.getByText(session.name)).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'S’inscrire au jeu' })).toHaveCount(0)
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
 // EPIC-031 (US-118) : la personne confirme sa présence par son lien personnel (US-024)
 test('une personne confirme sa présence par son lien', async ({ page }) => {
   const prisma = createTestPrisma()

@@ -11,14 +11,13 @@
           :items="gameOptions"
           value-key="value"
           placeholder="Choisissez un jeu"
-          required
           size="lg"
           class="w-full"
         />
       </UFormField>
 
       <UFormField label="Nom" :error="errors.name">
-        <UInput v-model="localFaction.name" required autofocus size="lg" class="w-full" />
+        <UInput v-model="localFaction.name" autofocus size="lg" class="w-full" />
       </UFormField>
 
       <UFormField label="Pitch">
@@ -44,7 +43,6 @@
       <UFormField label="Lien vers un background externe">
         <UInput
           v-model.nullable="localFaction.backgroundDocumentUrl"
-          type="url"
           size="lg"
           class="w-full"
           placeholder="Google Docs, PDF, DOCX ou ODT hébergé ailleurs"
@@ -75,7 +73,7 @@
       </UFormField>
 
       <div class="flex flex-wrap gap-2 pt-2">
-        <UButton type="submit" color="primary" size="lg" :disabled="!localFaction.name?.trim() || !localFaction.gameId">
+        <UButton type="submit" color="primary" size="lg">
           {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
         </UButton>
         <UButton type="button" color="neutral" size="lg" @click="$emit('cancel')">

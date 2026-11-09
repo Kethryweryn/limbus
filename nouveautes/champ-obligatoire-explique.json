@@ -1,0 +1,5 @@
+{
+  "type": "modifie",
+  "titre": "Un message pour chaque champ obligatoire",
+  "texte": "Dans les formulaires des personnages, groupes, intrigues, objets, documents et événements, le bouton « Créer » n’est plus grisé : s’il manque un champ obligatoire, comme le nom, ou si une valeur ne convient pas, un message dit lequel."
+}

@@ -143,6 +143,8 @@ describe('liens entre éléments de deux jeux (US-191, US-195)', () => {
     const a = await gameWithContent()
     await prisma.item.update({ where: { id: a.item.id }, data: { locationCharacterId: a.character.id } })
     await prisma.characterFaction.create({ data: { gameId: a.gameId, characterId: a.character.id, factionId: a.faction.id } })
+    // Seul un jeu archivé se supprime (US-207)
+    await prisma.game.update({ where: { id: a.gameId }, data: { published: false } })
     expect((await api(alice, 'DELETE', `/api/games/${a.gameId}`)).status).toBe(200)
     expect(await prisma.characterFaction.count({ where: { gameId: a.gameId } })).toBe(0)
     expect(await prisma.item.count({ where: { gameId: a.gameId } })).toBe(0)

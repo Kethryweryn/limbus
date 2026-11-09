@@ -78,6 +78,8 @@ describe('un seul vivier par jeu (R1)', () => {
 
   it('la suppression du jeu emporte son vivier', async () => {
     const pool = await createPool(prisma, alice.id)
+    // Seul un jeu archivé se supprime (US-207)
+    await prisma.game.update({ where: { id: pool.game.id }, data: { published: false } })
     expect((await api(alice, 'DELETE', `/api/games/${pool.game.id}`)).status).toBe(200)
     expect(await prisma.registrationPeriod.findUnique({ where: { id: pool.period.id } })).toBeNull()
   })

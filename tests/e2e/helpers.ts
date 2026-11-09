@@ -3,7 +3,7 @@ import { expect, test as base, type BrowserContext, type Locator, type Page } fr
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { JWT_SECRET } from '../integration/constants'
-import { E2E_PASSWORD, PARCOURS } from './constants'
+import { E2E_PASSWORD, E2E_USERS, PARCOURS } from './constants'
 import { escapeRegExp } from '../regexp'
 import type { UserRole } from '~/generated/prisma/enums'
 
@@ -149,4 +149,16 @@ export async function signIn(page: Page, prisma: TestPrisma, email: string) {
   await page.context().addCookies([{ name: '__Host-limbus_token', value: token, domain: new URL(test.info().project.use.baseURL!).hostname, path: '/', httpOnly: true, secure: true, sameSite: 'Lax' }])
   await page.goto('/')
   await expectLoggedIn(page)
+}
+
+// Jeu propre au test, de l'organisatrice des parcours (US-198) ; `published: false` en fait un jeu archivé (ADR-0027)
+export async function orgaGame(prisma: TestPrisma, base: string, data: { published?: boolean, publicPage?: boolean } = {}) {
+  const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+  const title = uniqueName(base)
+  return await prisma.game.create({ data: { title, slug: slugOf(title), description: '', ownerId: owner.id, ...data } })
+}
+
+// Carte cliquable d'une liste, par son titre ; celui d'un objet en plusieurs exemplaires finit par sa quantité (« × 3 »)
+export function cardByTitle(page: Page, title: string) {
+  return page.locator('[role="link"]').filter({ has: page.getByRole('heading', { name: new RegExp(`^${escapeRegExp(title)}( × \\d+)?$`) }) })
 }

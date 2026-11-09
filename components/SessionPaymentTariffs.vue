@@ -31,10 +31,10 @@
         <UInput v-model="tariffForm.amount" type="number" min="0" step="0.01" />
       </UFormField>
       <UFormField label="Par défaut pour">
-        <USelect v-model="tariffForm.defaultRole" :items="defaultRoleOptions" value-key="value" />
+        <USelect v-model="defaultRoleModel" :items="defaultRoleOptions" value-key="value" />
       </UFormField>
       <UFormField label="Tarif de base (solidaire)">
-        <USelect v-model="tariffForm.baseTariffId" :items="baseTariffOptions" value-key="value" />
+        <USelect v-model="baseTariffModel" :items="baseTariffOptions" value-key="value" />
       </UFormField>
       <div class="flex gap-1">
         <UButton type="submit" color="primary" variant="soft" :loading="savingTariff" :disabled="!tariffForm.name.trim() || tariffForm.amount === ''">
@@ -48,20 +48,23 @@
 
 <script setup lang="ts">
 import { TARIFF_ROLE_LABELS, formatEuros } from '~/utils/sessionTariffs'
+import { noneOption, selectModel } from '~/utils/selectOptions'
 import { useSessionPaymentActions, type PaymentTariff } from '~/composables/useSessionPaymentActions'
 
 const { tariffMode, tariffs, write } = useSessionPaymentActions()
 
 const defaultRoleOptions = [
-  { label: 'Aucun rôle', value: '' },
+  noneOption('Aucun rôle'),
   ...Object.entries(TARIFF_ROLE_LABELS).map(([value, label]) => ({ label, value }))
 ]
 const emptyTariffForm = () => ({ id: '', name: '', amount: '', defaultRole: '', baseTariffId: '', updatedAt: '' })
 const tariffForm = reactive(emptyTariffForm())
+const defaultRoleModel = selectModel(() => tariffForm.defaultRole, (value) => { tariffForm.defaultRole = value })
+const baseTariffModel = selectModel(() => tariffForm.baseTariffId, (value) => { tariffForm.baseTariffId = value })
 const savingTariff = ref(false)
 const deletingTariffId = ref('')
 const baseTariffOptions = computed(() => [
-  { label: 'Aucun (tarif normal)', value: '' },
+  noneOption('Aucun (tarif normal)'),
   ...tariffs.value
     .filter((tariff) => tariff.id !== tariffForm.id && !tariff.baseTariffId)
     .map((tariff) => ({ label: `${tariff.name} (${formatEuros(tariff.amountCents)})`, value: tariff.id }))

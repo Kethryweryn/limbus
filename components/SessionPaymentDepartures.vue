@@ -20,12 +20,12 @@
         </div>
       </div>
       <USelect
-        :model-value="refund.refundStatus || ''"
+        :model-value="toSelectValue(refund.refundStatus)"
         :items="refundOptions"
         value-key="value"
         :disabled="updatingRefundId === refund.participant.id"
         class="w-full md:w-72"
-        @update:model-value="(value) => decide(refund, '/refund', { status: value || null })"
+        @update:model-value="(value) => decide(refund, '/refund', { status: fromSelectValue(value) || null })"
       />
     </article>
   </section>
@@ -47,7 +47,7 @@
       </div>
       <div class="flex flex-col gap-1 md:w-72">
         <USelect
-          :model-value="pendingTransferId === payment.participant.id ? 'transferred' : payment.refundStatus || ''"
+          :model-value="pendingTransferId === payment.participant.id ? REFUND_STATUSES.transferred : toSelectValue(payment.refundStatus)"
           :items="departureOptions"
           value-key="value"
           :disabled="updatingRefundId === payment.participant.id"
@@ -69,6 +69,7 @@
 <script setup lang="ts">
 import { REFUND_STATUSES, SESSION_STATUSES } from '~/utils/domain'
 import { formatEuros } from '~/utils/sessionTariffs'
+import { fromSelectValue, noneOption, toSelectValue } from '~/utils/selectOptions'
 import { useSessionPaymentActions, type DeparturePayment, type PaymentRefund } from '~/composables/useSessionPaymentActions'
 import { formatEventDate } from '~/utils/sessions'
 
@@ -83,7 +84,7 @@ const pendingTransferId = ref('')
 const isPostponed = computed(() => session()?.status === SESSION_STATUSES.postponed)
 const refundsToDo = computed(() => props.refunds.filter((refund) => !refund.refundStatus || refund.refundStatus === REFUND_STATUSES.toRefund).length)
 const refundOptions = computed(() => [
-  { label: 'À décider', value: '' },
+  noneOption('À décider'),
   { label: 'À rembourser', value: REFUND_STATUSES.toRefund },
   { label: 'Remboursé', value: REFUND_STATUSES.refunded },
   ...(isPostponed.value && session()?.postponedToSessionId
@@ -93,17 +94,15 @@ const refundOptions = computed(() => [
 
 // Paiement d'une personne partie (US-039) : décision, ou transfert au remplaçant
 const departureOptions = [
-  { label: 'À décider', value: '' },
+  noneOption('À décider'),
   { label: 'À rembourser', value: REFUND_STATUSES.toRefund },
   { label: 'Remboursé', value: REFUND_STATUSES.refunded },
   { label: 'Gardé, non remboursé', value: REFUND_STATUSES.kept },
   { label: 'Transféré au remplaçant', value: REFUND_STATUSES.transferred }
 ]
 const departureLabel = (status: string) => departureOptions.find((option) => option.value === status)?.label || ''
-const transferTargetOptions = computed(() => [
-  { label: 'Remplaçant…', value: '' },
-  ...rows.value.map((row) => ({ label: row.participant.name, value: row.participant.id }))
-])
+// Sans choix, le champ affiche « Remplaçant… » (placeholder)
+const transferTargetOptions = computed(() => rows.value.map((row) => ({ label: row.participant.name, value: row.participant.id })))
 
 // Décision sur le paiement d'une personne, avec la version lue de sa ligne (ADR-0036)
 async function decide(payment: PaymentRefund | DeparturePayment, path: '/refund' | '/departure', body: Record<string, unknown>) {
@@ -121,7 +120,7 @@ function setDeparture(payment: DeparturePayment, value: string) {
     return
   }
   pendingTransferId.value = ''
-  return decide(payment, '/departure', { status: value || null })
+  return decide(payment, '/departure', { status: fromSelectValue(value) || null })
 }
 
 function transferPayment(payment: DeparturePayment, targetId: string) {

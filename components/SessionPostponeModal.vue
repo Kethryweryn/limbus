@@ -16,7 +16,7 @@
         </UFormField>
 
         <UFormField label="Lieu">
-          <USelect v-model="form.locationId" :items="locationOptions" value-key="value" class="w-full" />
+          <USelect v-model="locationModel" :items="locationOptions" value-key="value" class="w-full" />
         </UFormField>
 
         <p v-if="error" class="text-sm text-red-500">{{ error }}</p>
@@ -33,6 +33,7 @@
 </template>
 
 <script setup lang="ts">
+import { noneOption, selectModel } from '~/utils/selectOptions'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
@@ -46,6 +47,7 @@ const emit = defineEmits<{ postponed: [session: PostponedSession] }>()
 const open = defineModel<boolean>('open', { default: false })
 
 const form = ref({ name: '', date: '', locationId: '' })
+const locationModel = selectModel(() => form.value.locationId, (value) => { form.value.locationId = value })
 const saving = ref(false)
 const error = ref('')
 
@@ -57,7 +59,7 @@ watch(open, (value) => {
 })
 
 const locationOptions = computed(() => [
-  { label: 'Aucun lieu', value: '' },
+  noneOption('Aucun lieu'),
   ...props.locations
     .filter((location) => location.gameId === props.session?.gameId)
     .map((location) => ({

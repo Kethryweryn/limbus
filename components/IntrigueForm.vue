@@ -11,7 +11,6 @@
           :items="gameOptions"
           value-key="value"
           placeholder="Choisissez un jeu"
-          required
           size="lg"
           class="w-full"
         />
@@ -19,7 +18,7 @@
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <UFormField label="Nom" :error="errors.name">
-          <UInput v-model="localIntrigue.name" required autofocus size="lg" class="w-full" />
+          <UInput v-model="localIntrigue.name" autofocus size="lg" class="w-full" />
         </UFormField>
 
         <UFormField label="Niveau" :error="errors.level">
@@ -79,7 +78,7 @@
       />
 
       <div class="flex flex-wrap gap-2 pt-2">
-        <UButton type="submit" color="primary" size="lg" :disabled="!localIntrigue.name?.trim() || !localIntrigue.gameId">
+        <UButton type="submit" color="primary" size="lg">
           {{ mode === 'edit' ? 'Enregistrer' : 'Créer' }}
         </UButton>
         <UButton type="button" color="neutral" size="lg" @click="$emit('cancel')">

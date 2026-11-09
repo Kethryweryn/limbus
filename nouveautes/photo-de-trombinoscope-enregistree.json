@@ -1,0 +1,5 @@
+{
+  "type": "corrige",
+  "titre": "Photo de trombinoscope d’un personnage",
+  "texte": "Après avoir ajouté la photo de trombinoscope par défaut d’un personnage, le formulaire refusait de s’enregistrer. La photo s’enregistre maintenant avec le personnage."
+}

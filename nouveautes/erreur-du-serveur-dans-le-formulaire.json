@@ -1,0 +1,5 @@
+{
+  "type": "corrige",
+  "titre": "Un refus expliqué dans le formulaire",
+  "texte": "Quand l’enregistrement d’un personnage ou d’un jeu est refusé, par exemple pour un lien de teaser sans https://, le formulaire dit maintenant pourquoi au lieu de rester ouvert sans rien afficher."
+}

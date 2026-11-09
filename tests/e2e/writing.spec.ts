@@ -3,14 +3,7 @@ import { createTestPrisma } from '../integration/db'
 import { linkToken } from '../integration/smtp'
 import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
-import { blockWith, signIn, slugOf, test, uniqueName, type TestPrisma } from './helpers'
-
-// Jeu propre au test, de l'organisatrice des parcours
-async function writingGame(prisma: TestPrisma, base: string) {
-  const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
-  const title = uniqueName(base)
-  return await prisma.game.create({ data: { title, slug: slugOf(title), description: '', ownerId: owner.id } })
-}
+import { blockWith, orgaGame, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
 
 async function chooseGame(page: Page, form: Locator, title: string) {
   await form.getByLabel('Jeu', { exact: true }).click()
@@ -71,7 +64,7 @@ for (const [label, element] of Object.entries(ELEMENTS)) {
   test(`${label} se crée, se renomme et se supprime`, async ({ page }) => {
     const prisma = createTestPrisma()
     try {
-      const game = await writingGame(prisma, `Jeu ${element.noun}`)
+      const game = await orgaGame(prisma, `Jeu ${element.noun}`)
       const name = uniqueName(`${element.noun} créé`)
 
       await signIn(page, prisma, E2E_USERS.orga)
@@ -151,7 +144,7 @@ for (const sheet of SHEETS) {
   test(`un ${sheet.noun} se supprime depuis sa fiche, en lecture et en modification`, async ({ page }) => {
     const prisma = createTestPrisma()
     try {
-      const game = await writingGame(prisma, `Jeu suppression ${sheet.noun}`)
+      const game = await orgaGame(prisma, `Jeu suppression ${sheet.noun}`)
       const [read, edited] = await Promise.all([
         sheet.create(prisma, game.id, uniqueName(`${sheet.noun} lu`)),
         sheet.create(prisma, game.id, uniqueName(`${sheet.noun} modifié`))
@@ -194,7 +187,7 @@ for (const sheet of SHEETS) {
 test('un événement de la timeline se crée et se renomme', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
-    const game = await writingGame(prisma, 'Jeu timeline')
+    const game = await orgaGame(prisma, 'Jeu timeline')
     const name = uniqueName('Arrivée des invités')
 
     await signIn(page, prisma, E2E_USERS.orga)
@@ -202,7 +195,8 @@ test('un événement de la timeline se crée et se renomme', async ({ page }) =>
     await page.waitForLoadState('networkidle')
     // La timeline s'ouvre jeu par jeu
     await page.getByPlaceholder('Rechercher un jeu...').fill(game.title)
-    await blockWith(page, page.getByText(game.title, { exact: true }), 'Ouvrir').getByRole('button', { name: 'Ouvrir' }).click()
+    // Le jeu se choisit dans la liste de la recherche ; les cartes « Ouvrir » de la page dépendent des autres tests
+    await page.getByRole('button', { name: game.title, exact: true }).click()
     await page.getByRole('button', { name: 'Créer un événement' }).click()
     const form = page.getByRole('dialog')
     await chooseGame(page, form, game.title)
@@ -233,6 +227,8 @@ test('un jeu se crée, se renomme et se partage avec une co-organisatrice', asyn
   const mailbox = openMailbox()
   try {
     const title = uniqueName('Nouveau jeu')
+    // Invitée propre au test : son email ne se mêle pas à ceux d'un test voisin (US-198)
+    const { user: invited, email: invitedEmail } = await testUser(prisma, 'Invitée partage')
 
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/games')
@@ -255,20 +251,19 @@ test('un jeu se crée, se renomme et se partage avec une co-organisatrice', asyn
     // Partage : l'invitée reçoit un lien et l'accepte depuis son compte
     await page.getByRole('button', { name: 'Partager' }).click()
     const share = page.getByRole('dialog')
-    await share.getByPlaceholder('email@exemple.fr').fill(E2E_USERS.autre)
+    await share.getByPlaceholder('email@exemple.fr').fill(invitedEmail)
     await share.getByRole('button', { name: 'Inviter' }).click()
-    await expect(share.getByText(`Invitation envoyée à ${E2E_USERS.autre}.`)).toBeVisible()
-    await expect.poll(() => mailbox.to(E2E_USERS.autre).length).toBe(1)
-    const token = linkToken(mailbox.to(E2E_USERS.autre)[0]!, '/invitations/')
+    await expect(share.getByText(`Invitation envoyée à ${invitedEmail}.`)).toBeVisible()
+    await expect.poll(() => mailbox.to(invitedEmail).length).toBe(1)
+    const token = linkToken(mailbox.to(invitedEmail)[0]!, '/invitations/')
 
     const guest = await otherPage()
-    await signIn(guest, prisma, E2E_USERS.autre)
+    await signIn(guest, prisma, invitedEmail)
     await guest.goto(`/invitations/${token}`)
     await guest.waitForLoadState('networkidle')
     await guest.getByRole('button', { name: 'Accepter l’invitation' }).click()
     await expect(guest).toHaveURL(new RegExp(`/games/${(await prisma.game.findUniqueOrThrow({ where: { id: game.id } })).slug}$`))
-    const autre = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.autre } })
-    expect(await prisma.gameShare.count({ where: { gameId: game.id, userId: autre.id } })).toBe(1)
+    expect(await prisma.gameShare.count({ where: { gameId: game.id, userId: invited.id } })).toBe(1)
   } finally {
     await prisma.$disconnect()
   }
