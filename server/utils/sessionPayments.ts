@@ -169,7 +169,7 @@ export async function setSessionPaymentRefund(sessionId: string, participantId: 
         const carried = await tx.sessionPayment.upsert({
           where: { sessionId_participantId: { sessionId: targetId, participantId } },
           // La date du premier versement tient lieu de date de paiement si la nouvelle session est en mode simple
-          create: { sessionId: targetId, participantId, paidAt: payment.paidAt || payment.instalments[0]?.receivedAt || null },
+          create: { gameId: target.gameId, sessionId: targetId, participantId, paidAt: payment.paidAt || payment.instalments[0]?.receivedAt || null },
           update: { paidAt: payment.paidAt || payment.instalments[0]?.receivedAt || null }
         })
         const total = receivedCents(payment)
@@ -482,23 +482,23 @@ export async function deleteSessionTariff(sessionId: string, tariffId: string) {
 
 export async function setSessionPaymentTariff(sessionId: string, participantId: string, tariffId: string | null) {
   await assertTariffMode(sessionId)
-  await assertInPaymentTable(sessionId, participantId)
+  const { gameId } = await assertInPaymentTable(sessionId, participantId)
   if (tariffId && !await prisma.sessionTariff.count({ where: { id: tariffId, sessionId } })) {
     throw createError({ statusCode: 400, message: 'Tarif invalide pour cette session.' })
   }
   return await prisma.sessionPayment.upsert({
     where: { sessionId_participantId: { sessionId, participantId } },
-    create: { sessionId, participantId, tariffId },
+    create: { gameId, sessionId, participantId, tariffId },
     update: { tariffId }
   })
 }
 
 export async function addSessionPaymentInstalment(sessionId: string, participantId: string, input: { amount: number, receivedAt?: Date | null }) {
   await assertTariffMode(sessionId)
-  await assertInPaymentTable(sessionId, participantId)
+  const { gameId } = await assertInPaymentTable(sessionId, participantId)
   const payment = await prisma.sessionPayment.upsert({
     where: { sessionId_participantId: { sessionId, participantId } },
-    create: { sessionId, participantId },
+    create: { gameId, sessionId, participantId },
     update: {}
   })
   return await prisma.sessionPaymentInstalment.create({
@@ -631,6 +631,7 @@ export async function setSessionPaymentStatus(sessionId: string, participantId: 
       }
     },
     create: {
+      gameId: session.gameId,
       sessionId,
       participantId,
       paidAt: paid ? paidAt || new Date() : null
@@ -697,6 +698,7 @@ export async function sendSessionPaymentEmails(sessionId: string, reminder = fal
           }
         },
         create: {
+          gameId: dashboard.session.game.id,
           sessionId,
           participantId: row.participant.id,
           paymentEmailSentAt: isReminder ? row.paymentEmailSentAt || now : now,
@@ -752,10 +754,10 @@ export async function sendSessionPaymentTestEmails(sessionId: string, emails: st
 
 // Place offerte (US-041) : rien à payer, sans créer de tarif
 export async function setSessionPaymentOffered(sessionId: string, participantId: string, offered: boolean) {
-  await assertInPaymentTable(sessionId, participantId)
+  const { gameId } = await assertInPaymentTable(sessionId, participantId)
   return await prisma.sessionPayment.upsert({
     where: { sessionId_participantId: { sessionId, participantId } },
-    create: { sessionId, participantId, offered },
+    create: { gameId, sessionId, participantId, offered },
     update: { offered }
   })
 }
@@ -808,7 +810,7 @@ export async function setDepartedPaymentStatus(sessionId: string, participantId:
   return await prisma.$transaction(async (tx) => {
     const target = await tx.sessionPayment.upsert({
       where: { sessionId_participantId: { sessionId, participantId: transferToParticipantId } },
-      create: { sessionId, participantId: transferToParticipantId, paidAt: session.tariffs.length ? null : paidAt },
+      create: { gameId: session.gameId, sessionId, participantId: transferToParticipantId, paidAt: session.tariffs.length ? null : paidAt },
       update: session.tariffs.length ? {} : { paidAt }
     })
     if (session.tariffs.length && total) {

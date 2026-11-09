@@ -10,7 +10,7 @@ test('l’assistant propose une pré-inscrite, retenue quand le cast s’enregis
   try {
     const { session, game, participant } = await parcoursSession(prisma, 'Session pré-inscrite e2e')
     const registration = await prisma.registration.findFirstOrThrow({ where: { participantId: participant('Léa Parcours').id, period: { gameId: game.id } } })
-    await prisma.registrationSession.create({ data: { registrationId: registration.id, sessionId: session.id, status: 'preregistered', answer: 'available' } })
+    await prisma.registrationSession.create({ data: { registrationId: registration.id, gameId: session.gameId, sessionId: session.id, status: 'preregistered', answer: 'available' } })
 
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto(`/sessions/${session.slug}?tab=cast`)

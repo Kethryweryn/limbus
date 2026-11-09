@@ -39,8 +39,8 @@ async function sessionWithPeople() {
   const [first, second] = await Promise.all([character('Aube'), character('Brume')])
   await prisma.sessionAssignment.createMany({
     data: [
-      { sessionId: session.id, characterId: first.id, participantId: player.id },
-      { sessionId: session.id, characterId: second.id, participantId: both.id }
+      { gameId: session.gameId, sessionId: session.id, characterId: first.id, participantId: player.id },
+      { gameId: session.gameId, sessionId: session.id, characterId: second.id, participantId: both.id }
     ]
   })
   await prisma.sessionParticipant.createMany({

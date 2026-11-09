@@ -153,7 +153,7 @@ export async function submitFormRegistration(event: H3Event, publicId: string | 
   await purgeRegistrationRequests()
   const { token, tokenHash } = createRegistrationToken()
   await prisma.registrationRequest.create({
-    data: { periodId: period.id, email: answers.email, answers: { ...answers, availableSessionIds }, formVersionId: versionId, tokenHash }
+    data: { gameId: period.gameId, periodId: period.id, email: answers.email, answers: { ...answers, availableSessionIds }, formVersionId: versionId, tokenHash }
   })
   const emailSent = await sendEmail({
     to: answers.email,
@@ -225,15 +225,15 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
       // Deux ouvertures simultanées du lien de confirmation visent le même jeton
       ...(tokenHash ? { links: { connectOrCreate: { where: { tokenHash }, create: { tokenHash } } } } : {})
     }
-    const { id: registrationId } = await tx.registration.upsert({
+    const registration = await tx.registration.upsert({
       where: { periodId_participantId: { periodId: period.id, participantId: participant.id } },
       update: data,
-      create: { ...data, periodId: period.id, participantId: participant.id, source: REGISTRATION_SOURCES.form },
-      select: { id: true }
+      create: { ...data, gameId: period.gameId, periodId: period.id, participantId: participant.id, source: REGISTRATION_SOURCES.form },
+      select: { id: true, gameId: true }
     })
-    await replaceAffinities(tx, registrationId, affinities)
-    for (const sessionId of availability) await answerAvailability(tx, registrationId, sessionId, true, now)
-    return { registrationId, participantName: participant.name }
+    await replaceAffinities(tx, registration.id, affinities)
+    for (const sessionId of availability) await answerAvailability(tx, registration, sessionId, true, now)
+    return { registrationId: registration.id, participantName: participant.name }
   })
 
   // Après la réponse : la personne n'attend pas le serveur SMTP, et un échec ne change rien à son inscription

@@ -118,7 +118,7 @@ describe('suppressions', () => {
   it('un personnage distribué dans une session se supprime, avec la photo de son assignation', async () => {
     const { game, character, participant, session } = await aliceGame('perso')
     const photo = await upload('photo', game.id, session.id)
-    await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id, photoUrl: photo.url } })
+    await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: character.id, participantId: participant.id, photoUrl: photo.url } })
 
     expect((await api(alice, 'DELETE', `/api/characters/${character.id}`)).status).toBe(200)
 
@@ -143,7 +143,7 @@ describe('suppressions', () => {
         ] }
       }
     })
-    await prisma.sessionAssignment.create({ data: { sessionId: other.id, characterId: character.id, photoUrl: shared.url } })
+    await prisma.sessionAssignment.create({ data: { gameId: other.gameId, sessionId: other.id, characterId: character.id, photoUrl: shared.url } })
 
     expect((await api(alice, 'DELETE', `/api/sessions/${session.id}`)).status).toBe(200)
 
@@ -158,7 +158,7 @@ describe('fichiers remplacés', () => {
     const { game, character, participant, session } = await aliceGame('remplace')
     const before = await upload('photo', game.id, session.id)
     const after = await upload('photo', game.id, session.id)
-    await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id, photoUrl: before.url } })
+    await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: character.id, participantId: participant.id, photoUrl: before.url } })
     await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
 
     const response = await api(alice, 'PUT', `/api/sessions/${session.id}`, {
@@ -240,7 +240,7 @@ describe('trombinoscopes après un changement de distribution', () => {
     const remplacant = await prisma.participant.create({
       data: { name: 'Remplaçant', slug: 'joueur-contenu-remplacant', gameLinks: { create: { gameId: game.id } } }
     })
-    const assignment = await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id } })
+    const assignment = await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: character.id, participantId: participant.id } })
     const url = `/api/sessions/${session.id}/trombinoscopes/${character.id}`
 
     expect((await api(alice, 'POST', `/api/sessions/${session.id}/trombinoscopes/generate`, {})).status).toBe(200)

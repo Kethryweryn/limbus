@@ -40,7 +40,7 @@ async function postponedSession() {
       { sessionId: old.id, participantId: sam.id, role: 'kitchen' }
     ]
   })
-  await prisma.sessionAssignment.create({ data: { sessionId: old.id, characterId: aube.id, participantId: lea.id } })
+  await prisma.sessionAssignment.create({ data: { gameId: old.gameId, sessionId: old.id, characterId: aube.id, participantId: lea.id } })
   const postponed = await api(alice, 'POST', `/api/sessions/${old.id}/postpone`, { name: `Report ${key}` })
   const session = postponed.body as { id: string }
   return { key, game, old, session, lea, noe, sam, aube }

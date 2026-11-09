@@ -301,8 +301,8 @@ describe('sous-routes de session et de jeu chez Bob', () => {
 
   it('Alice n’annule pas un tirage de Bob ; témoin : le sien', async () => {
     const result = { sessions: [], rejected: [] }
-    const bobDraw = await prisma.registrationDraw.create({ data: { periodId: b.registrationPeriod.id, sessionId: b.session.id, seed: 'b', settings: {}, result } })
-    const aliceDraw = await prisma.registrationDraw.create({ data: { periodId: a.registrationPeriod.id, sessionId: a.session.id, seed: 'a', settings: {}, result } })
+    const bobDraw = await prisma.registrationDraw.create({ data: { gameId: b.registrationPeriod.gameId, periodId: b.registrationPeriod.id, sessionId: b.session.id, seed: 'b', settings: {}, result } })
+    const aliceDraw = await prisma.registrationDraw.create({ data: { gameId: a.registrationPeriod.gameId, periodId: a.registrationPeriod.id, sessionId: a.session.id, seed: 'a', settings: {}, result } })
     expect(DENIED).toContain((await api(alice, 'POST', `/api/registration-draws/${bobDraw.id}/cancel`)).status)
     expect((await prisma.registrationDraw.findUniqueOrThrow({ where: { id: bobDraw.id } })).cancelledAt).toBeNull()
     expect((await api(alice, 'POST', `/api/registration-draws/${aliceDraw.id}/cancel`)).status).toBe(200)
@@ -471,7 +471,7 @@ describe('routes de l’espace participant', () => {
   it('Alice n’atteint ni l’inscription, ni le RIB, ni un document reçu d’une fiche de Bob ; témoin : la fiche rattachée à Alice', async () => {
     // Document reçu par la fiche de Bob (US-079, ADR-0044)
     const delivery = await prisma.sessionDocumentDelivery.create({
-      data: { sessionId: b.session.id, participantId: b.participant.id, characterId: b.character.id, kind: 'trombinoscope' }
+      data: { gameId: b.session.gameId, sessionId: b.session.id, participantId: b.participant.id, characterId: b.character.id, kind: 'trombinoscope' }
     })
     expect((await api(alice, 'GET', `/api/me/documents/${delivery.id}`)).status).toBe(404)
     expect((await api(alice, 'GET', `/api/me/documents/${delivery.id}/pdf`)).status).toBe(404)

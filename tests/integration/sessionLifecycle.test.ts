@@ -137,19 +137,19 @@ describe('statuts d’une session (US-020)', () => {
 describe('supprimer une session oriente vers l’annulation (US-021)', () => {
   it('refuse avec un paiement reçu ou une inscription, accepte sinon', async () => {
     const paid = await aliceSession()
-    await prisma.sessionPayment.create({ data: { sessionId: paid.session.id, participantId: paid.lea.id, paidAt: new Date() } })
+    await prisma.sessionPayment.create({ data: { gameId: paid.session.gameId, sessionId: paid.session.id, participantId: paid.lea.id, paidAt: new Date() } })
     const refused = await api(alice, 'DELETE', `/api/sessions/${paid.session.id}`)
     expect(refused.status).toBe(409)
     expect(JSON.stringify(refused.body)).toContain('Annulez-la ou reportez-la')
 
     const registered = await aliceSession()
     const period = await prisma.registrationPeriod.create({ data: { gameId: registered.game.id, publicId: `periode-${registered.key}` } })
-    await prisma.registration.create({ data: { periodId: period.id, participantId: registered.lea.id, status: 'received', source: 'invitation', email: 'lea@example.test', sessionLines: { create: { sessionId: registered.session.id, status: 'confirmed' } } } })
+    await prisma.registration.create({ data: { gameId: period.gameId, periodId: period.id, participantId: registered.lea.id, status: 'received', source: 'invitation', email: 'lea@example.test', sessionLines: { create: { sessionId: registered.session.id, status: 'confirmed' } } } })
     expect((await api(alice, 'DELETE', `/api/sessions/${registered.session.id}`)).status).toBe(409)
 
     // Témoin : un paiement envoyé mais pas reçu n'empêche pas la suppression
     const free = await aliceSession()
-    await prisma.sessionPayment.create({ data: { sessionId: free.session.id, participantId: free.lea.id, paymentEmailSentAt: new Date() } })
+    await prisma.sessionPayment.create({ data: { gameId: free.session.gameId, sessionId: free.session.id, participantId: free.lea.id, paymentEmailSentAt: new Date() } })
     expect((await api(alice, 'DELETE', `/api/sessions/${free.session.id}`)).status).toBe(200)
   })
 })
@@ -162,8 +162,8 @@ describe('reporter une session (US-022)', () => {
     await prisma.sessionParticipant.create({ data: { sessionId: s.session.id, participantId: s.noe.id, role: 'npc' } })
     await prisma.sessionAssignment.createMany({
       data: [
-        { sessionId: s.session.id, characterId: s.aube.id, participantId: s.lea.id, photoUrl, notes: 'Arrive tard' },
-        { sessionId: s.session.id, characterId: s.garde.id, participantId: s.noe.id }
+        { gameId: s.session.gameId, sessionId: s.session.id, characterId: s.aube.id, participantId: s.lea.id, photoUrl, notes: 'Arrive tard' },
+        { gameId: s.session.gameId, sessionId: s.session.id, characterId: s.garde.id, participantId: s.noe.id }
       ]
     })
     return { ...s, photoUrl }
@@ -199,7 +199,7 @@ describe('remboursements d’une session annulée ou reportée (US-023)', () => 
     const s = await aliceSession()
     await prisma.sessionParticipant.create({ data: { sessionId: s.session.id, participantId: s.noe.id, role: 'participant' } })
     const paidAt = new Date('2026-09-01T10:00:00.000Z')
-    await prisma.sessionPayment.createMany({ data: [{ sessionId: s.session.id, participantId: s.lea.id, paidAt }, { sessionId: s.session.id, participantId: s.noe.id, paidAt }] })
+    await prisma.sessionPayment.createMany({ data: [{ gameId: s.session.gameId, sessionId: s.session.id, participantId: s.lea.id, paidAt }, { gameId: s.session.gameId, sessionId: s.session.id, participantId: s.noe.id, paidAt }] })
     const refund = (participantId: string, status: string | null) => api(alice, 'PUT', `/api/sessions/${s.session.id}/payments/${participantId}/refund`, { status })
 
     // Session prévue : rien à rembourser
@@ -226,7 +226,7 @@ describe('remboursements d’une session annulée ou reportée (US-023)', () => 
 
   it('refuse le report d’un paiement sans session de report, ou pour quelqu’un qui n’a pas payé', async () => {
     const s = await aliceSession()
-    await prisma.sessionPayment.create({ data: { sessionId: s.session.id, participantId: s.lea.id, paidAt: new Date() } })
+    await prisma.sessionPayment.create({ data: { gameId: s.session.gameId, sessionId: s.session.id, participantId: s.lea.id, paidAt: new Date() } })
     await prisma.session.update({ where: { id: s.session.id }, data: { status: 'cancelled' } })
     expect((await api(alice, 'PUT', `/api/sessions/${s.session.id}/payments/${s.lea.id}/refund`, { status: 'carried_over' })).status).toBe(400)
     expect((await api(alice, 'PUT', `/api/sessions/${s.session.id}/payments/${s.noe.id}/refund`, { status: 'to_refund' })).status).toBe(400)

@@ -85,7 +85,7 @@ export async function saveRegistrationFormDefinition(gameId: string, definition:
         update: {}
       })
       await tx.registrationFormVersion.create({
-        data: { formId: form.id, number: (current.version?.number ?? 0) + 1, definition: normalized }
+        data: { gameId, formId: form.id, number: (current.version?.number ?? 0) + 1, definition: normalized }
       })
     })
   } catch (error) {

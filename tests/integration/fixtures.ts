@@ -68,7 +68,7 @@ async function createGameWorld(prisma: PrismaClient, key: string, ownerId: strin
   })
   const registration = await prisma.registration.create({
     data: {
-      periodId: registrationPeriod.id,
+      gameId: registrationPeriod.gameId, periodId: registrationPeriod.id,
       invitedSessionId: session.id,
       participantId: participant.id,
       status: 'invited',
@@ -80,7 +80,7 @@ async function createGameWorld(prisma: PrismaClient, key: string, ownerId: strin
   })
   // Tarif et versement (US-031, US-032) : la session est en mode tarifs
   const tariff = await prisma.sessionTariff.create({ data: { sessionId: session.id, name: `PJ ${key}`, amountCents: 8000, defaultRole: 'pj' } })
-  const payment = await prisma.sessionPayment.create({ data: { sessionId: session.id, participantId: participant.id } })
+  const payment = await prisma.sessionPayment.create({ data: { gameId: session.gameId, sessionId: session.id, participantId: participant.id } })
   const instalment = await prisma.sessionPaymentInstalment.create({ data: { paymentId: payment.id, amountCents: 2000, receivedAt: new Date() } })
   const invitation = await prisma.gameInvitation.create({
     data: { gameId, email: `invite-${key}@example.test`, tokenHash: `empreinte-invitation-${key}`, invitedById: ownerId, expiresAt: new Date(Date.now() + 86_400_000) }

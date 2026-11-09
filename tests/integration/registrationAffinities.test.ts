@@ -42,10 +42,10 @@ async function person(game: { id: string }, name: string) {
 
 type Line = [kind: AffinityKind, text: string, targetParticipantId?: string]
 
-async function registration(period: { id: string }, participant: { id: string }, extra: { status?: RegistrationSessionStatus, sessionId?: string, affinities?: Line[], availableSessionIds?: string[] } = {}) {
+async function registration(period: { id: string, gameId: string }, participant: { id: string }, extra: { status?: RegistrationSessionStatus, sessionId?: string, affinities?: Line[], availableSessionIds?: string[] } = {}) {
   return await prisma.registration.create({
     data: {
-      periodId: period.id,
+      gameId: period.gameId, periodId: period.id,
       participantId: participant.id,
       status: 'received',
       source: 'form',

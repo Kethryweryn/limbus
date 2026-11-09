@@ -144,7 +144,7 @@ export async function drawSession(periodId: string, sessionId: string, author: {
       await stillPreregistered([registrationId], { status: LINE.waitlisted, waitlistPosition: start + index + 1 })
     }
     return await tx.registrationDraw.create({
-      data: { periodId, sessionId, seed, settings, result, createdById: author.id },
+      data: { gameId: period.gameId, periodId, sessionId, seed, settings, result, createdById: author.id },
       select: { id: true, createdAt: true }
     })
   })

@@ -105,7 +105,7 @@ export const GAME_COPY_FIELDS = {
     copied: ['definition'],
     remapped: [],
     relinked: ['form'],
-    omitted: ['id', 'formId', 'number', 'createdAt', 'registrations', 'requests']
+    omitted: ['id', 'gameId', 'formId', 'number', 'createdAt', 'registrations', 'requests']
   }
 } as const satisfies Record<string, { copied: readonly string[], remapped: readonly string[], relinked: readonly string[], omitted: readonly string[] }>
 

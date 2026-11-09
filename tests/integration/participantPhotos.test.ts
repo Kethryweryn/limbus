@@ -41,7 +41,7 @@ async function aliceGame(extra: Record<string, unknown> = {}) {
 
 async function castSession(g: Awaited<ReturnType<typeof aliceGame>>, date: Date | null, holder: { id: string }, photoUrl: string | null) {
   const session = await prisma.session.create({ data: { name: `Session ${g.key} ${++counter}`, slug: `session-${g.key}-${counter}`, gameId: g.game.id, date } })
-  await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: g.target.id, participantId: holder.id, photoUrl } })
+  await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: g.target.id, participantId: holder.id, photoUrl } })
   return session
 }
 
@@ -82,7 +82,7 @@ describe('durée et purge (US-108)', () => {
     const expired = await castSession(g, new Date(Date.now() - 400 * DAY), lea, old.url)
     const kept = await castSession(g, new Date(Date.now() - 10 * DAY), lea, recent.url)
     const noDate = await castSession(g, null, lea, undated.url)
-    await prisma.sessionTrombinoscope.create({ data: { sessionId: expired.id, viewerCharacterId: g.viewer.id, participantId: lea.id, fileName: 't.pdf', contentHtml: '<p>x</p>' } })
+    await prisma.sessionTrombinoscope.create({ data: { gameId: expired.gameId, sessionId: expired.id, viewerCharacterId: g.viewer.id, participantId: lea.id, fileName: 't.pdf', contentHtml: '<p>x</p>' } })
 
     await triggerPurge(prisma)
     const photoOf = async (sessionId: string) => (await prisma.sessionAssignment.findFirstOrThrow({ where: { sessionId } })).photoUrl
@@ -144,8 +144,8 @@ describe('retrait et refus (US-109)', () => {
     const [lea, noe] = await Promise.all([g.person('Lea'), g.person('Noe', { photoRefusedAt: new Date() })])
     const session = await prisma.session.create({ data: { name: `Session ${g.key}`, slug: `session-trombi-${g.key}`, gameId: g.game.id } })
     await prisma.sessionAssignment.createMany({ data: [
-      { sessionId: session.id, characterId: g.viewer.id, participantId: lea.id },
-      { sessionId: session.id, characterId: g.target.id, participantId: noe.id, photoUrl: '/api/uploads/session-assignment-photos/refusee.png' }
+      { gameId: session.gameId, sessionId: session.id, characterId: g.viewer.id, participantId: lea.id },
+      { gameId: session.gameId, sessionId: session.id, characterId: g.target.id, participantId: noe.id, photoUrl: '/api/uploads/session-assignment-photos/refusee.png' }
     ] })
     expect((await api(alice, 'POST', `/api/sessions/${session.id}/trombinoscopes/generate`, {})).status).toBe(200)
     const trombinoscope = await prisma.sessionTrombinoscope.findFirstOrThrow({ where: { sessionId: session.id, participantId: lea.id } })

@@ -172,7 +172,7 @@ test('un document reçu s’ouvre depuis « Je participe »', async ({ page }) =
     const document = await prisma.document.create({ data: { title: `Lettre ${email}`, slug: `lettre-${participant.slug}`, gameId: game.id, content: 'Brouillon', readyToSend: true } })
     const copyContent = { kind: 'text', title: document.title, subtitle: session.name, sections: [{ title: 'Contenu', body: 'Rendez-vous à la taverne.' }] }
     await prisma.sessionDocumentDelivery.create({
-      data: { sessionId: session.id, participantId: participant.id, documentId: document.id, kind: 'document', copyPdf: Buffer.from('%PDF-1.4'), copyContent, copySize: 100 }
+      data: { gameId: session.gameId, sessionId: session.id, participantId: participant.id, documentId: document.id, kind: 'document', copyPdf: Buffer.from('%PDF-1.4'), copyContent, copySize: 100 }
     })
 
     await signIn(page, prisma, email)

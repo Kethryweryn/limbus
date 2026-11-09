@@ -37,7 +37,7 @@ async function player() {
     await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
     teams.push({ owner, game, session, participant })
   }
-  const payment = await prisma.sessionPayment.create({ data: { sessionId: teams[0]!.session.id, participantId: teams[0]!.participant.id } })
+  const payment = await prisma.sessionPayment.create({ data: { gameId: teams[0]!.session.gameId, sessionId: teams[0]!.session.id, participantId: teams[0]!.participant.id } })
   await prisma.sessionPaymentInstalment.create({ data: { paymentId: payment.id, amountCents: 4500, receivedAt: new Date() } })
   return { user, teams }
 }
@@ -65,7 +65,7 @@ describe('télécharger ses données (US-076)', () => {
     const remindedAt = new Date('2026-10-20T10:00:00.000Z')
     await prisma.registration.create({
       data: {
-        periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: user.email,
+        gameId: period.gameId, periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: user.email,
         sessionLines: { create: [
           // Mise en attente sans annonce : elle se voit encore pré-inscrite
           { sessionId: session.id, status: 'waitlisted', waitlistPosition: 2, answer: 'available', retainedById: owner.id },
@@ -93,7 +93,7 @@ describe('télécharger ses données (US-076)', () => {
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `efface-periode-${counter}` } })
     await prisma.registration.create({
       data: {
-        periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: user.email,
+        gameId: period.gameId, periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: user.email,
         affinities: { create: { kind: 'avoid', text: 'La cible', position: 0, targetParticipantId: target.id } }
       }
     })

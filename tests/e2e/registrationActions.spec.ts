@@ -24,7 +24,7 @@ async function invitedPerson(prisma: TestPrisma, ids: { gameId: string, sessionI
   if (status === 'confirmed') await prisma.sessionParticipant.create({ data: { sessionId: ids.sessionId, participantId: participant.id, role: 'participant' } })
   const registration = await prisma.registration.create({
     data: {
-      periodId: ids.periodId, participantId: participant.id, status: status === 'confirmed' ? 'received' : 'invited', source: 'invitation', email,
+      gameId: ids.gameId, periodId: ids.periodId, participantId: participant.id, status: status === 'confirmed' ? 'received' : 'invited', source: 'invitation', email,
       links: { create: { tokenHash: createHash('sha256').update(randomBytes(32)).digest('hex') } },
       invitationSentAt: new Date(), responseDueAt: new Date(Date.now() + 7 * 86_400_000),
       ...(status === 'confirmed'

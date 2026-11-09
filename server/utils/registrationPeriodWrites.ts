@@ -91,7 +91,7 @@ export async function updateRegistrationSession(period: { id: string, gameId: st
   await prisma.registrationPeriodSession.upsert({
     where: { sessionId },
     update: data,
-    create: { ...data, periodId: period.id, sessionId }
+    create: { ...data, gameId: period.gameId, periodId: period.id, sessionId }
   })
   return { success: true }
 }

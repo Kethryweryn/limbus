@@ -24,7 +24,8 @@ export type AvailabilityEffect = 'none' | 'changed' | 'kept' | 'removed'
  *   annonce, elle est retirée du cast et son personnage redevient libre (effet « removed » : l'équipe est prévenue) ;
  *   retenue et annoncée, inscrite ou transférée, rien ne change (effet « kept » : la page renvoie vers l'annulation).
  */
-export async function answerAvailability(tx: PrismaTx, registrationId: string, sessionId: string, available: boolean, now = new Date()): Promise<AvailabilityEffect> {
+export async function answerAvailability(tx: PrismaTx, registration: { id: string, gameId: string }, sessionId: string, available: boolean, now = new Date()): Promise<AvailabilityEffect> {
+  const registrationId = registration.id
   const key = { registrationId_sessionId: { registrationId, sessionId } }
   const line = await tx.registrationSession.findUnique({ where: key, select: { status: true, announcedStatus: true } })
   const answer = available ? REGISTRATION_ANSWERS.available : REGISTRATION_ANSWERS.unavailable
@@ -32,7 +33,7 @@ export async function answerAvailability(tx: PrismaTx, registrationId: string, s
 
   if (!line) {
     await tx.registrationSession.create({
-      data: { registrationId, sessionId, status: available ? LINE.preregistered : LINE.unavailable, ...answered }
+      data: { gameId: registration.gameId, registrationId, sessionId, status: available ? LINE.preregistered : LINE.unavailable, ...answered }
     })
     return 'changed'
   }

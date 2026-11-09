@@ -119,7 +119,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
   await mkdir(ribDir, { recursive: true })
   await writeFile(join(ribDir, ribFilename), ribPdf, { mode: 0o644 })
   await db.uploadedFile.create({
-    data: { kind: 'sessionPaymentRib', filename: ribFilename, url: ribUrl, size: ribPdf.byteLength, sessionId: session.id }
+    data: { kind: 'sessionPaymentRib', filename: ribFilename, url: ribUrl, size: ribPdf.byteLength, gameId, sessionId: session.id }
   })
 
   const tariff = (name: string, amountCents: number, defaultRole?: TariffRole, baseTariffId?: string) => db.sessionTariff.create({
@@ -143,6 +143,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
     instalments?: Array<[number, number]>
   }) => db.sessionPayment.create({
     data: {
+      gameId,
       sessionId: session.id,
       participantId,
       tariffId: data.tariffId,
@@ -208,6 +209,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
   for (const recipient of [camille, lucie, nicolas]) {
     await db.sessionDocumentDelivery.create({
       data: {
+        gameId,
         sessionId: session.id,
         participantId: recipient.id,
         documentId: roadmap.id,
@@ -219,6 +221,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
     })
     await db.sessionDocumentDelivery.create({
       data: {
+        gameId,
         sessionId: session.id,
         participantId: recipient.id,
         documentId: world.id,
@@ -236,6 +239,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
   })
   await db.sessionDocumentDelivery.create({
     data: {
+      gameId,
       sessionId: session.id,
       participantId: camille.id,
       characterId: aelis.id,
@@ -252,6 +256,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
     : [])
   await db.sessionTrombinoscope.create({
     data: {
+      gameId,
       sessionId: session.id,
       viewerCharacterId: aelis.id,
       participantId: camille.id,
@@ -262,13 +267,13 @@ export async function createValombreStage(db: Db, context: StageContext) {
     }
   })
   await db.sessionDocumentDelivery.create({
-    data: { sessionId: session.id, participantId: camille.id, characterId: aelis.id, kind: 'trombinoscope', sentAt: daysFromNow(-4) }
+    data: { gameId, sessionId: session.id, participantId: camille.id, characterId: aelis.id, kind: 'trombinoscope', sentAt: daysFromNow(-4) }
   })
 
   // Déroulé : responsables complets, manquants, et Thomas à deux endroits à 14 h 30
   const events = await db.timelineEvent.findMany({ where: { gameId }, select: { id: true, name: true } })
   const event = (name: string) => events.find((row) => row.name === name)!.id
-  const responsible = (name: string, participantId: string) => ({ sessionId: session.id, timelineEventId: event(name), participantId })
+  const responsible = (name: string, participantId: string) => ({ gameId, sessionId: session.id, timelineEventId: event(name), participantId })
   await db.timelineEventResponsible.createMany({
     data: [
       responsible('Briefing d’ouverture', organizer.id),

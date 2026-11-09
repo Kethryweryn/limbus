@@ -35,7 +35,7 @@ async function sessionWithRegistrations() {
   const [zoe, ines, leo, hugo, cook, npc] = await Promise.all(['Zoe', 'Ines', 'Leo', 'Hugo', 'Cuisine', 'Pnj'].map(person))
   const registration = (participant: { id: string, email: string | null }, status: RegistrationSessionStatus, dietary: string | null) => prisma.registration.create({
     data: {
-      periodId: period.id,
+      gameId: period.gameId, periodId: period.id,
       participantId: participant.id,
       status: 'received',
       sessionLines: { create: { sessionId: session.id, status } },

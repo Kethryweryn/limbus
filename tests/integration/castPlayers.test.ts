@@ -79,7 +79,7 @@ describe('joueur hors du vivier (R31)', () => {
   it('accepte une personne inscrite à la session, et garde un joueur déjà là, même sans réponse au questionnaire', async () => {
     const pool = await castPool()
     const inscribed = await addPerson(prisma, pool, 'Inscrite')
-    await prisma.registrationSession.create({ data: { registrationId: inscribed.id, sessionId: pool.session.id, status: 'confirmed' } })
+    await prisma.registrationSession.create({ data: { registrationId: inscribed.id, gameId: pool.session.gameId, sessionId: pool.session.id, status: 'confirmed' } })
     const former = await outsider(pool, 'Ancienne')
     await prisma.sessionParticipant.create({ data: { sessionId: pool.session.id, participantId: former.id, role: 'participant' } })
 
@@ -131,7 +131,7 @@ describe('choisir une personne du vivier dans le cast (R20)', () => {
     const pool = await castPool()
     const lea = await addPerson(prisma, pool, 'Léa', [pool.session.id])
     const max = await addPerson(prisma, pool, 'Max')
-    await prisma.registrationSession.create({ data: { registrationId: max.id, sessionId: pool.session.id, status: 'unavailable', answer: 'unavailable' } })
+    await prisma.registrationSession.create({ data: { registrationId: max.id, gameId: pool.session.gameId, sessionId: pool.session.id, status: 'unavailable', answer: 'unavailable' } })
 
     const result = await saveCast(pool, pool.session.id, [
       { characterId: pool.characters[0]!.id, reservedRegistrationId: lea.id },
@@ -151,7 +151,7 @@ describe('choisir une personne du vivier dans le cast (R20)', () => {
     const first = await addPerson(prisma, pool, 'Première', [pool.session.id])
     const second = await addPerson(prisma, pool, 'Deuxième', [pool.session.id])
     const taken = await addPerson(prisma, pool, 'Déjà là')
-    await prisma.registrationSession.create({ data: { registrationId: taken.id, sessionId: pool.session.id, status: 'retained' } })
+    await prisma.registrationSession.create({ data: { registrationId: taken.id, gameId: pool.session.gameId, sessionId: pool.session.id, status: 'retained' } })
 
     const result = await saveCast(pool, pool.session.id, [
       { characterId: pool.characters[0]!.id, reservedRegistrationId: first.id },
@@ -191,13 +191,13 @@ describe('choisir une personne du vivier dans le cast (R20)', () => {
     const preregistered = await addPerson(prisma, pool, 'Anna', [pool.session.id])
     const interested = await addPerson(prisma, pool, 'Bea')
     const seated = await addPerson(prisma, pool, 'Cora')
-    await prisma.registrationSession.create({ data: { registrationId: seated.id, sessionId: pool.session.id, status: 'retained' } })
+    await prisma.registrationSession.create({ data: { registrationId: seated.id, gameId: pool.session.gameId, sessionId: pool.session.id, status: 'retained' } })
     const inTeam = await addPerson(prisma, pool, 'Dora')
     await prisma.sessionParticipant.create({ data: { sessionId: pool.session.id, participantId: inTeam.participantId, role: 'npc' } })
     await addPerson(prisma, pool, 'Sortie', [], { status: 'withdrawn' })
     // A annulé : plus proposée tant qu'elle ne s'y redit pas disponible (R19)
     const gone = await addPerson(prisma, pool, 'Élise')
-    await prisma.registrationSession.create({ data: { registrationId: gone.id, sessionId: pool.session.id, status: 'cancelled', answer: 'available' } })
+    await prisma.registrationSession.create({ data: { registrationId: gone.id, gameId: pool.session.gameId, sessionId: pool.session.id, status: 'cancelled', answer: 'available' } })
     // En cuisine, elle peut encore être choisie comme joueuse
     const cook = await addPerson(prisma, pool, 'Fanny')
     await prisma.sessionParticipant.create({ data: { sessionId: pool.session.id, participantId: cook.participantId, role: 'kitchen' } })
@@ -247,7 +247,7 @@ describe('choisir une personne du vivier dans le cast (R20)', () => {
   it('l’assistant ne propose pas plus de pré-inscrites que de places, et dit qui reste sans personnage (US-170)', async () => {
     const pool = await castPool({ seats: 2 })
     const taken = await addPerson(prisma, pool, 'Retenue')
-    await prisma.registrationSession.create({ data: { registrationId: taken.id, sessionId: pool.session.id, status: 'retained' } })
+    await prisma.registrationSession.create({ data: { registrationId: taken.id, gameId: pool.session.gameId, sessionId: pool.session.id, status: 'retained' } })
     await addPerson(prisma, pool, 'Anna', [pool.session.id])
     await addPerson(prisma, pool, 'Bea', [pool.session.id])
     const body = bodyOf<ApiResponse<'/api/sessions/:id/casting-assistant', 'post'>>(await api(alice, 'POST', `/api/sessions/${pool.session.id}/casting-assistant`, { assignments: [] }))

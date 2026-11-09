@@ -361,6 +361,7 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
         generatedAt: new Date()
       },
       create: {
+        gameId: session.gameId,
         sessionId,
         viewerCharacterId: viewer.id,
         participantId: assignment.participant.id,

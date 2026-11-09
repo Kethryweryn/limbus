@@ -188,8 +188,8 @@ export async function lockSession(tx: PrismaTx, sessionId: string) {
 }
 
 // Une session recrutée par le vivier a sa ligne, même si l'équipe ne l'a jamais ouverte (ADR-0069)
-export async function ensureSessionLink(tx: PrismaTx, periodId: string, sessionId: string) {
-  await tx.registrationPeriodSession.upsert({ where: { sessionId }, update: {}, create: { periodId, sessionId } })
+export async function ensureSessionLink(tx: PrismaTx, registration: { periodId: string, gameId: string }, sessionId: string) {
+  await tx.registrationPeriodSession.upsert({ where: { sessionId }, update: {}, create: { gameId: registration.gameId, periodId: registration.periodId, sessionId } })
 }
 
 // Message du refus quand une session est complète (R8)
@@ -201,7 +201,7 @@ export function fullSessionMessage(session: { name: string, seats: number }) {
 export async function selectionTargets(registrationIds: string[], sessionId: string) {
   const registrations = await prisma.registration.findMany({
     where: { id: { in: registrationIds } },
-    select: { id: true, status: true, periodId: true }
+    select: { id: true, status: true, periodId: true, gameId: true }
   })
   if (registrations.length !== registrationIds.length) {
     throw createError({ statusCode: 404, message: 'Inscription introuvable' })
@@ -235,7 +235,7 @@ export async function writeSelection(tx: PrismaTx, { registration, session }: Se
   if (line?.status === LINE.confirmed || line?.status === LINE.transferred) {
     throw createError({ statusCode: 409, message: 'Cette personne a confirmé sa présence : passez par l’annulation.' })
   }
-  await ensureSessionLink(tx, registration.periodId, sessionId)
+  await ensureSessionLink(tx, registration, sessionId)
   // La version de la personne suit ses décisions : un assistant qui l'a lue avant ne les écrase pas
   await tx.registration.update({ where: { id: registrationId }, data: { updatedAt: new Date() } })
   // Une annulation repart de zéro : ce qui lui avait été annoncé ne vaut plus
@@ -256,7 +256,7 @@ export async function writeSelection(tx: PrismaTx, { registration, session }: Se
       ...fromCancelled,
       ...(announced ? {} : { responseDueAt: null, lastRemindedAt: null })
     }
-    await tx.registrationSession.upsert({ where: key, update: data, create: { registrationId, sessionId, ...data } })
+    await tx.registrationSession.upsert({ where: key, update: data, create: { gameId: registration.gameId, registrationId, sessionId, ...data } })
     return
   }
 
@@ -264,7 +264,7 @@ export async function writeSelection(tx: PrismaTx, { registration, session }: Se
     if (line?.status !== LINE.waitlisted) {
       const last = await tx.registrationSession.aggregate({ where: { sessionId, status: LINE.waitlisted }, _max: { waitlistPosition: true } })
       const data = { status: LINE.waitlisted, waitlistPosition: (last._max.waitlistPosition ?? 0) + 1, retainedById: null, ignoredStatus: null, ...fromCancelled }
-      await tx.registrationSession.upsert({ where: key, update: data, create: { registrationId, sessionId, ...data } })
+      await tx.registrationSession.upsert({ where: key, update: data, create: { gameId: registration.gameId, registrationId, sessionId, ...data } })
     }
   } else {
     if (action === 'unwaitlist' && line?.status !== LINE.waitlisted) {

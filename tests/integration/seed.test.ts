@@ -101,7 +101,7 @@ describe('rechargement des jeux de test', () => {
   })
 
   it('écrit les photos avec leur taille, sur le disque', async () => {
-    const photos = await prisma.uploadedFile.findMany({ where: { gameId: { in: GAME_IDS } }, select: { filename: true, size: true } })
+    const photos = await prisma.uploadedFile.findMany({ where: { gameId: { in: GAME_IDS }, kind: 'sessionAssignmentPhoto' }, select: { filename: true, size: true } })
     // Les 8 personnes du casting de chaque jeu, et pas les fiches ajoutées à Station Meridian
     expect(photos.length).toBe(24)
     for (const photo of photos) {

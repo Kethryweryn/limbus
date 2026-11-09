@@ -21,9 +21,9 @@ async function gameOf(ownerId: string, key: string) {
   return { game, period }
 }
 
-function registrationIn(periodId: string, participantId: string, data: { respondedAt: Date | null, emergencyContactName: string, dietary: string | null }) {
+function registrationIn(period: { id: string, gameId: string }, participantId: string, data: { respondedAt: Date | null, emergencyContactName: string, dietary: string | null }) {
   return prisma.registration.create({
-    data: { periodId, participantId, status: data.respondedAt ? 'received' : 'invited', source: 'invitation', email: `urgence-${++counter}@example.test`, emergencyContactPhone: '0699999999', ...data }
+    data: { gameId: period.gameId, periodId: period.id, participantId, status: data.respondedAt ? 'received' : 'invited', source: 'invitation', email: `urgence-${++counter}@example.test`, emergencyContactPhone: '0699999999', ...data }
   })
 }
 
@@ -41,9 +41,9 @@ describe('urgence et allergies de la fiche', () => {
     const participant = await prisma.participant.create({
       data: { name: `Zoé ${key}`, slug: `zoe-${key}`, gameLinks: { create: [{ gameId: mine.game.id }, { gameId: other.game.id }] } }
     })
-    await registrationIn(mine.period.id, participant.id, { respondedAt: new Date(), emergencyContactName: 'Contact Alice', dietary: 'Gluten' })
+    await registrationIn(mine.period, participant.id, { respondedAt: new Date(), emergencyContactName: 'Contact Alice', dietary: 'Gluten' })
     // Plus récente, mais chez Bob : ignorée
-    await registrationIn(other.period.id, participant.id, { respondedAt: new Date(), emergencyContactName: 'Contact Bob', dietary: 'Arachides' })
+    await registrationIn(other.period, participant.id, { respondedAt: new Date(), emergencyContactName: 'Contact Bob', dietary: 'Arachides' })
 
     expect(await read(participant.id)).toEqual({
       source: 'registration',
@@ -66,7 +66,7 @@ describe('urgence et allergies de la fiche', () => {
     const participant = await prisma.participant.create({
       data: { name: `Léo ${key}`, slug: `leo-${key}`, userId: user.id, gameLinks: { create: { gameId: mine.game.id } } }
     })
-    await registrationIn(mine.period.id, participant.id, { respondedAt: null, emergencyContactName: 'Jamais rempli', dietary: 'Jamais rempli' })
+    await registrationIn(mine.period, participant.id, { respondedAt: null, emergencyContactName: 'Jamais rempli', dietary: 'Jamais rempli' })
 
     expect(await read(participant.id)).toEqual({ source: 'account', gameTitle: null, emergencyContactName: 'Contact compte', emergencyContactPhone: '0611111111', dietary: null })
 
@@ -88,7 +88,7 @@ describe('urgence et allergies de la fiche', () => {
     const key = `urgence-${++counter}`
     const mine = await gameOf(alice.id, key)
     const participant = await prisma.participant.create({ data: { name: `Hugo ${key}`, slug: `hugo-${key}`, gameLinks: { create: { gameId: mine.game.id } } } })
-    await registrationIn(mine.period.id, participant.id, { respondedAt: new Date(), emergencyContactName: 'Contact caché', dietary: 'Soja' })
+    await registrationIn(mine.period, participant.id, { respondedAt: new Date(), emergencyContactName: 'Contact caché', dietary: 'Soja' })
     const sheet = JSON.stringify((await api(alice, 'GET', `/api/participants/${participant.id}`)).body)
     const list = JSON.stringify((await api(alice, 'GET', `/api/participants?gameId=${mine.game.id}`)).body)
     for (const json of [sheet, list]) {

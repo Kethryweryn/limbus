@@ -88,7 +88,7 @@ test('la personne invitée répond aux questions du jeu et à ses affinités', a
     const token = randomBytes(32).toString('base64url')
     const registration = await prisma.registration.create({
       data: {
-        periodId: period.id, invitedSessionId: session.id, participantId: participant.id, status: 'invited', source: 'invitation',
+        gameId: period.gameId, periodId: period.id, invitedSessionId: session.id, participantId: participant.id, status: 'invited', source: 'invitation',
         email: participant.email!, links: { create: { tokenHash: createHash('sha256').update(token).digest('hex') } }, responseDueAt: new Date(Date.now() + 7 * 86_400_000)
       }
     })
@@ -280,7 +280,7 @@ test('l’équipe retient une pré-inscrite, l’annonce, et la personne confirm
     const email = `noa-${key}@example.test`
     const participant = await prisma.participant.create({ data: { name: 'Noa Selection', slug: `noa-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
     const registration = await prisma.registration.create({
-      data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, links: { create: { tokenHash: `hash-${key}` } }, sessionLines: { create: { sessionId: session.id, status: 'preregistered', answer: 'available' } } }
+      data: { gameId: period.gameId, periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, links: { create: { tokenHash: `hash-${key}` } }, sessionLines: { create: { sessionId: session.id, status: 'preregistered', answer: 'available' } } }
     })
 
     await signIn(page, prisma, E2E_USERS.orga)
@@ -335,7 +335,7 @@ test('l’équipe tire au sort, voit le journal, puis annule le tirage', async (
     await prisma.character.create({ data: { name: 'Seul PJ', slug: `pj-${key}`, gameId: game.id, type: 'pj' } })
     for (const name of ['Ana', 'Ben', 'Cy']) {
       const participant = await prisma.participant.create({ data: { name: `${name} Tirage`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } } })
-      await prisma.registration.create({ data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: participant.email!, sessionLines: { create: { sessionId: session.id, status: 'preregistered', answer: 'available' } } } })
+      await prisma.registration.create({ data: { gameId: period.gameId, periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: participant.email!, sessionLines: { create: { sessionId: session.id, status: 'preregistered', answer: 'available' } } } })
     }
 
     await signIn(page, prisma, E2E_USERS.orga)
@@ -378,7 +378,7 @@ test('l’équipe rattache une affinité et voit l’alerte de la session', asyn
     for (const participant of people) {
       await prisma.registration.create({
         data: {
-          periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: participant.email!, respondedAt: new Date(),
+          gameId: period.gameId, periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: participant.email!, respondedAt: new Date(),
           sessionLines: { create: { sessionId: session.id, status: 'retained' } },
           affinities: participant.name.startsWith('Lou') ? { create: { kind: 'avoid', text: 'Max D.', position: 0 } } : undefined
         }
@@ -417,7 +417,7 @@ test('demander au vivier, répondre d’un clic, puis relancer', async ({ page }
     const person = async (name: string) => {
       const email = `${name.toLowerCase()}-${key}@example.test`
       const participant = await prisma.participant.create({ data: { name, slug: `${name.toLowerCase()}-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
-      await prisma.registration.create({ data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, respondedAt: new Date() } })
+      await prisma.registration.create({ data: { gameId: period.gameId, periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, respondedAt: new Date() } })
       return email
     }
     const noa = await person('Noa')
@@ -492,7 +492,7 @@ test('réessayer une demande de disponibilités n’écrit qu’aux personnes en
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `r${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } } })
     const person = async (name: string, email: string) => {
       const participant = await prisma.participant.create({ data: { name, slug: `${name.toLowerCase()}-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
-      return await prisma.registration.create({ data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, respondedAt: new Date() } })
+      return await prisma.registration.create({ data: { gameId: period.gameId, periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, respondedAt: new Date() } })
     }
     const fine = `recoit-${key}@example.test`
     const failing = await person('Echoue', `refuse-echoue-${key}@example.test`)
@@ -534,7 +534,7 @@ test('après l’annonce du casting, chaque changement se propose personne par p
     const person = async (name: string, status: RegistrationSessionStatus) => {
       const email = `${name.toLowerCase()}-${key}@example.test`
       const participant = await prisma.participant.create({ data: { name, slug: `${name.toLowerCase()}-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
-      await prisma.registration.create({ data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, respondedAt: new Date(), sessionLines: { create: { sessionId: session.id, status, answer: 'available' } } } })
+      await prisma.registration.create({ data: { gameId: period.gameId, periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, respondedAt: new Date(), sessionLines: { create: { sessionId: session.id, status, answer: 'available' } } } })
       return email
     }
     const noa = await person('Noa', 'retained')
@@ -587,7 +587,7 @@ test('le repère « Réponses modifiées » se marque comme lu', async ({ page }
     await prisma.character.create({ data: { name: 'Seul PJ', slug: `pj-${key}`, gameId: game.id, type: 'pj' } })
     const email = `noa-${key}@example.test`
     const participant = await prisma.participant.create({ data: { name: 'Noa Modif', slug: `noa-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
-    await prisma.registration.create({ data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, respondedAt: new Date(), sessionLines: { create: { sessionId: session.id, status: 'retained', answer: 'available', answersChangedAt: new Date() } } } })
+    await prisma.registration.create({ data: { gameId: period.gameId, periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, respondedAt: new Date(), sessionLines: { create: { sessionId: session.id, status: 'retained', answer: 'available', answersChangedAt: new Date() } } } })
 
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/registrations')
@@ -615,9 +615,9 @@ test('le parcours affiche « Inscrite validée » pour l’équipe et pour la pe
     await prisma.character.create({ data: { name: 'Seul PJ', slug: `pj-${key}`, gameId: game.id, type: 'pj' } })
     const email = `noa-${key}@example.test`
     const participant = await prisma.participant.create({ data: { name: 'Noa Valide', slug: `noa-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
-    await prisma.registration.create({ data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, respondedAt: new Date(), links: { create: { tokenHash: createHash('sha256').update(token).digest('hex') } }, sessionLines: { create: { sessionId: session.id, status: 'confirmed', confirmedAt: new Date(), announcedStatus: 'retained' } } } })
+    await prisma.registration.create({ data: { gameId: period.gameId, periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, respondedAt: new Date(), links: { create: { tokenHash: createHash('sha256').update(token).digest('hex') } }, sessionLines: { create: { sessionId: session.id, status: 'confirmed', confirmedAt: new Date(), announcedStatus: 'retained' } } } })
     await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
-    await prisma.sessionPayment.create({ data: { sessionId: session.id, participantId: participant.id, paidAt: new Date() } })
+    await prisma.sessionPayment.create({ data: { gameId: session.gameId, sessionId: session.id, participantId: participant.id, paidAt: new Date() } })
 
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/registrations')

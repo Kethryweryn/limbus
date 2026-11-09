@@ -142,7 +142,7 @@ describe('ouvrir une session à la pré-inscription (R6, R8)', () => {
     const session = pool.sessions[0]!
     const participant = await prisma.participant.create({ data: { name: 'Lou', slug: `lou-${pool.key}`, email: `lou-${pool.key}@example.test`, gameLinks: { create: { gameId: pool.game.id } } } })
     const registration = await prisma.registration.create({
-      data: { periodId: pool.period.id, participantId: participant.id, status: 'received', source: 'form', email: participant.email!, sessionLines: { create: { sessionId: session.id, status: 'preregistered', answer: 'available' } } }
+      data: { gameId: pool.period.gameId, periodId: pool.period.id, participantId: participant.id, status: 'received', source: 'form', email: participant.email!, sessionLines: { create: { sessionId: session.id, status: 'preregistered', answer: 'available' } } }
     })
     expect((await settings(pool.period, session.id, { open: false })).status).toBe(200)
     expect(await offered(pool.key)).toEqual([])

@@ -159,7 +159,7 @@ describe('tirer au sort une session (R22, R23) et journal (US-094)', () => {
     const row = await prisma.registrationDraw.findFirstOrThrow({ where: { sessionId } })
     expect((await api(alice, 'POST', `/api/registration-draws/${row.id}/cancel`)).status).toBe(409)
 
-    const old = await prisma.registrationDraw.create({ data: { periodId: pool.period.id, seed: 'ancienne', settings: {}, result: { sessions: [], rejected: [] } } })
+    const old = await prisma.registrationDraw.create({ data: { gameId: pool.period.gameId, periodId: pool.period.id, seed: 'ancienne', settings: {}, result: { sessions: [], rejected: [] } } })
     expect((await api(alice, 'POST', `/api/registration-draws/${old.id}/cancel`)).status).toBe(409)
   })
 
