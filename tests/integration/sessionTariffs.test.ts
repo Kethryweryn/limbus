@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
+import type { CharacterType } from '~/generated/prisma/enums'
 
 const world = inject('world')
 const { alice } = world.users
@@ -31,7 +32,7 @@ async function team() {
     data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
   })
   const [player, npc, orga, cook] = await Promise.all([person('Joueuse'), person('Pnj'), person('Orga'), person('Cuisine')])
-  const character = (name: string, type: string) => prisma.character.create({ data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, gameId: game.id, type } })
+  const character = (name: string, type: CharacterType) => prisma.character.create({ data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, gameId: game.id, type } })
   const [hero, guard] = await Promise.all([character('Aube', 'pj'), character('Garde', 'pnj')])
   await prisma.sessionAssignment.createMany({
     data: [

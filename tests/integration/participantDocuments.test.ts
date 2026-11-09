@@ -6,6 +6,7 @@ import { api, DENIED, tokenFor } from './api'
 import { createTestPrisma } from './db'
 import { triggerPurge } from './purge'
 import { startTestSmtp } from './smtp'
+import type { DeliveryKind } from '~/generated/prisma/enums'
 
 const prisma = createTestPrisma()
 const { bob } = inject('world').users
@@ -49,7 +50,7 @@ async function world() {
   return { k, owner, player, game, session, participant, document }
 }
 
-const deliveryOf = (participantId: string, kind: string) =>
+const deliveryOf = (participantId: string, kind: DeliveryKind) =>
   prisma.sessionDocumentDelivery.findFirstOrThrow({ where: { participantId, kind }, select: { id: true, copySize: true } })
 const read = async (user: { id: string }, id: string) => {
   const response = await api(user, 'GET', `/api/me/documents/${id}`)
@@ -104,7 +105,7 @@ describe('copie de chaque envoi (US-078) et lecture dans « Je participe » (US-
     await mkdir(PHOTOS, { recursive: true })
     await writeFile(join(PHOTOS, filename), PNG)
     const photoUrl = `/api/uploads/session-assignment-photos/${filename}`
-    await prisma.uploadedFile.create({ data: { kind: 'session-assignment-photo', filename, url: photoUrl, gameId: game.id, size: PNG.length } })
+    await prisma.uploadedFile.create({ data: { kind: 'sessionAssignmentPhoto', filename, url: photoUrl, gameId: game.id, size: PNG.length } })
     const otherPlayer = await prisma.participant.create({ data: { name: 'Autre', slug: `autre-${k}`, email: `autre-${k}@example.test`, gameLinks: { create: { gameId: game.id } } } })
     await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: viewer!.id, participantId: participant.id } })
     await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: other!.id, participantId: otherPlayer.id, photoUrl } })

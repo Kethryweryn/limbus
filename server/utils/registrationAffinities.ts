@@ -14,7 +14,9 @@ export async function replaceAffinities(tx: PrismaTx, registrationId: string, af
   })
   const links = new Map(previous.map((row) => [affinityLineKey(row.kind, row.text), row]))
   await tx.registrationAffinity.deleteMany({ where: { registrationId } })
-  const rows = Object.entries(affinities ?? {}).flatMap(([kind, lines]) => lines.map((text, position) => {
+  // Clés des affinités du formulaire : chacune est une valeur de l'énumération AffinityKind, ce que le typage vérifie
+  const entries = Object.entries(affinities ?? {}) as Array<[keyof AffinityAnswers, string[] | undefined]>
+  const rows = entries.flatMap(([kind, lines]) => (lines ?? []).map((text, position) => {
     const link = links.get(affinityLineKey(kind, text))
     return {
       registrationId,

@@ -33,14 +33,16 @@ export function rolesFromLegacyAudience(audience: string | null | undefined): Do
 }
 
 /** Ancien public le plus proche des rôles, écrit pour le build encore en service pendant un déploiement (ADR-0024). */
-export function legacyAudience(roles: readonly string[]): string {
+type LegacyAudience = typeof DOCUMENT_AUDIENCES[keyof typeof DOCUMENT_AUDIENCES]
+
+export function legacyAudience(roles: readonly string[]): LegacyAudience {
   if (isEveryone(roles)) return DOCUMENT_AUDIENCES.everyone
   const [only] = roles
-  return roles.length === 1 && only && LEGACY_SINGLE_ROLES.includes(only) ? only : DOCUMENT_AUDIENCES.targeted
+  return roles.length === 1 && only && LEGACY_SINGLE_ROLES.includes(only) ? only as LegacyAudience : DOCUMENT_AUDIENCES.targeted
 }
 
 type AudienceDocument = {
-  audiences?: readonly string[] | null
+  audiences?: readonly DocumentRole[] | null
   audience?: string | null
   characters?: readonly unknown[] | null
   factions?: readonly unknown[] | null
@@ -52,7 +54,7 @@ type AudienceDocument = {
  * L'application écrit toujours dans `audience` l'ancien public le plus proche des rôles : sans rôle, c'est le ciblage
  * manuel, qui n'en donne aucun.
  */
-export function documentRoles(document: Pick<AudienceDocument, 'audiences' | 'audience'>): string[] {
+export function documentRoles(document: Pick<AudienceDocument, 'audiences' | 'audience'>): DocumentRole[] {
   return document.audiences?.length ? [...document.audiences] : rolesFromLegacyAudience(document.audience)
 }
 

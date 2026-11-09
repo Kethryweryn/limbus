@@ -4,7 +4,8 @@ import {
   REGISTRATION_SESSION_STATUSES,
   REGISTRATION_SESSION_STATUS_META,
   REGISTRATION_STATUSES,
-  REGISTRATION_STATUS_META
+  REGISTRATION_STATUS_META,
+  type RegistrationSessionStatus
 } from './domain'
 
 type DateLike = Date | string | null | undefined
@@ -44,9 +45,9 @@ export function registrationStatusMeta(item: { status: string, responseDueAt?: D
   return REGISTRATION_DISPLAY_STATUS_META[item.validated ? 'validated' : registrationDisplayStatus(item)] || { label: item.status, color: 'neutral' as const }
 }
 
-type LineLike = { status: string, announcedStatus?: string | null, ignoredStatus?: string | null, cancelledById?: string | null }
+type LineLike = { status: RegistrationSessionStatus, announcedStatus?: RegistrationSessionStatus | null, ignoredStatus?: RegistrationSessionStatus | null, cancelledById?: string | null }
 
-export const ANNOUNCEMENT_REMOVED = 'removed'
+export const ANNOUNCEMENT_REMOVED = 'removed' as const
 
 // Une place ou une liste d'attente qui lui a été annoncée
 const wasAnnounced = (line: LineLike) => Boolean(line.announcedStatus && REGISTRATION_SELECTION_STATUSES.includes(line.announcedStatus))

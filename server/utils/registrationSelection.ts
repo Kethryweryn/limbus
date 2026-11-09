@@ -15,7 +15,7 @@ import {
   SESSION_ROLES,
   SESSION_STATUSES
 } from '~/utils/domain'
-import type { REGISTRATION_SELECTION_ACTIONS } from '~/utils/domain'
+import type { REGISTRATION_SELECTION_ACTIONS, RegistrationSessionStatus } from '~/utils/domain'
 import { isOpenableSession } from '~/utils/registrationPeriods'
 import { ANNOUNCEMENT_REMOVED, canConfirmPlace, pendingAnnouncement } from '~/utils/registrations'
 
@@ -342,7 +342,7 @@ type AnnouncementTarget = {
   email: string
   participant: { name: string }
 }
-type AnnouncementLine = { id: string, status: string, announcedStatus: string | null, ignoredStatus: string | null, cancelledById: string | null, session: { name: string, date: Date | null } }
+type AnnouncementLine = { id: string, status: RegistrationSessionStatus, announcedStatus: RegistrationSessionStatus | null, ignoredStatus: RegistrationSessionStatus | null, cancelledById: string | null, session: { name: string, date: Date | null } }
 
 /**
  * Écrit à une personne ce qu'il y a à lui annoncer pour une session. Chaque email a son lien (ADR-0070), créé avant

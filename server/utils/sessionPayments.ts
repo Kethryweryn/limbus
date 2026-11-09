@@ -4,6 +4,7 @@ import { CHARACTER_TYPES, REFUND_STATUSES, SESSION_ROLES, SESSION_STATUSES } fro
 import { giveUpSeat } from '~/server/utils/registrations'
 import { readUpload } from '~/server/utils/uploads'
 import { isHttpUrl } from '~/utils/urls'
+import type { RefundStatus, TariffRole } from '~/generated/prisma/enums'
 import { PAYMENT_STATES, TARIFF_ROLES, TARIFF_ROLE_ORDER, eurosToCents, isPlaceValidated, paymentAmountLines, type PaymentAmounts, paymentState, solidarityBalance, suggestedDepartureStatus, tariffForPerson, withdrawalDeadlineLine } from '~/utils/sessionTariffs'
 
 function compactLines(lines: Array<string | null | undefined>) {
@@ -134,7 +135,7 @@ export const REFUNDABLE_SESSION_STATUSES: string[] = [SESSION_STATUSES.cancelled
  * personne comme ayant payé sur la nouvelle session, à la date d'origine, si elle est dans son tableau.
  * Revenir sur un report ne retire pas le paiement de la nouvelle session : on le corrige depuis celle-ci.
  */
-export async function setSessionPaymentRefund(sessionId: string, participantId: string, status: string | null) {
+export async function setSessionPaymentRefund(sessionId: string, participantId: string, status: RefundStatus | null) {
   const session = await prisma.session.findUniqueOrThrow({ where: { id: sessionId }, select: { status: true, postponedToSessionId: true } })
   if (!REFUNDABLE_SESSION_STATUSES.includes(session.status)) {
     throw createError({ statusCode: 409, message: 'Le remboursement ne se suit que pour une session annulée ou reportée.' })
@@ -424,7 +425,7 @@ function isUniqueRoleConflict(error: unknown) {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002'
 }
 
-type TariffInput = { name: string, amount: number, defaultRole?: string | null, baseTariffId?: string | null }
+type TariffInput = { name: string, amount: number, defaultRole?: TariffRole | null, baseTariffId?: string | null }
 
 export async function createSessionTariff(sessionId: string, input: TariffInput) {
   await assertBaseTariff(sessionId, input.baseTariffId)
@@ -766,7 +767,7 @@ const DEPARTURE_STATUSES: string[] = [REFUND_STATUSES.toRefund, REFUND_STATUSES.
  * comme payé par le remplaçant : un versement en mode tarifs, la case « payé » en mode simple. Revenir sur
  * un transfert ne retire rien chez le remplaçant : on le corrige depuis sa ligne.
  */
-export async function setDepartedPaymentStatus(sessionId: string, participantId: string, status: string | null, transferToParticipantId?: string | null) {
+export async function setDepartedPaymentStatus(sessionId: string, participantId: string, status: RefundStatus | null, transferToParticipantId?: string | null) {
   if (status && !DEPARTURE_STATUSES.includes(status)) {
     throw createError({ statusCode: 400, message: 'Décision invalide' })
   }

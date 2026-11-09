@@ -16,6 +16,7 @@ import {
 import type { Prisma } from '../../generated/prisma/client'
 import type { Db, StageContext } from './db'
 import { daysFromNow } from './options'
+import type { AffinityKind, RegistrationSessionStatus, RegistrationSource, RegistrationStatus } from '../../generated/prisma/enums'
 
 // Générées pour que les repères du questionnaire aient assez de réponses. Toutes restent en example.test.
 const FIRST_NAMES = ['Adèle', 'Bruno', 'Cécile', 'Damien', 'Estelle', 'Fabien', 'Gaëlle', 'Hector', 'Irène', 'Jules', 'Karine', 'Loïc', 'Maud', 'Nathan', 'Odile', 'Paul', 'Quentin']
@@ -208,8 +209,8 @@ export async function createMeridianStage(db: Db, context: StageContext) {
   const createRegistration = async (
     fictionalEmail: string,
     fields: {
-      status?: string
-      source?: string
+      status?: RegistrationStatus
+      source?: RegistrationSource
       answered?: boolean
       oldForm?: boolean
       extra?: Partial<Prisma.RegistrationUncheckedCreateInput>
@@ -255,11 +256,11 @@ export async function createMeridianStage(db: Db, context: StageContext) {
   }
 
   // Statut d'une personne pour une session (R17) : par défaut, elle a répondu qu'elle y était disponible
-  const addLine = (registrationId: string, sessionId: string, status: string, extra: Partial<Prisma.RegistrationSessionUncheckedCreateInput> = {}) =>
+  const addLine = (registrationId: string, sessionId: string, status: RegistrationSessionStatus, extra: Partial<Prisma.RegistrationSessionUncheckedCreateInput> = {}) =>
     db.registrationSession.create({
       data: { registrationId, sessionId, status, answer: ANSWER.available, answeredAt: daysFromNow(-10), ...extra }
     })
-  const announced = (status: string) => ({ announcedStatus: status, announcedAt: daysFromNow(-3) })
+  const announced = (status: RegistrationSessionStatus) => ({ announcedStatus: status, announcedAt: daysFromNow(-3) })
   const retainedByHand = { retainedById: ownerId }
 
   // Session du tirage : un vrai tirage, jamais annoncé, donc encore annulable
@@ -328,7 +329,7 @@ export async function createMeridianStage(db: Db, context: StageContext) {
   await addLine(lea, chosenSession.id, LINE.preregistered)
   for (const email of generatedEmails.slice(15, 19)) await addLine(await createRegistration(email), chosenSession.id, LINE.preregistered)
 
-  const affinity = (registrationId: string, kind: string, text: string, target?: string) => ({
+  const affinity = (registrationId: string, kind: AffinityKind, text: string, target?: string) => ({
     registrationId,
     kind,
     text,

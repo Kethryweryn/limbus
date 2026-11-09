@@ -29,7 +29,7 @@ async function upload(kind: 'photo' | 'rib', gameId: string, sessionId?: string)
   await mkdir(dir, { recursive: true })
   await writeFile(join(dir, filename), 'x')
   await prisma.uploadedFile.create({
-    data: { kind: kind === 'photo' ? 'session-assignment-photo' : 'session-payment-rib', filename, url, gameId, sessionId }
+    data: { kind: kind === 'photo' ? 'sessionAssignmentPhoto' : 'sessionPaymentRib', filename, url, gameId, sessionId }
   })
   return { url, path: join(dir, filename) }
 }

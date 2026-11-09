@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
   const ribUrl = `/api/uploads/session-payment-ribs/${filename}`
   await prisma.uploadedFile.create({
     data: {
-      kind: 'session-payment-rib',
+      kind: 'sessionPaymentRib',
       filename,
       size: file.data.length,
       url: ribUrl,

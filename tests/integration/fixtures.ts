@@ -1,4 +1,5 @@
 import type { PrismaClient } from '~/generated/prisma/client'
+import type { UserRole } from '~/generated/prisma/enums'
 
 export type GameWorld = Awaited<ReturnType<typeof createGameWorld>>
 export type World = Awaited<ReturnType<typeof createWorld>>
@@ -42,7 +43,7 @@ async function createGameWorld(prisma: PrismaClient, key: string, ownerId: strin
   })
   const photo = await prisma.uploadedFile.create({
     data: {
-      kind: 'session-assignment-photo',
+      kind: 'sessionAssignmentPhoto',
       filename: `photo-${key}.png`,
       url: `/api/uploads/session-assignment-photos/photo-${key}.png`,
       gameId,
@@ -51,7 +52,7 @@ async function createGameWorld(prisma: PrismaClient, key: string, ownerId: strin
   })
   const rib = await prisma.uploadedFile.create({
     data: {
-      kind: 'session-payment-rib',
+      kind: 'sessionPaymentRib',
       filename: `rib-${key}.pdf`,
       url: `/api/uploads/session-payment-ribs/rib-${key}.pdf`,
       gameId,
@@ -89,7 +90,7 @@ async function createGameWorld(prisma: PrismaClient, key: string, ownerId: strin
 }
 
 export async function createWorld(prisma: PrismaClient) {
-  const user = (key: string, role = 'organizer') => prisma.user.create({
+  const user = (key: string, role: UserRole = 'user') => prisma.user.create({
     data: { email: `${key}@example.test`, name: key, password: 'non-utilise', role }
   })
   const alice = await user('alice')

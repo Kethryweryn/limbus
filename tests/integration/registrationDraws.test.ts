@@ -5,6 +5,7 @@ import { computeDraw } from '~/utils/registrationDraw'
 import { api, bodyOf } from './api'
 import { createTestPrisma } from './db'
 import { addPerson, createPool, lineOf } from './pool'
+import type { SelectionMode } from '~/generated/prisma/enums'
 
 const prisma = createTestPrisma()
 const { alice } = inject('world').users
@@ -14,7 +15,7 @@ afterAll(async () => {
   await prisma.$disconnect()
 })
 
-const sessionPool = (options: Parameters<typeof createPool>[2] & { selectionMode?: string, organizerPicks?: number, waitlistSize?: number, weightBalance?: boolean, weightNotDrawnBefore?: boolean } = {}) => {
+const sessionPool = (options: Parameters<typeof createPool>[2] & { selectionMode?: SelectionMode, organizerPicks?: number, waitlistSize?: number, weightBalance?: boolean, weightNotDrawnBefore?: boolean } = {}) => {
   const { selectionMode, organizerPicks, waitlistSize, weightBalance, weightNotDrawnBefore, ...rest } = options
   return createPool(prisma, alice.id, {
     key: 'tirage',

@@ -158,7 +158,7 @@ describe('reporter une session (US-022)', () => {
   async function withCast() {
     const s = await aliceSession()
     const photoUrl = `/api/uploads/session-assignment-photos/report-${s.key}.png`
-    await prisma.uploadedFile.create({ data: { kind: 'session-assignment-photo', filename: `report-${s.key}.png`, url: photoUrl, gameId: s.game.id, sessionId: s.session.id } })
+    await prisma.uploadedFile.create({ data: { kind: 'sessionAssignmentPhoto', filename: `report-${s.key}.png`, url: photoUrl, gameId: s.game.id, sessionId: s.session.id } })
     await prisma.sessionParticipant.create({ data: { sessionId: s.session.id, participantId: s.noe.id, role: 'npc' } })
     await prisma.sessionAssignment.createMany({
       data: [

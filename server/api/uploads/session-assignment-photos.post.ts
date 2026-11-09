@@ -76,7 +76,7 @@ export default defineEventHandler(async (event) => {
   const photoUrl = `/api/uploads/session-assignment-photos/${filename}`
   await prisma.uploadedFile.create({
     data: {
-      kind: 'session-assignment-photo',
+      kind: 'sessionAssignmentPhoto',
       filename,
       size: file.data.length,
       url: photoUrl,

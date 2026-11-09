@@ -38,7 +38,7 @@ async function sourceGame(owner: { id: string } = alice) {
   await mkdir(PHOTOS, { recursive: true })
   await writeFile(join(PHOTOS, photoFile), 'photo')
   const photoUrl = `/api/uploads/session-assignment-photos/${photoFile}`
-  await prisma.uploadedFile.create({ data: { kind: 'session-assignment-photo', filename: photoFile, url: photoUrl, gameId } })
+  await prisma.uploadedFile.create({ data: { kind: 'sessionAssignmentPhoto', filename: photoFile, url: photoUrl, gameId } })
 
   // Deux personnages du même nom : leurs slugs dans la copie doivent rester distincts
   const hero = await prisma.character.create({
@@ -156,7 +156,7 @@ describe('legs d’un jeu à une organisatrice qui a un compte', () => {
 
     // Photo dupliquée sous un nouveau nom, rattachée à la copie (R6)
     expect(copiedHero.trombinoscopePhotoUrl).not.toBe(photoUrl)
-    expect(copy!.uploadedFiles).toMatchObject([{ url: copiedHero.trombinoscopePhotoUrl, gameId: copy!.id, kind: 'session-assignment-photo' }])
+    expect(copy!.uploadedFiles).toMatchObject([{ url: copiedHero.trombinoscopePhotoUrl, gameId: copy!.id, kind: 'sessionAssignmentPhoto' }])
     expect(existsSync(join(PHOTOS, basename(copiedHero.trombinoscopePhotoUrl!)))).toBe(true)
 
     // Formulaire : la version en vigueur devient la version 1 (R14)
@@ -210,7 +210,7 @@ describe('legs d’un jeu à une organisatrice qui a un compte', () => {
       const filename = `${name}-${game.id}.png`
       await writeFile(join(PHOTOS, filename), 'photo')
       const url = `/api/uploads/session-assignment-photos/${filename}`
-      await prisma.uploadedFile.create({ data: { kind: 'session-assignment-photo', filename, url, ...data } })
+      await prisma.uploadedFile.create({ data: { kind: 'sessionAssignmentPhoto', filename, url, ...data } })
       await prisma.character.create({ data: { name, slug: `${name}-${game.id}`, gameId: game.id, trombinoscopePhotoUrl: url } })
     }
     await foreign('joueur', { gameId: game.id, sessionId: session.id })

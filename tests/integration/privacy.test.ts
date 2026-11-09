@@ -149,7 +149,7 @@ describe('suppression d’un participant', () => {
     const dir = join(process.cwd(), '.data', 'uploads', 'session-assignment-photos')
     await mkdir(dir, { recursive: true })
     await writeFile(join(dir, filename), 'png')
-    await prisma.uploadedFile.create({ data: { kind: 'session-assignment-photo', filename, url, gameId: a.game.id, sessionId: a.session.id } })
+    await prisma.uploadedFile.create({ data: { kind: 'sessionAssignmentPhoto', filename, url, gameId: a.game.id, sessionId: a.session.id } })
     const assignment = await prisma.sessionAssignment.create({
       data: { sessionId: a.session.id, characterId: character.id, participantId: participant.id, photoUrl: url }
     })
@@ -180,7 +180,7 @@ describe('suppression d’un participant', () => {
     const character = await prisma.character.create({
       data: { name: 'Rôle photo partagée', slug: 'role-photo-partagee', gameId: a.game.id, trombinoscopePhotoUrl: url }
     })
-    await prisma.uploadedFile.create({ data: { kind: 'session-assignment-photo', filename: 'photo-partagee.png', url, gameId: a.game.id } })
+    await prisma.uploadedFile.create({ data: { kind: 'sessionAssignmentPhoto', filename: 'photo-partagee.png', url, gameId: a.game.id } })
     await prisma.sessionAssignment.create({
       data: { sessionId: a.session.id, characterId: character.id, participantId: participant.id, photoUrl: url }
     })

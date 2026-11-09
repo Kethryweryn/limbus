@@ -378,7 +378,7 @@ async function copyGameOnce(sourceGameId: string, options: GameCopyOptions) {
       if (duplicated.length) {
         await tx.uploadedFile.createMany({
           data: duplicated.map((url) => ({
-            kind: 'session-assignment-photo',
+            kind: 'sessionAssignmentPhoto',
             filename: url.slice(PHOTO_UPLOAD_PREFIX.length),
             url,
             gameId

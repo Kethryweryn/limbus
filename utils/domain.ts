@@ -26,7 +26,14 @@ export const REFUND_STATUSES = {
 } as const
 
 // Annulée ou terminée : hors du tableau de bord, des prochaines sessions et de la section « à venir » (US-020)
-export const CLOSED_SESSION_STATUSES: string[] = [SESSION_STATUSES.cancelled, SESSION_STATUSES.completed]
+export type SessionStatus = typeof SESSION_STATUSES[keyof typeof SESSION_STATUSES]
+
+/** Liste de valeurs d'une énumération qui contient une valeur lue comme texte (API, formulaire). */
+export function includesValue(list: readonly string[], value: string | null | undefined) {
+  return value != null && list.includes(value)
+}
+
+export const CLOSED_SESSION_STATUSES: SessionStatus[] = [SESSION_STATUSES.cancelled, SESSION_STATUSES.completed]
 
 /** Entrée d'une table de libellés pour une clé lue de l'API, undefined si la clé est inconnue. */
 export function metaOf<T extends object>(table: T, key: string): T[keyof T] | undefined {
@@ -34,7 +41,7 @@ export function metaOf<T extends object>(table: T, key: string): T[keyof T] | un
 }
 
 export function isClosedSessionStatus(status: string | null | undefined) {
-  return CLOSED_SESSION_STATUSES.includes(status ?? '')
+  return includesValue(CLOSED_SESSION_STATUSES, status)
 }
 
 export const SESSION_STATUS_OPTIONS = [
@@ -66,7 +73,9 @@ export const SESSION_ROLE_LABELS = {
 } as const
 
 // Rôles qui tiennent un personnage ou une place dans la session ; la cuisine peut encore s'y porter joueuse (R31 de SPEC-018)
-export const SESSION_CAST_ROLES: string[] = [SESSION_ROLES.participant, SESSION_ROLES.organizer, SESSION_ROLES.npc]
+export type SessionRole = typeof SESSION_ROLES[keyof typeof SESSION_ROLES]
+
+export const SESSION_CAST_ROLES: SessionRole[] = [SESSION_ROLES.participant, SESSION_ROLES.organizer, SESSION_ROLES.npc]
 
 // Ancien public unique d'un document, lu seulement pour convertir une écriture d'avant ADR-0072 (utils/documentAudiences.ts)
 export const DOCUMENT_AUDIENCES = {
@@ -209,19 +218,21 @@ export const REGISTRATION_ANSWERS = {
 } as const
 
 // Décisions de la sélection, annoncées par « Annoncer le casting » (R26)
-export const REGISTRATION_SELECTION_STATUSES: string[] = [
+export type RegistrationSessionStatus = typeof REGISTRATION_SESSION_STATUSES[keyof typeof REGISTRATION_SESSION_STATUSES]
+
+export const REGISTRATION_SELECTION_STATUSES: RegistrationSessionStatus[] = [
   REGISTRATION_SESSION_STATUSES.retained,
   REGISTRATION_SESSION_STATUSES.waitlisted
 ]
 
 // Une place de la session est prise (R8)
-export const REGISTRATION_SEAT_STATUSES: string[] = [
+export const REGISTRATION_SEAT_STATUSES: RegistrationSessionStatus[] = [
   REGISTRATION_SESSION_STATUSES.retained,
   REGISTRATION_SESSION_STATUSES.confirmed
 ]
 
 // Une présence qu'on peut annuler (R19) ; « pas disponible » n'en est pas une, et une annulation l'est déjà
-export const REGISTRATION_CANCELLABLE_STATUSES: string[] = [
+export const REGISTRATION_CANCELLABLE_STATUSES: RegistrationSessionStatus[] = [
   REGISTRATION_SESSION_STATUSES.preregistered,
   REGISTRATION_SESSION_STATUSES.waitlisted,
   REGISTRATION_SESSION_STATUSES.retained,

@@ -6,6 +6,7 @@ import { api, bodyOf, errorMessage } from './api'
 import { createTestPrisma } from './db'
 import { addPerson, createPool, lineOf, type Pool } from './pool'
 import { personalLinkToken, startTestSmtp } from './smtp'
+import type { RegistrationSessionStatus } from '~/generated/prisma/enums'
 
 const prisma = createTestPrisma()
 const { alice } = inject('world').users
@@ -155,7 +156,7 @@ describe('relancer (US-168, R12)', () => {
 })
 
 describe('répondre d’un clic (US-167, R11, R29)', () => {
-  async function person(status?: string, line: Record<string, unknown> = {}) {
+  async function person(status?: RegistrationSessionStatus, line: Record<string, unknown> = {}) {
     const pool = await createPool(prisma, alice.id, { key: 'clic', sessions: 1, seats: 2 })
     const session = pool.sessions[0]!
     const registration = await addPerson(prisma, pool, 'Lou')
@@ -199,7 +200,7 @@ describe('répondre d’un clic (US-167, R11, R29)', () => {
   })
 
   it('une place annoncée ou confirmée ne change pas', async () => {
-    for (const status of ['retained', 'confirmed']) {
+    for (const status of ['retained', 'confirmed'] as const) {
       const { session, registration, token } = await person(status, { answer: 'available', announcedStatus: 'retained' })
       expect((await answer(token, session.id, false)).body.availabilityEffect).toBe('kept')
       expect((await lineOf(prisma, registration.id, session.id))?.status).toBe(status)

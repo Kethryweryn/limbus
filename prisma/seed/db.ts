@@ -1,4 +1,5 @@
 import type { prisma } from '../../server/utils/prisma'
+import type { CharacterType } from '../../generated/prisma/enums'
 
 // Le client de la transaction du rechargement
 export type Db = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
@@ -13,7 +14,7 @@ export type StageContext = {
   title: string
   ownerId: string | undefined
   locationId: string | undefined
-  characters: Array<{ id: string, name: string, type: string }>
+  characters: Array<{ id: string, name: string, type: CharacterType }>
   // Les fiches, par adresse fictive
   people: Map<string, Person>
   // Photo de chaque fiche qui en a une, par identifiant

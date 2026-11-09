@@ -1,14 +1,14 @@
 import { prisma } from '~/server/utils/prisma'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
 import { NO_COPY } from '~/server/utils/deliveryCopies'
-import { REGISTRATION_SESSION_STATUSES as LINE } from '~/utils/domain'
+import { REGISTRATION_SESSION_STATUSES as LINE, type RegistrationSessionStatus } from '~/utils/domain'
 import { normalizeRegistrationFormDefinition, type RegistrationFormDefinition } from '~/utils/registrationForms'
 import { visibleLineStatus } from '~/utils/registrations'
 
 type ExportedLine = {
-  status: string
+  status: RegistrationSessionStatus
   answer: string | null
-  announcedStatus: string | null
+  announcedStatus: RegistrationSessionStatus | null
   waitlistPosition: number | null
   responseDueAt: Date | null
   cancelledAt: Date | null

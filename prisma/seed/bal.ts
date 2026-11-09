@@ -4,6 +4,7 @@ import { documentContentHash } from '../../server/utils/deliveryHashes'
 import { BEQUEST_INVITATION_DAYS, GAME_INVITATION_KINDS, GAME_INVITATION_STATUSES, REFUND_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '../../utils/domain'
 import type { Db, StageContext } from './db'
 import { daysFromNow } from './options'
+import type { RefundStatus, SessionStatus } from '../../generated/prisma/enums'
 
 export const BAL_EXTRA_PEOPLE = [
   { name: 'Lucie Moreau', email: 'lucie.moreau@example.test', phone: '06 11 22 33 02' }
@@ -12,7 +13,7 @@ export const BAL_EXTRA_PEOPLE = [
 export async function createBalStage(db: Db, context: StageContext) {
   const { gameId, title, ownerId, locationId, characters, people, makeSlug, address } = context
   const person = (email: string) => people.get(`${email}@example.test`)!
-  const session = (name: string, slug: string, days: number, status: string, team: string[], extra: { cancelledAt?: Date, postponedToSessionId?: string } = {}) => db.session.create({
+  const session = (name: string, slug: string, days: number, status: SessionStatus, team: string[], extra: { cancelledAt?: Date, postponedToSessionId?: string } = {}) => db.session.create({
     data: {
       name: `${title} - ${name}`,
       slug: makeSlug(`${title}-${slug}`),
@@ -27,7 +28,7 @@ export async function createBalStage(db: Db, context: StageContext) {
     },
     select: { id: true, name: true }
   })
-  const paid = (sessionId: string, email: string, refund: { refundStatus: string, refundedAt?: Date, carriedOverToSessionId?: string }) =>
+  const paid = (sessionId: string, email: string, refund: { refundStatus: RefundStatus, refundedAt?: Date, carriedOverToSessionId?: string }) =>
     db.sessionPayment.create({
       data: { sessionId, participantId: person(email).id, paidAt: daysFromNow(-40), ...refund }
     })

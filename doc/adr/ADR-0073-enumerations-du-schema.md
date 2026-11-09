@@ -1,7 +1,7 @@
 ---
 id: ADR-0073
 titre: Les valeurs à liste fermée sont des énumérations, les règles entre colonnes des contraintes CHECK
-statut: proposé
+statut: accepté
 date: 2026-11-09
 liens: [../archive/todo/schema-de-donnees.md, ../epics/EPIC-049-schema-de-donnees/US-189-enumerations.md, ../epics/EPIC-049-schema-de-donnees/US-190-regles-des-liens-et-des-relations.md, ADR-0024-migrations-compatibles-avec-le-build-en-service.md]
 ---
@@ -21,8 +21,12 @@ Une trentaine de colonnes `String` n'acceptent que quelques valeurs (statuts, r�
 ## Conséquences
 
 - La base refuse une valeur inconnue, et une faute de frappe dans le code devient une erreur de typage.
-- Passer une colonne de `text` à un type énuméré est un changement de type : la migration est marquée incompatible ([ADR-0024](ADR-0024-migrations-compatibles-avec-le-build-en-service.md)). Il reste à vérifier sur une copie que le build d'avant écrit encore dans la colonne convertie ; sinon, l'écart dure le temps du déploiement.
+- Passer une colonne de `text` à un type énuméré est un changement de type : la migration est marquée incompatible ([ADR-0024](ADR-0024-migrations-compatibles-avec-le-build-en-service.md)). Ce que fait alors le build d'avant se vérifie sur une base migrée, avec son propre client Prisma.
 - La migration échoue si une ligne de production porte une valeur hors liste : chaque liste est d'abord confrontée aux valeurs présentes.
+- Prisma génère pour ce changement une suppression puis un ajout de colonne, qui efface les valeurs : la migration s'écrit à la main, colonne par colonne (`ALTER COLUMN … TYPE … USING …::text::"Type"`), et les index partiels qui comparent la colonne à du texte sont recréés.
+- Un tri sur une colonne énumérée suit l'ordre de déclaration des valeurs, plus l'ordre alphabétique. Les tris existants (personnages PJ puis PNJ, comptes admin puis user) gardent leur ordre, leurs valeurs étant déclarées dans l'ordre alphabétique ; un nouveau tri sur une énumération choisit l'ordre de déclaration en conséquence.
+- Une valeur avec tiret n'est pas un nom d'énumération Prisma : elle garde sa valeur en base par `@map`, et le code emploie le nom sans tiret.
+- Vérifié à l'implémentation (US-189) : le client Prisma du build d'avant écrit et filtre les colonnes converties, mais ne lit pas une liste d'énumération (`Document.audiences`), que le pilote `pg` lui rend en texte brut.
 
 ## Options écartées
 

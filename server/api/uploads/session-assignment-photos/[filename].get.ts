@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
     where: { filename },
     select: { kind: true, gameId: true, sessionId: true }
   })
-  if (!uploadedFile || uploadedFile.kind !== 'session-assignment-photo') {
+  if (!uploadedFile || uploadedFile.kind !== 'sessionAssignmentPhoto') {
     throw createError({ statusCode: 404, message: 'File not found' })
   }
   if (uploadedFile.sessionId) {

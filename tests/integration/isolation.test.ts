@@ -438,7 +438,7 @@ describe('routes d’administration', () => {
 
   it('une organisatrice ne peut pas se promouvoir admin', async () => {
     const user = await prisma.user.findUnique({ where: { id: alice.id } })
-    expect(user?.role).toBe('organizer')
+    expect(user?.role).toBe('user')
   })
 })
 

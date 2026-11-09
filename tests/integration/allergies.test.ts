@@ -4,6 +4,7 @@ import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf, tokenFor } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
+import type { RegistrationSessionStatus } from '~/generated/prisma/enums'
 
 const world = inject('world')
 const { alice } = world.users
@@ -32,7 +33,7 @@ async function sessionWithRegistrations() {
     data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
   })
   const [zoe, ines, leo, hugo, cook, npc] = await Promise.all(['Zoe', 'Ines', 'Leo', 'Hugo', 'Cuisine', 'Pnj'].map(person))
-  const registration = (participant: { id: string, email: string | null }, status: string, dietary: string | null) => prisma.registration.create({
+  const registration = (participant: { id: string, email: string | null }, status: RegistrationSessionStatus, dietary: string | null) => prisma.registration.create({
     data: {
       periodId: period.id,
       participantId: participant.id,
@@ -49,8 +50,9 @@ async function sessionWithRegistrations() {
   await Promise.all([
     registration(zoe!, 'confirmed', 'Gluten'),
     registration(ines!, 'confirmed', null),
-    registration(leo!, 'withdrawn', 'Arachides'),
-    registration(hugo!, 'invited', 'Lactose')
+    // Annulée, ou castée sans avoir confirmé : hors de la fiche (statuts de session, ADR-0069)
+    registration(leo!, 'cancelled', 'Arachides'),
+    registration(hugo!, 'retained', 'Lactose')
   ])
   await prisma.sessionParticipant.createMany({
     data: [

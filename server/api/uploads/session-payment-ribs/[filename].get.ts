@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
     where: { filename },
     select: { kind: true, sessionId: true }
   })
-  if (!uploadedFile || uploadedFile.kind !== 'session-payment-rib' || !uploadedFile.sessionId) {
+  if (!uploadedFile || uploadedFile.kind !== 'sessionPaymentRib' || !uploadedFile.sessionId) {
     throw createError({ statusCode: 404, message: 'Fichier introuvable' })
   }
   await requireSessionAccess(event, uploadedFile.sessionId)
