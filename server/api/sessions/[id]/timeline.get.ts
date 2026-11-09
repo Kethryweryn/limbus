@@ -3,6 +3,7 @@ import { requireUser } from '~/server/utils/auth'
 import { requireGameAccess, requireSessionAccess } from '~/server/utils/gameAccess'
 import { timelineEventInclude, withTimelineConflicts } from '~/server/utils/timelineEvents'
 import { requireRouterParam } from '~/server/utils/routeParams'
+import { unlinked } from '~/server/utils/contentLinks'
 
 export default defineEventHandler(async (event) => {
   await requireUser(event)
@@ -52,7 +53,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     session,
-    events: withTimelineConflicts(events).map((timelineEvent) => ({
+    events: withTimelineConflicts(unlinked(events)).map((timelineEvent) => ({
       ...timelineEvent,
       responsibles: responsiblesByEventId.get(timelineEvent.id) || []
     }))

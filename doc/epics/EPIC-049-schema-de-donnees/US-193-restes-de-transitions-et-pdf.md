@@ -14,7 +14,8 @@ En tant que mainteneuse de Limbus, je veux retirer les colonnes qui ne servent p
 ## Critères d'acceptation
 
 - [ ] `Participant.notes` et `GameInvitation.token` sont retirées.
-- [ ] `Document.audience` et `Document.characterId` sont retirées, une fois le build qui les écrit remplacé.
+- [ ] `Document.audience` et `Document.characterId` (avec `Character.legacyDocuments`) sont retirées, une fois le build qui les écrit remplacé.
+- [ ] Les onze anciennes tables de liaison (`_CharacterFactions`…), recopiées par l'[US-191](US-191-meme-jeu-impose-par-la-base.md), sont retirées.
 - [ ] Le PDF du trombinoscope est écrit dans une colonne `Bytes`, remplie depuis l'existant ; l'ancienne colonne base64 est retirée au déploiement suivant.
 - [ ] Les PDF générés restent en base ([ADR-0044](../../adr/ADR-0044-copies-des-envois.md)).
 

@@ -35,7 +35,7 @@ describe('envoi des documents d’une session', () => {
     const document = await prisma.document.create({
       data: {
         title: `Lettre ${key}`, slug: `lettre-${key}`, gameId: game.id, content: 'Contenu', readyToSend: true,
-        characters: { connect: [{ id: first!.id }, { id: second!.id }] }
+        characterLinks: { create: [{ characterId: first!.id }, { characterId: second!.id }] }
       }
     })
     const mailsTo = () => smtp.received.filter((received) => received.to.includes(participant.email!)).length

@@ -33,7 +33,7 @@ async function castingGame() {
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
   const faction = await prisma.faction.create({ data: { name: 'Loups', slug: `${key}-loups`, gameId: game.id } })
   const [iseult, bran, cy] = await Promise.all(['Iseult', 'Bran', 'Cy'].map((name) => prisma.character.create({
-    data: { name, slug: `${key}-${name.toLowerCase()}`, gameId: game.id, ...(name === 'Iseult' && { factions: { connect: { id: faction.id } } }) }
+    data: { name, slug: `${key}-${name.toLowerCase()}`, gameId: game.id, ...(name === 'Iseult' && { factionLinks: { create: { factionId: faction.id } } }) }
   })))
   await prisma.characterRelation.create({ data: { gameId: game.id, type: 'romance', fromCharacterId: iseult!.id, toCharacterId: bran!.id } })
   const form = await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, {

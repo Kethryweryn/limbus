@@ -12,6 +12,8 @@ import { itemInclude, validateItemRelations } from '~/server/utils/items'
 import { documentInclude, validateDocumentRelations } from '~/server/utils/documents'
 import { timelineEventInclude, validateTimelineEventRelations } from '~/server/utils/timelineEvents'
 import { characterRelationInclude, findCharacterRelationOr404, relationGameId } from '~/server/utils/characterRelations'
+import { linkCreate, linkSet, unlinked } from '~/server/utils/contentLinks'
+import { factionInclude, intrigueInclude } from '~/server/utils/sheetReads'
 import type {
   characterRelationSchema,
   createCharacterSchema,
@@ -136,7 +138,7 @@ export async function updateGame(event: H3Event, id: string, readBody: Reader<ty
 
 // Personnages
 
-const characterInclude = { game: true, factions: true } as const
+const characterInclude = { game: true, factionLinks: { select: { faction: true } } } as const
 
 export async function createCharacter(event: H3Event, readBody: Reader<typeof createCharacterSchema>) {
   const body = await readBody()
@@ -145,7 +147,7 @@ export async function createCharacter(event: H3Event, readBody: Reader<typeof cr
   await assertBalanceValue(body.gameId, body.balanceValue)
   await assertSameGameIds('faction', body.factionIds, body.gameId, 'Groupes invalides pour ce jeu')
 
-  return await prisma.character.create({
+  return unlinked(await prisma.character.create({
     data: {
       name: body.name,
       type: body.type,
@@ -163,10 +165,10 @@ export async function createCharacter(event: H3Event, readBody: Reader<typeof cr
       // Seul un PJ porte une valeur d'équilibre (US-091)
       balanceValue: body.type === CHARACTER_TYPES.pj ? body.balanceValue || null : null,
       gameId: body.gameId,
-      factions: { connect: body.factionIds.map((id) => ({ id })) }
+      factionLinks: linkCreate('factionId', body.factionIds)
     },
     include: characterInclude
-  })
+  }))
 }
 
 export async function updateCharacter(event: H3Event, id: string, readBody: Reader<typeof updateCharacterSchema>) {
@@ -203,11 +205,11 @@ export async function updateCharacter(event: H3Event, id: string, readBody: Read
     data.name = body.name
     data.slug = await generateUniqueSlug('character', body.name, id)
   }
-  if (body.factionIds) data.factions = { set: body.factionIds.map((factionId) => ({ id: factionId })) }
+  if (body.factionIds) data.factionLinks = linkSet('factionId', body.factionIds)
 
   const character = await prisma.character.update({ where: { id }, data, include: characterInclude })
   await deleteUnusedUploads([existing.trombinoscopePhotoUrl])
-  return character
+  return unlinked(character)
 }
 
 export async function deleteCharacter(event: H3Event, id: string) {
@@ -218,21 +220,25 @@ export async function deleteCharacter(event: H3Event, id: string) {
 
   // Ses assignations de session partent avec lui, photos comprises
   const uploadUrls = await collectUploadUrls({ characterId: id })
-  const deleted = await prisma.character.delete({ where: { id } })
+  // Les références facultatives au personnage se vident d'abord : leur clé composée avec le jeu ne s'efface pas seule
+  // (ADR-0074)
+  const deleted = await prisma.$transaction(async (tx) => {
+    await tx.item.updateMany({ where: { locationCharacterId: id }, data: { locationCharacterId: null } })
+    await tx.document.updateMany({ where: { characterId: id }, data: { characterId: null } })
+    return await tx.character.delete({ where: { id } })
+  })
   await deleteUnusedUploads(uploadUrls)
   return deleted
 }
 
 // Factions
 
-const factionInclude = { game: true, characters: { orderBy: { name: 'asc' } }, intrigues: { orderBy: { updatedAt: 'desc' } } } as const
-
 export async function createFaction(event: H3Event, readBody: Reader<typeof factionSchema>) {
   const body = await readBody()
   await requireGameAccess(event, body.gameId)
   await assertSameGameIds('character', body.characterIds, body.gameId, 'Personnages invalides pour ce jeu')
 
-  return await prisma.faction.create({
+  return unlinked(await prisma.faction.create({
     data: {
       name: body.name,
       slug: await generateUniqueSlug('faction', body.name),
@@ -242,10 +248,10 @@ export async function createFaction(event: H3Event, readBody: Reader<typeof fact
       costumeIndications: body.costumeIndications,
       showInTrombinoscope: body.showInTrombinoscope ?? false,
       gameId: body.gameId,
-      characters: { connect: body.characterIds.map((id) => ({ id })) }
+      characterLinks: linkCreate('characterId', body.characterIds)
     },
     include: factionInclude
-  })
+  }))
 }
 
 export async function updateFaction(event: H3Event, id: string, readBody: Reader<typeof factionSchema>) {
@@ -258,7 +264,7 @@ export async function updateFaction(event: H3Event, id: string, readBody: Reader
   await requireGameAccess(event, body.gameId)
   await assertSameGameIds('character', body.characterIds, body.gameId, 'Personnages invalides pour ce jeu')
 
-  return await prisma.faction.update({
+  return unlinked(await prisma.faction.update({
     where: { id },
     data: {
       name: body.name,
@@ -269,10 +275,10 @@ export async function updateFaction(event: H3Event, id: string, readBody: Reader
       costumeIndications: body.costumeIndications,
       showInTrombinoscope: body.showInTrombinoscope ?? false,
       gameId: body.gameId,
-      characters: { set: body.characterIds.map((characterId) => ({ id: characterId })) }
+      characterLinks: linkSet('characterId', body.characterIds)
     },
     include: factionInclude
-  })
+  }))
 }
 
 export async function deleteFaction(event: H3Event, id: string) {
@@ -286,8 +292,6 @@ export async function deleteFaction(event: H3Event, id: string) {
 
 // Intrigues
 
-const intrigueInclude = { game: true, characters: { orderBy: { name: 'asc' } }, factions: { orderBy: { name: 'asc' } }, items: { orderBy: { name: 'asc' } } } as const
-
 async function validateIntrigueRelations(gameId: string, characterIds: string[], factionIds: string[]) {
   await assertSameGameIds('character', characterIds, gameId, 'Personnages invalides pour ce jeu')
   await assertSameGameIds('faction', factionIds, gameId, 'Groupes invalides pour ce jeu')
@@ -298,7 +302,7 @@ export async function createIntrigue(event: H3Event, readBody: Reader<typeof int
   await requireGameAccess(event, body.gameId)
   await validateIntrigueRelations(body.gameId, body.characterIds, body.factionIds)
 
-  return await prisma.intrigue.create({
+  return unlinked(await prisma.intrigue.create({
     data: {
       name: body.name,
       slug: await generateUniqueSlug('intrigue', body.name),
@@ -306,11 +310,11 @@ export async function createIntrigue(event: H3Event, readBody: Reader<typeof int
       description: body.description,
       level: body.level,
       gameId: body.gameId,
-      characters: { connect: body.characterIds.map((id) => ({ id })) },
-      factions: { connect: body.factionIds.map((id) => ({ id })) }
+      characterLinks: linkCreate('characterId', body.characterIds),
+      factionLinks: linkCreate('factionId', body.factionIds)
     },
     include: intrigueInclude
-  })
+  }))
 }
 
 export async function updateIntrigue(event: H3Event, id: string, readBody: Reader<typeof intrigueSchema>) {
@@ -323,7 +327,7 @@ export async function updateIntrigue(event: H3Event, id: string, readBody: Reade
   await requireGameAccess(event, body.gameId)
   await validateIntrigueRelations(body.gameId, body.characterIds, body.factionIds)
 
-  return await prisma.intrigue.update({
+  return unlinked(await prisma.intrigue.update({
     where: { id },
     data: {
       name: body.name,
@@ -332,11 +336,11 @@ export async function updateIntrigue(event: H3Event, id: string, readBody: Reade
       description: body.description,
       level: body.level,
       gameId: body.gameId,
-      characters: { set: body.characterIds.map((characterId) => ({ id: characterId })) },
-      factions: { set: body.factionIds.map((factionId) => ({ id: factionId })) }
+      characterLinks: linkSet('characterId', body.characterIds),
+      factionLinks: linkSet('factionId', body.factionIds)
     },
     include: intrigueInclude
-  })
+  }))
 }
 
 export async function deleteIntrigue(event: H3Event, id: string) {
@@ -357,7 +361,7 @@ export async function createItem(event: H3Event, readBody: Reader<typeof itemSch
   const intrigueIds = [...new Set(body.intrigueIds)]
   await validateItemRelations(body.gameId, characterIds, intrigueIds, body.locationCharacterId)
 
-  return await prisma.item.create({
+  return unlinked(await prisma.item.create({
     data: {
       name: body.name,
       slug: await generateUniqueSlug('item', body.name),
@@ -366,11 +370,11 @@ export async function createItem(event: H3Event, readBody: Reader<typeof itemSch
       locationText: body.locationCharacterId ? null : body.locationText,
       locationCharacterId: body.locationCharacterId || null,
       gameId: body.gameId,
-      characters: { connect: characterIds.map((characterId) => ({ id: characterId })) },
-      intrigues: { connect: intrigueIds.map((intrigueId) => ({ id: intrigueId })) }
+      characterLinks: linkCreate('characterId', characterIds),
+      intrigueLinks: linkCreate('intrigueId', intrigueIds)
     },
     include: itemInclude
-  })
+  }))
 }
 
 export async function updateItem(event: H3Event, id: string, readBody: Reader<typeof itemSchema>) {
@@ -385,7 +389,7 @@ export async function updateItem(event: H3Event, id: string, readBody: Reader<ty
   const intrigueIds = [...new Set(body.intrigueIds)]
   await validateItemRelations(body.gameId, characterIds, intrigueIds, body.locationCharacterId)
 
-  return await prisma.item.update({
+  return unlinked(await prisma.item.update({
     where: { id },
     data: {
       name: body.name,
@@ -395,11 +399,11 @@ export async function updateItem(event: H3Event, id: string, readBody: Reader<ty
       locationText: body.locationCharacterId ? null : body.locationText,
       locationCharacterId: body.locationCharacterId || null,
       gameId: body.gameId,
-      characters: { set: characterIds.map((characterId) => ({ id: characterId })) },
-      intrigues: { set: intrigueIds.map((intrigueId) => ({ id: intrigueId })) }
+      characterLinks: linkSet('characterId', characterIds),
+      intrigueLinks: linkSet('intrigueId', intrigueIds)
     },
     include: itemInclude
-  })
+  }))
 }
 
 export async function deleteItem(event: H3Event, id: string) {
@@ -420,7 +424,7 @@ export async function createDocument(event: H3Event, readBody: Reader<typeof doc
   const factionIds = [...new Set(body.factionIds)]
   await validateDocumentRelations(body.gameId, characterIds, factionIds)
 
-  return await prisma.document.create({
+  return unlinked(await prisma.document.create({
     data: {
       title: body.title,
       slug: await generateUniqueSlug('document', body.title),
@@ -432,11 +436,11 @@ export async function createDocument(event: H3Event, readBody: Reader<typeof doc
       readyToSend: body.readyToSend ?? false,
       gameId: body.gameId,
       characterId: null,
-      characters: { connect: characterIds.map((characterId) => ({ id: characterId })) },
-      factions: { connect: factionIds.map((factionId) => ({ id: factionId })) }
+      characterLinks: linkCreate('characterId', characterIds),
+      factionLinks: linkCreate('factionId', factionIds)
     },
     include: documentInclude
-  })
+  }))
 }
 
 export async function updateDocument(event: H3Event, id: string, readBody: Reader<typeof documentSchema>) {
@@ -451,7 +455,7 @@ export async function updateDocument(event: H3Event, id: string, readBody: Reade
   const factionIds = [...new Set(body.factionIds)]
   await validateDocumentRelations(body.gameId, characterIds, factionIds)
 
-  return await prisma.document.update({
+  return unlinked(await prisma.document.update({
     where: { id },
     data: {
       title: body.title,
@@ -464,11 +468,11 @@ export async function updateDocument(event: H3Event, id: string, readBody: Reade
       readyToSend: body.readyToSend ?? false,
       gameId: body.gameId,
       characterId: null,
-      characters: { set: characterIds.map((characterId) => ({ id: characterId })) },
-      factions: { set: factionIds.map((factionId) => ({ id: factionId })) }
+      characterLinks: linkSet('characterId', characterIds),
+      factionLinks: linkSet('factionId', factionIds)
     },
     include: documentInclude
-  })
+  }))
 }
 
 export async function deleteDocument(event: H3Event, id: string) {
@@ -530,7 +534,7 @@ export async function createTimelineEvent(event: H3Event, readBody: Reader<typeo
   const itemIds = [...new Set(body.itemIds)]
   await validateTimelineEventRelations(body.gameId, characterIds, factionIds, intrigueIds, itemIds)
 
-  return await prisma.timelineEvent.create({
+  return unlinked(await prisma.timelineEvent.create({
     data: {
       name: body.name,
       slug: await generateUniqueSlug('timelineEvent', body.name),
@@ -539,13 +543,13 @@ export async function createTimelineEvent(event: H3Event, readBody: Reader<typeo
       time: body.time,
       requiredResponsibles: body.requiredResponsibles,
       gameId: body.gameId,
-      characters: { connect: characterIds.map((id) => ({ id })) },
-      factions: { connect: factionIds.map((id) => ({ id })) },
-      intrigues: { connect: intrigueIds.map((id) => ({ id })) },
-      items: { connect: itemIds.map((id) => ({ id })) }
+      characterLinks: linkCreate('characterId', characterIds),
+      factionLinks: linkCreate('factionId', factionIds),
+      intrigueLinks: linkCreate('intrigueId', intrigueIds),
+      itemLinks: linkCreate('itemId', itemIds)
     },
     include: timelineEventInclude
-  })
+  }))
 }
 
 export async function updateTimelineEvent(event: H3Event, id: string, readBody: Reader<typeof timelineEventSchema>) {
@@ -562,7 +566,7 @@ export async function updateTimelineEvent(event: H3Event, id: string, readBody: 
   const itemIds = [...new Set(body.itemIds)]
   await validateTimelineEventRelations(body.gameId, characterIds, factionIds, intrigueIds, itemIds)
 
-  return await prisma.timelineEvent.update({
+  return unlinked(await prisma.timelineEvent.update({
     where: { id },
     data: {
       name: body.name,
@@ -572,13 +576,13 @@ export async function updateTimelineEvent(event: H3Event, id: string, readBody: 
       time: body.time,
       requiredResponsibles: body.requiredResponsibles,
       gameId: body.gameId,
-      characters: { set: characterIds.map((characterId) => ({ id: characterId })) },
-      factions: { set: factionIds.map((factionId) => ({ id: factionId })) },
-      intrigues: { set: intrigueIds.map((intrigueId) => ({ id: intrigueId })) },
-      items: { set: itemIds.map((itemId) => ({ id: itemId })) }
+      characterLinks: linkSet('characterId', characterIds),
+      factionLinks: linkSet('factionId', factionIds),
+      intrigueLinks: linkSet('intrigueId', intrigueIds),
+      itemLinks: linkSet('itemId', itemIds)
     },
     include: timelineEventInclude
-  })
+  }))
 }
 
 export async function deleteTimelineEvent(event: H3Event, id: string) {

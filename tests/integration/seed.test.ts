@@ -656,8 +656,8 @@ describe('Le Bal des Masques Brisés, après et imprévus', () => {
   })
 
   it('garde le contenu d\'origine, dont l\'intrigue sans rattachement', async () => {
-    const orphan = await prisma.intrigue.findFirstOrThrow({ where: { gameId: bal, name: 'Le billet non signé' }, select: { characters: { select: { id: true } }, factions: { select: { id: true } } } })
-    expect(orphan).toEqual({ characters: [], factions: [] })
+    const orphan = await prisma.intrigue.findFirstOrThrow({ where: { gameId: bal, name: 'Le billet non signé' }, select: { characterLinks: true, factionLinks: true } })
+    expect(orphan).toEqual({ characterLinks: [], factionLinks: [] })
     expect(await prisma.character.count({ where: { gameId: bal } })).toBe(8)
   })
 

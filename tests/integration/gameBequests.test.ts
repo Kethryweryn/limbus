@@ -5,6 +5,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { DEFAULT_REGISTRATION_FORM_DEFINITION } from '~/utils/registrationForms'
+import { unlinked } from '~/server/utils/contentLinks'
 import { api, DENIED, errorMessage } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
@@ -48,28 +49,28 @@ async function sourceGame(owner: { id: string } = alice) {
     data: { name: `Héros ${key}`, slug: `heros-${key}-2`, gameId, trombinoscopePhotoUrl: 'https://example.test/photo.png', published: false }
   })
   await prisma.characterTrombinoscopeEntry.create({
-    data: { viewerCharacterId: hero.id, targetCharacterId: twin.id, faceKnown: false, displayName: 'Le jumeau' }
+    data: { gameId, viewerCharacterId: hero.id, targetCharacterId: twin.id, faceKnown: false, displayName: 'Le jumeau' }
   })
   const intrigue = await prisma.intrigue.create({
-    data: { name: `Complot ${key}`, slug: `complot-${key}`, gameId, level: 'major', characters: { connect: [{ id: hero.id }] } }
+    data: { name: `Complot ${key}`, slug: `complot-${key}`, gameId, level: 'major', characterLinks: { create: [{ characterId: hero.id }] } }
   })
   const faction = await prisma.faction.create({
-    data: { name: `Guilde ${key}`, slug: `guilde-${key}`, gameId, characters: { connect: [{ id: twin.id }] }, intrigues: { connect: [{ id: intrigue.id }] } }
+    data: { name: `Guilde ${key}`, slug: `guilde-${key}`, gameId, characterLinks: { create: [{ characterId: twin.id }] }, intrigueLinks: { create: [{ intrigueId: intrigue.id }] } }
   })
   const item = await prisma.item.create({
-    data: { name: `Dague ${key}`, slug: `dague-${key}`, gameId, quantity: 2, locationCharacterId: twin.id, characters: { connect: [{ id: hero.id }] }, intrigues: { connect: [{ id: intrigue.id }] } }
+    data: { name: `Dague ${key}`, slug: `dague-${key}`, gameId, quantity: 2, locationCharacterId: twin.id, characterLinks: { create: [{ characterId: hero.id }] }, intrigueLinks: { create: [{ intrigueId: intrigue.id }] } }
   })
   await prisma.timelineEvent.create({
     data: {
       name: `Bal ${key}`, slug: `bal-${key}`, gameId, day: 1, time: '20:00',
-      characters: { connect: [{ id: hero.id }] }, factions: { connect: [{ id: faction.id }] },
-      intrigues: { connect: [{ id: intrigue.id }] }, items: { connect: [{ id: item.id }] }
+      characterLinks: { create: [{ characterId: hero.id }] }, factionLinks: { create: [{ factionId: faction.id }] },
+      intrigueLinks: { create: [{ intrigueId: intrigue.id }] }, itemLinks: { create: [{ itemId: item.id }] }
     }
   })
   await prisma.document.create({
     data: {
       title: `Lettre ${key}`, slug: `lettre-${key}`, gameId, content: 'Contenu', characterId: hero.id,
-      characters: { connect: [{ id: twin.id }] }, factions: { connect: [{ id: faction.id }] }
+      characterLinks: { create: [{ characterId: twin.id }] }, factionLinks: { create: [{ factionId: faction.id }] }
     }
   })
   await prisma.location.create({ data: { name: `Château ${key}`, slug: `chateau-${key}`, gameId, address: 'Rue' } })
@@ -90,16 +91,27 @@ async function sourceGame(owner: { id: string } = alice) {
   return { game, hero, twin, photoUrl, current }
 }
 
+// Éléments reliés lus par les tables de liaison (US-191), rendus en listes par unlinked
+const character = { select: { character: true } }
+const faction = { select: { faction: true } }
+const intrigue = { select: { intrigue: true } }
+const item = { select: { item: true } }
+
 async function copiesOf(gameId: string) {
-  return await prisma.game.findMany({
+  return unlinked(await prisma.game.findMany({
     where: { copiedFromGameId: gameId },
     include: {
-      characters: { include: { trombinoscopeViewerEntries: true, factions: true, intrigues: true, items: true, documents: true, targetedDocuments: true, locatedItems: true } },
-      factions: { include: { characters: true, intrigues: true } },
-      intrigues: { include: { characters: true } },
-      items: { include: { characters: true, intrigues: true } },
-      timelineEvents: { include: { characters: true, factions: true, intrigues: true, items: true } },
-      documents: { include: { characters: true, factions: true } },
+      characters: {
+        include: {
+          trombinoscopeViewerEntries: true, factionLinks: faction, intrigueLinks: intrigue, itemLinks: item, legacyDocuments: true,
+          documentLinks: { select: { document: true } }, locatedItems: true
+        }
+      },
+      factions: { include: { characterLinks: character, intrigueLinks: intrigue } },
+      intrigues: { include: { characterLinks: character } },
+      items: { include: { characterLinks: character, intrigueLinks: intrigue } },
+      timelineEvents: { include: { characterLinks: character, factionLinks: faction, intrigueLinks: intrigue, itemLinks: item } },
+      documents: { include: { characterLinks: character, factionLinks: faction } },
       locations: true,
       uploadedFiles: true,
       registrationForm: { include: { versions: true } },
@@ -109,7 +121,7 @@ async function copiesOf(gameId: string) {
       invitations: true,
       registrationPeriods: true
     }
-  })
+  }))
 }
 
 describe('legs d’un jeu à une organisatrice qui a un compte', () => {

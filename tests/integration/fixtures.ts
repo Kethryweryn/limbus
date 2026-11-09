@@ -12,7 +12,7 @@ async function createGameWorld(prisma: PrismaClient, key: string, ownerId: strin
   const gameId = game.id
   const faction = await prisma.faction.create({ data: { name: `Faction ${key}`, slug: `faction-${key}`, gameId } })
   const character = await prisma.character.create({
-    data: { name: `Perso ${key}`, slug: `perso-${key}`, gameId, factions: { connect: { id: faction.id } } }
+    data: { name: `Perso ${key}`, slug: `perso-${key}`, gameId, factionLinks: { create: { factionId: faction.id } } }
   })
   const intrigue = await prisma.intrigue.create({ data: { name: `Intrigue ${key}`, slug: `intrigue-${key}`, gameId } })
   const item = await prisma.item.create({ data: { name: `Objet ${key}`, slug: `objet-${key}`, gameId } })

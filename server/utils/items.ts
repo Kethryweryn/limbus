@@ -3,12 +3,9 @@ import { prisma } from '~/server/utils/prisma'
 export const itemInclude = {
   game: true,
   locationCharacter: true,
-  characters: {
-    orderBy: { name: 'asc' as const }
-  },
-  intrigues: {
-    orderBy: { name: 'asc' as const }
-  }
+  // Liens par les tables qui portent le jeu (US-191) : la lecture passe par unlinked
+  characterLinks: { select: { character: true }, orderBy: { character: { name: 'asc' as const } } },
+  intrigueLinks: { select: { intrigue: true }, orderBy: { intrigue: { name: 'asc' as const } } }
 }
 
 export async function validateItemRelations(gameId: string, characterIds: string[], intrigueIds: string[], locationCharacterId?: string | null) {

@@ -2,6 +2,7 @@ import * as z from 'zod'
 import { prisma } from '~/server/utils/prisma'
 import { gameScopedWhere, requireGameAccess } from '~/server/utils/gameAccess'
 import { PAGE_SIZE, READ_ONLY, named, pageOf, skipOf, toolResult, type ToolContext } from '~/server/mcp/tools'
+import { unlinked } from '~/server/utils/contentLinks'
 
 // Contenu d'un jeu (R7, R9) : résumé paginé, puis fiche par fiche. Les fichiers (fonds PDF, photos de trombinoscope,
 // document téléversé) ne sont jamais rendus
@@ -78,28 +79,28 @@ async function readContent(type: ContentType, where: Record<string, unknown>) {
         where,
         select: {
           ...common, name: true, type: true, pitch: true, background: true, costumeIndications: true, balanceValue: true,
-          factions: named, intrigues: named, items: named, documents: titled
+          factionLinks: { select: { faction: named } }, intrigueLinks: { select: { intrigue: named } }, itemLinks: { select: { item: named } }, documentLinks: { select: { document: titled } }
         }
       })
     case 'factions':
       return await prisma.faction.findFirst({
         where,
-        select: { ...common, name: true, pitch: true, background: true, costumeIndications: true, characters: named, intrigues: named }
+        select: { ...common, name: true, pitch: true, background: true, costumeIndications: true, characterLinks: { select: { character: named } }, intrigueLinks: { select: { intrigue: named } } }
       })
     case 'intrigues':
       return await prisma.intrigue.findFirst({
         where,
-        select: { ...common, name: true, pitch: true, description: true, level: true, characters: named, factions: named, items: named }
+        select: { ...common, name: true, pitch: true, description: true, level: true, characterLinks: { select: { character: named } }, factionLinks: { select: { faction: named } }, itemLinks: { select: { item: named } } }
       })
     case 'objets':
       return await prisma.item.findFirst({
         where,
-        select: { ...common, name: true, description: true, quantity: true, locationText: true, locationCharacter: named, characters: named, intrigues: named }
+        select: { ...common, name: true, description: true, quantity: true, locationText: true, locationCharacter: named, characterLinks: { select: { character: named } }, intrigueLinks: { select: { intrigue: named } } }
       })
     case 'documents':
       return await prisma.document.findFirst({
         where,
-        select: { ...common, title: true, content: true, audiences: true, readyToSend: true, characters: named, factions: named }
+        select: { ...common, title: true, content: true, audiences: true, readyToSend: true, characterLinks: { select: { character: named } }, factionLinks: { select: { faction: named } } }
       })
     case 'lieux':
       return await prisma.location.findFirst({ where, select: { ...common, name: true, address: true, notes: true } })
@@ -108,7 +109,7 @@ async function readContent(type: ContentType, where: Record<string, unknown>) {
         where,
         select: {
           ...common, name: true, description: true, day: true, time: true, requiredResponsibles: true,
-          characters: named, factions: named, intrigues: named, items: named
+          characterLinks: { select: { character: named } }, factionLinks: { select: { faction: named } }, intrigueLinks: { select: { intrigue: named } }, itemLinks: { select: { item: named } }
         }
       })
   }
@@ -138,7 +139,7 @@ export function registerContentTools({ event, server }: ToolContext) {
     inputSchema: z.object({ type, id: z.string() }),
     annotations: READ_ONLY
   }, ({ type, id }) => toolResult(async () => {
-    const found = await readContent(type, await gameScopedWhere(event, { id }))
+    const found = unlinked(await readContent(type, await gameScopedWhere(event, { id })))
     if (!found) throw createError({ statusCode: 404, message: 'Élément introuvable' })
     return found
   }))

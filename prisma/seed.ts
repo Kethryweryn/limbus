@@ -809,11 +809,11 @@ async function createGame(
         showInTrombinoscope: faction.showInTrombinoscope ?? false,
         gameId: game.id,
         published: true,
-        characters: {
-          connect: faction.characterNames
+        characterLinks: {
+          create: faction.characterNames
             .flatMap((characterName) => {
               const character = characterByName.get(characterName)
-              return character ? [{ id: character.id }] : []
+              return character ? [{ characterId: character.id }] : []
             })
         }
       }
@@ -831,18 +831,18 @@ async function createGame(
         level: intrigue.level,
         gameId: game.id,
         published: true,
-        characters: {
-          connect: intrigue.characterNames
+        characterLinks: {
+          create: intrigue.characterNames
             .flatMap((characterName) => {
               const character = characterByName.get(characterName)
-              return character ? [{ id: character.id }] : []
+              return character ? [{ characterId: character.id }] : []
             })
         },
-        factions: {
-          connect: intrigue.factionNames
+        factionLinks: {
+          create: intrigue.factionNames
             .flatMap((factionName) => {
               const faction = factionByName.get(factionName)
-              return faction ? [{ id: faction.id }] : []
+              return faction ? [{ factionId: faction.id }] : []
             })
         }
       }
@@ -901,18 +901,18 @@ async function createGame(
         locationCharacterId: locationCharacter?.id || null,
         gameId: game.id,
         published: true,
-        characters: {
-          connect: item.characterNames
+        characterLinks: {
+          create: item.characterNames
             .flatMap((characterName) => {
               const character = characterByName.get(characterName)
-              return character ? [{ id: character.id }] : []
+              return character ? [{ characterId: character.id }] : []
             })
         },
-        intrigues: {
-          connect: item.intrigueNames
+        intrigueLinks: {
+          create: item.intrigueNames
             .flatMap((intrigueName) => {
               const intrigue = intrigueByName.get(intrigueName)
-              return intrigue ? [{ id: intrigue.id }] : []
+              return intrigue ? [{ intrigueId: intrigue.id }] : []
             })
         }
       }
@@ -921,7 +921,7 @@ async function createGame(
 
   await createTimelineEvents(game.id, seed.title, characters, factions, intrigues, items)
   await createDocuments(game.id, seed.title)
-  await createTrombinoscopeEntries(characters)
+  await createTrombinoscopeEntries(game.id, characters)
 
   // Seules les personnes qui reçoivent un rôle ont une photo : 6 PJ et 2 PNJ (voir createSessions)
   const participantPhotos = await createParticipantPhotos(game.id, participants.filter((_, index) => index < 6 || index === 8 || index === 9), gameIndex)
@@ -1009,13 +1009,14 @@ async function createDocuments(
   })
 }
 
-async function createTrombinoscopeEntries(characters: Array<{ id: string, type: string }>) {
+async function createTrombinoscopeEntries(gameId: string, characters: Array<{ id: string, type: string }>) {
   const pjCharacters = characters.filter((character) => character.type !== 'pnj')
   if (pjCharacters.length < 3) return
 
   await db.characterTrombinoscopeEntry.createMany({
     data: [
       {
+        gameId,
         viewerCharacterId: pjCharacters[0]!.id,
         targetCharacterId: pjCharacters[1]!.id,
         included: true,
@@ -1024,6 +1025,7 @@ async function createTrombinoscopeEntries(characters: Array<{ id: string, type: 
         note: 'Le personnage pense reconnaître cette personne, sans certitude.'
       },
       {
+        gameId,
         viewerCharacterId: pjCharacters[0]!.id,
         targetCharacterId: pjCharacters[2]!.id,
         included: true,
@@ -1103,17 +1105,17 @@ async function createTimelineEvents(
         requiredResponsibles: timelineEvent.requiredResponsibles,
         gameId,
         published: true,
-        characters: {
-          connect: timelineEvent.characterIds.map((id) => ({ id }))
+        characterLinks: {
+          create: timelineEvent.characterIds.map((id) => ({ characterId: id }))
         },
-        factions: {
-          connect: timelineEvent.factionIds.map((id) => ({ id }))
+        factionLinks: {
+          create: timelineEvent.factionIds.map((id) => ({ factionId: id }))
         },
-        intrigues: {
-          connect: timelineEvent.intrigueIds.map((id) => ({ id }))
+        intrigueLinks: {
+          create: timelineEvent.intrigueIds.map((id) => ({ intrigueId: id }))
         },
-        items: {
-          connect: timelineEvent.itemIds.map((id) => ({ id }))
+        itemLinks: {
+          create: timelineEvent.itemIds.map((id) => ({ itemId: id }))
         }
       }
     })

@@ -252,7 +252,8 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-188](EPIC-049-schema-de-donnees/US-188-index-et-homogeneite.md) | Indexer les clés étrangères et rendre le schéma homogène | EPIC-049 | terminée |
 | [US-189](EPIC-049-schema-de-donnees/US-189-enumerations.md) | Faire refuser par la base les valeurs inconnues | EPIC-049 | terminée |
 | [US-190](EPIC-049-schema-de-donnees/US-190-regles-des-liens-et-des-relations.md) | Faire tenir par la base les règles des liens du questionnaire et des relations | EPIC-049 | terminée |
-| [US-191](EPIC-049-schema-de-donnees/US-191-meme-jeu-impose-par-la-base.md) | Faire refuser par la base un lien entre deux jeux | EPIC-049 | à faire |
+| [US-191](EPIC-049-schema-de-donnees/US-191-meme-jeu-impose-par-la-base.md) | Faire refuser par la base un lien entre éléments du contenu de deux jeux | EPIC-049 | terminée |
 | [US-192](EPIC-049-schema-de-donnees/US-192-emails-sans-casse.md) | Comparer les adresses email sans tenir compte de la casse dans la base | EPIC-049 | à faire |
 | [US-193](EPIC-049-schema-de-donnees/US-193-restes-de-transitions-et-pdf.md) | Retirer les colonnes inutiles et garder le PDF du trombinoscope en binaire | EPIC-049 | à faire |
 | [US-194](EPIC-049-schema-de-donnees/US-194-dates-avec-fuseau.md) | Stocker les dates avec leur fuseau horaire | EPIC-049 | à faire |
+| [US-195](EPIC-049-schema-de-donnees/US-195-meme-jeu-sessions-et-vivier.md) | Faire refuser par la base un lien entre deux jeux dans les sessions et le vivier | EPIC-049 | à faire |

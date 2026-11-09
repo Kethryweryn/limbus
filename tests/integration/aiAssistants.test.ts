@@ -295,13 +295,24 @@ describe('écriture', () => {
     expect((await call(client, 'enregistrer_document', { id: documentId, version: documentRead.updatedAt, content: 'Version 2' })).error).toBe(false)
     expect(await prisma.document.findUniqueOrThrow({ where: { id: documentId }, select: { content: true, documentUrl: true } })).toEqual({ content: 'Version 2', documentUrl: 'https://exemple.test/plan.pdf' })
 
+    // US-191 : un personnage se lit avec les documents qui le ciblent, ses groupes et ses intrigues
+    const targeted = await api(alice, 'POST', '/api/documents', { title: 'Lettre à Aube', content: 'Texte', gameId: game.id, characterIds: [hero.id] })
+    expect(targeted.status).toBe(200)
+    const heroRead = (await call(client, 'lire_contenu', { type: 'personnages', id: hero.id })).json
+    expect(heroRead).toMatchObject({
+      documents: [{ id: (targeted.body as { id: string }).id, title: 'Lettre à Aube' }],
+      factions: [{ id: faction.id, name: 'Maison' }],
+      intrigues: [{ id: intrigue.id, name: 'Succession' }],
+      items: []
+    })
+
     // Un champ donné seul : les membres de la faction restent
     const factionRead = (await call(client, 'lire_contenu', { type: 'factions', id: faction.id })).json
     const changed = await call(client, 'enregistrer_faction', { id: faction.id, version: factionRead.updatedAt, pitch: 'Ancienne maison' })
     expect(changed.error).toBe(false)
-    const factionNow = await prisma.faction.findUniqueOrThrow({ where: { id: faction.id }, include: { characters: true } })
+    const factionNow = await prisma.faction.findUniqueOrThrow({ where: { id: faction.id }, include: { characterLinks: true } })
     expect(factionNow.pitch).toBe('Ancienne maison')
-    expect(factionNow.characters.map((character) => character.id).sort()).toEqual([hero.id, rival.id].sort())
+    expect(factionNow.characterLinks.map((link) => link.characterId).sort()).toEqual([hero.id, rival.id].sort())
 
     // Version dépassée : refus, rien n'est écrit
     const stale = await call(client, 'enregistrer_faction', { id: faction.id, version: factionRead.updatedAt, pitch: 'Écrasée' })

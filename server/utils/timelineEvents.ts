@@ -2,23 +2,14 @@ import { prisma } from '~/server/utils/prisma'
 
 export const timelineEventInclude = {
   game: true,
-  characters: {
-    orderBy: [{ type: 'asc' as const }, { name: 'asc' as const }],
-    include: {
-      factions: {
-        orderBy: { name: 'asc' as const }
-      }
-    }
+  // Liens par les tables qui portent le jeu (US-191) : la lecture passe par unlinked
+  characterLinks: {
+    select: { character: { include: { factionLinks: { select: { faction: true }, orderBy: { faction: { name: 'asc' as const } } } } } },
+    orderBy: [{ character: { type: 'asc' as const } }, { character: { name: 'asc' as const } }]
   },
-  factions: {
-    orderBy: { name: 'asc' as const }
-  },
-  intrigues: {
-    orderBy: { name: 'asc' as const }
-  },
-  items: {
-    orderBy: { name: 'asc' as const }
-  }
+  factionLinks: { select: { faction: true }, orderBy: { faction: { name: 'asc' as const } } },
+  intrigueLinks: { select: { intrigue: true }, orderBy: { intrigue: { name: 'asc' as const } } },
+  itemLinks: { select: { item: true }, orderBy: { item: { name: 'asc' as const } } }
 }
 
 type TimelineEventWithRelations = {

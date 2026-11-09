@@ -97,14 +97,15 @@ model Character {
   updatedAt             DateTime   @updatedAt
   published             Boolean    @default(true)
 
-  factions              Faction[]  @relation("CharacterFactions")
-  intrigues             Intrigue[] @relation("CharacterIntrigues")
-  documents             Document[]
-  targetedDocuments     Document[] @relation("DocumentCharacters")
+  factionLinks          CharacterFaction[]
+  intrigueLinks         CharacterIntrigue[]
+  // Documents de l'ancien champ « Personnage » (Document.characterId), vide depuis ADR-0072 et retiré par l'US-193
+  legacyDocuments       Document[]
+  documentLinks         DocumentCharacter[]
   sessionAssignments    SessionAssignment[]
-  items                 Item[]      @relation("CharacterItems")
+  itemLinks             CharacterItem[]
   locatedItems          Item[]      @relation("ItemLocationCharacter")
-  timelineEvents        TimelineEvent[] @relation("TimelineEventCharacters")
+  timelineEventLinks    TimelineEventCharacter[]
   documentDeliveries    SessionDocumentDelivery[]
   trombinoscopeViewerEntries CharacterTrombinoscopeEntry[] @relation("TrombinoscopeViewerEntries")
   trombinoscopeTargetEntries CharacterTrombinoscopeEntry[] @relation("TrombinoscopeTargetEntries")
@@ -115,6 +116,8 @@ model Character {
   questionLinks         RegistrationQuestionLink[]
 
   @@index([gameId])
+  // Cible des clés composées avec le jeu (US-191, ADR-0074)
+  @@unique([id, gameId])
 }
 
 // Relation entre deux personnages du jeu (US-097, ADR-0050) : un type, une description commune, et pour chaque côté
@@ -128,19 +131,19 @@ model CharacterRelation {
   type            CharacterRelationType
   description     String?
   fromCharacterId String
-  fromCharacter   Character @relation("RelationFrom", fields: [fromCharacterId], references: [id], onDelete: Cascade)
+  fromCharacter   Character @relation("RelationFrom", fields: [fromCharacterId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   fromLabel       String?
   fromVisible     Boolean   @default(false)
   toCharacterId   String
-  toCharacter     Character @relation("RelationTo", fields: [toCharacterId], references: [id], onDelete: Cascade)
+  toCharacter     Character @relation("RelationTo", fields: [toCharacterId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   toLabel         String?
   toVisible       Boolean   @default(false)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   @@index([gameId])
-  @@index([fromCharacterId])
-  @@index([toCharacterId])
+  @@index([fromCharacterId, gameId])
+  @@index([toCharacterId, gameId])
 }
 
 // Une option d'une question du formulaire (vide pour une question sur une échelle) reliée à un personnage, une faction
@@ -154,16 +157,16 @@ model RegistrationQuestionLink {
   questionId  String
   option      String     @default("")
   characterId String?
-  character   Character? @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  character   Character? @relation(fields: [characterId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   factionId   String?
-  faction     Faction?   @relation(fields: [factionId], references: [id], onDelete: Cascade)
+  faction     Faction?   @relation(fields: [factionId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
   intrigueId  String?
-  intrigue    Intrigue?  @relation(fields: [intrigueId], references: [id], onDelete: Cascade)
+  intrigue    Intrigue?  @relation(fields: [intrigueId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([gameId])
-  @@index([characterId])
-  @@index([factionId])
-  @@index([intrigueId])
+  @@index([characterId, gameId])
+  @@index([factionId, gameId])
+  @@index([intrigueId, gameId])
 }
 
 // Part attendue d'une option d'une question du formulaire, ou d'un niveau d'une échelle (US-141, ADR-0062) ; hors des
@@ -182,6 +185,8 @@ model RegistrationOptionExpectation {
 
 model CharacterTrombinoscopeEntry {
   id                String    @id @default(cuid())
+  // Jeu des deux personnages (US-191, ADR-0074)
+  gameId            String
   viewerCharacterId String
   targetCharacterId String
   included          Boolean   @default(true)
@@ -191,11 +196,12 @@ model CharacterTrombinoscopeEntry {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  viewerCharacter   Character @relation("TrombinoscopeViewerEntries", fields: [viewerCharacterId], references: [id], onDelete: Cascade)
-  targetCharacter   Character @relation("TrombinoscopeTargetEntries", fields: [targetCharacterId], references: [id], onDelete: Cascade)
+  viewerCharacter   Character @relation("TrombinoscopeViewerEntries", fields: [viewerCharacterId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+  targetCharacter   Character @relation("TrombinoscopeTargetEntries", fields: [targetCharacterId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([viewerCharacterId, targetCharacterId])
-  @@index([targetCharacterId])
+  @@index([viewerCharacterId, gameId])
+  @@index([targetCharacterId, gameId])
 }
 
 model Item {
@@ -206,19 +212,22 @@ model Item {
   quantity              Int          @default(1)
   locationText          String?
   locationCharacterId   String?
-  locationCharacter     Character?   @relation("ItemLocationCharacter", fields: [locationCharacterId], references: [id], onDelete: SetNull)
+  // NoAction : la suppression du personnage vide d'abord la référence (ADR-0074)
+  locationCharacter     Character?   @relation("ItemLocationCharacter", fields: [locationCharacterId, gameId], references: [id, gameId], onDelete: NoAction, onUpdate: NoAction)
   gameId                String
   game                  Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
   published             Boolean      @default(true)
 
-  characters            Character[]   @relation("CharacterItems")
-  intrigues             Intrigue[]    @relation("IntrigueItems")
-  timelineEvents        TimelineEvent[] @relation("TimelineEventItems")
+  characterLinks        CharacterItem[]
+  intrigueLinks         IntrigueItem[]
+  timelineEventLinks    TimelineEventItem[]
 
   @@index([gameId])
-  @@index([locationCharacterId])
+  @@index([locationCharacterId, gameId])
+  // Cible des clés composées avec le jeu (US-191, ADR-0074)
+  @@unique([id, gameId])
 }
 
 model Faction {
@@ -236,13 +245,15 @@ model Faction {
   updatedAt             DateTime   @updatedAt
   published             Boolean    @default(true)
 
-  characters            Character[] @relation("CharacterFactions")
-  intrigues             Intrigue[]  @relation("FactionIntrigues")
-  timelineEvents        TimelineEvent[] @relation("TimelineEventFactions")
-  documents             Document[]  @relation("DocumentFactions")
+  characterLinks        CharacterFaction[]
+  intrigueLinks         FactionIntrigue[]
+  timelineEventLinks    TimelineEventFaction[]
+  documentLinks         DocumentFaction[]
   questionLinks         RegistrationQuestionLink[]
 
   @@index([gameId])
+  // Cible des clés composées avec le jeu (US-191, ADR-0074)
+  @@unique([id, gameId])
 }
 
 model Intrigue {
@@ -258,13 +269,15 @@ model Intrigue {
   updatedAt   DateTime  @updatedAt
   published   Boolean   @default(true)
 
-  characters  Character[] @relation("CharacterIntrigues")
+  characterLinks CharacterIntrigue[]
   questionLinks RegistrationQuestionLink[]
-  factions    Faction[]   @relation("FactionIntrigues")
-  items       Item[]      @relation("IntrigueItems")
-  timelineEvents TimelineEvent[] @relation("TimelineEventIntrigues")
+  factionLinks FactionIntrigue[]
+  itemLinks   IntrigueItem[]
+  timelineEventLinks TimelineEventIntrigue[]
 
   @@index([gameId])
+  // Cible des clés composées avec le jeu (US-191, ADR-0074)
+  @@unique([id, gameId])
 }
 
 model TimelineEvent {
@@ -281,13 +294,15 @@ model TimelineEvent {
   updatedAt             DateTime   @updatedAt
   published             Boolean    @default(true)
 
-  characters            Character[] @relation("TimelineEventCharacters")
-  factions              Faction[]   @relation("TimelineEventFactions")
-  intrigues             Intrigue[]  @relation("TimelineEventIntrigues")
-  items                 Item[]      @relation("TimelineEventItems")
+  characterLinks        TimelineEventCharacter[]
+  factionLinks          TimelineEventFaction[]
+  intrigueLinks         TimelineEventIntrigue[]
+  itemLinks             TimelineEventItem[]
   responsibles          TimelineEventResponsible[]
 
   @@index([gameId, day, time])
+  // Cible des clés composées avec le jeu (US-191, ADR-0074)
+  @@unique([id, gameId])
 }
 
 model Document {
@@ -309,14 +324,163 @@ model Document {
 
   // Ancien champ « Personnage », vidé par la migration d'ADR-0072 et plus écrit : les personnages sont dans characters
   characterId String?
-  character   Character?  @relation(fields: [characterId], references: [id], onDelete: SetNull)
-  characters  Character[]  @relation("DocumentCharacters")
+  character   Character?  @relation(fields: [characterId, gameId], references: [id, gameId], onDelete: NoAction, onUpdate: NoAction)
+  characterLinks DocumentCharacter[]
 
-  factions    Faction[]   @relation("DocumentFactions")
+  factionLinks DocumentFaction[]
   deliveries  SessionDocumentDelivery[]
 
   @@index([gameId])
-  @@index([characterId])
+  @@index([characterId, gameId])
+  // Cible des clés composées avec le jeu (US-191, ADR-0074)
+  @@unique([id, gameId])
+}
+
+// Liens entre éléments du contenu d'un jeu (US-191, ADR-0074) : anciennes tables implicites de Prisma, devenues des
+// modèles qui portent le jeu, pour que chaque clé étrangère le compare. Les anciennes tables (_CharacterFactions…)
+// restent le temps d'un déploiement, puis sont retirées (US-193).
+
+// Ancienne table _CharacterFactions
+model CharacterFaction {
+  gameId      String
+  characterId String
+  character   Character @relation(fields: [characterId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+  factionId   String
+  faction     Faction @relation(fields: [factionId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([characterId, factionId])
+  @@index([characterId, gameId])
+  @@index([factionId, gameId])
+}
+
+// Ancienne table _CharacterIntrigues
+model CharacterIntrigue {
+  gameId      String
+  characterId String
+  character   Character @relation(fields: [characterId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+  intrigueId  String
+  intrigue    Intrigue @relation(fields: [intrigueId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([characterId, intrigueId])
+  @@index([characterId, gameId])
+  @@index([intrigueId, gameId])
+}
+
+// Ancienne table _CharacterItems
+model CharacterItem {
+  gameId      String
+  characterId String
+  character   Character @relation(fields: [characterId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+  itemId      String
+  item        Item @relation(fields: [itemId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([characterId, itemId])
+  @@index([characterId, gameId])
+  @@index([itemId, gameId])
+}
+
+// Ancienne table _DocumentCharacters
+model DocumentCharacter {
+  gameId      String
+  documentId  String
+  document    Document @relation(fields: [documentId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+  characterId String
+  character   Character @relation(fields: [characterId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([documentId, characterId])
+  @@index([documentId, gameId])
+  @@index([characterId, gameId])
+}
+
+// Ancienne table _DocumentFactions
+model DocumentFaction {
+  gameId     String
+  documentId String
+  document   Document @relation(fields: [documentId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+  factionId  String
+  faction    Faction @relation(fields: [factionId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([documentId, factionId])
+  @@index([documentId, gameId])
+  @@index([factionId, gameId])
+}
+
+// Ancienne table _FactionIntrigues
+model FactionIntrigue {
+  gameId     String
+  factionId  String
+  faction    Faction @relation(fields: [factionId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+  intrigueId String
+  intrigue   Intrigue @relation(fields: [intrigueId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([factionId, intrigueId])
+  @@index([factionId, gameId])
+  @@index([intrigueId, gameId])
+}
+
+// Ancienne table _IntrigueItems
+model IntrigueItem {
+  gameId     String
+  intrigueId String
+  intrigue   Intrigue @relation(fields: [intrigueId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+  itemId     String
+  item       Item @relation(fields: [itemId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([intrigueId, itemId])
+  @@index([intrigueId, gameId])
+  @@index([itemId, gameId])
+}
+
+// Ancienne table _TimelineEventCharacters
+model TimelineEventCharacter {
+  gameId          String
+  timelineEventId String
+  timelineEvent   TimelineEvent @relation(fields: [timelineEventId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+  characterId     String
+  character       Character @relation(fields: [characterId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([timelineEventId, characterId])
+  @@index([timelineEventId, gameId])
+  @@index([characterId, gameId])
+}
+
+// Ancienne table _TimelineEventFactions
+model TimelineEventFaction {
+  gameId          String
+  timelineEventId String
+  timelineEvent   TimelineEvent @relation(fields: [timelineEventId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+  factionId       String
+  faction         Faction @relation(fields: [factionId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([timelineEventId, factionId])
+  @@index([timelineEventId, gameId])
+  @@index([factionId, gameId])
+}
+
+// Ancienne table _TimelineEventIntrigues
+model TimelineEventIntrigue {
+  gameId          String
+  timelineEventId String
+  timelineEvent   TimelineEvent @relation(fields: [timelineEventId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+  intrigueId      String
+  intrigue        Intrigue @relation(fields: [intrigueId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([timelineEventId, intrigueId])
+  @@index([timelineEventId, gameId])
+  @@index([intrigueId, gameId])
+}
+
+// Ancienne table _TimelineEventItems
+model TimelineEventItem {
+  gameId          String
+  timelineEventId String
+  timelineEvent   TimelineEvent @relation(fields: [timelineEventId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+  itemId          String
+  item            Item @relation(fields: [itemId, gameId], references: [id, gameId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([timelineEventId, itemId])
+  @@index([timelineEventId, gameId])
+  @@index([itemId, gameId])
 }
 
 model Session {

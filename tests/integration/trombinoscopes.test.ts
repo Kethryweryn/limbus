@@ -52,7 +52,7 @@ describe('jamais dans son propre trombinoscope (US-027)', () => {
 
   it('la génération ne l’ajoute pas, même avec un ancien réglage qui l’incluait', async () => {
     const s = await castSession()
-    await prisma.characterTrombinoscopeEntry.create({ data: { viewerCharacterId: s.viewer.id, targetCharacterId: s.viewer.id, included: true, faceKnown: true } })
+    await prisma.characterTrombinoscopeEntry.create({ data: { gameId: s.viewer.gameId, viewerCharacterId: s.viewer.id, targetCharacterId: s.viewer.id, included: true, faceKnown: true } })
     expect((await api(alice, 'POST', `/api/sessions/${s.session.id}/trombinoscopes/generate`, {})).status).toBe(200)
     const trombinoscope = await prisma.sessionTrombinoscope.findFirstOrThrow({ where: { sessionId: s.session.id } })
     expect(trombinoscope.contentHtml).toContain(s.other.name)

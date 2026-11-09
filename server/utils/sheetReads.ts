@@ -6,6 +6,7 @@ import { itemInclude } from '~/server/utils/items'
 import { exposeParticipantGames, participantGameLinksInclude } from '~/server/utils/participants'
 import { castAssignmentInclude, withCastReservations } from '~/server/utils/sessionAssignments'
 import { timelineEventInclude, withTimelineConflicts } from '~/server/utils/timelineEvents'
+import { unlinked } from '~/server/utils/contentLinks'
 
 // Lecture d'une fiche, par identifiant (route `[id]`) ou par slug (route explicite `slug/[slug]`, pour les pages) :
 // l'API n'accepte jamais l'un pour l'autre, un slug change avec le nom
@@ -15,14 +16,49 @@ function notFound(message: string): never {
   throw createError({ statusCode: 404, message })
 }
 
+// Éléments reliés d'une fiche, par les tables de liaison qui portent le jeu (US-191) : la lecture passe par unlinked
+export const characterSheetInclude = {
+  game: true,
+  intrigueLinks: { select: { intrigue: true }, orderBy: { intrigue: { updatedAt: 'desc' as const } } },
+  factionLinks: { select: { faction: true } }
+}
+
+export const factionInclude = {
+  game: true,
+  characterLinks: { select: { character: true }, orderBy: { character: { name: 'asc' as const } } },
+  intrigueLinks: { select: { intrigue: true }, orderBy: { intrigue: { updatedAt: 'desc' as const } } }
+}
+
+export const intrigueInclude = {
+  game: true,
+  characterLinks: { select: { character: true }, orderBy: { character: { name: 'asc' as const } } },
+  factionLinks: { select: { faction: true }, orderBy: { faction: { name: 'asc' as const } } },
+  itemLinks: { select: { item: true }, orderBy: { item: { name: 'asc' as const } } }
+}
+
+export async function readCharacter(event: H3Event, key: SheetKey) {
+  const character = await prisma.character.findFirst({ where: await gameScopedWhere(event, key), include: characterSheetInclude })
+  return unlinked(character ?? notFound('Personnage introuvable'))
+}
+
+export async function readFaction(event: H3Event, key: SheetKey) {
+  const faction = await prisma.faction.findFirst({ where: await gameScopedWhere(event, key), include: factionInclude })
+  return unlinked(faction ?? notFound('Groupe introuvable'))
+}
+
+export async function readIntrigue(event: H3Event, key: SheetKey) {
+  const intrigue = await prisma.intrigue.findFirst({ where: await gameScopedWhere(event, key), include: intrigueInclude })
+  return unlinked(intrigue ?? notFound('Intrigue introuvable'))
+}
+
 export async function readDocument(event: H3Event, key: SheetKey) {
   const document = await prisma.document.findFirst({ where: await gameScopedWhere(event, key), include: documentInclude })
-  return document ?? notFound('Document introuvable')
+  return unlinked(document ?? notFound('Document introuvable'))
 }
 
 export async function readItem(event: H3Event, key: SheetKey) {
   const item = await prisma.item.findFirst({ where: await gameScopedWhere(event, key), include: itemInclude })
-  return item ?? notFound('Objet introuvable')
+  return unlinked(item ?? notFound('Objet introuvable'))
 }
 
 export async function readLocation(event: H3Event, key: SheetKey) {
@@ -50,7 +86,7 @@ export async function readTimelineEvent(event: H3Event, key: SheetKey) {
     where: { gameId: timelineEvent.gameId, day: timelineEvent.day, time: timelineEvent.time },
     include: timelineEventInclude
   })
-  return withTimelineConflicts(relatedEvents).find((related) => related.id === timelineEvent.id) ?? notFound('Événement introuvable')
+  return withTimelineConflicts(unlinked(relatedEvents)).find((related) => related.id === timelineEvent.id) ?? notFound('Événement introuvable')
 }
 
 export async function readSession(event: H3Event, key: SheetKey) {

@@ -39,9 +39,9 @@ test('le public d’un document se choisit par cases et par sélection avancée'
     await form.getByRole('button', { name: 'Créer', exact: true }).click()
     await expect(form).toBeHidden()
 
-    const saved = await prisma.document.findFirstOrThrow({ where: { title }, select: { audiences: true, characters: { select: { name: true } } } })
+    const saved = await prisma.document.findFirstOrThrow({ where: { title }, select: { audiences: true, characterLinks: { select: { character: { select: { name: true } } } } } })
     expect([...saved.audiences].sort()).toEqual(['kitchen', 'npcs', 'organizers'])
-    expect(saved.characters).toEqual([{ name: characterName }])
+    expect(saved.characterLinks.map((link) => link.character)).toEqual([{ name: characterName }])
     await expect(page.getByText('Organisateurs · PNJ · Cuisine · 1 personnage')).toBeVisible()
   } finally {
     await prisma.$disconnect()
@@ -63,7 +63,7 @@ test('un document envoyé à la session part par email, en pièce jointe', async
         content: 'Le sceau est brisé.',
         readyToSend: true,
         gameId: game.id,
-        characters: { connect: { id: character('Aube').id } }
+        characterLinks: { create: { characterId: character('Aube').id } }
       }
     })
 
