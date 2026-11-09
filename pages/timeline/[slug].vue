@@ -145,7 +145,7 @@ import { computed, onMounted, ref } from 'vue'
 import { serverMessage } from '~/utils/apiErrors'
 import TimelineEventForm from '@/components/TimelineEventForm.vue'
 import type { ApiResponse } from '~/composables/useApiFetch'
-import { withQueuedEdit, type TimelineEventDraft } from '~/utils/writingDrafts'
+import type { TimelineEventDraft } from '~/utils/writingDrafts'
 import { conflictTitle } from '~/utils/timeline'
 
 type TimelineEventDetail = ApiResponse<'/api/timeline-events/:id'>
@@ -159,7 +159,7 @@ const characters = ref<ApiResponse<'/api/characters'>>([])
 const factions = ref<ApiResponse<'/api/factions'>>([])
 const intrigues = ref<ApiResponse<'/api/intrigues'>>([])
 const items = ref<ApiResponse<'/api/items'>>([])
-const { isEditing, draft: editableEvent, startEdit, cancelEdit, closeAfterSave } = useSheetEdit(() => timelineEvent.value ? eventFormPayload(timelineEvent.value) : null)
+const { isEditing, draft: editableEvent, startEdit, cancelEdit, closeAfterSave, closeAfterQueued } = useSheetEdit(() => timelineEvent.value ? eventFormPayload(timelineEvent.value) : null)
 const returnContext = ref<ReturnContext | null>(null)
 const timelineBackTo = computed(() => ({
   path: returnContext.value?.source === 'session'
@@ -173,12 +173,12 @@ const timelineBackTo = computed(() => ({
 
 async function loadData() {
   const [eventData, gamesData, charactersData, factionsData, intriguesData, itemsData] = await Promise.all([
-    useApiFetch(`/api/timeline-events/slug/${route.params.slug}`),
-    useApiFetch('/api/games'),
-    useApiFetch('/api/characters'),
-    useApiFetch('/api/factions'),
-    useApiFetch('/api/intrigues'),
-    useApiFetch('/api/items')
+    useApiFetch(`/api/timeline-events/slug/${route.params.slug}`, { offlineCache: true }),
+    useApiFetch('/api/games', { offlineCache: true }),
+    useApiFetch('/api/characters', { offlineCache: true }),
+    useApiFetch('/api/factions', { offlineCache: true }),
+    useApiFetch('/api/intrigues', { offlineCache: true }),
+    useApiFetch('/api/items', { offlineCache: true })
   ])
 
   timelineEvent.value = eventData
@@ -230,11 +230,7 @@ async function saveEvent() {
     method: 'PUT',
     body: editableEvent.value
   })
-  if (isOfflineQueued(updated)) {
-    if (timelineEvent.value) timelineEvent.value = withQueuedEdit(timelineEvent.value, editableEvent.value)
-    cancelEdit()
-    return
-  }
+  if (isOfflineQueued(updated)) return closeAfterQueued(timelineEvent)
   // La réponse de l'enregistrement n'a pas les conflits du créneau : on relit l'événement, sans faire échouer
   // l'enregistrement si la relecture échoue (les conflits lus avant restent alors affichés)
   const reloaded = await useApiFetch(`/api/timeline-events/${updated.id}`)

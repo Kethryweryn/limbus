@@ -20,7 +20,7 @@ En tant qu'organisatrice, je veux qu'un formulaire auquel il manque un champ obl
 
 ## Notes techniques
 
-Choix de l'utilisatrice le 2026-11-09 : un message partout plutôt qu'un bouton grisé. Le `:disabled` du bouton d'envoi est retiré de `CharacterForm`, `FactionForm`, `IntrigueForm`, `ItemForm`, `DocumentForm` et `TimelineEventForm` ; leur `validate()` affichait déjà les messages, que le bouton grisé rendait inatteignables. Revue de la PR #190 : les attributs `required`, `min` et `type="url"` de ces formulaires et de ceux des lieux, des jeux et des sessions (US-199) sont retirés, car le navigateur bloquait l'envoi avant Limbus ; `type="url"` refusait en plus l'adresse relative d'une photo téléversée.
+Choix de l'utilisatrice le 2026-11-09 : un message partout plutôt qu'un bouton grisé. Le `:disabled` du bouton d'envoi est retiré de `CharacterForm`, `FactionForm`, `IntrigueForm`, `ItemForm`, `DocumentForm` et `TimelineEventForm` ; leur `validate()` affichait déjà les messages, que le bouton grisé rendait inatteignables. Revue de la PR #190 : les attributs `required`, `min` et `type="url"` de ces formulaires et de ceux des lieux, des jeux, des sessions (US-199) et des participants (US-200) sont retirés, car le navigateur bloquait l'envoi avant Limbus ; `type="url"` refusait en plus l'adresse relative d'une photo téléversée.
 
 ## Tests
 

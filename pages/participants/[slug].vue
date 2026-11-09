@@ -23,6 +23,9 @@
         >
           Modifier
         </UButton>
+        <!-- Supprimer depuis la fiche, avec la même confirmation que la liste (US-211) ; refusé si la fiche est liée au jeu
+             d'une autre équipe (R9) -->
+        <SheetDeleteButton :url="`/api/participants/${participant.id}`" :confirm-text="DELETE_CONFIRMATIONS.participant" list-path="/participants" />
       </div>
     </div>
 
@@ -58,7 +61,8 @@
           <template #header>Urgence et allergies</template>
           <!-- Une lecture ratée ne doit pas se lire comme « rien de déclaré » -->
           <p v-if="emergencyError" class="text-sm text-gray-600">
-            Lecture impossible pour l’instant : rechargez la page pour voir son contact d’urgence et ses allergies.
+            Lecture impossible pour l’instant : rechargez la page avec le réseau pour voir son contact d’urgence et ses allergies,
+            qui ne sont pas gardés sur l’appareil.
           </p>
           <div v-else class="space-y-3 text-sm">
             <!-- Nom et téléphone sur deux lignes nommées, pour qu'un nom ne se confonde pas avec le libellé (US-182) -->
@@ -142,13 +146,14 @@ import { formatLongDate, PARIS_TIME_ZONE } from '~/utils/dates'
 import { SESSION_ROLE_LABELS, SESSION_ROLES, SESSION_STATUS_META, SESSION_STATUSES } from '~/utils/domain'
 import { withQueuedEdit, type ParticipantDraft } from '~/utils/writingDrafts'
 import type { ApiResponse } from '~/composables/useApiFetch'
+import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 
 type Participant = ApiResponse<'/api/participants/:id'>
 
 const route = useRoute()
 const router = useRouter()
-const { data: participant, error, refresh } = await useFetch(`/api/participants/slug/${route.params.slug}`)
-const { data: games } = await useFetch('/api/games')
+const { data: participant, error, refresh } = await useOfflineFetch(`/api/participants/slug/${route.params.slug}`)
+const { data: games } = await useOfflineFetch('/api/games')
 const photoSaving = ref(false)
 const photoMessage = ref('')
 
@@ -175,8 +180,9 @@ if (error.value) {
 // Lu à part de la fiche (R1b) : la liste, les assistants et le cache hors ligne ne reçoivent pas ces données
 // Sessions de la fiche (R1c), lues en même temps
 const [{ data: emergency, error: emergencyError }, { data: sessions, error: sessionsError }] = await Promise.all([
+  // Jamais gardés sur l'appareil (SPEC-007 R1b, US-178) : sans réseau, la fiche le dit
   useFetch(`/api/participants/${participant.value?.id}/emergency`),
-  useFetch(`/api/participants/${participant.value?.id}/sessions`)
+  useOfflineFetch(`/api/participants/${participant.value?.id}/sessions`)
 ])
 
 type ParticipantSession = ApiResponse<'/api/participants/:id/sessions'>[number]

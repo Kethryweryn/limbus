@@ -201,10 +201,10 @@ import type { FactionDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
 const slug = String(route.params.slug)
-const { data: faction, error, refresh } = await useFetch(`/api/factions/slug/${slug}`)
-const { data: games } = await useFetch('/api/games')
-const { data: characters } = await useFetch('/api/characters')
-const { data: intrigues, refresh: refreshIntrigues } = await useFetch('/api/intrigues')
+const { data: faction, error, refresh } = await useOfflineFetch(`/api/factions/slug/${slug}`)
+const { data: games } = await useOfflineFetch('/api/games')
+const { data: characters } = await useOfflineFetch('/api/characters')
+const { data: intrigues, refresh: refreshIntrigues } = await useOfflineFetch('/api/intrigues')
 
 if (error.value) {
   handleApiAuthError(error.value)
@@ -213,7 +213,7 @@ if (error.value) {
 
 type FactionPage = NonNullable<typeof faction.value>
 
-const { isEditing, draft: editableFaction, startEdit, cancelEdit, closeAfterSave } = useSheetEdit(() => faction.value ? factionFormPayload(faction.value) : null)
+const { isEditing, draft: editableFaction, startEdit, cancelEdit, closeAfterSave, closeAfterQueued } = useSheetEdit(() => faction.value ? factionFormPayload(faction.value) : null)
 const showIntrigueModal = ref(false)
 const showTrombinoscopeModal = ref(false)
 const trombinoscopeOptions = ref({
@@ -257,7 +257,9 @@ async function handleFormSubmit() {
     body: editableFaction.value
   })
 
-  await closeAfterSave(isOfflineQueued(updatedFaction) ? null : `/factions/${updatedFaction.slug}`, refresh)
+  if (isOfflineQueued(updatedFaction)) return closeAfterQueued(faction)
+
+  await closeAfterSave(`/factions/${updatedFaction.slug}`, refresh)
 }
 
 async function saveFactionIntrigues() {
