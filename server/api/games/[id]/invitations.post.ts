@@ -99,7 +99,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // L'empreinte du jeton ne sort pas : le lien suffit à l'organisatrice
-  const { tokenHash: _tokenHash, token: _token, ...exposed } = invitation
+  const { tokenHash: _tokenHash, ...exposed } = invitation
   return {
     ...exposed,
     invitationUrl: url,

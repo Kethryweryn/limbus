@@ -27,12 +27,12 @@ export function textCopy(input: TextPdfInput, pdf: Uint8Array): DeliveryCopy {
 
 // Les photos sont recopiées dans la copie : elle ne dépend plus d'aucun fichier (ADR-0044)
 export async function trombinoscopeCopy(
-  trombinoscope: { contentPdfBase64: string | null, contentJson: unknown },
+  trombinoscope: { contentPdf: Uint8Array | null, contentJson: unknown },
   heading: { title: string, subtitle: string },
   // Une photo n'est lue qu'une fois pour tout l'envoi
   photoCache: Map<string, Promise<Uint8Array | null>> = new Map()
 ): Promise<DeliveryCopy> {
-  const pdf = Buffer.from(trombinoscope.contentPdfBase64 || '', 'base64')
+  const pdf = Buffer.from(trombinoscope.contentPdf ?? new Uint8Array())
   const cards = trombinoscopeCards(trombinoscope.contentJson)
   if (!cards) return { pdf, content: null }
   const photos: string[] = []

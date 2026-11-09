@@ -28,7 +28,7 @@ export const GAME_COPY_FIELDS = {
   Character: {
     copied: ['name', 'type', 'pitch', 'background', 'backgroundDocumentUrl', 'sheetReadyToSend', 'costumeIndications', 'excludeFromTrombinoscope', 'trombinoscopeFaceHidden', 'trombinoscopeNote', 'trombinoscopeDisplayName', 'balanceValue', 'published'],
     remapped: ['trombinoscopePhotoUrl'],
-    relinked: ['factionLinks', 'intrigueLinks', 'legacyDocuments', 'documentLinks', 'itemLinks', 'locatedItems', 'timelineEventLinks', 'trombinoscopeViewerEntries', 'trombinoscopeTargetEntries', 'relationsFrom', 'relationsTo', 'questionLinks'],
+    relinked: ['factionLinks', 'intrigueLinks', 'documentLinks', 'itemLinks', 'locatedItems', 'timelineEventLinks', 'trombinoscopeViewerEntries', 'trombinoscopeTargetEntries', 'relationsFrom', 'relationsTo', 'questionLinks'],
     omitted: ['id', 'slug', 'gameId', 'createdAt', 'updatedAt', 'game', 'sessionAssignments', 'documentDeliveries', 'trombinoscopeDocuments']
   },
   CharacterTrombinoscopeEntry: {
@@ -83,9 +83,9 @@ export const GAME_COPY_FIELDS = {
     omitted: ['id', 'slug', 'gameId', 'createdAt', 'updatedAt', 'game', 'responsibles']
   },
   Document: {
-    copied: ['title', 'content', 'documentUrl', 'audience', 'audiences', 'readyToSend', 'published'],
-    remapped: ['characterId'],
-    relinked: ['character', 'characterLinks', 'factionLinks'],
+    copied: ['title', 'content', 'documentUrl', 'audiences', 'readyToSend', 'published'],
+    remapped: [],
+    relinked: ['characterLinks', 'factionLinks'],
     omitted: ['id', 'slug', 'gameId', 'createdAt', 'updatedAt', 'game', 'deliveries']
   },
   Location: {
@@ -332,7 +332,6 @@ async function copyGameOnce(sourceGameId: string, options: GameCopyOptions) {
             ...pickCopied('Document', row),
             slug: documentSlugs[index]!,
             gameId,
-            characterId: mapped(row.characterId),
             characterLinks: relink('characterId', row.characters),
             factionLinks: relink('factionId', row.factions)
           }

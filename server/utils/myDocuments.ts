@@ -47,7 +47,7 @@ async function currentTrombinoscope(delivery: MyDelivery) {
   if (!delivery.characterId) return null
   return await prisma.sessionTrombinoscope.findUnique({
     where: { sessionId_viewerCharacterId_participantId: { sessionId: delivery.sessionId, viewerCharacterId: delivery.characterId, participantId: delivery.participantId } },
-    select: { fileName: true, contentPdfBase64: true, contentJson: true }
+    select: { fileName: true, contentPdf: true, contentJson: true }
   })
 }
 
@@ -115,7 +115,7 @@ export async function myDeliveryPdf(delivery: MyDelivery) {
 
   if (delivery.kind === 'trombinoscope') {
     const trombinoscope = await currentTrombinoscope(delivery)
-    if (trombinoscope?.contentPdfBase64) return { filename, bytes: Buffer.from(trombinoscope.contentPdfBase64, 'base64') }
+    if (trombinoscope?.contentPdf) return { filename, bytes: Buffer.from(trombinoscope.contentPdf) }
   } else {
     const text = await currentText(delivery)
     if (text) return { filename, bytes: await renderTextPdf(text) }

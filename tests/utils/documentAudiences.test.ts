@@ -1,29 +1,14 @@
-// US-187 : rôles d'un document, conversion de l'ancien public et libellé (ADR-0072)
+// US-187 : rôles d'un document et libellé (ADR-0072)
 import { describe, expect, it } from 'vitest'
-import { documentAudienceLabel, documentRoles, isDocumentTargeted, isEveryone, legacyAudience, rolesFromLegacyAudience, type DocumentRole } from '~/utils/documentAudiences'
+import { documentAudienceLabel, documentRoles, isDocumentTargeted, isEveryone, type DocumentRole } from '~/utils/documentAudiences'
 
 const ALL: DocumentRole[] = ['organizers', 'npcs', 'kitchen', 'pjs']
 
 describe('public d’un document', () => {
-  it('convertit l’ancien public en rôles, et les rôles en ancien public le plus proche', () => {
-    expect(rolesFromLegacyAudience('everyone')).toEqual(ALL)
-    expect(rolesFromLegacyAudience('npcs')).toEqual(['npcs'])
-    expect(rolesFromLegacyAudience('targeted')).toEqual([])
-    expect(rolesFromLegacyAudience(undefined)).toEqual([])
-
-    expect(legacyAudience(['pjs', 'kitchen', 'npcs', 'organizers'])).toBe('everyone')
-    expect(legacyAudience(['kitchen'])).toBe('kitchen')
-    // Pas d'équivalent ancien : ciblage manuel
-    expect(legacyAudience(['pjs'])).toBe('targeted')
-    expect(legacyAudience(['npcs', 'kitchen'])).toBe('targeted')
-  })
-
-  it('se rabat sur l’ancien public : document gardé sur l’appareil ou écrit par le build d’avant', () => {
-    expect(documentRoles({ audience: 'everyone' })).toEqual(ALL)
-    expect(documentRoles({ audiences: [], audience: 'kitchen' })).toEqual(['kitchen'])
-    expect(documentRoles({ audiences: ['pjs'], audience: 'targeted' })).toEqual(['pjs'])
-    expect(documentAudienceLabel({ audience: 'npcs' })).toBe('PNJ')
-    expect(isDocumentTargeted({ audience: 'targeted' })).toBe(false)
+  it('lit les rôles cochés, et aucun sans liste', () => {
+    expect(documentRoles({ audiences: ['pjs'] })).toEqual(['pjs'])
+    expect(documentRoles({})).toEqual([])
+    expect(isDocumentTargeted({})).toBe(false)
   })
 
   it('dit le public en clair, et « non ciblé » sans rien', () => {

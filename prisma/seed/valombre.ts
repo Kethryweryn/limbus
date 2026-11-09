@@ -261,7 +261,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
       viewerCharacterId: aelis.id,
       participantId: camille.id,
       fileName: 'trombinoscope-aelis.pdf',
-      contentPdfBase64: Buffer.from(await renderTextPdf({ title: `Trombinoscope de ${aelis.name}`, subtitle: session.name, sections: cards.map((card) => ({ title: card.displayName })) })).toString('base64'),
+      contentPdf: Buffer.from(await renderTextPdf({ title: `Trombinoscope de ${aelis.name}`, subtitle: session.name, sections: cards.map((card) => ({ title: card.displayName })) })),
       contentHtml: `<h1>Trombinoscope de ${aelis.name}</h1>`,
       contentJson: cards
     }

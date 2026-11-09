@@ -60,7 +60,6 @@ describe('liens entre éléments de deux jeux (US-191, US-195)', () => {
     ['lien du questionnaire', (a, b) => prisma.registrationQuestionLink.create({ data: { gameId: a.gameId, questionId: 'q1', characterId: b.character.id } })],
     ['case du trombinoscope', (a, b) => prisma.characterTrombinoscopeEntry.create({ data: { gameId: a.gameId, viewerCharacterId: a.character.id, targetCharacterId: b.other.id } })],
     ['objet porté par un personnage', (a, b) => prisma.item.update({ where: { id: a.item.id }, data: { locationCharacterId: b.character.id } })],
-    ['ancien personnage d’un document', (a, b) => prisma.document.update({ where: { id: a.document.id }, data: { characterId: b.character.id } })],
     // US-195 : sessions, vivier, paiements et fichiers
     ['lieu d’une session', (a, b) => prisma.session.update({ where: { id: a.session.id }, data: { locationId: b.location.id } })],
     ['session de report', (a, b) => prisma.session.update({ where: { id: a.session.id }, data: { postponedToSessionId: b.session.id } })],
@@ -201,8 +200,6 @@ describe('liens entre éléments de deux jeux (US-191, US-195)', () => {
         AND c.connamespace = 'public'::regnamespace
         AND c.confrelid <> '"Game"'::regclass
         AND NOT EXISTS (SELECT 1 FROM pg_attribute own WHERE own.attrelid = c.conrelid AND own.attname = 'gameId' AND NOT own.attisdropped)
-        -- Anciennes tables de liaison implicites, gardées jusqu'à l'US-193
-        AND left(c.conrelid::regclass::text, 2) <> '"_'
       GROUP BY c.conrelid
       HAVING count(*) >= 2
       ORDER BY 1`

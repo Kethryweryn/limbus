@@ -76,22 +76,6 @@ describe('public d’un document', () => {
     expect(await recipientsOf(session.id, `Guilde ${key}`)).toEqual([people.member.name])
   })
 
-  it('convertit une écriture d’avant : ancien public et champ « Personnage »', async () => {
-    const { key, game, pjCharacter } = await sessionWithEveryone()
-    const response = await api(alice, 'POST', '/api/documents', { title: `Ancien ${key}`, content: 'Texte', gameId: game.id, audience: 'everyone', characterId: pjCharacter.id })
-    expect(response.status).toBe(200)
-    const saved = await prisma.document.findFirstOrThrow({ where: { title: `Ancien ${key}` }, select: { audiences: true, audience: true, characterId: true, characterLinks: { select: { characterId: true } } } })
-    expect([...saved.audiences].sort()).toEqual(['kitchen', 'npcs', 'organizers', 'pjs'])
-    // L'ancien public reste écrit pour le build en service pendant un déploiement ; le champ unique ne l'est plus
-    expect(saved).toMatchObject({ audience: 'everyone', characterId: null, characterLinks: [{ characterId: pjCharacter.id }] })
-  })
-
-  it('un document écrit par le build d’avant (sans rôles) garde ses destinataires', async () => {
-    const { key, game, session, people } = await sessionWithEveryone()
-    await prisma.document.create({ data: { title: `Ancien build ${key}`, slug: `ancien-build-${key}`, content: 'Texte', gameId: game.id, audience: 'kitchen' } })
-    expect(await recipientsOf(session.id, `Ancien build ${key}`)).toEqual([people.cook.name])
-  })
-
   it('refuse un rôle inconnu', async () => {
     const { key, game } = await sessionWithEveryone()
     expect((await api(alice, 'POST', '/api/documents', { title: `Inconnu ${key}`, content: 'Texte', gameId: game.id, audiences: ['everyone'] })).status).toBe(400)

@@ -69,7 +69,7 @@ async function sourceGame(owner: { id: string } = alice) {
   })
   await prisma.document.create({
     data: {
-      title: `Lettre ${key}`, slug: `lettre-${key}`, gameId, content: 'Contenu', characterId: hero.id,
+      title: `Lettre ${key}`, slug: `lettre-${key}`, gameId, content: 'Contenu',
       characterLinks: { create: [{ characterId: twin.id }] }, factionLinks: { create: [{ factionId: faction.id }] }
     }
   })
@@ -103,7 +103,7 @@ async function copiesOf(gameId: string) {
     include: {
       characters: {
         include: {
-          trombinoscopeViewerEntries: true, factionLinks: faction, intrigueLinks: intrigue, itemLinks: item, legacyDocuments: true,
+          trombinoscopeViewerEntries: true, factionLinks: faction, intrigueLinks: intrigue, itemLinks: item,
           documentLinks: { select: { document: true } }, locatedItems: true
         }
       },
@@ -163,7 +163,7 @@ describe('legs d’un jeu à une organisatrice qui a un compte', () => {
     expect(event).toMatchObject({
       characters: [{ id: copiedHero.id }], factions: [{ id: faction!.id }], intrigues: [{ id: intrigue!.id }], items: [{ id: item!.id }]
     })
-    expect(document).toMatchObject({ content: 'Contenu', characterId: copiedHero.id, characters: [{ id: copiedTwin.id }], factions: [{ id: faction!.id }] })
+    expect(document).toMatchObject({ content: 'Contenu', characters: [{ id: copiedTwin.id }], factions: [{ id: faction!.id }] })
     expect(copy!.locations).toMatchObject([{ address: 'Rue' }])
 
     // Photo dupliquée sous un nouveau nom, rattachée à la copie (R6)
@@ -277,7 +277,6 @@ describe('legs à une personne sans compte (US-011)', () => {
     expect(token).toBeTruthy()
     // Seule l'empreinte du jeton est gardée (US-042, ADR-0034)
     const stored = await prisma.gameInvitation.findFirstOrThrow({ where: { gameId: copy.id } })
-    expect(stored.token).toBeNull()
     expect(stored.tokenHash).toBe(createHash('sha256').update(token).digest('hex'))
 
     // Ni la propriétaire du jeu source (Bob ici), ni une autre organisatrice, ni le mode administrateur
@@ -408,7 +407,6 @@ describe('suivi des legs en attente (US-012)', () => {
     const message = smtp.received.slice(sent).find((received) => received.to.includes(email))!
     const newToken = tokenIn(message.text)!
     expect(newToken).not.toBe(token)
-    expect(renewed.token).toBeNull()
     expect(renewed.tokenHash).toBe(createHash('sha256').update(newToken).digest('hex'))
     expect((await api(null, 'GET', `/api/invitations/${token}`)).status).toBe(404)
     expect((await api(null, 'GET', `/api/invitations/${newToken}`)).status).toBe(200)

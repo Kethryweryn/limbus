@@ -1,7 +1,6 @@
 import type { H3Event } from 'h3'
 import type { z } from 'zod'
 import type { Prisma } from '~/generated/prisma/client'
-import { legacyAudience } from '~/utils/documentAudiences'
 import { prisma } from '~/server/utils/prisma'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { assertSameGame, requireCurrentUser, requireGameAccess } from '~/server/utils/gameAccess'
@@ -431,11 +430,8 @@ export async function createDocument(event: H3Event, readBody: Reader<typeof doc
       content: body.content,
       documentUrl: body.documentUrl,
       audiences: body.audiences,
-      // Pour le build encore en service pendant un déploiement ; le champ unique « Personnage » n'est plus écrit (ADR-0072)
-      audience: legacyAudience(body.audiences),
       readyToSend: body.readyToSend ?? false,
       gameId: body.gameId,
-      characterId: null,
       characterLinks: linkCreate('characterId', body.characterIds),
       factionLinks: linkCreate('factionId', body.factionIds)
     },
@@ -461,11 +457,8 @@ export async function updateDocument(event: H3Event, id: string, readBody: Reade
       content: body.content,
       documentUrl: body.documentUrl,
       audiences: body.audiences,
-      // Pour le build encore en service pendant un déploiement ; le champ unique « Personnage » n'est plus écrit (ADR-0072)
-      audience: legacyAudience(body.audiences),
       readyToSend: body.readyToSend ?? false,
       gameId: body.gameId,
-      characterId: null,
       characterLinks: linkSet('characterId', body.characterIds),
       factionLinks: linkSet('factionId', body.factionIds)
     },
