@@ -40,9 +40,10 @@ describe('échéance de réponse', () => {
 })
 
 describe('rapprochement par email (R12)', () => {
-  it('ignore la casse et se limite aux jeux de la même propriétaire', () => {
+  // La casse est ignorée par la base (citext, ADR-0075) : tests/integration/schema.test.ts
+  it('compare l’adresse sans ses espaces, et se limite aux jeux de la même propriétaire', () => {
     expect(participantEmailMatchWhere({ id: 'game-1', ownerId: 'alice' }, ' Joueur@Example.test ')).toEqual({
-      email: { equals: 'Joueur@Example.test', mode: 'insensitive' },
+      email: 'Joueur@Example.test',
       gameLinks: { some: { game: { ownerId: 'alice' } } }
     })
   })
