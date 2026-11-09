@@ -30,18 +30,22 @@ import {
   type RegistrationStandardFieldKey
 } from '~/utils/registrationForms'
 
+// Messages par défaut de zod en français : l'écran montre le détail d'une validation (US-210)
+z.config(z.locales.fr())
+
 const optionalText = z.string().trim().optional().nullable()
 const optionalBoolean = z.boolean().optional()
 // Les URL sont affichées en lien ou en iframe : http(s) uniquement, sinon un javascript: s'exécuterait au clic
-const externalUrl = optionalText.refine((value) => !value || isHttpUrl(value), 'URL http(s) attendue')
+const externalUrl = optionalText.refine((value) => !value || isHttpUrl(value), 'Le lien doit commencer par https:// (ou http://)')
 const uploadOrExternalUrl = (prefix: string) => optionalText.refine(
   (value) => !value || isHttpUrl(value) || isUploadUrl(value, prefix),
-  'URL http(s) ou fichier téléversé attendu'
+  'Le lien doit commencer par https:// (ou http://), ou être un fichier téléversé'
 )
-const requiredText = (field: string) => z.string().trim().min(1, `${field} is required`)
+// Champ obligatoire : « Le nom est obligatoire », jamais un nom de champ anglais (US-210)
+const requiredText = (label: string) => z.string({ error: `${label} est obligatoire` }).trim().min(1, `${label} est obligatoire`)
 // Les emails de compte sont stockés en minuscules : la connexion ne dépend pas de la casse saisie
-const accountEmail = () => requiredText('Email').toLowerCase().email('Invalid email')
-const requiredId = (field: string) => z.string().trim().min(1, `${field} is required`)
+const accountEmail = () => requiredText('L’email').toLowerCase().email('Email invalide')
+const requiredId = requiredText
 const sessionStatus = z.enum([
   SESSION_STATUSES.scheduled,
   SESSION_STATUSES.postponed,
@@ -62,11 +66,11 @@ const sessionParticipantRole = z.enum([
   SESSION_ROLES.kitchen
 ])
 export const documentRoleSchema = z.enum(ALL_DOCUMENT_ROLES as [DocumentRole, ...DocumentRole[]])
-const timelineTime = z.string().trim().regex(/^\d{2}:\d{2}$/, 'Time must use HH:mm format')
+const timelineTime = z.string().trim().regex(/^\d{2}:\d{2}$/, 'L’heure doit être au format HH:MM')
 const userRole = z.enum([USER_ROLES.admin, USER_ROLES.user])
 const optionalEmail = z.string().trim().default('').refine(
   (value) => !value || z.string().email().safeParse(value).success,
-  'Invalid email'
+  'Email invalide'
 )
 
 export async function readZodBody<T>(event: H3Event, schema: ZodType<T>): Promise<T> {
@@ -80,7 +84,7 @@ export function parseZod<T>(schema: ZodType<T>, value: unknown): T {
 
   throw createError({
     statusCode: 400,
-    message: 'Invalid request body',
+    message: 'Requête invalide',
     data: formatZodError(result.error)
   })
 }
@@ -103,7 +107,7 @@ const balanceValue = z.string().trim().max(100).optional().nullable()
 const gameDescription = optionalText.transform((value) => value === null ? '' : value)
 
 export const createGameSchema = z.object({
-  title: requiredText('Title'),
+  title: requiredText('Le titre'),
   description: gameDescription,
   teaserUrl: externalUrl,
   noteIntention: optionalText,
@@ -120,7 +124,7 @@ export const createGameSchema = z.object({
 })
 
 export const updateGameSchema = z.object({
-  title: requiredText('Title').optional(),
+  title: requiredText('Le titre').optional(),
   description: gameDescription,
   teaserUrl: externalUrl,
   noteIntention: optionalText,
@@ -138,7 +142,7 @@ export const updateGameSchema = z.object({
 })
 
 export const createCharacterSchema = z.object({
-  name: requiredText('Name'),
+  name: requiredText('Le nom'),
   type: characterType.default(CHARACTER_TYPES.pj),
   pitch: optionalText,
   background: optionalText,
@@ -151,12 +155,12 @@ export const createCharacterSchema = z.object({
   trombinoscopeNote: optionalText,
   trombinoscopeDisplayName: optionalText,
   balanceValue,
-  gameId: requiredId('Game'),
-  factionIds: z.array(requiredId('Faction')).optional().default([])
+  gameId: requiredId('Le jeu'),
+  factionIds: z.array(requiredId('Le groupe')).optional().default([])
 })
 
 export const updateCharacterSchema = z.object({
-  name: requiredText('Name').optional(),
+  name: requiredText('Le nom').optional(),
   type: characterType.optional(),
   pitch: optionalText,
   background: optionalText,
@@ -169,29 +173,29 @@ export const updateCharacterSchema = z.object({
   trombinoscopeNote: optionalText,
   trombinoscopeDisplayName: optionalText,
   balanceValue,
-  gameId: requiredId('Game').optional(),
-  factionIds: z.array(requiredId('Faction')).optional()
+  gameId: requiredId('Le jeu').optional(),
+  factionIds: z.array(requiredId('Le groupe')).optional()
 })
 
 export const factionSchema = z.object({
-  name: requiredText('Name'),
+  name: requiredText('Le nom'),
   pitch: optionalText,
   background: optionalText,
   backgroundDocumentUrl: externalUrl,
   costumeIndications: optionalText,
   showInTrombinoscope: optionalBoolean,
-  gameId: requiredId('Game'),
-  characterIds: z.array(requiredId('Character')).optional().default([])
+  gameId: requiredId('Le jeu'),
+  characterIds: z.array(requiredId('Le personnage')).optional().default([])
 })
 
 export const intrigueSchema = z.object({
-  name: requiredText('Name'),
+  name: requiredText('Le nom'),
   pitch: optionalText,
   description: optionalText,
   level: intrigueLevel.default(INTRIGUE_LEVELS.minor),
-  gameId: requiredId('Game'),
-  characterIds: z.array(requiredId('Character')).optional().default([]),
-  factionIds: z.array(requiredId('Faction')).optional().default([])
+  gameId: requiredId('Le jeu'),
+  characterIds: z.array(requiredId('Le personnage')).optional().default([]),
+  factionIds: z.array(requiredId('Le groupe')).optional().default([])
 })
 
 // Relation entre deux personnages (US-097, ADR-0050)
@@ -199,10 +203,10 @@ const relationLabel = z.string().trim().max(CHARACTER_RELATION_LABEL_MAX_LENGTH,
 export const characterRelationSchema = z.object({
   type: z.enum(CHARACTER_RELATION_TYPE_VALUES, { error: 'Type de relation inconnu' }),
   description: z.string().trim().max(CHARACTER_RELATION_DESCRIPTION_MAX_LENGTH, 'Description trop longue').optional().nullable().transform((value) => value || null),
-  fromCharacterId: requiredId('Character'),
+  fromCharacterId: requiredId('Le personnage'),
   fromLabel: relationLabel,
   fromVisible: z.boolean().optional().default(false),
-  toCharacterId: requiredId('Character'),
+  toCharacterId: requiredId('Le personnage'),
   toLabel: relationLabel,
   toVisible: z.boolean().optional().default(false)
 }).refine((body) => body.fromCharacterId !== body.toCharacterId, { path: ['toCharacterId'], message: 'Un personnage ne peut pas être relié à lui-même' })
@@ -210,7 +214,7 @@ export const characterRelationSchema = z.object({
 // Liens du questionnaire vers les personnages, factions et intrigues (US-098, ADR-0050) : la liste complète du jeu
 export const registrationQuestionLinksSchema = z.object({
   links: z.array(z.object({
-    questionId: requiredId('Question'),
+    questionId: requiredId('La question'),
     option: z.string().trim().max(REGISTRATION_QUESTION_LABEL_MAX_LENGTH).optional().default(''),
     characterId: z.string().min(1).nullable().optional(),
     factionId: z.string().min(1).nullable().optional(),
@@ -222,61 +226,61 @@ export const registrationQuestionLinksSchema = z.object({
 // Proportions attendues des options (US-141, ADR-0062) : la liste complète du jeu
 export const registrationOptionExpectationsSchema = z.object({
   expectations: z.array(z.object({
-    questionId: requiredId('Question'),
+    questionId: requiredId('La question'),
     option: z.string().trim().min(1).max(REGISTRATION_QUESTION_LABEL_MAX_LENGTH),
     share: z.number().min(0, 'Une part va de 0 à 100 %').max(1, 'Une part va de 0 à 100 %')
   })).max(2000, 'Trop de proportions')
 })
 
 export const participantSchema = z.object({
-  name: requiredText('Name'),
+  name: requiredText('Le nom'),
   email: optionalText,
   phone: optionalText,
   // Une note par jeu (US-069) : { idDuJeu: texte }, pour les seuls jeux accessibles
   gameNotes: z.record(z.string(), z.string().nullable()).optional().default({}),
-  gameIds: z.array(requiredId('Game')).optional().default([])
+  gameIds: z.array(requiredId('Le jeu')).optional().default([])
 })
 
 // Création d'une fiche : au moins un jeu (US-036)
 export const participantCreateSchema = participantSchema.extend({
-  gameIds: z.array(requiredId('Game')).min(1, 'Choisissez au moins un jeu')
+  gameIds: z.array(requiredId('Le jeu')).min(1, 'Choisissez au moins un jeu')
 })
 
 export const locationSchema = z.object({
-  name: requiredText('Name'),
+  name: requiredText('Le nom'),
   address: optionalText,
   notes: optionalText,
-  gameId: requiredId('Game')
+  gameId: requiredId('Le jeu')
 })
 
 export const itemSchema = z.object({
-  name: requiredText('Name'),
+  name: requiredText('Le nom'),
   description: optionalText,
   // Absente : 1 à la création, valeur actuelle à la modification (US-014)
   quantity: z.coerce.number().int('La quantité doit être un nombre entier').min(1, 'La quantité doit être d’au moins 1').optional(),
   locationText: optionalText,
   locationCharacterId: optionalText,
-  gameId: requiredId('Game'),
-  characterIds: z.array(requiredId('Character')).optional().default([]),
-  intrigueIds: z.array(requiredId('Intrigue')).optional().default([])
+  gameId: requiredId('Le jeu'),
+  characterIds: z.array(requiredId('Le personnage')).optional().default([]),
+  intrigueIds: z.array(requiredId('L’intrigue')).optional().default([])
 })
 
 // Public : rôles cochés et sélection avancée (US-187, ADR-0072). Une écriture d'avant, avec l'ancien public ou le champ
 // unique « Personnage », vient d'une page périmée : refusée plutôt qu'enregistrée sans public (US-193)
 const outdatedDocumentField = z.undefined({ error: 'Cette page est d’une ancienne version : rechargez-la avant d’enregistrer.' }).optional()
 export const documentSchema = z.object({
-  title: requiredText('Title'),
+  title: requiredText('Le titre'),
   content: optionalText,
   documentUrl: externalUrl,
   audiences: z.array(documentRoleSchema).optional().default([]),
   audience: outdatedDocumentField,
   characterId: outdatedDocumentField,
   readyToSend: optionalBoolean,
-  gameId: requiredId('Game'),
-  characterIds: z.array(requiredId('Character')).optional().default([]),
-  factionIds: z.array(requiredId('Faction')).optional().default([])
+  gameId: requiredId('Le jeu'),
+  characterIds: z.array(requiredId('Le personnage')).optional().default([]),
+  factionIds: z.array(requiredId('Le groupe')).optional().default([])
 }).refine((value) => Boolean(value.content?.trim() || value.documentUrl?.trim()), {
-  message: 'Content or document URL is required',
+  message: 'Renseignez un corps ou un document lié.',
   path: ['content']
 }).transform(({ audience: _audience, characterId: _characterId, audiences, characterIds, ...value }) => ({
   ...value,
@@ -285,41 +289,41 @@ export const documentSchema = z.object({
 }))
 
 export const timelineEventSchema = z.object({
-  name: requiredText('Name'),
+  name: requiredText('Le nom'),
   description: optionalText,
   day: z.coerce.number().int().min(1),
   time: timelineTime,
   requiredResponsibles: z.coerce.number().int().min(0).optional().default(0),
-  gameId: requiredId('Game'),
-  characterIds: z.array(requiredId('Character')).optional().default([]),
-  factionIds: z.array(requiredId('Faction')).optional().default([]),
-  intrigueIds: z.array(requiredId('Intrigue')).optional().default([]),
-  itemIds: z.array(requiredId('Item')).optional().default([])
+  gameId: requiredId('Le jeu'),
+  characterIds: z.array(requiredId('Le personnage')).optional().default([]),
+  factionIds: z.array(requiredId('Le groupe')).optional().default([]),
+  intrigueIds: z.array(requiredId('L’intrigue')).optional().default([]),
+  itemIds: z.array(requiredId('L’objet')).optional().default([])
 })
 
 // Report d'une session sur une nouvelle session (US-022)
 export const sessionPostponeSchema = z.object({
-  name: requiredText('Name'),
+  name: requiredText('Le nom'),
   date: optionalText,
   locationId: optionalText
 })
 
 export const sessionTimelineSchema = z.object({
   assignments: z.array(z.object({
-    timelineEventId: requiredId('TimelineEvent'),
-    participantIds: z.array(requiredId('Participant')).optional().default([])
+    timelineEventId: requiredId('L’événement'),
+    participantIds: z.array(requiredId('La personne')).optional().default([])
   })).optional().default([])
 })
 
 export const sessionDocumentSendSchema = z.object({
-  documentIds: z.array(requiredId('Document')).optional().default([])
+  documentIds: z.array(requiredId('Le document')).optional().default([])
 })
 
 export const emailTestSchema = z.object({
-  emails: z.array(requiredText('Email').email('Invalid email'))
-    .min(1, 'At least one email is required')
-    .max(10, 'Too many recipients'),
-  documentIds: z.array(requiredId('Document')).optional().default([]),
+  emails: z.array(requiredText('L’email').email('Email invalide'))
+    .min(1, 'Indiquez au moins un email')
+    .max(10, 'Dix adresses au plus'),
+  documentIds: z.array(requiredId('Le document')).optional().default([]),
   characterId: optionalText,
   participantId: optionalText
 })
@@ -361,7 +365,7 @@ export const sessionPaymentSendSchema = z.object({
 
 export const characterTrombinoscopeSchema = z.object({
   entries: z.array(z.object({
-    targetCharacterId: requiredId('Character'),
+    targetCharacterId: requiredId('Le personnage'),
     included: z.boolean(),
     faceKnown: z.boolean(),
     displayName: optionalText,
@@ -370,7 +374,7 @@ export const characterTrombinoscopeSchema = z.object({
 })
 
 export const sessionAssignmentSchema = z.object({
-  characterId: requiredId('Character'),
+  characterId: requiredId('Le personnage'),
   participantId: optionalText,
   photoUrl: uploadOrExternalUrl(PHOTO_UPLOAD_PREFIX),
   notes: optionalText,
@@ -382,7 +386,7 @@ export const sessionAssignmentSchema = z.object({
 // Assistant de casting (US-101) : le cast en cours d'édition
 export const castingAssistantSchema = z.object({
   assignments: z.array(z.object({
-    characterId: requiredId('Character'),
+    characterId: requiredId('Le personnage'),
     participantId: optionalText,
     reservedRegistrationId: optionalText,
     locked: optionalBoolean
@@ -390,13 +394,13 @@ export const castingAssistantSchema = z.object({
 })
 
 export const sessionParticipantSchema = z.object({
-  participantId: requiredId('Participant'),
+  participantId: requiredId('La personne'),
   role: sessionParticipantRole
 })
 
 export const sessionSchema = z.object({
-  name: requiredText('Name'),
-  gameId: requiredId('Game'),
+  name: requiredText('Le nom'),
+  gameId: requiredId('Le jeu'),
   date: optionalText,
   locationId: optionalText,
   status: sessionStatus.optional().default(SESSION_STATUSES.scheduled),
@@ -406,7 +410,6 @@ export const sessionSchema = z.object({
 })
 
 // Schémas des inscriptions (SPEC-001) : messages en français, affichés tels quels dans l'interface
-const frenchText = (label: string) => z.string({ error: `${label} est obligatoire` }).trim().min(1, `${label} est obligatoire`)
 
 const registrationPeriodState = z.enum([
   REGISTRATION_PERIOD_STATES.draft,
@@ -433,7 +436,7 @@ const registrationReplayPolicy = z.enum(
 
 // Le vivier d'un jeu (SPEC-018) : ni portée, ni mode d'entrée, ni date de clôture
 export const registrationPeriodSchema = z.object({
-  gameId: frenchText('Le jeu'),
+  gameId: requiredText('Le jeu'),
   state: registrationPeriodState.default(REGISTRATION_PERIOD_STATES.draft),
   responseDelayDays: registrationResponseDelay.default(REGISTRATION_DEFAULT_RESPONSE_DELAY_DAYS),
   notifyTeam: z.boolean().default(false),
@@ -442,7 +445,7 @@ export const registrationPeriodSchema = z.object({
 
 // Modification : un champ absent est conservé, jamais remis à sa valeur par défaut
 export const registrationPeriodUpdateSchema = z.object({
-  gameId: frenchText('Le jeu'),
+  gameId: requiredText('Le jeu'),
   state: registrationPeriodState.optional(),
   responseDelayDays: registrationResponseDelay.optional(),
   notifyTeam: z.boolean().optional(),
@@ -466,7 +469,7 @@ export const registrationTargetSchema = z.object({
 
 // La session d'une action de la personne (confirmer, annuler) : toujours donnée
 export const registrationSessionTargetSchema = z.object({
-  sessionId: frenchText('La session')
+  sessionId: requiredText('La session')
 })
 
 // Tirage d'une session (R22)
@@ -491,7 +494,7 @@ export const availabilityRequestSchema = z.object({
 
 export const registrationSelectionSchema = z.object({
   action: z.enum(REGISTRATION_SELECTION_ACTIONS, { error: 'Décision inconnue' }),
-  sessionId: frenchText('La session')
+  sessionId: requiredText('La session')
 })
 
 // Rattachement d'une ligne d'affinité (US-095) : une personne du jeu, « inconnue », ou rien pour détacher
@@ -502,43 +505,43 @@ export const affinityLinkSchema = z.object({
 
 // Nouvel ordre de la liste d'attente d'une session (R19)
 export const registrationWaitlistOrderSchema = z.object({
-  sessionId: frenchText('La session'),
+  sessionId: requiredText('La session'),
   registrationIds: z.array(z.string().min(1)).max(1000)
 })
 
 // Places d'une session de l'inscription permanente (US-090) ; null : le nombre de personnages PJ
 export const registrationPoolSeatsSchema = z.object({
-  sessionId: frenchText('La session'),
+  sessionId: requiredText('La session'),
   seats: z.number().int('Nombre de places invalide').min(0, 'Nombre de places invalide').max(1000, 'Nombre de places invalide').nullable()
 })
 
 // Invitations à rejoindre le vivier (R4), éventuellement pour une session : des participants du jeu et/ou une nouvelle personne
 export const registrationInvitationSchema = z.object({
   sessionId: z.string().min(1).nullable().optional(),
-  participantIds: z.array(frenchText('Le participant')).optional().default([])
+  participantIds: z.array(requiredText('Le participant')).optional().default([])
     .refine((ids) => new Set(ids).size === ids.length, 'Une personne est choisie deux fois'),
   newParticipant: z.object({
-    name: frenchText('Le nom'),
-    email: frenchText('L’email').toLowerCase().max(254, 'Email trop long').email('Email invalide')
+    name: requiredText('Le nom'),
+    email: requiredText('L’email').toLowerCase().max(254, 'Email trop long').email('Email invalide')
   }).optional().nullable()
 }).refine((body) => body.participantIds.length > 0 || body.newParticipant, 'Choisissez au moins une personne à inviter')
 
 // Prolongation de l'échéance d'une invitation sans réponse, à une date choisie (US-005, R20)
 export const registrationExtensionSchema = z.object({
   sessionId: z.string().min(1).nullable().optional(),
-  responseDueAt: frenchText('La nouvelle échéance')
+  responseDueAt: requiredText('La nouvelle échéance')
     .refine((value) => !Number.isNaN(new Date(value).getTime()), 'Date d’échéance invalide')
     .transform((value) => new Date(value))
 })
 
 // Email d'annulation relu par l'organisation (US-025) ; « emails » pour un test
 export const cancellationEmailSchema = z.object({
-  subject: requiredText('Subject').max(200),
-  text: requiredText('Text').max(10_000)
+  subject: requiredText('Le sujet').max(200),
+  text: requiredText('Le texte').max(10_000)
 })
 
 export const cancellationEmailTestSchema = cancellationEmailSchema.extend({
-  emails: z.array(requiredText('Email').email('Invalid email')).min(1).max(10)
+  emails: z.array(requiredText('L’email').email('Email invalide')).min(1, 'Indiquez au moins un email').max(10, 'Dix adresses au plus')
 })
 
 // Réponse au lien de confirmation de présence (US-024)
@@ -584,32 +587,32 @@ export const registrationFormDefinitionSchema = z.object({
 })
 
 export const loginSchema = z.object({
-  email: requiredText('Email').toLowerCase(),
-  password: requiredText('Password')
+  email: requiredText('L’email').toLowerCase(),
+  password: requiredText('Le mot de passe')
 })
 
 // Plus de mot de passe choisi par l'administratrice : la personne reçoit un lien (US-065)
 export const userCreateSchema = z.object({
   email: accountEmail(),
-  name: requiredText('Name'),
+  name: requiredText('Le nom'),
   role: userRole.default(USER_ROLES.user)
 })
 
 export const userUpdateSchema = z.object({
   email: accountEmail().optional(),
-  name: requiredText('Name').optional(),
+  name: requiredText('Le nom').optional(),
   role: userRole.optional(),
   disabled: z.boolean().optional(),
   storageQuotaMb: z.number().int().min(0).max(1_000_000).optional()
 })
 
-const newPassword = () => requiredText('Password').min(8, 'Le mot de passe doit faire au moins 8 caractères')
+const newPassword = () => requiredText('Le mot de passe').min(8, 'Le mot de passe doit faire au moins 8 caractères')
 
 // Inscription libre (US-061) : website est le champ piège, invisible pour une personne
 const termsAccepted = () => z.literal(true, { error: 'Acceptez les conditions d’utilisation pour créer votre compte.' })
 
 export const signupSchema = z.object({
-  name: requiredText('Name'),
+  name: requiredText('Le nom'),
   email: accountEmail(),
   password: newPassword(),
   website: z.string().optional(),
@@ -618,7 +621,7 @@ export const signupSchema = z.object({
 })
 
 export const accountTokenSchema = z.object({
-  token: requiredText('Token')
+  token: requiredText('Le lien')
 })
 
 export const passwordForgottenSchema = z.object({
@@ -626,17 +629,17 @@ export const passwordForgottenSchema = z.object({
 })
 
 export const passwordResetSchema = z.object({
-  token: requiredText('Token'),
+  token: requiredText('Le lien'),
   password: newPassword()
 })
 
 export const accountUpdateSchema = z.object({
-  name: requiredText('Name')
+  name: requiredText('Le nom')
 })
 
 export const accountEmailSchema = z.object({
   email: accountEmail(),
-  password: requiredText('Password')
+  password: requiredText('Le mot de passe')
 })
 
 // Mes coordonnées (US-074) : consentement exigé dès qu'une allergie est déclarée, comme à l'inscription (R14)
@@ -653,17 +656,17 @@ export const accountProfileSchema = z.object({
 
 // Effacer son compte (US-077) : le mot de passe est redemandé
 export const accountDeleteSchema = z.object({
-  password: requiredText('Password')
+  password: requiredText('Le mot de passe')
 })
 
 export const accountPasswordSchema = z.object({
-  currentPassword: requiredText('Password'),
+  currentPassword: requiredText('Le mot de passe'),
   password: newPassword()
 })
 
 // Transfert d'un jeu à une co-organisatrice (US-060)
 export const gameTransferSchema = z.object({
-  userId: requiredId('User')
+  userId: requiredId('Le compte')
 })
 
 // Refus de l'usage de sa photo (US-109)
@@ -676,24 +679,24 @@ export const adminModeSchema = z.object({
 })
 
 export const gameInvitationCreateSchema = z.object({
-  email: requiredText('Email').email('Invalid email')
+  email: requiredText('L’email').email('Email invalide')
 })
 
 // Legs d'une copie du jeu (SPEC-002)
 export const gameBequestSchema = z.object({
-  email: frenchText('L’email').toLowerCase().max(254, 'Email trop long').email('Email invalide')
+  email: requiredText('L’email').toLowerCase().max(254, 'Email trop long').email('Email invalide')
 })
 
 // L'adresse est celle de l'invitation (US-064) : un email envoyé est ignoré
 export const invitationRegistrationSchema = z.object({
-  token: requiredText('Token'),
-  name: requiredText('Name'),
-  password: requiredText('Password').min(8, 'Password must contain at least 8 characters'),
+  token: requiredText('Le lien'),
+  name: requiredText('Le nom'),
+  password: requiredText('Le mot de passe').min(8, 'Le mot de passe doit faire au moins 8 caractères'),
   termsAccepted: termsAccepted()
 })
 
 export const invitationAcceptSchema = z.object({
-  token: requiredText('Token')
+  token: requiredText('Le lien')
 })
 
 export const smtpSettingsSchema = z.object({
@@ -712,27 +715,27 @@ export const smtpSettingsSchema = z.object({
     ctx.addIssue({
       code: 'custom',
       path: ['host'],
-      message: 'Host is required when SMTP is enabled'
+      message: 'Le serveur SMTP est obligatoire quand l’envoi est activé'
     })
   }
   if (!value.fromEmail) {
     ctx.addIssue({
       code: 'custom',
       path: ['fromEmail'],
-      message: 'Sender email is required when SMTP is enabled'
+      message: 'L’email d’expédition est obligatoire quand l’envoi est activé'
     })
   }
 })
 
 export const smtpTestSchema = z.object({
-  to: requiredText('Recipient').email('Invalid recipient email')
+  to: requiredText('Le destinataire').email('Invalid recipient email')
 })
 
 // Tarifs d'une session et versements (US-031 à US-033, ADR-0032) : montants en euros, stockés en centimes
 const euros = (label: string) => z.number({ error: `${label} est obligatoire` }).finite().max(100_000, `${label} est trop élevé`)
 
 export const sessionTariffSchema = z.object({
-  name: frenchText('Le nom').max(120),
+  name: requiredText('Le nom').max(120),
   amount: euros('Le montant').min(0, 'Le montant ne peut pas être négatif'),
   defaultRole: z.enum(['pj', 'pnj', 'organizer', 'kitchen']).optional().nullable(),
   baseTariffId: optionalText
@@ -764,12 +767,12 @@ export const sessionPaymentOfferedSchema = z.object({
 export const aiAuthorizationDecisionSchema = z.object({
   allow: z.boolean(),
   canWrite: z.boolean(),
-  gameIds: z.array(requiredId('Game')).max(200)
+  gameIds: z.array(requiredId('Le jeu')).max(200)
 })
 
 // Jeux d'une autorisation, changés depuis le compte (US-123)
 export const aiAuthorizationGamesSchema = z.object({
-  gameIds: z.array(requiredId('Game')).max(200)
+  gameIds: z.array(requiredId('Le jeu')).max(200)
 })
 
 // Réglage de la propriétaire : les co-organisatrices peuvent brancher leur assistant sur le jeu (US-123)

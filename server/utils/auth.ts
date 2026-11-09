@@ -23,7 +23,7 @@ const SESSION_DURATION_SECONDS = 60 * 60 * 20
 function getJwtSecret(): string {
   const secret = useRuntimeConfig().jwtSecret || process.env.JWT_SECRET
   if (!secret) {
-    throw createError({ statusCode: 500, message: 'JWT secret is not configured' })
+    throw createError({ statusCode: 500, message: 'Le secret JWT n’est pas configuré' })
   }
   return secret
 }

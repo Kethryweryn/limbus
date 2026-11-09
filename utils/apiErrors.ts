@@ -1,6 +1,6 @@
 import { isOfflineMissing } from './connection'
 // Message lisible d'une erreur d'API : le détail d'une validation zod (rangé par h3 sous data.data)
-// plutôt que « Invalid request body », sinon le message du serveur, sinon le texte par défaut.
+// plutôt que « Requête invalide », sinon le message du serveur, sinon le texte par défaut.
 export function apiErrorMessage(err: unknown, fallback: string) {
   const error = err as { data?: { message?: string, data?: { data?: Array<{ message?: string }> } }, message?: string } | null
   const issues = error?.data?.data?.data

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { apiErrorMessage, apiFieldErrors } from '~/utils/apiErrors'
 
-const validation = { data: { message: 'Invalid request body', data: { data: [{ path: 'phone', message: 'Le téléphone est obligatoire' }, { path: 'email', message: 'Email invalide' }] } } }
+const validation = { data: { message: 'Requête invalide', data: { data: [{ path: 'phone', message: 'Le téléphone est obligatoire' }, { path: 'email', message: 'Email invalide' }] } } }
 
 describe('apiErrorMessage', () => {
-  it('montre le détail d’une validation plutôt que « Invalid request body »', () => {
+  it('montre le détail d’une validation plutôt que « Requête invalide »', () => {
     expect(apiErrorMessage(validation, 'Erreur')).toBe('Le téléphone est obligatoire ; Email invalide')
   })
 
