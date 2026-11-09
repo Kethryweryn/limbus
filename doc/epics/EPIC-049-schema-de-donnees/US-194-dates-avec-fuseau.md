@@ -25,6 +25,8 @@ Dernier lot de l'epic, en deux déploiements (ADR-0076) :
 1. **Connexion en UTC** : la production est réglée sur Europe/Paris, et l'adaptateur pg de Prisma 7 décale les dates d'une colonne `timestamptz` quand la session n'est pas en UTC (prisma/orm#26786, #28629). Vérifié sur une base réglée comme la production : après conversion sans ce réglage, chaque date existante ressortait décalée d'une à deux heures. Le réglage seul ne change rien aux colonnes `timestamp` actuelles : Prisma y écrit et lit en UTC, et `createdAt` et `updatedAt` concordent en production.
 2. **Conversion** : 115 colonnes en `timestamptz(3)`, l'existant lu comme de l'UTC (`USING … AT TIME ZONE 'UTC'`, sans quoi PostgreSQL le lirait comme de l'heure de Paris). Migration marquée incompatible.
 
+Exception relevée à la revue : une date posée par la base pendant une migration (`DEFAULT CURRENT_TIMESTAMP` d'une colonne ajoutée) a été écrite dans le fuseau de la session de migration, Europe/Paris. En production, la migration de l'US-188 s'est terminée à 23:44:54 UTC, mais 66 fiches et 96 lignes de casting portent `createdAt = 00:44:52` : une heure d'avance. Même cas pour `User.lastSeenAt` et `emailConfirmedAt` des comptes existants à leur migration. La conversion relit donc en heure de Paris toute date comprise dans la durée d'exécution d'une migration, lue en heure de Paris, et le reste en UTC.
+
 ADR :
 - [ADR-0076](../../adr/ADR-0076-dates-avec-fuseau.md)
 
