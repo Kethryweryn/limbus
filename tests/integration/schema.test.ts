@@ -70,7 +70,10 @@ describe('schéma de données', () => {
 
   it('refuse une valeur hors liste', async () => {
     const session = await prisma.session.findFirstOrThrow({ select: { id: true, status: true } })
-    await expect(prisma.$executeRaw`UPDATE "Session" SET "status" = ${'inconnu'} WHERE "id" = ${session.id}`).rejects.toThrow()
+    // Valeur écrite en littéral, comme dans une migration : seule l'énumération peut la refuser
+    await expect(prisma.$executeRawUnsafe(`UPDATE "Session" SET "status" = 'inconnu' WHERE "id" = $1`, session.id)).rejects.toThrow(/invalid input value for enum/)
+    // Témoin : la même écriture avec une valeur de la liste passe
+    await expect(prisma.$executeRawUnsafe(`UPDATE "Session" SET "status" = '${session.status}' WHERE "id" = $1`, session.id)).resolves.toBe(1)
     expect((await prisma.session.findUniqueOrThrow({ where: { id: session.id }, select: { status: true } })).status).toBe(session.status)
   })
 })

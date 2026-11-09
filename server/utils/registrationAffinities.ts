@@ -2,7 +2,6 @@ import { prisma, type PrismaTx } from '~/server/utils/prisma'
 import { REGISTRATION_SEAT_STATUSES } from '~/utils/domain'
 import { ALERT_AFFINITY_KINDS, PERSON_AFFINITY_KINDS, affinityLineKey, isPersonAffinityKind, suggestPeople } from '~/utils/affinityMatching'
 import type { AffinityAnswers } from '~/server/utils/registrationForms'
-import type { AffinityKind } from '~/generated/prisma/enums'
 
 /**
  * Remplace les affinités d'une inscription par ses nouvelles réponses (ADR-0045). Une ligne de même sorte et de même
@@ -15,12 +14,13 @@ export async function replaceAffinities(tx: PrismaTx, registrationId: string, af
   })
   const links = new Map(previous.map((row) => [affinityLineKey(row.kind, row.text), row]))
   await tx.registrationAffinity.deleteMany({ where: { registrationId } })
-  const rows = Object.entries(affinities ?? {}).flatMap(([kind, lines]) => lines.map((text, position) => {
+  // Clés des affinités du formulaire : chacune est une valeur de l'énumération AffinityKind, ce que le typage vérifie
+  const entries = Object.entries(affinities ?? {}) as Array<[keyof AffinityAnswers, string[] | undefined]>
+  const rows = entries.flatMap(([kind, lines]) => (lines ?? []).map((text, position) => {
     const link = links.get(affinityLineKey(kind, text))
     return {
       registrationId,
-      // Clé validée par le schéma des affinités du formulaire
-      kind: kind as AffinityKind,
+      kind,
       text,
       position,
       targetParticipantId: link?.targetParticipantId ?? null,
