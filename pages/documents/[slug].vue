@@ -161,10 +161,10 @@ const documentBackLabel = computed(() =>
 
 async function loadData() {
   const [data, gamesData, charactersData, factionsData] = await Promise.all([
-    useApiFetch(`/api/documents/slug/${route.params.slug}`),
-    useApiFetch('/api/games'),
-    useApiFetch('/api/characters'),
-    useApiFetch('/api/factions')
+    useApiFetch(`/api/documents/slug/${route.params.slug}`, { offlineCache: true }),
+    useApiFetch('/api/games', { offlineCache: true }),
+    useApiFetch('/api/characters', { offlineCache: true }),
+    useApiFetch('/api/factions', { offlineCache: true })
   ])
 
   documentItem.value = data

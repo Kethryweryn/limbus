@@ -1,0 +1,5 @@
+{
+  "type": "modifie",
+  "titre": "Supprimer un participant depuis sa fiche",
+  "texte": "La fiche d’un participant propose maintenant « Supprimer », comme la liste. Quand la fiche est liée au jeu d’une autre équipe, Limbus dit pourquoi elle ne peut pas être supprimée."
+}

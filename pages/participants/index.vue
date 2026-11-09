@@ -4,6 +4,8 @@
 
     <GameContextBar />
 
+    <UAlert v-if="deleteError" color="error" variant="soft" :description="deleteError" class="mb-4" />
+
     <div class="flex justify-end mb-4">
       <UButton icon="i-heroicons-plus" color="primary" @click="startCreate">
         Créer un participant
@@ -116,6 +118,9 @@ import GameContextBar from '@/components/GameContextBar.vue'
 import ParticipantForm from '@/components/ParticipantForm.vue'
 import { useGameFocus } from '@/composables/useGameFocus'
 import type { ApiResponse } from '~/composables/useApiFetch'
+import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
+import { confirmedDelete } from '~/composables/useConfirmedDelete'
+import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ParticipantDraft } from '~/utils/writingDrafts'
 
 type ParticipantRow = ApiResponse<'/api/participants'>[number]
@@ -127,6 +132,7 @@ const gameFilter = ref('all')
 const showFormSlideover = ref(false)
 const activeFormParticipant = ref<ParticipantDraft | null>(null)
 const formMode = ref<'create' | 'edit'>('create')
+const deleteError = ref('')
 const { game: selectedGame } = useGameFocus()
 const toast = useToast()
 
@@ -255,11 +261,14 @@ async function handleParticipantFormSubmit() {
   await fetchParticipants()
 }
 
+// Un refus du serveur (fiche liée au jeu d'une autre équipe, R9) s'affiche au-dessus de la liste (US-211)
 async function deleteParticipant(id: string) {
-  if (!confirm('Supprimer définitivement ce participant et ses données (coordonnées, photos, paiements, envois) ? Les rôles de session restent, sans participant. Les trombinoscopes où figurait sa photo devront être régénérés.')) return
-
-  await useApiFetch(`/api/participants/${id}`, { method: 'DELETE' })
-  await fetchParticipants()
+  deleteError.value = ''
+  try {
+    if (await confirmedDelete(`/api/participants/${id}`, DELETE_CONFIRMATIONS.participant)) await fetchParticipants()
+  } catch (error) {
+    deleteError.value = apiErrorMessage(error, 'Impossible de supprimer ce participant')
+  }
 }
 </script>
 

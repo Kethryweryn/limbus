@@ -173,12 +173,12 @@ const timelineBackTo = computed(() => ({
 
 async function loadData() {
   const [eventData, gamesData, charactersData, factionsData, intriguesData, itemsData] = await Promise.all([
-    useApiFetch(`/api/timeline-events/slug/${route.params.slug}`),
-    useApiFetch('/api/games'),
-    useApiFetch('/api/characters'),
-    useApiFetch('/api/factions'),
-    useApiFetch('/api/intrigues'),
-    useApiFetch('/api/items')
+    useApiFetch(`/api/timeline-events/slug/${route.params.slug}`, { offlineCache: true }),
+    useApiFetch('/api/games', { offlineCache: true }),
+    useApiFetch('/api/characters', { offlineCache: true }),
+    useApiFetch('/api/factions', { offlineCache: true }),
+    useApiFetch('/api/intrigues', { offlineCache: true }),
+    useApiFetch('/api/items', { offlineCache: true })
   ])
 
   timelineEvent.value = eventData

@@ -127,7 +127,7 @@ import type { GameDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
 const slug = String(route.params.slug)
-const { data: game, error, refresh } = await useFetch(`/api/games/slug/${slug}`)
+const { data: game, error, refresh } = await useOfflineFetch(`/api/games/slug/${slug}`)
 const { data: authState } = await useFetch('/api/auth/me')
 
 if (error.value) {

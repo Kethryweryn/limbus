@@ -106,10 +106,10 @@ import ItemForm from '@/components/ItemForm.vue'
 import { withQueuedEdit, type ItemDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
-const { data: item, error, refresh } = await useFetch(`/api/items/slug/${route.params.slug}`)
-const { data: games } = await useFetch('/api/games')
-const { data: characters } = await useFetch('/api/characters')
-const { data: intrigues } = await useFetch('/api/intrigues')
+const { data: item, error, refresh } = await useOfflineFetch(`/api/items/slug/${route.params.slug}`)
+const { data: games } = await useOfflineFetch('/api/games')
+const { data: characters } = await useOfflineFetch('/api/characters')
+const { data: intrigues } = await useOfflineFetch('/api/intrigues')
 
 if (error.value) {
   handleApiAuthError(error.value)

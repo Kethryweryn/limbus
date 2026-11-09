@@ -150,10 +150,10 @@ import type { IntrigueDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
 const slug = String(route.params.slug)
-const { data: intrigue, error, refresh } = await useFetch(`/api/intrigues/slug/${slug}`)
-const { data: games } = await useFetch('/api/games')
-const { data: characters } = await useFetch('/api/characters')
-const { data: factions } = await useFetch('/api/factions')
+const { data: intrigue, error, refresh } = await useOfflineFetch(`/api/intrigues/slug/${slug}`)
+const { data: games } = await useOfflineFetch('/api/games')
+const { data: characters } = await useOfflineFetch('/api/characters')
+const { data: factions } = await useOfflineFetch('/api/factions')
 
 if (error.value) {
   handleApiAuthError(error.value)

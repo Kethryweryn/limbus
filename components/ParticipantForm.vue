@@ -26,7 +26,7 @@
       />
 
       <UFormField label="Nom" :error="errors.name" :help="heldByPerson ? 'Tenu par la personne depuis son compte.' : undefined">
-        <UInput v-model="localParticipant.name" required size="lg" class="w-full" :disabled="heldByPerson" />
+        <UInput v-model="localParticipant.name" size="lg" class="w-full" :disabled="heldByPerson" />
       </UFormField>
 
       <UFormField label="Email" :help="heldByPerson ? 'Changer l’email détache la fiche de son compte : à faire seulement pour corriger une erreur.' : undefined">
