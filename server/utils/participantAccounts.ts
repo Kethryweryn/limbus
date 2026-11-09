@@ -5,9 +5,10 @@ import { normalizeRegistrationFormDefinition, type RegistrationFormDefinition } 
 
 // Rattachement des fiches participant au compte de leur adresse confirmée (US-070, ADR-0041)
 
-// Compte confirmé d'une adresse, auquel une fiche à cette adresse se rattache ; null sinon
+// Compte confirmé d'une adresse, auquel une fiche à cette adresse se rattache ; null sinon. La base compare sans la
+// casse (citext, ADR-0075) : seuls les espaces sont retirés
 export async function accountIdForEmail(email: string | null | undefined) {
-  const normalized = email?.trim().toLowerCase()
+  const normalized = email?.trim()
   if (!normalized) return null
   const user = await prisma.user.findUnique({ where: { email: normalized }, select: { id: true, emailConfirmedAt: true } })
   return user?.emailConfirmedAt ? user.id : null
