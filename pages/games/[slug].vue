@@ -127,7 +127,7 @@ import type { GameDraft } from '~/utils/writingDrafts'
 
 const route = useRoute()
 const slug = String(route.params.slug)
-const { data: game, error, refresh } = await useFetch(`/api/games/slug/${slug}`)
+const { data: game, error, refresh } = await useOfflineFetch(`/api/games/slug/${slug}`)
 const { data: authState } = await useFetch('/api/auth/me')
 
 if (error.value) {
@@ -139,7 +139,7 @@ const { selectGame, clearGame, game: currentGame } = useGameFocus()
 
 const currentUser = computed(() => authState.value?.authenticated ? authState.value.user : null)
 const isCurrentGame = computed(() => currentGame?.value?.id === game.value?.id)
-const { isEditing, draft: editableGame, startEdit, cancelEdit, closeAfterSave } = useSheetEdit<GameDraft>(() => game.value ? { ...game.value } : null)
+const { isEditing, draft: editableGame, startEdit, cancelEdit, closeAfterSave, closeAfterQueued } = useSheetEdit<GameDraft>(() => game.value ? { ...game.value } : null)
 const showShares = ref(false)
 const showBequest = ref(false)
 const showDelete = ref(false)
@@ -208,7 +208,9 @@ async function handleGameFormSubmit() {
         body: editableGame.value
     })
 
-    await closeAfterSave(isOfflineQueued(updatedGame) ? null : `/games/${updatedGame.slug}`, refresh)
+    if (isOfflineQueued(updatedGame)) return closeAfterQueued(game)
+
+    await closeAfterSave(`/games/${updatedGame.slug}`, refresh)
 }
 
 async function setPublicPage(publicPage: boolean) {

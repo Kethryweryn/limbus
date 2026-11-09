@@ -262,7 +262,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-197](EPIC-045-retours-du-cahier-de-tests/US-197-carte-lieu-cliquable.md) | Ouvrir un lieu en cliquant sur sa carte | EPIC-045 | terminée |
 | [US-198](EPIC-050-tests-par-ecran/US-198-tests-ecriture.md) | Tester chaque écran de l'écriture d'un jeu | EPIC-050 | terminée |
 | [US-199](EPIC-050-tests-par-ecran/US-199-tests-sessions.md) | Tester chaque écran des sessions | EPIC-050 | terminée |
-| [US-200](EPIC-050-tests-par-ecran/US-200-tests-participants.md) | Tester chaque écran des participants | EPIC-050 | à faire |
+| [US-200](EPIC-050-tests-par-ecran/US-200-tests-participants.md) | Tester chaque écran des participants | EPIC-050 | terminée |
 | [US-201](EPIC-050-tests-par-ecran/US-201-tests-compte-et-administration.md) | Tester les écrans du compte, de l'accès et de l'administration | EPIC-050 | à faire |
 | [US-202](EPIC-050-tests-par-ecran/US-202-tests-espace-participant.md) | Tester l'espace « Je participe », le lien public d'inscription et les assistants | EPIC-050 | à faire |
 | [US-203](EPIC-050-tests-par-ecran/US-203-tests-inscriptions.md) | Tester chaque règle des inscriptions | EPIC-050 | à faire |
@@ -273,3 +273,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-208](EPIC-050-tests-par-ecran/US-208-description-une-seule-fois.md) | Lire la description d'un jeu une seule fois | EPIC-050 | terminée |
 | [US-209](EPIC-050-tests-par-ecran/US-209-carte-et-fiche-d-une-session.md) | Ouvrir une session d'un clic sur sa carte, et la supprimer depuis sa fiche | EPIC-050 | terminée |
 | [US-210](EPIC-050-tests-par-ecran/US-210-messages-en-francais.md) | Lire en français les refus du serveur | EPIC-050 | terminée |
+| [US-211](EPIC-050-tests-par-ecran/US-211-supprimer-un-participant-depuis-sa-fiche.md) | Supprimer un participant depuis sa fiche, et voir pourquoi c'est refusé | EPIC-050 | terminée |
+| [US-212](EPIC-050-tests-par-ecran/US-212-fiches-hors-ligne.md) | Rouvrir hors ligne toute fiche consultée | EPIC-050 | terminée |

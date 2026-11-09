@@ -1,4 +1,5 @@
 import { ref, watch } from 'vue'
+import { withQueuedEdit } from '~/utils/writingDrafts'
 
 /**
  * Formulaire d'une fiche (personnage, groupe, lieu, session…) : ouvert par `?edit=` dans l'adresse, pour survivre à
@@ -53,5 +54,14 @@ export function useSheetEdit<Draft>(draftOf: () => Draft | null, editValue = '1'
     cancelEdit()
   }
 
-  return { isEditing, draft, startEdit, cancelEdit, closeAfterSave }
+  /**
+   * Après un enregistrement mis en file hors ligne (ADR-0036) : la fiche montre la modification et ferme le formulaire,
+   * sans relire sa copie sur l'appareil, qui est encore l'ancienne version (US-212).
+   */
+  function closeAfterQueued<Sheet extends object>(sheet: { value: Sheet | null | undefined }) {
+    if (sheet.value && draft.value) sheet.value = withQueuedEdit(sheet.value, draft.value as object)
+    cancelEdit()
+  }
+
+  return { isEditing, draft, startEdit, cancelEdit, closeAfterSave, closeAfterQueued }
 }

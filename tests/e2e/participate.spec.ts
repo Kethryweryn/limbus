@@ -129,7 +129,8 @@ test('une panne au chargement invite à réessayer', async ({ page }) => {
     await page.route('**/api/games/slug/**', (route) => route.abort('connectionfailed'))
     await page.goto(`/games/${slug}`)
     await expect(page.getByRole('heading', { name: 'Une erreur est survenue' })).toBeVisible()
-    await expect(page.getByText('Réessayez dans un instant.')).toBeVisible()
+    // Sans copie sur l'appareil, la fiche dit qu'elle n'est pas disponible hors ligne (US-212), sinon « Réessayez »
+    await expect(page.getByText(/Réessayez dans un instant\.|pas disponible hors ligne/)).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Page introuvable' })).toBeHidden()
   } finally {
     await prisma.$disconnect()
