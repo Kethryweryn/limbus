@@ -2,21 +2,9 @@
 import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { cardByTitle, choose, orgaGame, signIn, slugOf, test, uniqueName, type TestPrisma } from './helpers'
+import { cardByTitle, choose, gamePerson, orgaGame, orgaSession as ownSession, signIn, slugOf, test, uniqueName } from './helpers'
 
 const DAY_MS = 24 * 60 * 60 * 1000
-
-// Session d'un jeu propre au test
-async function ownSession(prisma: TestPrisma, gameId: string, base: string, data: { date?: Date, status?: 'scheduled' | 'postponed' | 'cancelled' | 'completed', locationId?: string } = {}) {
-  const name = uniqueName(base)
-  return await prisma.session.create({ data: { name, slug: slugOf(name), gameId, ...data } })
-}
-
-// Personne liée au jeu, sans email : aucun envoi ne lui part
-async function gamePerson(prisma: TestPrisma, gameId: string, base: string) {
-  const name = uniqueName(base)
-  return await prisma.participant.create({ data: { name, slug: slugOf(name), gameLinks: { create: { gameId } } } })
-}
 
 async function openSession(page: Page, session: { slug: string, name: string }, tab?: string) {
   await page.goto(`/sessions/${session.slug}${tab ? `?tab=${tab}` : ''}`)
@@ -64,7 +52,7 @@ test('liste : sessions à venir par date, passées et annulées à part, périod
 
     // Pages de 5 sessions par partie
     await page.getByPlaceholder('Rechercher une session...').fill('')
-    for (let index = 0; index < 4; index++) await ownSession(prisma, game.id, `Session en plus ${index}`, { date: new Date(now + (30 + index) * DAY_MS) })
+    await Promise.all([0, 1, 2, 3].map((index) => ownSession(prisma, game.id, `Session en plus ${index}`, { date: new Date(now + (30 + index) * DAY_MS) })))
     await page.reload()
     await page.waitForLoadState('networkidle')
     await choose(page, page.getByRole('combobox').filter({ hasText: 'Tous les jeux' }), game.title)
@@ -87,6 +75,13 @@ test('carte : un clic ouvre la session, « Modifier » ouvre son formulaire, et 
     await prisma.sessionPayment.create({ data: { gameId: game.id, sessionId: paid.id, participantId: person.id, paidAt: new Date() } })
     const free = await ownSession(prisma, game.id, 'Session sans paiement')
     await signIn(page, prisma, E2E_USERS.orga)
+    await openSessions(page, game.title)
+
+    // Un raccourci d'onglet ouvre la session sur cet onglet, et non sur celui de la carte
+    await cardByTitle(page, free.name).getByRole('link', { name: 'Paiements' }).click()
+    await expect(page).toHaveURL(new RegExp(`/sessions/${free.slug}\\?tab=payments$`))
+    await expect(page.getByRole('heading', { level: 1, name: free.name })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Paiements', exact: true })).toHaveClass(/bg-primary/)
     await openSessions(page, game.title)
 
     // « Modifier » ouvre le formulaire, sans ouvrir la session
@@ -234,7 +229,7 @@ test('déroulé : les responsables se choisissent parmi l’organisation et les 
     await expect(page.getByLabel(`Assigner ${npc.name} à ${eventName}`)).toBeVisible()
     await expect(page.getByLabel(`Assigner ${player.name} à ${eventName}`)).toHaveCount(0)
     await page.getByLabel(`Assigner ${npc.name} à ${eventName}`).check()
-    await expect(page.getByText('1/2').first()).toBeVisible()
+    await expect(page.locator('article').filter({ hasText: eventName }).getByText('1/2', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Enregistrer la timeline' }).click()
     await expect.poll(() => prisma.timelineEventResponsible.findMany({ where: { sessionId: session.id, timelineEventId: event.id }, select: { participantId: true } }))
       .toEqual([{ participantId: npc.id }])
