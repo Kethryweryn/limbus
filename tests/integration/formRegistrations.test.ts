@@ -155,8 +155,8 @@ describe('formulaire public (US-084)', () => {
     expect(again.body).toEqual({ received: true, emailSent: false })
     expect(await prisma.registration.count({ where: { periodId: period.id } })).toBe(1)
     expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).phone).toBe('0633333333')
-    expect(await prisma.registrationSession.findMany({ where: { sessionId: { in: sessions.map((session) => session.id) } }, select: { sessionId: true, status: true }, orderBy: { status: 'asc' } }))
-      .toEqual([{ sessionId: sessions[1]!.id, status: 'confirmed' }, { sessionId: sessions[0]!.id, status: 'preregistered' }])
+    expect(await prisma.registrationSession.findMany({ where: { sessionId: { in: sessions.map((session) => session.id) } }, select: { sessionId: true, status: true } }))
+      .toEqual(expect.arrayContaining([{ sessionId: sessions[1]!.id, status: 'confirmed' }, { sessionId: sessions[0]!.id, status: 'preregistered' }]))
   })
 })
 

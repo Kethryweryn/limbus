@@ -1,8 +1,8 @@
 // US-187 : rôles d'un document, conversion de l'ancien public et libellé (ADR-0072)
 import { describe, expect, it } from 'vitest'
-import { documentAudienceLabel, documentRoles, isDocumentTargeted, isEveryone, legacyAudience, rolesFromLegacyAudience } from '~/utils/documentAudiences'
+import { documentAudienceLabel, documentRoles, isDocumentTargeted, isEveryone, legacyAudience, rolesFromLegacyAudience, type DocumentRole } from '~/utils/documentAudiences'
 
-const ALL = ['organizers', 'npcs', 'kitchen', 'pjs']
+const ALL: DocumentRole[] = ['organizers', 'npcs', 'kitchen', 'pjs']
 
 describe('public d’un document', () => {
   it('convertit l’ancien public en rôles, et les rôles en ancien public le plus proche', () => {

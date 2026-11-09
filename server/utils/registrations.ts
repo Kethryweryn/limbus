@@ -8,7 +8,7 @@ import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
 import { validatedPlaces } from '~/server/utils/sessionPayments'
 import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
-import { REGISTRATION_CANCELLABLE_STATUSES, REGISTRATION_PERIOD_STATES, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
+import { REGISTRATION_CANCELLABLE_STATUSES, REGISTRATION_PERIOD_STATES, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES, SESSION_STATUSES, includesValue, type RegistrationSessionStatus } from '~/utils/domain'
 import { ANNOUNCEMENT_REMOVED, AVAILABILITY_ANSWER_PARAMS, canConfirmPlace } from '~/utils/registrations'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -719,7 +719,7 @@ export async function notifyGameTeam(gameId: string, text: string, subject: stri
 async function cancelLineInTx(
   tx: PrismaTx,
   registration: { id: string, participantId: string },
-  line: { sessionId: string, status: string, session: { status: string } },
+  line: { sessionId: string, status: RegistrationSessionStatus, session: { status: string } },
   cancelledBy: { id: string } | null
 ) {
   // Le statut est revérifié dans l'écriture : deux annulations simultanées n'en font qu'une
@@ -758,7 +758,7 @@ const withdrawalSelect = {
 export async function cancelRegistrationSession(registrationId: string, sessionId: string, cancelledBy: { id: string, name?: string | null } | null) {
   const registration = await prisma.registration.findUniqueOrThrow({ where: { id: registrationId }, select: withdrawalSelect })
   const line = registration.sessionLines.find((candidate) => candidate.sessionId === sessionId)
-  if (!line || !REGISTRATION_CANCELLABLE_STATUSES.includes(line.status)) {
+  if (!line || !includesValue(REGISTRATION_CANCELLABLE_STATUSES, line.status)) {
     throw createError({ statusCode: 409, message: 'Il n’y a pas de présence à annuler pour cette session.' })
   }
   const { photoUrls, wasInSession } = await prisma.$transaction((tx) => cancelLineInTx(tx, registration, line, cancelledBy))
@@ -777,7 +777,7 @@ export async function leavePool(registrationId: string, leftBy: { id: string, na
   if (registration.status === REGISTRATION_STATUSES.withdrawn) {
     throw createError({ statusCode: 409, message: 'Cette personne est déjà sortie du vivier.' })
   }
-  const lines = registration.sessionLines.filter((line) => REGISTRATION_CANCELLABLE_STATUSES.includes(line.status) && line.session.status === SESSION_STATUSES.scheduled)
+  const lines = registration.sessionLines.filter((line) => includesValue(REGISTRATION_CANCELLABLE_STATUSES, line.status) && line.session.status === SESSION_STATUSES.scheduled)
   const cancelled = await prisma.$transaction(async (tx) => {
     const { count } = await tx.registration.updateMany({
       where: { id: registrationId, status: registration.status },

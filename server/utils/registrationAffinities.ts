@@ -2,6 +2,7 @@ import { prisma, type PrismaTx } from '~/server/utils/prisma'
 import { REGISTRATION_SEAT_STATUSES } from '~/utils/domain'
 import { ALERT_AFFINITY_KINDS, PERSON_AFFINITY_KINDS, affinityLineKey, isPersonAffinityKind, suggestPeople } from '~/utils/affinityMatching'
 import type { AffinityAnswers } from '~/server/utils/registrationForms'
+import type { AffinityKind } from '~/generated/prisma/enums'
 
 /**
  * Remplace les affinités d'une inscription par ses nouvelles réponses (ADR-0045). Une ligne de même sorte et de même
@@ -18,7 +19,8 @@ export async function replaceAffinities(tx: PrismaTx, registrationId: string, af
     const link = links.get(affinityLineKey(kind, text))
     return {
       registrationId,
-      kind,
+      // Clé validée par le schéma des affinités du formulaire
+      kind: kind as AffinityKind,
       text,
       position,
       targetParticipantId: link?.targetParticipantId ?? null,

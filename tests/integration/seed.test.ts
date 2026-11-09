@@ -198,7 +198,7 @@ describe('rechargement des jeux de test', () => {
     const addedPath = join(photoDir, 'ajout-pendant-les-essais.png')
     await writeFile(addedPath, 'photo')
     const addedUrl = '/api/uploads/session-assignment-photos/ajout-pendant-les-essais.png'
-    await prisma.uploadedFile.create({ data: { kind: 'session-assignment-photo', filename: 'ajout-pendant-les-essais.png', url: addedUrl, gameId: 'jeu-test-bal', size: 5 } })
+    await prisma.uploadedFile.create({ data: { kind: 'sessionAssignmentPhoto', filename: 'ajout-pendant-les-essais.png', url: addedUrl, gameId: 'jeu-test-bal', size: 5 } })
 
     const countsBefore = await seedCounts()
     expectSuccess(runSeed())
@@ -386,7 +386,7 @@ describe('Station Meridian, avant les sessions', () => {
     expect(JSON.stringify(draws.body)).toContain('graine-du-jeu-de-test')
 
     const draw = await prisma.registrationDraw.findFirstOrThrow({ where: { periodId: period.id }, select: { id: true, sessionId: true } })
-    const where = { sessionId: draw.sessionId!, status: 'retained' }
+    const where = { sessionId: draw.sessionId!, status: 'retained' as const }
     expect(await prisma.registrationSession.count({ where })).toBe(6)
     const cancelled = await api(owner, 'POST', `/api/registration-draws/${draw.id}/cancel`)
     expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)

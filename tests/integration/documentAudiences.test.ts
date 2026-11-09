@@ -3,6 +3,7 @@ import { afterAll, describe, expect, inject, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf } from './api'
 import { createTestPrisma } from './db'
+import type { CharacterType } from '~/generated/prisma/enums'
 
 const world = inject('world')
 const { alice } = world.users
@@ -24,7 +25,7 @@ async function sessionWithEveryone() {
   const person = (name: string) => prisma.participant.create({ data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } } })
   const [pj, orga, npc, cook, member] = await Promise.all(['Pj', 'Orga', 'Pnj', 'Cuisine', 'Membre'].map(person))
   const faction = await prisma.faction.create({ data: { name: `Guilde ${key}`, slug: `guilde-${key}`, gameId: game.id } })
-  const character = (name: string, type: string, factionId?: string) => prisma.character.create({
+  const character = (name: string, type: CharacterType, factionId?: string) => prisma.character.create({
     data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, type, gameId: game.id, ...(factionId ? { factions: { connect: { id: factionId } } } : {}) }
   })
   const [pjCharacter, pnjCharacter, memberCharacter] = await Promise.all([character('Heros', 'pj'), character('Garde', 'pnj'), character('Marchand', 'pj', faction.id)])

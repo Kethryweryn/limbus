@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { api, errorMessage } from './api'
 import { createTestPrisma } from './db'
 import { personalLinkToken, startTestSmtp } from './smtp'
+import type { RegistrationPeriodState } from '~/generated/prisma/enums'
 
 const world = inject('world')
 const { alice } = world.users
@@ -23,7 +24,7 @@ afterAll(async () => {
 const sha256 = (value: string) => createHash('sha256').update(value).digest('hex')
 
 // Un jeu d'Alice, une session, un vivier ouvert, et un participant du jeu avec email
-async function openPeriod(options: { state?: string } = {}) {
+async function openPeriod(options: { state?: RegistrationPeriodState } = {}) {
   const key = `invitations-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
   const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2027-03-10T09:00:00Z') } })

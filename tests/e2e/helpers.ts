@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken'
 import { JWT_SECRET } from '../integration/constants'
 import { E2E_PASSWORD, PARCOURS } from './constants'
 import { escapeRegExp } from '../regexp'
+import type { UserRole } from '~/generated/prisma/enums'
 
 // Tests des parcours : `otherPage()` ouvre un navigateur à part (autre personne, autre appareil), fermé à la fin du test
 export const test = base.extend<{ otherPage: () => Promise<Page> }>({
@@ -94,7 +95,7 @@ export function blockWith(page: Page, has: Locator, button: string | RegExp, has
 
 // Compte propre au test, confirmé, aux conditions acceptées et au mot de passe des tests : ses changements ne touchent pas
 // les comptes partagés
-export async function testUser(prisma: TestPrisma, base: string, role = 'user') {
+export async function testUser(prisma: TestPrisma, base: string, role: UserRole = 'user') {
   const name = uniqueName(base)
   const email = `${slugOf(name)}@example.test`
   const password = await bcrypt.hash(E2E_PASSWORD, 4)

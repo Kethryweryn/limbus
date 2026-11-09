@@ -1,4 +1,5 @@
 import type { PrismaClient } from '~/generated/prisma/client'
+import type { RegistrationPeriodState, ReplayPolicy, SelectionMode } from '~/generated/prisma/enums'
 
 // Vivier de test (SPEC-018) : un jeu, ses personnages PJ (les places), ses sessions ouvertes, et des personnes
 const DAY = 24 * 60 * 60 * 1000
@@ -12,9 +13,9 @@ export async function createPool(prisma: PrismaClient, ownerId: string, options:
   // Personnages PJ : le nombre de places de chaque session (R8)
   seats?: number
   // Réglages de sélection de chaque session
-  selection?: { selectionMode?: string, organizerPicks?: number, waitlistSize?: number, weightBalance?: boolean, weightNotDrawnBefore?: boolean }
-  replayPolicy?: string
-  state?: string
+  selection?: { selectionMode?: SelectionMode, organizerPicks?: number, waitlistSize?: number, weightBalance?: boolean, weightNotDrawnBefore?: boolean }
+  replayPolicy?: ReplayPolicy
+  state?: RegistrationPeriodState
   open?: boolean
   game?: Record<string, unknown>
 } = {}) {

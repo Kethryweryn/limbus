@@ -11,7 +11,7 @@ import { replaceAffinities } from '~/server/utils/registrationAffinities'
 import { countPlayableCharacters, offeredSessions, takenSeatsWhere } from '~/server/utils/registrationPeriods'
 import { joinSession, lockSession } from '~/server/utils/registrationSelection'
 import { readZodBody } from '~/server/utils/schemas'
-import { REGISTRATION_ANSWERS, REGISTRATION_CANCELLABLE_STATUSES, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
+import { REGISTRATION_ANSWERS, REGISTRATION_CANCELLABLE_STATUSES, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_STATUSES, SESSION_STATUSES, includesValue } from '~/utils/domain'
 import { isUpcomingSession, startOfDay } from '~/utils/registrationPeriods'
 import { canConfirmPlace, isResponseOverdue, splitParticipantName, visibleLineStatus } from '~/utils/registrations'
 import {
@@ -152,7 +152,7 @@ export function visibleSessionLines(lines: PublicRegistration['sessionLines'], n
       overdue: confirmable && isResponseOverdue(line, now),
       confirmedAt: status === LINE.confirmed ? line.confirmedAt : null,
       canConfirmPlace: confirmable,
-      canCancel: REGISTRATION_CANCELLABLE_STATUSES.includes(status) && line.session.status === SESSION_STATUSES.scheduled
+      canCancel: includesValue(REGISTRATION_CANCELLABLE_STATUSES, status) && line.session.status === SESSION_STATUSES.scheduled
     }]
   })
 }

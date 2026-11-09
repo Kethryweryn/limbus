@@ -3,6 +3,7 @@ import { afterAll, describe, expect, inject, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf } from './api'
 import { createTestPrisma } from './db'
+import type { AffinityKind, RegistrationSessionStatus } from '~/generated/prisma/enums'
 
 const prisma = createTestPrisma()
 const { alice } = inject('world').users
@@ -39,9 +40,9 @@ async function person(game: { id: string }, name: string) {
   })
 }
 
-type Line = [kind: string, text: string, targetParticipantId?: string]
+type Line = [kind: AffinityKind, text: string, targetParticipantId?: string]
 
-async function registration(period: { id: string }, participant: { id: string }, extra: { status?: string, sessionId?: string, affinities?: Line[], availableSessionIds?: string[] } = {}) {
+async function registration(period: { id: string }, participant: { id: string }, extra: { status?: RegistrationSessionStatus, sessionId?: string, affinities?: Line[], availableSessionIds?: string[] } = {}) {
   return await prisma.registration.create({
     data: {
       periodId: period.id,
@@ -52,7 +53,7 @@ async function registration(period: { id: string }, participant: { id: string },
       sessionLines: {
         create: [
           ...(extra.sessionId ? [{ sessionId: extra.sessionId, status: extra.status ?? 'retained' }] : []),
-          ...(extra.availableSessionIds ?? []).map((sessionId) => ({ sessionId, status: 'preregistered', answer: 'available' }))
+          ...(extra.availableSessionIds ?? []).map((sessionId) => ({ sessionId, status: 'preregistered' as const, answer: 'available' as const }))
         ]
       },
       affinities: {
@@ -127,7 +128,7 @@ describe('alertes et repères dans la sélection (US-096)', () => {
     const louReg = await registration(period, lou, { status: 'retained', sessionId: first!.id, affinities: [['avoid', 'Max', max.id], ['notWith', 'Pnj', pnj.id], ['avoid', 'Noé', noe.id]] })
     await registration(period, max, { status: 'confirmed', sessionId: first!.id })
     await registration(period, noe, { status: 'retained', sessionId: second!.id })
-    await prisma.sessionParticipant.create({ data: { sessionId: first!.id, participantId: pnj.id, role: 'pnj' } })
+    await prisma.sessionParticipant.create({ data: { sessionId: first!.id, participantId: pnj.id, role: 'npc' } })
 
     const { alerts } = (await overviewOf(period)).affinities
     expect(alerts).toEqual(expect.arrayContaining([

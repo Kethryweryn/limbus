@@ -50,7 +50,8 @@ async function main() {
     await prisma.user.update({ where: { id: existing.id }, data: { password: hashedPassword, sessionVersion: { increment: 1 } } })
     console.log(`Mot de passe mis à jour pour ${email} (sessions ouvertes déconnectées)`)
   } else {
-    await prisma.user.create({ data: { email, name, role: roleAnswer, password: hashedPassword } })
+    const role = roleAnswer === USER_ROLES.admin ? USER_ROLES.admin : USER_ROLES.user
+    await prisma.user.create({ data: { email, name, role, password: hashedPassword } })
     console.log(`Utilisateur créé : ${email} (${roleAnswer})`)
   }
 }

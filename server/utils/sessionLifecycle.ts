@@ -2,10 +2,10 @@ import { prisma } from '~/server/utils/prisma'
 import { openEmailTransport, sendEmail } from '~/server/utils/email'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { assertSessionLocation } from '~/server/utils/sessionAssignments'
-import { REGISTRATION_SEAT_STATUSES, REGISTRATION_SESSION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
+import { REGISTRATION_SEAT_STATUSES, REGISTRATION_SESSION_STATUSES, SESSION_STATUSES, type SessionStatus } from '~/utils/domain'
 
 // Seule une session prévue ou annulée se reporte (US-022) ; une session reportée l'est déjà
-export const POSTPONABLE_SESSION_STATUSES: string[] = [SESSION_STATUSES.scheduled, SESSION_STATUSES.cancelled]
+export const POSTPONABLE_SESSION_STATUSES: SessionStatus[] = [SESSION_STATUSES.scheduled, SESSION_STATUSES.cancelled]
 
 function parseDate(value: string | null | undefined) {
   if (!value) return null

@@ -6,6 +6,7 @@ import { personalLinkToken } from '../integration/smtp'
 import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
 import { expectLoggedIn, gamePanel, login, signIn, test } from './helpers'
+import type { RegistrationSessionStatus } from '~/generated/prisma/enums'
 
 // US-164 : invitation pour une session → réponse par le lien personnel, disponible → présence dans la session
 test('une personne invitée pour une session répond par son lien et y est inscrite', async ({ page, otherPage }) => {
@@ -530,7 +531,7 @@ test('après l’annonce du casting, chaque changement se propose personne par p
     const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-06-01T09:00:00Z') } })
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `a${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } } })
     await prisma.character.createMany({ data: [1, 2, 3].map((index) => ({ name: `PJ ${index}`, slug: `pj-${index}-${key}`, gameId: game.id, type: 'pj' })) })
-    const person = async (name: string, status: string) => {
+    const person = async (name: string, status: RegistrationSessionStatus) => {
       const email = `${name.toLowerCase()}-${key}@example.test`
       const participant = await prisma.participant.create({ data: { name, slug: `${name.toLowerCase()}-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
       await prisma.registration.create({ data: { periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, respondedAt: new Date(), sessionLines: { create: { sessionId: session.id, status, answer: 'available' } } } })

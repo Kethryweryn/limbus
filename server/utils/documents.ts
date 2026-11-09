@@ -2,6 +2,7 @@ import { gamePhotoInformation } from '~/utils/photoInformation'
 import { purgeExpiredPhotos } from '~/server/utils/photoRetention'
 import { characterSheetContentHash, documentContentHash, type SheetCharacter } from '~/server/utils/deliveryHashes'
 import { prisma } from '~/server/utils/prisma'
+import type { DeliveryKind } from '~/generated/prisma/enums'
 import { openEmailTransport, sendEmail, type EmailTransport } from '~/server/utils/email'
 import { CHARACTER_TYPES, SESSION_ROLES } from '~/utils/domain'
 import { DOCUMENT_ROLES, documentRoles } from '~/utils/documentAudiences'
@@ -461,7 +462,7 @@ async function upsertDelivery(data: {
   sessionId: string
   participantId: string
   characterId: string
-  kind: string
+  kind: DeliveryKind
   contentHash: string | null
 }, copy?: DeliveryCopy) {
   const existing = await prisma.sessionDocumentDelivery.findFirst({

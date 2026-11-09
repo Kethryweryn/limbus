@@ -13,6 +13,7 @@ import { createMeridianStage, MERIDIAN_EXTRA_PEOPLE } from './seed/meridian'
 import { daysFromNow, personAddress, readSeedOptions, type SeedOptions } from './seed/options'
 import { placePlayersInPool } from './seed/pool'
 import { createValombreStage } from './seed/valombre'
+import type { GameShareRole } from '../generated/prisma/enums'
 
 // La transaction du rechargement, utilisée par toutes les fonctions du script : un échec laisse les jeux tels quels
 let db: Db
@@ -87,7 +88,7 @@ type GameSeed = {
 
 type PreservedAccess = {
   gameId: string
-  shares: Array<{ userId: string, role: string }>
+  shares: Array<{ userId: string, role: GameShareRole }>
   aiAuthorizationIds: string[]
 }
 
@@ -479,7 +480,7 @@ async function createParticipantPhotos(gameId: string, participants: Array<{ id:
     const photoUrl = `${PHOTO_UPLOAD_PREFIX}${filename}`
     await db.uploadedFile.create({
       data: {
-        kind: 'session-assignment-photo',
+        kind: 'sessionAssignmentPhoto',
         filename,
         url: photoUrl,
         size: content.length,
@@ -714,7 +715,7 @@ async function upsertTestAccounts(options: SeedOptions, password: string) {
     const data = {
       name: account.name,
       password,
-      role: 'user',
+      role: 'user' as const,
       emailConfirmedAt: now,
       disabledAt: null,
       phone: account.phone,
@@ -1184,7 +1185,7 @@ async function createArchiveSession(
           { participantId: organizer.id, role: 'organizer' },
           { participantId: sessionPnj.id, role: 'npc' },
           { participantId: kitchen.id, role: 'kitchen' },
-          ...players.map((player) => ({ participantId: player.id, role: 'participant' }))
+          ...players.map((player) => ({ participantId: player.id, role: 'participant' as const }))
         ]
       },
       assignments: {

@@ -25,7 +25,7 @@ async function photo(gameId: string) {
   await mkdir(PHOTOS, { recursive: true })
   await writeFile(join(PHOTOS, filename), 'x')
   const url = `/api/uploads/session-assignment-photos/${filename}`
-  await prisma.uploadedFile.create({ data: { kind: 'session-assignment-photo', filename, url, gameId } })
+  await prisma.uploadedFile.create({ data: { kind: 'sessionAssignmentPhoto', filename, url, gameId } })
   return { url, path: join(PHOTOS, filename) }
 }
 

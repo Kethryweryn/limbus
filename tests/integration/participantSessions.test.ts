@@ -3,6 +3,7 @@ import { afterAll, describe, expect, inject, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf } from './api'
 import { createTestPrisma } from './db'
+import type { SessionStatus } from '~/generated/prisma/enums'
 
 const world = inject('world')
 const { alice, bob } = world.users
@@ -23,7 +24,7 @@ describe('sessions de la fiche', () => {
     const participant = await prisma.participant.create({
       data: { name: `Zoé ${key}`, slug: `zoe-${key}`, gameLinks: { create: [{ gameId: mine.id }, { gameId: other.id }] } }
     })
-    const session = (gameId: string, name: string, date: Date | null, status = 'scheduled') =>
+    const session = (gameId: string, name: string, date: Date | null, status: SessionStatus = 'scheduled') =>
       prisma.session.create({ data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, gameId, date, status } })
     const [later, past, undated, bobs] = await Promise.all([
       session(mine.id, 'Printemps', new Date('2099-04-01T09:00:00Z')),

@@ -9,6 +9,7 @@ import { SESSION_ROLES, SESSION_STATUSES } from '../../utils/domain'
 import { RIB_UPLOAD_PREFIX } from '../../utils/urls'
 import type { Db, StageContext } from './db'
 import { daysFromNow } from './options'
+import type { AttendanceStatus, TariffRole } from '../../generated/prisma/enums'
 
 // Délai laissé aux réponses de présence, en jours
 const ATTENDANCE_DUE_IN_DAYS = 5
@@ -118,10 +119,10 @@ export async function createValombreStage(db: Db, context: StageContext) {
   await mkdir(ribDir, { recursive: true })
   await writeFile(join(ribDir, ribFilename), ribPdf, { mode: 0o644 })
   await db.uploadedFile.create({
-    data: { kind: 'session-payment-rib', filename: ribFilename, url: ribUrl, size: ribPdf.byteLength, sessionId: session.id }
+    data: { kind: 'sessionPaymentRib', filename: ribFilename, url: ribUrl, size: ribPdf.byteLength, sessionId: session.id }
   })
 
-  const tariff = (name: string, amountCents: number, defaultRole?: string, baseTariffId?: string) => db.sessionTariff.create({
+  const tariff = (name: string, amountCents: number, defaultRole?: TariffRole, baseTariffId?: string) => db.sessionTariff.create({
     data: { sessionId: session.id, name, amountCents, defaultRole, baseTariffId },
     select: { id: true }
   })
@@ -178,7 +179,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
   })
 
   // Demandes déjà parties. Nicolas et Inès n'en ont pas : l'équipe les lance depuis l'application, ce qui crée leur lien.
-  const attendance = (participantId: string, status: string, dueInDays: number, respondedDaysAgo?: number) => ({
+  const attendance = (participantId: string, status: AttendanceStatus, dueInDays: number, respondedDaysAgo?: number) => ({
     sessionId: session.id,
     participantId,
     status,

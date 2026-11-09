@@ -77,7 +77,7 @@ model Game {
 model Character {
   id                    String     @id @default(cuid())
   name                  String
-  type                  String     @default("pj")
+  type                  CharacterType @default(pj)
   pitch                 String?
   background            String?
   backgroundDocumentUrl String?
@@ -124,7 +124,7 @@ model CharacterRelation {
   gameId          String
   game            Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
   // romance, family, rivalry, alliance, hierarchy ou other
-  type            String
+  type            CharacterRelationType
   description     String?
   fromCharacterId String
   fromCharacter   Character @relation("RelationFrom", fields: [fromCharacterId], references: [id], onDelete: Cascade)
@@ -247,7 +247,7 @@ model Intrigue {
   name        String
   pitch       String?
   description String?
-  level       String    @default("minor")
+  level       IntrigueLevel @default(minor)
   slug        String    @unique
   gameId      String
   game        Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
@@ -294,9 +294,9 @@ model Document {
   content     String?
   documentUrl String?
   // Ancien public unique, encore écrit pour le build en service pendant un déploiement (ADR-0072)
-  audience    String      @default("targeted")
+  audience    DocumentAudience @default(targeted)
   // Rôles visés : organizers, npcs, kitchen, pjs (US-187, ADR-0072) ; la sélection avancée est characters et factions
-  audiences   String[]    @default([])
+  audiences   DocumentRole[] @default([])
   readyToSend Boolean     @default(false)
   gameId      String
   game        Game        @relation(fields: [gameId], references: [id], onDelete: Cascade)
@@ -331,7 +331,7 @@ model Session {
   withdrawalDeadline DateTime?
   // Version des réglages de paiement (ADR-0036), à part de celle de la session
   paymentSettingsUpdatedAt DateTime?
-  status      String     @default("scheduled")
+  status      SessionStatus @default(scheduled)
   // Passage à « Annulée » : les copies des envois s'effacent un mois après (US-080, ADR-0044)
   cancelledAt DateTime?
   createdAt   DateTime   @default(now())
@@ -372,12 +372,12 @@ model RegistrationPeriod {
   // Identifiant aléatoire du lien de diffusion (R32), distinct de l'id et du slug du jeu
   publicId          String   @unique
   // Ouvert et fermé à la main (R2)
-  state             String   @default("draft")
+  state             RegistrationPeriodState @default(draft)
   responseDelayDays Int      @default(7)
   // Prévenir l'équipe de chaque inscription reçue par le formulaire (US-083)
   notifyTeam        Boolean  @default(false)
   // Rejoueurs (R7) : allowed, flagged ou excluded (US-087, ADR-0047)
-  replayPolicy      String   @default("allowed")
+  replayPolicy      ReplayPolicy @default(allowed)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -401,7 +401,7 @@ model RegistrationPeriodSession {
   // Ouverte à la pré-inscription (R6) ; proposée seulement si elle est aussi datée, à venir, ni annulée ni terminée
   open      Boolean            @default(false)
   // Sélection de la session (R22, ADR-0048)
-  selectionMode        String  @default("chosen")
+  selectionMode        SelectionMode @default(chosen)
   organizerPicks       Int?
   weightNotDrawnBefore Boolean @default(false)
   weightBalance        Boolean @default(false)
@@ -449,8 +449,8 @@ model Registration {
   participantId         String
   participant           Participant              @relation(fields: [participantId], references: [id], onDelete: Cascade)
   // invited, received (intéressée) ou withdrawn (sortie du vivier)
-  status                String
-  source                String
+  status                RegistrationStatus
+  source                RegistrationSource
   invitedById           String?
   invitedBy             User?                    @relation("SentRegistrationInvitations", fields: [invitedById], references: [id], onDelete: SetNull)
   formVersionId         String?
@@ -505,9 +505,9 @@ model RegistrationSession {
   sessionId      String
   session        Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   // preregistered, unavailable, waitlisted, retained, confirmed, transferred ou cancelled
-  status         String
+  status         RegistrationSessionStatus
   // Dernière réponse de la personne : available, unavailable ; null sans réponse (R28, R29)
-  answer         String?
+  answer         AvailabilityAnswer?
   answeredAt     DateTime?
   waitlistPosition Int?
   // Relance d'une place retenue pas confirmée
@@ -523,10 +523,10 @@ model RegistrationSession {
   retainedById   String?
   retainedBy     User?        @relation("RegistrationSessionRetentions", fields: [retainedById], references: [id], onDelete: SetNull)
   // Dernier statut annoncé à la personne (ADR-0047)
-  announcedStatus String?
+  announcedStatus RegistrationSessionStatus?
   announcedAt    DateTime?
   // Statut pour lequel l'équipe a écarté l'email à la personne (R27)
-  ignoredStatus  String?
+  ignoredStatus  RegistrationSessionStatus?
   // Repère « réponses modifiées », jusqu'à ce qu'une organisatrice le marque comme lu (R16)
   answersChangedAt DateTime?
   createdAt      DateTime     @default(now())
@@ -600,7 +600,7 @@ model RegistrationAffinity {
   registrationId String
   registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
   // wantWith, notWith, refusedRelations ou avoid
-  kind           String
+  kind           AffinityKind
   text           String
   position       Int
   // Personne du jeu rattachée par l'équipe (US-095, ADR-0049) ; effacer la fiche supprime la ligne
@@ -640,7 +640,7 @@ model SessionParticipant {
   id            String      @id @default(cuid())
   sessionId     String
   participantId String
-  role          String
+  role          SessionRole
   session       Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
   createdAt     DateTime    @default(now())
@@ -706,7 +706,7 @@ model SessionPayment {
   paymentEmailSentAt  DateTime?
   paymentReminderSentAt DateTime?
   // Session annulée ou reportée (US-023, ADR-0029) : to_refund, refunded ou carried_over
-  refundStatus        String?
+  refundStatus        RefundStatus?
   refundedAt          DateTime?
   carriedOverToSessionId String?
   // Tarif choisi par l'organisatrice ; sinon celui du rôle de la personne (US-031, ADR-0032)
@@ -739,7 +739,7 @@ model SessionTariff {
   name         String
   amountCents  Int
   // pj, pnj, organizer ou kitchen : tarif appliqué par défaut à ce rôle
-  defaultRole  String?
+  defaultRole  TariffRole?
   // Tarif solidaire : de soutien s'il est plus cher que sa base, réduit s'il l'est moins (US-033)
   baseTariffId String?
   createdAt    DateTime @default(now())
@@ -796,7 +796,7 @@ model SessionDocumentDelivery {
   participantId String
   documentId    String?
   characterId   String?
-  kind          String      @default("document")
+  kind          DeliveryKind @default(document)
   contentHash   String?
   sentAt        DateTime    @default(now())
   // Copie de ce qui est parti (US-078, ADR-0044) : PDF joint, ce qui se lit dans la page, et leur taille
@@ -846,7 +846,7 @@ model ParticipantGame {
 
 model UploadedFile {
   id        String   @id @default(cuid())
-  kind      String
+  kind      UploadKind
   filename  String   @unique
   url       String   @unique
   gameId    String?
@@ -868,7 +868,7 @@ model User {
   name      String
   password  String
   // admin ou user (ADR-0038)
-  role      String   @default("user")
+  role      UserRole @default(user)
   // Incrémenté pour invalider toutes les sessions ouvertes (déconnexion partout, changement de mot de passe)
   sessionVersion Int @default(0)
   // Adresse confirmée (ADR-0039) : vide seulement après une inscription libre, jusqu'au lien de confirmation
@@ -919,7 +919,7 @@ model AccountToken {
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   // confirm | email | password
-  kind      String
+  kind      AccountTokenKind
   tokenHash String    @unique
   // Nouvelle adresse, pour un changement d'email
   email     String?
@@ -936,7 +936,7 @@ model GameShare {
   id        String   @id @default(cuid())
   gameId    String
   userId    String
-  role      String   @default("organizer")
+  role      GameShareRole @default(organizer)
   createdAt DateTime @default(now())
 
   game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
@@ -965,9 +965,9 @@ model GameInvitation {
   token        String?   @unique
   // Empreinte SHA-256 du jeton du lien (ADR-0034) : le jeton lui-même n'est pas gardé
   tokenHash    String?   @unique
-  status       String    @default("pending")
+  status       GameInvitationStatus @default(pending)
   // share : co-organisation ; bequest : legs d'une copie en attente (gameId = la copie, ADR-0025)
-  kind         String    @default("share")
+  kind         GameInvitationKind @default(share)
   invitedById  String
   acceptedById String?
   expiresAt    DateTime
@@ -1005,7 +1005,7 @@ model SessionAttendance {
   sessionId      String
   participantId  String
   // pending, confirmed, declined ou released ; le délai dépassé s'évalue à la lecture (ADR-0020)
-  status         String      @default("pending")
+  status         AttendanceStatus @default(pending)
   // SHA-256 du jeton du lien personnel (ADR-0018) ; null quand le lien est invalidé
   tokenHash      String?     @unique
   responseDueAt  DateTime
@@ -1109,7 +1109,7 @@ model AiToken {
   hash            String          @id
   authorizationId String
   authorization   AiAuthorization @relation(fields: [authorizationId], references: [id], onDelete: Cascade)
-  kind            String
+  kind            AiTokenKind
   expiresAt       DateTime
   // Rafraîchissement déjà renouvelé : le présenter de nouveau fait tomber l'autorisation
   usedAt          DateTime?
@@ -1139,4 +1139,180 @@ model AiLogEntry {
   @@index([userId])
   @@index([gameId])
   @@index([createdAt])
+}
+
+// Valeurs à liste fermée (US-189, ADR-0073) : la base refuse toute autre valeur. Ajouter une valeur est compatible avec
+// le build en service ; en retirer une demande de recréer le type.
+
+enum CharacterType {
+  pj
+  pnj
+}
+
+enum CharacterRelationType {
+  romance
+  family
+  rivalry
+  alliance
+  hierarchy
+  other
+}
+
+enum IntrigueLevel {
+  main_story
+  main_character
+  major
+  minor
+}
+
+// Rôles visés par un document (ADR-0072)
+enum DocumentRole {
+  organizers
+  npcs
+  kitchen
+  pjs
+}
+
+// Ancien public unique d'un document, encore écrit pour le build d'avant (ADR-0072)
+enum DocumentAudience {
+  targeted
+  everyone
+  organizers
+  npcs
+  kitchen
+}
+
+enum SessionStatus {
+  scheduled
+  postponed
+  cancelled
+  completed
+}
+
+enum RegistrationPeriodState {
+  draft
+  open
+  closed
+}
+
+enum ReplayPolicy {
+  allowed
+  flagged
+  excluded
+}
+
+enum SelectionMode {
+  random
+  chosen
+  mixed
+}
+
+// Statut d'une personne pour le jeu (ADR-0069)
+enum RegistrationStatus {
+  invited
+  received
+  withdrawn
+}
+
+enum RegistrationSource {
+  invitation
+  form
+}
+
+// Statut d'une personne pour une session (R17 de SPEC-018)
+enum RegistrationSessionStatus {
+  preregistered
+  unavailable
+  waitlisted
+  retained
+  confirmed
+  transferred
+  cancelled
+}
+
+enum AvailabilityAnswer {
+  available
+  unavailable
+}
+
+// Ligne d'affinité : personnes (wantWith, notWith, avoid), relations refusées en texte libre ou par type (US-099)
+enum AffinityKind {
+  wantWith
+  notWith
+  avoid
+  refusedRelations
+  refusedRelationTypes
+}
+
+enum SessionRole {
+  participant
+  organizer
+  npc
+  kitchen
+}
+
+// Rôle auquel un tarif s'applique par défaut (US-031)
+enum TariffRole {
+  pj
+  pnj
+  organizer
+  kitchen
+}
+
+enum RefundStatus {
+  to_refund
+  refunded
+  carried_over
+  kept
+  transferred
+}
+
+enum DeliveryKind {
+  document
+  character_sheet
+  trombinoscope
+  character_sheet_bundle
+}
+
+enum UploadKind {
+  sessionAssignmentPhoto @map("session-assignment-photo")
+  sessionPaymentRib      @map("session-payment-rib")
+}
+
+enum UserRole {
+  admin
+  user
+}
+
+enum AccountTokenKind {
+  confirm
+  email
+  password
+}
+
+enum GameShareRole {
+  organizer
+}
+
+enum GameInvitationStatus {
+  pending
+  accepted
+  revoked
+}
+
+enum GameInvitationKind {
+  share
+  bequest
+}
+
+enum AttendanceStatus {
+  pending
+  confirmed
+  declined
+  released
+}
+
+enum AiTokenKind {
+  access
+  refresh
 }

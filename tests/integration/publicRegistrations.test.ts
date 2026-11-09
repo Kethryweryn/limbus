@@ -9,6 +9,7 @@ import { api, bodyOf, errorMessage, invalidPaths } from './api'
 import { createTestPrisma } from './db'
 import { addPerson, createPool, lineOf } from './pool'
 import { personalLinkToken, startTestSmtp } from './smtp'
+import type { RegistrationPeriodState, RegistrationSessionStatus } from '~/generated/prisma/enums'
 
 const world = inject('world')
 const { alice } = world.users
@@ -44,7 +45,7 @@ async function publicApi(method: string, path: string, body?: unknown, ip = `10.
 }
 
 // Une invitation d'Alice, avec un jeton connu du test
-async function invitation(options: { periodState?: string, responseDueAt?: Date, sessionDate?: Date, seats?: number } = {}) {
+async function invitation(options: { periodState?: RegistrationPeriodState, responseDueAt?: Date, sessionDate?: Date, seats?: number } = {}) {
   const key = `reponse-${++counter}`
   const game = await prisma.game.create({
     data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id, noteIntention: `Note d’intention ${key}` }
@@ -275,7 +276,7 @@ describe('modifier ses réponses (R14)', () => {
 })
 
 describe('réponses modifiées (US-173, R16)', () => {
-  async function person(status?: string) {
+  async function person(status?: RegistrationSessionStatus) {
     const pool = await createPool(prisma, alice.id, { key: 'modif', sessions: 1, seats: 2 })
     const session = pool.sessions[0]!
     const token = randomBytes(32).toString('base64url')
@@ -334,7 +335,7 @@ describe('réponses modifiées (US-173, R16)', () => {
   })
 
   it('pré-inscrite, en attente ou simplement intéressée : rien ne se déclenche ; une session passée non plus', async () => {
-    for (const status of ['preregistered', 'waitlisted']) {
+    for (const status of ['preregistered', 'waitlisted'] as const) {
       const { session, lou, path } = await person(status)
       expect((await publicApi('PUT', path, answers({ phone: '0677777777' }))).status).toBe(200)
       expect((await lineOf(prisma, lou.id, session.id))?.answersChangedAt).toBeNull()
@@ -550,7 +551,7 @@ describe('annuler sa présence à une session (R19)', () => {
     const url = `/api/uploads/session-assignment-photos/${filename}`
     await mkdir(PHOTOS, { recursive: true })
     await writeFile(join(PHOTOS, filename), 'png')
-    await prisma.uploadedFile.create({ data: { kind: 'session-assignment-photo', filename, url, gameId: game.id, sessionId: session.id } })
+    await prisma.uploadedFile.create({ data: { kind: 'sessionAssignmentPhoto', filename, url, gameId: game.id, sessionId: session.id } })
     const assignment = await prisma.sessionAssignment.create({ data: { sessionId: session.id, characterId: character.id, participantId: participant.id, photoUrl: url } })
     await prisma.sessionPayment.create({ data: { sessionId: session.id, participantId: participant.id, paidAt: new Date() } })
     await prisma.sessionTrombinoscope.create({ data: { sessionId: session.id, viewerCharacterId: character.id, participantId: participant.id, fileName: 't.pdf', contentHtml: url } })

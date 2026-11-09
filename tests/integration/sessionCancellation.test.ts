@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
+import type { SessionStatus } from '~/generated/prisma/enums'
 
 const world = inject('world')
 const { alice } = world.users
@@ -19,7 +20,7 @@ afterAll(async () => {
   await prisma.$disconnect()
 })
 
-async function sessionWithTeam(status: string) {
+async function sessionWithTeam(status: SessionStatus) {
   const key = `annulation-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
   const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, status } })
