@@ -1,5 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '~/generated/prisma/client'
+import { pgAdapterOptions } from '~/server/utils/databaseConnection'
 
 export function testDatabaseUrl() {
   const url = process.env.TEST_DATABASE_URL
@@ -14,5 +15,5 @@ export function testDatabaseUrl() {
 }
 
 export function createTestPrisma() {
-  return new PrismaClient({ adapter: new PrismaPg({ connectionString: testDatabaseUrl() }) })
+  return new PrismaClient({ adapter: new PrismaPg(pgAdapterOptions(testDatabaseUrl())) })
 }

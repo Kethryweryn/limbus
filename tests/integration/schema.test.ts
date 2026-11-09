@@ -1,7 +1,9 @@
 // US-188 : toute clé étrangère est couverte par un index, sans quoi une liste filtrée par elle et une suppression en
 // cascade parcourent toute la table. Vaut pour les tables à venir.
 import { afterAll, describe, expect, it } from 'vitest'
-import { createTestPrisma } from './db'
+import { PrismaPg } from '@prisma/adapter-pg'
+import { PrismaClient } from '~/generated/prisma/client'
+import { createTestPrisma, testDatabaseUrl } from './db'
 
 const prisma = createTestPrisma()
 
@@ -86,6 +88,24 @@ describe('schéma de données', () => {
     // L'adresse garde sa forme écrite
     expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { email: true } })).email).toBe(email)
     await prisma.user.delete({ where: { id: user.id } })
+  })
+
+  // US-194 (ADR-0076) : la session de Prisma est en UTC même quand la base est réglée sur un autre fuseau, comme la
+  // production (Europe/Paris)
+  it('ouvre les connexions en UTC, quel que soit le fuseau de la base', async () => {
+    const [row] = await prisma.$queryRaw<Array<{ database: string }>>`SELECT current_database() AS database`
+    await prisma.$executeRawUnsafe(`ALTER DATABASE "${row!.database}" SET timezone = 'Europe/Paris'`)
+    const configured = createTestPrisma()
+    // Témoin : une connexion sans le réglage prend le fuseau de la base
+    const plain = new PrismaClient({ adapter: new PrismaPg({ connectionString: testDatabaseUrl() }) })
+    try {
+      expect(await configured.$queryRaw`SHOW TimeZone`).toEqual([{ TimeZone: 'UTC' }])
+      expect(await plain.$queryRaw`SHOW TimeZone`).toEqual([{ TimeZone: 'Europe/Paris' }])
+    } finally {
+      await configured.$disconnect()
+      await plain.$disconnect()
+      await prisma.$executeRawUnsafe(`ALTER DATABASE "${row!.database}" RESET timezone`)
+    }
   })
 
   it('refuse une valeur hors liste', async () => {
