@@ -6,8 +6,8 @@
 -- seront retirées au déploiement suivant (ADR-0024).
 -- Production relevée le 2026-11-09 : ces colonnes sont vides, sauf le PDF d'un trombinoscope, recopié ici.
 
--- PDF en binaire, décodé depuis l'existant ; un trombinoscope généré par le build en service pendant le déploiement
--- n'a que son ancienne colonne, et se régénère
+-- PDF en binaire, décodé depuis l'existant. Un trombinoscope généré par le build en service pendant le déploiement n'a
+-- que son ancienne colonne : le second déploiement le recopie de même, avant de la retirer
 ALTER TABLE "SessionTrombinoscope" ADD COLUMN "contentPdf" BYTEA;
 UPDATE "SessionTrombinoscope" SET "contentPdf" = decode("contentPdfBase64", 'base64') WHERE "contentPdfBase64" IS NOT NULL;
 

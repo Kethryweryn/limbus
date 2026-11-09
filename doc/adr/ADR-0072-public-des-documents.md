@@ -8,6 +8,8 @@ liens: [../specs/SPEC-003-ecriture-d-un-jeu.md, ../specs/SPEC-006-emails-et-paie
 
 # ADR-0072 : Le public d'un document est une liste de rôles, plus des personnages et des groupes
 
+> Transition close (US-193) : l'ancien public n'est plus écrit ni lu, une écriture qui l'envoie est refusée, et les documents gardés sur l'appareil avant cette décision sont effacés pour être relus. Les colonnes `audience` et `characterId` sont retirées en deux déploiements.
+
 ## Contexte
 
 Un document avait un public unique (`Document.audience`) : ciblage manuel, tout le monde, organisateurs, PNJ ou cuisine. Le ciblage manuel visait un personnage (`characterId`), des personnages et des groupes. On ne pouvait ni viser deux rôles à la fois, ni viser les PJ, ni ajouter des personnages à un rôle (retour B3-1 du cahier de tests).

@@ -261,12 +261,16 @@ export const itemSchema = z.object({
   intrigueIds: z.array(requiredId('Intrigue')).optional().default([])
 })
 
-// Public : rôles cochés et sélection avancée (US-187, ADR-0072)
+// Public : rôles cochés et sélection avancée (US-187, ADR-0072). Une écriture d'avant, avec l'ancien public ou le champ
+// unique « Personnage », vient d'une page périmée : refusée plutôt qu'enregistrée sans public (US-193)
+const outdatedDocumentField = z.undefined({ error: 'Cette page est d’une ancienne version : rechargez-la avant d’enregistrer.' }).optional()
 export const documentSchema = z.object({
   title: requiredText('Title'),
   content: optionalText,
   documentUrl: externalUrl,
   audiences: z.array(documentRoleSchema).optional().default([]),
+  audience: outdatedDocumentField,
+  characterId: outdatedDocumentField,
   readyToSend: optionalBoolean,
   gameId: requiredId('Game'),
   characterIds: z.array(requiredId('Character')).optional().default([]),
@@ -274,7 +278,7 @@ export const documentSchema = z.object({
 }).refine((value) => Boolean(value.content?.trim() || value.documentUrl?.trim()), {
   message: 'Content or document URL is required',
   path: ['content']
-}).transform(({ audiences, characterIds, ...value }) => ({
+}).transform(({ audience: _audience, characterId: _characterId, audiences, characterIds, ...value }) => ({
   ...value,
   audiences: [...new Set(audiences)],
   characterIds: [...new Set(characterIds)]

@@ -168,3 +168,56 @@ test('la page Inscriptions et une inscription consultée se relisent sans résea
     await prisma.$disconnect()
   }
 })
+
+// US-193 : un document gardé avant ADR-0072 n'a pas ses rôles ; la mise à niveau de la base de l'appareil l'efface, et
+// garde le reste
+test('la mise à niveau de l’appareil efface les documents gardés avant ADR-0072, et garde le reste', async ({ page }) => {
+  await login(page, E2E_USERS.autre)
+  await expectLoggedIn(page)
+  await page.waitForLoadState('networkidle')
+
+  // Base de l'appareil en version 12, telle qu'une version précédente l'a laissée
+  await page.evaluate(() => new Promise<void>((resolve, reject) => {
+    const removal = indexedDB.deleteDatabase('limbus-db')
+    removal.onerror = () => reject(removal.error)
+    removal.onsuccess = () => {
+      const request = indexedDB.open('limbus-db', 12)
+      request.onupgradeneeded = () => {
+        for (const store of ['dashboard', 'games', 'characters', 'factions', 'intrigues', 'items', 'documents', 'timelineEvents', 'participants', 'locations', 'sessions', 'syncQueue', 'responses']) request.result.createObjectStore(store)
+      }
+      request.onerror = () => reject(request.error)
+      request.onsuccess = () => {
+        const db = request.result
+        const tx = db.transaction(['documents', 'responses', 'games'], 'readwrite')
+        tx.objectStore('documents').put([{ id: 'ancien-document', audience: 'everyone' }], 'all')
+        tx.objectStore('responses').put({ id: 'ancien-document', audience: 'everyone' }, '/api/documents/slug/ancien-document')
+        tx.objectStore('responses').put({ id: 'jeu-garde' }, '/api/games/slug/jeu-garde')
+        tx.objectStore('games').put([{ id: 'jeu-garde' }], 'garde')
+        tx.oncomplete = () => { db.close(); resolve() }
+      }
+    }
+  }))
+
+  await page.reload()
+  await page.waitForLoadState('networkidle')
+  await page.goto('/games')
+  const device = await page.evaluate(() => new Promise<{ version: number, documents: string, responses: string[], games: unknown }>((resolve) => {
+    const request = indexedDB.open('limbus-db')
+    request.onsuccess = () => {
+      const db = request.result
+      const tx = db.transaction(['documents', 'responses', 'games'])
+      const documents = tx.objectStore('documents').getAll()
+      const responses = tx.objectStore('responses').getAllKeys()
+      const games = tx.objectStore('games').get('garde')
+      tx.oncomplete = () => {
+        resolve({ version: db.version, documents: JSON.stringify(documents.result), responses: responses.result.map(String), games: games.result })
+        db.close()
+      }
+    }
+  }))
+  expect(device.version).toBe(13)
+  expect(device.documents).not.toContain('ancien-document')
+  expect(device.responses).not.toContain('/api/documents/slug/ancien-document')
+  expect(device.responses).toContain('/api/games/slug/jeu-garde')
+  expect(device.games).toEqual([{ id: 'jeu-garde' }])
+})

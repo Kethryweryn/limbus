@@ -1,7 +1,7 @@
 // US-187 : public d'un document par rôles et sélection avancée (ADR-0072, SPEC-006 R7)
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
-import { api, bodyOf } from './api'
+import { api, bodyOf, invalidMessages } from './api'
 import { createTestPrisma } from './db'
 import type { CharacterType } from '~/generated/prisma/enums'
 
@@ -74,6 +74,17 @@ describe('public d’un document', () => {
 
     expect(await recipientsOf(session.id, `Cuisine et héros ${key}`)).toEqual([people.cook.name, people.pj.name].sort())
     expect(await recipientsOf(session.id, `Guilde ${key}`)).toEqual([people.member.name])
+  })
+
+  // US-193 : une page d'avant ADR-0072 envoie l'ancien public ; elle est refusée plutôt qu'enregistrée sans public
+  it('refuse une écriture d’avant, avec l’ancien public ou le champ « Personnage »', async () => {
+    const { key, game, pjCharacter } = await sessionWithEveryone()
+    for (const legacy of [{ audience: 'everyone' }, { characterId: pjCharacter.id }]) {
+      const refused = await api(alice, 'POST', '/api/documents', { title: `Ancien ${key}`, content: 'Texte', gameId: game.id, ...legacy })
+      expect(refused.status).toBe(400)
+      expect(invalidMessages(refused)).toEqual(['Cette page est d’une ancienne version : rechargez-la avant d’enregistrer.'])
+    }
+    expect(await prisma.document.count({ where: { title: `Ancien ${key}` } })).toBe(0)
   })
 
   it('refuse un rôle inconnu', async () => {
