@@ -8,7 +8,7 @@ date: 2026-11-09
 
 ## Besoin
 
-Né de la [revue du schéma de données](../archive/todo/schema-de-donnees.md) : une fiche participant n'a pas de propriétaire dans la base, elle n'est rattachée qu'à des jeux. La règle « une seule fiche par personne » ([US-185](../epics/EPIC-045-retours-du-cahier-de-tests/US-185-une-fiche-par-personne.md)) ne vaut donc que dans les jeux d'une même propriétaire, et seul le code la tient. Paul, inscrit au jeu de Claire et à celui d'Anne, peut avoir deux fiches.
+Né de la [revue du schéma de données](../archive/todo/schema-de-donnees.md) : une fiche participant n'a pas de propriétaire dans la base, elle n'est rattachée qu'à des jeux. La règle « une seule fiche par personne » ([US-185](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-185-une-fiche-par-personne.md)) ne vaut donc que dans les jeux d'une même propriétaire, et seul le code la tient. Paul, inscrit au jeu de Claire et à celui d'Anne, peut avoir deux fiches.
 
 Pour l'utilisatrice, la fiche de Paul appartient à Paul, même s'il ne s'est jamais inscrit sur Limbus.
 

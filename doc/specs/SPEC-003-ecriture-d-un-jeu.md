@@ -61,7 +61,7 @@ Depuis la liste des jeux, la propriétaire ou une co-organisatrice archive un je
 - **R8** **Faction** : un nom, un pitch, une histoire (texte ou lien), des indications de costume et des membres (personnages). Elle est liée à des intrigues. Elle peut figurer sur les trombinoscopes.
 - **R9** **Intrigue** : un nom, un pitch, une description et un niveau. Elle n'est envoyée à personne. Les niveaux sont, du plus au moins important : trame principale scénario, trame principale personnage, intrigue majeure, intrigue mineure (par défaut). Elle relie des personnages, des factions et des objets.
 - **R10** **Objet** : un nom, une description, une quantité (un entier d'au moins 1, 1 par défaut), et un emplacement : un texte libre ou un personnage qui le détient. Il est lié à des personnages et à des intrigues.
-- **R11** **Document** : un titre, et un contenu ou un lien vers un document externe (au moins l'un des deux). Son public se choisit par cases : organisateurs, PNJ, cuisine, PJ, et « Tout le monde », qui coche les quatre. La sélection avancée y ajoute des personnages et des groupes du jeu, à choix multiple. Sans case ni sélection, il est signalé « non ciblé » ([US-187](../epics/EPIC-045-retours-du-cahier-de-tests/US-187-public-des-documents.md), [ADR-0072](../adr/ADR-0072-public-des-documents.md)). Il est marqué « prêt à envoyer » quand il peut partir aux participants. Les envois sont décrits dans [SPEC-006](SPEC-006-emails-et-paiements.md).
+- **R11** **Document** : un titre, et un contenu ou un lien vers un document externe (au moins l'un des deux). Son public se choisit par cases : organisateurs, PNJ, cuisine, PJ, et « Tout le monde », qui coche les quatre. La sélection avancée y ajoute des personnages et des groupes du jeu, à choix multiple. Sans case ni sélection, il est signalé « non ciblé » ([US-187](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-187-public-des-documents.md), [ADR-0072](../adr/ADR-0072-public-des-documents.md)). Il est marqué « prêt à envoyer » quand il peut partir aux participants. Les envois sont décrits dans [SPEC-006](SPEC-006-emails-et-paiements.md).
 - **R12** **Événement de chronologie** : un nom, une description, un jour (à partir de 1), une heure et un nombre de responsables requis. Il relie des personnages, des factions, des intrigues et des objets. La chronologie se lit par jour, puis par heure, puis par nom. L'affectation des responsables à une session est décrite dans la spec sur les sessions.
 - **R13** **Lieu** : un nom, une adresse et des notes. Une session se tient dans un lieu.
 - **R14** Supprimer un élément supprime ses liens, jamais les éléments liés. Exceptions :
@@ -69,7 +69,7 @@ Depuis la liste des jeux, la propriétaire ou une co-organisatrice archive un je
   - supprimer un personnage qui détient un objet laisse l'objet sans emplacement ;
   - supprimer le personnage choisi dans le champ « Personnage » d'un document laisse ce champ vide ;
   - supprimer un lieu laisse ses sessions sans lieu.
-- **R14b** Un élément se supprime depuis sa liste ou depuis sa fiche, en lecture comme en modification, avec la même confirmation ; la fiche ramène ensuite à la liste ([US-186](../epics/EPIC-045-retours-du-cahier-de-tests/US-186-supprimer-depuis-la-fiche.md)).
+- **R14b** Un élément se supprime depuis sa liste ou depuis sa fiche, en lecture comme en modification, avec la même confirmation ; la fiche ramène ensuite à la liste ([US-186](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-186-supprimer-depuis-la-fiche.md)).
 - **R15** Les URL saisies (teaser, histoire, document externe) sont des liens http(s). Un fichier téléversé n'est accepté que s'il appartient au même jeu.
 
 ## Données
@@ -86,7 +86,7 @@ Depuis la liste des jeux, la propriétaire ou une co-organisatrice archive un je
 ## Sécurité et droits
 
 - **R16** La propriétaire, les co-organisatrices et l'administratrice en mode administrateur lisent et modifient tout le contenu du jeu. Elles peuvent aussi archiver ou restaurer le jeu (confirmé par l'utilisatrice le 29 octobre 2026), même si cela masque le jeu de la liste de la propriétaire et coupe sa page publique.
-- **R17** Seule la propriétaire, ou l'administratrice en mode administrateur, supprime le jeu et gère ses partages. Depuis l'écran, seul un jeu archivé se supprime, en retapant son titre ([US-207](../epics/EPIC-050-tests-par-ecran/US-207-supprimer-un-jeu-archive.md)). Seule la propriétaire le lègue ([SPEC-002](SPEC-002-copie-de-jeu.md)).
+- **R17** Seule la propriétaire, ou l'administratrice en mode administrateur, supprime le jeu et gère ses partages. Depuis l'écran, seul un jeu archivé se supprime, en retapant son titre ([US-207](../archive/epics/EPIC-050-tests-par-ecran/US-207-supprimer-un-jeu-archive.md)). Seule la propriétaire le lègue ([SPEC-002](SPEC-002-copie-de-jeu.md)).
 - **R18** Une organisatrice n'atteint rien d'un jeu auquel elle n'a pas accès : ni lecture, ni écriture, ni lien depuis son propre contenu ([ADR-0007](../adr/ADR-0007-isolation-par-jeu.md), `tests/integration/isolation.test.ts`).
 
 ## Hors périmètre

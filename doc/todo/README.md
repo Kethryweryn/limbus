@@ -31,7 +31,7 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Aide à la conception du questionnaire de casting](../archive/todo/aide-a-la-conception-du-questionnaire.md) | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | 2026-11-03 |
 | [Numéros de version et notes de version](../archive/todo/versions-et-notes-de-version.md) | [SPEC-017](../specs/SPEC-017-nouveautes.md) | 2026-11-05 |
 | [Jeux de test à jour](../archive/todo/jeux-de-test.md) | [EPIC-044](../archive/epics/EPIC-044-jeux-de-test/README.md) | 2026-11-05 |
-| [Retours du cahier de tests fonctionnels](../archive/todo/retours-du-cahier-de-tests.md) | [EPIC-045](../epics/EPIC-045-retours-du-cahier-de-tests/README.md) | 2026-11-06 |
+| [Retours du cahier de tests fonctionnels](../archive/todo/retours-du-cahier-de-tests.md) | [EPIC-045](../archive/epics/EPIC-045-retours-du-cahier-de-tests/README.md) | 2026-11-06 |
 | [Un seul mode d'inscription, le vivier permanent](../archive/todo/vivier-permanent.md) | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | 2026-11-06 |
 | [Revue du schéma de données](../archive/todo/schema-de-donnees.md) | [EPIC-049](../archive/epics/EPIC-049-schema-de-donnees/README.md) | 2026-11-09 |
-| [Plusieurs tests de bout en bout par écran](../archive/todo/tests-par-ecran.md) | [EPIC-050](../epics/EPIC-050-tests-par-ecran/README.md) | 2026-11-09 |
+| [Plusieurs tests de bout en bout par écran](../archive/todo/tests-par-ecran.md) | [EPIC-050](../archive/epics/EPIC-050-tests-par-ecran/README.md) | 2026-11-09 |

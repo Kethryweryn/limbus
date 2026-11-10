@@ -3,7 +3,7 @@ id: ADR-0079
 titre: Tout développement ajoute ses tests de bout en bout sur quatre axes
 statut: accepté
 date: 2026-11-10
-liens: [../archive/todo/tests-par-ecran.md, ../epics/EPIC-050-tests-par-ecran/README.md, ADR-0067-tests-lies-avant-chaque-push.md]
+liens: [../archive/todo/tests-par-ecran.md, ../archive/epics/EPIC-050-tests-par-ecran/README.md, ADR-0067-tests-lies-avant-chaque-push.md]
 ---
 
 # ADR-0079 : Tout développement ajoute ses tests de bout en bout sur quatre axes

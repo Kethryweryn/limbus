@@ -94,7 +94,7 @@ Permettre aux organisateurs de recruter les joueurs d'une ou plusieurs sessions 
 
 - **R8** Le formulaire est défini au niveau du jeu et contient :
   - la note d'intention, suivie d'une case d'adhésion obligatoire ;
-  - les champs standards, chacun activable et rendu obligatoire ou non : nom, prénom, email (toujours obligatoire), nom Facebook, téléphone, contact d'urgence (nom et téléphone, toujours demandé et obligatoire), allergies et intolérances (toujours demandées, réponse facultative) ([US-181](../epics/EPIC-045-retours-du-cahier-de-tests/US-181-urgence-et-allergies-toujours-demandees.md)) ;
+  - les champs standards, chacun activable et rendu obligatoire ou non : nom, prénom, email (toujours obligatoire), nom Facebook, téléphone, contact d'urgence (nom et téléphone, toujours demandé et obligatoire), allergies et intolérances (toujours demandées, réponse facultative) ([US-181](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-181-urgence-et-allergies-toujours-demandees.md)) ;
   - les affinités, chacune activable et rendue obligatoire ou non comme les champs standards : avec qui je veux jouer, avec qui je ne veux pas jouer, les relations que je ne veux pas jouer, les personnes que je ne veux pas croiser. La personne en écrit une par ligne. Pour les relations, elle coche aussi des types (romance, famille, rivalité, alliance, hiérarchie) ou « Aucune, tout me va » ;
   - des questions propres au jeu (texte libre, choix unique, choix multiple, échelle de 1 à 5), chacune obligatoire ou non, dont chaque option d'une question à choix, et chaque question sur une échelle, peut être reliée à des personnages, factions ou intrigues ;
   - une question d'équilibre facultative (R17).

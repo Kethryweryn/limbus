@@ -95,9 +95,10 @@ La page « Nouveautés » et le numéro de déploiement ([SPEC-017](specs/SPEC-0
 ## Sans dépendance forte
 
 - [Jeux de test à jour](archive/todo/jeux-de-test.md) : trois jeux rechargeables, pour essayer tout ce qui existe. Fait ([EPIC-044](archive/epics/EPIC-044-jeux-de-test/README.md)).
-- [Retours du cahier de tests](archive/todo/retours-du-cahier-de-tests.md) : les défauts signalés pendant les essais ([EPIC-045](epics/EPIC-045-retours-du-cahier-de-tests/README.md)).
-- [Un seul mode d'inscription, le vivier permanent](archive/todo/vivier-permanent.md) : retour A4-4 du cahier de tests. Spécifié ([SPEC-018](specs/SPEC-018-vivier-permanent.md)), en trois lots ([EPIC-046](epics/EPIC-046-vivier-unique/README.md), [EPIC-047](epics/EPIC-047-demande-de-disponibilites/README.md), [EPIC-048](epics/EPIC-048-casting-depuis-le-vivier/README.md)).
+- [Retours du cahier de tests](archive/todo/retours-du-cahier-de-tests.md) : les défauts signalés pendant les essais. Fait ([EPIC-045](archive/epics/EPIC-045-retours-du-cahier-de-tests/README.md)).
+- [Un seul mode d'inscription, le vivier permanent](archive/todo/vivier-permanent.md) : retour A4-4 du cahier de tests. Fait ([SPEC-018](specs/SPEC-018-vivier-permanent.md)), en trois lots ([EPIC-046](archive/epics/EPIC-046-vivier-unique/README.md), [EPIC-047](archive/epics/EPIC-047-demande-de-disponibilites/README.md), [EPIC-048](archive/epics/EPIC-048-casting-depuis-le-vivier/README.md)).
 - [Revue du schéma de données](archive/todo/schema-de-donnees.md) : index, valeurs et règles tenues par la base, dates avec fuseau. Fait ([EPIC-049](archive/epics/EPIC-049-schema-de-donnees/README.md)).
+- [Plusieurs tests de bout en bout par écran](archive/todo/tests-par-ecran.md) : chaque écran testé sur quatre axes. Fait ([EPIC-050](archive/epics/EPIC-050-tests-par-ecran/README.md)) ; depuis, tout développement ajoute ses tests ([ADR-0079](adr/ADR-0079-tests-de-chaque-developpement.md)).
 - [Un compte pour chaque participant](todo/compte-pour-chaque-participant.md) : chaque fiche appartient à la personne ; à spécifier.
 - [API pour une IA](archive/todo/api-pour-ia.md) : après la refonte des comptes, dont dépendent ses droits. Spécifiée ([SPEC-014](specs/SPEC-014-api-pour-ia.md)), en quatre lots.
 - [Interface en TypeScript](archive/todo/interface-en-typescript.md) : fait en une passe à part ([EPIC-031](archive/epics/EPIC-031-interface-en-typescript/README.md)) ; toute l'interface est en TypeScript strict, et la règle de lint couvre tous les `.vue`.
