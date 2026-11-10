@@ -75,11 +75,12 @@ import { formatLongDate } from '~/utils/dates'
 import { registrationStatusMeta } from '~/utils/registrations'
 import { useRegistrationPeriodActions, type PeriodRegistration, type RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
 
-const props = defineProps<{ period: RegistrationPeriod }>()
+// matches : la recherche de l'onglet Vivier (SPEC-020, R12) ; sans elle, toutes les invitations
+const props = defineProps<{ period: RegistrationPeriod, matches?: (registration: PeriodRegistration) => boolean }>()
 
 const { invite, remind, resend, askExtension, release, cancel } = useRegistrationPeriodActions()
 
 const open = computed(() => props.period.state === REGISTRATION_PERIOD_STATES.open)
-const invitations = computed(() => props.period.registrations.filter((registration) => registration.status === REGISTRATION_STATUSES.invited))
+const invitations = computed(() => props.period.registrations.filter((registration) => registration.status === REGISTRATION_STATUSES.invited && (props.matches?.(registration) ?? true)))
 const sessionName = (registration: PeriodRegistration) => props.period.sessions.find((link) => link.sessionId === registration.invitedSessionId)?.session.name
 </script>

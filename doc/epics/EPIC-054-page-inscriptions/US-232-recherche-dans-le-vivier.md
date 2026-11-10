@@ -1,7 +1,7 @@
 ---
 id: US-232
 titre: Rechercher et filtrer dans le vivier
-statut: à faire
+statut: terminée
 epic: EPIC-054
 regles: [R12]
 adr: []
@@ -13,19 +13,20 @@ En tant qu'organisatrice, je veux rechercher une personne du vivier par son nom 
 
 ## Critères d'acceptation
 
-- [ ] Étant donné un vivier, quand je tape un nom ou un email, en minuscules ou sans accents, alors seules les personnes et invitations qui correspondent restent, avec « n sur N » (R12).
-- [ ] Étant donné le filtre « Vœu de session », quand je choisis une session, alors seules les personnes qui l'ont demandée restent ; il se combine avec la recherche (R12).
-- [ ] Étant donné une recherche sans résultat, alors la liste le dit et propose d'effacer la recherche (R12).
+- [x] Étant donné un vivier, quand je tape un nom ou un email, en minuscules ou sans accents, alors seules les personnes et invitations qui correspondent restent, avec « n sur N » (R12).
+- [x] Étant donné le filtre « Vœu de session », quand je choisis une session, alors seules les personnes qui l'ont demandée restent ; il se combine avec la recherche (R12).
+- [x] Étant donné une recherche sans résultat, alors la liste le dit et propose d'effacer la recherche (R12).
 
 ## Notes techniques
 
-- Filtre côté navigateur, sur la liste déjà lue ; rien dans l'adresse.
+- Dans `RegistrationSelection` (vue Vivier), sur la liste déjà lue : `normalizeName` (`utils/affinityMatching.ts`) pour le nom et l'email ; le vœu est une ligne de la session qui n'est ni « pas disponible » ni annulée. La recherche filtre aussi `RegistrationInvitationList`, désormais rendue dans cette vue ; le filtre par vœu ne vaut que pour les personnes du vivier.
+- Rien dans l'adresse.
 
 ## Tests
 
-De bout en bout (Playwright), sur les quatre axes (ADR-0079) :
+De bout en bout (`tests/e2e/registrationSearch.spec.ts`), sur les quatre axes (ADR-0079) :
 
-- Actions : recherche par nom, par email, sans accents ; filtre par vœu ; les deux ensemble ; effacer.
-- Erreurs de saisie : une recherche sans résultat donne son message.
+- Actions : « la recherche trouve par nom sans accents ni majuscules, et par email ; elle filtre aussi les invitations », « le filtre par vœu garde les personnes qui ont demandé la session, et se combine avec la recherche ».
+- Erreurs de saisie : « une recherche sans résultat le dit et s’efface ».
 - Droits : ceux de la page (US-230), inchangés ; non rejoués ici.
-- Hors ligne : recherche et filtre sans réseau, sur le vivier relu.
+- Hors ligne : « hors ligne, la recherche et le filtre marchent sur le vivier relu ».

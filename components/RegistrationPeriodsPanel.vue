@@ -35,7 +35,6 @@
       <UTabs v-model="tab" :items="tabs" :content="false" variant="link" class="w-full" />
 
       <RegistrationPeriodCard v-if="tab === 'reglages'" :period="period" @form="showFormEditor = true" />
-      <RegistrationInvitationList v-if="tab === 'vivier'" :period="period" />
       <!-- Sessions et vivier partagent la même lecture de la sélection : le bloc reste monté d'un onglet à l'autre -->
       <RegistrationSelection v-show="tab !== 'reglages'" :period="period" :view="tab === 'vivier' ? 'vivier' : 'sessions'" />
     </template>
