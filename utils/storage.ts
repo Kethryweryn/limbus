@@ -11,10 +11,13 @@ const OFFLINE_AUTH_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
 const PHOTO_CACHE_NAME = 'session-assignment-photos'
 // PDF consultés avec le réseau (trombinoscopes, fiches, fiche allergies), gardés par le service worker (US-047)
 const DOCUMENT_CACHE_NAME = 'session-documents'
+// PDF et photos des jeux téléchargés (SPEC-019, R9) : sans limite de nombre ni de durée, servis par le service worker
+// quand le réseau manque (ADR-0081)
+export const DOWNLOAD_CACHE_NAME = 'offline-downloads'
 // Déconnexion faite sans réseau, à envoyer au serveur dès son retour (US-051)
 const PENDING_LOGOUT_KEY = 'limbusPendingLogout'
 // responses : dernières réponses des lectures gardées pour le hors ligne (page d'une session, fiche d'un personnage…)
-const STORES = ['dashboard', 'games', 'characters', 'factions', 'intrigues', 'items', 'documents', 'timelineEvents', 'participants', 'locations', 'sessions', 'syncQueue', 'responses']
+const STORES = ['dashboard', 'games', 'characters', 'factions', 'intrigues', 'items', 'documents', 'timelineEvents', 'participants', 'locations', 'sessions', 'syncQueue', 'responses', 'offlineDownloads']
 
 let dbPromise: ReturnType<typeof openDB> | null = null
 
@@ -25,7 +28,7 @@ async function ensureStore(store: string) {
     }
 
     if (!dbPromise) {
-        dbPromise = openDB(DB_NAME, 13, {
+        dbPromise = openDB(DB_NAME, 14, {
             async upgrade(upgradeDb, oldVersion, _newVersion, transaction) {
                 for (const storeName of STORES) {
                     if (!upgradeDb.objectStoreNames.contains(storeName)) {
@@ -182,6 +185,7 @@ export async function clearDeviceData() {
     if ('caches' in window) {
         await caches.delete(PHOTO_CACHE_NAME).catch(() => false)
         await caches.delete(DOCUMENT_CACHE_NAME).catch(() => false)
+        await caches.delete(DOWNLOAD_CACHE_NAME).catch(() => false)
     }
 }
 
@@ -220,7 +224,7 @@ export async function measureOfflineData(): Promise<OfflineStorageSize> {
                 cursor = await cursor.continue()
             }
         }
-        const files = await cachedFilesSize([PHOTO_CACHE_NAME, DOCUMENT_CACHE_NAME])
+        const files = await cachedFilesSize([PHOTO_CACHE_NAME, DOCUMENT_CACHE_NAME, DOWNLOAD_CACHE_NAME])
         return { data: files === null ? null : data + files, total }
     } catch {
         return { data: null, total }

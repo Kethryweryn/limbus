@@ -153,6 +153,7 @@ import type { ApiResponse } from '~/composables/useApiFetch'
 import type { SessionDraft } from '~/utils/writingDrafts'
 import type { SessionDocumentsData } from '~/composables/useSessionDocumentActions'
 import type { SessionPaymentsData } from '~/composables/useSessionPaymentActions'
+import { sessionReads } from '~/utils/offlinePlan'
 
 // Session lue par l'API, ou projetée hors ligne après une modification mise en file (US-048)
 type SessionDetail = ApiResponse<'/api/sessions/:id'> | ReturnType<typeof projectOfflineSession<ApiResponse<'/api/sessions/:id'>>>
@@ -197,7 +198,7 @@ async function onPostponed(created: { slug: string }) {
 
 // La session se lit par le slug de la page, le reste par son identifiant : un slug change avec le nom. Toutes les
 // lectures gardent leur copie sur l'appareil : sans réseau, la session se rouvre telle qu'elle a été vue (US-047)
-const sessionBySlug = () => `/api/sessions/slug/${route.params.slug}`
+const sessionBySlug = () => sessionReads.sheet(String(route.params.slug))
 function sessionApi(path: string, id = session.value?.id) {
   if (!id) throw new Error('Session pas encore lue')
   return `/api/sessions/${id}${path}`

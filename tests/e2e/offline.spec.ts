@@ -214,7 +214,7 @@ test('la mise à niveau de l’appareil efface les documents gardés avant ADR-0
       }
     }
   }))
-  expect(device.version).toBe(13)
+  expect(device.version).toBe(14)
   expect(device.documents).not.toContain('ancien-document')
   expect(device.responses).not.toContain('/api/documents/slug/ancien-document')
   expect(device.responses).toContain('/api/games/slug/jeu-garde')

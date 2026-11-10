@@ -93,6 +93,7 @@
 
 <script setup lang="ts">
 import { ATTENDANCE_DISPLAY, ATTENDANCE_STATUSES, DEFAULT_ATTENDANCE_DELAY_DAYS, attendanceInvitationEmailText } from '~/utils/attendance'
+import { sessionReads } from '~/utils/offlinePlan'
 
 import { apiErrorMessage } from '~/utils/apiErrors'
 import { formatLongDate as formatDate } from '~/utils/dates'
@@ -142,7 +143,7 @@ const preview = computed(() => attendanceInvitationEmailText({
 }))
 
 async function load() {
-  data.value = await useApiFetch(`/api/sessions/${props.session.id}/attendance`, { offlineCache: true })
+  data.value = await useApiFetch(sessionReads.attendance(props.session.id), { offlineCache: true })
 }
 
 onMounted(load)

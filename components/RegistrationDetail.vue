@@ -137,6 +137,7 @@ import { registrationStatusMeta } from '~/utils/registrations'
 import { formatLongDateTime } from '~/utils/dates'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
+import { registrationReads } from '~/utils/offlinePlan'
 
 type RegistrationDetail = ApiResponse<'/api/registrations/:id'>
 type AffinityLine = RegistrationDetail['affinityLines'][number]
@@ -154,7 +155,7 @@ const errorMessage = ref('')
 const statusMeta = computed(() => registration.value ? registrationStatusMeta(registration.value) : { label: '', color: 'neutral' as const })
 
 // Gardée sur l'appareil, allergies et affinités comprises, pour être lue hors ligne (US-120)
-const load = (id: string) => useApiFetch(`/api/registrations/${id}`, { offlineCache: true })
+const load = (id: string) => useApiFetch(registrationReads.registration(id), { offlineCache: true })
 
 watch([open, () => props.registrationId], async ([isOpen, id]) => {
   if (!isOpen || !id) return

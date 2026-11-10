@@ -90,6 +90,7 @@ import { CHARACTER_TYPES } from '~/utils/domain'
 import { NO_VERSION } from '~/utils/offlineSync'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
+import { characterReads } from '~/utils/offlinePlan'
 
 type Target = ApiResponse<'/api/characters/:id/trombinoscope'>['characters'][number]
 type Entry = { targetCharacterId: string, character: Target, included: boolean, faceKnown: boolean, displayName: string, note: string }
@@ -122,7 +123,7 @@ async function loadConfig() {
   serverError.value = ''
 
   try {
-    const data = await useApiFetch(`/api/characters/${props.character.id}/trombinoscope`, { offlineCache: true })
+    const data = await useApiFetch(characterReads.trombinoscope(props.character.id), { offlineCache: true })
     version.value = data.updatedAt || NO_VERSION
     entries.value = (data.characters || []).map((target) => ({
       targetCharacterId: target.id,
@@ -152,7 +153,7 @@ async function saveConfig() {
   saving.value = true
   serverError.value = ''
   try {
-    await useApiFetch(`/api/characters/${props.character.id}/trombinoscope`, {
+    await useApiFetch(characterReads.trombinoscope(props.character.id), {
       method: 'PUT',
       body: {
         entries: entries.value.map((entry) => ({

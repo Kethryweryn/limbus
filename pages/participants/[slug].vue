@@ -147,12 +147,15 @@ import { SESSION_ROLE_LABELS, SESSION_ROLES, SESSION_STATUS_META, SESSION_STATUS
 import { withQueuedEdit, type ParticipantDraft } from '~/utils/writingDrafts'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
+import { participantReads } from '~/utils/offlinePlan'
+import { isServerUnavailableError } from '~/utils/connection'
+import { getCachedResponse } from '~/utils/storage'
 
 type Participant = ApiResponse<'/api/participants/:id'>
 
 const route = useRoute()
 const router = useRouter()
-const { data: participant, error, refresh } = await useOfflineFetch(`/api/participants/slug/${route.params.slug}`)
+const { data: participant, error, refresh } = await useOfflineFetch(participantReads.sheet(String(route.params.slug)))
 const { data: games } = await useOfflineFetch('/api/games')
 const photoSaving = ref(false)
 const photoMessage = ref('')
@@ -179,10 +182,22 @@ if (error.value) {
 
 // Lu à part de la fiche (R1b) : la liste, les assistants et le cache hors ligne ne reçoivent pas ces données
 // Sessions de la fiche (R1c), lues en même temps
+const emergencyUrl = participantReads.emergency(participant.value?.id ?? '')
+const requestFetch = useRequestFetch() as unknown as (url: string) => Promise<ApiResponse<'/api/participants/:id/emergency'>>
 const [{ data: emergency, error: emergencyError }, { data: sessions, error: sessionsError }] = await Promise.all([
-  // Jamais gardés sur l'appareil (SPEC-007 R1b, US-178) : sans réseau, la fiche le dit
-  useFetch(`/api/participants/${participant.value?.id}/emergency`),
-  useOfflineFetch(`/api/participants/${participant.value?.id}/sessions`)
+  // Une fiche consultée ne les garde pas sur l'appareil (SPEC-007 R1b, US-178) ; seul le téléchargement du jeu les y met
+  // (SPEC-019 R10, ADR-0080) : sans réseau, la fiche les lit là, sinon elle dit qu'ils demandent le réseau
+  useAsyncData(emergencyUrl, async () => {
+    if (import.meta.server) return await requestFetch(emergencyUrl)
+    try {
+      return await $fetch(emergencyUrl as '/api/participants/:id/emergency')
+    } catch (err) {
+      const downloaded = isServerUnavailableError(err) ? await getCachedResponse<ApiResponse<'/api/participants/:id/emergency'>>(emergencyUrl) : null
+      if (downloaded) return downloaded
+      throw err
+    }
+  }),
+  useOfflineFetch(participantReads.sessions(participant.value?.id ?? ''))
 ])
 
 type ParticipantSession = ApiResponse<'/api/participants/:id/sessions'>[number]

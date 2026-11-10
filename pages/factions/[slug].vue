@@ -198,10 +198,11 @@ import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { pageLoadError } from '~/utils/apiErrors'
 import { isInArchivedGame } from '~/utils/games'
 import type { FactionDraft } from '~/utils/writingDrafts'
+import { sheetReads } from '~/utils/offlinePlan'
 
 const route = useRoute()
 const slug = String(route.params.slug)
-const { data: faction, error, refresh } = await useOfflineFetch(`/api/factions/slug/${slug}`)
+const { data: faction, error, refresh } = await useOfflineFetch(sheetReads.faction(slug))
 const { data: games } = await useOfflineFetch('/api/games')
 const { data: characters } = await useOfflineFetch('/api/characters')
 const { data: intrigues, refresh: refreshIntrigues } = await useOfflineFetch('/api/intrigues')

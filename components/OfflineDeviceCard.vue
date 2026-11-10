@@ -36,6 +36,8 @@
         <p class="mt-1 text-sm text-gray-500">Vide les pages, PDF et photos gardés, sans vous déconnecter.</p>
       </div>
 
+      <OfflineGameDownloads v-if="!confirming" :key="downloadsKey" :disabled="disabled" @downloaded="measure" />
+
       <!-- Confirmation, avec les modifications faites sans réseau pas encore envoyées (R4) -->
       <div v-if="confirming" class="space-y-3 rounded border border-gray-200 p-3" role="group" aria-label="Confirmation">
         <p class="text-sm">{{ confirming === 'erase' ? ERASE_TEXT : DISABLE_TEXT }}</p>
@@ -84,6 +86,8 @@ const refused = ref(false)
 const busy = ref(false)
 const sending = ref(false)
 const canSend = ref(false)
+// Relit les jeux téléchargés après un effacement
+const downloadsKey = ref(0)
 const message = ref<{ color: 'success' | 'error', text: string } | null>(null)
 
 const finishLabel = computed(() => {
@@ -156,6 +160,7 @@ async function finish() {
     notifyQueueChanged()
     window.dispatchEvent(new CustomEvent('limbus:offline-setting'))
     message.value = { color: 'success', text: 'Les données de l’appareil sont effacées.' }
+    downloadsKey.value++
     cancel()
   } catch {
     message.value = { color: 'error', text: 'Impossible d’effacer les données de l’appareil. Réessayez.' }

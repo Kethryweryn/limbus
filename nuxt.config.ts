@@ -148,6 +148,12 @@ export default defineNuxtConfig({
           handler: 'CacheFirst',
           options: {
             cacheName: 'session-assignment-photos',
+            // Sans réseau, le fichier d'un jeu téléchargé (SPEC-019, R9 ; ADR-0081) : la fonction est recopiée telle quelle
+            // dans le service worker, elle ne référence rien du fichier
+            plugins: [{
+              cachedResponseWillBeUsed: async ({ request, cachedResponse }: { request: Request, cachedResponse?: Response }) =>
+                cachedResponse || await (await caches.open('offline-downloads')).match(request.url)
+            }],
             expiration: {
               maxEntries: 300,
               maxAgeSeconds: 60 * 60 * 24 * 30
@@ -163,6 +169,12 @@ export default defineNuxtConfig({
           handler: 'NetworkFirst',
           options: {
             cacheName: 'session-documents',
+            // Sans réseau, le fichier d'un jeu téléchargé (SPEC-019, R9 ; ADR-0081) : la fonction est recopiée telle quelle
+            // dans le service worker, elle ne référence rien du fichier
+            plugins: [{
+              cachedResponseWillBeUsed: async ({ request, cachedResponse }: { request: Request, cachedResponse?: Response }) =>
+                cachedResponse || await (await caches.open('offline-downloads')).match(request.url)
+            }],
             networkTimeoutSeconds: 10,
             expiration: {
               maxEntries: 200,

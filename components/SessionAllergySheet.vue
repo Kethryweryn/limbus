@@ -11,7 +11,7 @@
             icon="i-heroicons-document-arrow-down"
             color="neutral"
             variant="soft"
-            :href="`/api/sessions/${sessionId}/allergies/pdf`"
+            :href="sessionReads.allergiesPdf(sessionId)"
             target="_blank"
             external
           >
@@ -57,6 +57,7 @@
 
 <script setup lang="ts">
 import { apiErrorMessage } from '~/utils/apiErrors'
+import { sessionReads } from '~/utils/offlinePlan'
 
 // Fiche allergies de la session (US-008, R15), destinée à l'équipe cuisine
 import type { ApiResponse } from '~/composables/useApiFetch'
@@ -74,7 +75,7 @@ const plural = (count: number, word: string) => `${count} ${word}${count > 1 ? '
 
 async function load() {
   try {
-    sheet.value = await useApiFetch(`/api/sessions/${props.sessionId}/allergies`, { offlineCache: true })
+    sheet.value = await useApiFetch(sessionReads.allergies(props.sessionId), { offlineCache: true })
     errorMessage.value = ''
   } catch (err) {
     errorMessage.value = apiErrorMessage(err, 'Impossible de charger la fiche allergies')

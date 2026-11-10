@@ -124,10 +124,11 @@ import { useRoute } from 'vue-router'
 import { useGameFocus } from '@/composables/useGameFocus'
 import { apiErrorMessage, pageLoadError } from '~/utils/apiErrors'
 import type { GameDraft } from '~/utils/writingDrafts'
+import { gameSheetRead } from '~/utils/offlinePlan'
 
 const route = useRoute()
 const slug = String(route.params.slug)
-const { data: game, error, refresh } = await useOfflineFetch(`/api/games/slug/${slug}`)
+const { data: game, error, refresh } = await useOfflineFetch(gameSheetRead(slug))
 const { data: authState } = await useFetch('/api/auth/me')
 
 if (error.value) {
