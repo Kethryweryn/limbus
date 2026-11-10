@@ -1,4 +1,5 @@
 import { deleteDB, openDB } from 'idb'
+import { cachedFilesSize, isOfflineDisabled, removeInstalledApp, serializedSize, setOfflineDisabled, storageEstimate, type OfflineStorageSize } from './offlineDevice'
 import { forgetSpace } from './spaces'
 
 const DB_NAME = 'limbus-db'
@@ -55,6 +56,8 @@ async function ensureStore(store: string) {
 }
 
 export async function saveToStore<T = unknown>(store: string, key: string, value: T) {
+    // Hors ligne désactivé sur cet appareil : rien n'y est gardé, file comprise (SPEC-019, R6)
+    if (isOfflineDisabled()) return
     const db = await ensureStore(store)
 
     try {
@@ -128,12 +131,19 @@ type OfflineAuth = {
 
 // Mémorise l'utilisateur connecté pour autoriser la consultation hors ligne sur cet appareil.
 // Ce n'est pas une preuve d'identité (tout est local) : la sécurité reste côté serveur.
+// Hors ligne désactivé (SPEC-019, R6) : l'identité reste en mémoire, le temps de la page ouverte ; une coupure de réseau
+// ne ferme pas la page en cours, mais rien n'est écrit sur l'appareil, et Limbus ne s'y rouvre pas sans réseau
+let memoryAuth: OfflineAuth | null = null
+
 export function rememberOfflineAuth(user: Omit<OfflineAuth, 'timestamp' | 'userId'> & { id: string }) {
     const value: OfflineAuth = { userId: user.id, name: user.name, email: user.email, role: user.role, timestamp: new Date().toISOString() }
+    memoryAuth = value
+    if (isOfflineDisabled()) return
     localStorage.setItem(OFFLINE_AUTH_KEY, JSON.stringify(value))
 }
 
 export function getOfflineAuth(): OfflineAuth | null {
+    if (isOfflineDisabled()) return memoryAuth
     try {
         const value = JSON.parse(localStorage.getItem(OFFLINE_AUTH_KEY) || 'null')
         if (!value?.userId || !value.timestamp) return null
@@ -145,16 +155,23 @@ export function getOfflineAuth(): OfflineAuth | null {
 }
 
 export function forgetOfflineAuth() {
+    memoryAuth = null
     localStorage.removeItem(OFFLINE_AUTH_KEY)
 }
 
 // Efface tout ce que l'appli garde sur l'appareil : données en cache (dont les coordonnées
 // des participants), écritures en attente et photos mises en cache par le service worker
 export async function clearOfflineData() {
-    lastSavedResponses.clear()
     forgetOfflineAuth()
     forgetSpace()
     localStorage.removeItem(OFFLINE_OWNER_KEY)
+    await clearDeviceData()
+}
+
+// Vide les données gardées (base, PDF, photos, file), sans déconnecter : l'identité hors ligne et le compte
+// propriétaire des données restent, pour que Limbus s'ouvre encore sans réseau (SPEC-019, R3)
+export async function clearDeviceData() {
+    lastSavedResponses.clear()
     const current = dbPromise
     dbPromise = null
     await current?.then((db) => db.close()).catch(() => {})
@@ -186,4 +203,35 @@ export async function claimOfflineData(userId: string) {
     if (localStorage.getItem(OFFLINE_OWNER_KEY) === userId) return
     await clearOfflineData()
     localStorage.setItem(OFFLINE_OWNER_KEY, userId)
+}
+
+// Place prise par les données gardées : enregistrements de la base et fichiers des caches (SPEC-019, R2)
+export async function measureOfflineData(): Promise<OfflineStorageSize> {
+    const total = await storageEstimate()
+    if (isOfflineDisabled()) return { data: 0, total }
+    try {
+        let data = 0
+        for (const store of STORES) {
+            const db = await ensureStore(store)
+            // Un enregistrement à la fois : la base entière n'est jamais en mémoire
+            let cursor = await db.transaction(store).store.openCursor()
+            while (cursor) {
+                data += serializedSize(cursor.value)
+                cursor = await cursor.continue()
+            }
+        }
+        const files = await cachedFilesSize([PHOTO_CACHE_NAME, DOCUMENT_CACHE_NAME])
+        return { data: files === null ? null : data + files, total }
+    } catch {
+        return { data: null, total }
+    }
+}
+
+// Désactive le hors ligne sur cet appareil : tout est effacé, identité hors ligne et application gardée comprises
+// (SPEC-019, R5). Le réglage passe en premier, pour qu'aucune lecture en cours ne garde plus rien
+export async function disableOfflineOnDevice() {
+    setOfflineDisabled(true)
+    localStorage.removeItem(OFFLINE_AUTH_KEY)
+    await clearDeviceData()
+    await removeInstalledApp()
 }

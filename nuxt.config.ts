@@ -104,6 +104,9 @@ export default defineNuxtConfig({
     // automatique rechargeait la page ouverte, saisie en cours comprise
     registerType: 'prompt',
     injectRegister: false,
+    // Inscription faite par plugins/serviceWorker.client.ts, qui ne l'inscrit pas quand le hors ligne est désactivé
+    // sur l'appareil (SPEC-019, R5)
+    client: { registerPlugin: false },
     pwaAssets: {
       disabled: false,
       config: true

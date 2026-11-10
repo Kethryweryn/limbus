@@ -1,5 +1,6 @@
 import type { NitroFetchOptions, NitroFetchRequest, TypedInternalResponse } from 'nitropack/types'
 import { getErrorStatus, isOfflineMode, isServerUnavailableError, setServerUnavailable } from '~/utils/connection'
+import { isOfflineDisabled } from '~/utils/offlineDevice'
 import { enqueueOfflineOperation, isQueueableApiWrite } from '~/utils/offlineSync'
 import { forgetOfflineAuth, getCachedResponse, saveCachedResponse } from '~/utils/storage'
 
@@ -82,11 +83,13 @@ async function apiFetch(request: string, options?: RawOptions, queueable = true)
   const { offlineCache, offlineLabel, ...fetchOptions } = options || {}
   const requestOptions = withConcurrencyHeaders(options ? fetchOptions : undefined)
 
-  if (offlineCache && import.meta.client) {
+  // Hors ligne désactivé sur cet appareil : ni réponse gardée, ni modification mise en file (SPEC-019, R6)
+  const offlineEnabled = import.meta.client && !isOfflineDisabled()
+  if (offlineCache && offlineEnabled) {
     return await fetchWithOfflineCache(request, requestOptions)
   }
 
-  const queued = queueable && import.meta.client && isQueueableApiWrite(request, requestOptions)
+  const queued = queueable && offlineEnabled && isQueueableApiWrite(request, requestOptions)
   if (queued && !navigator.onLine) {
     return await enqueueOfflineOperation(request, { ...requestOptions, offlineLabel })
   }

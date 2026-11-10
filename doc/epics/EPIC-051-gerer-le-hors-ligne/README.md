@@ -1,7 +1,7 @@
 ---
 id: EPIC-051
 titre: Place prise, effacement et désactivation du hors ligne
-statut: à faire
+statut: en cours
 spec: ../../specs/SPEC-019-hors-ligne-dans-le-compte.md
 date: 2026-11-10
 ---
@@ -16,9 +16,9 @@ Dans « Mon compte », une personne voit la place que prennent les données gard
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-223](US-223-voir-la-place-prise.md) | Voir la place que prennent les données hors ligne de mon appareil | à faire |
-| [US-224](US-224-effacer-l-appareil.md) | Effacer les données hors ligne de mon appareil sans me déconnecter | à faire |
-| [US-225](US-225-desactiver-le-hors-ligne.md) | Désactiver le hors ligne sur un appareil prêté | à faire |
+| [US-223](US-223-voir-la-place-prise.md) | Voir la place que prennent les données hors ligne de mon appareil | terminée |
+| [US-224](US-224-effacer-l-appareil.md) | Effacer les données hors ligne de mon appareil sans me déconnecter | terminée |
+| [US-225](US-225-desactiver-le-hors-ligne.md) | Désactiver le hors ligne sur un appareil prêté | terminée |
 
 ## Définition de terminé
 
