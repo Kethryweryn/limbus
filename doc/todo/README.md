@@ -35,3 +35,4 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Revue du schéma de données](../archive/todo/schema-de-donnees.md) | [EPIC-049](../archive/epics/EPIC-049-schema-de-donnees/README.md) | 2026-11-09 |
 | [Plusieurs tests de bout en bout par écran](../archive/todo/tests-par-ecran.md) | [EPIC-050](../archive/epics/EPIC-050-tests-par-ecran/README.md) | 2026-11-09 |
 | [Gérer depuis son compte les données gardées pour le hors ligne](../archive/todo/cache-hors-ligne-dans-le-compte.md) | [SPEC-019](../specs/SPEC-019-hors-ligne-dans-le-compte.md) | 2026-11-10 |
+| [Revoir la page Inscriptions](../archive/todo/page-inscriptions.md) | [SPEC-020](../specs/SPEC-020-page-inscriptions.md) | 2026-11-10 |
