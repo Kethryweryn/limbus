@@ -1,7 +1,7 @@
 <template>
   <UModal v-model:open="open" :title="period?.id ? 'Réglages du vivier' : 'Créer le vivier'">
     <template #body>
-      <form class="space-y-5" @submit.prevent="submit">
+      <form class="space-y-5" novalidate @submit.prevent="submit">
         <p v-if="!period?.id" class="text-sm text-gray-600">
           Un jeu a un seul vivier. Vous le préparez, puis vous l’ouvrez : son lien de diffusion marche alors, et il n’a pas de date de clôture.
         </p>

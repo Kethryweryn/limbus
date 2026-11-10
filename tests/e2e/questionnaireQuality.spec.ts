@@ -2,7 +2,7 @@ import { expect, test, type Locator } from '@playwright/test'
 import { DEFAULT_REGISTRATION_FORM_DEFINITION } from '../../utils/registrationForms'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { gamePanel, signIn } from './helpers'
+import { gamePanel, openRegistrations, signIn } from './helpers'
 
 // EPIC-037 (US-133) : l'encadré « Qualité du questionnaire » signale un personnage sans lien, puis plus rien une fois relié.
 // EPIC-039 (US-136, US-139) : une fois la question reliée, les réponses reçues donnent leurs repères
@@ -29,8 +29,7 @@ test('l’encadré de qualité signale un personnage sans lien, puis les repère
     }
 
     await signIn(page, prisma, E2E_USERS.orga)
-    await page.goto('/registrations')
-    await page.waitForLoadState('networkidle')
+    await openRegistrations(page, title)
     await gamePanel(page, title, 'Formulaire').getByRole('button', { name: 'Formulaire' }).click()
     const dialog = page.getByRole('dialog')
     const missing = dialog.getByText('Aldric Qualité n’est relié à aucune réponse : l’assistant ne pourra lui proposer personne.')
@@ -80,8 +79,7 @@ test('l’essai du questionnaire classe les personnages selon les réponses, san
     await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: key } })
 
     await signIn(page, prisma, E2E_USERS.orga)
-    await page.goto('/registrations')
-    await page.waitForLoadState('networkidle')
+    await openRegistrations(page, title)
     await gamePanel(page, title, 'Formulaire').getByRole('button', { name: 'Formulaire' }).click()
     const editor = page.getByRole('dialog', { name: /Formulaire d’inscription/ })
     const tryButton = editor.getByRole('button', { name: 'Essayer le questionnaire' })
@@ -156,8 +154,7 @@ test('la relecture signale les questions, et le mélange des options tient penda
     })
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: key } })
     const openEditor = async () => {
-      await page.goto('/registrations')
-      await page.waitForLoadState('networkidle')
+      await openRegistrations(page, title)
       await gamePanel(page, title, 'Formulaire').getByRole('button', { name: 'Formulaire' }).click()
     }
     await signIn(page, prisma, E2E_USERS.orga)
@@ -235,8 +232,7 @@ test('l’échec du calcul de la prévision s’affiche', async ({ page }) => {
       Object.defineProperty(window, 'Worker', { value: FailingWorker })
     })
     await signIn(page, prisma, E2E_USERS.orga)
-    await page.goto('/registrations')
-    await page.waitForLoadState('networkidle')
+    await openRegistrations(page, title)
     await gamePanel(page, title, 'Formulaire').getByRole('button', { name: 'Formulaire' }).click()
     await expect(page.getByRole('dialog', { name: /Formulaire d’inscription/ }).getByText('Impossible de calculer la prévision.')).toBeVisible()
   } finally {
@@ -269,8 +265,7 @@ test('la prévision du questionnaire suit les proportions attendues', async ({ p
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: key } })
 
     const openEditor = async () => {
-      await page.goto('/registrations')
-      await page.waitForLoadState('networkidle')
+      await openRegistrations(page, title)
       await gamePanel(page, title, 'Formulaire').getByRole('button', { name: 'Formulaire' }).click()
     }
     await signIn(page, prisma, E2E_USERS.orga)

@@ -50,7 +50,7 @@
           </UCard>
 
           <UCard>
-            <form class="space-y-5" @submit.prevent="submit">
+            <form class="space-y-5" novalidate @submit.prevent="submit">
               <h2 class="font-semibold">Vos informations</h2>
               <p v-if="period.account" class="text-sm text-gray-600">
                 Vous êtes connecté·e : vos coordonnées viennent de votre compte, et votre inscription sera reçue sans email de confirmation.

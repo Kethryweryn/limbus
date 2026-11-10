@@ -319,6 +319,8 @@ test.describe('assistants d’IA', () => {
       const callback = await captureCallback(page)
       await page.getByRole('button', { name: 'Refuser' }).click()
       await expect.poll(() => callback.url).toContain('error=access_denied')
+      // La page finit d'aller à l'adresse de retour avant d'en ouvrir une autre
+      await page.waitForURL(/localhost:9999/)
       expect(await prisma.aiAuthorization.count({ where: { client: { name: deniedClient } } })).toBe(0)
 
       await page.goto('/autoriser/demande-inconnue')

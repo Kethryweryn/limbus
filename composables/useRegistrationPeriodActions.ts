@@ -1,7 +1,8 @@
 import { computed, inject, provide, ref, type InjectionKey } from 'vue'
 import { fetchByUrl, useApiAction, type ApiResponse } from '~/composables/useApiFetch'
-import { apiErrorMessage, apiFieldErrors } from '~/utils/apiErrors'
+import { apiErrorMessage, apiFieldErrors, loadErrorMessage } from '~/utils/apiErrors'
 import { getCachedResponse, saveCachedResponse } from '~/utils/storage'
+import { isServerUnavailableError } from '~/utils/connection'
 
 // Bloc d'un jeu sur la page Inscriptions (US-117) : le vivier, ses personnes et les actions partagées par ses sections
 // (vivier, sélection, invitations, prolongation)
@@ -35,6 +36,12 @@ async function keepPeriodsOffline(gameId: string, periods: RegistrationPeriod[])
   await saveCachedResponse(ALL_PERIODS, [...cached.filter((period) => period.gameId !== gameId), ...periods])
 }
 
+// Périodes d'un jeu dans la copie de la page, tenue à jour par keepPeriodsOffline
+async function keptPeriods(gameId: string) {
+  const cached = await getCachedResponse<RegistrationPeriod[]>(ALL_PERIODS)
+  return cached ? cached.filter((period) => period.gameId === gameId) : null
+}
+
 function createActions(gameId: () => string) {
   const periods = ref<RegistrationPeriod[]>([])
   const errorMessage = ref('')
@@ -53,7 +60,14 @@ function createActions(gameId: () => string) {
       // Un appareil sans stockage (navigation privée…) n'empêche pas d'afficher les périodes
       await keepPeriodsOffline(gameId(), periods.value).catch((error) => console.error('[storage] périodes d’inscription', error))
     } catch (err) {
-      errorMessage.value = apiErrorMessage(err, 'Impossible de charger le vivier')
+      // Sans réseau, la copie que la page garde déjà sur l'appareil : le refus de l'action n'est pas doublé (US-221)
+      const kept = isServerUnavailableError(err) ? await keptPeriods(gameId()).catch(() => null) : null
+      if (kept) {
+        periods.value = kept
+        errorMessage.value = ''
+        return
+      }
+      errorMessage.value = loadErrorMessage(err, 'Impossible de charger le vivier')
     }
   }
 
@@ -154,6 +168,11 @@ function createActions(gameId: () => string) {
   async function extend() {
     const registration = extensionTarget.value
     if (!registration) return
+    // Sans date, le message de Limbus plutôt que celui du navigateur (US-220)
+    if (!extensionDate.value) {
+      extensionError.value = 'Choisissez la nouvelle échéance.'
+      return
+    }
     extending.value = true
     extensionError.value = ''
     try {

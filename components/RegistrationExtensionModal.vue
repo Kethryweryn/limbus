@@ -2,7 +2,7 @@
   <!-- Prolongation de l'échéance d'une inscription (R20 ; US-117, découpé de RegistrationPeriodsPanel) -->
   <UModal v-model:open="showExtension" :title="extensionTarget ? `Prolonger l’échéance de ${extensionTarget.participant.name}` : 'Prolonger'">
     <template #body>
-      <form class="space-y-4" @submit.prevent="extend">
+      <form class="space-y-4" novalidate @submit.prevent="extend">
         <UFormField
           label="Nouvelle échéance"
           description="La personne peut répondre jusqu’à la fin de ce jour."

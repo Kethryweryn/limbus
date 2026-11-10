@@ -215,3 +215,11 @@ export async function captureCallback(page: Page) {
   })
   return seen
 }
+
+// Page Inscriptions filtrée sur le jeu du test : sans filtre, elle charge la sélection de tous les jeux des tests
+// voisins, et celle du jeu attendu peut arriver après le délai d'une assertion
+export async function openRegistrations(page: Page, gameTitle: string) {
+  await page.goto('/registrations')
+  await page.waitForLoadState('networkidle')
+  await choose(page, page.getByRole('combobox').first(), new RegExp(`^${escapeRegExp(gameTitle)}$`))
+}

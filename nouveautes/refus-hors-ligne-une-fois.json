@@ -1,0 +1,5 @@
+{
+  "type": "corrige",
+  "titre": "Une décision faite sans réseau ne s’affiche plus deux fois",
+  "texte": "Sans réseau, retenir ou mettre en attente une personne dans les inscriptions affiche un seul message, qui dit que l’action demande une connexion."
+}

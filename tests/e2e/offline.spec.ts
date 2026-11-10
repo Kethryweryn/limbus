@@ -3,7 +3,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { choose, expectLoggedIn, gamePanel, login, offlineRecordCount, openUserMenu, parcoursSession, signIn } from './helpers'
+import { choose, expectLoggedIn, gamePanel, login, offlineRecordCount, openRegistrations, openUserMenu, parcoursSession, signIn } from './helpers'
 
 // File d'attente de l'appareil, lue ou écrite directement dans IndexedDB
 async function writeQueue(page: Page, operations: unknown[]) {
@@ -141,8 +141,7 @@ test('la page Inscriptions et une inscription consultée se relisent sans résea
 
     // Avec le réseau : la page, puis le détail de l'inscription, gardés sur l'appareil
     await signIn(page, prisma, E2E_USERS.orga)
-    await page.goto('/registrations')
-    await page.waitForLoadState('networkidle')
+    await openRegistrations(page, game.title)
     const panel = gamePanel(page, game.title, 'Sélection')
     await expect(panel.getByText('Sessions · 1 personne dans le vivier')).toBeVisible()
     await panel.getByRole('button', { name: 'Détail' }).first().click()

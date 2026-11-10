@@ -316,7 +316,7 @@
     <!-- Sélection d'une session (R22) -->
     <UModal v-model:open="showSettings" :title="settingsTarget ? `Sélection de ${settingsTarget.name}` : 'Sélection'">
       <template #body>
-        <form class="space-y-4" @submit.prevent="saveSettings">
+        <form class="space-y-4" novalidate @submit.prevent="saveSettings">
           <UFormField label="Mode de sélection">
             <USelect v-model="settings.selectionMode" :items="SELECTION_MODE_ITEMS" value-key="value" class="w-full" />
           </UFormField>
