@@ -223,7 +223,7 @@ test.describe('réglages des inscriptions (US-220)', () => {
       const { block } = await openSelection(page, ctx.game, ctx.session)
 
       await registrationTab(page, 'Réglages')
-      await page.getByRole('main').getByRole('button', { name: 'Réglages' }).click()
+      await page.getByRole('main').getByRole('button', { name: 'Réglages', exact: true }).click()
       let dialog = page.getByRole('dialog')
       await dialog.getByLabel('Délai de réponse (jours)').fill('0')
       await dialog.getByRole('button', { name: 'Enregistrer' }).click()
