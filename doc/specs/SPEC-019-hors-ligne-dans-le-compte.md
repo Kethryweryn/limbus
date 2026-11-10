@@ -86,8 +86,8 @@ Aujourd'hui, seule une page consultée avec le réseau se rouvre sans réseau ([
 
 ## Découpage
 
-1. Place prise, effacement et désactivation (R1 à R7), [EPIC-051](../epics/EPIC-051-gerer-le-hors-ligne/README.md).
-2. Télécharger un jeu, sa mise à jour et l'accès perdu (R8 à R15), [EPIC-052](../epics/EPIC-052-telecharger-un-jeu/README.md).
+1. Place prise, effacement et désactivation (R1 à R7), [EPIC-051](../archive/epics/EPIC-051-gerer-le-hors-ligne/README.md).
+2. Télécharger un jeu, sa mise à jour et l'accès perdu (R8 à R15), [EPIC-052](../archive/epics/EPIC-052-telecharger-un-jeu/README.md).
 3. Télécharger ses sessions à venir (R16), [EPIC-053](../epics/EPIC-053-telecharger-ses-sessions/README.md).
 
 ## Historique
@@ -106,3 +106,4 @@ Aujourd'hui, seule une page consultée avec le réseau se rouvre sans réseau ([
 - 2026-11-10 : lot 1 livré (US-223 à US-225) : place prise, effacement et désactivation. Désactivé, l'identité reste en mémoire le temps de la page ouverte, pour qu'une coupure de réseau ne la ferme pas.
 - 2026-11-10 : US-226 livrée : télécharger un jeu ; la politique de confidentialité le dit, nouvelle version à accepter.
 - 2026-11-10 : US-227 et US-228 livrées : mise à jour des jeux téléchargés, jeu perdu effacé et signalé dans la section ; lot 2 terminé.
+- 2026-11-10 : EPIC-051 et EPIC-052 archivés ; reste le lot 3 (EPIC-053).
