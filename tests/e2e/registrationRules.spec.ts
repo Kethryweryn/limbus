@@ -6,7 +6,7 @@ import { DEFAULT_REGISTRATION_FORM_DEFINITION } from '../../utils/registrationFo
 import { createTestPrisma } from '../integration/db'
 import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
-import { choose, gamePanel, orgaGame, orgaSession, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
+import { gamePanel, openRegistrations, orgaGame, orgaSession, signIn, slugOf, test, type TestPrisma, testUser, uniqueName } from './helpers'
 import type { RegistrationSessionStatus } from '~/generated/prisma/enums'
 
 type Line = { status: RegistrationSessionStatus, answer?: 'available' | 'unavailable', waitlistPosition?: number, announcedStatus?: RegistrationSessionStatus }
@@ -49,10 +49,7 @@ const sessionLine = (prisma: TestPrisma, registrationId: string, sessionId: stri
   prisma.registrationSession.findUnique({ where: { registrationId_sessionId: { registrationId, sessionId } }, select: { status: true, waitlistPosition: true } })
 
 async function openSelection(page: Page, game: { title: string }, session: { name: string }) {
-  await page.goto('/registrations')
-  await page.waitForLoadState('networkidle')
-  // Le seul jeu du test : la page ne charge pas la sélection de tous les jeux des tests voisins
-  await choose(page, page.getByRole('combobox').first(), game.title)
+  await openRegistrations(page, game.title)
   const panel = gamePanel(page, game.title, 'Sélection')
   return { panel, block: panel.locator(`[data-session="${session.name}"]`) }
 }

@@ -5,7 +5,7 @@ import { createTestPrisma } from '../integration/db'
 import { personalLinkToken } from '../integration/smtp'
 import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
-import { expectLoggedIn, gamePanel, login, signIn, test } from './helpers'
+import { expectLoggedIn, gamePanel, login, openRegistrations, signIn, test } from './helpers'
 import type { RegistrationSessionStatus } from '~/generated/prisma/enums'
 
 // US-164 : invitation pour une session → réponse par le lien personnel, disponible → présence dans la session
@@ -15,8 +15,7 @@ test('une personne invitée pour une session répond par son lien et y est inscr
   try {
     await login(page, E2E_USERS.orga)
     await expectLoggedIn(page)
-    await page.goto('/registrations')
-    await page.waitForLoadState('networkidle')
+    await openRegistrations(page, 'Jeu des inscriptions')
     // Le panneau de ce jeu : les tests voisins ajoutent leurs propres jeux à la page, en parallèle
     await gamePanel(page, 'Jeu des inscriptions', 'Inviter').getByRole('button', { name: 'Inviter', exact: true }).click()
     await page.getByRole('dialog').getByRole('combobox').click()
@@ -49,7 +48,7 @@ test('une personne invitée pour une session répond par son lien et y est inscr
     const session = await prisma.session.findUniqueOrThrow({ where: { slug: 'session-printemps' } })
     const participants = await (await page.request.get(`/api/sessions/${session.id}`)).json()
     expect(JSON.stringify(participants)).toContain('Camille Invitée')
-    await page.goto('/registrations')
+    await openRegistrations(page, 'Jeu des inscriptions')
     await expect(gamePanel(page, 'Jeu des inscriptions', 'Inviter').locator('li').filter({ hasText: 'Camille Invitée' }).getByText('Inscrite', { exact: true })).toBeVisible()
 
     // Elle entre dans le circuit de paiement sans attendre le casting (US-007, R22)
@@ -122,8 +121,7 @@ test('l’éditeur du formulaire ajoute une question et une affinité', async ({
     const title = `Jeu éditeur ${Date.now()}`
     const game = await prisma.game.create({ data: { title, slug: `jeu-editeur-${Date.now()}`, description: '', ownerId: owner.id } })
     await signIn(page, prisma, E2E_USERS.orga)
-    await page.goto('/registrations')
-    await page.waitForLoadState('networkidle')
+    await openRegistrations(page, title)
     const panel = gamePanel(page, title, 'Formulaire')
     await panel.getByRole('button', { name: 'Formulaire' }).click()
 
@@ -284,8 +282,7 @@ test('l’équipe retient une pré-inscrite, l’annonce, et la personne confirm
     })
 
     await signIn(page, prisma, E2E_USERS.orga)
-    await page.goto('/registrations')
-    await page.waitForLoadState('networkidle')
+    await openRegistrations(page, game.title)
     const panel = gamePanel(page, game.title, 'Sélection')
     const sessionBlock = panel.locator(`[data-session="${session.name}"]`)
     await sessionBlock.locator('li').filter({ hasText: 'Noa Selection' }).getByRole('button', { name: 'Retenir' }).click()
@@ -339,8 +336,7 @@ test('l’équipe tire au sort, voit le journal, puis annule le tirage', async (
     }
 
     await signIn(page, prisma, E2E_USERS.orga)
-    await page.goto('/registrations')
-    await page.waitForLoadState('networkidle')
+    await openRegistrations(page, game.title)
     const panel = gamePanel(page, game.title, 'Tirer au sort')
     page.once('dialog', (dialog) => dialog.accept())
     await panel.getByRole('button', { name: 'Tirer au sort' }).click()
@@ -386,8 +382,7 @@ test('l’équipe rattache une affinité et voit l’alerte de la session', asyn
     }
 
     await signIn(page, prisma, E2E_USERS.orga)
-    await page.goto('/registrations')
-    await page.waitForLoadState('networkidle')
+    await openRegistrations(page, game.title)
     const panel = gamePanel(page, game.title, 'Sélection')
     await expect(panel.getByText('1 affinité à rattacher').first()).toBeVisible()
     await panel.locator(`[data-session="${session.name}"] li`).filter({ hasText: 'Lou Affinite' }).getByRole('button', { name: 'Détail' }).click()
@@ -424,8 +419,7 @@ test('demander au vivier, répondre d’un clic, puis relancer', async ({ page }
     const eli = await person('Eli')
 
     await signIn(page, prisma, E2E_USERS.orga)
-    await page.goto('/registrations')
-    await page.waitForLoadState('networkidle')
+    await openRegistrations(page, game.title)
     const panel = gamePanel(page, game.title, 'Sélection')
     const block = panel.locator(`[data-session="${session.name}"]`)
 
@@ -467,8 +461,7 @@ test('demander au vivier, répondre d’un clic, puis relancer', async ({ page }
     await prisma.registrationPeriodSession.update({ where: { sessionId: session.id }, data: { open: true } })
 
     // Relancer écrit seulement à celle qui n'a pas répondu
-    await page.goto('/registrations')
-    await page.waitForLoadState('networkidle')
+    await openRegistrations(page, game.title)
     await expect(block.getByText(/1 réponse/)).toBeVisible()
     page.once('dialog', (dialog) => dialog.accept())
     await block.getByRole('button', { name: 'Relancer (1)' }).click()
@@ -499,8 +492,7 @@ test('réessayer une demande de disponibilités n’écrit qu’aux personnes en
     await person('Recoit', fine)
 
     await signIn(page, prisma, E2E_USERS.orga)
-    await page.goto('/registrations')
-    await page.waitForLoadState('networkidle')
+    await openRegistrations(page, game.title)
     const block = gamePanel(page, game.title, 'Sélection').locator(`[data-session="${session.name}"]`)
     page.once('dialog', (dialog) => dialog.accept())
     await block.getByRole('button', { name: 'Demander au vivier (2)' }).click()
@@ -542,8 +534,7 @@ test('après l’annonce du casting, chaque changement se propose personne par p
     const sam = await person('Sam', 'preregistered')
 
     await signIn(page, prisma, E2E_USERS.orga)
-    await page.goto('/registrations')
-    await page.waitForLoadState('networkidle')
+    await openRegistrations(page, game.title)
     const block = gamePanel(page, game.title, 'Sélection').locator(`[data-session="${session.name}"]`)
 
     // Case décochée : la liste d'attente n'est pas prévenue
@@ -590,8 +581,7 @@ test('le repère « Réponses modifiées » se marque comme lu', async ({ page }
     await prisma.registration.create({ data: { gameId: period.gameId, periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, respondedAt: new Date(), sessionLines: { create: { sessionId: session.id, status: 'retained', answer: 'available', answersChangedAt: new Date() } } } })
 
     await signIn(page, prisma, E2E_USERS.orga)
-    await page.goto('/registrations')
-    await page.waitForLoadState('networkidle')
+    await openRegistrations(page, game.title)
     const block = gamePanel(page, game.title, 'Sélection').locator(`[data-session="${session.name}"]`)
     await expect(block.getByText('Réponses modifiées')).toBeVisible()
     await block.getByRole('button', { name: 'Marquer comme lu' }).click()
@@ -620,8 +610,7 @@ test('le parcours affiche « Inscrite validée » pour l’équipe et pour la pe
     await prisma.sessionPayment.create({ data: { gameId: session.gameId, sessionId: session.id, participantId: participant.id, paidAt: new Date() } })
 
     await signIn(page, prisma, E2E_USERS.orga)
-    await page.goto('/registrations')
-    await page.waitForLoadState('networkidle')
+    await openRegistrations(page, game.title)
     await expect(gamePanel(page, game.title, 'Sélection').locator(`[data-session="${session.name}"]`).getByText('Inscrite validée')).toBeVisible()
 
     const guest = await otherPage()

@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
-import { gamePanel, signIn, slugOf, uniqueName, type TestPrisma } from './helpers'
+import { gamePanel, openRegistrations, signIn, slugOf, type TestPrisma, uniqueName } from './helpers'
 
 // Jeu propre au test, avec une session et un vivier ouvert
 async function testPeriod(prisma: TestPrisma, key: string) {
@@ -35,10 +35,9 @@ async function invitedPerson(prisma: TestPrisma, ids: { gameId: string, sessionI
   return { participant, registration, email }
 }
 
-async function openRegistrations(page: Page, prisma: TestPrisma) {
+async function openOwnRegistrations(page: Page, prisma: TestPrisma, gameTitle: string) {
   await signIn(page, prisma, E2E_USERS.orga)
-  await page.goto('/registrations')
-  await page.waitForLoadState('networkidle')
+  await openRegistrations(page, gameTitle)
 }
 
 // EPIC-001 (US-005) : relance, prolongation, nouveau lien, libération et annulation d'une invitation
@@ -52,7 +51,7 @@ test('l’équipe relance, prolonge, renvoie, libère et annule des invitations'
     const ana = await invitedPerson(prisma, ids, 'Ana Actions')
     const ben = await invitedPerson(prisma, ids, 'Ben Actions')
 
-    await openRegistrations(page, prisma)
+    await openOwnRegistrations(page, prisma, game.title)
     const panel = gamePanel(page, game.title, 'Réglages')
     const row = (name: string) => panel.locator('li').filter({ hasText: name })
     await expect(panel.getByText('Invitations sans réponse : 2')).toBeVisible()
@@ -118,7 +117,7 @@ test('l’équipe consulte le détail d’une personne inscrite, la retire de la
     const { game, session, period } = await testPeriod(prisma, key)
     const cleo = await invitedPerson(prisma, { gameId: game.id, sessionId: session.id, periodId: period.id }, 'Cléo Retrait', 'confirmed')
 
-    await openRegistrations(page, prisma)
+    await openOwnRegistrations(page, prisma, game.title)
     const panel = gamePanel(page, game.title, 'Réglages')
     const row = panel.locator(`[data-session="${session.name}"] li`).filter({ hasText: 'Cléo Retrait' })
 
@@ -159,7 +158,7 @@ test('l’équipe règle, ferme, rouvre, copie le lien, ouvre une session et sup
     const { game, session, period } = await testPeriod(prisma, key)
     await prisma.registrationPeriodSession.update({ where: { sessionId: session.id }, data: { open: false } })
 
-    await openRegistrations(page, prisma)
+    await openOwnRegistrations(page, prisma, game.title)
     const panel = gamePanel(page, game.title, 'Réglages')
 
     // Réglages : le délai de réponse
