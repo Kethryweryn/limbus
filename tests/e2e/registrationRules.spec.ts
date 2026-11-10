@@ -85,7 +85,7 @@ test.describe('sessions proposées et places', () => {
 
       // Un personnage supprimé ne retire personne : la session en surnombre est signalée (R8)
       await prisma.registrationSession.update({ where: { registrationId_sessionId: { registrationId: waiting.registration.id, sessionId: ctx.session.id } }, data: { status: 'retained' } })
-      await page.reload()
+      await openRegistrations(page, ctx.game.title)
       await expect(gamePanel(page, ctx.game.title, 'Sélection').locator(`[data-session="${ctx.session.name}"]`).getByText('Cette session est en surnombre : 2 personnes pour 1 personnages PJ.')).toBeVisible()
     } finally {
       await prisma.$disconnect()
@@ -144,7 +144,8 @@ test.describe('sélection', () => {
 
       await block.locator('li').filter({ hasText: first.name }).getByRole('button', { name: 'Descendre' }).click()
       await expect(block.locator('ol li').first()).toContainText(second.name)
-      await page.reload()
+      // Rouverte (filtrée sur le jeu) : l'ordre est enregistré
+      await openRegistrations(page, ctx.game.title)
       block = gamePanel(page, ctx.game.title, 'Sélection').locator(`[data-session="${ctx.session.name}"]`)
       await expect(block.locator('ol li').first()).toContainText(second.name)
 
