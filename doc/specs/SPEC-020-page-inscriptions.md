@@ -1,7 +1,7 @@
 ---
 id: SPEC-020
 titre: Une page Inscriptions par jeu, en onglets
-statut: en cours
+statut: implémentée
 date: 2026-11-10
 origine: ../archive/todo/page-inscriptions.md
 epics: [EPIC-054]
@@ -81,7 +81,7 @@ Aucune donnée nouvelle. Le résumé (R1, R2) se calcule à la lecture, à parti
 
 ## Découpage
 
-Un seul lot, [EPIC-054](../epics/EPIC-054-page-inscriptions/README.md) :
+Un seul lot, [EPIC-054](../archive/epics/EPIC-054-page-inscriptions/README.md) :
 
 1. La page d'un jeu en trois onglets, et le résumé des jeux sans « à traiter » (R1, R3 à R7, R11, R13, R14).
 2. Sessions repliées, sessions dans l'adresse, tirages par session et sessions passées (R8 à R10).
@@ -105,3 +105,4 @@ Un seul lot, [EPIC-054](../epics/EPIC-054-page-inscriptions/README.md) :
 - 2026-11-10 (revue d'US-231) : le tirage d'une session reportée se range sous « Sessions passées » et s'annule encore (R10) ; les sessions dépliées sont gardées par leur identifiant, stable au renommage (R9).
 - 2026-11-11 : US-232 livrée : recherche par nom ou email et filtre par vœu de session dans l'onglet Vivier.
 - 2026-11-11 : US-233 livrée : ce qui reste à traiter, dans le résumé et sur chaque session ; une réponse modifiée ne compte que si elle a « Marquer comme lu » (R2). Lot terminé.
+- 2026-11-11 : EPIC-054 archivé : spec implémentée.
