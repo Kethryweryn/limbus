@@ -179,6 +179,7 @@ test.describe('sélection', () => {
 
       page.once('dialog', (confirmation) => confirmation.accept())
       await block.getByRole('button', { name: 'Tirer au sort' }).click()
+      await block.getByText('Tirages : 1').click()
       await expect(panel.getByText('1 rejoueur exclu')).toBeVisible()
       expect((await sessionLine(prisma, newcomer.registration.id, ctx.session.id))?.status).toBe('retained')
       expect((await sessionLine(prisma, replayer.registration.id, ctx.session.id))?.status).toBe('preregistered')

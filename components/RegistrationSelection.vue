@@ -20,19 +20,28 @@
         Aucune session à venir : créez une session pour la proposer au vivier.
       </p>
 
+      <!-- Chaque session repliée sur une ligne ; dépliée, tout ce qu'elle porte et ses tirages (SPEC-020, R8, R9) -->
       <div v-for="session in sessions" :key="session.id" class="space-y-2 rounded border border-gray-100 p-3" :data-session="session.name">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h4 class="text-sm font-medium text-gray-800">
-            {{ session.name }}<span v-if="session.date" class="text-gray-500"> · {{ formatLongDate(session.date) }}</span>
-            ·
-            <span :class="session.taken >= session.seats ? 'text-warning-600' : 'text-gray-600'">
-              {{ session.taken }} / {{ session.seats }} place{{ session.seats > 1 ? 's' : '' }}
-            </span>
-            <UBadge class="ml-2" size="sm" :color="session.offered ? 'success' : 'neutral'" variant="subtle">
-              {{ session.offered ? 'Ouverte à la pré-inscription' : 'Pas proposée au vivier' }}
-            </UBadge>
+            <button
+              type="button"
+              class="flex flex-wrap items-center gap-1 text-left"
+              :aria-expanded="isExpanded(session)"
+              @click="toggle(session)"
+            >
+              <UIcon :name="isExpanded(session) ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'" class="size-4 text-gray-400" />
+              {{ session.name }}<span v-if="session.date" class="text-gray-500"> · {{ formatLongDate(session.date) }}</span>
+              ·
+              <span :class="session.taken >= session.seats ? 'text-warning-600' : 'text-gray-600'">
+                {{ session.taken }} / {{ session.seats }} place{{ session.seats > 1 ? 's' : '' }}
+              </span>
+              <UBadge class="ml-2" size="sm" :color="session.offered ? 'success' : 'neutral'" variant="subtle">
+                {{ session.offered ? 'Ouverte à la pré-inscription' : 'Pas proposée au vivier' }}
+              </UBadge>
+            </button>
           </h4>
-          <div class="flex flex-wrap gap-2">
+          <div v-if="isExpanded(session)" class="flex flex-wrap gap-2">
             <UButton
               v-if="session.open"
               size="xs"
@@ -73,223 +82,205 @@
           </div>
         </div>
 
+          <template v-if="isExpanded(session)">
         <!-- Annonce du casting (R26) : une seule fois ; ensuite, chaque changement se propose ci-dessous (R27) -->
-        <div v-if="!session.castAnnouncedAt" class="flex flex-wrap items-center gap-3 text-xs text-gray-500" data-cast-announcement>
-          <UButton
-            size="xs"
-            color="primary"
-            icon="i-heroicons-megaphone"
-            :disabled="!announceCount(session)"
-            :loading="announcing === session.id"
-            @click="announce(session)"
-          >
-            Annoncer le casting{{ announceCount(session) ? ` (${announceCount(session)})` : '' }}
-          </UButton>
-          <UCheckbox
-            v-if="waitlistedToAnnounce(session).length"
-            v-model="announceWaitlist[session.id]"
-            :label="`Prévenir aussi la liste d’attente (${waitlistedToAnnounce(session).length})`"
-          />
-        </div>
-        <p v-else class="text-xs text-gray-500">Casting annoncé le {{ formatLongDate(session.castAnnouncedAt) }}.</p>
+          <div v-if="!session.castAnnouncedAt" class="flex flex-wrap items-center gap-3 text-xs text-gray-500" data-cast-announcement>
+            <UButton
+              size="xs"
+              color="primary"
+              icon="i-heroicons-megaphone"
+              :disabled="!announceCount(session)"
+              :loading="announcing === session.id"
+              @click="announce(session)"
+            >
+              Annoncer le casting{{ announceCount(session) ? ` (${announceCount(session)})` : '' }}
+            </UButton>
+            <UCheckbox
+              v-if="waitlistedToAnnounce(session).length"
+              v-model="announceWaitlist[session.id]"
+              :label="`Prévenir aussi la liste d’attente (${waitlistedToAnnounce(session).length})`"
+            />
+          </div>
+          <p v-else class="text-xs text-gray-500">Casting annoncé le {{ formatLongDate(session.castAnnouncedAt) }}.</p>
 
-        <div v-if="session.castAnnouncedAt && proposals(session).length" class="space-y-1" data-announcement-proposals>
-          <p class="text-xs font-semibold text-gray-600">Emails à envoyer : {{ proposals(session).length }}</p>
-          <ul class="divide-y divide-gray-100 text-sm">
-            <li v-for="{ registration, label } in proposals(session)" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
-              <span><span class="font-medium text-gray-800">{{ registration.participant.name }}</span> · {{ label }}</span>
-              <div class="flex shrink-0 flex-wrap gap-2">
-                <UButton size="xs" color="primary" variant="soft" icon="i-heroicons-envelope" :loading="answeringProposal === registration.id" @click="answerProposal(registration, session, 'send')">Envoyer l’email</UButton>
-                <UButton size="xs" color="neutral" variant="ghost" :disabled="answeringProposal === registration.id" @click="answerProposal(registration, session, 'ignore')">Ignorer</UButton>
-              </div>
-            </li>
-          </ul>
-        </div>
+          <div v-if="session.castAnnouncedAt && proposals(session).length" class="space-y-1" data-announcement-proposals>
+            <p class="text-xs font-semibold text-gray-600">Emails à envoyer : {{ proposals(session).length }}</p>
+            <ul class="divide-y divide-gray-100 text-sm">
+              <li v-for="{ registration, label } in proposals(session)" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
+                <span><span class="font-medium text-gray-800">{{ registration.participant.name }}</span> · {{ label }}</span>
+                <div class="flex shrink-0 flex-wrap gap-2">
+                  <UButton size="xs" color="primary" variant="soft" icon="i-heroicons-envelope" :loading="answeringProposal === registration.id" @click="answerProposal(registration, session, 'send')">Envoyer l’email</UButton>
+                  <UButton size="xs" color="neutral" variant="ghost" :disabled="answeringProposal === registration.id" @click="answerProposal(registration, session, 'ignore')">Ignorer</UButton>
+                </div>
+              </li>
+            </ul>
+          </div>
 
-        <!-- Demande de disponibilités (R9, R12) : rien ne part sans ce clic -->
-        <div v-if="session.offered" class="flex flex-wrap items-center gap-2 text-xs text-gray-500" data-availability-request>
-          <span>{{ requestSummary(session) }}</span>
-          <UButton
-            size="xs"
-            color="primary"
-            variant="soft"
-            icon="i-heroicons-envelope"
-            :disabled="!session.askableCount"
-            :loading="asking === session.id"
-            @click="askPool(session)"
-          >
-            {{ session.lastRequestedAt ? 'Relancer' : 'Demander au vivier' }}{{ session.askableCount ? ` (${session.askableCount})` : '' }}
-          </UButton>
-        </div>
-        <UAlert
-          v-if="justOpened === session.id && session.offered && session.askableCount && !session.lastRequestedAt"
-          color="info"
-          variant="soft"
-          title="Session ouverte"
-          :description="`Écrire au vivier pour demander qui est disponible ? La demande partirait à ${plural(session.askableCount, 'personne')}. Rien ne part sans votre clic.`"
-          :actions="[{ label: 'Envoyer la demande', color: 'primary', onClick: () => askPool(session) }, { label: 'Plus tard', color: 'neutral', variant: 'ghost', onClick: () => { justOpened = null } }]"
-        />
-        <UAlert
-          v-if="askFailures[session.id]?.length"
-          color="warning"
-          variant="soft"
-          title="Demande non envoyée"
-          :description="sendFailures(askFailures[session.id]!).join(', ')"
-          :actions="[{ label: 'Réessayer', color: 'primary', onClick: () => askPool(session, askFailures[session.id]!.map((failure) => failure.registrationId)) }]"
-        />
-
-        <p v-if="session.selectionMode !== REGISTRATION_SELECTION_MODES.chosen && !session.activeDrawId" class="text-xs text-gray-500">
-          <template v-if="session.selectionMode === REGISTRATION_SELECTION_MODES.mixed">
-            Mode mixte : avant le tirage, chaque organisatrice retient jusqu’à {{ session.organizerPicks ?? 0 }} personne{{ (session.organizerPicks ?? 0) > 1 ? 's' : '' }} ; le tirage remplit le reste.
-          </template>
-          <template v-else>Sélection au hasard : lancez le tirage, puis corrigez à la main si besoin.</template>
-        </p>
-
-        <UAlert
-          v-if="session.taken > session.seats"
-          color="warning"
-          variant="soft"
-          :description="`Cette session est en surnombre : ${session.taken} personnes pour ${session.seats} personnages PJ.`"
-        />
-
-        <!-- Affinités (US-096, R25) : prévenir sans bloquer -->
-        <UAlert
-          v-if="alertsOf(session).length"
-          color="error"
-          variant="soft"
-          icon="i-heroicons-exclamation-triangle"
-          :description="alertsOf(session).map(alertText).join(' ')"
-        />
-
-        <ul v-if="placed(session).length" class="divide-y divide-gray-100 text-sm">
-          <li v-for="registration in placed(session)" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
-            <RegistrationSelectionName :registration="registration" :line="lineOf(registration, session)" :replayer="isReplayer(registration)" :alert="alerted(session, registration)" :wishes="wishLabels(registration, session)" :to-link="toLink(registration)" />
-            <div class="flex shrink-0 flex-wrap gap-2">
-              <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="showDetail(registration)">Détail</UButton>
-              <UButton v-if="lineOf(registration, session)?.answersChangedAt" size="xs" color="warning" variant="soft" icon="i-heroicons-check" @click="markAnswersRead(registration, session)">Marquer comme lu</UButton>
-              <template v-if="lineOf(registration, session)?.status === LINE.retained">
-                <template v-if="canConfirmPlace(lineOf(registration, session)!)">
-                  <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-bell-alert" @click="remind(registration, session.id)">Relancer</UButton>
-                  <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-arrow-path" @click="resend(registration, session.id)">Nouveau lien</UButton>
-                  <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-calendar-days" @click="askExtension(registration, session.id)">Prolonger</UButton>
-                  <UButton size="xs" color="warning" variant="soft" icon="i-heroicons-user-minus" @click="release(registration, session.id)">Libérer</UButton>
-                </template>
-                <UDropdownMenu :items="placedItems(registration, session)">
-                  <UButton size="xs" color="neutral" variant="soft" trailing-icon="i-heroicons-chevron-down">Changer</UButton>
-                </UDropdownMenu>
-              </template>
-              <UButton
-                v-else
-                size="xs"
-                color="error"
-                variant="soft"
-                icon="i-heroicons-user-minus"
-                @click="withdraw(registration, session.id)"
-              >
-                Retirer
-              </UButton>
-            </div>
-          </li>
-        </ul>
-
-        <div v-if="waiting(session).length" class="space-y-1">
-          <p class="text-xs font-semibold text-gray-600">Liste d’attente</p>
-          <!-- Une place libre propose la première personne de la file (R23) : l'équipe la retient, puis l'annonce -->
-          <UAlert
-            v-if="session.taken < session.seats"
-            color="info"
-            variant="soft"
-            :description="`Une place est libre : retenir ${waiting(session)[0]!.participant.name}, première de la liste d’attente ?`"
-            :actions="[{ label: 'Retenir', color: 'primary', variant: 'solid', size: 'xs', onClick: () => decide(waiting(session)[0]!, 'retain', session.id) }]"
-          />
-          <ol class="divide-y divide-gray-100 text-sm">
-            <li v-for="(registration, index) in waiting(session)" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
-              <div class="flex min-w-0 items-start gap-2">
-                <span class="w-5 shrink-0 text-right text-xs text-gray-500">{{ index + 1 }}.</span>
-                <RegistrationSelectionName :registration="registration" :line="lineOf(registration, session)" :replayer="isReplayer(registration)" :wishes="wishLabels(registration, session)" :to-link="toLink(registration)" />
-              </div>
-              <div class="flex shrink-0 flex-wrap gap-2">
-                <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-arrow-up" :disabled="index === 0" aria-label="Monter" @click="move(session, index, -1)" />
-                <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-arrow-down" :disabled="index === waiting(session).length - 1" aria-label="Descendre" @click="move(session, index, 1)" />
-                <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="showDetail(registration)">Détail</UButton>
-                <UButton size="xs" color="primary" variant="soft" :disabled="session.taken >= session.seats" @click="decide(registration, 'retain', session.id)">Retenir</UButton>
-                <UButton size="xs" color="neutral" variant="soft" @click="decide(registration, 'unwaitlist', session.id)">Sortir de la liste</UButton>
-              </div>
-            </li>
-          </ol>
-        </div>
-
-        <div v-if="preregistered(session).length" class="space-y-1">
-          <p class="text-xs font-semibold text-gray-600">Pré-inscrites : {{ preregistered(session).length }}</p>
-          <ul class="divide-y divide-gray-100 text-sm">
-            <li v-for="registration in preregistered(session)" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
-              <RegistrationSelectionName :registration="registration" :line="lineOf(registration, session)" :replayer="isReplayer(registration)" :wishes="wishLabels(registration, session)" :to-link="toLink(registration)" />
-              <div class="flex shrink-0 flex-wrap gap-2">
-                <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="showDetail(registration)">Détail</UButton>
-                <UButton
-                  v-if="manualRetainAllowed(session)"
-                  size="xs"
-                  color="primary"
-                  variant="soft"
-                  :disabled="session.taken >= session.seats"
-                  :title="session.taken >= session.seats ? 'Session complète : créez un personnage pour ajouter une place' : undefined"
-                  @click="decide(registration, 'retain', session.id)"
-                >
-                  Retenir
-                </UButton>
-                <UButton size="xs" color="neutral" variant="soft" @click="decide(registration, 'waitlist', session.id)">Liste d’attente</UButton>
-              </div>
-            </li>
-          </ul>
-        </div>
-
-        <p v-if="!placed(session).length && !waiting(session).length && !preregistered(session).length" class="text-xs text-gray-500">Personne pour l’instant.</p>
-
-        <!-- Ajout à la main d'une autre personne du vivier (R20) : un refus ou un rejoueur exclu se signale -->
-        <div v-if="others(session).length && manualRetainAllowed(session)" class="flex flex-wrap items-center gap-2 pt-1">
-          <USelectMenu
-            size="xs"
-            class="w-72"
-            :items="otherItems(session)"
-            value-key="value"
-            placeholder="Ajouter une autre personne du vivier…"
-            :disabled="session.taken >= session.seats"
-            @update:model-value="(id) => id && decide(registrationById(id), 'retain', session.id)"
-          />
-        </div>
-      </div>
-
-      <!-- Journal des tirages (US-094) : graine, réglages et résultat de chacun, annulés compris -->
-      <div v-if="draws.length" class="space-y-2">
-        <p class="text-xs font-semibold text-gray-600">Tirages</p>
-        <div v-for="entry in draws" :key="entry.id" class="space-y-1 rounded border border-gray-100 p-2 text-xs text-gray-600">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <span>
-              <span class="font-medium">{{ entry.session?.name || 'Ancienne période' }}</span>,
-              le {{ formatLongDateTime(entry.createdAt) }}<span v-if="entry.createdBy"> par {{ entry.createdBy.name }}</span>
-              · graine <code>{{ entry.seed }}</code>
-              <UBadge v-if="entry.cancelledAt" class="ml-1" size="sm" color="neutral" variant="outline">
-                Annulé le {{ formatLongDateTime(entry.cancelledAt) }}<span v-if="entry.cancelledBy">&nbsp;par {{ entry.cancelledBy.name }}</span>
-              </UBadge>
-            </span>
-            <UButton v-if="!entry.cancelledAt && entry.sessionId" size="xs" color="warning" variant="soft" :loading="cancelling" @click="cancelDraw(entry)">
-              Annuler ce tirage
+          <!-- Demande de disponibilités (R9, R12) : rien ne part sans ce clic -->
+          <div v-if="session.offered" class="flex flex-wrap items-center gap-2 text-xs text-gray-500" data-availability-request>
+            <span>{{ requestSummary(session) }}</span>
+            <UButton
+              size="xs"
+              color="primary"
+              variant="soft"
+              icon="i-heroicons-envelope"
+              :disabled="!session.askableCount"
+              :loading="asking === session.id"
+              @click="askPool(session)"
+            >
+              {{ session.lastRequestedAt ? 'Relancer' : 'Demander au vivier' }}{{ session.askableCount ? ` (${session.askableCount})` : '' }}
             </UButton>
           </div>
-          <p>
-            {{ entry.settings.weightNotDrawnBefore ? 'Chances doublées pour les personnes restées sans place' : 'Sans priorité' }} ·
-            {{ entry.settings.weightBalance ? `équilibre selon « ${entry.settings.balanceAttribute} »` : 'sans équilibre' }} ·
-            liste d’attente de {{ entry.settings.waitlistSize }}
-            <span v-if="entry.settings.excludedReplayers?.length"> · {{ entry.settings.excludedReplayers.length }} rejoueur{{ entry.settings.excludedReplayers.length > 1 ? 's' : '' }} exclu{{ entry.settings.excludedReplayers.length > 1 ? 's' : '' }}</span>
+          <UAlert
+            v-if="justOpened === session.id && session.offered && session.askableCount && !session.lastRequestedAt"
+            color="info"
+            variant="soft"
+            title="Session ouverte"
+            :description="`Écrire au vivier pour demander qui est disponible ? La demande partirait à ${plural(session.askableCount, 'personne')}. Rien ne part sans votre clic.`"
+            :actions="[{ label: 'Envoyer la demande', color: 'primary', onClick: () => askPool(session) }, { label: 'Plus tard', color: 'neutral', variant: 'ghost', onClick: () => { justOpened = null } }]"
+          />
+          <UAlert
+            v-if="askFailures[session.id]?.length"
+            color="warning"
+            variant="soft"
+            title="Demande non envoyée"
+            :description="sendFailures(askFailures[session.id]!).join(', ')"
+            :actions="[{ label: 'Réessayer', color: 'primary', onClick: () => askPool(session, askFailures[session.id]!.map((failure) => failure.registrationId)) }]"
+          />
+
+          <p v-if="session.selectionMode !== REGISTRATION_SELECTION_MODES.chosen && !session.activeDrawId" class="text-xs text-gray-500">
+            <template v-if="session.selectionMode === REGISTRATION_SELECTION_MODES.mixed">
+              Mode mixte : avant le tirage, chaque organisatrice retient jusqu’à {{ session.organizerPicks ?? 0 }} personne{{ (session.organizerPicks ?? 0) > 1 ? 's' : '' }} ; le tirage remplit le reste.
+            </template>
+            <template v-else>Sélection au hasard : lancez le tirage, puis corrigez à la main si besoin.</template>
           </p>
-          <p v-for="result in entry.result.sessions" :key="result.sessionId">
-            retenues {{ names(result.retained) || 'aucune' }} ;
-            en attente {{ names(result.waitlisted) || 'aucune' }}
-            <span class="text-gray-400">(ordre : {{ names(result.order.map((item) => item.registrationId)) || '—' }})</span>
-          </p>
-          <p v-if="entry.result.rejected.length">Restées pré-inscrites : {{ names(entry.result.rejected) }}</p>
-        </div>
+
+          <UAlert
+            v-if="session.taken > session.seats"
+            color="warning"
+            variant="soft"
+            :description="`Cette session est en surnombre : ${session.taken} personnes pour ${session.seats} personnages PJ.`"
+          />
+
+          <!-- Affinités (US-096, R25) : prévenir sans bloquer -->
+          <UAlert
+            v-if="alertsOf(session).length"
+            color="error"
+            variant="soft"
+            icon="i-heroicons-exclamation-triangle"
+            :description="alertsOf(session).map(alertText).join(' ')"
+          />
+
+          <ul v-if="placed(session).length" class="divide-y divide-gray-100 text-sm">
+            <li v-for="registration in placed(session)" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
+              <RegistrationSelectionName :registration="registration" :line="lineOf(registration, session)" :replayer="isReplayer(registration)" :alert="alerted(session, registration)" :wishes="wishLabels(registration, session)" :to-link="toLink(registration)" />
+              <div class="flex shrink-0 flex-wrap gap-2">
+                <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="showDetail(registration)">Détail</UButton>
+                <UButton v-if="lineOf(registration, session)?.answersChangedAt" size="xs" color="warning" variant="soft" icon="i-heroicons-check" @click="markAnswersRead(registration, session)">Marquer comme lu</UButton>
+                <template v-if="lineOf(registration, session)?.status === LINE.retained">
+                  <template v-if="canConfirmPlace(lineOf(registration, session)!)">
+                    <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-bell-alert" @click="remind(registration, session.id)">Relancer</UButton>
+                    <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-arrow-path" @click="resend(registration, session.id)">Nouveau lien</UButton>
+                    <UButton size="xs" color="neutral" variant="soft" icon="i-heroicons-calendar-days" @click="askExtension(registration, session.id)">Prolonger</UButton>
+                    <UButton size="xs" color="warning" variant="soft" icon="i-heroicons-user-minus" @click="release(registration, session.id)">Libérer</UButton>
+                  </template>
+                  <UDropdownMenu :items="placedItems(registration, session)">
+                    <UButton size="xs" color="neutral" variant="soft" trailing-icon="i-heroicons-chevron-down">Changer</UButton>
+                  </UDropdownMenu>
+                </template>
+                <UButton
+                  v-else
+                  size="xs"
+                  color="error"
+                  variant="soft"
+                  icon="i-heroicons-user-minus"
+                  @click="withdraw(registration, session.id)"
+                >
+                  Retirer
+                </UButton>
+              </div>
+            </li>
+          </ul>
+
+          <div v-if="waiting(session).length" class="space-y-1">
+            <p class="text-xs font-semibold text-gray-600">Liste d’attente</p>
+            <!-- Une place libre propose la première personne de la file (R23) : l'équipe la retient, puis l'annonce -->
+            <UAlert
+              v-if="session.taken < session.seats"
+              color="info"
+              variant="soft"
+              :description="`Une place est libre : retenir ${waiting(session)[0]!.participant.name}, première de la liste d’attente ?`"
+              :actions="[{ label: 'Retenir', color: 'primary', variant: 'solid', size: 'xs', onClick: () => decide(waiting(session)[0]!, 'retain', session.id) }]"
+            />
+            <ol class="divide-y divide-gray-100 text-sm">
+              <li v-for="(registration, index) in waiting(session)" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex min-w-0 items-start gap-2">
+                  <span class="w-5 shrink-0 text-right text-xs text-gray-500">{{ index + 1 }}.</span>
+                  <RegistrationSelectionName :registration="registration" :line="lineOf(registration, session)" :replayer="isReplayer(registration)" :wishes="wishLabels(registration, session)" :to-link="toLink(registration)" />
+                </div>
+                <div class="flex shrink-0 flex-wrap gap-2">
+                  <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-arrow-up" :disabled="index === 0" aria-label="Monter" @click="move(session, index, -1)" />
+                  <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-arrow-down" :disabled="index === waiting(session).length - 1" aria-label="Descendre" @click="move(session, index, 1)" />
+                  <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="showDetail(registration)">Détail</UButton>
+                  <UButton size="xs" color="primary" variant="soft" :disabled="session.taken >= session.seats" @click="decide(registration, 'retain', session.id)">Retenir</UButton>
+                  <UButton size="xs" color="neutral" variant="soft" @click="decide(registration, 'unwaitlist', session.id)">Sortir de la liste</UButton>
+                </div>
+              </li>
+            </ol>
+          </div>
+
+          <div v-if="preregistered(session).length" class="space-y-1">
+            <p class="text-xs font-semibold text-gray-600">Pré-inscrites : {{ preregistered(session).length }}</p>
+            <ul class="divide-y divide-gray-100 text-sm">
+              <li v-for="registration in preregistered(session)" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
+                <RegistrationSelectionName :registration="registration" :line="lineOf(registration, session)" :replayer="isReplayer(registration)" :wishes="wishLabels(registration, session)" :to-link="toLink(registration)" />
+                <div class="flex shrink-0 flex-wrap gap-2">
+                  <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="showDetail(registration)">Détail</UButton>
+                  <UButton
+                    v-if="manualRetainAllowed(session)"
+                    size="xs"
+                    color="primary"
+                    variant="soft"
+                    :disabled="session.taken >= session.seats"
+                    :title="session.taken >= session.seats ? 'Session complète : créez un personnage pour ajouter une place' : undefined"
+                    @click="decide(registration, 'retain', session.id)"
+                  >
+                    Retenir
+                  </UButton>
+                  <UButton size="xs" color="neutral" variant="soft" @click="decide(registration, 'waitlist', session.id)">Liste d’attente</UButton>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <p v-if="!placed(session).length && !waiting(session).length && !preregistered(session).length" class="text-xs text-gray-500">Personne pour l’instant.</p>
+
+          <!-- Ajout à la main d'une autre personne du vivier (R20) : un refus ou un rejoueur exclu se signale -->
+          <div v-if="others(session).length && manualRetainAllowed(session)" class="flex flex-wrap items-center gap-2 pt-1">
+            <USelectMenu
+              size="xs"
+              class="w-72"
+              :items="otherItems(session)"
+              value-key="value"
+              placeholder="Ajouter une autre personne du vivier…"
+              :disabled="session.taken >= session.seats"
+              @update:model-value="(id) => id && decide(registrationById(id), 'retain', session.id)"
+            />
+          </div>
+
+          <!-- Ses tirages, repliés (R8) -->
+          <details v-if="drawsOf(session).length" class="space-y-2">
+            <summary class="cursor-pointer text-xs font-semibold text-gray-600">Tirages : {{ drawsOf(session).length }}</summary>
+            <RegistrationDrawEntry v-for="entry in drawsOf(session)" :key="entry.id" :entry="entry" :names="names" cancellable :cancelling="cancelling" @cancel="cancelDraw" />
+          </details>
+        </template>
       </div>
+
+      <!-- Tirages des sessions terminées, annulées ou supprimées : à lire seulement (R10) -->
+      <details v-if="pastDraws.length" class="space-y-2" data-past-draws>
+        <summary class="cursor-pointer text-xs font-semibold text-gray-600">Sessions passées : {{ plural(pastDraws.length, 'tirage') }}</summary>
+        <RegistrationDrawEntry v-for="entry in pastDraws" :key="entry.id" :entry="entry" :names="names" :cancellable="false" />
+      </details>
     </template>
 
     <!-- Onglet Vivier (R11) : les personnes du vivier, puis celles qui en sont sorties -->
@@ -372,7 +363,7 @@ import {
   metaOf
 } from '~/utils/domain'
 import { ANNOUNCEMENT_REMOVED, canConfirmPlace, pendingAnnouncement, poolOf } from '~/utils/registrations'
-import { formatLongDate, formatLongDateTime } from '~/utils/dates'
+import { formatLongDate } from '~/utils/dates'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import {
@@ -395,6 +386,8 @@ const SELECTION_MODE_ITEMS: Array<{ value: string, label: string }> = [...REGIST
 
 // view : onglet Sessions ou Vivier de la page du jeu (SPEC-020) ; une seule lecture de la sélection pour les deux
 const props = defineProps<{ period: RegistrationPeriod, view: 'sessions' | 'vivier' }>()
+const route = useRoute()
+const router = useRouter()
 
 // Relance, nouveau lien, prolongation, libération, retrait et détail : les actions du bloc du jeu (US-005)
 // Ses messages s'affichent en haut de la page, avec ceux du bloc (SPEC-020, R6)
@@ -433,6 +426,26 @@ onMounted(loadOverview)
 watch(registrations, loadOverview)
 
 const sessions = computed(() => overview.value?.sessions ?? [])
+
+// Sessions dépliées, par leur slug, dans l'adresse (R9) : `sessions=a,b` ; vide, aucune. Sans rien dans l'adresse (première
+// ouverture), la première de la liste est dépliée
+const expanded = computed(() => {
+  const value = route.query.sessions
+  if (typeof value !== 'string') return sessions.value.slice(0, 1).map((session) => session.slug)
+  return value ? value.split(',') : []
+})
+const isExpanded = (session: SelectionSession) => expanded.value.includes(session.slug)
+function toggle(session: SelectionSession) {
+  const next = isExpanded(session) ? expanded.value.filter((slug) => slug !== session.slug) : [...expanded.value, session.slug]
+  void router.replace({ query: { ...route.query, sessions: next.join(',') } })
+}
+
+// Tirages d'une session prévue ; les autres (session terminée, annulée ou supprimée) vont sous « Sessions passées » (R10)
+const drawsOf = (session: SelectionSession) => draws.value.filter((entry) => entry.sessionId === session.id)
+const pastDraws = computed(() => {
+  const listed = new Set(sessions.value.map((session) => session.id))
+  return draws.value.filter((entry) => !entry.sessionId || !listed.has(entry.sessionId))
+})
 const replayers = computed(() => new Set(overview.value?.replayerParticipantIds ?? []))
 const isReplayer = (registration: PeriodRegistration) => replayers.value.has(registration.participant.id)
 const registrationNames = computed(() => new Map(registrations.value.map((registration) => [registration.id, registration.participant.name])))
