@@ -2,6 +2,7 @@ import {
   metaOf,
   REGISTRATION_ANSWERS,
   REGISTRATION_PERIOD_STATE_META,
+  REGISTRATION_SEAT_STATUSES,
   REGISTRATION_SELECTION_STATUSES,
   REGISTRATION_SESSION_STATUSES,
   REGISTRATION_SESSION_STATUS_META,
@@ -113,3 +114,47 @@ export const poolOf = <T extends { status: string }>(registrations: T[]) =>
 /** Onglets de la page Inscriptions d'un jeu (SPEC-020, R4), dans l'adresse sous `onglet` (R5). */
 export const REGISTRATION_TABS = ['sessions', 'vivier', 'reglages'] as const
 export type RegistrationTab = typeof REGISTRATION_TABS[number]
+
+/** Ce qui reste à traiter dans une session (SPEC-020, R2). */
+export type ToHandle = { answersChanged: number, awaitingReply: number, castToAnnounce: number }
+type HandledLine = LineLike & { sessionId: string, answersChangedAt?: string | Date | null }
+type HandledSession = { id: string, castAnnouncedAt?: string | Date | null }
+
+/**
+ * Ce qui reste à traiter dans chaque session prévue donnée, pour les personnes du vivier : réponses modifiées non lues
+ * d'une personne placée (celles qui ont « Marquer comme lu »),
+ * réponses attendues (place retenue et annoncée, pas encore confirmée), et casting à annoncer (jamais annoncé avec une
+ * personne retenue, ou annoncé avec des changements à proposer).
+ */
+export function toHandleBySession(registrations: Array<{ status: string, sessionLines: HandledLine[] }>, sessions: HandledSession[]) {
+  const lines = poolOf(registrations).flatMap((registration) => registration.sessionLines)
+  return new Map(sessions.map((session) => {
+    const own = lines.filter((line) => line.sessionId === session.id)
+    const toAnnounce = session.castAnnouncedAt
+      ? own.some(isAnnouncementPending)
+      : own.some((line) => line.status === REGISTRATION_SESSION_STATUSES.retained)
+    return [session.id, {
+      answersChanged: own.filter((line) => line.answersChangedAt && REGISTRATION_SEAT_STATUSES.includes(line.status)).length,
+      awaitingReply: own.filter(canConfirmPlace).length,
+      castToAnnounce: toAnnounce ? 1 : 0
+    } satisfies ToHandle]
+  }))
+}
+
+/** Somme de ce qui reste à traiter dans plusieurs sessions. */
+export const sumToHandle = (counts: Iterable<ToHandle>) => [...counts].reduce<ToHandle>((total, count) => ({
+  answersChanged: total.answersChanged + count.answersChanged,
+  awaitingReply: total.awaitingReply + count.awaitingReply,
+  castToAnnounce: total.castToAnnounce + count.castToAnnounce
+}), { answersChanged: 0, awaitingReply: 0, castToAnnounce: 0 })
+
+const countLabel = (count: number, singular: string, plural: string) => `${count} ${count > 1 ? plural : singular}`
+
+/** « 2 réponses modifiées · 1 réponse attendue · 1 casting à annoncer », sans les nombres nuls ; vide sans rien à traiter. */
+export function toHandleText(count: ToHandle) {
+  return [
+    count.answersChanged ? countLabel(count.answersChanged, 'réponse modifiée', 'réponses modifiées') : '',
+    count.awaitingReply ? countLabel(count.awaitingReply, 'réponse attendue', 'réponses attendues') : '',
+    count.castToAnnounce ? countLabel(count.castToAnnounce, 'casting à annoncer', 'castings à annoncer') : ''
+  ].filter(Boolean).join(' · ')
+}

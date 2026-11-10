@@ -36,6 +36,7 @@
             <UBadge :color="row.state.color" variant="subtle">{{ row.state.label }}</UBadge>
             <span v-if="row.period">{{ plural(row.pool, 'personne') }} dans le vivier</span>
           </div>
+          <p v-if="row.toHandle" class="text-sm text-warning-700" data-to-handle>{{ row.toHandle }}</p>
         </div>
         <UButton
           v-if="!row.period"
@@ -60,8 +61,9 @@
 import { useGameFocus } from '@/composables/useGameFocus'
 import { isArchivedGame } from '~/utils/games'
 import { useRegistrationLists } from '~/composables/useRegistrationLists'
-import { plural } from '~/composables/useRegistrationPeriodActions'
-import { periodStateMeta, poolOf } from '~/utils/registrations'
+import { plural, type RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
+import { SESSION_STATUSES } from '~/utils/domain'
+import { periodStateMeta, poolOf, sumToHandle, toHandleBySession, toHandleText } from '~/utils/registrations'
 
 // Résumé des inscriptions de ses jeux (SPEC-020, R1) ; avec un jeu actif, la page de ce jeu (R3)
 const { game: selectedGame } = useGameFocus()
@@ -75,6 +77,11 @@ const showForm = computed({
 })
 
 const NO_PERIOD = { label: 'Pas de vivier', color: 'neutral' } as const
+
+// Sessions prévues proposées au vivier : celles où il reste à traiter (R2) ; une session sans lien au vivier n'a personne
+const scheduledSessions = (period: RegistrationPeriod) => period.sessions
+  .filter((link) => link.session.status === SESSION_STATUSES.scheduled)
+  .map((link) => ({ id: link.sessionId, castAnnouncedAt: link.castAnnouncedAt }))
 
 // Le jeu actif ne garde que son identifiant : sa page s'ouvre une fois la liste des jeux lue
 const focusedSlug = computed(() => games.value.find((game) => game.id === selectedGame.value?.id)?.slug)
@@ -99,7 +106,8 @@ const rows = computed(() => {
         game,
         period,
         state: period ? periodStateMeta(period.state) : NO_PERIOD,
-        pool: period ? poolOf(period.registrations).length : 0
+        pool: period ? poolOf(period.registrations).length : 0,
+        toHandle: period ? toHandleText(sumToHandle(toHandleBySession(period.registrations, scheduledSessions(period)).values())) : ''
       }
     })
 })

@@ -31,7 +31,7 @@ Aujourd'hui, la page Inscriptions affiche l'un sous l'autre le bloc complet de c
 
 - **R1** Sans jeu actif, Inscriptions affiche une ligne par jeu, triée par titre ; la case « Afficher les jeux archivés » reste, et la liste de choix d'un jeu disparaît. Chaque ligne donne l'état du vivier (pas de vivier, brouillon, ouvert, fermé), le nombre de personnes dans le vivier et ce qui reste à traiter (R2). Un clic ouvre la page du jeu (R4). Un jeu sans vivier a un bouton « Créer le vivier », qui ouvre ses réglages puis la page du jeu.
 - **R2** « À traiter » compte, pour les sessions prévues du jeu (R7) :
-  - les réponses modifiées depuis leur dernière lecture (celles qui ont « Marquer comme lu ») ;
+  - les réponses modifiées depuis leur dernière lecture, d'une personne placée (celles qui ont « Marquer comme lu ») ;
   - les réponses attendues : une personne retenue, à qui le casting est annoncé, et qui n'a pas encore confirmé sa place (celles qui ont « Relancer » et « Prolonger ») ;
   - les sessions dont le casting attend une annonce : jamais annoncé avec au moins une personne retenue, ou annoncé avec des changements à proposer ([SPEC-018](SPEC-018-vivier-permanent.md)).
 
@@ -104,3 +104,4 @@ Un seul lot, [EPIC-054](../epics/EPIC-054-page-inscriptions/README.md) :
 - 2026-11-10 : US-231 livrée : sessions repliées, dans l'adresse, avec leurs tirages ; « Sessions passées » pour les autres tirages.
 - 2026-11-10 (revue d'US-231) : le tirage d'une session reportée se range sous « Sessions passées » et s'annule encore (R10) ; les sessions dépliées sont gardées par leur identifiant, stable au renommage (R9).
 - 2026-11-11 : US-232 livrée : recherche par nom ou email et filtre par vœu de session dans l'onglet Vivier.
+- 2026-11-11 : US-233 livrée : ce qui reste à traiter, dans le résumé et sur chaque session ; une réponse modifiée ne compte que si elle a « Marquer comme lu » (R2). Lot terminé.

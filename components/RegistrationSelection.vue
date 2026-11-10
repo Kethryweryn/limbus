@@ -40,6 +40,7 @@
               <UBadge class="ml-2" size="sm" :color="session.offered ? 'success' : 'neutral'" variant="subtle">
                 {{ session.offered ? 'Ouverte à la pré-inscription' : 'Pas proposée au vivier' }}
               </UBadge>
+              <span v-if="toHandleOf(session)" class="ml-2 text-xs font-normal text-warning-700" data-to-handle>{{ toHandleOf(session) }}</span>
             </button>
           </h4>
           <div v-if="isExpanded(session)" class="flex flex-wrap gap-2">
@@ -381,7 +382,7 @@ import {
   SESSION_STATUSES,
   metaOf
 } from '~/utils/domain'
-import { ANNOUNCEMENT_REMOVED, canConfirmPlace, pendingAnnouncement, poolOf } from '~/utils/registrations'
+import { ANNOUNCEMENT_REMOVED, canConfirmPlace, pendingAnnouncement, poolOf, toHandleBySession, toHandleText } from '~/utils/registrations'
 import { normalizeName } from '~/utils/affinityMatching'
 import { formatLongDate } from '~/utils/dates'
 import { apiErrorMessage } from '~/utils/apiErrors'
@@ -458,6 +459,13 @@ const isExpanded = (session: SelectionSession) => expanded.value.includes(sessio
 function toggle(session: SelectionSession) {
   const next = isExpanded(session) ? expanded.value.filter((id) => id !== session.id) : [...expanded.value, session.id]
   void router.replace({ query: { ...route.query, sessions: next.join(',') } })
+}
+
+// Ce qui reste à traiter dans chaque session (R2), sur sa ligne repliée
+const toHandle = computed(() => toHandleBySession(registrations.value, sessions.value))
+const toHandleOf = (session: SelectionSession) => {
+  const count = toHandle.value.get(session.id)
+  return count ? toHandleText(count) : ''
 }
 
 // Tirages de chaque session prévue ; les autres vont sous « Sessions passées » (R10), où seul celui d'une session
