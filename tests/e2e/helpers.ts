@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { TERMS_VERSION } from '../../utils/legal'
 import { expect, test as base, type BrowserContext, type Locator, type Page } from '@playwright/test'
 import bcrypt from 'bcrypt'
@@ -190,4 +191,27 @@ export async function castSession(prisma: TestPrisma, gameId: string, base: stri
   await prisma.sessionParticipant.createMany({ data: cast.map(([, who]) => ({ sessionId: session.id, participantId: who.id, role: 'participant' as const })) })
   await prisma.sessionAssignment.createMany({ data: cast.map(([role, who]) => ({ gameId, sessionId: session.id, characterId: role.id, participantId: who.id })) })
   return session
+}
+
+// Assistant d'IA de test (EPIC-033) : son adresse de retour n'existe pas, `captureCallback` la capte
+export const AI_REDIRECT = 'http://localhost:9999/callback'
+
+// Demande d'autorisation d'un assistant inscrit dynamiquement : l'adresse de la page « Autoriser »
+export async function authorizationRequest(page: Page, clientName: string) {
+  const client = await (await page.request.post('/oauth/register', { data: { client_name: clientName, redirect_uris: [AI_REDIRECT] } })).json()
+  const challenge = createHash('sha256').update('v'.repeat(50)).digest('base64url')
+  const response = await page.request.get(`/oauth/authorize?${new URLSearchParams({
+    response_type: 'code', client_id: client.client_id, redirect_uri: AI_REDIRECT, code_challenge: challenge, code_challenge_method: 'S256', state: 'etat-e2e'
+  })}`, { maxRedirects: 0 })
+  return response.headers().location!
+}
+
+// Adresse de retour de l'assistant, captée : `seen.url` la donne une fois la décision prise
+export async function captureCallback(page: Page) {
+  const seen = { url: '' }
+  await page.route(`${AI_REDIRECT}**`, (route) => {
+    seen.url = route.request().url()
+    return route.fulfill({ body: 'ok' })
+  })
+  return seen
 }

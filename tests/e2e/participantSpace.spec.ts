@@ -3,8 +3,9 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
+import { TERMS_VERSION } from '../../utils/legal'
 import { E2E_USERS } from './constants'
-import { orgaGame, orgaSession, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
+import { authorizationRequest, captureCallback, orgaGame, orgaSession, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
 
 // Vivier ouvert d'un jeu propre au test, avec une session à venir proposée
 async function openPeriod(prisma: TestPrisma, base: string, state: 'open' | 'closed' = 'open') {
@@ -225,8 +226,25 @@ test.describe('inscription qui ne se charge pas', () => {
       await signIn(page, prisma, member.email)
       await page.route('**/api/me/registrations/**', (route) => route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }))
       await page.goto(`/participer/inscriptions/${member.registration.id}`)
+      await expect(page.getByRole('heading', { name: 'Inscription indisponible' })).toBeVisible()
       await expect(page.getByText('Impossible de charger cette inscription. Réessayez dans quelques minutes.')).toBeVisible()
       await expect(page.getByRole('heading', { name: 'Inscription introuvable' })).toBeHidden()
+    } finally {
+      await prisma.$disconnect()
+    }
+  })
+
+  test('depuis le compte, une session expirée renvoie à l’écran de connexion', async ({ page }) => {
+    const prisma = createTestPrisma()
+    try {
+      const member = await poolMember(prisma, 'Session expirée')
+      await signIn(page, prisma, member.email)
+      await page.goto('/participer')
+      await expect(page.getByRole('link', { name: 'Voir ou modifier' })).toBeVisible()
+      // Sessions révoquées ailleurs (« Déconnecter tous mes appareils ») : le cookie ne vaut plus
+      await prisma.user.update({ where: { id: member.user.id }, data: { sessionVersion: { increment: 1 } } })
+      await page.getByRole('link', { name: 'Voir ou modifier' }).click()
+      await expect(page.getByRole('heading', { name: 'Connexion' })).toBeVisible()
     } finally {
       await prisma.$disconnect()
     }
@@ -255,28 +273,6 @@ test.describe('inscription qui ne se charge pas', () => {
     }
   })
 })
-
-const REDIRECT = 'http://localhost:9999/callback'
-
-// Demande d'autorisation d'un assistant inscrit dynamiquement : l'adresse de la page « Autoriser »
-async function authorizationRequest(page: Page, clientName: string) {
-  const client = await (await page.request.post('/oauth/register', { data: { client_name: clientName, redirect_uris: [REDIRECT] } })).json()
-  const challenge = createHash('sha256').update('v'.repeat(50)).digest('base64url')
-  const response = await page.request.get(`/oauth/authorize?${new URLSearchParams({
-    response_type: 'code', client_id: client.client_id, redirect_uri: REDIRECT, code_challenge: challenge, code_challenge_method: 'S256', state: 'etat-e2e'
-  })}`, { maxRedirects: 0 })
-  return response.headers().location!
-}
-
-// L'adresse de retour de l'assistant n'existe pas ici : on la capte
-async function captureCallback(page: Page) {
-  const seen = { url: '' }
-  await page.route(`${REDIRECT}**`, (route) => {
-    seen.url = route.request().url()
-    return route.fulfill({ body: 'ok' })
-  })
-  return seen
-}
 
 test.describe('assistants d’IA', () => {
   test('une co-organisatrice ne propose un jeu partagé que si la propriétaire l’ouvre aux assistants', async ({ page }) => {
@@ -375,6 +371,110 @@ test.describe('assistants d’IA', () => {
       await expect(page.getByText('Les envois et les autres actions attendent la connexion.', { exact: false })).toBeVisible()
       await context.setOffline(false)
       expect(await prisma.aiAuthorization.count({ where: { client: { name: offlineClient } } })).toBe(0)
+    } finally {
+      await prisma.$disconnect()
+    }
+  })
+})
+
+test.describe('autres écrans qui disent le réseau absent (US-217)', () => {
+  test('hors ligne, le réglage des assistants d’un jeu est refusé, et ne part pas au retour du réseau', async ({ page, context }) => {
+    const prisma = createTestPrisma()
+    try {
+      const game = await orgaGame(prisma, 'Jeu réglage IA hors ligne')
+      await signIn(page, prisma, E2E_USERS.orga)
+      await page.goto(`/games/${game.slug}`)
+      await page.waitForLoadState('networkidle')
+      await page.getByRole('button', { name: 'Partager' }).click()
+      const toggle = page.getByRole('switch', { name: 'Les co-organisatrices peuvent y brancher une IA' })
+      await expect(page.getByText('Aucun assistant n’a accès à ce jeu.')).toBeVisible()
+
+      await context.setOffline(true)
+      await toggle.click()
+      await expect(page.getByRole('dialog').getByText(/Pas de réseau : cette action demande une connexion/)).toBeVisible()
+      await expect(toggle).not.toBeChecked()
+      // Rien n'est mis en attente : le retour du réseau n'envoie pas le réglage refusé
+      await expect(page.getByText(/\d+ en attente/)).toBeHidden()
+      // Au rechargement, les modifications en attente partent (US-052) : aucune ne doit porter ce réglage
+      await context.setOffline(false)
+      await page.reload()
+      await page.waitForLoadState('networkidle')
+      expect((await prisma.game.findUniqueOrThrow({ where: { id: game.id } })).aiForCoorganizers).toBe(false)
+    } finally {
+      await prisma.$disconnect()
+    }
+  })
+
+  test('hors ligne, retirer un assistant du compte est refusé et le dit', async ({ page, context }) => {
+    const prisma = createTestPrisma()
+    try {
+      const client = uniqueName('Assistant à garder')
+      const { email } = await testUser(prisma, 'Compte IA hors ligne')
+      await signIn(page, prisma, email)
+      await page.goto(await authorizationRequest(page, client))
+      await page.waitForLoadState('networkidle')
+      const callback = await captureCallback(page)
+      await page.getByRole('button', { name: 'Autoriser' }).click()
+      await expect.poll(() => callback.url).toContain('code=')
+
+      await page.goto('/compte')
+      await page.waitForLoadState('networkidle')
+      const card = page.locator('div.rounded').filter({ hasText: client }).first()
+      await context.setOffline(true)
+      page.once('dialog', (dialog) => dialog.accept())
+      await card.getByRole('button', { name: 'Retirer' }).click()
+      await expect(page.getByText(/Pas de réseau : cette action demande une connexion/)).toBeVisible()
+      await context.setOffline(false)
+      expect(await prisma.aiAuthorization.count({ where: { client: { name: client } } })).toBe(1)
+    } finally {
+      await prisma.$disconnect()
+    }
+  })
+
+  test('un document ou un événement jamais lu sur l’appareil le dit, sans réseau', async ({ page }) => {
+    const prisma = createTestPrisma()
+    try {
+      const game = await orgaGame(prisma, 'Jeu fiches jamais lues')
+      const title = uniqueName('Document jamais lu')
+      await prisma.document.create({ data: { title, slug: slugOf(title), gameId: game.id, content: 'Texte' } })
+      const name = uniqueName('Événement jamais lu')
+      await prisma.timelineEvent.create({ data: { name, slug: slugOf(name), gameId: game.id, day: 1, time: '10:00' } })
+      await signIn(page, prisma, E2E_USERS.orga)
+      await page.route('**/api/documents/slug/**', (route) => route.abort('internetdisconnected'))
+      await page.route('**/api/timeline-events/slug/**', (route) => route.abort('internetdisconnected'))
+
+      await page.goto(`/documents/${slugOf(title)}`)
+      await expect(page.getByText('Cette page n’a pas été consultée avec le réseau sur cet appareil', { exact: false })).toBeVisible()
+      await expect(page.getByText('Document introuvable.')).toBeHidden()
+      await page.goto(`/timeline/${slugOf(name)}`)
+      await expect(page.getByText('Cette page n’a pas été consultée avec le réseau sur cet appareil', { exact: false })).toBeVisible()
+      await expect(page.getByText('Événement introuvable.')).toBeHidden()
+    } finally {
+      await prisma.$disconnect()
+    }
+  })
+
+  test('sans réseau, accepter les conditions ou renvoyer le lien de confirmation le dit', async ({ page }) => {
+    const prisma = createTestPrisma()
+    try {
+      const { user, email } = await testUser(prisma, 'Conditions sans réseau')
+      await signIn(page, prisma, email)
+      await page.route('**/api/auth/accept-terms', (route) => route.abort('internetdisconnected'))
+      await page.route('**/api/auth/resend-confirmation', (route) => route.abort('internetdisconnected'))
+
+      await prisma.user.update({ where: { id: user.id }, data: { termsAcceptedVersion: null } })
+      await page.reload()
+      await expect(page.getByRole('heading', { name: 'Conditions d’utilisation' })).toBeVisible()
+      await page.waitForLoadState('networkidle')
+      await page.getByRole('button', { name: 'J’accepte' }).click()
+      await expect(page.getByText(/Pas de réseau : cette action demande une connexion/)).toBeVisible()
+
+      await prisma.user.update({ where: { id: user.id }, data: { termsAcceptedVersion: TERMS_VERSION, emailConfirmedAt: null } })
+      await page.reload()
+      await expect(page.getByRole('heading', { name: 'Confirmez votre adresse' })).toBeVisible()
+      await page.waitForLoadState('networkidle')
+      await page.getByRole('button', { name: 'Renvoyer le lien' }).click()
+      await expect(page.getByText(/Pas de réseau : cette action demande une connexion/)).toBeVisible()
     } finally {
       await prisma.$disconnect()
     }

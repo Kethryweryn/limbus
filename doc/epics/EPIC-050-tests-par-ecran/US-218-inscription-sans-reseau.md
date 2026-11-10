@@ -20,8 +20,8 @@ En tant que personne inscrite, je veux que mon inscription, ouverte depuis « Je
 
 ## Notes techniques
 
-Choix de l'utilisatrice le 2026-11-10 : un message clair, plutôt qu'une inscription lisible hors ligne. `components/RegistrationResponse.vue` ne traite en « introuvable » qu'une réponse 404 ; les autres erreurs passent par `loadErrorMessage`.
+Choix de l'utilisatrice le 2026-11-10 : un message clair, plutôt qu'une inscription lisible hors ligne. `components/RegistrationResponse.vue` ne traite en « introuvable » qu'une réponse 404 ; les autres erreurs passent par `loadErrorMessage`, sous le titre « Inscription indisponible ». Depuis le compte, une session expirée renvoie à l'écran de connexion (revue de la PR #197).
 
 ## Tests
 
-`tests/e2e/participantSpace.spec.ts` : inscription ouverte sans réseau depuis « Je participe », panne du serveur, lien personnel sans réseau (aucune confirmation tentée), lien inconnu et inscription d'une autre personne toujours introuvables.
+`tests/e2e/participantSpace.spec.ts` : inscription ouverte sans réseau depuis « Je participe », panne du serveur, lien personnel sans réseau (aucune confirmation tentée), lien inconnu et inscription d'une autre personne toujours introuvables, session expirée renvoyée à l'écran de connexion.

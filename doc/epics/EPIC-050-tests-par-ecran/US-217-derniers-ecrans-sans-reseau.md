@@ -20,8 +20,8 @@ En tant que personne qui utilise Limbus sans réseau, je veux que « Je particip
 
 ## Notes techniques
 
-Suite de l'US-214, même choix de l'utilisatrice (« Message clair », 2026-11-10). Les derniers appels à `serverMessage` dans les pages et composants passent à `apiErrorMessage` (action) ou `loadErrorMessage` (chargement).
+Suite de l'US-214, même choix de l'utilisatrice (« Message clair », 2026-11-10). Les derniers appels à `serverMessage` dans les pages et composants passent à `apiErrorMessage` (action) ou `loadErrorMessage` (chargement). Revue de la PR #197 : `useApiAction` ne met plus jamais en file une action, même sur une route qui le permet ; avant, le réglage des assistants d'un jeu, refusé à l'écran hors ligne, partait quand même au retour du réseau.
 
 ## Tests
 
-`tests/e2e/participantSpace.spec.ts` : « Autoriser » sans réseau. `tests/utils/apiErrors.test.ts` couvre `apiErrorMessage` et `loadErrorMessage`, désormais seuls utilisés par les écrans.
+`tests/e2e/participantSpace.spec.ts` : « Autoriser », réglage des assistants d'un jeu, retrait d'un assistant, document et événement jamais lus, conditions et lien de confirmation, sans réseau. `tests/utils/apiErrors.test.ts` couvre `apiErrorMessage` et `loadErrorMessage`, désormais seuls utilisés par les écrans.
