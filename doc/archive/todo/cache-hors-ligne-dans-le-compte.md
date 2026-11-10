@@ -1,7 +1,8 @@
 ---
 titre: Gérer depuis son compte les données gardées pour le hors ligne
-statut: à trancher
+statut: archivée
 date: 2026-11-10
+spec: ../../specs/SPEC-019-hors-ligne-dans-le-compte.md
 ---
 
 # Gérer depuis son compte les données gardées pour le hors ligne
@@ -38,3 +39,7 @@ Ces réglages valent pour l'appareil, et non pour le compte : un autre appareil 
 7. **Participantes** : la section concerne-t-elle aussi l'espace « Je participe » (documents reçus, trombinoscope) ? Recommandation : plus tard, dans une autre fiche.
 8. **Place prise** : afficher seulement les données (pages, PDF, photos), ou tout ce que le navigateur garde, application comprise ? Recommandation : les données seules, avec la place totale en petit.
 9. **Identité hors ligne** : effacer garde-t-il de quoi rouvrir Limbus sans réseau pour ce compte (sans les données), ou l'oublie-t-il comme la déconnexion ? Recommandation : la garder, pour qu'un effacement sur le terrain ne bloque pas l'accès ; seule la désactivation l'oublie.
+
+## Suite
+
+Points tranchés par l'utilisatrice le 2026-11-10, avec des choix ajoutés (rythme de la mise à jour, accès perdu, participantes, réglage par défaut) : voir [SPEC-019](../../specs/SPEC-019-hors-ligne-dans-le-compte.md), [ADR-0080](../../adr/ADR-0080-urgence-et-allergies-dans-un-telechargement.md) et [ADR-0081](../../adr/ADR-0081-telechargement-par-le-navigateur.md). Écarts aux recommandations : contact d'urgence et allergies toujours inclus (point 3), mise à jour toute seule (point 6), participantes dans ce chantier (point 7).

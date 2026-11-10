@@ -7,7 +7,6 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Durcissement web](durcissement-web.md) | en partie traitée | 2026-10-29 | CSP et COOP sur les pages, origine des écritures, cookie `__Host-` (revue R-01 à R-03) |
 | [Supervision](supervision.md) | en partie traitée | 2026-10-29 | Route de santé et sondes Better Stack faites ; reste les journaux structurés, si besoin (revue R-15, R-16) |
 | [Un compte pour chaque participant](compte-pour-chaque-participant.md) | à trancher | 2026-11-09 | Chaque fiche appartient à la personne, par un compte pré-créé ; une seule fiche par personne dans tout Limbus |
-| [Gérer depuis son compte les données gardées pour le hors ligne](cache-hors-ligne-dans-le-compte.md) | à trancher | 2026-11-10 | Tout télécharger pour le hors ligne, voir la place prise, effacer, désactiver sur un appareil |
 
 ## Archivées
 
@@ -35,3 +34,4 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Un seul mode d'inscription, le vivier permanent](../archive/todo/vivier-permanent.md) | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | 2026-11-06 |
 | [Revue du schéma de données](../archive/todo/schema-de-donnees.md) | [EPIC-049](../archive/epics/EPIC-049-schema-de-donnees/README.md) | 2026-11-09 |
 | [Plusieurs tests de bout en bout par écran](../archive/todo/tests-par-ecran.md) | [EPIC-050](../archive/epics/EPIC-050-tests-par-ecran/README.md) | 2026-11-09 |
+| [Gérer depuis son compte les données gardées pour le hors ligne](../archive/todo/cache-hors-ligne-dans-le-compte.md) | [SPEC-019](../specs/SPEC-019-hors-ligne-dans-le-compte.md) | 2026-11-10 |
