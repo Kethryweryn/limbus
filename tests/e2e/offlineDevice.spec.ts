@@ -3,7 +3,7 @@
 import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { choose, expectLoggedIn, offlineRecordCount, orgaGame, parcoursSession, signIn, test, testUser } from './helpers'
+import { choose, expectLoggedIn, offlineRecordCount, openUserMenu, orgaGame, parcoursSession, signIn, test, testUser } from './helpers'
 
 // File d'attente de l'appareil, écrite ou lue directement dans IndexedDB
 async function writeQueue(page: Page, operations: unknown[]) {
@@ -143,6 +143,25 @@ test.describe('place prise et effacement', () => {
       expect(await queueLength(page)).toBe(0)
       await context.setOffline(false)
       expect(await prisma.location.count({ where: { gameId: game.id } })).toBe(0)
+    } finally {
+      await prisma.$disconnect()
+    }
+  })
+
+  test('sans réseau, Mon compte ne se charge pas, mais la section de l’appareil s’affiche', async ({ page, context }) => {
+    const prisma = createTestPrisma()
+    try {
+      await signIn(page, prisma, E2E_USERS.orga)
+      await page.goto('/games')
+      await page.waitForLoadState('networkidle')
+      await context.setOffline(true)
+      await openUserMenu(page)
+      await page.getByRole('menuitem', { name: 'Mon compte' }).click()
+      await page.waitForURL('**/compte')
+      await expect(page.getByText(/Pas de réseau : cette page demande une connexion/)).toBeVisible()
+      await expect(card(page).getByText(/Données gardées \(pages, PDF, photos\) : \d/)).toBeVisible()
+      await expect(card(page).getByRole('button', { name: 'Effacer les données de l’appareil' })).toBeVisible()
+      await context.setOffline(false)
     } finally {
       await prisma.$disconnect()
     }

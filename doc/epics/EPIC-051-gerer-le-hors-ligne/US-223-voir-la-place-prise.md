@@ -28,6 +28,6 @@ De bout en bout (`tests/e2e/offlineDevice.spec.ts`), sur les quatre axes (ADR-00
 - Actions : « la place des données s’affiche, et l’effacement la vide sans déconnecter ».
 - Erreurs de saisie : aucune saisie dans cette US.
 - Droits : « une participante a aussi la section, pour son appareil ».
-- Hors ligne : la section s'ouvre sans réseau (« sans réseau, seul l’abandon est proposé… »).
+- Hors ligne : « sans réseau, Mon compte ne se charge pas, mais la section de l’appareil s’affiche » (correctif après le déploiement : la section était dans le bloc du compte, qui ne se charge pas sans réseau).
 
 Unitaires : `tests/utils/offlineDevice.test.ts` (tailles lues dans le JSON et dans l'en-tête `Content-Length`).
