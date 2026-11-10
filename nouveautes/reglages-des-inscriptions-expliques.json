@@ -1,0 +1,5 @@
+{
+  "type": "corrige",
+  "titre": "Les réglages des inscriptions disent ce qui ne va pas",
+  "texte": "Dans la fenêtre « Sélection » d’une session, dans les réglages du vivier, une invitation ou une prolongation, une valeur refusée affiche un message de Limbus qui dit quoi corriger, au lieu d’une bulle du navigateur."
+}

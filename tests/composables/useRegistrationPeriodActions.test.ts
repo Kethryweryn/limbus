@@ -28,7 +28,7 @@ describe('actions du bloc d’un jeu', () => {
     await actions.remind(registration as never)
 
     expect(actionMock).toHaveBeenCalledWith('/api/registrations/r1/remind', { method: 'POST', body: { sessionId: null } })
-    expect(fetchByUrlMock).toHaveBeenCalledWith('/api/registration-periods?gameId=g1')
+    expect(fetchByUrlMock).toHaveBeenCalledWith('/api/registration-periods?gameId=g1', { offlineCache: true })
     expect(actions.infoMessage.value).toBe('Rappel envoyé à Léa.')
   })
 

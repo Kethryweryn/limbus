@@ -124,7 +124,7 @@
         </UCard>
 
         <UCard>
-          <form class="space-y-5" @submit.prevent="submit">
+          <form class="space-y-5" novalidate @submit.prevent="submit">
             <h2 class="font-semibold">Vos informations</h2>
 
             <RegistrationAnswerFields

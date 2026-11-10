@@ -1,7 +1,7 @@
 <template>
   <UModal v-model:open="open" title="Inviter à rejoindre le vivier">
     <template #body>
-      <form class="space-y-5" @submit.prevent="submit">
+      <form class="space-y-5" novalidate @submit.prevent="submit">
         <p class="text-sm text-gray-500">
           Chaque personne reçoit par email un lien vers le questionnaire : elle entre dans le vivier en y répondant.
         </p>
