@@ -1,6 +1,6 @@
 ---
 titre: Un seul mode d'inscription, le vivier permanent
-statut: prête
+statut: archivée
 date: 2026-11-06
 spec: ../../specs/SPEC-018-vivier-permanent.md
 ---

@@ -1,0 +1,56 @@
+---
+id: EPIC-050
+titre: Plusieurs tests de bout en bout par écran
+statut: terminé
+spec: ../../todo/tests-par-ecran.md
+date: 2026-11-09
+---
+
+# EPIC-050 : Plusieurs tests de bout en bout par écran
+
+## Objectif
+
+Chaque écran de Limbus a plusieurs tests Playwright, sur quatre axes : ses actions, ses erreurs de saisie, ses droits et le hors ligne ([fiche](../../todo/tests-par-ecran.md), choix de l'utilisatrice du 2026-11-09). Un défaut trouvé en écrivant un test est corrigé dans le même lot, avec sa propre US.
+
+## US
+
+| US | Titre | Statut |
+|---|---|---|
+| [US-198](US-198-tests-ecriture.md) | Tester chaque écran de l'écriture d'un jeu | terminée |
+| [US-199](US-199-tests-sessions.md) | Tester chaque écran des sessions | terminée |
+| [US-200](US-200-tests-participants.md) | Tester chaque écran des participants | terminée |
+| [US-201](US-201-tests-compte-et-administration.md) | Tester les écrans du compte, de l'accès et de l'administration | terminée |
+| [US-202](US-202-tests-espace-participant.md) | Tester l'espace « Je participe », le lien public d'inscription et les assistants | terminée |
+| [US-203](US-203-tests-inscriptions.md) | Tester chaque règle des inscriptions | terminée |
+| [US-204](US-204-champ-obligatoire-explique.md) | Savoir quel champ obligatoire manque | terminée |
+| [US-205](US-205-option-aucun.md) | Choisir « Aucun » dans une liste de choix | terminée |
+| [US-206](US-206-erreur-du-serveur-dans-le-formulaire.md) | Voir le refus du serveur dans le formulaire d'un personnage ou d'un jeu | terminée |
+| [US-207](US-207-supprimer-un-jeu-archive.md) | Supprimer définitivement un jeu archivé | terminée |
+| [US-208](US-208-description-une-seule-fois.md) | Lire la description d'un jeu une seule fois | terminée |
+| [US-209](US-209-carte-et-fiche-d-une-session.md) | Ouvrir une session d'un clic sur sa carte, et la supprimer depuis sa fiche | terminée |
+| [US-210](US-210-messages-en-francais.md) | Lire en français les refus du serveur | terminée |
+| [US-211](US-211-supprimer-un-participant-depuis-sa-fiche.md) | Supprimer un participant depuis sa fiche, et voir pourquoi c'est refusé | terminée |
+| [US-212](US-212-fiches-hors-ligne.md) | Rouvrir hors ligne toute fiche consultée | terminée |
+| [US-213](US-213-refus-explique-acces-et-compte.md) | Lire la raison d'un refus dans les formulaires de l'accès, du compte et de l'administration | terminée |
+| [US-214](US-214-action-sans-reseau.md) | Savoir qu'une action demande le réseau | terminée |
+| [US-215](US-215-page-d-administration-refusee.md) | Voir pourquoi une page d'administration est refusée | terminée |
+| [US-216](US-216-message-dans-la-carte.md) | Lire le résultat d'un formulaire du compte à côté de son bouton | terminée |
+| [US-217](US-217-derniers-ecrans-sans-reseau.md) | Savoir qu’une action ou une page demande le réseau, sur les derniers écrans | terminée |
+| [US-218](US-218-inscription-sans-reseau.md) | Ne pas lire « introuvable » quand son inscription ne peut pas se charger | terminée |
+| [US-219](US-219-bandeau-hors-ligne.md) | Lire dans le bandeau hors ligne ce qui attend le réseau | terminée |
+| [US-220](US-220-reglages-des-inscriptions-expliques.md) | Lire le message de Limbus dans les réglages des inscriptions | terminée |
+| [US-221](US-221-refus-hors-ligne-une-fois.md) | Ne lire qu’une fois le refus d’une décision faite sans réseau | terminée |
+| [US-222](US-222-editeur-du-formulaire-sans-reseau.md) | Savoir que l’éditeur du formulaire demande le réseau pour s’ouvrir | terminée |
+
+## Définition de terminé
+
+- Toutes les US terminées ; `npm run lint`, `npm run typecheck`, `npm test` et la CI passent.
+- Chaque écran de la fiche a ses tests sur les quatre axes, ou la raison de leur absence.
+
+## Suivi
+
+- 2026-11-09 au 2026-11-10 : déployé en huit PR, chacune vérifiée en production (sites joignables, notes dans /nouveautes) : US-198 (#190), US-199 (#191, #192), US-200 (#193), US-201 (#196), US-202 (#197), US-203 (#198, #199).
+- Dix-neuf défauts trouvés en écrivant les tests, chacun corrigé dans son lot avec sa propre US (US-204 à US-222) ; les écrans de Limbus ont tous leurs tests sur les quatre axes, ou la raison de leur absence dans leur US.
+- En route, [ADR-0079](../../../adr/ADR-0079-tests-de-chaque-developpement.md) (#195) : tout développement ajoute ses tests sur les quatre axes ; les outils communs des tests sont dans `tests/e2e/helpers.ts`.
+- Limite connue : la page Inscriptions charge la sélection de chaque jeu ; avec les nombreux jeux des tests, elle dépasse le délai d'une assertion, et les tests la filtrent sur leur jeu (`openRegistrations`).
+- Epic archivé.

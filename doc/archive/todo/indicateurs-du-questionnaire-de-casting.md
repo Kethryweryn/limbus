@@ -9,7 +9,7 @@ spec: ../../specs/SPEC-015-qualite-du-questionnaire.md
 
 ## Besoin
 
-L'équipe d'un jeu écrit les questions du formulaire d'inscription qui servent au casting, et les relie aux personnages, factions et intrigues ([SPEC-001](../specs/SPEC-001-inscriptions.md), R8, [ADR-0050](../adr/ADR-0050-relations-et-questionnaire-relie.md)). L'assistant de casting en tire une note pour chaque paire joueur ↔ personnage (R27, [ADR-0051](../adr/ADR-0051-assistant-de-casting.md)).
+L'équipe d'un jeu écrit les questions du formulaire d'inscription qui servent au casting, et les relie aux personnages, factions et intrigues ([SPEC-001](../../specs/SPEC-001-inscriptions.md), R8, [ADR-0050](../../adr/ADR-0050-relations-et-questionnaire-relie.md)). L'assistant de casting en tire une note pour chaque paire joueur ↔ personnage (R27, [ADR-0051](../../adr/ADR-0051-assistant-de-casting.md)).
 
 Aujourd'hui, rien ne dit à l'équipe si son questionnaire permet de choisir :
 

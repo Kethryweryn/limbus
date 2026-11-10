@@ -1,7 +1,7 @@
 ---
 id: SPEC-018
 titre: Un seul mode d'inscription, le vivier permanent
-statut: validée
+statut: implémentée
 date: 2026-11-06
 origine: ../archive/todo/vivier-permanent.md
 epics: [EPIC-046, EPIC-047, EPIC-048]
@@ -137,9 +137,9 @@ Données personnelles : les disponibilités et les statuts par session sont couv
 
 ## Découpage
 
-1. Vivier unique, statut par session et tirage par session (R1 à R8, R14, R17 à R20, R22 à R25, R29 à R31), [EPIC-046](../epics/EPIC-046-vivier-unique/README.md).
-2. Demande de disponibilités et retour sur ses réponses (R9 à R13, R15), [EPIC-047](../epics/EPIC-047-demande-de-disponibilites/README.md).
-3. Casting : assistant, annonces, alertes et inscrites validées (R16, R18, R21, R26 à R28, R30), [EPIC-048](../epics/EPIC-048-casting-depuis-le-vivier/README.md).
+1. Vivier unique, statut par session et tirage par session (R1 à R8, R14, R17 à R20, R22 à R25, R29 à R31), [EPIC-046](../archive/epics/EPIC-046-vivier-unique/README.md).
+2. Demande de disponibilités et retour sur ses réponses (R9 à R13, R15), [EPIC-047](../archive/epics/EPIC-047-demande-de-disponibilites/README.md).
+3. Casting : assistant, annonces, alertes et inscrites validées (R16, R18, R21, R26 à R28, R30), [EPIC-048](../archive/epics/EPIC-048-casting-depuis-le-vivier/README.md).
 
 ## Hors périmètre
 
@@ -152,7 +152,7 @@ Données personnelles : les disponibilités et les statuts par session sont couv
 - 2026-11-06 : création à partir du retour A4-4 du cahier de tests.
 - 2026-11-06 : EPIC-046 livré sauf US-176 (tout joueur passe par le questionnaire), qui suit dans sa propre PR.
 - 2026-11-06 : US-176 livrée : l'onglet Cast choisit dans le vivier, ce qui retient la personne (R20), ou invite pour la session ; toute autre personne est refusée comme joueur.
-- 2026-11-06 : US-175 livrée : specs et ADR renvoient vers ce qui les remplace ; EPIC-045 à EPIC-048 restent à archiver sur le feu vert de l'utilisatrice.
+- 2026-11-06 : US-175 livrée : specs et ADR renvoient vers ce qui les remplace.
 - 2026-11-06 : US-174 livrée : « inscrite validée » se calcule des paiements, avec les mêmes libellés pour l'équipe et la personne (R18).
 - 2026-11-06 : US-173 livrée : repère « réponses modifiées » et email à l'équipe (R16).
 - 2026-11-06 : US-172 livrée : annonce du casting par session, puis email proposé personne par personne (R26 à R28).
@@ -162,3 +162,5 @@ Données personnelles : les disponibilités et les statuts par session sont couv
 - 2026-11-06 (revue d'US-176, choix de l'utilisatrice) : un PNJ ou une organisatrice peut tenir un PJ sans questionnaire, pas la cuisine (R31).
 - 2026-11-06 (seconde revue, choix de l'utilisatrice) : les places valent le nombre de PJ (R8) ; un joueur passe toujours par le questionnaire, et l'invitation peut viser une session (R4, R31) ; statut « transférée » au report (R30) ; un rejoueur exclu peut être retenu à la main (R24) ; le mode simple valide à la case « payé » (R17).
 - 2026-11-06 (revue, choix de l'utilisatrice) : effets d'un « Pas disponible » (R29), paiements remboursés, transférés ou reportés (R30), session ouverte forcément datée (R6), alerte limitée aux personnes castées ou inscrites (R16). Pas d'entité « place » : voir ADR-0069.
+
+- 2026-11-10 : EPIC-046 à EPIC-048 archivés ; spec implémentée. Ses règles ont leurs tests de bout en bout depuis l'US-203.

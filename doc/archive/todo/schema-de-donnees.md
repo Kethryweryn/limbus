@@ -28,7 +28,7 @@ Une trentaine de colonnes `String` n'acceptent que quelques valeurs : `status`, 
 - `RegistrationQuestionLink` : exactement une cible (personnage, faction ou intrigue) devrait être renseignée ; rien ne l'impose, ni l'absence de doublon.
 - `CharacterRelation` : rien n'empêche une relation d'un personnage avec lui-même, ni deux relations sur la même paire.
 - Qu'un élément lié appartienne au même jeu n'est vérifié que par le code (règle de [`securite-api.md`](../../../.claude/rules/securite-api.md), couverte par `tests/integration/isolation.test.ts`). La pratique reconnue pour l'imposer en base est une clé étrangère composée `(id, gameId)`.
-- Une seule fiche par personne et par organisatrice ([US-185](../../epics/EPIC-045-retours-du-cahier-de-tests/US-185-une-fiche-par-personne.md)) : `Participant` n'a pas de propriétaire, l'unicité ne peut pas être une contrainte ; elle repose sur un verrou consultatif.
+- Une seule fiche par personne et par organisatrice ([US-185](../epics/EPIC-045-retours-du-cahier-de-tests/US-185-une-fiche-par-personne.md)) : `Participant` n'a pas de propriétaire, l'unicité ne peut pas être une contrainte ; elle repose sur un verrou consultatif.
 - L'unicité de `User.email` dépend de la mise en minuscules faite par le code, pas de la base (ni `citext` ni index sur `lower(email)`).
 
 ### 4. Dates sans fuseau horaire

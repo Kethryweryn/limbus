@@ -52,12 +52,12 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-042](../archive/epics/EPIC-042-relecture-et-melange-du-questionnaire/README.md) | Aide à la conception du questionnaire, lot 3 : relecture et mélange | [SPEC-016](../specs/SPEC-016-conception-du-questionnaire.md) | terminé |
 | [EPIC-043](../archive/epics/EPIC-043-nouveautes/README.md) | Nouveautés et numéro de déploiement | [SPEC-017](../specs/SPEC-017-nouveautes.md) | terminé |
 | [EPIC-044](../archive/epics/EPIC-044-jeux-de-test/README.md) | Jeux de test à jour pour tout essayer | [fiche](../archive/todo/jeux-de-test.md) | terminé |
-| [EPIC-045](EPIC-045-retours-du-cahier-de-tests/README.md) | Retours du cahier de tests fonctionnels | [fiche](../archive/todo/retours-du-cahier-de-tests.md) | en cours |
-| [EPIC-046](EPIC-046-vivier-unique/README.md) | Vivier unique et statut par session | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | en cours |
-| [EPIC-047](EPIC-047-demande-de-disponibilites/README.md) | Demande de disponibilités au vivier | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | à faire |
-| [EPIC-048](EPIC-048-casting-depuis-le-vivier/README.md) | Casting depuis le vivier | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | à faire |
+| [EPIC-045](../archive/epics/EPIC-045-retours-du-cahier-de-tests/README.md) | Retours du cahier de tests fonctionnels | [fiche](../archive/todo/retours-du-cahier-de-tests.md) | terminé |
+| [EPIC-046](../archive/epics/EPIC-046-vivier-unique/README.md) | Vivier unique et statut par session | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | terminé |
+| [EPIC-047](../archive/epics/EPIC-047-demande-de-disponibilites/README.md) | Demande de disponibilités au vivier | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | terminé |
+| [EPIC-048](../archive/epics/EPIC-048-casting-depuis-le-vivier/README.md) | Casting depuis le vivier | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | terminé |
 | [EPIC-049](../archive/epics/EPIC-049-schema-de-donnees/README.md) | Schéma de données | [fiche](../archive/todo/schema-de-donnees.md) | terminé |
-| [EPIC-050](EPIC-050-tests-par-ecran/README.md) | Plusieurs tests de bout en bout par écran | [fiche](../archive/todo/tests-par-ecran.md) | en cours |
+| [EPIC-050](../archive/epics/EPIC-050-tests-par-ecran/README.md) | Plusieurs tests de bout en bout par écran | [fiche](../archive/todo/tests-par-ecran.md) | terminé |
 
 ## US
 
@@ -218,38 +218,38 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-153](../archive/epics/EPIC-044-jeux-de-test/US-153-jeu-session-imminente.md) | Essayer une session imminente sur Les Cendres de Valombre | EPIC-044 | terminée |
 | [US-154](../archive/epics/EPIC-044-jeux-de-test/US-154-jeu-apres-et-imprevus.md) | Essayer l'après-session et les imprévus sur Le Bal des Masques Brisés | EPIC-044 | terminée |
 | [US-155](../archive/epics/EPIC-044-jeux-de-test/US-155-guide-et-verification.md) | Savoir où essayer chaque fonctionnalité, et garder le script à jour | EPIC-044 | terminée |
-| [US-156](EPIC-045-retours-du-cahier-de-tests/US-156-retrouver-ses-participations.md) | Retrouver ses participations depuis l'organisation | EPIC-045 | terminée |
-| [US-157](EPIC-045-retours-du-cahier-de-tests/US-157-page-d-erreur.md) | Comprendre qu'une page n'est pas accessible | EPIC-045 | terminée |
-| [US-158](EPIC-045-retours-du-cahier-de-tests/US-158-carte-du-jeu-actif.md) | Repérer le jeu actif sur la page Jeux | EPIC-045 | terminée |
-| [US-159](EPIC-045-retours-du-cahier-de-tests/US-159-connexion-sans-blocage.md) | Se connecter sans rester bloquée | EPIC-045 | terminée |
-| [US-160](EPIC-046-vivier-unique/US-160-regrouper-en-un-vivier.md) | Avoir un seul vivier par jeu | EPIC-046 | terminée |
-| [US-161](EPIC-046-vivier-unique/US-161-statut-par-session.md) | Suivre une personne session par session | EPIC-046 | terminée |
-| [US-162](EPIC-046-vivier-unique/US-162-ouvrir-une-session.md) | Ouvrir une session à la pré-inscription | EPIC-046 | terminée |
-| [US-163](EPIC-046-vivier-unique/US-163-disponibilites-du-questionnaire.md) | Dire où je suis disponible en répondant au questionnaire | EPIC-046 | terminée |
-| [US-164](EPIC-046-vivier-unique/US-164-inviter-a-rejoindre.md) | Inviter une personne à rejoindre le vivier, ou pour une session | EPIC-046 | terminée |
-| [US-165](EPIC-046-vivier-unique/US-165-annuler-ou-quitter.md) | Annuler ma présence à une session, ou quitter le vivier | EPIC-046 | terminée |
-| [US-166](EPIC-047-demande-de-disponibilites/US-166-demander-au-vivier.md) | Demander au vivier qui est disponible | EPIC-047 | terminée |
-| [US-167](EPIC-047-demande-de-disponibilites/US-167-repondre-a-la-demande.md) | Répondre à une demande d'un clic | EPIC-047 | terminée |
-| [US-168](EPIC-047-demande-de-disponibilites/US-168-relancer-la-demande.md) | Relancer les personnes sans réponse | EPIC-047 | terminée |
-| [US-169](EPIC-047-demande-de-disponibilites/US-169-liens-et-derniere-version.md) | Revenir sur mes réponses avec un lien qui reste valable | EPIC-047 | terminée |
-| [US-170](EPIC-048-casting-depuis-le-vivier/US-170-assistant-sur-les-pre-inscrits.md) | Proposer le casting parmi les pré-inscrits | EPIC-048 | terminée |
-| [US-171](EPIC-046-vivier-unique/US-171-tirage-par-session.md) | Tirer au sort pour une session | EPIC-046 | terminée |
-| [US-172](EPIC-048-casting-depuis-le-vivier/US-172-annoncer-le-casting.md) | Annoncer le casting, puis écrire au cas par cas | EPIC-048 | terminée |
-| [US-173](EPIC-048-casting-depuis-le-vivier/US-173-reponses-modifiees.md) | Être prévenue quand une personne castée change ses réponses | EPIC-048 | terminée |
-| [US-174](EPIC-048-casting-depuis-le-vivier/US-174-parcours-complet.md) | Lire le parcours complet d'une personne | EPIC-048 | terminée |
-| [US-175](EPIC-048-casting-depuis-le-vivier/US-175-retirer-l-ancien-modele.md) | Retirer l'ancien modèle des inscriptions | EPIC-048 | terminée |
-| [US-176](EPIC-046-vivier-unique/US-176-joueur-par-le-questionnaire.md) | Faire passer tout joueur par le questionnaire | EPIC-046 | terminée |
-| [US-177](EPIC-045-retours-du-cahier-de-tests/US-177-mes-photos-dans-le-compte.md) | Retrouver « Mes photos » dans mon compte | EPIC-045 | terminée |
-| [US-178](EPIC-045-retours-du-cahier-de-tests/US-178-urgence-et-allergies-sur-la-fiche.md) | Voir le contact d'urgence et les allergies sur la fiche participante | EPIC-045 | terminée |
-| [US-179](EPIC-045-retours-du-cahier-de-tests/US-179-carte-participant-cliquable.md) | Ouvrir une fiche en cliquant sur sa carte | EPIC-045 | terminée |
-| [US-180](EPIC-045-retours-du-cahier-de-tests/US-180-afficher-le-mot-de-passe.md) | Afficher le mot de passe pendant la saisie | EPIC-045 | terminée |
-| [US-181](EPIC-045-retours-du-cahier-de-tests/US-181-urgence-et-allergies-toujours-demandees.md) | Toujours demander le contact d'urgence et les allergies | EPIC-045 | terminée |
-| [US-182](EPIC-045-retours-du-cahier-de-tests/US-182-nom-du-contact-d-urgence.md) | Lire le nom du contact d'urgence sur la fiche | EPIC-045 | terminée |
-| [US-183](EPIC-045-retours-du-cahier-de-tests/US-183-sessions-sur-la-fiche.md) | Ouvrir les sessions d'une personne depuis sa fiche | EPIC-045 | terminée |
-| [US-184](EPIC-045-retours-du-cahier-de-tests/US-184-mise-a-jour-sans-perdre-sa-saisie.md) | Recevoir une nouvelle version sans perdre sa saisie | EPIC-045 | terminée |
-| [US-185](EPIC-045-retours-du-cahier-de-tests/US-185-une-fiche-par-personne.md) | Une seule fiche par personne dans mes jeux | EPIC-045 | terminée |
-| [US-186](EPIC-045-retours-du-cahier-de-tests/US-186-supprimer-depuis-la-fiche.md) | Supprimer un élément depuis sa fiche | EPIC-045 | terminée |
-| [US-187](EPIC-045-retours-du-cahier-de-tests/US-187-public-des-documents.md) | Choisir le public d'un document par rôles et par personnages | EPIC-045 | terminée |
+| [US-156](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-156-retrouver-ses-participations.md) | Retrouver ses participations depuis l'organisation | EPIC-045 | terminée |
+| [US-157](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-157-page-d-erreur.md) | Comprendre qu'une page n'est pas accessible | EPIC-045 | terminée |
+| [US-158](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-158-carte-du-jeu-actif.md) | Repérer le jeu actif sur la page Jeux | EPIC-045 | terminée |
+| [US-159](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-159-connexion-sans-blocage.md) | Se connecter sans rester bloquée | EPIC-045 | terminée |
+| [US-160](../archive/epics/EPIC-046-vivier-unique/US-160-regrouper-en-un-vivier.md) | Avoir un seul vivier par jeu | EPIC-046 | terminée |
+| [US-161](../archive/epics/EPIC-046-vivier-unique/US-161-statut-par-session.md) | Suivre une personne session par session | EPIC-046 | terminée |
+| [US-162](../archive/epics/EPIC-046-vivier-unique/US-162-ouvrir-une-session.md) | Ouvrir une session à la pré-inscription | EPIC-046 | terminée |
+| [US-163](../archive/epics/EPIC-046-vivier-unique/US-163-disponibilites-du-questionnaire.md) | Dire où je suis disponible en répondant au questionnaire | EPIC-046 | terminée |
+| [US-164](../archive/epics/EPIC-046-vivier-unique/US-164-inviter-a-rejoindre.md) | Inviter une personne à rejoindre le vivier, ou pour une session | EPIC-046 | terminée |
+| [US-165](../archive/epics/EPIC-046-vivier-unique/US-165-annuler-ou-quitter.md) | Annuler ma présence à une session, ou quitter le vivier | EPIC-046 | terminée |
+| [US-166](../archive/epics/EPIC-047-demande-de-disponibilites/US-166-demander-au-vivier.md) | Demander au vivier qui est disponible | EPIC-047 | terminée |
+| [US-167](../archive/epics/EPIC-047-demande-de-disponibilites/US-167-repondre-a-la-demande.md) | Répondre à une demande d'un clic | EPIC-047 | terminée |
+| [US-168](../archive/epics/EPIC-047-demande-de-disponibilites/US-168-relancer-la-demande.md) | Relancer les personnes sans réponse | EPIC-047 | terminée |
+| [US-169](../archive/epics/EPIC-047-demande-de-disponibilites/US-169-liens-et-derniere-version.md) | Revenir sur mes réponses avec un lien qui reste valable | EPIC-047 | terminée |
+| [US-170](../archive/epics/EPIC-048-casting-depuis-le-vivier/US-170-assistant-sur-les-pre-inscrits.md) | Proposer le casting parmi les pré-inscrits | EPIC-048 | terminée |
+| [US-171](../archive/epics/EPIC-046-vivier-unique/US-171-tirage-par-session.md) | Tirer au sort pour une session | EPIC-046 | terminée |
+| [US-172](../archive/epics/EPIC-048-casting-depuis-le-vivier/US-172-annoncer-le-casting.md) | Annoncer le casting, puis écrire au cas par cas | EPIC-048 | terminée |
+| [US-173](../archive/epics/EPIC-048-casting-depuis-le-vivier/US-173-reponses-modifiees.md) | Être prévenue quand une personne castée change ses réponses | EPIC-048 | terminée |
+| [US-174](../archive/epics/EPIC-048-casting-depuis-le-vivier/US-174-parcours-complet.md) | Lire le parcours complet d'une personne | EPIC-048 | terminée |
+| [US-175](../archive/epics/EPIC-048-casting-depuis-le-vivier/US-175-retirer-l-ancien-modele.md) | Retirer l'ancien modèle des inscriptions | EPIC-048 | terminée |
+| [US-176](../archive/epics/EPIC-046-vivier-unique/US-176-joueur-par-le-questionnaire.md) | Faire passer tout joueur par le questionnaire | EPIC-046 | terminée |
+| [US-177](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-177-mes-photos-dans-le-compte.md) | Retrouver « Mes photos » dans mon compte | EPIC-045 | terminée |
+| [US-178](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-178-urgence-et-allergies-sur-la-fiche.md) | Voir le contact d'urgence et les allergies sur la fiche participante | EPIC-045 | terminée |
+| [US-179](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-179-carte-participant-cliquable.md) | Ouvrir une fiche en cliquant sur sa carte | EPIC-045 | terminée |
+| [US-180](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-180-afficher-le-mot-de-passe.md) | Afficher le mot de passe pendant la saisie | EPIC-045 | terminée |
+| [US-181](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-181-urgence-et-allergies-toujours-demandees.md) | Toujours demander le contact d'urgence et les allergies | EPIC-045 | terminée |
+| [US-182](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-182-nom-du-contact-d-urgence.md) | Lire le nom du contact d'urgence sur la fiche | EPIC-045 | terminée |
+| [US-183](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-183-sessions-sur-la-fiche.md) | Ouvrir les sessions d'une personne depuis sa fiche | EPIC-045 | terminée |
+| [US-184](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-184-mise-a-jour-sans-perdre-sa-saisie.md) | Recevoir une nouvelle version sans perdre sa saisie | EPIC-045 | terminée |
+| [US-185](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-185-une-fiche-par-personne.md) | Une seule fiche par personne dans mes jeux | EPIC-045 | terminée |
+| [US-186](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-186-supprimer-depuis-la-fiche.md) | Supprimer un élément depuis sa fiche | EPIC-045 | terminée |
+| [US-187](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-187-public-des-documents.md) | Choisir le public d'un document par rôles et par personnages | EPIC-045 | terminée |
 | [US-188](../archive/epics/EPIC-049-schema-de-donnees/US-188-index-et-homogeneite.md) | Indexer les clés étrangères et rendre le schéma homogène | EPIC-049 | terminée |
 | [US-189](../archive/epics/EPIC-049-schema-de-donnees/US-189-enumerations.md) | Faire refuser par la base les valeurs inconnues | EPIC-049 | terminée |
 | [US-190](../archive/epics/EPIC-049-schema-de-donnees/US-190-regles-des-liens-et-des-relations.md) | Faire tenir par la base les règles des liens du questionnaire et des relations | EPIC-049 | terminée |
@@ -258,30 +258,30 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-193](../archive/epics/EPIC-049-schema-de-donnees/US-193-restes-de-transitions-et-pdf.md) | Retirer les colonnes inutiles et garder le PDF du trombinoscope en binaire | EPIC-049 | terminée |
 | [US-194](../archive/epics/EPIC-049-schema-de-donnees/US-194-dates-avec-fuseau.md) | Stocker les dates avec leur fuseau horaire | EPIC-049 | terminée |
 | [US-195](../archive/epics/EPIC-049-schema-de-donnees/US-195-meme-jeu-sessions-et-vivier.md) | Faire refuser par la base un lien entre deux jeux dans les sessions et le vivier | EPIC-049 | terminée |
-| [US-196](EPIC-045-retours-du-cahier-de-tests/US-196-reperer-la-nouvelle-version.md) | Repérer une nouvelle version sans recharger la page | EPIC-045 | terminée |
-| [US-197](EPIC-045-retours-du-cahier-de-tests/US-197-carte-lieu-cliquable.md) | Ouvrir un lieu en cliquant sur sa carte | EPIC-045 | terminée |
-| [US-198](EPIC-050-tests-par-ecran/US-198-tests-ecriture.md) | Tester chaque écran de l'écriture d'un jeu | EPIC-050 | terminée |
-| [US-199](EPIC-050-tests-par-ecran/US-199-tests-sessions.md) | Tester chaque écran des sessions | EPIC-050 | terminée |
-| [US-200](EPIC-050-tests-par-ecran/US-200-tests-participants.md) | Tester chaque écran des participants | EPIC-050 | terminée |
-| [US-201](EPIC-050-tests-par-ecran/US-201-tests-compte-et-administration.md) | Tester les écrans du compte, de l'accès et de l'administration | EPIC-050 | terminée |
-| [US-202](EPIC-050-tests-par-ecran/US-202-tests-espace-participant.md) | Tester l'espace « Je participe », le lien public d'inscription et les assistants | EPIC-050 | terminée |
-| [US-203](EPIC-050-tests-par-ecran/US-203-tests-inscriptions.md) | Tester chaque règle des inscriptions | EPIC-050 | terminée |
-| [US-204](EPIC-050-tests-par-ecran/US-204-champ-obligatoire-explique.md) | Savoir quel champ obligatoire manque | EPIC-050 | terminée |
-| [US-205](EPIC-050-tests-par-ecran/US-205-option-aucun.md) | Choisir « Aucun » dans une liste de choix | EPIC-050 | terminée |
-| [US-206](EPIC-050-tests-par-ecran/US-206-erreur-du-serveur-dans-le-formulaire.md) | Voir le refus du serveur dans le formulaire d'un personnage ou d'un jeu | EPIC-050 | terminée |
-| [US-207](EPIC-050-tests-par-ecran/US-207-supprimer-un-jeu-archive.md) | Supprimer définitivement un jeu archivé | EPIC-050 | terminée |
-| [US-208](EPIC-050-tests-par-ecran/US-208-description-une-seule-fois.md) | Lire la description d'un jeu une seule fois | EPIC-050 | terminée |
-| [US-209](EPIC-050-tests-par-ecran/US-209-carte-et-fiche-d-une-session.md) | Ouvrir une session d'un clic sur sa carte, et la supprimer depuis sa fiche | EPIC-050 | terminée |
-| [US-210](EPIC-050-tests-par-ecran/US-210-messages-en-francais.md) | Lire en français les refus du serveur | EPIC-050 | terminée |
-| [US-211](EPIC-050-tests-par-ecran/US-211-supprimer-un-participant-depuis-sa-fiche.md) | Supprimer un participant depuis sa fiche, et voir pourquoi c'est refusé | EPIC-050 | terminée |
-| [US-212](EPIC-050-tests-par-ecran/US-212-fiches-hors-ligne.md) | Rouvrir hors ligne toute fiche consultée | EPIC-050 | terminée |
-| [US-213](EPIC-050-tests-par-ecran/US-213-refus-explique-acces-et-compte.md) | Lire la raison d'un refus dans les formulaires de l'accès, du compte et de l'administration | EPIC-050 | terminée |
-| [US-214](EPIC-050-tests-par-ecran/US-214-action-sans-reseau.md) | Savoir qu'une action demande le réseau | EPIC-050 | terminée |
-| [US-215](EPIC-050-tests-par-ecran/US-215-page-d-administration-refusee.md) | Voir pourquoi une page d'administration est refusée | EPIC-050 | terminée |
-| [US-216](EPIC-050-tests-par-ecran/US-216-message-dans-la-carte.md) | Lire le résultat d'un formulaire du compte à côté de son bouton | EPIC-050 | terminée |
-| [US-217](EPIC-050-tests-par-ecran/US-217-derniers-ecrans-sans-reseau.md) | Savoir qu’une action ou une page demande le réseau, sur les derniers écrans | EPIC-050 | terminée |
-| [US-218](EPIC-050-tests-par-ecran/US-218-inscription-sans-reseau.md) | Ne pas lire « introuvable » quand son inscription ne peut pas se charger | EPIC-050 | terminée |
-| [US-219](EPIC-050-tests-par-ecran/US-219-bandeau-hors-ligne.md) | Lire dans le bandeau hors ligne ce qui attend le réseau | EPIC-050 | terminée |
-| [US-220](EPIC-050-tests-par-ecran/US-220-reglages-des-inscriptions-expliques.md) | Lire le message de Limbus dans les réglages des inscriptions | EPIC-050 | terminée |
-| [US-221](EPIC-050-tests-par-ecran/US-221-refus-hors-ligne-une-fois.md) | Ne lire qu’une fois le refus d’une décision faite sans réseau | EPIC-050 | terminée |
-| [US-222](EPIC-050-tests-par-ecran/US-222-editeur-du-formulaire-sans-reseau.md) | Savoir que l’éditeur du formulaire demande le réseau pour s’ouvrir | EPIC-050 | terminée |
+| [US-196](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-196-reperer-la-nouvelle-version.md) | Repérer une nouvelle version sans recharger la page | EPIC-045 | terminée |
+| [US-197](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-197-carte-lieu-cliquable.md) | Ouvrir un lieu en cliquant sur sa carte | EPIC-045 | terminée |
+| [US-198](../archive/epics/EPIC-050-tests-par-ecran/US-198-tests-ecriture.md) | Tester chaque écran de l'écriture d'un jeu | EPIC-050 | terminée |
+| [US-199](../archive/epics/EPIC-050-tests-par-ecran/US-199-tests-sessions.md) | Tester chaque écran des sessions | EPIC-050 | terminée |
+| [US-200](../archive/epics/EPIC-050-tests-par-ecran/US-200-tests-participants.md) | Tester chaque écran des participants | EPIC-050 | terminée |
+| [US-201](../archive/epics/EPIC-050-tests-par-ecran/US-201-tests-compte-et-administration.md) | Tester les écrans du compte, de l'accès et de l'administration | EPIC-050 | terminée |
+| [US-202](../archive/epics/EPIC-050-tests-par-ecran/US-202-tests-espace-participant.md) | Tester l'espace « Je participe », le lien public d'inscription et les assistants | EPIC-050 | terminée |
+| [US-203](../archive/epics/EPIC-050-tests-par-ecran/US-203-tests-inscriptions.md) | Tester chaque règle des inscriptions | EPIC-050 | terminée |
+| [US-204](../archive/epics/EPIC-050-tests-par-ecran/US-204-champ-obligatoire-explique.md) | Savoir quel champ obligatoire manque | EPIC-050 | terminée |
+| [US-205](../archive/epics/EPIC-050-tests-par-ecran/US-205-option-aucun.md) | Choisir « Aucun » dans une liste de choix | EPIC-050 | terminée |
+| [US-206](../archive/epics/EPIC-050-tests-par-ecran/US-206-erreur-du-serveur-dans-le-formulaire.md) | Voir le refus du serveur dans le formulaire d'un personnage ou d'un jeu | EPIC-050 | terminée |
+| [US-207](../archive/epics/EPIC-050-tests-par-ecran/US-207-supprimer-un-jeu-archive.md) | Supprimer définitivement un jeu archivé | EPIC-050 | terminée |
+| [US-208](../archive/epics/EPIC-050-tests-par-ecran/US-208-description-une-seule-fois.md) | Lire la description d'un jeu une seule fois | EPIC-050 | terminée |
+| [US-209](../archive/epics/EPIC-050-tests-par-ecran/US-209-carte-et-fiche-d-une-session.md) | Ouvrir une session d'un clic sur sa carte, et la supprimer depuis sa fiche | EPIC-050 | terminée |
+| [US-210](../archive/epics/EPIC-050-tests-par-ecran/US-210-messages-en-francais.md) | Lire en français les refus du serveur | EPIC-050 | terminée |
+| [US-211](../archive/epics/EPIC-050-tests-par-ecran/US-211-supprimer-un-participant-depuis-sa-fiche.md) | Supprimer un participant depuis sa fiche, et voir pourquoi c'est refusé | EPIC-050 | terminée |
+| [US-212](../archive/epics/EPIC-050-tests-par-ecran/US-212-fiches-hors-ligne.md) | Rouvrir hors ligne toute fiche consultée | EPIC-050 | terminée |
+| [US-213](../archive/epics/EPIC-050-tests-par-ecran/US-213-refus-explique-acces-et-compte.md) | Lire la raison d'un refus dans les formulaires de l'accès, du compte et de l'administration | EPIC-050 | terminée |
+| [US-214](../archive/epics/EPIC-050-tests-par-ecran/US-214-action-sans-reseau.md) | Savoir qu'une action demande le réseau | EPIC-050 | terminée |
+| [US-215](../archive/epics/EPIC-050-tests-par-ecran/US-215-page-d-administration-refusee.md) | Voir pourquoi une page d'administration est refusée | EPIC-050 | terminée |
+| [US-216](../archive/epics/EPIC-050-tests-par-ecran/US-216-message-dans-la-carte.md) | Lire le résultat d'un formulaire du compte à côté de son bouton | EPIC-050 | terminée |
+| [US-217](../archive/epics/EPIC-050-tests-par-ecran/US-217-derniers-ecrans-sans-reseau.md) | Savoir qu’une action ou une page demande le réseau, sur les derniers écrans | EPIC-050 | terminée |
+| [US-218](../archive/epics/EPIC-050-tests-par-ecran/US-218-inscription-sans-reseau.md) | Ne pas lire « introuvable » quand son inscription ne peut pas se charger | EPIC-050 | terminée |
+| [US-219](../archive/epics/EPIC-050-tests-par-ecran/US-219-bandeau-hors-ligne.md) | Lire dans le bandeau hors ligne ce qui attend le réseau | EPIC-050 | terminée |
+| [US-220](../archive/epics/EPIC-050-tests-par-ecran/US-220-reglages-des-inscriptions-expliques.md) | Lire le message de Limbus dans les réglages des inscriptions | EPIC-050 | terminée |
+| [US-221](../archive/epics/EPIC-050-tests-par-ecran/US-221-refus-hors-ligne-une-fois.md) | Ne lire qu’une fois le refus d’une décision faite sans réseau | EPIC-050 | terminée |
+| [US-222](../archive/epics/EPIC-050-tests-par-ecran/US-222-editeur-du-formulaire-sans-reseau.md) | Savoir que l’éditeur du formulaire demande le réseau pour s’ouvrir | EPIC-050 | terminée |

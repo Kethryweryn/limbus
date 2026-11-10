@@ -2,7 +2,7 @@
 titre: Retours du cahier de tests fonctionnels
 statut: archivée
 date: 2026-11-06
-epic: ../../epics/EPIC-045-retours-du-cahier-de-tests/README.md
+epic: ../epics/EPIC-045-retours-du-cahier-de-tests/README.md
 ---
 
 # Retours du cahier de tests fonctionnels
@@ -13,7 +13,7 @@ L'utilisatrice déroule un cahier de tests sur les jeux de test ([EPIC-044](../e
 
 ## Proposition
 
-Un epic ouvert pendant ces essais, [EPIC-045](../../epics/EPIC-045-retours-du-cahier-de-tests/README.md), avec une US par retour, livrées par petits lots.
+Un epic ouvert pendant ces essais, [EPIC-045](../epics/EPIC-045-retours-du-cahier-de-tests/README.md), avec une US par retour, livrées par petits lots.
 
 ## Découpage envisagé
 

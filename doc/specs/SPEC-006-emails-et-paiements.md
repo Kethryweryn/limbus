@@ -66,7 +66,7 @@ Remettre à chaque personne d'une session ce qui la concerne, par email : docume
   - PNJ : les membres de l'équipe au rôle PNJ, et les personnes qui tiennent un personnage PNJ ;
   - PJ : les personnes qui tiennent un personnage PJ ;
   - sélection avancée : les personnes qui tiennent dans la session un personnage choisi ou un personnage d'un groupe choisi. Un personnage sans participant dans la session n'a pas de destinataire.
-  « Tout le monde » (les quatre cases) atteint donc le cast, l'organisation, les PNJ et la cuisine ([US-187](../epics/EPIC-045-retours-du-cahier-de-tests/US-187-public-des-documents.md)).
+  « Tout le monde » (les quatre cases) atteint donc le cast, l'organisation, les PNJ et la cuisine ([US-187](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-187-public-des-documents.md)).
 - **R8** Seul un document marqué « prêt à envoyer » peut être envoyé. Le test, lui, est toujours possible.
 - **R9** L'email d'un document reprend son contenu et son lien externe, avec le PDF du document en pièce jointe ([SPEC-005](SPEC-005-trombinoscopes-et-pdf.md), R12).
 - **R10** Les fiches partent aux personnes castées dont le personnage, PJ ou PNJ, est « prêt à envoyer », avec le PDF de la fiche ([SPEC-005](SPEC-005-trombinoscopes-et-pdf.md), R11). Les trombinoscopes partent aux personnes dont le trombinoscope a été généré, avec son PDF.
