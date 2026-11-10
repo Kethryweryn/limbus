@@ -3,7 +3,7 @@ name: CI
 # Construire une fois, tester, déployer ce build (ADR-0023) :
 # - sur une PR, l'application est construite dans un conteneur Debian 12 + Node 24 (comme le serveur),
 #   testée, puis archivée. Contrôles statiques et build tournent en parallèle, puis l'intégration et
-#   Playwright testent ce build en parallèle ;
+#   Playwright testent ce build en parallèle, Playwright en trois jobs (ADR-0082) ;
 # - la fusion dans main ne relance pas les tests : le job `deploy` reprend l'archive de la PR, vérifie
 #   qu'elle a été construite à partir du code exact de main, et l'envoie au serveur.
 # La protection de main exige la seule vérification « Verdict CI », sur une branche à jour avec main.
@@ -146,10 +146,15 @@ jobs:
       - run: tar -xzf limbus-build.tar.gz .output
       - run: npm run test:integration
 
+  # Trois jobs, chacun avec un tiers des fichiers de tests et sa propre base (ADR-0082)
   e2e:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     container: node:24-bookworm
     services:
       postgres: *postgres
@@ -173,12 +178,12 @@ jobs:
         run: npx playwright install --with-deps chromium
       - if: steps.chromium.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
-      - run: npm run test:e2e
+      - run: npm run test:e2e -- --shard=${{ matrix.shard }}/3
       - name: Traces Playwright en cas d'échec
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-traces
+          name: playwright-traces-${{ matrix.shard }}
           path: test-results/
           retention-days: 7
 

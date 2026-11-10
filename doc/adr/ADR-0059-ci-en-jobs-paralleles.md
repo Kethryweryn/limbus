@@ -1,7 +1,7 @@
 ---
 id: ADR-0059
 titre: CI en jobs parallèles, dépendances en cache, Playwright sur trois navigateurs
-statut: accepté
+statut: accepté, job `e2e` découpé en trois par ADR-0082
 date: 2026-11-03
 liens: [ADR-0023-deploiement-sans-ci-redondante.md, ADR-0037-jeu-commun-des-tests-de-bout-en-bout.md, ADR-0015-strategie-de-tests.md]
 ---
