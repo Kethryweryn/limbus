@@ -62,7 +62,7 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0056](ADR-0056-durees-de-conservation.md) | Comptes inactifs et fiches sans compte effacés à la connexion, en tâche de fond | accepté | 2026-11-02 |
 | [ADR-0057](ADR-0057-interface-en-typescript.md) | Interface en TypeScript strict, réponses déduites des routes Nitro, règle de lint étendue lot par lot | accepté | 2026-11-02 |
 | [ADR-0058](ADR-0058-serveur-d-autorisation-pour-les-ia.md) | Serveur MCP et serveur d'autorisation OAuth écrit pour Limbus, pour brancher une IA | accepté | 2026-11-02 |
-| [ADR-0059](ADR-0059-ci-en-jobs-paralleles.md) | CI en jobs parallèles, dépendances en cache, Playwright sur trois navigateurs | accepté | 2026-11-03 |
+| [ADR-0059](ADR-0059-ci-en-jobs-paralleles.md) | CI en jobs parallèles, dépendances en cache, Playwright sur trois navigateurs | accepté, Playwright découpé en trois jobs par ADR-0082 | 2026-11-03 |
 | [ADR-0060](ADR-0060-licence-non-commerciale.md) | Licence PolyForm Noncommercial à la place de MIT | accepté | 2026-11-03 |
 | [ADR-0061](ADR-0061-indicateurs-du-questionnaire.md) | Indicateurs statistiques de la qualité du questionnaire de casting (entropie, Wilson, Cramér, Spearman, HTMT) | accepté | 2026-11-03 |
 | [ADR-0062](ADR-0062-aide-a-la-conception-du-questionnaire.md) | Aide à la conception du questionnaire : information maximale, simulation de répondants, règles de relecture, consigne MCP, mélange des options | accepté | 2026-11-03 |
@@ -85,3 +85,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0079](ADR-0079-tests-de-chaque-developpement.md) | Tout développement ajoute ses tests de bout en bout sur quatre axes | accepté | 2026-11-10 |
 | [ADR-0080](ADR-0080-urgence-et-allergies-dans-un-telechargement.md) | Le téléchargement d'un jeu garde le contact d'urgence et les allergies sur l'appareil | accepté | 2026-11-10 |
 | [ADR-0081](ADR-0081-telechargement-par-le-navigateur.md) | Téléchargement hors ligne par le navigateur, qui rejoue les lectures des pages ; désactivation par appareil | accepté | 2026-11-10 |
+| [ADR-0082](ADR-0082-tests-de-bout-en-bout-en-trois-jobs.md) | Tests de bout en bout répartis sur trois jobs de la CI | accepté | 2026-11-10 |
