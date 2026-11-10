@@ -152,7 +152,7 @@ Données personnelles : les disponibilités et les statuts par session sont couv
 - 2026-11-06 : création à partir du retour A4-4 du cahier de tests.
 - 2026-11-06 : EPIC-046 livré sauf US-176 (tout joueur passe par le questionnaire), qui suit dans sa propre PR.
 - 2026-11-06 : US-176 livrée : l'onglet Cast choisit dans le vivier, ce qui retient la personne (R20), ou invite pour la session ; toute autre personne est refusée comme joueur.
-- 2026-11-06 : US-175 livrée : specs et ADR renvoient vers ce qui les remplace.
+- 2026-11-06 : US-175 livrée : specs et ADR renvoient vers ce qui les remplace ; EPIC-045 à EPIC-048 restent à archiver sur le feu vert de l'utilisatrice.
 - 2026-11-06 : US-174 livrée : « inscrite validée » se calcule des paiements, avec les mêmes libellés pour l'équipe et la personne (R18).
 - 2026-11-06 : US-173 livrée : repère « réponses modifiées » et email à l'équipe (R16).
 - 2026-11-06 : US-172 livrée : annonce du casting par session, puis email proposé personne par personne (R26 à R28).

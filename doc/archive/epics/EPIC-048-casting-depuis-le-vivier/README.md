@@ -31,5 +31,5 @@ L'assistant part des pré-inscrits, l'équipe garde la main sur chaque email, el
 
 ## Suivi
 
-- 2026-11-06 : déployé en six PR, vérifiées en production : US-170 (#162), US-172 (#163), US-173 (#164), US-174 (#165), US-175 (#166), et la seconde migration d'ADR-0069, qui retire l'ancien modèle de la base (#160).
+- 2026-11-06 : déployé en six PR, vérifiées en production (sites joignables) : US-170 (#162), US-172 (#163), US-173 (#164), US-174 (#165), US-175 (#166), et la seconde migration d'ADR-0069, qui retire l'ancien modèle de la base (#160).
 - Epic archivé.

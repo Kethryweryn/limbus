@@ -29,5 +29,5 @@ Quand une session s'ouvre, l'équipe écrit au vivier pour demander qui est int�
 
 ## Suivi
 
-- 2026-11-06 : déployé en une PR (#161), vérifiée en production.
+- 2026-11-06 : déployé en une PR (#161), vérifiée en production (sites joignables).
 - Epic archivé.

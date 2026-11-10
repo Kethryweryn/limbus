@@ -33,7 +33,7 @@ Chaque jeu a un seul vivier, une personne y répond une seule fois, dit où elle
 
 ## Suivi
 
-- 2026-11-06 : déployé en deux PR, vérifiées en production : US-160 à US-165 et US-171 (#158), puis US-176 (#159).
+- 2026-11-06 : déployé en deux PR, vérifiées en production (sites joignables) : US-160 à US-165 et US-171 (#158), puis US-176 (#159).
 - Les revues ont fait trancher par l'utilisatrice les places (le nombre de PJ), l'invitation pour une session, le statut « transférée » au report, le rejoueur exclu retenu à la main et la validation par la case « payé » en mode simple ; voir l'historique de [SPEC-018](../../../specs/SPEC-018-vivier-permanent.md).
 - Les règles du vivier et de la sélection ont leurs tests de bout en bout depuis l'US-203 ([EPIC-050](../EPIC-050-tests-par-ecran/README.md)).
 - Epic archivé.
