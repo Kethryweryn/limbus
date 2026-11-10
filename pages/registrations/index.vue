@@ -7,19 +7,11 @@
 
     <GameContextBar />
 
-    <div v-if="!selectedGame" class="flex flex-col gap-4 md:flex-row">
-      <USelect
-        v-model="gameFilter"
-        :items="gameFilterOptions"
-        value-key="value"
-        class="w-full md:w-64"
-      />
-      <AppCheckboxRow
-        v-model="showArchived"
-        label="Afficher les jeux archivés"
-        class="md:w-72"
-      />
-    </div>
+    <AppCheckboxRow
+      v-model="showArchived"
+      label="Afficher les jeux archivés"
+      class="md:w-72"
+    />
 
     <UAlert
       v-if="errorMessage"
@@ -28,18 +20,38 @@
       :description="errorMessage"
     />
 
-    <div class="space-y-6">
-      <RegistrationPeriodsPanel
-        v-for="game in displayedGames"
-        :key="game.id"
-        :game-id="game.id"
-        :game-title="game.title"
-        :initial-periods="periodsByGame[game.id] ?? NO_PERIODS"
-      />
-      <p v-if="loaded && !displayedGames.length && !errorMessage" class="text-sm text-gray-500">
-        Aucun jeu à afficher.
-      </p>
-    </div>
+    <!-- Une ligne par jeu (SPEC-020, R1) : un clic ouvre sa page -->
+    <ul v-if="rows.length" class="divide-y divide-gray-100 rounded border border-gray-200">
+      <li
+        v-for="row in rows"
+        :key="row.game.id"
+        class="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between"
+        :aria-label="row.game.title"
+      >
+        <div class="min-w-0 space-y-1">
+          <NuxtLink :to="`/registrations/${row.game.slug}`" class="font-medium text-gray-900 hover:underline">
+            {{ row.game.title }}
+          </NuxtLink>
+          <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500">
+            <UBadge :color="row.state.color" variant="subtle">{{ row.state.label }}</UBadge>
+            <span v-if="row.period">{{ plural(row.pool, 'personne') }} dans le vivier</span>
+          </div>
+        </div>
+        <UButton
+          v-if="!row.period"
+          icon="i-heroicons-plus"
+          color="primary"
+          variant="soft"
+          size="sm"
+          :to="`/registrations/${row.game.slug}`"
+        >
+          Créer le vivier
+        </UButton>
+      </li>
+    </ul>
+    <p v-else-if="loaded && !errorMessage" class="text-sm text-gray-500">
+      Aucun jeu à afficher.
+    </p>
   </div>
 </template>
 
@@ -49,32 +61,35 @@ import { isArchivedGame } from '~/utils/games'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
-import type { RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
+import { plural, type RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
+import { REGISTRATION_PERIOD_STATE_META, REGISTRATION_STATUSES, metaOf } from '~/utils/domain'
+import { REGISTRATION_PERIODS_READ } from '~/utils/offlinePlan'
 
+// Résumé des inscriptions de ses jeux (SPEC-020, R1) ; avec un jeu actif, la page de ce jeu (R3)
 const { game: selectedGame } = useGameFocus()
 const games = ref<ApiResponse<'/api/games'>>([])
-const gameFilter = ref('all')
+const periods = ref<RegistrationPeriod[]>([])
 const showArchived = ref(false)
 const errorMessage = ref('')
-
-const periodsByGame = ref<Record<string, RegistrationPeriod[]>>({})
 const loaded = ref(false)
-// Même tableau d'un rendu à l'autre : un bloc ne reprend le vivier de la page qu'après une nouvelle lecture
-const NO_PERIODS: RegistrationPeriod[] = []
 
-// Une seule requête pour toutes les périodes et leurs inscriptions ; chaque bloc se recharge ensuite seul. La page se
-// lit hors ligne depuis sa dernière version sur l'appareil (US-119)
+const NO_PERIOD = { label: 'Pas de vivier', color: 'neutral' } as const
+
+// Le jeu actif ne garde que son identifiant : sa page s'ouvre une fois la liste des jeux lue
+const focusedSlug = computed(() => games.value.find((game) => game.id === selectedGame.value?.id)?.slug)
+watch(focusedSlug, (slug) => {
+  if (slug) void navigateTo(`/registrations/${slug}`, { replace: true })
+}, { immediate: true })
+
+// Lisible hors ligne depuis sa dernière lecture (US-119)
 async function loadData() {
   try {
-    const [allGames, periods] = await Promise.all([
+    const [allGames, allPeriods] = await Promise.all([
       fetchOfflineList('games', '/api/games'),
-      useApiFetch('/api/registration-periods', { offlineCache: true })
+      useApiFetch(REGISTRATION_PERIODS_READ, { offlineCache: true })
     ])
     games.value = allGames
-    // Un tableau par jeu, même vide, créé à chaque lecture et seulement alors
-    const groups = Object.fromEntries(allGames.map((game) => [game.id, [] as RegistrationPeriod[]]))
-    for (const period of periods) (groups[period.gameId] ||= []).push(period)
-    periodsByGame.value = groups
+    periods.value = allPeriods
     errorMessage.value = ''
   } catch (err) {
     errorMessage.value = apiErrorMessage(err, 'Impossible de charger les inscriptions')
@@ -86,24 +101,19 @@ async function loadData() {
 useConnectionRefresh(loadData)
 onMounted(loadData)
 
-const visibleGames = computed(() => games.value.filter((game) => showArchived.value || !isArchivedGame(game)))
-
-const gameFilterOptions = computed(() => [
-  { label: 'Tous les jeux', value: 'all' },
-  ...visibleGames.value.map((game) => ({ label: game.title, value: game.id }))
-])
-
-// Un jeu choisi puis masqué en décochant « archivés » : on revient à « Tous les jeux »
-watch(visibleGames, (visible) => {
-  if (gameFilter.value !== 'all' && !visible.some((game) => game.id === gameFilter.value)) gameFilter.value = 'all'
-})
-
-// Jeu actif d'abord ; sinon le filtre, sans les jeux archivés sauf demande
-const displayedGames = computed(() => {
-  const focused = selectedGame.value?.id
-  if (focused) return games.value.filter((game) => game.id === focused)
-  if (gameFilter.value !== 'all') return games.value.filter((game) => game.id === gameFilter.value)
-  return [...visibleGames.value]
+const rows = computed(() => {
+  const byGame = new Map(periods.value.map((period) => [period.gameId, period]))
+  return games.value
+    .filter((game) => showArchived.value || !isArchivedGame(game))
     .sort((left, right) => left.title.localeCompare(right.title, 'fr'))
+    .map((game) => {
+      const period = byGame.get(game.id)
+      return {
+        game,
+        period,
+        state: period ? metaOf(REGISTRATION_PERIOD_STATE_META, period.state) ?? REGISTRATION_PERIOD_STATE_META.draft : NO_PERIOD,
+        pool: period ? period.registrations.filter((registration) => registration.status === REGISTRATION_STATUSES.received).length : 0
+      }
+    })
 })
 </script>

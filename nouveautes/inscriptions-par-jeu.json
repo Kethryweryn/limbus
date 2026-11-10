@@ -1,0 +1,5 @@
+{
+  "type": "modifie",
+  "titre": "Une page Inscriptions par jeu",
+  "texte": "La page Inscriptions donne d’abord une ligne par jeu, avec l’état de son vivier et le nombre de personnes. Chaque jeu a sa propre page, en trois onglets : Sessions, Vivier et Réglages. L’onglet ouvert reste le même quand vous revenez sur la page. Avec un jeu actif, Inscriptions ouvre directement sa page."
+}

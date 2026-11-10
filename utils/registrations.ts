@@ -100,3 +100,7 @@ export function splitParticipantName(name: string) {
   const [firstName = '', ...rest] = name.trim().split(/\s+/)
   return { firstName, lastName: rest.join(' ') }
 }
+
+/** Onglets de la page Inscriptions d'un jeu (SPEC-020, R4), dans l'adresse sous `onglet` (R5). */
+export const REGISTRATION_TABS = ['sessions', 'vivier', 'reglages'] as const
+export type RegistrationTab = typeof REGISTRATION_TABS[number]

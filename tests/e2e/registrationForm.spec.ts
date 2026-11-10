@@ -6,7 +6,7 @@ import { E2E_USERS } from './constants'
 import { choose, gamePanel, openRegistrations, questionnaireAnswers, questionnaireGame, signIn, test, testUser, type TestPrisma } from './helpers'
 
 async function openEditor(page: Page, game: { title: string }) {
-  await openRegistrations(page, game.title)
+  await openRegistrations(page, game.title, 'Réglages')
   await gamePanel(page, game.title, 'Formulaire').getByRole('button', { name: 'Formulaire' }).click()
   const editor = page.getByRole('dialog', { name: /Formulaire d’inscription/ })
   await expect(editor.getByRole('button', { name: 'Enregistrer' })).toBeVisible()
@@ -76,7 +76,7 @@ test.describe('éditeur du formulaire', () => {
 
       // Fermé puis rouvert sans réseau : l'éditeur dit qu'il lui faut une connexion
       await editor.getByRole('button', { name: 'Close' }).click()
-      await gamePanel(page, ctx.game.title, 'Formulaire').getByRole('button', { name: 'Formulaire' }).click()
+      await page.getByRole('main').getByRole('button', { name: 'Formulaire' }).click()
       const reopened = page.getByRole('dialog', { name: /Formulaire d’inscription/ })
       await expect(reopened.getByText(/Pas de réseau : cette page demande une connexion/)).toBeVisible()
       // Rien n'est chargé : enregistrer écraserait la version en vigueur par un formulaire vide

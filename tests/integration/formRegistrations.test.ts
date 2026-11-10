@@ -173,7 +173,7 @@ describe('confirmer son email et suivre son inscription (US-085)', () => {
 
     const participant = await prisma.participant.findFirstOrThrow({ where: { email }, select: { id: true, name: true, gameLinks: { select: { gameId: true } } } })
     expect(participant).toMatchObject({ name: 'Lou Dupont', gameLinks: [{ gameId: game.id }] })
-    await expect.poll(() => smtp.received.some((message) => message.to.includes('alice@example.test') && message.text.includes('Lou Dupont'))).toBe(true)
+    await expect.poll(() => smtp.received.some((message) => message.to.includes('alice@example.test') && message.text.includes('Lou Dupont') && message.text.includes(`/registrations/${game.slug}?onglet=vivier`))).toBe(true)
 
     // Une seconde ouverture ne confirme rien de plus ; le lien personnel marche
     expect((await publicApi('POST', `/api/public/registrations/${token}/confirm`)).status).toBe(404)

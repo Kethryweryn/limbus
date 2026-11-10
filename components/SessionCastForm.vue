@@ -35,10 +35,10 @@
     <p v-if="isUpcoming" class="mb-4 text-sm text-gray-500">
       Un joueur vient du vivier : choisir une personne du vivier la retient et lui réserve le personnage, puis elle confirme sa place.
       <template v-if="session.poolState === null">
-        Ce jeu n’a pas encore de vivier : <NuxtLink to="/registrations" class="underline">créez-le dans Inscriptions</NuxtLink>.
+        Ce jeu n’a pas encore de vivier : <NuxtLink :to="registrationsLink()" class="underline">créez-le dans Inscriptions</NuxtLink>.
       </template>
       <template v-else-if="session.poolState && session.poolState !== REGISTRATION_PERIOD_STATES.open">
-        Pour inviter une nouvelle personne, <NuxtLink to="/registrations" class="underline">ouvrez le vivier dans Inscriptions</NuxtLink>.
+        Pour inviter une nouvelle personne, <NuxtLink :to="registrationsLink('reglages')" class="underline">ouvrez le vivier dans Inscriptions</NuxtLink>.
       </template>
     </p>
     <p v-if="assistantMessage" class="mb-4 text-sm text-primary-600">{{ assistantMessage }}</p>
@@ -295,6 +295,8 @@ const props = defineProps<{
   session: {
     id: string
     gameId: string
+    // Absent d'une session projetée hors ligne : le lien mène alors au résumé des inscriptions
+    game?: { slug: string } | null
     status?: string
     participants?: Array<{ role: string, participantId?: string | null, participant?: Link }>
     assignments?: Array<{ characterId?: string, participantId?: string | null, reservedRegistrationId?: string | null, locked?: boolean, photoUrl?: string | null, notes?: string | null, character?: Link, participant?: Link }>
@@ -306,6 +308,13 @@ const props = defineProps<{
   participants: Array<{ id: string, name: string, email?: string | null, photoRefusedAt?: string | null, games?: Array<{ id: string }> }>
   onSave: (assignments: CastLine[]) => Promise<unknown>
 }>()
+
+// Page Inscriptions du jeu, sur l'onglet utile (SPEC-020, R3)
+const registrationsLink = (tab?: 'reglages') => {
+  const slug = props.session.game?.slug
+  if (!slug) return '/registrations'
+  return tab ? `/registrations/${slug}?onglet=${tab}` : `/registrations/${slug}`
+}
 
 const assignments = ref<CastLine[]>([])
 const uploadingIndex = ref<number | null>(null)

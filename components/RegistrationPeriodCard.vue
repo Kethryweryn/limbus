@@ -1,5 +1,5 @@
 <template>
-  <!-- Le vivier d'un jeu (SPEC-018) : réglages, état, puis ses invitations et ses sessions -->
+  <!-- Onglet Réglages (SPEC-020, R13) : état, lien de diffusion, délai, et les réglages du vivier et du formulaire -->
   <div class="rounded border border-gray-200 p-4">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div class="min-w-0 space-y-1">
@@ -43,14 +43,14 @@
         <UButton size="sm" color="neutral" variant="soft" icon="i-heroicons-pencil-square" @click="edit(period)">
           Réglages
         </UButton>
+        <UButton size="sm" color="neutral" variant="soft" icon="i-heroicons-clipboard-document-list" @click="emit('form')">
+          Formulaire
+        </UButton>
         <UButton size="sm" color="error" variant="soft" icon="i-heroicons-trash" @click="remove(period)">
-          Supprimer
+          Supprimer le vivier
         </UButton>
       </div>
     </div>
-
-    <RegistrationInvitationList :period="period" />
-    <RegistrationSelection :period="period" />
   </div>
 </template>
 
@@ -59,6 +59,7 @@ import { REGISTRATION_PERIOD_STATE_META, REGISTRATION_PERIOD_STATES, metaOf } fr
 import { plural, useRegistrationPeriodActions, type RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
 
 const props = defineProps<{ period: RegistrationPeriod }>()
+const emit = defineEmits<{ form: [] }>()
 
 const { copyDiffusionUrl, setState, edit, remove } = useRegistrationPeriodActions()
 

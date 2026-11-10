@@ -12,7 +12,7 @@ export type RegistrationPeriod = ApiResponse<'/api/registration-periods'>[number
 export type PeriodRegistration = RegistrationPeriod['registrations'][number]
 export type InvitationResult = ApiResponse<'/api/registration-periods/:id/invitations', 'post'>
 
-type InfoColor = 'success' | 'warning'
+type InfoColor = 'success' | 'warning' | 'error'
 type RegistrationAction = 'remind' | 'release' | 'withdraw' | 'resend'
 
 const KEY: InjectionKey<ReturnType<typeof createActions>> = Symbol('registration-period-actions')

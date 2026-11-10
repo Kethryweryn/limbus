@@ -1,7 +1,7 @@
 ---
 id: SPEC-020
 titre: Une page Inscriptions par jeu, en onglets
-statut: validée
+statut: en cours
 date: 2026-11-10
 origine: ../archive/todo/page-inscriptions.md
 epics: [EPIC-054]
@@ -99,3 +99,4 @@ Un seul lot, [EPIC-054](../epics/EPIC-054-page-inscriptions/README.md) :
   - tirages avec leur session, ceux des sessions passées ou supprimées sous « Sessions passées » (R8, R10) ; sorties du vivier repliées avec le vivier (R11) ;
   - recherche par nom et filtre par vœu de session dans le vivier (R12).
 - 2026-11-10 (revue, choix de l'utilisatrice) : « à traiter » compte les réponses attendues, et non des places à confirmer par l'équipe, qui n'existent pas (R2) ; pas de lien vers le résumé avec un jeu actif (R4) ; une session repliée le reste au retour, même toutes (R9) ; la liste suit les sessions prévues, et les tirages des sessions terminées, annulées ou supprimées se lisent sous « Sessions passées », sans annulation (R7, R10). Le lien pour créer le vivier mène à la page du jeu (R3).
+- 2026-11-10 : US-230 livrée : résumé des jeux et page d'un jeu en onglets. Le lien « ouvrez le vivier » de la fiche de session mène à l'onglet Réglages, où le vivier s'ouvre (R3).
