@@ -169,8 +169,9 @@ jobs:
       # Chromium en cache, par version de Playwright ; les paquets système qu'il demande s'installent à chaque fois
       - id: playwright
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      # Les trois jobs lisent le cache ; seul le premier l'écrit, pour ne pas l'enregistrer trois fois (ADR-0082)
       - id: chromium
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-bookworm-${{ steps.playwright.outputs.version }}
@@ -178,6 +179,11 @@ jobs:
         run: npx playwright install --with-deps chromium
       - if: steps.chromium.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
+      - if: steps.chromium.outputs.cache-hit != 'true' && matrix.shard == 1
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-bookworm-${{ steps.playwright.outputs.version }}
       - run: npm run test:e2e -- --shard=${{ matrix.shard }}/3
       - name: Traces Playwright en cas d'échec
         if: failure()
