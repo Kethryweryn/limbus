@@ -1,7 +1,7 @@
 ---
 id: SPEC-020
 titre: Une page Inscriptions par jeu, en onglets
-statut: validée
+statut: en cours
 date: 2026-11-10
 origine: ../archive/todo/page-inscriptions.md
 epics: [EPIC-054]
@@ -29,7 +29,7 @@ Aujourd'hui, la page Inscriptions affiche l'un sous l'autre le bloc complet de c
 
 ### Résumé des jeux
 
-- **R1** Sans jeu actif, Inscriptions affiche une ligne par jeu, triée par titre ; la case « Afficher les jeux archivés » reste, et la liste de choix d'un jeu disparaît. Chaque ligne donne l'état du vivier (pas de vivier, brouillon, ouvert, fermé), le nombre de personnes dans le vivier et ce qui reste à traiter (R2). Un clic ouvre la page du jeu (R4). Un jeu sans vivier a un bouton « Créer le vivier ».
+- **R1** Sans jeu actif, Inscriptions affiche une ligne par jeu, triée par titre ; la case « Afficher les jeux archivés » reste, et la liste de choix d'un jeu disparaît. Chaque ligne donne l'état du vivier (pas de vivier, brouillon, ouvert, fermé), le nombre de personnes dans le vivier et ce qui reste à traiter (R2). Un clic ouvre la page du jeu (R4). Un jeu sans vivier a un bouton « Créer le vivier », qui ouvre ses réglages puis la page du jeu.
 - **R2** « À traiter » compte, pour les sessions prévues du jeu (R7) :
   - les réponses modifiées depuis leur dernière lecture (celles qui ont « Marquer comme lu ») ;
   - les réponses attendues : une personne retenue, à qui le casting est annoncé, et qui n'a pas encore confirmé sa place (celles qui ont « Relancer » et « Prolonger ») ;
@@ -40,7 +40,7 @@ Aujourd'hui, la page Inscriptions affiche l'un sous l'autre le bloc complet de c
 
 ### Page d'un jeu
 
-- **R4** Chaque jeu a sa page Inscriptions, à son adresse propre. Son en-tête donne le titre du jeu, l'état du vivier et, sans jeu actif, un lien vers le résumé ; avec un jeu actif, on en sort par la barre du jeu actif. Elle a trois onglets : Sessions, Vivier (avec le nombre de personnes) et Réglages ; un seul s'affiche à la fois. Un jeu sans vivier n'a pas d'onglets : la page propose « Créer le vivier » et « Formulaire ».
+- **R4** Chaque jeu a sa page Inscriptions, à son adresse propre. Son en-tête donne le titre du jeu, l'état du vivier et, sans jeu actif, un lien vers le résumé ; avec un jeu actif, on en sort par la barre du jeu actif. Ouverte alors qu'un autre jeu est actif (lien de l'email, lien copié), la page rend son jeu actif. Elle a trois onglets : Sessions, Vivier (avec le nombre de personnes) et Réglages ; un seul s'affiche à la fois. Un jeu sans vivier n'a pas d'onglets : la page propose « Créer le vivier » et « Formulaire ».
 - **R5** L'onglet ouvert est dans l'adresse de la page : le bouton Retour du navigateur, un rechargement ou un lien copié le rouvrent. Sans onglet dans l'adresse, la page s'ouvre sur Sessions.
 - **R6** Les messages d'une action (réussite, erreur) s'affichent en haut de la page, au-dessus des onglets.
 
@@ -99,3 +99,5 @@ Un seul lot, [EPIC-054](../epics/EPIC-054-page-inscriptions/README.md) :
   - tirages avec leur session, ceux des sessions passées ou supprimées sous « Sessions passées » (R8, R10) ; sorties du vivier repliées avec le vivier (R11) ;
   - recherche par nom et filtre par vœu de session dans le vivier (R12).
 - 2026-11-10 (revue, choix de l'utilisatrice) : « à traiter » compte les réponses attendues, et non des places à confirmer par l'équipe, qui n'existent pas (R2) ; pas de lien vers le résumé avec un jeu actif (R4) ; une session repliée le reste au retour, même toutes (R9) ; la liste suit les sessions prévues, et les tirages des sessions terminées, annulées ou supprimées se lisent sous « Sessions passées », sans annulation (R7, R10). Le lien pour créer le vivier mène à la page du jeu (R3).
+- 2026-11-10 : US-230 livrée : résumé des jeux et page d'un jeu en onglets. Le lien « ouvrez le vivier » de la fiche de session mène à l'onglet Réglages, où le vivier s'ouvre (R3).
+- 2026-11-10 (revue d'US-230, choix de l'utilisatrice) : la page d'un jeu ouverte avec un autre jeu actif rend son jeu actif (R4) ; « Créer le vivier » du résumé crée le vivier sans passer par la page du jeu (R1).

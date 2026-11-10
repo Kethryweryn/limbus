@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
-import { gamePanel, openRegistrations, signIn, slugOf, type TestPrisma, uniqueName } from './helpers'
+import { openRegistrations, registrationTab, signIn, slugOf, type TestPrisma, uniqueName } from './helpers'
 
 // Jeu propre au test, avec une session et un vivier ouvert
 async function testPeriod(prisma: TestPrisma, key: string) {
@@ -35,9 +35,11 @@ async function invitedPerson(prisma: TestPrisma, ids: { gameId: string, sessionI
   return { participant, registration, email }
 }
 
-async function openOwnRegistrations(page: Page, prisma: TestPrisma, gameTitle: string) {
+// La page d'un seul jeu (SPEC-020) : ses onglets se lisent dans la page entière
+async function openOwnRegistrations(page: Page, prisma: TestPrisma, gameTitle: string, tab?: 'Vivier' | 'Réglages') {
   await signIn(page, prisma, E2E_USERS.orga)
-  await openRegistrations(page, gameTitle)
+  await openRegistrations(page, gameTitle, tab)
+  return page.getByRole('main')
 }
 
 // EPIC-001 (US-005) : relance, prolongation, nouveau lien, libération et annulation d'une invitation
@@ -51,8 +53,7 @@ test('l’équipe relance, prolonge, renvoie, libère et annule des invitations'
     const ana = await invitedPerson(prisma, ids, 'Ana Actions')
     const ben = await invitedPerson(prisma, ids, 'Ben Actions')
 
-    await openOwnRegistrations(page, prisma, game.title)
-    const panel = gamePanel(page, game.title, 'Réglages')
+    const panel = await openOwnRegistrations(page, prisma, game.title, 'Vivier')
     const row = (name: string) => panel.locator('li').filter({ hasText: name })
     await expect(panel.getByText('Invitations sans réponse : 2')).toBeVisible()
 
@@ -117,8 +118,7 @@ test('l’équipe consulte le détail d’une personne inscrite, la retire de la
     const { game, session, period } = await testPeriod(prisma, key)
     const cleo = await invitedPerson(prisma, { gameId: game.id, sessionId: session.id, periodId: period.id }, 'Cléo Retrait', 'confirmed')
 
-    await openOwnRegistrations(page, prisma, game.title)
-    const panel = gamePanel(page, game.title, 'Réglages')
+    const panel = await openOwnRegistrations(page, prisma, game.title)
     const row = panel.locator(`[data-session="${session.name}"] li`).filter({ hasText: 'Cléo Retrait' })
 
     await row.getByRole('button', { name: 'Détail' }).click()
@@ -137,6 +137,7 @@ test('l’équipe consulte le détail d’une personne inscrite, la retire de la
     expect((await prisma.registration.findUniqueOrThrow({ where: { id: cleo.registration.id }, select: { status: true } })).status).toBe('received')
 
     // Elle reste dans le vivier, d'où on peut aussi la retirer
+    await registrationTab(page, 'Vivier')
     const inPool = panel.locator('li').filter({ hasText: 'Cléo Retrait' })
     await expect(inPool.getByText(/annulation/)).toBeVisible()
     page.once('dialog', (dialog) => dialog.accept())
@@ -158,8 +159,7 @@ test('l’équipe règle, ferme, rouvre, copie le lien, ouvre une session et sup
     const { game, session, period } = await testPeriod(prisma, key)
     await prisma.registrationPeriodSession.update({ where: { sessionId: session.id }, data: { open: false } })
 
-    await openOwnRegistrations(page, prisma, game.title)
-    const panel = gamePanel(page, game.title, 'Réglages')
+    const panel = await openOwnRegistrations(page, prisma, game.title, 'Réglages')
 
     // Réglages : le délai de réponse
     await panel.getByRole('button', { name: 'Réglages' }).click()
@@ -184,6 +184,7 @@ test('l’équipe règle, ferme, rouvre, copie le lien, ouvre une session et sup
     expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(`/i/${period.publicId}`)
 
     // Ouvrir la session à la pré-inscription, puis la refermer
+    await registrationTab(page, 'Sessions')
     const block = panel.locator(`[data-session="${session.name}"]`)
     await expect(block.getByText('Pas proposée au vivier')).toBeVisible()
     await block.getByRole('button', { name: 'Ouvrir à la pré-inscription' }).click()
@@ -192,10 +193,11 @@ test('l’équipe règle, ferme, rouvre, copie le lien, ouvre une session et sup
     await expect(block.getByText('Pas proposée au vivier')).toBeVisible()
 
     // Suppression
+    await registrationTab(page, 'Réglages')
     page.once('dialog', (dialog) => dialog.accept())
-    await panel.getByRole('button', { name: 'Supprimer' }).click()
+    await panel.getByRole('button', { name: 'Supprimer le vivier' }).click()
     await expect.poll(() => prisma.registrationPeriod.count({ where: { id: period.id } })).toBe(0)
-    await expect(gamePanel(page, game.title, 'Créer le vivier').getByRole('button', { name: 'Créer le vivier' }).first()).toBeVisible()
+    await expect(panel.getByRole('button', { name: 'Créer le vivier' })).toBeVisible()
   } finally {
     await prisma.$disconnect()
   }

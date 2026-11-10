@@ -6,7 +6,7 @@ import { DEFAULT_REGISTRATION_FORM_DEFINITION } from '../../utils/registrationFo
 import { createTestPrisma } from '../integration/db'
 import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
-import { gamePanel, openRegistrations, orgaGame, orgaSession, signIn, slugOf, test, type TestPrisma, testUser, uniqueName } from './helpers'
+import { gamePanel, openRegistrations, orgaGame, orgaSession, registrationTab, signIn, slugOf, test, type TestPrisma, testUser, uniqueName } from './helpers'
 import type { RegistrationSessionStatus } from '~/generated/prisma/enums'
 
 type Line = { status: RegistrationSessionStatus, answer?: 'available' | 'unavailable', waitlistPosition?: number, announcedStatus?: RegistrationSessionStatus }
@@ -219,15 +219,17 @@ test.describe('réglages des inscriptions (US-220)', () => {
         data: { announcedAt: new Date(), responseDueAt: new Date('2099-05-01T09:00:00Z') }
       })
       await signIn(page, prisma, E2E_USERS.orga)
-      const { panel, block } = await openSelection(page, ctx.game, ctx.session)
+      const { block } = await openSelection(page, ctx.game, ctx.session)
 
-      await panel.getByRole('button', { name: 'Réglages' }).click()
+      await registrationTab(page, 'Réglages')
+      await page.getByRole('main').getByRole('button', { name: 'Réglages' }).click()
       let dialog = page.getByRole('dialog')
       await dialog.getByLabel('Délai de réponse (jours)').fill('0')
       await dialog.getByRole('button', { name: 'Enregistrer' }).click()
       await expect(dialog.getByText('Entre 1 et 90 jours.')).toBeVisible()
       await dialog.getByRole('button', { name: 'Annuler' }).click()
       expect((await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: ctx.period.id } })).responseDelayDays).toBe(7)
+      await registrationTab(page, 'Sessions')
 
       await block.locator('li').filter({ hasText: announced.name }).getByRole('button', { name: 'Prolonger' }).click()
       dialog = page.getByRole('dialog')
@@ -236,7 +238,8 @@ test.describe('réglages des inscriptions (US-220)', () => {
       await expect(dialog.getByText('Choisissez la nouvelle échéance.')).toBeVisible()
       await dialog.getByRole('button', { name: 'Annuler' }).click()
 
-      await panel.getByRole('button', { name: 'Inviter', exact: true }).click()
+      await registrationTab(page, 'Vivier')
+      await page.getByRole('main').getByRole('button', { name: 'Inviter', exact: true }).click()
       dialog = page.getByRole('dialog')
       await dialog.getByPlaceholder('Nom').fill('Sans arobase')
       await dialog.getByPlaceholder('Email').fill('adresse-sans-arobase')
@@ -485,6 +488,7 @@ test.describe('droits et hors ligne', () => {
 
       await context.setOffline(true)
       await page.getByRole('link', { name: 'Inscriptions' }).first().click()
+      await page.getByRole('link', { name: ctx.game.title, exact: true }).click()
       const block = gamePanel(page, ctx.game.title, 'Sélection').locator(`[data-session="${ctx.session.name}"]`)
       await expect(block.locator('li').filter({ hasText: person.name })).toBeVisible()
       await block.locator('li').filter({ hasText: person.name }).getByRole('button', { name: 'Retenir' }).click()

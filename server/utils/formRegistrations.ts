@@ -243,7 +243,7 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
       [
         `${result.participantName} a répondu au questionnaire de « ${period.game.title} ».`,
         '',
-        `Cette personne est dans le vivier : retrouvez-la dans les inscriptions du jeu, ${absoluteAppUrl('/registrations')}.`
+        `Cette personne est dans le vivier : retrouvez-la dans les inscriptions du jeu, ${absoluteAppUrl(`/registrations/${period.game.slug}?onglet=vivier`)}.`
       ].join('\n'),
       `Nouvelle inscription : ${result.participantName} (${period.game.title})`
     ).catch((error) => console.error('[inscription] équipe non prévenue', { periodId: period.id, error: (error as Error)?.message }))

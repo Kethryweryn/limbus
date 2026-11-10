@@ -219,10 +219,19 @@ export async function captureCallback(page: Page) {
 
 // Page Inscriptions filtrée sur le jeu du test : sans filtre, elle charge la sélection de tous les jeux des tests
 // voisins, et celle du jeu attendu peut arriver après le délai d'une assertion
-export async function openRegistrations(page: Page, gameTitle: string) {
+// Page Inscriptions d'un jeu, depuis le résumé (SPEC-020), sur l'onglet demandé
+export async function openRegistrations(page: Page, gameTitle: string, tab?: 'Vivier' | 'Réglages') {
   await page.goto('/registrations')
   await page.waitForLoadState('networkidle')
-  await choose(page, page.getByRole('combobox').first(), new RegExp(`^${escapeRegExp(gameTitle)}$`))
+  await page.getByRole('link', { name: gameTitle, exact: true }).click()
+  await expect(page.getByRole('heading', { level: 1, name: gameTitle, exact: true })).toBeVisible()
+  await page.waitForLoadState('networkidle')
+  if (tab) await registrationTab(page, tab)
+}
+
+// Onglet de la page Inscriptions d'un jeu (SPEC-020, R4) ; « Vivier » porte le nombre de personnes
+export async function registrationTab(page: Page, tab: 'Sessions' | 'Vivier' | 'Réglages') {
+  await page.getByRole('tab', { name: new RegExp(`^${tab}`) }).click()
 }
 
 export type QuestionnaireQuestion = { id: string, label: string, type: 'text' | 'single' | 'multiple' | 'scale', required: boolean, options?: string[] }

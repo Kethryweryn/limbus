@@ -16,7 +16,7 @@ test('l’encadré de qualité signale un personnage sans lien, puis les repère
     const aldric = ctx.names['Aldric Qualité']!
 
     await signIn(page, prisma, E2E_USERS.orga)
-    await openRegistrations(page, title)
+    await openRegistrations(page, title, 'Réglages')
     await gamePanel(page, title, 'Formulaire').getByRole('button', { name: 'Formulaire' }).click()
     const dialog = page.getByRole('dialog')
     const missing = dialog.getByText(`${aldric} n’est relié à aucune réponse : l’assistant ne pourra lui proposer personne.`)
@@ -66,7 +66,7 @@ test('l’essai du questionnaire classe les personnages selon les réponses, san
     await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: key } })
 
     await signIn(page, prisma, E2E_USERS.orga)
-    await openRegistrations(page, title)
+    await openRegistrations(page, title, 'Réglages')
     await gamePanel(page, title, 'Formulaire').getByRole('button', { name: 'Formulaire' }).click()
     const editor = page.getByRole('dialog', { name: /Formulaire d’inscription/ })
     const tryButton = editor.getByRole('button', { name: 'Essayer le questionnaire' })
@@ -141,7 +141,7 @@ test('la relecture signale les questions, et le mélange des options tient penda
     })
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: key } })
     const openEditor = async () => {
-      await openRegistrations(page, title)
+      await openRegistrations(page, title, 'Réglages')
       await gamePanel(page, title, 'Formulaire').getByRole('button', { name: 'Formulaire' }).click()
     }
     await signIn(page, prisma, E2E_USERS.orga)
@@ -252,7 +252,7 @@ test('la prévision du questionnaire suit les proportions attendues', async ({ p
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: key } })
 
     const openEditor = async () => {
-      await openRegistrations(page, title)
+      await openRegistrations(page, title, 'Réglages')
       await gamePanel(page, title, 'Formulaire').getByRole('button', { name: 'Formulaire' }).click()
     }
     await signIn(page, prisma, E2E_USERS.orga)

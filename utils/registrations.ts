@@ -1,5 +1,7 @@
 import {
+  metaOf,
   REGISTRATION_ANSWERS,
+  REGISTRATION_PERIOD_STATE_META,
   REGISTRATION_SELECTION_STATUSES,
   REGISTRATION_SESSION_STATUSES,
   REGISTRATION_SESSION_STATUS_META,
@@ -100,3 +102,14 @@ export function splitParticipantName(name: string) {
   const [firstName = '', ...rest] = name.trim().split(/\s+/)
   return { firstName, lastName: rest.join(' ') }
 }
+
+/** Badge de l'état d'un vivier ; un état inconnu se lit comme un brouillon. */
+export const periodStateMeta = (state: string) => metaOf(REGISTRATION_PERIOD_STATE_META, state) ?? REGISTRATION_PERIOD_STATE_META.draft
+
+/** Personnes dans le vivier : celles qui ont répondu ; une invitation sans réponse n'y est pas encore (R4). */
+export const poolOf = <T extends { status: string }>(registrations: T[]) =>
+  registrations.filter((registration) => registration.status === REGISTRATION_STATUSES.received)
+
+/** Onglets de la page Inscriptions d'un jeu (SPEC-020, R4), dans l'adresse sous `onglet` (R5). */
+export const REGISTRATION_TABS = ['sessions', 'vivier', 'reglages'] as const
+export type RegistrationTab = typeof REGISTRATION_TABS[number]

@@ -15,7 +15,7 @@ test('une personne invitée pour une session répond par son lien et y est inscr
   try {
     await login(page, E2E_USERS.orga)
     await expectLoggedIn(page)
-    await openRegistrations(page, 'Jeu des inscriptions')
+    await openRegistrations(page, 'Jeu des inscriptions', 'Vivier')
     // Le panneau de ce jeu : les tests voisins ajoutent leurs propres jeux à la page, en parallèle
     await gamePanel(page, 'Jeu des inscriptions', 'Inviter').getByRole('button', { name: 'Inviter', exact: true }).click()
     await page.getByRole('dialog').getByRole('combobox').click()
@@ -49,7 +49,7 @@ test('une personne invitée pour une session répond par son lien et y est inscr
     const participants = await (await page.request.get(`/api/sessions/${session.id}`)).json()
     expect(JSON.stringify(participants)).toContain('Camille Invitée')
     await openRegistrations(page, 'Jeu des inscriptions')
-    await expect(gamePanel(page, 'Jeu des inscriptions', 'Inviter').locator('li').filter({ hasText: 'Camille Invitée' }).getByText('Inscrite', { exact: true })).toBeVisible()
+    await expect(page.getByRole('main').locator('li').filter({ hasText: 'Camille Invitée' }).getByText('Inscrite', { exact: true })).toBeVisible()
 
     // Elle entre dans le circuit de paiement sans attendre le casting (US-007, R22)
     await page.goto('/sessions/session-printemps?tab=payments')
@@ -122,7 +122,7 @@ test('l’éditeur du formulaire ajoute une question et une affinité', async ({
     const game = await prisma.game.create({ data: { title, slug: `jeu-editeur-${Date.now()}`, description: '', ownerId: owner.id } })
     await signIn(page, prisma, E2E_USERS.orga)
     await openRegistrations(page, title)
-    const panel = gamePanel(page, title, 'Formulaire')
+    const panel = page.getByRole('main')
     await panel.getByRole('button', { name: 'Formulaire' }).click()
 
     const dialog = page.getByRole('dialog')
