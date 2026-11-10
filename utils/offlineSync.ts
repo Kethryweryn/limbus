@@ -194,7 +194,16 @@ export function heldOperationIds(queue: OfflineSyncOperation[]) {
   return held
 }
 
-export async function processOfflineQueue() {
+// Un seul envoi de la file à la fois : l'application (retour du réseau) et « Effacer » du compte peuvent le demander
+// ensemble, et une même modification partirait deux fois
+let running: ReturnType<typeof sendOfflineQueue> | null = null
+
+export function processOfflineQueue() {
+  running ??= sendOfflineQueue().finally(() => { running = null })
+  return running
+}
+
+async function sendOfflineQueue() {
   const results: OfflineSyncResult[] = []
   const ids = (await getOfflineQueue()).map((operation) => operation.id)
 

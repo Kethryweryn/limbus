@@ -119,6 +119,14 @@ describe('resynchronisation (US-049, US-050, ADR-0036)', () => {
     expect(conflictFields(queue[0]).map((field) => [field.key, field.mine, field.theirs])).toEqual([['name', 'Mienne', 'Serveur']])
   })
 
+  it('deux envois demandés ensemble n’envoient chaque modification qu’une fois (US-224)', async () => {
+    await enqueueOfflineOperation('/api/factions/f1', { method: 'PUT', body: { name: 'Loups', updatedAt: READ } })
+    fetchMock.mockResolvedValue({ id: 'f1', updatedAt: '2026-10-30T12:00:00.000Z' })
+    const [first, second] = await Promise.all([processOfflineQueue(), processOfflineQueue()])
+    expect(second).toBe(first)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
   it('« garder ma version » renvoie la modification sans version', async () => {
     await enqueueOfflineOperation('/api/factions/f1', { method: 'PUT', body: { name: 'Loups', updatedAt: READ } })
     fetchMock.mockRejectedValueOnce(conflict()).mockResolvedValueOnce({ id: 'f1', name: 'Ours' })

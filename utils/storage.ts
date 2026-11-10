@@ -212,7 +212,13 @@ export async function measureOfflineData(): Promise<OfflineStorageSize> {
     try {
         let data = 0
         for (const store of STORES) {
-            for (const entry of await listStoreEntries(store)) data += serializedSize(entry.value)
+            const db = await ensureStore(store)
+            // Un enregistrement à la fois : la base entière n'est jamais en mémoire
+            let cursor = await db.transaction(store).store.openCursor()
+            while (cursor) {
+                data += serializedSize(cursor.value)
+                cursor = await cursor.continue()
+            }
         }
         const files = await cachedFilesSize([PHOTO_CACHE_NAME, DOCUMENT_CACHE_NAME])
         return { data: files === null ? null : data + files, total }

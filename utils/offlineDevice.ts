@@ -1,7 +1,7 @@
 // Réglages du hors ligne propres à l'appareil (SPEC-019, ADR-0081) : rien ne passe par le serveur
 
 // Hors ligne désactivé sur cet appareil (R5 à R7) : gardé après la déconnexion et la connexion d'un autre compte
-const OFFLINE_DISABLED_KEY = 'limbusOfflineDisabled'
+export const OFFLINE_DISABLED_KEY = 'limbusOfflineDisabled'
 
 export function isOfflineDisabled() {
   try {

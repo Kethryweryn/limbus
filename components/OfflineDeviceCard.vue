@@ -65,10 +65,9 @@
 </template>
 
 <script setup lang="ts">
-import type { LimbusPwa } from '~/plugins/serviceWorker.client'
 import { isOfflineMode } from '~/utils/connection'
 import { isOfflineDisabled, setOfflineDisabled, type OfflineStorageSize } from '~/utils/offlineDevice'
-import { abandonAllOperations, getOfflineQueue, notifyQueueChanged, operationSummary, processOfflineQueue } from '~/utils/offlineSync'
+import { getOfflineQueue, notifyQueueChanged, operationSummary, processOfflineQueue } from '~/utils/offlineSync'
 import { clearDeviceData, disableOfflineOnDevice, measureOfflineData } from '~/utils/storage'
 
 type Intent = 'erase' | 'disable'
@@ -144,16 +143,19 @@ async function finish() {
   if (!intent) return
   busy.value = true
   try {
-    if (pending.value.length) await abandonAllOperations()
-    if (intent === 'disable') await disableOfflineOnDevice()
-    else await clearDeviceData()
+    // La base effacée emporte la file : les modifications en attente sont abandonnées avec elle
+    if (intent === 'disable') {
+      await disableOfflineOnDevice()
+      // L'application retirée contrôle encore la page jusqu'à son rechargement, et garderait PDF et photos
+      rememberMessage(DISABLED_MESSAGE)
+      window.location.reload()
+      return
+    }
+    await clearDeviceData()
     disabled.value = isOfflineDisabled()
     notifyQueueChanged()
     window.dispatchEvent(new CustomEvent('limbus:offline-setting'))
-    message.value = {
-      color: 'success',
-      text: intent === 'disable' ? 'Le hors ligne est désactivé sur cet appareil.' : 'Les données de l’appareil sont effacées.'
-    }
+    message.value = { color: 'success', text: 'Les données de l’appareil sont effacées.' }
     cancel()
   } catch {
     message.value = { color: 'error', text: 'Impossible d’effacer les données de l’appareil. Réessayez.' }
@@ -167,14 +169,38 @@ async function finish() {
 async function enable() {
   setOfflineDisabled(false)
   disabled.value = false
-  ;(useNuxtApp().$limbusPwa as LimbusPwa | undefined)?.register()
+  useNuxtApp().$limbusPwa.register()
   window.dispatchEvent(new CustomEvent('limbus:offline-setting'))
   message.value = { color: 'success', text: 'Le hors ligne est de nouveau actif : les pages consultées sont gardées sur cet appareil.' }
   await measure()
 }
 
+// Message gardé le temps du rechargement qui suit la désactivation
+const MESSAGE_KEY = 'limbusOfflineMessage'
+const DISABLED_MESSAGE = 'Le hors ligne est désactivé sur cet appareil.'
+
+function rememberMessage(text: string) {
+  try {
+    sessionStorage.setItem(MESSAGE_KEY, text)
+  } catch {
+    // Sans stockage de session, la page rechargée montre seulement la case décochée
+  }
+}
+
+function takeMessage() {
+  try {
+    const text = sessionStorage.getItem(MESSAGE_KEY)
+    sessionStorage.removeItem(MESSAGE_KEY)
+    return text
+  } catch {
+    return null
+  }
+}
+
 onMounted(async () => {
   disabled.value = isOfflineDisabled()
+  const remembered = takeMessage()
+  if (remembered) message.value = { color: 'success', text: remembered }
   await measure()
 })
 </script>

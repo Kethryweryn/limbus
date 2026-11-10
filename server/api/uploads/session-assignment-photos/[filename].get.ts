@@ -1,5 +1,5 @@
 import { createReadStream } from 'node:fs'
-import { access } from 'node:fs/promises'
+import { stat } from 'node:fs/promises'
 import { basename, extname, join } from 'node:path'
 import { requireUser } from '~/server/utils/auth'
 import { prisma } from '~/server/utils/prisma'
@@ -44,8 +44,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Fichier introuvable' })
   }
 
+  let size: number
   try {
-    await access(filePath)
+    size = (await stat(filePath)).size
   } catch {
     throw createError({ statusCode: 404, message: 'Fichier introuvable' })
   }
@@ -53,5 +54,7 @@ export default defineEventHandler(async (event) => {
   setHeader(event, 'Content-Type', contentType)
   setHeader(event, 'X-Content-Type-Options', 'nosniff')
   setHeader(event, 'Cache-Control', 'private, no-store')
+  // La place prise par les photos gardées sur l'appareil se lit dans cet en-tête (SPEC-019, R2)
+  setHeader(event, 'Content-Length', size)
   return sendStream(event, createReadStream(filePath))
 })

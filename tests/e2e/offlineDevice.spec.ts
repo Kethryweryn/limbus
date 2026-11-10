@@ -185,6 +185,13 @@ test.describe('désactivation', () => {
       await expect.poll(() => registrations(page)).toBe(0)
       expect(await page.evaluate(() => localStorage.getItem('offlineAuth'))).toBeNull()
 
+      // La page a été rechargée : l'application retirée ne garde plus rien pendant la navigation dans Limbus
+      await page.getByRole('link', { name: 'Sessions' }).first().click()
+      await page.waitForURL('**/sessions')
+      await page.waitForLoadState('networkidle')
+      expect(await page.evaluate(async () => (await caches.keys()).length)).toBe(0)
+      expect(await offlineRecordCount(page)).toBe(0)
+
       // Plus rien n'est gardé, ni l'application après un rechargement, ni l'identité
       await page.goto('/games')
       await page.waitForLoadState('networkidle')

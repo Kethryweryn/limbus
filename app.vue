@@ -92,7 +92,7 @@ import { onUnmounted, useHead, useRoute, useRouter } from '#imports'
 import LoginScreen from '~/components/LoginScreen.vue'
 import UnconfirmedAccountScreen from '~/components/UnconfirmedAccountScreen.vue'
 import { isOfflineMode, isServerUnavailableError, setServerUnavailable } from '~/utils/connection'
-import { isOfflineDisabled } from '~/utils/offlineDevice'
+import { isOfflineDisabled, OFFLINE_DISABLED_KEY } from '~/utils/offlineDevice'
 import { claimOfflineData, clearPendingLogout, getOfflineAuth, hasPendingLogout, rememberOfflineAuth } from '~/utils/storage'
 import { getOfflineQueue, processOfflineQueue } from '~/utils/offlineSync'
 import OfflineQueuePanel from '~/components/OfflineQueuePanel.vue'
@@ -120,6 +120,8 @@ const serverUnavailable = ref(false)
 // Hors ligne désactivé sur cet appareil (SPEC-019, R6) : le bandeau ne promet pas de garder les modifications
 const offlineDisabled = ref(false)
 const readOfflineSetting = () => { offlineDisabled.value = isOfflineDisabled() }
+// Réglage changé dans un autre onglet
+const readOfflineSettingFromStorage = (event: StorageEvent) => { if (event.key === null || event.key === OFFLINE_DISABLED_KEY) readOfflineSetting() }
 const syncing = ref(false)
 const pendingSyncCount = ref(0)
 const syncErrorCount = ref(0)
@@ -300,6 +302,7 @@ onMounted(async () => {
   refreshQueueState()
   readOfflineSetting()
   window.addEventListener('limbus:offline-setting', readOfflineSetting)
+  window.addEventListener('storage', readOfflineSettingFromStorage)
   window.addEventListener('online', checkAuthFromEvent)
   window.addEventListener('limbus:connection-change', checkAuthFromEvent)
   window.addEventListener('limbus:sync-queue-change', refreshQueueState)
@@ -322,6 +325,7 @@ watch(() => route.fullPath, () => {
 
 onUnmounted(() => {
   window.removeEventListener('limbus:offline-setting', readOfflineSetting)
+  window.removeEventListener('storage', readOfflineSettingFromStorage)
   window.removeEventListener('online', checkAuthFromEvent)
   window.removeEventListener('limbus:connection-change', checkAuthFromEvent)
   window.removeEventListener('limbus:sync-queue-change', refreshQueueState)
