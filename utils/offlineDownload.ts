@@ -1,8 +1,8 @@
 import { isNetworkError, getErrorStatus } from './connection'
 import { getOfflineQueue } from './offlineSync'
 import {
-  AUTH_READ, characterPlan, DASHBOARD_READ, filesIn, gameRead, gameSheetRead, isUpcoming, LIST_READS, participantPlan,
-  REGISTRATION_PERIODS_READ, registrationReads, sessionPlan, sessionReads, sheetReads
+  AUTH_READ, characterPlan, DASHBOARD_READ, filesIn, gameRead, gameSheetRead, isUpcoming, LIST_READS, MY_PARTICIPATIONS_READ,
+  myDocumentReads, participantPlan, REGISTRATION_PERIODS_READ, registrationReads, sessionPlan, sessionReads, sheetReads
 } from './offlinePlan'
 import { responseSize } from './offlineDevice'
 import { DOWNLOAD_CACHE_NAME, deleteFromStore, getCachedResponse, getFromStore, listStoreEntries, saveCachedResponse, saveToStore } from './storage'
@@ -11,7 +11,7 @@ import { DOWNLOAD_CACHE_NAME, deleteFromStore, getCachedResponse, getFromStore, 
 // pages du jeu, et garde chaque réponse comme si la page l'avait ouverte
 
 export const DOWNLOADS_STORE = 'offlineDownloads'
-const PHOTO_PATTERN = /^\/api\/uploads\/session-assignment-photos\//
+const PHOTO_PATTERN = /^\/api\/(uploads\/session-assignment-photos\/|me\/documents\/[^/]+\/photos\/)/
 
 export type OfflineDownload = {
   gameId: string
@@ -62,26 +62,38 @@ async function read(url: string) {
 // Un seul téléchargement à la fois par jeu : un clic pendant la mise à jour en arrière-plan reprend la même
 const inFlight = new Map<string, Promise<OfflineDownload>>()
 
-export function downloadGame(target: { id: string, title: string }, onProgress: (progress: DownloadProgress) => void = () => {}) {
-  let running = inFlight.get(target.id)
+function once(id: string, run: () => Promise<OfflineDownload>) {
+  let running = inFlight.get(id)
   if (!running) {
-    running = runDownload(target, onProgress).finally(() => inFlight.delete(target.id))
-    inFlight.set(target.id, running)
+    running = run().finally(() => inFlight.delete(id))
+    inFlight.set(id, running)
   }
   return running
 }
 
-async function runDownload(target: { id: string, title: string }, onProgress: (progress: DownloadProgress) => void) {
-  const queue = await getOfflineQueue()
-  // Une modification en attente garde sa copie sur l'appareil (R12)
-  const pendingStores = new Set(queue.map((operation) => operation.store).filter(Boolean))
+export function downloadGame(target: { id: string, title: string }, onProgress: (progress: DownloadProgress) => void = () => {}) {
+  return once(target.id, () => runGameDownload(target, onProgress))
+}
+
+// « Mes sessions à venir » d'une participante (R16), gardées sous cette entrée du registre
+export const MY_SESSIONS = 'mes-sessions'
+export const MY_SESSIONS_TITLE = 'Mes sessions à venir'
+
+export function downloadMySessions(onProgress: (progress: DownloadProgress) => void = () => {}) {
+  return once(MY_SESSIONS, () => runMySessionsDownload(onProgress))
+}
+
+// Ce que garde un téléchargement : réponses, fichiers, place, avancement
+function startRun(onProgress: (progress: DownloadProgress) => void, total: number) {
   const responses = new Set<string>()
   const files = new Set<string>()
+  const progress = { done: 0, total }
   let size = 0
-  const progress = { done: 0, total: LIST_READS.length + 4 }
-  const step = () => { progress.done++; onProgress({ ...progress }) }
+  const report = () => onProgress({ ...progress })
+  const step = () => { progress.done++; report() }
 
   async function keep(url: string, value: unknown) {
+    // Une modification en attente garde sa copie sur l'appareil (R12)
     const current = await getCachedResponse<{ __offlinePending?: boolean }>(url)
     if (current?.__offlinePending) return
     await saveCachedResponse(url, value)
@@ -103,7 +115,68 @@ async function runDownload(target: { id: string, title: string }, onProgress: (p
     }
   }
 
-  onProgress({ ...progress })
+  // Fichiers dans un cache sans limite de nombre ni de durée (R9)
+  async function keepFiles(urls: Set<string>) {
+    progress.total += urls.size
+    report()
+    const cache = await caches.open(DOWNLOAD_CACHE_NAME)
+    await eachInParallel(urls, async (url) => {
+      // Une photo ne change jamais sous son adresse : déjà gardée, elle n'est pas relue à chaque mise à jour
+      const kept = PHOTO_PATTERN.test(url) ? await cache.match(url) : undefined
+      if (kept) {
+        size += responseSize(kept)
+        files.add(url)
+        step()
+        return
+      }
+      let response: Response
+      try {
+        response = await fetch(url, { credentials: 'same-origin' })
+      } catch {
+        throw new DownloadInterrupted('Le réseau est tombé pendant le téléchargement.')
+      }
+      if (response.ok) {
+        size += (await response.clone().blob()).size
+        await cache.put(url, response)
+        files.add(url)
+      }
+      step()
+    })
+  }
+
+  // Fin du téléchargement : ce que l'ancien gardait et que le nouveau ne garde plus part de l'appareil (une session que
+  // la personne ne voit plus, un élément supprimé), sauf ce qu'un autre téléchargement garde aussi
+  async function finish(key: string, title: string) {
+    const download: OfflineDownload = { gameId: key, title, date: new Date().toISOString(), responses: [...responses], files: [...files], size }
+    const others = (await listDownloads()).filter((item) => item.gameId !== key)
+    const previous = await getFromStore<OfflineDownload>(DOWNLOADS_STORE, key)
+    if (previous) await forgetEntries(previous, download, others)
+    await saveToStore(DOWNLOADS_STORE, key, download)
+    return download
+  }
+
+  return { progress, report, step, keep, keepRead, keepFiles, finish }
+}
+
+const SHARED_READS = new Set<string>([...LIST_READS.map(([, url]) => url), DASHBOARD_READ, AUTH_READ, REGISTRATION_PERIODS_READ, MY_PARTICIPATIONS_READ])
+
+// Réponses et fichiers de `previous` absents de `next` (ou de tout, sans `next`), sauf ceux d'un autre téléchargement et
+// les listes communes, qu'une lecture remplace
+async function forgetEntries(previous: OfflineDownload, next: OfflineDownload | null, others: OfflineDownload[]) {
+  const keptResponses = new Set([...others.flatMap((item) => item.responses), ...next?.responses ?? []])
+  const keptFiles = new Set([...others.flatMap((item) => item.files), ...next?.files ?? []])
+  for (const url of previous.responses) {
+    if (!keptResponses.has(url) && !SHARED_READS.has(url)) await deleteFromStore('responses', url)
+  }
+  const cache = await caches.open(DOWNLOAD_CACHE_NAME)
+  for (const url of previous.files) if (!keptFiles.has(url)) await cache.delete(url)
+}
+
+async function runGameDownload(target: { id: string, title: string }, onProgress: (progress: DownloadProgress) => void) {
+  const queue = await getOfflineQueue()
+  const pendingStores = new Set(queue.map((operation) => operation.store).filter(Boolean))
+  const run = startRun(onProgress, LIST_READS.length + 4)
+  run.report()
   // Le jeu lui-même, par son identifiant : refusé, il n'est plus accessible (R15)
   let game: { id: string, slug: string, title: string }
   try {
@@ -112,25 +185,26 @@ async function runDownload(target: { id: string, title: string }, onProgress: (p
     if ([403, 404].includes(getErrorStatus(error) ?? 0)) throw new GameAccessLost('Ce jeu n’est plus accessible.')
     throw error
   }
-  await keep(gameSheetRead(game.slug), await read(gameSheetRead(game.slug)))
-  step()
+  await run.keep(gameSheetRead(game.slug), await read(gameSheetRead(game.slug)))
+  run.step()
 
   const lists: Record<string, Listed[]> = {}
   for (const [store, url] of LIST_READS) {
     const value = await read(url) as Listed[]
     lists[store] = value
+    // Une liste qui a une modification en attente garde sa copie (R12)
     if (!pendingStores.has(store)) await saveToStore(store, 'list', value)
-    await keep(url, value)
-    step()
+    await run.keep(url, value)
+    run.step()
   }
-  await keepRead(DASHBOARD_READ)
-  await keepRead(AUTH_READ)
-  const periods = await keepRead(REGISTRATION_PERIODS_READ) as Array<{ id: string, gameId: string }> | null
+  await run.keepRead(DASHBOARD_READ)
+  await run.keepRead(AUTH_READ)
+  const periods = await run.keepRead(REGISTRATION_PERIODS_READ) as Array<{ id: string, gameId: string }> | null
 
   const ofGame = (store: string) => (lists[store] || []).filter((item) => item.gameId === game.id)
   const sessions = ofGame('sessions')
   const participants = (lists.participants || []).filter((item) => item.games?.some((linked) => linked.id === game.id))
-  const sheets: string[] = [
+  const sheets = new Set<string>([
     ...ofGame('characters').flatMap((character) => characterPlan({ ...character, gameId: game.id })),
     ...ofGame('factions').map((item) => sheetReads.faction(item.slug)),
     ...ofGame('intrigues').map((item) => sheetReads.intrigue(item.slug)),
@@ -140,58 +214,53 @@ async function runDownload(target: { id: string, title: string }, onProgress: (p
     ...ofGame('locations').map((item) => sheetReads.location(item.slug)),
     ...participants.flatMap(participantPlan),
     ...sessions.flatMap(sessionPlan)
-  ]
+  ])
   const gamePeriods = (periods || []).filter((period) => period.gameId === game.id)
   const periodReads = gamePeriods.flatMap((period) => [registrationReads.selection(period.id), registrationReads.draws(period.id), registrationReads.registrations(period.id)])
-  progress.total += new Set(sheets).size + periodReads.length
-  onProgress({ ...progress })
+  run.progress.total += sheets.size + periodReads.length
+  run.report()
 
-  await eachInParallel(new Set(sheets), async (url) => { await keepRead(url) })
+  await eachInParallel(sheets, async (url) => { await run.keepRead(url) })
   for (const url of periodReads) {
-    const value = await keepRead(url)
+    const value = await run.keepRead(url)
     if (url.endsWith('/registrations') && Array.isArray(value)) {
       const ids = value.map((registration: { id?: string }) => registration.id).filter((id): id is string => Boolean(id))
-      progress.total += ids.length
-      await eachInParallel(ids, async (id) => { await keepRead(registrationReads.registration(id)) })
+      run.progress.total += ids.length
+      await eachInParallel(ids, async (id) => { await run.keepRead(registrationReads.registration(id)) })
     }
   }
 
-  // Fichiers des sessions à venir seulement (R9), dans un cache sans limite de nombre ni de durée
+  // Fichiers des sessions à venir seulement (R9)
   const wanted = new Set<string>()
   for (const session of sessions.filter((item) => isUpcoming(item))) {
     filesIn(await getCachedResponse(sessionReads.sheet(session.slug)), wanted)
     filesIn(await getCachedResponse(sessionReads.documents(session.id)), wanted)
     wanted.add(sessionReads.allergiesPdf(session.id))
   }
-  progress.total += wanted.size
-  onProgress({ ...progress })
-  const cache = await caches.open(DOWNLOAD_CACHE_NAME)
-  await eachInParallel(wanted, async (url) => {
-    // Une photo du cast ne change jamais sous son adresse : déjà gardée, elle n'est pas relue à chaque mise à jour
-    const kept = PHOTO_PATTERN.test(url) ? await cache.match(url) : undefined
-    if (kept) {
-      size += responseSize(kept)
-      files.add(url)
-      step()
-      return
-    }
-    let response: Response
-    try {
-      response = await fetch(url, { credentials: 'same-origin' })
-    } catch {
-      throw new DownloadInterrupted('Le réseau est tombé pendant le téléchargement.')
-    }
-    if (response.ok) {
-      size += (await response.clone().blob()).size
-      await cache.put(url, response)
-      files.add(url)
-    }
-    step()
-  })
+  await run.keepFiles(wanted)
+  return await run.finish(game.id, game.title)
+}
 
-  const download: OfflineDownload = { gameId: game.id, title: game.title, date: new Date().toISOString(), responses: [...responses], files: [...files], size }
-  await saveToStore(DOWNLOADS_STORE, game.id, download)
-  return download
+// Participations, et pour chaque session à venir ses documents reçus et leurs fichiers (R16)
+async function runMySessionsDownload(onProgress: (progress: DownloadProgress) => void) {
+  const run = startRun(onProgress, 1)
+  run.report()
+  const participations = await read(MY_PARTICIPATIONS_READ) as Array<{ sessions: Array<{ date?: string | null, documents: Array<{ id: string }> }> }>
+  await run.keep(MY_PARTICIPATIONS_READ, participations)
+  run.step()
+  const deliveries = participations.flatMap((game) => game.sessions.filter((session) => isUpcoming(session)).flatMap((session) => session.documents))
+  run.progress.total += deliveries.length
+  run.report()
+  const wanted = new Set<string>()
+  await eachInParallel(deliveries, async (delivery) => {
+    const value = await run.keepRead(myDocumentReads.document(delivery.id))
+    if (value) {
+      filesIn(value, wanted)
+      wanted.add(myDocumentReads.pdf(delivery.id))
+    }
+  })
+  await run.keepFiles(wanted)
+  return await run.finish(MY_SESSIONS, MY_SESSIONS_TITLE)
 }
 
 // Jeu effacé de l'appareil (accès perdu, R15) : ses réponses et ses fichiers, sauf ceux d'un autre téléchargement, et
@@ -200,16 +269,7 @@ export async function forgetDownloadedGame(gameId: string) {
   const downloads = await listDownloads()
   const lost = downloads.find((download) => download.gameId === gameId)
   if (!lost) return
-  const kept = downloads.filter((download) => download.gameId !== gameId)
-  const keptResponses = new Set(kept.flatMap((download) => download.responses))
-  const keptFiles = new Set(kept.flatMap((download) => download.files))
-  const listUrls = new Set<string>(LIST_READS.map(([, url]) => url))
-  for (const url of lost.responses) {
-    if (keptResponses.has(url) || listUrls.has(url) || url === DASHBOARD_READ || url === AUTH_READ || url === REGISTRATION_PERIODS_READ) continue
-    await deleteFromStore('responses', url)
-  }
-  const cache = await caches.open(DOWNLOAD_CACHE_NAME)
-  for (const url of lost.files) if (!keptFiles.has(url)) await cache.delete(url)
+  await forgetEntries(lost, null, downloads.filter((download) => download.gameId !== gameId))
   // Listes communes à tous les jeux : seules les lignes du jeu perdu partent
   for (const [store, url] of LIST_READS) {
     const without = (items: unknown) => Array.isArray(items)
@@ -239,7 +299,8 @@ export function refreshDownloads(now = Date.now()) {
         if (download.lost || now - new Date(download.date).getTime() < REFRESH_AFTER_MS) continue
         if (!navigator.onLine) return
         try {
-          await downloadGame({ id: download.gameId, title: download.title })
+          if (download.gameId === MY_SESSIONS) await downloadMySessions()
+          else await downloadGame({ id: download.gameId, title: download.title })
         } catch (error) {
           if (error instanceof GameAccessLost) await forgetDownloadedGame(download.gameId)
           // Réseau tombé ou panne : la prochaine ouverture, ou le prochain retour du réseau, recommencera

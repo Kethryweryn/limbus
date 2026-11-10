@@ -18,6 +18,13 @@ export const LIST_READS = [
 export const DASHBOARD_READ = '/api/dashboard'
 export const AUTH_READ = '/api/auth/me'
 export const REGISTRATION_PERIODS_READ = '/api/registration-periods'
+// Espace « Je participe » (SPEC-019, R16)
+export const MY_PARTICIPATIONS_READ = '/api/me/participations'
+
+export const myDocumentReads = {
+  document: (id: string) => `/api/me/documents/${encodeURIComponent(id)}` as const,
+  pdf: (id: string) => `/api/me/documents/${encodeURIComponent(id)}/pdf` as const
+}
 
 type Sheet = { id: string, slug: string }
 type GameSheet = Sheet & { gameId: string }
@@ -100,7 +107,7 @@ export const registrationReads = {
 
 // Fichiers d'une session à venir : PDF (trombinoscopes, fiches, fiche allergies) et photos du cast, relevés dans les
 // réponses de la session et de ses documents
-const FILE_PATTERN = /^\/api\/(sessions\/[^/]+\/(trombinoscopes\/|documents\/.+\/pdf|allergies\/pdf)|uploads\/session-assignment-photos\/)/
+const FILE_PATTERN = /^\/api\/(sessions\/[^/]+\/(trombinoscopes\/|documents\/.+\/pdf|allergies\/pdf)|uploads\/session-assignment-photos\/|me\/documents\/[^/]+\/(pdf|photos\/))/
 
 export function filesIn(value: unknown, found = new Set<string>()) {
   if (typeof value === 'string') {

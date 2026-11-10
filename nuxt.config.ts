@@ -143,6 +143,21 @@ export default defineNuxtConfig({
       clientsClaim: true,
       runtimeCaching: [
         {
+          // Documents reçus d'une participante (PDF, photos) : jamais gardés en passant ; sans réseau, ceux de ses sessions
+          // à venir téléchargées (SPEC-019, R16)
+          urlPattern: /\/api\/me\/documents\/[^/]+\/(?:pdf|photos\/\d+)$/,
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'me-documents',
+            networkTimeoutSeconds: 10,
+            plugins: [{
+              cacheWillUpdate: async () => null,
+              cachedResponseWillBeUsed: async ({ request, cachedResponse }: { request: Request, cachedResponse?: Response }) =>
+                cachedResponse || await (await caches.open('offline-downloads')).match(request.url)
+            }]
+          }
+        },
+        {
           // Workbox compare l'URL complète (https://…) : le motif ne commence donc pas par ^
           urlPattern: /\/api\/uploads\/session-assignment-photos\/.+/,
           handler: 'CacheFirst',

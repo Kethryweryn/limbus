@@ -170,7 +170,7 @@ test.describe('télécharger un jeu', () => {
       const stranger = await testUser(prisma, 'Sans accès téléchargement')
       await signIn(page, prisma, stranger.email)
       await openAccount(page)
-      await expect(card(page).getByRole('heading', { name: 'Télécharger un jeu' })).toHaveCount(0)
+      await expect(card(page).getByRole('heading', { name: 'Télécharger pour le hors ligne' })).toHaveCount(0)
     } finally {
       await prisma.$disconnect()
     }

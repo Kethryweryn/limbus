@@ -15,7 +15,7 @@
         </div>
         <UButton
           v-if="delivery.source"
-          :to="`/api/me/documents/${delivery.id}/pdf`"
+          :to="myDocumentReads.pdf(delivery.id)"
           target="_blank"
           external
           color="neutral"
@@ -71,6 +71,7 @@
 import { loadErrorMessage } from '~/utils/apiErrors'
 import { formatLongDate as formatDate } from '~/utils/dates'
 import type { ApiResponse } from '~/composables/useApiFetch'
+import { myDocumentReads } from '~/utils/offlinePlan'
 
 // Un document reçu, dans « Je participe » (US-079)
 const route = useRoute()
@@ -80,7 +81,7 @@ const loadError = ref('')
 
 onMounted(async () => {
   try {
-    delivery.value = await useApiFetch(`/api/me/documents/${encodeURIComponent(String(route.params.id || ''))}`, { offlineCache: true })
+    delivery.value = await useApiFetch(myDocumentReads.document(String(route.params.id || '')), { offlineCache: true })
   } catch (err) {
     loadError.value = loadErrorMessage(err, 'Impossible de charger ce document.')
   } finally {
