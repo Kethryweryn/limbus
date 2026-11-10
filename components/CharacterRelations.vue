@@ -70,6 +70,7 @@
 import { CHARACTER_RELATION_TYPES, characterRelationTypeLabel, relationSide } from '~/utils/characterRelations'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
+import { characterReads } from '~/utils/offlinePlan'
 
 type Relation = ApiResponse<'/api/characters/:id/relations'>[number]
 type CharacterRef = { id: string, name: string, gameId: string }
@@ -88,7 +89,7 @@ const message = ref('')
 async function load() {
   try {
     // Lue avec le réseau, elle reste lisible hors ligne avec la fiche (US-047)
-    relations.value = await useApiFetch(`/api/characters/${props.character.id}/relations`, { offlineCache: true })
+    relations.value = await useApiFetch(characterReads.relations(props.character.id), { offlineCache: true })
     message.value = ''
   } catch (err) {
     message.value = apiErrorMessage(err, 'Impossible de charger les relations')

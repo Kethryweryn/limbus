@@ -147,10 +147,11 @@ import { pageLoadError } from '~/utils/apiErrors'
 import { isInArchivedGame } from '~/utils/games'
 import { formatIntrigueLevel } from '~/utils/intrigueLevels'
 import type { IntrigueDraft } from '~/utils/writingDrafts'
+import { sheetReads } from '~/utils/offlinePlan'
 
 const route = useRoute()
 const slug = String(route.params.slug)
-const { data: intrigue, error, refresh } = await useOfflineFetch(`/api/intrigues/slug/${slug}`)
+const { data: intrigue, error, refresh } = await useOfflineFetch(sheetReads.intrigue(slug))
 const { data: games } = await useOfflineFetch('/api/games')
 const { data: characters } = await useOfflineFetch('/api/characters')
 const { data: factions } = await useOfflineFetch('/api/factions')

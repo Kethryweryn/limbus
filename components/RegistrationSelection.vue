@@ -355,6 +355,7 @@
 
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
+import { registrationReads } from '~/utils/offlinePlan'
 import {
   REGISTRATION_DEFAULT_WAITLIST_SIZE,
   REGISTRATION_REPLAY_POLICIES,
@@ -414,8 +415,8 @@ function showMessage(text: string, color: MessageColor) {
 async function loadOverview() {
   try {
     const [selection, journal] = await Promise.all([
-      useApiFetch(`/api/registration-periods/${props.period.id}/selection`, { offlineCache: true }),
-      useApiFetch(`/api/registration-periods/${props.period.id}/draws`, { offlineCache: true })
+      useApiFetch(registrationReads.selection(props.period.id), { offlineCache: true }),
+      useApiFetch(registrationReads.draws(props.period.id), { offlineCache: true })
     ])
     overview.value = selection
     draws.value = journal

@@ -147,6 +147,7 @@ import TimelineEventForm from '@/components/TimelineEventForm.vue'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import type { TimelineEventDraft } from '~/utils/writingDrafts'
 import { conflictTitle } from '~/utils/timeline'
+import { sheetReads } from '~/utils/offlinePlan'
 
 type TimelineEventDetail = ApiResponse<'/api/timeline-events/:id'>
 // D'où l'on vient : la timeline d'un jeu ou l'onglet Timeline d'une session
@@ -173,7 +174,7 @@ const timelineBackTo = computed(() => ({
 
 async function loadData() {
   const [eventData, gamesData, charactersData, factionsData, intriguesData, itemsData] = await Promise.all([
-    useApiFetch(`/api/timeline-events/slug/${route.params.slug}`, { offlineCache: true }),
+    useApiFetch(sheetReads.timelineEvent(String(route.params.slug)), { offlineCache: true }),
     useApiFetch('/api/games', { offlineCache: true }),
     useApiFetch('/api/characters', { offlineCache: true }),
     useApiFetch('/api/factions', { offlineCache: true }),

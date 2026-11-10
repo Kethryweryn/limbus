@@ -1,8 +1,8 @@
 // Pages légales (US-110, US-111, SPEC-013, ADR-0055) : ce qui revient d'une page à l'autre
 
 /** Version des conditions d'utilisation et de la politique de confidentialité : la changer fait accepter de nouveau. */
-export const TERMS_VERSION = '2026-11-02c'
-export const TERMS_VERSION_LABEL = '2 novembre 2026, troisième version'
+export const TERMS_VERSION = '2026-11-10'
+export const TERMS_VERSION_LABEL = '10 novembre 2026'
 
 export const LEGAL_EDITOR = {
   name: 'Jean-Damien Mottot',

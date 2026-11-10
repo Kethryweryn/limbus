@@ -104,9 +104,10 @@ import { pageLoadError } from '~/utils/apiErrors'
 import { isInArchivedGame } from '~/utils/games'
 import ItemForm from '@/components/ItemForm.vue'
 import type { ItemDraft } from '~/utils/writingDrafts'
+import { sheetReads } from '~/utils/offlinePlan'
 
 const route = useRoute()
-const { data: item, error, refresh } = await useOfflineFetch(`/api/items/slug/${route.params.slug}`)
+const { data: item, error, refresh } = await useOfflineFetch(sheetReads.item(String(route.params.slug)))
 const { data: games } = await useOfflineFetch('/api/games')
 const { data: characters } = await useOfflineFetch('/api/characters')
 const { data: intrigues } = await useOfflineFetch('/api/intrigues')

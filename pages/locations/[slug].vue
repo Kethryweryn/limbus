@@ -60,9 +60,10 @@ import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { pageLoadError } from '~/utils/apiErrors'
 import { isInArchivedGame } from '~/utils/games'
 import type { LocationDraft } from '~/utils/writingDrafts'
+import { sheetReads } from '~/utils/offlinePlan'
 
 const route = useRoute()
-const { data: location, error, refresh } = await useOfflineFetch(`/api/locations/slug/${route.params.slug}`)
+const { data: location, error, refresh } = await useOfflineFetch(sheetReads.location(String(route.params.slug)))
 const { data: games } = await useOfflineFetch('/api/games')
 
 if (error.value) {

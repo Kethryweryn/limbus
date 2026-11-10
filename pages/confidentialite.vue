@@ -83,6 +83,7 @@
     <ul>
       <li>Limbus n’utilise que les cookies nécessaires à la connexion : celui de votre session (20 heures) et, pour l’administratrice, celui du mode administration (2 heures). Aucun cookie de mesure d’audience ni de publicité : aucun consentement n’est donc demandé.</li>
       <li>Pour fonctionner sans réseau sur le lieu du jeu, l’application garde une copie des pages consultées dans votre navigateur. Elle est effacée à la déconnexion.</li>
+      <li>Une organisatrice peut télécharger un de ses jeux sur son appareil, pour le consulter sans réseau : l’appareil garde alors aussi le contact d’urgence et les allergies des participants de ce jeu. Cette copie part quand elle efface les données de l’appareil ou y désactive le hors ligne (dans « Mon compte »), quand elle perd l’accès au jeu, et à la déconnexion.</li>
     </ul>
 
     <h2>Sécurité</h2>

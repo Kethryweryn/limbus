@@ -1,7 +1,7 @@
 ---
 id: EPIC-052
 titre: Télécharger un jeu pour le hors ligne
-statut: à faire
+statut: en cours
 spec: ../../specs/SPEC-019-hors-ligne-dans-le-compte.md
 date: 2026-11-10
 ---
@@ -16,7 +16,7 @@ Une organisatrice ou co-organisatrice télécharge un de ses jeux actifs, tout e
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-226](US-226-telecharger-un-jeu.md) | Télécharger un jeu pour le consulter sans réseau | à faire |
+| [US-226](US-226-telecharger-un-jeu.md) | Télécharger un jeu pour le consulter sans réseau | terminée |
 | [US-227](US-227-mise-a-jour-du-jeu-telecharge.md) | Garder à jour un jeu téléchargé | à faire |
 | [US-228](US-228-acces-perdu-jeu-efface.md) | Effacer de l’appareil un jeu dont l’accès est perdu | à faire |
 

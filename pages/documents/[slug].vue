@@ -130,6 +130,7 @@ import DocumentForm from '@/components/DocumentForm.vue'
 import { documentAudienceLabel } from '~/utils/documentAudiences'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import type { DocumentDraft } from '~/utils/writingDrafts'
+import { sheetReads } from '~/utils/offlinePlan'
 
 type DocumentDetail = ApiResponse<'/api/documents/:id'>
 // D'où l'on vient : la liste des documents ou l'onglet Documents d'une session
@@ -161,7 +162,7 @@ const documentBackLabel = computed(() =>
 
 async function loadData() {
   const [data, gamesData, charactersData, factionsData] = await Promise.all([
-    useApiFetch(`/api/documents/slug/${route.params.slug}`, { offlineCache: true }),
+    useApiFetch(sheetReads.document(String(route.params.slug)), { offlineCache: true }),
     useApiFetch('/api/games', { offlineCache: true }),
     useApiFetch('/api/characters', { offlineCache: true }),
     useApiFetch('/api/factions', { offlineCache: true })
