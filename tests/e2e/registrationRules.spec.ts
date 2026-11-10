@@ -6,7 +6,7 @@ import { DEFAULT_REGISTRATION_FORM_DEFINITION } from '../../utils/registrationFo
 import { createTestPrisma } from '../integration/db'
 import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
-import { gamePanel, orgaGame, orgaSession, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
+import { choose, gamePanel, orgaGame, orgaSession, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
 import type { RegistrationSessionStatus } from '~/generated/prisma/enums'
 
 type Line = { status: RegistrationSessionStatus, answer?: 'available' | 'unavailable', waitlistPosition?: number, announcedStatus?: RegistrationSessionStatus }
@@ -51,6 +51,8 @@ const sessionLine = (prisma: TestPrisma, registrationId: string, sessionId: stri
 async function openSelection(page: Page, game: { title: string }, session: { name: string }) {
   await page.goto('/registrations')
   await page.waitForLoadState('networkidle')
+  // Le seul jeu du test : la page ne charge pas la sélection de tous les jeux des tests voisins
+  await choose(page, page.getByRole('combobox').first(), game.title)
   const panel = gamePanel(page, game.title, 'Sélection')
   return { panel, block: panel.locator(`[data-session="${session.name}"]`) }
 }
@@ -208,6 +210,47 @@ test.describe('sélection', () => {
   })
 })
 
+test.describe('réglages des inscriptions (US-220)', () => {
+  test('délai du vivier, prolongation sans date et adresse d’invitation refusés avec le message de Limbus', async ({ page }) => {
+    const prisma = createTestPrisma()
+    try {
+      const ctx = await vivier(prisma, 'Vivier réglages refusés')
+      const announced = await member(prisma, ctx, 'A prolonger', { status: 'retained', announcedStatus: 'retained' })
+      await prisma.registrationSession.update({
+        where: { registrationId_sessionId: { registrationId: announced.registration.id, sessionId: ctx.session.id } },
+        data: { announcedAt: new Date(), responseDueAt: new Date('2099-05-01T09:00:00Z') }
+      })
+      await signIn(page, prisma, E2E_USERS.orga)
+      const { panel, block } = await openSelection(page, ctx.game, ctx.session)
+
+      await panel.getByRole('button', { name: 'Réglages' }).click()
+      let dialog = page.getByRole('dialog')
+      await dialog.getByLabel('Délai de réponse (jours)').fill('0')
+      await dialog.getByRole('button', { name: 'Enregistrer' }).click()
+      await expect(dialog.getByText('Entre 1 et 90 jours.')).toBeVisible()
+      await dialog.getByRole('button', { name: 'Annuler' }).click()
+      expect((await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: ctx.period.id } })).responseDelayDays).toBe(7)
+
+      await block.locator('li').filter({ hasText: announced.name }).getByRole('button', { name: 'Prolonger' }).click()
+      dialog = page.getByRole('dialog')
+      await dialog.getByLabel('Nouvelle échéance').fill('')
+      await dialog.getByRole('button', { name: 'Prolonger' }).click()
+      await expect(dialog.getByText('Choisissez la nouvelle échéance.')).toBeVisible()
+      await dialog.getByRole('button', { name: 'Annuler' }).click()
+
+      await panel.getByRole('button', { name: 'Inviter', exact: true }).click()
+      dialog = page.getByRole('dialog')
+      await dialog.getByPlaceholder('Nom').fill('Sans arobase')
+      await dialog.getByPlaceholder('Email').fill('adresse-sans-arobase')
+      await dialog.getByRole('button', { name: /^Inviter/ }).click()
+      await expect(dialog.getByText(/Email invalide|Adresse invalide/i)).toBeVisible()
+      expect(await prisma.participant.count({ where: { name: 'Sans arobase', gameLinks: { some: { gameId: ctx.game.id } } } })).toBe(0)
+    } finally {
+      await prisma.$disconnect()
+    }
+  })
+})
+
 test.describe('« Pas disponible » par le lien de la demande', () => {
   const unavailableLink = (token: string, sessionId: string) => `/inscription/${token}?session=${sessionId}&reponse=indisponible`
 
@@ -356,6 +399,56 @@ test.describe('réponses de la personne', () => {
   })
 })
 
+test.describe('paiements et report (SPEC-018, R30)', () => {
+  test('une inscrite partie puis remboursée passe en annulation', async ({ page }) => {
+    const prisma = createTestPrisma()
+    try {
+      const ctx = await vivier(prisma, 'Vivier remboursement')
+      const person = await member(prisma, ctx, 'Remboursee', { status: 'confirmed' })
+      await prisma.sessionPayment.create({ data: { gameId: ctx.game.id, sessionId: ctx.session.id, participantId: person.participant.id, paidAt: new Date() } })
+      await signIn(page, prisma, E2E_USERS.orga)
+      await page.goto(`/sessions/${ctx.session.slug}?tab=payments`)
+      await page.waitForLoadState('networkidle')
+      const departure = page.locator('section').filter({ hasText: 'Paiements de personnes parties' }).locator('article').filter({ hasText: person.name })
+      await expect(departure).toBeVisible()
+      await departure.getByRole('combobox').first().click()
+      await page.getByRole('option', { name: /^Remboursé$/ }).click()
+      await expect.poll(async () => (await sessionLine(prisma, person.registration.id, ctx.session.id))?.status).toBe('cancelled')
+
+      await page.goto(`/inscription/${person.token}`)
+      await expect(page.locator(`[data-session="${ctx.session.name}"]`).getByText('Annulation')).toBeVisible()
+    } finally {
+      await prisma.$disconnect()
+    }
+  })
+
+  test('au report, une inscrite passe en « transférée » sur l’ancienne session et garde sa place sur la nouvelle', async ({ page }) => {
+    const prisma = createTestPrisma()
+    try {
+      const ctx = await vivier(prisma, 'Vivier report')
+      const person = await member(prisma, ctx, 'Reportee', { status: 'confirmed' })
+      await prisma.sessionParticipant.create({ data: { sessionId: ctx.session.id, participantId: person.participant.id, role: 'participant' } })
+      await signIn(page, prisma, E2E_USERS.orga)
+      await page.goto(`/sessions/${ctx.session.slug}`)
+      await page.waitForLoadState('networkidle')
+      await page.getByRole('button', { name: 'Reporter' }).click()
+      const dialog = page.getByRole('dialog')
+      const name = uniqueName('Session de report')
+      await dialog.getByLabel('Nom de la nouvelle session').fill(name)
+      await dialog.getByRole('button', { name: 'Reporter' }).click()
+      await expect(page.getByRole('heading', { name, level: 1 })).toBeVisible()
+
+      const created = await prisma.session.findFirstOrThrow({ where: { name } })
+      expect((await sessionLine(prisma, person.registration.id, ctx.session.id))?.status).toBe('transferred')
+      expect((await sessionLine(prisma, person.registration.id, created.id))?.status).toBe('confirmed')
+      await page.goto(`/inscription/${person.token}`)
+      await expect(page.getByText('Cette session est reportée : votre place est passée à la nouvelle session.')).toBeVisible()
+    } finally {
+      await prisma.$disconnect()
+    }
+  })
+})
+
 test.describe('droits et hors ligne', () => {
   test('une co-organisatrice retient comme la propriétaire ; une organisatrice sans accès ne voit pas le vivier', async ({ page, otherPage }) => {
     const prisma = createTestPrisma()
@@ -399,7 +492,7 @@ test.describe('droits et hors ligne', () => {
       await block.locator('li').filter({ hasText: person.name }).getByRole('button', { name: 'Retenir' }).click()
       // Un seul message : la relecture du vivier reprend la copie de l'appareil (US-221)
       await expect(page.getByText(/Pas de réseau : cette action demande une connexion/)).toBeVisible()
-      await expect(page.getByText(/Pas de réseau/)).toHaveCount(1)
+      await expect(page.getByText(/Pas de réseau|pas été consultée|Impossible de charger/)).toHaveCount(1)
       await context.setOffline(false)
       expect((await sessionLine(prisma, person.registration.id, ctx.session.id))?.status).toBe('preregistered')
     } finally {

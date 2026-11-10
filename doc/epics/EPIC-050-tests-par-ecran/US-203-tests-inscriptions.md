@@ -38,11 +38,12 @@ Fait le 2026-11-10, à partir des tests existants (`registration.spec.ts`, `regi
 | SPEC-018 R4 | Invitation pour une session complète ou annulée | 1/2 |
 | SPEC-001 R16 | Invitation déclinée | 1/2 |
 | SPEC-001 R33 | Droits : co-organisatrice, organisatrice sans accès | 1/2 |
+| SPEC-018 R30 | Remboursement : annulation ; report : transférée | 1/2 |
 | SPEC-010 | Sélection relue hors ligne, décision refusée sans réseau | 1/2 |
 | SPEC-015, SPEC-016 | Formulaire et qualité du questionnaire | 2/2 |
 
 ## Tests
 
-PR 1/2, `tests/e2e/registrationRules.spec.ts` (15 tests) : chaque ligne marquée 1/2 ci-dessus. Erreurs de saisie : réglage de la sélection (US-220), question obligatoire, champ vidé (lot 5). Droits : co-organisatrice qui retient, organisatrice sans accès qui ne voit ni le vivier ni sa route. Hors ligne : sélection relue, décision refusée et dite une seule fois (US-221). Les SPEC-018 R1, R3, R5, R7, R9 à R13, R16 à R19, R21, R25 à R28, R31 et SPEC-001 R11, R20, R23, R26 à R29, R32 étaient déjà testées. SPEC-018 R30 (paiements et report) est testée avec les sessions (lot 2).
+PR 1/2, `tests/e2e/registrationRules.spec.ts` (18 tests) : chaque ligne marquée 1/2 ci-dessus. Erreurs de saisie : réglage de la sélection, délai du vivier, prolongation sans date, adresse d'invitation (US-220), question obligatoire, champ vidé (lot 5). Droits : co-organisatrice qui retient, organisatrice sans accès qui ne voit ni le vivier ni sa route. Hors ligne : sélection relue, décision refusée et dite une seule fois (US-221). Les SPEC-018 R1, R3, R5, R7, R9 à R13, R16 à R19, R21, R25 à R28, R31 et SPEC-001 R11, R20, R23, R26 à R29, R32 étaient déjà testées.
 
 PR 2/2 : à compléter.

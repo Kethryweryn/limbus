@@ -23,4 +23,4 @@ Même choix que l'US-204 (message de Limbus, pas la bulle du navigateur) : `nova
 
 ## Tests
 
-`tests/e2e/registrationRules.spec.ts` : nombre négatif dans la fenêtre « Sélection », message de Limbus et rien d'enregistré.
+`tests/e2e/registrationRules.spec.ts` : nombre négatif dans la fenêtre « Sélection », délai du vivier à 0, prolongation sans date, adresse d'invitation invalide ; message de Limbus, rien d'enregistré.

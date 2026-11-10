@@ -18,7 +18,7 @@ En tant qu'organisatrice, je veux qu'une décision de sélection refusée faute 
 
 ## Notes techniques
 
-`refresh` de `composables/useRegistrationPeriodActions.ts` lit avec `offlineCache` et `loadErrorMessage`.
+`refresh` de `composables/useRegistrationPeriodActions.ts` reprend, sans réseau, les périodes du jeu dans la copie de la page (`/api/registration-periods`, tenue à jour par `keepPeriodsOffline`) ; sinon il passe par `loadErrorMessage` (revue de la PR #198).
 
 ## Tests
 
