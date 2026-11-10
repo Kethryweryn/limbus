@@ -1,0 +1,5 @@
+{
+  "type": "modifie",
+  "titre": "Sessions repliées dans les inscriptions",
+  "texte": "Dans l’onglet Sessions d’un jeu, chaque session tient sur une ligne, avec sa date, ses places et son état ; la première est dépliée, et un clic déplie les autres. Les tirages d’une session sont rangés avec elle, et ceux des sessions terminées ou annulées sous « Sessions passées »."
+}

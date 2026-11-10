@@ -217,7 +217,7 @@ export async function listDraws(periodId: string) {
       result: true,
       createdAt: true,
       cancelledAt: true,
-      session: { select: { name: true } },
+      session: { select: { name: true, status: true } },
       createdBy: { select: { name: true } },
       cancelledBy: { select: { name: true } }
     }

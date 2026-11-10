@@ -179,6 +179,7 @@ test.describe('sélection', () => {
 
       page.once('dialog', (confirmation) => confirmation.accept())
       await block.getByRole('button', { name: 'Tirer au sort' }).click()
+      await block.getByText('Tirages : 1').click()
       await expect(panel.getByText('1 rejoueur exclu')).toBeVisible()
       expect((await sessionLine(prisma, newcomer.registration.id, ctx.session.id))?.status).toBe('retained')
       expect((await sessionLine(prisma, replayer.registration.id, ctx.session.id))?.status).toBe('preregistered')
@@ -222,7 +223,7 @@ test.describe('réglages des inscriptions (US-220)', () => {
       const { block } = await openSelection(page, ctx.game, ctx.session)
 
       await registrationTab(page, 'Réglages')
-      await page.getByRole('main').getByRole('button', { name: 'Réglages' }).click()
+      await page.getByRole('main').getByRole('button', { name: 'Réglages', exact: true }).click()
       let dialog = page.getByRole('dialog')
       await dialog.getByLabel('Délai de réponse (jours)').fill('0')
       await dialog.getByRole('button', { name: 'Enregistrer' }).click()

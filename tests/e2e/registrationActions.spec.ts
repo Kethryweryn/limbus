@@ -162,7 +162,7 @@ test('l’équipe règle, ferme, rouvre, copie le lien, ouvre une session et sup
     const panel = await openOwnRegistrations(page, prisma, game.title, 'Réglages')
 
     // Réglages : le délai de réponse
-    await panel.getByRole('button', { name: 'Réglages' }).click()
+    await panel.getByRole('button', { name: 'Réglages', exact: true }).click()
     const dialog = page.getByRole('dialog')
     await dialog.getByLabel('Délai de réponse (jours)').fill('12')
     await dialog.getByRole('button', { name: 'Enregistrer' }).click()
