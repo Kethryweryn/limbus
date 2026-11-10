@@ -129,7 +129,7 @@
 <script setup lang="ts">
 import { REFUND_STATUSES, REGISTRATION_SESSION_STATUS_META, REGISTRATION_STATUS_META, SESSION_ROLE_LABELS, SESSION_ROLES, metaOf } from '~/utils/domain'
 import { ATTENDANCE_STATUSES } from '~/utils/attendance'
-import { serverMessage } from '~/utils/apiErrors'
+import { loadErrorMessage } from '~/utils/apiErrors'
 import { rememberSpace } from '~/utils/spaces'
 import { sessionStatusMeta } from '~/utils/sessions'
 import { formatEuros } from '~/utils/sessionTariffs'
@@ -153,7 +153,7 @@ onMounted(async () => {
     // Gardée sur l'appareil : sur le lieu du jeu, sans réseau, on retrouve date et lieu
     participations.value = await useApiFetch('/api/me/participations', { offlineCache: true })
   } catch (err) {
-    loadError.value = serverMessage(err, 'Impossible de charger vos participations.')
+    loadError.value = loadErrorMessage(err, 'Impossible de charger vos participations.')
   } finally {
     pending.value = false
   }

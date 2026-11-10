@@ -1,7 +1,7 @@
 ---
 id: US-202
 titre: Tester l'espace « Je participe », le lien public d'inscription et les assistants
-statut: à faire
+statut: terminée
 epic: EPIC-050
 regles: []
 adr: []
@@ -13,8 +13,8 @@ En tant qu'organisatrice, je veux que l'espace « Je participe », le lien publi
 
 ## Critères d'acceptation
 
-- [ ] Chaque écran du lot a les tests listés dans la [fiche](../../archive/todo/tests-par-ecran.md), ou la raison de leur absence est notée ici.
-- [ ] Un défaut trouvé en écrivant un test est corrigé dans le lot, avec sa note de nouveautés.
+- [x] Chaque écran du lot a les tests listés dans la [fiche](../../archive/todo/tests-par-ecran.md), ou la raison de leur absence est notée ici.
+- [x] Un défaut trouvé en écrivant un test est corrigé dans le lot, avec sa note de nouveautés : [US-217](US-217-derniers-ecrans-sans-reseau.md), [US-218](US-218-inscription-sans-reseau.md), [US-219](US-219-bandeau-hors-ligne.md).
 
 ## Notes techniques
 
@@ -22,4 +22,10 @@ Specs : SPEC-011, SPEC-014, SPEC-018. Tests Playwright dans `tests/e2e/`, selon 
 
 ## Tests
 
-À compléter à la fin du lot.
+`tests/e2e/participantSpace.spec.ts` :
+
+- **Lien public d'inscription (`/i/…`)** : formulaire vide puis adresse invalide refusés avec leurs messages, sans rien enregistrer ; vivier fermé sans formulaire, lien inconnu invalide ; personne connectée, coordonnées du compte et adresse verrouillée, reçue sans email, puis le jeu dans « Je participe » ; hors ligne, envoi refusé et dit. Le formulaire complet par une personne sans compte était déjà testé (`registration.spec.ts`). Droits : page publique, sans objet.
+- **« Je participe »** : l'inscription s'ouvre, refuse un champ obligatoire vidé, puis s'enregistre ; l'inscription et le document d'une autre personne sont introuvables (droits) ; hors ligne, la liste et un document déjà lus se relisent, l'inscription dit qu'elle demande le réseau ; une panne du serveur et un lien personnel sans réseau ne disent plus « introuvable » ni « Lien invalide » (US-218). Le document reçu qui s'ouvre était déjà testé (`participate.spec.ts`).
+- **Assistants d'IA** : une co-organisatrice ne propose un jeu partagé que si la propriétaire l'ouvre, et le compte montre ensuite le jeu fermé sans le proposer (SPEC-014, R5) ; refuser renvoie un refus à l'assistant, demande inconnue expirée ; les jeux d'un assistant se changent depuis le compte ; hors ligne, « Autoriser » est refusé et le dit, et le bandeau dit ce qui attend la connexion (US-219). Le retrait d'un assistant était déjà testé (`aiAssistants.spec.ts`). Erreurs de saisie : la page n'a que des cases et des choix, sans objet.
+
+Temps ajouté à la suite : 13 tests, environ 30 secondes sur un navigateur.

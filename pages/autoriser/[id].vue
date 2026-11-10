@@ -63,7 +63,7 @@
 
 <script setup lang="ts">
 // Page « Autoriser » d'un assistant d'IA (US-121, SPEC-014 R2, R4, R5)
-import { serverMessage } from '~/utils/apiErrors'
+import { apiErrorMessage, loadErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
 const route = useRoute()
@@ -89,7 +89,7 @@ onMounted(async () => {
   try {
     request.value = await useApiFetch(`/api/oauth/requests/${id}`)
   } catch (err) {
-    loadError.value = serverMessage(err, 'Demande introuvable : relancez la connexion depuis votre assistant.')
+    loadError.value = loadErrorMessage(err, 'Demande introuvable : relancez la connexion depuis votre assistant.')
   }
 })
 
@@ -103,7 +103,7 @@ async function decide(allow: boolean) {
     })
     window.location.assign(redirectUrl)
   } catch (err) {
-    error.value = serverMessage(err, 'Décision impossible')
+    error.value = apiErrorMessage(err, 'Décision impossible')
     deciding.value = ''
   }
 }

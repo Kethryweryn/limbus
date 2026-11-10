@@ -264,7 +264,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-199](EPIC-050-tests-par-ecran/US-199-tests-sessions.md) | Tester chaque écran des sessions | EPIC-050 | terminée |
 | [US-200](EPIC-050-tests-par-ecran/US-200-tests-participants.md) | Tester chaque écran des participants | EPIC-050 | terminée |
 | [US-201](EPIC-050-tests-par-ecran/US-201-tests-compte-et-administration.md) | Tester les écrans du compte, de l'accès et de l'administration | EPIC-050 | terminée |
-| [US-202](EPIC-050-tests-par-ecran/US-202-tests-espace-participant.md) | Tester l'espace « Je participe », le lien public d'inscription et les assistants | EPIC-050 | à faire |
+| [US-202](EPIC-050-tests-par-ecran/US-202-tests-espace-participant.md) | Tester l'espace « Je participe », le lien public d'inscription et les assistants | EPIC-050 | terminée |
 | [US-203](EPIC-050-tests-par-ecran/US-203-tests-inscriptions.md) | Tester chaque règle des inscriptions | EPIC-050 | à faire |
 | [US-204](EPIC-050-tests-par-ecran/US-204-champ-obligatoire-explique.md) | Savoir quel champ obligatoire manque | EPIC-050 | terminée |
 | [US-205](EPIC-050-tests-par-ecran/US-205-option-aucun.md) | Choisir « Aucun » dans une liste de choix | EPIC-050 | terminée |
@@ -279,3 +279,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-214](EPIC-050-tests-par-ecran/US-214-action-sans-reseau.md) | Savoir qu'une action demande le réseau | EPIC-050 | terminée |
 | [US-215](EPIC-050-tests-par-ecran/US-215-page-d-administration-refusee.md) | Voir pourquoi une page d'administration est refusée | EPIC-050 | terminée |
 | [US-216](EPIC-050-tests-par-ecran/US-216-message-dans-la-carte.md) | Lire le résultat d'un formulaire du compte à côté de son bouton | EPIC-050 | terminée |
+| [US-217](EPIC-050-tests-par-ecran/US-217-derniers-ecrans-sans-reseau.md) | Savoir qu’une action ou une page demande le réseau, sur les derniers écrans | EPIC-050 | terminée |
+| [US-218](EPIC-050-tests-par-ecran/US-218-inscription-sans-reseau.md) | Ne pas lire « introuvable » quand son inscription ne peut pas se charger | EPIC-050 | terminée |
+| [US-219](EPIC-050-tests-par-ecran/US-219-bandeau-hors-ligne.md) | Lire dans le bandeau hors ligne ce qui attend le réseau | EPIC-050 | terminée |

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { isOfflineMode, isServerUnavailableError, setServerUnavailable } from '~/utils/connection'
-import { serverMessage } from '~/utils/apiErrors'
+import { apiErrorMessage } from '~/utils/apiErrors'
 
 const email = ref('')
 const password = ref('')
@@ -45,7 +45,7 @@ const login = async () => {
             error.value = 'Serveur indisponible.'
             return
         }
-        error.value = serverMessage(err, 'Erreur de connexion')
+        error.value = apiErrorMessage(err, 'Erreur de connexion')
     }
 }
 

@@ -20,7 +20,7 @@ Chaque écran de Limbus a plusieurs tests Playwright, sur quatre axes : ses acti
 | [US-199](US-199-tests-sessions.md) | Tester chaque écran des sessions | terminée |
 | [US-200](US-200-tests-participants.md) | Tester chaque écran des participants | terminée |
 | [US-201](US-201-tests-compte-et-administration.md) | Tester les écrans du compte, de l'accès et de l'administration | terminée |
-| [US-202](US-202-tests-espace-participant.md) | Tester l'espace « Je participe », le lien public d'inscription et les assistants | à faire |
+| [US-202](US-202-tests-espace-participant.md) | Tester l'espace « Je participe », le lien public d'inscription et les assistants | terminée |
 | [US-203](US-203-tests-inscriptions.md) | Tester chaque règle des inscriptions | à faire |
 | [US-204](US-204-champ-obligatoire-explique.md) | Savoir quel champ obligatoire manque | terminée |
 | [US-205](US-205-option-aucun.md) | Choisir « Aucun » dans une liste de choix | terminée |
@@ -35,6 +35,9 @@ Chaque écran de Limbus a plusieurs tests Playwright, sur quatre axes : ses acti
 | [US-214](US-214-action-sans-reseau.md) | Savoir qu'une action demande le réseau | terminée |
 | [US-215](US-215-page-d-administration-refusee.md) | Voir pourquoi une page d'administration est refusée | terminée |
 | [US-216](US-216-message-dans-la-carte.md) | Lire le résultat d'un formulaire du compte à côté de son bouton | terminée |
+| [US-217](US-217-derniers-ecrans-sans-reseau.md) | Savoir qu’une action ou une page demande le réseau, sur les derniers écrans | terminée |
+| [US-218](US-218-inscription-sans-reseau.md) | Ne pas lire « introuvable » quand son inscription ne peut pas se charger | terminée |
+| [US-219](US-219-bandeau-hors-ligne.md) | Lire dans le bandeau hors ligne ce qui attend le réseau | terminée |
 
 ## Définition de terminé
 
