@@ -4,12 +4,14 @@ import {
   AUTH_READ, characterPlan, DASHBOARD_READ, filesIn, gameRead, gameSheetRead, isUpcoming, LIST_READS, participantPlan,
   REGISTRATION_PERIODS_READ, registrationReads, sessionPlan, sessionReads, sheetReads
 } from './offlinePlan'
+import { responseSize } from './offlineDevice'
 import { DOWNLOAD_CACHE_NAME, deleteFromStore, getCachedResponse, getFromStore, listStoreEntries, saveCachedResponse, saveToStore } from './storage'
 
 // Téléchargement d'un jeu pour le hors ligne (SPEC-019, R8 à R13 ; ADR-0081) : le navigateur lit ce que liraient les
 // pages du jeu, et garde chaque réponse comme si la page l'avait ouverte
 
 export const DOWNLOADS_STORE = 'offlineDownloads'
+const PHOTO_PATTERN = /^\/api\/uploads\/session-assignment-photos\//
 
 export type OfflineDownload = {
   gameId: string
@@ -57,7 +59,19 @@ async function read(url: string) {
   }
 }
 
-export async function downloadGame(target: { id: string, title: string }, onProgress: (progress: DownloadProgress) => void = () => {}) {
+// Un seul téléchargement à la fois par jeu : un clic pendant la mise à jour en arrière-plan reprend la même
+const inFlight = new Map<string, Promise<OfflineDownload>>()
+
+export function downloadGame(target: { id: string, title: string }, onProgress: (progress: DownloadProgress) => void = () => {}) {
+  let running = inFlight.get(target.id)
+  if (!running) {
+    running = runDownload(target, onProgress).finally(() => inFlight.delete(target.id))
+    inFlight.set(target.id, running)
+  }
+  return running
+}
+
+async function runDownload(target: { id: string, title: string }, onProgress: (progress: DownloadProgress) => void) {
   const queue = await getOfflineQueue()
   // Une modification en attente garde sa copie sur l'appareil (R12)
   const pendingStores = new Set(queue.map((operation) => operation.store).filter(Boolean))
@@ -153,6 +167,14 @@ export async function downloadGame(target: { id: string, title: string }, onProg
   onProgress({ ...progress })
   const cache = await caches.open(DOWNLOAD_CACHE_NAME)
   await eachInParallel(wanted, async (url) => {
+    // Une photo du cast ne change jamais sous son adresse : déjà gardée, elle n'est pas relue à chaque mise à jour
+    const kept = PHOTO_PATTERN.test(url) ? await cache.match(url) : undefined
+    if (kept) {
+      size += responseSize(kept)
+      files.add(url)
+      step()
+      return
+    }
     let response: Response
     try {
       response = await fetch(url, { credentials: 'same-origin' })
