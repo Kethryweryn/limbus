@@ -23,6 +23,8 @@ type Sheet = { id: string, slug: string }
 type GameSheet = Sheet & { gameId: string }
 
 export const gameSheetRead = (slug: string) => `/api/games/slug/${slug}` as const
+// Le jeu par son identifiant : un titre changé change le slug, pas l'identifiant gardé par l'appareil
+export const gameRead = (id: string) => `/api/games/${id}` as const
 
 // Fiches du contenu d'un jeu, lues par leur slug (conventions-api)
 export const sheetReads = {

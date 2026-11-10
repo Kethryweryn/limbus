@@ -13,7 +13,8 @@
       <li v-for="row in rows" :key="row.id" class="flex flex-wrap items-center justify-between gap-2 rounded border border-gray-200 p-2" :aria-label="row.title">
         <div class="text-sm">
           <div class="font-medium">{{ row.title }}</div>
-          <div v-if="running === row.id && progress" class="text-gray-500">{{ progress.done }} / {{ progress.total }} éléments gardés…</div>
+          <div v-if="row.lost" class="text-warning-700">Ce jeu n’est plus accessible : ce que l’appareil en gardait est effacé.</div>
+          <div v-else-if="running === row.id && progress" class="text-gray-500">{{ progress.done }} / {{ progress.total }} éléments gardés…</div>
           <div v-else-if="row.date" class="text-gray-500">Téléchargé le {{ formatLongDateTime(row.date) }}</div>
           <div v-else class="text-gray-500">Pas encore téléchargé</div>
         </div>
@@ -46,7 +47,7 @@ const props = defineProps<{ disabled: boolean }>()
 const emit = defineEmits<{ downloaded: [] }>()
 
 type Game = { id: string, slug: string, title: string, published?: boolean | null }
-type Row = { id: string, slug: string, title: string, active: boolean, date: string | null }
+type Row = { id: string, title: string, active: boolean, date: string | null, lost: boolean }
 
 const games = ref<Game[]>([])
 const downloads = ref<OfflineDownload[]>([])
@@ -60,12 +61,15 @@ const rows = computed<Row[]>(() => {
   const byId = new Map<string, Row>()
   for (const game of games.value) {
     if (isArchivedGame(game)) continue
-    byId.set(game.id, { id: game.id, slug: game.slug, title: game.title, active: true, date: null })
+    byId.set(game.id, { id: game.id, title: game.title, active: true, date: null, lost: false })
   }
   for (const download of downloads.value) {
     const row = byId.get(download.gameId)
-    if (row) row.date = download.date
-    else byId.set(download.gameId, { id: download.gameId, slug: '', title: download.title, active: false, date: download.date })
+    // Jeu perdu, mais de nouveau accessible : il se télécharge comme un autre
+    if (download.lost) {
+      if (!row) byId.set(download.gameId, { id: download.gameId, title: download.title, active: false, date: null, lost: true })
+    } else if (row) row.date = download.date
+    else byId.set(download.gameId, { id: download.gameId, title: download.title, active: false, date: download.date, lost: false })
   }
   return [...byId.values()]
 })
@@ -123,12 +127,14 @@ onMounted(async () => {
   window.addEventListener('online', updateConnection)
   window.addEventListener('offline', updateConnection)
   window.addEventListener('limbus:connection-change', updateConnection)
+  window.addEventListener('limbus:offline-downloads', load)
 })
 
 onUnmounted(() => {
   window.removeEventListener('online', updateConnection)
   window.removeEventListener('offline', updateConnection)
   window.removeEventListener('limbus:connection-change', updateConnection)
+  window.removeEventListener('limbus:offline-downloads', load)
 })
 
 watch(() => props.disabled, load)

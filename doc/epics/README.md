@@ -292,6 +292,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-224](EPIC-051-gerer-le-hors-ligne/US-224-effacer-l-appareil.md) | Effacer les données hors ligne de mon appareil sans me déconnecter | EPIC-051 | terminée |
 | [US-225](EPIC-051-gerer-le-hors-ligne/US-225-desactiver-le-hors-ligne.md) | Désactiver le hors ligne sur un appareil prêté | EPIC-051 | terminée |
 | [US-226](EPIC-052-telecharger-un-jeu/US-226-telecharger-un-jeu.md) | Télécharger un jeu pour le consulter sans réseau | EPIC-052 | terminée |
-| [US-227](EPIC-052-telecharger-un-jeu/US-227-mise-a-jour-du-jeu-telecharge.md) | Garder à jour un jeu téléchargé | EPIC-052 | à faire |
-| [US-228](EPIC-052-telecharger-un-jeu/US-228-acces-perdu-jeu-efface.md) | Effacer de l’appareil un jeu dont l’accès est perdu | EPIC-052 | à faire |
+| [US-227](EPIC-052-telecharger-un-jeu/US-227-mise-a-jour-du-jeu-telecharge.md) | Garder à jour un jeu téléchargé | EPIC-052 | terminée |
+| [US-228](EPIC-052-telecharger-un-jeu/US-228-acces-perdu-jeu-efface.md) | Effacer de l’appareil un jeu dont l’accès est perdu | EPIC-052 | terminée |
 | [US-229](EPIC-053-telecharger-ses-sessions/US-229-telecharger-mes-sessions.md) | Télécharger mes sessions à venir | EPIC-053 | à faire |

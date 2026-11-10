@@ -17,8 +17,8 @@ Une organisatrice ou co-organisatrice télécharge un de ses jeux actifs, tout e
 | US | Titre | Statut |
 |---|---|---|
 | [US-226](US-226-telecharger-un-jeu.md) | Télécharger un jeu pour le consulter sans réseau | terminée |
-| [US-227](US-227-mise-a-jour-du-jeu-telecharge.md) | Garder à jour un jeu téléchargé | à faire |
-| [US-228](US-228-acces-perdu-jeu-efface.md) | Effacer de l’appareil un jeu dont l’accès est perdu | à faire |
+| [US-227](US-227-mise-a-jour-du-jeu-telecharge.md) | Garder à jour un jeu téléchargé | terminée |
+| [US-228](US-228-acces-perdu-jeu-efface.md) | Effacer de l’appareil un jeu dont l’accès est perdu | terminée |
 
 ## Définition de terminé
 

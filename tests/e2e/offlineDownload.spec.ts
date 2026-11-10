@@ -18,6 +18,36 @@ async function ownGame(prisma: TestPrisma, base: string) {
 const card = (page: Page) => page.getByRole('region', { name: 'Hors ligne sur cet appareil' })
 const gameRow = (page: Page, title: string) => card(page).getByRole('listitem', { name: title })
 
+// Date des téléchargements gardés, reculée de quelques heures
+async function setDownloadDates(page: Page, hoursAgo: Record<string, number>) {
+  await page.evaluate((ages) => new Promise<void>((resolve, reject) => {
+    const request = indexedDB.open('limbus-db')
+    request.onerror = () => reject(request.error)
+    request.onsuccess = () => {
+      const db = request.result
+      const tx = db.transaction('offlineDownloads', 'readwrite')
+      const store = tx.objectStore('offlineDownloads')
+      for (const [gameId, hours] of Object.entries(ages)) {
+        const get = store.get(gameId)
+        get.onsuccess = () => store.put({ ...get.result, date: new Date(Date.now() - hours * 3600 * 1000).toISOString() }, gameId)
+      }
+      tx.oncomplete = () => { db.close(); resolve() }
+    }
+  }), hoursAgo)
+}
+
+// Nom gardé sur l'appareil pour la fiche d'un personnage, null si l'appareil ne l'a pas
+async function storedName(page: Page, slug: string) {
+  return await page.evaluate((url) => new Promise<string | null>((resolve) => {
+    const request = indexedDB.open('limbus-db')
+    request.onsuccess = () => {
+      const db = request.result
+      const get = db.transaction('responses').objectStore('responses').get(url)
+      get.onsuccess = () => { db.close(); resolve(get.result?.name ?? null) }
+    }
+  }), `/api/characters/slug/${slug}`)
+}
+
 async function openAccount(page: Page) {
   await page.goto('/compte')
   await page.waitForLoadState('networkidle')
@@ -161,7 +191,8 @@ test.describe('télécharger un jeu', () => {
       await prisma.gameShare.deleteMany({ where: { gameId: lost.game.id, userId: coorga.user.id } })
       await gameRow(page, lost.game.title).getByRole('button', { name: 'Télécharger de nouveau' }).click()
       await expect(card(page).getByText(`« ${lost.game.title} » n’est plus accessible : ce que l’appareil en gardait est effacé.`)).toBeVisible({ timeout: 30000 })
-      await expect(gameRow(page, lost.game.title)).toHaveCount(0)
+      await expect(gameRow(page, lost.game.title).getByText('Ce jeu n’est plus accessible : ce que l’appareil en gardait est effacé.')).toBeVisible()
+      await expect(gameRow(page, lost.game.title).getByRole('button')).toHaveCount(0)
 
       const stored = await page.evaluate(() => new Promise<{ keys: string[], characters: Array<{ gameId: string }> }>((resolve) => {
         const request = indexedDB.open('limbus-db')
@@ -178,6 +209,38 @@ test.describe('télécharger un jeu', () => {
       expect(stored.keys).toContain(`/api/participants/${kept.person.id}/emergency`)
       expect(stored.characters.map((character) => character.gameId)).not.toContain(lost.game.id)
       expect(stored.characters.map((character) => character.gameId)).toContain(kept.game.id)
+    } finally {
+      await prisma.$disconnect()
+    }
+  })
+
+  test('un jeu téléchargé il y a plus d’une heure se remet à jour au retour du réseau ; un accès retiré l’efface (US-227, US-228)', async ({ page }) => {
+    const prisma = createTestPrisma()
+    try {
+      const fresh = await ownGame(prisma, 'Jeu récent')
+      const old = await ownGame(prisma, 'Jeu ancien')
+      const lost = await ownGame(prisma, 'Jeu perdu en route')
+      const coorga = await testUser(prisma, 'Co-orga mise à jour')
+      await prisma.gameShare.createMany({ data: [fresh, old, lost].map(({ game }) => ({ gameId: game.id, userId: coorga.user.id })) })
+      await signIn(page, prisma, coorga.email)
+      await openAccount(page)
+      for (const { game } of [fresh, old, lost]) await download(page, game.title)
+
+      // Le jeu récent a moins d'une heure ; les deux autres ont été téléchargés il y a deux heures
+      await setDownloadDates(page, { [old.game.id]: 2, [lost.game.id]: 2, [fresh.game.id]: 0.2 })
+      await prisma.character.update({ where: { id: old.character.id }, data: { name: `${old.character.name} renommé` } })
+      await prisma.character.update({ where: { id: fresh.character.id }, data: { name: `${fresh.character.name} renommé` } })
+      await prisma.gameShare.deleteMany({ where: { gameId: lost.game.id, userId: coorga.user.id } })
+
+      // Retour du réseau : la mise à jour part en arrière-plan, et la section se relit à la fin
+      const finished = page.evaluate(() => new Promise<void>((resolve) => window.addEventListener('limbus:offline-downloads', () => resolve(), { once: true })))
+      await page.evaluate(() => window.dispatchEvent(new Event('online')))
+      await finished
+
+      expect(await storedName(page, old.character.slug)).toBe(`${old.character.name} renommé`)
+      expect(await storedName(page, fresh.character.slug)).toBe(fresh.character.name)
+      await expect(gameRow(page, lost.game.title).getByText('Ce jeu n’est plus accessible : ce que l’appareil en gardait est effacé.')).toBeVisible()
+      expect(await storedName(page, lost.character.slug)).toBeNull()
     } finally {
       await prisma.$disconnect()
     }

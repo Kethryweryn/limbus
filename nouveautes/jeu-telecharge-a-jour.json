@@ -1,0 +1,5 @@
+{
+  "type": "nouveau",
+  "titre": "Un jeu téléchargé reste à jour",
+  "texte": "Un jeu téléchargé pour le hors ligne se télécharge de nouveau tout seul, au plus une fois par heure, quand vous ouvrez Limbus ou que le réseau revient. Si vous n’avez plus accès au jeu, ce que l’appareil en gardait est effacé, et « Mon compte » vous le dit."
+}
