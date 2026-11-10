@@ -235,7 +235,7 @@ import {
   type RegistrationQuestionType,
   type RegistrationStandardFieldKey
 } from '~/utils/registrationForms'
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { apiErrorMessage, loadErrorMessage } from '~/utils/apiErrors'
 import { formatLongDateTime } from '~/utils/dates'
 import { isOfflineQueued, type ApiResponse } from '~/composables/useApiFetch'
 import { NO_VERSION } from '~/utils/offlineSync'
@@ -309,7 +309,7 @@ watch(open, async (value) => {
     applyExpectations(expected)
     linksLoaded.value = true
   } catch (err) {
-    errorMessage.value = apiErrorMessage(err, 'Impossible de charger le formulaire')
+    errorMessage.value = loadErrorMessage(err, 'Impossible de charger le formulaire')
   }
 })
 
