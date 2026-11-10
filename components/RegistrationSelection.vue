@@ -28,6 +28,7 @@
               type="button"
               class="flex flex-wrap items-center gap-1 text-left"
               :aria-expanded="isExpanded(session)"
+              :aria-controls="`session-${session.id}`"
               @click="toggle(session)"
             >
               <UIcon :name="isExpanded(session) ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'" class="size-4 text-gray-400" />
@@ -82,7 +83,7 @@
           </div>
         </div>
 
-          <template v-if="isExpanded(session)">
+          <div v-if="isExpanded(session)" :id="`session-${session.id}`" class="space-y-2">
         <!-- Annonce du casting (R26) : une seule fois ; ensuite, chaque changement se propose ci-dessous (R27) -->
           <div v-if="!session.castAnnouncedAt" class="flex flex-wrap items-center gap-3 text-xs text-gray-500" data-cast-announcement>
             <UButton
@@ -269,17 +270,17 @@
           </div>
 
           <!-- Ses tirages, repliés (R8) -->
-          <details v-if="drawsOf(session).length" class="space-y-2">
-            <summary class="cursor-pointer text-xs font-semibold text-gray-600">Tirages : {{ drawsOf(session).length }}</summary>
-            <RegistrationDrawEntry v-for="entry in drawsOf(session)" :key="entry.id" :entry="entry" :names="names" cancellable :cancelling="cancelling" @cancel="cancelDraw" />
+          <details v-if="drawsBySession.get(session.id)" class="space-y-2">
+            <summary class="cursor-pointer text-xs font-semibold text-gray-600">Tirages : {{ drawsBySession.get(session.id)!.length }}</summary>
+            <RegistrationDrawEntry v-for="entry in drawsBySession.get(session.id)" :key="entry.id" :entry="entry" :names="names" cancellable :cancelling="cancelling" @cancel="cancelDraw" />
           </details>
-        </template>
+        </div>
       </div>
 
       <!-- Tirages des sessions terminées, annulées ou supprimées : à lire seulement (R10) -->
       <details v-if="pastDraws.length" class="space-y-2" data-past-draws>
         <summary class="cursor-pointer text-xs font-semibold text-gray-600">Sessions passées : {{ plural(pastDraws.length, 'tirage') }}</summary>
-        <RegistrationDrawEntry v-for="entry in pastDraws" :key="entry.id" :entry="entry" :names="names" :cancellable="false" />
+        <RegistrationDrawEntry v-for="entry in pastDraws" :key="entry.id" :entry="entry" :names="names" :cancellable="isPostponed(entry)" :cancelling="cancelling" @cancel="cancelDraw" />
       </details>
     </template>
 
@@ -360,6 +361,7 @@ import {
   REGISTRATION_SESSION_STATUSES as LINE,
   REGISTRATION_SESSION_STATUS_META,
   REGISTRATION_STATUSES,
+  SESSION_STATUSES,
   metaOf
 } from '~/utils/domain'
 import { ANNOUNCEMENT_REMOVED, canConfirmPlace, pendingAnnouncement, poolOf } from '~/utils/registrations'
@@ -427,25 +429,33 @@ watch(registrations, loadOverview)
 
 const sessions = computed(() => overview.value?.sessions ?? [])
 
-// Sessions dépliées, par leur slug, dans l'adresse (R9) : `sessions=a,b` ; vide, aucune. Sans rien dans l'adresse (première
-// ouverture), la première de la liste est dépliée
+// Sessions dépliées, par leur identifiant (stable, quand le nom et donc le slug changent), dans l'adresse (R9) :
+// `sessions=a,b` ; vide, aucune. Sans rien dans l'adresse (première ouverture), la première de la liste est dépliée
 const expanded = computed(() => {
   const value = route.query.sessions
-  if (typeof value !== 'string') return sessions.value.slice(0, 1).map((session) => session.slug)
+  if (typeof value !== 'string') return sessions.value.slice(0, 1).map((session) => session.id)
   return value ? value.split(',') : []
 })
-const isExpanded = (session: SelectionSession) => expanded.value.includes(session.slug)
+const isExpanded = (session: SelectionSession) => expanded.value.includes(session.id)
 function toggle(session: SelectionSession) {
-  const next = isExpanded(session) ? expanded.value.filter((slug) => slug !== session.slug) : [...expanded.value, session.slug]
+  const next = isExpanded(session) ? expanded.value.filter((id) => id !== session.id) : [...expanded.value, session.id]
   void router.replace({ query: { ...route.query, sessions: next.join(',') } })
 }
 
-// Tirages d'une session prévue ; les autres (session terminée, annulée ou supprimée) vont sous « Sessions passées » (R10)
-const drawsOf = (session: SelectionSession) => draws.value.filter((entry) => entry.sessionId === session.id)
-const pastDraws = computed(() => {
+// Tirages de chaque session prévue ; les autres vont sous « Sessions passées » (R10), où seul celui d'une session
+// reportée, qui reviendra, s'annule encore
+const drawsBySession = computed(() => {
   const listed = new Set(sessions.value.map((session) => session.id))
-  return draws.value.filter((entry) => !entry.sessionId || !listed.has(entry.sessionId))
+  const bySession = new Map<string, Draw[]>()
+  const past: Draw[] = []
+  for (const entry of draws.value) {
+    if (entry.sessionId && listed.has(entry.sessionId)) bySession.set(entry.sessionId, [...(bySession.get(entry.sessionId) ?? []), entry])
+    else past.push(entry)
+  }
+  return Object.assign(bySession, { past })
 })
+const pastDraws = computed(() => drawsBySession.value.past)
+const isPostponed = (entry: Draw) => entry.session?.status === SESSION_STATUSES.postponed
 const replayers = computed(() => new Set(overview.value?.replayerParticipantIds ?? []))
 const isReplayer = (registration: PeriodRegistration) => replayers.value.has(registration.participant.id)
 const registrationNames = computed(() => new Map(registrations.value.map((registration) => [registration.id, registration.participant.name])))

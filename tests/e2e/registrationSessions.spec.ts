@@ -17,7 +17,10 @@ async function gameWithSessions(prisma: TestPrisma, base: string) {
   const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, state: 'open' } })
   await prisma.registrationDraw.create({ data: { gameId: game.id, periodId: period.id, sessionId: first.id, seed: 'graine-premiere', settings: SETTINGS, result: RESULT } })
   await prisma.registrationDraw.create({ data: { gameId: game.id, periodId: period.id, sessionId: done.id, seed: 'graine-terminee', settings: SETTINGS, result: RESULT } })
-  return { game, first, second, done }
+  // Une session reportée n'est pas dans la liste ; son tirage s'annule encore
+  const postponed = await orgaSession(prisma, game.id, `Reportée ${base}`, { date: new Date('2099-09-01T09:00:00Z'), status: 'postponed' })
+  await prisma.registrationDraw.create({ data: { gameId: game.id, periodId: period.id, sessionId: postponed.id, seed: 'graine-reportee', settings: SETTINGS, result: RESULT } })
+  return { game, first, second, done, postponed }
 }
 
 const block = (page: Page, name: string) => page.locator(`[data-session="${name}"]`)
@@ -39,7 +42,7 @@ test.describe('sessions repliées', () => {
 
       await toggle(page, ctx.second.name).click()
       await expect(expanded(page, ctx.second.name)).toBeVisible()
-      await expect(page).toHaveURL(new RegExp(`sessions=${ctx.first.slug}%2C${ctx.second.slug}|sessions=${ctx.first.slug},${ctx.second.slug}`))
+      await expect(page).toHaveURL(new RegExp(`sessions=${ctx.first.id}(%2C|,)${ctx.second.id}`))
       await page.reload()
       await expect(expanded(page, ctx.first.name)).toBeVisible()
       await expect(expanded(page, ctx.second.name)).toBeVisible()
@@ -59,7 +62,7 @@ test.describe('sessions repliées', () => {
     }
   })
 
-  test('les tirages d’une session sont sous elle, repliés ; ceux d’une session terminée sont sous « Sessions passées », sans annulation', async ({ page }) => {
+  test('les tirages d’une session sont sous elle, repliés ; ceux d’une session terminée sont sous « Sessions passées », sans annulation, sauf pour une session reportée', async ({ page }) => {
     const prisma = createTestPrisma()
     try {
       const ctx = await gameWithSessions(prisma, 'Tirages')
@@ -73,10 +76,12 @@ test.describe('sessions repliées', () => {
 
       const past = page.locator('[data-past-draws]')
       await expect(past.getByText('graine-terminee')).toBeHidden()
-      await past.getByText('Sessions passées : 1 tirage').click()
+      await past.getByText('Sessions passées : 2 tirages').click()
       await expect(past.getByText('graine-terminee')).toBeVisible()
-      await expect(past.getByText(ctx.done.name)).toBeVisible()
-      await expect(past.getByRole('button', { name: 'Annuler ce tirage' })).toHaveCount(0)
+      const done = past.locator('[data-draw]').filter({ hasText: ctx.done.name })
+      await expect(done.getByRole('button', { name: 'Annuler ce tirage' })).toHaveCount(0)
+      const postponed = past.locator('[data-draw]').filter({ hasText: ctx.postponed.name })
+      await expect(postponed.getByRole('button', { name: 'Annuler ce tirage' })).toBeVisible()
       await expect(past.getByText('graine-premiere')).toHaveCount(0)
     } finally {
       await prisma.$disconnect()

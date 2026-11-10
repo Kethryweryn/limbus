@@ -47,7 +47,6 @@ export async function selectableSessions(period: { gameId: string }) {
       select: {
         id: true,
         name: true,
-        slug: true,
         date: true,
         status: true,
         registrationPeriodLink: {

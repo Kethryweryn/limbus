@@ -20,14 +20,14 @@ En tant qu'organisatrice, je veux chaque session repliée sur une ligne, la proc
 
 ## Notes techniques
 
-- `RegistrationSelection` : chaque session tient sur un bouton (`aria-expanded`) ; les sessions dépliées sont dans l'adresse, `sessions=slug1,slug2`, vide pour aucune ; sans rien dans l'adresse, la première est dépliée. La sélection rend le slug de chaque session (`selectableSessions`).
-- `RegistrationDrawEntry` affiche un tirage, sous sa session (annulable) ou sous « Sessions passées » (à lire seulement). Un tirage dont la session a été supprimée s'y lit « Session supprimée », au lieu de « Ancienne période ».
+- `RegistrationSelection` : chaque session tient sur un bouton (`aria-expanded`) ; les sessions dépliées sont dans l'adresse par leur identifiant, stable quand la session est renommée (`sessions=id1,id2`, vide pour aucune) ; sans rien dans l'adresse, la première est dépliée.
+- `RegistrationDrawEntry` affiche un tirage, sous sa session (annulable) ou sous « Sessions passées » (à lire seulement). Un tirage sans session s'y lit « Session supprimée ou ancienne période ». Le journal rend le statut de la session : le tirage d'une session reportée, absente de la liste, se range sous « Sessions passées » et s'annule encore.
 
 ## Tests
 
 De bout en bout (`tests/e2e/registrationSessions.spec.ts`), sur les quatre axes (ADR-0079) :
 
-- Actions : « la première session est dépliée, les autres se déplient ; l’adresse garde le choix, même tout replié », « les tirages d’une session sont sous elle, repliés ; ceux d’une session terminée sont sous « Sessions passées », sans annulation ».
+- Actions : « la première session est dépliée, les autres se déplient ; l’adresse garde le choix, même tout replié », « les tirages d’une session sont sous elle, repliés ; ceux d’une session terminée sont sous « Sessions passées », sans annulation, sauf pour une session reportée ».
 - Erreurs de saisie : aucune saisie.
 - Droits : ceux de la page (US-230), inchangés ; non rejoués ici.
 - Hors ligne : « hors ligne, les sessions dépliées et leurs tirages se relisent ».

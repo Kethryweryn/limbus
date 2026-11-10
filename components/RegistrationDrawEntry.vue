@@ -3,7 +3,7 @@
   <div class="space-y-1 rounded border border-gray-100 p-2 text-xs text-gray-600" data-draw>
     <div class="flex flex-wrap items-center justify-between gap-2">
       <span>
-        <span class="font-medium">{{ entry.session?.name || 'Session supprimée' }}</span>,
+        <span class="font-medium">{{ entry.session?.name || 'Session supprimée ou ancienne période' }}</span>,
         le {{ formatLongDateTime(entry.createdAt) }}<span v-if="entry.createdBy"> par {{ entry.createdBy.name }}</span>
         · graine <code>{{ entry.seed }}</code>
         <UBadge v-if="entry.cancelledAt" class="ml-1" size="sm" color="neutral" variant="outline">
@@ -40,7 +40,7 @@ defineProps<{
   entry: Draw
   // Noms des inscriptions, « inscription effacée » pour une personne partie
   names: (ids: string[]) => string
-  // Faux sous « Sessions passées » : on n'y annule plus un tirage (R10)
+  // Faux sous « Sessions passées », sauf pour une session reportée : on n'y annule plus un tirage (R10)
   cancellable: boolean
   cancelling?: boolean
 }>()
