@@ -54,6 +54,9 @@ type Game = { id: string, slug: string, title: string, published?: boolean | nul
 type Row = { id: string, title: string, active: boolean, date: string | null, lost: boolean, mine?: boolean }
 
 const games = ref<Game[]>([])
+// Même lecture que le menu (layouts/default.vue) : pas de requête de plus ; seule une personne qui a une fiche lit ses
+// participations
+const { data: authResponse } = useFetch('/api/auth/me')
 // Au moins une session dans « Je participe » (R16)
 const participates = ref(false)
 const downloads = ref<OfflineDownload[]>([])
@@ -101,6 +104,10 @@ async function load() {
       : await useApiFetch('/api/games')
   } catch {
     games.value = []
+  }
+  if (!(authResponse.value?.authenticated && authResponse.value.spaces.participate)) {
+    participates.value = false
+    return
   }
   try {
     const participations = offline.value

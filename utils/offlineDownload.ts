@@ -95,6 +95,8 @@ function startRun(onProgress: (progress: DownloadProgress) => void, total: numbe
   async function keep(url: string, value: unknown) {
     // Une modification en attente garde sa copie sur l'appareil (R12)
     const current = await getCachedResponse<{ __offlinePending?: boolean }>(url)
+    // Gardée telle quelle, mais toujours comptée : la fin du téléchargement ne doit pas l'effacer
+    responses.add(url)
     if (current?.__offlinePending) return
     await saveCachedResponse(url, value)
     responses.add(url)

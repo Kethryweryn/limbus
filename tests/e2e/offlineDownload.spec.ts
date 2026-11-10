@@ -128,6 +128,8 @@ test.describe('télécharger un jeu', () => {
       await signIn(page, prisma, owner.email)
       await openAccount(page)
       const key = `/api/characters/slug/${character.slug}`
+      // Déjà téléchargé une fois : le second téléchargement ne doit ni remplacer ni effacer la copie en attente
+      await download(page, game.title)
       // Copie laissée par une modification faite sans réseau, pas encore envoyée (SPEC-010, R6)
       await page.evaluate((url) => new Promise<void>((resolve, reject) => {
         const request = indexedDB.open('limbus-db')
