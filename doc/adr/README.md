@@ -83,3 +83,5 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0077](ADR-0077-references-videes-par-la-base.md) | Une référence composée avec le jeu se vide par la base, sans toucher au jeu | accepté | 2026-11-09 |
 | [ADR-0078](ADR-0078-recherche-de-la-nouvelle-version.md) | Limbus cherche une nouvelle version à chaque changement de page et toutes les heures | accepté | 2026-11-09 |
 | [ADR-0079](ADR-0079-tests-de-chaque-developpement.md) | Tout développement ajoute ses tests de bout en bout sur quatre axes | accepté | 2026-11-10 |
+| [ADR-0080](ADR-0080-urgence-et-allergies-dans-un-telechargement.md) | Le téléchargement d'un jeu garde le contact d'urgence et les allergies sur l'appareil | accepté | 2026-11-10 |
+| [ADR-0081](ADR-0081-telechargement-par-le-navigateur.md) | Téléchargement hors ligne par le navigateur, qui rejoue les lectures des pages ; désactivation par appareil | accepté | 2026-11-10 |

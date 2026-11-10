@@ -58,6 +58,9 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-048](../archive/epics/EPIC-048-casting-depuis-le-vivier/README.md) | Casting depuis le vivier | [SPEC-018](../specs/SPEC-018-vivier-permanent.md) | terminé |
 | [EPIC-049](../archive/epics/EPIC-049-schema-de-donnees/README.md) | Schéma de données | [fiche](../archive/todo/schema-de-donnees.md) | terminé |
 | [EPIC-050](../archive/epics/EPIC-050-tests-par-ecran/README.md) | Plusieurs tests de bout en bout par écran | [fiche](../archive/todo/tests-par-ecran.md) | terminé |
+| [EPIC-051](EPIC-051-gerer-le-hors-ligne/README.md) | Place prise, effacement et désactivation du hors ligne | [SPEC-019](../specs/SPEC-019-hors-ligne-dans-le-compte.md) | à faire |
+| [EPIC-052](EPIC-052-telecharger-un-jeu/README.md) | Télécharger un jeu pour le hors ligne | [SPEC-019](../specs/SPEC-019-hors-ligne-dans-le-compte.md) | à faire |
+| [EPIC-053](EPIC-053-telecharger-ses-sessions/README.md) | Télécharger ses sessions à venir | [SPEC-019](../specs/SPEC-019-hors-ligne-dans-le-compte.md) | à faire |
 
 ## US
 
@@ -285,3 +288,10 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-220](../archive/epics/EPIC-050-tests-par-ecran/US-220-reglages-des-inscriptions-expliques.md) | Lire le message de Limbus dans les réglages des inscriptions | EPIC-050 | terminée |
 | [US-221](../archive/epics/EPIC-050-tests-par-ecran/US-221-refus-hors-ligne-une-fois.md) | Ne lire qu’une fois le refus d’une décision faite sans réseau | EPIC-050 | terminée |
 | [US-222](../archive/epics/EPIC-050-tests-par-ecran/US-222-editeur-du-formulaire-sans-reseau.md) | Savoir que l’éditeur du formulaire demande le réseau pour s’ouvrir | EPIC-050 | terminée |
+| [US-223](EPIC-051-gerer-le-hors-ligne/US-223-voir-la-place-prise.md) | Voir la place que prennent les données hors ligne de mon appareil | EPIC-051 | à faire |
+| [US-224](EPIC-051-gerer-le-hors-ligne/US-224-effacer-l-appareil.md) | Effacer les données hors ligne de mon appareil sans me déconnecter | EPIC-051 | à faire |
+| [US-225](EPIC-051-gerer-le-hors-ligne/US-225-desactiver-le-hors-ligne.md) | Désactiver le hors ligne sur un appareil prêté | EPIC-051 | à faire |
+| [US-226](EPIC-052-telecharger-un-jeu/US-226-telecharger-un-jeu.md) | Télécharger un jeu pour le consulter sans réseau | EPIC-052 | à faire |
+| [US-227](EPIC-052-telecharger-un-jeu/US-227-mise-a-jour-du-jeu-telecharge.md) | Garder à jour un jeu téléchargé | EPIC-052 | à faire |
+| [US-228](EPIC-052-telecharger-un-jeu/US-228-acces-perdu-jeu-efface.md) | Effacer de l’appareil un jeu dont l’accès est perdu | EPIC-052 | à faire |
+| [US-229](EPIC-053-telecharger-ses-sessions/US-229-telecharger-mes-sessions.md) | Télécharger mes sessions à venir | EPIC-053 | à faire |
