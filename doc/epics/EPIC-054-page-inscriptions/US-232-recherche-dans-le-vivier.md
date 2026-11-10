@@ -19,7 +19,7 @@ En tant qu'organisatrice, je veux rechercher une personne du vivier par son nom 
 
 ## Notes techniques
 
-- Dans `RegistrationSelection` (vue Vivier), sur la liste déjà lue : `normalizeName` (`utils/affinityMatching.ts`) pour le nom et l'email ; le vœu est une ligne de la session qui n'est ni « pas disponible » ni annulée. La recherche filtre aussi `RegistrationInvitationList`, désormais rendue dans cette vue ; le filtre par vœu ne vaut que pour les personnes du vivier.
+- Dans `RegistrationSelection` (vue Vivier), sur la liste déjà lue : `normalizeName` (`utils/affinityMatching.ts`) pour le nom et l'email ; le vœu est une ligne de la session qui n'est ni « pas disponible » ni annulée. La recherche filtre aussi `RegistrationInvitationList`, désormais rendue dans cette vue ; le filtre par vœu ne vaut que pour les personnes du vivier. Une session filtrée qui quitte la liste remet le filtre sur toutes les personnes. `normalizeName` défait aussi les ligatures (œ, æ), ce qui vaut pour les affinités.
 - Rien dans l'adresse.
 
 ## Tests

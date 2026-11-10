@@ -2,7 +2,7 @@
   <!-- Invitations à rejoindre le vivier (R4) : une personne invitée n'y est qu'une fois qu'elle a répondu -->
   <div class="mt-4 space-y-2 border-t border-gray-100 pt-3">
     <div class="flex flex-wrap items-center justify-between gap-2">
-      <h3 class="text-sm font-semibold text-gray-700">Invitations sans réponse : {{ invitations.length }}</h3>
+      <h3 class="text-sm font-semibold text-gray-700">Invitations sans réponse : {{ filtering ? `${invitations.length} sur ${allInvitations.length}` : invitations.length }}</h3>
       <UButton
         size="xs"
         icon="i-heroicons-envelope"
@@ -75,12 +75,14 @@ import { formatLongDate } from '~/utils/dates'
 import { registrationStatusMeta } from '~/utils/registrations'
 import { useRegistrationPeriodActions, type PeriodRegistration, type RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
 
-// matches : la recherche de l'onglet Vivier (SPEC-020, R12) ; sans elle, toutes les invitations
-const props = defineProps<{ period: RegistrationPeriod, matches?: (registration: PeriodRegistration) => boolean }>()
+// matches : la recherche de l'onglet Vivier (SPEC-020, R12) ; sans elle, toutes les invitations. filtering : une recherche
+// est en cours, et le titre dit combien d'invitations elle montre sur le total
+const props = defineProps<{ period: RegistrationPeriod, matches?: (registration: PeriodRegistration) => boolean, filtering?: boolean }>()
 
 const { invite, remind, resend, askExtension, release, cancel } = useRegistrationPeriodActions()
 
 const open = computed(() => props.period.state === REGISTRATION_PERIOD_STATES.open)
-const invitations = computed(() => props.period.registrations.filter((registration) => registration.status === REGISTRATION_STATUSES.invited && (props.matches?.(registration) ?? true)))
+const allInvitations = computed(() => props.period.registrations.filter((registration) => registration.status === REGISTRATION_STATUSES.invited))
+const invitations = computed(() => allInvitations.value.filter((registration) => props.matches?.(registration) ?? true))
 const sessionName = (registration: PeriodRegistration) => props.period.sessions.find((link) => link.sessionId === registration.invitedSessionId)?.session.name
 </script>

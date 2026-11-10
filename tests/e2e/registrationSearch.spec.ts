@@ -27,7 +27,7 @@ async function pool(prisma: TestPrisma, base: string) {
     game, first, second,
     helene: await person('Hélène', 'received', [{ sessionId: first.id, status: 'preregistered' }]),
     marc: await person('Marc', 'received', [{ sessionId: first.id, status: 'preregistered' }, { sessionId: second.id, status: 'unavailable' }]),
-    zoe: await person('Zoé', 'received', [{ sessionId: second.id, status: 'preregistered' }]),
+    zoe: await person('Zoé Cœur', 'received', [{ sessionId: second.id, status: 'preregistered' }]),
     invited: await person('Hector', 'invited', [])
   }
 }
@@ -50,12 +50,15 @@ test.describe('recherche dans le vivier', () => {
       await expect(main(page).getByText('Dans le vivier : 1 sur 3')).toBeVisible()
       await expect(main(page).getByText(ctx.helene.name)).toBeVisible()
       await expect(main(page).getByText(ctx.marc.name)).toHaveCount(0)
-      await expect(main(page).getByText('Invitations sans réponse : 0')).toBeVisible()
+      await expect(main(page).getByText('Invitations sans réponse : 0 sur 1')).toBeVisible()
 
       await main(page).getByPlaceholder('Nom ou email').fill(ctx.invited.email)
-      await expect(main(page).getByText('Invitations sans réponse : 1')).toBeVisible()
+      await expect(main(page).getByText('Invitations sans réponse : 1 sur 1')).toBeVisible()
       await expect(main(page).getByText('Dans le vivier : 0 sur 3')).toBeVisible()
 
+      // Ligature : « coeur » trouve « Cœur »
+      await main(page).getByPlaceholder('Nom ou email').fill('zoe coeur')
+      await expect(main(page).getByText(ctx.zoe.name)).toBeVisible()
       await main(page).getByPlaceholder('Nom ou email').fill(ctx.zoe.email.toUpperCase())
       await expect(main(page).getByText(ctx.zoe.name)).toBeVisible()
       await expect(main(page).getByText('Dans le vivier : 1 sur 3')).toBeVisible()
@@ -64,7 +67,7 @@ test.describe('recherche dans le vivier', () => {
     }
   })
 
-  test('le filtre par vœu garde les personnes qui ont demandé la session, et se combine avec la recherche', async ({ page }) => {
+  test('le filtre par vœu garde les personnes qui ont demandé la session, et se combine avec la recherche', async ({ page, context }) => {
     const prisma = createTestPrisma()
     try {
       const ctx = await pool(prisma, 'Voeux')
@@ -82,6 +85,15 @@ test.describe('recherche dans le vivier', () => {
       await main(page).getByPlaceholder('Nom ou email').fill('marc')
       await expect(main(page).getByText('Dans le vivier : 1 sur 3')).toBeVisible()
       await expect(main(page).getByText(ctx.marc.name)).toBeVisible()
+
+      // La session filtrée est annulée, puis la page relue : le filtre revient à toutes les personnes
+      await main(page).getByPlaceholder('Nom ou email').fill('')
+      await prisma.session.update({ where: { id: ctx.first.id }, data: { status: 'cancelled' } })
+      // Coupure puis retour du réseau : la page relit le vivier
+      await context.setOffline(true)
+      await context.setOffline(false)
+      await expect(main(page).getByText('Dans le vivier : 3')).toBeVisible()
+      await expect(main(page).getByRole('combobox')).toContainText('Toutes les personnes')
     } finally {
       await prisma.$disconnect()
     }

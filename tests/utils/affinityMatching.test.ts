@@ -4,6 +4,7 @@ import { affinityLineKey, nameSimilarity, normalizeName, suggestPeople } from '~
 describe('similarité des noms (US-095)', () => {
   it('compare sans accents, casse ni ponctuation', () => {
     expect(normalizeName('  Léa-Marie  O’Neil ')).toBe('lea marie o neil')
+    expect(normalizeName('Cœur Lætitia')).toBe('coeur laetitia')
     expect(nameSimilarity('LÉA', 'lea')).toBe(1)
   })
 

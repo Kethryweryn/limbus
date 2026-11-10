@@ -295,7 +295,7 @@
         </UFormField>
       </div>
 
-      <RegistrationInvitationList :period="period" :matches="matchesSearch" />
+      <RegistrationInvitationList :period="period" :matches="matchesSearch" :filtering="Boolean(query)" />
 
       <div class="space-y-1">
         <p class="text-xs font-semibold text-gray-600">
@@ -490,9 +490,11 @@ const search = ref('')
 const wishSessionId = ref(ALL_WISHES)
 const query = computed(() => normalizeName(search.value))
 const filtering = computed(() => Boolean(query.value) || wishSessionId.value !== ALL_WISHES)
-const matchesSearch = (registration: PeriodRegistration) => !query.value
-  || normalizeName(registration.participant.name).includes(query.value)
-  || normalizeName(registration.email).includes(query.value)
+// Nom et email de chaque inscription, normalisés une fois par lecture et non à chaque frappe
+const searchIndex = computed(() => new Map(registrations.value.map((registration) => [
+  registration.id, `${normalizeName(registration.participant.name)} ${normalizeName(registration.email)}`
+])))
+const matchesSearch = (registration: PeriodRegistration) => !query.value || Boolean(searchIndex.value.get(registration.id)?.includes(query.value))
 const wished = (registration: PeriodRegistration) => {
   if (wishSessionId.value === ALL_WISHES) return true
   const status = registration.sessionLines.find((line) => line.sessionId === wishSessionId.value)?.status
@@ -503,6 +505,10 @@ const wishItems = computed(() => [
   { label: 'Toutes les personnes', value: ALL_WISHES },
   ...sessions.value.map((session) => ({ label: session.name, value: session.id }))
 ])
+// Une session choisie qui quitte la liste (terminée, annulée, reportée) : retour à toutes les personnes
+watch(sessions, (list) => {
+  if (wishSessionId.value !== ALL_WISHES && !list.some((session) => session.id === wishSessionId.value)) wishSessionId.value = ALL_WISHES
+})
 function clearFilters() {
   search.value = ''
   wishSessionId.value = ALL_WISHES

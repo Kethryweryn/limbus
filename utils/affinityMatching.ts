@@ -11,9 +11,11 @@ export const isPersonAffinityKind = (kind: string) => (PERSON_AFFINITY_KINDS as 
 export const AFFINITY_SUGGESTION_LIMIT = 3
 const SUGGESTION_THRESHOLD = 0.6
 
-// Sans accents, casse ni ponctuation, espaces réduits
+// Sans accents, ligatures, casse ni ponctuation, espaces réduits
 export function normalizeName(value: string) {
   return value
+    .replace(/œ/gi, 'oe')
+    .replace(/æ/gi, 'ae')
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
     .toLowerCase()
