@@ -60,7 +60,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-050](../archive/epics/EPIC-050-tests-par-ecran/README.md) | Plusieurs tests de bout en bout par écran | [fiche](../archive/todo/tests-par-ecran.md) | terminé |
 | [EPIC-051](../archive/epics/EPIC-051-gerer-le-hors-ligne/README.md) | Place prise, effacement et désactivation du hors ligne | [SPEC-019](../specs/SPEC-019-hors-ligne-dans-le-compte.md) | terminé |
 | [EPIC-052](../archive/epics/EPIC-052-telecharger-un-jeu/README.md) | Télécharger un jeu pour le hors ligne | [SPEC-019](../specs/SPEC-019-hors-ligne-dans-le-compte.md) | terminé |
-| [EPIC-053](EPIC-053-telecharger-ses-sessions/README.md) | Télécharger ses sessions à venir | [SPEC-019](../specs/SPEC-019-hors-ligne-dans-le-compte.md) | à faire |
+| [EPIC-053](EPIC-053-telecharger-ses-sessions/README.md) | Télécharger ses sessions à venir | [SPEC-019](../specs/SPEC-019-hors-ligne-dans-le-compte.md) | en cours |
 
 ## US
 
@@ -294,4 +294,4 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-226](../archive/epics/EPIC-052-telecharger-un-jeu/US-226-telecharger-un-jeu.md) | Télécharger un jeu pour le consulter sans réseau | EPIC-052 | terminée |
 | [US-227](../archive/epics/EPIC-052-telecharger-un-jeu/US-227-mise-a-jour-du-jeu-telecharge.md) | Garder à jour un jeu téléchargé | EPIC-052 | terminée |
 | [US-228](../archive/epics/EPIC-052-telecharger-un-jeu/US-228-acces-perdu-jeu-efface.md) | Effacer de l’appareil un jeu dont l’accès est perdu | EPIC-052 | terminée |
-| [US-229](EPIC-053-telecharger-ses-sessions/US-229-telecharger-mes-sessions.md) | Télécharger mes sessions à venir | EPIC-053 | à faire |
+| [US-229](EPIC-053-telecharger-ses-sessions/US-229-telecharger-mes-sessions.md) | Télécharger mes sessions à venir | EPIC-053 | terminée |

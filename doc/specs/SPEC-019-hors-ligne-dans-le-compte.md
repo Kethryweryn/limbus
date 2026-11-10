@@ -107,3 +107,4 @@ Aujourd'hui, seule une page consultée avec le réseau se rouvre sans réseau ([
 - 2026-11-10 : US-226 livrée : télécharger un jeu ; la politique de confidentialité le dit, nouvelle version à accepter.
 - 2026-11-10 : US-227 et US-228 livrées : mise à jour des jeux téléchargés, jeu perdu effacé et signalé dans la section ; lot 2 terminé.
 - 2026-11-10 : EPIC-051 et EPIC-052 archivés ; reste le lot 3 (EPIC-053).
+- 2026-11-10 : US-229 livrée : une participante télécharge ses sessions à venir ; une mise à jour efface ce que l'appareil ne doit plus garder.

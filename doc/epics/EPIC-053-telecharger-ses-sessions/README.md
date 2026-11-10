@@ -1,7 +1,7 @@
 ---
 id: EPIC-053
 titre: Télécharger ses sessions à venir
-statut: à faire
+statut: en cours
 spec: ../../specs/SPEC-019-hors-ligne-dans-le-compte.md
 date: 2026-11-10
 ---
@@ -16,7 +16,7 @@ Une participante télécharge ses participations et les documents reçus pour se
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-229](US-229-telecharger-mes-sessions.md) | Télécharger mes sessions à venir | à faire |
+| [US-229](US-229-telecharger-mes-sessions.md) | Télécharger mes sessions à venir | terminée |
 
 ## Définition de terminé
 

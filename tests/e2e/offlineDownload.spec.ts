@@ -128,6 +128,8 @@ test.describe('télécharger un jeu', () => {
       await signIn(page, prisma, owner.email)
       await openAccount(page)
       const key = `/api/characters/slug/${character.slug}`
+      // Déjà téléchargé une fois : le second téléchargement ne doit ni remplacer ni effacer la copie en attente
+      await download(page, game.title)
       // Copie laissée par une modification faite sans réseau, pas encore envoyée (SPEC-010, R6)
       await page.evaluate((url) => new Promise<void>((resolve, reject) => {
         const request = indexedDB.open('limbus-db')
@@ -170,7 +172,7 @@ test.describe('télécharger un jeu', () => {
       const stranger = await testUser(prisma, 'Sans accès téléchargement')
       await signIn(page, prisma, stranger.email)
       await openAccount(page)
-      await expect(card(page).getByRole('heading', { name: 'Télécharger un jeu' })).toHaveCount(0)
+      await expect(card(page).getByRole('heading', { name: 'Télécharger pour le hors ligne' })).toHaveCount(0)
     } finally {
       await prisma.$disconnect()
     }

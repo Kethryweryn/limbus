@@ -135,6 +135,7 @@ import { sessionStatusMeta } from '~/utils/sessions'
 import { formatEuros } from '~/utils/sessionTariffs'
 import { formatLongDate as formatDate } from '~/utils/dates'
 import type { ApiResponse } from '~/composables/useApiFetch'
+import { MY_PARTICIPATIONS_READ } from '~/utils/offlinePlan'
 
 type Participation = ApiResponse<'/api/me/participations'>[number]
 type Payment = NonNullable<Participation['sessions'][number]['payment']>
@@ -151,7 +152,7 @@ onMounted(async () => {
   rememberSpace('participate', currentUser.value?.id)
   try {
     // Gardée sur l'appareil : sur le lieu du jeu, sans réseau, on retrouve date et lieu
-    participations.value = await useApiFetch('/api/me/participations', { offlineCache: true })
+    participations.value = await useApiFetch(MY_PARTICIPATIONS_READ, { offlineCache: true })
   } catch (err) {
     loadError.value = loadErrorMessage(err, 'Impossible de charger vos participations.')
   } finally {
