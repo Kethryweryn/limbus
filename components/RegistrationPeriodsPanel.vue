@@ -61,8 +61,7 @@
 
 <script setup lang="ts">
 import { provideRegistrationPeriodActions, type RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
-import { REGISTRATION_PERIOD_STATE_META, REGISTRATION_STATUSES, metaOf } from '~/utils/domain'
-import { REGISTRATION_TABS, type RegistrationTab } from '~/utils/registrations'
+import { periodStateMeta, poolOf, REGISTRATION_TABS, type RegistrationTab } from '~/utils/registrations'
 
 // Inscriptions d'un jeu (SPEC-018, SPEC-020) : ses sections partagent l'état et les actions du bloc (US-117)
 const props = defineProps<{
@@ -84,8 +83,8 @@ watch(() => props.initialPeriods, (initial) => {
 
 // Un seul vivier par jeu (SPEC-018)
 const period = computed(() => periods.value[0])
-const stateMeta = computed(() => (period.value && metaOf(REGISTRATION_PERIOD_STATE_META, period.value.state)) || REGISTRATION_PERIOD_STATE_META.draft)
-const poolSize = computed(() => period.value?.registrations.filter((registration) => registration.status === REGISTRATION_STATUSES.received).length ?? 0)
+const stateMeta = computed(() => periodStateMeta(period.value?.state ?? ''))
+const poolSize = computed(() => poolOf(period.value?.registrations ?? []).length)
 
 const route = useRoute()
 const router = useRouter()

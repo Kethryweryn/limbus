@@ -43,12 +43,13 @@
           color="primary"
           variant="soft"
           size="sm"
-          :to="`/registrations/${row.game.slug}`"
+          @click="creating = { id: row.game.id, slug: row.game.slug }"
         >
           Créer le vivier
         </UButton>
       </li>
     </ul>
+    <RegistrationPeriodForm v-if="creating" v-model:open="showForm" :game-id="creating.id" :period="null" @saved="created" />
     <p v-else-if="loaded && !errorMessage" class="text-sm text-gray-500">
       Aucun jeu à afficher.
     </p>
@@ -58,20 +59,20 @@
 <script setup lang="ts">
 import { useGameFocus } from '@/composables/useGameFocus'
 import { isArchivedGame } from '~/utils/games'
-import { apiErrorMessage } from '~/utils/apiErrors'
-import type { ApiResponse } from '~/composables/useApiFetch'
-import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
-import { plural, type RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
-import { REGISTRATION_PERIOD_STATE_META, REGISTRATION_STATUSES, metaOf } from '~/utils/domain'
-import { REGISTRATION_PERIODS_READ } from '~/utils/offlinePlan'
+import { useRegistrationLists } from '~/composables/useRegistrationLists'
+import { plural } from '~/composables/useRegistrationPeriodActions'
+import { periodStateMeta, poolOf } from '~/utils/registrations'
 
 // Résumé des inscriptions de ses jeux (SPEC-020, R1) ; avec un jeu actif, la page de ce jeu (R3)
 const { game: selectedGame } = useGameFocus()
-const games = ref<ApiResponse<'/api/games'>>([])
-const periods = ref<RegistrationPeriod[]>([])
+const { games, periods, errorMessage, loaded } = useRegistrationLists()
 const showArchived = ref(false)
-const errorMessage = ref('')
-const loaded = ref(false)
+// Jeu sans vivier dont on crée le vivier depuis sa ligne ; une fois créé, sa page s'ouvre
+const creating = ref<{ id: string, slug: string } | null>(null)
+const showForm = computed({
+  get: () => creating.value !== null,
+  set: (open) => { if (!open) creating.value = null }
+})
 
 const NO_PERIOD = { label: 'Pas de vivier', color: 'neutral' } as const
 
@@ -81,25 +82,11 @@ watch(focusedSlug, (slug) => {
   if (slug) void navigateTo(`/registrations/${slug}`, { replace: true })
 }, { immediate: true })
 
-// Lisible hors ligne depuis sa dernière lecture (US-119)
-async function loadData() {
-  try {
-    const [allGames, allPeriods] = await Promise.all([
-      fetchOfflineList('games', '/api/games'),
-      useApiFetch(REGISTRATION_PERIODS_READ, { offlineCache: true })
-    ])
-    games.value = allGames
-    periods.value = allPeriods
-    errorMessage.value = ''
-  } catch (err) {
-    errorMessage.value = apiErrorMessage(err, 'Impossible de charger les inscriptions')
-  } finally {
-    loaded.value = true
-  }
+function created() {
+  const slug = creating.value?.slug
+  creating.value = null
+  if (slug) void navigateTo(`/registrations/${slug}`)
 }
-
-useConnectionRefresh(loadData)
-onMounted(loadData)
 
 const rows = computed(() => {
   const byGame = new Map(periods.value.map((period) => [period.gameId, period]))
@@ -111,8 +98,8 @@ const rows = computed(() => {
       return {
         game,
         period,
-        state: period ? metaOf(REGISTRATION_PERIOD_STATE_META, period.state) ?? REGISTRATION_PERIOD_STATE_META.draft : NO_PERIOD,
-        pool: period ? period.registrations.filter((registration) => registration.status === REGISTRATION_STATUSES.received).length : 0
+        state: period ? periodStateMeta(period.state) : NO_PERIOD,
+        pool: period ? poolOf(period.registrations).length : 0
       }
     })
 })

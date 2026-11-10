@@ -55,7 +55,8 @@
 </template>
 
 <script setup lang="ts">
-import { REGISTRATION_PERIOD_STATE_META, REGISTRATION_PERIOD_STATES, metaOf } from '~/utils/domain'
+import { REGISTRATION_PERIOD_STATES } from '~/utils/domain'
+import { periodStateMeta } from '~/utils/registrations'
 import { plural, useRegistrationPeriodActions, type RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
 
 const props = defineProps<{ period: RegistrationPeriod }>()
@@ -63,5 +64,5 @@ const emit = defineEmits<{ form: [] }>()
 
 const { copyDiffusionUrl, setState, edit, remove } = useRegistrationPeriodActions()
 
-const stateMeta = computed(() => metaOf(REGISTRATION_PERIOD_STATE_META, props.period.state) ?? REGISTRATION_PERIOD_STATE_META.draft)
+const stateMeta = computed(() => periodStateMeta(props.period.state))
 </script>

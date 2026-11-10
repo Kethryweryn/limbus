@@ -42,12 +42,20 @@ test.describe('page Inscriptions d’un jeu', () => {
       await expect(summaryRow(page, full.game.title).getByText('2 personnes dans le vivier')).toBeVisible()
       await expect(summaryRow(page, empty.title).getByText('Pas de vivier')).toBeVisible()
 
-      await summaryRow(page, empty.title).getByRole('link', { name: 'Créer le vivier' }).click()
+      // Sans vivier, sa page n'a pas d'onglets : seulement le créer, ou le formulaire
+      await page.getByRole('link', { name: empty.title, exact: true }).click()
       await expect(heading(page, empty.title)).toBeVisible()
       await expect(page.getByRole('tab')).toHaveCount(0)
       await expect(page.getByRole('main').getByRole('button', { name: 'Formulaire' })).toBeVisible()
-      await page.getByRole('main').getByRole('button', { name: 'Créer le vivier' }).click()
-      await expect(page.getByRole('dialog')).toBeVisible()
+      await expect(page.getByRole('main').getByRole('button', { name: 'Créer le vivier' })).toBeVisible()
+
+      // Créé depuis le résumé : la page du jeu s'ouvre, avec ses onglets
+      await openSummary(page)
+      await summaryRow(page, empty.title).getByRole('button', { name: 'Créer le vivier' }).click()
+      await page.getByRole('dialog').getByRole('button', { name: 'Créer' }).click()
+      await expect(heading(page, empty.title)).toBeVisible()
+      await expect(page.getByRole('tab', { name: 'Vivier (0)' })).toBeVisible()
+      await expect.poll(() => prisma.registrationPeriod.count({ where: { gameId: empty.id } })).toBe(1)
     } finally {
       await prisma.$disconnect()
     }
@@ -125,6 +133,15 @@ test.describe('page Inscriptions d’un jeu', () => {
       await expect(heading(page, ctx.game.title)).toBeVisible()
       await expect(page).toHaveURL(new RegExp(`/registrations/${ctx.game.slug}`))
       await expect(page.getByRole('link', { name: '← Tous les jeux' })).toHaveCount(0)
+
+      // La page d'un autre jeu, ouverte dans l'application (lien copié) : ce jeu devient le jeu actif
+      const other = await orgaGame(prisma, 'Autre jeu inscriptions')
+      await page.evaluate((slug) => {
+        const app = (document.querySelector('#__nuxt') as unknown as { __vue_app__: { config: { globalProperties: { $router: { push: (to: string) => Promise<unknown> } } } } }).__vue_app__
+        return app.config.globalProperties.$router.push(`/registrations/${slug}`)
+      }, other.slug)
+      await expect(heading(page, other.title)).toBeVisible()
+      await expect(page.getByText(`Jeu actif :`).locator('..')).toContainText(other.title)
     } finally {
       await prisma.$disconnect()
     }

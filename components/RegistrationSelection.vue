@@ -371,7 +371,7 @@ import {
   REGISTRATION_STATUSES,
   metaOf
 } from '~/utils/domain'
-import { ANNOUNCEMENT_REMOVED, canConfirmPlace, pendingAnnouncement } from '~/utils/registrations'
+import { ANNOUNCEMENT_REMOVED, canConfirmPlace, pendingAnnouncement, poolOf } from '~/utils/registrations'
 import { formatLongDate, formatLongDateTime } from '~/utils/dates'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
@@ -440,7 +440,7 @@ const names = (ids: string[]) => ids.map((id) => registrationNames.value.get(id)
 const registrationById = (id: string) => registrations.value.find((registration) => registration.id === id)!
 
 // Les personnes du vivier, et celles qui en sont sorties ; une invitation sans réponse n'y est pas encore (R4)
-const pool = computed(() => registrations.value.filter((registration) => registration.status === REGISTRATION_STATUSES.received))
+const pool = computed(() => poolOf(registrations.value))
 const left = computed(() => registrations.value.filter((registration) => registration.status === REGISTRATION_STATUSES.withdrawn))
 
 const lineOf = (registration: PeriodRegistration, session: SelectionSession) => registration.sessionLines.find((line) => line.sessionId === session.id)

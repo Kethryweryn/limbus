@@ -27,43 +27,23 @@
 
 <script setup lang="ts">
 import { useGameFocus } from '@/composables/useGameFocus'
-import { apiErrorMessage } from '~/utils/apiErrors'
-import type { ApiResponse } from '~/composables/useApiFetch'
-import { fetchOfflineList, useConnectionRefresh } from '~/composables/useOfflineList'
-import type { RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
-import { REGISTRATION_PERIODS_READ } from '~/utils/offlinePlan'
+import { useRegistrationLists } from '~/composables/useRegistrationLists'
 
 // Page Inscriptions d'un jeu (SPEC-020, R4) : ses onglets Sessions, Vivier et Réglages. Elle lit les mêmes listes que
 // le résumé, et se relit donc hors ligne comme lui (R14)
 const route = useRoute()
-const { game: selectedGame } = useGameFocus()
-const games = ref<ApiResponse<'/api/games'>>([])
-const periods = ref<RegistrationPeriod[]>([])
-const errorMessage = ref('')
-const loaded = ref(false)
+const { game: selectedGame, selectGame } = useGameFocus()
+const { games, periods, errorMessage, loaded } = useRegistrationLists()
 
 const game = computed(() => games.value.find((item) => item.slug === route.params.slug))
 // Un nouveau tableau seulement après une lecture : le bloc ne reprend le vivier de la page qu'alors
 const gamePeriods = computed(() => periods.value.filter((period) => period.gameId === game.value?.id))
 
-async function loadData() {
-  try {
-    const [allGames, allPeriods] = await Promise.all([
-      fetchOfflineList('games', '/api/games'),
-      useApiFetch(REGISTRATION_PERIODS_READ, { offlineCache: true })
-    ])
-    games.value = allGames
-    periods.value = allPeriods
-    errorMessage.value = ''
-  } catch (err) {
-    errorMessage.value = apiErrorMessage(err, 'Impossible de charger les inscriptions')
-  } finally {
-    loaded.value = true
-  }
-}
-
-useConnectionRefresh(loadData)
-onMounted(loadData)
+// Ouverte avec un autre jeu actif (lien de l'email, lien copié), la page rend ce jeu actif : la barre et le reste de
+// l'application suivent le jeu affiché
+watch(game, (found) => {
+  if (found && selectedGame.value && selectedGame.value.id !== found.id) selectGame({ id: found.id, title: found.title })
+})
 
 // Un jeu introuvable ou sans accès : le même message, sans dire s'il existe
 watch([loaded, game], ([done, found]) => {
