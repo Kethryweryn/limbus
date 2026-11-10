@@ -284,12 +284,29 @@
       </details>
     </template>
 
-    <!-- Onglet Vivier (R11) : les personnes du vivier, puis celles qui en sont sorties -->
+    <!-- Onglet Vivier (R11) : la recherche (R12), les invitations, les personnes du vivier, puis celles qui en sont sorties -->
     <template v-else>
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
+        <UFormField label="Rechercher" class="w-full sm:w-72">
+          <UInput v-model="search" icon="i-heroicons-magnifying-glass" placeholder="Nom ou email" class="w-full" />
+        </UFormField>
+        <UFormField label="Vœu de session" class="w-full sm:w-72">
+          <USelect v-model="wishSessionId" :items="wishItems" value-key="value" class="w-full" />
+        </UFormField>
+      </div>
+
+      <RegistrationInvitationList :period="period" :matches="matchesSearch" :filtering="Boolean(query)" />
+
       <div class="space-y-1">
-        <p class="text-xs font-semibold text-gray-600">Dans le vivier : {{ pool.length }}</p>
-        <ul v-if="pool.length" class="divide-y divide-gray-100 text-sm">
-          <li v-for="registration in pool" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-xs font-semibold text-gray-600">
+          Dans le vivier : {{ filtering ? `${shownPool.length} sur ${pool.length}` : pool.length }}
+        </p>
+        <p v-if="filtering && pool.length && !shownPool.length" class="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+          Personne ne correspond à cette recherche.
+          <UButton size="xs" color="neutral" variant="link" @click="clearFilters">Effacer la recherche</UButton>
+        </p>
+        <ul v-if="shownPool.length" class="divide-y divide-gray-100 text-sm">
+          <li v-for="registration in shownPool" :key="registration.id" class="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
             <RegistrationSelectionName :registration="registration" :replayer="isReplayer(registration)" :wishes="wishLabels(registration)" :to-link="toLink(registration)" :summary="lineSummary(registration)" />
             <div class="flex shrink-0 flex-wrap gap-2">
               <UButton size="xs" color="neutral" variant="ghost" icon="i-heroicons-eye" @click="showDetail(registration)">Détail</UButton>
@@ -298,7 +315,7 @@
             </div>
           </li>
         </ul>
-        <p v-else class="text-xs text-gray-500">Personne pour l’instant : partagez le lien de diffusion.</p>
+        <p v-else-if="!pool.length" class="text-xs text-gray-500">Personne pour l’instant : partagez le lien de diffusion.</p>
       </div>
 
       <details v-if="left.length" class="space-y-1">
@@ -365,6 +382,7 @@ import {
   metaOf
 } from '~/utils/domain'
 import { ANNOUNCEMENT_REMOVED, canConfirmPlace, pendingAnnouncement, poolOf } from '~/utils/registrations'
+import { normalizeName } from '~/utils/affinityMatching'
 import { formatLongDate } from '~/utils/dates'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
@@ -464,6 +482,37 @@ const registrationById = (id: string) => registrations.value.find((registration)
 
 // Les personnes du vivier, et celles qui en sont sorties ; une invitation sans réponse n'y est pas encore (R4)
 const pool = computed(() => poolOf(registrations.value))
+
+// Recherche dans l'onglet Vivier (R12) : nom ou email, sans majuscules ni accents ; vœu : a demandé la session (une ligne
+// qui n'est ni « pas disponible » ni annulée). Rien ne va dans l'adresse
+const ALL_WISHES = 'toutes'
+const search = ref('')
+const wishSessionId = ref(ALL_WISHES)
+const query = computed(() => normalizeName(search.value))
+const filtering = computed(() => Boolean(query.value) || wishSessionId.value !== ALL_WISHES)
+// Nom et email de chaque inscription, normalisés une fois par lecture et non à chaque frappe
+const searchIndex = computed(() => new Map(registrations.value.map((registration) => [
+  registration.id, `${normalizeName(registration.participant.name)} ${normalizeName(registration.email)}`
+])))
+const matchesSearch = (registration: PeriodRegistration) => !query.value || Boolean(searchIndex.value.get(registration.id)?.includes(query.value))
+const wished = (registration: PeriodRegistration) => {
+  if (wishSessionId.value === ALL_WISHES) return true
+  const status = registration.sessionLines.find((line) => line.sessionId === wishSessionId.value)?.status
+  return Boolean(status) && status !== LINE.unavailable && status !== LINE.cancelled
+}
+const shownPool = computed(() => pool.value.filter((registration) => matchesSearch(registration) && wished(registration)))
+const wishItems = computed(() => [
+  { label: 'Toutes les personnes', value: ALL_WISHES },
+  ...sessions.value.map((session) => ({ label: session.name, value: session.id }))
+])
+// Une session choisie qui quitte la liste (terminée, annulée, reportée) : retour à toutes les personnes
+watch(sessions, (list) => {
+  if (wishSessionId.value !== ALL_WISHES && !list.some((session) => session.id === wishSessionId.value)) wishSessionId.value = ALL_WISHES
+})
+function clearFilters() {
+  search.value = ''
+  wishSessionId.value = ALL_WISHES
+}
 const left = computed(() => registrations.value.filter((registration) => registration.status === REGISTRATION_STATUSES.withdrawn))
 
 const lineOf = (registration: PeriodRegistration, session: SelectionSession) => registration.sessionLines.find((line) => line.sessionId === session.id)

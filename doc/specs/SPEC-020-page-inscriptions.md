@@ -54,7 +54,7 @@ Aujourd'hui, la page Inscriptions affiche l'un sous l'autre le bloc complet de c
 ### Onglet Vivier
 
 - **R11** L'onglet donne les invitations sans réponse et le bouton « Inviter », puis les personnes du vivier avec leurs actions actuelles (détail, nouveau lien, retrait), puis, repliée, la liste « Sorties du vivier ».
-- **R12** Un champ de recherche filtre les personnes du vivier et les invitations par nom ou par email, sans tenir compte des majuscules ni des accents. Un filtre « Vœu de session » ne garde que les personnes qui ont demandé une session donnée, parmi les sessions prévues. Les deux se combinent ; la liste dit combien de personnes elle montre sur le total, et ce qu'il faut faire quand aucune ne correspond. Recherche et filtre ne vont pas dans l'adresse.
+- **R12** Un champ de recherche filtre les personnes du vivier et les invitations par nom ou par email, sans tenir compte des majuscules ni des accents. Un filtre « Vœu de session » ne garde que les personnes qui ont demandé une session donnée, parmi les sessions prévues. Le filtre ne vaut que pour les personnes du vivier ; une invitation n'a pas encore de vœu. Les deux se combinent ; la liste dit combien de personnes elle montre sur le total, et ce qu'il faut faire quand aucune ne correspond. Recherche et filtre ne vont pas dans l'adresse.
 
 ### Onglet Réglages
 
@@ -103,3 +103,4 @@ Un seul lot, [EPIC-054](../epics/EPIC-054-page-inscriptions/README.md) :
 - 2026-11-10 (revue d'US-230, choix de l'utilisatrice) : la page d'un jeu ouverte avec un autre jeu actif rend son jeu actif (R4) ; « Créer le vivier » du résumé crée le vivier sans passer par la page du jeu (R1).
 - 2026-11-10 : US-231 livrée : sessions repliées, dans l'adresse, avec leurs tirages ; « Sessions passées » pour les autres tirages.
 - 2026-11-10 (revue d'US-231) : le tirage d'une session reportée se range sous « Sessions passées » et s'annule encore (R10) ; les sessions dépliées sont gardées par leur identifiant, stable au renommage (R9).
+- 2026-11-11 : US-232 livrée : recherche par nom ou email et filtre par vœu de session dans l'onglet Vivier.
