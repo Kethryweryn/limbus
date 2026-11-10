@@ -6,9 +6,9 @@
       variant="soft"
       :description="`Si un compte utilise ${email}, un lien vient d’y partir. Il est valable 1 heure.`"
     />
-    <form v-else class="space-y-4" @submit.prevent="send">
+    <form v-else class="space-y-4" novalidate @submit.prevent="send">
       <UFormField label="Email">
-        <UInput v-model="email" type="email" required autocomplete="email" class="w-full" />
+        <UInput v-model="email" type="email" autocomplete="email" class="w-full" />
       </UFormField>
       <UButton type="submit" color="primary" size="lg" block :loading="saving">
         Recevoir le lien
@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
 // Mot de passe oublié (US-062)
-import { serverMessage } from '~/utils/apiErrors'
+import { apiErrorMessage } from '~/utils/apiErrors'
 
 definePageMeta({ layout: false })
 
@@ -36,7 +36,7 @@ async function send() {
     await $fetch('/api/auth/password-forgotten', { method: 'POST', body: { email: email.value } })
     done.value = true
   } catch (err) {
-    error.value = serverMessage(err, 'Impossible d’envoyer le lien.')
+    error.value = apiErrorMessage(err, 'Impossible d’envoyer le lien.')
   } finally {
     saving.value = false
   }

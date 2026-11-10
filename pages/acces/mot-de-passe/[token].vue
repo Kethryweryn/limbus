@@ -2,10 +2,10 @@
   <AccessCard title="Choisir mon mot de passe">
     <form class="space-y-4" @submit.prevent="save">
       <UFormField label="Nouveau mot de passe" help="8 caractères au moins.">
-        <PasswordInput v-model="password" required minlength="8" autocomplete="new-password" class="w-full" />
+        <PasswordInput v-model="password" autocomplete="new-password" class="w-full" />
       </UFormField>
       <UFormField label="Confirmation">
-        <PasswordInput v-model="confirmation" required autocomplete="new-password" class="w-full" />
+        <PasswordInput v-model="confirmation" autocomplete="new-password" class="w-full" />
       </UFormField>
       <UButton type="submit" color="primary" size="lg" block :loading="saving">
         Enregistrer et me connecter
@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { serverMessage } from '~/utils/apiErrors'
+import { apiErrorMessage } from '~/utils/apiErrors'
 
 // Lien de mot de passe : oublié (US-062) ou compte créé par l'administratrice (US-065)
 definePageMeta({ layout: false })
@@ -38,7 +38,7 @@ async function save() {
     await $fetch('/api/auth/password-reset', { method: 'POST', body: { token: String(route.params.token || ''), password: password.value } })
     window.location.replace('/')
   } catch (err) {
-    error.value = serverMessage(err, 'Impossible d’enregistrer le mot de passe.')
+    error.value = apiErrorMessage(err, 'Impossible d’enregistrer le mot de passe.')
   } finally {
     saving.value = false
   }

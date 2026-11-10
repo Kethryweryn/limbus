@@ -7,7 +7,9 @@
       </p>
     </div>
 
-    <UCard>
+    <UAlert v-if="loadError" color="error" variant="soft" :description="loadError" />
+
+    <UCard v-if="!loadError">
       <template #header>
         <div class="flex items-start justify-between gap-3">
           <div>
@@ -22,7 +24,7 @@
         </div>
       </template>
 
-      <form class="space-y-5" @submit.prevent="saveSettings">
+      <form class="space-y-5" novalidate @submit.prevent="saveSettings">
         <AppCheckboxRow v-model="form.enabled" label="Activer l’envoi d’emails" />
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -76,14 +78,14 @@
       </form>
     </UCard>
 
-    <UCard>
+    <UCard v-if="!loadError">
       <template #header>
         <h2 class="font-semibold">Tester l’envoi</h2>
       </template>
 
-      <form class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-end" @submit.prevent="sendTest">
+      <form class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-end" novalidate @submit.prevent="sendTest">
         <UFormField label="Destinataire">
-          <UInput v-model="testEmail" type="email" required class="w-full" />
+          <UInput v-model="testEmail" type="email" class="w-full" />
         </UFormField>
         <UButton type="submit" color="primary" variant="soft" :loading="testing" :disabled="testing || testCooldown">
           Envoyer un test
@@ -107,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { apiErrorMessage, loadErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
 const secureOptions = [
@@ -122,6 +124,7 @@ const testCooldown = ref(false)
 const message = ref('')
 const serverError = ref('')
 const testEmail = ref('')
+const loadError = ref('')
 
 const form = ref({
   enabled: false,
@@ -212,5 +215,8 @@ async function sendTest() {
   }
 }
 
-await fetchSettings()
+// Refus du serveur (403 pour qui n'administre pas) : affiché au lieu d'une page vide (US-215)
+await fetchSettings().catch((err: unknown) => {
+  loadError.value = loadErrorMessage(err, 'Impossible de charger la configuration SMTP.')
+})
 </script>

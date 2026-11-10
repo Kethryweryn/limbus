@@ -70,9 +70,10 @@ export async function parcoursGame(prisma: TestPrisma) {
   return { game, character, participant }
 }
 
-// Nom propre à une tentative : une relance en CI (retries) ne retombe pas sur les données de la précédente
+// Nom propre à une tentative : une relance en CI (retries) ne retombe pas sur les données de la précédente, et deux
+// tests lancés à la même milliseconde (navigateurs en parallèle, --repeat-each) ne prennent pas le même nom
 export function uniqueName(base: string) {
-  return `${base} ${Date.now().toString(36)}`
+  return `${base} ${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`
 }
 
 // Le plus petit bloc de la page Inscriptions qui porte à la fois le titre du jeu et le bouton donné

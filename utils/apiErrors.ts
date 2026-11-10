@@ -1,13 +1,34 @@
-import { isOfflineMissing } from './connection'
-// Message lisible d'une erreur d'API : le détail d'une validation zod (rangé par h3 sous data.data)
-// plutôt que « Requête invalide », sinon le message du serveur, sinon le texte par défaut.
+import { getErrorStatus, isOfflineMissing } from './connection'
+
+// Action ou page qui ne peut pas aboutir faute de réseau (US-214)
+export const NO_NETWORK_MESSAGE = 'Pas de réseau : cette action demande une connexion. Réessayez quand le réseau revient.'
+export const NO_NETWORK_PAGE_MESSAGE = 'Pas de réseau : cette page demande une connexion. Réessayez quand le réseau revient.'
+
+type ApiFailure = { name?: string, message?: string, data?: { message?: string, data?: { data?: Array<{ message?: string }> } } } | null
+
+// Appel ($fetch) resté sans réponse : le réseau manque. Une autre erreur (TypeError d'un bug de la page…) n'est
+// pas prise pour une coupure
+function isUnanswered(err: unknown) {
+  return (err as ApiFailure)?.name === 'FetchError' && !getErrorStatus(err)
+}
+
+// Message lisible d'une erreur d'API : le réseau qui manque, le détail d'une validation zod (rangé par h3 sous
+// data.data) plutôt que « Requête invalide », sinon le message du serveur, sinon celui d'une erreur levée par
+// Limbus lui-même (`new Error`, action refusée hors ligne…), sinon le texte par défaut. Le texte technique de
+// $fetch (« [POST] "/api/…": 500 ») ou d'une TypeError ne s'affiche jamais.
 export function apiErrorMessage(err: unknown, fallback: string) {
-  const error = err as { data?: { message?: string, data?: { data?: Array<{ message?: string }> } }, message?: string } | null
+  if (isUnanswered(err)) return NO_NETWORK_MESSAGE
+  const error = err as ApiFailure
   const issues = error?.data?.data?.data
   if (Array.isArray(issues) && issues.length) {
     return [...new Set(issues.map((issue) => issue.message).filter(Boolean))].join(' ; ')
   }
-  return serverMessage(err, error?.message || fallback)
+  return serverMessage(err, (error?.name === 'Error' && error.message) || fallback)
+}
+
+// Chargement d'une page : comme apiErrorMessage, mais le réseau qui manque empêche la page, et non une action
+export function loadErrorMessage(err: unknown, fallback: string) {
+  return isUnanswered(err) ? NO_NETWORK_PAGE_MESSAGE : apiErrorMessage(err, fallback)
 }
 
 // Détail par champ d'une validation zod, pour afficher chaque message sous son champ

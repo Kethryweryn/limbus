@@ -63,16 +63,16 @@
 
           <form v-if="mode === 'register'" class="space-y-3" @submit.prevent="register">
             <UFormField label="Nom">
-              <UInput v-model="form.name" required />
+              <UInput v-model="form.name" />
             </UFormField>
             <UFormField label="Email" help="L’adresse de l’invitation.">
               <UInput :model-value="invitation.email" type="email" disabled />
             </UFormField>
             <UFormField label="Mot de passe" help="8 caractères au moins.">
-              <PasswordInput v-model="form.password" required minlength="8" autocomplete="new-password" />
+              <PasswordInput v-model="form.password" autocomplete="new-password" />
             </UFormField>
             <!-- Conditions d'utilisation (US-111) -->
-            <UCheckbox v-model="form.termsAccepted" required>
+            <UCheckbox v-model="form.termsAccepted">
               <template #label>
                 J’accepte les <NuxtLink to="/conditions" target="_blank" class="text-primary underline">conditions d’utilisation</NuxtLink>
                 et j’ai lu la <NuxtLink to="/confidentialite" target="_blank" class="text-primary underline">politique de confidentialité</NuxtLink>
@@ -83,12 +83,12 @@
             </UButton>
           </form>
 
-          <form v-else class="space-y-3" @submit.prevent="loginAndAccept">
+          <form v-else class="space-y-3" novalidate @submit.prevent="loginAndAccept">
             <UFormField label="Email">
-              <UInput v-model="loginForm.email" type="email" required />
+              <UInput v-model="loginForm.email" type="email" />
             </UFormField>
             <UFormField label="Mot de passe">
-              <PasswordInput v-model="loginForm.password" required />
+              <PasswordInput v-model="loginForm.password" />
             </UFormField>
             <UButton type="submit" color="primary" :loading="saving">
               {{ isBequest ? 'Me connecter et recevoir la copie' : 'Me connecter et accepter' }}
@@ -103,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { serverMessage } from '~/utils/apiErrors'
+import { apiErrorMessage, loadErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
 definePageMeta({
@@ -142,7 +142,7 @@ try {
   invitation.value = loaded
   loginForm.value.email = loaded.email
 } catch (err) {
-  loadError.value = serverMessage(err, 'Invitation introuvable')
+  loadError.value = loadErrorMessage(err, 'Invitation introuvable')
 } finally {
   pending.value = false
 }
@@ -154,7 +154,7 @@ async function loginAndAccept() {
     await publicFetch('/api/auth/login', { method: 'POST', body: loginForm.value })
     await acceptInvitation()
   } catch (err) {
-    serverError.value = serverMessage(err, 'Impossible de se connecter')
+    serverError.value = apiErrorMessage(err, 'Impossible de se connecter')
   } finally {
     saving.value = false
   }
@@ -167,7 +167,7 @@ async function acceptInvitation() {
     const result = await publicFetch<ApiResponse<'/api/invitations/accept', 'post'>>('/api/invitations/accept', { method: 'POST', body: { token } })
     await navigateTo(`/games/${result.game.slug}`)
   } catch (err) {
-    serverError.value = serverMessage(err, 'Impossible d’accepter l’invitation')
+    serverError.value = apiErrorMessage(err, 'Impossible d’accepter l’invitation')
   } finally {
     saving.value = false
   }
@@ -188,7 +188,7 @@ async function register() {
     })
     await navigateTo(`/games/${result.game.slug}`)
   } catch (err) {
-    serverError.value = serverMessage(err, 'Impossible de créer le compte')
+    serverError.value = apiErrorMessage(err, 'Impossible de créer le compte')
   } finally {
     saving.value = false
   }

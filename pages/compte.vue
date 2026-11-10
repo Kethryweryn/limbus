@@ -12,11 +12,11 @@
         <template #header><h2 class="font-semibold">Nom</h2></template>
         <form class="flex flex-col sm:flex-row gap-3 sm:items-end" @submit.prevent="saveName">
           <UFormField label="Nom" class="flex-1">
-            <UInput v-model="name" required class="w-full" />
+            <UInput v-model="name" class="w-full" />
           </UFormField>
           <UButton type="submit" color="primary" :loading="saving === 'name'">Enregistrer</UButton>
         </form>
-        <p v-if="messages.name" class="mt-2 text-sm text-green-700">{{ messages.name }}</p>
+        <FormFeedback :result="resultFor('name')" />
       </UCard>
 
       <UCard>
@@ -29,33 +29,34 @@
           variant="soft"
           :description="`Un lien de confirmation attend à ${account.pendingEmail} : l’adresse changera quand vous l’ouvrirez.`"
         />
-        <form class="grid grid-cols-1 sm:grid-cols-2 gap-3" @submit.prevent="changeEmail">
+        <form class="grid grid-cols-1 sm:grid-cols-2 gap-3" novalidate @submit.prevent="changeEmail">
           <UFormField label="Nouvelle adresse">
-            <UInput v-model="emailForm.email" type="email" required autocomplete="email" class="w-full" />
+            <UInput v-model="emailForm.email" type="email" autocomplete="email" class="w-full" />
           </UFormField>
           <UFormField label="Mot de passe actuel">
-            <PasswordInput v-model="emailForm.password" required autocomplete="current-password" class="w-full" />
+            <PasswordInput v-model="emailForm.password" autocomplete="current-password" class="w-full" />
           </UFormField>
           <div class="sm:col-span-2">
             <UButton type="submit" color="primary" :loading="saving === 'email'">Recevoir le lien de confirmation</UButton>
           </div>
         </form>
+        <FormFeedback :result="resultFor('email')" />
       </UCard>
 
       <UCard>
         <template #header><h2 class="font-semibold">Mot de passe</h2></template>
         <form class="grid grid-cols-1 sm:grid-cols-2 gap-3" @submit.prevent="changePassword">
           <UFormField label="Mot de passe actuel">
-            <PasswordInput v-model="passwordForm.currentPassword" required autocomplete="current-password" class="w-full" />
+            <PasswordInput v-model="passwordForm.currentPassword" autocomplete="current-password" class="w-full" />
           </UFormField>
           <UFormField label="Nouveau mot de passe" help="8 caractères au moins. Vos autres appareils seront déconnectés.">
-            <PasswordInput v-model="passwordForm.password" required minlength="8" autocomplete="new-password" class="w-full" />
+            <PasswordInput v-model="passwordForm.password" autocomplete="new-password" class="w-full" />
           </UFormField>
           <div class="sm:col-span-2">
             <UButton type="submit" color="primary" :loading="saving === 'password'">Changer le mot de passe</UButton>
           </div>
         </form>
-        <p v-if="messages.password" class="mt-2 text-sm text-green-700">{{ messages.password }}</p>
+        <FormFeedback :result="resultFor('password')" />
       </UCard>
 
       <!-- Mes coordonnées (US-074) : une seule version, recopiée pour chaque équipe -->
@@ -88,7 +89,7 @@
             <UButton type="submit" color="primary" :loading="saving === 'profile'">Enregistrer mes coordonnées</UButton>
           </div>
         </form>
-        <p v-if="messages.profile" class="mt-2 text-sm text-green-700">{{ messages.profile }}</p>
+        <FormFeedback :result="resultFor('profile')" />
       </UCard>
 
       <AccountPhotosCard />
@@ -119,36 +120,34 @@
               Chaque équipe est prévenue par email que vos places sont libérées. Si vous possédez des jeux, transférez-les ou supprimez-les d’abord.
             </p>
             <UFormField label="Mot de passe">
-              <PasswordInput v-model="deletePassword" required autocomplete="current-password" class="w-full sm:w-80" />
+              <PasswordInput v-model="deletePassword" autocomplete="current-password" class="w-full sm:w-80" />
             </UFormField>
             <UButton type="submit" color="error" variant="soft" :loading="saving === 'delete'">Effacer mon compte</UButton>
+            <FormFeedback :result="resultFor('delete')" />
           </form>
         </div>
       </UCard>
     </template>
-
-    <UAlert v-if="error" color="error" variant="soft" :description="error" />
   </div>
 </template>
 
 <script setup lang="ts">
 // Mon compte (US-063, US-066)
-import { serverMessage } from '~/utils/apiErrors'
+import { loadErrorMessage } from '~/utils/apiErrors'
 import { formatMegabytes as formatMb } from '~/utils/fileSizes'
 import { clearOfflineData } from '~/utils/storage'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
-type SavingKey = '' | 'name' | 'email' | 'password' | 'profile' | 'delete'
+type FormKey = 'name' | 'email' | 'password' | 'profile' | 'delete'
 
 const account = ref<ApiResponse<'/api/account'> | null>(null)
 const loadError = ref('')
-const error = ref('')
-const saving = ref<SavingKey>('')
 const name = ref('')
 const emailForm = ref({ email: '', password: '' })
 const passwordForm = ref({ currentPassword: '', password: '' })
 const profileForm = ref({ phone: '', emergencyContactName: '', emergencyContactPhone: '', dietary: '', healthConsent: false })
-const messages = ref({ name: '', password: '', profile: '' })
+// Résultat du dernier formulaire envoyé, affiché dans sa carte (US-216)
+const { pending: saving, resultFor, run } = useFormResult<FormKey>()
 
 const storagePercent = computed(() => {
   const storage = account.value?.storage
@@ -162,58 +161,48 @@ async function load() {
     name.value = loaded.name
     profileForm.value = { ...profileForm.value, ...Object.fromEntries(Object.entries(loaded.profile).filter(([key, value]) => key !== 'updatedAt' && value !== null)) }
   } catch (err) {
-    loadError.value = serverMessage(err, 'Impossible de charger le compte.')
-  }
-}
-
-async function run(key: Exclude<SavingKey, ''>, action: () => Promise<void>) {
-  saving.value = key
-  error.value = ''
-  messages.value = { name: '', password: '', profile: '' }
-  try {
-    await action()
-  } catch (err) {
-    error.value = serverMessage(err, 'Erreur inconnue')
-  } finally {
-    saving.value = ''
+    loadError.value = loadErrorMessage(err, 'Impossible de charger le compte.')
   }
 }
 
 const saveName = () => run('name', async () => {
   await useApiAction('/api/account', { method: 'PUT', body: { name: name.value } })
-  messages.value.name = 'Nom enregistré.'
   await load()
+  return 'Nom enregistré.'
 })
 
 const changeEmail = () => run('email', async () => {
   await useApiAction('/api/account/email', { method: 'POST', body: emailForm.value })
   emailForm.value = { email: '', password: '' }
+  // Pas de confirmation : la carte affiche le lien qui attend à la nouvelle adresse
   await load()
+  return null
 })
 
 const changePassword = () => run('password', async () => {
   await useApiAction('/api/account/password', { method: 'PUT', body: passwordForm.value })
   passwordForm.value = { currentPassword: '', password: '' }
-  messages.value.password = 'Mot de passe changé. Vos autres appareils sont déconnectés.'
+  return 'Mot de passe changé. Vos autres appareils sont déconnectés.'
 })
 
 const saveProfile = () => run('profile', async () => {
   await useApiAction('/api/account/profile', { method: 'PUT', body: profileForm.value })
-  messages.value.profile = 'Coordonnées enregistrées : vos fiches et inscriptions sont à jour.'
+  return 'Coordonnées enregistrées : vos fiches et inscriptions sont à jour.'
 })
 
 const deletePassword = ref('')
 const deleteAccount = () => {
   if (!confirm('Effacer définitivement votre compte et toutes vos données ? Cette action ne peut pas être annulée.')) return
   return run('delete', async () => {
-    const result = await useApiAction('/api/account/delete', { method: 'POST', body: { password: deletePassword.value } })
+    const deleted = await useApiAction('/api/account/delete', { method: 'POST', body: { password: deletePassword.value } })
     // Équipes non prévenues (envoi d'emails coupé…) : la personne le sait avant de quitter la page
-    if (result.teamsNotified < result.teams) {
-      alert(`Votre compte est effacé, mais ${result.teams - result.teamsNotified} équipe(s) n’ont pas pu être prévenue(s) par email. Prévenez-les vous-même que vos places sont libérées.`)
+    if (deleted.teamsNotified < deleted.teams) {
+      alert(`Votre compte est effacé, mais ${deleted.teams - deleted.teamsNotified} équipe(s) n’ont pas pu être prévenue(s) par email. Prévenez-les vous-même que vos places sont libérées.`)
     }
     // Compte effacé et cookie retiré : rien ne reste non plus sur l'appareil
     await clearOfflineData()
     window.location.replace('/')
+    return null
   })
 }
 

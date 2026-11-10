@@ -1,0 +1,5 @@
+{
+  "type": "corrige",
+  "titre": "Une action sans réseau le dit",
+  "texte": "Une action qui demande le réseau, comme créer son compte ou changer son nom, affiche « Pas de réseau : cette action demande une connexion. Réessayez quand le réseau revient. » au lieu de « Erreur inconnue »."
+}

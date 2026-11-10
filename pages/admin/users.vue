@@ -7,18 +7,20 @@
       </p>
     </div>
 
-    <UCard>
+    <UAlert v-if="loadError" color="error" variant="soft" :description="loadError" />
+
+    <UCard v-if="!loadError">
       <template #header>
         <h2 class="font-semibold">Créer un utilisateur</h2>
       </template>
 
       <p class="text-sm text-gray-500 mb-3">La personne reçoit un lien pour choisir son mot de passe, valable 7 jours.</p>
-      <form class="grid grid-cols-1 lg:grid-cols-4 gap-3 items-end" autocomplete="off" @submit.prevent="createUser">
+      <form class="grid grid-cols-1 lg:grid-cols-4 gap-3 items-end" autocomplete="off" novalidate @submit.prevent="createUser">
         <UFormField label="Nom">
-          <UInput v-model="newUser.name" required autocomplete="off" name="new-user-display-name" />
+          <UInput v-model="newUser.name" autocomplete="off" name="new-user-display-name" />
         </UFormField>
         <UFormField label="Email">
-          <UInput v-model="newUser.email" type="email" required autocomplete="off" name="new-user-contact-email" />
+          <UInput v-model="newUser.email" type="email" autocomplete="off" name="new-user-contact-email" />
         </UFormField>
         <UFormField label="Rôle">
           <USelect v-model="newUser.role" :items="roleItems" value-key="value" />
@@ -27,6 +29,7 @@
           Créer
         </UButton>
       </form>
+      <FormFeedback :result="resultFor('create')" />
     </UCard>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -82,18 +85,16 @@
               Supprimer
             </UButton>
           </div>
+          <FormFeedback :result="resultFor(user.id)" />
         </div>
       </UCard>
     </div>
-
-    <p v-if="notice" class="text-sm text-green-700">{{ notice }}</p>
-    <p v-if="serverError" class="text-sm text-red-500">{{ serverError }}</p>
   </div>
 </template>
 
 <script setup lang="ts">
 import { USER_ROLES, USER_ROLE_OPTIONS } from '~/utils/domain'
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { loadErrorMessage } from '~/utils/apiErrors'
 import { formatMegabytes as formatMb } from '~/utils/fileSizes'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
@@ -102,8 +103,9 @@ type ManagedUser = ApiResponse<'/api/admin/users'>[number]
 const users = ref<ManagedUser[]>([])
 const saving = ref(false)
 const savingUserId = ref('')
-const serverError = ref('')
-const notice = ref('')
+const loadError = ref('')
+// Résultat de la dernière action, dans la carte de la création ('create') ou du compte touché (US-216)
+const { resultFor, run } = useFormResult<string>()
 const { data: authState } = await useFetch('/api/auth/me')
 const currentUserId = computed(() => authState.value?.authenticated ? authState.value.user.id : null)
 const roleItems: Array<{ label: string, value: string }> = [...USER_ROLE_OPTIONS]
@@ -117,28 +119,23 @@ async function fetchUsers() {
 
 async function createUser() {
   saving.value = true
-  serverError.value = ''
-  try {
+  await run('create', async () => {
     const created = await useApiAction('/api/admin/users', {
       method: 'POST',
       body: newUser.value
     })
-    notice.value = created.emailSent
-      ? `Compte créé : ${created.email} a reçu un lien pour choisir son mot de passe.`
-      : `Compte créé, mais l’email n’est pas parti : utilisez « Envoyer un lien de mot de passe » sur la fiche de ${created.email}.`
     newUser.value = emptyUser()
     await fetchUsers()
-  } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
-  } finally {
-    saving.value = false
-  }
+    return created.emailSent
+      ? `Compte créé : ${created.email} a reçu un lien pour choisir son mot de passe.`
+      : `Compte créé, mais l’email n’est pas parti : utilisez « Envoyer un lien de mot de passe » sur la fiche de ${created.email}.`
+  })
+  saving.value = false
 }
 
 async function updateUser(user: ManagedUser) {
   savingUserId.value = user.id
-  serverError.value = ''
-  try {
+  await run(user.id, async () => {
     await useApiAction(`/api/admin/users/${user.id}`, {
       method: 'PUT',
       body: {
@@ -150,49 +147,40 @@ async function updateUser(user: ManagedUser) {
       }
     })
     await fetchUsers()
-  } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
-  } finally {
-    savingUserId.value = ''
-  }
+    return 'Compte enregistré.'
+  })
+  savingUserId.value = ''
 }
 
-async function sendPasswordLink(user: ManagedUser) {
-  serverError.value = ''
-  notice.value = ''
-  try {
-    await useApiAction(`/api/admin/users/${user.id}/password-link`, { method: 'POST' })
-    notice.value = `Lien envoyé à ${user.email}, valable 7 jours.`
-  } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
-  }
-}
+const sendPasswordLink = (user: ManagedUser) => run(user.id, async () => {
+  await useApiAction(`/api/admin/users/${user.id}/password-link`, { method: 'POST' })
+  return `Lien envoyé à ${user.email}, valable 7 jours.`
+})
 
 // Désactiver déconnecte le compte et bloque sa connexion ; ses jeux restent à leurs co-organisatrices (US-065)
 async function toggleDisabled(user: ManagedUser) {
   const disabled = !user.disabledAt
   if (disabled && !confirm(`Désactiver ${user.name} ? Le compte sera déconnecté et ne pourra plus se connecter.`)) return
-  serverError.value = ''
-  notice.value = ''
-  try {
+  // Le badge « Désactivé » et le bouton suffisent à confirmer
+  await run(user.id, async () => {
     await useApiAction(`/api/admin/users/${user.id}`, { method: 'PUT', body: { disabled } })
     await fetchUsers()
-  } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
-  }
+    return null
+  })
 }
 
 async function deleteUser(user: ManagedUser) {
   if (!confirm(`Supprimer ${user.name} ?`)) return
-
-  serverError.value = ''
-  try {
+  // La carte disparaît : c'est la confirmation
+  await run(user.id, async () => {
     await useApiAction(`/api/admin/users/${user.id}`, { method: 'DELETE' })
     await fetchUsers()
-  } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
-  }
+    return null
+  })
 }
 
-await fetchUsers()
+// Refus du serveur (403 pour qui n'administre pas) : affiché au lieu d'une page vide (US-215)
+await fetchUsers().catch((err: unknown) => {
+  loadError.value = loadErrorMessage(err, 'Impossible de charger les comptes.')
+})
 </script>

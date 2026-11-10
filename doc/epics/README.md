@@ -263,7 +263,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-198](EPIC-050-tests-par-ecran/US-198-tests-ecriture.md) | Tester chaque écran de l'écriture d'un jeu | EPIC-050 | terminée |
 | [US-199](EPIC-050-tests-par-ecran/US-199-tests-sessions.md) | Tester chaque écran des sessions | EPIC-050 | terminée |
 | [US-200](EPIC-050-tests-par-ecran/US-200-tests-participants.md) | Tester chaque écran des participants | EPIC-050 | terminée |
-| [US-201](EPIC-050-tests-par-ecran/US-201-tests-compte-et-administration.md) | Tester les écrans du compte, de l'accès et de l'administration | EPIC-050 | à faire |
+| [US-201](EPIC-050-tests-par-ecran/US-201-tests-compte-et-administration.md) | Tester les écrans du compte, de l'accès et de l'administration | EPIC-050 | terminée |
 | [US-202](EPIC-050-tests-par-ecran/US-202-tests-espace-participant.md) | Tester l'espace « Je participe », le lien public d'inscription et les assistants | EPIC-050 | à faire |
 | [US-203](EPIC-050-tests-par-ecran/US-203-tests-inscriptions.md) | Tester chaque règle des inscriptions | EPIC-050 | à faire |
 | [US-204](EPIC-050-tests-par-ecran/US-204-champ-obligatoire-explique.md) | Savoir quel champ obligatoire manque | EPIC-050 | terminée |
@@ -275,3 +275,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-210](EPIC-050-tests-par-ecran/US-210-messages-en-francais.md) | Lire en français les refus du serveur | EPIC-050 | terminée |
 | [US-211](EPIC-050-tests-par-ecran/US-211-supprimer-un-participant-depuis-sa-fiche.md) | Supprimer un participant depuis sa fiche, et voir pourquoi c'est refusé | EPIC-050 | terminée |
 | [US-212](EPIC-050-tests-par-ecran/US-212-fiches-hors-ligne.md) | Rouvrir hors ligne toute fiche consultée | EPIC-050 | terminée |
+| [US-213](EPIC-050-tests-par-ecran/US-213-refus-explique-acces-et-compte.md) | Lire la raison d'un refus dans les formulaires de l'accès, du compte et de l'administration | EPIC-050 | terminée |
+| [US-214](EPIC-050-tests-par-ecran/US-214-action-sans-reseau.md) | Savoir qu'une action demande le réseau | EPIC-050 | terminée |
+| [US-215](EPIC-050-tests-par-ecran/US-215-page-d-administration-refusee.md) | Voir pourquoi une page d'administration est refusée | EPIC-050 | terminée |
+| [US-216](EPIC-050-tests-par-ecran/US-216-message-dans-la-carte.md) | Lire le résultat d'un formulaire du compte à côté de son bouton | EPIC-050 | terminée |
