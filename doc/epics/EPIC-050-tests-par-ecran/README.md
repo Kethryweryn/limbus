@@ -21,7 +21,7 @@ Chaque écran de Limbus a plusieurs tests Playwright, sur quatre axes : ses acti
 | [US-200](US-200-tests-participants.md) | Tester chaque écran des participants | terminée |
 | [US-201](US-201-tests-compte-et-administration.md) | Tester les écrans du compte, de l'accès et de l'administration | terminée |
 | [US-202](US-202-tests-espace-participant.md) | Tester l'espace « Je participe », le lien public d'inscription et les assistants | terminée |
-| [US-203](US-203-tests-inscriptions.md) | Tester chaque règle des inscriptions | en cours |
+| [US-203](US-203-tests-inscriptions.md) | Tester chaque règle des inscriptions | terminée |
 | [US-204](US-204-champ-obligatoire-explique.md) | Savoir quel champ obligatoire manque | terminée |
 | [US-205](US-205-option-aucun.md) | Choisir « Aucun » dans une liste de choix | terminée |
 | [US-206](US-206-erreur-du-serveur-dans-le-formulaire.md) | Voir le refus du serveur dans le formulaire d'un personnage ou d'un jeu | terminée |
@@ -40,6 +40,7 @@ Chaque écran de Limbus a plusieurs tests Playwright, sur quatre axes : ses acti
 | [US-219](US-219-bandeau-hors-ligne.md) | Lire dans le bandeau hors ligne ce qui attend le réseau | terminée |
 | [US-220](US-220-reglages-des-inscriptions-expliques.md) | Lire le message de Limbus dans les réglages des inscriptions | terminée |
 | [US-221](US-221-refus-hors-ligne-une-fois.md) | Ne lire qu’une fois le refus d’une décision faite sans réseau | terminée |
+| [US-222](US-222-editeur-du-formulaire-sans-reseau.md) | Savoir que l’éditeur du formulaire demande le réseau pour s’ouvrir | terminée |
 
 ## Définition de terminé
 

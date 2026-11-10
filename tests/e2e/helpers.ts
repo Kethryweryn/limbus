@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { TERMS_VERSION } from '../../utils/legal'
+import { DEFAULT_REGISTRATION_FORM_DEFINITION } from '../../utils/registrationForms'
 import { expect, test as base, type BrowserContext, type Locator, type Page } from '@playwright/test'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
@@ -222,4 +223,30 @@ export async function openRegistrations(page: Page, gameTitle: string) {
   await page.goto('/registrations')
   await page.waitForLoadState('networkidle')
   await choose(page, page.getByRole('combobox').first(), new RegExp(`^${escapeRegExp(gameTitle)}$`))
+}
+
+export type QuestionnaireQuestion = { id: string, label: string, type: 'text' | 'single' | 'multiple' | 'scale', required: boolean, options?: string[] }
+
+// Questionnaire d'un jeu propre au test (US-203) : ses personnages PJ (noms dans `names`, identifiants dans `roles`), son formulaire (version 1) et son vivier
+export async function questionnaireGame(prisma: TestPrisma, base: string, characters: string[], questions: QuestionnaireQuestion[]) {
+  const game = await orgaGame(prisma, base)
+  const roles: Record<string, string> = {}
+  const names: Record<string, string> = {}
+  for (const character of characters) {
+    names[character] = uniqueName(character)
+    roles[character] = (await prisma.character.create({ data: { name: names[character], slug: slugOf(names[character]), gameId: game.id, type: 'pj' } })).id
+  }
+  await prisma.registrationForm.create({ data: { gameId: game.id, versions: { create: { number: 1, definition: { ...DEFAULT_REGISTRATION_FORM_DEFINITION, questions } } } } })
+  const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, state: 'open' } })
+  return { game, roles, names, period }
+}
+
+// Réponses de personnes du vivier aux questions du jeu
+export async function questionnaireAnswers(prisma: TestPrisma, ctx: Awaited<ReturnType<typeof questionnaireGame>>, rows: Array<Record<string, string>>) {
+  for (const [index, questionAnswers] of rows.entries()) {
+    const name = uniqueName(`Personne ${index + 1}`)
+    const email = `${slugOf(name)}@example.test`
+    const person = await prisma.participant.create({ data: { name, slug: slugOf(name), email, gameLinks: { create: { gameId: ctx.game.id } } } })
+    await prisma.registration.create({ data: { gameId: ctx.game.id, periodId: ctx.period.id, participantId: person.id, status: 'received', source: 'form', email, questionAnswers } })
+  }
 }

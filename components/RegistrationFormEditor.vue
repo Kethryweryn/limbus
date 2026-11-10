@@ -209,7 +209,8 @@
         />
 
         <div class="flex flex-wrap gap-2">
-          <UButton color="primary" :loading="saving" @click="save">Enregistrer</UButton>
+          <!-- Formulaire pas chargé (réseau, panne) : enregistrer écraserait la version en vigueur par un formulaire vide -->
+          <UButton color="primary" :loading="saving" :disabled="!formLoaded" @click="save">Enregistrer</UButton>
           <UButton color="neutral" variant="soft" @click="open = false">Fermer</UButton>
         </div>
 
@@ -235,7 +236,7 @@ import {
   type RegistrationQuestionType,
   type RegistrationStandardFieldKey
 } from '~/utils/registrationForms'
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { apiErrorMessage, loadErrorMessage } from '~/utils/apiErrors'
 import { formatLongDateTime } from '~/utils/dates'
 import { isOfflineQueued, type ApiResponse } from '~/composables/useApiFetch'
 import { NO_VERSION } from '~/utils/offlineSync'
@@ -288,6 +289,7 @@ const noteIntention = ref('')
 const errorMessage = ref('')
 const savedMessage = ref('')
 const saving = ref(false)
+const formLoaded = ref(false)
 // Relit l'encadré « Qualité du questionnaire » après chaque enregistrement (US-133)
 const qualityKey = ref(0)
 
@@ -295,9 +297,11 @@ watch(open, async (value) => {
   if (!value) return
   errorMessage.value = ''
   savedMessage.value = ''
+  formLoaded.value = false
   try {
     const current = await useApiFetch(`/api/games/${props.gameId}/registration-form`)
     apply(current)
+    formLoaded.value = true
     noteIntention.value = current.game.noteIntention || ''
     linksLoaded.value = false
     const [linked, expected] = await Promise.all([
@@ -309,7 +313,7 @@ watch(open, async (value) => {
     applyExpectations(expected)
     linksLoaded.value = true
   } catch (err) {
-    errorMessage.value = apiErrorMessage(err, 'Impossible de charger le formulaire')
+    errorMessage.value = loadErrorMessage(err, 'Impossible de charger le formulaire')
   }
 })
 
@@ -503,6 +507,7 @@ function apply(data: SavedForm) {
 }
 
 async function save() {
+  if (!formLoaded.value) return
   errorMessage.value = ''
   savedMessage.value = ''
   const expectationRows = expectationDrafts()
