@@ -5,7 +5,7 @@
 
 <script setup lang="ts">
 // Résultat d'un formulaire, affiché sous son bouton (US-216) : une erreur ou une confirmation
-export type FormResult = { text: string, error: boolean }
+import type { FormResult } from '~/composables/useFormResult'
 
 defineProps<{ result: FormResult | null | undefined }>()
 </script>

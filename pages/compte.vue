@@ -133,8 +133,7 @@
 
 <script setup lang="ts">
 // Mon compte (US-063, US-066)
-import { apiErrorMessage } from '~/utils/apiErrors'
-import type { FormResult } from '~/components/FormFeedback.vue'
+import { loadErrorMessage } from '~/utils/apiErrors'
 import { formatMegabytes as formatMb } from '~/utils/fileSizes'
 import { clearOfflineData } from '~/utils/storage'
 import type { ApiResponse } from '~/composables/useApiFetch'
@@ -143,14 +142,12 @@ type FormKey = 'name' | 'email' | 'password' | 'profile' | 'delete'
 
 const account = ref<ApiResponse<'/api/account'> | null>(null)
 const loadError = ref('')
-const saving = ref<FormKey | ''>('')
 const name = ref('')
 const emailForm = ref({ email: '', password: '' })
 const passwordForm = ref({ currentPassword: '', password: '' })
 const profileForm = ref({ phone: '', emergencyContactName: '', emergencyContactPhone: '', dietary: '', healthConsent: false })
 // Résultat du dernier formulaire envoyé, affiché dans sa carte (US-216)
-const result = ref<FormResult & { key: FormKey } | null>(null)
-const resultFor = (key: FormKey) => result.value?.key === key ? result.value : null
+const { pending: saving, resultFor, run } = useFormResult<FormKey>()
 
 const storagePercent = computed(() => {
   const storage = account.value?.storage
@@ -164,21 +161,7 @@ async function load() {
     name.value = loaded.name
     profileForm.value = { ...profileForm.value, ...Object.fromEntries(Object.entries(loaded.profile).filter(([key, value]) => key !== 'updatedAt' && value !== null)) }
   } catch (err) {
-    loadError.value = apiErrorMessage(err, 'Impossible de charger le compte.')
-  }
-}
-
-// L'action rend sa confirmation, ou rien
-async function run(key: FormKey, action: () => Promise<unknown>) {
-  saving.value = key
-  result.value = null
-  try {
-    const text = await action()
-    if (typeof text === 'string') result.value = { key, text, error: false }
-  } catch (err) {
-    result.value = { key, text: apiErrorMessage(err, 'Erreur inconnue'), error: true }
-  } finally {
-    saving.value = ''
+    loadError.value = loadErrorMessage(err, 'Impossible de charger le compte.')
   }
 }
 
@@ -193,6 +176,7 @@ const changeEmail = () => run('email', async () => {
   emailForm.value = { email: '', password: '' }
   // Pas de confirmation : la carte affiche le lien qui attend à la nouvelle adresse
   await load()
+  return null
 })
 
 const changePassword = () => run('password', async () => {
@@ -218,6 +202,7 @@ const deleteAccount = () => {
     // Compte effacé et cookie retiré : rien ne reste non plus sur l'appareil
     await clearOfflineData()
     window.location.replace('/')
+    return null
   })
 }
 

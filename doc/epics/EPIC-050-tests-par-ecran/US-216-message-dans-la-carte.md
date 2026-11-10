@@ -18,7 +18,7 @@ En tant que personne qui gère son compte, ou administratrice qui gère les comp
 
 ## Notes techniques
 
-Choix de l'utilisatrice le 2026-11-10 : dans la carte, plutôt qu'en haut de la page.
+Choix de l'utilisatrice le 2026-11-10 : dans la carte, plutôt qu'en haut de la page. `composables/useFormResult.ts` range le résultat sous la clé de la carte, et `components/FormFeedback.vue` l'affiche.
 
 ## Tests
 

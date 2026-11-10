@@ -103,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { apiErrorMessage, loadErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
 definePageMeta({
@@ -142,7 +142,7 @@ try {
   invitation.value = loaded
   loginForm.value.email = loaded.email
 } catch (err) {
-  loadError.value = apiErrorMessage(err, 'Invitation introuvable')
+  loadError.value = loadErrorMessage(err, 'Invitation introuvable')
 } finally {
   pending.value = false
 }

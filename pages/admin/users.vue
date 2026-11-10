@@ -94,9 +94,8 @@
 
 <script setup lang="ts">
 import { USER_ROLES, USER_ROLE_OPTIONS } from '~/utils/domain'
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { loadErrorMessage } from '~/utils/apiErrors'
 import { formatMegabytes as formatMb } from '~/utils/fileSizes'
-import type { FormResult } from '~/components/FormFeedback.vue'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
 type ManagedUser = ApiResponse<'/api/admin/users'>[number]
@@ -106,10 +105,7 @@ const saving = ref(false)
 const savingUserId = ref('')
 const loadError = ref('')
 // Résultat de la dernière action, dans la carte de la création ('create') ou du compte touché (US-216)
-const result = ref<FormResult & { key: string } | null>(null)
-const resultFor = (key: string) => result.value?.key === key ? result.value : null
-const succeeded = (key: string, text: string) => { result.value = { key, text, error: false } }
-const failed = (key: string, err: unknown) => { result.value = { key, text: apiErrorMessage(err, 'Erreur inconnue'), error: true } }
+const { resultFor, run } = useFormResult<string>()
 const { data: authState } = await useFetch('/api/auth/me')
 const currentUserId = computed(() => authState.value?.authenticated ? authState.value.user.id : null)
 const roleItems: Array<{ label: string, value: string }> = [...USER_ROLE_OPTIONS]
@@ -123,28 +119,23 @@ async function fetchUsers() {
 
 async function createUser() {
   saving.value = true
-  result.value = null
-  try {
+  await run('create', async () => {
     const created = await useApiAction('/api/admin/users', {
       method: 'POST',
       body: newUser.value
     })
     newUser.value = emptyUser()
     await fetchUsers()
-    succeeded('create', created.emailSent
+    return created.emailSent
       ? `Compte créé : ${created.email} a reçu un lien pour choisir son mot de passe.`
-      : `Compte créé, mais l’email n’est pas parti : utilisez « Envoyer un lien de mot de passe » sur la fiche de ${created.email}.`)
-  } catch (err) {
-    failed('create', err)
-  } finally {
-    saving.value = false
-  }
+      : `Compte créé, mais l’email n’est pas parti : utilisez « Envoyer un lien de mot de passe » sur la fiche de ${created.email}.`
+  })
+  saving.value = false
 }
 
 async function updateUser(user: ManagedUser) {
   savingUserId.value = user.id
-  result.value = null
-  try {
+  await run(user.id, async () => {
     await useApiAction(`/api/admin/users/${user.id}`, {
       method: 'PUT',
       body: {
@@ -156,51 +147,40 @@ async function updateUser(user: ManagedUser) {
       }
     })
     await fetchUsers()
-    succeeded(user.id, 'Compte enregistré.')
-  } catch (err) {
-    failed(user.id, err)
-  } finally {
-    savingUserId.value = ''
-  }
+    return 'Compte enregistré.'
+  })
+  savingUserId.value = ''
 }
 
-async function sendPasswordLink(user: ManagedUser) {
-  result.value = null
-  try {
-    await useApiAction(`/api/admin/users/${user.id}/password-link`, { method: 'POST' })
-    succeeded(user.id, `Lien envoyé à ${user.email}, valable 7 jours.`)
-  } catch (err) {
-    failed(user.id, err)
-  }
-}
+const sendPasswordLink = (user: ManagedUser) => run(user.id, async () => {
+  await useApiAction(`/api/admin/users/${user.id}/password-link`, { method: 'POST' })
+  return `Lien envoyé à ${user.email}, valable 7 jours.`
+})
 
 // Désactiver déconnecte le compte et bloque sa connexion ; ses jeux restent à leurs co-organisatrices (US-065)
 async function toggleDisabled(user: ManagedUser) {
   const disabled = !user.disabledAt
   if (disabled && !confirm(`Désactiver ${user.name} ? Le compte sera déconnecté et ne pourra plus se connecter.`)) return
-  result.value = null
-  try {
+  // Le badge « Désactivé » et le bouton suffisent à confirmer
+  await run(user.id, async () => {
     await useApiAction(`/api/admin/users/${user.id}`, { method: 'PUT', body: { disabled } })
     await fetchUsers()
-  } catch (err) {
-    failed(user.id, err)
-  }
+    return null
+  })
 }
 
 async function deleteUser(user: ManagedUser) {
   if (!confirm(`Supprimer ${user.name} ?`)) return
-
-  result.value = null
-  try {
+  // La carte disparaît : c'est la confirmation
+  await run(user.id, async () => {
     await useApiAction(`/api/admin/users/${user.id}`, { method: 'DELETE' })
     await fetchUsers()
-  } catch (err) {
-    failed(user.id, err)
-  }
+    return null
+  })
 }
 
 // Refus du serveur (403 pour qui n'administre pas) : affiché au lieu d'une page vide (US-215)
 await fetchUsers().catch((err: unknown) => {
-  loadError.value = apiErrorMessage(err, 'Impossible de charger les comptes.')
+  loadError.value = loadErrorMessage(err, 'Impossible de charger les comptes.')
 })
 </script>

@@ -100,8 +100,8 @@ test.describe('inscription libre', () => {
       await page.locator('input[name="website"]').fill('https://robot.example.test', { force: true })
       await page.getByRole('button', { name: 'Créer mon compte' }).click()
       await expect(page.getByText(`Si l’adresse ${email} peut recevoir un compte`, { exact: false })).toBeVisible()
+      // Le serveur répond sans rien envoyer : une fois la réponse affichée, aucun email n'est en route
       expect(await prisma.user.count({ where: { email } })).toBe(0)
-      await page.waitForTimeout(500)
       expect(mailbox.to(email)).toEqual([])
     } finally {
       await prisma.$disconnect()
@@ -441,20 +441,29 @@ test.describe('administration', () => {
       const game = await orgaGame(prisma, 'Jeu vu en mode admin')
       await signIn(page, prisma, adminEmail)
 
-      await page.goto(`/games/${game.slug}`)
-      await expect(page.getByRole('heading', { name: game.title, level: 1 })).toBeHidden()
+      // Hors mode administrateur, le jeu d'une autre organisatrice est refusé comme s'il n'existait pas (R7)
+      const refused = async () => {
+        await page.goto(`/games/${game.slug}`)
+        await expect(page.getByRole('heading', { name: 'Page introuvable', level: 1 })).toBeVisible()
+        await expect(page.getByRole('heading', { name: game.title, level: 1 })).toBeHidden()
+      }
+      // Le menu attend la réponse du serveur, qui pose le cookie du mode, avant que la page change
+      const toggle = async (label: string) => {
+        await openUserMenu(page)
+        const done = page.waitForResponse((response) => response.url().endsWith('/api/admin/mode') && response.ok())
+        await page.getByRole('menuitem', { name: label }).click()
+        await done
+      }
 
+      await refused()
       await page.goto('/compte')
       await page.waitForLoadState('networkidle')
-      await openUserMenu(page)
-      await page.getByRole('menuitem', { name: 'Activer le mode admin' }).click()
+      await toggle('Activer le mode admin')
       await page.goto(`/games/${game.slug}`)
       await expect(page.getByRole('heading', { name: game.title, level: 1 })).toBeVisible()
 
-      await openUserMenu(page)
-      await page.getByRole('menuitem', { name: 'Désactiver le mode admin' }).click()
-      await page.goto(`/games/${game.slug}`)
-      await expect(page.getByRole('heading', { name: game.title, level: 1 })).toBeHidden()
+      await toggle('Désactiver le mode admin')
+      await refused()
     } finally {
       await prisma.$disconnect()
     }

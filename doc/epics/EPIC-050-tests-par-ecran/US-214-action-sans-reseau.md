@@ -18,7 +18,7 @@ En tant que personne qui utilise Limbus sans réseau, je veux qu'une action qui 
 
 ## Notes techniques
 
-Choix de l'utilisatrice le 2026-11-10 : un message clair plutôt qu'un bouton grisé. `utils/apiErrors.ts` : `apiErrorMessage` rend ce message pour une erreur de réseau (`isNetworkError`), au lieu du texte technique de `$fetch`. Il vaut pour toutes les actions de Limbus, puisque toutes passent par cette fonction.
+Choix de l'utilisatrice le 2026-11-10 : un message clair plutôt qu'un bouton grisé. `utils/apiErrors.ts` : `apiErrorMessage` rend ce message pour une erreur de réseau (`isNetworkError`), au lieu du texte technique de `$fetch`. Il vaut pour toutes les actions de Limbus, puisque toutes passent par cette fonction. Revue de la PR #196 : seul un appel `$fetch` resté sans réponse (`FetchError` sans code) compte comme une coupure, et non une `TypeError` venue d'un défaut de la page ; le texte technique de `$fetch` (« [POST] … 500 ») n'est plus jamais affiché, le texte par défaut le remplace ; le chargement d'une page (compte, administration, invitation) dit « cette page demande une connexion » (`loadErrorMessage`).
 
 ## Tests
 

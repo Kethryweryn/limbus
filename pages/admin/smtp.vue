@@ -109,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { apiErrorMessage, loadErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
 const secureOptions = [
@@ -217,6 +217,6 @@ async function sendTest() {
 
 // Refus du serveur (403 pour qui n'administre pas) : affiché au lieu d'une page vide (US-215)
 await fetchSettings().catch((err: unknown) => {
-  loadError.value = apiErrorMessage(err, 'Impossible de charger la configuration SMTP.')
+  loadError.value = loadErrorMessage(err, 'Impossible de charger la configuration SMTP.')
 })
 </script>
