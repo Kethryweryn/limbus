@@ -150,7 +150,7 @@ test('la page Inscriptions et une inscription consultée se relisent sans résea
     await expect(page.getByRole('dialog')).toBeHidden()
     // Une décision relit le bloc du jeu : l'appareil garde ce nouvel état
     await panel.getByRole('button', { name: 'Retenir' }).click()
-    await expect(panel.getByText('À annoncer')).toBeVisible()
+    await expect(panel.getByText('À annoncer', { exact: true })).toBeVisible()
 
     // Sans réseau : la page se rouvre depuis l'appareil, sélection et détail compris
     await context.setOffline(true)
@@ -159,7 +159,7 @@ test('la page Inscriptions et une inscription consultée se relisent sans résea
     await page.goBack()
     await expect(panel.getByText('Sessions · 1 personne dans le vivier')).toBeVisible()
     await expect(panel.getByText('Iris Hors Ligne').first()).toBeVisible()
-    await expect(panel.getByText('À annoncer')).toBeVisible()
+    await expect(panel.getByText('À annoncer', { exact: true })).toBeVisible()
     await panel.getByRole('button', { name: 'Détail' }).first().click()
     await expect(page.getByRole('dialog').getByText('Arachides')).toBeVisible()
   } finally {
