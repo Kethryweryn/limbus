@@ -19,7 +19,7 @@ La page Inscriptions ne mélange plus les jeux, les sessions, le vivier et les r
 | [US-230](US-230-page-d-un-jeu-en-onglets.md) | La page Inscriptions d'un jeu en trois onglets, et le résumé des jeux | terminée |
 | [US-231](US-231-sessions-repliees.md) | Sessions repliées, dans l'adresse, avec leurs tirages | terminée |
 | [US-232](US-232-recherche-dans-le-vivier.md) | Rechercher et filtrer dans le vivier | terminée |
-| [US-233](US-233-a-traiter.md) | Ce qui reste à traiter, par jeu et par session | à faire |
+| [US-233](US-233-a-traiter.md) | Ce qui reste à traiter, par jeu et par session | terminée |
 
 ## Définition de terminé
 

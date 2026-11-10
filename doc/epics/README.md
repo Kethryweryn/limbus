@@ -299,4 +299,4 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-230](EPIC-054-page-inscriptions/US-230-page-d-un-jeu-en-onglets.md) | La page Inscriptions d'un jeu en trois onglets, et le résumé des jeux | EPIC-054 | terminée |
 | [US-231](EPIC-054-page-inscriptions/US-231-sessions-repliees.md) | Sessions repliées, dans l'adresse, avec leurs tirages | EPIC-054 | terminée |
 | [US-232](EPIC-054-page-inscriptions/US-232-recherche-dans-le-vivier.md) | Rechercher et filtrer dans le vivier | EPIC-054 | terminée |
-| [US-233](EPIC-054-page-inscriptions/US-233-a-traiter.md) | Ce qui reste à traiter, par jeu et par session | EPIC-054 | à faire |
+| [US-233](EPIC-054-page-inscriptions/US-233-a-traiter.md) | Ce qui reste à traiter, par jeu et par session | EPIC-054 | terminée |

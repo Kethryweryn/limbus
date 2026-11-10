@@ -286,7 +286,7 @@ test('l’équipe retient une pré-inscrite, l’annonce, et la personne confirm
     const panel = gamePanel(page, game.title, 'Sélection')
     const sessionBlock = panel.locator(`[data-session="${session.name}"]`)
     await sessionBlock.locator('li').filter({ hasText: 'Noa Selection' }).getByRole('button', { name: 'Retenir' }).click()
-    await expect(sessionBlock.getByText('À annoncer')).toBeVisible()
+    await expect(sessionBlock.getByText('À annoncer', { exact: true })).toBeVisible()
     await expect(sessionBlock.getByText('1 / 1 place')).toBeVisible()
 
     page.once('dialog', (dialog) => dialog.accept())

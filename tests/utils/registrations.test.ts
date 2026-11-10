@@ -7,6 +7,9 @@ import {
   registrationDisplayStatus,
   registrationStatusMeta,
   splitParticipantName,
+  sumToHandle,
+  toHandleBySession,
+  toHandleText,
   visibleLineStatus
 } from '~/utils/registrations'
 
@@ -124,5 +127,33 @@ describe('statut montré aux orgas (US-005)', () => {
     expect(registrationStatusMeta({ status: 'confirmed' }).label).toBe('Inscrite')
     expect(registrationStatusMeta({ status: 'cancelled' }).label).toBe('Annulation')
     expect(registrationStatusMeta({ status: 'inconnu' })).toEqual({ label: 'inconnu', color: 'neutral' })
+  })
+})
+
+describe('ce qui reste à traiter (SPEC-020, R2)', () => {
+  const line = (sessionId: string, data: Record<string, unknown>) => ({ sessionId, status: 'preregistered' as const, ...data })
+  const registrations = [
+    { status: 'received', sessionLines: [line('a', { status: 'retained', answersChangedAt: '2026-11-10' }), line('b', { status: 'retained', announcedStatus: 'retained' })] },
+    { status: 'received', sessionLines: [line('a', { answersChangedAt: '2026-11-10' })] },
+    // Sortie du vivier : ne compte pas
+    { status: 'withdrawn', sessionLines: [line('a', { answersChangedAt: '2026-11-10' })] }
+  ]
+
+  it('compte par session les réponses modifiées, attendues et le casting à annoncer', () => {
+    const counts = toHandleBySession(registrations, [{ id: 'a', castAnnouncedAt: null }, { id: 'b', castAnnouncedAt: '2026-11-01' }])
+    // a : jamais annoncée, avec une personne retenue ; une réponse modifiée d'une pré-inscrite n'a pas « Marquer comme lu »
+    expect(counts.get('a')).toEqual({ answersChanged: 1, awaitingReply: 0, castToAnnounce: 1 })
+    // b : annoncée, rien de neuf à proposer ; une place attend sa confirmation
+    expect(counts.get('b')).toEqual({ answersChanged: 0, awaitingReply: 1, castToAnnounce: 0 })
+    expect(toHandleText(sumToHandle(counts.values()))).toBe('1 réponse modifiée · 1 réponse attendue · 1 casting à annoncer')
+  })
+
+  it('ne dit rien sans rien à traiter, et ignore les sessions absentes de la liste', () => {
+    const counts = toHandleBySession(registrations, [{ id: 'c' }])
+    expect(toHandleText(sumToHandle(counts.values()))).toBe('')
+  })
+
+  it('met les nombres au pluriel', () => {
+    expect(toHandleText({ answersChanged: 2, awaitingReply: 3, castToAnnounce: 2 })).toBe('2 réponses modifiées · 3 réponses attendues · 2 castings à annoncer')
   })
 })
