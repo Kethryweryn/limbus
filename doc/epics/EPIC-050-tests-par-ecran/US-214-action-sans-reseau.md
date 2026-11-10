@@ -1,7 +1,7 @@
 ---
 id: US-214
 titre: Savoir qu'une action demande le réseau
-statut: à faire
+statut: terminée
 epic: EPIC-050
 regles: []
 adr: []
@@ -13,8 +13,8 @@ En tant que personne qui utilise Limbus sans réseau, je veux qu'une action qui 
 
 ## Critères d'acceptation
 
-- [ ] Étant donné une action qui demande le réseau (créer son compte, changer son nom, son adresse, son mot de passe, ses coordonnées, inviter…), quand le réseau manque, alors la page affiche « Pas de réseau : cette action demande une connexion. Réessayez quand le réseau revient. », et rien n'est enregistré.
-- [ ] Une modification que Limbus met en file hors ligne (fiches, listes) n'est pas touchée : elle part toujours au retour du réseau.
+- [x] Étant donné une action qui demande le réseau (créer son compte, changer son nom, son adresse, son mot de passe, ses coordonnées, inviter…), quand le réseau manque, alors la page affiche « Pas de réseau : cette action demande une connexion. Réessayez quand le réseau revient. », et rien n'est enregistré.
+- [x] Une modification que Limbus met en file hors ligne (fiches, listes) n'est pas touchée : elle part toujours au retour du réseau.
 
 ## Notes techniques
 

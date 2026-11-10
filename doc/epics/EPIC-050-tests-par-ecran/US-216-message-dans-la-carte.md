@@ -1,7 +1,7 @@
 ---
 id: US-216
 titre: Lire le résultat d'un formulaire du compte à côté de son bouton
-statut: à faire
+statut: terminée
 epic: EPIC-050
 regles: []
 adr: []
@@ -13,8 +13,8 @@ En tant que personne qui gère son compte, ou administratrice qui gère les comp
 
 ## Critères d'acceptation
 
-- [ ] Étant donné « Mon compte », quand un formulaire (nom, adresse, mot de passe, coordonnées, effacement) est refusé ou enregistré, alors son message s'affiche dans sa carte, sous son bouton.
-- [ ] Étant donné « Utilisateurs », le résultat de la création s'affiche dans sa carte, et celui d'une action sur un compte (enregistrer, lien de mot de passe, désactiver, supprimer) dans la carte de ce compte ; « Enregistrer » confirme « Compte enregistré. ».
+- [x] Étant donné « Mon compte », quand un formulaire (nom, adresse, mot de passe, coordonnées, effacement) est refusé ou enregistré, alors son message s'affiche dans sa carte, sous son bouton.
+- [x] Étant donné « Utilisateurs », le résultat de la création s'affiche dans sa carte, et celui d'une action sur un compte (enregistrer, lien de mot de passe, désactiver, supprimer) dans la carte de ce compte ; « Enregistrer » confirme « Compte enregistré. ».
 
 ## Notes techniques
 

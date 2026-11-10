@@ -1,0 +1,5 @@
+{
+  "type": "modifie",
+  "titre": "Le résultat d’un formulaire sous son bouton",
+  "texte": "Dans « Mon compte » et dans la page des comptes de l’administration, l’erreur ou la confirmation d’un formulaire s’affiche maintenant sous son bouton, et non plus en bas de la page. « Enregistrer » sur un compte confirme « Compte enregistré. »."
+}

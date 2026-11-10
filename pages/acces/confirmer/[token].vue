@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { serverMessage } from '~/utils/apiErrors'
+import { apiErrorMessage } from '~/utils/apiErrors'
 import { once } from '~/utils/once'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
@@ -34,7 +34,7 @@ onMounted(async () => {
     const result = await once(`confirm:${token}`, () => publicFetch<ApiResponse<'/api/auth/confirm', 'post'>>('/api/auth/confirm', { method: 'POST', body: { token } }))
     newEmail.value = 'email' in result ? result.email ?? '' : ''
   } catch (err) {
-    error.value = serverMessage(err, 'Ce lien n’est pas valable.')
+    error.value = apiErrorMessage(err, 'Ce lien n’est pas valable.')
   } finally {
     pending.value = false
   }

@@ -1,7 +1,7 @@
 ---
 id: US-215
 titre: Voir pourquoi une page d'administration est refusée
-statut: à faire
+statut: terminée
 epic: EPIC-050
 regles: []
 adr: []
@@ -13,7 +13,7 @@ En tant qu'organisatrice qui n'administre pas Limbus, je veux qu'une page d'admi
 
 ## Critères d'acceptation
 
-- [ ] Étant donné une organisatrice qui n'administre pas, quand elle ouvre `/admin/users` ou `/admin/smtp`, alors la page affiche « Réservé à l’administration », sans formulaire.
+- [x] Étant donné une organisatrice qui n'administre pas, quand elle ouvre `/admin/users` ou `/admin/smtp`, alors la page affiche « Réservé à l’administration », sans formulaire.
 
 ## Notes techniques
 

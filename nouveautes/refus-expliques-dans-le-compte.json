@@ -1,0 +1,5 @@
+{
+  "type": "corrige",
+  "titre": "La raison d’un refus, dans le compte et à l’inscription",
+  "texte": "Créer son compte, changer son mot de passe, gérer son compte, accepter une invitation ou créer un compte dans l’administration : un champ manquant ou un mot de passe trop court affiche maintenant le message de Limbus, qui dit quoi corriger, au lieu de bloquer l’envoi sans explication ou d’afficher « Requête invalide ». Dans la fenêtre de partage d’un jeu, « Inviter » n’est plus grisé : il dit qu’il manque l’adresse."
+}

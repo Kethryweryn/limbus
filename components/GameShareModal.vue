@@ -2,14 +2,13 @@
   <UModal v-model:open="open" :title="`Partage - ${game?.title || 'Jeu'}`">
     <template #body>
       <div class="space-y-4">
-        <form class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2" @submit.prevent="inviteUser">
+        <form class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2" novalidate @submit.prevent="inviteUser">
           <UInput
             v-model="inviteEmail"
             type="email"
             placeholder="email@exemple.fr"
-            required
           />
-          <UButton type="submit" color="primary" :disabled="!inviteEmail" :loading="inviting">
+          <UButton type="submit" color="primary" :loading="inviting">
             Inviter
           </UButton>
         </form>
@@ -122,7 +121,7 @@ async function proposeTransfer(share: Share) {
   if (!props.game) return
   if (!confirm(`Proposer à ${share.user?.name} de devenir propriétaire de « ${props.game.title} » ? Vous en resterez co-organisatrice.`)) return
   try {
-    await useApiFetch(`/api/games/${props.game.id}/transfer`, { method: 'POST', body: { userId: share.userId } })
+    await useApiAction(`/api/games/${props.game.id}/transfer`, { method: 'POST', body: { userId: share.userId } })
     shareMessage.value = `Transfert proposé à ${share.user?.name} : il prendra effet quand elle l’acceptera.`
     shareError.value = ''
     emit('changed')
@@ -134,7 +133,7 @@ async function proposeTransfer(share: Share) {
 async function cancelTransfer() {
   if (!props.game) return
   try {
-    await useApiFetch(`/api/games/${props.game.id}/transfer`, { method: 'DELETE' })
+    await useApiAction(`/api/games/${props.game.id}/transfer`, { method: 'DELETE' })
     shareMessage.value = 'Proposition de transfert retirée.'
     shareError.value = ''
     emit('changed')
@@ -188,7 +187,7 @@ async function refreshShares() {
 }
 
 async function inviteUser() {
-  if (!props.game?.id || !inviteEmail.value) return
+  if (!props.game?.id) return
 
   inviting.value = true
   resetMessages()
@@ -216,7 +215,7 @@ async function removeShare(userId: string) {
 
   try {
     resetMessages()
-    await useApiFetch(`/api/games/${props.game.id}/shares/${userId}`, { method: 'DELETE' })
+    await useApiAction(`/api/games/${props.game.id}/shares/${userId}`, { method: 'DELETE' })
     await refreshShares()
     // Un transfert proposé à cette personne tombe avec son partage
     emit('changed')
@@ -230,7 +229,7 @@ async function revokeInvitation(invitationId: string) {
 
   try {
     resetMessages()
-    await useApiFetch(`/api/games/${props.game.id}/invitations/${invitationId}`, { method: 'DELETE' })
+    await useApiAction(`/api/games/${props.game.id}/invitations/${invitationId}`, { method: 'DELETE' })
     await refreshShares()
   } catch (err) {
     shareError.value = apiErrorMessage(err, 'Impossible d’annuler l’invitation')

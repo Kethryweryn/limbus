@@ -1,0 +1,5 @@
+{
+  "type": "corrige",
+  "titre": "Pages d’administration : un refus clair",
+  "texte": "Une page d’administration ouverte sans en avoir le rôle affiche « Réservé à l’administration » au lieu de rester vide."
+}

@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { serverMessage } from '~/utils/apiErrors'
+import { apiErrorMessage } from '~/utils/apiErrors'
 
 const concerned = ref(false)
 const loadFailed = ref(false)
@@ -52,7 +52,7 @@ async function setRefusal(next: boolean) {
     refused.value = next
     message.value = next ? 'Vos photos sont retirées.' : 'Les équipes peuvent de nouveau ajouter votre photo.'
   } catch (err) {
-    message.value = serverMessage(err, 'L’enregistrement a échoué.')
+    message.value = apiErrorMessage(err, 'L’enregistrement a échoué.')
   } finally {
     saving.value = false
   }

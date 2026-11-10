@@ -689,7 +689,7 @@ export const gameBequestSchema = z.object({
 export const invitationRegistrationSchema = z.object({
   token: requiredText('Le lien'),
   name: requiredText('Le nom'),
-  password: requiredText('Le mot de passe').min(8, 'Le mot de passe doit faire au moins 8 caractères'),
+  password: newPassword(),
   termsAccepted: termsAccepted()
 })
 
@@ -726,7 +726,7 @@ export const smtpSettingsSchema = z.object({
 })
 
 export const smtpTestSchema = z.object({
-  to: requiredText('Le destinataire').email('Invalid recipient email')
+  to: requiredText('Le destinataire').email('Email invalide')
 })
 
 // Tarifs d'une session et versements (US-031 à US-033, ADR-0032) : montants en euros, stockés en centimes

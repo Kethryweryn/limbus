@@ -1,7 +1,12 @@
-import { isOfflineMissing } from './connection'
-// Message lisible d'une erreur d'API : le détail d'une validation zod (rangé par h3 sous data.data)
-// plutôt que « Requête invalide », sinon le message du serveur, sinon le texte par défaut.
+import { isNetworkError, isOfflineMissing } from './connection'
+
+// Action qui ne peut pas partir faute de réseau (US-214)
+export const NO_NETWORK_MESSAGE = 'Pas de réseau : cette action demande une connexion. Réessayez quand le réseau revient.'
+
+// Message lisible d'une erreur d'API : le réseau qui manque, le détail d'une validation zod (rangé par h3 sous
+// data.data) plutôt que « Requête invalide », sinon le message du serveur, sinon le texte par défaut.
 export function apiErrorMessage(err: unknown, fallback: string) {
+  if (isNetworkError(err)) return NO_NETWORK_MESSAGE
   const error = err as { data?: { message?: string, data?: { data?: Array<{ message?: string }> } }, message?: string } | null
   const issues = error?.data?.data?.data
   if (Array.isArray(issues) && issues.length) {
