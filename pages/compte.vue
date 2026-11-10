@@ -103,7 +103,6 @@
         <UProgress class="mt-3" :model-value="storagePercent" :color="storagePercent >= 90 ? 'error' : 'primary'" />
       </UCard>
       <AiAssistantsCard />
-      <OfflineDeviceCard />
       <!-- Mes données (US-076, US-077) -->
       <UCard>
         <template #header><h2 class="font-semibold">Mes données</h2></template>
@@ -129,6 +128,9 @@
         </div>
       </UCard>
     </template>
+
+    <!-- Sans réseau, le compte ne se charge pas, mais l'appareil se gère quand même (SPEC-019, US-223) -->
+    <OfflineDeviceCard />
   </div>
 </template>
 
