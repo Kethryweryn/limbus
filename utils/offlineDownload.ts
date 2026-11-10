@@ -1,7 +1,7 @@
 import { isNetworkError, getErrorStatus } from './connection'
 import { getOfflineQueue } from './offlineSync'
 import {
-  AUTH_READ, characterPlan, DASHBOARD_READ, filesIn, gameSheetRead, isUpcoming, LIST_READS, participantPlan,
+  AUTH_READ, characterPlan, DASHBOARD_READ, filesIn, gameRead, gameSheetRead, isUpcoming, LIST_READS, participantPlan,
   REGISTRATION_PERIODS_READ, registrationReads, sessionPlan, sessionReads, sheetReads
 } from './offlinePlan'
 import { DOWNLOAD_CACHE_NAME, deleteFromStore, getCachedResponse, getFromStore, listStoreEntries, saveCachedResponse, saveToStore } from './storage'
@@ -14,6 +14,8 @@ export const DOWNLOADS_STORE = 'offlineDownloads'
 export type OfflineDownload = {
   gameId: string
   title: string
+  // Accès retiré ou jeu supprimé (R15) : ses données sont effacées, la section le dit
+  lost?: boolean
   // Dernier téléchargement complet
   date: string
   responses: string[]
@@ -55,7 +57,7 @@ async function read(url: string) {
   }
 }
 
-export async function downloadGame(game: { id: string, slug: string, title: string }, onProgress: (progress: DownloadProgress) => void = () => {}) {
+export async function downloadGame(target: { id: string, title: string }, onProgress: (progress: DownloadProgress) => void = () => {}) {
   const queue = await getOfflineQueue()
   // Une modification en attente garde sa copie sur l'appareil (R12)
   const pendingStores = new Set(queue.map((operation) => operation.store).filter(Boolean))
@@ -88,13 +90,15 @@ export async function downloadGame(game: { id: string, slug: string, title: stri
   }
 
   onProgress({ ...progress })
-  // Le jeu lui-même : refusé, il n'est plus accessible (R15)
+  // Le jeu lui-même, par son identifiant : refusé, il n'est plus accessible (R15)
+  let game: { id: string, slug: string, title: string }
   try {
-    await keep(gameSheetRead(game.slug), await read(gameSheetRead(game.slug)))
+    game = await read(gameRead(target.id)) as typeof game
   } catch (error) {
     if ([403, 404].includes(getErrorStatus(error) ?? 0)) throw new GameAccessLost('Ce jeu n’est plus accessible.')
     throw error
   }
+  await keep(gameSheetRead(game.slug), await read(gameSheetRead(game.slug)))
   step()
 
   const lists: Record<string, Listed[]> = {}
@@ -197,5 +201,33 @@ export async function forgetDownloadedGame(gameId: string) {
   // Le tableau de bord mêle les jeux : il se relira avec le réseau
   await deleteFromStore('dashboard', 'main')
   await deleteFromStore('responses', DASHBOARD_READ)
-  await deleteFromStore(DOWNLOADS_STORE, gameId)
+  // Le jeu reste dans le registre, marqué perdu, pour que la section le dise ; l'effacement de l'appareil l'en retire
+  await saveToStore(DOWNLOADS_STORE, gameId, { ...lost, lost: true, responses: [], files: [], size: 0 })
+}
+
+// Mise à jour des jeux téléchargés (R14) : à l'ouverture de Limbus et au retour du réseau, en arrière-plan, au plus une
+// fois par heure par jeu, un jeu à la fois. Un jeu refusé part de l'appareil (R15)
+export const REFRESH_AFTER_MS = 60 * 60 * 1000
+let refreshing: Promise<void> | null = null
+
+export function refreshDownloads(now = Date.now()) {
+  refreshing ??= (async () => {
+    try {
+      for (const download of await listDownloads()) {
+        if (download.lost || now - new Date(download.date).getTime() < REFRESH_AFTER_MS) continue
+        if (!navigator.onLine) return
+        try {
+          await downloadGame({ id: download.gameId, title: download.title })
+        } catch (error) {
+          if (error instanceof GameAccessLost) await forgetDownloadedGame(download.gameId)
+          // Réseau tombé ou panne : la prochaine ouverture, ou le prochain retour du réseau, recommencera
+          else if (error instanceof DownloadInterrupted) return
+        }
+      }
+    } finally {
+      refreshing = null
+      window.dispatchEvent(new CustomEvent('limbus:offline-downloads'))
+    }
+  })()
+  return refreshing
 }

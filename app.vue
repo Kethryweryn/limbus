@@ -95,6 +95,7 @@ import { isOfflineMode, isServerUnavailableError, setServerUnavailable } from '~
 import { isOfflineDisabled, OFFLINE_DISABLED_KEY } from '~/utils/offlineDevice'
 import { claimOfflineData, clearPendingLogout, getOfflineAuth, hasPendingLogout, rememberOfflineAuth } from '~/utils/storage'
 import { getOfflineQueue, processOfflineQueue } from '~/utils/offlineSync'
+import { refreshDownloads } from '~/utils/offlineDownload'
 import OfflineQueuePanel from '~/components/OfflineQueuePanel.vue'
 import TermsAcceptanceScreen from '~/components/TermsAcceptanceScreen.vue'
 import { LEGAL_PAGES } from '~/utils/legal'
@@ -243,10 +244,16 @@ const retryServer = async () => {
   await syncPendingChanges()
 }
 
+// Jeux téléchargés remis à jour, après l'envoi des modifications en attente (SPEC-019, R14)
+const refreshOfflineGames = () => {
+  if (authenticated.value && navigator.onLine && !serverUnavailable.value && !isOfflineDisabled()) refreshDownloads().catch(() => {})
+}
+
 const checkAuthFromEvent = async () => {
   await checkAuth()
   if (navigator.onLine && !serverUnavailable.value) {
     await syncPendingChanges()
+    refreshOfflineGames()
   }
 }
 
@@ -314,6 +321,7 @@ onMounted(async () => {
   // Modifications laissées en attente : elles partent dès l'ouverture, si le serveur répond (US-052)
   if (authenticated.value && navigator.onLine && !serverUnavailable.value) {
     await syncPendingChanges()
+    refreshOfflineGames()
   }
 })
 

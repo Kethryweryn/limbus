@@ -105,3 +105,4 @@ Aujourd'hui, seule une page consultée avec le réseau se rouvre sans réseau ([
 - 2026-11-10 (revue, choix de l'utilisatrice) : un envoi qui laisse des modifications refusées arrête l'effacement et demande (R4). Précisés aussi : fichiers téléchargés hors des limites du cache des pages consultées (R9), rôles d'équipe sans accès au jeu (R8), départ d'une session pour une participante (R16).
 - 2026-11-10 : lot 1 livré (US-223 à US-225) : place prise, effacement et désactivation. Désactivé, l'identité reste en mémoire le temps de la page ouverte, pour qu'une coupure de réseau ne la ferme pas.
 - 2026-11-10 : US-226 livrée : télécharger un jeu ; la politique de confidentialité le dit, nouvelle version à accepter.
+- 2026-11-10 : US-227 et US-228 livrées : mise à jour des jeux téléchargés, jeu perdu effacé et signalé dans la section ; lot 2 terminé.
