@@ -295,6 +295,8 @@ test.describe('assistants d’IA', () => {
       await page.getByLabel(`${opened.title} (partagé avec vous)`).check()
       await page.getByRole('button', { name: 'Autoriser' }).click()
       await expect.poll(() => callback.url).toContain('code=')
+      // La page suit encore la redirection vers l'assistant : la suivante l'interromprait
+      await page.waitForURL(/localhost:9999/)
 
       // La propriétaire referme le jeu : le compte le montre fermé, et ne le propose plus
       await prisma.game.update({ where: { id: opened.id }, data: { aiForCoorganizers: false } })
@@ -343,6 +345,8 @@ test.describe('assistants d’IA', () => {
       await page.getByLabel(game.title, { exact: true }).check()
       await page.getByRole('button', { name: 'Autoriser' }).click()
       await expect.poll(() => callback.url).toContain('code=')
+      // La page suit encore la redirection vers l'assistant : la suivante l'interromprait
+      await page.waitForURL(/localhost:9999/)
 
       await page.goto('/compte')
       await page.waitForLoadState('networkidle')
@@ -418,6 +422,8 @@ test.describe('autres écrans qui disent le réseau absent (US-217)', () => {
       const callback = await captureCallback(page)
       await page.getByRole('button', { name: 'Autoriser' }).click()
       await expect.poll(() => callback.url).toContain('code=')
+      // La page suit encore la redirection vers l'assistant : la suivante l'interromprait
+      await page.waitForURL(/localhost:9999/)
 
       await page.goto('/compte')
       await page.waitForLoadState('networkidle')

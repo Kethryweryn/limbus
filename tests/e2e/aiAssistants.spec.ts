@@ -27,6 +27,8 @@ test('l’organisatrice autorise un assistant sur un jeu, le retrouve dans son c
     const callback = await captureCallback(page)
     await page.getByRole('button', { name: 'Autoriser' }).click()
     await expect.poll(() => callback.url).toContain('code=')
+    // La page suit encore la redirection vers l'assistant : la suivante l'interromprait
+    await page.waitForURL(/localhost:9999/)
     expect(new URL(callback.url).searchParams.get('state')).toBe('etat-e2e')
 
     const authorization = await prisma.aiAuthorization.findFirstOrThrow({
