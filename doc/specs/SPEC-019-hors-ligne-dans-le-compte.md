@@ -41,7 +41,7 @@ Aujourd'hui, seule une page consultée avec le réseau se rouvre sans réseau ([
 ### Effacer
 
 - **R3** « Effacer » vide ce que l'appareil garde : pages, PDF, photos, jeux téléchargés et file des modifications. La personne reste connectée, et Limbus garde de quoi s'ouvrir sans réseau pour ce compte ([SPEC-010](SPEC-010-hors-ligne.md), R3) : seule la désactivation (R5) l'oublie.
-- **R4** S'il reste des modifications faites sans réseau, Limbus le dit avant d'effacer, et propose de les envoyer d'abord (avec le réseau), ou de les abandonner. Sans réseau, seul l'abandon est proposé. On peut aussi renoncer à effacer.
+- **R4** S'il reste des modifications faites sans réseau, Limbus le dit avant d'effacer, et propose de les envoyer d'abord (avec le réseau), ou de les abandonner. Sans réseau, seul l'abandon est proposé. On peut aussi renoncer à effacer. Si l'envoi laisse des modifications refusées (erreur, conflit), Limbus s'arrête, dit lesquelles restent, et propose de les abandonner pour effacer, ou de renoncer pour les régler d'abord dans le panneau des modifications.
 
 ### Désactiver
 
@@ -51,8 +51,8 @@ Aujourd'hui, seule une page consultée avec le réseau se rouvre sans réseau ([
 
 ### Télécharger un jeu
 
-- **R8** Chaque jeu actif auquel la personne a accès comme organisatrice ou co-organisatrice a un bouton « Télécharger ». Un jeu archivé n'en a pas ; s'il avait été téléchargé avant, il reste gardé jusqu'à l'effacement.
-- **R9** Le téléchargement garde tout ce que les pages du jeu lisent : le jeu, ses listes et chaque fiche (personnages, groupes, intrigues, objets, documents, événements, lieux, participants), la page Inscriptions et chaque inscription, et chaque session avec tous ses onglets. Pour les sessions à venir, il garde aussi leurs PDF (trombinoscopes, fiches de personnage, fiche allergies) et les photos du cast ; pas pour les sessions passées.
+- **R8** Chaque jeu actif auquel la personne a accès comme organisatrice ou co-organisatrice a un bouton « Télécharger ». Un rôle dans l'équipe d'une session (PNJ, cuisine) sans cet accès ne donne pas ce bouton, mais celui de R16. Un jeu archivé n'en a pas ; s'il avait été téléchargé avant, il reste gardé jusqu'à l'effacement.
+- **R9** Le téléchargement garde tout ce que les pages du jeu lisent : le jeu, ses listes et chaque fiche (personnages, groupes, intrigues, objets, documents, événements, lieux, participants), la page Inscriptions et chaque inscription, et chaque session avec tous ses onglets. Pour les sessions à venir, il garde aussi leurs PDF (trombinoscopes, fiches de personnage, fiche allergies) et les photos du cast ; pas pour les sessions passées. Ces fichiers téléchargés échappent aux limites des fichiers consultés en passant (300 photos, 30 jours : [SPEC-010](SPEC-010-hors-ligne.md), R2) : ils restent tant que le jeu reste téléchargé.
 - **R10** Le téléchargement garde aussi le contact d'urgence et les allergies de chaque participant du jeu, que la fiche ne garde pas quand on la consulte ([SPEC-007](SPEC-007-participants-et-rgpd.md), R1b ; [ADR-0080](../adr/ADR-0080-urgence-et-allergies-dans-un-telechargement.md)). La section le dit à côté du bouton.
 - **R11** Pendant le téléchargement, Limbus affiche l'avancement (éléments gardés sur le total). Si le réseau tombe, il s'arrête et le dit ; ce qui est déjà gardé le reste, et un nouveau clic reprend tout. À la fin, la date du dernier téléchargement complet s'affiche à côté du jeu.
 - **R12** Un téléchargement ne remplace jamais un élément qui a une modification en attente dans la file : sa copie « en attente » reste ([SPEC-010](SPEC-010-hors-ligne.md), R6).
@@ -65,7 +65,7 @@ Aujourd'hui, seule une page consultée avec le réseau se rouvre sans réseau ([
 
 ### Participante
 
-- **R16** Une personne qui participe à au moins une session a un bouton « Télécharger mes sessions à venir » : ses participations, et pour chaque session à venir, les documents reçus et leurs PDF. Les règles R11 à R15 s'y appliquent, sessions à venir au lieu d'un jeu.
+- **R16** Une personne qui participe à au moins une session a un bouton « Télécharger mes sessions à venir » : ses participations, et pour chaque session à venir, les documents reçus et leurs PDF. Les règles R11 à R14 s'y appliquent, sessions à venir au lieu d'un jeu. À chaque mise à jour, une session que « Je participe » ne montre plus (personne retirée, session passée ou supprimée) part de l'appareil, avec ses documents.
 
 ## Données
 
@@ -102,3 +102,4 @@ Aujourd'hui, seule une page consultée avec le réseau se rouvre sans réseau ([
   - les participantes dans ce chantier, sessions à venir seulement (R16) ;
   - place des données, avec la place totale en petit ; effacer garde l'identité hors ligne, seule la désactivation l'oublie (R2, R3) ;
   - hors ligne actif par défaut sur un nouvel appareil (R5).
+- 2026-11-10 (revue, choix de l'utilisatrice) : un envoi qui laisse des modifications refusées arrête l'effacement et demande (R4). Précisés aussi : fichiers téléchargés hors des limites du cache des pages consultées (R9), rôles d'équipe sans accès au jeu (R8), départ d'une session pour une participante (R16).

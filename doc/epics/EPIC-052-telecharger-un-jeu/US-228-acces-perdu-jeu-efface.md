@@ -15,7 +15,8 @@ En tant que propriétaire d'un jeu, je veux que la co-organisatrice à qui je re
 
 - [ ] Étant donné un jeu téléchargé, quand l'accès est retiré puis qu'une mise à jour a lieu, alors tout ce qui avait été téléchargé de ce jeu est effacé de l'appareil, contact d'urgence et allergies compris, et la section dit que le jeu n'est plus accessible.
 - [ ] Étant donné un jeu supprimé, alors de même.
-- [ ] Étant donné les autres jeux téléchargés, alors ils restent.
+- [ ] Étant donné les autres jeux téléchargés, alors ils restent, même quand une réponse ou un fichier leur est commun.
+- [ ] Étant donné les listes gardées (personnages, participants, sessions…), alors les lignes du jeu perdu en sont retirées.
 
 ## Notes techniques
 

@@ -16,7 +16,8 @@ En tant que participante, je veux télécharger mes sessions à venir, afin de r
 - [ ] Étant donné une personne qui participe à au moins une session, alors la section a un bouton « Télécharger mes sessions à venir ».
 - [ ] Étant donné le téléchargement fait et le réseau coupé, alors « Je participe » s'ouvre, avec chaque document reçu pour une session à venir et ses PDF.
 - [ ] Étant donné une session passée, alors ses documents ne sont pas téléchargés.
-- [ ] Étant donné le téléchargement fait, alors il se met à jour comme un jeu (une fois par heure au plus), et une session dont la personne ne fait plus partie part de l'appareil.
+- [ ] Étant donné le téléchargement fait, alors il se met à jour comme un jeu (une fois par heure au plus), et une session que « Je participe » ne montre plus part de l'appareil, avec ses documents.
+- [ ] Étant donné une personne PNJ ou en cuisine sur une session, sans accès d'organisation au jeu, alors elle a ce bouton, et pas celui du jeu.
 
 ## Notes techniques
 

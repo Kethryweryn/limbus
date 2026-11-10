@@ -14,7 +14,7 @@ En tant que personne qui utilise un appareil prêté, je veux que Limbus n'y gar
 ## Critères d'acceptation
 
 - [ ] Étant donné la case « Garder Limbus sur cet appareil pour le hors ligne » cochée par défaut, quand je la décoche et confirme, alors tout est effacé, identité hors ligne comprise, et l'application gardée est retirée de l'appareil.
-- [ ] Étant donné le hors ligne désactivé, quand je consulte des pages puis coupe le réseau, alors rien n'a été gardé, et une modification échoue avec le message des actions qui demandent le réseau.
+- [ ] Étant donné le hors ligne désactivé, quand je consulte des pages puis coupe le réseau, alors rien n'a été gardé, identité hors ligne comprise, et une modification échoue avec le message des actions qui demandent le réseau.
 - [ ] Étant donné le hors ligne désactivé, quand je me déconnecte et qu'un autre compte se connecte, alors la case reste décochée.
 - [ ] Étant donné la case recochée, alors les pages consultées sont de nouveau gardées, et rien de ce qui était effacé ne revient.
 - [ ] Étant donné des modifications en attente, alors la même demande qu'à l'effacement s'affiche avant de désactiver.

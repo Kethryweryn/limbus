@@ -18,6 +18,8 @@ En tant qu'organisatrice, je veux télécharger un jeu d'un clic avant de partir
 - [ ] Étant donné le jeu téléchargé et le réseau coupé, alors chaque liste, chaque fiche, la page Inscriptions et chaque inscription, et chaque session avec ses onglets s'ouvrent ; pour une session à venir, ses PDF et les photos du cast aussi.
 - [ ] Étant donné le jeu téléchargé et le réseau coupé, alors la fiche d'un participant montre son contact d'urgence et ses allergies ; la section l'a dit à côté du bouton.
 - [ ] Étant donné une session passée, alors ses PDF ne sont pas téléchargés.
+- [ ] Étant donné un jeu aux nombreuses photos (plus de 300), alors toutes celles des sessions à venir sont gardées.
+- [ ] Étant donné la page de confidentialité, alors elle dit qu'un jeu téléchargé garde sur l'appareil le contact d'urgence et les allergies des participants (ADR-0080).
 - [ ] Étant donné un élément modifié sans réseau et pas encore envoyé, alors le téléchargement garde sa copie « en attente ».
 - [ ] Étant donné le réseau qui tombe pendant le téléchargement, alors il s'arrête et le dit ; un nouveau clic reprend.
 - [ ] Étant donné pas de réseau, alors le bouton est indisponible, avec la raison.

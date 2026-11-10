@@ -16,6 +16,7 @@ En tant que personne connectée, je veux effacer ce que mon appareil garde sans 
 - [ ] Étant donné des données gardées, quand je choisis « Effacer » et confirme, alors pages, PDF, photos, jeux téléchargés et file sont vidés, je reste connectée, et la place affichée retombe.
 - [ ] Étant donné un effacement fait, quand je coupe le réseau et rouvre Limbus, alors il s'ouvre pour mon compte, et une page dit qu'elle n'a pas été consultée avec le réseau.
 - [ ] Étant donné des modifications en attente et le réseau, alors Limbus propose de les envoyer avant d'effacer, ou de les abandonner ; envoyées, elles sont sur le serveur avant l'effacement.
+- [ ] Étant donné un envoi qui laisse des modifications refusées, alors Limbus s'arrête, dit lesquelles restent, et propose de les abandonner pour effacer, ou de renoncer.
 - [ ] Étant donné des modifications en attente sans réseau, alors seul l'abandon est proposé, et renoncer ne change rien.
 
 ## Notes techniques

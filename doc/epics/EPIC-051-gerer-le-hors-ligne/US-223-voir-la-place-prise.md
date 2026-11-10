@@ -19,7 +19,7 @@ En tant que personne connectée, je veux voir dans mon compte la place que prenn
 
 ## Notes techniques
 
-Section dans `pages/compte.vue` (composant à part) ; mesure dans `utils/storage.ts` : taille sérialisée des enregistrements de la base, taille des réponses des caches `session-documents` et `session-assignment-photos`, `navigator.storage.estimate()` (ADR-0081).
+Section dans `pages/compte.vue` (composant à part) ; mesure dans `utils/storage.ts` : taille sérialisée des enregistrements de la base, en-tête `Content-Length` des réponses des caches de fichiers, sans lire leur contenu, `navigator.storage.estimate()` (ADR-0081).
 
 ## Tests
 

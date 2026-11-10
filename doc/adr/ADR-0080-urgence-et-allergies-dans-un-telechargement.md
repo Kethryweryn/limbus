@@ -21,7 +21,7 @@ Le contact d'urgence et les allergies d'une personne s'affichent sur sa fiche, m
 ## Conséquences
 
 - Hors ligne, la fiche d'un participant d'un jeu téléchargé montre son contact d'urgence et ses allergies.
-- Un appareil perdu après un téléchargement expose ces données, non chiffrées ([ADR-0012](ADR-0012-donnees-hors-ligne.md)). La page de confidentialité doit le dire.
+- Un appareil perdu après un téléchargement expose ces données, non chiffrées ([ADR-0012](ADR-0012-donnees-hors-ligne.md)). La page de confidentialité le dit, dans la PR de l'US-226.
 - La désactivation sur un appareil prêté (SPEC-019, R5) et l'effacement à l'accès perdu deviennent des garde-fous de données de santé, à tester comme tels.
 
 ## Options écartées
