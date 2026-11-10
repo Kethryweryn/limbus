@@ -127,9 +127,13 @@ type HandledSession = { id: string, castAnnouncedAt?: string | Date | null }
  * personne retenue, ou annoncé avec des changements à proposer).
  */
 export function toHandleBySession(registrations: Array<{ status: string, sessionLines: HandledLine[] }>, sessions: HandledSession[]) {
-  const lines = poolOf(registrations).flatMap((registration) => registration.sessionLines)
+  // Lignes groupées par session en un passage
+  const bySession = new Map<string, HandledLine[]>()
+  for (const line of poolOf(registrations).flatMap((registration) => registration.sessionLines)) {
+    bySession.set(line.sessionId, [...(bySession.get(line.sessionId) ?? []), line])
+  }
   return new Map(sessions.map((session) => {
-    const own = lines.filter((line) => line.sessionId === session.id)
+    const own = bySession.get(session.id) ?? []
     const toAnnounce = session.castAnnouncedAt
       ? own.some(isAnnouncementPending)
       : own.some((line) => line.status === REGISTRATION_SESSION_STATUSES.retained)

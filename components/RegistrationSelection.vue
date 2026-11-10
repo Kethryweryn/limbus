@@ -40,7 +40,7 @@
               <UBadge class="ml-2" size="sm" :color="session.offered ? 'success' : 'neutral'" variant="subtle">
                 {{ session.offered ? 'Ouverte à la pré-inscription' : 'Pas proposée au vivier' }}
               </UBadge>
-              <span v-if="toHandleOf(session)" class="ml-2 text-xs font-normal text-warning-700" data-to-handle>{{ toHandleOf(session) }}</span>
+              <span v-if="toHandleTexts.get(session.id)" class="ml-2 text-xs font-normal text-warning-700" data-to-handle>{{ toHandleTexts.get(session.id) }}</span>
             </button>
           </h4>
           <div v-if="isExpanded(session)" class="flex flex-wrap gap-2">
@@ -462,11 +462,8 @@ function toggle(session: SelectionSession) {
 }
 
 // Ce qui reste à traiter dans chaque session (R2), sur sa ligne repliée
-const toHandle = computed(() => toHandleBySession(registrations.value, sessions.value))
-const toHandleOf = (session: SelectionSession) => {
-  const count = toHandle.value.get(session.id)
-  return count ? toHandleText(count) : ''
-}
+const toHandleTexts = computed(() => new Map([...toHandleBySession(registrations.value, sessions.value)]
+  .map(([sessionId, count]) => [sessionId, toHandleText(count)])))
 
 // Tirages de chaque session prévue ; les autres vont sous « Sessions passées » (R10), où seul celui d'une session
 // reportée, qui reviendra, s'annule encore
