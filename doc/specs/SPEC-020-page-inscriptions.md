@@ -30,31 +30,31 @@ Aujourd'hui, la page Inscriptions affiche l'un sous l'autre le bloc complet de c
 ### Résumé des jeux
 
 - **R1** Sans jeu actif, Inscriptions affiche une ligne par jeu, triée par titre ; la case « Afficher les jeux archivés » reste, et la liste de choix d'un jeu disparaît. Chaque ligne donne l'état du vivier (pas de vivier, brouillon, ouvert, fermé), le nombre de personnes dans le vivier et ce qui reste à traiter (R2). Un clic ouvre la page du jeu (R4). Un jeu sans vivier a un bouton « Créer le vivier ».
-- **R2** « À traiter » compte, pour les sessions à venir du jeu :
+- **R2** « À traiter » compte, pour les sessions prévues du jeu (R7) :
   - les réponses modifiées depuis leur dernière lecture (celles qui ont « Marquer comme lu ») ;
-  - les places retenues qui attendent la confirmation de l'équipe ;
+  - les réponses attendues : une personne retenue, à qui le casting est annoncé, et qui n'a pas encore confirmé sa place (celles qui ont « Relancer » et « Prolonger ») ;
   - les sessions dont le casting attend une annonce : jamais annoncé avec au moins une personne retenue, ou annoncé avec des changements à proposer ([SPEC-018](SPEC-018-vivier-permanent.md)).
 
-  La ligne détaille chaque nombre non nul (« 2 réponses modifiées · 1 place à confirmer · 1 casting à annoncer ») ; sans rien à traiter, elle n'en dit rien.
-- **R3** Avec un jeu actif, Inscriptions mène directement à la page de ce jeu. Les liens vers Inscriptions (fiche de session, email « cette personne est dans le vivier ») mènent à la page du jeu concerné, sur l'onglet utile : Vivier pour inviter ou retrouver une personne, Réglages pour créer le vivier.
+  La ligne détaille chaque nombre non nul (« 2 réponses modifiées · 1 réponse attendue · 1 casting à annoncer ») ; sans rien à traiter, elle n'en dit rien.
+- **R3** Avec un jeu actif, Inscriptions mène directement à la page de ce jeu. Les liens vers Inscriptions (fiche de session, email « cette personne est dans le vivier ») mènent à la page du jeu concerné, sur l'onglet Vivier pour inviter ou retrouver une personne ; pour créer le vivier, sur la page du jeu, qui le propose (R4).
 
 ### Page d'un jeu
 
-- **R4** Chaque jeu a sa page Inscriptions, à son adresse propre. Son en-tête donne le titre du jeu, l'état du vivier et un lien vers le résumé. Elle a trois onglets : Sessions, Vivier (avec le nombre de personnes) et Réglages ; un seul s'affiche à la fois. Un jeu sans vivier n'a pas d'onglets : la page propose « Créer le vivier » et « Formulaire ».
+- **R4** Chaque jeu a sa page Inscriptions, à son adresse propre. Son en-tête donne le titre du jeu, l'état du vivier et, sans jeu actif, un lien vers le résumé ; avec un jeu actif, on en sort par la barre du jeu actif. Elle a trois onglets : Sessions, Vivier (avec le nombre de personnes) et Réglages ; un seul s'affiche à la fois. Un jeu sans vivier n'a pas d'onglets : la page propose « Créer le vivier » et « Formulaire ».
 - **R5** L'onglet ouvert est dans l'adresse de la page : le bouton Retour du navigateur, un rechargement ou un lien copié le rouvrent. Sans onglet dans l'adresse, la page s'ouvre sur Sessions.
 - **R6** Les messages d'une action (réussite, erreur) s'affichent en haut de la page, au-dessus des onglets.
 
 ### Onglet Sessions
 
-- **R7** L'onglet commence par le rappel actuel : les décisions ne préviennent personne, seul « Annoncer le casting » envoie les emails ; et la règle des rejoueurs du jeu. Puis viennent les sessions à venir, dans l'ordre des dates.
+- **R7** L'onglet commence par le rappel actuel : les décisions ne préviennent personne, seul « Annoncer le casting » envoie les emails ; et la règle des rejoueurs du jeu. Puis viennent les sessions prévues (ni terminées ni annulées), à date dépassée comprises, dans l'ordre des dates, celles sans date en dernier.
 - **R8** Chaque session est repliée sur une ligne : nom, date, places prises sur le total, état (« Ouverte à la pré-inscription » ou « Pas proposée au vivier ») et ce qui reste à traiter dans cette session (R2). Dépliée, elle montre tout ce qu'elle montre aujourd'hui (ouvrir ou refermer, sélection, tirage, annonce, demande de disponibilités, retenues, attente, pré-inscrites, ajout d'une personne), et ses tirages, repliés.
-- **R9** On déplie autant de sessions qu'on veut. Les sessions dépliées sont dans l'adresse de la page (R5). Sans session dans l'adresse, la prochaine session à venir est dépliée d'office.
-- **R10** En bas de l'onglet, une ligne repliée « Sessions passées » rassemble les tirages des sessions passées et ceux d'une session supprimée, avec leurs détails actuels (graine, réglages, résultat, annulation). Sans tels tirages, la ligne n'apparaît pas.
+- **R9** On déplie autant de sessions qu'on veut. Les sessions dépliées sont dans l'adresse de la page (R5). À la première ouverture de l'onglet, quand l'adresse ne dit rien des sessions, la première session de la liste est dépliée d'office ; ensuite l'adresse garde le choix fait, même aucune session dépliée.
+- **R10** En bas de l'onglet, une ligne repliée « Sessions passées » rassemble les tirages des sessions terminées, annulées ou supprimées, avec leurs détails actuels (graine, réglages, résultat, annulation passée). Ils s'y lisent seulement : on n'y annule plus un tirage. Sans tels tirages, la ligne n'apparaît pas.
 
 ### Onglet Vivier
 
 - **R11** L'onglet donne les invitations sans réponse et le bouton « Inviter », puis les personnes du vivier avec leurs actions actuelles (détail, nouveau lien, retrait), puis, repliée, la liste « Sorties du vivier ».
-- **R12** Un champ de recherche filtre les personnes du vivier et les invitations par nom ou par email, sans tenir compte des majuscules ni des accents. Un filtre « Vœu de session » ne garde que les personnes qui ont demandé une session donnée (sessions à venir). Les deux se combinent ; la liste dit combien de personnes elle montre sur le total, et ce qu'il faut faire quand aucune ne correspond. Recherche et filtre ne vont pas dans l'adresse.
+- **R12** Un champ de recherche filtre les personnes du vivier et les invitations par nom ou par email, sans tenir compte des majuscules ni des accents. Un filtre « Vœu de session » ne garde que les personnes qui ont demandé une session donnée, parmi les sessions prévues. Les deux se combinent ; la liste dit combien de personnes elle montre sur le total, et ce qu'il faut faire quand aucune ne correspond. Recherche et filtre ne vont pas dans l'adresse.
 
 ### Onglet Réglages
 
@@ -98,3 +98,4 @@ Un seul lot, [EPIC-054](../epics/EPIC-054-page-inscriptions/README.md) :
   - sessions repliées, la prochaine dépliée d'office (R8, R9) ;
   - tirages avec leur session, ceux des sessions passées ou supprimées sous « Sessions passées » (R8, R10) ; sorties du vivier repliées avec le vivier (R11) ;
   - recherche par nom et filtre par vœu de session dans le vivier (R12).
+- 2026-11-10 (revue, choix de l'utilisatrice) : « à traiter » compte les réponses attendues, et non des places à confirmer par l'équipe, qui n'existent pas (R2) ; pas de lien vers le résumé avec un jeu actif (R4) ; une session repliée le reste au retour, même toutes (R9) ; la liste suit les sessions prévues, et les tirages des sessions terminées, annulées ou supprimées se lisent sous « Sessions passées », sans annulation (R7, R10). Le lien pour créer le vivier mène à la page du jeu (R3).

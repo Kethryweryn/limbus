@@ -297,6 +297,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-228](../archive/epics/EPIC-052-telecharger-un-jeu/US-228-acces-perdu-jeu-efface.md) | Effacer de l’appareil un jeu dont l’accès est perdu | EPIC-052 | terminée |
 | [US-229](../archive/epics/EPIC-053-telecharger-ses-sessions/US-229-telecharger-mes-sessions.md) | Télécharger mes sessions à venir | EPIC-053 | terminée |
 | [US-230](EPIC-054-page-inscriptions/US-230-page-d-un-jeu-en-onglets.md) | La page Inscriptions d'un jeu en trois onglets, et le résumé des jeux | EPIC-054 | à faire |
-| [US-231](EPIC-054-page-inscriptions/US-231-sessions-repliees.md) | Sessions repliées, dans l’adresse, avec leurs tirages | EPIC-054 | à faire |
+| [US-231](EPIC-054-page-inscriptions/US-231-sessions-repliees.md) | Sessions repliées, dans l'adresse, avec leurs tirages | EPIC-054 | à faire |
 | [US-232](EPIC-054-page-inscriptions/US-232-recherche-dans-le-vivier.md) | Rechercher et filtrer dans le vivier | EPIC-054 | à faire |
 | [US-233](EPIC-054-page-inscriptions/US-233-a-traiter.md) | Ce qui reste à traiter, par jeu et par session | EPIC-054 | à faire |

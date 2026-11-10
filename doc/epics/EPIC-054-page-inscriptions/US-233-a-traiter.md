@@ -13,10 +13,10 @@ En tant qu'organisatrice, je veux voir dans le résumé et sur chaque session ce
 
 ## Critères d'acceptation
 
-- [ ] Étant donné une réponse modifiée non lue, une place à confirmer et un casting à annoncer, alors la ligne du jeu dit « 1 réponse modifiée · 1 place à confirmer · 1 casting à annoncer » et la ligne de chaque session dit les siens (R2).
+- [ ] Étant donné une réponse modifiée non lue, une réponse attendue et un casting à annoncer, alors la ligne du jeu dit « 1 réponse modifiée · 1 réponse attendue · 1 casting à annoncer » et la ligne de chaque session dit les siens (R2).
 - [ ] Étant donné un jeu sans rien à traiter, alors sa ligne n'en dit rien (R2).
 - [ ] Étant donné une réponse marquée comme lue, quand je reviens au résumé, alors le nombre a baissé (R2).
-- [ ] Étant donné les sessions passées, alors elles ne comptent pas (R2).
+- [ ] Étant donné une session terminée ou annulée, alors elle ne compte pas (R2).
 
 ## Notes techniques
 

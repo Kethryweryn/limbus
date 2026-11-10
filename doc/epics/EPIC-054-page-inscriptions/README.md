@@ -17,7 +17,7 @@ La page Inscriptions ne mélange plus les jeux, les sessions, le vivier et les r
 | US | Titre | Statut |
 |---|---|---|
 | [US-230](US-230-page-d-un-jeu-en-onglets.md) | La page Inscriptions d'un jeu en trois onglets, et le résumé des jeux | à faire |
-| [US-231](US-231-sessions-repliees.md) | Sessions repliées, dans l’adresse, avec leurs tirages | à faire |
+| [US-231](US-231-sessions-repliees.md) | Sessions repliées, dans l'adresse, avec leurs tirages | à faire |
 | [US-232](US-232-recherche-dans-le-vivier.md) | Rechercher et filtrer dans le vivier | à faire |
 | [US-233](US-233-a-traiter.md) | Ce qui reste à traiter, par jeu et par session | à faire |
 

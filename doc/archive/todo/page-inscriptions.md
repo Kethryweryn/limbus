@@ -29,7 +29,7 @@ Tranchés le 2026-11-10 avec l'utilisatrice :
 - sans jeu actif : un résumé par jeu ;
 - tirages avec leur session, sorties du vivier avec le vivier, repliés ;
 - sessions repliées, la prochaine dépliée d'office ;
-- « à traiter » : réponses modifiées, places à confirmer, casting à annoncer ;
+- « à traiter » : réponses modifiées, réponses attendues, casting à annoncer ;
 - onglet et sessions dépliées dans l'adresse ;
 - tirages d'une session passée ou supprimée : une ligne repliée « Sessions passées » en bas de Sessions ;
 - une page propre au jeu, où mène Inscriptions quand un jeu est actif ;
