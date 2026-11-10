@@ -99,8 +99,9 @@ async function download(row: Row) {
     message.value = { color: 'success', text: `« ${row.title} » est téléchargé : il s’ouvre sans réseau sur cet appareil.` }
   } catch (error) {
     if (error instanceof GameAccessLost) {
+      const hadCopy = Boolean(row.date)
       await forgetDownloadedGame(row.id)
-      message.value = { color: 'warning', text: `« ${row.title} » n’est plus accessible : ce que l’appareil en gardait est effacé.` }
+      message.value = { color: 'warning', text: hadCopy ? `« ${row.title} » n’est plus accessible : ce que l’appareil en gardait est effacé.` : `« ${row.title} » n’est plus accessible.` }
     } else if (error instanceof DownloadInterrupted) {
       message.value = { color: 'error', text: 'Le réseau est tombé pendant le téléchargement : ce qui est déjà gardé le reste. Recommencez quand le réseau revient.' }
     } else {
@@ -109,7 +110,8 @@ async function download(row: Row) {
   } finally {
     running.value = null
     progress.value = null
-    downloads.value = await listDownloads()
+    // Jeux et téléchargements relus : un jeu qui n'est plus accessible quitte la liste
+    await load()
     emit('downloaded')
   }
 }

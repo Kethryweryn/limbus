@@ -146,6 +146,43 @@ test.describe('télécharger un jeu', () => {
     }
   })
 
+  test('un accès retiré efface le jeu de l’appareil, contact d’urgence compris, et garde les autres jeux', async ({ page }) => {
+    const prisma = createTestPrisma()
+    try {
+      const lost = await ownGame(prisma, 'Jeu retiré')
+      const kept = await ownGame(prisma, 'Jeu gardé')
+      const coorga = await testUser(prisma, 'Co-orga retirée')
+      await prisma.gameShare.createMany({ data: [{ gameId: lost.game.id, userId: coorga.user.id }, { gameId: kept.game.id, userId: coorga.user.id }] })
+      await signIn(page, prisma, coorga.email)
+      await openAccount(page)
+      await download(page, lost.game.title)
+      await download(page, kept.game.title)
+
+      await prisma.gameShare.deleteMany({ where: { gameId: lost.game.id, userId: coorga.user.id } })
+      await gameRow(page, lost.game.title).getByRole('button', { name: 'Télécharger de nouveau' }).click()
+      await expect(card(page).getByText(`« ${lost.game.title} » n’est plus accessible : ce que l’appareil en gardait est effacé.`)).toBeVisible({ timeout: 30000 })
+      await expect(gameRow(page, lost.game.title)).toHaveCount(0)
+
+      const stored = await page.evaluate(() => new Promise<{ keys: string[], characters: Array<{ gameId: string }> }>((resolve) => {
+        const request = indexedDB.open('limbus-db')
+        request.onsuccess = () => {
+          const db = request.result
+          const tx = db.transaction(['responses', 'characters'])
+          const keys = tx.objectStore('responses').getAllKeys()
+          const characters = tx.objectStore('characters').get('list')
+          tx.oncomplete = () => { db.close(); resolve({ keys: keys.result.map(String), characters: characters.result ?? [] }) }
+        }
+      }))
+      expect(stored.keys).not.toContain(`/api/participants/${lost.person.id}/emergency`)
+      expect(stored.keys).not.toContain(`/api/characters/slug/${lost.character.slug}`)
+      expect(stored.keys).toContain(`/api/participants/${kept.person.id}/emergency`)
+      expect(stored.characters.map((character) => character.gameId)).not.toContain(lost.game.id)
+      expect(stored.characters.map((character) => character.gameId)).toContain(kept.game.id)
+    } finally {
+      await prisma.$disconnect()
+    }
+  })
+
   test('désactivé sur l’appareil, le téléchargement est indisponible et le dit', async ({ page }) => {
     const prisma = createTestPrisma()
     try {

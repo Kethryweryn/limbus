@@ -100,3 +100,4 @@ Sources secondaires, sans fiche de la CNIL propre au cas. À confirmer avec un j
 - 2026-11-02 : création, avec les choix de l'utilisatrice.
 - 2026-11-02 (revue de code) : les deux epics sont livrés ensemble, pour que la politique de confidentialité ne promette pas de durée que Limbus n'applique pas encore.
 - 2026-11-02 : EPIC-029 et EPIC-030 terminés et archivés ; ADR-0055 et ADR-0056 acceptés.
+- 2026-11-10 : la politique de confidentialité dit qu'un jeu téléchargé pour le hors ligne garde le contact d'urgence et les allergies de ses participants sur l'appareil ([SPEC-019](SPEC-019-hors-ligne-dans-le-compte.md), [ADR-0080](../adr/ADR-0080-urgence-et-allergies-dans-un-telechargement.md)) : nouvelle version à accepter (`TERMS_VERSION` 2026-11-10).

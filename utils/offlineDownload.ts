@@ -31,6 +31,17 @@ type Listed = { id: string, slug: string, gameId?: string | null, games?: Array<
 
 const rawFetch = $fetch as unknown as (request: string) => Promise<unknown>
 
+// Quatre lectures à la fois : un gros jeu demande des centaines de lectures, sans charger le serveur pour autant
+const PARALLEL_READS = 4
+
+async function eachInParallel<T>(items: Iterable<T>, run: (item: T) => Promise<void>) {
+  const pending = [...items]
+  const worker = async () => {
+    for (let item = pending.shift(); item !== undefined; item = pending.shift()) await run(item)
+  }
+  await Promise.all(Array.from({ length: Math.min(PARALLEL_READS, pending.length) }, worker))
+}
+
 export async function listDownloads() {
   return (await listStoreEntries<OfflineDownload>(DOWNLOADS_STORE)).map((entry) => entry.value)
 }
@@ -117,13 +128,13 @@ export async function downloadGame(game: { id: string, slug: string, title: stri
   progress.total += new Set(sheets).size + periodReads.length
   onProgress({ ...progress })
 
-  for (const url of new Set(sheets)) await keepRead(url)
+  await eachInParallel(new Set(sheets), async (url) => { await keepRead(url) })
   for (const url of periodReads) {
     const value = await keepRead(url)
     if (url.endsWith('/registrations') && Array.isArray(value)) {
       const ids = value.map((registration: { id?: string }) => registration.id).filter((id): id is string => Boolean(id))
       progress.total += ids.length
-      for (const id of ids) await keepRead(registrationReads.registration(id))
+      await eachInParallel(ids, async (id) => { await keepRead(registrationReads.registration(id)) })
     }
   }
 
@@ -137,7 +148,7 @@ export async function downloadGame(game: { id: string, slug: string, title: stri
   progress.total += wanted.size
   onProgress({ ...progress })
   const cache = await caches.open(DOWNLOAD_CACHE_NAME)
-  for (const url of wanted) {
+  await eachInParallel(wanted, async (url) => {
     let response: Response
     try {
       response = await fetch(url, { credentials: 'same-origin' })
@@ -150,7 +161,7 @@ export async function downloadGame(game: { id: string, slug: string, title: stri
       files.add(url)
     }
     step()
-  }
+  })
 
   const download: OfflineDownload = { gameId: game.id, title: game.title, date: new Date().toISOString(), responses: [...responses], files: [...files], size }
   await saveToStore(DOWNLOADS_STORE, game.id, download)
@@ -183,5 +194,8 @@ export async function forgetDownloadedGame(gameId: string) {
     const response = await getCachedResponse(url)
     if (response) await saveCachedResponse(url, without(response))
   }
+  // Le tableau de bord mêle les jeux : il se relira avec le réseau
+  await deleteFromStore('dashboard', 'main')
+  await deleteFromStore('responses', DASHBOARD_READ)
   await deleteFromStore(DOWNLOADS_STORE, gameId)
 }
