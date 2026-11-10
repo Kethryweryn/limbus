@@ -38,9 +38,9 @@ export function apiFieldErrors(err: unknown): Record<string, string> {
   return Object.fromEntries(issues.filter((issue) => issue.path).map((issue) => [issue.path!, issue.message || '']))
 }
 
-// Message du serveur seul (h3 le range sous data.message), sinon le texte par défaut ; apiErrorMessage y ajoute le
-// détail d'une validation et le message technique
-export function serverMessage(err: unknown, fallback: string) {
+// Message du serveur seul (h3 le range sous data.message), sinon le texte par défaut ; les écrans passent par
+// apiErrorMessage ou loadErrorMessage, qui y ajoutent le réseau absent et le détail d'une validation
+function serverMessage(err: unknown, fallback: string) {
   return (err as { data?: { message?: string } } | null)?.data?.message || fallback
 }
 

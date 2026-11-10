@@ -2,6 +2,12 @@
   <div class="space-y-6">
       <p v-if="loading" class="text-sm text-gray-500">Chargement…</p>
 
+      <!-- Réseau absent ou serveur en panne (US-218) : l'inscription existe peut-être, elle ne se lit pas -->
+      <UCard v-else-if="loadError">
+        <h1 class="text-xl font-semibold">Inscription indisponible</h1>
+        <UAlert class="mt-3" color="error" variant="soft" :description="loadError" />
+      </UCard>
+
       <UCard v-else-if="invalid">
         <h1 class="text-xl font-semibold">{{ personalLink ? 'Lien invalide' : 'Inscription introuvable' }}</h1>
         <p class="mt-2 text-sm text-gray-600">
@@ -168,10 +174,11 @@
 
 <script setup lang="ts">
 import { REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_SESSION_STATUS_META, REGISTRATION_STATUS_META, SESSION_STATUSES, metaOf } from '~/utils/domain'
-import { apiErrorMessage, apiFieldErrors } from '~/utils/apiErrors'
+import { apiErrorMessage, apiFieldErrors, loadErrorMessage } from '~/utils/apiErrors'
+import { getErrorStatus } from '~/utils/connection'
 import { emptyRegistrationAnswerForm } from '~/utils/registrationForms'
 import { formatLongDate } from '~/utils/dates'
-import { publicFetch, type ApiResponse } from '~/composables/useApiFetch'
+import { handleApiAuthError, publicFetch, type ApiResponse } from '~/composables/useApiFetch'
 
 // Réponse à une inscription (US-004) : par le lien personnel, ou depuis le compte (US-072).
 // endpoint : /api/public/registrations/:jeton ou /api/me/registrations/:id, qui répondent de la même façon
@@ -187,6 +194,7 @@ const props = withDefaults(defineProps<{
 
 const loading = ref(true)
 const invalid = ref(false)
+const loadError = ref('')
 const registration = ref<Exposed | null>(null)
 // Une inscription désistée n'expose que son jeu et la raison ; les autres, tout le formulaire
 const details = computed(() => registration.value && 'answers' in registration.value ? registration.value : null)
@@ -244,7 +252,14 @@ onMounted(load)
 async function load() {
   try {
     apply(await publicFetch<Exposed>(props.endpoint))
-  } catch {
+  } catch (err) {
+    // Depuis le compte, une session expirée renvoie à l'écran de connexion (revue de la PR #197)
+    if (!props.personalLink) handleApiAuthError(err)
+    // Seul un refus 404 dit l'inscription introuvable ; le réseau ou une panne le disent autrement (US-218)
+    if (getErrorStatus(err) !== 404) {
+      loadError.value = loadErrorMessage(err, 'Impossible de charger cette inscription. Réessayez dans quelques minutes.')
+      return
+    }
     // Lien reçu après le formulaire public (US-085) : l'ouvrir confirme l'adresse, puis l'inscription s'affiche
     const confirmed = props.personalLink ? await post('confirm').catch(() => null) : null
     if (confirmed) {

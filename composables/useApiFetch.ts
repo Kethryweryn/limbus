@@ -52,12 +52,11 @@ export function handleApiAuthError(error: unknown): void {
  */
 export const useApiFetch = ((request: string, options?: RawOptions) => apiFetch(request, options)) as unknown as ApiFetch
 
-/** Appel d'une action (revue de la PR #89) : comme useApiFetch, sans mise en file hors ligne possible dans sa réponse. */
-export const useApiAction = (async (request: string, options?: RawOptions) => {
-  const result = await apiFetch(request, options)
-  if (isOfflineQueued(result)) throw new Error('Cette action n’est pas disponible hors ligne.')
-  return result
-}) as unknown as ApiAction
+/**
+ * Appel d'une action (revue de la PR #89) : comme useApiFetch, mais jamais mise en file hors ligne, même sur une route
+ * qui le permet (réglage d'un jeu…) : sans réseau, elle échoue, et l'écran le dit (revue de la PR #197).
+ */
+export const useApiAction = ((request: string, options?: RawOptions) => apiFetch(request, options, false)) as unknown as ApiAction
 
 /**
  * Appel d'une adresse calculée, dont la réponse est typée par l'appelant (`fetchByUrl<ApiResponse<'/api/…'>>(url)`) :
@@ -79,7 +78,7 @@ export function publicFetch<T>(request: string, options?: { method: 'POST' | 'PU
 const rawFetch = $fetch as unknown as (request: string, options?: RawOptions) => Promise<unknown>
 type RawOptions = Record<string, unknown> & ApiFetchExtras & { body?: Record<string, unknown> | FormData, method?: string, headers?: Record<string, string> }
 
-async function apiFetch(request: string, options?: RawOptions): Promise<unknown> {
+async function apiFetch(request: string, options?: RawOptions, queueable = true): Promise<unknown> {
   const { offlineCache, offlineLabel, ...fetchOptions } = options || {}
   const requestOptions = withConcurrencyHeaders(options ? fetchOptions : undefined)
 
@@ -87,7 +86,8 @@ async function apiFetch(request: string, options?: RawOptions): Promise<unknown>
     return await fetchWithOfflineCache(request, requestOptions)
   }
 
-  if (import.meta.client && isQueueableApiWrite(request, requestOptions) && !navigator.onLine) {
+  const queued = queueable && import.meta.client && isQueueableApiWrite(request, requestOptions)
+  if (queued && !navigator.onLine) {
     return await enqueueOfflineOperation(request, { ...requestOptions, offlineLabel })
   }
 
@@ -98,7 +98,7 @@ async function apiFetch(request: string, options?: RawOptions): Promise<unknown>
   } catch (error) {
     if (isServerUnavailableError(error)) {
       setServerUnavailable(true)
-      if (import.meta.client && isQueueableApiWrite(request, requestOptions)) {
+      if (queued) {
         return await enqueueOfflineOperation(request, { ...requestOptions, offlineLabel })
       }
       throw error

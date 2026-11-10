@@ -125,7 +125,7 @@
 import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { isInArchivedGame } from '~/utils/games'
 import { computed, onMounted, ref } from 'vue'
-import { serverMessage } from '~/utils/apiErrors'
+import { loadErrorMessage } from '~/utils/apiErrors'
 import DocumentForm from '@/components/DocumentForm.vue'
 import { documentAudienceLabel } from '~/utils/documentAudiences'
 import type { ApiResponse } from '~/composables/useApiFetch'
@@ -225,7 +225,7 @@ onMounted(async () => {
   try {
     await loadData()
   } catch (err) {
-    loadError.value = serverMessage(err, 'Document introuvable.')
+    loadError.value = loadErrorMessage(err, 'Document introuvable.')
   }
 })
 </script>

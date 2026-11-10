@@ -27,7 +27,7 @@
         class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-900"
       >
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span>Serveur indisponible. Les modifications sont enregistrées localement et seront synchronisées au retour serveur.</span>
+          <span>Pas de connexion au serveur : les modifications des fiches sont gardées sur l’appareil et partiront quand la connexion reviendra. Les envois et les autres actions attendent la connexion.</span>
           <UButton size="xs" color="warning" variant="soft" @click="retryServer">
             Réessayer
           </UButton>

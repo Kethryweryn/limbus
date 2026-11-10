@@ -142,7 +142,7 @@
 <script setup lang="ts">
 import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { computed, onMounted, ref } from 'vue'
-import { serverMessage } from '~/utils/apiErrors'
+import { loadErrorMessage } from '~/utils/apiErrors'
 import TimelineEventForm from '@/components/TimelineEventForm.vue'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import type { TimelineEventDraft } from '~/utils/writingDrafts'
@@ -245,7 +245,7 @@ onMounted(async () => {
   try {
     await loadData()
   } catch (err) {
-    loadError.value = serverMessage(err, 'Événement introuvable.')
+    loadError.value = loadErrorMessage(err, 'Événement introuvable.')
   }
 })
 </script>

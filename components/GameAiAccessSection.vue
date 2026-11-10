@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { serverMessage } from '~/utils/apiErrors'
+import { apiErrorMessage, loadErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
 type Access = ApiResponse<'/api/games/:id/ai-access'>
@@ -50,7 +50,7 @@ async function load() {
     authorizations.value = access.authorizations
     log.value = access.log
   } catch (err) {
-    error.value = serverMessage(err, 'Impossible de charger les assistants du jeu.')
+    error.value = loadErrorMessage(err, 'Impossible de charger les assistants du jeu.')
   } finally {
     loaded.value = true
   }
@@ -65,7 +65,7 @@ async function saveSetting(value: boolean) {
     await useApiAction(`/api/games/${props.gameId}/ai-settings`, { method: 'PUT', body: { aiForCoorganizers: value } })
     await load()
   } catch (err) {
-    error.value = serverMessage(err, 'Enregistrement impossible')
+    error.value = apiErrorMessage(err, 'Enregistrement impossible')
   } finally {
     saving.value = false
   }

@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { serverMessage } from '~/utils/apiErrors'
+import { loadErrorMessage } from '~/utils/apiErrors'
 import { formatLongDate as formatDate } from '~/utils/dates'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
@@ -82,7 +82,7 @@ onMounted(async () => {
   try {
     delivery.value = await useApiFetch(`/api/me/documents/${encodeURIComponent(String(route.params.id || ''))}`, { offlineCache: true })
   } catch (err) {
-    loadError.value = serverMessage(err, 'Impossible de charger ce document.')
+    loadError.value = loadErrorMessage(err, 'Impossible de charger ce document.')
   } finally {
     pending.value = false
   }

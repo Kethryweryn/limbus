@@ -60,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { serverMessage } from '~/utils/apiErrors'
+import { apiErrorMessage, loadErrorMessage } from '~/utils/apiErrors'
 import { formatLongDate, formatLongDateTime } from '~/utils/dates'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
@@ -88,7 +88,7 @@ async function load() {
     offered.value = listing.games
     if (showLog.value) log.value = await useApiFetch('/api/account/ai-log')
   } catch (err) {
-    error.value = serverMessage(err, 'Impossible de charger les assistants.')
+    error.value = loadErrorMessage(err, 'Impossible de charger les assistants.')
   } finally {
     loaded.value = true
   }
@@ -116,7 +116,7 @@ async function saveGames(id: string) {
     editing.value = ''
     await load()
   } catch (err) {
-    error.value = serverMessage(err, 'Enregistrement impossible')
+    error.value = apiErrorMessage(err, 'Enregistrement impossible')
   } finally {
     saving.value = false
   }
@@ -130,7 +130,7 @@ async function revoke(authorization: Authorization) {
     await useApiAction(`/api/account/ai-authorizations/${authorization.id}`, { method: 'DELETE' })
     await load()
   } catch (err) {
-    error.value = serverMessage(err, 'Retrait impossible')
+    error.value = apiErrorMessage(err, 'Retrait impossible')
   } finally {
     revoking.value = ''
   }
@@ -142,7 +142,7 @@ async function toggleLog() {
     try {
       log.value = await useApiFetch('/api/account/ai-log')
     } catch (err) {
-      error.value = serverMessage(err, 'Impossible de charger le journal.')
+      error.value = loadErrorMessage(err, 'Impossible de charger le journal.')
     }
   }
 }
