@@ -103,6 +103,7 @@
         <UProgress class="mt-3" :model-value="storagePercent" :color="storagePercent >= 90 ? 'error' : 'primary'" />
       </UCard>
       <AiAssistantsCard />
+      <OfflineDeviceCard />
       <!-- Mes données (US-076, US-077) -->
       <UCard>
         <template #header><h2 class="font-semibold">Mes données</h2></template>

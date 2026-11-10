@@ -214,7 +214,8 @@ test.describe('mon compte', () => {
       await context.setOffline(true)
       await page.getByLabel('Nom', { exact: true }).fill(uniqueName('Nom Hors Ligne'))
       await page.getByRole('button', { name: 'Enregistrer', exact: true }).click()
-      await expect(page.getByText(/pas de réseau|hors ligne/i)).toBeVisible()
+      // La section « Hors ligne sur cet appareil » (US-223) a aussi « hors ligne » dans son titre
+      await expect(page.getByText(/Pas de réseau : cette action demande une connexion/)).toBeVisible()
       await context.setOffline(false)
       expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { name: true } })).name).toBe(user.name)
     } finally {

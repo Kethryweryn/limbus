@@ -2,6 +2,7 @@ import type { NitroFetchRequest } from 'nitropack/types'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { fetchByUrl, type ApiResponse } from '~/composables/useApiFetch'
 import { isOfflineMode } from '~/utils/connection'
+import { isOfflineDisabled } from '~/utils/offlineDevice'
 import { getFromStore, saveToStore } from '~/utils/storage'
 
 // Pages lisibles hors ligne (US-047) : ce que chaque page de liste et le tableau de bord refaisaient à l'identique
@@ -9,7 +10,8 @@ import { getFromStore, saveToStore } from '~/utils/storage'
 /** Réponse lue sur l'appareil hors ligne (null si jamais lue), sinon par l'API, et gardée alors sur l'appareil. */
 export async function fetchOffline<R extends NitroFetchRequest>(store: string, key: string, request: R): Promise<NoInfer<ApiResponse<R>> | null> {
   type Response = ApiResponse<R>
-  if (isOfflineMode()) return await getFromStore<Response>(store, key)
+  // Hors ligne désactivé sur l'appareil : rien n'est gardé, la lecture échoue comme sans cache (SPEC-019, R6)
+  if (isOfflineMode() && !isOfflineDisabled()) return await getFromStore<Response>(store, key)
 
   const data = await fetchByUrl<Response>(String(request))
   // Un appareil sans stockage (navigation privée…) n'empêche pas d'afficher la réponse

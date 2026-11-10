@@ -27,7 +27,8 @@
         class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-900"
       >
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span>Pas de connexion au serveur : les modifications des fiches sont gardées sur l’appareil et partiront quand la connexion reviendra. Les envois et les autres actions attendent la connexion.</span>
+          <span v-if="offlineDisabled">Pas de connexion au serveur : le hors ligne est désactivé sur cet appareil, rien n’y est gardé. Les modifications et les actions attendent la connexion.</span>
+          <span v-else>Pas de connexion au serveur : les modifications des fiches sont gardées sur l’appareil et partiront quand la connexion reviendra. Les envois et les autres actions attendent la connexion.</span>
           <UButton size="xs" color="warning" variant="soft" @click="retryServer">
             Réessayer
           </UButton>
@@ -91,6 +92,7 @@ import { onUnmounted, useHead, useRoute, useRouter } from '#imports'
 import LoginScreen from '~/components/LoginScreen.vue'
 import UnconfirmedAccountScreen from '~/components/UnconfirmedAccountScreen.vue'
 import { isOfflineMode, isServerUnavailableError, setServerUnavailable } from '~/utils/connection'
+import { isOfflineDisabled } from '~/utils/offlineDevice'
 import { claimOfflineData, clearPendingLogout, getOfflineAuth, hasPendingLogout, rememberOfflineAuth } from '~/utils/storage'
 import { getOfflineQueue, processOfflineQueue } from '~/utils/offlineSync'
 import OfflineQueuePanel from '~/components/OfflineQueuePanel.vue'
@@ -115,6 +117,9 @@ const unconfirmedEmail = ref('')
 const termsPending = ref(false)
 const authReady = ref(false)
 const serverUnavailable = ref(false)
+// Hors ligne désactivé sur cet appareil (SPEC-019, R6) : le bandeau ne promet pas de garder les modifications
+const offlineDisabled = ref(false)
+const readOfflineSetting = () => { offlineDisabled.value = isOfflineDisabled() }
 const syncing = ref(false)
 const pendingSyncCount = ref(0)
 const syncErrorCount = ref(0)
@@ -293,6 +298,8 @@ const checkAuthAfterLogout = () => checkAuth(true)
 
 onMounted(async () => {
   refreshQueueState()
+  readOfflineSetting()
+  window.addEventListener('limbus:offline-setting', readOfflineSetting)
   window.addEventListener('online', checkAuthFromEvent)
   window.addEventListener('limbus:connection-change', checkAuthFromEvent)
   window.addEventListener('limbus:sync-queue-change', refreshQueueState)
@@ -314,6 +321,7 @@ watch(() => route.fullPath, () => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('limbus:offline-setting', readOfflineSetting)
   window.removeEventListener('online', checkAuthFromEvent)
   window.removeEventListener('limbus:connection-change', checkAuthFromEvent)
   window.removeEventListener('limbus:sync-queue-change', refreshQueueState)

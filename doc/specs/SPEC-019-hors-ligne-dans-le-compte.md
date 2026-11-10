@@ -1,7 +1,7 @@
 ---
 id: SPEC-019
 titre: Gérer depuis son compte les données gardées pour le hors ligne
-statut: validée
+statut: en cours
 date: 2026-11-10
 origine: ../archive/todo/cache-hors-ligne-dans-le-compte.md
 epics: [EPIC-051, EPIC-052, EPIC-053]
@@ -103,3 +103,4 @@ Aujourd'hui, seule une page consultée avec le réseau se rouvre sans réseau ([
   - place des données, avec la place totale en petit ; effacer garde l'identité hors ligne, seule la désactivation l'oublie (R2, R3) ;
   - hors ligne actif par défaut sur un nouvel appareil (R5).
 - 2026-11-10 (revue, choix de l'utilisatrice) : un envoi qui laisse des modifications refusées arrête l'effacement et demande (R4). Précisés aussi : fichiers téléchargés hors des limites du cache des pages consultées (R9), rôles d'équipe sans accès au jeu (R8), départ d'une session pour une participante (R16).
+- 2026-11-10 : lot 1 livré (US-223 à US-225) : place prise, effacement et désactivation. Désactivé, l'identité reste en mémoire le temps de la page ouverte, pour qu'une coupure de réseau ne la ferme pas.
