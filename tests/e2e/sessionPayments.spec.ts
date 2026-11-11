@@ -161,8 +161,17 @@ test('réglages : date limite, lien et RIB s’enregistrent, un lien invalide es
     await expect.poll(async () => (await saved()).paymentLinkUrl).toBe('https://paiement.example.test/session')
     expect((await saved()).withdrawalDeadline?.toISOString().slice(0, 10)).toBe('2099-05-01')
 
+    // Un RIB dont l'enregistrement est refusé n'est pas affiché comme posé
+    const rib = { name: 'rib.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n') }
+    await page.route('**/payments/settings', (route) => route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ statusCode: 409, message: 'Modifié entre-temps' }) }))
+    await page.locator('input[type="file"][accept="application/pdf"]').setInputFiles(rib)
+    await expect(page.getByText('Modifié entre-temps')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Téléverser un RIB' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Voir le PDF' })).toHaveCount(0)
+    await page.unroute('**/payments/settings')
+
     // Le RIB téléversé s'enregistre aussitôt, puis se retire
-    await page.locator('input[type="file"][accept="application/pdf"]').setInputFiles({ name: 'rib.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n') })
+    await page.locator('input[type="file"][accept="application/pdf"]').setInputFiles(rib)
     await expect(page.getByRole('link', { name: 'Voir le PDF' })).toBeVisible()
     await expect.poll(async () => (await saved()).paymentRibUrl).toBeTruthy()
     await page.getByRole('button', { name: 'Retirer', exact: true }).click()

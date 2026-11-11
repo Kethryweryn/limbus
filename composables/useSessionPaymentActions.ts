@@ -32,9 +32,11 @@ function createActions(data: () => SessionPaymentsData, onRefresh: () => Promise
   // Réglages de la session : lien, RIB, date limite de désistement (US-031, US-040)
   const settings = ref({ paymentRibUrl: '', paymentLinkUrl: '', withdrawalDeadline: '' })
   watch(() => data().session, (current) => {
-    settings.value.paymentRibUrl = current?.paymentRibUrl || ''
-    settings.value.paymentLinkUrl = current?.paymentLinkUrl || ''
-    settings.value.withdrawalDeadline = current?.withdrawalDeadline ? new Date(current.withdrawalDeadline).toISOString().slice(0, 10) : ''
+    settings.value = {
+      paymentRibUrl: current?.paymentRibUrl || '',
+      paymentLinkUrl: current?.paymentLinkUrl || '',
+      withdrawalDeadline: current?.withdrawalDeadline ? new Date(current.withdrawalDeadline).toISOString().slice(0, 10) : ''
+    }
   }, { immediate: true })
 
   const rows = computed(() => data().rows || [])

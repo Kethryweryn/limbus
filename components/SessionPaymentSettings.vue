@@ -64,7 +64,7 @@ const ribInput = ref<HTMLInputElement | null>(null)
 async function save() {
   savingSettings.value = true
   try {
-    await saveSettings()
+    return await saveSettings()
   } finally {
     savingSettings.value = false
   }
@@ -81,8 +81,7 @@ async function uploadRib(event: Event) {
     formData.append('rib', file)
     formData.append('sessionId', session().id)
     const result = await useApiAction('/api/uploads/session-payment-ribs', { method: 'POST', body: formData })
-    settings.value.paymentRibUrl = result.ribUrl
-    await save()
+    await saveRib(result.ribUrl)
   } catch (err) {
     serverError.value = apiErrorMessage(err, 'Impossible de téléverser le RIB')
   } finally {
@@ -91,8 +90,14 @@ async function uploadRib(event: Event) {
   }
 }
 
-async function removeRib() {
-  settings.value.paymentRibUrl = ''
-  await save()
+function removeRib() {
+  return saveRib('')
+}
+
+// Le RIB affiché suit celui enregistré : un enregistrement refusé remet le précédent
+async function saveRib(ribUrl: string) {
+  const previous = settings.value.paymentRibUrl
+  settings.value.paymentRibUrl = ribUrl
+  if (!await save()) settings.value.paymentRibUrl = previous
 }
 </script>
