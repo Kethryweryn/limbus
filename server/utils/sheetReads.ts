@@ -1,4 +1,4 @@
-import { labelNestedSessions, labelSession } from '~/server/utils/sessionLabels'
+import { labelSessionAndLinks } from '~/server/utils/sessionLabels'
 import type { H3Event } from 'h3'
 import { prisma } from '~/server/utils/prisma'
 import { accessibleGameIds, gameScopedWhere, requireGameAccess } from '~/server/utils/gameAccess'
@@ -104,6 +104,5 @@ export async function readSession(event: H3Event, key: SheetKey) {
     }
   })
   // Elle et les sessions de son report, avec leur libellé (SPEC-021)
-  const found = await labelNestedSessions(prisma, await withCastReservations(session ?? notFound('Session introuvable')))
-  return await labelSession(prisma, found)
+  return await labelSessionAndLinks(prisma, await withCastReservations(session ?? notFound('Session introuvable')))
 }

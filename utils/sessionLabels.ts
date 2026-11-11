@@ -1,6 +1,7 @@
 import { PARIS_TIME_ZONE } from './dates'
 
-// Libellé d'une session (SPEC-021, ADR-0083) : une session n'a pas de nom, elle se lit par sa date à l'heure de Paris
+// Libellé d'une session (SPEC-021, ADR-0084) : une session n'a pas de nom, elle se lit par sa date à l'heure de Paris ;
+// il se calcule à chaque lecture, jamais gardé en base ni comparé
 
 type DateValue = Date | string | null | undefined
 

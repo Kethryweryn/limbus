@@ -137,10 +137,6 @@ export function registrationReminderEmailText(params: {
 }
 
 // Emails de l'annonce des résultats (US-088), et du renvoi d'un lien à une personne retenue (US-089)
-// Le libellé dit déjà la date (SPEC-021)
-function sessionWithDate(session: { label: string }) {
-  return inSentence(session.label)
-}
 
 /**
  * Demande de disponibilités (R10) : une pré-inscription, sans place garantie ni confirmation d'inscription. Chaque lien
@@ -159,7 +155,7 @@ export function availabilityRequestEmail(params: {
     text: [
       `Bonjour ${params.participantName},`,
       '',
-      `L’équipe de « ${params.gameTitle} » prépare la ${sessionWithDate(params.session)} et demande qui est intéressé et disponible.`,
+      `L’équipe de « ${params.gameTitle} » prépare la ${inSentence(params.session.label)} et demande qui est intéressé et disponible.`,
       '',
       'Répondre « Disponible » vous pré-inscrit : cela ne garantit pas de place et ne confirme pas votre inscription. L’équipe vous écrira si une place vous est retenue.',
       '',
@@ -193,7 +189,7 @@ export function selectionAnnouncementEmail(params: {
       subject: `Changement pour votre session : ${params.gameTitle}`,
       text: [
         ...greeting,
-        `L’équipe de « ${params.gameTitle} » revient sur ce qu’elle vous avait annoncé : vous n’avez plus de place ni d’attente pour la ${sessionWithDate(params.sessions[0]!)}.`,
+        `L’équipe de « ${params.gameTitle} » revient sur ce qu’elle vous avait annoncé : vous n’avez plus de place ni d’attente pour la ${inSentence(params.sessions[0]!.label)}.`,
         '',
         'Vous restez dans le vivier du jeu. Ce lien vous permet de revoir vos réponses :',
         params.url,
@@ -206,7 +202,7 @@ export function selectionAnnouncementEmail(params: {
       subject: `Place retenue : ${params.gameTitle}`,
       text: [
         ...greeting,
-        `Bonne nouvelle : votre inscription à « ${params.gameTitle} » est retenue pour la ${sessionWithDate(params.sessions[0]!)}.`,
+        `Bonne nouvelle : votre inscription à « ${params.gameTitle} » est retenue pour la ${inSentence(params.sessions[0]!.label)}.`,
         '',
         `Confirmez votre place par ce lien${params.responseDueAt ? `, avant le ${formatDate(params.responseDueAt)}` : ''} :`,
         params.url,
@@ -220,7 +216,7 @@ export function selectionAnnouncementEmail(params: {
     subject: `Liste d’attente : ${params.gameTitle}`,
     text: [
       ...greeting,
-      `Votre inscription à « ${params.gameTitle} » est sur liste d’attente pour ${params.sessions.length > 1 ? `les sessions : ${params.sessions.map((session) => session.label).join(', ')}` : `la ${sessionWithDate(params.sessions[0]!)}`}.`,
+      `Votre inscription à « ${params.gameTitle} » est sur liste d’attente pour ${params.sessions.length > 1 ? `les sessions : ${params.sessions.map((session) => session.label).join(', ')}` : `la ${inSentence(params.sessions[0]!.label)}`}.`,
       'Si une place se libère, l’équipe vous écrira.',
       '',
       'Ce lien vous permet de suivre votre inscription, ou d’annuler votre présence :',

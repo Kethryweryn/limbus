@@ -76,9 +76,20 @@ const isPlain = (value: unknown): value is Plain => Boolean(value) && typeof val
 /**
  * Ajoute `label` à chaque session imbriquée dans une lecture (clés `session`, `invitedSession`, `postponedTo`,
  * `postponedFrom`, lues avec leur `id`) ; `dropId` retire ensuite cet identifiant (export des données d'une personne).
+ * Ces clés sont réservées aux sessions : un autre objet rangé sous l'une d'elles recevrait un libellé. `root` ajoute
+ * aussi le libellé de la lecture elle-même, une session, dans la même requête.
  */
 export async function labelNestedSessions<T>(db: Db, value: T, options: { dropId?: boolean } = {}): Promise<Labelled<T>> {
-  const ids: string[] = []
+  return await labelWithNested(db, value, options, false) as Labelled<T>
+}
+
+/** Une session lue et celles qui lui sont liées (report), avec leur libellé, en une requête. */
+export async function labelSessionAndLinks<T extends { id: string }>(db: Db, value: T): Promise<Labelled<T> & { label: string }> {
+  return await labelWithNested(db, value, {}, true) as Labelled<T> & { label: string }
+}
+
+async function labelWithNested(db: Db, value: unknown, options: { dropId?: boolean }, root: boolean): Promise<unknown> {
+  const ids: string[] = root && isPlain(value) && typeof value.id === 'string' ? [value.id] : []
   const collect = (node: unknown) => {
     if (Array.isArray(node)) return node.forEach(collect)
     if (!isPlain(node)) return
@@ -100,5 +111,6 @@ export async function labelNestedSessions<T>(db: Db, value: T, options: { dropId
       return [key, rewrite(child)]
     }))
   }
-  return rewrite(value) as Labelled<T>
+  const result = rewrite(value)
+  return root && isPlain(result) && typeof result.id === 'string' ? { ...result, label: labels.get(result.id) ?? 'Session' } : result
 }

@@ -69,7 +69,7 @@ describe.each(resources)('/api/$path', (resource) => {
   })
 
   it.runIf(resource.slugPath)('lecture par slug : refusée chez Bob', async () => {
-    // Relu en base : l'adresse d'une session se recalcule au démarrage du serveur (SPEC-021, ADR-0083)
+    // Relu en base : l'adresse d'une session se recalcule au démarrage du serveur (SPEC-021, ADR-0084)
     const slugOf = async (id: string) => (await readRow(resource.model, id, { id: true, slug: true }))!.slug
     expect((await api(alice, 'GET', `/api/${resource.slugPath}/${await slugOf(own.id)}`)).status).toBe(200)
     expect(DENIED).toContain((await api(alice, 'GET', `/api/${resource.slugPath}/${await slugOf(foreign.id)}`)).status)

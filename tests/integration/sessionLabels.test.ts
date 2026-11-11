@@ -1,4 +1,4 @@
-// SPEC-021, ADR-0083 : le libellé d'une session, calculé par le serveur et gardé à la place du nom
+// SPEC-021, ADR-0084 : le libellé d'une session, calculé à chaque lecture
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'

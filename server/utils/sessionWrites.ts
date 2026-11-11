@@ -6,7 +6,7 @@ import { requireCurrentUser, requireGameAccess, requireSessionAccess, assertSame
 import { selectionTargets, writeSelection } from '~/server/utils/registrationSelection'
 import { assertPlayersFromPool, assertSessionCastRules, assertSessionLocation, castAssignmentInclude, normalizeAssignments, normalizeSessionParticipants, resolveCastLines, withCastReservations } from '~/server/utils/sessionAssignments'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
-import { labelNestedSessions, labelSession, refreshSessionSlugs } from '~/server/utils/sessionLabels'
+import { labelSession, labelSessionAndLinks, refreshSessionSlugs } from '~/server/utils/sessionLabels'
 import { assertGameUploads, deleteUnusedUploads } from '~/server/utils/uploads'
 import type { sessionSchema, sessionTimelineSchema } from '~/server/utils/schemas'
 import { SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
@@ -167,7 +167,7 @@ export async function updateSession(event: H3Event, id: string, readBody: Reader
 
   await deleteUnusedUploads(previousPhotoUrls)
   // Comme la lecture de la session (readSession) : elle et les sessions de son report, avec leur libellé (SPEC-021)
-  return await labelSession(prisma, await labelNestedSessions(prisma, await withCastReservations(session)))
+  return await labelSessionAndLinks(prisma, await withCastReservations(session))
 }
 
 export async function updateSessionTimeline(event: H3Event, id: string, readBody: Reader<typeof sessionTimelineSchema>) {
