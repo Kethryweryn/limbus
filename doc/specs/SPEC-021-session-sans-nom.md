@@ -1,7 +1,7 @@
 ---
 id: SPEC-021
 titre: Une session sans nom, désignée par sa date
-statut: en cours
+statut: implémentée
 date: 2026-11-11
 origine: ../archive/todo/session-sans-nom.md
 epics: [EPIC-055]
@@ -59,7 +59,7 @@ Inchangés : les droits de [SPEC-004](SPEC-004-sessions.md).
 
 ## Découpage
 
-Un lot, [EPIC-055](../epics/EPIC-055-session-sans-nom/README.md) :
+Un lot, [EPIC-055](../archive/epics/EPIC-055-session-sans-nom/README.md) :
 
 1. Le libellé calculé, le formulaire sans nom, l'adresse, les sessions existantes, les assistants d'IA et les jeux de test (R1 à R3, R5 à R8).
 2. Le jeu devant le libellé hors des pages du jeu (R4).
@@ -80,3 +80,4 @@ Un lot, [EPIC-055](../epics/EPIC-055-session-sans-nom/README.md) :
 - 2026-11-11 : US-234 livrée : libellé calculé à la lecture, formulaire et report sans nom, adresse, sessions existantes, assistants d'IA, jeux de test à dates fixes, empreintes du contenu seul. En route, la date saisie part avec le fuseau de l'appareil.
 - 2026-11-11 : US-236 livrée : la colonne du nom est supprimée.
 - 2026-11-11 : US-235 livrée : le jeu devant le libellé dans les emails et PDF de fiche, de trombinoscope et de paiement ; ailleurs, le jeu est déjà affiché à côté. Lot terminé.
+- 2026-11-11 : EPIC-055 archivé : spec implémentée.
