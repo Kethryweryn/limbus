@@ -1029,7 +1029,11 @@ model ParticipantGame {
   gameId    String
   // Notes de l'équipe de ce jeu sur la personne (US-069, ADR-0040)
   notes     String?
+  // Nom et téléphone saisis par l'équipe de ce jeu, ou recopiés du compte (SPEC-022 R6, ADR-0086, US-237)
+  name      String?
+  phone     String?
   createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(3)
 
   participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
   game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)

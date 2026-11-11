@@ -51,7 +51,7 @@ export async function findParticipantByEmail(game: { id: string, ownerId: string
   return await prisma.participant.findFirst({
     where: participantEmailMatchWhere(game, email),
     orderBy: { updatedAt: 'desc' },
-    select: { id: true, name: true, email: true }
+    select: { id: true, name: true, email: true, phone: true }
   })
 }
 
@@ -354,7 +354,8 @@ export async function inviteToRegistrationPeriod(params: {
       await tx.participantGame.upsert({
         where: { participantId_gameId: { participantId: matched.id, gameId: period.gameId } },
         update: {},
-        create: { participantId: matched.id, gameId: period.gameId }
+        // Nom et téléphone tenus par jeu (ADR-0086) : ceux de la fiche existante
+        create: { participantId: matched.id, gameId: period.gameId, name: matched.name, phone: matched.phone }
       })
       // La fiche existante garde son email : on écrit à l'adresse saisie, qui ne diffère que par la casse
       if (!invited.some((participant) => participant.id === matched.id)) {
@@ -367,7 +368,7 @@ export async function inviteToRegistrationPeriod(params: {
           slug: slug!,
           email: newParticipant.email,
           userId: await accountIdForEmail(newParticipant.email),
-          gameLinks: { create: { gameId: period.gameId } }
+          gameLinks: { create: { gameId: period.gameId, name: newParticipant.name } }
         },
         select: { id: true, name: true }
       })

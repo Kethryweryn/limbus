@@ -43,6 +43,8 @@ export async function syncProfileToParticipants(userId: string) {
   })
   await prisma.$transaction([
     prisma.participant.updateMany({ where: { userId }, data: { name: user.name, phone: user.phone } }),
+    // Tenus par jeu (ADR-0086) : chaque jeu de ses fiches reçoit les coordonnées du compte
+    prisma.participantGame.updateMany({ where: { participant: { userId } }, data: { name: user.name, phone: user.phone } }),
     ...registrations.map((registration) => {
       const asked = normalizeRegistrationFormDefinition(registration.formVersion!.definition as RegistrationFormDefinition).standardFields
       return prisma.registration.update({

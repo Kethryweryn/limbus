@@ -856,7 +856,8 @@ async function createGame(
     // Une personne déjà présente dans un autre jeu de test garde sa fiche, qui reçoit ce jeu (US-185)
     const existing = participantByEmail.get(participant.email)
     if (existing) {
-      await db.participantGame.create({ data: { participantId: existing.id, gameId: game.id, notes: participant.notes || null } })
+      // Nom et téléphone tenus par jeu (ADR-0086)
+      await db.participantGame.create({ data: { participantId: existing.id, gameId: game.id, notes: participant.notes || null, name: participant.name, phone: participant.phone } })
       participants.push(existing)
       continue
     }
@@ -869,7 +870,7 @@ async function createGame(
         phone: participant.phone,
         userId: accountIdByEmail.get(participant.email) ?? null,
         gameLinks: {
-          create: [{ gameId: game.id, notes: participant.notes || null }]
+          create: [{ gameId: game.id, notes: participant.notes || null, name: participant.name, phone: participant.phone }]
         },
         published: true
       }
@@ -1135,7 +1136,7 @@ async function createCrossGameParticipants(gameIds: string[]) {
       email: 'alex.morgan@example.test',
       phone: '06 44 55 66 01',
       gameLinks: {
-        create: gameIds.slice(0, 2).map((gameId) => ({ gameId, notes: 'Inscrit sur plusieurs jeux, pour essayer les filtres.' }))
+        create: gameIds.slice(0, 2).map((gameId) => ({ gameId, notes: 'Inscrit sur plusieurs jeux, pour essayer les filtres.', name: 'Alex Morgan', phone: '06 44 55 66 01' }))
       },
       published: true
     }
@@ -1149,7 +1150,7 @@ async function createCrossGameParticipants(gameIds: string[]) {
       email: 'morgan.dasilva@example.test',
       phone: '06 44 55 66 02',
       gameLinks: {
-        create: gameIds.map((gameId) => ({ gameId, notes: 'Disponible sur tous les jeux de test.' }))
+        create: gameIds.map((gameId) => ({ gameId, notes: 'Disponible sur tous les jeux de test.', name: 'Morgan Da Silva', phone: '06 44 55 66 02' }))
       },
       published: true
     }
