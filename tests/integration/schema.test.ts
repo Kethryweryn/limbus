@@ -75,7 +75,7 @@ describe('schéma de données', () => {
       SELECT table_name || '.' || column_name AS "column"
       FROM information_schema.columns WHERE table_schema = 'public' AND udt_name = 'citext' ORDER BY 1`
     expect(columns.map((row) => row.column)).toEqual([
-      'AccountToken.email', 'GameInvitation.email', 'Participant.email', 'Registration.email', 'RegistrationRequest.email', 'User.email'
+      'AccountToken.email', 'GameInvitation.email', 'Participant.email', 'ParticipantEmailProof.email', 'Registration.email', 'RegistrationRequest.email', 'User.email'
     ])
   })
 

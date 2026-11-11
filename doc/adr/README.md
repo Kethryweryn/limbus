@@ -90,3 +90,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0084](ADR-0084-libelle-de-session-a-la-lecture.md) | Le libellé d'une session est calculé à chaque lecture, et la session n'a plus de nom en base | accepté | 2026-11-11 |
 | [ADR-0085](ADR-0085-installation-serveur-sans-audit.md) | Le serveur installe ses dépendances sans audit de sécurité, et note l'heure de chaque étape du déploiement | accepté | 2026-11-11 |
 | [ADR-0086](ADR-0086-fiche-unique-et-valeurs-par-jeu.md) | Une fiche par adresse dans tout Limbus, nom et téléphone par jeu, et fusion des fiches existantes | accepté | 2026-11-11 |
+| [ADR-0087](ADR-0087-preuve-d-une-autre-adresse.md) | Une adresse donnée en réponse, déjà celle d'une autre fiche, se prouve par un lien avant la réunion des deux fiches | accepté | 2026-11-12 |

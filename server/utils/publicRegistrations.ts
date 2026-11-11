@@ -25,6 +25,7 @@ import {
 } from '~/utils/registrationForms'
 import { withGameValues } from '~/server/utils/participantValues'
 import { lockAddress } from '~/server/utils/participantAddress'
+import { requestEmailProof } from '~/server/utils/emailProofs'
 
 // Même réponse pour un jeton inconnu ou invalidé : on ne dit pas pourquoi (ADR-0018)
 export const INVALID_LINK_MESSAGE = 'Ce lien n’est pas valide.'
@@ -346,6 +347,7 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
   const changed = !accepting && answersDiffer(registration, addressTaken ? { ...allAnswers, email: registration.email } : allAnswers, definition)
   const previouslyChecked = new Set(registration.sessionLines.filter(saysAvailable).map((line) => line.sessionId))
 
+  let proofNeeded = false
   const outcome = await prisma.$transaction(async (tx) => {
     // Le statut est revérifié dans l'écriture : une libération ou une sortie simultanée l'emporte
     const { count } = await tx.registration.updateMany({ where: { id: registration.id, status: registration.status }, data })
@@ -398,7 +400,8 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
     // lecture de la réponse (vérifié sous verrou, US-240) : rien ne change
     await lockAddress(tx, answers.email)
     const takenNow = await findParticipantByEmail(answers.email, tx)
-    if (!addressTaken && (!takenNow || takenNow.id === registration.participantId)) await tx.participant.update({ where: { id: registration.participantId }, data: { email: answers.email, userId: await accountIdForEmail(answers.email) } })
+    proofNeeded = addressTaken || Boolean(takenNow && takenNow.id !== registration.participantId)
+    if (!proofNeeded) await tx.participant.update({ where: { id: registration.participantId }, data: { email: answers.email, userId: await accountIdForEmail(answers.email) } })
     return { kept, removed, fullSession, changedSessions: changedLines.map((line) => line.sessionId) }
   })
 
@@ -421,7 +424,9 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
     notifyTeam(registration, `${name} a répondu à votre invitation pour la ${inSentence(labelOf(outcome.fullSession))} (${gameTitle}), mais elle est complète : la personne reste pré-inscrite. Créez un personnage pour ajouter une place.`, `Session complète : ${name} (${gameTitle})`)
   }
 
-  return { accepted: accepting, keptSessions: outcome.kept.map(labelOf) }
+  // Adresse d'une autre fiche : un lien part à cette adresse pour la prouver, puis réunir les deux fiches (US-243)
+  const addressProofSent = proofNeeded ? await requestEmailProof(registration.participantId, answers.email) : null
+  return { accepted: accepting, keptSessions: outcome.kept.map(labelOf), addressProofSent }
 }
 
 function notifyTeam(registration: PublicRegistration, text: string, subject: string) {

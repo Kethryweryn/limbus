@@ -68,7 +68,7 @@ async function invitation(options: { periodState?: RegistrationPeriodState, resp
     }
   })
   const participant = await prisma.participant.create({
-    data: { name: `Camille ${key}`, slug: `camille-${key}`, email: `camille-${key}@example.test`, phone: '0100000000', gameLinks: { create: { gameId: game.id } } }
+    data: { name: `Camille ${key}`, slug: `camille-${key}`, email: `camille-${key}@example.test`, phone: '0100000000', gameLinks: { create: { gameId: game.id, name: `Camille ${key}`, phone: '0100000000' } } }
   })
   const token = randomBytes(32).toString('base64url')
   const registration = await prisma.registration.create({
@@ -728,5 +728,63 @@ describe('liens invalides (ADR-0018)', () => {
     expect(statuses[60]).toBe(429)
     // Une autre IP n'est pas concernée
     expect((await publicApi('GET', path, undefined, '10.9.9.10')).status).toBe(200)
+  })
+})
+
+// US-243 (ADR-0087) : une adresse donnée en réponse, déjà celle d'une autre fiche, se prouve par un lien, puis les
+// deux fiches sont réunies sur celle de l'adresse prouvée
+describe('prouver une autre adresse (US-243)', () => {
+  const { bob } = world.users
+
+  async function otherFiche(key: string) {
+    const bobGame = await prisma.game.create({ data: { title: `Jeu de Bob ${key}`, slug: `jeu-bob-${key}`, description: '', ownerId: bob.id } })
+    const fiche = await prisma.participant.create({
+      data: { name: 'Nom chez Bob', slug: `p-bob-${key}`.slice(0, 40), email: `autre-adresse-${key}@example.test`, gameLinks: { create: { gameId: bobGame.id, name: 'Nom chez Bob', notes: 'Note de Bob' } } }
+    })
+    return { bobGame, fiche }
+  }
+  const proofEmail = (to: string) => smtp.to(to).find((message) => message.text.includes('/inscription/adresse/'))!
+  const proofLink = (to: string) => proofEmail(to).text.match(/\/inscription\/adresse\/([\w-]+)/)?.[1]
+
+  it('la réponse est enregistrée sous l’ancienne adresse, un lien part à l’autre ; le lien réunit les deux fiches', async () => {
+    const { key, game, participant, registration, path } = await invitation()
+    const { bobGame, fiche } = await otherFiche(key)
+    const response = await publicApi('PUT', path, answers({ email: fiche.email }))
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    expect(response.body).toMatchObject({ addressProofSent: true })
+    // Rien ne change avant la preuve
+    expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id }, select: { email: true } })).toEqual({ email: participant.email })
+    expect((await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })).email).toBe(participant.email)
+    // Le seul email à l'autre adresse est celui de la preuve, qui ne dit rien des jeux ni des équipes ; la
+    // confirmation de la réponse, avec le lien personnel, part à l'adresse gardée
+    expect(smtp.to(fiche.email!)).toHaveLength(1)
+    expect(proofEmail(fiche.email!).text).not.toMatch(new RegExp(`${game.title}|${bobGame.title}|Nom chez Bob`))
+    expect(smtp.to(participant.email!).some((message) => message.text.includes('/inscription/'))).toBe(true)
+    const token = proofLink(fiche.email!)!
+
+    const proved = await publicApi('POST', `/api/public/email-proofs/${token}`)
+    expect(proved.status, JSON.stringify(proved.body)).toBe(200)
+    expect(proved.body).toEqual({ email: fiche.email })
+    // La fiche d'origine a rejoint celle de l'adresse prouvée : ses jeux, son nom, son inscription, à la bonne adresse
+    expect(await prisma.participant.findUnique({ where: { id: participant.id } })).toBeNull()
+    const links = await prisma.participantGame.findMany({ where: { participantId: fiche.id }, select: { gameId: true, name: true } })
+    expect(links).toEqual(expect.arrayContaining([{ gameId: bobGame.id, name: 'Nom chez Bob' }, { gameId: game.id, name: participant.name }]))
+    expect(await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { participantId: true, email: true } })).toEqual({ participantId: fiche.id, email: fiche.email })
+
+    // Un lien ne sert qu'une fois ; un lien inconnu répond pareil
+    const again = await publicApi('POST', `/api/public/email-proofs/${token}`)
+    const unknown = await publicApi('POST', `/api/public/email-proofs/${'x'.repeat(43)}`)
+    expect([again.status, unknown.status]).toEqual([404, 404])
+    expect(errorMessage(again)).toBe(errorMessage(unknown))
+  })
+
+  it('un lien expiré est refusé, et rien ne change', async () => {
+    const { key, participant, path } = await invitation()
+    const { fiche } = await otherFiche(key)
+    await publicApi('PUT', path, answers({ email: fiche.email }))
+    const token = proofLink(fiche.email!)!
+    await prisma.participantEmailProof.updateMany({ where: { participantId: participant.id }, data: { expiresAt: new Date(Date.now() - 1000) } })
+    expect((await publicApi('POST', `/api/public/email-proofs/${token}`)).status).toBe(404)
+    expect(await prisma.participant.findUnique({ where: { id: participant.id } })).not.toBeNull()
   })
 })
