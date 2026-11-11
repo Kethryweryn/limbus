@@ -91,6 +91,7 @@ test.describe('recherche dans le vivier', () => {
       await prisma.session.update({ where: { id: ctx.first.id }, data: { status: 'cancelled' } })
       // Coupure puis retour du réseau : la page relit le vivier
       await context.setOffline(true)
+      await page.waitForFunction(() => !navigator.onLine)
       await context.setOffline(false)
       await expect(main(page).getByText('Dans le vivier : 3')).toBeVisible()
       await expect(main(page).getByRole('combobox')).toContainText('Toutes les personnes')
