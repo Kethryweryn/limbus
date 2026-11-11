@@ -303,4 +303,4 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-233](../archive/epics/EPIC-054-page-inscriptions/US-233-a-traiter.md) | Ce qui reste à traiter, par jeu et par session | EPIC-054 | terminée |
 | [US-234](EPIC-055-session-sans-nom/US-234-libelle-calcule.md) | Une session désignée par sa date, sans nom à saisir | EPIC-055 | terminée |
 | [US-235](EPIC-055-session-sans-nom/US-235-jeu-devant-le-libelle.md) | Le jeu devant le libellé, hors des pages du jeu | EPIC-055 | à faire |
-| [US-236](EPIC-055-session-sans-nom/US-236-supprimer-la-colonne-du-nom.md) | Supprimer la colonne du nom des sessions | EPIC-055 | à faire |
+| [US-236](EPIC-055-session-sans-nom/US-236-supprimer-la-colonne-du-nom.md) | Supprimer la colonne du nom des sessions | EPIC-055 | terminée |
