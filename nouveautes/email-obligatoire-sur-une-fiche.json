@@ -1,0 +1,5 @@
+{
+  "type": "modifie",
+  "titre": "Une adresse email sur chaque fiche",
+  "texte": "Une fiche participant demande désormais une adresse email, à la création comme à la modification. Les fiches qui n'en ont pas portent la mention « Sans email », et une case de la page Participants les rassemble pour les compléter."
+}

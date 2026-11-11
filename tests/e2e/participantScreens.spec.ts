@@ -60,6 +60,8 @@ test('liste : recherche par nom et par email, filtre par jeu, pages, et créatio
     await form.getByRole('button', { name: 'Créer', exact: true }).click()
     await expect(form.getByText('Le nom est requis.')).toBeVisible()
     await expect(form.getByText('Choisissez au moins un jeu.')).toBeVisible()
+    // Une fiche appartient à la personne de son adresse (SPEC-022 R3, US-238)
+    await expect(form.getByText('L’adresse email est obligatoire.')).toBeVisible()
     await expect(form).toBeVisible()
   } finally {
     await prisma.$disconnect()
@@ -71,7 +73,7 @@ test('fiche : un jeu ajouté puis retiré, ses notes propres, et le retrait du d
   try {
     const first = await orgaGame(prisma, 'Premier jeu de la fiche')
     const second = await orgaGame(prisma, 'Second jeu de la fiche')
-    const person = await gamePerson(prisma, first.id, 'Personne aux deux jeux')
+    const person = await gamePerson(prisma, first.id, 'Personne aux deux jeux', '')
     const session = await orgaSession(prisma, second.id, 'Session du second jeu')
     await signIn(page, prisma, E2E_USERS.orga)
     await openSheet(page, person)
@@ -202,7 +204,7 @@ test('droits et conflit : une fiche d’une autre équipe est introuvable, et de
   try {
     const game = await orgaGame(prisma, 'Jeu du conflit de fiche')
     const foreign = await otherTeamGame(prisma, 'Jeu de l’autre équipe aux droits')
-    const person = await gamePerson(prisma, game.id, 'Personne disputée')
+    const person = await gamePerson(prisma, game.id, 'Personne disputée', '')
     const stranger = await gamePerson(prisma, foreign.id, 'Personne d’une autre équipe')
     await signIn(page, prisma, E2E_USERS.orga)
 
@@ -233,7 +235,7 @@ test('hors ligne : la fiche se relit, et une modification part au retour du rés
   const prisma = createTestPrisma()
   try {
     const game = await orgaGame(prisma, 'Jeu de la fiche hors ligne')
-    const person = await gamePerson(prisma, game.id, 'Personne hors ligne')
+    const person = await gamePerson(prisma, game.id, 'Personne hors ligne', '')
     await signIn(page, prisma, E2E_USERS.orga)
     await openParticipants(page)
     await openSheet(page, person)
@@ -269,7 +271,7 @@ test('nom par jeu : une co-organisatrice ne change que son jeu, et une autre éq
     const foreign = await otherTeamGame(prisma, 'Jeu de l’autre équipe au nom par jeu')
     const coorga = await testUser(prisma, 'Co-organisatrice du nom par jeu')
     await prisma.gameShare.create({ data: { gameId: shared.id, userId: coorga.user.id } })
-    const person = await gamePerson(prisma, mine.id, 'Personne au nom par jeu')
+    const person = await gamePerson(prisma, mine.id, 'Personne au nom par jeu', '')
     await prisma.participantGame.createMany({ data: [shared, foreign].map((game) => ({ participantId: person.id, gameId: game.id, name: person.name })) })
     const role = await gameCharacter(prisma, mine.id, 'Rôle du jeu de l’orga')
     const sharedRole = await gameCharacter(prisma, shared.id, 'Rôle du jeu partagé')
@@ -311,6 +313,57 @@ test('nom par jeu : une co-organisatrice ne change que son jeu, et une autre éq
     // L'autre équipe garde son téléphone
     expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: foreign.id } } })).phone).toBe('0699999999')
   } finally {
+    await prisma.$disconnect()
+  }
+})
+
+// US-238 (SPEC-022 R3) : l'adresse est obligatoire ; les fiches d'avant sont signalées, filtrées, et complétées
+test('email obligatoire : une fiche sans email est signalée et filtrée, et ne s’enregistre qu’avec une adresse, même hors ligne (US-238)', async ({ page, context }) => {
+  test.setTimeout(90_000)
+  const prisma = createTestPrisma()
+  try {
+    const game = await orgaGame(prisma, 'Jeu des fiches sans email')
+    const foreign = await otherTeamGame(prisma, 'Jeu de l’autre équipe sans email')
+    const legacy = await gamePerson(prisma, game.id, 'Personne sans email')
+    const withEmail = await gamePerson(prisma, game.id, 'Personne avec email', '')
+    const stranger = await gamePerson(prisma, foreign.id, 'Personne sans email d’une autre équipe')
+    await signIn(page, prisma, E2E_USERS.orga)
+    await openParticipants(page)
+
+    // Mention et filtre : seules les fiches sans email, et des seuls jeux visibles
+    await page.getByPlaceholder('Rechercher un participant...').fill(legacy.name)
+    await expect(personCard(page, legacy.name).getByText('Sans email', { exact: true })).toBeVisible()
+    await page.getByRole('checkbox', { name: /^Sans email \(\d+\)$/ }).check()
+    await page.getByPlaceholder('Rechercher un participant...').fill(legacy.name)
+    await expect(personCard(page, legacy.name)).toBeVisible()
+    await page.getByPlaceholder('Rechercher un participant...').fill(withEmail.name)
+    await expect(personCard(page, withEmail.name)).toHaveCount(0)
+    await page.getByPlaceholder('Rechercher un participant...').fill(stranger.name)
+    await expect(personCard(page, stranger.name)).toHaveCount(0)
+
+    // Modifier une fiche sans email demande une adresse ; rien n'est enregistré
+    await openSheet(page, legacy)
+    await page.getByRole('button', { name: 'Modifier' }).click()
+    await page.getByLabel('Téléphone', { exact: true }).fill('0655555555')
+    await page.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect(page.getByText('L’adresse email est obligatoire.')).toBeVisible()
+    expect((await prisma.participant.findUniqueOrThrow({ where: { id: legacy.id } })).phone).toBeNull()
+
+    // Hors ligne : refusée avant la mise en file, rien n'attend le réseau
+    await context.setOffline(true)
+    await page.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect(page.getByText('L’adresse email est obligatoire.')).toBeVisible()
+    await expect(page.getByText(/Modifications faites hors ligne/)).toHaveCount(0)
+    await context.setOffline(false)
+
+    // Avec une adresse, la fiche s'enregistre
+    const address = `${slugOf(legacy.name)}@example.test`
+    await page.getByLabel('Email', { exact: true }).fill(address)
+    await page.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect.poll(async () => (await prisma.participant.findUniqueOrThrow({ where: { id: legacy.id } })).email).toBe(address)
+    expect((await prisma.participant.findUniqueOrThrow({ where: { id: legacy.id } })).phone).toBe('0655555555')
+  } finally {
+    await context.setOffline(false)
     await prisma.$disconnect()
   }
 })
