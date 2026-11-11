@@ -40,6 +40,11 @@ async function sharedFiche(withBob = true) {
   await prisma.sessionAssignment.create({ data: { gameId: aliceGame.id, sessionId: session.id, characterId: character.id, participantId: fiche.id } })
   const period = await prisma.registrationPeriod.create({ data: { gameId: aliceGame.id, publicId: `periode-${key}` } })
   await prisma.registration.create({ data: { gameId: aliceGame.id, periodId: period.id, participantId: fiche.id, status: 'received', source: 'invitation', email: fiche.email! } })
+  // Paiement, présence et responsabilité du déroulé : à déplacer aussi
+  await prisma.sessionPayment.create({ data: { gameId: aliceGame.id, sessionId: session.id, participantId: fiche.id, paidAt: new Date() } })
+  await prisma.sessionAttendance.create({ data: { sessionId: session.id, participantId: fiche.id, responseDueAt: new Date(Date.now() + 86_400_000) } })
+  const event = await prisma.timelineEvent.create({ data: { name: `Ouverture ${key}`, slug: `ouverture-${key}`, day: 1, time: '10:00', gameId: aliceGame.id } })
+  await prisma.timelineEventResponsible.create({ data: { gameId: aliceGame.id, sessionId: session.id, timelineEventId: event.id, participantId: fiche.id } })
   return { key, aliceGame, bobGame, fiche, session, period }
 }
 
@@ -59,10 +64,15 @@ describe('corriger l’adresse d’une fiche (US-239, SPEC-022 R7)', () => {
     // Tout ce qu'Alice tient l'a suivie
     expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: saved.id } })).toBe(1)
     expect(await prisma.sessionAssignment.count({ where: { sessionId: session.id, participantId: saved.id } })).toBe(1)
-    expect(await prisma.registration.count({ where: { periodId: period.id, participantId: saved.id } })).toBe(1)
+    expect(await prisma.registration.findFirstOrThrow({ where: { periodId: period.id, participantId: saved.id }, select: { email: true } }))
+      .toEqual({ email: `paul-corrige-${key}@example.test` })
+    expect(await prisma.sessionPayment.count({ where: { sessionId: session.id, participantId: saved.id } })).toBe(1)
+    expect(await prisma.sessionAttendance.count({ where: { sessionId: session.id, participantId: saved.id } })).toBe(1)
+    expect(await prisma.timelineEventResponsible.count({ where: { sessionId: session.id, participantId: saved.id } })).toBe(1)
+    expect(await prisma.sessionPayment.count({ where: { participantId: fiche.id } })).toBe(0)
     // Bob garde la fiche d'origine, son adresse, son nom et sa note
-    const original = await prisma.participant.findUniqueOrThrow({ where: { id: fiche.id }, select: { email: true, gameLinks: { select: { gameId: true, name: true, notes: true } } } })
-    expect(original).toEqual({ email: fiche.email, gameLinks: [{ gameId: bobGame.id, name: `Paul chez Bob ${key}`, notes: 'Note de Bob' }] })
+    const original = await prisma.participant.findUniqueOrThrow({ where: { id: fiche.id }, select: { name: true, email: true, gameLinks: { select: { gameId: true, name: true, notes: true } } } })
+    expect(original).toEqual({ name: fiche.name, email: fiche.email, gameLinks: [{ gameId: bobGame.id, name: `Paul chez Bob ${key}`, notes: 'Note de Bob' }] })
     expect(JSON.stringify(saved)).not.toMatch(/chez Bob|Note de Bob/)
   })
 
@@ -90,14 +100,22 @@ describe('corriger l’adresse d’une fiche (US-239, SPEC-022 R7)', () => {
     expect(response.body).toMatchObject({ id: fiche.id, slug: fiche.slug, email: `paul-nouveau-${key}@example.test` })
   })
 
-  it('deux fiches de la même équipe réunies : notes bout à bout, l’inscription la plus récente reste', async () => {
-    const { key, aliceGame, fiche, period } = await sharedFiche(false)
+  it('deux fiches de la même équipe réunies : notes bout à bout, la ligne la plus récente reste', async () => {
+    const { key, aliceGame, fiche, period, session } = await sharedFiche(false)
     const twin = await prisma.participant.create({ data: { name: 'Doublon', slug: `p-twin-${key}`.slice(0, 40), email: `twin-${key}@example.test`, gameLinks: { create: { gameId: aliceGame.id, name: 'Doublon', notes: 'Note du doublon' } } } })
     const newer = await prisma.registration.create({ data: { gameId: aliceGame.id, periodId: period.id, participantId: twin.id, status: 'received', source: 'form', email: twin.email! } })
+    // Paiement du doublon, plus ancien que celui de la fiche corrigée : c'est celui de la fiche corrigée qui reste
+    const older = await prisma.sessionPayment.create({ data: { gameId: aliceGame.id, sessionId: session.id, participantId: twin.id } })
+    await prisma.sessionPayment.update({ where: { id: older.id }, data: { updatedAt: new Date(Date.now() - 86_400_000) } })
+    await prisma.sessionPayment.updateMany({ where: { sessionId: session.id, participantId: fiche.id }, data: { paymentEmailSentAt: new Date() } })
     const response = await correct(fiche.id, aliceGame, twin.email!)
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     expect((response.body as Saved).gameNotes[aliceGame.id]).toBe('Note du doublon\n\nNote d’Alice')
     expect((await prisma.registration.findMany({ where: { periodId: period.id }, select: { id: true } })).map((row) => row.id)).toEqual([newer.id])
+    const payments = await prisma.sessionPayment.findMany({ where: { sessionId: session.id }, select: { participantId: true, paymentEmailSentAt: true } })
+    expect(payments).toHaveLength(1)
+    expect(payments[0]).toMatchObject({ participantId: twin.id })
+    expect(payments[0]!.paymentEmailSentAt).not.toBeNull()
   })
 })
 

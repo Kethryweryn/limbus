@@ -177,10 +177,11 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
     const updated = await tx.participant.update({
       where: { id },
       data: {
-        name: effectiveName,
+        // La fiche d'une équipe qui part vers une autre adresse reste celle des autres : ses colonnes ne changent pas
+        name: target ? current.name : effectiveName,
         // L'adresse de page ne suit plus le nom : un nom donné par une équipe n'apparaît pas dans celle d'une autre (US-239)
         email: target ? current.email : email || null,
-        phone: effectivePhone,
+        phone: target ? current.phone : effectivePhone,
         // Le rattachement suit l'adresse : autre compte, ou aucun (US-070)
         userId,
         gameLinks: {
@@ -196,8 +197,15 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
       },
       include: participantGameLinksInclude(allowedGameIds)
     })
+    const teamGameIds = [...visibleKeptGameIds, ...gameIdsToAdd]
+    if (target) await moveParticipant(tx, id, target.id, teamGameIds)
+    // Adresse corrigée : les inscriptions des jeux de l'équipe qui portaient l'ancienne la suivent, car c'est à
+    // l'adresse de l'inscription que partent les emails du vivier (revue de la PR #233). Après le déplacement, qui
+    // garde l'inscription la plus récemment modifiée
+    if (address && current.email && !sameAddress(current.email, address)) {
+      await tx.registration.updateMany({ where: { participantId: target?.id ?? id, gameId: { in: teamGameIds }, email: current.email }, data: { email: address } })
+    }
     if (target) {
-      await moveParticipant(tx, id, target.id, [...visibleKeptGameIds, ...gameIdsToAdd])
       // Partie de tous ses jeux : la fiche d'origine n'a plus de raison d'être
       if (!await tx.participantGame.count({ where: { participantId: id } })) await tx.participant.delete({ where: { id } })
       const moved = await tx.participant.findUniqueOrThrow({ where: { id: target.id }, include: participantGameLinksInclude(allowedGameIds) })
