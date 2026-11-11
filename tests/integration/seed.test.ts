@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { registrationFormDefinitionSchema } from '~/server/utils/schemas'
 import { MERIDIAN_FORM_DEFINITIONS } from '../../prisma/seed/meridian'
+import { sessionDate } from '../../prisma/seed/options'
 import { api, bodyOf } from './api'
 import { createTestPrisma, testDatabaseUrl } from './db'
 import { startTestSmtp } from './smtp'
@@ -408,7 +409,9 @@ describe('Station Meridian, avant les sessions', () => {
   })
 
   it('propose une distribution avec l\'assistant de casting', async () => {
-    const session = await prisma.session.findFirstOrThrow({ where: { gameId: meridian, name: { contains: 'à la main' } }, select: { id: true } })
+    // La « Session à la main » : une date fixe, qui donne son libellé (SPEC-021, R8)
+    const session = await prisma.session.findFirstOrThrow({ where: { gameId: meridian, date: sessionDate(80) }, select: { id: true, name: true } })
+    expect(session.name).toBe('Session du 22 mars 2030')
     const casting = await api(owner, 'POST', `/api/sessions/${session.id}/casting-assistant`, { assignments: [] })
     expect(casting.status, JSON.stringify(casting.body)).toBe(200)
     expect(JSON.stringify(casting.body)).toContain('Lucie')
@@ -454,11 +457,11 @@ describe('Les Cendres de Valombre, session imminente', () => {
   beforeAll(async () => {
     owner = await prisma.user.create({ data: { email: 'valombre-proprietaire@example.test', name: 'Propriétaire', password: await bcrypt.hash(PASSWORD, 4) } })
     expectSuccess(runSeed({ SEED_ALLOW_ERASE: '1', SEED_EMAIL: 'valombre-proprietaire@example.test', SEED_PASSWORD: PASSWORD }))
-    const session = await prisma.session.findFirstOrThrow({ where: { gameId: valombre, name: { contains: 'imminente' } }, select: { id: true, date: true } })
+    // L'ancienne « Session imminente » : une date fixe (SPEC-021, R8)
+    const session = await prisma.session.findFirstOrThrow({ where: { gameId: valombre, date: sessionDate(10) }, select: { id: true, name: true, slug: true } })
     sessionId = session.id
-    const days = (session.date!.getTime() - Date.now()) / (24 * 3600 * 1000)
-    expect(days).toBeGreaterThan(8)
-    expect(days).toBeLessThan(11)
+    expect(session.name).toBe('Session du 11 janvier 2030')
+    expect(session.slug).toBe('les-cendres-de-valombre-2030-01-11')
   })
 
   afterAll(async () => {
@@ -505,7 +508,7 @@ describe('Les Cendres de Valombre, session imminente', () => {
     const response = await api(owner, 'GET', `/api/sessions/${sessionId}/attendance`)
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     const body = bodyOf<ApiResponse<'/api/sessions/:id/attendance'>>(response)
-    expect(body.postponedFrom?.name).toContain('Session reportée')
+    expect(body.postponedFrom?.name).toMatch(/^Session du /)
     expect(new Set(body.rows.map((row) => row.status))).toEqual(new Set(['pending', 'confirmed', 'declined']))
     const julien = body.rows.find((row) => row.participant.name === 'Julien Robert')!
     expect(julien.displayStatus).not.toBe(julien.status)
@@ -556,7 +559,7 @@ describe('Les Cendres de Valombre, session imminente', () => {
     const space = await api(camille, 'GET', '/api/me/participations')
     expect(space.status, JSON.stringify(space.body)).toBe(200)
     const text = JSON.stringify(space.body)
-    for (const expected of ['Session imminente', 'Aélis de Valombre', 'Feuille de route', 'Tarif de soutien']) expect(text).toContain(expected)
+    for (const expected of ['Session du 11 janvier 2030', 'Aélis de Valombre', 'Feuille de route', 'Tarif de soutien']) expect(text).toContain(expected)
 
     const fiche = await ficheOf('camille.bernard')
     const deliveries = await prisma.sessionDocumentDelivery.findMany({ where: { sessionId, participantId: fiche.id }, select: { id: true, kind: true } })
@@ -602,7 +605,8 @@ describe('Le Bal des Masques Brisés, après et imprévus', () => {
   let owner: { id: string }
   const OWNER_EMAIL = 'bal-proprietaire@example.test'
   const reload = () => expectSuccess(runSeed({ SEED_ALLOW_ERASE: '1', SEED_EMAIL: OWNER_EMAIL, SEED_PASSWORD: PASSWORD }))
-  const sessionNamed = (name: string) => prisma.session.findFirstOrThrow({ where: { gameId: bal, name: { contains: name } }, select: { id: true, status: true, postponedToSessionId: true } })
+  // Les sessions de test se retrouvent par leur date fixe (SPEC-021, R8)
+  const sessionOn = (days: number) => prisma.session.findFirstOrThrow({ where: { gameId: bal, date: sessionDate(days) }, select: { id: true, status: true, postponedToSessionId: true } })
 
   beforeAll(async () => {
     owner = await prisma.user.create({ data: { email: OWNER_EMAIL, name: 'Propriétaire', password: await bcrypt.hash(PASSWORD, 4) } })
@@ -622,7 +626,7 @@ describe('Le Bal des Masques Brisés, après et imprévus', () => {
   })
 
   it('lit les remboursements d\'une session annulée', async () => {
-    const session = await sessionNamed('annulée')
+    const session = await sessionOn(20)
     expect(session.status).toBe('cancelled')
     const body = bodyOf<ApiResponse<'/api/sessions/:id/payments'>>(await api(owner, 'GET', `/api/sessions/${session.id}/payments`))
     expect(body.refunds.map((row) => row.refundStatus).sort()).toEqual(['refunded', 'to_refund'])
@@ -630,9 +634,9 @@ describe('Le Bal des Masques Brisés, après et imprévus', () => {
   })
 
   it('renvoie une session reportée à sa nouvelle session, avec un paiement reporté', async () => {
-    const session = await sessionNamed('Session reportée')
+    const session = await sessionOn(30)
     expect(session.status).toBe('postponed')
-    const replacement = await sessionNamed('remplacement')
+    const replacement = await sessionOn(90)
     expect(session.postponedToSessionId).toBe(replacement.id)
     const body = bodyOf<ApiResponse<'/api/sessions/:id/payments'>>(await api(owner, 'GET', `/api/sessions/${session.id}/payments`))
     expect(body.refunds.map((row) => row.refundStatus).sort()).toEqual(['carried_over', 'to_refund'])
@@ -648,7 +652,7 @@ describe('Le Bal des Masques Brisés, après et imprévus', () => {
   it('montre à Lucie la session terminée, et la version actuelle du document reçu', async () => {
     const lucie = await prisma.user.findUniqueOrThrow({ where: { email: 'bal-proprietaire+lucie.moreau@example.test' }, select: { id: true } })
     const space = await api(lucie, 'GET', '/api/me/participations')
-    expect(JSON.stringify(space.body)).toContain('Session terminée')
+    expect(JSON.stringify(space.body)).toContain('Session du 2 septembre 2026')
     const delivery = await prisma.sessionDocumentDelivery.findFirstOrThrow({ where: { participant: { email: 'bal-proprietaire+lucie.moreau@example.test' }, session: { gameId: bal } }, select: { id: true } })
     const read = await api(lucie, 'GET', `/api/me/documents/${delivery.id}`)
     expect(read.status, JSON.stringify(read.body)).toBe(200)

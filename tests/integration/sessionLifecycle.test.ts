@@ -171,7 +171,7 @@ describe('reporter une session (US-022)', () => {
 
   it('recopie l’équipe et le casting sur une nouvelle session, et lie les deux', async () => {
     const s = await withCast()
-    const response = await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, { name: `Report ${s.key}`, date: '2027-03-01T10:00:00.000Z' })
+    const response = await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, { date: '2027-03-01T10:00:00.000Z' })
     expect(response.status).toBe(200)
     const created = response.body as { id: string }
 
@@ -189,7 +189,7 @@ describe('reporter une session (US-022)', () => {
 
   it('refuse de reporter une session déjà reportée', async () => {
     const s = await withCast()
-    expect((await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, { name: `Report ${s.key}` })).status).toBe(200)
+    expect((await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, {})).status).toBe(200)
     expect((await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, { name: `Encore ${s.key}` })).status).toBe(409)
   })
 })
@@ -205,7 +205,7 @@ describe('remboursements d’une session annulée ou reportée (US-023)', () => 
     // Session prévue : rien à rembourser
     expect((await refund(s.lea.id, 'to_refund')).status).toBe(409)
 
-    const postponed = await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, { name: `Report ${s.key}` })
+    const postponed = await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, {})
     const target = (postponed.body as { id: string }).id
 
     expect((await refund(s.lea.id, 'refunded')).status).toBe(200)

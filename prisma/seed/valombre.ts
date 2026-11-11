@@ -8,7 +8,7 @@ import { uploadDir, UPLOAD_DIRS } from '../../server/utils/uploads'
 import { SESSION_ROLES, SESSION_STATUSES } from '../../utils/domain'
 import { RIB_UPLOAD_PREFIX } from '../../utils/urls'
 import type { Db, StageContext } from './db'
-import { daysFromNow } from './options'
+import { daysFromNow, sessionDate, sessionFields } from './options'
 import type { AttendanceStatus, TariffRole } from '../../generated/prisma/enums'
 
 // Délai laissé aux réponses de présence, en jours
@@ -26,7 +26,7 @@ async function textCopyData(input: TextPdfInput) {
 }
 
 export async function createValombreStage(db: Db, context: StageContext) {
-  const { gameId, title, locationId, characters, people, photos, makeSlug } = context
+  const { gameId, title, locationId, characters, people, photos } = context
   const person = (email: string) => people.get(`${email}@example.test`)!
   const camille = person('camille.bernard')
   const lucie = person('lucie.moreau')
@@ -62,14 +62,13 @@ export async function createValombreStage(db: Db, context: StageContext) {
   const ribUrl = `${RIB_UPLOAD_PREFIX}${ribFilename}`
   const session = await db.session.create({
     data: {
-      name: `${title} - Session imminente`,
-      slug: makeSlug(`${title}-session-imminente`),
-      date: daysFromNow(10),
+      // Session imminente (SPEC-021 : date, libellé et adresse calculés)
+      ...sessionFields(title, 10),
       gameId,
       locationId,
       status: SESSION_STATUSES.scheduled,
       published: true,
-      withdrawalDeadline: daysFromNow(3),
+      withdrawalDeadline: sessionDate(3),
       paymentRibUrl: ribUrl,
       paymentLinkUrl: 'https://paiement.example.test/valombre',
       paymentSettingsUpdatedAt: daysFromNow(-30),
@@ -96,9 +95,8 @@ export async function createValombreStage(db: Db, context: StageContext) {
   // Une session plus lointaine, au casting encore ouvert
   await db.session.create({
     data: {
-      name: `${title} - Session d'automne`,
-      slug: makeSlug(`${title}-session-d-automne`),
-      date: daysFromNow(75),
+      // Session d'automne (SPEC-021 : date, libellé et adresse calculés)
+      ...sessionFields(title, 75),
       gameId,
       locationId,
       status: SESSION_STATUSES.scheduled,
@@ -168,9 +166,8 @@ export async function createValombreStage(db: Db, context: StageContext) {
   // La session imminente remplace une session reportée : seule une session reportée demande une présence (US-024)
   await db.session.create({
     data: {
-      name: `${title} - Session reportée`,
-      slug: makeSlug(`${title}-session-reportee`),
-      date: daysFromNow(-20),
+      // Session reportée (SPEC-021 : date, libellé et adresse calculés)
+      ...sessionFields(title, -20),
       gameId,
       locationId,
       status: SESSION_STATUSES.postponed,

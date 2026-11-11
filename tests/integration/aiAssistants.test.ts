@@ -452,9 +452,9 @@ describe('sessions et participants', () => {
     // Détails : le reste ne bouge pas, visibilité comprise ; une version dépassée est refusée
     await prisma.session.update({ where: { id: session.id }, data: { published: true } })
     version = (await call(client, 'lire_session', { sessionId: session.id })).json.updatedAt
-    expect((await call(client, 'modifier_session', { sessionId: session.id, version, name: 'Session renommée' })).error).toBe(false)
+    expect((await call(client, 'modifier_session', { sessionId: session.id, version, date: '2099-05-15T12:00:00.000Z' })).error).toBe(false)
     expect(await prisma.session.findUniqueOrThrow({ where: { id: session.id }, select: { name: true, status: true, published: true, locationId: true, _count: { select: { participants: true, assignments: true } } } }))
-      .toEqual({ name: 'Session renommée', status: 'scheduled', published: true, locationId: place.id, _count: { participants: 2, assignments: 3 } })
+      .toEqual({ name: 'Session du 15 mai 2099', status: 'scheduled', published: true, locationId: place.id, _count: { participants: 2, assignments: 3 } })
     expect((await call(client, 'modifier_session', { sessionId: session.id, version, name: 'Écrasée' })).error).toBe(true)
     const bSession = await prisma.session.findUniqueOrThrow({ where: { id: b.session.id } })
     expect((await call(client, 'modifier_session', { sessionId: b.session.id, version: bSession.updatedAt.toISOString(), name: 'Volée' })).error).toBe(true)

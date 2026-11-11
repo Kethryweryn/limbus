@@ -16,10 +16,6 @@
         />
       </UFormField>
 
-      <UFormField label="Nom" :error="errors.name">
-        <UInput v-model="localSession.name" size="lg" class="w-full" />
-      </UFormField>
-
       <UFormField label="Statut">
         <USelect
           v-model="localSession.status"
@@ -234,9 +230,6 @@ watch([() => localSession.value.organizerIds, () => localSession.value.npcIds], 
 
 function validate() {
   errors.value = {}
-  if (!localSession.value.name?.trim()) {
-    errors.value.name = 'Le nom est requis.'
-  }
   if (!localSession.value.gameId) {
     errors.value.gameId = 'Le jeu est requis.'
   }
@@ -249,6 +242,8 @@ async function submit() {
   try {
     emit('update:session', {
       ...localSession.value,
+      // L'heure saisie est celle de l'appareil : envoyée avec son fuseau, que le serveur ne connaît pas
+      date: localSession.value.date ? new Date(localSession.value.date).toISOString() : localSession.value.date,
       assignments: (localSession.value.assignments || []).filter((assignment) => assignment.characterId),
       participants: sessionParticipantsPayload(localSession.value)
     })

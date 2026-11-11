@@ -1,7 +1,7 @@
 ---
 id: EPIC-055
 titre: Une session sans nom, désignée par sa date
-statut: à faire
+statut: en cours
 spec: ../../specs/SPEC-021-session-sans-nom.md
 date: 2026-11-11
 ---
@@ -16,7 +16,7 @@ Une session n'a plus de nom à saisir : Limbus la désigne par sa date, avec l'h
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-234](US-234-libelle-calcule.md) | Une session désignée par sa date, sans nom à saisir | à faire |
+| [US-234](US-234-libelle-calcule.md) | Une session désignée par sa date, sans nom à saisir | terminée |
 | [US-235](US-235-jeu-devant-le-libelle.md) | Le jeu devant le libellé, hors des pages du jeu | à faire |
 
 ## Définition de terminé

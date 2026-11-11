@@ -7,10 +7,6 @@
           Celle-ci passe « Reportée » et garde ses paiements, pour les rembourser ou les reporter.
         </p>
 
-        <UFormField label="Nom de la nouvelle session" required>
-          <UInput v-model="form.name" required class="w-full" />
-        </UFormField>
-
         <UFormField label="Nouvelle date">
           <UInput v-model="form.date" type="datetime-local" class="w-full" />
         </UFormField>
@@ -23,7 +19,7 @@
 
         <div class="flex justify-end gap-2">
           <UButton color="neutral" variant="ghost" @click="open = false">Annuler</UButton>
-          <UButton type="submit" color="primary" :loading="saving" :disabled="saving || !form.name.trim()">
+          <UButton type="submit" color="primary" :loading="saving" :disabled="saving">
             Reporter
           </UButton>
         </div>
@@ -46,7 +42,7 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ postponed: [session: PostponedSession] }>()
 const open = defineModel<boolean>('open', { default: false })
 
-const form = ref({ name: '', date: '', locationId: '' })
+const form = ref({ date: '', locationId: '' })
 const locationModel = selectModel(() => form.value.locationId, (value) => { form.value.locationId = value })
 const saving = ref(false)
 const error = ref('')
@@ -54,7 +50,7 @@ const error = ref('')
 // Pré-rempli depuis la session reportée, à chaque ouverture
 watch(open, (value) => {
   if (!value || !props.session) return
-  form.value = { name: `${props.session.name} (report)`, date: '', locationId: props.session.locationId || '' }
+  form.value = { date: '', locationId: props.session.locationId || '' }
   error.value = ''
 })
 
@@ -76,7 +72,6 @@ async function postpone() {
     const created = await useApiAction(`/api/sessions/${props.session.id}/postpone`, {
       method: 'POST',
       body: {
-        name: form.value.name,
         date: form.value.date ? new Date(form.value.date).toISOString() : '',
         locationId: form.value.locationId
       }

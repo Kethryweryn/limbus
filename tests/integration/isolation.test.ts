@@ -44,9 +44,9 @@ const resources: Resource[] = [
 ]
 
 // Chaque délégué Prisma a sa propre signature : on n'en garde que la lecture par identifiant, commune à tous
-type RowReader = { findUnique(args: { where: { id: string }, select: { id: true, name?: true, title?: true } }): Promise<{ name?: string, title?: string } | null> }
+type RowReader = { findUnique(args: { where: { id: string }, select: { id: true, name?: true, title?: true, slug?: true } }): Promise<{ name?: string, title?: string, slug?: string } | null> }
 
-function readRow(model: Resource['model'], id: string, select: { id: true, name?: true, title?: true } = { id: true }) {
+function readRow(model: Resource['model'], id: string, select: { id: true, name?: true, title?: true, slug?: true } = { id: true }) {
   return (prisma[model] as unknown as RowReader).findUnique({ where: { id }, select })
 }
 
@@ -68,8 +68,10 @@ describe.each(resources)('/api/$path', (resource) => {
   })
 
   it.runIf(resource.slugPath)('lecture par slug : refusée chez Bob', async () => {
-    expect((await api(alice, 'GET', `/api/${resource.slugPath}/${own.slug}`)).status).toBe(200)
-    expect(DENIED).toContain((await api(alice, 'GET', `/api/${resource.slugPath}/${foreign.slug}`)).status)
+    // Relu en base : l'adresse d'une session se recalcule au démarrage du serveur (SPEC-021, ADR-0083)
+    const slugOf = async (id: string) => (await readRow(resource.model, id, { id: true, slug: true }))!.slug
+    expect((await api(alice, 'GET', `/api/${resource.slugPath}/${await slugOf(own.id)}`)).status).toBe(200)
+    expect(DENIED).toContain((await api(alice, 'GET', `/api/${resource.slugPath}/${await slugOf(foreign.id)}`)).status)
   })
 
   // Un slug change avec le nom : la route par identifiant ne l'accepte pas (lecture par slug explicite)

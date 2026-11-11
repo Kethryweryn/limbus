@@ -1,6 +1,7 @@
 import type { z } from 'zod'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import type { sessionSchema, sessionTimelineSchema } from '~/server/utils/schemas'
+import { sessionDayLabel } from '~/utils/sessionLabels'
 
 // Session modifiée hors ligne (US-048) : la page affiche aussitôt ce qui est parti en file, avec la forme que
 // renverrait le serveur. Les personnes, personnages et lieux sont repris des listes de l'appareil. Typée par la route
@@ -54,7 +55,8 @@ export function projectOfflineSession<S extends SessionLike>(session: S, body: S
 
   return {
     ...session,
-    ...(body.name !== undefined && { name: body.name }),
+    // Le libellé suit la date (SPEC-021) ; ce qui le distingue d'une voisine du même jour attend le serveur
+    ...(body.date !== undefined && { name: sessionDayLabel(body.date) }),
     ...(body.status !== undefined && { status: body.status }),
     ...(body.published !== undefined && { published: Boolean(body.published) }),
     ...(body.date !== undefined && { date: body.date ? new Date(body.date).toISOString() : null }),

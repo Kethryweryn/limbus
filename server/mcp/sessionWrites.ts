@@ -23,7 +23,7 @@ async function currentSession(id: string) {
   const session = await prisma.session.findUniqueOrThrow({
     where: { id },
     select: {
-      name: true, gameId: true, date: true, locationId: true, status: true, published: true,
+      gameId: true, date: true, locationId: true, status: true, published: true,
       participants: { select: { participantId: true, role: true } },
       assignments: { select: { characterId: true, participantId: true, photoUrl: true, notes: true, locked: true, reservedRegistrationId: true } },
       timelineResponsibles: { select: { timelineEventId: true, participantId: true } }
@@ -42,44 +42,41 @@ async function saveSession(event: H3Event, tool: string, sessionId: string, read
     return parseZod(sessionSchema, change(current))
   }))
   await logWrite(event, tool, AI_LOG_ACTIONS.changed, { type: 'session', id: saved.id, name: saved.name, gameId: saved.gameId })
-  return { id: saved.id, version: saved.updatedAt }
+  return { id: saved.id, libelle: saved.name, version: saved.updatedAt }
 }
 
 function registerSessionWriteTools({ event, server }: ToolContext) {
   server.registerTool('creer_session', {
     title: 'Créer une session',
-    description: 'Crée une session d’un jeu : nom, date et lieu du même jeu. Elle est prévue et n’est pas visible sur la page publique. L’équipe, le casting et le déroulé se règlent ensuite.',
+    description: 'Crée une session d’un jeu : date et lieu du même jeu. Une session n’a pas de nom : elle se lit par sa date (« Session du 15 mai 2099 »), rendue dans libelle. Elle est prévue et n’est pas visible sur la page publique. L’équipe, le casting et le déroulé se règlent ensuite.',
     inputSchema: z.object({
       jeuId: z.string(),
-      name: z.string().max(200),
       date: date('Date et heure, au format ISO 8601'),
       locationId: z.string().nullable().optional().describe('Lieu du jeu (lister_contenu, sorte lieux)')
     }),
     annotations: WRITE
-  }, ({ jeuId, name, date: when, locationId }) => toolResult(async () => {
+  }, ({ jeuId, date: when, locationId }) => toolResult(async () => {
     requireWrite(event)
     const session = await createSession(event, async () => parseZod(sessionSchema, {
-      name, gameId: jeuId, date: when ?? null, locationId: locationId ?? null,
+      gameId: jeuId, date: when ?? null, locationId: locationId ?? null,
       status: SESSION_STATUSES.scheduled, published: false, participants: [], assignments: []
     }))
     await logWrite(event, 'creer_session', AI_LOG_ACTIONS.created, { type: 'session', id: session.id, name: session.name, gameId: session.gameId })
-    return { id: session.id, version: session.updatedAt }
+    return { id: session.id, libelle: session.name, version: session.updatedAt }
   }))
 
   server.registerTool('modifier_session', {
     title: 'Modifier une session',
-    description: 'Change le nom, la date ou le lieu d’une session. Les champs omis restent tels quels ; le statut, la visibilité, l’équipe et le casting ne changent pas.',
+    description: 'Change la date ou le lieu d’une session ; son libellé suit la date (libelle). Les champs omis restent tels quels ; le statut, la visibilité, l’équipe et le casting ne changent pas.',
     inputSchema: z.object({
       sessionId: z.string(),
       version,
-      name: z.string().max(200).optional(),
       date: date('Date et heure, au format ISO 8601 ; null la retire'),
       locationId: z.string().nullable().optional().describe('Lieu du jeu ; null le retire')
     }),
     annotations: WRITE
-  }, ({ sessionId, version: read, name, date: when, locationId }) => toolResult(() => saveSession(event, 'modifier_session', sessionId, read, (current) => ({
+  }, ({ sessionId, version: read, date: when, locationId }) => toolResult(() => saveSession(event, 'modifier_session', sessionId, read, (current) => ({
     ...current,
-    ...(name !== undefined && { name }),
     ...(when !== undefined && { date: when }),
     ...(locationId !== undefined && { locationId })
   }))))
@@ -165,7 +162,7 @@ function registerSessionWriteTools({ event, server }: ToolContext) {
       for (const given of events) responsibles.set(given.timelineEventId, given.participantIds)
       return parseZod(sessionTimelineSchema, { assignments: [...responsibles].map(([timelineEventId, participantIds]) => ({ timelineEventId, participantIds })) })
     }))
-    await logWrite(event, 'modifier_deroule', AI_LOG_ACTIONS.changed, { type: 'session', id: sessionId, name: current.name, gameId: current.gameId })
+    await logWrite(event, 'modifier_deroule', AI_LOG_ACTIONS.changed, { type: 'session', id: sessionId, name: (await prisma.session.findUniqueOrThrow({ where: { id: sessionId }, select: { name: true } })).name, gameId: current.gameId })
     return { id: sessionId, version: result.updatedAt }
   }))
 

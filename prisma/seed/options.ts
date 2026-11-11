@@ -1,3 +1,5 @@
+import slugify from 'slugify'
+import { sessionDayKey, sessionDayLabel } from '../../utils/sessionLabels'
 // Réglages du rechargement des jeux de test, tous lus dans l'environnement (ADR-0066)
 
 const MIN_PASSWORD_LENGTH = 8
@@ -46,6 +48,22 @@ export function personAddress(fictionalEmail: string, ownerEmail: string | null)
   if (!ownerEmail || !RECEIVING_LOCAL_PARTS.has(localPart)) return fictionalEmail
   const [ownerLocal, domain] = ownerEmail.split('@')
   return `${ownerLocal}+${localPart}@${domain}`
+}
+
+// Date fixe d'une session de test (SPEC-021, R8), que le cahier désigne par son libellé : à venir, comptée depuis le
+// 1er janvier 2030 ; passée, depuis le 1er novembre 2026. Une session passée vieillit : pour rejouer le jeu de test plus
+// tard (photos effacées après la durée de conservation), on met à jour ces dates. Midi UTC, pour que le jour reste le
+// même en France
+export function sessionDate(days: number) {
+  const anchor = days >= 0 ? Date.UTC(2030, 0, 1, 12) : Date.UTC(2026, 10, 1, 12)
+  return new Date(anchor + days * DAY_MS)
+}
+
+// Date, libellé et adresse d'une session de test, comme le serveur les calcule (SPEC-021, ADR-0083) : le rôle de la
+// session (« Session mixte »…) reste dans le code et dans doc/jeux-de-test.md, pas dans son libellé
+export function sessionFields(gameTitle: string, days: number) {
+  const date = sessionDate(days)
+  return { date, name: sessionDayLabel(date), slug: slugify(`${gameTitle} ${sessionDayKey(date)}`, { lower: true, strict: true }) }
 }
 
 // Midi UTC, pour que la date reste le même jour en France

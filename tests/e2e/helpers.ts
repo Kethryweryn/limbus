@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken'
 import { JWT_SECRET } from '../integration/constants'
 import { E2E_PASSWORD, E2E_USERS, PARCOURS } from './constants'
 import { escapeRegExp } from '../regexp'
+import { refreshSessionLabels } from '../../server/utils/sessionLabels'
 import type { UserRole } from '~/generated/prisma/enums'
 
 // Tests des parcours : `otherPage()` ouvre un navigateur à part (autre personne, autre appareil), fermé à la fin du test
@@ -115,7 +116,7 @@ export async function parcoursSession(prisma: TestPrisma, base: string, cast: Ar
   const { game, character, participant } = await parcoursGame(prisma)
   const name = uniqueName(base)
   const slug = slugOf(name)
-  const session = await prisma.session.create({
+  const created = await prisma.session.create({
     data: {
       name,
       slug,
@@ -124,7 +125,7 @@ export async function parcoursSession(prisma: TestPrisma, base: string, cast: Ar
       assignments: { create: cast.map(([characterName, person]) => ({ characterId: character(characterName).id, participantId: participant(person).id })) }
     }
   })
-  return { session, game, character, participant }
+  return { session: await labelled(prisma, created.id), game, character, participant }
 }
 
 // Participant du jeu commun, propre au test : les emails qu'il reçoit ne se mêlent pas à ceux des tests voisins,
@@ -169,7 +170,22 @@ export function cardByTitle(page: Page, title: string) {
 // Session d'un jeu propre au test (US-199)
 export async function orgaSession(prisma: TestPrisma, gameId: string, base: string, data: { date?: Date, status?: 'scheduled' | 'postponed' | 'cancelled' | 'completed', locationId?: string } = {}) {
   const name = uniqueName(base)
-  return await prisma.session.create({ data: { name, slug: slugOf(name), gameId, ...data } })
+  const created = await prisma.session.create({ data: { name, slug: slugOf(name), gameId, ...data } })
+  return await labelled(prisma, created.id)
+}
+
+// Date propre à un test (SPEC-021) : une session n'a pas de nom, et deux sessions sans date se lisent pareil d'un jeu à
+// l'autre ; une année tirée au hasard, loin dans le futur, lui donne un libellé que les autres tests n'ont pas
+export function uniqueDate(month = 3, day = 14) {
+  return new Date(Date.UTC(2400 + Math.floor(Math.random() * 7000), month - 1, day, 12))
+}
+
+// Une session n'a pas de nom (SPEC-021) : comme le serveur, le test calcule le libellé et l'adresse des sessions du jeu,
+// pour que la session rendue porte ceux que l'écran affichera
+export async function labelled(prisma: TestPrisma, sessionId: string) {
+  const { gameId } = await prisma.session.findUniqueOrThrow({ where: { id: sessionId }, select: { gameId: true } })
+  await prisma.$transaction((tx) => refreshSessionLabels(tx as unknown as Parameters<typeof refreshSessionLabels>[0], gameId))
+  return await prisma.session.findUniqueOrThrow({ where: { id: sessionId } })
 }
 
 // Personne liée au jeu donné (US-199). Sans `emailPrefix`, elle n'a pas d'email et aucun envoi ne lui part ; avec, son

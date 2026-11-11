@@ -4,6 +4,7 @@ import { requireSessionAccess } from '~/server/utils/gameAccess'
 import { collectUploadUrls, deleteUnusedUploads } from '~/server/utils/uploads'
 import { requireRouterParam } from '~/server/utils/routeParams'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
+import { refreshSessionLabels } from '~/server/utils/sessionLabels'
 
 export default defineEventHandler(async (event) => {
   await requireUser(event)
@@ -26,8 +27,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const uploadUrls = await collectUploadUrls({ sessionId: session.id })
-  await prisma.session.delete({
-    where: { id: session.id }
+  // Ses voisines du même jour perdent peut-être ce qui les distinguait d'elle (SPEC-021, R2)
+  await prisma.$transaction(async (tx) => {
+    await tx.session.delete({ where: { id: session.id } })
+    await refreshSessionLabels(tx, session.gameId)
   })
   await deleteUnusedUploads(uploadUrls)
 

@@ -253,7 +253,6 @@ onMounted(async () => {
 
 function startCreate() {
   activeFormSession.value = {
-    name: '',
     gameId: selectedGame.value?.id || games.value[0]?.id || '',
     date: '',
     locationId: '',

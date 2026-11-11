@@ -400,9 +400,9 @@ describe('parcours complet (US-174, R18)', () => {
   })
 
   it('reportée : l’ancienne session est transférée, et le paiement reporté valide sur la nouvelle', async () => {
-    const { session, lou, path, pool } = await inscribed()
+    const { session, lou, path } = await inscribed()
     await prisma.sessionPayment.create({ data: { gameId: session.gameId, sessionId: session.id, participantId: lou.participantId, paidAt: new Date() } })
-    const postponed = await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { name: `Report ${pool.key}`, date: new Date(Date.now() + 60 * 86_400_000).toISOString() })
+    const postponed = await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { date: new Date(Date.now() + 60 * 86_400_000).toISOString() })
     expect(postponed.status, JSON.stringify(postponed.body)).toBe(200)
     const created = (postponed.body as { id: string }).id
     const carried = await api(alice, 'PUT', `/api/sessions/${session.id}/payments/${lou.participantId}/refund`, { status: 'carried_over' })

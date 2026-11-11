@@ -41,8 +41,8 @@ async function postponedSession() {
     ]
   })
   await prisma.sessionAssignment.create({ data: { gameId: old.gameId, sessionId: old.id, characterId: aube.id, participantId: lea.id } })
-  const postponed = await api(alice, 'POST', `/api/sessions/${old.id}/postpone`, { name: `Report ${key}` })
-  const session = postponed.body as { id: string }
+  const postponed = await api(alice, 'POST', `/api/sessions/${old.id}/postpone`, {})
+  const session = postponed.body as { id: string, name: string }
   return { key, game, old, session, lea, noe, sam, aube }
 }
 
@@ -70,7 +70,9 @@ describe('demandes de confirmation de présence (US-024)', () => {
     // La personne lit la session et répond, puis change d'avis ; elle ne voit rien des autres
     const read = await api(null, 'GET', `/api/public/attendance/${leaToken}`)
     expect(read.status).toBe(200)
-    expect(read.body).toMatchObject({ sessionName: `Report ${s.key}`, status: 'pending', canAnswer: true })
+    // Sans date, la session se lit « Session sans date », distinguée de l'ancienne (SPEC-021, R2)
+    expect(read.body).toMatchObject({ sessionName: s.session.name, status: 'pending', canAnswer: true })
+    expect(s.session.name).toMatch(/^Session sans date/)
     expect(JSON.stringify(read.body)).not.toContain(s.noe.name)
     expect((await api(null, 'POST', `/api/public/attendance/${leaToken}`, { answer: 'confirmed' })).body).toMatchObject({ status: 'confirmed' })
     expect((await api(null, 'POST', `/api/public/attendance/${leaToken}`, { answer: 'declined' })).body).toMatchObject({ status: 'declined' })

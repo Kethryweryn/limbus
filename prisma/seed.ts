@@ -10,7 +10,8 @@ import { PHOTO_UPLOAD_PREFIX } from '../utils/urls'
 import { BAL_EXTRA_PEOPLE, createBalStage } from './seed/bal'
 import type { Db, StageContext } from './seed/db'
 import { createMeridianStage, MERIDIAN_EXTRA_PEOPLE } from './seed/meridian'
-import { daysFromNow, personAddress, readSeedOptions, type SeedOptions } from './seed/options'
+import { personAddress, readSeedOptions, sessionFields, type SeedOptions } from './seed/options'
+import { refreshSessionLabels } from '../server/utils/sessionLabels'
 import { placePlayersInPool } from './seed/pool'
 import { createValombreStage } from './seed/valombre'
 import type { GameShareRole } from '../generated/prisma/enums'
@@ -939,6 +940,9 @@ async function createGame(
     address: (email) => personAddress(email, options.ownerEmail)
   })
 
+  // Libellé et adresse de chaque session, comme le serveur les calcule (SPEC-021, ADR-0083)
+  await refreshSessionLabels(db, game.id)
+
   console.log(`${seed.title} : ${characters.length} personnages, ${participants.length} participants.`)
 
   return game
@@ -1175,9 +1179,8 @@ async function createArchiveSession(
 
   await db.session.create({
     data: {
-      name: `${gameTitle} - Session terminée`,
-      slug: makeSlug(`${gameTitle}-session-terminee`),
-      date: daysFromNow(-60),
+      // Session terminée (SPEC-021 : date, libellé et adresse calculés)
+      ...sessionFields(gameTitle, -60),
       gameId,
       locationId: locations[0]?.id,
       status: 'completed',

@@ -62,7 +62,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-052](../archive/epics/EPIC-052-telecharger-un-jeu/README.md) | Télécharger un jeu pour le hors ligne | [SPEC-019](../specs/SPEC-019-hors-ligne-dans-le-compte.md) | terminé |
 | [EPIC-053](../archive/epics/EPIC-053-telecharger-ses-sessions/README.md) | Télécharger ses sessions à venir | [SPEC-019](../specs/SPEC-019-hors-ligne-dans-le-compte.md) | terminé |
 | [EPIC-054](../archive/epics/EPIC-054-page-inscriptions/README.md) | Une page Inscriptions par jeu, en onglets | [SPEC-020](../specs/SPEC-020-page-inscriptions.md) | terminé |
-| [EPIC-055](EPIC-055-session-sans-nom/README.md) | Une session sans nom, désignée par sa date | [SPEC-021](../specs/SPEC-021-session-sans-nom.md) | à faire |
+| [EPIC-055](EPIC-055-session-sans-nom/README.md) | Une session sans nom, désignée par sa date | [SPEC-021](../specs/SPEC-021-session-sans-nom.md) | en cours |
 
 ## US
 
@@ -301,5 +301,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-231](../archive/epics/EPIC-054-page-inscriptions/US-231-sessions-repliees.md) | Sessions repliées, dans l'adresse, avec leurs tirages | EPIC-054 | terminée |
 | [US-232](../archive/epics/EPIC-054-page-inscriptions/US-232-recherche-dans-le-vivier.md) | Rechercher et filtrer dans le vivier | EPIC-054 | terminée |
 | [US-233](../archive/epics/EPIC-054-page-inscriptions/US-233-a-traiter.md) | Ce qui reste à traiter, par jeu et par session | EPIC-054 | terminée |
-| [US-234](EPIC-055-session-sans-nom/US-234-libelle-calcule.md) | Une session désignée par sa date, sans nom à saisir | EPIC-055 | à faire |
+| [US-234](EPIC-055-session-sans-nom/US-234-libelle-calcule.md) | Une session désignée par sa date, sans nom à saisir | EPIC-055 | terminée |
 | [US-235](EPIC-055-session-sans-nom/US-235-jeu-devant-le-libelle.md) | Le jeu devant le libellé, hors des pages du jeu | EPIC-055 | à faire |

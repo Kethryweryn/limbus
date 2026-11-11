@@ -19,14 +19,14 @@ const session = {
 describe('session modifiée hors ligne (US-048)', () => {
   it('affiche le casting et l’équipe avec les personnes de l’appareil, en gardant la version lue', () => {
     const projected = projectOfflineSession(session, {
-      name: 'Dimanche',
+      date: '2099-05-15T12:00:00Z',
       locationId: 'l1',
       participants: [{ participantId: 'p1', role: 'participant' }, { participantId: 'p2', role: 'npc' }],
       assignments: [{ characterId: 'c1', participantId: 'p1', photoUrl: '', notes: 'Arrive tard' }]
     }, { participants: [lea, noe], characters: [aube], locations: [{ id: 'l1', name: 'Forêt' }] })
 
     expect(projected).toMatchObject({
-      name: 'Dimanche',
+      name: 'Session du 15 mai 2099',
       updatedAt: session.updatedAt,
       location: { name: 'Forêt' },
       participants: [{ participant: lea }, { participant: noe, role: 'npc' }],

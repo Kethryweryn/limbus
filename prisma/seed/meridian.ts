@@ -15,7 +15,7 @@ import {
 } from '../../utils/domain'
 import type { Prisma } from '../../generated/prisma/client'
 import type { Db, StageContext } from './db'
-import { daysFromNow } from './options'
+import { daysFromNow, sessionFields } from './options'
 import type { AffinityKind, RegistrationSessionStatus, RegistrationSource, RegistrationStatus } from '../../generated/prisma/enums'
 
 // Générées pour que les repères du questionnaire aient assez de réponses. Toutes restent en example.test.
@@ -94,7 +94,7 @@ function answersFor(rank: number, fullForm: boolean): QuestionAnswers {
 }
 
 export async function createMeridianStage(db: Db, context: StageContext) {
-  const { gameId, title, ownerId, locationId, characters, people, profiles, makeSlug } = context
+  const { gameId, title, ownerId, locationId, characters, people, profiles } = context
   const character = (name: string) => characters.find((row) => row.name === name)!.id
 
   await db.game.update({
@@ -163,9 +163,8 @@ export async function createMeridianStage(db: Db, context: StageContext) {
   const castRows = characters.map((row) => ({ characterId: row.id }))
   const createSession = (name: string, days: number) => db.session.create({
     data: {
-      name: `${title} - ${name}`,
-      slug: makeSlug(`${title}-${name}`),
-      date: daysFromNow(days),
+      // Rôle : name ; date, libellé et adresse calculés (SPEC-021)
+      ...sessionFields(title, days),
       gameId,
       locationId,
       status: SESSION_STATUSES.scheduled,

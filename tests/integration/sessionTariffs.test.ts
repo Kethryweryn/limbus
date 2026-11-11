@@ -184,7 +184,7 @@ describe('report d’une session avec tarifs (revue de la PR #61)', () => {
     await api(alice, 'POST', `/api/sessions/${t.session.id}/tariffs`, { name: 'Réduit', amount: 50, baseTariffId: pj.id })
     await api(alice, 'POST', `/api/sessions/${t.session.id}/payments/${t.player.id}/instalments`, { amount: 80, receivedAt: '2026-10-01' })
 
-    const postponed = await api(alice, 'POST', `/api/sessions/${t.session.id}/postpone`, { name: `Report ${t.session.name}` })
+    const postponed = await api(alice, 'POST', `/api/sessions/${t.session.id}/postpone`, {})
     expect(postponed.status, JSON.stringify(postponed.body)).toBe(200)
     const newId = (postponed.body as { id: string }).id
     const copies = await prisma.sessionTariff.findMany({ where: { sessionId: newId }, orderBy: { name: 'asc' } })

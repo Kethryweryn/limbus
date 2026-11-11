@@ -2,7 +2,7 @@
 import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { cardByTitle, choose, gamePerson, orgaGame, orgaSession as ownSession, signIn, slugOf, test, uniqueName } from './helpers'
+import { cardByTitle, choose, gamePerson, orgaGame, orgaSession as ownSession, signIn, slugOf, test, uniqueDate, uniqueName } from './helpers'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -117,7 +117,7 @@ test('carte : un clic ouvre la session, « Modifier » ouvre son formulaire, et 
   }
 })
 
-test('détails : nom vide refusé, lieu du même jeu seulement, statut libre, visible sur la page publique (R1, R2, R2b)', async ({ page }) => {
+test('détails : pas de nom à saisir, lieu du même jeu seulement, statut libre, visible sur la page publique (R1, R2, R2b)', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
     const game = await orgaGame(prisma, 'Jeu détails de session')
@@ -131,11 +131,8 @@ test('détails : nom vide refusé, lieu du même jeu seulement, statut libre, vi
     await openSession(page, session)
 
     await page.getByRole('button', { name: 'Modifier' }).first().click()
-    // Nom vide : le message de Limbus (US-204), rien n'est enregistré
-    await page.getByLabel('Nom', { exact: true }).fill('')
-    await page.getByRole('button', { name: 'Enregistrer' }).click()
-    await expect(page.getByText('Le nom est requis.')).toBeVisible()
-    await page.getByLabel('Nom', { exact: true }).fill(session.name)
+    // Une session n'a pas de nom (SPEC-021, R1)
+    await expect(page.getByLabel('Nom', { exact: true })).toHaveCount(0)
 
     // Le lieu se choisit parmi ceux du jeu (R1)
     await page.getByLabel('Lieu', { exact: true }).click()
@@ -248,8 +245,8 @@ test('droits : une organisatrice sans accès ne voit pas la session, une co-orga
   try {
     const game = await orgaGame(prisma, 'Jeu des droits de session')
     const shared = await orgaGame(prisma, 'Jeu partagé de session')
-    const hidden = await ownSession(prisma, game.id, 'Session privée')
-    const visible = await ownSession(prisma, shared.id, 'Session partagée')
+    const hidden = await ownSession(prisma, game.id, 'Session privée', { date: uniqueDate() })
+    const visible = await ownSession(prisma, shared.id, 'Session partagée', { date: uniqueDate() })
     const autre = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.autre } })
     await prisma.gameShare.create({ data: { gameId: shared.id, userId: autre.id } })
     const guest = await otherPage()
@@ -265,11 +262,10 @@ test('droits : une organisatrice sans accès ne voit pas la session, une co-orga
 
     // La co-organisatrice modifie la session du jeu partagé
     await openSession(guest, visible)
-    const renamed = uniqueName('Session renommée par la co-organisatrice')
     await guest.getByRole('button', { name: 'Modifier' }).first().click()
-    await guest.getByLabel('Nom', { exact: true }).fill(renamed)
+    await guest.getByLabel('Date', { exact: true }).fill('2099-11-11T11:00')
     await guest.getByRole('button', { name: 'Enregistrer' }).click()
-    await expect(guest.getByRole('heading', { level: 1, name: renamed })).toBeVisible()
+    await expect(guest.getByRole('heading', { level: 1, name: 'Session du 11 novembre 2099' })).toBeVisible()
   } finally {
     await prisma.$disconnect()
   }
@@ -280,8 +276,7 @@ test('hors ligne : la liste des sessions se relit, et une session créée sans r
   const prisma = createTestPrisma()
   try {
     const game = await orgaGame(prisma, 'Jeu des sessions hors ligne')
-    const known = await ownSession(prisma, game.id, 'Session connue')
-    const created = uniqueName('Session créée hors ligne')
+    const known = await ownSession(prisma, game.id, 'Session connue', { date: uniqueDate() })
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/games')
     await page.waitForLoadState('networkidle')
@@ -299,13 +294,14 @@ test('hors ligne : la liste des sessions se relit, et une session créée sans r
     await page.getByRole('button', { name: 'Créer une session' }).click()
     const form = page.getByRole('dialog')
     await choose(page, form.getByLabel('Jeu', { exact: true }), game.title)
-    await form.getByLabel('Nom', { exact: true }).fill(created)
+    await form.getByLabel('Date', { exact: true }).fill('2099-12-24T18:00')
     await form.getByRole('button', { name: 'Créer', exact: true }).click()
     await expect(page.getByText(/Modifications faites hors ligne : 1 en attente/)).toBeVisible()
-    expect(await prisma.session.findFirst({ where: { name: created } })).toBeNull()
+    expect(await prisma.session.count({ where: { gameId: game.id } })).toBe(1)
 
+    // Au retour du réseau, elle prend son libellé (SPEC-021)
     await context.setOffline(false)
-    await expect.poll(() => prisma.session.findFirst({ where: { name: created }, select: { gameId: true } }), { timeout: 20_000 }).toEqual({ gameId: game.id })
+    await expect.poll(() => prisma.session.findFirst({ where: { gameId: game.id, name: 'Session du 24 décembre 2099' }, select: { gameId: true } }), { timeout: 20_000 }).toEqual({ gameId: game.id })
   } finally {
     await prisma.$disconnect()
   }

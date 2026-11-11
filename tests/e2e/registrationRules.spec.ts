@@ -435,12 +435,12 @@ test.describe('paiements et report (SPEC-018, R30)', () => {
       await page.waitForLoadState('networkidle')
       await page.getByRole('button', { name: 'Reporter' }).click()
       const dialog = page.getByRole('dialog')
-      const name = uniqueName('Session de report')
-      await dialog.getByLabel('Nom de la nouvelle session').fill(name)
       await dialog.getByRole('button', { name: 'Reporter' }).click()
-      await expect(page.getByRole('heading', { name, level: 1 })).toBeVisible()
-
-      const created = await prisma.session.findFirstOrThrow({ where: { name } })
+      // Sans nom (SPEC-021) : la nouvelle session se retrouve par le report
+      await expect.poll(async () => (await prisma.session.findUniqueOrThrow({ where: { id: ctx.session.id }, select: { postponedToSessionId: true } })).postponedToSessionId).toBeTruthy()
+      const { postponedToSessionId } = await prisma.session.findUniqueOrThrow({ where: { id: ctx.session.id }, select: { postponedToSessionId: true } })
+      const created = await prisma.session.findUniqueOrThrow({ where: { id: postponedToSessionId! } })
+      await expect(page.getByRole('heading', { name: created.name, level: 1 })).toBeVisible()
       expect((await sessionLine(prisma, person.registration.id, ctx.session.id))?.status).toBe('transferred')
       expect((await sessionLine(prisma, person.registration.id, created.id))?.status).toBe('confirmed')
       await page.goto(`/inscription/${person.token}`)

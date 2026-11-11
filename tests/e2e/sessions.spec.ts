@@ -5,8 +5,8 @@ import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
 import { parcoursPerson, parcoursSession, signIn, slugOf, test, uniqueName } from './helpers'
 
-// EPIC-004 (SPEC-004) : une session se renomme depuis sa fiche, puis s'annule et l'équipe en est prévenue (US-021)
-test('une session se renomme, s’annule, et l’équipe est prévenue', async ({ page }) => {
+// EPIC-004 (SPEC-004) : une session change de date depuis sa fiche, puis s'annule et l'équipe en est prévenue (US-021)
+test('une session change de date, s’annule, et l’équipe est prévenue', async ({ page }) => {
   const prisma = createTestPrisma()
   const mailbox = openMailbox()
   try {
@@ -17,12 +17,12 @@ test('une session se renomme, s’annule, et l’équipe est prévenue', async (
     await page.goto(`/sessions/${session.slug}`)
     await page.waitForLoadState('networkidle')
 
-    // Renommage : la fiche s'ouvre à sa nouvelle adresse
-    const renamed = uniqueName('Session renommée')
+    // Nouvelle date : le libellé et l'adresse suivent (SPEC-021) ; une année propre au test, pour un libellé unique
+    const year = 2400 + Math.floor(Math.random() * 5000)
     await page.getByRole('button', { name: 'Modifier' }).first().click()
-    await page.getByLabel('Nom', { exact: true }).fill(renamed)
+    await page.getByLabel('Date', { exact: true }).fill(`${year}-03-14T15:00`)
     await page.getByRole('button', { name: 'Enregistrer' }).click()
-    await expect(page.getByRole('heading', { name: renamed, level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: `Session du 14 mars ${year}`, level: 1 })).toBeVisible()
     const { slug } = await prisma.session.findUniqueOrThrow({ where: { id: session.id }, select: { slug: true } })
     await expect(page).toHaveURL(new RegExp(`/sessions/${slug}([?]|$)`))
 
@@ -57,16 +57,15 @@ test('une session se reporte, et la présence de l’équipe se demande et se su
     await page.waitForLoadState('networkidle')
     await page.getByRole('button', { name: 'Reporter' }).click()
     const dialog = page.getByRole('dialog')
-    const name = uniqueName('Session reportée')
-    await dialog.getByLabel('Nom de la nouvelle session').fill(name)
     await dialog.getByRole('button', { name: 'Reporter' }).click()
 
-    // La nouvelle session s'ouvre sur son onglet Présence ; l'ancienne est reportée sur elle
-    await expect(page.getByRole('heading', { name, level: 1 })).toBeVisible()
+    // La nouvelle session s'ouvre sur son onglet Présence ; l'ancienne est reportée sur elle. Sans nom (SPEC-021), elle
+    // se retrouve par le report
     await expect(page).toHaveURL(/tab=presence/)
-    const created = await prisma.session.findFirstOrThrow({ where: { name } })
-    expect(await prisma.session.findUniqueOrThrow({ where: { id: session.id }, select: { status: true, postponedToSessionId: true } }))
-      .toEqual({ status: 'postponed', postponedToSessionId: created.id })
+    const { status, postponedToSessionId } = await prisma.session.findUniqueOrThrow({ where: { id: session.id }, select: { status: true, postponedToSessionId: true } })
+    expect(status).toBe('postponed')
+    const created = await prisma.session.findUniqueOrThrow({ where: { id: postponedToSessionId! } })
+    await expect(page.getByRole('heading', { name: created.name, level: 1 })).toBeVisible()
     await expect(page.getByRole('link', { name: session.name })).toBeVisible()
     page.once('dialog', (confirmation) => confirmation.accept())
     await page.getByRole('button', { name: 'Envoyer les demandes' }).click()
