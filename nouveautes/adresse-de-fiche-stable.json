@@ -1,0 +1,5 @@
+{
+  "type": "modifie",
+  "titre": "L’adresse d’une fiche ne change plus",
+  "texte": "Renommer une fiche participant ne change plus l’adresse de sa page : un lien gardé vers elle continue de fonctionner."
+}

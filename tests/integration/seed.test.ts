@@ -170,6 +170,18 @@ describe('rechargement des jeux de test', () => {
     expect(shares.map((share) => share.gameId).sort()).toEqual(['jeu-test-meridian', 'jeu-test-valombre'])
   })
 
+  // SPEC-022, US-239 : une fiche suivie par deux équipes, chacune avec son nom
+  it('donne à Inès son petit jeu, où Sarah, une seule fiche, porte un autre nom', async () => {
+    const ines = await prisma.user.findUniqueOrThrow({ where: { email: plusAddress('ines.lefevre') }, select: { id: true } })
+    const game = await prisma.game.findUniqueOrThrow({ where: { id: 'seed-carnet-d-ines' }, select: { ownerId: true } })
+    expect(game.ownerId).toBe(ines.id)
+    const fiches = await prisma.participant.findMany({ where: { email: plusAddress('sarah.petit') }, select: { gameLinks: { select: { gameId: true, name: true } } } })
+    expect(fiches).toHaveLength(1)
+    const names = new Map(fiches[0]!.gameLinks.map((link) => [link.gameId, link.name]))
+    expect(names.get('seed-carnet-d-ines')).toBe('Sarah P.')
+    expect([...names].filter(([gameId]) => gameId !== 'seed-carnet-d-ines').every(([, name]) => name === 'Sarah Petit')).toBe(true)
+  })
+
   it('garde ce qui est hors des jeux de test, et les accès aux jeux rechargés', async () => {
     // Témoins : un jeu étranger, une fiche partagée avec lui, une fiche propre à lui
     const other = await prisma.game.create({ data: { title: 'Jeu témoin', slug: 'jeu-temoin-seed', description: '', ownerId } })

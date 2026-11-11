@@ -1127,6 +1127,30 @@ async function createTimelineEvents(
   ))
 }
 
+// Jeu d'une autre propriétaire, Inès (SPEC-022, US-239) : Sarah y est suivie sous un autre nom, « Sarah P. ». Une seule
+// fiche pour elle dans tout Limbus, et chaque équipe n'en voit que son nom et ses jeux
+const INES_GAME = { id: 'seed-carnet-d-ines', title: 'Le Carnet d’Inès' }
+
+async function createInesGame(accountIdByEmail: Map<string, string>, options: SeedOptions) {
+  const ownerId = accountIdByEmail.get('ines.lefevre@example.test')
+  if (!ownerId) return
+  const sarah = await db.participant.findFirst({
+    where: { email: personAddress('sarah.petit@example.test', options.ownerEmail) },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true }
+  })
+  await db.game.create({
+    data: {
+      id: INES_GAME.id,
+      title: INES_GAME.title,
+      slug: makeSlug(INES_GAME.title),
+      description: 'Petit jeu d’Inès, pour essayer une fiche suivie par deux équipes.',
+      ownerId,
+      ...(sarah ? { participantLinks: { create: { participantId: sarah.id, name: 'Sarah P.', notes: 'Joue avec Inès depuis longtemps.' } } } : {})
+    }
+  })
+}
+
 async function createCrossGameParticipants(gameIds: string[]) {
   const people = [
     { name: 'Alex Morgan', email: 'alex.morgan@example.test', phone: '06 44 55 66 01', gameIds: gameIds.slice(0, 2), notes: 'Inscrit sur plusieurs jeux, pour essayer les filtres.' },
@@ -1207,7 +1231,8 @@ async function main() {
 
     const preservedAccess = await preserveAccess(fixedIdOf)
     console.log('Suppression des anciens jeux de test...')
-    const uploadUrls = await removeGames([...fixedIdOf.keys()])
+    const inesGame = await db.game.findUnique({ where: { id: INES_GAME.id }, select: { id: true } })
+    const uploadUrls = await removeGames([...fixedIdOf.keys(), ...(inesGame ? [inesGame.id] : [])])
 
     console.log('Création des jeux de test...')
     if (password) await upsertTestAccounts(options, password)
@@ -1218,6 +1243,7 @@ async function main() {
       createdGameIds.push(createdGame.id)
     }
     await createCrossGameParticipants(createdGameIds)
+    await createInesGame(accountIdByEmail, options)
     for (const gameId of createdGameIds) await placePlayersInPool(db, gameId)
     await restoreAccess(preservedAccess)
 

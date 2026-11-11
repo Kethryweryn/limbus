@@ -80,7 +80,8 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
     await page.getByRole('button', { name: 'Lever le refus' }).click()
     await expect(page.getByText('Cette personne n’a pas refusé l’usage de sa photo.')).toBeVisible()
 
-    // Renommer change l'adresse de la fiche
+    // Renommer ne change pas l'adresse de la fiche : un nom donné par une équipe n'y apparaît pas (US-239)
+    const before = (await prisma.participant.findUniqueOrThrow({ where: { id: created.id }, select: { slug: true } })).slug
     const renamed = uniqueName('Iris Renommée')
     await page.getByRole('button', { name: 'Modifier' }).click()
     await page.getByLabel('Nom').fill(renamed)
@@ -88,7 +89,8 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
     await expect(page.getByRole('heading', { name: renamed, level: 1 })).toBeVisible()
     const saved = await prisma.participant.findUniqueOrThrow({ where: { id: created.id }, select: { name: true, slug: true } })
     expect(saved.name).toBe(renamed)
-    await expect(page).toHaveURL(new RegExp(`/participants/${saved.slug}$`))
+    expect(saved.slug).toBe(before)
+    await expect(page).toHaveURL(new RegExp(`/participants/${before}$`))
 
     // La session s'ouvre depuis la fiche (US-183)
     await page.getByRole('link', { name: session.label }).click()

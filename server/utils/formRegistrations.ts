@@ -188,7 +188,7 @@ export async function confirmRegistrationRequest(token: string | undefined, now 
 async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, formVersionId: string | null, tokenHash: string | null, requestId?: string) {
   const { affinities, questionAnswers, availableSessionIds, ...standard } = answers
   const email = standard.email
-  const matched = await findParticipantByEmail(period.game, email)
+  const matched = await findParticipantByEmail(email)
   const name = [standard.firstName, standard.lastName].filter(Boolean).join(' ').trim() || email.split('@')[0]!
   const slug = matched ? null : await generateUniqueSlug('participant', name)
   const userId = await accountIdForEmail(email)
@@ -204,13 +204,13 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
       if (!count) return null
     }
     const participant = matched
-      ? await tx.participant.update({ where: { id: matched.id }, data: { email, userId }, select: { id: true, name: true, phone: true } })
-      : await tx.participant.create({ data: { name, slug: slug!, email, userId }, select: { id: true, name: true, phone: true } })
+      ? await tx.participant.update({ where: { id: matched.id }, data: { email, userId }, select: { id: true } })
+      : await tx.participant.create({ data: { name, slug: slug!, email, userId }, select: { id: true } })
+    // Nom et téléphone tenus par jeu (ADR-0086) : ceux de la réponse, jamais ceux d'une autre équipe qui suit la fiche
     await tx.participantGame.upsert({
       where: { participantId_gameId: { participantId: participant.id, gameId: period.gameId } },
       update: {},
-      // Nom et téléphone tenus par jeu (ADR-0086)
-      create: { participantId: participant.id, gameId: period.gameId, name: participant.name, phone: participant.phone }
+      create: { participantId: participant.id, gameId: period.gameId, name, phone: standard.phone || null }
     })
 
     const data = {

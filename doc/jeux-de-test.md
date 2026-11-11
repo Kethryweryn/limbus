@@ -29,14 +29,14 @@ Les sessions n'ont pas de nom ([SPEC-021](specs/SPEC-021-session-sans-nom.md)) :
 | Le Bal des Masques Brisés | Session du 31 janvier 2030 | Session reportée |
 | Le Bal des Masques Brisés | Session du 1er avril 2030 | Session de remplacement |
 
-Les dates des sessions sont fixes ; les autres (délais, envois, réponses) comptent à partir du jour du rechargement, et ne bougent plus ensuite : au bout de quelques jours, le délai de Lucie est dépassé. Il suffit alors de recharger. Un rechargement remplace ces trois jeux : ce qui y a été modifié à la main est perdu. Les partages, les autorisations d'assistants d'IA et le lien public du vivier reste.
+Les dates des sessions sont fixes ; les autres (délais, envois, réponses) comptent à partir du jour du rechargement, et ne bougent plus ensuite : au bout de quelques jours, le délai de Lucie est dépassé. Il suffit alors de recharger. Un rechargement remplace ces trois jeux, et le petit jeu d'Inès : ce qui y a été modifié à la main est perdu. Les partages, les autorisations d'assistants d'IA et le lien public du vivier reste.
 
 ## Les comptes
 
 | Compte | Rôle | Ce qu'il montre |
 |---|---|---|
 | Le vôtre (`SEED_EMAIL`) | Propriétaire des trois jeux | Toutes les actions de l'équipe |
-| Inès Lefèvre | Co-organisatrice de Meridian et de Valombre | Un jeu partagé, et un refus sur le Bal |
+| Inès Lefèvre | Co-organisatrice de Meridian et de Valombre ; propriétaire du Carnet d'Inès | Un jeu partagé, un refus sur le Bal, et son propre jeu où Sarah Petit s'appelle « Sarah P. » |
 | Camille Bernard | Participante | Une session à venir et son paiement sur Valombre ; sur Meridian, pré-inscrite pour une session, et une décision pas encore annoncée pour une autre |
 | Lucie Moreau | Participante | Une place à confirmer sur Meridian ; une session terminée sur le Bal |
 
@@ -60,6 +60,7 @@ Aucun lien personnel n'est préparé, car Limbus ne garde que l'empreinte d'un l
 |---|---|---|---|
 | [SPEC-001](specs/SPEC-001-inscriptions.md) Inscriptions | Questionnaire, relations et assistant de casting | Meridian | Le vôtre, Inès ; Camille et Lucie côté personne |
 | [SPEC-018](specs/SPEC-018-vivier-permanent.md) Vivier | Le vivier unique et son lien de diffusion (`/i/essai-meridian-vivier`) ; « Annoncer le casting » sur la session mixte, emails à envoyer ou à ignorer, repère « Réponses modifiées » de Lucie et « Inscrite validée » de Maëlle sur la session à la main, déjà annoncée ; « Demander au vivier » sur une session ouverte, « Relancer » sur la Soirée du vivier (les adresses en `example.test` ne reçoivent rien) ; sessions ouvertes ou non ; sessions à la main, au tirage et mixte ; chaque statut par session ; annonce ; tirage et son annulation ; liste d'attente ; refus de Mehdi ; sortie de Clara ; invitations de Sarah et de Baptiste ; affinités et alerte (Nicolas et Raphaël) ; rejoueuse (Amandine) | Meridian | Le vôtre, Inès ; Camille et Lucie côté personne |
+| [SPEC-022](specs/SPEC-022-compte-pour-chaque-participant.md) Une fiche par personne | Sarah Petit n'a qu'une fiche, suivie par vous (Meridian) et par Inès (Le Carnet d'Inès) : chacune voit son nom (« Sarah Petit », « Sarah P. »), ses jeux et ses notes, rien de l'autre. Créer une fiche à l'adresse de Sarah depuis l'autre compte rejoint cette fiche sans le dire | Meridian ; Le Carnet d'Inès | Le vôtre, Inès |
 | [SPEC-002](specs/SPEC-002-copie-de-jeu.md) Copie et legs | Legs en attente, renvoi et acceptation avec l'adresse de Manon. Son invitation dure 14 jours : au-delà, Limbus retire la copie, et un rechargement en recrée une. Léguer un nouveau jeu reste possible depuis n'importe quel jeu | Le Bal | Le vôtre |
 | [SPEC-003](specs/SPEC-003-ecriture-d-un-jeu.md) Écriture d'un jeu | Personnages, groupes, intrigues (dont une sans rattachement), objets, lieux, documents : six par jeu, dont « Règles de jeu » pour les PJ et les PNJ à la fois | Les trois | Le vôtre |
 | [SPEC-004](specs/SPEC-004-sessions.md) Sessions et déroulé | Casting avec un rôle libre et une note ; équipe ; un joueur vient du vivier : sur Meridian, le choisir dans le cast le retient, et tout joueur des trois jeux a sa place dans le vivier (fermé sur Valombre et le Bal) ; déroulé avec responsables complets, manquants et en conflit (Thomas à 14 h 30). Annuler ou reporter une session pour de vrai | Valombre ; session annulée et reportée sur le Bal | Le vôtre, Inès |

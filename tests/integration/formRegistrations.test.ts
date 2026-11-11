@@ -194,6 +194,19 @@ describe('confirmer son email et suivre son inscription (US-085)', () => {
     expect(await prisma.registration.count({ where: { periodId: period.id } })).toBe(1)
   })
 
+  // SPEC-022 R4 : la réponse rejoint la fiche de son adresse, même suivie par une autre équipe, sans rien lui prendre
+  it('une réponse rejoint la fiche d’une autre équipe, avec le nom et le téléphone de la réponse pour ce jeu', async () => {
+    const { key, game, sessions, period } = await aliceGame()
+    const bobGame = await prisma.game.create({ data: { title: `Bob ${key}`, slug: `bob-${key}`, description: '', ownerId: bob.id } })
+    const email = `fiche-de-bob-${key}@example.test`
+    const bobs = await prisma.participant.create({ data: { name: 'Nom chez Bob', slug: `nom-chez-bob-${key}`, email, gameLinks: { create: { gameId: bobGame.id, name: 'Nom chez Bob', phone: '0611111111' } } } })
+    const { confirmed } = await registerAndConfirm(period.publicId, answers(email, [sessions[0]!.id]))
+    expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200)
+    expect(await prisma.participant.count({ where: { email } })).toBe(1)
+    const links = await prisma.participantGame.findMany({ where: { participantId: bobs.id }, select: { gameId: true, name: true, phone: true } })
+    expect(links).toEqual(expect.arrayContaining([{ gameId: bobGame.id, name: 'Nom chez Bob', phone: '0611111111' }, { gameId: game.id, name: 'Lou Dupont', phone: '0600000000' }]))
+  })
+
   it('l’équipe voit l’inscription reçue et ses disponibilités, pas une autre équipe', async () => {
     const { key, sessions, period } = await aliceGame()
     await registerAndConfirm(period.publicId, answers(`vue-${key}@example.test`, [sessions[1]!.id]))

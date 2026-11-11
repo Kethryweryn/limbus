@@ -38,21 +38,14 @@ export function registrationResponseDueAt(responseDelayDays: number, now = new D
 }
 
 /**
- * Participants rapprochables par email (R12) : sans tenir compte de la casse (citext, ADR-0075), et seulement parmi
- * les participants des jeux de la même propriétaire. Un jeu sans propriétaire ne regarde que lui-même.
+ * Fiche d'une adresse, dans tout Limbus (SPEC-022 R4, ADR-0086) : sans tenir compte de la casse (citext, ADR-0075).
+ * Tant que des doublons existent (avant la fusion, US-240), la plus ancienne, celle que la fusion gardera.
  */
-export function participantEmailMatchWhere(game: { id: string, ownerId: string | null }, email: string) {
-  return {
-    email: email.trim(),
-    gameLinks: { some: game.ownerId ? { game: { ownerId: game.ownerId } } : { gameId: game.id } }
-  }
-}
-
-export async function findParticipantByEmail(game: { id: string, ownerId: string | null }, email: string) {
-  return await prisma.participant.findFirst({
-    where: participantEmailMatchWhere(game, email),
-    orderBy: { updatedAt: 'desc' },
-    select: { id: true, name: true, email: true, phone: true }
+export async function findParticipantByEmail(email: string, client: Pick<typeof prisma, 'participant'> = prisma) {
+  return await client.participant.findFirst({
+    where: { email: email.trim() },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true, slug: true, userId: true }
   })
 }
 
@@ -330,7 +323,7 @@ export async function inviteToRegistrationPeriod(params: {
     })
   }
 
-  const matched = params.newParticipant ? await findParticipantByEmail(period.game, params.newParticipant.email) : null
+  const matched = params.newParticipant ? await findParticipantByEmail(params.newParticipant.email) : null
   const knownIds = [...new Set([...participants.map((participant) => participant.id), ...(matched ? [matched.id] : [])])]
   const existing = await withGameValues(await prisma.registration.findMany({
     where: { periodId: period.id, participantId: { in: knownIds } },
@@ -353,15 +346,17 @@ export async function inviteToRegistrationPeriod(params: {
     if (invitedSession) await tx.registrationPeriodSession.upsert({ where: { sessionId: invitedSession.id }, update: {}, create: { gameId: period.gameId, periodId: period.id, sessionId: invitedSession.id } })
     const invited = participants.map((participant) => ({ id: participant.id, name: participant.name, email: participant.email!.trim() }))
     if (newParticipant && matched) {
-      await tx.participantGame.upsert({
+      // Nom tenu par le jeu (ADR-0086) : celui que l'équipe avait déjà, sinon celui qu'elle vient de saisir ; jamais
+      // celui d'une autre équipe qui suit la même fiche
+      const link = await tx.participantGame.upsert({
         where: { participantId_gameId: { participantId: matched.id, gameId: period.gameId } },
         update: {},
-        // Nom et téléphone tenus par jeu (ADR-0086) : ceux de la fiche existante
-        create: { participantId: matched.id, gameId: period.gameId, name: matched.name, phone: matched.phone }
+        create: { participantId: matched.id, gameId: period.gameId, name: newParticipant.name },
+        select: { name: true }
       })
       // La fiche existante garde son email : on écrit à l'adresse saisie, qui ne diffère que par la casse
       if (!invited.some((participant) => participant.id === matched.id)) {
-        invited.push({ id: matched.id, name: matched.name, email: newParticipant.email })
+        invited.push({ id: matched.id, name: link.name ?? newParticipant.name, email: newParticipant.email })
       }
     } else if (newParticipant) {
       const created = await tx.participant.create({
