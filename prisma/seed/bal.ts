@@ -48,7 +48,7 @@ export async function createBalStage(db: Db, context: StageContext) {
       participantId: lucie.id,
       documentId: roadmap.id,
       kind: 'document',
-      contentHash: documentContentHash({ name: archive.name, game: { title } }, roadmap),
+      contentHash: documentContentHash({ game: { title } }, roadmap),
       sentAt: daysFromNow(-65)
     }
   })

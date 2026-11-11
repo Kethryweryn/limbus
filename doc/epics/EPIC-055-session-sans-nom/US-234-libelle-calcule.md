@@ -29,6 +29,7 @@ En tant qu'organisatrice, je veux que Limbus désigne mes sessions par leur date
 - `server/plugins/sessionLabels.ts` recalcule au démarrage les libellés et adresses qui diffèrent (R6).
 - `name` disparaît de `sessionSchema`, `sessionPostponeSchema`, du formulaire, de la fenêtre « Reporter » et des outils `creer_session` et `modifier_session`, qui rendent `libelle`. Hors ligne, la projection d'une session modifiée prend le libellé de sa nouvelle date (`utils/sessionOffline.ts`).
 - Les jeux de test donnent à chaque session une date fixe et son libellé dès la création (`sessionFields`, `prisma/seed/options.ts`) ; `doc/jeux-de-test.md` dit le rôle de chacune.
+- L'empreinte d'un envoi ne porte plus le libellé de la session, seulement le contenu envoyé (`deliveryHashes.ts`) ; les envois antérieurs sont marqués « à renvoyer » une fois.
 - En route, défaut corrigé : le formulaire envoyait la date saisie sans fuseau, et le serveur la lisait à son heure ; il l'envoie maintenant avec le fuseau de l'appareil, comme « Reporter ».
 - Les outils des tests (`orgaSession`, `parcoursSession`) calculent le libellé comme le serveur ; `uniqueDate` donne à une session un libellé propre au test.
 

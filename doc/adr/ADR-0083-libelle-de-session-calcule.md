@@ -25,6 +25,7 @@ SPEC-021 retire le nom d'une session : elle se lit par sa date, avec l'heure, le
 - Créer, déplacer ou supprimer une session peut changer le libellé et l'adresse de ses voisines du même jour.
 - Le jeu devant le libellé (R4) se compose à l'affichage, là où le libellé sort des pages du jeu.
 - Une ancienne adresse de session ne mène plus à elle.
+- Le libellé sort de l'empreinte des envois (`server/utils/deliveryHashes.ts`), qui ne porte plus que le contenu envoyé : un changement de libellé ne marque plus un envoi comme dépassé. L'empreinte changeant de forme, les envois faits avant sont marqués « à renvoyer » une fois, au déploiement (choix de l'utilisatrice).
 
 ## Options écartées
 

@@ -207,7 +207,7 @@ export async function getSessionDocumentDashboard(sessionId: string) {
         && item.participantId === assignment.participantId
       )
       const character = withSheetRelationLines(assignment.character)
-      const sheetContentHash = characterSheetContentHash(session, character)
+      const sheetContentHash = characterSheetContentHash(character)
       const inferredBundleSentAt = delivery?.sentAt && trombinoscopeDelivery?.sentAt
         ? new Date(Math.max(new Date(delivery.sentAt).getTime(), new Date(trombinoscopeDelivery.sentAt).getTime()))
         : null

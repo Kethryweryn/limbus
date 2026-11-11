@@ -1,5 +1,5 @@
 {
   "type": "modifie",
   "titre": "Une session se lit par sa date",
-  "texte": "Une session n’a plus de nom à saisir : elle se lit « Session du 15 mai 2030 », avec son statut à côté. Si deux sessions d’un jeu tombent le même jour, leur heure s’ajoute. Les sessions existantes ont pris ce libellé, et leur adresse a changé."
+  "texte": "Une session n’a plus de nom à saisir : elle se lit « Session du 15 mai 2030 », avec son statut à côté. Si deux sessions d’un jeu tombent le même jour, leur heure s’ajoute. Les sessions existantes ont pris ce libellé, et leur adresse a changé. Les documents déjà envoyés apparaissent une fois « à renvoyer » : le libellé des sessions n’entre plus dans leur comparaison, seul leur contenu compte."
 }

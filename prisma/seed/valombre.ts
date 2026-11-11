@@ -201,7 +201,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
   const documents = await db.document.findMany({ where: { gameId, audiences: { has: 'pjs' } }, select: { id: true, title: true, content: true, documentUrl: true } })
   const roadmap = documents.find((row) => row.title.startsWith('Feuille de route'))!
   const world = documents.find((row) => row.title.startsWith('Document monde'))!
-  const sessionForHash = { name: session.name, game: { title } }
+  const sessionForHash = { game: { title } }
   const worldBefore = { title: world.title, subtitle: session.name, sections: [{ body: 'Version envoyée avant la dernière correction de l’équipe.' }] }
   for (const recipient of [camille, lucie, nicolas]) {
     await db.sessionDocumentDelivery.create({
@@ -241,7 +241,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
       participantId: camille.id,
       characterId: aelis.id,
       kind: 'character_sheet',
-      contentHash: characterSheetContentHash({ name: session.name }, aelis),
+      contentHash: characterSheetContentHash(aelis),
       sentAt: daysFromNow(-4),
       ...(await textCopyData({ title: aelis.name, subtitle: session.name, sections: [{ title: 'Présentation', body: aelis.pitch }, { title: 'Histoire', body: aelis.background }] }))
     }
