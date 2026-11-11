@@ -230,3 +230,49 @@ describe('une seule fiche par adresse (US-185)', () => {
     expect((await api(alice, 'PUT', `/api/participants/${legacy.id}`, { name: `Ancien renommé ${key}`, email: existing.email, gameIds: [other.id] })).status).toBe(200)
   })
 })
+
+// Nom et téléphone tenus par jeu (SPEC-022 R6, ADR-0086, US-237) : écrits sur chaque lien, en plus de la fiche
+describe('nom et téléphone par jeu (US-237)', () => {
+  const { bob, carol } = world.users
+  const links = (participantId: string) => prisma.participantGame.findMany({ where: { participantId }, select: { gameId: true, name: true, phone: true }, orderBy: { createdAt: 'asc' } })
+
+  it('une création écrit le nom et le téléphone sur chacun de ses jeux', async () => {
+    const key = `par-jeu-${++counter}`
+    const games = await Promise.all(['Un', 'Deux'].map((name) => prisma.game.create({ data: { title: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, description: '', ownerId: alice.id } })))
+    const response = await api(alice, 'POST', '/api/participants', { name: `Zoé ${key}`, email: `zoe-${key}@example.test`, phone: '0611111111', gameIds: games.map((game) => game.id) })
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    const { id } = response.body as { id: string }
+    expect((await links(id)).map(({ name, phone }) => ({ name, phone }))).toEqual([{ name: `Zoé ${key}`, phone: '0611111111' }, { name: `Zoé ${key}`, phone: '0611111111' }])
+  })
+
+  it('une modification change les seuls jeux que voit la personne qui modifie', async () => {
+    const key = `par-jeu-${++counter}`
+    const [mine, shared] = await Promise.all(['Mien', 'Partagé'].map((name) => prisma.game.create({ data: { title: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`.normalize('NFD').replace(/[̀-ͯ]/g, ''), description: '', ownerId: alice.id } })))
+    const bobGame = await prisma.game.create({ data: { title: `Bob ${key}`, slug: `bob-${key}`, description: '', ownerId: bob.id } })
+    await prisma.gameShare.create({ data: { gameId: shared!.id, userId: carol.id } })
+    const participant = await prisma.participant.create({
+      data: {
+        name: `Ilan ${key}`,
+        slug: `ilan-${key}`,
+        email: `ilan-${key}@example.test`,
+        gameLinks: { create: [mine!, shared!, bobGame].map((game) => ({ gameId: game.id, name: `Ilan ${key}`, phone: '0600000000' })) }
+      }
+    })
+    const response = await api(carol, 'PUT', `/api/participants/${participant.id}`, { name: `Ilan par Carol ${key}`, email: participant.email, phone: '0699999999', gameIds: [shared!.id] })
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    const byGame = new Map((await links(participant.id)).map((link) => [link.gameId, link]))
+    expect(byGame.get(shared!.id)).toMatchObject({ name: `Ilan par Carol ${key}`, phone: '0699999999' })
+    // Témoins : le jeu d'Alice que Carol ne voit pas et celui de Bob ne changent pas
+    expect(byGame.get(mine!.id)).toMatchObject({ name: `Ilan ${key}`, phone: '0600000000' })
+    expect(byGame.get(bobGame.id)).toMatchObject({ name: `Ilan ${key}`, phone: '0600000000' })
+  })
+
+  it('les coordonnées enregistrées dans le compte sont recopiées sur chaque jeu de ses fiches', async () => {
+    const key = `par-jeu-${++counter}`
+    const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
+    const user = await prisma.user.create({ data: { email: `compte-${key}@example.test`, name: `Compte ${key}`, password: 'x', phone: '0688888888', profileUpdatedAt: new Date() } })
+    const response = await api(alice, 'POST', '/api/participants', { name: `Saisi ${key}`, email: user.email, phone: '0611111111', gameIds: [game.id] })
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    expect(await links((response.body as { id: string }).id)).toEqual([{ gameId: game.id, name: `Compte ${key}`, phone: '0688888888' }])
+  })
+})

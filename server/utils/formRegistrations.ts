@@ -203,12 +203,13 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
       if (!count) return null
     }
     const participant = matched
-      ? await tx.participant.update({ where: { id: matched.id }, data: { email, userId }, select: { id: true, name: true } })
-      : await tx.participant.create({ data: { name, slug: slug!, email, userId }, select: { id: true, name: true } })
+      ? await tx.participant.update({ where: { id: matched.id }, data: { email, userId }, select: { id: true, name: true, phone: true } })
+      : await tx.participant.create({ data: { name, slug: slug!, email, userId }, select: { id: true, name: true, phone: true } })
     await tx.participantGame.upsert({
       where: { participantId_gameId: { participantId: participant.id, gameId: period.gameId } },
       update: {},
-      create: { participantId: participant.id, gameId: period.gameId }
+      // Nom et téléphone tenus par jeu (ADR-0086)
+      create: { participantId: participant.id, gameId: period.gameId, name: participant.name, phone: participant.phone }
     })
 
     const data = {

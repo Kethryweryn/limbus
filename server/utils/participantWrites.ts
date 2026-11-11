@@ -33,7 +33,7 @@ async function ficheForAddress(client: PrismaTx, address: string, gameIds: strin
   return await client.participant.findFirst({
     where: { OR: games.map((game) => participantEmailMatchWhere(game, address)), ...(exceptId ? { id: { not: exceptId } } : {}) },
     orderBy: { updatedAt: 'desc' },
-    select: { id: true, slug: true, name: true, gameLinks: { select: { gameId: true, notes: true } } }
+    select: { id: true, slug: true, name: true, phone: true, gameLinks: { select: { gameId: true, notes: true } } }
   })
 }
 
@@ -60,7 +60,8 @@ export async function createParticipant(event: H3Event, readBody: Reader<typeof 
       if (existing) {
         const notesByGame = new Map(existing.gameLinks.map((link) => [link.gameId, link.notes]))
         await tx.participantGame.createMany({
-          data: uniqueGameIds.filter((gameId) => !notesByGame.has(gameId)).map((gameId) => ({ participantId: existing.id, gameId, notes: gameNotes[gameId] || null }))
+          // Nom et téléphone de la fiche existante, qui ne changent pas (US-185) ; tenus par jeu (ADR-0086)
+          data: uniqueGameIds.filter((gameId) => !notesByGame.has(gameId)).map((gameId) => ({ participantId: existing.id, gameId, notes: gameNotes[gameId] || null, name: existing.name, phone: existing.phone }))
         })
         // Jeu déjà lié : la note donnée s'ajoute à la sienne, sans l'effacer
         for (const gameId of uniqueGameIds.filter((gameId) => notesByGame.has(gameId))) {
@@ -86,7 +87,7 @@ export async function createParticipant(event: H3Event, readBody: Reader<typeof 
         email: email || null,
         phone: phone || null,
         userId: accountId,
-        gameLinks: { create: uniqueGameIds.map((gameId) => ({ gameId, notes: gameNotes[gameId] || null })) }
+        gameLinks: { create: uniqueGameIds.map((gameId) => ({ gameId, notes: gameNotes[gameId] || null, name, phone: phone || null })) }
       },
       select: { id: true }
     })
@@ -156,21 +157,27 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
     const userId = await accountIdForEmail(email)
     const heldByPerson = Boolean(userId && userId === current.userId)
     const effectiveName = heldByPerson ? current.name : name
+    const effectivePhone = heldByPerson ? current.phone : phone || null
+    // Nom et téléphone par jeu (ADR-0086) : ceux des jeux que voit la personne qui modifie
+    const visibleKeptGameIds = managedExistingGameIds.filter((gameId) => nextGameIds.has(gameId))
     const updated = await tx.participant.update({
       where: { id },
       data: {
         name: effectiveName,
         slug: await generateUniqueSlug('participant', effectiveName, id),
         email: email || null,
-        phone: heldByPerson ? current.phone : phone || null,
+        phone: effectivePhone,
         // Le rattachement suit l'adresse : autre compte, ou aucun (US-070)
         userId,
         gameLinks: {
-          create: gameIdsToAdd.map((gameId) => ({ gameId, notes: gameNotes[gameId] || null })),
-          // Note de chaque jeu déjà lié et reçu ; les notes des autres jeux ne bougent pas (US-069)
-          updateMany: Object.entries(gameNotes)
-            .filter(([gameId]) => existingGameIds.has(gameId) && nextGameIds.has(gameId))
-            .map(([gameId, text]) => ({ where: { gameId }, data: { notes: text || null } }))
+          create: gameIdsToAdd.map((gameId) => ({ gameId, notes: gameNotes[gameId] || null, name: effectiveName, phone: effectivePhone })),
+          updateMany: [
+            { where: { gameId: { in: visibleKeptGameIds } }, data: { name: effectiveName, phone: effectivePhone } },
+            // Note de chaque jeu déjà lié et reçu ; les notes des autres jeux ne bougent pas (US-069)
+            ...Object.entries(gameNotes)
+              .filter(([gameId]) => existingGameIds.has(gameId) && nextGameIds.has(gameId))
+              .map(([gameId, text]) => ({ where: { gameId }, data: { notes: text || null } }))
+          ]
         }
       },
       include: participantGameLinksInclude(allowedGameIds)

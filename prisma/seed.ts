@@ -856,7 +856,8 @@ async function createGame(
     // Une personne déjà présente dans un autre jeu de test garde sa fiche, qui reçoit ce jeu (US-185)
     const existing = participantByEmail.get(participant.email)
     if (existing) {
-      await db.participantGame.create({ data: { participantId: existing.id, gameId: game.id, notes: participant.notes || null } })
+      // Nom et téléphone tenus par jeu (ADR-0086)
+      await db.participantGame.create({ data: { participantId: existing.id, gameId: game.id, notes: participant.notes || null, name: participant.name, phone: participant.phone } })
       participants.push(existing)
       continue
     }
@@ -869,7 +870,7 @@ async function createGame(
         phone: participant.phone,
         userId: accountIdByEmail.get(participant.email) ?? null,
         gameLinks: {
-          create: [{ gameId: game.id, notes: participant.notes || null }]
+          create: [{ gameId: game.id, notes: participant.notes || null, name: participant.name, phone: participant.phone }]
         },
         published: true
       }
@@ -1127,33 +1128,23 @@ async function createTimelineEvents(
 }
 
 async function createCrossGameParticipants(gameIds: string[]) {
-  const alexMorganSlug = await makeParticipantSlug('Alex Morgan')
-  await db.participant.create({
-    data: {
-      name: 'Alex Morgan',
-      slug: alexMorganSlug,
-      email: 'alex.morgan@example.test',
-      phone: '06 44 55 66 01',
-      gameLinks: {
-        create: gameIds.slice(0, 2).map((gameId) => ({ gameId, notes: 'Inscrit sur plusieurs jeux, pour essayer les filtres.' }))
-      },
-      published: true
-    }
-  })
-
-  const morganDaSilvaSlug = await makeParticipantSlug('Morgan Da Silva')
-  await db.participant.create({
-    data: {
-      name: 'Morgan Da Silva',
-      slug: morganDaSilvaSlug,
-      email: 'morgan.dasilva@example.test',
-      phone: '06 44 55 66 02',
-      gameLinks: {
-        create: gameIds.map((gameId) => ({ gameId, notes: 'Disponible sur tous les jeux de test.' }))
-      },
-      published: true
-    }
-  })
+  const people = [
+    { name: 'Alex Morgan', email: 'alex.morgan@example.test', phone: '06 44 55 66 01', gameIds: gameIds.slice(0, 2), notes: 'Inscrit sur plusieurs jeux, pour essayer les filtres.' },
+    { name: 'Morgan Da Silva', email: 'morgan.dasilva@example.test', phone: '06 44 55 66 02', gameIds, notes: 'Disponible sur tous les jeux de test.' }
+  ]
+  for (const { name, email, phone, gameIds: linkedGameIds, notes } of people) {
+    await db.participant.create({
+      data: {
+        name,
+        slug: await makeParticipantSlug(name),
+        email,
+        phone,
+        // Nom et téléphone tenus par jeu (ADR-0086)
+        gameLinks: { create: linkedGameIds.map((gameId) => ({ gameId, notes, name, phone })) },
+        published: true
+      }
+    })
+  }
 }
 
 // La session terminée, commune aux trois jeux. Le reste vient de l'étape de chaque jeu.

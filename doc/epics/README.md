@@ -305,7 +305,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-234](../archive/epics/EPIC-055-session-sans-nom/US-234-libelle-calcule.md) | Une session désignée par sa date, sans nom à saisir | EPIC-055 | terminée |
 | [US-235](../archive/epics/EPIC-055-session-sans-nom/US-235-jeu-devant-le-libelle.md) | Le jeu devant le libellé, hors des pages du jeu | EPIC-055 | terminée |
 | [US-236](../archive/epics/EPIC-055-session-sans-nom/US-236-supprimer-la-colonne-du-nom.md) | Supprimer la colonne du nom des sessions | EPIC-055 | terminée |
-| [US-237](EPIC-056-une-fiche-par-personne/US-237-valeurs-par-jeu.md) | Le nom et le téléphone saisis par jeu | EPIC-056 | à faire |
+| [US-237](EPIC-056-une-fiche-par-personne/US-237-valeurs-par-jeu.md) | Le nom et le téléphone saisis par jeu | EPIC-056 | en cours |
 | [US-238](EPIC-056-une-fiche-par-personne/US-238-email-obligatoire.md) | L'email obligatoire sur une fiche | EPIC-056 | à faire |
 | [US-239](EPIC-056-une-fiche-par-personne/US-239-une-fiche-par-adresse.md) | Une fiche par adresse dans tout Limbus | EPIC-056 | à faire |
 | [US-240](EPIC-056-une-fiche-par-personne/US-240-fusion-des-fiches.md) | Fusionner les fiches d'une même adresse | EPIC-056 | à faire |
