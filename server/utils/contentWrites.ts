@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
 import type { z } from 'zod'
 import type { Prisma } from '~/generated/prisma/client'
+import { refreshSessionLabels } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { assertSameGame, requireCurrentUser, requireGameAccess } from '~/server/utils/gameAccess'
@@ -497,10 +498,16 @@ export async function updateLocation(event: H3Event, id: string, readBody: Reade
   const { name, address, notes, gameId } = body
   await requireGameAccess(event, gameId)
 
-  return await prisma.location.update({
-    where: { id },
-    data: { name, slug: await generateUniqueSlug('location', name, id), address: address || null, notes: notes || null, gameId },
-    include: { game: true }
+  const slug = await generateUniqueSlug('location', name, id)
+  return await prisma.$transaction(async (tx) => {
+    const saved = await tx.location.update({
+      where: { id },
+      data: { name, slug, address: address || null, notes: notes || null, gameId },
+      include: { game: true }
+    })
+    // Le libellé d'une session peut porter le nom de son lieu (SPEC-021, R2)
+    await refreshSessionLabels(tx, gameId)
+    return saved
   })
 }
 
@@ -512,8 +519,13 @@ export async function deleteLocation(event: H3Event, id: string) {
 
   // Ses sessions restent, sans lieu. La base viderait la référence seule (ADR-0077) ; l'écrire ici fait aussi avancer
   // leur version, qu'une modification faite hors ligne avant la suppression compare (ADR-0036)
-  await prisma.session.updateMany({ where: { locationId: id }, data: { locationId: null } })
-  return await prisma.location.delete({ where: { id } })
+  return await prisma.$transaction(async (tx) => {
+    await tx.session.updateMany({ where: { locationId: id }, data: { locationId: null } })
+    const deleted = await tx.location.delete({ where: { id } })
+    // Sans lieu, une session ne s'en distingue plus de sa voisine (SPEC-021, R2)
+    await refreshSessionLabels(tx, location.gameId)
+    return deleted
+  })
 }
 
 // Chronologie

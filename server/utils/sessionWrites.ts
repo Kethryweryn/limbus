@@ -108,6 +108,9 @@ export async function updateSession(event: H3Event, id: string, readBody: Reader
   // Une personne du vivier choisie dans le cast est retenue en même temps que son personnage lui est réservé (R20)
   const retained = await selectionTargets(toRetain, existingSession.id)
   const author = retained.length ? await requireCurrentUser(event) : null
+  // Seules la date et le lieu font le libellé (SPEC-021) : un enregistrement de l'équipe ou du cast ne le recalcule pas
+  const before = await prisma.session.findUniqueOrThrow({ where: { id: existingSession.id }, select: { date: true, locationId: true } })
+  const labelMayChange = before.date?.getTime() !== parseDate(body.date)?.getTime() || (before.locationId || null) !== (locationId || null)
   const session = await prisma.$transaction(async (tx) => {
     for (const target of retained) await writeSelection(tx, target, 'retain', author!)
     await tx.session.update({
@@ -132,7 +135,7 @@ export async function updateSession(event: H3Event, id: string, readBody: Reader
       select: { id: true }
     })
     // Date ou lieu changés : le libellé et l'adresse de la session, et de ses voisines du même jour (SPEC-021, R2)
-    await refreshSessionLabels(tx, gameId)
+    if (labelMayChange) await refreshSessionLabels(tx, gameId)
     return await tx.session.findUniqueOrThrow({
       where: { id: existingSession.id },
       // Comme la lecture de la session : la page la remplace par cette réponse, report compris (US-022)

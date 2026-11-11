@@ -36,11 +36,13 @@ export async function refreshSessionLabels(db: PrismaTx | typeof prisma, gameId:
     taken.add(slug)
     slugs.set(session.id, slug)
   }
-  // Une session peut prendre l'adresse qu'une autre quitte : celles qui en changent la libèrent d'abord
-  for (const session of moving) await db.session.update({ where: { id: session.id }, data: { slug: `session-${session.id}` } })
+  // Écrites sans toucher à leur version (`updatedAt`) : une page ouverte ou une modification hors ligne d'une voisine
+  // reste valable, seul son libellé a changé. Une session peut prendre l'adresse qu'une autre quitte : celles qui en
+  // changent la libèrent d'abord
+  for (const session of moving) await db.$executeRaw`UPDATE "Session" SET "slug" = ${`session-${session.id}`} WHERE "id" = ${session.id}`
   for (const session of game.sessions) {
     const name = labels.get(session.id)!
     const slug = slugs.get(session.id) ?? session.slug
-    if (name !== session.name || slug !== session.slug) await db.session.update({ where: { id: session.id }, data: { name, slug } })
+    if (name !== session.name || slug !== session.slug) await db.$executeRaw`UPDATE "Session" SET "name" = ${name}, "slug" = ${slug} WHERE "id" = ${session.id}`
   }
 }
