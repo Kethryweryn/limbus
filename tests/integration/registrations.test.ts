@@ -112,18 +112,22 @@ describe('inviter des participants', () => {
     expect(await prisma.participantGame.count({ where: { participantId: other.participant.id, gameId: game.id } })).toBe(1)
   })
 
-  it('ne rapproche pas un participant d’une autre équipe : une fiche distincte est créée', async () => {
+  // SPEC-022 R4 : une fiche par adresse dans tout Limbus ; le nom du jeu est celui que l'équipe saisit
+  it('rapproche la fiche d’une autre équipe, avec le nom saisi par l’équipe', async () => {
     const { session, period } = await openPeriod()
+    const bobGame = await prisma.game.create({ data: { title: `Bob ${period.id}`, slug: `bob-${period.id}`.toLowerCase(), description: '', ownerId: world.users.bob.id } })
+    const bobs = await prisma.participant.create({ data: { name: 'Nom chez Bob', slug: `nom-chez-bob-${period.id}`.toLowerCase(), email: `homonyme-${period.id}@example.test`.toLowerCase(), gameLinks: { create: { gameId: bobGame.id, name: 'Nom chez Bob' } } } })
 
     const response = await invite(period.id, {
       sessionId: session.id,
-      newParticipant: { name: 'Homonyme', email: world.b.participant.email }
+      newParticipant: { name: 'Homonyme', email: bobs.email! }
     })
 
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     const registration = await prisma.registration.findFirstOrThrow({ where: { periodId: period.id } })
-    expect(registration.participantId).not.toBe(world.b.participant.id)
-    expect(await prisma.participantGame.count({ where: { participantId: world.b.participant.id } })).toBe(1)
+    expect(registration.participantId).toBe(bobs.id)
+    const links = await prisma.participantGame.findMany({ where: { participantId: bobs.id }, select: { gameId: true, name: true } })
+    expect(links).toEqual(expect.arrayContaining([{ gameId: bobGame.id, name: 'Nom chez Bob' }, { gameId: period.gameId, name: 'Homonyme' }]))
   })
 
   it('refuse une personne déjà dans le vivier ou déjà invitée', async () => {

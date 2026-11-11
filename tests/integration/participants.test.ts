@@ -2,6 +2,7 @@
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
+import { isParticipantSlug } from '~/utils/participantSlug'
 
 const world = inject('world')
 const { alice } = world.users
@@ -155,7 +156,7 @@ describe('notes propres à chaque jeu (US-069)', () => {
   })
 })
 
-describe('une seule fiche par adresse (US-185)', () => {
+describe('une seule fiche par adresse (US-185, US-239)', () => {
   type Created = { id: string, joinedExisting: boolean, name: string, games: Array<{ id: string }>, gameNotes: Record<string, string | null> }
   type Refusal = { message?: string, data?: { existingParticipant?: { slug: string, name: string } } }
   const { bob, carol } = world.users
@@ -165,7 +166,7 @@ describe('une seule fiche par adresse (US-185)', () => {
     const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
     const other = await prisma.game.create({ data: { title: `Autre ${key}`, slug: `autre-${key}`, description: '', ownerId: alice.id } })
     const existing = await prisma.participant.create({
-      data: { name: `Camille ${key}`, slug: `camille-${key}`, email: `camille-${key}@example.test`, phone: '0601010101', gameLinks: { create: { gameId: game.id, notes: 'Note du premier jeu' } } }
+      data: { name: `Camille ${key}`, slug: `camille-${key}`, email: `camille-${key}@example.test`, phone: '0601010101', gameLinks: { create: { gameId: game.id, notes: 'Note du premier jeu', name: `Camille ${key}`, phone: '0601010101' } } }
     })
     return { key, game, other, existing }
   }
@@ -190,26 +191,50 @@ describe('une seule fiche par adresse (US-185)', () => {
     expect((fresh.body as Created).joinedExisting).toBe(false)
   })
 
-  it('une co-organisatrice qui ne voit pas le jeu de la fiche y ajoute le sien, et n’en voit que son jeu', async () => {
-    const { game, other, existing } = await aliceFiche()
+  it('une co-organisatrice qui ne voit pas le jeu de la fiche y ajoute le sien, avec son nom, et n’en voit que son jeu', async () => {
+    const { key, game, other, existing } = await aliceFiche()
     await prisma.gameShare.create({ data: { gameId: other.id, userId: carol.id } })
     const response = await api(carol, 'POST', '/api/participants', { name: 'Saisie par Carol', email: existing.email, gameIds: [other.id] })
     expect(response.status).toBe(200)
     const created = response.body as Created
-    expect(created).toMatchObject({ id: existing.id, joinedExisting: true })
+    // La fiche n'était pas dans ses jeux : la réponse est celle d'une création (SPEC-022 R4)
+    expect(created).toMatchObject({ id: existing.id, joinedExisting: false, name: 'Saisie par Carol' })
+    expect(JSON.stringify(created)).not.toContain(`Camille ${key}`)
     expect(created.games.map((row) => row.id)).toEqual([other.id])
     expect(Object.keys(created.gameNotes)).toEqual([other.id])
     expect(JSON.stringify(created)).not.toContain(game.id)
   })
 
-  it('une fiche d’une autre propriétaire ne compte pas', async () => {
+  // SPEC-022 R4 : une fiche par adresse dans tout Limbus, même suivie par une autre équipe, sans rien en montrer
+  it('une fiche d’une autre propriétaire est rejointe, sans que rien ne le dise ni ne montre de l’autre équipe', async () => {
     const key = `adresse-bob-${++counter}`
     const bobGame = await prisma.game.create({ data: { title: `Bob ${key}`, slug: `bob-${key}`, description: '', ownerId: bob.id } })
-    const bobs = await prisma.participant.create({ data: { name: `Chez Bob ${key}`, slug: `chez-bob-${key}`, email: `partage-${key}@example.test`, gameLinks: { create: { gameId: bobGame.id } } } })
+    const bobs = await prisma.participant.create({ data: { name: `Chez Bob ${key}`, slug: `chez-bob-${key}`, email: `partage-${key}@example.test`, gameLinks: { create: { gameId: bobGame.id, name: `Chez Bob ${key}`, phone: '0699999999', notes: 'Note de Bob' } } } })
     const game = await prisma.game.create({ data: { title: `Alice ${key}`, slug: `alice-${key}`, description: '', ownerId: alice.id } })
-    const created = (await api(alice, 'POST', '/api/participants', { name: 'Chez Alice', email: bobs.email, gameIds: [game.id] })).body as Created
-    expect(created.joinedExisting).toBe(false)
-    expect(created.id).not.toBe(bobs.id)
+    const response = await api(alice, 'POST', '/api/participants', { name: 'Chez Alice', email: ` ${bobs.email!.toUpperCase()} `, phone: '0611111111', gameIds: [game.id] })
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    const created = response.body as Created
+    expect(created).toMatchObject({ id: bobs.id, joinedExisting: false, name: 'Chez Alice' })
+    expect(created.games.map((row) => row.id)).toEqual([game.id])
+    expect(JSON.stringify(created)).not.toMatch(/Chez Bob|Note de Bob|0699999999/)
+    expect(await prisma.participant.count({ where: { email: bobs.email! } })).toBe(1)
+    // Bob ne voit rien d'Alice, et garde son nom
+    const bobRead = (await api(bob, 'GET', `/api/participants/${bobs.id}`)).body as { name: string, games: Array<{ id: string }> }
+    expect(bobRead).toMatchObject({ name: `Chez Bob ${key}` })
+    expect(bobRead.games.map((row) => row.id)).toEqual([bobGame.id])
+    // L'adresse de page ne suit pas le nom (US-239)
+    expect((await prisma.participant.findUniqueOrThrow({ where: { id: bobs.id } })).slug).toBe(bobs.slug)
+    // Alice ne lit pas la date de création de Bob, ni son nom dans l'export (revue de la PR #232)
+    const aliceRead = (await api(alice, 'GET', `/api/participants/${bobs.id}`)).body as { createdAt: string }
+    expect(new Date(aliceRead.createdAt).getTime()).toBeGreaterThan(bobs.createdAt.getTime())
+    const exported = (await api(alice, 'GET', `/api/participants/${bobs.id}/export`)).body as { name: string, createdAt: string }
+    expect(exported).toMatchObject({ name: 'Chez Alice', createdAt: aliceRead.createdAt })
+    expect(JSON.stringify(exported)).not.toMatch(/Chez Bob|Note de Bob|0699999999/)
+  })
+
+  it('une fiche créée a une adresse de page neutre, sans son nom (US-239)', async () => {
+    const created = (await api(alice, 'POST', '/api/participants', { name: 'Nom secret', email: `neutre-${++counter}@example.test`, gameIds: [world.a.game.id] })).body as { slug: string }
+    expect(isParticipantSlug(created.slug)).toBe(true)
   })
 
   it('refuse de donner à une fiche l’adresse d’une autre, sans la nommer si elle est hors de vue', async () => {

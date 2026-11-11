@@ -47,6 +47,8 @@ export function exposeParticipantGames<T extends ParticipantWithGameLinks>(parti
   return {
     ...rest,
     ...(version ? { updatedAt: version } : {}),
+    // Création vue par l'équipe : l'entrée de la fiche dans ses jeux, pas sa création par une autre équipe (SPEC-022 R5)
+    ...(gameLinks?.length ? { createdAt: new Date(Math.min(...gameLinks.map((link) => link.createdAt.getTime()))) } : {}),
     games: gameLinks?.map((link) => ({
       ...link.game,
       registeredAt: link.createdAt

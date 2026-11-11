@@ -1,12 +1,12 @@
 import { createHash } from 'node:crypto'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { runtimeConfig } from '../setup'
 import { registrationInvitationSchema } from '~/server/utils/schemas'
 import {
   createRegistrationToken,
   assertNewResponseDueAt,
   hashRegistrationToken,
-  participantEmailMatchWhere,
+  findParticipantByEmail,
   registrationInvitationEmailText,
   registrationReminderEmailText,
   registrationResponseDueAt,
@@ -39,17 +39,12 @@ describe('échéance de réponse', () => {
   })
 })
 
-describe('rapprochement par email (R12)', () => {
+describe('rapprochement par email (R12, SPEC-022 R4)', () => {
   // La casse est ignorée par la base (citext, ADR-0075) : tests/integration/schema.test.ts
-  it('compare l’adresse sans ses espaces, et se limite aux jeux de la même propriétaire', () => {
-    expect(participantEmailMatchWhere({ id: 'game-1', ownerId: 'alice' }, ' Joueur@Example.test ')).toEqual({
-      email: 'Joueur@Example.test',
-      gameLinks: { some: { game: { ownerId: 'alice' } } }
-    })
-  })
-
-  it('un jeu sans propriétaire ne regarde que ses propres participants', () => {
-    expect(participantEmailMatchWhere({ id: 'game-1', ownerId: null }, 'x@example.test').gameLinks).toEqual({ some: { gameId: 'game-1' } })
+  it('cherche l’adresse sans ses espaces, dans tout Limbus, la fiche la plus ancienne d’abord', async () => {
+    const findFirst = vi.fn(async () => null)
+    await findParticipantByEmail(' Joueur@Example.test ', { participant: { findFirst } } as never)
+    expect(findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { email: 'Joueur@Example.test' }, orderBy: { createdAt: 'asc' } }))
   })
 })
 

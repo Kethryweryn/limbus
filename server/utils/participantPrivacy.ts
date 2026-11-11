@@ -5,6 +5,7 @@ import { NO_COPY } from '~/server/utils/deliveryCopies'
 import { REGISTRATION_SESSION_STATUSES as LINE, type RegistrationSessionStatus } from '~/utils/domain'
 import { normalizeRegistrationFormDefinition, type RegistrationFormDefinition } from '~/utils/registrationForms'
 import { visibleLineStatus } from '~/utils/registrations'
+import { latestOf } from '~/server/utils/participantValues'
 
 type ExportedLine = {
   status: RegistrationSessionStatus
@@ -74,6 +75,18 @@ export async function eraseParticipant(participantId: string) {
  * ne révèle pas leurs jeux. Exporté par la personne elle-même (`forPerson`), il ne contient pas les rattachements
  * de ses affinités, que seule l'équipe voit (R24, ADR-0049).
  */
+/** Nom, téléphone et dates d'une fiche tels que les voit une équipe : ceux de ses liens (SPEC-022 R5, R6). */
+function teamView(links: Array<{ name: string | null, phone: string | null, createdAt: Date, updatedAt: Date }>, fiche: { name: string, phone: string | null, createdAt: Date, updatedAt: Date }) {
+  const latest = [...links].sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())[0]
+  return {
+    name: latest?.name ?? fiche.name,
+    phone: latest ? latest.phone : fiche.phone,
+    // Création : l'entrée de la fiche dans les jeux de l'équipe, pas sa création par une autre
+    createdAt: links.length ? new Date(Math.min(...links.map((link) => link.createdAt.getTime()))) : fiche.createdAt,
+    updatedAt: latestOf(links.map((link) => link.updatedAt)) ?? fiche.updatedAt
+  }
+}
+
 export async function exportParticipantData(participantId: string, gameIds: string[] | null, { forPerson = false } = {}) {
   const inGames = gameIds === null ? {} : { gameId: { in: gameIds } }
   const inSessions = gameIds === null ? {} : { session: { gameId: { in: gameIds } } }
@@ -92,7 +105,7 @@ export async function exportParticipantData(participantId: string, gameIds: stri
       photoRefusedAt: true,
       createdAt: true,
       updatedAt: true,
-      gameLinks: { where: inGames, select: { createdAt: true, notes: true, game: { select: { title: true } } } },
+      gameLinks: { where: inGames, select: { createdAt: true, updatedAt: true, notes: true, name: true, phone: true, game: { select: { title: true } } } },
       sessionRoles: { where: inSessions, select: { role: true, createdAt: true, session } },
       assignments: { where: inSessions, select: { photoUrl: true, notes: true, createdAt: true, character: { select: { name: true } }, session } },
       payments: { where: inSessions, select: { paidAt: true, paymentEmailSentAt: true, paymentReminderSentAt: true, refundStatus: true, refundedAt: true, tariff: { select: { name: true, amountCents: true } }, instalments: { select: { amountCents: true, receivedAt: true } }, session } },
@@ -147,6 +160,8 @@ export async function exportParticipantData(participantId: string, gameIds: stri
   return {
     exportedAt: new Date().toISOString(),
     ...rest,
+    // Exportée par une équipe : son nom, son téléphone et ses dates, rien d'une autre équipe qui suit la fiche (ADR-0086)
+    ...(gameIds === null ? {} : teamView(gameLinks, rest)),
     // Réponses aux questions avec leur libellé, lu dans la version remplie (US-081)
     registrations: registrations.map(({ questionAnswers, formVersion, sessionLines, ...registration }) => ({
       ...registration,

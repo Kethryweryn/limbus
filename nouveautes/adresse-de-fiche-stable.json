@@ -1,0 +1,5 @@
+{
+  "type": "modifie",
+  "titre": "Une adresse neutre pour chaque fiche",
+  "texte": "L’adresse de la page d’une fiche participant ne contient plus son nom, et ne change plus quand on la renomme. Les liens gardés vers une fiche avant ce changement ne fonctionnent plus : rouvrez-la depuis la page Participants."
+}

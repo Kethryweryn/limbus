@@ -4,7 +4,6 @@ import { prisma } from '~/server/utils/prisma'
 import { requireAuthUser } from '~/server/utils/auth'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
 import { sendEmail } from '~/server/utils/email'
-import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { accountIdForEmail } from '~/server/utils/participantAccounts'
 import { assertRateLimit } from '~/server/utils/rateLimit'
 import { createRegistrationToken, findParticipantByEmail, hashRegistrationToken, notifyGameTeam } from '~/server/utils/registrations'
@@ -18,6 +17,7 @@ import { REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES
 import { splitParticipantName } from '~/utils/registrations'
 import { youtubeVideoId } from '~/utils/urls'
 import { namesIn } from '~/server/utils/participantValues'
+import { participantSlug } from '~/utils/participantSlug'
 
 // Formulaire public du vivier (US-084, US-085, ADR-0046)
 
@@ -188,9 +188,10 @@ export async function confirmRegistrationRequest(token: string | undefined, now 
 async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, formVersionId: string | null, tokenHash: string | null, requestId?: string) {
   const { affinities, questionAnswers, availableSessionIds, ...standard } = answers
   const email = standard.email
-  const matched = await findParticipantByEmail(period.game, email)
+  const matched = await findParticipantByEmail(email)
   const name = [standard.firstName, standard.lastName].filter(Boolean).join(' ').trim() || email.split('@')[0]!
-  const slug = matched ? null : await generateUniqueSlug('participant', name)
+  // Adresse neutre, sans le nom (US-239)
+  const slug = matched ? null : participantSlug()
   const userId = await accountIdForEmail(email)
   const now = new Date()
   // Disponibilités encore valides : une session refermée entre l'envoi et la confirmation est ignorée
@@ -204,13 +205,13 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
       if (!count) return null
     }
     const participant = matched
-      ? await tx.participant.update({ where: { id: matched.id }, data: { email, userId }, select: { id: true, name: true, phone: true } })
-      : await tx.participant.create({ data: { name, slug: slug!, email, userId }, select: { id: true, name: true, phone: true } })
+      ? await tx.participant.update({ where: { id: matched.id }, data: { email, userId }, select: { id: true } })
+      : await tx.participant.create({ data: { name, slug: slug!, email, userId }, select: { id: true } })
+    // Nom et téléphone tenus par jeu (ADR-0086) : ceux de la réponse, jamais ceux d'une autre équipe qui suit la fiche
     await tx.participantGame.upsert({
       where: { participantId_gameId: { participantId: participant.id, gameId: period.gameId } },
       update: {},
-      // Nom et téléphone tenus par jeu (ADR-0086)
-      create: { participantId: participant.id, gameId: period.gameId, name: participant.name, phone: participant.phone }
+      create: { participantId: participant.id, gameId: period.gameId, name, phone: standard.phone || null }
     })
 
     const data = {

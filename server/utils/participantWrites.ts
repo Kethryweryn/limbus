@@ -6,9 +6,8 @@ import type { participantCreateSchema, participantSchema } from '~/server/utils/
 import { exposeParticipantGames, participantGameLinksInclude, planParticipantRemoval } from '~/server/utils/participants'
 import { eraseParticipant } from '~/server/utils/participantPrivacy'
 import { assertParticipantUnmodifiedSince } from '~/server/utils/concurrency'
-import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { accountIdForEmail, syncProfileToParticipants } from '~/server/utils/participantAccounts'
-import { participantEmailMatchWhere } from '~/server/utils/registrations'
+import { participantSlug } from '~/utils/participantSlug'
 
 // Écritures d'une fiche participant, communes aux routes de l'interface et aux outils des assistants d'IA (US-129,
 // SPEC-014 R12) : mêmes contrôles d'accès aux jeux, de version et de rattachement au compte de l'adresse
@@ -24,23 +23,22 @@ async function lockAddress(tx: PrismaTx, address: string) {
 }
 
 /**
- * Fiche qui porte déjà cette adresse (SPEC-007, R5, US-185) : cherchée comme pour une inscription, parmi les jeux de la
- * même propriétaire que l'un des jeux visés (`participantEmailMatchWhere`), même ceux que l'organisatrice ne voit pas.
+ * Fiche qui porte déjà cette adresse, dans tout Limbus (SPEC-022 R4, ADR-0086), même suivie par d'autres équipes : la
+ * plus ancienne tant que des doublons existent (avant la fusion, US-240).
  */
-async function ficheForAddress(client: PrismaTx, address: string, gameIds: string[], exceptId?: string) {
-  const games = await client.game.findMany({ where: { id: { in: gameIds } }, select: { id: true, ownerId: true } })
-  if (!games.length) return null
+async function ficheForAddress(client: PrismaTx, address: string, exceptId?: string) {
   return await client.participant.findFirst({
-    where: { OR: games.map((game) => participantEmailMatchWhere(game, address)), ...(exceptId ? { id: { not: exceptId } } : {}) },
-    orderBy: { updatedAt: 'desc' },
-    select: { id: true, slug: true, name: true, phone: true, gameLinks: { select: { gameId: true, notes: true } } }
+    where: { email: address, ...(exceptId ? { id: { not: exceptId } } : {}) },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true, slug: true, name: true, userId: true, gameLinks: { select: { gameId: true, notes: true, name: true, phone: true, updatedAt: true } } }
   })
 }
 
 /**
- * Création d'une fiche. Une adresse qui a déjà une fiche dans les jeux de la propriétaire n'en crée pas une deuxième :
- * les jeux demandés, avec leurs notes, s'ajoutent à la fiche existante, dont le nom et le téléphone ne changent pas
- * (`joinedExisting`). Chaque équipe n'en voit que ses jeux (US-185).
+ * Création d'une fiche. Une adresse qui a déjà une fiche, dans n'importe quelle équipe, n'en crée pas une deuxième
+ * (SPEC-022 R4) : les jeux demandés, avec leurs notes, s'ajoutent à la fiche existante. Chaque équipe n'en voit que
+ * ses jeux et ses propres nom et téléphone (R5, R6) : une fiche déjà dans les jeux de l'équipe garde les siens, et le
+ * dit (`joinedExisting`, US-185) ; sinon, l'équipe garde ce qu'elle a saisi, et rien ne dit qu'une autre la suit.
  */
 export async function createParticipant(event: H3Event, readBody: Reader<typeof participantCreateSchema>) {
   const body = await readBody()
@@ -56,12 +54,15 @@ export async function createParticipant(event: H3Event, readBody: Reader<typeof 
   const { id, userId, joinedExisting } = await prisma.$transaction(async (tx) => {
     if (address) {
       await lockAddress(tx, address)
-      const existing = await ficheForAddress(tx, address, uniqueGameIds)
+      const existing = await ficheForAddress(tx, address)
       if (existing) {
         const notesByGame = new Map(existing.gameLinks.map((link) => [link.gameId, link.notes]))
+        // Jeux de la fiche que voit l'équipe : leur nom et leur téléphone valent pour ses nouveaux jeux (US-185)
+        const visible = existing.gameLinks.filter((link) => allowedGameIds === null || allowedGameIds.includes(link.gameId))
+        const [latest] = [...visible].sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())
+        const values = latest ? { name: latest.name ?? name, phone: latest.phone } : { name, phone: phone || null }
         await tx.participantGame.createMany({
-          // Nom et téléphone de la fiche existante, qui ne changent pas (US-185) ; tenus par jeu (ADR-0086)
-          data: uniqueGameIds.filter((gameId) => !notesByGame.has(gameId)).map((gameId) => ({ participantId: existing.id, gameId, notes: gameNotes[gameId] || null, name: existing.name, phone: existing.phone }))
+          data: uniqueGameIds.filter((gameId) => !notesByGame.has(gameId)).map((gameId) => ({ participantId: existing.id, gameId, notes: gameNotes[gameId] || null, ...values }))
         })
         // Jeu déjà lié : la note donnée s'ajoute à la sienne, sans l'effacer
         for (const gameId of uniqueGameIds.filter((gameId) => notesByGame.has(gameId))) {
@@ -75,7 +76,8 @@ export async function createParticipant(event: H3Event, readBody: Reader<typeof 
         }
         // Ses jeux ont changé : sa version aussi, pour l'équipe qui la modifierait en même temps (ADR-0028)
         await tx.participant.update({ where: { id: existing.id }, data: { updatedAt: new Date() } })
-        return { id: existing.id, userId: null, joinedExisting: true }
+        // Rattachée à un compte : ses nouveaux jeux reçoivent les coordonnées que la personne a remplies
+        return { id: existing.id, userId: existing.userId, joinedExisting: visible.length > 0 }
       }
     }
     // Rattachée au compte de son adresse (US-070) ; slug et compte ne se calculent que pour une vraie création
@@ -83,7 +85,8 @@ export async function createParticipant(event: H3Event, readBody: Reader<typeof 
     const created = await tx.participant.create({
       data: {
         name,
-        slug: await generateUniqueSlug('participant', name),
+        // Adresse neutre, sans le nom (US-239)
+        slug: participantSlug(),
         email: email || null,
         phone: phone || null,
         userId: accountId,
@@ -100,12 +103,15 @@ export async function createParticipant(event: H3Event, readBody: Reader<typeof 
   return { ...exposeParticipantGames(participant), joinedExisting }
 }
 
-// Refus d'une adresse déjà portée par une autre fiche : son nom et son lien seulement si l'organisatrice voit l'un de ses jeux
-function duplicateAddressError(other: { slug: string, name: string, gameLinks: Array<{ gameId: string }> }, allowedGameIds: string[] | null) {
-  const visible = allowedGameIds === null || other.gameLinks.some((link) => allowedGameIds.includes(link.gameId))
-  return visible
-    ? createError({ statusCode: 409, message: `Cette adresse est déjà celle de la fiche de ${other.name}.`, data: { existingParticipant: { slug: other.slug, name: other.name } } })
-    : createError({ statusCode: 409, message: 'Cette adresse est déjà celle d’une fiche, dans un autre jeu de la même propriétaire : demandez-lui d’y ajouter ce jeu.' })
+// Refus d'une adresse déjà portée par une autre fiche : son nom et son lien seulement si l'organisatrice voit l'un de
+// ses jeux, avec le nom que l'équipe lui donne ; sinon rien qui dise qui la suit (SPEC-022 R5)
+function duplicateAddressError(other: { slug: string, name: string, gameLinks: Array<{ gameId: string, name: string | null, updatedAt: Date }> }, allowedGameIds: string[] | null) {
+  const visible = other.gameLinks.filter((link) => allowedGameIds === null || allowedGameIds.includes(link.gameId))
+  const [latest] = [...visible].sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())
+  const name = latest?.name ?? other.name
+  return latest
+    ? createError({ statusCode: 409, message: `Cette adresse est déjà celle de la fiche de ${name}.`, data: { existingParticipant: { slug: other.slug, name } } })
+    : createError({ statusCode: 409, message: 'Cette adresse est déjà celle d’une autre fiche.' })
 }
 
 export async function updateParticipant(event: H3Event, id: string, readBody: Reader<typeof participantSchema>) {
@@ -147,7 +153,7 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
     const address = email?.trim()
     if (address && !sameAddress(current.email, address)) {
       await lockAddress(tx, address)
-      const other = await ficheForAddress(tx, address, [...new Set([...uniqueGameIds, ...existingLinks.map((link) => link.gameId)])], id)
+      const other = await ficheForAddress(tx, address, id)
       if (other) throw duplicateAddressError(other, allowedGameIds)
     }
     await removal.apply(tx)
@@ -165,7 +171,7 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
       where: { id },
       data: {
         name: effectiveName,
-        slug: await generateUniqueSlug('participant', effectiveName, id),
+        // L'adresse de page ne suit plus le nom : un nom donné par une équipe n'apparaît pas dans celle d'une autre (US-239)
         email: email || null,
         phone: effectivePhone,
         // Le rattachement suit l'adresse : autre compte, ou aucun (US-070)

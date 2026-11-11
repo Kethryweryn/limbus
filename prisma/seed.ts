@@ -7,6 +7,7 @@ import { prisma } from '../server/utils/prisma'
 import { collectUploadUrls, deleteUnusedUploads, uploadDir, UPLOAD_DIRS } from '../server/utils/uploads'
 import { TERMS_VERSION } from '../utils/legal'
 import { PHOTO_UPLOAD_PREFIX } from '../utils/urls'
+import { participantSlug } from '../utils/participantSlug'
 import { BAL_EXTRA_PEOPLE, createBalStage } from './seed/bal'
 import type { Db, StageContext } from './seed/db'
 import { createMeridianStage, MERIDIAN_EXTRA_PEOPLE } from './seed/meridian'
@@ -451,19 +452,10 @@ const usedParticipantSlugs = new Set<string>()
 // Fiches déjà créées dans ce rechargement, par adresse fictive : une personne n'en a qu'une pour les trois jeux (US-185)
 const participantByEmail = new Map<string, { id: string, name: string, email: string | null }>()
 
-async function makeParticipantSlug(name: string) {
-  const baseSlug = makeSlug(name) || 'participant'
-  let slug = baseSlug
-  let suffix = 2
-
-  while (
-    usedParticipantSlugs.has(slug)
-    || await db.participant.findUnique({ where: { slug }, select: { id: true } })
-  ) {
-    slug = `${baseSlug}-${suffix}`
-    suffix += 1
-  }
-
+// Adresse neutre, sans le nom (US-239) : comme une fiche créée dans l'application
+async function makeParticipantSlug() {
+  let slug = participantSlug()
+  while (usedParticipantSlugs.has(slug) || await db.participant.findUnique({ where: { slug }, select: { id: true } })) slug = participantSlug()
   usedParticipantSlugs.add(slug)
   return slug
 }
@@ -861,7 +853,7 @@ async function createGame(
       participants.push(existing)
       continue
     }
-    const slug = await makeParticipantSlug(participant.name)
+    const slug = await makeParticipantSlug()
     participants.push(await db.participant.create({
       data: {
         name: participant.name,
@@ -1127,6 +1119,32 @@ async function createTimelineEvents(
   ))
 }
 
+// Jeu d'une autre propriétaire, Inès (SPEC-022, US-239) : Sarah y est suivie sous un autre nom, « Sarah P. ». Une seule
+// fiche pour elle dans tout Limbus, et chaque équipe n'en voit que son nom et ses jeux
+const INES_GAME = { id: 'seed-carnet-d-ines', title: 'Le Carnet d’Inès' }
+
+async function createInesGame(accountIdByEmail: Map<string, string>, options: SeedOptions) {
+  const ownerId = accountIdByEmail.get('ines.lefevre@example.test')
+  if (!ownerId) return
+  const sarah = await db.participant.findFirst({
+    where: { email: personAddress('sarah.petit@example.test', options.ownerEmail) },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true }
+  })
+  const taken = await db.game.findFirst({ where: { slug: makeSlug(INES_GAME.title), id: { not: INES_GAME.id } }, select: { title: true } })
+  if (taken) throw new Error(`L'adresse de page « ${makeSlug(INES_GAME.title)} » est prise par un autre jeu (${taken.title}) : rien n'a été modifié.`)
+  await db.game.create({
+    data: {
+      id: INES_GAME.id,
+      title: INES_GAME.title,
+      slug: makeSlug(INES_GAME.title),
+      description: 'Petit jeu d’Inès, pour essayer une fiche suivie par deux équipes.',
+      ownerId,
+      ...(sarah ? { participantLinks: { create: { participantId: sarah.id, name: 'Sarah P.', notes: 'Joue avec Inès depuis longtemps.' } } } : {})
+    }
+  })
+}
+
 async function createCrossGameParticipants(gameIds: string[]) {
   const people = [
     { name: 'Alex Morgan', email: 'alex.morgan@example.test', phone: '06 44 55 66 01', gameIds: gameIds.slice(0, 2), notes: 'Inscrit sur plusieurs jeux, pour essayer les filtres.' },
@@ -1136,7 +1154,7 @@ async function createCrossGameParticipants(gameIds: string[]) {
     await db.participant.create({
       data: {
         name,
-        slug: await makeParticipantSlug(name),
+        slug: await makeParticipantSlug(),
         email,
         phone,
         // Nom et téléphone tenus par jeu (ADR-0086)
@@ -1207,7 +1225,8 @@ async function main() {
 
     const preservedAccess = await preserveAccess(fixedIdOf)
     console.log('Suppression des anciens jeux de test...')
-    const uploadUrls = await removeGames([...fixedIdOf.keys()])
+    const inesGame = await db.game.findUnique({ where: { id: INES_GAME.id }, select: { id: true } })
+    const uploadUrls = await removeGames([...fixedIdOf.keys(), ...(inesGame ? [inesGame.id] : [])])
 
     console.log('Création des jeux de test...')
     if (password) await upsertTestAccounts(options, password)
@@ -1218,6 +1237,7 @@ async function main() {
       createdGameIds.push(createdGame.id)
     }
     await createCrossGameParticipants(createdGameIds)
+    await createInesGame(accountIdByEmail, options)
     for (const gameId of createdGameIds) await placePlayersInPool(db, gameId)
     await restoreAccess(preservedAccess)
 

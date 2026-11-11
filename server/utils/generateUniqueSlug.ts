@@ -1,7 +1,8 @@
 import { prisma } from '~/server/utils/prisma'
 import { generateSlug } from '~/server/utils/generateSlug'
 
-export type SlugModel = 'game' | 'character' | 'faction' | 'intrigue' | 'item' | 'timelineEvent' | 'participant' | 'location' | 'session' | 'document'
+// Pas de fiche participant : son adresse est neutre, sans le nom (utils/participantSlug.ts, US-239)
+export type SlugModel = 'game' | 'character' | 'faction' | 'intrigue' | 'item' | 'timelineEvent' | 'location' | 'session' | 'document'
 
 const slugFallbackByModel: Record<SlugModel, string> = {
   game: 'jeu',
@@ -10,7 +11,6 @@ const slugFallbackByModel: Record<SlugModel, string> = {
   intrigue: 'intrigue',
   item: 'objet',
   timelineEvent: 'evenement',
-  participant: 'participant',
   location: 'lieu',
   session: 'session',
   document: 'document'
