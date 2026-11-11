@@ -33,7 +33,7 @@ Pistes, à comparer après la mesure :
 
 ## Décisions
 
-- 2026-11-11, mesure : sur le prochain déploiement de dépendances, sans lancer de déploiement exprès. `deploy.sh` note l'heure de chaque étape et `npm ci --timing` la durée de chaque phase.
+- 2026-11-11, mesure : sur le prochain déploiement de dépendances, sans lancer de déploiement exprès. `deploy.sh` note l'heure de chaque étape et `npm ci --timing` la durée de chaque phase ; l'option `--timing` est retirée avec la piste retenue, l'heure des étapes reste. Dans le conteneur de test, le même `npm ci`, sans ses scripts d'installation, prend 18 s, dont 10 s d'audit de sécurité.
 - 2026-11-11, objectif : revenir autour d'une minute, le niveau d'ADR-0023.
 - 2026-11-11, piste : choisie après la mesure ; si la cause est simple, la corriger suffit.
 

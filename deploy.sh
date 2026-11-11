@@ -99,13 +99,15 @@ if [ -d "$APP_DIR/node_modules" ] && [ "$(cat "$APP_DIR/$DEPS_STAMP" 2>/dev/null
 else
   # --include=dev obligatoire : NODE_ENV=production dans .env, et nuxt prepare (postinstall) comme le build
   # ont besoin des devDependencies (@nuxt/eslint, typescript, workbox-build…)
-  # --timing : durée de chaque phase (téléchargement, extraction, scripts d'installation) dans le journal
+  # --timing : durée de chaque phase (téléchargement, extraction, audit, scripts d'installation) dans le journal,
+  # sans les lignes par paquet ni par avis de sécurité (plus de 1 700 lignes sinon)
   etape "Dépendances changées : installation complète"
-  npm ci --include=dev --timing
+  npm ci --include=dev --timing 2>&1 | grep -vE 'timing (reifyNode|metavuln):'
   echo "$deps_fingerprint" > "$DEPS_STAMP"
 fi
 etape "Client Prisma"
 npx prisma generate
+etape "Build"
 if [ -s "$ARTIFACT" ]; then
   tar -xzf "$ARTIFACT" -C "$BUILD_DIR" .output
   echo "Build testé reçu (Node $build_node)"
@@ -118,6 +120,7 @@ npx prisma migrate deploy
 # Version lue par la page de santé (US-103, ADR-0052)
 git -C "$APP_DIR" rev-parse HEAD > "$BUILD_DIR/.output/VERSION"
 
+etape "Mise en place"
 cd "$APP_DIR"
 rm -rf .output-next .output-prev
 mv "$BUILD_DIR/.output" .output-next
