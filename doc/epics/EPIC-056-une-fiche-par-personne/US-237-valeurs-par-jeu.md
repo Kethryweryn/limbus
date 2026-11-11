@@ -33,4 +33,4 @@ Colonnes `name`, `phone` et `updatedAt` sur `ParticipantGame` ([ADR-0086](../../
 
 ## Avancement
 
-- Étape 1 : colonnes `name`, `phone` et `updatedAt` sur `ParticipantGame`, migration `20261128090000_nom_et_telephone_par_jeu`, écritures sur la fiche et sur chaque lien (création, modification des jeux visibles, recopie du compte, inscriptions, invitations, jeux de test) ; `tests/integration/participants.test.ts`. Les lectures passent aux liens à l'étape 2.
+- Étape 1 : colonnes `name`, `phone` et `updatedAt` sur `ParticipantGame`, migration `20261128090000_nom_et_telephone_par_jeu`, écritures sur la fiche et sur chaque lien (création, modification des jeux visibles, recopie du compte, inscriptions, invitations, jeux de test) ; `tests/integration/participants.test.ts`. Les lectures passent aux liens à l'étape 2, dont la migration recopie de nouveau la fiche sur ses liens : une écriture de l'ancien build pendant le déploiement de l'étape 1 (revue de la PR #228) n'y laisse ni lien vide ni valeur en retard.
