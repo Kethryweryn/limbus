@@ -81,7 +81,7 @@ async function uploadRib(event: Event) {
     formData.append('rib', file)
     formData.append('sessionId', session().id)
     const result = await useApiAction('/api/uploads/session-payment-ribs', { method: 'POST', body: formData })
-    settings.paymentRibUrl = result.ribUrl
+    settings.value.paymentRibUrl = result.ribUrl
     await save()
   } catch (err) {
     serverError.value = apiErrorMessage(err, 'Impossible de téléverser le RIB')
@@ -92,7 +92,7 @@ async function uploadRib(event: Event) {
 }
 
 async function removeRib() {
-  settings.paymentRibUrl = ''
+  settings.value.paymentRibUrl = ''
   await save()
 }
 </script>

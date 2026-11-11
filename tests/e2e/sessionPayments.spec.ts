@@ -139,3 +139,42 @@ test('présence : une réponse en retard est signalée, et libérer la place ret
     await prisma.$disconnect()
   }
 })
+
+// Réglages des paiements : date limite, lien et RIB, gardés à l'enregistrement (SessionPaymentSettings)
+test('réglages : date limite, lien et RIB s’enregistrent, un lien invalide est refusé', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const { session } = await paidSession(prisma, 'Session aux réglages de paiement', ['Léa réglée'])
+    await signIn(page, prisma, E2E_USERS.orga)
+    await openTab(page, session, 'payments')
+    const saved = () => prisma.session.findUniqueOrThrow({ where: { id: session.id }, select: { paymentLinkUrl: true, paymentRibUrl: true, withdrawalDeadline: true } })
+
+    // Erreur de saisie : un lien qui n'est pas http(s) est refusé, rien n'est enregistré
+    await page.getByLabel('Lien de paiement').fill('javascript:alert(1)')
+    await page.getByRole('button', { name: 'Enregistrer', exact: true }).click()
+    await expect(page.getByText('Le lien doit commencer par https:// (ou http://)')).toBeVisible()
+    expect((await saved()).paymentLinkUrl).toBeNull()
+
+    await page.getByLabel('Date limite de désistement').fill('2099-05-01')
+    await page.getByLabel('Lien de paiement').fill('https://paiement.example.test/session')
+    await page.getByRole('button', { name: 'Enregistrer', exact: true }).click()
+    await expect.poll(async () => (await saved()).paymentLinkUrl).toBe('https://paiement.example.test/session')
+    expect((await saved()).withdrawalDeadline?.toISOString().slice(0, 10)).toBe('2099-05-01')
+
+    // Le RIB téléversé s'enregistre aussitôt, puis se retire
+    await page.locator('input[type="file"][accept="application/pdf"]').setInputFiles({ name: 'rib.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n') })
+    await expect(page.getByRole('link', { name: 'Voir le PDF' })).toBeVisible()
+    await expect.poll(async () => (await saved()).paymentRibUrl).toBeTruthy()
+    await page.getByRole('button', { name: 'Retirer', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Téléverser un RIB' })).toBeVisible()
+    await expect.poll(async () => (await saved()).paymentRibUrl).toBeNull()
+    // Le lien et la date restent
+    expect((await saved()).paymentLinkUrl).toBe('https://paiement.example.test/session')
+
+    await page.reload()
+    await expect(page.getByLabel('Lien de paiement')).toHaveValue('https://paiement.example.test/session')
+    await expect(page.getByLabel('Date limite de désistement')).toHaveValue('2099-05-01')
+  } finally {
+    await prisma.$disconnect()
+  }
+})
