@@ -349,8 +349,10 @@ export async function withCastReservations<T extends { id: string, gameId: strin
     }),
     prisma.registrationPeriod.findUnique({ where: { gameId: session.gameId }, select: { id: true, state: true, replayPolicy: true } })
   ])
-  const pool = period && session.status === SESSION_STATUSES.scheduled ? await poolCandidates(session, period) : []
-  const retainedNames = await namesIn(session.gameId, retained.map((line) => line.registration.participantId))
+  const [pool, retainedNames] = await Promise.all([
+    period && session.status === SESSION_STATUSES.scheduled ? poolCandidates(session, period) : [],
+    namesIn(session.gameId, retained.map((line) => line.registration.participantId))
+  ])
   const retainedIds = new Set(retained.map((line) => line.registration.id))
   return {
     ...session,

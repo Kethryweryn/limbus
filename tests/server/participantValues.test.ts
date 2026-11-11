@@ -1,5 +1,6 @@
+import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { latestVisibleValues, namesIn, withGameValues } from '~/server/utils/participantValues'
+import { PARTICIPANT_KEYS, latestVisibleValues, namesIn, withGameValues } from '~/server/utils/participantValues'
 import { prisma } from '~/server/utils/prisma'
 
 // Nom et téléphone tenus par jeu (SPEC-022 R6, ADR-0086, US-237)
@@ -62,5 +63,14 @@ describe('namesIn et latestVisibleValues', () => {
       ]
     })
     expect(fiche).toMatchObject({ name: 'Récent', phone: '0602' })
+  })
+})
+
+describe('clés de fiche', () => {
+  it('reconnaît chaque relation du schéma vers une fiche participant', () => {
+    const schema = readFileSync('prisma/schema.prisma', 'utf8')
+    const relations = [...schema.matchAll(/^\s+(\w+)\s+Participant\??\s+@relation/gm)].map((match) => match[1])
+    expect(relations.length).toBeGreaterThan(0)
+    expect(relations.filter((name) => !PARTICIPANT_KEYS.has(name!))).toEqual([])
   })
 })

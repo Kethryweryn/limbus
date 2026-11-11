@@ -240,17 +240,19 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
 
   // Après la réponse : la personne n'attend pas le serveur SMTP, et un échec ne change rien à son inscription
   if (result && period.notifyTeam) {
-    // Nom tenu par l'équipe du jeu (ADR-0086)
-    const participantName = (await namesIn(period.gameId, [result.participantId])).get(result.participantId)
-    void notifyGameTeam(
-      period.gameId,
-      [
-        `${participantName} a répondu au questionnaire de « ${period.game.title} ».`,
-        '',
-        `Cette personne est dans le vivier : retrouvez-la dans les inscriptions du jeu, ${absoluteAppUrl(`/registrations/${period.game.slug}?onglet=vivier`)}.`
-      ].join('\n'),
-      `Nouvelle inscription : ${participantName} (${period.game.title})`
-    ).catch((error) => console.error('[inscription] équipe non prévenue', { periodId: period.id, error: (error as Error)?.message }))
+    // Nom tenu par l'équipe du jeu (ADR-0086), lu lui aussi après la réponse
+    void namesIn(period.gameId, [result.participantId]).then((names) => {
+      const participantName = names.get(result.participantId)
+      return notifyGameTeam(
+        period.gameId,
+        [
+          `${participantName} a répondu au questionnaire de « ${period.game.title} ».`,
+          '',
+          `Cette personne est dans le vivier : retrouvez-la dans les inscriptions du jeu, ${absoluteAppUrl(`/registrations/${period.game.slug}?onglet=vivier`)}.`
+        ].join('\n'),
+        `Nouvelle inscription : ${participantName} (${period.game.title})`
+      )
+    }).catch((error) => console.error('[inscription] équipe non prévenue', { periodId: period.id, error: (error as Error)?.message }))
   }
   return result
 }

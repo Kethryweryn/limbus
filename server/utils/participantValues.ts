@@ -9,8 +9,9 @@ import { prisma } from './prisma'
 type Plain = Record<string, unknown>
 type GameValue = { name: string | null, phone: string | null }
 
-// Clés sous lesquelles une lecture expose une fiche participant
-const PARTICIPANT_KEYS = new Set(['participant', 'targetParticipant', 'transferredTo'])
+// Clés sous lesquelles une lecture expose une fiche participant : celles des relations vers `Participant` du schéma,
+// ce que vérifie tests/server/participantValues.test.ts
+export const PARTICIPANT_KEYS = new Set(['participant', 'targetParticipant', 'transferredTo'])
 
 const isPlain = (value: unknown): value is Plain =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)
