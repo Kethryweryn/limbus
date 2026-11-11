@@ -32,16 +32,17 @@ Cette spec change [SPEC-004](SPEC-004-sessions.md) pour le nom d'une session, et
 
 ### Libellé
 
-- **R1** Une session n'a pas de nom à saisir. Son libellé est « Session du <jour> » (« Session du 15 mai 2099 »), le jour à l'heure de Paris ; sans date, « Session sans date ». Le formulaire de session ne demande plus de nom, ni à la création ni à la modification.
+- **R1** Une session n'a pas de nom à saisir. Son libellé est « Session du <jour> » (« Session du 15 mai 2099 », « Session du 1er mai 2099 »), le jour à l'heure de Paris ; sans date, « Session sans date ». Ni le formulaire de session, à la création comme à la modification, ni la fenêtre « Reporter » ne demandent plus de nom.
 - **R2** Si une autre session du même jeu tombe le même jour, le libellé ajoute l'heure (« Session du 15 mai 2099, 14 h », « 14 h 30 ») ; à la même heure, il ajoute aussi le lieu (« — Salle des fêtes ») ; si elles restent pareilles, un numéro dans l'ordre de création (« (2) »). Deux sessions sans date se distinguent de même par le lieu, puis le numéro. Le libellé d'une session peut donc changer quand une autre session du jeu est créée, déplacée ou supprimée.
-- **R3** Le libellé remplace le nom partout où le nom apparaissait : pages du jeu, listes, inscriptions, casting, paiements, documents, fiches, PDF, emails, export, assistants d'IA. Le statut reste affiché là où il l'était.
-- **R4** Hors des pages d'un jeu (emails, PDF, « Je participe », tableau de bord, documents reçus), le libellé est précédé du titre du jeu : « Station Meridian — Session du 15 mai 2099 », sauf là où le titre du jeu est déjà affiché juste à côté.
+- **R3** Le libellé remplace le nom partout où le nom apparaissait : pages du jeu, listes, inscriptions, casting, paiements, documents, fiches, PDF, emails, export, page publique, questionnaire d'inscription et liens personnels, assistants d'IA. Le statut reste affiché là où il l'était.
+- **R4** Hors des pages d'un jeu (emails, PDF, « Je participe », tableau de bord, documents reçus), le libellé est précédé du titre du jeu : « Station Meridian — Session du 15 mai 2099 », sauf là où le titre du jeu est déjà affiché juste à côté : la page publique, le questionnaire d'inscription et les pages des liens personnels portent le jeu en titre, et gardent le libellé seul.
 
 ### Adresse et existant
 
 - **R5** L'adresse d'une session est faite du jeu et de la date : `/sessions/station-meridian-2099-05-15`, ou `…-sans-date` ; une seconde à la même adresse prend un suffixe. Elle change si la date change, comme elle changeait avec le nom.
 - **R6** Les sessions existantes perdent leur nom : à la mise en production, chacune prend son libellé et son adresse selon R1, R2 et R5. Une ancienne adresse ne mène plus à la session.
 - **R7** Un assistant d'IA crée ou modifie une session sans nom ; il lit le libellé à la place.
+- **R8** Les jeux de test donnent à chaque session une date fixe, et non plus relative au jour du rechargement : le cahier de tests les désigne par leur libellé (« Session du 12 juin 2030 »), et `doc/jeux-de-test.md` rappelle le rôle de chacune (ancienne « Session mixte »…). Les sessions à venir sont datées loin dans le futur, les passées dans le passé.
 
 ## Données
 
@@ -60,7 +61,7 @@ Inchangés : les droits de [SPEC-004](SPEC-004-sessions.md).
 
 Un lot, [EPIC-055](../epics/EPIC-055-session-sans-nom/README.md) :
 
-1. Le libellé calculé, le formulaire sans nom, l'adresse, les sessions existantes, les assistants d'IA et les jeux de test (R1 à R3, R5 à R7).
+1. Le libellé calculé, le formulaire sans nom, l'adresse, les sessions existantes, les assistants d'IA et les jeux de test (R1 à R3, R5 à R8).
 2. Le jeu devant le libellé hors des pages du jeu (R4).
 
 ## Historique
@@ -71,3 +72,4 @@ Un lot, [EPIC-055](../epics/EPIC-055-session-sans-nom/README.md) :
   - les noms existants oubliés (R6) ;
   - l'adresse faite du jeu et de la date (R5) ;
   - le jeu devant le libellé hors des pages du jeu (R4).
+- 2026-11-11 (revue, choix de l'utilisatrice) : les jeux de test prennent des dates fixes, et le cahier désigne les sessions par leur libellé (R8). Précisés aussi : « 1er » pour le premier du mois et la fenêtre « Reporter » (R1), la page publique, le questionnaire et les liens personnels (R3, R4).
