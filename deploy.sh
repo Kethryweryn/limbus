@@ -28,6 +28,9 @@ if ! flock -n 9; then
   exit 1
 fi
 
+# Heure de chaque étape dans le journal du déploiement (fiche deploiement-dependances : mesurer avant de choisir)
+etape() { echo "[$(date +%T)] $*"; }
+
 cd "$APP_DIR"
 
 # Fichiers de travail effacés à la sortie, déploiement réussi ou non
@@ -66,6 +69,7 @@ else
 fi
 echo "Déploiement de $(git rev-parse --short HEAD) : $(git log -1 --format=%s)"
 
+etape "Copie du dépôt"
 rm -rf "$BUILD_DIR"
 rsync -a --delete \
   --exclude .git \
@@ -88,16 +92,19 @@ cd "$BUILD_DIR"
 DEPS_STAMP="node_modules/.limbus-deps-stamp"
 deps_fingerprint="$(sha256sum package-lock.json | cut -d' ' -f1) $(node --version)"
 if [ -d "$APP_DIR/node_modules" ] && [ "$(cat "$APP_DIR/$DEPS_STAMP" 2>/dev/null)" = "$deps_fingerprint" ]; then
-  echo "Dépendances inchangées : reprise de node_modules"
+  etape "Dépendances inchangées : reprise de node_modules"
   cp -al "$APP_DIR/node_modules" node_modules
   # Ce que npm ci ferait après l'installation : nuxt prepare crée .nuxt/tsconfig.json, que Prisma lit
   npm run postinstall
 else
   # --include=dev obligatoire : NODE_ENV=production dans .env, et nuxt prepare (postinstall) comme le build
   # ont besoin des devDependencies (@nuxt/eslint, typescript, workbox-build…)
-  npm ci --include=dev
+  # --timing : durée de chaque phase (téléchargement, extraction, scripts d'installation) dans le journal
+  etape "Dépendances changées : installation complète"
+  npm ci --include=dev --timing
   echo "$deps_fingerprint" > "$DEPS_STAMP"
 fi
+etape "Client Prisma"
 npx prisma generate
 if [ -s "$ARTIFACT" ]; then
   tar -xzf "$ARTIFACT" -C "$BUILD_DIR" .output
@@ -106,6 +113,7 @@ else
   # Le dossier de build n'a pas de .git : les dates de « Nouveautés » se lisent dans le dépôt (ADR-0065)
   NOUVEAUTES_DEPOT="$APP_DIR" npm run build
 fi
+etape "Migrations"
 npx prisma migrate deploy
 # Version lue par la page de santé (US-103, ADR-0052)
 git -C "$APP_DIR" rev-parse HEAD > "$BUILD_DIR/.output/VERSION"
@@ -121,5 +129,7 @@ mv .output-next .output
 rm -rf node_modules generated
 mv "$BUILD_DIR/node_modules" "$BUILD_DIR/generated" .
 
+etape "Redémarrage"
 systemctl restart "$SERVICE_NAME"
 systemctl status "$SERVICE_NAME" --no-pager
+etape "Fin du déploiement"
