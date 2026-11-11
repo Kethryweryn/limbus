@@ -32,7 +32,7 @@ Les 6 minutes ne se sont pas reproduites : un aléa du serveur ou du réseau, qu
 
 ## Conséquences
 
-- Un déploiement qui change les dépendances prend environ une minute, l'objectif de la fiche ; une PR de code reste à quelques secondes (reprise de `node_modules`).
+- Un déploiement qui change les dépendances devrait prendre environ 1 min 10 (1 min 45 moins les 36 s d'audit), proche de l'objectif de la fiche ; le journal du prochain le confirmera ; une PR de code reste à quelques secondes (reprise de `node_modules`).
 - Les failles connues des dépendances restent signalées par la CI et par les alertes Dependabot, plus par le serveur.
 - Un nouveau ralentissement se lit directement dans le journal du job `deploy`, étape par étape.
 
