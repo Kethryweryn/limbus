@@ -1,6 +1,6 @@
 ---
 titre: Un compte pour chaque participant
-statut: à trancher
+statut: prête
 date: 2026-11-09
 ---
 
@@ -34,8 +34,12 @@ Tranchées par l'utilisatrice le 2026-11-09 :
 - Email obligatoire ; les fiches sans email existantes sont signalées à leur équipe.
 - Pas d'email à la création du compte ; un compte jamais activé est effacé quand plus aucune fiche ne le relie à une équipe.
 
+Tranchées par l'utilisatrice le 2026-11-11 :
+
+- Les fiches existantes d'une même adresse chez plusieurs propriétaires sont fusionnées automatiquement par la migration ; chaque équipe garde ses jeux, ses notes, ses casts et les coordonnées qu'elle avait saisies.
+- À l'activation, le compte part vide : la personne remplit elle-même ses coordonnées, que ses équipes voient ensuite. Aucune équipe ne voit ce qu'une autre a saisi.
+- Un compte jamais activé échappe à l'effacement après 24 mois sans connexion ([ADR-0056](../adr/ADR-0056-durees-de-conservation.md)) : il n'est effacé que quand plus aucune fiche ne le relie à une équipe. Une fois activé, il suit la règle normale.
+
 ## Points à trancher
 
-- **Fiches existantes de la même personne chez plusieurs propriétaires** : la migration les fusionne en une seule, chaque équipe gardant ses jeux, ses notes et ses coordonnées ? Recommandation : oui, automatiquement.
-- **Activation** : Paul s'inscrit avec son adresse (ou demande un nouveau mot de passe), confirme par le lien reçu, choisit son mot de passe et accepte les conditions. Son compte part-il vide, ou reprend-il des coordonnées saisies par une équipe ? Recommandation : vide, puisqu'aucune équipe ne doit voir ce qu'une autre a saisi ; il remplit ses coordonnées, que les équipes voient ensuite.
-- **Inactivité** : un compte pré-créé échappe à l'effacement après 24 mois sans connexion ([ADR-0056](../adr/ADR-0056-durees-de-conservation.md)), puisqu'il ne s'est jamais connecté, et suit la règle « effacé sans fiche » ? Recommandation : oui.
+Aucun : la fiche est prête pour sa spec.
