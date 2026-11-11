@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sessionDayKey, sessionDayLabel, sessionHourLabel, sessionLabels } from '~/utils/sessionLabels'
+import { inGameSentence, inSentence, sessionDayKey, sessionDayLabel, sessionHourLabel, sessionLabels, withGame } from '~/utils/sessionLabels'
 
 // SPEC-021 : libellé d'une session, à l'heure de Paris
 describe('libellé d’une session (R1, R2)', () => {
@@ -33,5 +33,13 @@ describe('libellé d’une session (R1, R2)', () => {
     expect(labels.get('a')).toBe('Session sans date')
     expect(labels.get('b')).toBe('Session sans date (2)')
     expect(labels.get('c')).toBe('Session sans date — Forêt')
+  })
+})
+
+describe('libellé dans une phrase et hors des pages du jeu (R4)', () => {
+  it('se place au fil d’une phrase, avec le jeu devant hors des pages du jeu', () => {
+    expect(inSentence('Session du 15 mai 2099')).toBe('session du 15 mai 2099')
+    expect(withGame('Station Meridian', 'Session du 15 mai 2099')).toBe('Station Meridian — Session du 15 mai 2099')
+    expect(inGameSentence('Station Meridian', 'Session sans date')).toBe('la session sans date de « Station Meridian »')
   })
 })

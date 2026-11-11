@@ -1,4 +1,5 @@
 // US-199 : paiements et présence d'une session (SPEC-006 R14 à R18 ; SPEC-004 R16, R18 à R20)
+import { inSentence, withGame } from '../../utils/sessionLabels'
 import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { openMailbox } from './mailbox'
@@ -32,7 +33,7 @@ test('paiement simple : valider puis annuler, demande puis relance, et le paieme
   const prisma = createTestPrisma()
   const mailbox = openMailbox()
   try {
-    const { session, cast } = await paidSession(prisma, 'Session au paiement simple', ['Léa payeuse', 'Noé parti'])
+    const { game, session, cast } = await paidSession(prisma, 'Session au paiement simple', ['Léa payeuse', 'Noé parti'])
     const [lea, noe] = cast.map((line) => line.participant)
     await signIn(page, prisma, E2E_USERS.orga)
     await openTab(page, session, 'payments')
@@ -47,11 +48,13 @@ test('paiement simple : valider puis annuler, demande puis relance, et le paieme
     // Première demande « Paiement », puis « Relance paiement » (R18)
     await row(page, lea!.name).getByRole('button', { name: 'Envoyer' }).click()
     await expect.poll(() => mailbox.to(lea!.email!).length).toBe(1)
-    expect(mailbox.to(lea!.email!)[0]!.raw).toMatch(/Subject: Paiement - /)
+    // Hors des pages du jeu, l'objet porte le jeu devant le libellé (SPEC-021, R4)
+    expect(mailbox.to(lea!.email!)[0]!.subject).toBe(`Paiement - ${withGame(game.title, session.label)}`)
+    expect(mailbox.to(lea!.email!)[0]!.text).toContain(`participation à la ${inSentence(session.label)}`)
     await expect(row(page, lea!.name).getByRole('button', { name: 'Relancer' })).toBeVisible()
     await row(page, lea!.name).getByRole('button', { name: 'Relancer' }).click()
     await expect.poll(() => mailbox.to(lea!.email!).length).toBe(2)
-    expect(mailbox.to(lea!.email!)[1]!.raw).toMatch(/Subject: Relance paiement - /)
+    expect(mailbox.to(lea!.email!)[1]!.subject).toBe(`Relance paiement - ${withGame(game.title, session.label)}`)
 
     // Noé a payé puis quitte la session : son paiement reste à décider, et « À décider » redevient un choix (R16, US-205)
     await row(page, noe!.name).getByRole('button', { name: 'Valider le paiement' }).click()

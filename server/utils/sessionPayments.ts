@@ -1,3 +1,4 @@
+import { inSentence, withGame } from '~/utils/sessionLabels'
 import { labelSession } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
 import { openEmailTransport, sendEmail } from '~/server/utils/email'
@@ -50,8 +51,8 @@ function paymentEmailText(params: {
   withdrawalDeadline?: Date | null
 }) {
   const intro = params.reminder
-    ? `Petit rappel pour le paiement de ta participation à ${params.sessionLabel}.`
-    : `Tu peux maintenant régler ta participation à ${params.sessionLabel}.`
+    ? `Petit rappel pour le paiement de ta participation à la ${inSentence(params.sessionLabel)}.`
+    : `Tu peux maintenant régler ta participation à la ${inSentence(params.sessionLabel)}.`
 
   return compactLines([
     `Bonjour ${firstName(params.participantName)},`,
@@ -672,7 +673,7 @@ export async function sendSessionPaymentEmails(sessionId: string, reminder = fal
       try {
         await transport.send({
           to: row.participant.email!,
-          subject: `${isReminder ? 'Relance paiement' : 'Paiement'} - ${dashboard.session.label}`,
+          subject: `${isReminder ? 'Relance paiement' : 'Paiement'} - ${withGame(dashboard.session.game.title, dashboard.session.label)}`,
           text: paymentEmailText({
             participantName: row.participant.name,
             sessionLabel: dashboard.session.label,
@@ -732,7 +733,7 @@ export async function sendSessionPaymentTestEmails(sessionId: string, emails: st
 
   const result = await sendEmail({
     to: emails,
-    subject: `[Test] ${reminder ? 'Relance paiement' : 'Paiement'} - ${dashboard.session.label}`,
+    subject: `[Test] ${reminder ? 'Relance paiement' : 'Paiement'} - ${withGame(dashboard.session.game.title, dashboard.session.label)}`,
     text: paymentEmailText({
       participantName: sample?.participant.name || 'Prénom',
       sessionLabel: dashboard.session.label,

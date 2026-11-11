@@ -69,3 +69,9 @@ export function sessionLabels(sessions: LabelledSession[]) {
 
 /** Le libellé au fil d'une phrase : « la session du 15 mai 2099 », « de la session sans date ». */
 export const inSentence = (label: string) => label.charAt(0).toLowerCase() + label.slice(1)
+
+/** Hors des pages d'un jeu (SPEC-021, R4) : « Station Meridian — Session du 15 mai 2099 ». */
+export const withGame = (gameTitle: string, label: string) => `${gameTitle} — ${label}`
+
+/** Au fil d'une phrase, hors des pages du jeu : « la session du 15 mai 2099 de « Station Meridian » ». */
+export const inGameSentence = (gameTitle: string, label: string) => `la ${inSentence(label)} de « ${gameTitle} »`

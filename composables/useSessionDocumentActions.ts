@@ -1,4 +1,4 @@
-import { inSentence } from '~/utils/sessionLabels'
+import { inGameSentence } from '~/utils/sessionLabels'
 import { computed, inject, provide, ref, type InjectionKey } from 'vue'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { useApiAction } from '~/composables/useApiFetch'
@@ -101,7 +101,7 @@ function createActions(data: () => SessionDocumentsData, onRefresh: () => Promis
       return {
         subject: document ? `[Test] ${document.title}` : '',
         body: [
-          `Document de test pour la ${inSentence(session().label)}.`,
+          `Document de test pour ${inGameSentence(session().game.title, session().label)}.`,
           '',
           document?.content || '',
           document?.documentUrl ? `Document lié : ${document.documentUrl}` : ''
@@ -114,7 +114,7 @@ function createActions(data: () => SessionDocumentsData, onRefresh: () => Promis
     return {
       subject: sheet ? `[Test] Fiche personnage - ${sheet.character.name}` : '',
       body: [
-        `Fiche personnage de test pour ${session().label}.`,
+        `Fiche personnage de test pour ${inGameSentence(session().game.title, session().label)}.`,
         '',
         sheet ? `Personnage : ${sheet.character.name}` : '',
         sheet?.character.backgroundDocumentUrl

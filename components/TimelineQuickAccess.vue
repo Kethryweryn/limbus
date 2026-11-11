@@ -67,7 +67,8 @@ const shortcuts = computed(() => {
       key: `session-${nextSessionGame.value.id}`,
       label: 'Prochaine session prévue',
       game: nextSessionGame.value,
-      detail: `${formatDate(nextSessionGame.value.nextScheduledSessionAt)} · ${nextSessionGame.value.nextScheduledSession?.label || 'Session'}`
+      // Le libellé dit déjà la date (SPEC-021)
+      detail: nextSessionGame.value.nextScheduledSession?.label || formatDate(nextSessionGame.value.nextScheduledSessionAt)
     })
   }
 

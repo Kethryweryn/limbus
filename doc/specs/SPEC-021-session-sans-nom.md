@@ -79,3 +79,4 @@ Un lot, [EPIC-055](../epics/EPIC-055-session-sans-nom/README.md) :
 - 2026-11-11 (revue de la PR #217, choix de l'utilisatrice) : la colonne du nom disparaît ; le libellé se calcule à la lecture (ADR-0084). Les empreintes des envois et des trombinoscopes ne portent plus que le contenu, sans libellé ni titre du jeu.
 - 2026-11-11 : US-234 livrée : libellé calculé à la lecture, formulaire et report sans nom, adresse, sessions existantes, assistants d'IA, jeux de test à dates fixes, empreintes du contenu seul. En route, la date saisie part avec le fuseau de l'appareil.
 - 2026-11-11 : US-236 livrée : la colonne du nom est supprimée.
+- 2026-11-11 : US-235 livrée : le jeu devant le libellé dans les emails et PDF de fiche, de trombinoscope et de paiement ; ailleurs, le jeu est déjà affiché à côté. Lot terminé.
