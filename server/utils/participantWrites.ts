@@ -103,15 +103,14 @@ export async function createParticipant(event: H3Event, readBody: Reader<typeof 
   return { ...exposeParticipantGames(participant), joinedExisting }
 }
 
-// Refus d'une adresse déjà portée par une autre fiche : son nom et son lien seulement si l'organisatrice voit l'un de
-// ses jeux, avec le nom que l'équipe lui donne ; sinon rien qui dise qui la suit (SPEC-022 R5)
-function duplicateAddressError(other: { slug: string, name: string, gameLinks: Array<{ gameId: string, name: string | null, updatedAt: Date }> }, allowedGameIds: string[] | null) {
-  const visible = other.gameLinks.filter((link) => allowedGameIds === null || allowedGameIds.includes(link.gameId))
-  const [latest] = [...visible].sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())
-  const name = latest?.name ?? other.name
-  return latest
-    ? createError({ statusCode: 409, message: `Cette adresse est déjà celle de la fiche de ${name}.`, data: { existingParticipant: { slug: other.slug, name } } })
-    : createError({ statusCode: 409, message: 'Cette adresse est déjà celle d’une autre fiche.' })
+/**
+ * Déplace vers une autre fiche ce qu'une équipe tient d'une fiche, dans les jeux donnés (SPEC-022 R7, R8, ADR-0086) :
+ * jeux et notes, nom et téléphone, inscriptions, équipe, casting, présence, paiements, envois, trombinoscopes, déroulé.
+ * La fonction SQL est commune à la correction d'adresse et à la fusion des fiches (US-240).
+ */
+export async function moveParticipant(tx: PrismaTx, fromId: string, toId: string, gameIds: string[]) {
+  if (!gameIds.length || fromId === toId) return
+  await tx.$executeRaw`SELECT limbus_move_participant(${fromId}, ${toId}, ${gameIds}::text[])`
 }
 
 export async function updateParticipant(event: H3Event, id: string, readBody: Reader<typeof participantSchema>) {
@@ -148,21 +147,29 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
   const removal = await planParticipantRemoval(id, gameIdsToRemove, user)
   const result = await prisma.$transaction(async (tx) => {
     const current = await tx.participant.findUniqueOrThrow({ where: { id }, select: { name: true, phone: true, userId: true, email: true } })
-    // Une adresse changée vers celle d'une autre fiche est refusée : réunir deux fiches n'est pas prévu (US-185). Un
-    // doublon plus ancien reste modifiable tant que son adresse ne change pas
+    // Adresse corrigée (SPEC-022 R7) : changée sur place si l'équipe voit tous les jeux de la fiche et qu'aucune autre
+    // fiche ne la porte ; sinon, seuls les jeux de l'équipe passent à la fiche de cette adresse, créée au besoin. La
+    // fiche d'origine garde son adresse pour les autres équipes, et aucun compte ne change d'adresse
     const address = email?.trim()
+    let target: { id: string, userId: string | null } | null = null
     if (address && !sameAddress(current.email, address)) {
       await lockAddress(tx, address)
       const other = await ficheForAddress(tx, address, id)
-      if (other) throw duplicateAddressError(other, allowedGameIds)
+      if (other || managedExistingGameIds.length < existingLinks.length) {
+        target = other ?? await tx.participant.create({
+          data: { name, slug: participantSlug(), email: address, userId: await accountIdForEmail(address) },
+          select: { id: true, userId: true }
+        })
+      }
     }
     await removal.apply(tx)
     // Une fiche sans aucun jeu est supprimée (US-036) : l'interface l'a fait confirmer
     if (!gameIdsToAdd.length && !await tx.participantGame.count({ where: { participantId: id } })) return null
 
-    // Fiche qui reste rattachée : nom et téléphone sont tenus par la personne, l'envoi de l'équipe est ignoré (US-075)
-    const userId = await accountIdForEmail(email)
-    const heldByPerson = Boolean(userId && userId === current.userId)
+    // Fiche qui reste rattachée : nom et téléphone sont tenus par la personne, l'envoi de l'équipe est ignoré (US-075).
+    // Une fiche dont l'équipe part vers une autre adresse garde son adresse et son compte
+    const userId = target ? current.userId : await accountIdForEmail(email)
+    const heldByPerson = !target && Boolean(userId && userId === current.userId)
     const effectiveName = heldByPerson ? current.name : name
     const effectivePhone = heldByPerson ? current.phone : phone || null
     // Nom et téléphone par jeu (ADR-0086) : ceux des jeux que voit la personne qui modifie
@@ -170,10 +177,11 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
     const updated = await tx.participant.update({
       where: { id },
       data: {
-        name: effectiveName,
+        // La fiche d'une équipe qui part vers une autre adresse reste celle des autres : ses colonnes ne changent pas
+        name: target ? current.name : effectiveName,
         // L'adresse de page ne suit plus le nom : un nom donné par une équipe n'apparaît pas dans celle d'une autre (US-239)
-        email: email || null,
-        phone: effectivePhone,
+        email: target ? current.email : email || null,
+        phone: target ? current.phone : effectivePhone,
         // Le rattachement suit l'adresse : autre compte, ou aucun (US-070)
         userId,
         gameLinks: {
@@ -189,6 +197,20 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
       },
       include: participantGameLinksInclude(allowedGameIds)
     })
+    const teamGameIds = [...visibleKeptGameIds, ...gameIdsToAdd]
+    if (target) await moveParticipant(tx, id, target.id, teamGameIds)
+    // Adresse corrigée : les inscriptions des jeux de l'équipe qui portaient l'ancienne la suivent, car c'est à
+    // l'adresse de l'inscription que partent les emails du vivier (revue de la PR #233). Après le déplacement, qui
+    // garde l'inscription la plus récemment modifiée
+    if (address && current.email && !sameAddress(current.email, address)) {
+      await tx.registration.updateMany({ where: { participantId: target?.id ?? id, gameId: { in: teamGameIds }, email: current.email }, data: { email: address } })
+    }
+    if (target) {
+      // Partie de tous ses jeux : la fiche d'origine n'a plus de raison d'être
+      if (!await tx.participantGame.count({ where: { participantId: id } })) await tx.participant.delete({ where: { id } })
+      const moved = await tx.participant.findUniqueOrThrow({ where: { id: target.id }, include: participantGameLinksInclude(allowedGameIds) })
+      return { updated: moved, newlyLinkedUserId: target.userId }
+    }
     return { updated, newlyLinkedUserId: userId && !heldByPerson ? userId : null }
   })
   await removal.afterCommit()
@@ -202,7 +224,7 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
   const { updated: participant, newlyLinkedUserId } = result
   if (newlyLinkedUserId) {
     await syncProfileToParticipants(newlyLinkedUserId)
-    return exposeParticipantGames(await prisma.participant.findUniqueOrThrow({ where: { id }, include: participantGameLinksInclude(allowedGameIds) }))
+    return exposeParticipantGames(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id }, include: participantGameLinksInclude(allowedGameIds) }))
   }
   return exposeParticipantGames(participant)
 }
