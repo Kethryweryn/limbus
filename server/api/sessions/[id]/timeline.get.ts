@@ -4,6 +4,7 @@ import { requireGameAccess, requireSessionAccess } from '~/server/utils/gameAcce
 import { timelineEventInclude, withTimelineConflicts } from '~/server/utils/timelineEvents'
 import { requireRouterParam } from '~/server/utils/routeParams'
 import { unlinked } from '~/server/utils/contentLinks'
+import { withGameValues } from '~/server/utils/participantValues'
 
 export default defineEventHandler(async (event) => {
   await requireUser(event)
@@ -51,11 +52,12 @@ export default defineEventHandler(async (event) => {
     responsiblesByEventId.set(responsible.timelineEventId, current)
   }
 
-  return {
+  // Nom et téléphone tenus par le jeu de la session (ADR-0086)
+  return await withGameValues({
     session,
     events: withTimelineConflicts(unlinked(events)).map((timelineEvent) => ({
       ...timelineEvent,
       responsibles: responsiblesByEventId.get(timelineEvent.id) || []
     }))
-  }
+  }, session.gameId)
 })

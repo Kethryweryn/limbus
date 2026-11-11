@@ -3,6 +3,7 @@ import * as z from 'zod'
 import { prisma } from '~/server/utils/prisma'
 import { requireGameAccess, requireSessionAccess } from '~/server/utils/gameAccess'
 import { READ_ONLY, named, toolResult, type ToolContext } from '~/server/mcp/tools'
+import { byName, withGameValues } from '~/server/utils/participantValues'
 
 // Sessions (R7) : détails, équipe, casting et déroulé. Ni paiements, ni RIB, ni photos d'attribution, ni fiche allergies
 export function registerSessionTools({ event, server }: ToolContext) {
@@ -39,7 +40,7 @@ export function registerSessionTools({ event, server }: ToolContext) {
           location: named,
           postponedTo: { select: { id: true } },
           postponedFrom: { select: { id: true } },
-          participants: { orderBy: { participant: { name: 'asc' } }, select: { role: true, participant: named } },
+          participants: { select: { role: true, participant: named } },
           assignments: { orderBy: { character: { name: 'asc' } }, select: { character: named, participant: named, locked: true, notes: true, reservedRegistrationId: true } }
         }
       }),
@@ -49,6 +50,9 @@ export function registerSessionTools({ event, server }: ToolContext) {
         select: { timelineEvent: { select: { id: true, name: true, day: true, time: true } }, participant: named }
       })
     ])
+    // Nom tenu par l'équipe du jeu, trié à l'affichage (ADR-0086)
+    await withGameValues({ session, timeline }, session.gameId)
+    session.participants.sort((left, right) => byName(left.participant, right.participant))
     const labels = await sessionLabelsFor(prisma, [session.id, session.postponedTo?.id, session.postponedFrom?.id].filter((id): id is string => Boolean(id)))
     const labelled = (link: { id: string } | null) => link && { ...link, label: labels.get(link.id) ?? 'Session' }
     return { ...session, label: labels.get(session.id) ?? 'Session', postponedTo: labelled(session.postponedTo), postponedFrom: labelled(session.postponedFrom), timeline }

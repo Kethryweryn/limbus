@@ -9,6 +9,7 @@ import { selectionOverview } from '~/server/utils/registrationSelection'
 import { listDraws } from '~/server/utils/registrationDraws'
 import { closedAnswers, processedAffinities } from '~/server/mcp/registrationProjection'
 import { READ_ONLY, named, toolResult, type ToolContext } from '~/server/mcp/tools'
+import { withGameValues } from '~/server/utils/participantValues'
 
 // Inscriptions (R7, R8) : vivier, formulaire, sélection et tirages. D'une personne : statut pour le jeu et pour chaque
 // session, réponses fermées et affinités traitées ; ni coordonnées, ni allergies, ni texte libre de la personne
@@ -53,6 +54,7 @@ export function registerRegistrationTools({ event, server }: ToolContext) {
     await requireGameAccess(event, period.gameId)
     const [overview, registrations] = await Promise.all([
       selectionOverview(period.id),
+      // Noms tenus par l'équipe du jeu (ADR-0086)
       prisma.registration.findMany({
         where: { periodId: period.id },
         orderBy: { createdAt: 'asc' },
@@ -63,7 +65,7 @@ export function registerRegistrationTools({ event, server }: ToolContext) {
           sessionLines: { select: { sessionId: true, status: true, answer: true, waitlistPosition: true, announcedStatus: true, confirmedAt: true } },
           affinities: { orderBy: { position: 'asc' }, select: { kind: true, text: true, targetUnknown: true, targetParticipant: named } }
         }
-      })
+      }).then((rows) => withGameValues(rows, period.gameId))
     ])
     return {
       sessions: overview.sessions.map((session) => ({ id: session.id, label: session.label, date: session.date, seats: session.seats, taken: session.taken, open: session.open, selectionMode: session.selectionMode })),

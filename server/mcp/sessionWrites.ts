@@ -10,6 +10,7 @@ import { sessionCastingAssistant } from '~/server/utils/castingAssistant'
 import { AI_LOG_ACTIONS } from '~/utils/aiAssistants'
 import { SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
 import { WRITE, logWrite, requireWrite, text, toolResult, version, withVersion, type ToolContext } from '~/server/mcp/tools'
+import { latestVisibleValues } from '~/server/utils/participantValues'
 
 // Sessions, casting, déroulé et fiches participant écrits par un assistant (US-127 à US-129, SPEC-014 R10 à R13) : les
 // fonctions de l'interface (sessionWrites, participantWrites), complétées avec la fiche actuelle, avec la version lue.
@@ -194,10 +195,11 @@ function registerSessionWriteTools({ event, server }: ToolContext) {
 /** Fiche actuelle sous la forme du corps de l'interface : coordonnées gardées, jeux de l'autorisation et leurs notes. */
 async function currentParticipant(event: H3Event, id: string) {
   const allowed = await accessibleGameIds(event)
-  const participant = await prisma.participant.findUniqueOrThrow({
+  // Nom et téléphone du jeu autorisé le plus récemment modifié (ADR-0086)
+  const participant = latestVisibleValues(await prisma.participant.findUniqueOrThrow({
     where: { id },
-    select: { name: true, email: true, phone: true, gameLinks: { where: allowed ? { gameId: { in: allowed } } : {}, select: { gameId: true, notes: true } } }
-  })
+    select: { name: true, email: true, phone: true, gameLinks: { where: allowed ? { gameId: { in: allowed } } : {}, select: { gameId: true, notes: true, name: true, phone: true, updatedAt: true } } }
+  }))
   // Les jeux hors de l'autorisation ne sont ni envoyés ni retirés par la modification (managedExistingGameIds)
   return { name: participant.name, email: participant.email, phone: participant.phone, links: participant.gameLinks }
 }

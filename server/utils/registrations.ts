@@ -12,6 +12,7 @@ import { validatedPlaces } from '~/server/utils/sessionPayments'
 import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
 import { REGISTRATION_CANCELLABLE_STATUSES, REGISTRATION_PERIOD_STATES, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES, SESSION_STATUSES, includesValue, type RegistrationSessionStatus } from '~/utils/domain'
 import { ANNOUNCEMENT_REMOVED, AVAILABILITY_ANSWER_PARAMS, canConfirmPlace } from '~/utils/registrations'
+import { withGameValues, withGameValuesIn } from '~/server/utils/participantValues'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -299,10 +300,11 @@ export async function inviteToRegistrationPeriod(params: {
   }
 
   // Les participants invités doivent être liés au jeu de la période
-  const participants = await prisma.participant.findMany({
+  // Noms tenus par l'équipe du jeu (ADR-0086), pour les messages et les emails
+  const participants = await withGameValuesIn(await prisma.participant.findMany({
     where: { id: { in: params.participantIds }, gameLinks: { some: { gameId: period.gameId } } },
     select: { id: true, name: true, email: true }
-  })
+  }), period.gameId)
   if (participants.length !== params.participantIds.length) {
     throw createError({ statusCode: 400, message: 'Participant invalide pour ce jeu' })
   }
@@ -330,10 +332,10 @@ export async function inviteToRegistrationPeriod(params: {
 
   const matched = params.newParticipant ? await findParticipantByEmail(period.game, params.newParticipant.email) : null
   const knownIds = [...new Set([...participants.map((participant) => participant.id), ...(matched ? [matched.id] : [])])]
-  const existing = await prisma.registration.findMany({
+  const existing = await withGameValues(await prisma.registration.findMany({
     where: { periodId: period.id, participantId: { in: knownIds } },
-    select: { id: true, participantId: true, status: true, participant: { select: { name: true } } }
-  })
+    select: { id: true, participantId: true, status: true, participant: { select: { id: true, name: true } } }
+  }), period.gameId)
   const active = existing.filter((registration) => registration.status !== REGISTRATION_STATUSES.withdrawn)
   if (active.length) {
     throw createError({
@@ -484,7 +486,9 @@ const invitationSelect = {
   email: true,
   invitationSentAt: true,
   responseDueAt: true,
-  participant: { select: { name: true } },
+  // Jeu et fiche : le nom est celui qu'en tient l'équipe du jeu (ADR-0086)
+  gameId: true,
+  participant: { select: { id: true, name: true } },
   invitedSession: { select: { id: true, date: true } },
   period: { select: { game: { select: { title: true, photoRetentionMonths: true, contactEmail: true, owner: { select: { email: true } } } } } }
 } as const
@@ -495,7 +499,7 @@ const invitationSelect = {
  * simple rappel du lien, pour une personne du vivier qui a perdu ses emails.
  */
 export async function resendRegistrationInvitation(registrationId: string, inviter: { name?: string | null }, sessionId?: string | null) {
-  const registration = await prisma.registration.findUniqueOrThrow({ where: { id: registrationId }, select: invitationSelect })
+  const registration = await withGameValues(await prisma.registration.findUniqueOrThrow({ where: { id: registrationId }, select: invitationSelect }))
   if (registration.status === REGISTRATION_STATUSES.withdrawn) {
     throw createError({ statusCode: 409, message: 'Cette personne est sortie du vivier.' })
   }
@@ -560,7 +564,7 @@ export async function resendRegistrationInvitation(registrationId: string, invit
  * R20) : le lien reçu reste valable. Une invitation jamais partie s'envoie, elle ne se relance pas.
  */
 export async function remindRegistration(registrationId: string, sessionId?: string | null) {
-  const registration = await prisma.registration.findUniqueOrThrow({ where: { id: registrationId }, select: invitationSelect })
+  const registration = await withGameValues(await prisma.registration.findUniqueOrThrow({ where: { id: registrationId }, select: invitationSelect }))
   const line = sessionId ? await requireAwaitingLine(registrationId, sessionId) : null
   if (!line) assertUnansweredInvitation(registration)
   const retained = Boolean(line)
@@ -744,7 +748,9 @@ const withdrawalSelect = {
   id: true,
   status: true,
   participantId: true,
-  participant: { select: { name: true } },
+  // Jeu et fiche : le nom est celui qu'en tient l'équipe du jeu (ADR-0086)
+  gameId: true,
+  participant: { select: { id: true, name: true } },
   period: { select: { gameId: true, game: { select: { title: true } } } },
   sessionLines: { select: { sessionId: true, status: true, session: { select: { id: true, status: true } } } }
 } as const
@@ -755,7 +761,7 @@ const withdrawalSelect = {
  * serveur SMTP.
  */
 export async function cancelRegistrationSession(registrationId: string, sessionId: string, cancelledBy: { id: string, name?: string | null } | null) {
-  const registration = await prisma.registration.findUniqueOrThrow({ where: { id: registrationId }, select: withdrawalSelect })
+  const registration = await withGameValues(await prisma.registration.findUniqueOrThrow({ where: { id: registrationId }, select: withdrawalSelect }))
   const line = registration.sessionLines.find((candidate) => candidate.sessionId === sessionId)
   if (!line || !includesValue(REGISTRATION_CANCELLABLE_STATUSES, line.status)) {
     throw createError({ statusCode: 409, message: 'Il n’y a pas de présence à annuler pour cette session.' })
@@ -772,7 +778,7 @@ export async function cancelRegistrationSession(registrationId: string, sessionI
  * marche plus. Elle y revient en remplissant de nouveau le questionnaire. L'équipe voit qu'elle est sortie.
  */
 export async function leavePool(registrationId: string, leftBy: { id: string, name?: string | null } | null) {
-  const registration = await prisma.registration.findUniqueOrThrow({ where: { id: registrationId }, select: withdrawalSelect })
+  const registration = await withGameValues(await prisma.registration.findUniqueOrThrow({ where: { id: registrationId }, select: withdrawalSelect }))
   if (registration.status === REGISTRATION_STATUSES.withdrawn) {
     throw createError({ statusCode: 409, message: 'Cette personne est déjà sortie du vivier.' })
   }

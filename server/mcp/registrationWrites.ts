@@ -20,6 +20,7 @@ import {
   REGISTRATION_SESSION_STATUSES
 } from '~/utils/domain'
 import { WRITE, logWrite, requireWrite, toolResult, version, withVersion, type ToolContext } from '~/server/mcp/tools'
+import { withGameValues } from '~/server/utils/participantValues'
 
 // Inscriptions écrites par un assistant (US-130 à US-132, SPEC-014 R10 à R13) : les fonctions de l'interface, avec la
 // version lue. Jamais : ouvrir, fermer ou supprimer un vivier, ouvrir une session, inviter, annoncer, envoyer, ni décider
@@ -202,7 +203,8 @@ function registerSelectionTools({ event, server }: ToolContext) {
       }
       await applySelection(registration.id, body.action, body.sessionId, await requireCurrentUser(event))
     })
-    const { updatedAt, participant } = await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { updatedAt: true, participant: { select: { name: true } } } })
+    // Nom tenu par l'équipe du jeu (ADR-0086)
+    const { updatedAt, participant } = await withGameValues(await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { updatedAt: true, gameId: true, participant: { select: { id: true, name: true } } } }))
     await logWrite(event, 'decider_inscription', AI_LOG_ACTIONS.changed, { type: 'registration', id: registration.id, name: participant.name, gameId: registration.period.gameId })
     return { id: registration.id, version: updatedAt }
   }))

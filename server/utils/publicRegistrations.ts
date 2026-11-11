@@ -23,6 +23,7 @@ import {
   normalizeRegistrationFormDefinition,
   type RegistrationFormDefinition
 } from '~/utils/registrationForms'
+import { withGameValues } from '~/server/utils/participantValues'
 
 // Même réponse pour un jeton inconnu ou invalidé : on ne dit pas pourquoi (ADR-0018)
 export const INVALID_LINK_MESSAGE = 'Ce lien n’est pas valide.'
@@ -70,6 +71,7 @@ const publicRegistrationSelect = {
   },
   participant: {
     select: {
+      id: true,
       name: true,
       userId: true,
       // Coordonnées du compte, pour préremplir une invitation (US-074)
@@ -91,10 +93,11 @@ export type PublicRegistration = NonNullable<Awaited<ReturnType<typeof findRegis
 export async function findRegistrationByToken(token: string | undefined) {
   if (!token || !TOKEN_PATTERN.test(token)) return null
 
-  return await prisma.registration.findFirst({
+  // Nom tenu par l'équipe du jeu de l'inscription (ADR-0086)
+  return await withGameValues(await prisma.registration.findFirst({
     where: { links: { some: { tokenHash: hashRegistrationToken(token) } } },
     select: publicRegistrationSelect
-  })
+  }))
 }
 
 /**
@@ -103,7 +106,7 @@ export async function findRegistrationByToken(token: string | undefined) {
  */
 export async function requireMyRegistration(userId: string, id: string | undefined) {
   const registration = id
-    ? await prisma.registration.findFirst({ where: { id, participant: { userId } }, select: publicRegistrationSelect })
+    ? await withGameValues(await prisma.registration.findFirst({ where: { id, participant: { userId } }, select: publicRegistrationSelect }))
     : null
   if (!registration) {
     throw createError({ statusCode: 404, message: 'Inscription introuvable' })

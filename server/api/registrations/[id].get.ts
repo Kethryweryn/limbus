@@ -7,6 +7,7 @@ import { affinitiesForTeam } from '~/server/utils/registrationAffinities'
 import { currentQuestionLinks } from '~/server/utils/registrationQuestionLinks'
 import { normalizeRegistrationFormDefinition, type RegistrationFormDefinition } from '~/utils/registrationForms'
 import type { QuestionAnswers } from '~/server/utils/registrationForms'
+import { withGameValues } from '~/server/utils/participantValues'
 
 // Détail d'une inscription pour les organisatrices du jeu (US-005) : réponses au formulaire comprises,
 // allergies et date du consentement (données de santé, R14), questions et affinités (US-081, US-082), lues avec
@@ -18,7 +19,8 @@ export default defineEventHandler(async (event) => {
   await requireGameAccess(event, period.gameId)
   setHeader(event, 'cache-control', 'private, no-store')
 
-  const registration = await prisma.registration.findUniqueOrThrow({
+  // Nom tenu par l'équipe du jeu (ADR-0086)
+  const registration = await withGameValues(await prisma.registration.findUniqueOrThrow({
     where: { id },
     select: {
       ...registrationListSelect,
@@ -35,7 +37,7 @@ export default defineEventHandler(async (event) => {
       balancePreference: true,
       formVersion: { select: { number: true, definition: true } }
     }
-  })
+  }))
   const game = await prisma.game.findUnique({ where: { id: period.gameId }, select: { balanceAttribute: true, balanceValues: true } })
   const [withPresence] = await withSessionPresence([registration])
   const { formVersion, ...rest } = withPresence!

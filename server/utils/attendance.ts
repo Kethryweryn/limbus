@@ -6,6 +6,7 @@ import { openEmailTransport, sendEmail } from '~/server/utils/email'
 import { createRegistrationToken, hashRegistrationToken } from '~/server/utils/registrations'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
 import { REFUND_STATUSES, REGISTRATION_SESSION_STATUSES as LINE } from '~/utils/domain'
+import { gameIdOfSession, withGameValues } from '~/server/utils/participantValues'
 import {
   ATTENDANCE_STATUSES,
   attendanceDisplayStatus,
@@ -64,11 +65,14 @@ export async function getSessionAttendance(sessionId: string, now = new Date()) 
     where: { id: sessionId },
     select: {
       id: true,
+      gameId: true,
       postponedFrom: { select: { id: true, slug: true } },
       participants: { select: { role: true, participant: { select: { id: true, name: true, email: true } } } },
       attendances: { include: { participant: { select: { id: true, name: true, email: true } } } }
     }
   })
+  // Noms tenus par le jeu de la session (ADR-0086)
+  await withGameValues(session)
 
   const roles = new Map<string, string[]>()
   for (const member of session.participants) {
@@ -114,10 +118,10 @@ export async function sendAttendanceRequests(sessionId: string, responseDueAt: D
     throw createError({ statusCode: 409, message: 'La confirmation de présence ne se demande que pour une session reportée.' })
   }
 
-  const members = await prisma.sessionParticipant.findMany({
+  const members = await withGameValues(await prisma.sessionParticipant.findMany({
     where: { sessionId },
     select: { participant: { select: { id: true, name: true, email: true } } }
-  })
+  }), await gameIdOfSession(sessionId))
   const already = new Set((await prisma.sessionAttendance.findMany({
     where: { sessionId, status: { not: ATTENDANCE_STATUSES.released } },
     select: { participantId: true }
@@ -166,10 +170,10 @@ export async function sendAttendanceRequests(sessionId: string, responseDueAt: D
 }
 
 async function findAttendanceOr404(sessionId: string, participantId: string) {
-  const attendance = await prisma.sessionAttendance.findUnique({
+  const attendance = await withGameValues(await prisma.sessionAttendance.findUnique({
     where: { sessionId_participantId: { sessionId, participantId } },
-    include: { participant: { select: { name: true, email: true } } }
-  })
+    include: { participant: { select: { id: true, name: true, email: true } } }
+  }), await gameIdOfSession(sessionId))
   if (!attendance) {
     throw createError({ statusCode: 404, message: 'Aucune demande de présence pour cette personne' })
   }
@@ -268,10 +272,12 @@ export async function releaseAttendance(sessionId: string, participantId: string
 
 async function findAttendanceByToken(token: string | undefined) {
   if (!token || !TOKEN_PATTERN.test(token)) return null
-  return await prisma.sessionAttendance.findUnique({
+  const attendance = await prisma.sessionAttendance.findUnique({
     where: { tokenHash: hashRegistrationToken(token) },
-    include: { participant: { select: { name: true } }, session: { select: sessionContextSelect } }
+    include: { participant: { select: { id: true, name: true } }, session: { select: { ...sessionContextSelect, gameId: true } } }
   })
+  // Nom tenu par le jeu de la session (ADR-0086)
+  return attendance && await withGameValues(attendance, attendance.session.gameId)
 }
 
 async function requireAttendanceByToken(token: string | undefined) {

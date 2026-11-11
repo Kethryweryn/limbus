@@ -1,6 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { replayerParticipantIds } from '~/server/utils/registrationSelection'
 import { CHARACTER_TYPES, REGISTRATION_REPLAY_POLICIES, REGISTRATION_SEAT_STATUSES, REGISTRATION_SESSION_STATUSES, REGISTRATION_STATUSES, SESSION_CAST_ROLES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
+import { byName, namesIn } from '~/server/utils/participantValues'
 
 type SessionParticipantRole = typeof SESSION_ROLES[keyof typeof SESSION_ROLES]
 
@@ -172,9 +173,11 @@ export async function assertSessionCastRules(
   // Une personne qui a refusé l'usage de sa photo n'en reçoit pas dans le cast (US-109)
   const withPhoto = [...new Set(assignments.filter((assignment) => assignment.photoUrl && assignment.participantId).map((assignment) => assignment.participantId!))]
   if (withPhoto.length) {
-    const refusing = await prisma.participant.findFirst({ where: { id: { in: withPhoto }, photoRefusedAt: { not: null } }, select: { name: true } })
+    const refusing = await prisma.participant.findFirst({ where: { id: { in: withPhoto }, photoRefusedAt: { not: null } }, select: { id: true } })
     if (refusing) {
-      throw createError({ statusCode: 400, message: `${refusing.name} a refusé l’usage de sa photo : retirez la photo de sa ligne du cast.` })
+      // Nom tenu par l'équipe du jeu (ADR-0086)
+      const name = (await namesIn(gameId, [refusing.id])).get(refusing.id)
+      throw createError({ statusCode: 400, message: `${name} a refusé l’usage de sa photo : retirez la photo de sa ligne du cast.` })
     }
   }
 
@@ -230,10 +233,10 @@ export async function assertSessionCastRules(
     const holders = assignments.map((assignment) => ({ ...assignment, participantId: assignment.participantId ?? reservedParticipants.get(assignment.characterId) ?? null }))
     const participantId = participantWithSeveralPjs(holders, charactersById)
     if (participantId) {
-      const participant = await prisma.participant.findUnique({ where: { id: participantId }, select: { name: true } })
+      const name = (await namesIn(gameId, [participantId])).get(participantId)
       throw createError({
         statusCode: 400,
-        message: `${participant?.name ?? 'Un participant'} joue plusieurs PJ dans cette session : ce jeu n’en permet qu’un par participant (réglage du jeu).`
+        message: `${name ?? 'Un participant'} joue plusieurs PJ dans cette session : ce jeu n’en permet qu’un par participant (réglage du jeu).`
       })
     }
   }
@@ -255,17 +258,19 @@ export async function assertPlayersFromPool(gameId: string, sessionId: string | 
   const newcomers = players.filter((id) => !known.has(id))
   if (!newcomers.length) return
 
-  const people = await prisma.participant.findMany({
+  const [people, names] = await Promise.all([prisma.participant.findMany({
     where: { id: { in: newcomers } },
     select: {
-      name: true,
+      id: true,
       registrations: {
         where: { period: { gameId }, status: REGISTRATION_STATUSES.received },
         select: { sessionLines: { where: { sessionId: sessionId ?? '', status: REGISTRATION_SESSION_STATUSES.confirmed }, select: { id: true } } }
       }
     }
-  })
-  for (const { name, registrations } of people) {
+  }), namesIn(gameId, newcomers)])
+  // Nom tenu par l'équipe du jeu (ADR-0086)
+  for (const { id, registrations } of people) {
+    const name = names.get(id)
     const [registration] = registrations
     if (!registration) {
       throw createError({ statusCode: 400, message: `${name} n’est pas dans le vivier de ce jeu : un joueur répond d’abord au questionnaire. Invitez cette personne à le remplir, ou donnez-lui le rôle de PNJ ou d’organisation pour tenir un personnage sans questionnaire.` })
@@ -315,20 +320,20 @@ async function poolCandidates(session: { id: string, gameId: string }, period: {
     select: {
       id: true,
       participantId: true,
-      participant: { select: { name: true } },
       sessionLines: { where: { sessionId: session.id }, select: { status: true } }
-    },
-    orderBy: { participant: { name: 'asc' } }
+    }
   })
   const replayers = period.replayPolicy === REGISTRATION_REPLAY_POLICIES.allowed
     ? new Set<string>()
     : await replayerParticipantIds(session.gameId, rows.map((row) => row.participantId))
+  // Nom tenu par l'équipe du jeu, trié à l'affichage (ADR-0086)
+  const names = await namesIn(session.gameId, rows.map((row) => row.participantId))
   return rows.map((row) => ({
     id: row.id,
-    name: row.participant.name,
+    name: names.get(row.participantId) ?? '',
     status: row.sessionLines[0]?.status ?? REGISTRATION_STATUSES.received,
     replayer: replayers.has(row.participantId)
-  }))
+  })).sort(byName)
 }
 
 /**
@@ -340,12 +345,14 @@ export async function withCastReservations<T extends { id: string, gameId: strin
   const [retained, period] = await Promise.all([
     prisma.registrationSession.findMany({
       where: { sessionId: session.id, status: REGISTRATION_SESSION_STATUSES.retained },
-      select: { registration: { select: { id: true, participantId: true, participant: { select: { name: true } } } } },
-      orderBy: { registration: { participant: { name: 'asc' } } }
+      select: { registration: { select: { id: true, participantId: true } } }
     }),
     prisma.registrationPeriod.findUnique({ where: { gameId: session.gameId }, select: { id: true, state: true, replayPolicy: true } })
   ])
-  const pool = period && session.status === SESSION_STATUSES.scheduled ? await poolCandidates(session, period) : []
+  const [pool, retainedNames] = await Promise.all([
+    period && session.status === SESSION_STATUSES.scheduled ? poolCandidates(session, period) : [],
+    namesIn(session.gameId, retained.map((line) => line.registration.participantId))
+  ])
   const retainedIds = new Set(retained.map((line) => line.registration.id))
   return {
     ...session,
@@ -354,7 +361,9 @@ export async function withCastReservations<T extends { id: string, gameId: strin
       const live = Boolean(assignment.reservedRegistration) && retainedIds.has(assignment.reservedRegistration!.id)
       return live ? assignment : { ...assignment, reservedRegistrationId: null, reservedRegistration: null }
     }),
-    retainedRegistrations: retained.map(({ registration }) => ({ id: registration.id, participantId: registration.participantId, name: registration.participant.name })),
+    retainedRegistrations: retained
+      .map(({ registration }) => ({ id: registration.id, participantId: registration.participantId, name: retainedNames.get(registration.participantId) ?? '' }))
+      .sort(byName),
     poolRegistrations: pool,
     poolState: period?.state ?? null
   }

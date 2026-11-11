@@ -3,6 +3,7 @@ import { openEmailTransport } from '~/server/utils/email'
 import { findSelectionPeriod, replayerParticipantIds, selectableSessions } from '~/server/utils/registrationSelection'
 import { availabilityRequestEmail, createRegistrationToken, registrationUrl } from '~/server/utils/registrations'
 import { REGISTRATION_REPLAY_POLICIES, REGISTRATION_STATUSES, SESSION_CAST_ROLES } from '~/utils/domain'
+import { withGameValues } from '~/server/utils/participantValues'
 
 /**
  * Demande de disponibilités (R9) et relance (R12) : écrit aux personnes du vivier sans ligne pour cette session, donc sans
@@ -30,8 +31,9 @@ export async function sendAvailabilityRequest(periodId: string, sessionId: strin
       ...(registrationIds ? { id: { in: registrationIds } } : {})
     },
     orderBy: { createdAt: 'asc' },
-    select: { id: true, email: true, participantId: true, participant: { select: { name: true } } }
-  })
+    // Jeu et fiche : le nom est celui qu'en tient l'équipe du jeu (ADR-0086)
+    select: { id: true, email: true, participantId: true, gameId: true, participant: { select: { id: true, name: true } } }
+  }).then(withGameValues)
   const excluded = period.replayPolicy === REGISTRATION_REPLAY_POLICIES.excluded
     ? await replayerParticipantIds(period.gameId, people.map((person) => person.participantId))
     : new Set<string>()

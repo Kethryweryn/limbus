@@ -8,6 +8,7 @@ import { readUpload } from '~/server/utils/uploads'
 import { isHttpUrl } from '~/utils/urls'
 import type { RefundStatus, TariffRole } from '~/generated/prisma/enums'
 import { PAYMENT_STATES, TARIFF_ROLES, TARIFF_ROLE_ORDER, eurosToCents, isPlaceValidated, paymentAmountLines, type PaymentAmounts, paymentState, solidarityBalance, suggestedDepartureStatus, tariffForPerson, withdrawalDeadlineLine } from '~/utils/sessionTariffs'
+import { withGameValues } from '~/server/utils/participantValues'
 
 function compactLines(lines: Array<string | null | undefined>) {
   return lines.filter((line) => typeof line === 'string' && line.trim()).join('\n')
@@ -240,7 +241,8 @@ async function getPaymentSession(sessionId: string, participantIds?: string[]) {
     throw createError({ statusCode: 404, message: 'Session introuvable' })
   }
 
-  return session
+  // Noms tenus par le jeu de la session (ADR-0086), pour le tableau comme pour les emails
+  return await withGameValues(session)
 }
 
 type TariffRecord = { id: string, name: string, amountCents: number, defaultRole: string | null, baseTariffId: string | null }

@@ -8,6 +8,7 @@ import { exposeParticipantGames, participantGameLinksInclude } from '~/server/ut
 import { castAssignmentInclude, withCastReservations } from '~/server/utils/sessionAssignments'
 import { timelineEventInclude, withTimelineConflicts } from '~/server/utils/timelineEvents'
 import { unlinked } from '~/server/utils/contentLinks'
+import { withGameValues } from '~/server/utils/participantValues'
 
 // Lecture d'une fiche, par identifiant (route `[id]`) ou par slug (route explicite `slug/[slug]`, pour les pages) :
 // l'API n'accepte jamais l'un pour l'autre, un slug change avec le nom
@@ -104,5 +105,6 @@ export async function readSession(event: H3Event, key: SheetKey) {
     }
   })
   // Elle et les sessions de son report, avec leur libellé (SPEC-021)
-  return await labelSessionAndLinks(prisma, await withCastReservations(session ?? notFound('Session introuvable')))
+  // Nom et téléphone tenus par le jeu de la session (ADR-0086)
+  return await labelSessionAndLinks(prisma, await withGameValues(await withCastReservations(session ?? notFound('Session introuvable'))))
 }

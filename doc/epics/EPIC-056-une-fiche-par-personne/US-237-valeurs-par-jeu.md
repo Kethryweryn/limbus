@@ -16,9 +16,9 @@ En tant qu'organisatrice, je veux que le nom et le téléphone que je saisis sur
 - [x] Étant donné une fiche existante, quand la migration passe, alors chacun de ses jeux porte le nom et le téléphone de la fiche ; rien ne change à l'écran.
 - [ ] Étant donné une fiche que je modifie, quand j'enregistre un nom ou un téléphone, alors il s'applique à tous les jeux de la fiche que je vois, et à eux seuls.
 - [ ] Étant donné une co-organisatrice qui ne voit qu'un des jeux de la fiche, quand elle modifie le nom, alors seul ce jeu change ; la propriétaire voit le nom de son jeu le plus récemment modifié.
-- [ ] Étant donné une fiche rattachée à un compte dont la personne a enregistré ses coordonnées, alors le nom et le téléphone du compte restent recopiés sur chaque jeu, comme aujourd'hui (ADR-0042).
+- [x] Étant donné une fiche rattachée à un compte dont la personne a enregistré ses coordonnées, alors le nom et le téléphone du compte restent recopiés sur chaque jeu, comme aujourd'hui (ADR-0042).
 - [ ] Étant donné deux co-organisatrices qui modifient le nom en même temps, alors la seconde est refusée (« modifiée entre-temps »), en ligne comme au retour du réseau.
-- [ ] Les listes, cast, trombinoscopes, fiche allergies, exports, emails et outils des assistants d'IA lisent le nom et le téléphone du jeu concerné.
+- [x] Les listes, cast, trombinoscopes, fiche allergies, exports, emails et outils des assistants d'IA lisent le nom et le téléphone du jeu concerné.
 
 ## Notes techniques
 
@@ -34,3 +34,4 @@ Colonnes `name`, `phone` et `updatedAt` sur `ParticipantGame` ([ADR-0086](../../
 ## Avancement
 
 - Étape 1 : colonnes `name`, `phone` et `updatedAt` sur `ParticipantGame`, migration `20261128090000_nom_et_telephone_par_jeu`, écritures sur la fiche et sur chaque lien (création, modification des jeux visibles, recopie du compte, inscriptions, invitations, jeux de test) ; `tests/integration/participants.test.ts`. Les lectures passent aux liens à l'étape 2, dont la migration recopie de nouveau la fiche sur ses liens : une écriture de l'ancien build pendant le déploiement de l'étape 1 (revue de la PR #228) n'y laisse ni lien vide ni valeur en retard.
+- Étape 2 : lectures par jeu (`server/utils/participantValues.ts` : `withGameValues`, `withGameValuesIn`, `namesIn`, `latestVisibleValues`) dans la liste et la fiche, les sessions, le cast et son assistant, le déroulé, les documents, la fiche allergies, les paiements, la présence, l'annulation, le vivier, la sélection, les affinités, l'export CSV, les emails et les outils des assistants ; tris faits à l'affichage ; migration `20261129090000_recopie_nom_par_jeu` ; `tests/server/participantValues.test.ts`, `tests/integration/participants.test.ts` (même fiche, deux noms, deux équipes).

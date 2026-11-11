@@ -10,6 +10,7 @@ import { labelSession, labelSessionAndLinks, refreshSessionSlugs } from '~/serve
 import { assertGameUploads, deleteUnusedUploads } from '~/server/utils/uploads'
 import type { sessionSchema, sessionTimelineSchema } from '~/server/utils/schemas'
 import { SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
+import { withGameValues } from '~/server/utils/participantValues'
 
 // Écritures d'une session, communes aux routes de l'interface et aux outils des assistants d'IA (US-127, US-128,
 // SPEC-014 R12) : mêmes contrôles d'accès, de version, de références du même jeu et de photos. Le corps validé est lu
@@ -58,7 +59,8 @@ export async function createSession(event: H3Event, readBody: Reader<typeof sess
       select: { id: true }
     })
     await refreshSessionSlugs(tx, gameId)
-    return await labelSession(tx, await tx.session.findUniqueOrThrow({
+    // Nom et téléphone tenus par le jeu (ADR-0086)
+    return await labelSession(tx, await withGameValues(await tx.session.findUniqueOrThrow({
       where: { id },
       include: {
         game: true,
@@ -75,7 +77,7 @@ export async function createSession(event: H3Event, readBody: Reader<typeof sess
           }
         }
       }
-    }))
+    })))
   })
 }
 
@@ -167,7 +169,7 @@ export async function updateSession(event: H3Event, id: string, readBody: Reader
 
   await deleteUnusedUploads(previousPhotoUrls)
   // Comme la lecture de la session (readSession) : elle et les sessions de son report, avec leur libellé (SPEC-021)
-  return await labelSessionAndLinks(prisma, await withCastReservations(session))
+  return await labelSessionAndLinks(prisma, await withGameValues(await withCastReservations(session)))
 }
 
 export async function updateSessionTimeline(event: H3Event, id: string, readBody: Reader<typeof sessionTimelineSchema>) {

@@ -3,11 +3,15 @@ import { deleteUnusedUploads } from '~/server/utils/uploads'
 import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
 import { publicAppUrl } from '~/server/utils/appUrl'
 import { REGISTRATION_SESSION_STATUSES, REGISTRATION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
+import { latestVisibleValues } from '~/server/utils/participantValues'
 
 type ParticipantWithGameLinks = {
   gameLinks?: Array<{
     createdAt: Date
     notes?: string | null
+    name?: string | null
+    phone?: string | null
+    updatedAt?: Date
     game: {
       id: string
       title: string
@@ -33,7 +37,8 @@ export function participantGameLinksInclude(gameIds: string[] | null = null) {
 }
 
 export function exposeParticipantGames<T extends ParticipantWithGameLinks>(participant: T) {
-  const { gameLinks, ...rest } = participant
+  // Nom et téléphone du jeu visible le plus récemment modifié (ADR-0086) : gameLinks est déjà filtré
+  const { gameLinks, ...rest } = latestVisibleValues(participant)
   // `published` n'a aucun effet sur une fiche : il n'est plus exposé (US-038). L'ancienne note commune non plus (ADR-0040)
   delete (rest as { published?: unknown }).published
   delete (rest as { notes?: unknown }).notes
