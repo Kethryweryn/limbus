@@ -36,3 +36,4 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Plusieurs tests de bout en bout par écran](../archive/todo/tests-par-ecran.md) | [EPIC-050](../archive/epics/EPIC-050-tests-par-ecran/README.md) | 2026-11-09 |
 | [Gérer depuis son compte les données gardées pour le hors ligne](../archive/todo/cache-hors-ligne-dans-le-compte.md) | [SPEC-019](../specs/SPEC-019-hors-ligne-dans-le-compte.md) | 2026-11-10 |
 | [Revoir la page Inscriptions](../archive/todo/page-inscriptions.md) | [SPEC-020](../specs/SPEC-020-page-inscriptions.md) | 2026-11-10 |
+| [Une session sans nom, désignée par sa date](../archive/todo/session-sans-nom.md) | [SPEC-021](../specs/SPEC-021-session-sans-nom.md) | 2026-11-11 |

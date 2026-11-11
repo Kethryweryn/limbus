@@ -34,7 +34,7 @@ Organiser une représentation d'un jeu : une session réunit une date, un lieu, 
 
 ### Créer une session
 
-1. Depuis la page Sessions, l'organisatrice crée une session pour un jeu : un nom, une date (facultative), un lieu du jeu (facultatif), un statut, et si elle est visible sur la page publique.
+1. Depuis la page Sessions, l'organisatrice crée une session pour un jeu : une date (facultative), un lieu du jeu (facultatif), un statut, et si elle est visible sur la page publique.
 2. Elle compose l'équipe : des participants inscrits au jeu, avec leurs rôles d'organisation, de PNJ ou de cuisine. Les joueurs viennent du vivier ([SPEC-018](SPEC-018-vivier-permanent.md), R31).
 3. Elle fait le casting : pour chaque personnage, une personne de l'équipe ou du vivier, une photo propre à cette session et des notes. Une personne du vivier est alors retenue et le personnage lui est réservé, jusqu'à sa confirmation. Le même écran invite une personne pour cette session.
 
@@ -51,7 +51,7 @@ Organiser une représentation d'un jeu : une session réunit une date, un lieu, 
 
 ### Reporter une session
 
-1. Sur une session prévue ou annulée, « Reporter » crée une nouvelle session : nom, date et lieu. L'équipe et le casting y sont recopiés ; l'ancienne session passe « Reportée ».
+1. Sur une session prévue ou annulée, « Reporter » crée une nouvelle session : date et lieu. L'équipe et le casting y sont recopiés ; l'ancienne session passe « Reportée ».
 2. Dans l'onglet Présence de la nouvelle session, elle choisit une date limite et envoie à toute l'équipe une demande de confirmation, avec un lien personnel.
 3. Elle suit les réponses, relance, prolonge un délai, envoie un nouveau lien, et libère la place de qui ne viendra pas.
 4. Dans l'onglet Paiements de l'ancienne session, elle reporte chaque paiement sur la nouvelle session, ou le rembourse.
@@ -60,7 +60,7 @@ Organiser une représentation d'un jeu : une session réunit une date, un lieu, 
 
 ### Session
 
-- **R1** Une session appartient à un jeu et n'en change jamais. Elle a un nom (et un slug unique qui suit le nom), une date facultative et un lieu facultatif, qui doit appartenir au même jeu.
+- **R1** Une session appartient à un jeu et n'en change jamais. Elle n'a pas de nom : elle se lit par sa date, et son slug unique suit le jeu et la date ([SPEC-021](SPEC-021-session-sans-nom.md), depuis le 2026-11-11). Elle a une date facultative et un lieu facultatif, qui doit appartenir au même jeu.
 - **R2** Le statut d'une session est « Prévue » (par défaut), « Reportée », « Annulée » ou « Terminée ». Il se change librement : une session annulée peut redevenir prévue (« désannulée ») ou être reportée.
   - « Annulée » et « Terminée » retirent la session du tableau de bord et des prochaines sessions affichées avec les jeux ; dans la liste des sessions, elle est rangée avec les sessions passées, quelle que soit sa date. Elle reste modifiable.
   - « Annulée » et « Terminée » empêchent d'ajouter la session à une période d'inscription ([SPEC-001](SPEC-001-inscriptions.md)).
@@ -95,7 +95,7 @@ Organiser une représentation d'un jeu : une session réunit une date, un lieu, 
 - **R15** Reporter une session prévue ou annulée crée une nouvelle session du même jeu, avec la même équipe (rôles compris) et le même casting (notes et photos comprises). L'ancienne passe « Reportée » et indique la nouvelle, qui indique d'où elle vient. On ne reporte pas vers une session existante. Une photo recopiée est rattachée au jeu, pour survivre à la suppression de l'une des deux sessions ([ADR-0029](../adr/ADR-0029-cycle-de-vie-d-une-session.md)). Les personnes castées ou inscrites passent à « transférée » sur l'ancienne session et gardent leur statut sur la nouvelle ; les pré-inscrites et la liste d'attente ne sont pas reprises ([SPEC-018](SPEC-018-vivier-permanent.md), R30).
 - **R16** Pour une session annulée ou reportée, chaque paiement reçu se suit : à rembourser, remboursé (avec la date) ou, pour une session reportée, reporté sur la nouvelle session. Reporter un paiement marque la personne comme ayant payé la nouvelle session, à la date d'origine, si elle fait partie de son tableau des paiements ([SPEC-006](SPEC-006-emails-et-paiements.md), R14). À rembourser ou remboursée, elle passe à « annulation » sur les deux sessions, et retirer cette marque ne lui rend pas sa place ([SPEC-018](SPEC-018-vivier-permanent.md), R30).
 - **R17** Sur la nouvelle session, l'organisation demande à toute l'équipe (participants, organisateurs, PNJ, cuisine) de confirmer sa présence, avant une date limite choisie (7 jours par défaut). Chaque personne reçoit, une seule fois, un email avec un lien personnel ([ADR-0018](../adr/ADR-0018-jetons-des-liens-personnels.md)) ; l'email est montré en aperçu avant l'envoi.
-- **R18** Par le lien, la personne voit la session (nom, date, lieu) et répond « Je viens » ou « Je ne viens pas ». Elle peut répondre tant que sa place n'est pas libérée, et changer d'avis jusqu'à la date limite. « Je ne viens pas » met une personne du vivier en « annulation » sur les deux sessions ; changer d'avis les lui rend, sauf si son paiement est marqué à rembourser depuis ([SPEC-018](SPEC-018-vivier-permanent.md), R30). Elle ne voit rien des autres.
+- **R18** Par le lien, la personne voit la session (libellé, date, lieu) et répond « Je viens » ou « Je ne viens pas ». Elle peut répondre tant que sa place n'est pas libérée, et changer d'avis jusqu'à la date limite. « Je ne viens pas » met une personne du vivier en « annulation » sur les deux sessions ; changer d'avis les lui rend, sauf si son paiement est marqué à rembourser depuis ([SPEC-018](SPEC-018-vivier-permanent.md), R30). Elle ne voit rien des autres.
 - **R19** Une personne qui n'a pas répondu à la date limite est signalée « délai dépassé » ; rien ne change tout seul ([ADR-0020](../adr/ADR-0020-echeances-evaluees-a-la-lecture.md)). L'organisation la relance (rappel sans lien), prolonge son délai ou lui envoie un nouveau lien, qui invalide l'ancien.
 - **R20** La place d'une personne qui ne viendra pas, ou n'a pas répondu à temps, se libère à la main : elle quitte l'équipe, le casting et le déroulé de la session, son lien cesse de fonctionner, et son paiement éventuel reste à traiter. Les trombinoscopes déjà générés sont régénérés. Si elle revient dans l'équipe, elle est sollicitée à nouveau, avec un nouveau lien.
 - **R21** Quand une session passe « Annulée », Limbus propose un email d'annulation, modifiable, à envoyer une fois à chaque personne de l'équipe qui a un email. On peut l'envoyer, le tester ou ne rien envoyer. Un échec n'arrête pas les autres envois.
