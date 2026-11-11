@@ -221,6 +221,11 @@ describe('effacement et export par équipe (US-241)', () => {
 
   it('Alice efface ce qu’elle tient ; la fiche reste à Bob, intacte', async () => {
     const { aliceGame, bobGame, fiche } = await sharedFiche(`efface-equipe-${Date.now()}`)
+    // L'affinité d'une autre personne qui la désigne, dans le jeu d'Alice : détachée, son texte reste (revue de la PR #235)
+    const lea = await prisma.participant.create({ data: { name: 'Léa', slug: `p-lea-${Date.now()}`.slice(0, 40), email: `lea-${Date.now()}@example.test`, gameLinks: { create: { gameId: aliceGame.id, name: 'Léa' } } } })
+    const period = await prisma.registrationPeriod.findFirstOrThrow({ where: { gameId: aliceGame.id } })
+    const leaRegistration = await prisma.registration.create({ data: { gameId: aliceGame.id, periodId: period.id, participantId: lea.id, status: 'received', source: 'form', email: lea.email! } })
+    const affinity = await prisma.registrationAffinity.create({ data: { registrationId: leaRegistration.id, kind: 'wantWith', text: 'Jouer avec elle', position: 0, targetParticipantId: fiche.id } })
     const response = await api(alice, 'DELETE', `/api/participants/${fiche.id}`)
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     for (const [gameId, expected] of [[aliceGame.id, 0], [bobGame.id, 1]] as const) {
@@ -231,6 +236,7 @@ describe('effacement et export par équipe (US-241)', () => {
       expect(await prisma.sessionParticipant.count({ where: { participantId: fiche.id, session: { gameId } } })).toBe(expected)
     }
     expect(DENIED).toContain((await api(alice, 'GET', `/api/participants/${fiche.id}`)).status)
+    expect(await prisma.registrationAffinity.findUniqueOrThrow({ where: { id: affinity.id }, select: { text: true, targetParticipantId: true } })).toEqual({ text: 'Jouer avec elle', targetParticipantId: null })
     expect((await api(bob, 'GET', `/api/participants/${fiche.id}`)).body).toMatchObject({ name: 'Nom chez Bob', gameNotes: { [bobGame.id]: 'Note de Bob' } })
 
     // Bob efface à son tour : plus personne ne la suit, la fiche disparaît

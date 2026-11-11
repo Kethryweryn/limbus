@@ -31,5 +31,5 @@ En tant qu'organisatrice, je veux que l'effacement et l'export d'une personne ne
 
 ## Avancement
 
-- `eraseParticipantForTeam` (`server/utils/participantPrivacy.ts`) : dans les seuls jeux de l'équipe, liens, inscriptions, rôles, présences, paiements, envois, trombinoscopes, déroulé, affinités qui la désignent et photos du cast ; sans autre équipe, l'effacement complet (`eraseParticipant`). La route de suppression ne refuse plus une fiche liée au jeu d'une autre équipe (US-211).
+- `eraseParticipantForTeam` (`server/utils/participantPrivacy.ts`) : dans les seuls jeux de l'équipe, liens, inscriptions, rôles, présences, paiements, envois, trombinoscopes, déroulé et photos du cast ; les affinités d’autres personnes qui la désignent sont détachées, leur texte reste, et deux effacements simultanés laissent la fiche disparaître plutôt que rester sans jeu (revue de la PR #235) ; sans autre équipe, l'effacement complet (`eraseParticipant`). La route de suppression ne refuse plus une fiche liée au jeu d'une autre équipe (US-211).
 - Export : nom, téléphone et dates de l'équipe (revue de la PR #232), et personnes de ses affinités nommées comme dans son jeu.
