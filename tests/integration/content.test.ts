@@ -1,4 +1,5 @@
 // Validation des URL, suppressions en cascade, nettoyage des fichiers téléversés, ressources figées dans leur jeu
+import { labelled } from '../sessionLabel'
 import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -40,7 +41,7 @@ async function aliceGame(key: string) {
   const participant = await prisma.participant.create({
     data: { name: `Joueur ${key}`, slug: `joueur-contenu-${key}`, gameLinks: { create: { gameId: game.id } } }
   })
-  const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-contenu-${key}`, gameId: game.id } })
+  const session = await labelled(prisma, await prisma.session.create({ data: { slug: `session-contenu-${key}`, gameId: game.id } }))
   return { game, character, participant, session }
 }
 
@@ -74,11 +75,11 @@ describe('URL saisies par les organisateurs', () => {
     // Une photo prise pour une autre session du même jeu peut resservir
     const created = await api(alice, 'POST', '/api/sessions', { name: 'Autre session fichiers', gameId: game.id, assignments: [{ characterId: character.id, photoUrl: photo.url }] })
     expect(created.status, JSON.stringify(created.body)).toBe(200)
-    const updated = await api(alice, 'PUT', `/api/sessions/${session.id}`, { name: session.name, gameId: game.id, assignments: [{ characterId: character.id, photoUrl: photo.url }] })
+    const updated = await api(alice, 'PUT', `/api/sessions/${session.id}`, { name: session.label, gameId: game.id, assignments: [{ characterId: character.id, photoUrl: photo.url }] })
     expect(updated.status, JSON.stringify(updated.body)).toBe(200)
     // Modifier le seul lien de paiement garde le RIB
     expect((await api(alice, 'PUT', `/api/sessions/${session.id}/payments/settings`, { paymentLinkUrl: 'https://paiement.example/x' })).status).toBe(200)
-    expect((await prisma.session.findUniqueOrThrow({ where: { id: session.id } })).paymentRibUrl).toBe(rib.url)
+    expect((await labelled(prisma, await prisma.session.findUniqueOrThrow({ where: { id: session.id } }))).paymentRibUrl).toBe(rib.url)
   })
 
   it('refuse comme photo de personnage un fichier d’un autre jeu ou la photo d’un joueur', async () => {
@@ -134,7 +135,7 @@ describe('suppressions', () => {
 
   it('supprimer une session efface ses photos et son RIB, mais garde une photo réutilisée ailleurs', async () => {
     const { game, character, participant, session } = await aliceGame('session')
-    const other = await prisma.session.create({ data: { name: 'Autre', slug: 'session-contenu-autre', gameId: game.id } })
+    const other = await labelled(prisma, await prisma.session.create({ data: { slug: 'session-contenu-autre', gameId: game.id } }))
     const photo = await upload('photo', game.id, session.id)
     const shared = await upload('photo', game.id, session.id)
     const rib = await upload('rib', game.id, session.id)
@@ -168,7 +169,7 @@ describe('fichiers remplacés', () => {
     await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
 
     const response = await api(alice, 'PUT', `/api/sessions/${session.id}`, {
-      name: session.name,
+      name: session.label,
       gameId: game.id,
       assignments: [{ characterId: character.id, participantId: participant.id, photoUrl: after.url }]
     })

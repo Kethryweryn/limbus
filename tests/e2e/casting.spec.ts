@@ -2,11 +2,13 @@
 import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS, PARCOURS } from './constants'
-import { choose, parcoursSession, signIn, uniqueName } from './helpers'
+import { choose, labelled, parcoursSession, signIn, uniqueDate } from './helpers'
 
 test('une session créée depuis la liste se caste depuis le vivier, et ses réservations restent (US-176)', async ({ page }) => {
   const prisma = createTestPrisma()
-  const name = uniqueName('Session casting e2e')
+  // Une date propre au test : la session n'a pas de nom (SPEC-021), elle se retrouve par elle
+  const when = uniqueDate(1, 1)
+  const year = { gte: new Date(Date.UTC(when.getUTCFullYear(), 0, 1)), lt: new Date(Date.UTC(when.getUTCFullYear(), 0, 2)) }
   try {
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/sessions')
@@ -15,11 +17,11 @@ test('une session créée depuis la liste se caste depuis le vivier, et ses rés
     await page.getByRole('button', { name: 'Créer une session' }).click()
     const form = page.locator('form').filter({ has: page.getByRole('button', { name: 'Créer', exact: true }) })
     await choose(page, form.getByRole('combobox').first(), PARCOURS.game)
-    await form.getByLabel('Nom').fill(name)
+    await form.getByLabel('Date', { exact: true }).fill(`${when.getUTCFullYear()}-01-01T13:00`)
     await form.getByRole('button', { name: 'Créer', exact: true }).click()
 
-    await expect.poll(() => prisma.session.count({ where: { name } })).toBe(1)
-    const session = await prisma.session.findFirstOrThrow({ where: { name } })
+    await expect.poll(() => prisma.session.count({ where: { date: year } })).toBe(1)
+    const session = await labelled(prisma, await prisma.session.findFirstOrThrow({ where: { date: year } }))
     await page.goto(`/sessions/${session.slug}?tab=cast`)
     await page.waitForLoadState('networkidle')
 
@@ -48,7 +50,7 @@ test('une session créée depuis la liste se caste depuis le vivier, et ses rés
     await page.getByRole('button', { name: 'Inviter pour cette session' }).click()
     const invitation = page.getByRole('dialog')
     await expect(invitation.getByText('Inviter à rejoindre le vivier')).toBeVisible()
-    await expect(invitation.getByRole('combobox').first()).toContainText(name)
+    await expect(invitation.getByRole('combobox').first()).toContainText(session.label)
   } finally {
     await prisma.$disconnect()
   }

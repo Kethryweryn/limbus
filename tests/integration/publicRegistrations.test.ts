@@ -1,4 +1,6 @@
 // Répondre à une invitation, modifier ses réponses, ses disponibilités, annuler ou quitter le vivier (SPEC-018, R4, R5, R7, R14, R19, R29)
+import { inSentence } from '~/utils/sessionLabels'
+import { labelled } from '../sessionLabel'
 import { createHash, randomBytes } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
@@ -51,9 +53,9 @@ async function invitation(options: { periodState?: RegistrationPeriodState, resp
     data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id, noteIntention: `Note d’intention ${key}` }
   })
   const location = await prisma.location.create({ data: { name: 'Château', slug: `chateau-${key}`, address: '1 rue du Donjon', gameId: game.id } })
-  const session = await prisma.session.create({
-    data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, locationId: location.id, date: options.sessionDate ?? new Date('2099-03-10T09:00:00Z') }
-  })
+  const session = await labelled(prisma, await prisma.session.create({
+    data: { slug: `session-${key}`, gameId: game.id, locationId: location.id, date: options.sessionDate ?? new Date('2099-03-10T09:00:00Z') }
+  }))
   await prisma.character.createMany({
     data: Array.from({ length: options.seats ?? 5 }, (_, index) => ({ name: `PJ ${index}`, slug: `pj-${index}-${key}`, gameId: game.id, type: 'pj' }))
   })
@@ -110,8 +112,8 @@ describe('consulter son invitation', () => {
     expect(response.body).toMatchObject({
       status: 'invited',
       game: { title: game.title, noteIntention: game.noteIntention },
-      invitedSession: { name: session.name, location: { name: 'Château', address: '1 rue du Donjon' } },
-      availability: { sessions: [{ id: session.id, name: session.name }] },
+      invitedSession: { label: session.label, location: { name: 'Château', address: '1 rue du Donjon' } },
+      availability: { sessions: [{ id: session.id, label: session.label }] },
       sessions: [],
       poolState: 'open',
       overdue: false,
@@ -293,7 +295,7 @@ describe('réponses modifiées (US-173, R16)', () => {
     expect((await publicApi('PUT', path, answers({ phone: '0699999999' }))).status).toBe(200)
     await expect.poll(() => emailsAboutChange().length).toBeGreaterThan(before)
     const email = emailsAboutChange().at(-1)!
-    expect(email.text).toContain(session.name)
+    expect(email.text).toContain(session.label)
     expect(email.text).not.toContain('0699999999')
     expect((await lineOf(prisma, lou.id, session.id))?.answersChangedAt).not.toBeNull()
 
@@ -315,7 +317,7 @@ describe('réponses modifiées (US-173, R16)', () => {
     const { pool, session, lou, path } = await person('confirmed')
     expect((await publicApi('PUT', path, answers())).status).toBe(200)
     await prisma.registrationSession.update({ where: { registrationId_sessionId: { registrationId: lou.id, sessionId: session.id } }, data: { answersChangedAt: null } })
-    const other = await prisma.session.create({ data: { name: `Autre ${pool.key}`, slug: `autre-${pool.key}`, gameId: pool.game.id, date: new Date(Date.now() + 40 * 86_400_000) } })
+    const other = await labelled(prisma, await prisma.session.create({ data: { slug: `autre-${pool.key}`, gameId: pool.game.id, date: new Date(Date.now() + 40 * 86_400_000) } }))
     await prisma.registrationPeriodSession.create({ data: { gameId: pool.period.gameId, periodId: pool.period.id, sessionId: other.id, open: true } })
     expect((await publicApi('PUT', path, answers({ availableSessionIds: [other.id] }))).status).toBe(200)
     expect((await lineOf(prisma, lou.id, session.id))?.answersChangedAt).toBeNull()
@@ -400,9 +402,9 @@ describe('parcours complet (US-174, R18)', () => {
   })
 
   it('reportée : l’ancienne session est transférée, et le paiement reporté valide sur la nouvelle', async () => {
-    const { session, lou, path, pool } = await inscribed()
+    const { session, lou, path } = await inscribed()
     await prisma.sessionPayment.create({ data: { gameId: session.gameId, sessionId: session.id, participantId: lou.participantId, paidAt: new Date() } })
-    const postponed = await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { name: `Report ${pool.key}`, date: new Date(Date.now() + 60 * 86_400_000).toISOString() })
+    const postponed = await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { date: new Date(Date.now() + 60 * 86_400_000).toISOString() })
     expect(postponed.status, JSON.stringify(postponed.body)).toBe(200)
     const created = (postponed.body as { id: string }).id
     const carried = await api(alice, 'PUT', `/api/sessions/${session.id}/payments/${lou.participantId}/refund`, { status: 'carried_over' })
@@ -496,11 +498,11 @@ describe('disponibilités (R7, R29)', () => {
     await prisma.registrationSession.update({ where: key(person.id, first.id), data: { status: 'retained', announcedStatus: 'retained' } })
     const retained = await save(path, [])
     expect(retained.status).toBe(200)
-    expect(retained.body).toMatchObject({ keptSessions: [first.name], answers: { availableSessionIds: [first.id] } })
+    expect(retained.body).toMatchObject({ keptSessions: [first.label], answers: { availableSessionIds: [first.id] } })
     expect(await lineOf(prisma, person.id, first.id)).toMatchObject({ status: 'retained', answer: 'available' })
 
     await prisma.registrationSession.update({ where: key(person.id, first.id), data: { status: 'confirmed' } })
-    expect((await save(path, [])).body).toMatchObject({ keptSessions: [first.name] })
+    expect((await save(path, [])).body).toMatchObject({ keptSessions: [first.label] })
     expect(await lineOf(prisma, person.id, first.id)).toMatchObject({ status: 'confirmed' })
   })
 
@@ -577,7 +579,7 @@ describe('annuler sa présence à une session (R19)', () => {
 
     // Après la réponse : trombinoscopes régénérés sans elle, puis email aux organisateurs
     await expect.poll(() => smtp.received.slice(sentBefore).find((message) => message.to.includes('alice@example.test'))?.text, { timeout: 10_000 })
-      .toContain(`${participant.name} a annulé sa présence à la session ${session.name}`)
+      .toContain(`${participant.name} a annulé sa présence à la ${inSentence(session.label)}`)
     const notice = smtp.received.slice(sentBefore).find((message) => message.to.includes('alice@example.test'))!
     expect(notice.text).toContain('trombinoscopes de la session ont été régénérés')
     expect(await prisma.sessionTrombinoscope.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(0)
@@ -613,7 +615,7 @@ describe('quitter le vivier (R5)', () => {
   it('annule ses présences à venir, garde les passées, invalide le lien, et prévient l’équipe', async () => {
     const pool = await createPool(prisma, alice.id, { key: 'sortie', sessions: 1, seats: 2 })
     const session = pool.sessions[0]!
-    const past = await prisma.session.create({ data: { name: 'Passée', slug: `passee-${pool.key}`, gameId: pool.game.id, status: 'completed', date: new Date('2020-01-01') } })
+    const past = await labelled(prisma, await prisma.session.create({ data: { slug: `passee-${pool.key}`, gameId: pool.game.id, status: 'completed', date: new Date('2020-01-01') } }))
     const token = randomBytes(32).toString('base64url')
     const person = await addPerson(prisma, pool, 'Lou', [session.id], { links: { create: { tokenHash: sha256(token) } } })
     await prisma.registrationSession.update({ where: { registrationId_sessionId: { registrationId: person.id, sessionId: session.id } }, data: { status: 'confirmed' } })

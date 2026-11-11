@@ -1,3 +1,4 @@
+import { labelSessions, sessionLabelsFor } from '~/server/utils/sessionLabels'
 import * as z from 'zod'
 import { prisma } from '~/server/utils/prisma'
 import { requireGameAccess, requireSessionAccess } from '~/server/utils/gameAccess'
@@ -12,14 +13,15 @@ export function registerSessionTools({ event, server }: ToolContext) {
     annotations: READ_ONLY
   }, ({ jeuId }) => toolResult(async () => {
     await requireGameAccess(event, jeuId)
-    return await prisma.session.findMany({
+    // Une session n'a pas de nom : son libellé, calculé (SPEC-021)
+    return await labelSessions(prisma, await prisma.session.findMany({
       where: { gameId: jeuId },
-      orderBy: [{ date: { sort: 'asc', nulls: 'last' } }, { name: 'asc' }],
+      orderBy: [{ date: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
       select: {
-        id: true, name: true, date: true, status: true, published: true, location: named,
+        id: true, date: true, status: true, published: true, location: named,
         _count: { select: { participants: true, assignments: true } }
       }
-    })
+    }))
   }))
 
   server.registerTool('lire_session', {
@@ -33,10 +35,10 @@ export function registerSessionTools({ event, server }: ToolContext) {
       prisma.session.findUniqueOrThrow({
         where: { id: sessionId },
         select: {
-          id: true, gameId: true, name: true, date: true, status: true, cancelledAt: true, published: true, updatedAt: true,
+          id: true, gameId: true, date: true, status: true, cancelledAt: true, published: true, updatedAt: true,
           location: named,
-          postponedTo: named,
-          postponedFrom: named,
+          postponedTo: { select: { id: true } },
+          postponedFrom: { select: { id: true } },
           participants: { orderBy: { participant: { name: 'asc' } }, select: { role: true, participant: named } },
           assignments: { orderBy: { character: { name: 'asc' } }, select: { character: named, participant: named, locked: true, notes: true, reservedRegistrationId: true } }
         }
@@ -47,6 +49,8 @@ export function registerSessionTools({ event, server }: ToolContext) {
         select: { timelineEvent: { select: { id: true, name: true, day: true, time: true } }, participant: named }
       })
     ])
-    return { ...session, timeline }
+    const labels = await sessionLabelsFor(prisma, [session.id, session.postponedTo?.id, session.postponedFrom?.id].filter((id): id is string => Boolean(id)))
+    const labelled = (link: { id: string } | null) => link && { ...link, label: labels.get(link.id) ?? 'Session' }
+    return { ...session, label: labels.get(session.id) ?? 'Session', postponedTo: labelled(session.postponedTo), postponedFrom: labelled(session.postponedFrom), timeline }
   }))
 }

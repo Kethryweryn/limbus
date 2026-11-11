@@ -1,3 +1,4 @@
+import { labelSession } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
 import { myParticipantIds } from '~/server/utils/participantAccounts'
 import { generatedPdfFileName, renderTextPdf, type TextPdfInput } from '~/server/utils/generatedPdfs'
@@ -18,13 +19,15 @@ const deliverySelect = {
   copySize: true,
   document: { select: { title: true, content: true, documentUrl: true, readyToSend: true } },
   character: { select: { id: true, name: true, pitch: true, background: true, backgroundDocumentUrl: true, costumeIndications: true, sheetReadyToSend: true, ...sheetRelationsInclude } },
-  session: { select: { name: true, game: { select: { title: true } } } }
+  session: { select: { id: true, game: { select: { title: true } } } }
 } as const
 
 type MyDelivery = NonNullable<Awaited<ReturnType<typeof findDelivery>>>
 
+// Avec le libellé de sa session, calculé (SPEC-021)
 async function findDelivery(id: string) {
-  return await prisma.sessionDocumentDelivery.findUnique({ where: { id }, select: deliverySelect })
+  const delivery = await prisma.sessionDocumentDelivery.findUnique({ where: { id }, select: deliverySelect })
+  return delivery && { ...delivery, session: await labelSession(prisma, delivery.session) }
 }
 
 export function deliveryTitle(delivery: { kind: string, document: { title: string } | null, character: { name: string } | null }) {
@@ -85,7 +88,7 @@ export async function readMyDelivery(delivery: MyDelivery) {
     kind: delivery.kind,
     title: deliveryTitle(delivery),
     sentAt: delivery.sentAt,
-    session: { name: delivery.session.name, gameTitle: delivery.session.game.title }
+    session: { label: delivery.session.label, gameTitle: delivery.session.game.title }
   }
   const copy = await liveCopy(delivery)
   if (copy) {
@@ -109,8 +112,8 @@ export async function readMyDelivery(delivery: MyDelivery) {
 export async function myDeliveryPdf(delivery: MyDelivery) {
   const copy = await liveCopy(delivery)
   const filename = delivery.kind === 'trombinoscope'
-    ? generatedPdfFileName([delivery.session.name, 'trombinoscope'])
-    : generatedPdfFileName([delivery.session.name, deliveryTitle(delivery)])
+    ? generatedPdfFileName([delivery.session.label, 'trombinoscope'])
+    : generatedPdfFileName([delivery.session.label, deliveryTitle(delivery)])
   if (copy?.copyPdf) return { filename, bytes: copy.copyPdf }
 
   if (delivery.kind === 'trombinoscope') {

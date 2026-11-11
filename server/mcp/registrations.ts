@@ -1,3 +1,4 @@
+import { labelNestedSessions } from '~/server/utils/sessionLabels'
 import * as z from 'zod'
 import { prisma } from '~/server/utils/prisma'
 import { requireGameAccess } from '~/server/utils/gameAccess'
@@ -19,15 +20,16 @@ export function registerRegistrationTools({ event, server }: ToolContext) {
     annotations: READ_ONLY
   }, ({ jeuId }) => toolResult(async () => {
     await requireGameAccess(event, jeuId)
-    return await prisma.registrationPeriod.findMany({
+    // Les sessions avec leur libellé, calculé (SPEC-021)
+    return await labelNestedSessions(prisma, await prisma.registrationPeriod.findMany({
       where: { gameId: jeuId },
       orderBy: { createdAt: 'asc' },
       select: {
         id: true, state: true, replayPolicy: true, updatedAt: true,
-        sessions: { select: { open: true, selectionMode: true, waitlistSize: true, session: named } },
+        sessions: { select: { open: true, selectionMode: true, waitlistSize: true, session: { select: { id: true } } } },
         _count: { select: { registrations: true } }
       }
-    })
+    }))
   }))
 
   server.registerTool('lire_formulaire_inscription', {
@@ -64,7 +66,7 @@ export function registerRegistrationTools({ event, server }: ToolContext) {
       })
     ])
     return {
-      sessions: overview.sessions.map((session) => ({ id: session.id, name: session.name, date: session.date, seats: session.seats, taken: session.taken, open: session.open, selectionMode: session.selectionMode })),
+      sessions: overview.sessions.map((session) => ({ id: session.id, label: session.label, date: session.date, seats: session.seats, taken: session.taken, open: session.open, selectionMode: session.selectionMode })),
       replayerParticipantIds: overview.replayerParticipantIds,
       registrations: registrations.map(({ questionAnswers, formVersion, affinities, ...registration }) => ({
         ...registration,

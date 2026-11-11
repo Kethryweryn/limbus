@@ -25,7 +25,7 @@ async function personInTwoTeams() {
   for (const owner of [alice, bob]) {
     const k = `${key}-${owner.id}`.toLowerCase()
     const game = await prisma.game.create({ data: { title: `Jeu ${k}`, slug: `jeu-${k}`, description: '', ownerId: owner.id } })
-    const session = await prisma.session.create({ data: { name: `Session ${k}`, slug: `session-${k}`, gameId: game.id } })
+    const session = await prisma.session.create({ data: { slug: `session-${k}`, gameId: game.id } })
     const participant = await prisma.participant.create({
       data: { name: 'Nom saisi par l’équipe', slug: `fiche-${k}`, email: user.email, phone: '0100000000', userId: user.id, gameLinks: { create: { gameId: game.id } } }
     })
@@ -121,7 +121,7 @@ describe('allergies du cast (US-074)', () => {
     await api(user, 'PUT', '/api/account/profile', profile)
     const { game } = teams[0]!
     const npc = await prisma.participant.create({ data: { name: 'PNJ du cast', slug: `pnj-${++counter}`, email: user.email, userId: user.id, gameLinks: { create: { gameId: game.id } } } })
-    const other = await prisma.session.create({ data: { name: `Autre session ${counter}`, slug: `autre-session-${counter}`, gameId: game.id } })
+    const other = await prisma.session.create({ data: { slug: `autre-session-${counter}`, gameId: game.id } })
     await prisma.sessionParticipant.create({ data: { sessionId: other.id, participantId: npc.id, role: 'npc' } })
     expect(JSON.stringify((await api(alice, 'GET', `/api/sessions/${other.id}/allergies`)).body)).toContain('Sans gluten')
   })

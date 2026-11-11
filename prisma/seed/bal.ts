@@ -3,7 +3,7 @@
 import { documentContentHash } from '../../server/utils/deliveryHashes'
 import { BEQUEST_INVITATION_DAYS, GAME_INVITATION_KINDS, GAME_INVITATION_STATUSES, REFUND_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '../../utils/domain'
 import type { Db, StageContext } from './db'
-import { daysFromNow } from './options'
+import { daysFromNow, sessionFields } from './options'
 import type { RefundStatus, SessionStatus } from '../../generated/prisma/enums'
 
 export const BAL_EXTRA_PEOPLE = [
@@ -15,9 +15,8 @@ export async function createBalStage(db: Db, context: StageContext) {
   const person = (email: string) => people.get(`${email}@example.test`)!
   const session = (name: string, slug: string, days: number, status: SessionStatus, team: string[], extra: { cancelledAt?: Date, postponedToSessionId?: string } = {}) => db.session.create({
     data: {
-      name: `${title} - ${name}`,
-      slug: makeSlug(`${title}-${slug}`),
-      date: daysFromNow(days),
+      // Rôle : name ; date, libellé et adresse calculés (SPEC-021)
+      ...sessionFields(title, days),
       gameId,
       locationId,
       status,
@@ -26,7 +25,7 @@ export async function createBalStage(db: Db, context: StageContext) {
       participants: { create: team.map((email) => ({ participantId: person(email).id, role: SESSION_ROLES.participant })) },
       ...extra
     },
-    select: { id: true, name: true }
+    select: { id: true }
   })
   const paid = (sessionId: string, email: string, refund: { refundStatus: RefundStatus, refundedAt?: Date, carriedOverToSessionId?: string }) =>
     db.sessionPayment.create({
@@ -35,7 +34,7 @@ export async function createBalStage(db: Db, context: StageContext) {
 
   // Session terminée : Lucie y retrouve ce qui lui a été envoyé. La copie s'efface après la session (ADR-0044) :
   // elle lit donc la version actuelle du document.
-  const archive = await db.session.findFirstOrThrow({ where: { gameId, status: SESSION_STATUSES.completed }, select: { id: true, name: true } })
+  const archive = await db.session.findFirstOrThrow({ where: { gameId, status: SESSION_STATUSES.completed }, select: { id: true } })
   const lucie = person('lucie.moreau')
   await db.sessionParticipant.create({ data: { sessionId: archive.id, participantId: lucie.id, role: SESSION_ROLES.participant } })
   const roadmap = await db.document.findFirstOrThrow({
@@ -49,7 +48,7 @@ export async function createBalStage(db: Db, context: StageContext) {
       participantId: lucie.id,
       documentId: roadmap.id,
       kind: 'document',
-      contentHash: documentContentHash({ name: archive.name, game: { title } }, roadmap),
+      contentHash: documentContentHash(roadmap),
       sentAt: daysFromNow(-65)
     }
   })

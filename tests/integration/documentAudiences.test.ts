@@ -21,7 +21,7 @@ type SessionDocuments = ApiResponse<'/api/sessions/:id/documents'>
 async function sessionWithEveryone() {
   const key = `public-document-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
-  const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
+  const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } })
   const person = (name: string) => prisma.participant.create({ data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } } })
   const [pj, orga, npc, cook, member] = await Promise.all(['Pj', 'Orga', 'Pnj', 'Cuisine', 'Membre'].map(person))
   const faction = await prisma.faction.create({ data: { name: `Guilde ${key}`, slug: `guilde-${key}`, gameId: game.id } })

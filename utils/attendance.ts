@@ -43,8 +43,8 @@ const formatDateTime = (value: Date | string) => formatLongDateTime(value, PARIS
 type AttendanceEmailParams = {
   participantName: string
   gameTitle: string
-  previousSessionName: string | null
-  sessionName: string
+  previousSessionLabel: string | null
+  sessionLabel: string
   sessionDate: Date | string | null
   locationName: string | null
   responseDueAt: Date | string
@@ -54,7 +54,7 @@ export function attendanceInvitationEmailText(params: AttendanceEmailParams & { 
   return [
     `Bonjour ${params.participantName},`,
     '',
-    `La session${params.previousSessionName ? ` « ${params.previousSessionName} »` : ''} de « ${params.gameTitle} » est reportée.`,
+    `La session${params.previousSessionLabel ? ` « ${params.previousSessionLabel} »` : ''} de « ${params.gameTitle} » est reportée.`,
     `Nouvelle date : ${params.sessionDate ? formatDateTime(params.sessionDate) : 'à préciser'}${params.locationName ? `, ${params.locationName}` : ''}.`,
     '',
     'Pouvez-vous nous dire si vous serez présent·e ? Répondez avec ce lien personnel :',

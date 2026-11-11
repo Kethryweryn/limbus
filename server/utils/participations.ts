@@ -1,3 +1,4 @@
+import { labelNestedSessions, sessionLabelsFor } from '~/server/utils/sessionLabels'
 import { gamePhotoInformation } from '~/utils/photoInformation'
 import { prisma } from '~/server/utils/prisma'
 import { myParticipantIds } from '~/server/utils/participantAccounts'
@@ -8,7 +9,6 @@ import { SESSION_ROLES } from '~/utils/domain'
 
 const sessionSelect = {
   id: true,
-  name: true,
   date: true,
   status: true,
   gameId: true,
@@ -19,7 +19,6 @@ const sessionSelect = {
 
 type MySession = {
   id: string
-  name: string
   date: Date | null
   status: string
   gameId: string
@@ -93,7 +92,7 @@ export async function myParticipations(userId: string, now = new Date()) {
             cancelledById: true,
             responseDueAt: true,
             confirmedAt: true,
-            session: { select: { id: true, name: true, date: true, status: true, location: { select: { name: true, address: true } } } }
+            session: { select: { id: true, date: true, status: true, location: { select: { name: true, address: true } } } }
           }
         }
       }
@@ -122,10 +121,12 @@ export async function myParticipations(userId: string, now = new Date()) {
   const validatedByRegistration = new Map(await Promise.all(registrations.map(async (registration) =>
     [registration.id, await withValidatedSessions(registration.participantId, visibleSessionLines(registration.sessionLines, now))] as const)))
 
+  // Libellé de chaque session, calculé (SPEC-021)
+  const labels = await sessionLabelsFor(prisma, [...sessions.keys()])
   const sessionViews = await Promise.all([...sessions.values()].map(async (session) => ({
     id: session.id,
     gameId: session.gameId,
-    name: session.name,
+    label: labels.get(session.id) ?? 'Session',
     date: session.date,
     status: session.status,
     location: session.location,
@@ -138,7 +139,7 @@ export async function myParticipations(userId: string, now = new Date()) {
   const games = new Map<string, (typeof links)[number]['game']>()
   for (const link of links) games.set(link.game.id, link.game)
 
-  return [...games.values()]
+  return await labelNestedSessions(prisma, [...games.values()]
     .sort((left, right) => left.title.localeCompare(right.title, 'fr'))
     .map((game) => ({
       // Usage des photos dans ce jeu (US-107)
@@ -157,7 +158,7 @@ export async function myParticipations(userId: string, now = new Date()) {
           sessions: validatedByRegistration.get(registration.id) ?? [],
           ...registrationPermissions(registration)
         }))
-    }))
+    })))
 }
 
 // RIB d'une session, seulement si l'une de mes fiches y a un paiement (US-071)

@@ -33,7 +33,7 @@
                 Réponse attendue avant le {{ formatDate(registration.responseDueAt) }}
               </div>
               <div v-for="line in registration.sessions" :key="line.sessionId" class="flex flex-wrap items-center gap-2 text-gray-600">
-                <span>{{ line.session.name }}<span v-if="line.session.date"> · {{ formatDate(line.session.date) }}</span></span>
+                <span>{{ line.session.label }}</span>
                 <UBadge :color="lineMeta(line).color" variant="subtle" size="sm">{{ lineMeta(line).label }}</UBadge>
                 <span v-if="line.canConfirmPlace && line.responseDueAt" class="text-gray-500">à confirmer avant le {{ formatDate(line.responseDueAt) }}</span>
               </div>
@@ -55,7 +55,7 @@
           <p v-if="!entry.sessions.length" class="text-sm text-gray-500">Aucune session pour l’instant.</p>
           <div v-for="session in entry.sessions" :key="session.id" class="rounded border border-gray-200 p-3 text-sm space-y-2">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="font-medium">{{ session.name }}</span>
+              <span class="font-medium">{{ session.label }}</span>
               <UBadge :color="sessionMeta(session).color" variant="subtle" size="sm">{{ sessionMeta(session).label }}</UBadge>
               <UBadge v-for="role in session.roles" :key="role" color="neutral" variant="outline" size="sm">{{ roleLabel(role) }}</UBadge>
             </div>

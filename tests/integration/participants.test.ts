@@ -24,7 +24,7 @@ async function personInTwoGames() {
   const sessions = []
   for (const game of games) {
     const character = await prisma.character.create({ data: { name: `Rôle ${game.slug}`, slug: `role-${game.slug}`, gameId: game.id } })
-    const session = await prisma.session.create({ data: { name: `Session ${game.slug}`, slug: `session-${game.slug}`, gameId: game.id } })
+    const session = await prisma.session.create({ data: { slug: `session-${game.slug}`, gameId: game.id } })
     await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
     await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: character.id, participantId: participant.id } })
     await prisma.sessionAttendance.create({ data: { sessionId: session.id, participantId: participant.id, responseDueAt: new Date(Date.now() + 86_400_000) } })

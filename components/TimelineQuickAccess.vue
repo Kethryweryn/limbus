@@ -67,7 +67,7 @@ const shortcuts = computed(() => {
       key: `session-${nextSessionGame.value.id}`,
       label: 'Prochaine session prévue',
       game: nextSessionGame.value,
-      detail: `${formatDate(nextSessionGame.value.nextScheduledSessionAt)} · ${nextSessionGame.value.nextScheduledSession?.name || 'Session'}`
+      detail: `${formatDate(nextSessionGame.value.nextScheduledSessionAt)} · ${nextSessionGame.value.nextScheduledSession?.label || 'Session'}`
     })
   }
 

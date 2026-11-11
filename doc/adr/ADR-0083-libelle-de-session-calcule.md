@@ -1,12 +1,14 @@
 ---
 id: ADR-0083
 titre: Le libellé d'une session est calculé par le serveur et gardé à la place du nom
-statut: accepté
+statut: remplacé par ADR-0084
 date: 2026-11-11
 liens: [SPEC-021, SPEC-004]
 ---
 
 # ADR-0083 : Le libellé d'une session est calculé par le serveur et gardé à la place du nom
+
+Remplacé par [ADR-0084](ADR-0084-libelle-de-session-a-la-lecture.md) : garder un libellé dans une colonne que du code technique lit était une erreur.
 
 ## Contexte
 
@@ -14,7 +16,7 @@ SPEC-021 retire le nom d'une session : elle se lit par sa date, avec l'heure, le
 
 ## Décision
 
-- La colonne `Session.name` reste, et garde le libellé calculé. Personne ne l'écrit plus : `sessionLabels` (`utils/sessionLabels.ts`) calcule les libellés de toutes les sessions d'un jeu, et `refreshSessionLabels(tx, gameId)` (`server/utils/sessionLabels.ts`) les réécrit, avec leur adresse, dans la transaction de toute écriture qui crée une session, change sa date ou son lieu, ou en supprime une (formulaire, report, assistants d'IA, jeux de test).
+- La colonne `Session.name` reste, et garde le libellé calculé. Personne ne l'écrit plus : `sessionLabels` (`utils/sessionLabels.ts`) calcule les libellés de toutes les sessions d'un jeu, et `refreshSessionLabels(tx, gameId)` (`server/utils/sessionLabels.ts`) les réécrit, avec leur adresse, dans la transaction de toute écriture qui crée une session, change sa date ou son lieu, ou en supprime une (formulaire, report, assistants d'IA, jeux de test), et de celle qui renomme ou supprime un lieu. Il écrit sans toucher à `updatedAt` : la version d'une voisine ne change pas, et une page ouverte ou une modification hors ligne la concernant reste valable.
 - Le jour et l'heure se lisent à l'heure de Paris.
 - L'adresse (`slug`) est faite du slug du jeu et de la date (`AAAA-MM-JJ`, ou `sans-date`), avec le suffixe de `generateUniqueSlug` en cas de doublon.
 - Les sessions existantes prennent leur libellé et leur adresse au démarrage du serveur : un plugin Nitro recalcule, pour chaque jeu, les libellés qui diffèrent de ceux attendus. Il ne réécrit rien quand tout est à jour, et répare aussi une écriture qui aurait échappé au recalcul.
@@ -25,6 +27,7 @@ SPEC-021 retire le nom d'une session : elle se lit par sa date, avec l'heure, le
 - Créer, déplacer ou supprimer une session peut changer le libellé et l'adresse de ses voisines du même jour.
 - Le jeu devant le libellé (R4) se compose à l'affichage, là où le libellé sort des pages du jeu.
 - Une ancienne adresse de session ne mène plus à elle.
+- Le libellé sort de l'empreinte des envois (`server/utils/deliveryHashes.ts`), qui ne porte plus que le contenu envoyé : un changement de libellé ne marque plus un envoi comme dépassé. L'empreinte changeant de forme, les envois faits avant sont marqués « à renvoyer » une fois, au déploiement (choix de l'utilisatrice).
 
 ## Options écartées
 

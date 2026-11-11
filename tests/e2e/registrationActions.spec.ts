@@ -1,3 +1,4 @@
+import { labelled } from './helpers'
 import { createHash, randomBytes } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
@@ -9,7 +10,7 @@ import { openRegistrations, registrationTab, signIn, slugOf, type TestPrisma, un
 async function testPeriod(prisma: TestPrisma, key: string) {
   const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
-  const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-09-01T09:00:00Z') } })
+  const session = await labelled(prisma, await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id, date: new Date('2099-09-01T09:00:00Z') } }))
   const period = await prisma.registrationPeriod.create({
     data: { gameId: game.id, publicId: `p${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id } } }
   })
@@ -119,7 +120,7 @@ test('l’équipe consulte le détail d’une personne inscrite, la retire de la
     const cleo = await invitedPerson(prisma, { gameId: game.id, sessionId: session.id, periodId: period.id }, 'Cléo Retrait', 'confirmed')
 
     const panel = await openOwnRegistrations(page, prisma, game.title)
-    const row = panel.locator(`[data-session="${session.name}"] li`).filter({ hasText: 'Cléo Retrait' })
+    const row = panel.locator(`[data-session="${session.label}"] li`).filter({ hasText: 'Cléo Retrait' })
 
     await row.getByRole('button', { name: 'Détail' }).click()
     const dialog = page.getByRole('dialog')
@@ -185,7 +186,7 @@ test('l’équipe règle, ferme, rouvre, copie le lien, ouvre une session et sup
 
     // Ouvrir la session à la pré-inscription, puis la refermer
     await registrationTab(page, 'Sessions')
-    const block = panel.locator(`[data-session="${session.name}"]`)
+    const block = panel.locator(`[data-session="${session.label}"]`)
     await expect(block.getByText('Pas proposée au vivier')).toBeVisible()
     await block.getByRole('button', { name: 'Ouvrir à la pré-inscription' }).click()
     await expect(block.getByText('Ouverte à la pré-inscription')).toBeVisible()

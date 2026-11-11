@@ -34,7 +34,8 @@ const resources: Resource[] = [
   { path: 'documents', model: 'document', entity: (w) => w.document, body: (w) => ({ title: 'Renommé', content: 'x', gameId: w.game.id }), slugPath: 'documents/slug' },
   { path: 'timeline-events', model: 'timelineEvent', entity: (w) => w.timelineEvent, body: (w) => ({ name: 'Renommé', day: 1, time: '11:00', gameId: w.game.id }), slugPath: 'timeline-events/slug' },
   { path: 'participants', model: 'participant', entity: (w) => w.participant, body: (w) => ({ name: 'Renommé', gameIds: [w.game.id] }), slugPath: 'participants/slug' },
-  { path: 'sessions', model: 'session', entity: (w) => w.session, body: (w) => ({ name: 'Renommé', gameId: w.game.id }), slugPath: 'sessions/slug' },
+  // Une session n'a pas de nom (SPEC-021) : c'est sa date qui ne doit pas changer
+  { path: 'sessions', model: 'session', entity: (w) => w.session, body: (w) => ({ date: '2099-12-31T12:00:00.000Z', gameId: w.game.id }), slugPath: 'sessions/slug' },
   {
     path: 'registration-periods',
     model: 'registrationPeriod',
@@ -44,9 +45,9 @@ const resources: Resource[] = [
 ]
 
 // Chaque délégué Prisma a sa propre signature : on n'en garde que la lecture par identifiant, commune à tous
-type RowReader = { findUnique(args: { where: { id: string }, select: { id: true, name?: true, title?: true } }): Promise<{ name?: string, title?: string } | null> }
+type RowReader = { findUnique(args: { where: { id: string }, select: { id: true, name?: true, title?: true, slug?: true } }): Promise<{ name?: string, title?: string, slug?: string } | null> }
 
-function readRow(model: Resource['model'], id: string, select: { id: true, name?: true, title?: true } = { id: true }) {
+function readRow(model: Resource['model'], id: string, select: { id: true, name?: true, title?: true, slug?: true } = { id: true }) {
   return (prisma[model] as unknown as RowReader).findUnique({ where: { id }, select })
 }
 
@@ -68,8 +69,10 @@ describe.each(resources)('/api/$path', (resource) => {
   })
 
   it.runIf(resource.slugPath)('lecture par slug : refusée chez Bob', async () => {
-    expect((await api(alice, 'GET', `/api/${resource.slugPath}/${own.slug}`)).status).toBe(200)
-    expect(DENIED).toContain((await api(alice, 'GET', `/api/${resource.slugPath}/${foreign.slug}`)).status)
+    // Relu en base : l'adresse d'une session se recalcule au démarrage du serveur (SPEC-021, ADR-0084)
+    const slugOf = async (id: string) => (await readRow(resource.model, id, { id: true, slug: true }))!.slug
+    expect((await api(alice, 'GET', `/api/${resource.slugPath}/${await slugOf(own.id)}`)).status).toBe(200)
+    expect(DENIED).toContain((await api(alice, 'GET', `/api/${resource.slugPath}/${await slugOf(foreign.id)}`)).status)
   })
 
   // Un slug change avec le nom : la route par identifiant ne l'accepte pas (lecture par slug explicite)
@@ -90,6 +93,8 @@ describe.each(resources)('/api/$path', (resource) => {
     if (resource.model === 'registrationPeriod') {
       // Un vivier n'a pas de nom : c'est son délai de réponse qui ne doit pas changer
       expect((await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: foreign.id }, select: { responseDelayDays: true } })).responseDelayDays).not.toBe(3)
+    } else if (resource.model === 'session') {
+      expect((await prisma.session.findUniqueOrThrow({ where: { id: foreign.id }, select: { date: true } })).date?.toISOString()).not.toBe('2099-12-31T12:00:00.000Z')
     } else {
       // Le champ renommé : title pour un jeu ou un document, name ailleurs
       const field = 'title' in resource.body(b) ? 'title' : 'name'
@@ -351,7 +356,7 @@ describe('sous-routes de session et de jeu chez Bob', () => {
   it('inviter dans son vivier un participant ou une session de Bob est refusé', async () => {
     // Vivier ouvert d'Alice, sur un jeu à elle (celui des fixtures reste en brouillon)
     const game = await prisma.game.create({ data: { title: 'Jeu invitations', slug: 'jeu-invitations-isolation', description: '', ownerId: alice.id } })
-    const session = await prisma.session.create({ data: { name: 'Session invitations', slug: 'session-invitations-isolation', gameId: game.id } })
+    const session = await prisma.session.create({ data: { slug: 'session-invitations-isolation', gameId: game.id } })
     const period = await prisma.registrationPeriod.create({
       data: { gameId: game.id, publicId: 'isolation-ouverte', state: 'open', sessions: { create: { sessionId: session.id } } }
     })

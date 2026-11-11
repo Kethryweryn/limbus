@@ -1,3 +1,4 @@
+import { labelSessions } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
 import { requireRouterParam } from '~/server/utils/routeParams'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
@@ -29,7 +30,7 @@ export default defineEventHandler(async (event) => {
       sessions: {
         where: { published: true, status: SESSION_STATUSES.scheduled, OR: [{ date: null }, { date: { gte: startOfDay(new Date()) } }] },
         orderBy: { date: 'asc' },
-        select: { name: true, date: true, location: { select: { name: true } } }
+        select: { id: true, date: true, location: { select: { name: true } } }
       },
       // Vivier ouvert : son lien de diffusion (US-086, R32)
       registrationPeriods: {
@@ -55,7 +56,8 @@ export default defineEventHandler(async (event) => {
   const { sessions, registrationPeriods, publicShowSessions, publicShowRegistration, ...presentation } = game
   return {
     ...presentation,
-    upcomingSessions: publicShowSessions ? sessions : [],
+    // Libellé seulement, sans l'identifiant de la session (SPEC-021)
+    upcomingSessions: publicShowSessions ? (await labelSessions(prisma, sessions)).map(({ id: _id, ...session }) => session) : [],
     registrationLinks: publicShowRegistration
       ? registrationPeriods.map((period) => ({ url: absoluteAppUrl(`/i/${period.publicId}`) }))
       : []

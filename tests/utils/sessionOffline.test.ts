@@ -9,7 +9,7 @@ type TimelineInput = Parameters<typeof projectOfflineTimeline>[0]
 
 const session = {
   id: 's1',
-  name: 'Samedi',
+  label: 'Samedi',
   updatedAt: '2026-10-30T10:00:00.000Z',
   location: null,
   participants: [{ participantId: 'p1', role: 'participant', participant: lea }],
@@ -17,16 +17,22 @@ const session = {
 }
 
 describe('session modifiée hors ligne (US-048)', () => {
+  it('garde le libellé quand la date ne change pas, le recalcule sinon (SPEC-021)', () => {
+    const dated = { ...session, label: 'Session du 15 mai 2099, 14 h', date: '2099-05-15T12:00:00.000Z' }
+    expect(projectOfflineSession(dated, { date: '2099-05-15T12:00:00.000Z' }, {}).label).toBe('Session du 15 mai 2099, 14 h')
+    expect(projectOfflineSession(dated, { date: '2099-05-16T12:00:00.000Z' }, {}).label).toBe('Session du 16 mai 2099')
+  })
+
   it('affiche le casting et l’équipe avec les personnes de l’appareil, en gardant la version lue', () => {
     const projected = projectOfflineSession(session, {
-      name: 'Dimanche',
+      date: '2099-05-15T12:00:00Z',
       locationId: 'l1',
       participants: [{ participantId: 'p1', role: 'participant' }, { participantId: 'p2', role: 'npc' }],
       assignments: [{ characterId: 'c1', participantId: 'p1', photoUrl: '', notes: 'Arrive tard' }]
     }, { participants: [lea, noe], characters: [aube], locations: [{ id: 'l1', name: 'Forêt' }] })
 
     expect(projected).toMatchObject({
-      name: 'Dimanche',
+      label: 'Session du 15 mai 2099',
       updatedAt: session.updatedAt,
       location: { name: 'Forêt' },
       participants: [{ participant: lea }, { participant: noe, role: 'npc' }],

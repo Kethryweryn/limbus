@@ -4,7 +4,7 @@
       <div class="flex flex-col gap-1">
         <h2 class="text-lg font-semibold">Confirmation de présence</h2>
         <p class="text-sm text-gray-500">
-          Report de « {{ data?.postponedFrom?.name || 'la session' }} » : chaque personne de l’équipe confirme qu’elle viendra à la nouvelle date.
+          Report de « {{ data?.postponedFrom?.label || 'la session' }} » : chaque personne de l’équipe confirme qu’elle viendra à la nouvelle date.
         </p>
       </div>
     </template>
@@ -104,7 +104,7 @@ type AttendanceRow = Attendance['rows'][number]
 
 // Confirmation de présence à une session reportée (US-024)
 const props = defineProps<{
-  session: { id: string, name: string, date?: string | null, game?: { title: string } | null, location?: { name: string } | null }
+  session: { id: string, label: string, date?: string | null, game?: { title: string } | null, location?: { name: string } | null }
 }>()
 const emit = defineEmits<{ changed: [] }>()
 
@@ -134,8 +134,8 @@ const countBadges = computed(() => (Object.keys(ATTENDANCE_DISPLAY) as Array<key
 const preview = computed(() => attendanceInvitationEmailText({
   participantName: 'Prénom Nom',
   gameTitle: props.session.game?.title || 'Jeu',
-  previousSessionName: data.value?.postponedFrom?.name || null,
-  sessionName: props.session.name,
+  previousSessionLabel: data.value?.postponedFrom?.label || null,
+  sessionLabel: props.session.label,
   sessionDate: props.session.date ?? null,
   locationName: props.session.location?.name || null,
   responseDueAt: dueDate.value ? endOfDay(dueDate.value) : new Date(),

@@ -73,14 +73,14 @@ test.describe('recherche dans le vivier', () => {
       const ctx = await pool(prisma, 'Voeux')
       await openPool(page, prisma, ctx.game.title)
       await main(page).getByRole('combobox').click()
-      await page.getByRole('option', { name: ctx.second.name }).click()
+      await page.getByRole('option', { name: ctx.second.label }).click()
       // Marc n'est pas disponible pour cette session : seule Zoé l'a demandée
       await expect(main(page).getByText('Dans le vivier : 1 sur 3')).toBeVisible()
       await expect(main(page).getByText(ctx.zoe.name)).toBeVisible()
       await expect(main(page).getByText(ctx.marc.name)).toHaveCount(0)
 
       await main(page).getByRole('combobox').click()
-      await page.getByRole('option', { name: ctx.first.name }).click()
+      await page.getByRole('option', { name: ctx.first.label }).click()
       await expect(main(page).getByText('Dans le vivier : 2 sur 3')).toBeVisible()
       await main(page).getByPlaceholder('Nom ou email').fill('marc')
       await expect(main(page).getByText('Dans le vivier : 1 sur 3')).toBeVisible()
@@ -91,6 +91,7 @@ test.describe('recherche dans le vivier', () => {
       await prisma.session.update({ where: { id: ctx.first.id }, data: { status: 'cancelled' } })
       // Coupure puis retour du réseau : la page relit le vivier
       await context.setOffline(true)
+      await page.waitForFunction(() => !navigator.onLine)
       await context.setOffline(false)
       await expect(main(page).getByText('Dans le vivier : 3')).toBeVisible()
       await expect(main(page).getByRole('combobox')).toContainText('Toutes les personnes')

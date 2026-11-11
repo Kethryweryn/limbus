@@ -1,3 +1,4 @@
+import { sessionLabelsFor } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
 import { absoluteAppUrl, publicAppUrl } from '~/server/utils/appUrl'
 import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
@@ -24,16 +25,23 @@ export function attendanceUrl(token: string) {
 
 const sessionContextSelect = {
   id: true,
-  name: true,
   date: true,
   status: true,
   game: { select: { title: true } },
   location: { select: { name: true, address: true } },
-  postponedFrom: { select: { name: true } }
+  postponedFrom: { select: { id: true } }
 } as const
 
+type SessionContext = { id: string, postponedFrom: { id: string } | null }
+
+// La session et celle qu'elle remplace, avec leur libellé (SPEC-021)
+async function withContextLabels<T extends SessionContext>(session: T) {
+  const labels = await sessionLabelsFor(prisma, [session.id, ...(session.postponedFrom ? [session.postponedFrom.id] : [])])
+  return { ...session, label: labels.get(session.id) ?? 'Session', previousLabel: session.postponedFrom ? labels.get(session.postponedFrom.id) ?? 'Session' : null }
+}
+
 async function attendanceSession(sessionId: string) {
-  return await prisma.session.findUniqueOrThrow({ where: { id: sessionId }, select: sessionContextSelect })
+  return await withContextLabels(await prisma.session.findUniqueOrThrow({ where: { id: sessionId }, select: sessionContextSelect }))
 }
 
 type AttendanceSession = Awaited<ReturnType<typeof attendanceSession>>
@@ -42,8 +50,8 @@ function emailParams(session: AttendanceSession, participantName: string, respon
   return {
     participantName,
     gameTitle: session.game.title,
-    previousSessionName: session.postponedFrom?.name ?? null,
-    sessionName: session.name,
+    previousSessionLabel: session.previousLabel,
+    sessionLabel: session.label,
     sessionDate: session.date,
     locationName: session.location?.name ?? null,
     responseDueAt
@@ -56,7 +64,7 @@ export async function getSessionAttendance(sessionId: string, now = new Date()) 
     where: { id: sessionId },
     select: {
       id: true,
-      postponedFrom: { select: { id: true, name: true, slug: true } },
+      postponedFrom: { select: { id: true, slug: true } },
       participants: { select: { role: true, participant: { select: { id: true, name: true, email: true } } } },
       attendances: { include: { participant: { select: { id: true, name: true, email: true } } } }
     }
@@ -73,7 +81,7 @@ export async function getSessionAttendance(sessionId: string, now = new Date()) 
     .map((attendance) => attendance.participantId))
 
   return {
-    postponedFrom: session.postponedFrom,
+    postponedFrom: session.postponedFrom && { ...session.postponedFrom, label: (await sessionLabelsFor(prisma, [session.postponedFrom.id])).get(session.postponedFrom.id) ?? 'Session' },
     sent: session.attendances.length > 0,
     team: team.size,
     // Dans l'équipe sans demande en cours : jamais sollicité, ou revenu après une place libérée
@@ -275,11 +283,12 @@ async function requireAttendanceByToken(token: string | undefined) {
 // Ce que voit la personne : la session et sa propre réponse, rien sur les autres
 export async function exposeAttendanceByToken(token: string | undefined, now = new Date()) {
   const attendance = await requireAttendanceByToken(token)
+  const session = await withContextLabels(attendance.session)
   return {
     participantName: attendance.participant.name,
     gameTitle: attendance.session.game.title,
-    previousSessionName: attendance.session.postponedFrom?.name ?? null,
-    sessionName: attendance.session.name,
+    previousSessionLabel: session.previousLabel,
+    sessionLabel: session.label,
     sessionDate: attendance.session.date,
     location: attendance.session.location,
     status: attendance.status,

@@ -1,4 +1,5 @@
 // EPIC-025 : cadenas et réservation (US-100), notes et interdits (US-101), proposition (US-102)
+import { labelled } from '../sessionLabel'
 import { createHash, randomBytes } from 'node:crypto'
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
@@ -50,7 +51,7 @@ async function castingGame() {
     ]
   })
   expect(links.status, JSON.stringify(links.body)).toBe(200)
-  const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
+  const session = await labelled(prisma, await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } }))
   const period = await prisma.registrationPeriod.create({
     data: { gameId: game.id, publicId: `pub-${key}`, state: 'open', sessions: { create: { sessionId: session.id } } }
   })
@@ -76,9 +77,9 @@ async function player(game: Game, name: string, status: 'retained' | 'confirmed'
 }
 
 async function saveCast(game: Game, assignments: unknown[]) {
-  const session = await prisma.session.findUniqueOrThrow({ where: { id: game.session.id } })
+  const session = await labelled(prisma, await prisma.session.findUniqueOrThrow({ where: { id: game.session.id } }))
   const participants = await prisma.sessionParticipant.findMany({ where: { sessionId: game.session.id }, select: { participantId: true, role: true } })
-  return await api(alice, 'PUT', `/api/sessions/${game.session.id}`, { name: session.name, gameId: game.game.id, participants, assignments }, { headers: { 'if-unmodified-since': session.updatedAt.toISOString() } })
+  return await api(alice, 'PUT', `/api/sessions/${game.session.id}`, { name: session.label, gameId: game.game.id, participants, assignments }, { headers: { 'if-unmodified-since': session.updatedAt.toISOString() } })
 }
 
 describe('cadenas et réservation (US-100)', () => {

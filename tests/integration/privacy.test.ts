@@ -78,7 +78,7 @@ describe('export des données d’un participant', () => {
     expect(body.sessionRoles).toHaveLength(1)
     expect(Date.parse(body.sessionRoles[0]!.createdAt)).not.toBeNaN()
     expect(JSON.stringify(body)).not.toContain(b.game.title)
-    expect(JSON.stringify(body)).not.toContain(b.session.name)
+    expect(JSON.stringify(body)).not.toContain(b.session.label)
   })
 })
 

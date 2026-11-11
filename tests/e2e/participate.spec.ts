@@ -23,7 +23,7 @@ test('un compte qui ne fait que participer arrive sur « Je participe »', async
     await signIn(page, prisma, email)
     await expect(page).toHaveURL(/\/participer$/)
     await expect(page.getByRole('heading', { name: 'Je participe' })).toBeVisible()
-    await expect(page.getByText(session.name)).toBeVisible()
+    await expect(page.getByText(session.label)).toBeVisible()
     // Pas de sélecteur : elle n'organise aucun jeu
     await expect(page.getByRole('link', { name: 'J’organise' })).toBeHidden()
   } finally {
@@ -82,7 +82,7 @@ test('qui ne fait que participer n’est jamais bloquée côté organisation', a
     await page.evaluate(() => localStorage.setItem('limbusSpace', 'autre-compte:organize'))
     await signIn(page, prisma, email)
     await expect(page).toHaveURL(/\/participer$/)
-    await expect(page.getByText(session.name)).toBeVisible()
+    await expect(page.getByText(session.label)).toBeVisible()
     await expect(page.getByRole('link', { name: 'J’organise' })).toBeHidden()
 
     // Elle essaie d'organiser, puis revient
@@ -90,7 +90,7 @@ test('qui ne fait que participer n’est jamais bloquée côté organisation', a
     await expect(page).toHaveURL(/\/games$/)
     await page.getByRole('link', { name: 'Je participe' }).click()
     await expect(page).toHaveURL(/\/participer$/)
-    await expect(page.getByText(session.name)).toBeVisible()
+    await expect(page.getByText(session.label)).toBeVisible()
   } finally {
     await prisma.$disconnect()
   }
@@ -171,7 +171,7 @@ test('un document reçu s’ouvre depuis « Je participe »', async ({ page }) =
       data: { name: 'Lectrice e2e', slug: email.replace(/[^a-z0-9]+/g, '-'), email, userId: user.id, gameLinks: { create: { gameId: game.id } }, sessionRoles: { create: { sessionId: session.id, role: 'npc' } } }
     })
     const document = await prisma.document.create({ data: { title: `Lettre ${email}`, slug: `lettre-${participant.slug}`, gameId: game.id, content: 'Brouillon', readyToSend: true } })
-    const copyContent = { kind: 'text', title: document.title, subtitle: session.name, sections: [{ title: 'Contenu', body: 'Rendez-vous à la taverne.' }] }
+    const copyContent = { kind: 'text', title: document.title, subtitle: session.label, sections: [{ title: 'Contenu', body: 'Rendez-vous à la taverne.' }] }
     await prisma.sessionDocumentDelivery.create({
       data: { gameId: session.gameId, sessionId: session.id, participantId: participant.id, documentId: document.id, kind: 'document', copyPdf: Buffer.from('%PDF-1.4'), copyContent, copySize: 100 }
     })

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { signIn, slugOf, uniqueName } from './helpers'
+import { labelled, signIn, slugOf, uniqueName } from './helpers'
 
 // EPIC-031 (US-118) : la liste des participants crée une fiche, la fiche se modifie et note un refus de photo
 test('l’équipe crée une fiche participant, la renomme et note un refus de photo', async ({ page }) => {
@@ -45,8 +45,7 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
       data: { gameId: period.gameId, periodId: period.id, participantId: created.id, status: 'received', source: 'form', email: created.email!, respondedAt: new Date(), emergencyContactName: 'Paul Secours', emergencyContactPhone: '0699999999', dietary: 'Sans gluten' }
     })
     // Une session où elle est PNJ, à ouvrir depuis sa fiche (US-183)
-    const sessionName = uniqueName('Session fiche')
-    const session = await prisma.session.create({ data: { name: sessionName, slug: slugOf(sessionName), gameId: game.id, date: new Date('2099-04-12T09:00:00Z') } })
+    const session = await labelled(prisma, await prisma.session.create({ data: { slug: slugOf(uniqueName('Session fiche')), gameId: game.id, date: new Date('2099-04-12T09:00:00Z') } }))
     await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: created.id, role: 'npc' } })
 
     // Modifier, sur la carte, n'ouvre pas la fiche (US-179) ; la recherche ne laisse que cette carte
@@ -92,7 +91,7 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
     await expect(page).toHaveURL(new RegExp(`/participants/${saved.slug}$`))
 
     // La session s'ouvre depuis la fiche (US-183)
-    await page.getByRole('link', { name: sessionName }).click()
+    await page.getByRole('link', { name: session.label }).click()
     await expect(page).toHaveURL(new RegExp(`/sessions/${session.slug}$`))
 
     // Créer une fiche avec la même adresse ajoute le jeu à la fiche existante, sans en créer une deuxième (US-185)

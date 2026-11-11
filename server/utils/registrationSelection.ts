@@ -1,3 +1,5 @@
+import { inSentence } from '~/utils/sessionLabels'
+import { labelSession } from '~/server/utils/sessionLabels'
 import { prisma, type PrismaTx } from '~/server/utils/prisma'
 import { openEmailTransport, type EmailTransport } from '~/server/utils/email'
 import { countPlayableCharacters, takenSeatsWhere } from '~/server/utils/registrationPeriods'
@@ -43,10 +45,9 @@ export async function selectableSessions(period: { gameId: string }) {
   const [sessions, seats] = await Promise.all([
     prisma.session.findMany({
       where: { gameId: period.gameId, status: SESSION_STATUSES.scheduled },
-      orderBy: [{ date: { sort: 'asc', nulls: 'last' } }, { name: 'asc' }],
+      orderBy: [{ date: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
       select: {
         id: true,
-        name: true,
         date: true,
         status: true,
         registrationPeriodLink: {
@@ -56,7 +57,8 @@ export async function selectableSessions(period: { gameId: string }) {
     }),
     countPlayableCharacters(period.gameId)
   ])
-  return sessions.map(({ registrationPeriodLink: link, ...session }) => ({
+  // Avec leur libellé, calculé (SPEC-021)
+  return await labelSessions(prisma, sessions.map(({ registrationPeriodLink: link, ...session }) => ({
     ...session,
     seats,
     open: Boolean(link?.open),
@@ -70,7 +72,7 @@ export async function selectableSessions(period: { gameId: string }) {
     weightNotDrawnBefore: link?.weightNotDrawnBefore ?? false,
     weightBalance: link?.weightBalance ?? false,
     waitlistSize: link?.waitlistSize ?? REGISTRATION_DEFAULT_WAITLIST_SIZE
-  }))
+  })))
 }
 
 export type SelectableSession = Awaited<ReturnType<typeof selectableSessions>>[number]
@@ -193,8 +195,8 @@ export async function ensureSessionLink(tx: PrismaTx, registration: { periodId: 
 }
 
 // Message du refus quand une session est complète (R8)
-export function fullSessionMessage(session: { name: string, seats: number }) {
-  return `La session « ${session.name} » est complète (${session.seats} place${session.seats > 1 ? 's' : ''}) : créez un personnage pour ajouter une place.`
+export function fullSessionMessage(session: { label: string, seats: number }) {
+  return `La ${inSentence(session.label)} est complète (${session.seats} place${session.seats > 1 ? 's' : ''}) : créez un personnage pour ajouter une place.`
 }
 
 /** Les personnes d'un même vivier et la session d'une décision, contrôlées avant de l'écrire. */
@@ -334,7 +336,7 @@ const announcementLineSelect = {
   announcedStatus: true,
   ignoredStatus: true,
   cancelledById: true,
-  session: { select: { name: true, date: true } }
+  session: { select: { id: true, date: true } }
 } as const
 
 type AnnouncementTarget = {
@@ -342,7 +344,7 @@ type AnnouncementTarget = {
   email: string
   participant: { name: string }
 }
-type AnnouncementLine = { id: string, status: RegistrationSessionStatus, announcedStatus: RegistrationSessionStatus | null, ignoredStatus: RegistrationSessionStatus | null, cancelledById: string | null, session: { name: string, date: Date | null } }
+type AnnouncementLine = { id: string, status: RegistrationSessionStatus, announcedStatus: RegistrationSessionStatus | null, ignoredStatus: RegistrationSessionStatus | null, cancelledById: string | null, session: { id: string, date: Date | null } }
 
 /**
  * Écrit à une personne ce qu'il y a à lui annoncer pour une session. Chaque email a son lien (ADR-0070), créé avant
@@ -358,7 +360,7 @@ async function deliverAnnouncement(transport: EmailTransport, period: { response
   try {
     await transport.send({
       to: registration.email,
-      ...selectionAnnouncementEmail({ status, participantName: registration.participant.name, gameTitle: period.game.title, url: registrationUrl(token), sessions: [line.session], responseDueAt })
+      ...selectionAnnouncementEmail({ status, participantName: registration.participant.name, gameTitle: period.game.title, url: registrationUrl(token), sessions: [await labelSession(prisma, line.session)], responseDueAt })
     })
   } catch (error) {
     await prisma.registrationLink.delete({ where: { id: link.id } })

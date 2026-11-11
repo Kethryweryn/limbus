@@ -22,7 +22,7 @@ describe('envoi des documents d’une session', () => {
   it('écrit une seule fois à un participant qui joue deux personnages visés, et pas au renvoi', async () => {
     const key = 'envoi-documents'
     const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
-    const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
+    const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } })
     const participant = await prisma.participant.create({
       data: { name: `Zoé ${key}`, slug: `zoe-${key}`, email: `zoe-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
     })
@@ -55,7 +55,7 @@ describe('envoi des documents d’une session', () => {
   it('envoie une fiche de personnage une seule fois, et pas au renvoi', async () => {
     const key = 'envoi-fiches'
     const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
-    const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
+    const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } })
     const participant = await prisma.participant.create({
       data: { name: `Léo ${key}`, slug: `leo-${key}`, email: `leo-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
     })
@@ -78,7 +78,7 @@ describe('envoi des documents d’une session', () => {
   it('continue après un échec et liste les personnes qui n’ont rien reçu (US-029)', async () => {
     const key = 'envoi-echec'
     const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
-    const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
+    const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } })
     const people = await Promise.all([['Ana', 'refuse-ana'], ['Bea', 'bea']].map(([name, local]) => prisma.participant.create({
       data: { name: `${name} ${key}`, slug: `${local}-${key}`, email: `${local}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
     })))
@@ -102,7 +102,7 @@ describe('envoi des documents d’une session', () => {
   it('renvoie la version à jour aux seules personnes dont la version est dépassée (US-030)', async () => {
     const key = 'renvoi'
     const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
-    const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
+    const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } })
     const people = await Promise.all(['Ana', 'Bea'].map((name) => prisma.participant.create({
       data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
     })))

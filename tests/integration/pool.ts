@@ -1,3 +1,4 @@
+import { labelled } from '../sessionLabel'
 import type { PrismaClient } from '~/generated/prisma/client'
 import type { RegistrationPeriodState, ReplayPolicy, SelectionMode } from '~/generated/prisma/enums'
 
@@ -26,9 +27,11 @@ export async function createPool(prisma: PrismaClient, ownerId: string, options:
       data: Array.from({ length: options.seats }, (_, index) => ({ name: `PJ ${index + 1}`, slug: `pj-${index + 1}-${key}`, gameId: game.id, type: 'pj' }))
     })
   }
-  const sessions = await Promise.all(Array.from({ length: options.sessions ?? 2 }, (_, index) => prisma.session.create({
-    data: { name: `Session ${index + 1} ${key}`, slug: `session-${index + 1}-${key}`, gameId: game.id, date: new Date(Date.now() + (10 + index) * DAY) }
+  const created = await Promise.all(Array.from({ length: options.sessions ?? 2 }, (_, index) => prisma.session.create({
+    data: { slug: `session-${index + 1}-${key}`, gameId: game.id, date: new Date(Date.now() + (10 + index) * DAY) }
   })))
+  // Avec leur libellé, une fois toutes créées (SPEC-021)
+  const sessions = await Promise.all(created.map((session) => labelled(prisma, session)))
   const period = await prisma.registrationPeriod.create({
     data: {
       gameId: game.id,

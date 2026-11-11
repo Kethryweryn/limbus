@@ -114,7 +114,7 @@ describe('une personne, session par session (R17)', () => {
     const pool = await createPool(prisma, alice.id, { sessions: 1, seats: 1, replayPolicy: 'excluded' })
     const session = pool.sessions[0]!
     const lou = await addPerson(prisma, pool, 'Lou', [session.id])
-    const past = await prisma.session.create({ data: { name: 'Passée', slug: `passee-${pool.key}`, gameId: pool.game.id, status: 'completed' } })
+    const past = await prisma.session.create({ data: { slug: `passee-${pool.key}`, gameId: pool.game.id, status: 'completed' } })
     await prisma.sessionParticipant.create({ data: { sessionId: past.id, participantId: lou.participantId, role: 'participant' } })
 
     const overview = bodyOf<Selection>(await api(alice, 'GET', `/api/registration-periods/${pool.period.id}/selection`))
@@ -240,7 +240,7 @@ describe('annoncer (US-088) et confirmer sa place (R18)', () => {
     const lou = await addPerson(prisma, pool, 'Lou', [session.id])
     await select(lou.id, 'retain', session.id)
     await announce(pool)
-    const postponed = await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { name: `Report ${pool.key}`, date: new Date(Date.now() + 40 * DAY).toISOString() })
+    const postponed = await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { date: new Date(Date.now() + 40 * DAY).toISOString() })
     expect(postponed.status, JSON.stringify(postponed.body)).toBe(200)
     const created = (postponed.body as { id: string }).id
     expect((await prisma.registrationPeriodSession.findUniqueOrThrow({ where: { sessionId: created } })).castAnnouncedAt).not.toBeNull()
@@ -405,9 +405,9 @@ describe('remboursement et report (R30)', () => {
     const waiting = await addPerson(prisma, pool, 'Attente', [session.id])
     await select(waiting.id, 'waitlist', session.id)
 
-    const postponed = await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { name: `Report ${pool.key}`, date: new Date(Date.now() + 50 * DAY).toISOString() })
+    const postponed = await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { date: new Date(Date.now() + 50 * DAY).toISOString() })
     expect(postponed.status, JSON.stringify(postponed.body)).toBe(200)
-    const created = await prisma.session.findFirstOrThrow({ where: { name: `Report ${pool.key}` } })
+    const created = await prisma.session.findFirstOrThrow({ where: { gameId: session.gameId, postponedFrom: { id: session.id } } })
 
     expect(await line(confirmed.id, session.id)).toMatchObject({ status: 'transferred' })
     expect(await line(confirmed.id, created.id)).toMatchObject({ status: 'confirmed' })
@@ -420,9 +420,9 @@ describe('remboursement et report (R30)', () => {
   })
 
   it('transférée, répondre qu’elle ne vient pas la met en annulation sur les deux ; revenir sur sa réponse les lui rend', async () => {
-    const { pool, session, lou } = await paidPerson()
-    expect((await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { name: `Report ${pool.key}`, date: new Date(Date.now() + 50 * DAY).toISOString() })).status).toBe(200)
-    const created = await prisma.session.findFirstOrThrow({ where: { name: `Report ${pool.key}` } })
+    const { session, lou } = await paidPerson()
+    expect((await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { date: new Date(Date.now() + 50 * DAY).toISOString() })).status).toBe(200)
+    const created = await prisma.session.findFirstOrThrow({ where: { gameId: session.gameId, postponedFrom: { id: session.id } } })
     const token = randomBytes(32).toString('base64url')
     await prisma.sessionAttendance.create({ data: { sessionId: created.id, participantId: lou.participantId, responseDueAt: new Date(Date.now() + 7 * DAY), tokenHash: createHash('sha256').update(token).digest('hex') } })
 
@@ -436,9 +436,9 @@ describe('remboursement et report (R30)', () => {
   })
 
   it('transférée, « je viens » ne rend ni une annulation qu’elle a faite, ni une place marquée à rembourser', async () => {
-    const { pool, session, lou } = await paidPerson()
-    expect((await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { name: `Report ${pool.key}`, date: new Date(Date.now() + 50 * DAY).toISOString() })).status).toBe(200)
-    const created = await prisma.session.findFirstOrThrow({ where: { name: `Report ${pool.key}` } })
+    const { session, lou } = await paidPerson()
+    expect((await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { date: new Date(Date.now() + 50 * DAY).toISOString() })).status).toBe(200)
+    const created = await prisma.session.findFirstOrThrow({ where: { gameId: session.gameId, postponedFrom: { id: session.id } } })
     const token = randomBytes(32).toString('base64url')
     await prisma.sessionAttendance.create({ data: { sessionId: created.id, participantId: lou.participantId, responseDueAt: new Date(Date.now() + 7 * DAY), tokenHash: createHash('sha256').update(token).digest('hex') } })
     const attend = (answer: string) => publicApi('POST', `/api/public/attendance/${token}`, { answer })
@@ -452,9 +452,9 @@ describe('remboursement et report (R30)', () => {
   })
 
   it('annulée par son lien, puis « je ne viens pas » et « je viens » : son annulation reste', async () => {
-    const { pool, session, lou } = await paidPerson()
-    expect((await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { name: `Report ${pool.key}`, date: new Date(Date.now() + 50 * DAY).toISOString() })).status).toBe(200)
-    const created = await prisma.session.findFirstOrThrow({ where: { name: `Report ${pool.key}` } })
+    const { session, lou } = await paidPerson()
+    expect((await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { date: new Date(Date.now() + 50 * DAY).toISOString() })).status).toBe(200)
+    const created = await prisma.session.findFirstOrThrow({ where: { gameId: session.gameId, postponedFrom: { id: session.id } } })
     const token = randomBytes(32).toString('base64url')
     await prisma.sessionAttendance.create({ data: { sessionId: created.id, participantId: lou.participantId, responseDueAt: new Date(Date.now() + 7 * DAY), tokenHash: createHash('sha256').update(token).digest('hex') } })
     await prisma.registrationSession.update({ where: { registrationId_sessionId: { registrationId: lou.id, sessionId: created.id } }, data: { status: 'cancelled', cancelledAt: new Date() } })
@@ -466,10 +466,10 @@ describe('remboursement et report (R30)', () => {
   })
 
   it('transférée, la rembourser ensuite la désinscrit aussi du report', async () => {
-    const { pool, session, lou } = await paidPerson()
-    const postponed = await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { name: `Report ${pool.key}`, date: new Date(Date.now() + 50 * DAY).toISOString() })
+    const { session, lou } = await paidPerson()
+    const postponed = await api(alice, 'POST', `/api/sessions/${session.id}/postpone`, { date: new Date(Date.now() + 50 * DAY).toISOString() })
     expect(postponed.status).toBe(200)
-    const created = await prisma.session.findFirstOrThrow({ where: { name: `Report ${pool.key}` } })
+    const created = await prisma.session.findFirstOrThrow({ where: { gameId: session.gameId, postponedFrom: { id: session.id } } })
 
     expect((await refund(session.id, lou.participantId, 'to_refund')).status).toBe(200)
     expect(await line(lou.id, session.id)).toMatchObject({ status: 'cancelled' })

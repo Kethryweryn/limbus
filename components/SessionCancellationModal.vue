@@ -1,5 +1,5 @@
 <template>
-  <UModal v-model:open="open" :title="`Prévenir l'équipe - ${session?.name || 'Session'}`">
+  <UModal v-model:open="open" :title="`Prévenir l'équipe - ${session?.label || 'Session'}`">
     <template #body>
       <form class="space-y-4" @submit.prevent="send">
         <p class="text-sm text-gray-600">
@@ -45,7 +45,7 @@ import { apiErrorMessage } from '~/utils/apiErrors'
 
 // Email d'annulation proposé, relu et envoyé à la main (US-025)
 const props = withDefaults(defineProps<{
-  session?: { id: string, name: string, date?: string | null, game?: { title: string } | null } | null
+  session?: { id: string, label: string, date?: string | null, game?: { title: string } | null } | null
   defaultEmail?: string
 }>(), { session: null, defaultEmail: '' })
 const open = defineModel<boolean>('open', { default: false })
@@ -61,7 +61,7 @@ watch(open, (value) => {
   if (!value || !props.session) return
   form.value = cancellationEmailDefaults({
     gameTitle: props.session.game?.title || 'Jeu',
-    sessionName: props.session.name,
+    sessionLabel: props.session.label,
     sessionDate: props.session.date ?? null
   })
   message.value = ''

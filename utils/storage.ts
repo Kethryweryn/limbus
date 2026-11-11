@@ -28,7 +28,7 @@ async function ensureStore(store: string) {
     }
 
     if (!dbPromise) {
-        dbPromise = openDB(DB_NAME, 14, {
+        dbPromise = openDB(DB_NAME, 15, {
             async upgrade(upgradeDb, oldVersion, _newVersion, transaction) {
                 for (const storeName of STORES) {
                     if (!upgradeDb.objectStoreNames.contains(storeName)) {
@@ -43,6 +43,25 @@ async function ensureStore(store: string) {
                     const responses = transaction.objectStore('responses')
                     for (const key of await responses.getAllKeys()) {
                         if (String(key).startsWith('/api/documents')) await responses.delete(key)
+                    }
+                }
+                // Version 15 (SPEC-021, ADR-0084) : une session gardée avant n'a pas de libellé (`label`), seulement l'ancien
+                // nom. Les lectures gardées sont oubliées, sauf les copies « en attente » d'une modification faite hors ligne,
+                // et chaque téléchargement se refait au retour du réseau ; les écritures en attente restent
+                if (oldVersion && oldVersion < 15) {
+                    for (const storeName of STORES) {
+                        if (['syncQueue', 'responses', 'offlineDownloads'].includes(storeName) || !upgradeDb.objectStoreNames.contains(storeName)) continue
+                        await transaction.objectStore(storeName).clear()
+                    }
+                    const responses = transaction.objectStore('responses')
+                    for (const key of await responses.getAllKeys()) {
+                        const value = await responses.get(key) as { __offlinePending?: boolean } | undefined
+                        if (!value?.__offlinePending) await responses.delete(key)
+                    }
+                    const downloads = transaction.objectStore('offlineDownloads')
+                    for (const key of await downloads.getAllKeys()) {
+                        const entry = await downloads.get(key) as Record<string, unknown> | undefined
+                        if (entry) await downloads.put({ ...entry, date: new Date(0).toISOString() }, key)
                     }
                 }
             },

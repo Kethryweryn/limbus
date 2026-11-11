@@ -95,14 +95,14 @@ test('une session consultée se rouvre et se modifie sans réseau, puis la modif
     await page.waitForLoadState('networkidle')
     await page.goto(`/sessions/${session.slug}?tab=cast`)
     await page.waitForLoadState('networkidle')
-    await expect(page.getByRole('heading', { name: session.name })).toBeVisible()
+    await expect(page.getByRole('heading', { name: session.label })).toBeVisible()
 
     // Sans réseau : retour à la liste, puis la session se rouvre depuis l'appareil
     await context.setOffline(true)
     await page.getByRole('link', { name: 'Sessions' }).first().click()
     await page.waitForURL('**/sessions')
     await page.goBack()
-    await expect(page.getByRole('heading', { name: session.name })).toBeVisible()
+    await expect(page.getByRole('heading', { name: session.label })).toBeVisible()
 
     const row = page.locator('form > div.grid').filter({ hasText: 'Aube' })
     await choose(page, row.getByRole('combobox'), /Léa Parcours/)
@@ -128,7 +128,7 @@ test('la page Inscriptions et une inscription consultée se relisent sans résea
     const key = `hors-ligne-${Date.now()}`
     const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
     const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id } })
-    const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-06-01T09:00:00Z') } })
+    const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id, date: new Date('2099-06-01T09:00:00Z') } })
     const period = await prisma.registrationPeriod.create({
       data: { gameId: game.id, publicId: `h${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } }
     })
@@ -170,7 +170,7 @@ test('la page Inscriptions et une inscription consultée se relisent sans résea
 
 // US-193 : un document gardé avant ADR-0072 n'a pas ses rôles ; la mise à niveau de la base de l'appareil l'efface, et
 // garde le reste
-test('la mise à niveau de l’appareil efface les documents gardés avant ADR-0072, et garde le reste', async ({ page }) => {
+test('la mise à niveau de l’appareil oublie les lectures gardées avant ADR-0072 et ADR-0084, et garde ce qui attend le réseau', async ({ page }) => {
   await login(page, E2E_USERS.autre)
   await expectLoggedIn(page)
   await page.waitForLoadState('networkidle')
@@ -192,6 +192,8 @@ test('la mise à niveau de l’appareil efface les documents gardés avant ADR-0
         tx.objectStore('responses').put({ id: 'ancien-document', audience: 'everyone' }, '/api/documents/slug/ancien-document')
         tx.objectStore('responses').put({ id: 'jeu-garde' }, '/api/games/slug/jeu-garde')
         tx.objectStore('games').put([{ id: 'jeu-garde' }], 'garde')
+        // Une copie « en attente » d'une modification faite hors ligne : elle attend le réseau
+        tx.objectStore('responses').put({ id: 'session-modifiee', __offlinePending: true }, '/api/sessions/slug/session-modifiee')
         tx.oncomplete = () => { db.close(); resolve() }
       }
     }
@@ -214,9 +216,11 @@ test('la mise à niveau de l’appareil efface les documents gardés avant ADR-0
       }
     }
   }))
-  expect(device.version).toBe(14)
+  expect(device.version).toBe(15)
   expect(device.documents).not.toContain('ancien-document')
   expect(device.responses).not.toContain('/api/documents/slug/ancien-document')
-  expect(device.responses).toContain('/api/games/slug/jeu-garde')
-  expect(device.games).toEqual([{ id: 'jeu-garde' }])
+  // Version 15 (ADR-0084) : les sessions gardées n'avaient pas de libellé ; tout ce qui avait été lu est relu au retour du réseau
+  expect(device.responses).not.toContain('/api/games/slug/jeu-garde')
+  expect(device.games).toBeUndefined()
+  expect(device.responses).toContain('/api/sessions/slug/session-modifiee')
 })

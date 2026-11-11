@@ -7,6 +7,8 @@ import jwt from 'jsonwebtoken'
 import { JWT_SECRET } from '../integration/constants'
 import { E2E_PASSWORD, E2E_USERS, PARCOURS } from './constants'
 import { escapeRegExp } from '../regexp'
+import { labelled } from '../sessionLabel'
+import { sessionDayKey } from '../../utils/sessionLabels'
 import type { UserRole } from '~/generated/prisma/enums'
 
 // Tests des parcours : `otherPage()` ouvre un navigateur à part (autre personne, autre appareil), fermé à la fin du test
@@ -113,18 +115,17 @@ export function slugOf(name: string) {
 // Session du jeu commun, propre au test, avec son casting : [personnage, participant]
 export async function parcoursSession(prisma: TestPrisma, base: string, cast: Array<[string, string]> = []) {
   const { game, character, participant } = await parcoursGame(prisma)
-  const name = uniqueName(base)
-  const slug = slugOf(name)
-  const session = await prisma.session.create({
+  // Une session n'a pas de nom (SPEC-021) : `base` ne sert plus qu'à lire le test
+  void base
+  const created = await prisma.session.create({
     data: {
-      name,
-      slug,
+      slug: sessionSlug(game.slug, null),
       gameId: game.id,
       participants: { create: cast.map(([, person]) => ({ participantId: participant(person).id, role: 'participant' })) },
       assignments: { create: cast.map(([characterName, person]) => ({ characterId: character(characterName).id, participantId: participant(person).id })) }
     }
   })
-  return { session, game, character, participant }
+  return { session: await labelled(prisma, created), game, character, participant }
 }
 
 // Participant du jeu commun, propre au test : les emails qu'il reçoit ne se mêlent pas à ceux des tests voisins,
@@ -168,9 +169,28 @@ export function cardByTitle(page: Page, title: string) {
 
 // Session d'un jeu propre au test (US-199)
 export async function orgaSession(prisma: TestPrisma, gameId: string, base: string, data: { date?: Date, status?: 'scheduled' | 'postponed' | 'cancelled' | 'completed', locationId?: string } = {}) {
-  const name = uniqueName(base)
-  return await prisma.session.create({ data: { name, slug: slugOf(name), gameId, ...data } })
+  // Une session n'a pas de nom (SPEC-021) : `base` ne sert plus qu'à lire le test
+  void base
+  const { slug: gameSlug } = await prisma.game.findUniqueOrThrow({ where: { id: gameId }, select: { slug: true } })
+  const created = await prisma.session.create({ data: { slug: sessionSlug(gameSlug, data.date ?? null), gameId, ...data } })
+  return await labelled(prisma, created)
 }
+
+// Date propre à un test (SPEC-021) : une session n'a pas de nom, et deux sessions sans date se lisent pareil d'un jeu à
+// l'autre ; une année tirée au hasard, loin dans le futur, lui donne un libellé que les autres tests n'ont pas
+export function uniqueDate(month = 3, day = 14) {
+  return new Date(Date.UTC(2400 + Math.floor(Math.random() * 7000), month - 1, day, 12))
+}
+
+// Adresse d'une session comme le serveur la fait (jeu et jour), avec un suffixe propre au test : le serveur ne la
+// recalcule pas, puisqu'elle correspond déjà à la date (SPEC-021, R5)
+export function sessionSlug(gameSlug: string, date: Date | null) {
+  return `${slugOf(`${gameSlug} ${sessionDayKey(date) ?? 'sans date'}`)}-${Date.now()}${Math.floor(Math.random() * 1000)}`
+}
+
+// Une session n'a pas de nom (SPEC-021) : son libellé, calculé comme le serveur avec les autres sessions du jeu, est
+// celui que l'écran affichera
+export { labelled } from '../sessionLabel'
 
 // Personne liée au jeu donné (US-199). Sans `emailPrefix`, elle n'a pas d'email et aucun envoi ne lui part ; avec, son
 // adresse lui est propre (un préfixe « refuse » la fait rejeter par le serveur d'emails de test)

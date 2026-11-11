@@ -1,6 +1,7 @@
+import { randomUUID } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
 import { openEmailTransport, sendEmail } from '~/server/utils/email'
-import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
+import { labelSession, refreshSessionSlugs } from '~/server/utils/sessionLabels'
 import { assertSessionLocation } from '~/server/utils/sessionAssignments'
 import { REGISTRATION_SEAT_STATUSES, REGISTRATION_SESSION_STATUSES, SESSION_STATUSES, type SessionStatus } from '~/utils/domain'
 
@@ -20,7 +21,7 @@ function parseDate(value: string | null | undefined) {
  * supprimer l'une des sessions ne l'emporte pas. Les personnes castées ou inscrites gardent leur statut sur la nouvelle
  * session et passent à « transférée » sur l'ancienne ; les pré-inscrites et la liste d'attente ne sont pas reprises (R30).
  */
-export async function postponeSession(sessionId: string, target: { name: string, date?: string | null, locationId?: string | null }) {
+export async function postponeSession(sessionId: string, target: { date?: string | null, locationId?: string | null }) {
   const session = await prisma.session.findUniqueOrThrow({
     where: { id: sessionId },
     include: { participants: true, assignments: true, tariffs: true }
@@ -30,14 +31,13 @@ export async function postponeSession(sessionId: string, target: { name: string,
   }
   await assertSessionLocation(session.gameId, target.locationId)
 
-  const slug = await generateUniqueSlug('session', target.name)
   const photoUrls = [...new Set(session.assignments.map((assignment) => assignment.photoUrl).filter((url): url is string => Boolean(url)))]
 
   return await prisma.$transaction(async (tx) => {
     const created = await tx.session.create({
       data: {
-        name: target.name,
-        slug,
+        // Sans nom (SPEC-021) : son adresse se calcule avant la fin de la transaction
+        slug: `session-${randomUUID()}`,
         gameId: session.gameId,
         date: parseDate(target.date),
         locationId: target.locationId || null,
@@ -57,7 +57,7 @@ export async function postponeSession(sessionId: string, target: { name: string,
           }))
         }
       },
-      select: { id: true, slug: true, name: true }
+      select: { id: true, slug: true }
     })
 
     // Les tarifs passent sur la nouvelle session, avec leurs liens de base (ADR-0032)
@@ -106,7 +106,8 @@ export async function postponeSession(sessionId: string, target: { name: string,
       })
     }
 
-    return created
+    await refreshSessionSlugs(tx, session.gameId)
+    return await labelSession(tx, await tx.session.findUniqueOrThrow({ where: { id: created.id }, select: { id: true, slug: true } }))
   })
 }
 

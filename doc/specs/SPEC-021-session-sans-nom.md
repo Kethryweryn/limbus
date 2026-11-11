@@ -1,11 +1,11 @@
 ---
 id: SPEC-021
 titre: Une session sans nom, désignée par sa date
-statut: validée
+statut: en cours
 date: 2026-11-11
 origine: ../archive/todo/session-sans-nom.md
 epics: [EPIC-055]
-adr: [ADR-0083]
+adr: [ADR-0083, ADR-0084]
 ---
 
 # SPEC-021 : Une session sans nom, désignée par sa date
@@ -42,11 +42,11 @@ Cette spec change [SPEC-004](SPEC-004-sessions.md) pour le nom d'une session, et
 - **R5** L'adresse d'une session est faite du jeu et de la date : `/sessions/station-meridian-2099-05-15`, ou `…-sans-date` ; une seconde à la même adresse prend un suffixe. Elle change si la date change, comme elle changeait avec le nom.
 - **R6** Les sessions existantes perdent leur nom : à la mise en production, chacune prend son libellé et son adresse selon R1, R2 et R5. Une ancienne adresse ne mène plus à la session.
 - **R7** Un assistant d'IA crée ou modifie une session sans nom ; il lit le libellé à la place.
-- **R8** Les jeux de test donnent à chaque session une date fixe, et non plus relative au jour du rechargement : le cahier de tests les désigne par leur libellé (« Session du 12 juin 2030 »), et `doc/jeux-de-test.md` rappelle le rôle de chacune (ancienne « Session mixte »…). Les sessions à venir sont datées loin dans le futur, les passées dans le passé.
+- **R8** Les jeux de test donnent à chaque session une date fixe, et non plus relative au jour du rechargement : le cahier de tests les désigne par leur libellé (« Session du 12 juin 2030 »), et `doc/jeux-de-test.md` rappelle le rôle de chacune (ancienne « Session mixte »…). Les sessions à venir sont datées en 2030, les passées à l'automne 2026 ; pour rejouer le jeu de test plus tard, on met à jour ces dates.
 
 ## Données
 
-Le libellé est calculé par le serveur et gardé à la place du nom ([ADR-0083](../adr/ADR-0083-libelle-de-session-calcule.md)). Aucune donnée personnelle nouvelle.
+La session n'a plus de nom en base : le libellé se calcule à chaque lecture, et n'entre dans aucune empreinte ni comparaison ([ADR-0084](../adr/ADR-0084-libelle-de-session-a-la-lecture.md), qui remplace [ADR-0083](../adr/ADR-0083-libelle-de-session-calcule.md)). Aucune donnée personnelle nouvelle.
 
 ## Sécurité et droits
 
@@ -63,6 +63,7 @@ Un lot, [EPIC-055](../epics/EPIC-055-session-sans-nom/README.md) :
 
 1. Le libellé calculé, le formulaire sans nom, l'adresse, les sessions existantes, les assistants d'IA et les jeux de test (R1 à R3, R5 à R8).
 2. Le jeu devant le libellé hors des pages du jeu (R4).
+3. La suppression de la colonne du nom, après le déploiement de la première étape (ADR-0084).
 
 ## Historique
 
@@ -73,3 +74,7 @@ Un lot, [EPIC-055](../epics/EPIC-055-session-sans-nom/README.md) :
   - l'adresse faite du jeu et de la date (R5) ;
   - le jeu devant le libellé hors des pages du jeu (R4).
 - 2026-11-11 (revue, choix de l'utilisatrice) : les jeux de test prennent des dates fixes, et le cahier désigne les sessions par leur libellé (R8). Précisés aussi : « 1er » pour le premier du mois et la fenêtre « Reporter » (R1), la page publique, le questionnaire et les liens personnels (R3, R4).
+- 2026-11-11 (choix de l'utilisatrice) : les sessions passées des jeux de test ont aussi une date fixe ; aucune mécanique propre aux jeux de test (R8).
+- 2026-11-11 : US-234 livrée : libellé calculé, formulaire et report sans nom, adresse, sessions existantes, assistants d'IA, jeux de test à dates fixes. En route, la date saisie part avec le fuseau de l'appareil.
+- 2026-11-11 (revue de la PR #217, choix de l'utilisatrice) : la colonne du nom disparaît ; le libellé se calcule à la lecture (ADR-0084). Les empreintes des envois et des trombinoscopes ne portent plus que le contenu, sans libellé ni titre du jeu.
+- 2026-11-11 : US-234 livrée : libellé calculé à la lecture, formulaire et report sans nom, adresse, sessions existantes, assistants d'IA, jeux de test à dates fixes, empreintes du contenu seul. En route, la date saisie part avec le fuseau de l'appareil.

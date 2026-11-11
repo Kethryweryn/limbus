@@ -1,6 +1,7 @@
 import type { z } from 'zod'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import type { sessionSchema, sessionTimelineSchema } from '~/server/utils/schemas'
+import { sessionDayLabel } from '~/utils/sessionLabels'
 
 // Session modifiée hors ligne (US-048) : la page affiche aussitôt ce qui est parti en file, avec la forme que
 // renverrait le serveur. Les personnes, personnages et lieux sont repris des listes de l'appareil. Typée par la route
@@ -10,6 +11,7 @@ type SessionDetail = ApiResponse<'/api/sessions/:id'>
 type SessionTimeline = ApiResponse<'/api/sessions/:id/timeline'>
 // Ce que lit la projection : une session lue, ou déjà projetée par une modification précédente hors ligne
 type SessionLike = Pick<SessionDetail, 'id'> & {
+  date?: string | Date | null
   location?: Named | null
   participants?: Array<{ participant?: Named | null }>
   assignments?: Array<{ characterId: string, character?: Named | null, participant?: Named | null, locked?: boolean, reservedRegistrationId?: string | null }>
@@ -42,6 +44,9 @@ function byId<T extends Named>(...lists: Array<Array<T | null | undefined> | und
 // Personne absente des listes de l'appareil : un nom neutre plutôt qu'une page cassée
 const unknownParticipant = (id: string): Named => ({ id, name: 'Participant' })
 
+const dateChanged = (before: string | Date | null | undefined, after: string | null | undefined) =>
+  (before ? new Date(before).getTime() : null) !== (after ? new Date(after).getTime() : null)
+
 export function projectOfflineSession<S extends SessionLike>(session: S, body: SessionBody, lookup: Lookup) {
   const participants = byId<Named>(
     lookup.participants,
@@ -54,7 +59,8 @@ export function projectOfflineSession<S extends SessionLike>(session: S, body: S
 
   return {
     ...session,
-    ...(body.name !== undefined && { name: body.name }),
+    // Le libellé suit une date changée (SPEC-021) ; ce qui le distingue d'une voisine du même jour attend le serveur
+    ...(body.date !== undefined && dateChanged(session.date, body.date) && { label: sessionDayLabel(body.date) }),
     ...(body.status !== undefined && { status: body.status }),
     ...(body.published !== undefined && { published: Boolean(body.published) }),
     ...(body.date !== undefined && { date: body.date ? new Date(body.date).toISOString() : null }),

@@ -1,4 +1,5 @@
 // EPIC-004 : écarts de SPEC-004 (casting, versions, visibilité, cycle de vie d'une session)
+import { labelled } from '../sessionLabel'
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
@@ -18,7 +19,7 @@ async function aliceSession(options: { singlePjPerParticipant?: boolean } = {}) 
   const game = await prisma.game.create({
     data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id, singlePjPerParticipant: options.singlePjPerParticipant ?? true }
   })
-  const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
+  const session = await labelled(prisma, await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } }))
   const character = (name: string, type: 'pj' | 'pnj') => prisma.character.create({ data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, gameId: game.id, type } })
   const [aube, brume, garde] = await Promise.all([character('Aube', 'pj'), character('Brume', 'pj'), character('Garde', 'pnj')])
   const person = (name: string) => prisma.participant.create({
@@ -30,7 +31,7 @@ async function aliceSession(options: { singlePjPerParticipant?: boolean } = {}) 
 }
 
 function castBody(s: Awaited<ReturnType<typeof aliceSession>>, assignments: Array<{ characterId: string, participantId: string }>, participants: Array<{ participantId: string, role: string }> = []) {
-  return { name: s.session.name, gameId: s.game.id, status: 'scheduled', participants, assignments }
+  return { name: s.session.label, gameId: s.game.id, status: 'scheduled', participants, assignments }
 }
 
 describe('un seul PJ par participant (US-017)', () => {
@@ -72,7 +73,7 @@ describe('modifications simultanées d’une session (US-018)', () => {
 
   it('refuse le second enregistrement fait sur la même version', async () => {
     const s = await aliceSession()
-    const read = await prisma.session.findUniqueOrThrow({ where: { id: s.session.id } })
+    const read = await labelled(prisma, await prisma.session.findUniqueOrThrow({ where: { id: s.session.id } }))
     const body = castBody(s, [{ characterId: s.aube.id, participantId: s.lea.id }])
 
     expect((await api(alice, 'PUT', `/api/sessions/${s.session.id}`, body, since(read.updatedAt))).status).toBe(200)
@@ -86,7 +87,7 @@ describe('modifications simultanées d’une session (US-018)', () => {
 
   it('déroulé puis casting avec la version renvoyée (témoin)', async () => {
     const s = await aliceSession()
-    const read = await prisma.session.findUniqueOrThrow({ where: { id: s.session.id } })
+    const read = await labelled(prisma, await prisma.session.findUniqueOrThrow({ where: { id: s.session.id } }))
     const timeline = await api(alice, 'PUT', `/api/sessions/${s.session.id}/timeline`, { assignments: [] }, since(read.updatedAt))
     expect(timeline.status).toBe(200)
     const { updatedAt } = timeline.body as { updatedAt: string }
@@ -125,7 +126,7 @@ describe('statuts d’une session (US-020)', () => {
     }
     expect(await nextOf()).toBe(s.session.id)
 
-    const body = { name: s.session.name, gameId: s.game.id, date: future.toISOString() }
+    const body = { name: s.session.label, gameId: s.game.id, date: future.toISOString() }
     expect((await api(alice, 'PUT', `/api/sessions/${s.session.id}`, { ...body, status: 'completed' })).status).toBe(200)
     expect(await nextOf()).toBeNull()
 
@@ -171,13 +172,13 @@ describe('reporter une session (US-022)', () => {
 
   it('recopie l’équipe et le casting sur une nouvelle session, et lie les deux', async () => {
     const s = await withCast()
-    const response = await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, { name: `Report ${s.key}`, date: '2027-03-01T10:00:00.000Z' })
+    const response = await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, { date: '2027-03-01T10:00:00.000Z' })
     expect(response.status).toBe(200)
     const created = response.body as { id: string }
 
-    const old = await prisma.session.findUniqueOrThrow({ where: { id: s.session.id } })
+    const old = await labelled(prisma, await prisma.session.findUniqueOrThrow({ where: { id: s.session.id } }))
     expect(old).toMatchObject({ status: 'postponed', postponedToSessionId: created.id })
-    const copy = await prisma.session.findUniqueOrThrow({ where: { id: created.id }, include: { participants: true, assignments: true } })
+    const copy = await labelled(prisma, await prisma.session.findUniqueOrThrow({ where: { id: created.id }, include: { participants: true, assignments: true } }))
     expect(copy).toMatchObject({ gameId: s.game.id, status: 'scheduled' })
     expect(copy.participants.map((p) => [p.participantId, p.role]).sort()).toEqual([[s.lea.id, 'participant'], [s.noe.id, 'npc']].sort())
     expect(copy.assignments.find((a) => a.characterId === s.aube.id)).toMatchObject({ participantId: s.lea.id, photoUrl: s.photoUrl, notes: 'Arrive tard' })
@@ -189,7 +190,7 @@ describe('reporter une session (US-022)', () => {
 
   it('refuse de reporter une session déjà reportée', async () => {
     const s = await withCast()
-    expect((await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, { name: `Report ${s.key}` })).status).toBe(200)
+    expect((await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, {})).status).toBe(200)
     expect((await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, { name: `Encore ${s.key}` })).status).toBe(409)
   })
 })
@@ -205,7 +206,7 @@ describe('remboursements d’une session annulée ou reportée (US-023)', () => 
     // Session prévue : rien à rembourser
     expect((await refund(s.lea.id, 'to_refund')).status).toBe(409)
 
-    const postponed = await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, { name: `Report ${s.key}` })
+    const postponed = await api(alice, 'POST', `/api/sessions/${s.session.id}/postpone`, {})
     const target = (postponed.body as { id: string }).id
 
     expect((await refund(s.lea.id, 'refunded')).status).toBe(200)
@@ -237,9 +238,9 @@ describe('remboursements d’une session annulée ou reportée (US-023)', () => 
 describe('les réglages de paiement ne changent pas la version (US-018, ADR-0028)', () => {
   it('enregistrer le lien de paiement puis le casting avec la version lue passe', async () => {
     const s = await aliceSession()
-    const read = await prisma.session.findUniqueOrThrow({ where: { id: s.session.id } })
+    const read = await labelled(prisma, await prisma.session.findUniqueOrThrow({ where: { id: s.session.id } }))
     expect((await api(alice, 'PUT', `/api/sessions/${s.session.id}/payments/settings`, { paymentLinkUrl: 'https://paiement.example.test' })).status).toBe(200)
-    expect((await prisma.session.findUniqueOrThrow({ where: { id: s.session.id } })).updatedAt.getTime()).toBe(read.updatedAt.getTime())
+    expect((await labelled(prisma, await prisma.session.findUniqueOrThrow({ where: { id: s.session.id } }))).updatedAt.getTime()).toBe(read.updatedAt.getTime())
 
     const since = { headers: { 'if-unmodified-since': read.updatedAt.toISOString() } }
     expect((await api(alice, 'PUT', `/api/sessions/${s.session.id}`, castBody(s, [{ characterId: s.aube.id, participantId: s.lea.id }]), since)).status).toBe(200)

@@ -57,12 +57,11 @@ import {
   type NormalizedRegistrationFormDefinition,
   type RegistrationAnswerForm
 } from '~/utils/registrationForms'
-import { PARIS_TIME_ZONE, formatLongDate } from '~/utils/dates'
 
 const props = withDefaults(defineProps<{
   definition: NormalizedRegistrationFormDefinition
   // Sessions proposées quand le formulaire demande les disponibilités (R10), sinon null
-  availabilitySessions?: Array<{ id: string, name: string, date: string | null }> | null
+  availabilitySessions?: Array<{ id: string, label: string, date: string | null }> | null
   disabled?: boolean
   // Email tenu par le compte ou par l'invitation : la personne ne le change pas ici
   emailLocked?: boolean
@@ -73,9 +72,9 @@ const form = defineModel<RegistrationAnswerForm>('form', { required: true })
 // Champs demandés, dans l'ordre de l'aperçu du formulaire (US-002)
 const textFields = computed(() => askedRegistrationInputs(props.definition.standardFields))
 
-// Dates à l'heure de Paris : la page de diffusion est rendue par le serveur
+// Le libellé dit déjà la date, à l'heure de Paris (SPEC-021)
 const sessionItems = computed(() => (props.availabilitySessions || []).map((session) => ({
   value: session.id,
-  label: session.date ? `${session.name} · ${formatLongDate(session.date, PARIS_TIME_ZONE)}` : session.name
+  label: session.label
 })))
 </script>

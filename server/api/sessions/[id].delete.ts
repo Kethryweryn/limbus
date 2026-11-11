@@ -26,9 +26,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const uploadUrls = await collectUploadUrls({ sessionId: session.id })
-  await prisma.session.delete({
-    where: { id: session.id }
-  })
+  await prisma.session.delete({ where: { id: session.id } })
   await deleteUnusedUploads(uploadUrls)
 
   return { success: true }

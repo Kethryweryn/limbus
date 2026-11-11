@@ -6,11 +6,30 @@ Où essayer chaque fonctionnalité de Limbus, sur quel jeu et avec quel compte. 
 
 | Jeu | Étape | Sessions |
 |---|---|---|
-| Station Meridian | Avant les sessions | terminée à J-60 ; à venir de J+45 à J+230, une par sorte de sélection, et deux qui ne reçoivent que des pré-inscriptions |
-| Les Cendres de Valombre | Session imminente | terminée à J-60 ; reportée, remplacée par la session imminente à J+10 ; une autre à J+75 |
-| Le Bal des Masques Brisés | Après et imprévus | terminée à J-60 ; annulée (J+20) ; reportée (J+30) vers sa remplaçante (J+90) |
+| Station Meridian | Avant les sessions | terminée le 2 septembre 2026 ; à venir du 15 février au 19 août 2030, une par sorte de sélection, et deux qui ne reçoivent que des pré-inscriptions |
+| Les Cendres de Valombre | Session imminente | terminée le 2 septembre 2026 ; reportée (12 octobre 2026), remplacée par celle du 11 janvier 2030 ; une autre le 17 mars 2030 |
+| Le Bal des Masques Brisés | Après et imprévus | terminée le 2 septembre 2026 ; annulée (21 janvier 2030) ; reportée (31 janvier 2030) vers sa remplaçante (1er avril 2030) |
 
-Les dates comptent à partir du jour du rechargement, et ne bougent plus ensuite : au bout de quelques jours, le délai de Lucie est dépassé ; après dix jours, la session imminente de Valombre est passée et ses copies d'envoi s'effacent. Il suffit alors de recharger. Un rechargement remplace ces trois jeux : ce qui y a été modifié à la main est perdu. Les partages, les autorisations d'assistants d'IA et le lien public du vivier reste.
+Les sessions n'ont pas de nom ([SPEC-021](specs/SPEC-021-session-sans-nom.md)) : elles se lisent par leur date, fixe dans les jeux de test. Pour rejouer le jeu de test plus tard, on met à jour ces dates (`sessionDate`, `prisma/seed/options.ts`) : une session passée perd ses photos après la durée de conservation.
+
+| Jeu | Libellé | Rôle dans les tests |
+|---|---|---|
+| Les trois | Session du 2 septembre 2026 | Session terminée |
+| Station Meridian | Session du 15 février 2030 | Session du tirage (un tirage, jamais annoncé) |
+| Station Meridian | Session du 22 mars 2030 | Session à la main (annoncée, places à confirmer) |
+| Station Meridian | Session du 21 avril 2030 | Session sur invitation |
+| Station Meridian | Session du 21 mai 2030 | Session mixte |
+| Station Meridian | Session du 20 juin 2030 | Session en préparation (pas proposée au vivier) |
+| Station Meridian | Session du 20 juillet 2030 | Soirée du vivier (demande faite) |
+| Station Meridian | Session du 19 août 2030 | Week-end du vivier |
+| Les Cendres de Valombre | Session du 12 octobre 2026 | Session reportée |
+| Les Cendres de Valombre | Session du 11 janvier 2030 | Session imminente (casting, documents, paiements) |
+| Les Cendres de Valombre | Session du 17 mars 2030 | Session d'automne |
+| Le Bal des Masques Brisés | Session du 21 janvier 2030 | Session annulée |
+| Le Bal des Masques Brisés | Session du 31 janvier 2030 | Session reportée |
+| Le Bal des Masques Brisés | Session du 1er avril 2030 | Session de remplacement |
+
+Les dates des sessions sont fixes ; les autres (délais, envois, réponses) comptent à partir du jour du rechargement, et ne bougent plus ensuite : au bout de quelques jours, le délai de Lucie est dépassé. Il suffit alors de recharger. Un rechargement remplace ces trois jeux : ce qui y a été modifié à la main est perdu. Les partages, les autorisations d'assistants d'IA et le lien public du vivier reste.
 
 ## Les comptes
 
@@ -32,7 +51,7 @@ Toutes les autres personnes sont en `example.test`, qui ne reçoit rien. **Un en
 Aucun lien personnel n'est préparé, car Limbus ne garde que l'empreinte d'un lien. Ils arrivent avec les envois lancés depuis l'application :
 
 - présence : sur la session imminente de Valombre, la demande de présence écrit à Nicolas et à Inès, les seuls sans demande ;
-- invitation à rejoindre le vivier : sur Meridian, Sarah attend la sienne, pour la « Session sur invitation » ;
+- invitation à rejoindre le vivier : sur Meridian, Sarah attend la sienne, pour la session sur invitation (21 avril 2030) ;
 - legs : sur le Bal, renvoyer l'invitation de Manon crée son lien.
 
 ## Où essayer quoi

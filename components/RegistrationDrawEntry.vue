@@ -3,7 +3,7 @@
   <div class="space-y-1 rounded border border-gray-100 p-2 text-xs text-gray-600" data-draw>
     <div class="flex flex-wrap items-center justify-between gap-2">
       <span>
-        <span class="font-medium">{{ entry.session?.name || 'Session supprimée ou ancienne période' }}</span>,
+        <span class="font-medium">{{ entry.session?.label || 'Session supprimée ou ancienne période' }}</span>,
         le {{ formatLongDateTime(entry.createdAt) }}<span v-if="entry.createdBy"> par {{ entry.createdBy.name }}</span>
         · graine <code>{{ entry.seed }}</code>
         <UBadge v-if="entry.cancelledAt" class="ml-1" size="sm" color="neutral" variant="outline">

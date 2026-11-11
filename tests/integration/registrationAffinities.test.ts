@@ -20,7 +20,7 @@ async function aliceGame() {
   const key = `affinites-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
   const sessions = await Promise.all([0, 1].map((index) => prisma.session.create({
-    data: { name: `Session ${index + 1} ${key}`, slug: `session-${index + 1}-${key}`, gameId: game.id, date: new Date(Date.now() + (10 + index) * DAY) }
+    data: { slug: `session-${index + 1}-${key}`, gameId: game.id, date: new Date(Date.now() + (10 + index) * DAY) }
   })))
   await prisma.character.createMany({ data: [1, 2, 3].map((index) => ({ name: `PJ ${index}`, slug: `pj-${index}-${key}`, gameId: game.id, type: 'pj' })) })
   const period = await prisma.registrationPeriod.create({

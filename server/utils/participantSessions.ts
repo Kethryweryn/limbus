@@ -1,7 +1,8 @@
+import { labelSessions } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
 
 // Le statut distingue une session annulée ou reportée de sa remplaçante
-const sessionSelect = { select: { id: true, slug: true, name: true, date: true, status: true, gameId: true } } as const
+const sessionSelect = { select: { id: true, slug: true, date: true, status: true, gameId: true } } as const
 
 /**
  * Sessions d'une personne dans les jeux accessibles (SPEC-007, R1c) : chaque session où elle a un rôle (joueuse, PNJ,
@@ -25,6 +26,6 @@ export async function readParticipantSessions(participantId: string, gameIds: st
   for (const { role, session: value } of roles) rowOf(value).roles.push(role)
   for (const { character, session: value } of assignments) rowOf(value).characters.push(character.name)
 
-  // Les sessions sans date en dernier
-  return [...sessions.values()].sort((left, right) => (left.date?.getTime() ?? Infinity) - (right.date?.getTime() ?? Infinity))
+  // Les sessions sans date en dernier, chacune avec son libellé (SPEC-021)
+  return await labelSessions(prisma, [...sessions.values()].sort((left, right) => (left.date?.getTime() ?? Infinity) - (right.date?.getTime() ?? Infinity)))
 }

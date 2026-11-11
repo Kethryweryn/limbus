@@ -21,7 +21,7 @@
       </p>
 
       <!-- Chaque session repliée sur une ligne ; dépliée, tout ce qu'elle porte et ses tirages (SPEC-020, R8, R9) -->
-      <div v-for="session in sessions" :key="session.id" class="space-y-2 rounded border border-gray-100 p-3" :data-session="session.name">
+      <div v-for="session in sessions" :key="session.id" class="space-y-2 rounded border border-gray-100 p-3" :data-session="session.label">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h4 class="text-sm font-medium text-gray-800">
             <button
@@ -32,7 +32,7 @@
               @click="toggle(session)"
             >
               <UIcon :name="isExpanded(session) ? 'i-heroicons-chevron-down' : 'i-heroicons-chevron-right'" class="size-4 text-gray-400" />
-              {{ session.name }}<span v-if="session.date" class="text-gray-500"> · {{ formatLongDate(session.date) }}</span>
+              {{ session.label }}
               ·
               <span :class="session.taken >= session.seats ? 'text-warning-600' : 'text-gray-600'">
                 {{ session.taken }} / {{ session.seats }} place{{ session.seats > 1 ? 's' : '' }}
@@ -328,7 +328,7 @@
     </template>
 
     <!-- Sélection d'une session (R22) -->
-    <UModal v-model:open="showSettings" :title="settingsTarget ? `Sélection de ${settingsTarget.name}` : 'Sélection'">
+    <UModal v-model:open="showSettings" :title="settingsTarget ? `Sélection de ${settingsTarget.label}` : 'Sélection'">
       <template #body>
         <form class="space-y-4" novalidate @submit.prevent="saveSettings">
           <UFormField label="Mode de sélection">
@@ -508,7 +508,7 @@ const wished = (registration: PeriodRegistration) => {
 const shownPool = computed(() => pool.value.filter((registration) => matchesSearch(registration) && wished(registration)))
 const wishItems = computed(() => [
   { label: 'Toutes les personnes', value: ALL_WISHES },
-  ...sessions.value.map((session) => ({ label: session.name, value: session.id }))
+  ...sessions.value.map((session) => ({ label: session.label, value: session.id }))
 ])
 // Une session choisie qui quitte la liste (terminée, annulée, reportée) : retour à toutes les personnes
 watch(sessions, (list) => {
@@ -551,7 +551,7 @@ function lineSummary(registration: PeriodRegistration) {
     .map((line) => {
       const session = sessions.value.find((candidate) => candidate.id === line.sessionId)
       const label = metaOf(REGISTRATION_SESSION_STATUS_META, line.status)?.label
-      return session && label ? `${session.name} : ${label.toLowerCase()}` : ''
+      return session && label ? `${session.label} : ${label.toLowerCase()}` : ''
     })
     .filter(Boolean)
     .join(' · ')
@@ -569,7 +569,7 @@ function wishLabels(registration: PeriodRegistration, session: SelectionSession 
     const elsewhere = wish.sessionIds.filter((id) => id !== session?.id)
     const where = session && wish.sessionIds.includes(session.id)
       ? 'ici'
-      : elsewhere.length ? elsewhere.map((id) => sessions.value.find((entry) => entry.id === id)?.name).join(', ') : 'pas encore'
+      : elsewhere.length ? elsewhere.map((id) => sessions.value.find((entry) => entry.id === id)?.label).join(', ') : 'pas encore'
     return `${wish.name} (${where})`
   })
 }
@@ -623,7 +623,7 @@ function requestSummary(session: SelectionSession) {
 async function askPool(session: SelectionSession, registrationIds?: string[]) {
   const count = registrationIds?.length ?? session.askableCount
   const verb = session.lastRequestedAt ? 'Relancer' : 'Demander à'
-  if (!confirm(`${verb} ${plural(count, 'personne')} par email pour « ${session.name} » ?`)) return
+  if (!confirm(`${verb} ${plural(count, 'personne')} par email pour « ${session.label} » ?`)) return
   asking.value = session.id
   message.value = ''
   try {
@@ -645,7 +645,7 @@ function setOpen(session: SelectionSession, open: boolean) {
 }
 
 async function draw(session: SelectionSession) {
-  if (!confirm(`Tirer au sort les pré-inscrites de « ${session.name} » ? Le tirage range les personnes sans prévenir personne : vous pourrez corriger, puis annoncer.`)) return
+  if (!confirm(`Tirer au sort les pré-inscrites de « ${session.label} » ? Le tirage range les personnes sans prévenir personne : vous pourrez corriger, puis annoncer.`)) return
   drawing.value = session.id
   try {
     await selectionWrite(() => useApiAction(`/api/registration-periods/${props.period.id}/draws`, { method: 'POST', body: { sessionId: session.id } }), 'Tirage impossible', 'Tirage effectué : vérifiez le résultat, puis annoncez-le.')
@@ -690,7 +690,7 @@ function proposals(session: SelectionSession) {
 
 async function announce(session: SelectionSession) {
   const includeWaitlist = Boolean(announceWaitlist.value[session.id])
-  if (!confirm(`Annoncer le casting de « ${session.name} » à ${plural(announceCount(session), 'personne')} par email ? Ensuite, chaque changement se proposera personne par personne.`)) return
+  if (!confirm(`Annoncer le casting de « ${session.label} » à ${plural(announceCount(session), 'personne')} par email ? Ensuite, chaque changement se proposera personne par personne.`)) return
   announcing.value = session.id
   message.value = ''
   try {

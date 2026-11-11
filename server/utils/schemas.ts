@@ -300,8 +300,8 @@ export const timelineEventSchema = z.object({
 })
 
 // Report d'une session sur une nouvelle session (US-022)
+// Une session n'a pas de nom : elle se lit par sa date (SPEC-021)
 export const sessionPostponeSchema = z.object({
-  name: requiredText('Le nom'),
   date: optionalText,
   locationId: optionalText
 })
@@ -397,7 +397,6 @@ export const sessionParticipantSchema = z.object({
 })
 
 export const sessionSchema = z.object({
-  name: requiredText('Le nom'),
   gameId: requiredId('Le jeu'),
   date: optionalText,
   locationId: optionalText,

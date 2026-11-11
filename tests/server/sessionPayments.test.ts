@@ -39,7 +39,7 @@ beforeEach(() => {
 
 describe('sendSessionPaymentEmails', () => {
   it('joint le RIB téléversé au lieu d’un lien que le participant ne pourrait pas ouvrir', async () => {
-    Object.assign(prisma, { session: { findUnique: vi.fn().mockResolvedValue(sessionWith(RIB_URL)) } })
+    Object.assign(prisma, { session: { findUnique: vi.fn().mockResolvedValue(sessionWith(RIB_URL)), findMany: vi.fn().mockResolvedValue([]) } })
     vi.mocked(readUpload).mockResolvedValue(Buffer.from('%PDF-1.4'))
 
     await expect(sendSessionPaymentEmails('session-1')).resolves.toEqual({ sentCount: 1, skippedCount: 0, failures: [] })
@@ -53,6 +53,7 @@ describe('sendSessionPaymentEmails', () => {
   it('continue après un envoi en échec et le signale', async () => {
     Object.assign(prisma, {
       session: {
+        findMany: vi.fn().mockResolvedValue([]),
         findUnique: vi.fn().mockResolvedValue({
           ...sessionWith(null),
           participants: [{ role: 'participant', participant: { id: 'p2', name: 'Inès Roy', email: 'ines@example.test' } }]
@@ -67,7 +68,7 @@ describe('sendSessionPaymentEmails', () => {
   })
 
   it('refuse quand aucun email n’est parti', async () => {
-    Object.assign(prisma, { session: { findUnique: vi.fn().mockResolvedValue(sessionWith(null)) } })
+    Object.assign(prisma, { session: { findUnique: vi.fn().mockResolvedValue(sessionWith(null)), findMany: vi.fn().mockResolvedValue([]) } })
     vi.mocked(readUpload).mockResolvedValue(null)
     send.mockRejectedValue(new Error('refusé'))
 
@@ -75,7 +76,7 @@ describe('sendSessionPaymentEmails', () => {
   })
 
   it('garde le lien quand le RIB est une URL externe', async () => {
-    Object.assign(prisma, { session: { findUnique: vi.fn().mockResolvedValue(sessionWith('https://banque.example/rib.pdf')) } })
+    Object.assign(prisma, { session: { findUnique: vi.fn().mockResolvedValue(sessionWith('https://banque.example/rib.pdf')), findMany: vi.fn().mockResolvedValue([]) } })
     vi.mocked(readUpload).mockResolvedValue(null)
 
     await sendSessionPaymentEmails('session-1')
@@ -144,6 +145,7 @@ describe('lignes du tableau des paiements (US-007, R22)', () => {
   it('envoie l’email de paiement à une personne sans personnage', async () => {
     Object.assign(prisma, {
       session: {
+        findMany: vi.fn().mockResolvedValue([]),
         findUnique: vi.fn().mockResolvedValue({
           ...sessionWith(null),
           assignments: [],

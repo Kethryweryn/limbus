@@ -31,7 +31,7 @@
               <UBadge :color="statusMeta.color" variant="subtle">{{ statusMeta.label }}</UBadge>
             </div>
             <p v-if="details.invitedSession" class="text-sm text-gray-600">
-              Invitation pour la session {{ details.invitedSession.name }}<span v-if="details.invitedSession.date"> · {{ formatLongDate(details.invitedSession.date) }}</span>.
+              Invitation pour la {{ inSentence(details.invitedSession.label) }}.
               Cochez-la si vous êtes disponible : vous y serez inscrit·e s’il reste une place.
             </p>
             <p v-if="details.canAccept && details.responseDueAt" class="text-sm text-gray-600">
@@ -65,7 +65,7 @@
         <!-- Lien d'une demande de disponibilités (R11) : ouvrir ne répond pas, la personne confirme ici -->
         <UCard v-if="availabilityPrompt" data-availability-prompt>
           <h2 class="font-semibold">
-            Session {{ availabilityPrompt.name }}<span v-if="availabilityPrompt.date"> · {{ formatLongDate(availabilityPrompt.date) }}</span>
+            {{ availabilityPrompt.label }}
           </h2>
           <p class="mt-2 text-sm text-gray-600">
             Êtes-vous disponible ? Répondre « Disponible » vous pré-inscrit : cela ne garantit pas de place et ne confirme pas votre inscription.
@@ -88,9 +88,9 @@
           <h2 class="font-semibold">Vos sessions</h2>
           <UAlert v-if="sessionError" class="mt-3" color="error" variant="soft" :description="sessionError" />
           <ul class="mt-2 divide-y divide-gray-100">
-            <li v-for="line in details.sessions" :key="line.sessionId" class="space-y-2 py-3 text-sm" :data-session="line.session.name">
+            <li v-for="line in details.sessions" :key="line.sessionId" class="space-y-2 py-3 text-sm" :data-session="line.session.label">
               <div class="flex flex-wrap items-center gap-2">
-                <span class="font-medium">{{ line.session.name }}</span>
+                <span class="font-medium">{{ line.session.label }}</span>
                 <span v-if="line.session.date" class="text-gray-600">{{ formatLongDate(line.session.date) }}</span>
                 <UBadge :color="lineMeta(line).color" variant="subtle" size="sm">{{ lineMeta(line).label }}</UBadge>
               </div>
@@ -107,7 +107,7 @@
                 <UButton v-if="line.canConfirmPlace" size="sm" color="primary" icon="i-heroicons-check" :loading="busySession === line.sessionId" @click="confirmPlace(line.sessionId)">
                   Je confirme ma place
                 </UButton>
-                <UButton v-if="line.canCancel" size="sm" color="error" variant="soft" :loading="busySession === line.sessionId" @click="cancelSession(line.sessionId, line.session.name)">
+                <UButton v-if="line.canCancel" size="sm" color="error" variant="soft" :loading="busySession === line.sessionId" @click="cancelSession(line.sessionId, line.session.label)">
                   Annuler ma présence
                 </UButton>
               </div>

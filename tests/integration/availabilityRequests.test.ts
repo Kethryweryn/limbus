@@ -97,7 +97,7 @@ describe('demander au vivier (US-166, R9, R10)', () => {
     const session = pool.sessions[0]!
     const replayer = await addPerson(prisma, pool, 'Rejoueuse')
     const fresh = await addPerson(prisma, pool, 'Nouvelle')
-    const past = await prisma.session.create({ data: { name: `Passée ${pool.key}`, slug: `passee-${pool.key}`, gameId: pool.game.id, status: 'completed' } })
+    const past = await prisma.session.create({ data: { slug: `passee-${pool.key}`, gameId: pool.game.id, status: 'completed' } })
     await prisma.sessionParticipant.create({ data: { sessionId: past.id, participantId: replayer.participantId, role: 'participant' } })
 
     expect((await overviewOf(pool, session.id)).askableCount).toBe(1)

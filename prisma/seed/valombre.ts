@@ -8,7 +8,8 @@ import { uploadDir, UPLOAD_DIRS } from '../../server/utils/uploads'
 import { SESSION_ROLES, SESSION_STATUSES } from '../../utils/domain'
 import { RIB_UPLOAD_PREFIX } from '../../utils/urls'
 import type { Db, StageContext } from './db'
-import { daysFromNow } from './options'
+import { daysFromNow, sessionDate, sessionFields } from './options'
+import { sessionDayLabel } from '../../utils/sessionLabels'
 import type { AttendanceStatus, TariffRole } from '../../generated/prisma/enums'
 
 // Délai laissé aux réponses de présence, en jours
@@ -26,7 +27,7 @@ async function textCopyData(input: TextPdfInput) {
 }
 
 export async function createValombreStage(db: Db, context: StageContext) {
-  const { gameId, title, locationId, characters, people, photos, makeSlug } = context
+  const { gameId, title, locationId, characters, people, photos } = context
   const person = (email: string) => people.get(`${email}@example.test`)!
   const camille = person('camille.bernard')
   const lucie = person('lucie.moreau')
@@ -62,14 +63,13 @@ export async function createValombreStage(db: Db, context: StageContext) {
   const ribUrl = `${RIB_UPLOAD_PREFIX}${ribFilename}`
   const session = await db.session.create({
     data: {
-      name: `${title} - Session imminente`,
-      slug: makeSlug(`${title}-session-imminente`),
-      date: daysFromNow(10),
+      // Session imminente (SPEC-021 : date, libellé et adresse calculés)
+      ...sessionFields(title, 10),
       gameId,
       locationId,
       status: SESSION_STATUSES.scheduled,
       published: true,
-      withdrawalDeadline: daysFromNow(3),
+      withdrawalDeadline: sessionDate(3),
       paymentRibUrl: ribUrl,
       paymentLinkUrl: 'https://paiement.example.test/valombre',
       paymentSettingsUpdatedAt: daysFromNow(-30),
@@ -90,15 +90,16 @@ export async function createValombreStage(db: Db, context: StageContext) {
         ]
       }
     },
-    select: { id: true, name: true }
+    select: { id: true }
   })
+  // Le libellé que la page de la session affiche, pour les copies d'envoi (SPEC-021)
+  const sessionLabel = sessionDayLabel(sessionDate(10))
 
   // Une session plus lointaine, au casting encore ouvert
   await db.session.create({
     data: {
-      name: `${title} - Session d'automne`,
-      slug: makeSlug(`${title}-session-d-automne`),
-      date: daysFromNow(75),
+      // Session d'automne (SPEC-021 : date, libellé et adresse calculés)
+      ...sessionFields(title, 75),
       gameId,
       locationId,
       status: SESSION_STATUSES.scheduled,
@@ -168,9 +169,8 @@ export async function createValombreStage(db: Db, context: StageContext) {
   // La session imminente remplace une session reportée : seule une session reportée demande une présence (US-024)
   await db.session.create({
     data: {
-      name: `${title} - Session reportée`,
-      slug: makeSlug(`${title}-session-reportee`),
-      date: daysFromNow(-20),
+      // Session reportée (SPEC-021 : date, libellé et adresse calculés)
+      ...sessionFields(title, -20),
       gameId,
       locationId,
       status: SESSION_STATUSES.postponed,
@@ -204,8 +204,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
   const documents = await db.document.findMany({ where: { gameId, audiences: { has: 'pjs' } }, select: { id: true, title: true, content: true, documentUrl: true } })
   const roadmap = documents.find((row) => row.title.startsWith('Feuille de route'))!
   const world = documents.find((row) => row.title.startsWith('Document monde'))!
-  const sessionForHash = { name: session.name, game: { title } }
-  const worldBefore = { title: world.title, subtitle: session.name, sections: [{ body: 'Version envoyée avant la dernière correction de l’équipe.' }] }
+  const worldBefore = { title: world.title, subtitle: sessionLabel, sections: [{ body: 'Version envoyée avant la dernière correction de l’équipe.' }] }
   for (const recipient of [camille, lucie, nicolas]) {
     await db.sessionDocumentDelivery.create({
       data: {
@@ -214,9 +213,9 @@ export async function createValombreStage(db: Db, context: StageContext) {
         participantId: recipient.id,
         documentId: roadmap.id,
         kind: 'document',
-        contentHash: documentContentHash(sessionForHash, roadmap),
+        contentHash: documentContentHash(roadmap),
         sentAt: daysFromNow(-4),
-        ...(await textCopyData({ title: roadmap.title, subtitle: session.name, sections: [{ body: roadmap.content }] }))
+        ...(await textCopyData({ title: roadmap.title, subtitle: sessionLabel, sections: [{ body: roadmap.content }] }))
       }
     })
     await db.sessionDocumentDelivery.create({
@@ -226,7 +225,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
         participantId: recipient.id,
         documentId: world.id,
         kind: 'document',
-        contentHash: documentContentHash(sessionForHash, { ...world, content: worldBefore.sections[0]!.body }),
+        contentHash: documentContentHash({ ...world, content: worldBefore.sections[0]!.body }),
         sentAt: daysFromNow(-4),
         ...(await textCopyData(worldBefore))
       }
@@ -244,9 +243,9 @@ export async function createValombreStage(db: Db, context: StageContext) {
       participantId: camille.id,
       characterId: aelis.id,
       kind: 'character_sheet',
-      contentHash: characterSheetContentHash({ name: session.name }, aelis),
+      contentHash: characterSheetContentHash(aelis),
       sentAt: daysFromNow(-4),
-      ...(await textCopyData({ title: aelis.name, subtitle: session.name, sections: [{ title: 'Présentation', body: aelis.pitch }, { title: 'Histoire', body: aelis.background }] }))
+      ...(await textCopyData({ title: aelis.name, subtitle: sessionLabel, sections: [{ title: 'Présentation', body: aelis.pitch }, { title: 'Histoire', body: aelis.background }] }))
     }
   })
 
@@ -261,7 +260,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
       viewerCharacterId: aelis.id,
       participantId: camille.id,
       fileName: 'trombinoscope-aelis.pdf',
-      contentPdf: Buffer.from(await renderTextPdf({ title: `Trombinoscope de ${aelis.name}`, subtitle: session.name, sections: cards.map((card) => ({ title: card.displayName })) })),
+      contentPdf: Buffer.from(await renderTextPdf({ title: `Trombinoscope de ${aelis.name}`, subtitle: sessionLabel, sections: cards.map((card) => ({ title: card.displayName })) })),
       contentHtml: `<h1>Trombinoscope de ${aelis.name}</h1>`,
       contentJson: cards
     }

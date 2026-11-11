@@ -9,7 +9,7 @@
           <h2 class="text-lg font-semibold">Prochaines sessions</h2>
           <ul class="mt-3 space-y-1 text-sm text-gray-700">
             <li v-for="(session, index) in game.upcomingSessions" :key="index">
-              <span class="font-medium">{{ session.name }}</span>
+              <span class="font-medium">{{ session.label }}</span>
               <span v-if="session.date"> · {{ formatDate(session.date) }}</span>
               <span v-if="session.location"> · {{ session.location.name }}</span>
             </li>

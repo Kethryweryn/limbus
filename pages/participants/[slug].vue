@@ -95,7 +95,7 @@
               <div class="font-medium">{{ game.title }}</div>
               <ul v-if="sessionsOf(game.id).length" class="mt-1 space-y-1">
                 <li v-for="session in sessionsOf(game.id)" :key="session.id">
-                  <NuxtLink :to="`/sessions/${session.slug}`" class="text-primary hover:underline">{{ session.name }}</NuxtLink>
+                  <NuxtLink :to="`/sessions/${session.slug}`" class="text-primary hover:underline">{{ session.label }}</NuxtLink>
                   <span class="text-gray-500">{{ sessionDetails(session) }}</span>
                 </li>
               </ul>

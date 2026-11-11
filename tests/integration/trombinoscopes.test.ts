@@ -27,7 +27,7 @@ async function castSession() {
   const participant = await prisma.participant.create({
     data: { name: `Joueur ${key}`, slug: `joueur-${key}`, email: `joueur-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
   })
-  const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
+  const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } })
   const assignment = await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: viewer.id, participantId: participant.id } })
   return { game, viewer, other, participant, session, assignment }
 }

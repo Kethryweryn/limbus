@@ -35,7 +35,7 @@ async function publicGet(token: string) {
 async function invited() {
   const key = `suivi-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
-  const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2027-03-10T09:00:00Z') } })
+  const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id, date: new Date('2027-03-10T09:00:00Z') } })
   const period = await prisma.registrationPeriod.create({
     data: {
       gameId: game.id,
