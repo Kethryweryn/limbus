@@ -6,7 +6,7 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 |---|---|---|---|
 | [Durcissement web](durcissement-web.md) | en partie traitée | 2026-10-29 | CSP et COOP sur les pages, origine des écritures, cookie `__Host-` (revue R-01 à R-03) |
 | [Supervision](supervision.md) | en partie traitée | 2026-10-29 | Route de santé et sondes Better Stack faites ; reste les journaux structurés, si besoin (revue R-15, R-16) |
-| [Un compte pour chaque participant](compte-pour-chaque-participant.md) | à trancher | 2026-11-09 | Chaque fiche appartient à la personne, par un compte pré-créé ; une seule fiche par personne dans tout Limbus |
+| [Un compte pour chaque participant](compte-pour-chaque-participant.md) | prête | 2026-11-09 | Chaque fiche appartient à la personne, par un compte pré-créé ; une seule fiche par personne dans tout Limbus |
 
 ## Archivées
 
