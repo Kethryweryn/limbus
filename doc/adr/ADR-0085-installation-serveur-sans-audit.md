@@ -39,5 +39,5 @@ Les 6 minutes ne se sont pas reproduites : un aléa du serveur ou du réseau, qu
 ## Options écartées
 
 - **Ne rien changer** : 1 min 45 restait acceptable, mais l'audit ne sert à rien sur le serveur.
-- **Envoyer les dépendances avec le build** : le serveur n'installerait plus rien, mais l'archive passerait de quelques Mo à plusieurs centaines, au-delà de la limite de 200 Mo, pour gagner une minute une fois par semaine.
-- **N'installer que ce qui sert au serveur** : `nuxt prepare`, lancé à l'installation, a besoin des devDependencies (ADR-0023) ; séparer les deux demanderait de revoir l'installation pour un gain du même ordre que l'audit.
+- **Envoyer les dépendances avec le build** : le serveur n'installerait plus rien, mais `node_modules` pèse 869 Mo, 196 Mo compressé (mesuré dans le conteneur de test), contre moins de 10 Mo pour l'archive actuelle : à la limite des 200 Mo, et à envoyer à chaque déploiement, pour gagner une minute une fois par semaine.
+- **N'installer que ce qui sert au serveur** : `nuxt prepare`, lancé à l'installation, a besoin des devDependencies (ADR-0023) ; séparer les deux demanderait de revoir l'installation, pour un gain non mesuré, une fois l'audit retiré.
