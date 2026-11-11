@@ -4,7 +4,6 @@ import { prisma } from '~/server/utils/prisma'
 import { requireAuthUser } from '~/server/utils/auth'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
 import { sendEmail } from '~/server/utils/email'
-import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { accountIdForEmail } from '~/server/utils/participantAccounts'
 import { assertRateLimit } from '~/server/utils/rateLimit'
 import { createRegistrationToken, findParticipantByEmail, hashRegistrationToken, notifyGameTeam } from '~/server/utils/registrations'
@@ -18,6 +17,7 @@ import { REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES
 import { splitParticipantName } from '~/utils/registrations'
 import { youtubeVideoId } from '~/utils/urls'
 import { namesIn } from '~/server/utils/participantValues'
+import { participantSlug } from '~/utils/participantSlug'
 
 // Formulaire public du vivier (US-084, US-085, ADR-0046)
 
@@ -190,7 +190,8 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
   const email = standard.email
   const matched = await findParticipantByEmail(email)
   const name = [standard.firstName, standard.lastName].filter(Boolean).join(' ').trim() || email.split('@')[0]!
-  const slug = matched ? null : await generateUniqueSlug('participant', name)
+  // Adresse neutre, sans le nom (US-239)
+  const slug = matched ? null : participantSlug()
   const userId = await accountIdForEmail(email)
   const now = new Date()
   // Disponibilités encore valides : une session refermée entre l'envoi et la confirmation est ignorée

@@ -2,6 +2,7 @@
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
+import { isParticipantSlug } from '~/utils/participantSlug'
 
 const world = inject('world')
 const { alice } = world.users
@@ -223,6 +224,17 @@ describe('une seule fiche par adresse (US-185, US-239)', () => {
     expect(bobRead.games.map((row) => row.id)).toEqual([bobGame.id])
     // L'adresse de page ne suit pas le nom (US-239)
     expect((await prisma.participant.findUniqueOrThrow({ where: { id: bobs.id } })).slug).toBe(bobs.slug)
+    // Alice ne lit pas la date de création de Bob, ni son nom dans l'export (revue de la PR #232)
+    const aliceRead = (await api(alice, 'GET', `/api/participants/${bobs.id}`)).body as { createdAt: string }
+    expect(new Date(aliceRead.createdAt).getTime()).toBeGreaterThan(bobs.createdAt.getTime())
+    const exported = (await api(alice, 'GET', `/api/participants/${bobs.id}/export`)).body as { name: string, createdAt: string }
+    expect(exported).toMatchObject({ name: 'Chez Alice', createdAt: aliceRead.createdAt })
+    expect(JSON.stringify(exported)).not.toMatch(/Chez Bob|Note de Bob|0699999999/)
+  })
+
+  it('une fiche créée a une adresse de page neutre, sans son nom (US-239)', async () => {
+    const created = (await api(alice, 'POST', '/api/participants', { name: 'Nom secret', email: `neutre-${++counter}@example.test`, gameIds: [world.a.game.id] })).body as { slug: string }
+    expect(isParticipantSlug(created.slug)).toBe(true)
   })
 
   it('refuse de donner à une fiche l’adresse d’une autre, sans la nommer si elle est hors de vue', async () => {

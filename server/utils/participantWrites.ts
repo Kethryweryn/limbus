@@ -6,8 +6,8 @@ import type { participantCreateSchema, participantSchema } from '~/server/utils/
 import { exposeParticipantGames, participantGameLinksInclude, planParticipantRemoval } from '~/server/utils/participants'
 import { eraseParticipant } from '~/server/utils/participantPrivacy'
 import { assertParticipantUnmodifiedSince } from '~/server/utils/concurrency'
-import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { accountIdForEmail, syncProfileToParticipants } from '~/server/utils/participantAccounts'
+import { participantSlug } from '~/utils/participantSlug'
 
 // Écritures d'une fiche participant, communes aux routes de l'interface et aux outils des assistants d'IA (US-129,
 // SPEC-014 R12) : mêmes contrôles d'accès aux jeux, de version et de rattachement au compte de l'adresse
@@ -85,7 +85,8 @@ export async function createParticipant(event: H3Event, readBody: Reader<typeof 
     const created = await tx.participant.create({
       data: {
         name,
-        slug: await generateUniqueSlug('participant', name),
+        // Adresse neutre, sans le nom (US-239)
+        slug: participantSlug(),
         email: email || null,
         phone: phone || null,
         userId: accountId,

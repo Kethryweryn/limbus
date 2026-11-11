@@ -6,13 +6,13 @@ import { prisma, type PrismaTx } from '~/server/utils/prisma'
 import { accountIdForEmail } from '~/server/utils/participantAccounts'
 import { absoluteAppUrl, publicAppUrl } from '~/server/utils/appUrl'
 import { openEmailTransport, sendEmail, type EmailTransport } from '~/server/utils/email'
-import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
 import { validatedPlaces } from '~/server/utils/sessionPayments'
 import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
 import { REGISTRATION_CANCELLABLE_STATUSES, REGISTRATION_PERIOD_STATES, REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_SOURCES, REGISTRATION_STATUSES, SESSION_ROLES, SESSION_STATUSES, includesValue, type RegistrationSessionStatus } from '~/utils/domain'
 import { ANNOUNCEMENT_REMOVED, AVAILABILITY_ANSWER_PARAMS, canConfirmPlace } from '~/utils/registrations'
 import { withGameValues, withGameValuesIn } from '~/server/utils/participantValues'
+import { participantSlug } from '~/utils/participantSlug'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -340,7 +340,8 @@ export async function inviteToRegistrationPeriod(params: {
 
   const responseDueAt = registrationResponseDueAt(period.responseDelayDays)
   const newParticipant = params.newParticipant
-  const slug = newParticipant && !matched ? await generateUniqueSlug('participant', newParticipant.name) : null
+  // Adresse neutre, sans le nom (US-239)
+  const slug = newParticipant && !matched ? participantSlug() : null
 
   const targets = await prisma.$transaction(async (tx) => {
     if (invitedSession) await tx.registrationPeriodSession.upsert({ where: { sessionId: invitedSession.id }, update: {}, create: { gameId: period.gameId, periodId: period.id, sessionId: invitedSession.id } })

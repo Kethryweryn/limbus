@@ -7,6 +7,7 @@ import { prisma } from '../server/utils/prisma'
 import { collectUploadUrls, deleteUnusedUploads, uploadDir, UPLOAD_DIRS } from '../server/utils/uploads'
 import { TERMS_VERSION } from '../utils/legal'
 import { PHOTO_UPLOAD_PREFIX } from '../utils/urls'
+import { participantSlug } from '../utils/participantSlug'
 import { BAL_EXTRA_PEOPLE, createBalStage } from './seed/bal'
 import type { Db, StageContext } from './seed/db'
 import { createMeridianStage, MERIDIAN_EXTRA_PEOPLE } from './seed/meridian'
@@ -451,19 +452,10 @@ const usedParticipantSlugs = new Set<string>()
 // Fiches déjà créées dans ce rechargement, par adresse fictive : une personne n'en a qu'une pour les trois jeux (US-185)
 const participantByEmail = new Map<string, { id: string, name: string, email: string | null }>()
 
-async function makeParticipantSlug(name: string) {
-  const baseSlug = makeSlug(name) || 'participant'
-  let slug = baseSlug
-  let suffix = 2
-
-  while (
-    usedParticipantSlugs.has(slug)
-    || await db.participant.findUnique({ where: { slug }, select: { id: true } })
-  ) {
-    slug = `${baseSlug}-${suffix}`
-    suffix += 1
-  }
-
+// Adresse neutre, sans le nom (US-239) : comme une fiche créée dans l'application
+async function makeParticipantSlug() {
+  let slug = participantSlug()
+  while (usedParticipantSlugs.has(slug) || await db.participant.findUnique({ where: { slug }, select: { id: true } })) slug = participantSlug()
   usedParticipantSlugs.add(slug)
   return slug
 }
@@ -861,7 +853,7 @@ async function createGame(
       participants.push(existing)
       continue
     }
-    const slug = await makeParticipantSlug(participant.name)
+    const slug = await makeParticipantSlug()
     participants.push(await db.participant.create({
       data: {
         name: participant.name,
@@ -1139,6 +1131,8 @@ async function createInesGame(accountIdByEmail: Map<string, string>, options: Se
     orderBy: { createdAt: 'asc' },
     select: { id: true }
   })
+  const taken = await db.game.findFirst({ where: { slug: makeSlug(INES_GAME.title), id: { not: INES_GAME.id } }, select: { title: true } })
+  if (taken) throw new Error(`L'adresse de page « ${makeSlug(INES_GAME.title)} » est prise par un autre jeu (${taken.title}) : rien n'a été modifié.`)
   await db.game.create({
     data: {
       id: INES_GAME.id,
@@ -1160,7 +1154,7 @@ async function createCrossGameParticipants(gameIds: string[]) {
     await db.participant.create({
       data: {
         name,
-        slug: await makeParticipantSlug(name),
+        slug: await makeParticipantSlug(),
         email,
         phone,
         // Nom et téléphone tenus par jeu (ADR-0086)
