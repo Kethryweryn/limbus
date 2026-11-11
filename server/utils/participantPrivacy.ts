@@ -5,7 +5,7 @@ import { NO_COPY } from '~/server/utils/deliveryCopies'
 import { REGISTRATION_SESSION_STATUSES as LINE, type RegistrationSessionStatus } from '~/utils/domain'
 import { normalizeRegistrationFormDefinition, type RegistrationFormDefinition } from '~/utils/registrationForms'
 import { visibleLineStatus } from '~/utils/registrations'
-import { latestOf } from '~/server/utils/participantValues'
+import { latestOf, withGameValues } from '~/server/utils/participantValues'
 
 type ExportedLine = {
   status: RegistrationSessionStatus
@@ -34,6 +34,48 @@ function lineForPerson<T extends ExportedLine>({ cancelledById, retainedBy: _ret
     cancelledAt: cancelled ? line.cancelledAt : null,
     cancelledBy: cancelled ? line.cancelledBy : null
   }]
+}
+
+/**
+ * Efface ce qu'une équipe tient d'une fiche suivie aussi par d'autres (SPEC-022 R14, US-241) : dans ses seuls jeux, ses
+ * liens, inscriptions (contacts, allergies, affinités), rôles et présences de session, paiements, envois,
+ * trombinoscopes, responsabilités du déroulé, et les photos du cast, fichiers compris. Les affinités d'autres personnes
+ * qui la désignent dans ces jeux sont détachées, leur texte reste. La fiche et ce que tiennent les autres équipes
+ * restent ; sans autre équipe, l'effacement est complet (`eraseParticipant`). Deux effacements simultanés passent
+ * l'un après l'autre : le second voit qu'il n'y a plus d'autre équipe, et efface la fiche (revue de la PR #235).
+ */
+export async function eraseParticipantForTeam(participantId: string, gameIds: string[] | null) {
+  const others = gameIds === null ? 0 : await prisma.participantGame.count({ where: { participantId, gameId: { notIn: gameIds } } })
+  if (!others) return await eraseParticipant(participantId)
+
+  const inGames = { participantId, gameId: { in: gameIds! } }
+  const inSessions = { participantId, session: { gameId: { in: gameIds! } } }
+  const assignments = await prisma.sessionAssignment.findMany({ where: inGames, select: { sessionId: true, photoUrl: true } })
+  const photoUrls = assignments.map((assignment) => assignment.photoUrl)
+  const sessionsWithPhoto = [...new Set(assignments.filter((assignment) => assignment.photoUrl).map((assignment) => assignment.sessionId))]
+
+  await prisma.$transaction(async (tx) => {
+    // Une fiche à la fois : deux équipes qui l'effacent ensemble passent l'une après l'autre
+    await tx.$executeRaw`SELECT 1 FROM "Participant" WHERE "id" = ${participantId} FOR UPDATE`
+    await tx.sessionAssignment.updateMany({ where: inGames, data: { participantId: null, photoUrl: null } })
+    if (sessionsWithPhoto.length) {
+      await tx.sessionTrombinoscope.deleteMany({ where: { sessionId: { in: sessionsWithPhoto } } })
+      await tx.sessionDocumentDelivery.updateMany({ where: { sessionId: { in: sessionsWithPhoto }, kind: 'trombinoscope', copySize: { not: null } }, data: NO_COPY })
+    }
+    await tx.registrationAffinity.updateMany({ where: { targetParticipantId: participantId, registration: { gameId: { in: gameIds! } } }, data: { targetParticipantId: null } })
+    await tx.sessionPayment.updateMany({ where: { transferredToParticipantId: participantId, gameId: { in: gameIds! } }, data: { transferredToParticipantId: null } })
+    await tx.registration.deleteMany({ where: inGames })
+    await tx.sessionPayment.deleteMany({ where: inGames })
+    await tx.sessionDocumentDelivery.deleteMany({ where: inGames })
+    await tx.sessionTrombinoscope.deleteMany({ where: inGames })
+    await tx.timelineEventResponsible.deleteMany({ where: inGames })
+    await tx.sessionAttendance.deleteMany({ where: inSessions })
+    await tx.sessionParticipant.deleteMany({ where: inSessions })
+    await tx.participantGame.deleteMany({ where: inGames })
+    // Plus aucune équipe (l'autre l'a effacée entre-temps) : la fiche ne reste pas sans jeu
+    if (!await tx.participantGame.count({ where: { participantId } })) await tx.participant.delete({ where: { id: participantId } })
+  })
+  return { deletedPhotos: await deleteUnusedUploads(photoUrls) }
 }
 
 /**
@@ -137,7 +179,7 @@ export async function exportParticipantData(participantId: string, gameIds: stri
           sessionLines: { select: { status: true, answer: true, answeredAt: true, lastRemindedAt: true, responseDueAt: true, waitlistPosition: true, announcedStatus: true, announcedAt: true, confirmedAt: true, cancelledAt: true, cancelledById: true, cancelledBy: { select: { name: true } }, retainedBy: { select: { name: true } }, answersChangedAt: true, session: { select: { id: true, date: true } } } },
           // Affinités écrites par la personne, avec la personne rattachée ; jamais celles des autres qui la visent (US-095)
           affinities: {
-            select: { kind: true, text: true, ...(forPerson ? {} : { targetUnknown: true, targetParticipant: { select: { name: true } } }) },
+            select: { kind: true, text: true, ...(forPerson ? {} : { targetUnknown: true, targetParticipant: { select: { id: true, name: true } } }) },
             orderBy: { position: 'asc' }
           },
           invitationSentAt: true,
@@ -149,6 +191,8 @@ export async function exportParticipantData(participantId: string, gameIds: stri
           invitedBy: { select: { name: true } },
           withdrawnBy: { select: { name: true } },
           createdAt: true,
+          // Jeu de l'inscription : les personnes de ses affinités y sont nommées comme les tient son équipe (ADR-0086)
+          gameId: true,
           invitedSession: { select: { id: true, date: true } },
           period: { select: { game: { select: { title: true } } } }
         }
@@ -156,6 +200,7 @@ export async function exportParticipantData(participantId: string, gameIds: stri
     }
   }), { dropId: true })
 
+  await withGameValues(participant.registrations)
   const { gameLinks, userId, documentDeliveries, registrations, ...rest } = participant
   return {
     exportedAt: new Date().toISOString(),
@@ -163,8 +208,10 @@ export async function exportParticipantData(participantId: string, gameIds: stri
     // Exportée par une équipe : son nom, son téléphone et ses dates, rien d'une autre équipe qui suit la fiche (ADR-0086)
     ...(gameIds === null ? {} : teamView(gameLinks, rest)),
     // Réponses aux questions avec leur libellé, lu dans la version remplie (US-081)
-    registrations: registrations.map(({ questionAnswers, formVersion, sessionLines, ...registration }) => ({
+    registrations: registrations.map(({ questionAnswers, formVersion, sessionLines, gameId: _gameId, ...registration }) => ({
       ...registration,
+      // La personne rattachée, par son nom seulement : l'identifiant ne servait qu'à la nommer comme son équipe
+      affinities: registration.affinities.map(({ targetParticipant, ...affinity }) => targetParticipant === undefined ? affinity : { ...affinity, targetParticipant: targetParticipant && { name: targetParticipant.name } }),
       sessionLines: forPerson ? sessionLines.flatMap(lineForPerson) : sessionLines.map(({ cancelledById: _author, ...line }) => line),
       questionAnswers: formVersion
         ? normalizeRegistrationFormDefinition(formVersion.definition as RegistrationFormDefinition).questions

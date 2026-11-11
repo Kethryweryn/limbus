@@ -309,6 +309,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-238](EPIC-056-une-fiche-par-personne/US-238-email-obligatoire.md) | L'email obligatoire sur une fiche | EPIC-056 | terminée |
 | [US-239](EPIC-056-une-fiche-par-personne/US-239-une-fiche-par-adresse.md) | Une fiche par adresse dans tout Limbus | EPIC-056 | terminée |
 | [US-240](EPIC-056-une-fiche-par-personne/US-240-fusion-des-fiches.md) | Fusionner les fiches d'une même adresse | EPIC-056 | terminée |
-| [US-241](EPIC-056-une-fiche-par-personne/US-241-effacement-et-export-par-equipe.md) | Effacer et exporter ce qui concerne son équipe | EPIC-056 | à faire |
+| [US-241](EPIC-056-une-fiche-par-personne/US-241-effacement-et-export-par-equipe.md) | Effacer et exporter ce qui concerne son équipe | EPIC-056 | terminée |
 | [US-242](EPIC-056-une-fiche-par-personne/US-242-retirer-nom-et-telephone-de-la-fiche.md) | Retirer le nom et le téléphone de la fiche | EPIC-056 | à faire |
 | [US-243](EPIC-056-une-fiche-par-personne/US-243-prouver-une-autre-adresse.md) | Prouver une autre adresse donnée en réponse, puis réunir les deux fiches | EPIC-056 | à faire |

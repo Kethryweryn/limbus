@@ -1,7 +1,7 @@
 ---
 id: US-241
 titre: Effacer et exporter ce qui concerne son équipe
-statut: à faire
+statut: terminée
 epic: EPIC-056
 regles: [R14, R15]
 adr: [ADR-0086]
@@ -13,10 +13,10 @@ En tant qu'organisatrice, je veux que l'effacement et l'export d'une personne ne
 
 ## Critères d'acceptation
 
-- [ ] Étant donné la fiche de Paul suivie par Alice et Bob, quand Alice efface Paul, alors ses jeux, notes, valeurs, casts, inscriptions, envois, paiements et photos de ses jeux disparaissent ; la fiche reste pour Bob, intacte.
-- [ ] Étant donné la dernière équipe qui efface la fiche, alors la fiche disparaît entièrement, comme aujourd'hui.
-- [ ] Étant donné l'export d'Alice, alors il ne contient que ce qui concerne ses jeux.
-- [ ] L'export et l'effacement depuis le compte de Paul restent inchangés (ADR-0043).
+- [x] Étant donné la fiche de Paul suivie par Alice et Bob, quand Alice efface Paul, alors ses jeux, notes, valeurs, casts, inscriptions, envois, paiements et photos de ses jeux disparaissent ; la fiche reste pour Bob, intacte.
+- [x] Étant donné la dernière équipe qui efface la fiche, alors la fiche disparaît entièrement, comme aujourd'hui.
+- [x] Étant donné l'export d'Alice, alors il ne contient que ce qui concerne ses jeux.
+- [x] L'export et l'effacement depuis le compte de Paul restent inchangés (ADR-0043).
 
 ## Notes techniques
 
@@ -24,7 +24,12 @@ En tant qu'organisatrice, je veux que l'effacement et l'export d'une personne ne
 
 ## Tests
 
-- Actions : effacement et export depuis la fiche, par Alice puis par Bob.
+- Actions : `tests/e2e/participantScreens.spec.ts` (« suppression ») : une fiche suivie par une autre équipe ne perd que mes jeux, une fiche à moi seule disparaît ; `tests/integration/privacy.test.ts` (« effacement et export par équipe ») : chaque table de mes jeux vidée, celles de Bob intactes, puis l'effacement de Bob fait disparaître la fiche ; export limité à mes jeux, avec mon nom et les personnes de mes affinités nommées comme dans mon jeu.
 - Erreurs de saisie : aucune saisie (confirmation seule).
-- Droits : Alice n'efface ni n'exporte rien de Bob ; co-organisatrice ; `isolation.test.ts`.
-- Hors ligne : effacement et export sont des actions, jamais mises en file : refus sans réseau avec le message habituel.
+- Droits : Alice n'efface ni n'exporte rien de Bob ; après son effacement, elle n'a plus accès à la fiche.
+- Hors ligne : la suppression d'une fiche se met en file et se rejoue au retour du réseau, comme avant (ADR-0036) ; l'export demande le réseau. Rien de nouveau à tester.
+
+## Avancement
+
+- `eraseParticipantForTeam` (`server/utils/participantPrivacy.ts`) : dans les seuls jeux de l'équipe, liens, inscriptions, rôles, présences, paiements, envois, trombinoscopes, déroulé et photos du cast ; les affinités d’autres personnes qui la désignent sont détachées, leur texte reste, et deux effacements simultanés laissent la fiche disparaître plutôt que rester sans jeu (revue de la PR #235) ; sans autre équipe, l'effacement complet (`eraseParticipant`). La route de suppression ne refuse plus une fiche liée au jeu d'une autre équipe (US-211).
+- Export : nom, téléphone et dates de l'équipe (revue de la PR #232), et personnes de ses affinités nommées comme dans son jeu.

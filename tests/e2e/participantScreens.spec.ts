@@ -164,29 +164,24 @@ test('export : il ne contient que les jeux de l’organisatrice qui exporte (R7,
   }
 })
 
-test('suppression : depuis la fiche, refusée si la personne est liée au jeu d’une autre équipe, faite sinon (R9, US-211)', async ({ page }) => {
+test('suppression : une fiche suivie par une autre équipe ne perd que mes jeux ; une fiche à moi seule disparaît (R9, US-211, US-241)', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
     const game = await orgaGame(prisma, 'Jeu de la suppression d’une fiche')
     const foreign = await otherTeamGame(prisma, 'Jeu d’une autre équipe à la suppression')
     const shared = await gamePerson(prisma, game.id, 'Personne partagée')
-    await prisma.participantGame.create({ data: { participantId: shared.id, gameId: foreign.id } })
+    await prisma.participantGame.create({ data: { participantId: shared.id, gameId: foreign.id, name: 'Nom de l’autre équipe', notes: 'Note de l’autre équipe' } })
     const alone = await gamePerson(prisma, game.id, 'Personne seule')
     await signIn(page, prisma, E2E_USERS.orga)
 
-    // Depuis la liste : le refus s'affiche (US-211)
+    // Depuis la liste : la carte disparaît, la fiche reste à l'autre équipe, avec ses seuls jeu, nom et note (SPEC-022 R14)
     await openParticipants(page)
     await page.getByPlaceholder('Rechercher un participant...').fill(shared.name)
     page.once('dialog', (dialog) => dialog.accept())
     await personCard(page, shared.name).getByRole('button', { name: 'Supprimer' }).click()
-    await expect(page.getByText('Ce participant est lié à des jeux auxquels vous n’avez pas accès')).toBeVisible()
-
-    // Depuis la fiche : même refus
-    await openSheet(page, shared)
-    page.once('dialog', (dialog) => dialog.accept())
-    await page.getByRole('button', { name: 'Supprimer' }).click()
-    await expect(page.getByText('Ce participant est lié à des jeux auxquels vous n’avez pas accès')).toBeVisible()
-    expect(await prisma.participant.findUnique({ where: { id: shared.id } })).not.toBeNull()
+    await expect(personCard(page, shared.name)).toHaveCount(0)
+    await expect.poll(async () => (await prisma.participantGame.findMany({ where: { participantId: shared.id }, select: { gameId: true, name: true, notes: true } })))
+      .toEqual([{ gameId: foreign.id, name: 'Nom de l’autre équipe', notes: 'Note de l’autre équipe' }])
 
     // Une fiche liée à ses seuls jeux : supprimée, retour à la liste
     await openSheet(page, alone)

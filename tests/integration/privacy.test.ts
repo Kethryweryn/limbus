@@ -190,3 +190,69 @@ describe('suppression d’un participant', () => {
     expect(await prisma.uploadedFile.findUnique({ where: { url } })).not.toBeNull()
   })
 })
+
+// US-241 (SPEC-022 R14, R15) : une fiche suivie par Alice et Bob ; chaque équipe n'efface et n'exporte que ce qu'elle tient
+describe('effacement et export par équipe (US-241)', () => {
+  const { bob } = world.users
+
+  async function sharedFiche(key: string) {
+    const [aliceGame, bobGame] = await Promise.all([alice, bob].map((owner, index) =>
+      prisma.game.create({ data: { title: `Jeu ${index} ${key}`, slug: `jeu-${index}-${key}`, description: '', ownerId: owner.id } })
+    ))
+    const fiche = await prisma.participant.create({
+      data: {
+        name: `Fiche ${key}`, slug: `p-${key}`.slice(0, 40), email: `fiche-${key}@example.test`,
+        gameLinks: { create: [{ gameId: aliceGame!.id, name: 'Nom chez Alice', notes: 'Note d’Alice' }, { gameId: bobGame!.id, name: 'Nom chez Bob', notes: 'Note de Bob' }] }
+      }
+    })
+    const sessions = []
+    for (const game of [aliceGame!, bobGame!]) {
+      const session = await prisma.session.create({ data: { slug: `session-${game.slug}`, gameId: game.id } })
+      const character = await prisma.character.create({ data: { name: `Rôle ${game.slug}`, slug: `role-${game.slug}`, gameId: game.id } })
+      await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: fiche.id, role: 'participant' } })
+      await prisma.sessionAssignment.create({ data: { gameId: game.id, sessionId: session.id, characterId: character.id, participantId: fiche.id } })
+      await prisma.sessionPayment.create({ data: { gameId: game.id, sessionId: session.id, participantId: fiche.id } })
+      const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `periode-${game.slug}` } })
+      await prisma.registration.create({ data: { gameId: game.id, periodId: period.id, participantId: fiche.id, status: 'received', source: 'form', email: fiche.email! } })
+      sessions.push(session)
+    }
+    return { aliceGame: aliceGame!, bobGame: bobGame!, fiche, sessions }
+  }
+
+  it('Alice efface ce qu’elle tient ; la fiche reste à Bob, intacte', async () => {
+    const { aliceGame, bobGame, fiche } = await sharedFiche(`efface-equipe-${Date.now()}`)
+    // L'affinité d'une autre personne qui la désigne, dans le jeu d'Alice : détachée, son texte reste (revue de la PR #235)
+    const lea = await prisma.participant.create({ data: { name: 'Léa', slug: `p-lea-${Date.now()}`.slice(0, 40), email: `lea-${Date.now()}@example.test`, gameLinks: { create: { gameId: aliceGame.id, name: 'Léa' } } } })
+    const period = await prisma.registrationPeriod.findFirstOrThrow({ where: { gameId: aliceGame.id } })
+    const leaRegistration = await prisma.registration.create({ data: { gameId: aliceGame.id, periodId: period.id, participantId: lea.id, status: 'received', source: 'form', email: lea.email! } })
+    const affinity = await prisma.registrationAffinity.create({ data: { registrationId: leaRegistration.id, kind: 'wantWith', text: 'Jouer avec elle', position: 0, targetParticipantId: fiche.id } })
+    const response = await api(alice, 'DELETE', `/api/participants/${fiche.id}`)
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    for (const [gameId, expected] of [[aliceGame.id, 0], [bobGame.id, 1]] as const) {
+      expect(await prisma.participantGame.count({ where: { participantId: fiche.id, gameId } })).toBe(expected)
+      expect(await prisma.registration.count({ where: { participantId: fiche.id, gameId } })).toBe(expected)
+      expect(await prisma.sessionPayment.count({ where: { participantId: fiche.id, gameId } })).toBe(expected)
+      expect(await prisma.sessionAssignment.count({ where: { participantId: fiche.id, gameId } })).toBe(expected)
+      expect(await prisma.sessionParticipant.count({ where: { participantId: fiche.id, session: { gameId } } })).toBe(expected)
+    }
+    expect(DENIED).toContain((await api(alice, 'GET', `/api/participants/${fiche.id}`)).status)
+    expect(await prisma.registrationAffinity.findUniqueOrThrow({ where: { id: affinity.id }, select: { text: true, targetParticipantId: true } })).toEqual({ text: 'Jouer avec elle', targetParticipantId: null })
+    expect((await api(bob, 'GET', `/api/participants/${fiche.id}`)).body).toMatchObject({ name: 'Nom chez Bob', gameNotes: { [bobGame.id]: 'Note de Bob' } })
+
+    // Bob efface à son tour : plus personne ne la suit, la fiche disparaît
+    expect((await api(bob, 'DELETE', `/api/participants/${fiche.id}`)).status).toBe(200)
+    expect(await prisma.participant.findUnique({ where: { id: fiche.id } })).toBeNull()
+  })
+
+  it('l’export d’Alice ne contient que ses jeux, son nom et les personnes nommées comme dans son jeu', async () => {
+    const { aliceGame, fiche } = await sharedFiche(`export-equipe-${Date.now()}`)
+    const target = await prisma.participant.create({ data: { name: 'Cible', slug: `p-cible-${Date.now()}`.slice(0, 40), email: `cible-${Date.now()}@example.test`, gameLinks: { create: { gameId: aliceGame.id, name: 'Cible chez Alice' } } } })
+    const registration = await prisma.registration.findFirstOrThrow({ where: { participantId: fiche.id, gameId: aliceGame.id } })
+    await prisma.registrationAffinity.create({ data: { registrationId: registration.id, kind: 'wantWith', text: 'Cible', position: 0, targetParticipantId: target.id } })
+    const exported = (await api(alice, 'GET', `/api/participants/${fiche.id}/export`)).body as { name: string, registrations: Array<{ affinities: Array<{ targetParticipant?: { name: string } | null }> }> }
+    expect(exported.name).toBe('Nom chez Alice')
+    expect(exported.registrations).toHaveLength(1)
+    expect(exported.registrations[0]!.affinities[0]!.targetParticipant).toEqual({ name: 'Cible chez Alice' })
+    expect(JSON.stringify(exported)).not.toMatch(/Nom chez Bob|Note de Bob/)
+  })
+})
