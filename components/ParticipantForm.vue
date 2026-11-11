@@ -4,7 +4,8 @@
       {{ mode === 'edit' ? 'Modifier le participant' : 'Créer un participant' }}
     </template>
 
-    <form class="w-full space-y-6" @submit.prevent="submit">
+    <!-- novalidate : le message de l’adresse est celui du formulaire, pas la bulle du navigateur (US-238) -->
+    <form class="w-full space-y-6" novalidate @submit.prevent="submit">
       <UFormField label="Jeux" :error="errors.gameIds">
         <USelectMenu
           v-model="localParticipant.gameIds"
@@ -75,6 +76,7 @@
 import { computed, ref, watch } from 'vue'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { GameOption, ParticipantDraft } from '~/utils/writingDrafts'
+import { isParticipantEmail } from '~/utils/participantEmail'
 
 const props = withDefaults(defineProps<{
   // Enregistrement par le parent (`@submit`), attendu pour afficher ici son erreur
@@ -115,6 +117,8 @@ function validate() {
   // Une fiche appartient à la personne de son adresse (SPEC-022 R3, US-238)
   if (!localParticipant.value.email?.trim()) {
     errors.value.email = 'L’adresse email est obligatoire.'
+  } else if (!isParticipantEmail(localParticipant.value.email)) {
+    errors.value.email = 'Email invalide.'
   }
   // Une fiche a toujours au moins un jeu (US-036)
   if (props.mode !== 'edit' && !localParticipant.value.gameIds?.length) {

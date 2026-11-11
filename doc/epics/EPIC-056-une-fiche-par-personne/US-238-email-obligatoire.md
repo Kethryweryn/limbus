@@ -27,4 +27,5 @@ Schémas zod de création et de modification (`server/utils/schemas.ts`), outils
 - Actions : `tests/e2e/participantScreens.spec.ts` (« email obligatoire ») : mention et case « Sans email », fiche complétée par une adresse.
 - Erreurs de saisie : création sans adresse (« liste : … création refusée ») et modification d'une fiche sans adresse refusées avec « L’adresse email est obligatoire. », rien d'enregistré ; `creer_participant` sans adresse refusé (`tests/integration/aiAssistants.test.ts`).
 - Droits : la case ne liste que les fiches des jeux visibles (fiche d'une autre équipe absente).
-- Hors ligne : la modification sans adresse est refusée avant la mise en file, rien n'attend le réseau.
+- Hors ligne : la modification sans adresse, ou d'une adresse mal formée, est refusée avant la mise en file, rien n'attend le réseau (revue de la PR #231).
+- Une adresse mal formée d'avant la vérification est signalée « Email invalide » et comptée dans la case (revue de la PR #231).

@@ -327,6 +327,9 @@ test('email obligatoire : une fiche sans email est signalée et filtrée, et ne 
     const legacy = await gamePerson(prisma, game.id, 'Personne sans email')
     const withEmail = await gamePerson(prisma, game.id, 'Personne avec email', '')
     const stranger = await gamePerson(prisma, foreign.id, 'Personne sans email d’une autre équipe')
+    // Adresse d'avant la vérification, mal formée : signalée elle aussi
+    const malformed = await gamePerson(prisma, game.id, 'Personne à l’adresse mal formée')
+    await prisma.participant.update({ where: { id: malformed.id }, data: { email: 'à demander' } })
     await signIn(page, prisma, E2E_USERS.orga)
     await openParticipants(page)
 
@@ -340,6 +343,8 @@ test('email obligatoire : une fiche sans email est signalée et filtrée, et ne 
     await expect(personCard(page, withEmail.name)).toHaveCount(0)
     await page.getByPlaceholder('Rechercher un participant...').fill(stranger.name)
     await expect(personCard(page, stranger.name)).toHaveCount(0)
+    await page.getByPlaceholder('Rechercher un participant...').fill(malformed.name)
+    await expect(personCard(page, malformed.name).getByText('Email invalide', { exact: true })).toBeVisible()
 
     // Modifier une fiche sans email demande une adresse ; rien n'est enregistré
     await openSheet(page, legacy)
@@ -353,6 +358,11 @@ test('email obligatoire : une fiche sans email est signalée et filtrée, et ne 
     await context.setOffline(true)
     await page.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(page.getByText('L’adresse email est obligatoire.')).toBeVisible()
+    await expect(page.getByText(/Modifications faites hors ligne/)).toHaveCount(0)
+    // Une adresse mal formée aussi, avant la mise en file
+    await page.getByLabel('Email', { exact: true }).fill('pas-une-adresse')
+    await page.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect(page.getByText('Email invalide.')).toBeVisible()
     await expect(page.getByText(/Modifications faites hors ligne/)).toHaveCount(0)
     await context.setOffline(false)
 
