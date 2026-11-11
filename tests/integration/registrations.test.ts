@@ -274,15 +274,7 @@ describe('règles issues de la revue de code', () => {
     expect(emailsTo(participant.email!)).toHaveLength(2)
   })
 
-  it('refuse deux fiches avec la même adresse email', async () => {
-    const { game, session, period, participant } = await openPeriod()
-    const twin = await prisma.participant.create({
-      data: { name: 'Jumelle', slug: `jumelle-${counter}`, email: participant.email!.toUpperCase(), gameLinks: { create: { gameId: game.id } } }
-    })
-    const response = await invite(period.id, { sessionId: session.id, participantIds: [participant.id, twin.id] })
-    expect(response.status).toBe(400)
-    expect(errorMessage(response)).toContain('même adresse email')
-  })
+  // Deux fiches avec la même adresse : la base les refuse (SPEC-022, US-240, participantMerge.test.ts)
 
   it('le renvoi part à l’adresse de l’inscription', async () => {
     const { session, period, participant } = await openPeriod()

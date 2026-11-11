@@ -22,13 +22,15 @@ async function personInTwoTeams() {
   const key = `profil-${++counter}`
   const user = await prisma.user.create({ data: { email: `${key}@example.test`, name: 'Camille Dupont', password: 'non-utilise' } })
   const teams = []
+  // Une seule fiche par adresse (SPEC-022, US-240) : liée au jeu de chaque équipe
+  const participant = await prisma.participant.create({
+    data: { name: 'Nom saisi par l’équipe', slug: `fiche-${key}`, email: user.email, phone: '0100000000', userId: user.id }
+  })
   for (const owner of [alice, bob]) {
     const k = `${key}-${owner.id}`.toLowerCase()
     const game = await prisma.game.create({ data: { title: `Jeu ${k}`, slug: `jeu-${k}`, description: '', ownerId: owner.id } })
     const session = await prisma.session.create({ data: { slug: `session-${k}`, gameId: game.id } })
-    const participant = await prisma.participant.create({
-      data: { name: 'Nom saisi par l’équipe', slug: `fiche-${k}`, email: user.email, phone: '0100000000', userId: user.id, gameLinks: { create: { gameId: game.id } } }
-    })
+    await prisma.participantGame.create({ data: { participantId: participant.id, gameId: game.id, name: 'Nom saisi par l’équipe', phone: '0100000000' } })
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `periode-${k}`, state: 'open' } })
     const definition = owner.id === alice.id ? FULL_FORM : NO_PHONE_FORM
     const form = await prisma.registrationForm.create({ data: { gameId: game.id, versions: { create: { number: 1, definition } } }, include: { versions: true } })
@@ -57,16 +59,17 @@ describe('mes coordonnées (US-074)', () => {
     const { user, teams } = await personInTwoTeams()
     expect((await api(user, 'PUT', '/api/account/profile', profile)).status).toBe(200)
 
-    for (const { participant } of teams) {
+    for (const { participant, game } of teams) {
       expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id } })).toMatchObject({ name: 'Camille Dupont', phone: '0612345678' })
-      expect(await prisma.registration.findFirstOrThrow({ where: { participantId: participant.id } })).toMatchObject({
+      expect(await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: participant.id, gameId: game.id } } })).toMatchObject({ name: 'Camille Dupont', phone: '0612345678' })
+      expect(await prisma.registration.findFirstOrThrow({ where: { participantId: participant.id, gameId: game.id } })).toMatchObject({
         firstName: 'Camille', lastName: 'Dupont', emergencyContactName: 'Dominique', dietary: 'Sans gluten'
       })
     }
     // Téléphone : chez Alice, qui le demande ; jamais sur l'inscription chez Bob, dont le formulaire ne le demande pas
     const [aliceTeam, bobTeam] = teams
-    expect((await prisma.registration.findFirstOrThrow({ where: { participantId: aliceTeam!.participant.id } })).phone).toBe('0612345678')
-    expect((await prisma.registration.findFirstOrThrow({ where: { participantId: bobTeam!.participant.id } })).phone).toBeNull()
+    expect((await prisma.registration.findFirstOrThrow({ where: { participantId: aliceTeam!.participant.id, gameId: aliceTeam!.game.id } })).phone).toBe('0612345678')
+    expect((await prisma.registration.findFirstOrThrow({ where: { participantId: bobTeam!.participant.id, gameId: bobTeam!.game.id } })).phone).toBeNull()
     expect(JSON.stringify((await api(alice, 'GET', `/api/sessions/${aliceTeam!.session.id}/allergies`)).body)).toContain('Sans gluten')
     expect((await api(user, 'GET', '/api/account')).body).toMatchObject({ profile: { phone: '0612345678', dietary: 'Sans gluten', healthConsent: true } })
   })
@@ -120,8 +123,8 @@ describe('allergies du cast (US-074)', () => {
     const { user, teams } = await personInTwoTeams()
     await api(user, 'PUT', '/api/account/profile', profile)
     const { game } = teams[0]!
-    const npc = await prisma.participant.create({ data: { name: 'PNJ du cast', slug: `pnj-${++counter}`, email: user.email, userId: user.id, gameLinks: { create: { gameId: game.id } } } })
-    const other = await prisma.session.create({ data: { slug: `autre-session-${counter}`, gameId: game.id } })
+    const npc = teams[0]!.participant
+    const other = await prisma.session.create({ data: { slug: `autre-session-${++counter}`, gameId: game.id } })
     await prisma.sessionParticipant.create({ data: { sessionId: other.id, participantId: npc.id, role: 'npc' } })
     expect(JSON.stringify((await api(alice, 'GET', `/api/sessions/${other.id}/allergies`)).body)).toContain('Sans gluten')
   })
@@ -146,7 +149,7 @@ describe('lien personnel (US-074)', () => {
 })
 
 describe('fiche tenue par la personne (US-075)', () => {
-  it('l’équipe ne change ni le nom ni le téléphone ; changer l’email détache la fiche', async () => {
+  it('l’équipe ne change ni le nom ni le téléphone ; corriger l’email emmène ses jeux sur une autre fiche, sans le compte', async () => {
     const { user, teams } = await personInTwoTeams()
     await api(user, 'PUT', '/api/account/profile', profile)
     const { participant, game } = teams[0]!
@@ -154,7 +157,14 @@ describe('fiche tenue par la personne (US-075)', () => {
     expect((await api(alice, 'PUT', `/api/participants/${participant.id}`, body)).status).toBe(200)
     expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id } })).toMatchObject({ name: 'Camille Dupont', phone: '0612345678', userId: user.id })
 
-    expect((await api(alice, 'PUT', `/api/participants/${participant.id}`, { ...body, email: 'erreur@example.test' })).status).toBe(200)
-    expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id } })).toMatchObject({ name: 'Renommée par l’équipe', phone: '0700000000', userId: null })
+    // La fiche est aussi suivie par Bob : la correction d'Alice ne vaut que pour son jeu (SPEC-022 R7)
+    const corrected = await api(alice, 'PUT', `/api/participants/${participant.id}`, { ...body, email: `erreur-${user.id}@example.test` })
+    expect(corrected.status).toBe(200)
+    const moved = corrected.body as { id: string, name: string, phone: string | null }
+    expect(moved.id).not.toBe(participant.id)
+    expect(moved).toMatchObject({ name: 'Renommée par l’équipe', phone: '0700000000' })
+    expect(await prisma.participant.findUniqueOrThrow({ where: { id: moved.id } })).toMatchObject({ userId: null })
+    expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id }, select: { userId: true, gameLinks: { select: { gameId: true } } } }))
+      .toEqual({ userId: user.id, gameLinks: [{ gameId: teams[1]!.game.id }] })
   })
 })

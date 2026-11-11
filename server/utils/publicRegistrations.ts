@@ -6,7 +6,7 @@ import { prisma } from '~/server/utils/prisma'
 import { accountIdForEmail, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 import { assertRateLimit } from '~/server/utils/rateLimit'
 import { sendEmail } from '~/server/utils/email'
-import { hashRegistrationToken, notifyGameTeam } from '~/server/utils/registrations'
+import { findParticipantByEmail, hashRegistrationToken, notifyGameTeam } from '~/server/utils/registrations'
 import { validatedPlaces } from '~/server/utils/sessionPayments'
 import { answerAvailability, availabilitySchema } from '~/server/utils/registrationAvailability'
 import { replaceAffinities } from '~/server/utils/registrationAffinities'
@@ -324,8 +324,13 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
   const now = new Date()
   const accepting = registration.status === REGISTRATION_STATUSES.invited
   const { affinities, questionAnswers, availableSessionIds, ...answers } = allAnswers
+  // Adresse déjà celle d'une autre fiche (une seule fiche par adresse, SPEC-022) : la fiche et l'inscription gardent la
+  // leur, jusqu'à ce que la personne prouve que l'autre adresse est la sienne (choix de l'utilisatrice, US-243)
+  const other = await findParticipantByEmail(answers.email)
+  const addressTaken = Boolean(other && other.id !== registration.participantId)
   const data = {
     ...answers,
+    ...(addressTaken ? { email: registration.email } : {}),
     // Réponses aux questions propres au jeu (US-081) ; les affinités sont rangées à part (US-082)
     questionAnswers: questionAnswers ?? {},
     // Le consentement santé n'a de sens qu'avec des allergies déclarées ; il date du dernier enregistrement
@@ -336,7 +341,8 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
   }
   const proposed = availableSessionIds ? await proposedSessions(registration) : []
   const seats = accepting && registration.invitedSession ? await countPlayableCharacters(registration.period.gameId) : 0
-  const changed = !accepting && answersDiffer(registration, allAnswers, definition)
+  // Une adresse gardée (prise par une autre fiche) n'est pas un changement de réponse
+  const changed = !accepting && answersDiffer(registration, addressTaken ? { ...allAnswers, email: registration.email } : allAnswers, definition)
   const previouslyChecked = new Set(registration.sessionLines.filter(saysAvailable).map((line) => line.sessionId))
 
   const outcome = await prisma.$transaction(async (tx) => {
@@ -387,8 +393,8 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
       }
     }
 
-    // L'adresse donnée fait foi ; le rattachement au compte la suit (US-070)
-    await tx.participant.update({ where: { id: registration.participantId }, data: { email: answers.email, userId: await accountIdForEmail(answers.email) } })
+    // L'adresse donnée fait foi ; le rattachement au compte la suit (US-070). Prise par une autre fiche : rien ne change
+    if (!addressTaken) await tx.participant.update({ where: { id: registration.participantId }, data: { email: answers.email, userId: await accountIdForEmail(answers.email) } })
     return { kept, removed, fullSession, changedSessions: changedLines.map((line) => line.sessionId) }
   })
 

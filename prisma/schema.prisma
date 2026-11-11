@@ -853,7 +853,8 @@ model Participant {
   id          String     @id @default(cuid())
   name        String
   slug        String     @unique
-  email       String?  @db.Citext
+  // Une seule fiche par adresse dans tout Limbus (SPEC-022 R4, R8, ADR-0086)
+  email       String?  @unique @db.Citext
   phone       String?
   // Compte rattaché par l'adresse confirmée (US-070, ADR-0041)
   userId      String?

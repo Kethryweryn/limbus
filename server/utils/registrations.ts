@@ -309,19 +309,7 @@ export async function inviteToRegistrationPeriod(params: {
     })
   }
 
-  // Deux fiches avec la même adresse recevraient deux liens dans la même boîte
-  const byEmail = new Map<string, string[]>()
-  for (const participant of participants) {
-    const email = participant.email!.trim().toLowerCase()
-    byEmail.set(email, [...(byEmail.get(email) || []), participant.name])
-  }
-  const sharedEmails = [...byEmail.values()].filter((names) => names.length > 1)
-  if (sharedEmails.length) {
-    throw createError({
-      statusCode: 400,
-      message: `Ces fiches ont la même adresse email : ${sharedEmails.map((names) => names.join(' et ')).join(' ; ')}. Invitez une seule d’entre elles.`
-    })
-  }
+  // Deux fiches n'ont jamais la même adresse (SPEC-022, US-240) : chaque personne invitée a sa boîte
 
   const matched = params.newParticipant ? await findParticipantByEmail(params.newParticipant.email) : null
   const knownIds = [...new Set([...participants.map((participant) => participant.id), ...(matched ? [matched.id] : [])])]
