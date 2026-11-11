@@ -1,5 +1,5 @@
 import { inSentence, withGame } from '~/utils/sessionLabels'
-import { computed, inject, provide, reactive, ref, watch, type InjectionKey } from 'vue'
+import { computed, inject, provide, ref, watch, type InjectionKey } from 'vue'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { useApiAction, useApiFetch } from '~/composables/useApiFetch'
 import { coolDown } from '~/composables/useCooldown'
@@ -30,11 +30,13 @@ function createActions(data: () => SessionPaymentsData, onRefresh: () => Promise
   const testRow = ref<PaymentRow | null>(null)
 
   // Réglages de la session : lien, RIB, date limite de désistement (US-031, US-040)
-  const settings = reactive({ paymentRibUrl: '', paymentLinkUrl: '', withdrawalDeadline: '' })
+  const settings = ref({ paymentRibUrl: '', paymentLinkUrl: '', withdrawalDeadline: '' })
   watch(() => data().session, (current) => {
-    settings.paymentRibUrl = current?.paymentRibUrl || ''
-    settings.paymentLinkUrl = current?.paymentLinkUrl || ''
-    settings.withdrawalDeadline = current?.withdrawalDeadline ? new Date(current.withdrawalDeadline).toISOString().slice(0, 10) : ''
+    settings.value = {
+      paymentRibUrl: current?.paymentRibUrl || '',
+      paymentLinkUrl: current?.paymentLinkUrl || '',
+      withdrawalDeadline: current?.withdrawalDeadline ? new Date(current.withdrawalDeadline).toISOString().slice(0, 10) : ''
+    }
   }, { immediate: true })
 
   const rows = computed(() => data().rows || [])
@@ -78,8 +80,8 @@ function createActions(data: () => SessionPaymentsData, onRefresh: () => Promise
 
   async function saveSettings() {
     return await write('payments/settings', 'PUT', {
-      ...settings,
-      withdrawalDeadline: settings.withdrawalDeadline || null,
+      ...settings.value,
+      withdrawalDeadline: settings.value.withdrawalDeadline || null,
       updatedAt: session().paymentSettingsUpdatedAt || NO_VERSION
     })
   }
@@ -116,13 +118,13 @@ function createActions(data: () => SessionPaymentsData, onRefresh: () => Promise
           : `Tu peux maintenant régler ta participation à la ${inSentence(session().label)}.`,
         `Jeu : ${session().game?.title || ''}`,
         ...amountLines,
-        settings.paymentLinkUrl ? `Lien de paiement : ${settings.paymentLinkUrl}` : '',
-        settings.paymentRibUrl ? 'Le RIB est joint à cet email.' : '',
-        withdrawalDeadlineLine(settings.withdrawalDeadline) || '',
+        settings.value.paymentLinkUrl ? `Lien de paiement : ${settings.value.paymentLinkUrl}` : '',
+        settings.value.paymentRibUrl ? 'Le RIB est joint à cet email.' : '',
+        withdrawalDeadlineLine(settings.value.withdrawalDeadline) || '',
         '',
         'Merci !'
       ].filter(Boolean).join('\n'),
-      attachments: settings.paymentRibUrl ? ['RIB.pdf'] : []
+      attachments: settings.value.paymentRibUrl ? ['RIB.pdf'] : []
     }
   })
 

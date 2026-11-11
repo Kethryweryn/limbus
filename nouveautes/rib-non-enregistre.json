@@ -1,0 +1,5 @@
+{
+  "type": "corrige",
+  "titre": "Un RIB non enregistré ne s'affiche plus",
+  "texte": "Dans les réglages des paiements d'une session, un RIB dont l'enregistrement échoue n'apparaît plus comme posé : le message d'erreur s'affiche et l'ancien RIB reste en place."
+}
