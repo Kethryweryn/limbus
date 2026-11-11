@@ -377,3 +377,32 @@ test('email obligatoire : une fiche sans email est signalée et filtrée, et ne 
     await prisma.$disconnect()
   }
 })
+
+// US-239 (SPEC-022 R7) : corriger l'adresse d'une fiche commune ne vaut que pour l'équipe qui la corrige
+test('corriger l’adresse : seuls mes jeux passent à la fiche de la nouvelle adresse, l’autre équipe garde la sienne (US-239)', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const game = await orgaGame(prisma, 'Jeu de l’adresse corrigée')
+    const foreign = await otherTeamGame(prisma, 'Jeu de l’autre équipe à l’adresse gardée')
+    const person = await gamePerson(prisma, game.id, 'Personne à l’adresse corrigée', '')
+    await prisma.participantGame.create({ data: { participantId: person.id, gameId: foreign.id, name: 'Nom chez l’autre équipe', notes: 'Note de l’autre équipe' } })
+    await signIn(page, prisma, E2E_USERS.orga)
+    await openSheet(page, person)
+
+    const corrected = `corrigee-${slugOf(person.name)}@example.test`
+    await page.getByRole('button', { name: 'Modifier' }).click()
+    await page.getByLabel('Email', { exact: true }).fill(corrected)
+    await page.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect.poll(async () => (await prisma.participant.findFirst({ where: { email: corrected }, select: { id: true } }))?.id).toBeTruthy()
+    const target = await prisma.participant.findFirstOrThrow({ where: { email: corrected }, select: { id: true, slug: true } })
+    await expect(page).toHaveURL(new RegExp(`/participants/${target.slug}$`))
+    await expect(page.getByText(corrected)).toBeVisible()
+    await expect(page.getByText('Nom chez l’autre équipe')).toHaveCount(0)
+    // La fiche d'origine reste à l'autre équipe, avec son adresse
+    const original = await prisma.participant.findUniqueOrThrow({ where: { id: person.id }, select: { email: true, gameLinks: { select: { gameId: true } } } })
+    expect(original).toEqual({ email: person.email, gameLinks: [{ gameId: foreign.id }] })
+    expect(target.id).not.toBe(person.id)
+  } finally {
+    await prisma.$disconnect()
+  }
+})

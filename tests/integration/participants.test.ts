@@ -158,7 +158,6 @@ describe('notes propres à chaque jeu (US-069)', () => {
 
 describe('une seule fiche par adresse (US-185, US-239)', () => {
   type Created = { id: string, joinedExisting: boolean, name: string, games: Array<{ id: string }>, gameNotes: Record<string, string | null> }
-  type Refusal = { message?: string, data?: { existingParticipant?: { slug: string, name: string } } }
   const { bob, carol } = world.users
 
   async function aliceFiche() {
@@ -237,24 +236,7 @@ describe('une seule fiche par adresse (US-185, US-239)', () => {
     expect(isParticipantSlug(created.slug)).toBe(true)
   })
 
-  it('refuse de donner à une fiche l’adresse d’une autre, sans la nommer si elle est hors de vue', async () => {
-    const { key, other, existing } = await aliceFiche()
-    const second = await prisma.participant.create({ data: { name: `Second ${key}`, slug: `second-${key}`, email: `second-${key}@example.test`, gameLinks: { create: { gameId: other.id } } } })
-    const visible = await api(alice, 'PUT', `/api/participants/${second.id}`, { name: second.name, email: existing.email, gameIds: [other.id] })
-    expect(visible.status).toBe(409)
-    expect((visible.body as Refusal).data?.existingParticipant).toEqual({ slug: existing.slug, name: existing.name })
-
-    // Carol ne voit que le second jeu : le refus ne nomme pas la fiche du premier
-    await prisma.gameShare.create({ data: { gameId: other.id, userId: carol.id } })
-    const hidden = await api(carol, 'PUT', `/api/participants/${second.id}`, { name: second.name, email: existing.email, gameIds: [other.id] })
-    expect(hidden.status).toBe(409)
-    expect((hidden.body as Refusal).data).toBeUndefined()
-    expect(JSON.stringify(hidden.body)).not.toContain(existing.name)
-
-    // Doublon d'avant la règle : renommer sans toucher à l'adresse reste possible
-    const legacy = await prisma.participant.create({ data: { name: `Ancien ${key}`, slug: `ancien-${key}`, email: existing.email, gameLinks: { create: { gameId: other.id } } } })
-    expect((await api(alice, 'PUT', `/api/participants/${legacy.id}`, { name: `Ancien renommé ${key}`, email: existing.email, gameIds: [other.id] })).status).toBe(200)
-  })
+  // Donner à une fiche l'adresse d'une autre la rejoint (SPEC-022 R7) : tests/integration/participantMove.test.ts
 })
 
 // Nom et téléphone tenus par jeu (SPEC-022 R6, ADR-0086, US-237) : écrits sur chaque lien, en plus de la fiche

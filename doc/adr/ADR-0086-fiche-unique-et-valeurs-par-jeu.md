@@ -28,6 +28,7 @@ liens: [SPEC-022, ADR-0040, ADR-0041, ADR-0042, ADR-0024, ADR-0075]
    - Le refus de photo est gardé si l'une le portait, et le compte de l'adresse est rattaché s'il existe.
    - Les adresses de page des fiches absorbées ne répondent plus.
    - La migration ajoute ensuite l'index unique.
+5. **Une fonction SQL commune** : `limbus_move_participant(from, to, jeux)` fait le déplacement de la décision 3 et la réunion de la décision 4, avec les mêmes règles de doublon. L'application l'appelle à la correction d'adresse, la migration de fusion pour chaque doublon. Un test d'intégration vérifie qu'elle porte chaque table qui désigne une fiche.
 
 ## Conséquences
 

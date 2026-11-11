@@ -18,7 +18,7 @@ Lot 1 de [SPEC-022](../../specs/SPEC-022-compte-pour-chaque-participant.md) : un
 |---|---|---|
 | [US-237](US-237-valeurs-par-jeu.md) | Le nom et le téléphone saisis par jeu | terminée |
 | [US-238](US-238-email-obligatoire.md) | L'email obligatoire sur une fiche | terminée |
-| [US-239](US-239-une-fiche-par-adresse.md) | Une fiche par adresse dans tout Limbus | en cours |
+| [US-239](US-239-une-fiche-par-adresse.md) | Une fiche par adresse dans tout Limbus | terminée |
 | [US-240](US-240-fusion-des-fiches.md) | Fusionner les fiches d'une même adresse | à faire |
 | [US-241](US-241-effacement-et-export-par-equipe.md) | Effacer et exporter ce qui concerne son équipe | à faire |
 | [US-242](US-242-retirer-nom-et-telephone-de-la-fiche.md) | Retirer le nom et le téléphone de la fiche | à faire |
