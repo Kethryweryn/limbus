@@ -8,6 +8,7 @@ import { eraseParticipant } from '~/server/utils/participantPrivacy'
 import { assertParticipantUnmodifiedSince } from '~/server/utils/concurrency'
 import { accountIdForEmail, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 import { participantSlug } from '~/utils/participantSlug'
+import { lockAddress } from '~/server/utils/participantAddress'
 
 // Écritures d'une fiche participant, communes aux routes de l'interface et aux outils des assistants d'IA (US-129,
 // SPEC-014 R12) : mêmes contrôles d'accès aux jeux, de version et de rattachement au compte de l'adresse
@@ -17,10 +18,6 @@ type Reader<S extends z.ZodType> = () => Promise<z.output<S>>
 const sameAddress = (left: string | null | undefined, right: string | null | undefined) =>
   (left?.trim().toLowerCase() || null) === (right?.trim().toLowerCase() || null)
 
-// Deux écritures de la même adresse passent l'une après l'autre : la seconde trouve la fiche de la première
-async function lockAddress(tx: PrismaTx, address: string) {
-  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`participant-email:${address.toLowerCase()}`}))`
-}
 
 /**
  * Fiche qui porte déjà cette adresse, dans tout Limbus (SPEC-022 R4, ADR-0086), même suivie par d'autres équipes : la

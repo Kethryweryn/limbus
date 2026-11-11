@@ -13,6 +13,7 @@ import { REGISTRATION_CANCELLABLE_STATUSES, REGISTRATION_PERIOD_STATES, REGISTRA
 import { ANNOUNCEMENT_REMOVED, AVAILABILITY_ANSWER_PARAMS, canConfirmPlace } from '~/utils/registrations'
 import { withGameValues, withGameValuesIn } from '~/server/utils/participantValues'
 import { participantSlug } from '~/utils/participantSlug'
+import { lockAddress } from '~/server/utils/participantAddress'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -309,19 +310,7 @@ export async function inviteToRegistrationPeriod(params: {
     })
   }
 
-  // Deux fiches avec la même adresse recevraient deux liens dans la même boîte
-  const byEmail = new Map<string, string[]>()
-  for (const participant of participants) {
-    const email = participant.email!.trim().toLowerCase()
-    byEmail.set(email, [...(byEmail.get(email) || []), participant.name])
-  }
-  const sharedEmails = [...byEmail.values()].filter((names) => names.length > 1)
-  if (sharedEmails.length) {
-    throw createError({
-      statusCode: 400,
-      message: `Ces fiches ont la même adresse email : ${sharedEmails.map((names) => names.join(' et ')).join(' ; ')}. Invitez une seule d’entre elles.`
-    })
-  }
+  // Deux fiches n'ont jamais la même adresse (SPEC-022, US-240) : chaque personne invitée a sa boîte
 
   const matched = params.newParticipant ? await findParticipantByEmail(params.newParticipant.email) : null
   const knownIds = [...new Set([...participants.map((participant) => participant.id), ...(matched ? [matched.id] : [])])]
@@ -360,6 +349,11 @@ export async function inviteToRegistrationPeriod(params: {
         invited.push({ id: matched.id, name: link.name ?? newParticipant.name, email: newParticipant.email })
       }
     } else if (newParticipant) {
+      // Adresse sous verrou (US-240) : une fiche créée entre-temps à cette adresse ferait refuser la création
+      await lockAddress(tx, newParticipant.email)
+      if (await findParticipantByEmail(newParticipant.email, tx)) {
+        throw createError({ statusCode: 409, message: 'Une fiche vient d’être créée à cette adresse : renvoyez l’invitation.' })
+      }
       const created = await tx.participant.create({
         data: {
           name: newParticipant.name,

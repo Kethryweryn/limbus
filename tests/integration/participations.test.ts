@@ -53,8 +53,6 @@ describe('rattachement des fiches (US-070)', () => {
   it('un compte non confirmé ne reçoit pas de fiche ; sa confirmation les rattache', async () => {
     const email = `${key()}@example.test`
     const { participant } = await aliceGameWith(email)
-    // US-192 : une fiche écrite en capitales, sans la mise en minuscules du code, est la même adresse pour la base
-    const shouting = await prisma.participant.create({ data: { name: 'Fiche en capitales', slug: `capitales-${key()}`, email: email.toUpperCase() } })
     expect((await prisma.participant.findUniqueOrThrow({ where: { id: participant.id } })).userId).toBeNull()
 
     const sent = smtp.received.length
@@ -63,7 +61,6 @@ describe('rattachement des fiches (US-070)', () => {
     expect((await api(null, 'POST', '/api/auth/confirm', { token })).status).toBe(200)
     const user = await prisma.user.findUniqueOrThrow({ where: { email } })
     expect((await prisma.participant.findUniqueOrThrow({ where: { id: participant.id } })).userId).toBe(user.id)
-    expect((await prisma.participant.findUniqueOrThrow({ where: { id: shouting.id } })).userId).toBe(user.id)
   })
 })
 
@@ -73,7 +70,8 @@ describe('espace « Je participe » (US-071)', () => {
     const { game, session, participant } = await aliceGameWith(user.email)
     await prisma.participant.update({ where: { id: participant.id }, data: { userId: user.id } })
     // Une autre personne dans la même session
-    const other = await prisma.participant.create({ data: { name: 'Autre personne', slug: `autre-${key()}`, email: 'autre@example.test', gameLinks: { create: { gameId: game.id } } } })
+    const otherKey = key()
+    const other = await prisma.participant.create({ data: { name: 'Autre personne', slug: `autre-${otherKey}`, email: `autre-${otherKey}@example.test`, gameLinks: { create: { gameId: game.id } } } })
     await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: other.id, role: 'participant' } })
 
     const response = await api(user, 'GET', '/api/me/participations')

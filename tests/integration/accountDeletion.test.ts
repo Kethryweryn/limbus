@@ -28,13 +28,13 @@ async function player() {
     data: { email: `${key}@example.test`, name: 'Joueuse Effacée', password: await bcrypt.hash(PASSWORD, 4), phone: '0612345678', dietary: 'Arachides', healthConsentAt: new Date(), profileUpdatedAt: new Date() }
   })
   const teams = []
+  // Une seule fiche par adresse (SPEC-022, US-240) : liée au jeu de chaque équipe
+  const participant = await prisma.participant.create({ data: { name: 'Joueuse Effacée', slug: `fiche-${key}`, email: user.email, userId: user.id } })
   for (const owner of [alice, bob]) {
     const k = `${key}-${owner.id}`.toLowerCase()
     const game = await prisma.game.create({ data: { title: `Jeu ${k}`, slug: `jeu-${k}`, description: '', ownerId: owner.id } })
     const session = await labelled(prisma, await prisma.session.create({ data: { slug: `session-${k}`, gameId: game.id, date: uniqueDate() } }))
-    const participant = await prisma.participant.create({
-      data: { name: 'Joueuse Effacée', slug: `fiche-${k}`, email: user.email, userId: user.id, gameLinks: { create: { gameId: game.id, notes: `Note de ${owner.id}` } } }
-    })
+    await prisma.participantGame.create({ data: { participantId: participant.id, gameId: game.id, name: 'Joueuse Effacée', notes: `Note de ${owner.id}` } })
     await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
     teams.push({ owner, game, session, participant })
   }
@@ -120,7 +120,8 @@ describe('effacer son compte (US-077)', () => {
     const sent = smtp.received.length
     const response = await api(user, 'POST', '/api/account/delete', { password: PASSWORD })
     expect(response.status, JSON.stringify(response.body)).toBe(200)
-    expect(response.body).toMatchObject({ erasedParticipants: 2, teams: 2, teamsNotified: 2 })
+    // Une seule fiche pour la personne, suivie par deux équipes (SPEC-022, US-240) : les deux sont prévenues
+    expect(response.body).toMatchObject({ erasedParticipants: 1, teams: 2, teamsNotified: 2 })
 
     expect(await prisma.user.findUnique({ where: { id: user.id } })).toBeNull()
     expect(await prisma.participant.count({ where: { id: { in: teams.map((team) => team.participant.id) } } })).toBe(0)
