@@ -1,11 +1,11 @@
 ---
 id: SPEC-022
 titre: Un compte pour chaque participant, une seule fiche par personne
-statut: validée
+statut: en cours
 date: 2026-11-11
 origine: ../archive/todo/compte-pour-chaque-participant.md
-epics: []
-adr: []
+epics: [EPIC-056]
+adr: [ADR-0086]
 ---
 
 # SPEC-022 : Un compte pour chaque participant, une seule fiche par personne
@@ -71,7 +71,7 @@ La liste des comptes montre les comptes pré-créés avec la mention « non acti
 ## Données
 
 - Compte : un état « non activé » (pas de mot de passe ni de conditions acceptées). L'adresse est celle de la fiche.
-- Fiche : une par compte, à l'adresse du compte. Le nom et le téléphone de la fiche deviennent des valeurs par équipe (R6). Les notes restent par jeu ([ADR-0040](../adr/ADR-0040-notes-par-jeu.md)), les coordonnées d'inscription restent sur chaque inscription.
+- Fiche : une par compte, à l'adresse du compte. Le nom et le téléphone de la fiche deviennent des valeurs par jeu, sur le lien entre la fiche et chaque jeu ([ADR-0086](../adr/ADR-0086-fiche-unique-et-valeurs-par-jeu.md)) : une modification vaut pour les jeux que voit la personne qui modifie (R6). Les notes restent par jeu ([ADR-0040](../adr/ADR-0040-notes-par-jeu.md)), les coordonnées d'inscription restent sur chaque inscription.
 - Le modèle de données, la fusion (R8) et la recopie champ par champ (R12) font l'objet d'ADR, avec les lots qui les introduisent.
 - Données personnelles : le compte pré-créé est une donnée de plus sur la personne (adresse). Il est couvert par l'export et l'effacement du compte dès l'activation, et par R13 avant. Les valeurs par équipe sont couvertes par l'export et l'effacement de l'équipe (R14, R15).
 
@@ -98,3 +98,4 @@ La liste des comptes montre les comptes pré-créés avec la mention « non acti
 
 - 2026-11-11 : spec rédigée à partir de la [fiche](../archive/todo/compte-pour-chaque-participant.md), avec les choix de l'utilisatrice du 2026-11-09 et du 2026-11-11 : nom par équipe avant l'activation, correction d'adresse pour la seule équipe qui la fait, ligne dans les emails, comptes « non activé » dans l'administration.
 - 2026-11-11 : revue de la PR #226 : R2 et R9, une invitation à co-organiser active le compte ; R4, le message ne révèle pas une autre équipe ; R7, la correction d'adresse vaut aussi quand l'ancienne adresse a un compte activé ; R8, la fiche fusionnée garde l'adresse de page de la plus ancienne.
+- 2026-11-11 : lot 1 découpé ([EPIC-056](../epics/EPIC-056-une-fiche-par-personne/README.md), US-237 à US-242) ; nom et téléphone rangés par jeu, choix de l'utilisatrice (ADR-0086).
