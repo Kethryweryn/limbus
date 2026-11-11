@@ -20,6 +20,8 @@ export const registrationPeriodInclude = {
 // (détail : GET /api/registrations/:id)
 export const registrationListSelect = {
   id: true,
+  // Jeu de l'inscription : le nom de la personne est celui qu'en tient l'équipe de ce jeu (ADR-0086)
+  gameId: true,
   status: true,
   source: true,
   email: true,

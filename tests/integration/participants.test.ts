@@ -276,3 +276,47 @@ describe('nom et téléphone par jeu (US-237)', () => {
     expect(await links((response.body as { id: string }).id)).toEqual([{ gameId: game.id, name: `Compte ${key}`, phone: '0688888888' }])
   })
 })
+
+// Lectures par jeu (US-237, étape 2) : une même fiche suivie par Alice et Bob, nommée différemment dans chaque jeu
+describe('chaque équipe lit le nom et le téléphone de son jeu (US-237)', () => {
+  const { bob } = world.users
+
+  async function sharedFiche() {
+    const key = `lecture-${++counter}`
+    const [aliceGame, bobGame] = await Promise.all([alice, bob].map((owner, index) =>
+      prisma.game.create({ data: { title: `Jeu ${index} ${key}`, slug: `jeu-${index}-${key}`, description: '', ownerId: owner.id } })
+    ))
+    const participant = await prisma.participant.create({
+      data: {
+        name: `Fiche ${key}`,
+        slug: `fiche-${key}`,
+        email: `fiche-${key}@example.test`,
+        gameLinks: { create: [{ gameId: aliceGame!.id, name: `Nom d’Alice ${key}`, phone: '0611111111' }, { gameId: bobGame!.id, name: `Nom de Bob ${key}`, phone: '0622222222' }] }
+      }
+    })
+    const sessions = await Promise.all([aliceGame!, bobGame!].map(async (game) => {
+      const session = await prisma.session.create({ data: { slug: `session-${game.slug}`, gameId: game.id } })
+      await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
+      return session
+    }))
+    return { key, aliceGame: aliceGame!, bobGame: bobGame!, participant, sessions }
+  }
+
+  it('dans la liste, la fiche, les sessions et les paiements', async () => {
+    const { key, participant, sessions } = await sharedFiche()
+    for (const [user, name, phone, session] of [[alice, `Nom d’Alice ${key}`, '0611111111', sessions[0]!], [bob, `Nom de Bob ${key}`, '0622222222', sessions[1]!]] as const) {
+      const list = (await api(user, 'GET', '/api/participants')).body as Array<{ id: string, name: string, phone: string | null }>
+      expect(list.find((row) => row.id === participant.id)).toMatchObject({ name, phone })
+      const fiche = (await api(user, 'GET', `/api/participants/${participant.id}`)).body as { name: string, phone: string | null }
+      expect(fiche).toMatchObject({ name, phone })
+      const read = (await api(user, 'GET', `/api/sessions/${session.id}`)).body as { participants: Array<{ participant: { name: string } }> }
+      expect(read.participants.map((row) => row.participant.name)).toEqual([name])
+      const sessionsList = (await api(user, 'GET', '/api/sessions')).body as Array<{ id: string, participants: Array<{ participant: { name: string } }> }>
+      expect(sessionsList.find((row) => row.id === session.id)!.participants[0]!.participant.name).toBe(name)
+      const payments = await api(user, 'GET', `/api/sessions/${session.id}/payments`)
+      expect(JSON.stringify(payments.body)).toContain(name)
+      // Rien de l'autre équipe
+      expect(JSON.stringify([list, fiche, read, payments.body])).not.toContain(user === alice ? 'Nom de Bob' : 'Nom d’Alice')
+    }
+  })
+})

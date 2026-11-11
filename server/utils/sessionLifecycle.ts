@@ -4,6 +4,7 @@ import { openEmailTransport, sendEmail } from '~/server/utils/email'
 import { labelSession, refreshSessionSlugs } from '~/server/utils/sessionLabels'
 import { assertSessionLocation } from '~/server/utils/sessionAssignments'
 import { REGISTRATION_SEAT_STATUSES, REGISTRATION_SESSION_STATUSES, SESSION_STATUSES, type SessionStatus } from '~/utils/domain'
+import { gameIdOfSession, withGameValues } from '~/server/utils/participantValues'
 
 // Seule une session prévue ou annulée se reporte (US-022) ; une session reportée l'est déjà
 export const POSTPONABLE_SESSION_STATUSES: SessionStatus[] = [SESSION_STATUSES.scheduled, SESSION_STATUSES.cancelled]
@@ -124,10 +125,11 @@ async function assertCancelled(sessionId: string) {
  */
 export async function sendCancellationEmail(sessionId: string, message: { subject: string, text: string }) {
   await assertCancelled(sessionId)
-  const members = await prisma.sessionParticipant.findMany({
+  // Noms tenus par le jeu de la session (ADR-0086)
+  const members = await withGameValues(await prisma.sessionParticipant.findMany({
     where: { sessionId },
     select: { participant: { select: { id: true, name: true, email: true } } }
-  })
+  }), await gameIdOfSession(sessionId))
   const people = [...new Map(members.map((member) => [member.participant.id, member.participant])).values()]
   const recipients = people.filter((person) => person.email)
   const withoutEmail = people.filter((person) => !person.email).map((person) => person.name)

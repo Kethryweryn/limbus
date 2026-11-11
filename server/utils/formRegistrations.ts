@@ -17,6 +17,7 @@ import { offeredSessions } from '~/server/utils/registrationPeriods'
 import { REGISTRATION_PERIOD_STATES, REGISTRATION_SOURCES, REGISTRATION_STATUSES } from '~/utils/domain'
 import { splitParticipantName } from '~/utils/registrations'
 import { youtubeVideoId } from '~/utils/urls'
+import { namesIn } from '~/server/utils/participantValues'
 
 // Formulaire public du vivier (US-084, US-085, ADR-0046)
 
@@ -234,19 +235,21 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
     })
     await replaceAffinities(tx, registration.id, affinities)
     for (const sessionId of availability) await answerAvailability(tx, registration, sessionId, true, now)
-    return { registrationId: registration.id, participantName: participant.name }
+    return { registrationId: registration.id, participantId: participant.id }
   })
 
   // Après la réponse : la personne n'attend pas le serveur SMTP, et un échec ne change rien à son inscription
   if (result && period.notifyTeam) {
+    // Nom tenu par l'équipe du jeu (ADR-0086)
+    const participantName = (await namesIn(period.gameId, [result.participantId])).get(result.participantId)
     void notifyGameTeam(
       period.gameId,
       [
-        `${result.participantName} a répondu au questionnaire de « ${period.game.title} ».`,
+        `${participantName} a répondu au questionnaire de « ${period.game.title} ».`,
         '',
         `Cette personne est dans le vivier : retrouvez-la dans les inscriptions du jeu, ${absoluteAppUrl(`/registrations/${period.game.slug}?onglet=vivier`)}.`
       ].join('\n'),
-      `Nouvelle inscription : ${result.participantName} (${period.game.title})`
+      `Nouvelle inscription : ${participantName} (${period.game.title})`
     ).catch((error) => console.error('[inscription] équipe non prévenue', { periodId: period.id, error: (error as Error)?.message }))
   }
   return result

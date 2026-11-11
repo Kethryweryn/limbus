@@ -5,6 +5,7 @@ import { castingAssistant, type CastingCharacter, type CastingPlayer } from '~/u
 import { manualRetainRoom, replayerParticipantIds } from '~/server/utils/registrationSelection'
 import { CHARACTER_TYPES, REGISTRATION_REPLAY_POLICIES, REGISTRATION_SESSION_STATUSES, REGISTRATION_STATUSES, SESSION_ROLES } from '~/utils/domain'
 import { unlinked } from '~/server/utils/contentLinks'
+import { byName, withGameValuesIn } from '~/server/utils/participantValues'
 
 // Assistant de casting d'une session (US-101, US-102, ADR-0051) : calculé sur le cast en cours d'édition, rien n'est écrit
 
@@ -88,7 +89,9 @@ export async function sessionCastingAssistant(session: { id: string, gameId: str
     ...pjLines.map(holderOf).filter((id): id is string => Boolean(id))
   ])]
   const [people, registrations] = await Promise.all([
-    prisma.participant.findMany({ where: { id: { in: candidateIds }, gameLinks: { some: { gameId } } }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+    // Nom tenu par l'équipe du jeu, trié à l'affichage (ADR-0086)
+    prisma.participant.findMany({ where: { id: { in: candidateIds }, gameLinks: { some: { gameId } } }, select: { id: true, name: true } })
+      .then((rows) => withGameValuesIn(rows, gameId)).then((rows) => rows.sort(byName)),
     prisma.registration.findMany({
       where: { participantId: { in: candidateIds }, period: { gameId } },
       select: {

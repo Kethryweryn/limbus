@@ -16,17 +16,18 @@ export function registerParticipantTools({ event, server }: ToolContext) {
     annotations: READ_ONLY
   }, ({ jeuId, recherche, page }) => toolResult(async () => {
     await requireGameAccess(event, jeuId)
-    const where = { gameId: jeuId, ...(recherche ? { participant: { name: { contains: recherche, mode: 'insensitive' as const } } } : {}) }
+    // Nom tenu par l'équipe du jeu (ADR-0086) : recherche et tri sur le lien
+    const where = { gameId: jeuId, ...(recherche ? { name: { contains: recherche, mode: 'insensitive' as const } } : {}) }
     const [links, total] = await Promise.all([
       prisma.participantGame.findMany({
         where,
-        orderBy: { participant: { name: 'asc' } },
+        orderBy: { name: 'asc' },
         skip: skipOf(page),
         take: PAGE_SIZE,
-        select: { notes: true, participant: { select: { id: true, name: true, updatedAt: true } } }
+        select: { notes: true, name: true, participant: { select: { id: true, name: true, updatedAt: true } } }
       }),
       prisma.participantGame.count({ where })
     ])
-    return pageOf(links.map((link) => ({ id: link.participant.id, name: link.participant.name, notes: link.notes, updatedAt: link.participant.updatedAt })), page, total)
+    return pageOf(links.map((link) => ({ id: link.participant.id, name: link.name ?? link.participant.name, notes: link.notes, updatedAt: link.participant.updatedAt })), page, total)
   }))
 }

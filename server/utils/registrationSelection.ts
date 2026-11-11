@@ -20,6 +20,7 @@ import {
 import type { REGISTRATION_SELECTION_ACTIONS, RegistrationSessionStatus } from '~/utils/domain'
 import { isOpenableSession } from '~/utils/registrationPeriods'
 import { ANNOUNCEMENT_REMOVED, canConfirmPlace, pendingAnnouncement } from '~/utils/registrations'
+import { withGameValues } from '~/server/utils/participantValues'
 
 export type SelectionAction = typeof REGISTRATION_SELECTION_ACTIONS[number]
 const selectionPeriodSelect = {
@@ -393,10 +394,12 @@ export async function announceCast(periodId: string, sessionId: string, includeW
     select: {
       id: true,
       email: true,
-      participant: { select: { name: true } },
+      // Jeu et fiche : le nom est celui qu'en tient l'équipe du jeu (ADR-0086)
+      gameId: true,
+      participant: { select: { id: true, name: true } },
       sessionLines: { where: { sessionId }, select: announcementLineSelect }
     }
-  })
+  }).then(withGameValues)
   const lines = registrations.flatMap(({ sessionLines, ...registration }) => sessionLines.map((line) => ({ registration, line }))).filter(({ line }) => pendingAnnouncement(line))
 
   const failures: Array<{ participantName: string, message: string | null }> = []
@@ -442,10 +445,12 @@ async function requireProposedLine(registrationId: string, sessionId: string) {
       id: true,
       email: true,
       periodId: true,
-      participant: { select: { name: true } },
+      // Jeu et fiche : le nom est celui qu'en tient l'équipe du jeu (ADR-0086)
+      gameId: true,
+      participant: { select: { id: true, name: true } },
       sessionLines: { where: { sessionId }, select: announcementLineSelect }
     }
-  })
+  }).then(withGameValues)
   const line = registration.sessionLines[0]
   if (!link?.castAnnouncedAt || !line || !pendingAnnouncement(line)) {
     throw createError({ statusCode: 409, message: 'Il n’y a plus d’email à proposer pour cette personne : rechargez la page.' })

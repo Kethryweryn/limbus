@@ -13,6 +13,7 @@ import { currentTrombinoscopeFingerprints, getSessionTrombinoscope, isTrombinosc
 import { copyData, expiredSessionIds, purgeExpiredCopies, textCopy, trombinoscopeCopy, type DeliveryCopy } from '~/server/utils/deliveryCopies'
 import { sheetRelationsInclude, withSheetRelationLines } from '~/server/utils/characterRelations'
 import { unlinked } from '~/server/utils/contentLinks'
+import { withGameValues } from '~/server/utils/participantValues'
 
 export const documentInclude = {
   game: true,
@@ -91,6 +92,8 @@ export async function getSessionDocumentDashboard(sessionId: string) {
     }),
     currentTrombinoscopeFingerprints(session.id, session)
   ])
+  // Nom et téléphone tenus par le jeu de la session (ADR-0086), pour l'écran comme pour les emails
+  await withGameValues({ session, deliveries, trombinoscopes }, session.gameId)
 
   const castByCharacterId = new Map(
     session.assignments

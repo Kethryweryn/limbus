@@ -2,6 +2,7 @@ import { prisma, type PrismaTx } from '~/server/utils/prisma'
 import { REGISTRATION_SEAT_STATUSES } from '~/utils/domain'
 import { ALERT_AFFINITY_KINDS, PERSON_AFFINITY_KINDS, affinityLineKey, isPersonAffinityKind, suggestPeople } from '~/utils/affinityMatching'
 import type { AffinityAnswers } from '~/server/utils/registrationForms'
+import { byName, withGameValues, withGameValuesIn } from '~/server/utils/participantValues'
 
 /**
  * Remplace les affinités d'une inscription par ses nouvelles réponses (ADR-0045). Une ligne de même sorte et de même
@@ -44,10 +45,13 @@ export async function affinitiesForTeam(registration: { id: string, participantI
     }),
     prisma.participant.findMany({
       where: { gameLinks: { some: { gameId } }, id: { not: registration.participantId } },
-      select: { id: true, name: true },
-      orderBy: { name: 'asc' }
+      select: { id: true, name: true }
     })
   ])
+  // Noms tenus par l'équipe du jeu, triés à l'affichage (ADR-0086)
+  await withGameValues(rows, gameId)
+  await withGameValuesIn(people, gameId)
+  people.sort(byName)
   const lines = rows.map(({ targetParticipant, ...row }) => {
     const linkable = isPersonAffinityKind(row.kind)
     return {
@@ -93,10 +97,10 @@ export async function linkAffinity(affinity: LinkableAffinity, link: { targetPar
     data: { targetParticipantId, targetUnknown: Boolean(link.unknown) }
   })
   if (!count) throw createError({ statusCode: 409, message: 'Les réponses de cette personne ont changé entre-temps : rechargez l’inscription.' })
-  return await prisma.registrationAffinity.findUniqueOrThrow({
+  return await withGameValues(await prisma.registrationAffinity.findUniqueOrThrow({
     where: { id: affinity.id },
     select: { id: true, targetUnknown: true, targetParticipant: { select: { id: true, name: true } } }
-  })
+  }), affinity.registration.period.gameId)
 }
 
 /**
@@ -106,6 +110,7 @@ export async function linkAffinity(affinity: LinkableAffinity, link: { targetPar
  * - pour chaque inscription de la période, ses personnes souhaitées rattachées et les sessions où elles sont présentes.
  */
 export async function affinityOverview(periodId: string, sessionIds: string[]) {
+  const { gameId } = await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: periodId }, select: { gameId: true } })
   const [placed, cast, periodRegistrations] = await Promise.all([
     prisma.registrationSession.findMany({
       where: { sessionId: { in: sessionIds }, status: { in: REGISTRATION_SEAT_STATUSES } },
@@ -141,6 +146,8 @@ export async function affinityOverview(periodId: string, sessionIds: string[]) {
     })
   ])
 
+  // Noms tenus par l'équipe du jeu (ADR-0086)
+  await withGameValues({ placed, cast, periodRegistrations }, gameId)
   // Personnes présentes par session, avec leur nom
   const present = new Map<string, Map<string, string>>(sessionIds.map((id) => [id, new Map()]))
   for (const row of placed) present.get(row.sessionId)?.set(row.registration.participant.id, row.registration.participant.name)

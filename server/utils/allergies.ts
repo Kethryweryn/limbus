@@ -4,6 +4,7 @@ import { prisma } from '~/server/utils/prisma'
 import { openEmailTransport } from '~/server/utils/email'
 import { generatedPdfFileName, renderTextPdf } from '~/server/utils/generatedPdfs'
 import { REGISTRATION_SESSION_STATUSES, SESSION_ROLES } from '~/utils/domain'
+import { withGameValues } from '~/server/utils/participantValues'
 
 type AllergySheetSource = {
   // Libellé de la session, calculé (SPEC-021)
@@ -69,16 +70,19 @@ export async function getAllergySheet(sessionId: string) {
     where: { id: sessionId },
     select: {
       id: true,
+      gameId: true,
       date: true,
       game: { select: { title: true } },
       registrationLines: {
         where: { status: REGISTRATION_SESSION_STATUSES.confirmed },
         select: { registration: { select: { dietary: true, participant: { select: { id: true, name: true } } } } }
       },
-      participants: { select: { participantId: true, role: true, participant: { select: { name: true, user: { select: { dietary: true, healthConsentAt: true } } } } } },
-      assignments: { select: { participantId: true, participant: { select: { name: true, user: { select: { dietary: true, healthConsentAt: true } } } } } }
+      participants: { select: { participantId: true, role: true, participant: { select: { id: true, name: true, user: { select: { dietary: true, healthConsentAt: true } } } } } },
+      assignments: { select: { participantId: true, participant: { select: { id: true, name: true, user: { select: { dietary: true, healthConsentAt: true } } } } } }
     }
   })
+  // Noms tenus par l'équipe du jeu (ADR-0086)
+  await withGameValues(session, session.gameId)
   // Allergies déclarées dans le compte, avec consentement, des personnes du cast (US-074)
   const accountDietaries = [...session.participants, ...session.assignments]
     .filter((entry) => entry.participantId && entry.participant?.user?.dietary && entry.participant.user.healthConsentAt)
