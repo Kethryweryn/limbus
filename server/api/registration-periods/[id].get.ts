@@ -13,5 +13,5 @@ export default defineEventHandler(async (event) => {
     where: { id },
     include: registrationPeriodInclude
   })
-  return exposeRegistrationPeriod(period)
+  return await exposeRegistrationPeriod(period)
 })

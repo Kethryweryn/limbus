@@ -23,7 +23,7 @@ afterAll(async () => {
 async function sessionWithTeam(status: SessionStatus) {
   const key = `annulation-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
-  const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, status } })
+  const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id, status } })
   const person = (name: string, email: boolean) => prisma.participant.create({
     data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: email ? `${name.toLowerCase()}-${key}@example.test` : null, gameLinks: { create: { gameId: game.id } } }
   })

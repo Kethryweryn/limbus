@@ -5,7 +5,7 @@
     <template #header>
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-          <h3 class="font-semibold">{{ session.name }}</h3>
+          <h3 class="font-semibold">{{ session.label }}</h3>
           <p class="text-sm text-gray-500">
             {{ session.game?.title || 'Jeu inconnu' }}
             <span v-if="session.date"> · {{ formatSessionDate(session.date) }}</span>

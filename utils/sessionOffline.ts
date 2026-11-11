@@ -60,7 +60,7 @@ export function projectOfflineSession<S extends SessionLike>(session: S, body: S
   return {
     ...session,
     // Le libellé suit une date changée (SPEC-021) ; ce qui le distingue d'une voisine du même jour attend le serveur
-    ...(body.date !== undefined && dateChanged(session.date, body.date) && { name: sessionDayLabel(body.date) }),
+    ...(body.date !== undefined && dateChanged(session.date, body.date) && { label: sessionDayLabel(body.date) }),
     ...(body.status !== undefined && { status: body.status }),
     ...(body.published !== undefined && { published: Boolean(body.published) }),
     ...(body.date !== undefined && { date: body.date ? new Date(body.date).toISOString() : null }),

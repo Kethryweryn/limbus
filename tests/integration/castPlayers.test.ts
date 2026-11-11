@@ -1,4 +1,5 @@
 // US-176 (R20, R31 de SPEC-018) : un joueur entre dans une session par le vivier ; l'équipe s'ajoute à la main
+import { labelled } from '../sessionLabel'
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf, errorMessage } from './api'
@@ -30,8 +31,8 @@ async function outsider(pool: Pool, name: string) {
 }
 
 async function saveCast(pool: Pool, sessionId: string, assignments: Line[], participants: Member[] = []) {
-  const session = await prisma.session.findUniqueOrThrow({ where: { id: sessionId } })
-  return await api(alice, 'PUT', `/api/sessions/${sessionId}`, { name: session.name, gameId: pool.game.id, participants, assignments }, { headers: { 'if-unmodified-since': session.updatedAt.toISOString() } })
+  const session = await labelled(prisma, await prisma.session.findUniqueOrThrow({ where: { id: sessionId } }))
+  return await api(alice, 'PUT', `/api/sessions/${sessionId}`, { name: session.label, gameId: pool.game.id, participants, assignments }, { headers: { 'if-unmodified-since': session.updatedAt.toISOString() } })
 }
 
 const rows = (sessionId: string) => prisma.sessionParticipant.findMany({ where: { sessionId }, select: { participantId: true, role: true } })
@@ -201,7 +202,7 @@ describe('choisir une personne du vivier dans le cast (R20)', () => {
     // En cuisine, elle peut encore être choisie comme joueuse
     const cook = await addPerson(prisma, pool, 'Fanny')
     await prisma.sessionParticipant.create({ data: { sessionId: pool.session.id, participantId: cook.participantId, role: 'kitchen' } })
-    const past = await prisma.session.create({ data: { name: `Passée ${pool.key}`, slug: `passee-${pool.key}`, gameId: pool.game.id, status: 'completed' } })
+    const past = await labelled(prisma, await prisma.session.create({ data: { slug: `passee-${pool.key}`, gameId: pool.game.id, status: 'completed' } }))
     await prisma.sessionParticipant.create({ data: { sessionId: past.id, participantId: interested.participantId, role: 'participant' } })
 
     const read = await api(alice, 'GET', `/api/sessions/${pool.session.id}`)
@@ -224,7 +225,7 @@ describe('choisir une personne du vivier dans le cast (R20)', () => {
     expect((await read(pool.session.id)).poolRegistrations).toEqual([])
 
     const bare = await prisma.game.create({ data: { title: `Sans vivier ${pool.key}`, slug: `sans-vivier-${pool.key}`, description: '', ownerId: alice.id } })
-    const lone = await prisma.session.create({ data: { name: `Seule ${pool.key}`, slug: `seule-${pool.key}`, gameId: bare.id } })
+    const lone = await labelled(prisma, await prisma.session.create({ data: { slug: `seule-${pool.key}`, gameId: bare.id } }))
     expect(await read(lone.id)).toMatchObject({ poolState: null, poolRegistrations: [] })
   })
 
@@ -260,7 +261,7 @@ describe('choisir une personne du vivier dans le cast (R20)', () => {
   it('l’assistant ne propose pas une rejoueuse exclue (R24), et n’alerte que sur les personnes dans la session (R25)', async () => {
     const pool = await castPool({ replayPolicy: 'excluded', seats: 1 })
     const replayer = await addPerson(prisma, pool, 'Rejoueuse', [pool.session.id])
-    const past = await prisma.session.create({ data: { name: `Passée ${pool.key}`, slug: `passee-${pool.key}`, gameId: pool.game.id, status: 'completed' } })
+    const past = await labelled(prisma, await prisma.session.create({ data: { slug: `passee-${pool.key}`, gameId: pool.game.id, status: 'completed' } }))
     await prisma.sessionParticipant.create({ data: { sessionId: past.id, participantId: replayer.participantId, role: 'participant' } })
     const placed = await addPerson(prisma, pool, 'Anna', [pool.session.id])
     const waiting = await addPerson(prisma, pool, 'Bea', [pool.session.id])

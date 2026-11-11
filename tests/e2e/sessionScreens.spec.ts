@@ -2,14 +2,14 @@
 import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { cardByTitle, choose, gamePerson, orgaGame, orgaSession as ownSession, signIn, slugOf, test, uniqueDate, uniqueName } from './helpers'
+import { cardByTitle, choose, gamePerson, labelled, orgaGame, orgaSession as ownSession, signIn, slugOf, test, uniqueDate, uniqueName } from './helpers'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-async function openSession(page: Page, session: { slug: string, name: string }, tab?: string) {
+async function openSession(page: Page, session: { slug: string, label: string }, tab?: string) {
   await page.goto(`/sessions/${session.slug}${tab ? `?tab=${tab}` : ''}`)
   await page.waitForLoadState('networkidle')
-  await expect(page.getByRole('heading', { level: 1, name: session.name })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: session.label })).toBeVisible()
 }
 
 async function openSessions(page: Page, gameTitle: string) {
@@ -37,9 +37,9 @@ test('liste : sessions à venir par date, passées et annulées à part, périod
     // Par défaut, les sessions à venir, de la plus proche à la plus lointaine
     await choose(page, page.getByRole('combobox').filter({ hasText: /^(Futur|Passé|Tout)$/ }), 'Tout')
     const future = section(page, 'Sessions à venir')
-    await expect(future.getByRole('heading', { level: 3 })).toHaveText([sooner.name, later.name])
+    await expect(future.getByRole('heading', { level: 3 })).toHaveText([sooner.label, later.label])
     // Annulée, même à venir, elle est rangée avec les passées (US-020), de la plus récente à la plus ancienne
-    await expect(section(page, 'Sessions passées').getByRole('heading', { level: 3 })).toHaveText([cancelled.name, past.name])
+    await expect(section(page, 'Sessions passées').getByRole('heading', { level: 3 })).toHaveText([cancelled.label, past.label])
 
     await choose(page, page.getByRole('combobox').filter({ hasText: 'Tout' }), 'Passé')
     await expect(section(page, 'Sessions à venir')).toHaveCount(0)
@@ -47,8 +47,8 @@ test('liste : sessions à venir par date, passées et annulées à part, périod
 
     // Recherche par le nom
     await choose(page, page.getByRole('combobox').filter({ hasText: 'Passé' }), 'Tout')
-    await page.getByPlaceholder('Rechercher une session...').fill(sooner.name)
-    await expect(page.getByRole('heading', { level: 3 })).toHaveText([sooner.name])
+    await page.getByPlaceholder('Rechercher une session...').fill(sooner.label)
+    await expect(page.getByRole('heading', { level: 3 })).toHaveText([sooner.label])
 
     // Pages de 5 sessions par partie
     await page.getByPlaceholder('Rechercher une session...').fill('')
@@ -59,7 +59,7 @@ test('liste : sessions à venir par date, passées et annulées à part, périod
     await expect(section(page, 'Sessions à venir').getByText('Page 1 / 2')).toBeVisible()
     await section(page, 'Sessions à venir').getByRole('button', { name: 'Suivant →' }).click()
     await expect(section(page, 'Sessions à venir').getByText('Page 2 / 2')).toBeVisible()
-    await expect(section(page, 'Sessions à venir').getByRole('heading', { level: 3 })).toHaveText([later.name])
+    await expect(section(page, 'Sessions à venir').getByRole('heading', { level: 3 })).toHaveText([later.label])
   } finally {
     await prisma.$disconnect()
   }
@@ -78,14 +78,14 @@ test('carte : un clic ouvre la session, « Modifier » ouvre son formulaire, et 
     await openSessions(page, game.title)
 
     // Un raccourci d'onglet ouvre la session sur cet onglet, et non sur celui de la carte
-    await cardByTitle(page, free.name).getByRole('link', { name: 'Paiements' }).click()
+    await cardByTitle(page, free.label).getByRole('link', { name: 'Paiements' }).click()
     await expect(page).toHaveURL(new RegExp(`/sessions/${free.slug}\\?tab=payments$`))
-    await expect(page.getByRole('heading', { level: 1, name: free.name })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: free.label })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Paiements', exact: true })).toHaveClass(/bg-primary/)
     await openSessions(page, game.title)
 
     // « Modifier » ouvre le formulaire, sans ouvrir la session
-    await cardByTitle(page, free.name).getByRole('button', { name: 'Modifier' }).click()
+    await cardByTitle(page, free.label).getByRole('button', { name: 'Modifier' }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
     await expect(page).toHaveURL(/\/sessions$/)
     await page.keyboard.press('Escape')
@@ -93,13 +93,13 @@ test('carte : un clic ouvre la session, « Modifier » ouvre son formulaire, et 
 
     // Supprimer depuis la liste : refusé pour la session payée, avec le message qui oriente vers l'annulation
     page.once('dialog', (dialog) => dialog.accept())
-    await cardByTitle(page, paid.name).getByRole('button', { name: 'Supprimer' }).click()
+    await cardByTitle(page, paid.label).getByRole('button', { name: 'Supprimer' }).click()
     await expect(page.getByText(/ne peut pas être supprimée\. Annulez-la ou reportez-la/)).toBeVisible()
     expect(await prisma.session.findUnique({ where: { id: paid.id } })).not.toBeNull()
 
     // Un clic sur la carte, hors de ses boutons, ouvre la session ; sa fiche refuse aussi la suppression
-    await cardByTitle(page, paid.name).getByText('Lieu', { exact: true }).click()
-    await expect(page.getByRole('heading', { level: 1, name: paid.name })).toBeVisible()
+    await cardByTitle(page, paid.label).getByText('Lieu', { exact: true }).click()
+    await expect(page.getByRole('heading', { level: 1, name: paid.label })).toBeVisible()
     expect(page.url()).toContain(`/sessions/${paid.slug}`)
     page.once('dialog', (dialog) => dialog.accept())
     await page.getByRole('button', { name: 'Supprimer' }).click()
@@ -255,8 +255,8 @@ test('droits : une organisatrice sans accès ne voit pas la session, une co-orga
     await guest.goto('/sessions')
     await guest.waitForLoadState('networkidle')
     await guest.getByPlaceholder('Rechercher une session...').fill('Session')
-    await expect(guest.getByRole('heading', { level: 3, name: visible.name })).toBeVisible()
-    await expect(guest.getByRole('heading', { level: 3, name: hidden.name })).toHaveCount(0)
+    await expect(guest.getByRole('heading', { level: 3, name: visible.label })).toBeVisible()
+    await expect(guest.getByRole('heading', { level: 3, name: hidden.label })).toHaveCount(0)
     await guest.goto(`/sessions/${hidden.slug}`)
     await expect(guest.getByRole('heading', { name: 'Page introuvable' }).or(guest.getByText('Session introuvable'))).toBeVisible()
 
@@ -281,15 +281,15 @@ test('hors ligne : la liste des sessions se relit, et une session créée sans r
     await page.goto('/games')
     await page.waitForLoadState('networkidle')
     await openSessions(page, game.title)
-    await expect(page.getByRole('heading', { level: 3, name: known.name })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 3, name: known.label })).toBeVisible()
 
     await context.setOffline(true)
     await page.getByRole('link', { name: 'Jeux', exact: true }).first().click()
     await expect(page.getByRole('heading', { level: 1, name: 'Jeux' })).toBeVisible()
     await page.getByRole('link', { name: 'Sessions', exact: true }).first().click()
     await expect(page.getByRole('heading', { level: 1, name: 'Sessions' })).toBeVisible()
-    await page.getByPlaceholder('Rechercher une session...').fill(known.name)
-    await expect(page.getByRole('heading', { level: 3, name: known.name })).toBeVisible()
+    await page.getByPlaceholder('Rechercher une session...').fill(known.label)
+    await expect(page.getByRole('heading', { level: 3, name: known.label })).toBeVisible()
 
     await page.getByRole('button', { name: 'Créer une session' }).click()
     const form = page.getByRole('dialog')
@@ -301,7 +301,10 @@ test('hors ligne : la liste des sessions se relit, et une session créée sans r
 
     // Au retour du réseau, elle prend son libellé (SPEC-021)
     await context.setOffline(false)
-    await expect.poll(() => prisma.session.findFirst({ where: { gameId: game.id, name: 'Session du 24 décembre 2099' }, select: { gameId: true } }), { timeout: 20_000 }).toEqual({ gameId: game.id })
+    await expect.poll(async () => {
+      const created = await prisma.session.findFirst({ where: { gameId: game.id, date: { gte: new Date('2099-12-24T00:00:00Z'), lt: new Date('2099-12-25T00:00:00Z') } }, select: { id: true } })
+      return created && (await labelled(prisma, created)).label
+    }, { timeout: 20_000 }).toBe('Session du 24 décembre 2099')
   } finally {
     await prisma.$disconnect()
   }

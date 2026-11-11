@@ -1,4 +1,5 @@
 // US-160, US-162 : un seul vivier par jeu, sessions ouvertes à la pré-inscription (SPEC-018, R1, R2, R6, R8)
+import { labelled } from '../sessionLabel'
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf, errorMessage } from './api'
@@ -27,8 +28,8 @@ async function aliceGame() {
       { name: 'PNJ', slug: `pnj-${key}`, gameId: game.id, type: 'pnj' }
     ]
   })
-  const first = await prisma.session.create({ data: { name: 'Mars', slug: `mars-${key}`, gameId: game.id, date: new Date(Date.now() + 30 * 86_400_000) } })
-  const second = await prisma.session.create({ data: { name: 'Avril', slug: `avril-${key}`, gameId: game.id, date: new Date(Date.now() + 60 * 86_400_000) } })
+  const first = await labelled(prisma, await prisma.session.create({ data: { slug: `mars-${key}`, gameId: game.id, date: new Date(Date.now() + 30 * 86_400_000) } }))
+  const second = await labelled(prisma, await prisma.session.create({ data: { slug: `avril-${key}`, gameId: game.id, date: new Date(Date.now() + 60 * 86_400_000) } }))
   return { game, first, second }
 }
 
@@ -131,9 +132,9 @@ describe('ouvrir une session à la pré-inscription (R6, R8)', () => {
   it('retirer la date d’une session ouverte la referme', async () => {
     const pool = await createPool(prisma, alice.id, { sessions: 1 })
     const session = pool.sessions[0]!
-    const current = await prisma.session.findUniqueOrThrow({ where: { id: session.id } })
+    const current = await labelled(prisma, await prisma.session.findUniqueOrThrow({ where: { id: session.id } }))
     const updated = await api(alice, 'PUT', `/api/sessions/${session.id}`, {
-      name: current.name, gameId: pool.game.id, status: 'scheduled', date: null, updatedAt: current.updatedAt.toISOString(), participants: [], assignments: []
+      name: current.label, gameId: pool.game.id, status: 'scheduled', date: null, updatedAt: current.updatedAt.toISOString(), participants: [], assignments: []
     })
     expect(updated.status, JSON.stringify(updated.body)).toBe(200)
     expect(await prisma.registrationPeriodSession.findUniqueOrThrow({ where: { sessionId: session.id } })).toMatchObject({ open: false })

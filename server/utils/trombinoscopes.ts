@@ -1,3 +1,4 @@
+import { labelSession } from '~/server/utils/sessionLabels'
 import { createHash } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib'
@@ -258,10 +259,9 @@ async function loadTrombinoscopeSources(sessionId: string, loaded?: Trombinoscop
 }
 
 // Empreinte de ce qu'affiche un trombinoscope, sans les images : elle change avec son contenu (ADR-0030)
-export function trombinoscopeFingerprint(params: { gameTitle: string, sessionName: string, viewerName: string, rows: TrombinoscopeRow[] }) {
+// Ni le libellé de la session ni le titre du jeu (ADR-0084) : ce sont des textes d'affichage, pas le contenu
+export function trombinoscopeFingerprint(params: { viewerName: string, rows: TrombinoscopeRow[] }) {
   return createHash('sha256').update(JSON.stringify([
-    params.gameTitle,
-    params.sessionName,
     params.viewerName,
     params.rows.map((row) => [
       row.target.id,
@@ -283,8 +283,6 @@ export async function currentTrombinoscopeFingerprints(sessionId: string, loaded
   for (const assignment of session.assignments) {
     if (!assignment.participantId) continue
     fingerprints.set(trombinoscopeKey(assignment.characterId, assignment.participantId), trombinoscopeFingerprint({
-      gameTitle: session.game.title,
-      sessionName: session.name,
       viewerName: assignment.character.name,
       rows: buildTrombinoscopeRows(assignment.character, characters, entriesByViewerAndTarget, castByCharacterId)
     }))
@@ -303,6 +301,8 @@ export function isTrombinoscopeOutdated(
 
 export async function generateSessionTrombinoscopes(sessionId: string, publicBaseUrl = '') {
   const { session, characters, castByCharacterId, entriesByViewerAndTarget } = await loadTrombinoscopeSources(sessionId)
+  // Libellé de la session, calculé (SPEC-021) : affiché dans le PDF et le nom du fichier
+  const sessionLabel = (await labelSession(prisma, session)).label
 
   let generatedCount = 0
   let missingPhotosCount = 0
@@ -320,7 +320,7 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
 
     const viewer = assignment.character
     const sourceRows = buildTrombinoscopeRows(viewer, characters, entriesByViewerAndTarget, castByCharacterId)
-    const sourceHash = trombinoscopeFingerprint({ gameTitle: session.game.title, sessionName: session.name, viewerName: viewer.name, rows: sourceRows })
+    const sourceHash = trombinoscopeFingerprint({ viewerName: viewer.name, rows: sourceRows })
     const rows = sourceRows
       .map((row) => ({
         ...row,
@@ -329,18 +329,18 @@ export async function generateSessionTrombinoscopes(sessionId: string, publicBas
     missingPhotosCount += rows.filter((row) => row.missingPhoto).length
 
     const html = renderTrombinoscopeHtml({
-      sessionName: session.name,
+      sessionLabel,
       gameTitle: session.game.title,
       viewerName: viewer.name,
       entries: rows
     })
     const pdfBytes = await renderTrombinoscopePdf({
-      sessionName: session.name,
+      sessionLabel,
       gameTitle: session.game.title,
       viewerName: viewer.name,
       entries: rows
     })
-    const fileName = `${slugFilePart(session.name)}-${slugFilePart(viewer.name)}-trombinoscope.pdf`
+    const fileName = `${slugFilePart(sessionLabel)}-${slugFilePart(viewer.name)}-trombinoscope.pdf`
     const contentJson = rows.map(trombinoscopeCard)
 
     await prisma.sessionTrombinoscope.upsert({
@@ -415,12 +415,12 @@ function trombinoscopeCard(entry: TrombinoscopeRow): TrombinoscopeCard {
 }
 
 function renderTrombinoscopeHtml({
-  sessionName,
+  sessionLabel,
   gameTitle,
   viewerName,
   entries
 }: {
-  sessionName: string
+  sessionLabel: string
   gameTitle: string
   viewerName: string
   entries: TrombinoscopeRow[]
@@ -474,7 +474,7 @@ function renderTrombinoscopeHtml({
   <header>
     <div class="eyebrow">${escapeHtml(gameTitle)}</div>
     <h1>Trombinoscope de ${escapeHtml(viewerName)}</h1>
-    <div class="subtitle">${escapeHtml(sessionName)}</div>
+    <div class="subtitle">${escapeHtml(sessionLabel)}</div>
   </header>
   <main class="grid">${cards}</main>
 </body>
@@ -487,12 +487,12 @@ function toPublicUrl(value: string, publicBaseUrl: string) {
 }
 
 async function renderTrombinoscopePdf({
-  sessionName,
+  sessionLabel,
   gameTitle,
   viewerName,
   entries
 }: {
-  sessionName: string
+  sessionLabel: string
   gameTitle: string
   viewerName: string
   entries: TrombinoscopeRow[]
@@ -528,7 +528,7 @@ async function renderTrombinoscopePdf({
       color: rgb(0.07, 0.09, 0.15)
     })
     y -= 18
-    page.drawText(pdfSafeText(sessionName), {
+    page.drawText(pdfSafeText(sessionLabel), {
       x: margin,
       y,
       size: 10,

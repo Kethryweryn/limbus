@@ -1,12 +1,14 @@
 ---
 id: ADR-0083
 titre: Le libellé d'une session est calculé par le serveur et gardé à la place du nom
-statut: accepté
+statut: remplacé par ADR-0084
 date: 2026-11-11
 liens: [SPEC-021, SPEC-004]
 ---
 
 # ADR-0083 : Le libellé d'une session est calculé par le serveur et gardé à la place du nom
+
+Remplacé par [ADR-0084](ADR-0084-libelle-de-session-a-la-lecture.md) : garder un libellé dans une colonne que du code technique lit était une erreur.
 
 ## Contexte
 

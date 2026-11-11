@@ -216,8 +216,8 @@ test('lieu : son adresse s’affiche sur sa fiche, et une session qui s’y tien
     const game = await orgaGame(prisma, 'Jeu lieu')
     const name = uniqueName('lieu fiche')
     const location = await prisma.location.create({ data: { name, slug: slugOf(name), gameId: game.id, address: '12 rue des Lilas\n75020 Paris' } })
-    const sessionName = uniqueName('session au lieu')
-    const session = await prisma.session.create({ data: { name: sessionName, slug: slugOf(sessionName), gameId: game.id, locationId: location.id } })
+    const sessionLabel = uniqueName('session au lieu')
+    const session = await prisma.session.create({ data: { slug: slugOf(sessionLabel), gameId: game.id, locationId: location.id } })
     await signIn(page, prisma, E2E_USERS.orga)
 
     await openSheet(page, `/locations/${location.slug}`, name)

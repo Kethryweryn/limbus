@@ -86,4 +86,5 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0080](ADR-0080-urgence-et-allergies-dans-un-telechargement.md) | Le téléchargement d'un jeu garde le contact d'urgence et les allergies sur l'appareil | accepté | 2026-11-10 |
 | [ADR-0081](ADR-0081-telechargement-par-le-navigateur.md) | Téléchargement hors ligne par le navigateur, qui rejoue les lectures des pages ; désactivation par appareil | accepté | 2026-11-10 |
 | [ADR-0082](ADR-0082-tests-de-bout-en-bout-en-trois-jobs.md) | Tests de bout en bout répartis sur trois jobs de la CI | accepté | 2026-11-10 |
-| [ADR-0083](ADR-0083-libelle-de-session-calcule.md) | Le libellé d'une session est calculé par le serveur et gardé à la place du nom | accepté | 2026-11-11 |
+| [ADR-0083](ADR-0083-libelle-de-session-calcule.md) | Le libellé d'une session est calculé par le serveur et gardé à la place du nom | remplacé par ADR-0084 | 2026-11-11 |
+| [ADR-0084](ADR-0084-libelle-de-session-a-la-lecture.md) | Le libellé d'une session est calculé à chaque lecture, et la session n'a plus de nom en base | accepté | 2026-11-11 |

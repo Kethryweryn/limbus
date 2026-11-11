@@ -1,5 +1,6 @@
 // US-203 (EPIC-050, lot 6, 1/2) : les règles du vivier et de la sélection sans test de bout en bout (SPEC-001, SPEC-018),
 // sur les quatre axes (ADR-0079) : actions, erreurs de saisie, droits, hors ligne
+import { labelled } from './helpers'
 import { createHash, randomBytes } from 'node:crypto'
 import { expect, type Page } from '@playwright/test'
 import { DEFAULT_REGISTRATION_FORM_DEFINITION } from '../../utils/registrationForms'
@@ -48,10 +49,10 @@ async function member(prisma: TestPrisma, ctx: { game: { id: string }, session: 
 const sessionLine = (prisma: TestPrisma, registrationId: string, sessionId: string) =>
   prisma.registrationSession.findUnique({ where: { registrationId_sessionId: { registrationId, sessionId } }, select: { status: true, waitlistPosition: true } })
 
-async function openSelection(page: Page, game: { title: string }, session: { name: string }) {
+async function openSelection(page: Page, game: { title: string }, session: { label: string }) {
   await openRegistrations(page, game.title)
   const panel = gamePanel(page, game.title, 'Sélection')
-  return { panel, block: panel.locator(`[data-session="${session.name}"]`) }
+  return { panel, block: panel.locator(`[data-session="${session.label}"]`) }
 }
 
 test.describe('sessions proposées et places', () => {
@@ -86,7 +87,7 @@ test.describe('sessions proposées et places', () => {
       // Un personnage supprimé ne retire personne : la session en surnombre est signalée (R8)
       await prisma.registrationSession.update({ where: { registrationId_sessionId: { registrationId: waiting.registration.id, sessionId: ctx.session.id } }, data: { status: 'retained' } })
       await openRegistrations(page, ctx.game.title)
-      await expect(gamePanel(page, ctx.game.title, 'Sélection').locator(`[data-session="${ctx.session.name}"]`).getByText('Cette session est en surnombre : 2 personnes pour 1 personnages PJ.')).toBeVisible()
+      await expect(gamePanel(page, ctx.game.title, 'Sélection').locator(`[data-session="${ctx.session.label}"]`).getByText('Cette session est en surnombre : 2 personnes pour 1 personnages PJ.')).toBeVisible()
     } finally {
       await prisma.$disconnect()
     }
@@ -146,7 +147,7 @@ test.describe('sélection', () => {
       await expect(block.locator('ol li').first()).toContainText(second.name)
       // Rouverte (filtrée sur le jeu) : l'ordre est enregistré
       await openRegistrations(page, ctx.game.title)
-      block = gamePanel(page, ctx.game.title, 'Sélection').locator(`[data-session="${ctx.session.name}"]`)
+      block = gamePanel(page, ctx.game.title, 'Sélection').locator(`[data-session="${ctx.session.label}"]`)
       await expect(block.locator('ol li').first()).toContainText(second.name)
 
       // La place se libère : l'écran propose la première de la file, qui est retenue d'un clic
@@ -350,11 +351,11 @@ test.describe('réponses de la personne', () => {
 
       await page.goto(`/inscription/${invited.token}`)
       await page.waitForLoadState('networkidle')
-      await page.getByLabel(new RegExp(`^${ctx.session.name}`)).check()
+      await page.getByLabel(new RegExp(`^${ctx.session.label}`)).check()
       await page.getByLabel('J’ai lu la note d’intention et j’y adhère').check()
       await page.getByRole('button', { name: 'Envoyer mes réponses' }).click()
       await expect(page.getByText('Vos réponses sont enregistrées.')).toBeVisible()
-      await expect(page.locator(`[data-session="${ctx.session.name}"]`).getByText('Pré-inscrite')).toBeVisible()
+      await expect(page.locator(`[data-session="${ctx.session.label}"]`).getByText('Pré-inscrite')).toBeVisible()
       expect((await sessionLine(prisma, invited.registration.id, ctx.session.id))?.status).toBe('preregistered')
       await expect.poll(() => mailbox.to(E2E_USERS.orga).filter((mail) => mail.text.includes(invited.name)).length).toBeGreaterThan(0)
     } finally {
@@ -372,7 +373,7 @@ test.describe('réponses de la personne', () => {
 
       await page.goto(`/inscription/${invited.token}`)
       await page.waitForLoadState('networkidle')
-      await expect(page.getByLabel(new RegExp(`^${ctx.session.name}`))).toBeHidden()
+      await expect(page.getByLabel(new RegExp(`^${ctx.session.label}`))).toBeHidden()
       await page.getByLabel('J’ai lu la note d’intention et j’y adhère').check()
       await page.getByRole('button', { name: 'Envoyer mes réponses' }).click()
       await expect(page.getByText('Vos réponses sont enregistrées.')).toBeVisible()
@@ -418,7 +419,7 @@ test.describe('paiements et report (SPEC-018, R30)', () => {
       await expect.poll(async () => (await sessionLine(prisma, person.registration.id, ctx.session.id))?.status).toBe('cancelled')
 
       await page.goto(`/inscription/${person.token}`)
-      await expect(page.locator(`[data-session="${ctx.session.name}"]`).getByText('Annulation')).toBeVisible()
+      await expect(page.locator(`[data-session="${ctx.session.label}"]`).getByText('Annulation')).toBeVisible()
     } finally {
       await prisma.$disconnect()
     }
@@ -439,8 +440,8 @@ test.describe('paiements et report (SPEC-018, R30)', () => {
       // Sans nom (SPEC-021) : la nouvelle session se retrouve par le report
       await expect.poll(async () => (await prisma.session.findUniqueOrThrow({ where: { id: ctx.session.id }, select: { postponedToSessionId: true } })).postponedToSessionId).toBeTruthy()
       const { postponedToSessionId } = await prisma.session.findUniqueOrThrow({ where: { id: ctx.session.id }, select: { postponedToSessionId: true } })
-      const created = await prisma.session.findUniqueOrThrow({ where: { id: postponedToSessionId! } })
-      await expect(page.getByRole('heading', { name: created.name, level: 1 })).toBeVisible()
+      const created = await labelled(prisma, await prisma.session.findUniqueOrThrow({ where: { id: postponedToSessionId! } }))
+      await expect(page.getByRole('heading', { name: created.label, level: 1 })).toBeVisible()
       expect((await sessionLine(prisma, person.registration.id, ctx.session.id))?.status).toBe('transferred')
       expect((await sessionLine(prisma, person.registration.id, created.id))?.status).toBe('confirmed')
       await page.goto(`/inscription/${person.token}`)
@@ -490,7 +491,7 @@ test.describe('droits et hors ligne', () => {
       await context.setOffline(true)
       await page.getByRole('link', { name: 'Inscriptions' }).first().click()
       await page.getByRole('link', { name: ctx.game.title, exact: true }).click()
-      const block = gamePanel(page, ctx.game.title, 'Sélection').locator(`[data-session="${ctx.session.name}"]`)
+      const block = gamePanel(page, ctx.game.title, 'Sélection').locator(`[data-session="${ctx.session.label}"]`)
       await expect(block.locator('li').filter({ hasText: person.name })).toBeVisible()
       await block.locator('li').filter({ hasText: person.name }).getByRole('button', { name: 'Retenir' }).click()
       // Un seul message : la relecture du vivier reprend la copie de l'appareil (US-221)

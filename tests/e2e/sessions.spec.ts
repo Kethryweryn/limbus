@@ -1,9 +1,9 @@
+import { labelled, parcoursPerson, parcoursSession, signIn, slugOf, test, uniqueName  } from './helpers'
 import { expect } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { linkToken } from '../integration/smtp'
 import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
-import { parcoursPerson, parcoursSession, signIn, slugOf, test, uniqueName } from './helpers'
 
 // EPIC-004 (SPEC-004) : une session change de date depuis sa fiche, puis s'annule et l'équipe en est prévenue (US-021)
 test('une session change de date, s’annule, et l’équipe est prévenue', async ({ page }) => {
@@ -64,9 +64,9 @@ test('une session se reporte, et la présence de l’équipe se demande et se su
     await expect(page).toHaveURL(/tab=presence/)
     const { status, postponedToSessionId } = await prisma.session.findUniqueOrThrow({ where: { id: session.id }, select: { status: true, postponedToSessionId: true } })
     expect(status).toBe('postponed')
-    const created = await prisma.session.findUniqueOrThrow({ where: { id: postponedToSessionId! } })
-    await expect(page.getByRole('heading', { name: created.name, level: 1 })).toBeVisible()
-    await expect(page.getByRole('link', { name: session.name })).toBeVisible()
+    const created = await labelled(prisma, await prisma.session.findUniqueOrThrow({ where: { id: postponedToSessionId! } }))
+    await expect(page.getByRole('heading', { name: created.label, level: 1 })).toBeVisible()
+    await expect(page.getByRole('link', { name: session.label })).toBeVisible()
     page.once('dialog', (confirmation) => confirmation.accept())
     await page.getByRole('button', { name: 'Envoyer les demandes' }).click()
     await expect(page.getByText(/1 demande\(s\) envoyée\(s\)\./)).toBeVisible()

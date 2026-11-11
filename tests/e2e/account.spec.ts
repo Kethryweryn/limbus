@@ -41,7 +41,7 @@ test('la personne accepte une invitation depuis « Je participe »', async ({ pa
     const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.autre } })
     const title = uniqueName('Jeu compte')
     const game = await prisma.game.create({ data: { title, slug: slugOf(title), description: '', ownerId: owner.id } })
-    const session = await prisma.session.create({ data: { name: `Session ${title}`, slug: slugOf(`session ${title}`), gameId: game.id, date: new Date('2099-10-01T09:00:00Z') } })
+    const session = await prisma.session.create({ data: { slug: slugOf(`session ${title}`), gameId: game.id, date: new Date('2099-10-01T09:00:00Z') } })
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `c${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } } })
     const participant = await prisma.participant.create({ data: { name, slug: slugOf(name), email, userId: user.id, gameLinks: { create: { gameId: game.id } } } })
     const registration = await prisma.registration.create({

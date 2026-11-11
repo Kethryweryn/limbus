@@ -1,3 +1,4 @@
+import { sessionLabelsFor } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
 import { accessibleGameModelWhere, gameScopedWhere } from '~/server/utils/gameAccess'
@@ -87,7 +88,7 @@ export default defineEventHandler(async (event) => {
     nextSession: nextSession
       ? {
           id: nextSession.id,
-          name: nextSession.name,
+          label: (await sessionLabelsFor(prisma, [nextSession.id])).get(nextSession.id) ?? 'Session',
           date: nextSession.date,
           status: nextSession.status,
           game: {

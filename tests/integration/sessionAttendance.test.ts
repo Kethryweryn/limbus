@@ -26,7 +26,7 @@ const inDays = (days: number) => new Date(Date.now() + days * 86_400_000).toISOS
 async function postponedSession() {
   const key = `presence-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
-  const old = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
+  const old = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } })
   const person = (name: string, email: boolean) => prisma.participant.create({
     data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: email ? `${name.toLowerCase()}-${key}@example.test` : null, gameLinks: { create: { gameId: game.id } } }
   })
@@ -42,7 +42,7 @@ async function postponedSession() {
   })
   await prisma.sessionAssignment.create({ data: { gameId: old.gameId, sessionId: old.id, characterId: aube.id, participantId: lea.id } })
   const postponed = await api(alice, 'POST', `/api/sessions/${old.id}/postpone`, {})
-  const session = postponed.body as { id: string, name: string }
+  const session = postponed.body as { id: string, label: string }
   return { key, game, old, session, lea, noe, sam, aube }
 }
 
@@ -71,8 +71,8 @@ describe('demandes de confirmation de présence (US-024)', () => {
     const read = await api(null, 'GET', `/api/public/attendance/${leaToken}`)
     expect(read.status).toBe(200)
     // Sans date, la session se lit « Session sans date », distinguée de l'ancienne (SPEC-021, R2)
-    expect(read.body).toMatchObject({ sessionName: s.session.name, status: 'pending', canAnswer: true })
-    expect(s.session.name).toMatch(/^Session sans date/)
+    expect(read.body).toMatchObject({ sessionLabel: s.session.label, status: 'pending', canAnswer: true })
+    expect(s.session.label).toMatch(/^Session sans date/)
     expect(JSON.stringify(read.body)).not.toContain(s.noe.name)
     expect((await api(null, 'POST', `/api/public/attendance/${leaToken}`, { answer: 'confirmed' })).body).toMatchObject({ status: 'confirmed' })
     expect((await api(null, 'POST', `/api/public/attendance/${leaToken}`, { answer: 'declined' })).body).toMatchObject({ status: 'declined' })

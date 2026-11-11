@@ -1,4 +1,6 @@
 // US-164 : inviter une personne à rejoindre le vivier, ou pour une session (SPEC-018, R4)
+import { inSentence } from '~/utils/sessionLabels'
+import { labelled } from '../sessionLabel'
 import { createHash } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { api, errorMessage } from './api'
@@ -27,7 +29,7 @@ const sha256 = (value: string) => createHash('sha256').update(value).digest('hex
 async function openPeriod(options: { state?: RegistrationPeriodState } = {}) {
   const key = `invitations-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
-  const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2027-03-10T09:00:00Z') } })
+  const session = await labelled(prisma, await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id, date: new Date('2027-03-10T09:00:00Z') } }))
   const period = await prisma.registrationPeriod.create({
     data: {
       gameId: game.id,
@@ -84,8 +86,7 @@ describe('inviter des participants', () => {
     // Chaque email porte le jeu, la session, l'échéance et un lien dont seul le hash est en base
     const email = emailsTo(participant.email!)[0]!
     expect(email.text).toContain(game.title)
-    expect(email.text).toContain(session.name)
-    expect(email.text).toContain('10 mars 2027')
+    expect(email.text).toContain(inSentence(session.label))
     const token = personalLinkToken(email)!
     expect(email.text).toContain(`/inscription/${token}`)
     const own = registrations.find((registration) => registration.participantId === participant.id)!
@@ -160,7 +161,7 @@ describe('inviter des participants', () => {
 
   it('refuse une session d’un autre jeu ou annulée, ou un participant d’un autre jeu', async () => {
     const { game, session, period, participant } = await openPeriod()
-    const cancelled = await prisma.session.create({ data: { name: 'Annulée', slug: `annulee-${counter}`, gameId: game.id, status: 'cancelled' } })
+    const cancelled = await labelled(prisma, await prisma.session.create({ data: { slug: `annulee-${counter}`, gameId: game.id, status: 'cancelled' } }))
     const stranger = await openPeriod()
 
     expect((await invite(period.id, { sessionId: stranger.session.id, participantIds: [participant.id] })).status).toBe(400)
@@ -174,7 +175,7 @@ describe('inviter des participants', () => {
     const response = await invite(period.id, { participantIds: [participant.id] })
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     expect(await prisma.registration.findFirstOrThrow({ where: { periodId: period.id } })).toMatchObject({ status: 'invited', invitedSessionId: null })
-    expect(emailsTo(participant.email!)[0]!.text).not.toContain(session.name)
+    expect(emailsTo(participant.email!)[0]!.text).not.toContain(session.label)
   })
 
   it('une invitée sans réponse n’est pas réservée : aucune ligne pour la session', async () => {

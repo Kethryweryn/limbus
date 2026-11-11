@@ -81,7 +81,7 @@ describe('fiches sans compte (US-113)', () => {
     const account = await user('titulaire', {})
     const withAccount = await participant('avec-compte', { userId: account.id })
     const withSession = await participant('session-recente')
-    const session = await prisma.session.create({ data: { name: `Session ${counter}`, slug: `session-retention-${counter}`, gameId: (await prisma.participantGame.findFirstOrThrow({ where: { participantId: withSession.id } })).gameId, date: ago(30 * DAY) } })
+    const session = await prisma.session.create({ data: { slug: `session-retention-${counter}`, gameId: (await prisma.participantGame.findFirstOrThrow({ where: { participantId: withSession.id } })).gameId, date: ago(30 * DAY) } })
     await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: withSession.id, role: 'participant' } })
     await prisma.participant.update({ where: { id: withSession.id }, data: { updatedAt: ago(4 * 12 * MONTH) } })
 

@@ -30,7 +30,7 @@ export default async function globalSetup() {
     data: { title: 'Jeu des inscriptions', slug: 'jeu-inscriptions', description: '', noteIntention: 'Jouer ensemble, avec bienveillance.', ownerId: users[0]!.id }
   })
   const registrationSession = await prisma.session.create({
-    data: { name: 'Session de printemps', slug: 'session-printemps', gameId: registrationGame.id, date: new Date('2099-04-10T09:00:00Z') }
+    data: { slug: 'jeu-inscriptions-2099-04-10', gameId: registrationGame.id, date: new Date('2099-04-10T09:00:00Z') }
   })
   await prisma.registrationPeriod.create({
     data: { gameId: registrationGame.id, publicId: 'e2e-printemps', state: 'open', sessions: { create: { sessionId: registrationSession.id, open: true } } }

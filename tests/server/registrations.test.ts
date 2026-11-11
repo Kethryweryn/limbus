@@ -75,13 +75,13 @@ describe('email d’invitation', () => {
     const text = registrationInvitationEmailText({
       participantName: 'Zoé',
       gameTitle: 'Les Ombres',
-      sessionName: 'Printemps',
+      sessionLabel: 'Session du 10 mars 2027',
       sessionDate: new Date('2027-03-10T09:00:00Z'),
       responseDueAt: new Date('2027-02-01T09:00:00Z'),
       inviterName: 'Alice',
       url: 'https://limbus.example/inscription/abc'
     }, new Date('2027-01-10T12:00:00Z'))
-    expect(text).toContain('Alice vous invite à jouer à « Les Ombres », session Printemps (10 mars 2027)')
+    expect(text).toContain('Alice vous invite à jouer à « Les Ombres », pour la session du 10 mars 2027')
     expect(text).toContain('https://limbus.example/inscription/abc')
     expect(text).toContain('avant le 1 février 2027')
   })
@@ -90,7 +90,7 @@ describe('email d’invitation', () => {
     const text = registrationInvitationEmailText({
       participantName: 'Zoé',
       gameTitle: 'Les Ombres',
-      sessionName: null,
+      sessionLabel: null,
       sessionDate: null,
       responseDueAt: new Date('2027-02-01T09:00:00Z'),
       inviterName: null,
@@ -106,14 +106,14 @@ describe('rappel d’une invitation (US-005, R20)', () => {
   const base = {
     participantName: 'Zoé',
     gameTitle: 'Les Ombres',
-    sessionName: 'Printemps',
+    sessionLabel: 'Session du 10 mars 2027',
     invitationSentAt: new Date('2027-01-02T09:00:00Z'),
     responseDueAt: new Date('2027-01-12T09:00:00Z')
   }
 
   it('sans lien : renvoie à l’email d’invitation, avec sa date et son objet', () => {
     const text = registrationReminderEmailText(base, now)
-    expect(text).toContain('Nous n’avons pas encore reçu votre réponse à l’invitation à jouer à « Les Ombres », session Printemps.')
+    expect(text).toContain('Nous n’avons pas encore reçu votre réponse à l’invitation à jouer à « Les Ombres », pour la session du 10 mars 2027.')
     expect(text).toContain('email d’invitation envoyé le 2 janvier 2027, intitulé « Invitation : Les Ombres »')
     expect(text).toContain('avant le 12 janvier 2027')
     expect(text).toContain('elle vous enverra un nouveau lien')
@@ -156,16 +156,16 @@ describe('rethrowAlreadyRegistered', () => {
 
 describe('email de désistement aux organisateurs (US-006)', () => {
   it('distingue le désistement par la personne du retrait par une organisatrice', () => {
-    const base = { participantName: 'Zoé', gameTitle: 'Les Ombres', sessionName: 'Printemps', trombinoscopes: null }
-    expect(registrationWithdrawalEmailText({ ...base, withdrawnBy: null })).toContain('Zoé a annulé sa présence à la session Printemps du jeu « Les Ombres ».')
-    expect(registrationWithdrawalEmailText({ ...base, withdrawnBy: 'Alice' })).toContain('Alice a retiré Zoé de la session Printemps du jeu « Les Ombres ».')
+    const base = { participantName: 'Zoé', gameTitle: 'Les Ombres', sessionLabel: 'Session du 10 mars 2027', trombinoscopes: null }
+    expect(registrationWithdrawalEmailText({ ...base, withdrawnBy: null })).toContain('Zoé a annulé sa présence à la session du 10 mars 2027 du jeu « Les Ombres ».')
+    expect(registrationWithdrawalEmailText({ ...base, withdrawnBy: 'Alice' })).toContain('Alice a retiré Zoé de la session du 10 mars 2027 du jeu « Les Ombres ».')
     expect(registrationWithdrawalEmailText({ ...base, withdrawnBy: null, wasInSession: true })).toContain('à traiter à la main')
     expect(registrationWithdrawalEmailText({ ...base, withdrawnBy: null })).not.toContain('à traiter à la main')
   })
 })
 
 describe('suites d’un désistement dans l’email', () => {
-  const base = { participantName: 'Zoé', gameTitle: 'Les Ombres', sessionName: 'Printemps', withdrawnBy: null }
+  const base = { participantName: 'Zoé', gameTitle: 'Les Ombres', sessionLabel: 'Session du 10 mars 2027', withdrawnBy: null }
 
   it('signale les trombinoscopes régénérés, ou à relancer', () => {
     expect(registrationWithdrawalEmailText({ ...base, trombinoscopes: 'regenerated' })).toContain('ont été régénérés sans elle')

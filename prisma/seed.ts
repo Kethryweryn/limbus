@@ -11,7 +11,7 @@ import { BAL_EXTRA_PEOPLE, createBalStage } from './seed/bal'
 import type { Db, StageContext } from './seed/db'
 import { createMeridianStage, MERIDIAN_EXTRA_PEOPLE } from './seed/meridian'
 import { personAddress, readSeedOptions, sessionFields, type SeedOptions } from './seed/options'
-import { refreshSessionLabels } from '../server/utils/sessionLabels'
+import { refreshSessionSlugs } from '../server/utils/sessionLabels'
 import { placePlayersInPool } from './seed/pool'
 import { createValombreStage } from './seed/valombre'
 import type { GameShareRole } from '../generated/prisma/enums'
@@ -940,8 +940,8 @@ async function createGame(
     address: (email) => personAddress(email, options.ownerEmail)
   })
 
-  // Libellé et adresse de chaque session, comme le serveur les calcule (SPEC-021, ADR-0083)
-  await refreshSessionLabels(db, game.id)
+  // Adresse de chaque session, comme le serveur la calcule (SPEC-021, ADR-0084)
+  await refreshSessionSlugs(db, game.id)
 
   console.log(`${seed.title} : ${characters.length} personnages, ${participants.length} participants.`)
 

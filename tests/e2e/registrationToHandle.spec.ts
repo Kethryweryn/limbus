@@ -45,7 +45,7 @@ test.describe('ce qui reste à traiter', () => {
       await expect(row(page, calm.title).locator('[data-to-handle]')).toHaveCount(0)
 
       await page.getByRole('link', { name: ctx.game.title, exact: true }).click()
-      const block = page.locator(`[data-session="${ctx.session.name}"]`)
+      const block = page.locator(`[data-session="${ctx.session.label}"]`)
       await expect(block.locator('[data-to-handle]')).toHaveText(ALL)
       await block.locator('li').filter({ hasText: ctx.changed }).getByRole('button', { name: 'Marquer comme lu' }).click()
       await expect(block.locator('[data-to-handle]')).toHaveText('1 réponse attendue · 1 casting à annoncer')

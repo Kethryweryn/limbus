@@ -27,7 +27,7 @@ async function gameWithContent() {
     prisma.timelineEvent.create({ data: { name: 'Bal', slug: `${key}-bal`, gameId, day: 1, time: '20:00' } })
   ])
   const [session, location, period, form, participant] = await Promise.all([
-    prisma.session.create({ data: { name: 'Session', slug: `${key}-session`, gameId } }),
+    prisma.session.create({ data: { slug: `${key}-session`, gameId } }),
     prisma.location.create({ data: { name: 'Château', slug: `${key}-chateau`, gameId } }),
     prisma.registrationPeriod.create({ data: { gameId, publicId: `${key}-vivier` } }),
     prisma.registrationForm.create({ data: { gameId, versions: { create: { number: 1, definition: {} } } }, include: { versions: true } }),
@@ -117,7 +117,7 @@ describe('liens entre éléments de deux jeux (US-191, US-195)', () => {
   // ADR-0077 : la base n'efface que l'identifiant ; la ligne garde son jeu et reste
   it('supprimer la cible d’une référence facultative la vide, sans toucher au reste de la ligne', async () => {
     const a = await gameWithContent()
-    const later = await prisma.session.create({ data: { name: 'Reportée', slug: `${a.key}-reportee`, gameId: a.gameId } })
+    const later = await prisma.session.create({ data: { slug: `${a.key}-reportee`, gameId: a.gameId } })
     await prisma.session.update({ where: { id: a.session.id }, data: { locationId: a.location.id, postponedToSessionId: later.id } })
     const assignment = await prisma.sessionAssignment.create({ data: { gameId: a.gameId, sessionId: a.session.id, characterId: a.character.id, reservedRegistrationId: a.registration.id } })
     const draw = await prisma.registrationDraw.create({ data: { gameId: a.gameId, periodId: a.period.id, sessionId: later.id, seed: 's', settings: {}, result: {} } })

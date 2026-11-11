@@ -1,4 +1,5 @@
 // EPIC-028 : information (US-107), durée et purge (US-108), retrait et refus (US-109) des photos des participants
+import { labelled } from '../sessionLabel'
 import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -40,7 +41,7 @@ async function aliceGame(extra: Record<string, unknown> = {}) {
 }
 
 async function castSession(g: Awaited<ReturnType<typeof aliceGame>>, date: Date | null, holder: { id: string }, photoUrl: string | null) {
-  const session = await prisma.session.create({ data: { name: `Session ${g.key} ${++counter}`, slug: `session-${g.key}-${counter}`, gameId: g.game.id, date } })
+  const session = await labelled(prisma, await prisma.session.create({ data: { slug: `session-${g.key}-${++counter}`, gameId: g.game.id, date } }))
   await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: g.target.id, participantId: holder.id, photoUrl } })
   return session
 }
@@ -114,9 +115,9 @@ describe('retrait et refus (US-109)', () => {
 
     // L'équipe ne peut plus lui mettre de photo, ni lever son refus
     const again = await photo(g.game.id)
-    const current = await prisma.session.findUniqueOrThrow({ where: { id: session.id } })
+    const current = await labelled(prisma, await prisma.session.findUniqueOrThrow({ where: { id: session.id } }))
     const cast = await api(alice, 'PUT', `/api/sessions/${session.id}`, {
-      name: current.name, gameId: g.game.id, participants: [], assignments: [{ characterId: g.target.id, participantId: lou.id, photoUrl: again.url }]
+      name: current.label, gameId: g.game.id, participants: [], assignments: [{ characterId: g.target.id, participantId: lou.id, photoUrl: again.url }]
     }, { headers: { 'if-unmodified-since': current.updatedAt.toISOString() } })
     expect(cast.status).toBe(400)
     expect(JSON.stringify(cast.body)).toContain('a refusé l’usage de sa photo')
@@ -142,7 +143,7 @@ describe('retrait et refus (US-109)', () => {
   it('le trombinoscope ne montre pas la photo d’une personne qui l’a refusée', async () => {
     const g = await aliceGame()
     const [lea, noe] = await Promise.all([g.person('Lea'), g.person('Noe', { photoRefusedAt: new Date() })])
-    const session = await prisma.session.create({ data: { name: `Session ${g.key}`, slug: `session-trombi-${g.key}`, gameId: g.game.id } })
+    const session = await labelled(prisma, await prisma.session.create({ data: { slug: `session-trombi-${g.key}`, gameId: g.game.id } }))
     await prisma.sessionAssignment.createMany({ data: [
       { gameId: session.gameId, sessionId: session.id, characterId: g.viewer.id, participantId: lea.id },
       { gameId: session.gameId, sessionId: session.id, characterId: g.target.id, participantId: noe.id, photoUrl: '/api/uploads/session-assignment-photos/refusee.png' }

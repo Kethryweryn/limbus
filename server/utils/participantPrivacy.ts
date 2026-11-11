@@ -1,3 +1,4 @@
+import { labelNestedSessions } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
 import { NO_COPY } from '~/server/utils/deliveryCopies'
@@ -76,10 +77,11 @@ export async function eraseParticipant(participantId: string) {
 export async function exportParticipantData(participantId: string, gameIds: string[] | null, { forPerson = false } = {}) {
   const inGames = gameIds === null ? {} : { gameId: { in: gameIds } }
   const inSessions = gameIds === null ? {} : { session: { gameId: { in: gameIds } } }
-  const session = { select: { name: true, date: true, game: { select: { title: true } } } }
+  // Avec son identifiant, le temps d'y ajouter son libellé (SPEC-021) ; l'export ne le garde pas
+  const session = { select: { id: true, date: true, game: { select: { title: true } } } }
   const inPeriods = gameIds === null ? {} : { period: { gameId: { in: gameIds } } }
 
-  const participant = await prisma.participant.findUniqueOrThrow({
+  const participant = await labelNestedSessions(prisma, await prisma.participant.findUniqueOrThrow({
     where: { id: participantId },
     select: {
       name: true,
@@ -119,7 +121,7 @@ export async function exportParticipantData(participantId: string, gameIds: stri
           balancePreference: true,
           formVersion: { select: { definition: true } },
           // Statut et disponibilité de la personne pour chaque session (SPEC-018)
-          sessionLines: { select: { status: true, answer: true, answeredAt: true, lastRemindedAt: true, responseDueAt: true, waitlistPosition: true, announcedStatus: true, announcedAt: true, confirmedAt: true, cancelledAt: true, cancelledById: true, cancelledBy: { select: { name: true } }, retainedBy: { select: { name: true } }, answersChangedAt: true, session: { select: { name: true, date: true } } } },
+          sessionLines: { select: { status: true, answer: true, answeredAt: true, lastRemindedAt: true, responseDueAt: true, waitlistPosition: true, announcedStatus: true, announcedAt: true, confirmedAt: true, cancelledAt: true, cancelledById: true, cancelledBy: { select: { name: true } }, retainedBy: { select: { name: true } }, answersChangedAt: true, session: { select: { id: true, date: true } } } },
           // Affinités écrites par la personne, avec la personne rattachée ; jamais celles des autres qui la visent (US-095)
           affinities: {
             select: { kind: true, text: true, ...(forPerson ? {} : { targetUnknown: true, targetParticipant: { select: { name: true } } }) },
@@ -134,12 +136,12 @@ export async function exportParticipantData(participantId: string, gameIds: stri
           invitedBy: { select: { name: true } },
           withdrawnBy: { select: { name: true } },
           createdAt: true,
-          invitedSession: { select: { name: true, date: true } },
+          invitedSession: { select: { id: true, date: true } },
           period: { select: { game: { select: { title: true } } } }
         }
       }
     }
-  })
+  }), { dropId: true })
 
   const { gameLinks, userId, documentDeliveries, registrations, ...rest } = participant
   return {

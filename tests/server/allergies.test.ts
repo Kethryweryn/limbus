@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { allergySheetEmailText, buildAllergySheet, renderAllergySheetPdf } from '~/server/utils/allergies'
 
 const session = {
-  name: 'Printemps',
+  label: 'Session du 10 mars 2027',
   date: new Date('2027-03-10T09:00:00Z'),
   game: { title: 'Les Ombres' },
   registrations: [
@@ -52,7 +52,7 @@ describe('fiche allergies (US-008)', () => {
 
   it('l’email rappelle que ce sont des données de santé', () => {
     const text = allergySheetEmailText(buildAllergySheet(session))
-    expect(text).toContain('session Printemps (« Les Ombres »)')
+    expect(text).toContain('la session du 10 mars 2027 (« Les Ombres »)')
     expect(text).toContain('6 personnes à table (dont 4 inscrites confirmées), dont 2 avec allergies ou intolérances')
     expect(text).toContain('données de santé')
   })
@@ -60,6 +60,6 @@ describe('fiche allergies (US-008)', () => {
   it('produit un PDF, même sans allergie déclarée', async () => {
     const pdf = await renderAllergySheetPdf(buildAllergySheet({ ...session, registrations: [], participants: [], assignments: [] }))
     expect(Buffer.from(pdf.bytes).subarray(0, 5).toString()).toBe('%PDF-')
-    expect(pdf.filename).toBe('allergies-printemps.pdf')
+    expect(pdf.filename).toBe('allergies-session-du-10-mars-2027.pdf')
   })
 })

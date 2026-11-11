@@ -10,7 +10,7 @@
         <div>
           <h1 class="text-2xl font-bold">{{ delivery.title }}</h1>
           <p class="text-sm text-gray-500">
-            {{ delivery.session.gameTitle }} · {{ delivery.session.name }} · reçu le {{ formatDate(delivery.sentAt) }}
+            {{ delivery.session.gameTitle }} · {{ delivery.session.label }} · reçu le {{ formatDate(delivery.sentAt) }}
           </p>
         </div>
         <UButton

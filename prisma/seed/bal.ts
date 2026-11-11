@@ -25,7 +25,7 @@ export async function createBalStage(db: Db, context: StageContext) {
       participants: { create: team.map((email) => ({ participantId: person(email).id, role: SESSION_ROLES.participant })) },
       ...extra
     },
-    select: { id: true, name: true }
+    select: { id: true }
   })
   const paid = (sessionId: string, email: string, refund: { refundStatus: RefundStatus, refundedAt?: Date, carriedOverToSessionId?: string }) =>
     db.sessionPayment.create({
@@ -34,7 +34,7 @@ export async function createBalStage(db: Db, context: StageContext) {
 
   // Session terminée : Lucie y retrouve ce qui lui a été envoyé. La copie s'efface après la session (ADR-0044) :
   // elle lit donc la version actuelle du document.
-  const archive = await db.session.findFirstOrThrow({ where: { gameId, status: SESSION_STATUSES.completed }, select: { id: true, name: true } })
+  const archive = await db.session.findFirstOrThrow({ where: { gameId, status: SESSION_STATUSES.completed }, select: { id: true } })
   const lucie = person('lucie.moreau')
   await db.sessionParticipant.create({ data: { sessionId: archive.id, participantId: lucie.id, role: SESSION_ROLES.participant } })
   const roadmap = await db.document.findFirstOrThrow({
@@ -48,7 +48,7 @@ export async function createBalStage(db: Db, context: StageContext) {
       participantId: lucie.id,
       documentId: roadmap.id,
       kind: 'document',
-      contentHash: documentContentHash({ game: { title } }, roadmap),
+      contentHash: documentContentHash(roadmap),
       sentAt: daysFromNow(-65)
     }
   })

@@ -1,3 +1,5 @@
+import { inSentence } from '~/utils/sessionLabels'
+import { sessionLabelsFor } from '~/server/utils/sessionLabels'
 import { gamePhotoInformation } from '~/utils/photoInformation'
 import { purgeExpiredPhotos } from '~/server/utils/photoRetention'
 import { characterSheetContentHash, documentContentHash, type SheetCharacter } from '~/server/utils/deliveryHashes'
@@ -161,7 +163,7 @@ export async function getSessionDocumentDashboard(sessionId: string) {
     })
     const baseRecipients = uniqueRecipients([...selectedRecipients, ...documentRoles(document).flatMap((role) => recipientsByRole[role] ?? [])])
 
-    const currentHash = documentContentHash(session, document)
+    const currentHash = documentContentHash(document)
     const recipients = baseRecipients.map((recipient) => {
       const delivery = deliveries.find((item) =>
         item.kind === 'document'
@@ -251,7 +253,8 @@ export async function getSessionDocumentDashboard(sessionId: string) {
     }))
 
   return {
-    session,
+    // Avec son libellé, calculé (SPEC-021)
+    session: { ...session, label: (await sessionLabelsFor(prisma, [session.id])).get(session.id) ?? 'Session' },
     documents: documentsWithRecipients,
     characterSheets,
     sessionRoleRecipients,
@@ -360,7 +363,7 @@ async function characterSheetMessage(dashboard: Dashboard, sheet: DashboardSheet
     text: [
       greeting(sheet.participant),
       '',
-      `Voici ta fiche pour ${dashboard.session.name}.`,
+      `Voici ta fiche pour ${dashboard.session.label}.`,
       '',
       `Personnage : ${sheet.character.name}`,
       sheet.character.backgroundDocumentUrl
@@ -375,11 +378,11 @@ async function characterSheetMessage(dashboard: Dashboard, sheet: DashboardSheet
 async function trombinoscopeMessage(dashboard: Dashboard, sheet: DashboardSheet, update = false) {
   const pdf = await buildTrombinoscopePdfAttachment(dashboard.session, sheet.character.id, dashboard.photoCache)
   return asUpdate({
-    subject: `Trombinoscope - ${dashboard.session.name}`,
+    subject: `Trombinoscope - ${dashboard.session.label}`,
     text: [
       greeting(sheet.participant),
       '',
-      `Voici ton trombinoscope pour ${dashboard.session.name}.`,
+      `Voici ton trombinoscope pour ${dashboard.session.label}.`,
       'Le PDF est joint à cet email.',
       '',
       gamePhotoInformation(dashboard.session.game)
@@ -502,11 +505,11 @@ export async function markCharacterSheetBundleDeliveries(sessionId: string) {
     const characterSheet = await buildCharacterSheetPdfAttachment(dashboard.session, sheet.character)
     const trombinoscope = await buildTrombinoscopePdfAttachment(dashboard.session, sheet.character.id, dashboard.photoCache)
     return {
-      subject: `Fiche personnage et trombinoscope - ${dashboard.session.name}`,
+      subject: `Fiche personnage et trombinoscope - ${dashboard.session.label}`,
     text: [
       greeting(sheet.participant),
       '',
-      `Voici ta fiche et ton trombinoscope pour ${dashboard.session.name}.`,
+      `Voici ta fiche et ton trombinoscope pour ${dashboard.session.label}.`,
       '',
       `Personnage : ${sheet.character.name}`,
       sheet.character.backgroundDocumentUrl
@@ -602,7 +605,7 @@ export async function sendDocumentTestEmails(sessionId: string, documentIds: str
       to: emails,
       subject: `[Test] ${document.title}`,
       text: [
-        `Document de test pour la session ${dashboard.session.name}.`,
+        `Document de test pour la ${inSentence(dashboard.session.label)}.`,
         '',
         document.content || '',
         document.documentUrl ? `Document lié : ${document.documentUrl}` : ''
@@ -634,7 +637,7 @@ export async function sendCharacterSheetBundleTestEmail(sessionId: string, chara
     to: emails,
     subject: `[Test] Fiche personnage - ${sheet.character.name}`,
     text: [
-      `Fiche personnage de test pour ${dashboard.session.name}.`,
+      `Fiche personnage de test pour ${dashboard.session.label}.`,
       '',
       `Personnage : ${sheet.character.name}`,
       sheet.character.backgroundDocumentUrl
@@ -656,12 +659,12 @@ export async function sendCharacterSheetBundleTestEmail(sessionId: string, chara
 
 // Ce que montre le PDF d'un document : repris tel quel dans sa copie (US-078) et pour sa lecture (US-079)
 export function documentPdfContent(
-  session: { name: string, game: { title: string } },
+  session: { label: string, game: { title: string } },
   document: { title: string, content: string | null, documentUrl: string | null }
 ): TextPdfInput {
   return {
     title: document.title,
-    subtitle: `${session.name} - ${session.game.title}`,
+    subtitle: `${session.label} - ${session.game.title}`,
     sections: [
       { title: 'Contenu', body: document.content || 'Aucun corps de document renseigné.' },
       ...(document.documentUrl ? [{ title: 'Document lié', body: document.documentUrl }] : [])
@@ -669,10 +672,10 @@ export function documentPdfContent(
   }
 }
 
-export function characterSheetPdfContent(session: { name: string }, character: SheetCharacter): TextPdfInput {
+export function characterSheetPdfContent(session: { label: string }, character: SheetCharacter): TextPdfInput {
   return {
     title: character.name,
-    subtitle: `Fiche personnage - ${session.name}`,
+    subtitle: `Fiche personnage - ${session.label}`,
     sections: [
       { title: 'Pitch', body: character.pitch || '' },
       { title: 'Background', body: character.background || '' },
@@ -692,7 +695,7 @@ export async function buildDocumentPdf(sessionId: string, documentId: string) {
 
   const content = documentPdfContent(dashboard.session, document)
   return {
-    filename: generatedPdfFileName([dashboard.session.name, document.title]),
+    filename: generatedPdfFileName([dashboard.session.label, document.title]),
     content,
     bytes: await renderTextPdf(content)
   }
@@ -707,7 +710,7 @@ export async function buildCharacterSheetPdf(sessionId: string, characterId: str
 
   const content = characterSheetPdfContent(dashboard.session, sheet.character)
   return {
-    filename: generatedPdfFileName([dashboard.session.name, sheet.character.name, 'fiche-personnage']),
+    filename: generatedPdfFileName([dashboard.session.label, sheet.character.name, 'fiche-personnage']),
     content,
     bytes: await renderTextPdf(content)
   }
@@ -730,7 +733,7 @@ async function buildCharacterSheetPdfAttachment(session: { id: string }, charact
 }
 
 // photoCache null : pas de copie (email de test)
-async function buildTrombinoscopePdfAttachment(session: { id: string, name: string }, characterId: string, photoCache: Map<string, Promise<Uint8Array | null>> | null) {
+async function buildTrombinoscopePdfAttachment(session: { id: string, label: string }, characterId: string, photoCache: Map<string, Promise<Uint8Array | null>> | null) {
   const trombinoscope = await getSessionTrombinoscope(session.id, characterId)
   if (!trombinoscope.contentPdf) {
     throw createError({ statusCode: 404, message: 'Trombinoscope PDF introuvable' })
@@ -746,6 +749,6 @@ async function buildTrombinoscopePdfAttachment(session: { id: string, name: stri
   }
 }
 
-export function trombinoscopeHeading(session: { name: string }) {
-  return { title: 'Trombinoscope', subtitle: session.name }
+export function trombinoscopeHeading(session: { label: string }) {
+  return { title: 'Trombinoscope', subtitle: session.label }
 }

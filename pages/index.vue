@@ -15,7 +15,7 @@
         <div v-else-if="!dashboardData?.nextSession" class="text-gray-500">Aucune session prévue</div>
         <div v-else class="space-y-4">
           <div>
-            <div class="text-xl font-semibold">{{ dashboardData.nextSession.name }}</div>
+            <div class="text-xl font-semibold">{{ dashboardData.nextSession.label }}</div>
             <div class="text-sm text-gray-500">{{ dashboardData.nextSession.game.title }}</div>
           </div>
 

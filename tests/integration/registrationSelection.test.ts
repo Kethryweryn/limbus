@@ -114,7 +114,7 @@ describe('une personne, session par session (R17)', () => {
     const pool = await createPool(prisma, alice.id, { sessions: 1, seats: 1, replayPolicy: 'excluded' })
     const session = pool.sessions[0]!
     const lou = await addPerson(prisma, pool, 'Lou', [session.id])
-    const past = await prisma.session.create({ data: { name: 'Passée', slug: `passee-${pool.key}`, gameId: pool.game.id, status: 'completed' } })
+    const past = await prisma.session.create({ data: { slug: `passee-${pool.key}`, gameId: pool.game.id, status: 'completed' } })
     await prisma.sessionParticipant.create({ data: { sessionId: past.id, participantId: lou.participantId, role: 'participant' } })
 
     const overview = bodyOf<Selection>(await api(alice, 'GET', `/api/registration-periods/${pool.period.id}/selection`))

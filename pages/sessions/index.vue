@@ -145,7 +145,7 @@ const filteredSessions = computed(() => {
   return sessions.value
     .filter((session) => !gameId || session.gameId === gameId)
     .filter((session) =>
-      [session.name, session.location?.name, session.location?.address, session.game?.title].some((field) =>
+      [session.label, session.location?.name, session.location?.address, session.game?.title].some((field) =>
         field?.toLowerCase().includes(term)
       )
     )

@@ -17,8 +17,8 @@ export default defineEventHandler(async (event) => {
   // Présence dans la session vérifiée en une requête pour toutes les périodes
   const registrations = new Map((await withSessionPresence(periods.flatMap((period) => period.registrations)))
     .map((registration) => [registration.id, registration]))
-  return periods.map((period) => exposeRegistrationPeriod({
+  return await Promise.all(periods.map((period) => exposeRegistrationPeriod({
     ...period,
     registrations: period.registrations.map((registration) => registrations.get(registration.id)!)
-  }))
+  })))
 })

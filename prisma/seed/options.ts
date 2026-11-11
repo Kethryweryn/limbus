@@ -1,5 +1,5 @@
 import slugify from 'slugify'
-import { sessionDayKey, sessionDayLabel } from '../../utils/sessionLabels'
+import { sessionDayKey } from '../../utils/sessionLabels'
 // Réglages du rechargement des jeux de test, tous lus dans l'environnement (ADR-0066)
 
 const MIN_PASSWORD_LENGTH = 8
@@ -59,11 +59,11 @@ export function sessionDate(days: number) {
   return new Date(anchor + days * DAY_MS)
 }
 
-// Date, libellé et adresse d'une session de test, comme le serveur les calcule (SPEC-021, ADR-0083) : le rôle de la
-// session (« Session mixte »…) reste dans le code et dans doc/jeux-de-test.md, pas dans son libellé
+// Date et adresse d'une session de test, comme le serveur les calcule (SPEC-021, ADR-0084) : la session n'a pas de nom,
+// son rôle (« Session mixte »…) reste dans le code et dans doc/jeux-de-test.md
 export function sessionFields(gameTitle: string, days: number) {
   const date = sessionDate(days)
-  return { date, name: sessionDayLabel(date), slug: slugify(`${gameTitle} ${sessionDayKey(date)}`, { lower: true, strict: true }) }
+  return { date, slug: slugify(`${gameTitle} ${sessionDayKey(date)}`, { lower: true, strict: true }) }
 }
 
 // Midi UTC, pour que la date reste le même jour en France

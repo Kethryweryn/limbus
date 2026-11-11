@@ -9,6 +9,7 @@ import { SESSION_ROLES, SESSION_STATUSES } from '../../utils/domain'
 import { RIB_UPLOAD_PREFIX } from '../../utils/urls'
 import type { Db, StageContext } from './db'
 import { daysFromNow, sessionDate, sessionFields } from './options'
+import { sessionDayLabel } from '../../utils/sessionLabels'
 import type { AttendanceStatus, TariffRole } from '../../generated/prisma/enums'
 
 // Délai laissé aux réponses de présence, en jours
@@ -89,8 +90,10 @@ export async function createValombreStage(db: Db, context: StageContext) {
         ]
       }
     },
-    select: { id: true, name: true }
+    select: { id: true }
   })
+  // Le libellé que la page de la session affiche, pour les copies d'envoi (SPEC-021)
+  const sessionLabel = sessionDayLabel(sessionDate(10))
 
   // Une session plus lointaine, au casting encore ouvert
   await db.session.create({
@@ -201,8 +204,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
   const documents = await db.document.findMany({ where: { gameId, audiences: { has: 'pjs' } }, select: { id: true, title: true, content: true, documentUrl: true } })
   const roadmap = documents.find((row) => row.title.startsWith('Feuille de route'))!
   const world = documents.find((row) => row.title.startsWith('Document monde'))!
-  const sessionForHash = { game: { title } }
-  const worldBefore = { title: world.title, subtitle: session.name, sections: [{ body: 'Version envoyée avant la dernière correction de l’équipe.' }] }
+  const worldBefore = { title: world.title, subtitle: sessionLabel, sections: [{ body: 'Version envoyée avant la dernière correction de l’équipe.' }] }
   for (const recipient of [camille, lucie, nicolas]) {
     await db.sessionDocumentDelivery.create({
       data: {
@@ -211,9 +213,9 @@ export async function createValombreStage(db: Db, context: StageContext) {
         participantId: recipient.id,
         documentId: roadmap.id,
         kind: 'document',
-        contentHash: documentContentHash(sessionForHash, roadmap),
+        contentHash: documentContentHash(roadmap),
         sentAt: daysFromNow(-4),
-        ...(await textCopyData({ title: roadmap.title, subtitle: session.name, sections: [{ body: roadmap.content }] }))
+        ...(await textCopyData({ title: roadmap.title, subtitle: sessionLabel, sections: [{ body: roadmap.content }] }))
       }
     })
     await db.sessionDocumentDelivery.create({
@@ -223,7 +225,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
         participantId: recipient.id,
         documentId: world.id,
         kind: 'document',
-        contentHash: documentContentHash(sessionForHash, { ...world, content: worldBefore.sections[0]!.body }),
+        contentHash: documentContentHash({ ...world, content: worldBefore.sections[0]!.body }),
         sentAt: daysFromNow(-4),
         ...(await textCopyData(worldBefore))
       }
@@ -243,7 +245,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
       kind: 'character_sheet',
       contentHash: characterSheetContentHash(aelis),
       sentAt: daysFromNow(-4),
-      ...(await textCopyData({ title: aelis.name, subtitle: session.name, sections: [{ title: 'Présentation', body: aelis.pitch }, { title: 'Histoire', body: aelis.background }] }))
+      ...(await textCopyData({ title: aelis.name, subtitle: sessionLabel, sections: [{ title: 'Présentation', body: aelis.pitch }, { title: 'Histoire', body: aelis.background }] }))
     }
   })
 
@@ -258,7 +260,7 @@ export async function createValombreStage(db: Db, context: StageContext) {
       viewerCharacterId: aelis.id,
       participantId: camille.id,
       fileName: 'trombinoscope-aelis.pdf',
-      contentPdf: Buffer.from(await renderTextPdf({ title: `Trombinoscope de ${aelis.name}`, subtitle: session.name, sections: cards.map((card) => ({ title: card.displayName })) })),
+      contentPdf: Buffer.from(await renderTextPdf({ title: `Trombinoscope de ${aelis.name}`, subtitle: sessionLabel, sections: cards.map((card) => ({ title: card.displayName })) })),
       contentHtml: `<h1>Trombinoscope de ${aelis.name}</h1>`,
       contentJson: cards
     }

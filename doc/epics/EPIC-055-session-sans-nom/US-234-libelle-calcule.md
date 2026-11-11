@@ -4,7 +4,7 @@ titre: Une session désignée par sa date, sans nom à saisir
 statut: terminée
 epic: EPIC-055
 regles: [R1, R2, R3, R5, R6, R7, R8]
-adr: [ADR-0083]
+adr: [ADR-0083, ADR-0084]
 ---
 
 # US-234 : Une session désignée par sa date, sans nom à saisir
@@ -25,13 +25,14 @@ En tant qu'organisatrice, je veux que Limbus désigne mes sessions par leur date
 
 ## Notes techniques
 
-- `utils/sessionLabels.ts` : `sessionDayLabel`, `sessionHourLabel`, `sessionLabels` (libellés d'un jeu, à l'heure de Paris). `server/utils/sessionLabels.ts` : `refreshSessionLabels(db, gameId)`, appelé dans la transaction de la création, de la modification et du report (`sessionWrites.ts`, `sessionLifecycle.ts`) et de la suppression (`sessions/[id].delete.ts`), seulement si la date ou le lieu changent ; aussi quand un lieu est renommé ou supprimé (`contentWrites.ts`). Il écrit sans toucher à `updatedAt`, pour qu'une voisine garde sa version ; une adresse qui change passe d'abord par une adresse provisoire, pour qu'une voisine puisse prendre celle qu'elle quitte.
-- `server/plugins/sessionLabels.ts` recalcule au démarrage les libellés et adresses qui diffèrent (R6).
-- `name` disparaît de `sessionSchema`, `sessionPostponeSchema`, du formulaire, de la fenêtre « Reporter » et des outils `creer_session` et `modifier_session`, qui rendent `libelle`. Hors ligne, la projection d'une session modifiée prend le libellé de sa nouvelle date (`utils/sessionOffline.ts`).
-- Les jeux de test donnent à chaque session une date fixe et son libellé dès la création (`sessionFields`, `prisma/seed/options.ts`) ; `doc/jeux-de-test.md` dit le rôle de chacune.
-- L'empreinte d'un envoi ne porte plus le libellé de la session, seulement le contenu envoyé (`deliveryHashes.ts`) ; les envois antérieurs sont marqués « à renvoyer » une fois.
+- La session n'a plus de nom en base (ADR-0084, qui remplace ADR-0083) : la colonne `name` devient facultative et n'est plus ni lue ni écrite ; US-236 la supprime une fois ce build en service.
+- `utils/sessionLabels.ts` : `sessionDayLabel`, `sessionHourLabel`, `sessionLabels` (libellés d'un jeu, à l'heure de Paris) et `inSentence` (« la session du 15 mai 2099 » dans une phrase). `server/utils/sessionLabels.ts` : `sessionLabelsFor`, `labelSessions`, `labelSession` et `labelNestedSessions` ajoutent `label` à chaque lecture, en une requête sur les sessions des jeux concernés ; `refreshSessionSlugs` recalcule l'adresse quand une session est créée ou change de date, sans toucher à la version des voisines.
+- L'API et l'interface lisent `label` partout où elles lisaient `name` ; les paramètres des emails et PDF s'appellent `sessionLabel`.
+- Les empreintes des envois (`deliveryHashes.ts`) et des trombinoscopes (`trombinoscopeFingerprint`) ne portent plus que le contenu : ni libellé de session, ni titre du jeu.
+- `name` disparaît du formulaire, de la fenêtre « Reporter », de `sessionSchema`, de `sessionPostponeSchema` et des outils `creer_session` et `modifier_session`, qui rendent `libelle`. Hors ligne, une session modifiée prend le libellé de sa nouvelle date (`utils/sessionOffline.ts`).
+- Les jeux de test donnent à chaque session une date fixe et son adresse dès la création (`sessionFields`, `prisma/seed/options.ts`) ; `doc/jeux-de-test.md` dit le rôle de chacune.
 - En route, défaut corrigé : le formulaire envoyait la date saisie sans fuseau, et le serveur la lisait à son heure ; il l'envoie maintenant avec le fuseau de l'appareil, comme « Reporter ».
-- Les outils des tests (`orgaSession`, `parcoursSession`) calculent le libellé comme le serveur ; `uniqueDate` donne à une session un libellé propre au test.
+- Les outils des tests (`tests/sessionLabel.ts` : `labelled`, `uniqueDate`) lisent le libellé comme le serveur.
 
 ## Tests
 
@@ -42,4 +43,4 @@ De bout en bout (`tests/e2e/sessionLabels.spec.ts`), sur les quatre axes (ADR-00
 - Droits : ceux de SPEC-004, inchangés ; la co-organisatrice change la date d'une session partagée (`sessionScreens.spec.ts`).
 - Hors ligne : « créée sans réseau, une session prend son libellé au retour du réseau ».
 
-Unitaires : `tests/utils/sessionLabels.test.ts`, `tests/utils/sessionOffline.test.ts`. Intégration : `tests/integration/sessionLabels.test.ts` (doublons, voisines sans nouvelle version, lieu renommé ou supprimé). Intégration : les jeux de test (`seed.test.ts`), l'assistant d'IA (`aiAssistants.test.ts`), le report et la présence.
+Unitaires : `tests/utils/sessionLabels.test.ts`, `tests/utils/sessionOffline.test.ts`, `tests/server/documents.test.ts` (empreinte : le contenu seul). Intégration : `tests/integration/sessionLabels.test.ts` (doublons, voisines sans nouvelle version, lieu renommé ou supprimé), et toutes les suites lisent `label`. Intégration : les jeux de test (`seed.test.ts`), l'assistant d'IA (`aiAssistants.test.ts`), le report et la présence.

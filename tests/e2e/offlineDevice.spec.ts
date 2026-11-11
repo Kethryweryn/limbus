@@ -242,7 +242,7 @@ test.describe('désactivation', () => {
 
       await page.goto(`/sessions/${session.slug}?tab=cast`)
       await page.waitForLoadState('networkidle')
-      await expect(page.getByRole('heading', { name: session.name })).toBeVisible()
+      await expect(page.getByRole('heading', { name: session.label })).toBeVisible()
       await context.setOffline(true)
       const row = page.locator('form > div.grid').filter({ hasText: 'Aube' })
       await choose(page, row.getByRole('combobox'), /Léa Parcours/)

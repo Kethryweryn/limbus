@@ -1,8 +1,8 @@
+import { labelled, slugOf, uniqueName  } from './helpers'
 import { createHash, randomBytes } from 'node:crypto'
 import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { slugOf, uniqueName } from './helpers'
 
 test('un teaser YouTube ne charge le lecteur qu’au clic (US-046)', async ({ page }) => {
   const youtubeRequests: string[] = []
@@ -38,13 +38,13 @@ test('la page publique suit un renommage et montre sessions et inscription', asy
     const game = await prisma.game.create({
       data: { title, slug: slugOf(title), description: '', ownerId: owner.id, publicPage: true, publicShowSessions: true, publicShowRegistration: true, slugRedirects: { create: { slug: `ancien-${slugOf(title)}` } } }
     })
-    const session = await prisma.session.create({ data: { name: `Session ${title}`, slug: slugOf(`session ${title}`), gameId: game.id, published: true, date: new Date('2099-11-01T09:00:00Z') } })
+    const session = await labelled(prisma, await prisma.session.create({ data: { slug: slugOf(`session ${title}`), gameId: game.id, published: true, date: new Date('2099-11-01T09:00:00Z') } }))
     await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `g${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } } })
 
     await page.goto(`/public/games/ancien-${slugOf(title)}`)
     await expect(page).toHaveURL(new RegExp(`/public/games/${game.slug}$`))
     await expect(page.getByRole('heading', { name: 'Prochaines sessions' })).toBeVisible()
-    await expect(page.getByText(session.name)).toBeVisible()
+    await expect(page.getByText(session.label)).toBeVisible()
     await expect(page.getByRole('link', { name: 'S’inscrire au jeu' })).toBeVisible()
   } finally {
     await prisma.$disconnect()
@@ -60,7 +60,7 @@ test('sans les cases de la fiche, ni sessions ni inscription ; une copie légué
     const game = await prisma.game.create({
       data: { title, slug: slugOf(title), description: 'Une présentation seule', ownerId: owner.id, publicPage: true, creditSourceTitle: 'Le jeu d’origine', creditAuthorName: 'Autrice d’origine' }
     })
-    const session = await prisma.session.create({ data: { name: `Session ${title}`, slug: slugOf(`session ${title}`), gameId: game.id, published: true, date: new Date('2099-11-01T09:00:00Z') } })
+    const session = await labelled(prisma, await prisma.session.create({ data: { slug: slugOf(`session ${title}`), gameId: game.id, published: true, date: new Date('2099-11-01T09:00:00Z') } }))
     await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `d${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } } })
 
     await page.goto(`/public/games/${game.slug}`)
@@ -68,7 +68,7 @@ test('sans les cases de la fiche, ni sessions ni inscription ; une copie légué
     await expect(page.getByText('Une présentation seule')).toBeVisible()
     await expect(page.getByText('D’après « Le jeu d’origine », de Autrice d’origine')).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Prochaines sessions' })).toHaveCount(0)
-    await expect(page.getByText(session.name)).toHaveCount(0)
+    await expect(page.getByText(session.label)).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'S’inscrire au jeu' })).toHaveCount(0)
   } finally {
     await prisma.$disconnect()
@@ -82,7 +82,7 @@ test('une personne confirme sa présence par son lien', async ({ page }) => {
     const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
     const title = uniqueName('Jeu présence')
     const game = await prisma.game.create({ data: { title, slug: slugOf(title), description: '', ownerId: owner.id } })
-    const session = await prisma.session.create({ data: { name: `Session ${title}`, slug: slugOf(`session ${title}`), gameId: game.id, date: new Date('2099-12-01T09:00:00Z') } })
+    const session = await labelled(prisma, await prisma.session.create({ data: { slug: slugOf(`session ${title}`), gameId: game.id, date: new Date('2099-12-01T09:00:00Z') } }))
     const name = uniqueName('Paul Présence')
     const participant = await prisma.participant.create({ data: { name, slug: slugOf(name), email: `${slugOf(name)}@example.test`, gameLinks: { create: { gameId: game.id } } } })
     const token = randomBytes(32).toString('base64url')

@@ -1,3 +1,5 @@
+import { inSentence } from '~/utils/sessionLabels'
+import { labelSession, labelSessions } from '~/server/utils/sessionLabels'
 import { gamePhotoInformation } from '~/utils/photoInformation'
 import { createHash, randomBytes } from 'node:crypto'
 import { prisma, type PrismaTx } from '~/server/utils/prisma'
@@ -79,7 +81,7 @@ function responseDueLine(responseDueAt: Date | null, now: Date) {
 export function registrationInvitationEmailText(params: {
   participantName: string
   gameTitle: string
-  sessionName: string | null
+  sessionLabel: string | null
   sessionDate: Date | null
   responseDueAt: Date | null
   inviterName: string | null
@@ -87,14 +89,13 @@ export function registrationInvitationEmailText(params: {
   // Usage des photos (US-107)
   photoInformation?: string | null
 }, now = new Date()) {
-  const session = params.sessionName
-    ? `${params.sessionName}${params.sessionDate ? ` (${formatDate(params.sessionDate)})` : ''}`
-    : null
+  // Le libellé dit déjà la date (SPEC-021)
+  const session = params.sessionLabel ? inSentence(params.sessionLabel) : null
 
   return [
     `Bonjour ${params.participantName},`,
     '',
-    `${params.inviterName || 'L’équipe d’organisation'} vous invite à jouer à « ${params.gameTitle} »${session ? `, session ${session}` : ''}.`,
+    `${params.inviterName || 'L’équipe d’organisation'} vous invite à jouer à « ${params.gameTitle} »${session ? `, pour la ${session}` : ''}.`,
     '',
     'Ce lien personnel vous permet de lire la note d’intention et de répondre au questionnaire du jeu :',
     params.url,
@@ -112,13 +113,13 @@ export function registrationInvitationEmailText(params: {
 export function registrationReminderEmailText(params: {
   participantName: string
   gameTitle: string
-  sessionName: string | null
+  sessionLabel: string | null
   invitationSentAt: Date
   responseDueAt: Date | null
   // Place retenue à confirmer (US-089) plutôt qu'invitation
   retained?: boolean
 }, now = new Date()) {
-  const session = params.sessionName ? `, session ${params.sessionName}` : ''
+  const session = params.sessionLabel ? `, pour la ${inSentence(params.sessionLabel)}` : ''
   return [
     `Bonjour ${params.participantName},`,
     '',
@@ -136,8 +137,9 @@ export function registrationReminderEmailText(params: {
 }
 
 // Emails de l'annonce des résultats (US-088), et du renvoi d'un lien à une personne retenue (US-089)
-function sessionLabel(session: { name: string, date: Date | null }) {
-  return `${session.name}${session.date ? ` (${formatDate(session.date)})` : ''}`
+// Le libellé dit déjà la date (SPEC-021)
+function sessionWithDate(session: { label: string }) {
+  return inSentence(session.label)
 }
 
 /**
@@ -147,7 +149,7 @@ function sessionLabel(session: { name: string, date: Date | null }) {
 export function availabilityRequestEmail(params: {
   participantName: string
   gameTitle: string
-  session: { id: string, name: string, date: Date | null }
+  session: { id: string, label: string, date: Date | null }
   url: string
   reminder: boolean
 }) {
@@ -157,7 +159,7 @@ export function availabilityRequestEmail(params: {
     text: [
       `Bonjour ${params.participantName},`,
       '',
-      `L’équipe de « ${params.gameTitle} » prépare la session ${sessionLabel(params.session)} et demande qui est intéressé et disponible.`,
+      `L’équipe de « ${params.gameTitle} » prépare la ${sessionWithDate(params.session)} et demande qui est intéressé et disponible.`,
       '',
       'Répondre « Disponible » vous pré-inscrit : cela ne garantit pas de place et ne confirme pas votre inscription. L’équipe vous écrira si une place vous est retenue.',
       '',
@@ -180,7 +182,7 @@ export function selectionAnnouncementEmail(params: {
   status: string
   participantName: string
   gameTitle: string
-  sessions: Array<{ name: string, date: Date | null }>
+  sessions: Array<{ label: string, date: Date | null }>
   responseDueAt: Date | null
   url: string
 }) {
@@ -191,7 +193,7 @@ export function selectionAnnouncementEmail(params: {
       subject: `Changement pour votre session : ${params.gameTitle}`,
       text: [
         ...greeting,
-        `L’équipe de « ${params.gameTitle} » revient sur ce qu’elle vous avait annoncé : vous n’avez plus de place ni d’attente pour la session ${sessionLabel(params.sessions[0]!)}.`,
+        `L’équipe de « ${params.gameTitle} » revient sur ce qu’elle vous avait annoncé : vous n’avez plus de place ni d’attente pour la ${sessionWithDate(params.sessions[0]!)}.`,
         '',
         'Vous restez dans le vivier du jeu. Ce lien vous permet de revoir vos réponses :',
         params.url,
@@ -204,7 +206,7 @@ export function selectionAnnouncementEmail(params: {
       subject: `Place retenue : ${params.gameTitle}`,
       text: [
         ...greeting,
-        `Bonne nouvelle : votre inscription à « ${params.gameTitle} » est retenue pour la session ${sessionLabel(params.sessions[0]!)}.`,
+        `Bonne nouvelle : votre inscription à « ${params.gameTitle} » est retenue pour la ${sessionWithDate(params.sessions[0]!)}.`,
         '',
         `Confirmez votre place par ce lien${params.responseDueAt ? `, avant le ${formatDate(params.responseDueAt)}` : ''} :`,
         params.url,
@@ -218,7 +220,7 @@ export function selectionAnnouncementEmail(params: {
     subject: `Liste d’attente : ${params.gameTitle}`,
     text: [
       ...greeting,
-      `Votre inscription à « ${params.gameTitle} » est sur liste d’attente pour ${params.sessions.length > 1 ? 'les sessions' : 'la session'} ${params.sessions.map(sessionLabel).join(', ')}.`,
+      `Votre inscription à « ${params.gameTitle} » est sur liste d’attente pour ${params.sessions.length > 1 ? `les sessions : ${params.sessions.map((session) => session.label).join(', ')}` : `la ${sessionWithDate(params.sessions[0]!)}`}.`,
       'Si une place se libère, l’équipe vous écrira.',
       '',
       'Ce lien vous permet de suivre votre inscription, ou d’annuler votre présence :',
@@ -237,7 +239,7 @@ type InvitationEmailTarget = {
 
 type InvitationContext = {
   gameTitle: string
-  sessionName: string | null
+  sessionLabel: string | null
   sessionDate: Date | null
   responseDueAt: Date | null
   inviterName: string | null
@@ -294,7 +296,7 @@ export async function inviteToRegistrationPeriod(params: {
     throw createError({ statusCode: 409, message: 'Le vivier doit être ouvert pour inviter' })
   }
   const invitedSession = params.sessionId
-    ? await prisma.session.findFirst({ where: { id: params.sessionId, gameId: period.gameId, status: SESSION_STATUSES.scheduled }, select: { id: true, name: true, date: true } })
+    ? await prisma.session.findFirst({ where: { id: params.sessionId, gameId: period.gameId, status: SESSION_STATUSES.scheduled }, select: { id: true, date: true } })
     : null
   if (params.sessionId && !invitedSession) {
     throw createError({ statusCode: 400, message: 'Session invalide pour ce vivier' })
@@ -417,7 +419,7 @@ export async function inviteToRegistrationPeriod(params: {
 
   const context = {
     gameTitle: period.game.title,
-    sessionName: invitedSession?.name ?? null,
+    sessionLabel: invitedSession ? (await labelSession(prisma, invitedSession)).label : null,
     sessionDate: invitedSession?.date ?? null,
     responseDueAt,
     inviterName: params.inviter.name ?? null,
@@ -467,7 +469,7 @@ const awaitingLineKey = (registrationId: string, sessionId: string) => ({ regist
 async function requireAwaitingLine(registrationId: string, sessionId: string) {
   const line = await prisma.registrationSession.findUnique({
     where: awaitingLineKey(registrationId, sessionId),
-    select: { status: true, announcedStatus: true, announcedAt: true, responseDueAt: true, session: { select: { name: true, date: true } } }
+    select: { status: true, announcedStatus: true, announcedAt: true, responseDueAt: true, session: { select: { id: true, date: true } } }
   })
   if (!line || !canConfirmPlace(line)) {
     throw createError({ statusCode: 409, message: 'Cette personne a déjà répondu, ou sa place n’est pas annoncée.' })
@@ -486,7 +488,7 @@ const invitationSelect = {
   invitationSentAt: true,
   responseDueAt: true,
   participant: { select: { name: true } },
-  invitedSession: { select: { name: true, date: true } },
+  invitedSession: { select: { id: true, date: true } },
   period: { select: { game: { select: { title: true, photoRetentionMonths: true, contactEmail: true, owner: { select: { email: true } } } } } }
 } as const
 
@@ -518,7 +520,7 @@ export async function resendRegistrationInvitation(registrationId: string, invit
   if (!invited) {
     const gameTitle = registration.period.game.title
     const email = line
-      ? selectionAnnouncementEmail({ status: LINE.retained, participantName: registration.participant.name, gameTitle, sessions: [line.session], responseDueAt: line.responseDueAt, url: registrationUrl(token) })
+      ? selectionAnnouncementEmail({ status: LINE.retained, participantName: registration.participant.name, gameTitle, sessions: [await labelSession(prisma, line.session)], responseDueAt: line.responseDueAt, url: registrationUrl(token) })
       : {
           subject: `Votre lien : ${gameTitle}`,
           text: [
@@ -543,7 +545,7 @@ export async function resendRegistrationInvitation(registrationId: string, invit
     { registrationId: registration.id, token, to, participantName: registration.participant.name },
     {
       gameTitle: registration.period.game.title,
-      sessionName: registration.invitedSession?.name ?? null,
+      sessionLabel: registration.invitedSession ? (await labelSession(prisma, registration.invitedSession)).label : null,
       sessionDate: registration.invitedSession?.date ?? null,
       responseDueAt: registration.responseDueAt,
       inviterName: inviter.name ?? null,
@@ -577,7 +579,7 @@ export async function remindRegistration(registrationId: string, sessionId?: str
     text: registrationReminderEmailText({
       participantName: registration.participant.name,
       gameTitle: registration.period.game.title,
-      sessionName: (line?.session ?? registration.invitedSession)?.name ?? null,
+      sessionLabel: (line?.session ?? registration.invitedSession) ? (await labelSession(prisma, (line?.session ?? registration.invitedSession)!)).label : null,
       invitationSentAt: sentAt,
       responseDueAt: line ? line.responseDueAt : registration.responseDueAt,
       retained
@@ -673,7 +675,7 @@ export async function withSessionPresence<T extends { sessionLines: Array<{ stat
 export function registrationWithdrawalEmailText(params: {
   participantName: string
   gameTitle: string
-  sessionName: string | null
+  sessionLabel: string | null
   withdrawnBy: string | null
   // La personne était inscrite : elle quitte la session, ses personnages sont libres
   wasInSession?: boolean
@@ -681,8 +683,8 @@ export function registrationWithdrawalEmailText(params: {
 }) {
   return [
     params.withdrawnBy
-      ? `${params.withdrawnBy} a retiré ${params.participantName}${params.sessionName ? ` de la session ${params.sessionName}` : ''} du jeu « ${params.gameTitle} ».`
-      : `${params.participantName} a annulé sa présence ${params.sessionName ? `à la session ${params.sessionName} du` : 'au'} jeu « ${params.gameTitle} ».`,
+      ? `${params.withdrawnBy} a retiré ${params.participantName}${params.sessionLabel ? ` de la ${inSentence(params.sessionLabel)}` : ''} du jeu « ${params.gameTitle} ».`
+      : `${params.participantName} a annulé sa présence ${params.sessionLabel ? `à la ${inSentence(params.sessionLabel)} du` : 'au'} jeu « ${params.gameTitle} ».`,
     '',
     params.wasInSession ? 'La personne ne fait plus partie des participants de la session, et ses personnages (PJ et PNJ) sont libres.' : null,
     params.trombinoscopes === 'regenerated'
@@ -747,7 +749,7 @@ const withdrawalSelect = {
   participantId: true,
   participant: { select: { name: true } },
   period: { select: { gameId: true, game: { select: { title: true } } } },
-  sessionLines: { select: { sessionId: true, status: true, session: { select: { name: true, status: true } } } }
+  sessionLines: { select: { sessionId: true, status: true, session: { select: { id: true, status: true } } } }
 } as const
 
 /**
@@ -830,7 +832,7 @@ async function regenerateTrombinoscopes(sessionId: string) {
 // Trombinoscopes à refaire et équipe à prévenir : rien de cela ne doit faire échouer l'annulation
 async function afterCancellation(
   registration: { participant: { name: string }, period: { gameId: string, game: { title: string } } },
-  line: { sessionId: string, session: { name: string } },
+  line: { sessionId: string, session: { id: string } },
   wasInSession: boolean,
   cancelledBy: { id: string, name?: string | null } | null
 ) {
@@ -840,7 +842,7 @@ async function afterCancellation(
     registrationWithdrawalEmailText({
       participantName: registration.participant.name,
       gameTitle: registration.period.game.title,
-      sessionName: line.session.name,
+      sessionLabel: (await labelSession(prisma, line.session)).label,
       withdrawnBy: cancelledBy ? cancelledBy.name || 'Une organisatrice' : null,
       wasInSession,
       trombinoscopes
@@ -851,14 +853,14 @@ async function afterCancellation(
 
 async function afterLeaving(
   registration: { participant: { name: string }, period: { gameId: string, game: { title: string } } },
-  cancelled: Array<{ line: { sessionId: string, session: { name: string } }, wasInSession: boolean }>,
+  cancelled: Array<{ line: { sessionId: string, session: { id: string } }, wasInSession: boolean }>,
   leftBy: { id: string, name?: string | null } | null
 ) {
   for (const { line, wasInSession } of cancelled) {
     if (wasInSession) await regenerateTrombinoscopes(line.sessionId)
   }
   const name = registration.participant.name
-  const sessions = cancelled.map(({ line }) => line.session.name)
+  const sessions = (await labelSessions(prisma, cancelled.map(({ line }) => line.session))).map((session) => session.label)
   return await notifyGameTeam(
     registration.period.gameId,
     [

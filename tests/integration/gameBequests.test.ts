@@ -82,7 +82,7 @@ async function sourceGame(owner: { id: string } = alice) {
   })
 
   // Données d'équipe, jamais copiées (R5)
-  const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId } })
+  const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId } })
   const participant = await prisma.participant.create({ data: { name: `Joueuse ${key}`, slug: `joueuse-${key}`, gameLinks: { create: { gameId } } } })
   await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: hero.id, participantId: participant.id } })
   await prisma.registrationPeriod.create({ data: { gameId, publicId: `pub-${key}` } })

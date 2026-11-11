@@ -1,4 +1,5 @@
 // US-007 : inscrits confirmés dans le tableau des paiements (SPEC-001, R22, ADR-0021)
+import { labelled } from '../sessionLabel'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf } from './api'
@@ -30,7 +31,7 @@ afterAll(async () => {
 async function sessionWithPeople() {
   const key = `paiements-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
-  const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
+  const session = await labelled(prisma, await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } }))
   const person = (name: string) => prisma.participant.create({
     data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
   })
@@ -70,7 +71,7 @@ describe('tableau des paiements', () => {
     expect(response.body).toMatchObject({ sentCount: 1 })
 
     const email = smtp.to(confirmed.email!).at(-1)!
-    expect(email.text).toContain(`régler ta participation à ${session.name}`)
+    expect(email.text).toContain(`régler ta participation à ${session.label}`)
     expect(email.text).not.toMatch(/personnage/i)
     expect(smtp.received.some((message) => message.to.includes(cook.email!))).toBe(false)
   })

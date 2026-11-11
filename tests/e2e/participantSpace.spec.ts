@@ -42,7 +42,7 @@ async function delivered(prisma: TestPrisma, member: Awaited<ReturnType<typeof p
   const delivery = await prisma.sessionDocumentDelivery.create({
     data: {
       gameId: member.game.id, sessionId: member.session.id, participantId: member.participant.id, documentId: document.id, kind: 'document',
-      copyPdf: Buffer.from('%PDF-1.4'), copyContent: { kind: 'text', title, subtitle: member.session.name, sections: [{ title: 'Contenu', body }] }, copySize: 100
+      copyPdf: Buffer.from('%PDF-1.4'), copyContent: { kind: 'text', title, subtitle: member.session.label, sections: [{ title: 'Contenu', body }] }, copySize: 100
     }
   })
   return { id: delivery.id, title }
@@ -113,14 +113,14 @@ test.describe('lien public d’inscription', () => {
       await page.getByLabel('Téléphone', { exact: true }).fill('0612345678')
       await page.getByLabel('Contact d’urgence : nom').fill('Karl')
       await page.getByLabel('Contact d’urgence : téléphone').fill('0698765432')
-      await page.getByLabel(new RegExp(`^${session.name}`)).check()
+      await page.getByLabel(new RegExp(`^${session.label}`)).check()
       await page.getByLabel('J’ai lu la note d’intention et j’y adhère').check()
       await page.getByRole('button', { name: 'M’inscrire' }).click()
       await expect(page.getByText('Votre réponse est reçue.')).toBeVisible()
 
       await page.goto('/participer')
       await expect(page.getByRole('heading', { name: game.title })).toBeVisible()
-      await expect(page.getByText(session.name).first()).toBeVisible()
+      await expect(page.getByText(session.label).first()).toBeVisible()
     } finally {
       await prisma.$disconnect()
     }
@@ -154,7 +154,7 @@ test.describe('« Je participe »', () => {
       await page.getByRole('link', { name: 'Voir ou modifier' }).click()
       await expect(page.getByRole('heading', { name: member.game.title })).toBeVisible()
       await page.waitForLoadState('networkidle')
-      await expect(page.locator(`[data-session="${member.session.name}"]`).getByText('Pré-inscrite')).toBeVisible()
+      await expect(page.locator(`[data-session="${member.session.label}"]`).getByText('Pré-inscrite')).toBeVisible()
 
       await page.getByLabel('Prénom').fill('')
       await page.getByRole('button', { name: 'Enregistrer les modifications' }).click()

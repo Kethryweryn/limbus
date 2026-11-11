@@ -1,4 +1,5 @@
 // EPIC-018 : copie de chaque envoi (US-078), documents dans « Je participe » (US-079), nettoyage après la session (US-080)
+import { labelled } from '../sessionLabel'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
@@ -39,7 +40,7 @@ async function world() {
   const owner = await prisma.user.create({ data: { email: `proprio-${k}@example.test`, name: 'Proprio', password: 'non-utilise' } })
   const player = await prisma.user.create({ data: { email: `joueuse-${k}@example.test`, name: 'Joueuse', password: 'non-utilise' } })
   const game = await prisma.game.create({ data: { title: `Jeu ${k}`, slug: `jeu-${k}`, description: '', ownerId: owner.id } })
-  const session = await prisma.session.create({ data: { name: `Session ${k}`, slug: `session-${k}`, gameId: game.id, date: new Date(Date.now() + 10 * DAY) } })
+  const session = await labelled(prisma, await prisma.session.create({ data: { slug: `session-${k}`, gameId: game.id, date: new Date(Date.now() + 10 * DAY) } }))
   const participant = await prisma.participant.create({
     data: { name: 'Joueuse', slug: `joueuse-${k}`, email: player.email, userId: player.id, gameLinks: { create: { gameId: game.id } } }
   })
@@ -158,9 +159,9 @@ describe('copies effacées après la session (US-080)', () => {
     const { owner, game, session, participant, document } = await world()
     expect((await api(owner, 'POST', `/api/sessions/${session.id}/documents/send`, { documentIds: [document.id] })).status).toBe(200)
     await prisma.session.update({ where: { id: session.id }, data: { date: new Date(Date.now() - 2 * DAY) } })
-    const cancelled = await api(owner, 'PUT', `/api/sessions/${session.id}`, { name: session.name, gameId: game.id, status: 'cancelled', date: session.date!.toISOString() })
+    const cancelled = await api(owner, 'PUT', `/api/sessions/${session.id}`, { name: session.label, gameId: game.id, status: 'cancelled', date: session.date!.toISOString() })
     expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
-    expect((await prisma.session.findUniqueOrThrow({ where: { id: session.id } })).cancelledAt).not.toBeNull()
+    expect((await labelled(prisma, await prisma.session.findUniqueOrThrow({ where: { id: session.id } }))).cancelledAt).not.toBeNull()
 
     await purge()
     expect((await deliveryOf(participant.id, 'document')).copySize).not.toBeNull()
@@ -173,7 +174,7 @@ describe('copies effacées après la session (US-080)', () => {
   it('une session reportée garde ses copies jusqu’au lendemain de celle qui la remplace', async () => {
     const { owner, session, participant, document } = await world()
     expect((await api(owner, 'POST', `/api/sessions/${session.id}/documents/send`, { documentIds: [document.id] })).status).toBe(200)
-    const postponed = await api(owner, 'POST', `/api/sessions/${session.id}/postpone`, { name: `${session.name} reportée`, date: new Date(Date.now() + 30 * DAY).toISOString() })
+    const postponed = await api(owner, 'POST', `/api/sessions/${session.id}/postpone`, { name: `${session.label} reportée`, date: new Date(Date.now() + 30 * DAY).toISOString() })
     expect(postponed.status, JSON.stringify(postponed.body)).toBe(200)
     const replacement = postponed.body as { id: string }
 

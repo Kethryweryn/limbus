@@ -26,7 +26,7 @@
           <UBadge class="ml-2" size="sm" :color="registrationStatusMeta(registration).color" variant="subtle">{{ registrationStatusMeta(registration).label }}</UBadge>
           <div class="text-xs text-gray-500">
             {{ registration.email }}
-            <span v-if="sessionName(registration)"> · pour {{ sessionName(registration) }}</span>
+            <span v-if="sessionLabel(registration)"> · pour {{ sessionLabel(registration) }}</span>
             <span v-if="registration.invitationSentAt"> · invitée le {{ formatLongDate(registration.invitationSentAt) }}</span>
             <span v-else class="text-warning-600"> · email non envoyé</span>
             <span v-if="registration.lastRemindedAt"> · relancée le {{ formatLongDate(registration.lastRemindedAt) }}</span>
@@ -84,5 +84,5 @@ const { invite, remind, resend, askExtension, release, cancel } = useRegistratio
 const open = computed(() => props.period.state === REGISTRATION_PERIOD_STATES.open)
 const allInvitations = computed(() => props.period.registrations.filter((registration) => registration.status === REGISTRATION_STATUSES.invited))
 const invitations = computed(() => allInvitations.value.filter((registration) => props.matches?.(registration) ?? true))
-const sessionName = (registration: PeriodRegistration) => props.period.sessions.find((link) => link.sessionId === registration.invitedSessionId)?.session.name
+const sessionLabel = (registration: PeriodRegistration) => props.period.sessions.find((link) => link.sessionId === registration.invitedSessionId)?.session.label
 </script>

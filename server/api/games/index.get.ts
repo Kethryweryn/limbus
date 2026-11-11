@@ -1,3 +1,4 @@
+import { sessionLabelsFor } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
 import { aiGameRestriction, canAccessAllGames, accessibleGameWhere } from '~/server/utils/gameAccess'
@@ -25,13 +26,15 @@ export default defineEventHandler(async (event) => {
                     date: { gte: new Date() },
                     status: { notIn: CLOSED_SESSION_STATUSES }
                 },
-                select: { id: true, name: true, date: true, status: true },
+                select: { id: true, date: true, status: true },
                 orderBy: { date: 'asc' },
                 take: 1
             }
         }
     })
 
+    // Libellé de la prochaine session de chaque jeu (SPEC-021)
+    const labels = await sessionLabelsFor(prisma, games.flatMap((game) => game.sessions.map((session) => session.id)))
     return games
         .map((game) => {
             const relatedDates = [
@@ -73,7 +76,7 @@ export default defineEventHandler(async (event) => {
                 transferProposedToMe: game.transferToUserId === user.id,
                 lastActivityAt,
                 lastWritingActivityAt: lastActivityAt,
-                nextScheduledSession: game.sessions[0] || null,
+                nextScheduledSession: game.sessions[0] ? { ...game.sessions[0], label: labels.get(game.sessions[0].id) ?? 'Session' } : null,
                 nextScheduledSessionAt: game.sessions[0]?.date || null
             }
         })

@@ -20,7 +20,7 @@ afterAll(async () => {
 async function aliceSession() {
   const key = `hors-ligne-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
-  const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id } })
+  const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } })
   const lea = await prisma.participant.create({
     data: { name: `Lea ${key}`, slug: `lea-${key}`, email: `lea-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
   })

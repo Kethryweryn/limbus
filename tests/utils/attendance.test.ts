@@ -30,8 +30,8 @@ describe('confirmation de présence (US-024)', () => {
     const text = attendanceInvitationEmailText({
       participantName: 'Léa',
       gameTitle: 'Les Brumes',
-      previousSessionName: 'Printemps',
-      sessionName: 'Automne',
+      previousSessionLabel: 'Printemps',
+      sessionLabel: 'Automne',
       sessionDate: after,
       locationName: 'Château',
       responseDueAt: after,

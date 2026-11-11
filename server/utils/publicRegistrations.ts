@@ -1,3 +1,5 @@
+import { inSentence } from '~/utils/sessionLabels'
+import { labelNestedSessions, labelSession, labelSessions, sessionLabelsFor } from '~/server/utils/sessionLabels'
 import { gamePhotoInformation } from '~/utils/photoInformation'
 import type { H3Event } from 'h3'
 import { prisma } from '~/server/utils/prisma'
@@ -27,7 +29,7 @@ export const INVALID_LINK_MESSAGE = 'Ce lien n’est pas valide.'
 
 const TOKEN_PATTERN = /^[\w-]{43}$/
 
-const sessionView = { id: true, name: true, date: true, status: true, location: { select: { name: true, address: true } } } as const
+const sessionView = { id: true, date: true, status: true, location: { select: { name: true, address: true } } } as const
 
 const publicRegistrationSelect = {
   id: true,
@@ -174,7 +176,7 @@ async function proposedSessions(registration: PublicRegistration) {
   const offered = await offeredSessions(registration.period.id)
   const invitedTo = registration.status === REGISTRATION_STATUSES.invited ? registration.invitedSession : null
   return invitedTo && isUpcomingSession(invitedTo) && !offered.some((session) => session.id === invitedTo.id)
-    ? [invitedTo, ...offered]
+    ? [...await labelSessions(prisma, [invitedTo]), ...offered]
     : offered
 }
 
@@ -247,13 +249,13 @@ export async function exposePublicRegistration(registration: PublicRegistration,
     poolState: registration.period.state,
     responseDueAt: registration.status === REGISTRATION_STATUSES.invited ? registration.responseDueAt : null,
     overdue: registration.status === REGISTRATION_STATUSES.invited && isResponseOverdue(registration, now),
-    invitedSession: registration.status === REGISTRATION_STATUSES.invited ? registration.invitedSession : null,
+    invitedSession: registration.status === REGISTRATION_STATUSES.invited && registration.invitedSession ? await labelSession(prisma, registration.invitedSession) : null,
     // Statut par session (R17, R28)
-    sessions: await withValidatedSessions(registration.participantId, visibleSessionLines(registration.sessionLines, now)),
+    sessions: await labelNestedSessions(prisma, await withValidatedSessions(registration.participantId, visibleSessionLines(registration.sessionLines, now))),
     ...registrationPermissions(registration),
     definition: await registrationFormDefinition(registration),
     // Disponibilités (R7) : absentes s'il n'y a aucune session à proposer
-    availability: proposed.length ? { sessions: proposed.map(({ id, name, date }) => ({ id, name, date })) } : null,
+    availability: proposed.length ? { sessions: proposed.map(({ id, label, date }) => ({ id, label, date })) } : null,
     answers: {
       email: registration.email,
       firstName: answered ? registration.firstName : registration.firstName ?? prefill.firstName,
@@ -351,15 +353,15 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
       // Une date jamais cochée reste sans réponse (R7)
       if (checked === previouslyChecked.has(session.id)) continue
       const effect = await answerAvailability(tx, registration, session.id, checked, now)
-      if (effect === 'kept') kept.push(session.name)
-      if (effect === 'removed') removed.push(session.name)
+      if (effect === 'kept') kept.push(session.id)
+      if (effect === 'removed') removed.push(session.id)
     }
 
     // Castée ou inscrite pour une session à venir : le repère apparaît, et l'équipe est prévenue (R16)
     const changedLines = changed
       ? await tx.registrationSession.findMany({
           where: { registrationId: registration.id, status: { in: [LINE.retained, LINE.confirmed] }, session: { status: SESSION_STATUSES.scheduled, OR: [{ date: null }, { date: { gte: startOfDay(now) } }] } },
-          select: { id: true, session: { select: { name: true } } }
+          select: { id: true, sessionId: true }
         })
       : []
     if (changedLines.length) {
@@ -372,7 +374,7 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
     if (invitedTo && availableSessionIds?.includes(invitedTo.id)) {
       await lockSession(tx, invitedTo.id)
       if (await tx.registrationSession.count({ where: takenSeatsWhere([invitedTo.id]) }) >= seats) {
-        fullSession = invitedTo.name
+        fullSession = invitedTo.id
       } else {
         await tx.registrationSession.update({
           where: { registrationId_sessionId: { registrationId: registration.id, sessionId: invitedTo.id } },
@@ -384,7 +386,7 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
 
     // L'adresse donnée fait foi ; le rattachement au compte la suit (US-070)
     await tx.participant.update({ where: { id: registration.participantId }, data: { email: answers.email, userId: await accountIdForEmail(answers.email) } })
-    return { kept, removed, fullSession, changedSessions: changedLines.map((line) => line.session.name) }
+    return { kept, removed, fullSession, changedSessions: changedLines.map((line) => line.sessionId) }
   })
 
   // Réponse depuis le compte : elle met aussi à jour ses coordonnées, recopiées ensuite partout (US-074). Pas par
@@ -394,16 +396,19 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
 
   const name = registration.participant.name
   const gameTitle = registration.period.game.title
-  notifyRemovedFromCast(registration, outcome.removed)
+  // Les sessions se lisent par leur libellé, calculé (SPEC-021)
+  const labels = await sessionLabelsFor(prisma, [...outcome.kept, ...outcome.removed, ...outcome.changedSessions, ...(outcome.fullSession ? [outcome.fullSession] : [])])
+  const labelOf = (id: string) => labels.get(id) ?? 'Session'
+  notifyRemovedFromCast(registration, outcome.removed.map(labelOf))
   // Sans recopier les réponses : l'équipe les lit dans Limbus
   if (outcome.changedSessions.length) {
-    notifyTeam(registration, `${name} a modifié ses réponses au questionnaire de « ${gameTitle} », alors qu’une place lui est retenue ou confirmée pour ${outcome.changedSessions.map((session) => `« ${session} »`).join(', ')}. Relisez-les depuis la page Inscriptions, et revoyez son casting si besoin.`, `Réponses modifiées : ${name} (${gameTitle})`)
+    notifyTeam(registration, `${name} a modifié ses réponses au questionnaire de « ${gameTitle} », alors qu’une place lui est retenue ou confirmée pour ${outcome.changedSessions.map((session) => `« ${labelOf(session)} »`).join(', ')}. Relisez-les depuis la page Inscriptions, et revoyez son casting si besoin.`, `Réponses modifiées : ${name} (${gameTitle})`)
   }
   if (outcome.fullSession) {
-    notifyTeam(registration, `${name} a répondu à votre invitation pour la session « ${outcome.fullSession} » (${gameTitle}), mais la session est complète : la personne reste pré-inscrite. Créez un personnage pour ajouter une place.`, `Session complète : ${name} (${gameTitle})`)
+    notifyTeam(registration, `${name} a répondu à votre invitation pour la ${inSentence(labelOf(outcome.fullSession))} (${gameTitle}), mais elle est complète : la personne reste pré-inscrite. Créez un personnage pour ajouter une place.`, `Session complète : ${name} (${gameTitle})`)
   }
 
-  return { accepted: accepting, keptSessions: outcome.kept }
+  return { accepted: accepting, keptSessions: outcome.kept.map(labelOf) }
 }
 
 function notifyTeam(registration: PublicRegistration, text: string, subject: string) {
@@ -412,11 +417,11 @@ function notifyTeam(registration: PublicRegistration, text: string, subject: str
 }
 
 // Retenue sans annonce puis plus disponible (R29) : l'équipe le sait, la personne n'apprend pas qu'elle était retenue
-function notifyRemovedFromCast(registration: PublicRegistration, sessionNames: string[]) {
-  if (!sessionNames.length) return
+function notifyRemovedFromCast(registration: PublicRegistration, sessionLabelList: string[]) {
+  if (!sessionLabelList.length) return
   const name = registration.participant.name
   const gameTitle = registration.period.game.title
-  notifyTeam(registration, `${name} n’est plus disponible pour ${sessionNames.map((session) => `« ${session} »`).join(', ')} (${gameTitle}) : la personne est retirée du cast, et le personnage qui lui était réservé est libre.`, `Plus disponible : ${name} (${gameTitle})`)
+  notifyTeam(registration, `${name} n’est plus disponible pour ${sessionLabelList.map((session) => `« ${session} »`).join(', ')} (${gameTitle}) : la personne est retirée du cast, et le personnage qui lui était réservé est libre.`, `Plus disponible : ${name} (${gameTitle})`)
 }
 
 /**
@@ -442,7 +447,7 @@ export async function answerSessionAvailability(registration: PublicRegistration
     }
     return await answerAvailability(tx, registration, sessionId, available)
   })
-  if (effect === 'removed') notifyRemovedFromCast(registration, [line!.session.name])
+  if (effect === 'removed') notifyRemovedFromCast(registration, [(await labelSession(prisma, line!.session)).label])
   return effect
 }
 

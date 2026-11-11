@@ -5,7 +5,7 @@
         <UButton to="/sessions" color="neutral" variant="ghost" icon="i-heroicons-arrow-left" class="mb-3">
           Sessions
         </UButton>
-        <h1 class="text-2xl font-bold">{{ session?.name || 'Session' }}</h1>
+        <h1 class="text-2xl font-bold">{{ session?.label || 'Session' }}</h1>
         <p class="text-sm text-gray-500">
           {{ session?.game?.title || 'Jeu inconnu' }}
           <span v-if="session?.date"> · {{ formatDate(session.date) }}</span>
@@ -13,11 +13,11 @@
         </p>
         <p v-if="session?.postponedTo" class="text-sm">
           Reportée sur
-          <NuxtLink :to="`/sessions/${session.postponedTo.slug}`" class="font-medium underline">{{ session.postponedTo.name }}</NuxtLink>
+          <NuxtLink :to="`/sessions/${session.postponedTo.slug}`" class="font-medium underline">{{ session.postponedTo.label }}</NuxtLink>
         </p>
         <p v-if="session?.postponedFrom" class="text-sm">
           Report de
-          <NuxtLink :to="`/sessions/${session.postponedFrom.slug}`" class="font-medium underline">{{ session.postponedFrom.name }}</NuxtLink>
+          <NuxtLink :to="`/sessions/${session.postponedFrom.slug}`" class="font-medium underline">{{ session.postponedFrom.label }}</NuxtLink>
         </p>
       </div>
       <div v-if="session" class="flex flex-wrap items-center gap-2">
@@ -261,7 +261,6 @@ async function saveCast(assignments: CastLine[]) {
   if (!session.value) return
 
   await saveSession({
-    name: session.value.name,
     gameId: session.value.gameId,
     date: toDatetimeLocal(session.value.date),
     locationId: session.value.locationId || '',

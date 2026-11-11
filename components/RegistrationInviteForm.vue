@@ -68,7 +68,6 @@
 <script setup lang="ts">
 import { apiErrorMessage } from '~/utils/apiErrors'
 import { REGISTRATION_STATUSES } from '~/utils/domain'
-import { formatLongDate } from '~/utils/dates'
 import { fetchByUrl, type ApiResponse } from '~/composables/useApiFetch'
 import type { InvitationResult, RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
 
@@ -97,7 +96,7 @@ const sessionId = ref(NO_SESSION)
 const sessions = ref<ApiResponse<'/api/registration-periods/:id/selection'>['sessions']>([])
 const sessionItems = computed(() => [
   { label: 'Aucune : le vivier seulement', value: NO_SESSION },
-  ...sessions.value.map((session) => ({ label: session.date ? `${session.name} · ${formatLongDate(session.date)}` : session.name, value: session.id }))
+  ...sessions.value.map((session) => ({ label: session.label, value: session.id }))
 ])
 
 // Une seule ligne par personne dans le vivier ; qui a décliné ou en est sorti repart avec un nouveau lien

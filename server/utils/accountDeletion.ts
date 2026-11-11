@@ -1,3 +1,4 @@
+import { sessionLabelsFor } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
 import { sendEmail } from '~/server/utils/email'
 import { deletePendingCopy } from '~/server/utils/gameCopy'
@@ -61,30 +62,33 @@ async function teamNotices(participantIds: string[]) {
       where: inMine,
       select: { game: { select: { id: true, title: true, owner: { select: { email: true } }, shares: { select: { user: { select: { email: true } } } } } } }
     }),
-    prisma.sessionParticipant.findMany({ where: inMine, select: { session: { select: { gameId: true, name: true } } } }),
+    prisma.sessionParticipant.findMany({ where: inMine, select: { session: { select: { id: true, gameId: true } } } }),
     prisma.registrationSession.findMany({
       where: { registration: inMine, status: { in: REGISTRATION_SEAT_STATUSES } },
-      select: { session: { select: { gameId: true, name: true } } }
+      select: { session: { select: { id: true, gameId: true } } }
     }),
     prisma.sessionPayment.findMany({
       where: inMine,
-      select: { paidAt: true, instalments: { select: { amountCents: true } }, session: { select: { gameId: true, name: true } } }
+      select: { paidAt: true, instalments: { select: { amountCents: true } }, session: { select: { id: true, gameId: true } } }
     })
   ])
 
+  // Libellé de chaque session citée (SPEC-021)
+  const labels = await sessionLabelsFor(prisma, [...roles, ...registrations, ...payments].flatMap((item) => (item.session ? [item.session.id] : [])))
+  const labelOf = (session: { id: string }) => labels.get(session.id) ?? 'Session'
   const games = new Map<string, { title: string, recipients: Set<string>, sessions: Set<string>, payments: string[] }>()
   for (const { game } of links) {
     const recipients = new Set([game.owner?.email, ...game.shares.map((share) => share.user.email)].filter((email): email is string => Boolean(email)))
     games.set(game.id, { title: game.title, recipients, sessions: new Set(), payments: [] })
   }
   for (const item of [...roles, ...registrations]) {
-    if (item.session) games.get(item.session.gameId)?.sessions.add(item.session.name)
+    if (item.session) games.get(item.session.gameId)?.sessions.add(labelOf(item.session))
   }
   for (const payment of payments) {
     const received = payment.instalments.reduce((total, instalment) => total + instalment.amountCents, 0)
     const line = received
-      ? `${payment.session.name} : ${formatEuros(received)} reçus`
-      : payment.paidAt ? `${payment.session.name} : paiement noté le ${formatDate(payment.paidAt)}` : null
+      ? `${labelOf(payment.session)} : ${formatEuros(received)} reçus`
+      : payment.paidAt ? `${labelOf(payment.session)} : paiement noté le ${formatDate(payment.paidAt)}` : null
     if (line) games.get(payment.session.gameId)?.payments.push(line)
   }
   return [...games.values()].filter((game) => game.recipients.size)

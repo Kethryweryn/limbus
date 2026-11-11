@@ -74,7 +74,7 @@ test.describe('page Inscriptions d’un jeu', () => {
 
       // Sessions, par défaut : le rappel et la session ; ni le vivier ni les réglages
       await expect(main.getByText(/« Annoncer le casting » envoie les emails/)).toBeVisible()
-      await expect(main.locator(`[data-session="${ctx.session.name}"]`)).toBeVisible()
+      await expect(main.locator(`[data-session="${ctx.session.label}"]`)).toBeVisible()
       await expect(main.getByRole('button', { name: 'Copier le lien' })).toHaveCount(0)
 
       // Vivier : ses personnes, les sorties repliées
@@ -86,7 +86,7 @@ test.describe('page Inscriptions d’un jeu', () => {
       await expect(main.getByText(ctx.left)).toBeHidden()
       await main.getByText('Sorties du vivier : 1').click()
       await expect(main.getByText(ctx.left)).toBeVisible()
-      await expect(main.locator(`[data-session="${ctx.session.name}"]`)).toBeHidden()
+      await expect(main.locator(`[data-session="${ctx.session.label}"]`)).toBeHidden()
 
       // Rechargé, puis retour depuis une autre page : le même onglet
       await page.reload()
@@ -203,7 +203,7 @@ test.describe('page Inscriptions d’un jeu', () => {
       await signIn(page, prisma, E2E_USERS.orga)
       await openSummary(page)
       await page.getByRole('link', { name: ctx.game.title, exact: true }).click()
-      await expect(page.getByRole('main').locator(`[data-session="${ctx.session.name}"]`)).toBeVisible()
+      await expect(page.getByRole('main').locator(`[data-session="${ctx.session.label}"]`)).toBeVisible()
       await page.getByRole('link', { name: 'Jeux' }).first().click()
       await expect(page.getByRole('heading', { level: 1, name: 'Jeux' })).toBeVisible()
 
@@ -211,7 +211,7 @@ test.describe('page Inscriptions d’un jeu', () => {
       await page.getByRole('link', { name: 'Inscriptions' }).first().click()
       await expect(summaryRow(page, ctx.game.title).getByText('2 personnes dans le vivier')).toBeVisible()
       await page.getByRole('link', { name: ctx.game.title, exact: true }).click()
-      await expect(page.getByRole('main').locator(`[data-session="${ctx.session.name}"]`)).toBeVisible()
+      await expect(page.getByRole('main').locator(`[data-session="${ctx.session.label}"]`)).toBeVisible()
       await registrationTab(page, 'Vivier')
       await expect(page.getByRole('main').getByText(ctx.kept[0]!)).toBeVisible()
       await registrationTab(page, 'Réglages')

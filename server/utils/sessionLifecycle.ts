@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
 import { openEmailTransport, sendEmail } from '~/server/utils/email'
-import { PENDING_SESSION_LABEL, refreshSessionLabels } from '~/server/utils/sessionLabels'
+import { labelSession, refreshSessionSlugs } from '~/server/utils/sessionLabels'
 import { assertSessionLocation } from '~/server/utils/sessionAssignments'
 import { REGISTRATION_SEAT_STATUSES, REGISTRATION_SESSION_STATUSES, SESSION_STATUSES, type SessionStatus } from '~/utils/domain'
 
@@ -36,8 +36,7 @@ export async function postponeSession(sessionId: string, target: { date?: string
   return await prisma.$transaction(async (tx) => {
     const created = await tx.session.create({
       data: {
-        // Sans nom (SPEC-021) : libellé et adresse recalculés avant la fin de la transaction
-        name: PENDING_SESSION_LABEL,
+        // Sans nom (SPEC-021) : son adresse se calcule avant la fin de la transaction
         slug: `session-${randomUUID()}`,
         gameId: session.gameId,
         date: parseDate(target.date),
@@ -58,7 +57,7 @@ export async function postponeSession(sessionId: string, target: { date?: string
           }))
         }
       },
-      select: { id: true, slug: true, name: true }
+      select: { id: true, slug: true }
     })
 
     // Les tarifs passent sur la nouvelle session, avec leurs liens de base (ADR-0032)
@@ -107,8 +106,8 @@ export async function postponeSession(sessionId: string, target: { date?: string
       })
     }
 
-    await refreshSessionLabels(tx, session.gameId)
-    return await tx.session.findUniqueOrThrow({ where: { id: created.id }, select: { id: true, slug: true, name: true } })
+    await refreshSessionSlugs(tx, session.gameId)
+    return await labelSession(tx, await tx.session.findUniqueOrThrow({ where: { id: created.id }, select: { id: true, slug: true } }))
   })
 }
 

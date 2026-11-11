@@ -28,7 +28,7 @@ const account = (name: string, data: Record<string, unknown> = {}) =>
 async function aliceGameWith(email: string) {
   const k = key()
   const game = await prisma.game.create({ data: { title: `Jeu ${k}`, slug: `jeu-${k}`, description: '', ownerId: alice.id } })
-  const session = await prisma.session.create({ data: { name: `Session ${k}`, slug: `session-${k}`, gameId: game.id, paymentLinkUrl: 'https://paiement.example.test' } })
+  const session = await prisma.session.create({ data: { slug: `session-${k}`, gameId: game.id, paymentLinkUrl: 'https://paiement.example.test' } })
   await prisma.sessionTariff.create({ data: { sessionId: session.id, name: 'Plein tarif', amountCents: 8000, defaultRole: 'pj' } })
   const character = await prisma.character.create({ data: { name: `Secret ${k}`, slug: `secret-${k}`, gameId: game.id } })
   const participant = await prisma.participant.create({ data: { name: `Joueuse ${k}`, slug: `joueuse-${k}`, email, gameLinks: { create: { gameId: game.id, notes: 'Note de l’équipe' } } } })

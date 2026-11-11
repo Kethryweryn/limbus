@@ -65,3 +65,6 @@ export function sessionLabels(sessions: LabelledSession[]) {
   }
   return labels
 }
+
+/** Le libellé au fil d'une phrase : « la session du 15 mai 2099 », « de la session sans date ». */
+export const inSentence = (label: string) => label.charAt(0).toLowerCase() + label.slice(1)

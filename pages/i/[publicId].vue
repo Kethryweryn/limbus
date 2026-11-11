@@ -15,7 +15,7 @@
               <p class="font-medium">Prochaines sessions</p>
               <ul class="list-disc pl-5">
                 <li v-for="session in period.sessions" :key="session.id">
-                  {{ session.name }}<span v-if="session.date"> · {{ formatDate(session.date) }}</span>
+                  {{ session.label }}
                   <span v-if="session.location"> · {{ session.location.name }}</span>
                 </li>
               </ul>
@@ -85,7 +85,6 @@
 <script setup lang="ts">
 import { emptyRegistrationAnswerForm } from '~/utils/registrationForms'
 import { apiErrorMessage, apiFieldErrors } from '~/utils/apiErrors'
-import { PARIS_TIME_ZONE, formatLongDate } from '~/utils/dates'
 import { publicFetch, type ApiResponse } from '~/composables/useApiFetch'
 
 type Submitted = ApiResponse<'/api/public/periods/:publicId', 'post'>
@@ -111,7 +110,6 @@ const fieldErrors = ref<Record<string, string>>({})
 const result = ref<Submitted | null>(null)
 
 
-const formatDate = (value: string) => formatLongDate(value, PARIS_TIME_ZONE)
 
 
 async function submit() {
@@ -134,7 +132,7 @@ async function submit() {
 // Aperçu sur les réseaux sociaux (R32) : nom du jeu, sessions et dates, début de la note d'intention, vignette du teaser
 const description = computed(() => {
   if (!period.value) return ''
-  const sessions = period.value.sessions.map((session) => session.date ? `${session.name} (${formatDate(session.date)})` : session.name).join(', ')
+  const sessions = period.value.sessions.map((session) => session.label).join(', ')
   const note = (period.value.game.noteIntention || '').replace(/\s+/g, ' ').trim()
   return [sessions, note.length > 200 ? `${note.slice(0, 197)}…` : note].filter(Boolean).join(' · ')
 })

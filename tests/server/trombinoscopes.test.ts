@@ -35,8 +35,6 @@ describe('soi-même (US-027)', () => {
 describe('empreinte d’un trombinoscope (US-028)', () => {
   const viewer = character('viewer')
   const fingerprint = (target: Record<string, unknown>, photoUrl: string | null = null) => trombinoscopeFingerprint({
-    gameTitle: 'Jeu',
-    sessionName: 'Session',
     viewerName: 'viewer',
     rows: buildTrombinoscopeRows(viewer, [character('lea', target)], noEntries, new Map([['lea', { photoUrl }]]))
   })

@@ -2,7 +2,7 @@
 import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS, PARCOURS } from './constants'
-import { choose, parcoursSession, signIn, uniqueDate } from './helpers'
+import { choose, labelled, parcoursSession, signIn, uniqueDate } from './helpers'
 
 test('une session créée depuis la liste se caste depuis le vivier, et ses réservations restent (US-176)', async ({ page }) => {
   const prisma = createTestPrisma()
@@ -21,7 +21,7 @@ test('une session créée depuis la liste se caste depuis le vivier, et ses rés
     await form.getByRole('button', { name: 'Créer', exact: true }).click()
 
     await expect.poll(() => prisma.session.count({ where: { date: year } })).toBe(1)
-    const session = await prisma.session.findFirstOrThrow({ where: { date: year } })
+    const session = await labelled(prisma, await prisma.session.findFirstOrThrow({ where: { date: year } }))
     await page.goto(`/sessions/${session.slug}?tab=cast`)
     await page.waitForLoadState('networkidle')
 
@@ -50,7 +50,7 @@ test('une session créée depuis la liste se caste depuis le vivier, et ses rés
     await page.getByRole('button', { name: 'Inviter pour cette session' }).click()
     const invitation = page.getByRole('dialog')
     await expect(invitation.getByText('Inviter à rejoindre le vivier')).toBeVisible()
-    await expect(invitation.getByRole('combobox').first()).toContainText(session.name)
+    await expect(invitation.getByRole('combobox').first()).toContainText(session.label)
   } finally {
     await prisma.$disconnect()
   }

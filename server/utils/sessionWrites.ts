@@ -6,7 +6,7 @@ import { requireCurrentUser, requireGameAccess, requireSessionAccess, assertSame
 import { selectionTargets, writeSelection } from '~/server/utils/registrationSelection'
 import { assertPlayersFromPool, assertSessionCastRules, assertSessionLocation, castAssignmentInclude, normalizeAssignments, normalizeSessionParticipants, resolveCastLines, withCastReservations } from '~/server/utils/sessionAssignments'
 import { assertUnmodifiedSince } from '~/server/utils/concurrency'
-import { PENDING_SESSION_LABEL, refreshSessionLabels } from '~/server/utils/sessionLabels'
+import { labelNestedSessions, labelSession, refreshSessionSlugs } from '~/server/utils/sessionLabels'
 import { assertGameUploads, deleteUnusedUploads } from '~/server/utils/uploads'
 import type { sessionSchema, sessionTimelineSchema } from '~/server/utils/schemas'
 import { SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
@@ -41,7 +41,6 @@ export async function createSession(event: H3Event, readBody: Reader<typeof sess
   return await prisma.$transaction(async (tx) => {
     const { id } = await tx.session.create({
       data: {
-        name: PENDING_SESSION_LABEL,
         slug: `session-${randomUUID()}`,
         gameId,
       date: parseDate(body.date),
@@ -58,8 +57,8 @@ export async function createSession(event: H3Event, readBody: Reader<typeof sess
       },
       select: { id: true }
     })
-    await refreshSessionLabels(tx, gameId)
-    return await tx.session.findUniqueOrThrow({
+    await refreshSessionSlugs(tx, gameId)
+    return await labelSession(tx, await tx.session.findUniqueOrThrow({
       where: { id },
       include: {
         game: true,
@@ -76,7 +75,7 @@ export async function createSession(event: H3Event, readBody: Reader<typeof sess
           }
         }
       }
-    })
+    }))
   })
 }
 
@@ -108,9 +107,9 @@ export async function updateSession(event: H3Event, id: string, readBody: Reader
   // Une personne du vivier choisie dans le cast est retenue en même temps que son personnage lui est réservé (R20)
   const retained = await selectionTargets(toRetain, existingSession.id)
   const author = retained.length ? await requireCurrentUser(event) : null
-  // Seules la date et le lieu font le libellé (SPEC-021) : un enregistrement de l'équipe ou du cast ne le recalcule pas
-  const before = await prisma.session.findUniqueOrThrow({ where: { id: existingSession.id }, select: { date: true, locationId: true } })
-  const labelMayChange = before.date?.getTime() !== parseDate(body.date)?.getTime() || (before.locationId || null) !== (locationId || null)
+  // Seule la date fait l'adresse (SPEC-021, R5) : un enregistrement de l'équipe ou du cast ne la recalcule pas
+  const before = await prisma.session.findUniqueOrThrow({ where: { id: existingSession.id }, select: { date: true } })
+  const dateChanged = before.date?.getTime() !== parseDate(body.date)?.getTime()
   const session = await prisma.$transaction(async (tx) => {
     for (const target of retained) await writeSelection(tx, target, 'retain', author!)
     await tx.session.update({
@@ -134,16 +133,16 @@ export async function updateSession(event: H3Event, id: string, readBody: Reader
       },
       select: { id: true }
     })
-    // Date ou lieu changés : le libellé et l'adresse de la session, et de ses voisines du même jour (SPEC-021, R2)
-    if (labelMayChange) await refreshSessionLabels(tx, gameId)
+    // Date changée : l'adresse de la session, et celles de ses voisines du même jour (SPEC-021, R5)
+    if (dateChanged) await refreshSessionSlugs(tx, gameId)
     return await tx.session.findUniqueOrThrow({
       where: { id: existingSession.id },
       // Comme la lecture de la session : la page la remplace par cette réponse, report compris (US-022)
       include: {
         game: true,
         location: true,
-        postponedTo: { select: { id: true, slug: true, name: true, date: true } },
-        postponedFrom: { select: { id: true, slug: true, name: true, date: true } },
+        postponedTo: { select: { id: true, slug: true, date: true } },
+        postponedFrom: { select: { id: true, slug: true, date: true } },
         participants: {
           include: {
             participant: true
@@ -167,7 +166,8 @@ export async function updateSession(event: H3Event, id: string, readBody: Reader
   if (!session.date) await prisma.registrationPeriodSession.updateMany({ where: { sessionId: session.id, open: true }, data: { open: false } })
 
   await deleteUnusedUploads(previousPhotoUrls)
-  return await withCastReservations(session)
+  // Comme la lecture de la session (readSession) : elle et les sessions de son report, avec leur libellé (SPEC-021)
+  return await labelSession(prisma, await labelNestedSessions(prisma, await withCastReservations(session)))
 }
 
 export async function updateSessionTimeline(event: H3Event, id: string, readBody: Reader<typeof sessionTimelineSchema>) {

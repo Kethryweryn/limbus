@@ -18,6 +18,7 @@ Une session n'a plus de nom à saisir : Limbus la désigne par sa date, avec l'h
 |---|---|---|
 | [US-234](US-234-libelle-calcule.md) | Une session désignée par sa date, sans nom à saisir | terminée |
 | [US-235](US-235-jeu-devant-le-libelle.md) | Le jeu devant le libellé, hors des pages du jeu | à faire |
+| [US-236](US-236-supprimer-la-colonne-du-nom.md) | Supprimer la colonne du nom des sessions | à faire |
 
 ## Définition de terminé
 

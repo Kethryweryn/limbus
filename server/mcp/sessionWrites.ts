@@ -1,5 +1,6 @@
 import * as z from 'zod'
 import type { H3Event } from 'h3'
+import { labelSession } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
 import { accessibleGameIds, requireCurrentUser, requireSessionAccess } from '~/server/utils/gameAccess'
 import { participantCreateSchema, participantSchema, parseZod, sessionSchema, sessionTimelineSchema } from '~/server/utils/schemas'
@@ -41,8 +42,8 @@ async function saveSession(event: H3Event, tool: string, sessionId: string, read
     const { timelineResponsibles: _timeline, ...current } = await currentSession(sessionId)
     return parseZod(sessionSchema, change(current))
   }))
-  await logWrite(event, tool, AI_LOG_ACTIONS.changed, { type: 'session', id: saved.id, name: saved.name, gameId: saved.gameId })
-  return { id: saved.id, libelle: saved.name, version: saved.updatedAt }
+  await logWrite(event, tool, AI_LOG_ACTIONS.changed, { type: 'session', id: saved.id, name: saved.label, gameId: saved.gameId })
+  return { id: saved.id, libelle: saved.label, version: saved.updatedAt }
 }
 
 function registerSessionWriteTools({ event, server }: ToolContext) {
@@ -61,8 +62,8 @@ function registerSessionWriteTools({ event, server }: ToolContext) {
       gameId: jeuId, date: when ?? null, locationId: locationId ?? null,
       status: SESSION_STATUSES.scheduled, published: false, participants: [], assignments: []
     }))
-    await logWrite(event, 'creer_session', AI_LOG_ACTIONS.created, { type: 'session', id: session.id, name: session.name, gameId: session.gameId })
-    return { id: session.id, libelle: session.name, version: session.updatedAt }
+    await logWrite(event, 'creer_session', AI_LOG_ACTIONS.created, { type: 'session', id: session.id, name: session.label, gameId: session.gameId })
+    return { id: session.id, libelle: session.label, version: session.updatedAt }
   }))
 
   server.registerTool('modifier_session', {
@@ -162,7 +163,7 @@ function registerSessionWriteTools({ event, server }: ToolContext) {
       for (const given of events) responsibles.set(given.timelineEventId, given.participantIds)
       return parseZod(sessionTimelineSchema, { assignments: [...responsibles].map(([timelineEventId, participantIds]) => ({ timelineEventId, participantIds })) })
     }))
-    await logWrite(event, 'modifier_deroule', AI_LOG_ACTIONS.changed, { type: 'session', id: sessionId, name: (await prisma.session.findUniqueOrThrow({ where: { id: sessionId }, select: { name: true } })).name, gameId: current.gameId })
+    await logWrite(event, 'modifier_deroule', AI_LOG_ACTIONS.changed, { type: 'session', id: sessionId, name: (await labelSession(prisma, { id: sessionId })).label, gameId: current.gameId })
     return { id: sessionId, version: result.updatedAt }
   }))
 

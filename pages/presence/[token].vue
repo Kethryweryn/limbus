@@ -15,12 +15,12 @@
           <div class="space-y-1">
             <h1 class="text-xl font-semibold">{{ attendance.gameTitle }}</h1>
             <p class="text-sm text-gray-600">
-              Bonjour {{ attendance.participantName }}. La session<span v-if="attendance.previousSessionName"> « {{ attendance.previousSessionName }} »</span> est reportée.
+              Bonjour {{ attendance.participantName }}. La session<span v-if="attendance.previousSessionLabel"> « {{ attendance.previousSessionLabel }} »</span> est reportée.
             </p>
           </div>
 
           <div class="rounded border border-gray-200 bg-white p-4 text-sm">
-            <div class="font-medium">{{ attendance.sessionName }}</div>
+            <div class="font-medium">{{ attendance.sessionLabel }}</div>
             <div>{{ attendance.sessionDate ? formatDateTime(attendance.sessionDate) : 'Date à préciser' }}</div>
             <div v-if="attendance.location">
               {{ attendance.location.name }}<span v-if="attendance.location.address">, {{ attendance.location.address }}</span>

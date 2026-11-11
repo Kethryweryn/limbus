@@ -87,7 +87,7 @@ describe('relations entre personnages (US-097)', () => {
     const { key, game, ada, bran } = await aliceGame()
     const player = await prisma.participant.create({ data: { name: 'Joueuse', slug: `${key}-joueuse`, email: `${key}@example.test`, gameLinks: { create: { gameId: game.id } } } })
     const session = await prisma.session.create({
-      data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, assignments: { create: [{ characterId: ada.id, participantId: player.id }] } }
+      data: { slug: `session-${key}`, gameId: game.id, assignments: { create: [{ characterId: ada.id, participantId: player.id }] } }
     })
     const sheetOf = async () => bodyOf<ApiResponse<'/api/sessions/:id/documents'>>(await api(alice, 'GET', `/api/sessions/${session.id}/documents`)).characterSheets.find((sheet) => sheet.character.id === ada.id)
     const before = await sheetOf()

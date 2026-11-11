@@ -1,4 +1,5 @@
 // Le questionnaire public du vivier (US-084, US-085, US-163, R2, R7), et la page publique (US-086)
+import { labelled } from '../sessionLabel'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf, tokenFor, type WithField } from './api'
@@ -51,9 +52,10 @@ const standardFields = {
 async function aliceGame(options: { notifyTeam?: boolean } = {}) {
   const key = `formulaire-public-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id, noteIntention: 'Jeu de cape et d’épée.' } })
-  const sessions = await Promise.all([1, 2].map((index) => prisma.session.create({
-    data: { name: `Session ${index} ${key}`, slug: `session-${index}-${key}`, gameId: game.id, date: new Date(Date.now() + (10 + index) * DAY) }
+  const createdSessions = await Promise.all([1, 2].map((index) => prisma.session.create({
+    data: { slug: `session-${index}-${key}`, gameId: game.id, date: new Date(Date.now() + (10 + index) * DAY) }
   })))
+  const sessions = await Promise.all(createdSessions.map((session) => labelled(prisma, session)))
   expect((await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, { standardFields, affinities: { wantWith: { asked: true, required: false } } })).status).toBe(200)
   const created = await api(alice, 'POST', '/api/registration-periods', { gameId: game.id, state: 'open', notifyTeam: options.notifyTeam ?? false })
   expect(created.status, JSON.stringify(created.body)).toBe(200)
@@ -130,7 +132,7 @@ describe('formulaire public (US-084)', () => {
   it('une session annulée, passée ou pas ouverte n’est pas proposée', async () => {
     const { key, sessions, period } = await aliceGame()
     await prisma.session.update({ where: { id: sessions[1]!.id }, data: { status: 'cancelled' } })
-    await prisma.session.create({ data: { name: `Pas ouverte ${key}`, slug: `pas-ouverte-${key}`, gameId: sessions[0]!.gameId, date: new Date(Date.now() + 30 * DAY) } })
+    await labelled(prisma, await prisma.session.create({ data: { slug: `pas-ouverte-${key}`, gameId: sessions[0]!.gameId, date: new Date(Date.now() + 30 * DAY) } }))
     const read = await publicApi('GET', `/api/public/periods/${period.publicId}`)
     expect(bodyOf<PublicPeriod>(read).sessions.map((session) => session.id)).toEqual([sessions[0]!.id])
     expect((await publicApi('POST', `/api/public/periods/${period.publicId}`, answers(`annulee-${key}@example.test`, [sessions[1]!.id]))).status).toBe(400)
@@ -221,8 +223,8 @@ describe('page publique : sessions à venir et lien d’inscription (US-086)', (
     await prisma.session.update({ where: { id: sessions[0]!.id }, data: { published: true } })
     expect((await api(alice, 'PUT', `/api/games/${game.id}`, { publicShowSessions: true, publicShowRegistration: true })).status).toBe(200)
     const after = await publicApi('GET', `/api/public/games/${game.slug}`)
-    expect(bodyOf<PublicGame>(after).upcomingSessions).toEqual([expect.objectContaining({ name: sessions[0]!.name })])
+    expect(bodyOf<PublicGame>(after).upcomingSessions).toEqual([expect.objectContaining({ label: sessions[0]!.label })])
     expect(bodyOf<PublicGame>(after).registrationLinks).toEqual([expect.objectContaining({ url: expect.stringContaining(`/i/${period.publicId}`) })])
-    expect(JSON.stringify(after.body)).not.toContain(sessions[1]!.name)
+    expect(JSON.stringify(after.body)).not.toContain(sessions[1]!.label)
   })
 })

@@ -1,3 +1,4 @@
+import { labelNestedSessions } from '~/server/utils/sessionLabels'
 import { randomBytes } from 'node:crypto'
 import { prisma, type PrismaTx } from '~/server/utils/prisma'
 import { takenSeatsWhere } from '~/server/utils/registrationPeriods'
@@ -217,11 +218,12 @@ export async function listDraws(periodId: string) {
       result: true,
       createdAt: true,
       cancelledAt: true,
-      session: { select: { name: true, status: true } },
+      session: { select: { id: true, status: true } },
       createdBy: { select: { name: true } },
       cancelledBy: { select: { name: true } }
     }
   })
   // Colonnes JSON écrites par le tirage
-  return draws.map((draw) => ({ ...draw, settings: draw.settings as DrawSettings, result: draw.result as DrawResult }))
+  // Leur session avec son libellé (SPEC-021)
+  return await labelNestedSessions(prisma, draws.map((draw) => ({ ...draw, settings: draw.settings as DrawSettings, result: draw.result as DrawResult })))
 }

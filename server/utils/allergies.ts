@@ -1,10 +1,13 @@
+import { inSentence } from '~/utils/sessionLabels'
+import { sessionLabelsFor } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
 import { openEmailTransport } from '~/server/utils/email'
 import { generatedPdfFileName, renderTextPdf } from '~/server/utils/generatedPdfs'
 import { REGISTRATION_SESSION_STATUSES, SESSION_ROLES } from '~/utils/domain'
 
 type AllergySheetSource = {
-  name: string
+  // Libellé de la session, calculé (SPEC-021)
+  label: string
   date: Date | null
   game: { title: string }
   registrations: Array<{ dietary: string | null, participant: { id: string, name: string } }>
@@ -42,7 +45,7 @@ export function buildAllergySheet(session: AllergySheetSource) {
       .map((entry) => ({ name: entry.name, dietary: entry.dietary.trim() }))
   ].sort((left, right) => left.name.localeCompare(right.name, 'fr'))
   return {
-    session: { name: session.name, date: session.date, gameTitle: session.game.title },
+    session: { label: session.label, date: session.date, gameTitle: session.game.title },
     eaterCount: new Set([
       ...registrations.map((registration) => registration.participant.id),
       ...session.participants.map((participant) => participant.participantId),
@@ -65,7 +68,7 @@ export async function getAllergySheet(sessionId: string) {
   const session = await prisma.session.findUniqueOrThrow({
     where: { id: sessionId },
     select: {
-      name: true,
+      id: true,
       date: true,
       game: { select: { title: true } },
       registrationLines: {
@@ -80,7 +83,7 @@ export async function getAllergySheet(sessionId: string) {
   const accountDietaries = [...session.participants, ...session.assignments]
     .filter((entry) => entry.participantId && entry.participant?.user?.dietary && entry.participant.user.healthConsentAt)
     .map((entry) => ({ participantId: entry.participantId!, name: entry.participant!.name, dietary: entry.participant!.user!.dietary! }))
-  return buildAllergySheet({ ...session, registrations: session.registrationLines.map((line) => line.registration), accountDietaries: [...new Map(accountDietaries.map((entry) => [entry.participantId, entry])).values()] })
+  return buildAllergySheet({ ...session, label: (await sessionLabelsFor(prisma, [session.id])).get(session.id) ?? 'Session', registrations: session.registrationLines.map((line) => line.registration), accountDietaries: [...new Map(accountDietaries.map((entry) => [entry.participantId, entry])).values()] })
 }
 
 const formatDate = (value: Date) => value.toLocaleDateString('fr-FR', { dateStyle: 'long', timeZone: 'Europe/Paris' })
@@ -101,21 +104,21 @@ export async function renderAllergySheetPdf(sheet: AllergySheet) {
     allergySheetSummary(sheet)
   ].filter(Boolean).join(' · ')
   const bytes = await renderTextPdf({
-    title: `Fiche allergies – ${sheet.session.name}`,
+    title: `Fiche allergies – ${sheet.session.label}`,
     subtitle,
     sections: sheet.people.length
       // Une ligne déclarée par paragraphe : le rendu PDF regroupe les retours à la ligne simples
       ? sheet.people.map((person) => ({ title: person.name, body: person.dietary.replace(/\n+/g, '\n\n') }))
       : [{ body: 'Aucune allergie ni intolérance déclarée.' }]
   })
-  return { bytes, filename: generatedPdfFileName(['allergies', sheet.session.name]) }
+  return { bytes, filename: generatedPdfFileName(['allergies', sheet.session.label]) }
 }
 
 export function allergySheetEmailText(sheet: AllergySheet) {
   return [
     'Bonjour,',
     '',
-    `Voici la fiche allergies de la session ${sheet.session.name} (« ${sheet.session.gameTitle} ») : ${allergySheetSummary(sheet)}.`,
+    `Voici la fiche allergies de la ${inSentence(sheet.session.label)} (« ${sheet.session.gameTitle} ») : ${allergySheetSummary(sheet)}.`,
     '',
     'Ce sont des données de santé : merci de ne pas la diffuser au-delà de l’équipe cuisine et de la supprimer après le jeu.'
   ].join('\n')
@@ -151,7 +154,7 @@ export async function sendAllergySheet(sessionId: string) {
       try {
         await transport.send({
           to,
-          subject: `Fiche allergies – ${sheet.session.name}`,
+          subject: `Fiche allergies – ${sheet.session.label}`,
           text: allergySheetEmailText(sheet),
           attachments: [{ filename: pdf.filename, content: Buffer.from(pdf.bytes), contentType: 'application/pdf' }]
         })

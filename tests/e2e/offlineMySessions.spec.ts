@@ -11,14 +11,14 @@ async function member(prisma: TestPrisma, base: string) {
   const past = await orgaSession(prisma, game.id, `Passée ${base}`, { date: new Date('2020-05-15T09:00:00Z'), status: 'completed' })
   const { user, email, name } = await testUser(prisma, `Joueuse ${base}`)
   const participant = await prisma.participant.create({ data: { name, slug: slugOf(name), email, userId: user.id, gameLinks: { create: { gameId: game.id } } } })
-  const delivery = async (session: { id: string, name: string }) => {
+  const delivery = async (session: { id: string, label: string }) => {
     await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
     const title = uniqueName('Lettre')
     const document = await prisma.document.create({ data: { title, slug: slugOf(title), gameId: game.id, content: 'Brouillon', readyToSend: true } })
     const created = await prisma.sessionDocumentDelivery.create({
       data: {
         gameId: game.id, sessionId: session.id, participantId: participant.id, documentId: document.id, kind: 'document',
-        copyPdf: Buffer.from('%PDF-1.4'), copyContent: { kind: 'text', title, subtitle: session.name, sections: [{ title: 'Contenu', body: `Texte de ${title}` }] }, copySize: 100
+        copyPdf: Buffer.from('%PDF-1.4'), copyContent: { kind: 'text', title, subtitle: session.label, sections: [{ title: 'Contenu', body: `Texte de ${title}` }] }, copySize: 100
       }
     })
     return { id: created.id, title }
@@ -59,7 +59,7 @@ test.describe('télécharger mes sessions à venir', () => {
 
       await context.setOffline(true)
       await page.getByRole('link', { name: 'Je participe', exact: true }).first().click()
-      await expect(page.getByText(mine.upcoming.name).first()).toBeVisible()
+      await expect(page.getByText(mine.upcoming.label).first()).toBeVisible()
       await page.getByRole('link', { name: mine.next.title }).first().click()
       await expect(page.getByText(`Texte de ${mine.next.title}`)).toBeVisible()
       const pdf = await page.evaluate(async (id) => (await fetch(`/api/me/documents/${id}/pdf`)).status, mine.next.id)

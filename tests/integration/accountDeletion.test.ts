@@ -1,4 +1,5 @@
 // EPIC-017 : télécharger ses données (US-076) et effacer son compte, équipes prévenues (US-077)
+import { labelled, uniqueDate } from '../sessionLabel'
 import bcrypt from 'bcrypt'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
@@ -30,7 +31,7 @@ async function player() {
   for (const owner of [alice, bob]) {
     const k = `${key}-${owner.id}`.toLowerCase()
     const game = await prisma.game.create({ data: { title: `Jeu ${k}`, slug: `jeu-${k}`, description: '', ownerId: owner.id } })
-    const session = await prisma.session.create({ data: { name: `Session ${k}`, slug: `session-${k}`, gameId: game.id } })
+    const session = await labelled(prisma, await prisma.session.create({ data: { slug: `session-${k}`, gameId: game.id, date: uniqueDate() } }))
     const participant = await prisma.participant.create({
       data: { name: 'Joueuse Effacée', slug: `fiche-${k}`, email: user.email, userId: user.id, gameLinks: { create: { gameId: game.id, notes: `Note de ${owner.id}` } } }
     })
@@ -60,7 +61,7 @@ describe('télécharger ses données (US-076)', () => {
   it('dit pour chaque session ce que montre sa page : pas de décision non annoncée (R28), l’équipe garde tout', async () => {
     const { user, teams } = await player()
     const { game, participant, owner, session } = teams[0]!
-    const announced = await prisma.session.create({ data: { name: `Annoncée ${++counter}`, slug: `annoncee-${counter}`, gameId: game.id } })
+    const announced = await labelled(prisma, await prisma.session.create({ data: { slug: `annoncee-${counter}`, gameId: game.id } }))
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `export-lignes-${counter}` } })
     const remindedAt = new Date('2026-10-20T10:00:00.000Z')
     await prisma.registration.create({
@@ -73,17 +74,17 @@ describe('télécharger ses données (US-076)', () => {
         ] }
       }
     })
-    type Line = { status: string, waitlistPosition: number | null, lastRemindedAt: string | null, retainedBy?: { name: string } | null, session: { name: string } }
+    type Line = { status: string, waitlistPosition: number | null, lastRemindedAt: string | null, retainedBy?: { name: string } | null, session: { label: string } }
     type Export = { registrations: Array<{ sessionLines: Line[] }> }
     const linesOf = (exported: Export | undefined) => exported!.registrations.flatMap((registration) => registration.sessionLines)
     const byPerson = (await api(user, 'GET', '/api/account/export')).body as { participantRecords: Export[] }
     const mine = byPerson.participantRecords.flatMap(linesOf)
-    expect(mine.find((line) => line.session.name === session.name)).toMatchObject({ status: 'preregistered', waitlistPosition: null })
-    expect(mine.find((line) => line.session.name === session.name)).not.toHaveProperty('retainedBy')
-    expect(mine.find((line) => line.session.name === announced.name)).toMatchObject({ status: 'waitlisted', waitlistPosition: 3, lastRemindedAt: remindedAt.toISOString() })
+    expect(mine.find((line) => line.session.label === session.label)).toMatchObject({ status: 'preregistered', waitlistPosition: null })
+    expect(mine.find((line) => line.session.label === session.label)).not.toHaveProperty('retainedBy')
+    expect(mine.find((line) => line.session.label === announced.label)).toMatchObject({ status: 'waitlisted', waitlistPosition: 3, lastRemindedAt: remindedAt.toISOString() })
 
     const byTeam = linesOf((await api(owner, 'GET', `/api/participants/${participant.id}/export`)).body as Export)
-    expect(byTeam.find((line) => line.session.name === session.name)).toMatchObject({ status: 'waitlisted', waitlistPosition: 2, retainedBy: { name: owner.name } })
+    expect(byTeam.find((line) => line.session.label === session.label)).toMatchObject({ status: 'waitlisted', waitlistPosition: 2, retainedBy: { name: owner.name } })
   })
 
   it('contient ses affinités, sans la personne que l’équipe y a rattachée (R24, US-095)', async () => {
@@ -128,10 +129,10 @@ describe('effacer son compte (US-077)', () => {
     const messages = smtp.received.slice(sent)
     const [aliceTeam, bobTeam] = teams
     const toAlice = messages.find((message) => message.to.includes('alice@example.test'))!
-    expect(toAlice.text).toContain(aliceTeam!.session.name)
+    expect(toAlice.text).toContain(aliceTeam!.session.label)
     expect(toAlice.text).toMatch(/45,00/)
     const toBob = messages.find((message) => message.to.includes('bob@example.test'))!
-    expect(toBob.text).toContain(bobTeam!.session.name)
-    expect(toBob.text).not.toContain(aliceTeam!.session.name)
+    expect(toBob.text).toContain(bobTeam!.session.label)
+    expect(toBob.text).not.toContain(aliceTeam!.session.label)
   })
 })

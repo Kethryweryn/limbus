@@ -39,7 +39,7 @@ export async function createRegistrationPeriod(event: H3Event, readBody: Reader<
     include: registrationPeriodInclude
   })).catch(rethrowPoolAlreadyExists)
 
-  return exposeRegistrationPeriod(period)
+  return await exposeRegistrationPeriod(period)
 }
 
 export async function updateRegistrationPeriod(event: H3Event, periodId: string | undefined, readBody: Reader<typeof registrationPeriodUpdateSchema>) {
@@ -60,7 +60,7 @@ export async function updateRegistrationPeriod(event: H3Event, periodId: string 
     },
     include: registrationPeriodInclude
   })
-  return exposeRegistrationPeriod(period)
+  return await exposeRegistrationPeriod(period)
 }
 
 /**

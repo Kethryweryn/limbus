@@ -167,7 +167,7 @@ describe('tirer au sort une session (R22, R23) et journal (US-094)', () => {
     const pool = await sessionPool({ replayPolicy: 'excluded' })
     const sessionId = pool.sessions[0]!.id
     const lou = await addPerson(prisma, pool, 'Lou', [sessionId])
-    const past = await prisma.session.create({ data: { name: 'Passée', slug: `tirage-passee-${pool.key}`, gameId: pool.game.id, status: 'completed' } })
+    const past = await prisma.session.create({ data: { slug: `tirage-passee-${pool.key}`, gameId: pool.game.id, status: 'completed' } })
     await prisma.sessionParticipant.create({ data: { sessionId: past.id, participantId: lou.participantId, role: 'participant' } })
     await draw(pool.period.id, sessionId)
     expect(await statusOf(lou.id, sessionId)).toBe('preregistered')

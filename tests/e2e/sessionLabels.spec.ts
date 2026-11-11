@@ -3,10 +3,13 @@
 import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { choose, orgaGame, orgaSession, signIn, test, type TestPrisma } from './helpers'
+import { choose, labelled, orgaGame, orgaSession, signIn, test, type TestPrisma } from './helpers'
 
-const labelsOf = async (prisma: TestPrisma, gameId: string) =>
-  (await prisma.session.findMany({ where: { gameId }, orderBy: { date: 'asc' }, select: { name: true } })).map((row) => row.name)
+// Le libellé, calculé comme le serveur (ADR-0084), dans l'ordre des dates
+const labelsOf = async (prisma: TestPrisma, gameId: string) => {
+  const rows = await prisma.session.findMany({ where: { gameId }, orderBy: { date: 'asc' }, select: { id: true } })
+  return (await Promise.all(rows.map((row) => labelled(prisma, row)))).map((row) => row.label)
+}
 
 async function createFromList(page: Page, gameTitle: string, date: string) {
   await page.getByRole('button', { name: 'Créer une session' }).click()
@@ -57,7 +60,7 @@ test.describe('session sans nom', () => {
       await createFromList(page, game.title, '2099-06-01T16:00')
       await expect.poll(() => labelsOf(prisma, game.id)).toEqual(['Session du 1er juin 2099, 10 h', 'Session du 1er juin 2099, 16 h'])
 
-      const evening = await prisma.session.findFirstOrThrow({ where: { gameId: game.id, name: { endsWith: '16 h' } }, select: { slug: true } })
+      const evening = await prisma.session.findFirstOrThrow({ where: { gameId: game.id, date: new Date('2099-06-01T14:00:00Z') }, select: { slug: true } })
       await page.goto(`/sessions/${evening.slug}`)
       await page.waitForLoadState('networkidle')
       await page.getByRole('button', { name: 'Modifier' }).first().click()
@@ -83,7 +86,10 @@ test.describe('session sans nom', () => {
       await expect(dialog.getByLabel('Nom de la nouvelle session')).toHaveCount(0)
       await dialog.getByLabel('Nouvelle date').fill('2099-09-21T10:00')
       await dialog.getByRole('button', { name: 'Reporter' }).click()
-      await expect.poll(async () => (await prisma.session.findFirst({ where: { gameId: game.id, status: 'scheduled' }, select: { name: true } }))?.name)
+      await expect.poll(async () => {
+        const created = await prisma.session.findFirst({ where: { gameId: game.id, status: 'scheduled' }, select: { id: true } })
+        return created && (await labelled(prisma, created)).label
+      })
         .toBe('Session du 21 septembre 2099')
     } finally {
       await prisma.$disconnect()

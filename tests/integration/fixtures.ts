@@ -1,3 +1,4 @@
+import { labelled, uniqueDate } from '../sessionLabel'
 import type { PrismaClient } from '~/generated/prisma/client'
 import type { UserRole } from '~/generated/prisma/enums'
 
@@ -31,16 +32,17 @@ async function createGameWorld(prisma: PrismaClient, key: string, ownerId: strin
       gameLinks: { create: { gameId } }
     }
   })
-  const session = await prisma.session.create({
+  const session = await labelled(prisma, await prisma.session.create({
     data: {
-      name: `Session ${key}`,
       slug: `session-${key}`,
+      // Un libellé propre à chaque monde (SPEC-021)
+      date: uniqueDate(),
       gameId,
       locationId: location.id,
       participants: { create: { participantId: participant.id, role: 'participant' } },
       assignments: { create: { characterId: character.id, participantId: participant.id } }
     }
-  })
+  }))
   const photo = await prisma.uploadedFile.create({
     data: {
       kind: 'sessionAssignmentPhoto',

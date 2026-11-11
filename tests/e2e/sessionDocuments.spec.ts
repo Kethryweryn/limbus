@@ -5,10 +5,10 @@ import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
 import { castSession as castOf, gameCharacter as character, gamePerson, orgaGame, signIn, slugOf, test, uniqueName } from './helpers'
 
-async function openDocumentsTab(page: Page, session: { slug: string, name: string }) {
+async function openDocumentsTab(page: Page, session: { slug: string, label: string }) {
   await page.goto(`/sessions/${session.slug}?tab=documents`)
   await page.waitForLoadState('networkidle')
-  await expect(page.getByRole('heading', { level: 1, name: session.name })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: session.label })).toBeVisible()
 }
 
 test('trombinoscope : les réglages d’un personnage et l’étiquette d’un groupe s’appliquent, et générer de nouveau remplace (R2 à R5b, R9)', async ({ page }) => {

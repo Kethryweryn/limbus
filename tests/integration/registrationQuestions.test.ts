@@ -59,7 +59,7 @@ async function invitedWithForm() {
   const saved = await api(alice, 'PUT', `/api/games/${game.id}/registration-form`, { standardFields, affinities, questions })
   expect(saved.status, JSON.stringify(saved.body)).toBe(200)
   const definition = bodyOf<SavedForm>(saved).definition
-  const session = await prisma.session.create({ data: { name: `Session ${key}`, slug: `session-${key}`, gameId: game.id, date: new Date('2099-03-10T09:00:00Z') } })
+  const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id, date: new Date('2099-03-10T09:00:00Z') } })
   const period = await prisma.registrationPeriod.create({
     data: { gameId: game.id, publicId: `pub-${key}`, state: 'open', sessions: { create: { sessionId: session.id } } }
   })

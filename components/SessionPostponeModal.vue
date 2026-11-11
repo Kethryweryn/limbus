@@ -1,5 +1,5 @@
 <template>
-  <UModal v-model:open="open" :title="`Reporter - ${session?.name || 'Session'}`">
+  <UModal v-model:open="open" :title="`Reporter - ${session?.label || 'Session'}`">
     <template #body>
       <form class="space-y-4" @submit.prevent="postpone">
         <p class="text-sm text-gray-600">
@@ -36,7 +36,7 @@ import type { ApiResponse } from '~/composables/useApiFetch'
 type PostponedSession = ApiResponse<'/api/sessions/:id/postpone', 'post'>
 
 const props = withDefaults(defineProps<{
-  session?: { id: string, name: string, gameId: string, locationId?: string | null } | null
+  session?: { id: string, label: string, gameId: string, locationId?: string | null } | null
   locations?: Array<{ id: string, name: string, address?: string | null, gameId: string }>
 }>(), { session: null, locations: () => [] })
 const emit = defineEmits<{ postponed: [session: PostponedSession] }>()

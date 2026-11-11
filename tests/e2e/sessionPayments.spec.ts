@@ -20,10 +20,10 @@ async function paidSession(prisma: TestPrisma, base: string, people: string[]) {
   return { game, session, cast }
 }
 
-async function openTab(page: Page, session: { slug: string, name: string }, tab: string) {
+async function openTab(page: Page, session: { slug: string, label: string }, tab: string) {
   await page.goto(`/sessions/${session.slug}?tab=${tab}`)
   await page.waitForLoadState('networkidle')
-  await expect(page.getByRole('heading', { level: 1, name: session.name })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: session.label })).toBeVisible()
 }
 
 const row = (page: Page, name: string) => page.locator('article').filter({ hasText: name })

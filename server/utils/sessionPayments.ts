@@ -1,3 +1,4 @@
+import { labelSession } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
 import { openEmailTransport, sendEmail } from '~/server/utils/email'
 import { CHARACTER_TYPES, REFUND_STATUSES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
@@ -39,7 +40,7 @@ const owesPayment = (mode: string, row: { paidAt: Date | null, remainingCents: n
 
 function paymentEmailText(params: {
   participantName: string
-  sessionName: string
+  sessionLabel: string
   gameTitle: string
   paymentLinkUrl?: string | null
   paymentRibUrl?: string | null
@@ -49,8 +50,8 @@ function paymentEmailText(params: {
   withdrawalDeadline?: Date | null
 }) {
   const intro = params.reminder
-    ? `Petit rappel pour le paiement de ta participation à ${params.sessionName}.`
-    : `Tu peux maintenant régler ta participation à ${params.sessionName}.`
+    ? `Petit rappel pour le paiement de ta participation à ${params.sessionLabel}.`
+    : `Tu peux maintenant régler ta participation à ${params.sessionLabel}.`
 
   return compactLines([
     `Bonjour ${firstName(params.participantName)},`,
@@ -556,7 +557,7 @@ export async function getSessionPaymentDashboard(sessionId: string, participantI
   return {
     session: {
       id: session.id,
-      name: session.name,
+      label: (await labelSession(prisma, session)).label,
       date: session.date,
       status: session.status,
       postponedToSessionId: session.postponedToSessionId,
@@ -671,10 +672,10 @@ export async function sendSessionPaymentEmails(sessionId: string, reminder = fal
       try {
         await transport.send({
           to: row.participant.email!,
-          subject: `${isReminder ? 'Relance paiement' : 'Paiement'} - ${dashboard.session.name}`,
+          subject: `${isReminder ? 'Relance paiement' : 'Paiement'} - ${dashboard.session.label}`,
           text: paymentEmailText({
             participantName: row.participant.name,
-            sessionName: dashboard.session.name,
+            sessionLabel: dashboard.session.label,
             gameTitle: dashboard.session.game.title,
             paymentLinkUrl: dashboard.session.paymentLinkUrl,
             paymentRibUrl: externalRibUrl(dashboard.session.paymentRibUrl),
@@ -731,10 +732,10 @@ export async function sendSessionPaymentTestEmails(sessionId: string, emails: st
 
   const result = await sendEmail({
     to: emails,
-    subject: `[Test] ${reminder ? 'Relance paiement' : 'Paiement'} - ${dashboard.session.name}`,
+    subject: `[Test] ${reminder ? 'Relance paiement' : 'Paiement'} - ${dashboard.session.label}`,
     text: paymentEmailText({
       participantName: sample?.participant.name || 'Prénom',
-      sessionName: dashboard.session.name,
+      sessionLabel: dashboard.session.label,
       gameTitle: dashboard.session.game.title,
       paymentLinkUrl: dashboard.session.paymentLinkUrl,
       paymentRibUrl: externalRibUrl(dashboard.session.paymentRibUrl),

@@ -86,7 +86,7 @@ test.describe('télécharger un jeu', () => {
       // Contact d'urgence et allergies lus sur l'appareil, et non « Lecture impossible » (ADR-0080)
       await expect(page.getByText('Contact d’urgence : nom')).toBeVisible()
       await expect(page.getByText(/Lecture impossible pour l’instant/)).toBeHidden()
-      await openFromMenu(page, 'Sessions', session.name)
+      await openFromMenu(page, 'Sessions', session.label)
       // PDF d'une session à venir, servi depuis l'appareil
       const pdf = await page.evaluate(async (id) => (await fetch(`/api/sessions/${id}/allergies/pdf`)).status, session.id)
       expect(pdf).toBe(200)

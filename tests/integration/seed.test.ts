@@ -1,5 +1,6 @@
 // US-150, US-151 : rechargement des jeux de test (ADR-0066). Le script tourne sur la base de test,
 // avec un compte propriétaire propre à ce fichier ; le reste de la base sert de témoin.
+import { labelled } from '../sessionLabel'
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
@@ -410,8 +411,8 @@ describe('Station Meridian, avant les sessions', () => {
 
   it('propose une distribution avec l\'assistant de casting', async () => {
     // La « Session à la main » : une date fixe, qui donne son libellé (SPEC-021, R8)
-    const session = await prisma.session.findFirstOrThrow({ where: { gameId: meridian, date: sessionDate(80) }, select: { id: true, name: true } })
-    expect(session.name).toBe('Session du 22 mars 2030')
+    const session = await labelled(prisma, await prisma.session.findFirstOrThrow({ where: { gameId: meridian, date: sessionDate(80) }, select: { id: true, } }))
+    expect(session.label).toBe('Session du 22 mars 2030')
     const casting = await api(owner, 'POST', `/api/sessions/${session.id}/casting-assistant`, { assignments: [] })
     expect(casting.status, JSON.stringify(casting.body)).toBe(200)
     expect(JSON.stringify(casting.body)).toContain('Lucie')
@@ -458,9 +459,9 @@ describe('Les Cendres de Valombre, session imminente', () => {
     owner = await prisma.user.create({ data: { email: 'valombre-proprietaire@example.test', name: 'Propriétaire', password: await bcrypt.hash(PASSWORD, 4) } })
     expectSuccess(runSeed({ SEED_ALLOW_ERASE: '1', SEED_EMAIL: 'valombre-proprietaire@example.test', SEED_PASSWORD: PASSWORD }))
     // L'ancienne « Session imminente » : une date fixe (SPEC-021, R8)
-    const session = await prisma.session.findFirstOrThrow({ where: { gameId: valombre, date: sessionDate(10) }, select: { id: true, name: true, slug: true } })
+    const session = await labelled(prisma, await prisma.session.findFirstOrThrow({ where: { gameId: valombre, date: sessionDate(10) }, select: { id: true, slug: true } }))
     sessionId = session.id
-    expect(session.name).toBe('Session du 11 janvier 2030')
+    expect(session.label).toBe('Session du 11 janvier 2030')
     expect(session.slug).toBe('les-cendres-de-valombre-2030-01-11')
   })
 
@@ -508,7 +509,7 @@ describe('Les Cendres de Valombre, session imminente', () => {
     const response = await api(owner, 'GET', `/api/sessions/${sessionId}/attendance`)
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     const body = bodyOf<ApiResponse<'/api/sessions/:id/attendance'>>(response)
-    expect(body.postponedFrom?.name).toMatch(/^Session du /)
+    expect(body.postponedFrom?.label).toMatch(/^Session du /)
     expect(new Set(body.rows.map((row) => row.status))).toEqual(new Set(['pending', 'confirmed', 'declined']))
     const julien = body.rows.find((row) => row.participant.name === 'Julien Robert')!
     expect(julien.displayStatus).not.toBe(julien.status)

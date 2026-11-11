@@ -1,3 +1,4 @@
+import { labelNestedSessions, labelSessions } from '~/server/utils/sessionLabels'
 import { randomBytes } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
 import { CHARACTER_TYPES, REGISTRATION_SEAT_STATUSES } from '~/utils/domain'
@@ -10,7 +11,7 @@ export const registrationPeriodInclude = {
   sessions: {
     orderBy: { session: { date: 'asc' } },
     include: {
-      session: { select: { id: true, name: true, slug: true, date: true, status: true } }
+      session: { select: { id: true, slug: true, date: true, status: true } }
     }
   }
 } as const
@@ -58,8 +59,9 @@ export function createRegistrationPeriodPublicId() {
 }
 
 // diffusionUrl : le lien de diffusion à copier (R32), par absoluteAppUrl, jamais d'après la requête
-export function exposeRegistrationPeriod<T extends { state: string, publicId: string }>(period: T) {
-  return { ...period, diffusionUrl: absoluteAppUrl(`/i/${period.publicId}`) }
+// Ses sessions avec leur libellé, calculé (SPEC-021)
+export async function exposeRegistrationPeriod<T extends { state: string, publicId: string }>(period: T) {
+  return { ...await labelNestedSessions(prisma, period), diffusionUrl: absoluteAppUrl(`/i/${period.publicId}`) }
 }
 
 // Le nombre de places d'une session (R8) : jamais stocké, pour l'augmenter on crée un personnage
@@ -80,9 +82,10 @@ export async function offeredSessions(periodId: string, now = new Date()) {
   const links = await prisma.registrationPeriodSession.findMany({
     where: { periodId, open: true, session: openableSessionWhere(now) },
     orderBy: { session: { date: 'asc' } },
-    select: { session: { select: { id: true, name: true, date: true, status: true, location: { select: { name: true, address: true } } } } }
+    select: { session: { select: { id: true, date: true, status: true, location: { select: { name: true, address: true } } } } }
   })
-  return links.map((link) => link.session)
+  // Avec leur libellé, calculé (SPEC-021)
+  return await labelSessions(prisma, links.map((link) => link.session))
 }
 
 // publicId est aléatoire (48 bits) : une collision, très improbable, se règle en tirant un autre identifiant
