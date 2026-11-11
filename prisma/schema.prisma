@@ -466,8 +466,7 @@ model TimelineEventItem {
 
 model Session {
   id          String     @id @default(cuid())
-  // Plus de nom (SPEC-021, ADR-0084) : la colonne « name », devenue facultative, reste en base jusqu'à sa suppression,
-  // sans être lue ni écrite ; le libellé se calcule à la lecture
+  // Pas de nom (SPEC-021, ADR-0084) : le libellé se calcule à la lecture
   slug        String     @unique
   date        DateTime? @db.Timestamptz(3)
   gameId      String
