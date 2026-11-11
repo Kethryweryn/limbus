@@ -3,7 +3,7 @@ import { deleteUnusedUploads } from '~/server/utils/uploads'
 import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
 import { publicAppUrl } from '~/server/utils/appUrl'
 import { REGISTRATION_SESSION_STATUSES, REGISTRATION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
-import { latestVisibleValues } from '~/server/utils/participantValues'
+import { latestOf, latestVisibleValues } from '~/server/utils/participantValues'
 
 type ParticipantWithGameLinks = {
   gameLinks?: Array<{
@@ -43,10 +43,10 @@ export function exposeParticipantGames<T extends ParticipantWithGameLinks>(parti
   delete (rest as { published?: unknown }).published
   delete (rest as { notes?: unknown }).notes
   // Version de la fiche pour l'équipe : le plus récent de ses liens visibles (ADR-0086), sinon celle de la fiche
-  const versions = (gameLinks || []).map((link) => link.updatedAt).filter((date): date is Date => Boolean(date))
+  const version = latestOf((gameLinks || []).map((link) => link.updatedAt))
   return {
     ...rest,
-    ...(versions.length ? { updatedAt: new Date(Math.max(...versions.map((date) => date.getTime()))) } : {}),
+    ...(version ? { updatedAt: version } : {}),
     games: gameLinks?.map((link) => ({
       ...link.game,
       registeredAt: link.createdAt

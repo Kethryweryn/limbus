@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
 import type { Prisma } from '~/generated/prisma/client'
 import { prisma } from '~/server/utils/prisma'
+import { participantVersions } from '~/server/utils/participantValues'
 
 // Version lue par le client (ADR-0036) : celle donnée par un outil d'assistant d'IA (SPEC-014, R10), sinon la date de
 // l'en-tête If-Unmodified-Since, ou null sans en-tête
@@ -82,9 +83,5 @@ export async function assertPaymentUnmodifiedSince(event: H3Event, sessionId: st
  */
 export async function assertParticipantUnmodifiedSince(event: H3Event, participantId: string, gameIds: string[] | null) {
   if (!readVersion(event)) return
-  const latest = await prisma.participantGame.aggregate({
-    where: { participantId, ...(gameIds === null ? {} : { gameId: { in: gameIds } }) },
-    _max: { updatedAt: true }
-  })
-  assertRowsVersion(event, latest._max.updatedAt)
+  assertRowsVersion(event, (await participantVersions([participantId], gameIds)).get(participantId) ?? null)
 }

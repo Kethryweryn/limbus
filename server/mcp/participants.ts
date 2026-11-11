@@ -2,6 +2,7 @@ import * as z from 'zod'
 import { prisma } from '~/server/utils/prisma'
 import { accessibleGameIds, requireGameAccess } from '~/server/utils/gameAccess'
 import { PAGE_SIZE, READ_ONLY, pageOf, skipOf, toolResult, type ToolContext } from '~/server/mcp/tools'
+import { participantVersions } from '~/server/utils/participantValues'
 
 // Participants d'un jeu (R7, R8) : nom et notes d'organisation de ce jeu, jamais les coordonnées ni les allergies
 export function registerParticipantTools({ event, server }: ToolContext) {
@@ -29,13 +30,7 @@ export function registerParticipantTools({ event, server }: ToolContext) {
       prisma.participantGame.count({ where })
     ])
     // Version de la fiche : le plus récent de ses liens dans les jeux de l'autorisation (ADR-0086), celle que contrôle la modification
-    const allowed = await accessibleGameIds(event)
-    const versions = await prisma.participantGame.groupBy({
-      by: ['participantId'],
-      where: { participantId: { in: links.map((link) => link.participant.id) }, ...(allowed === null ? {} : { gameId: { in: allowed } }) },
-      _max: { updatedAt: true }
-    })
-    const versionOf = new Map(versions.map((row) => [row.participantId, row._max.updatedAt]))
+    const versionOf = await participantVersions(links.map((link) => link.participant.id), await accessibleGameIds(event))
     return pageOf(links.map((link) => ({ id: link.participant.id, name: link.name ?? link.participant.name, notes: link.notes, updatedAt: versionOf.get(link.participant.id) })), page, total)
   }))
 }
