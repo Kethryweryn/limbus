@@ -1,9 +1,9 @@
 ---
 id: ADR-0023
 titre: Construire une fois dans la CI, tester ce build, le déployer tel quel
-statut: accepté, job `check` découpé par ADR-0059 (jobs parallèles)
+statut: accepté, job `check` découpé par ADR-0059 (jobs parallèles), installation du serveur complétée par ADR-0085 (sans audit)
 date: 2026-10-28
-liens: [ADR-0002, ADR-0017, ADR-0022, ADR-0015, ADR-0004]
+liens: [ADR-0002, ADR-0017, ADR-0022, ADR-0015, ADR-0004, ADR-0085]
 ---
 
 # ADR-0023 : Construire une fois dans la CI, tester ce build, le déployer tel quel

@@ -1,14 +1,16 @@
 ---
 titre: Un déploiement rapide quand les dépendances changent
-statut: prête
+statut: archivée
 date: 2026-11-11
 ---
 
 # Un déploiement rapide quand les dépendances changent
 
+Devenue [ADR-0085](../../adr/ADR-0085-installation-serveur-sans-audit.md).
+
 ## Besoin
 
-Fusionner une PR la met en production ([ADR-0023](../adr/ADR-0023-deploiement-sans-ci-redondante.md)). Le serveur reçoit le build testé par la CI, mais il garde ses propres dépendances (`node_modules`), qui servent au client Prisma, aux migrations et aux scripts (`npm run user:create`…).
+Fusionner une PR la met en production ([ADR-0023](../../adr/ADR-0023-deploiement-sans-ci-redondante.md)). Le serveur reçoit le build testé par la CI, mais il garde ses propres dépendances (`node_modules`), qui servent au client Prisma, aux migrations et aux scripts (`npm run user:create`…).
 
 Quand `package-lock.json` et Node n'ont pas changé, `deploy.sh` reprend les dépendances en place par liens physiques : le déploiement prend quelques secondes. Sinon, il lance un `npm ci --include=dev` complet. C'est le cas de chaque PR de dépendances, donc de la PR groupée de Dependabot chaque lundi.
 
@@ -37,6 +39,9 @@ Pistes, à comparer après la mesure :
 - 2026-11-11, objectif : revenir autour d'une minute, le niveau d'ADR-0023.
 - 2026-11-11, piste : choisie après la mesure ; si la cause est simple, la corriger suffit.
 
+- 2026-11-11, mesure faite au déploiement de #222 : `npm ci` 1 min 22 s, dont 36 s d'audit ; total 1 min 45. Les 6 minutes de #221 ne se sont pas reproduites.
+- 2026-11-11, piste : installer sans audit de sécurité (`--no-audit`), déjà fait par la CI et les alertes Dependabot ; `--timing` retiré, l'heure des étapes reste ([ADR-0085](../../adr/ADR-0085-installation-serveur-sans-audit.md)).
+
 ## Points à trancher
 
-Aucun pour la mesure. La piste se tranche avec les chiffres du prochain déploiement de dépendances.
+Aucun.
