@@ -25,7 +25,7 @@ En tant que participante, je veux lire le jeu avec la session dans mes emails, m
 
 ## Tests
 
-- Actions : l'email de paiement porte le jeu devant le libellé, dans son objet et son texte (`tests/e2e/sessionPayments.spec.ts`, `tests/integration/sessionPayments.test.ts`) ; `withGame` et `inGameSentence` (`tests/utils/sessionLabels.test.ts`).
+- Actions : l'email de paiement porte le jeu devant le libellé, dans son objet et son texte (`tests/e2e/sessionPayments.spec.ts`, `tests/integration/sessionPayments.test.ts`) ; les emails de fiche, de trombinoscope et de fiche + trombinoscope aussi (`tests/integration/sessionDocuments.test.ts`, `tests/integration/trombinoscopes.test.ts`) ; `withGame`, qui rend le libellé seul sans jeu, et `inGameSentence` (`tests/utils/sessionLabels.test.ts`).
 - Erreurs de saisie : aucune saisie.
 - Droits : inchangés ; rien de nouveau à protéger.
 - Hors ligne : rien de nouveau ; les pages relues sans réseau gardent le libellé lu.

@@ -41,5 +41,7 @@ describe('libellé dans une phrase et hors des pages du jeu (R4)', () => {
     expect(inSentence('Session du 15 mai 2099')).toBe('session du 15 mai 2099')
     expect(withGame('Station Meridian', 'Session du 15 mai 2099')).toBe('Station Meridian — Session du 15 mai 2099')
     expect(inGameSentence('Station Meridian', 'Session sans date')).toBe('la session sans date de « Station Meridian »')
+    // Jeu inconnu (aperçu encore sans jeu) : le libellé seul, sans tiret orphelin
+    expect(withGame('', 'Session du 15 mai 2099')).toBe('Session du 15 mai 2099')
   })
 })

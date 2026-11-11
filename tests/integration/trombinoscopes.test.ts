@@ -3,6 +3,8 @@ import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
+import { labelled } from '../sessionLabel'
+import { inGameSentence, withGame } from '~/utils/sessionLabels'
 
 const world = inject('world')
 const { alice } = world.users
@@ -100,6 +102,25 @@ describe('trombinoscopes périmés (US-028)', () => {
     expect((await generate(s.session.id)).status).toBe(200)
     expect((await api(alice, 'POST', `/api/sessions/${s.session.id}/documents/send-trombinoscopes`, {})).status).toBe(200)
     expect(smtp.received.length).toBe(before + 1)
+  })
+
+  it('dit le jeu avec la session dans l’objet et le texte de l’email (SPEC-021, R4)', async () => {
+    const alone = await castSession()
+    expect((await generate(alone.session.id)).status).toBe(200)
+    expect((await api(alice, 'POST', `/api/sessions/${alone.session.id}/documents/send-trombinoscopes`, {})).status).toBe(200)
+    const { label } = await labelled(prisma, alone.session)
+    const trombinoscope = smtp.to(alone.participant.email!).at(-1)!
+    expect(trombinoscope.subject).toBe(`Trombinoscope - ${withGame(alone.game.title, label)}`)
+    expect(trombinoscope.text).toContain(`Voici ton trombinoscope pour ${inGameSentence(alone.game.title, label)}.`)
+
+    const both = await castSession()
+    await prisma.character.update({ where: { id: both.viewer.id }, data: { sheetReadyToSend: true } })
+    expect((await generate(both.session.id)).status).toBe(200)
+    expect((await api(alice, 'POST', `/api/sessions/${both.session.id}/documents/send-character-sheets-and-trombinoscopes`, {})).status).toBe(200)
+    const { label: bothLabel } = await labelled(prisma, both.session)
+    const combined = smtp.to(both.participant.email!).at(-1)!
+    expect(combined.subject).toBe(`Fiche personnage et trombinoscope - ${withGame(both.game.title, bothLabel)}`)
+    expect(combined.text).toContain(`Voici ta fiche et ton trombinoscope pour ${inGameSentence(both.game.title, bothLabel)}.`)
   })
 
   it('un trombinoscope déjà envoyé reste signalé périmé, sans bloquer', async () => {

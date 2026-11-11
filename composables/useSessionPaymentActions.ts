@@ -107,7 +107,7 @@ function createActions(data: () => SessionPaymentsData, onRefresh: () => Promise
       ? paymentAmountLines({ tariffName: row.tariff.name, dueCents: row.dueCents, receivedCents: row.receivedCents, remainingCents: row.remainingCents })
       : []
     return {
-      subject: `[Test] ${row?.paymentEmailSentAt ? 'Relance paiement' : 'Paiement'} - ${withGame(session().game?.title || '', session().label)}`,
+      subject: `[Test] ${row?.paymentEmailSentAt ? 'Relance paiement' : 'Paiement'} - ${withGame(session().game?.title ?? '', session().label)}`,
       body: [
         `Bonjour ${firstName(row?.participant?.name || 'Prénom')},`,
         '',
