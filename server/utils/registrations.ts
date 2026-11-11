@@ -13,6 +13,7 @@ import { REGISTRATION_CANCELLABLE_STATUSES, REGISTRATION_PERIOD_STATES, REGISTRA
 import { ANNOUNCEMENT_REMOVED, AVAILABILITY_ANSWER_PARAMS, canConfirmPlace } from '~/utils/registrations'
 import { withGameValues, withGameValuesIn } from '~/server/utils/participantValues'
 import { participantSlug } from '~/utils/participantSlug'
+import { lockAddress } from '~/server/utils/participantAddress'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -348,6 +349,11 @@ export async function inviteToRegistrationPeriod(params: {
         invited.push({ id: matched.id, name: link.name ?? newParticipant.name, email: newParticipant.email })
       }
     } else if (newParticipant) {
+      // Adresse sous verrou (US-240) : une fiche créée entre-temps à cette adresse ferait refuser la création
+      await lockAddress(tx, newParticipant.email)
+      if (await findParticipantByEmail(newParticipant.email, tx)) {
+        throw createError({ statusCode: 409, message: 'Une fiche vient d’être créée à cette adresse : renvoyez l’invitation.' })
+      }
       const created = await tx.participant.create({
         data: {
           name: newParticipant.name,

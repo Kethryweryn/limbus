@@ -24,6 +24,7 @@ import {
   type RegistrationFormDefinition
 } from '~/utils/registrationForms'
 import { withGameValues } from '~/server/utils/participantValues'
+import { lockAddress } from '~/server/utils/participantAddress'
 
 // Même réponse pour un jeton inconnu ou invalidé : on ne dit pas pourquoi (ADR-0018)
 export const INVALID_LINK_MESSAGE = 'Ce lien n’est pas valide.'
@@ -393,8 +394,11 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
       }
     }
 
-    // L'adresse donnée fait foi ; le rattachement au compte la suit (US-070). Prise par une autre fiche : rien ne change
-    if (!addressTaken) await tx.participant.update({ where: { id: registration.participantId }, data: { email: answers.email, userId: await accountIdForEmail(answers.email) } })
+    // L'adresse donnée fait foi ; le rattachement au compte la suit (US-070). Prise par une autre fiche, même depuis la
+    // lecture de la réponse (vérifié sous verrou, US-240) : rien ne change
+    await lockAddress(tx, answers.email)
+    const takenNow = await findParticipantByEmail(answers.email, tx)
+    if (!addressTaken && (!takenNow || takenNow.id === registration.participantId)) await tx.participant.update({ where: { id: registration.participantId }, data: { email: answers.email, userId: await accountIdForEmail(answers.email) } })
     return { kept, removed, fullSession, changedSessions: changedLines.map((line) => line.sessionId) }
   })
 

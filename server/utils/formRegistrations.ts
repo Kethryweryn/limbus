@@ -18,6 +18,7 @@ import { splitParticipantName } from '~/utils/registrations'
 import { youtubeVideoId } from '~/utils/urls'
 import { namesIn } from '~/server/utils/participantValues'
 import { participantSlug } from '~/utils/participantSlug'
+import { lockAddress } from '~/server/utils/participantAddress'
 
 // Formulaire public du vivier (US-084, US-085, ADR-0046)
 
@@ -188,10 +189,8 @@ export async function confirmRegistrationRequest(token: string | undefined, now 
 async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, formVersionId: string | null, tokenHash: string | null, requestId?: string) {
   const { affinities, questionAnswers, availableSessionIds, ...standard } = answers
   const email = standard.email
-  const matched = await findParticipantByEmail(email)
   const name = [standard.firstName, standard.lastName].filter(Boolean).join(' ').trim() || email.split('@')[0]!
   // Adresse neutre, sans le nom (US-239)
-  const slug = matched ? null : participantSlug()
   const userId = await accountIdForEmail(email)
   const now = new Date()
   // Disponibilités encore valides : une session refermée entre l'envoi et la confirmation est ignorée
@@ -204,9 +203,12 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
       const { count } = await tx.registrationRequest.deleteMany({ where: { id: requestId } })
       if (!count) return null
     }
+    // Fiche de l'adresse, cherchée sous verrou : deux réponses simultanées de la même adresse n'en font qu'une (US-240)
+    await lockAddress(tx, email)
+    const matched = await findParticipantByEmail(email, tx)
     const participant = matched
       ? await tx.participant.update({ where: { id: matched.id }, data: { email, userId }, select: { id: true } })
-      : await tx.participant.create({ data: { name, slug: slug!, email, userId }, select: { id: true } })
+      : await tx.participant.create({ data: { name, slug: participantSlug(), email, userId }, select: { id: true } })
     // Nom et téléphone tenus par jeu (ADR-0086) : ceux de la réponse, jamais ceux d'une autre équipe qui suit la fiche
     await tx.participantGame.upsert({
       where: { participantId_gameId: { participantId: participant.id, gameId: period.gameId } },
