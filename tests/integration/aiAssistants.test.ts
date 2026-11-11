@@ -364,12 +364,13 @@ describe('sessions et participants', () => {
     const place = (await call(client, 'enregistrer_lieu', { jeuId: game.id, name: 'Tour' })).json
     const opening = (await call(client, 'enregistrer_evenement', { jeuId: game.id, name: 'Ouverture', day: 1, time: '10:00' })).json
 
-    // Fiches participant : sans coordonnées
-    const ana = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Ana Assistée', notes: 'Joue souvent les meneuses' })).json
-    const ben = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Ben Assisté' })).json
-    const cleo = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Cléo Orga' })).json
+    // Fiches participant : une adresse, obligatoire (SPEC-022 R3, US-238), et pas de téléphone
+    expect((await call(client, 'creer_participant', { jeuId: game.id, name: 'Sans adresse', email: '' })).error).toBe(true)
+    const ana = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Ana Assistée', email: 'ana-ia@example.test', notes: 'Joue souvent les meneuses' })).json
+    const ben = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Ben Assisté', email: 'ben-ia@example.test' })).json
+    const cleo = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Cléo Orga', email: 'cleo-ia@example.test' })).json
     expect(await prisma.participant.findUniqueOrThrow({ where: { id: ana.id }, select: { email: true, phone: true, gameLinks: { select: { gameId: true, notes: true } } } }))
-      .toEqual({ email: null, phone: null, gameLinks: [{ gameId: game.id, notes: 'Joue souvent les meneuses' }] })
+      .toEqual({ email: 'ana-ia@example.test', phone: null, gameLinks: [{ gameId: game.id, notes: 'Joue souvent les meneuses' }] })
 
     // Session : prévue et non visible ; lieu et jeu de l'autorisation seulement
     const session = (await call(client, 'creer_session', { jeuId: game.id, name: 'Session de l’assistant', date: '2099-05-01T10:00:00.000Z', locationId: place.id })).json
@@ -386,9 +387,9 @@ describe('sessions et participants', () => {
     const inscribed = { create: { sessionId: session.id, status: 'confirmed' } }
     await inPool(ana.id, 'ana-ia@example.test', inscribed)
     await inPool(ben.id, 'ben-ia@example.test', inscribed)
-    const dora = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Dora Vivier' })).json
+    const dora = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Dora Vivier', email: 'dora-ia@example.test' })).json
     await inPool(dora.id, 'dora-ia@example.test')
-    const eli = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Éli Dehors' })).json
+    const eli = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Éli Dehors', email: 'eli-ia@example.test' })).json
     const refusedOutside = await call(client, 'modifier_equipe', { sessionId: session.id, version: (await call(client, 'lire_session', { sessionId: session.id })).json.updatedAt, team: [{ participantId: eli.id, role: 'participant' }] })
     expect(refusedOutside.error).toBe(true)
     expect(refusedOutside.text).toContain('Éli Dehors n’est pas dans le vivier')
@@ -505,7 +506,7 @@ describe('inscriptions', () => {
     const hero = (await call(client, 'enregistrer_personnage', { jeuId: game.id, name: 'Aube' })).json
     const first = (await call(client, 'creer_session', { jeuId: game.id, name: 'Première' })).json
     const second = (await call(client, 'creer_session', { jeuId: game.id, name: 'Seconde' })).json
-    const person = async (name: string) => (await call(client, 'creer_participant', { jeuId: game.id, name })).json.id as string
+    const person = async (name: string) => (await call(client, 'creer_participant', { jeuId: game.id, name, email: `${name.split(' ')[0]!.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()}-inscriptions-ia@example.test` })).json.id as string
     const [ana, ben, cleo, dan] = [await person('Ana Inscrite'), await person('Ben Inscrit'), await person('Cléo Inscrite'), await person('Dan Inscrit')]
 
     // Vivier : en brouillon, un seul par jeu

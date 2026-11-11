@@ -33,7 +33,7 @@ const resources: Resource[] = [
   { path: 'locations', model: 'location', entity: (w) => w.location, body: (w) => ({ name: 'Renommé', gameId: w.game.id }), slugPath: 'locations/slug' },
   { path: 'documents', model: 'document', entity: (w) => w.document, body: (w) => ({ title: 'Renommé', content: 'x', gameId: w.game.id }), slugPath: 'documents/slug' },
   { path: 'timeline-events', model: 'timelineEvent', entity: (w) => w.timelineEvent, body: (w) => ({ name: 'Renommé', day: 1, time: '11:00', gameId: w.game.id }), slugPath: 'timeline-events/slug' },
-  { path: 'participants', model: 'participant', entity: (w) => w.participant, body: (w) => ({ name: 'Renommé', gameIds: [w.game.id] }), slugPath: 'participants/slug' },
+  { path: 'participants', model: 'participant', entity: (w) => w.participant, body: (w) => ({ name: 'Renommé', email: w.participant.email ?? 'renomme@example.test', gameIds: [w.game.id] }), slugPath: 'participants/slug' },
   // Une session n'a pas de nom (SPEC-021) : c'est sa date qui ne doit pas changer
   { path: 'sessions', model: 'session', entity: (w) => w.session, body: (w) => ({ date: '2099-12-31T12:00:00.000Z', gameId: w.game.id }), slugPath: 'sessions/slug' },
   {
@@ -125,7 +125,7 @@ describe('création dans un jeu inaccessible', () => {
     ['documents', { title: 'Intrus', content: 'x', gameId: b.game.id }],
     ['timeline-events', { name: 'Intrus', day: 1, time: '10:00', gameId: b.game.id }],
     ['sessions', { name: 'Intrus', gameId: b.game.id }],
-    ['participants', { name: 'Intrus', gameIds: [b.game.id] }],
+    ['participants', { name: 'Intrus', email: 'intrus@example.test', gameIds: [b.game.id] }],
     ['registration-periods', { gameId: b.game.id }]
   ]
 
@@ -465,7 +465,7 @@ describe('notes d’une fiche commune', () => {
     const read = await api(alice, 'GET', `/api/participants/${participant.id}`)
     expect(read.body).toMatchObject({ gameNotes: { [a.game.id]: 'Note A' } })
     expect(JSON.stringify(read.body)).not.toContain('Note B')
-    const write = await api(alice, 'PUT', `/api/participants/${participant.id}`, { name: participant.name, gameIds: [a.game.id], gameNotes: { [b.game.id]: 'Intrusion' } })
+    const write = await api(alice, 'PUT', `/api/participants/${participant.id}`, { name: participant.name, email: 'fiche-commune-isolation@example.test', gameIds: [a.game.id], gameNotes: { [b.game.id]: 'Intrusion' } })
     expect(write.status).toBe(403)
   })
 })

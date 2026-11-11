@@ -232,7 +232,8 @@ export const registrationOptionExpectationsSchema = z.object({
 
 export const participantSchema = z.object({
   name: requiredText('Le nom'),
-  email: optionalText,
+  // Une fiche appartient à la personne de son adresse (SPEC-022 R3, US-238) : l'adresse est obligatoire
+  email: z.string({ error: 'L’adresse email est obligatoire' }).trim().min(1, 'L’adresse email est obligatoire').max(254, 'Email trop long').email('Email invalide'),
   phone: optionalText,
   // Une note par jeu (US-069) : { idDuJeu: texte }, pour les seuls jeux accessibles
   gameNotes: z.record(z.string(), z.string().nullable()).optional().default({}),

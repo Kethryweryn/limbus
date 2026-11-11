@@ -21,6 +21,8 @@
         value-key="value"
         class="w-full md:w-64"
       />
+      <!-- Fiches d'avant l'adresse obligatoire (SPEC-022 R3, US-238) : à compléter -->
+      <UCheckbox v-if="withoutEmailCount || onlyWithoutEmail" v-model="onlyWithoutEmail" :label="`Sans email (${withoutEmailCount})`" class="self-center" />
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -59,6 +61,7 @@
                     +{{ hiddenParticipantGamesCount(participant) }}
                   </UBadge>
                   <span v-if="!participant.games?.length" class="text-sm text-gray-500">Aucun jeu</span>
+                  <UBadge v-if="needsParticipantEmail(participant.email)" color="warning" variant="subtle" size="xs">{{ participant.email ? 'Email invalide' : 'Sans email' }}</UBadge>
                 </div>
               </div>
             </div>
@@ -122,6 +125,7 @@ import { DELETE_CONFIRMATIONS } from '~/utils/deleteConfirmations'
 import { confirmedDelete } from '~/composables/useConfirmedDelete'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ParticipantDraft } from '~/utils/writingDrafts'
+import { needsParticipantEmail } from '~/utils/participantEmail'
 
 type ParticipantRow = ApiResponse<'/api/participants'>[number]
 
@@ -129,6 +133,8 @@ const participants = ref<ParticipantRow[]>([])
 const games = ref<ApiResponse<'/api/games'>>([])
 const searchQuery = ref('')
 const gameFilter = ref('all')
+const onlyWithoutEmail = ref(false)
+const withoutEmailCount = computed(() => participants.value.filter((participant) => needsParticipantEmail(participant.email)).length)
 const showFormSlideover = ref(false)
 const activeFormParticipant = ref<ParticipantDraft | null>(null)
 const formMode = ref<'create' | 'edit'>('create')
@@ -147,6 +153,7 @@ const filteredParticipants = computed(() => {
 
   return participants.value
     .filter((participant) => !gameId || participant.games.some((game) => game.id === gameId))
+    .filter((participant) => !onlyWithoutEmail.value || needsParticipantEmail(participant.email))
     .filter((participant) =>
       [participant.name, participant.email, participant.phone, ...participant.games.map((game) => game.title)].some((field) =>
         field?.toLowerCase().includes(term)
@@ -172,7 +179,7 @@ const prevPage = () => {
   if (page.value > 1) page.value--
 }
 
-watch([searchQuery, gameFilter, filteredParticipants], () => {
+watch([searchQuery, gameFilter, onlyWithoutEmail, filteredParticipants], () => {
   page.value = 1
 })
 

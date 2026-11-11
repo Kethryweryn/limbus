@@ -207,23 +207,24 @@ async function currentParticipant(event: H3Event, id: string) {
 function registerParticipantWriteTools({ event, server }: ToolContext) {
   server.registerTool('creer_participant', {
     title: 'Créer une fiche participant',
-    description: 'Crée une fiche participant dans un jeu : nom et note d’organisation de ce jeu. Elle n’a ni email ni téléphone.',
+    description: 'Crée une fiche participant dans un jeu : nom, adresse email (obligatoire : la fiche est celle de la personne de cette adresse) et note d’organisation de ce jeu. Elle n’a pas de téléphone. Une adresse qui a déjà une fiche ajoute ce jeu à la fiche existante.',
     inputSchema: z.object({
       jeuId: z.string(),
       name: z.string().max(200),
+      email: z.string().max(254).describe('Adresse email de la personne'),
       notes: text('Note d’organisation pour ce jeu')
     }),
     annotations: WRITE
-  }, ({ jeuId, name, notes }) => toolResult(async () => {
+  }, ({ jeuId, name, email, notes }) => toolResult(async () => {
     requireWrite(event)
-    const participant = await createParticipant(event, async () => parseZod(participantCreateSchema, { name, gameIds: [jeuId], gameNotes: { [jeuId]: notes ?? null } }))
+    const participant = await createParticipant(event, async () => parseZod(participantCreateSchema, { name, email, gameIds: [jeuId], gameNotes: { [jeuId]: notes ?? null } }))
     await logWrite(event, 'creer_participant', AI_LOG_ACTIONS.created, { type: 'participant', id: participant.id, name: participant.name, gameId: jeuId })
     return { id: participant.id, version: participant.updatedAt }
   }))
 
   server.registerTool('modifier_participant', {
     title: 'Modifier une fiche participant',
-    description: 'Change le nom d’une fiche, sa note d’organisation pour des jeux autorisés, ou l’ajoute à d’autres jeux autorisés. Elle n’est jamais retirée d’un jeu ; ses coordonnées et les notes des autres jeux ne changent pas. Le nom d’une fiche rattachée à un compte reste celui du compte.',
+    description: 'Change le nom d’une fiche, sa note d’organisation pour des jeux autorisés, ou l’ajoute à d’autres jeux autorisés. Elle n’est jamais retirée d’un jeu ; ses coordonnées et les notes des autres jeux ne changent pas. Le nom d’une fiche rattachée à un compte reste celui du compte. Une fiche sans adresse email ne se modifie pas ici : l’équipe lui donne d’abord une adresse dans l’interface.',
     inputSchema: z.object({
       participantId: z.string(),
       version,
