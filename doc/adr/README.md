@@ -26,7 +26,7 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0020](ADR-0020-echeances-evaluees-a-la-lecture.md) | Échéances évaluées à la lecture, sans tâche planifiée | accepté | 2026-10-27 |
 | [ADR-0021](ADR-0021-inscription-et-participation-de-session.md) | L'inscription crée la participation de session, la session reste la référence | accepté | 2026-10-27 |
 | [ADR-0022](ADR-0022-pas-de-ci-pour-la-documentation.md) | Pas de CI ni de déploiement quand seule la documentation change | accepté, en partie remplacé par ADR-0023 | 2026-10-28 |
-| [ADR-0023](ADR-0023-deploiement-sans-ci-redondante.md) | Construire une fois dans la CI, tester ce build, le déployer tel quel | accepté | 2026-10-28 |
+| [ADR-0023](ADR-0023-deploiement-sans-ci-redondante.md) | Construire une fois dans la CI, tester ce build, le déployer tel quel | accepté, complété par ADR-0059 et ADR-0085 | 2026-10-28 |
 | [ADR-0024](ADR-0024-migrations-compatibles-avec-le-build-en-service.md) | Migrations compatibles avec le build en service, vérifiées par la CI | accepté | 2026-10-28 |
 | [ADR-0025](ADR-0025-legs-de-jeu.md) | Legs d'un jeu par copie en une transaction, copie en attente sans propriétaire | accepté | 2026-10-28 |
 | [ADR-0026](ADR-0026-acces-ssh-au-serveur.md) | Accès SSH au serveur par clé uniquement, clé root sans phrase de passe acceptée | accepté | 2026-10-29 |
@@ -88,3 +88,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0082](ADR-0082-tests-de-bout-en-bout-en-trois-jobs.md) | Tests de bout en bout répartis sur trois jobs de la CI | accepté | 2026-11-10 |
 | [ADR-0083](ADR-0083-libelle-de-session-calcule.md) | Le libellé d'une session est calculé par le serveur et gardé à la place du nom | remplacé par ADR-0084 | 2026-11-11 |
 | [ADR-0084](ADR-0084-libelle-de-session-a-la-lecture.md) | Le libellé d'une session est calculé à chaque lecture, et la session n'a plus de nom en base | accepté | 2026-11-11 |
+| [ADR-0085](ADR-0085-installation-serveur-sans-audit.md) | Le serveur installe ses dépendances sans audit de sécurité, et note l'heure de chaque étape du déploiement | accepté | 2026-11-11 |

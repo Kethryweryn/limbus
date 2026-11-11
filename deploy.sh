@@ -28,7 +28,7 @@ if ! flock -n 9; then
   exit 1
 fi
 
-# Heure de chaque étape dans le journal du déploiement (fiche deploiement-dependances : mesurer avant de choisir)
+# Heure de chaque étape dans le journal du déploiement (ADR-0085)
 etape() { echo "[$(date +%T)] $*"; }
 
 cd "$APP_DIR"
@@ -99,10 +99,9 @@ if [ -d "$APP_DIR/node_modules" ] && [ "$(cat "$APP_DIR/$DEPS_STAMP" 2>/dev/null
 else
   # --include=dev obligatoire : NODE_ENV=production dans .env, et nuxt prepare (postinstall) comme le build
   # ont besoin des devDependencies (@nuxt/eslint, typescript, workbox-build…)
-  # --timing : durée de chaque phase (téléchargement, extraction, audit, scripts d'installation) dans le journal,
-  # sans les lignes par paquet ni par avis de sécurité (plus de 1 700 lignes sinon)
+  # --no-audit : l'audit de sécurité prenait 36 s sur 1 min 22 ; Dependabot et GitHub signalent déjà les failles (ADR-0085)
   etape "Dépendances changées : installation complète"
-  npm ci --include=dev --timing 2>&1 | grep -vE 'timing (reifyNode|metavuln):'
+  npm ci --include=dev --no-audit
   echo "$deps_fingerprint" > "$DEPS_STAMP"
 fi
 etape "Client Prisma"
