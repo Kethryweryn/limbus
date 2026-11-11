@@ -38,6 +38,7 @@ Tranchées par l'utilisatrice le 2026-11-11 :
 
 - Les fiches existantes d'une même adresse chez plusieurs propriétaires sont fusionnées automatiquement par la migration ; chaque équipe garde ses jeux, ses notes, ses casts et les coordonnées qu'elle avait saisies.
 - À l'activation, le compte part vide : la personne remplit elle-même ses coordonnées, que ses équipes voient ensuite. Aucune équipe ne voit ce qu'une autre a saisi.
+- Tant que la personne n'a pas rempli un champ de ses coordonnées (téléphone, contact d'urgence, allergies), chaque équipe garde le sien ; un champ rempli par la personne remplace celui de toutes ses équipes ([ADR-0042](../adr/ADR-0042-coordonnees-du-compte.md)). Rien ne se perd à l'activation, en particulier les allergies.
 - Un compte jamais activé échappe à l'effacement après 24 mois sans connexion ([ADR-0056](../adr/ADR-0056-durees-de-conservation.md)) : il n'est effacé que quand plus aucune fiche ne le relie à une équipe. Une fois activé, il suit la règle normale.
 
 ## Points à trancher
