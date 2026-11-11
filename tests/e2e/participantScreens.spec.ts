@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test'
 import { TERMS_VERSION } from '../../utils/legal'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { choose, gamePerson, orgaGame, orgaSession, signIn, slugOf, test, uniqueName, type TestPrisma } from './helpers'
+import { castSession, choose, gameCharacter, gamePerson, orgaGame, orgaSession, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
 
 // Jeu d'une autre équipe, celle du compte « autre »
 async function otherTeamGame(prisma: TestPrisma, base: string) {
@@ -259,3 +259,58 @@ test('hors ligne : la fiche se relit, et une modification part au retour du rés
   }
 })
 
+
+// US-237 (SPEC-022 R6, ADR-0086) : nom et téléphone tenus par jeu, version par équipe
+test('nom par jeu : une co-organisatrice ne change que son jeu, et une autre équipe ne fait pas refuser ma modification (US-237)', async ({ page, otherPage }) => {
+  const prisma = createTestPrisma()
+  try {
+    const mine = await orgaGame(prisma, 'Jeu de l’orga au nom par jeu')
+    const shared = await orgaGame(prisma, 'Jeu partagé au nom par jeu')
+    const foreign = await otherTeamGame(prisma, 'Jeu de l’autre équipe au nom par jeu')
+    const coorga = await testUser(prisma, 'Co-organisatrice du nom par jeu')
+    await prisma.gameShare.create({ data: { gameId: shared.id, userId: coorga.user.id } })
+    const person = await gamePerson(prisma, mine.id, 'Personne au nom par jeu')
+    await prisma.participantGame.createMany({ data: [shared, foreign].map((game) => ({ participantId: person.id, gameId: game.id, name: person.name })) })
+    const role = await gameCharacter(prisma, mine.id, 'Rôle du jeu de l’orga')
+    const sharedRole = await gameCharacter(prisma, shared.id, 'Rôle du jeu partagé')
+    const mySession = await castSession(prisma, mine.id, 'Session de l’orga', [[role, person]])
+    const sharedSession = await castSession(prisma, shared.id, 'Session partagée', [[sharedRole, person]])
+
+    // La co-organisatrice ne voit que le jeu partagé : son nouveau nom ne vaut que pour lui
+    const second = await otherPage()
+    await signIn(second, prisma, coorga.email)
+    await openSheet(second, person)
+    const renamed = uniqueName('Nom donné par la co-organisatrice')
+    await second.getByRole('button', { name: 'Modifier' }).click()
+    await second.getByLabel('Nom', { exact: true }).fill(renamed)
+    await second.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect(second.getByRole('heading', { level: 1, name: renamed })).toBeVisible()
+    const links = async () => Object.fromEntries((await prisma.participantGame.findMany({ where: { participantId: person.id }, select: { gameId: true, name: true } })).map((link) => [link.gameId, link.name]))
+    expect(await links()).toEqual({ [mine.id]: person.name, [shared.id]: renamed, [foreign.id]: person.name })
+
+    // L'organisatrice lit, dans chaque session, le nom du jeu de la session
+    await signIn(page, prisma, E2E_USERS.orga)
+    await page.goto(`/sessions/${mySession.slug}?tab=cast`)
+    await expect(page.getByRole('heading', { level: 1, name: mySession.label })).toBeVisible()
+    await expect(page.getByText(person.name).first()).toBeVisible()
+    await expect(page.getByText(renamed)).toHaveCount(0)
+    await page.goto(`/sessions/${sharedSession.slug}?tab=cast`)
+    await expect(page.getByRole('heading', { level: 1, name: sharedSession.label })).toBeVisible()
+    await expect(page.getByText(renamed).first()).toBeVisible()
+
+    // Une modification de l'autre équipe, sur son jeu, ne refuse pas celle de l'organisatrice, ouverte avant
+    const { slug } = await prisma.participant.findUniqueOrThrow({ where: { id: person.id }, select: { slug: true } })
+    await page.goto(`/participants/${slug}`)
+    await page.waitForLoadState('networkidle')
+    await page.getByRole('button', { name: 'Modifier' }).click()
+    await prisma.participantGame.update({ where: { participantId_gameId: { participantId: person.id, gameId: foreign.id } }, data: { phone: '0699999999' } })
+    await page.getByLabel('Téléphone', { exact: true }).fill('0644444444')
+    await page.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect.poll(async () => (await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: mine.id } } })).phone).toBe('0644444444')
+    await expect(page.getByText('Cet élément a été modifié par quelqu’un d’autre entre-temps.', { exact: false })).toHaveCount(0)
+    // L'autre équipe garde son téléphone
+    expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: foreign.id } } })).phone).toBe('0699999999')
+  } finally {
+    await prisma.$disconnect()
+  }
+})

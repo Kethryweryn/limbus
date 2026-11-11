@@ -74,3 +74,17 @@ export async function assertPaymentUnmodifiedSince(event: H3Event, sessionId: st
   })
   assertVersion(event, payment?.updatedAt)
 }
+
+/**
+ * Fiche participant : sa version, pour une équipe, est le plus récent `updatedAt` des liens qu'elle voit (ADR-0086).
+ * Une modification par une autre équipe, sur ses propres jeux, ne la refuse donc pas, et rien ne trahit son activité.
+ * `gameIds` : jeux visibles, ou null pour tous (mode administrateur).
+ */
+export async function assertParticipantUnmodifiedSince(event: H3Event, participantId: string, gameIds: string[] | null) {
+  if (!readVersion(event)) return
+  const latest = await prisma.participantGame.aggregate({
+    where: { participantId, ...(gameIds === null ? {} : { gameId: { in: gameIds } }) },
+    _max: { updatedAt: true }
+  })
+  assertRowsVersion(event, latest._max.updatedAt)
+}

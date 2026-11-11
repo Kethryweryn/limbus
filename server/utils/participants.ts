@@ -42,14 +42,19 @@ export function exposeParticipantGames<T extends ParticipantWithGameLinks>(parti
   // `published` n'a aucun effet sur une fiche : il n'est plus exposé (US-038). L'ancienne note commune non plus (ADR-0040)
   delete (rest as { published?: unknown }).published
   delete (rest as { notes?: unknown }).notes
+  // Version de la fiche pour l'équipe : le plus récent de ses liens visibles (ADR-0086), sinon celle de la fiche
+  const versions = (gameLinks || []).map((link) => link.updatedAt).filter((date): date is Date => Boolean(date))
   return {
     ...rest,
+    ...(versions.length ? { updatedAt: new Date(Math.max(...versions.map((date) => date.getTime()))) } : {}),
     games: gameLinks?.map((link) => ({
       ...link.game,
       registeredAt: link.createdAt
     })) || [],
     // Notes des seuls jeux accessibles : gameLinks est déjà filtré (US-069)
-    gameNotes: Object.fromEntries((gameLinks || []).map((link) => [link.game.id, link.notes ?? null]))
+    gameNotes: Object.fromEntries((gameLinks || []).map((link) => [link.game.id, link.notes ?? null])),
+    // Nom tenu par l'équipe de chaque jeu accessible (ADR-0086), pour les listes d'un jeu (cast, équipe)
+    gameNames: Object.fromEntries((gameLinks || []).map((link) => [link.game.id, link.name ?? null]))
   }
 }
 

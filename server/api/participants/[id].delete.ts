@@ -3,7 +3,7 @@ import { requireUser } from '~/server/utils/auth'
 import { accessibleGameIds, requireParticipantAccess } from '~/server/utils/gameAccess'
 import { eraseParticipant } from '~/server/utils/participantPrivacy'
 import { requireRouterParam } from '~/server/utils/routeParams'
-import { assertUnmodifiedSince } from '~/server/utils/concurrency'
+import { assertParticipantUnmodifiedSince } from '~/server/utils/concurrency'
 
 export default defineEventHandler(async (event) => {
   await requireUser(event)
@@ -11,8 +11,8 @@ export default defineEventHandler(async (event) => {
   const id = requireRouterParam(event, 'id')
   await requireParticipantAccess(event, id)
   // Suppression rejouée hors ligne : refusée si l'élément a changé depuis sa lecture (ADR-0036)
-  await assertUnmodifiedSince(event, 'participant', id)
   const allowedGameIds = await accessibleGameIds(event)
+  await assertParticipantUnmodifiedSince(event, id, allowedGameIds)
   if (allowedGameIds !== null) {
     const links = await prisma.participantGame.findMany({
       where: { participantId: id },
