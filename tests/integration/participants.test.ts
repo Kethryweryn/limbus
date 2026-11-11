@@ -320,3 +320,48 @@ describe('chaque équipe lit le nom et le téléphone de son jeu (US-237)', () =
     }
   })
 })
+
+// Version d'une fiche par équipe (US-237, étape 3, ADR-0086) : le plus récent des liens qu'elle voit
+describe('version de la fiche par équipe (US-237)', () => {
+  const { bob, carol } = world.users
+  const since = (version: string) => ({ headers: { 'if-unmodified-since': version } })
+
+  async function fiche() {
+    const key = `version-${++counter}`
+    const [aliceGame, sharedGame, bobGame] = await Promise.all([[alice, 'a'], [alice, 'p'], [bob, 'b']].map(([owner, tag]) =>
+      prisma.game.create({ data: { title: `Jeu ${tag} ${key}`, slug: `jeu-${tag}-${key}`, description: '', ownerId: (owner as typeof alice).id } })
+    ))
+    await prisma.gameShare.create({ data: { gameId: sharedGame!.id, userId: carol.id } })
+    const participant = await prisma.participant.create({
+      data: {
+        name: `Lou ${key}`,
+        slug: `lou-${key}`,
+        email: `lou-${key}@example.test`,
+        gameLinks: { create: [aliceGame!, sharedGame!, bobGame!].map((game) => ({ gameId: game.id, name: `Lou ${key}` })) }
+      }
+    })
+    return { key, aliceGame: aliceGame!, sharedGame: sharedGame!, bobGame: bobGame!, participant }
+  }
+  const read = async (user: typeof alice, id: string) => (await api(user, 'GET', `/api/participants/${id}`)).body as { updatedAt: string }
+
+  it('une modification d’une autre équipe ne refuse rien et ne change pas la version lue', async () => {
+    const { key, aliceGame, sharedGame, bobGame, participant } = await fiche()
+    const aliceVersion = (await read(alice, participant.id)).updatedAt
+    const bobVersion = (await read(bob, participant.id)).updatedAt
+    expect((await api(bob, 'PUT', `/api/participants/${participant.id}`, { name: `Lou par Bob ${key}`, email: participant.email, gameIds: [bobGame.id] }, since(bobVersion))).status).toBe(200)
+    expect((await read(alice, participant.id)).updatedAt).toBe(aliceVersion)
+    const response = await api(alice, 'PUT', `/api/participants/${participant.id}`, { name: `Lou par Alice ${key}`, email: participant.email, gameIds: [aliceGame.id, sharedGame.id] }, since(aliceVersion))
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+  })
+
+  it('une modification d’un jeu que je vois refuse la mienne, faite sur une version plus ancienne', async () => {
+    const { key, aliceGame, sharedGame, participant } = await fiche()
+    const aliceVersion = (await read(alice, participant.id)).updatedAt
+    const carolVersion = (await read(carol, participant.id)).updatedAt
+    expect((await api(carol, 'PUT', `/api/participants/${participant.id}`, { name: `Lou par Carol ${key}`, email: participant.email, gameIds: [sharedGame.id] }, since(carolVersion))).status).toBe(200)
+    const refused = await api(alice, 'PUT', `/api/participants/${participant.id}`, { name: `Lou par Alice ${key}`, email: participant.email, gameIds: [aliceGame.id, sharedGame.id] }, since(aliceVersion))
+    expect(refused.status).toBe(409)
+    // Rien d'enregistré : le jeu partagé garde le nom donné par Carol
+    expect((await prisma.participantGame.findFirstOrThrow({ where: { participantId: participant.id, gameId: sharedGame.id } })).name).toBe(`Lou par Carol ${key}`)
+  })
+})

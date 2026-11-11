@@ -104,6 +104,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { nameInGame } from '~/utils/participantNames'
 import { CHARACTER_TYPES, SESSION_ROLES, SESSION_STATUS_OPTIONS } from '~/utils/domain'
 import { apiErrorMessage } from '~/utils/apiErrors'
 import { noneOption } from '~/utils/selectOptions'
@@ -117,7 +118,7 @@ const props = withDefaults(defineProps<{
   games: GameOption[]
   characters: CharacterOption[]
   locations: Array<{ id: string, name: string, address?: string | null, gameId: string }>
-  participants: Array<{ id: string, name: string, email?: string | null, games?: Array<{ id: string }> }>
+  participants: Array<{ id: string, name: string, email?: string | null, games?: Array<{ id: string }>, gameNames?: Record<string, string | null> }>
   mode?: 'create' | 'edit'
 }>(), { mode: 'create' })
 
@@ -151,7 +152,8 @@ const sessionParticipantOptions = computed(() => [
   ...props.participants
     .filter((participant) => !localSession.value.gameId || participant.games?.some((game) => game.id === localSession.value.gameId))
     .map((participant) => ({
-      label: participant.email ? `${participant.name} - ${participant.email}` : participant.name,
+      // Nom tenu par le jeu de la session (ADR-0086)
+      label: participant.email ? `${nameInGame(participant, localSession.value.gameId)} - ${participant.email}` : nameInGame(participant, localSession.value.gameId),
       value: participant.id
     }))
 ])

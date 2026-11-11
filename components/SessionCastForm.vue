@@ -285,6 +285,7 @@ import { registrationStatusMeta } from '~/utils/registrations'
 import { fetchByUrl, type ApiResponse } from '~/composables/useApiFetch'
 import type { InvitationResult, RegistrationPeriod } from '~/composables/useRegistrationPeriodActions'
 import type { CharacterOption } from '~/utils/writingDrafts'
+import { nameInGame } from '~/utils/participantNames'
 
 type Link = { id: string } | null
 /** Ligne du cast éditée : un personnage, sa personne ou sa réservation (US-100), son cadenas (US-101). */
@@ -305,7 +306,7 @@ const props = defineProps<{
     poolState?: string | null
   }
   characters: Array<CharacterOption & { factions?: Array<{ name: string }> }>
-  participants: Array<{ id: string, name: string, email?: string | null, photoRefusedAt?: string | null, games?: Array<{ id: string }> }>
+  participants: Array<{ id: string, name: string, email?: string | null, photoRefusedAt?: string | null, games?: Array<{ id: string }>, gameNames?: Record<string, string | null> }>
   onSave: (assignments: CastLine[]) => Promise<unknown>
 }>()
 
@@ -369,7 +370,8 @@ const participantOptions = computed(() => [
   ...props.participants
     .filter((participant) => castableIds.value.has(participant.id))
     .map((participant) => ({
-      label: participant.email ? `${participant.name} - ${participant.email}` : participant.name,
+      // Nom tenu par le jeu de la session (ADR-0086)
+      label: participant.email ? `${nameInGame(participant, props.session.gameId)} - ${participant.email}` : nameInGame(participant, props.session.gameId),
       value: participant.id
     }))
 ])

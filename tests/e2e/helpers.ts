@@ -197,7 +197,8 @@ export { labelled } from '../sessionLabel'
 export async function gamePerson(prisma: TestPrisma, gameId: string, base: string, emailPrefix?: string) {
   const name = uniqueName(base)
   const email = emailPrefix === undefined ? undefined : `${emailPrefix}${slugOf(name)}@example.test`
-  return await prisma.participant.create({ data: { name, slug: slugOf(name), email, gameLinks: { create: { gameId } } } })
+  // Nom tenu par le jeu (ADR-0086)
+  return await prisma.participant.create({ data: { name, slug: slugOf(name), email, gameLinks: { create: { gameId, name } } } })
 }
 
 // Personnage du jeu donné (US-199)

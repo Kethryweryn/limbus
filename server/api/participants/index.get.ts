@@ -2,7 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
 import { accessibleGameIds, queryGameFilter } from '~/server/utils/gameAccess'
 import { exposeParticipantsGames, participantGameLinksInclude } from '~/server/utils/participants'
-import { byName } from '~/server/utils/participantValues'
+import { byName, withGameValuesIn } from '~/server/utils/participantValues'
 
 // ?gameId= limite la liste aux participants d'un jeu accessible (invitations au vivier, US-117)
 export default defineEventHandler(async (event) => {
@@ -18,8 +18,10 @@ export default defineEventHandler(async (event) => {
     include: participantGameLinksInclude(gameIds)
   })
 
-  // Tri par le nom que voit l'équipe (ADR-0086)
-  return exposeParticipantsGames(participants).sort(byName)
+  // Tri par le nom que voit l'équipe (ADR-0086) ; la liste d'un jeu donne le nom de ce jeu
+  const exposed = exposeParticipantsGames(participants)
+  if (gameId) await withGameValuesIn(exposed, gameId)
+  return exposed.sort(byName)
 })
 
 

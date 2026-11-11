@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
 import type { Prisma } from '~/generated/prisma/client'
 import { prisma } from '~/server/utils/prisma'
+import { participantVersions } from '~/server/utils/participantValues'
 
 // Version lue par le client (ADR-0036) : celle donnée par un outil d'assistant d'IA (SPEC-014, R10), sinon la date de
 // l'en-tête If-Unmodified-Since, ou null sans en-tête
@@ -73,4 +74,14 @@ export async function assertPaymentUnmodifiedSince(event: H3Event, sessionId: st
     select: { updatedAt: true }
   })
   assertVersion(event, payment?.updatedAt)
+}
+
+/**
+ * Fiche participant : sa version, pour une équipe, est le plus récent `updatedAt` des liens qu'elle voit (ADR-0086).
+ * Une modification par une autre équipe, sur ses propres jeux, ne la refuse donc pas, et rien ne trahit son activité.
+ * `gameIds` : jeux visibles, ou null pour tous (mode administrateur).
+ */
+export async function assertParticipantUnmodifiedSince(event: H3Event, participantId: string, gameIds: string[] | null) {
+  if (!readVersion(event)) return
+  assertRowsVersion(event, (await participantVersions([participantId], gameIds)).get(participantId) ?? null)
 }

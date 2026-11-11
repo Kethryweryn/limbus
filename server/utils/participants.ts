@@ -3,7 +3,7 @@ import { deleteUnusedUploads } from '~/server/utils/uploads'
 import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
 import { publicAppUrl } from '~/server/utils/appUrl'
 import { REGISTRATION_SESSION_STATUSES, REGISTRATION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
-import { latestVisibleValues } from '~/server/utils/participantValues'
+import { latestOf, latestVisibleValues } from '~/server/utils/participantValues'
 
 type ParticipantWithGameLinks = {
   gameLinks?: Array<{
@@ -42,14 +42,19 @@ export function exposeParticipantGames<T extends ParticipantWithGameLinks>(parti
   // `published` n'a aucun effet sur une fiche : il n'est plus exposé (US-038). L'ancienne note commune non plus (ADR-0040)
   delete (rest as { published?: unknown }).published
   delete (rest as { notes?: unknown }).notes
+  // Version de la fiche pour l'équipe : le plus récent de ses liens visibles (ADR-0086), sinon celle de la fiche
+  const version = latestOf((gameLinks || []).map((link) => link.updatedAt))
   return {
     ...rest,
+    ...(version ? { updatedAt: version } : {}),
     games: gameLinks?.map((link) => ({
       ...link.game,
       registeredAt: link.createdAt
     })) || [],
     // Notes des seuls jeux accessibles : gameLinks est déjà filtré (US-069)
-    gameNotes: Object.fromEntries((gameLinks || []).map((link) => [link.game.id, link.notes ?? null]))
+    gameNotes: Object.fromEntries((gameLinks || []).map((link) => [link.game.id, link.notes ?? null])),
+    // Nom tenu par l'équipe de chaque jeu accessible (ADR-0086), pour les listes d'un jeu (cast, équipe)
+    gameNames: Object.fromEntries((gameLinks || []).map((link) => [link.game.id, link.name ?? null]))
   }
 }
 

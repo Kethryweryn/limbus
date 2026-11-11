@@ -100,3 +100,23 @@ export async function namesIn(gameId: string, participantIds: string[]): Promise
 /** Jeu d'une session, pour lire les noms d'une requête qui ne le porte pas. */
 export const gameIdOfSession = async (sessionId: string) =>
   (await prisma.session.findUniqueOrThrow({ where: { id: sessionId }, select: { gameId: true } })).gameId
+
+/** Plus récente des dates données, ou null : la version d'une fiche pour une équipe (ADR-0086). */
+export function latestOf(dates: Array<Date | null | undefined>): Date | null {
+  const times = dates.filter((date): date is Date => Boolean(date)).map((date) => date.getTime())
+  return times.length ? new Date(Math.max(...times)) : null
+}
+
+/**
+ * Version de chaque fiche pour une équipe : le plus récent `updatedAt` des liens qu'elle voit (`gameIds`, ou null pour
+ * tous). Une modification d'une autre équipe, sur ses propres jeux, n'y entre pas.
+ */
+export async function participantVersions(participantIds: string[], gameIds: string[] | null): Promise<Map<string, Date | null>> {
+  if (!participantIds.length) return new Map()
+  const rows = await prisma.participantGame.groupBy({
+    by: ['participantId'],
+    where: { participantId: { in: participantIds }, ...(gameIds === null ? {} : { gameId: { in: gameIds } }) },
+    _max: { updatedAt: true }
+  })
+  return new Map(rows.map((row) => [row.participantId, row._max.updatedAt]))
+}

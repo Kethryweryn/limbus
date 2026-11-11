@@ -18,6 +18,7 @@ En tant qu'organisatrice, je veux qu'une personne n'ait qu'une fiche, même suiv
 - [ ] Étant donné la fiche commune, alors Alice ne voit que ses jeux, notes, casts, inscriptions, envois et paiements, et ses valeurs de nom et de téléphone ; Bob de même.
 - [ ] Étant donné une fiche dont je corrige l'adresse, alors seuls les jeux que je vois, avec leurs notes, valeurs, inscriptions, casts et envois, passent à la fiche de la nouvelle adresse (créée si besoin) ; les autres jeux gardent l'ancienne ; aucun compte ne change d'adresse.
 - [ ] Une inscription (lien personnel, formulaire public, vivier) rejoint la fiche de son adresse dans tout Limbus.
+- [ ] L'adresse de page d'une fiche (slug) ne suit plus son nom : un nom donné par une équipe ne doit pas apparaître dans l'adresse que voit une autre (constat d'US-237).
 - [ ] Tant que des doublons existent (avant [US-240](US-240-fusion-des-fiches.md)), la fiche rejointe est la plus ancienne de l'adresse.
 - [ ] Étant donné les jeux de test, alors une personne est suivie par deux propriétaires, chacune avec son nom ; `doc/jeux-de-test.md` le dit.
 

@@ -5,7 +5,7 @@ import { accessibleGameIds, requireCurrentUser, requireParticipantAccess } from 
 import type { participantCreateSchema, participantSchema } from '~/server/utils/schemas'
 import { exposeParticipantGames, participantGameLinksInclude, planParticipantRemoval } from '~/server/utils/participants'
 import { eraseParticipant } from '~/server/utils/participantPrivacy'
-import { assertUnmodifiedSince } from '~/server/utils/concurrency'
+import { assertParticipantUnmodifiedSince } from '~/server/utils/concurrency'
 import { generateUniqueSlug } from '~/server/utils/generateUniqueSlug'
 import { accountIdForEmail, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 import { participantEmailMatchWhere } from '~/server/utils/registrations'
@@ -121,7 +121,8 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
     throw createError({ statusCode: 403, message: 'Jeu inaccessible' })
   }
 
-  await assertUnmodifiedSince(event, 'participant', id)
+  // Version des liens que voit l'équipe (ADR-0086)
+  await assertParticipantUnmodifiedSince(event, id, allowedGameIds)
 
   const existingLinks = await prisma.participantGame.findMany({
     where: { participantId: id },
