@@ -1,4 +1,4 @@
-import { inSentence } from '~/utils/sessionLabels'
+import { inGameSentence, withGame } from '~/utils/sessionLabels'
 import { sessionLabelsFor } from '~/server/utils/sessionLabels'
 import { gamePhotoInformation } from '~/utils/photoInformation'
 import { purgeExpiredPhotos } from '~/server/utils/photoRetention'
@@ -363,7 +363,7 @@ async function characterSheetMessage(dashboard: Dashboard, sheet: DashboardSheet
     text: [
       greeting(sheet.participant),
       '',
-      `Voici ta fiche pour ${dashboard.session.label}.`,
+      `Voici ta fiche pour ${inGameSentence(dashboard.session.game.title, dashboard.session.label)}.`,
       '',
       `Personnage : ${sheet.character.name}`,
       sheet.character.backgroundDocumentUrl
@@ -378,11 +378,11 @@ async function characterSheetMessage(dashboard: Dashboard, sheet: DashboardSheet
 async function trombinoscopeMessage(dashboard: Dashboard, sheet: DashboardSheet, update = false) {
   const pdf = await buildTrombinoscopePdfAttachment(dashboard.session, sheet.character.id, dashboard.photoCache)
   return asUpdate({
-    subject: `Trombinoscope - ${dashboard.session.label}`,
+    subject: `Trombinoscope - ${withGame(dashboard.session.game.title, dashboard.session.label)}`,
     text: [
       greeting(sheet.participant),
       '',
-      `Voici ton trombinoscope pour ${dashboard.session.label}.`,
+      `Voici ton trombinoscope pour ${inGameSentence(dashboard.session.game.title, dashboard.session.label)}.`,
       'Le PDF est joint à cet email.',
       '',
       gamePhotoInformation(dashboard.session.game)
@@ -505,11 +505,11 @@ export async function markCharacterSheetBundleDeliveries(sessionId: string) {
     const characterSheet = await buildCharacterSheetPdfAttachment(dashboard.session, sheet.character)
     const trombinoscope = await buildTrombinoscopePdfAttachment(dashboard.session, sheet.character.id, dashboard.photoCache)
     return {
-      subject: `Fiche personnage et trombinoscope - ${dashboard.session.label}`,
+      subject: `Fiche personnage et trombinoscope - ${withGame(dashboard.session.game.title, dashboard.session.label)}`,
     text: [
       greeting(sheet.participant),
       '',
-      `Voici ta fiche et ton trombinoscope pour ${dashboard.session.label}.`,
+      `Voici ta fiche et ton trombinoscope pour ${inGameSentence(dashboard.session.game.title, dashboard.session.label)}.`,
       '',
       `Personnage : ${sheet.character.name}`,
       sheet.character.backgroundDocumentUrl
@@ -605,7 +605,7 @@ export async function sendDocumentTestEmails(sessionId: string, documentIds: str
       to: emails,
       subject: `[Test] ${document.title}`,
       text: [
-        `Document de test pour la ${inSentence(dashboard.session.label)}.`,
+        `Document de test pour ${inGameSentence(dashboard.session.game.title, dashboard.session.label)}.`,
         '',
         document.content || '',
         document.documentUrl ? `Document lié : ${document.documentUrl}` : ''
@@ -637,7 +637,7 @@ export async function sendCharacterSheetBundleTestEmail(sessionId: string, chara
     to: emails,
     subject: `[Test] Fiche personnage - ${sheet.character.name}`,
     text: [
-      `Fiche personnage de test pour ${dashboard.session.label}.`,
+      `Fiche personnage de test pour ${inGameSentence(dashboard.session.game.title, dashboard.session.label)}.`,
       '',
       `Personnage : ${sheet.character.name}`,
       sheet.character.backgroundDocumentUrl
@@ -672,10 +672,10 @@ export function documentPdfContent(
   }
 }
 
-export function characterSheetPdfContent(session: { label: string }, character: SheetCharacter): TextPdfInput {
+export function characterSheetPdfContent(session: { label: string, game: { title: string } }, character: SheetCharacter): TextPdfInput {
   return {
     title: character.name,
-    subtitle: `Fiche personnage - ${session.label}`,
+    subtitle: `Fiche personnage - ${withGame(session.game.title, session.label)}`,
     sections: [
       { title: 'Pitch', body: character.pitch || '' },
       { title: 'Background', body: character.background || '' },
@@ -733,7 +733,7 @@ async function buildCharacterSheetPdfAttachment(session: { id: string }, charact
 }
 
 // photoCache null : pas de copie (email de test)
-async function buildTrombinoscopePdfAttachment(session: { id: string, label: string }, characterId: string, photoCache: Map<string, Promise<Uint8Array | null>> | null) {
+async function buildTrombinoscopePdfAttachment(session: { id: string, label: string, game: { title: string } }, characterId: string, photoCache: Map<string, Promise<Uint8Array | null>> | null) {
   const trombinoscope = await getSessionTrombinoscope(session.id, characterId)
   if (!trombinoscope.contentPdf) {
     throw createError({ statusCode: 404, message: 'Trombinoscope PDF introuvable' })
@@ -749,6 +749,6 @@ async function buildTrombinoscopePdfAttachment(session: { id: string, label: str
   }
 }
 
-export function trombinoscopeHeading(session: { label: string }) {
-  return { title: 'Trombinoscope', subtitle: session.label }
+export function trombinoscopeHeading(session: { label: string, game: { title: string } }) {
+  return { title: 'Trombinoscope', subtitle: withGame(session.game.title, session.label) }
 }

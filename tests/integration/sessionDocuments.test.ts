@@ -3,6 +3,8 @@ import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
+import { labelled } from '../sessionLabel'
+import { inGameSentence } from '~/utils/sessionLabels'
 
 const world = inject('world')
 const { alice } = world.users
@@ -69,6 +71,11 @@ describe('envoi des documents d’une session', () => {
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     expect(response.body).toMatchObject({ sentCount: 1 })
     expect(mailsTo()).toBe(1)
+    // Hors des pages du jeu, l'email dit le jeu avec la session (SPEC-021, R4)
+    const { label } = await labelled(prisma, session)
+    const sent = smtp.to(participant.email!).at(-1)!
+    expect(sent.subject).toBe(`Fiche personnage - ${character.name}`)
+    expect(sent.text).toContain(`Voici ta fiche pour ${inGameSentence(game.title, label)}.`)
 
     const again = await api(alice, 'POST', `/api/sessions/${session.id}/documents/send-character-sheets`, {})
     expect(again.body).toMatchObject({ sentCount: 0 })

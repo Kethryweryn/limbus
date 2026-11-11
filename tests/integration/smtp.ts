@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:net'
 import type { PrismaClient } from '~/generated/prisma/client'
 import { escapeRegExp } from '../regexp'
 
-export type ReceivedEmail = { to: string[], raw: string, text: string }
+export type ReceivedEmail = { to: string[], raw: string, text: string, subject: string }
 
 // Corps lisible : les emails partent en quoted-printable ou en base64 selon leur contenu.
 // Avec une pièce jointe (multipart), on lit la partie texte.
@@ -26,6 +26,17 @@ function decodeBody(raw: string): string {
   return body
 }
 
+// Objet lisible : un en-tête sur plusieurs lignes, en mots encodés (RFC 2047) quand il n'est pas en ASCII
+function decodeSubject(raw: string): string {
+  const headers = raw.slice(0, raw.indexOf('\r\n\r\n')).replace(/\r\n[ \t]+/g, ' ')
+  const value = /^subject:\s*(.*)$/im.exec(headers)?.[1] ?? ''
+  return value
+    .replace(/\?=\s+=\?/g, '?==?')
+    .replace(/=\?utf-8\?([bq])\?([^?]*)\?=/gi, (_match, kind: string, text: string) => kind.toLowerCase() === 'b'
+      ? Buffer.from(text, 'base64').toString('utf8')
+      : decodeURIComponent(text.replace(/_/g, ' ').replace(/=([0-9A-F]{2})/gi, (_hex, hex: string) => `%${hex}`)))
+}
+
 /**
  * Serveur SMTP minimal, en clair et sans authentification, qui passe chaque message reçu à `onMessage`.
  * L'application compilée (processus séparé) y envoie via les réglages SMTP de la base (`saveTestSmtpSettings`).
@@ -46,7 +57,7 @@ export async function listenTestSmtp(onMessage: (email: ReceivedEmail) => void) 
           const raw = buffer.slice(0, end).replace(/^\.\./gm, '.')
           buffer = buffer.slice(end + 5)
           inData = false
-          onMessage({ to: recipients, raw, text: decodeBody(raw) })
+          onMessage({ to: recipients, raw, text: decodeBody(raw), subject: decodeSubject(raw) })
           recipients = []
           socket.write('250 OK\r\n')
           continue

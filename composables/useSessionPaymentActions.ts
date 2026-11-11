@@ -1,3 +1,4 @@
+import { inSentence, withGame } from '~/utils/sessionLabels'
 import { computed, inject, provide, reactive, ref, watch, type InjectionKey } from 'vue'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { useApiAction, useApiFetch } from '~/composables/useApiFetch'
@@ -106,13 +107,13 @@ function createActions(data: () => SessionPaymentsData, onRefresh: () => Promise
       ? paymentAmountLines({ tariffName: row.tariff.name, dueCents: row.dueCents, receivedCents: row.receivedCents, remainingCents: row.remainingCents })
       : []
     return {
-      subject: `[Test] ${row?.paymentEmailSentAt ? 'Relance paiement' : 'Paiement'} - ${session().label}`,
+      subject: `[Test] ${row?.paymentEmailSentAt ? 'Relance paiement' : 'Paiement'} - ${withGame(session().game?.title ?? '', session().label)}`,
       body: [
         `Bonjour ${firstName(row?.participant?.name || 'Prénom')},`,
         '',
         row?.paymentEmailSentAt
-          ? `Petit rappel pour le paiement de ta participation à ${session().label}.`
-          : `Tu peux maintenant régler ta participation à ${session().label}.`,
+          ? `Petit rappel pour le paiement de ta participation à la ${inSentence(session().label)}.`
+          : `Tu peux maintenant régler ta participation à la ${inSentence(session().label)}.`,
         `Jeu : ${session().game?.title || ''}`,
         ...amountLines,
         settings.paymentLinkUrl ? `Lien de paiement : ${settings.paymentLinkUrl}` : '',

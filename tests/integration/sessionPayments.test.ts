@@ -1,5 +1,6 @@
 // US-007 : inscrits confirmés dans le tableau des paiements (SPEC-001, R22, ADR-0021)
 import { labelled } from '../sessionLabel'
+import { inSentence, withGame } from '~/utils/sessionLabels'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf } from './api'
@@ -51,7 +52,7 @@ async function sessionWithPeople() {
       { sessionId: session.id, participantId: both.id, role: 'participant' }
     ]
   })
-  return { session, player, confirmed, cook, both }
+  return { game, session, player, confirmed, cook, both }
 }
 
 describe('tableau des paiements', () => {
@@ -65,13 +66,15 @@ describe('tableau des paiements', () => {
   })
 
   it('une personne confirmée sans personnage reçoit l’email de paiement, sans mention de personnage', async () => {
-    const { session, confirmed, cook } = await sessionWithPeople()
+    const { game, session, confirmed, cook } = await sessionWithPeople()
     const response = await api(alice, 'POST', `/api/sessions/${session.id}/payments/send`, { participantId: confirmed.id })
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     expect(response.body).toMatchObject({ sentCount: 1 })
 
     const email = smtp.to(confirmed.email!).at(-1)!
-    expect(email.text).toContain(`régler ta participation à ${session.label}`)
+    expect(email.text).toContain(`régler ta participation à la ${inSentence(session.label)}`)
+    // Hors des pages du jeu, l'objet porte le jeu devant le libellé (SPEC-021, R4)
+    expect(email.subject).toBe(`Paiement - ${withGame(game.title, session.label)}`)
     expect(email.text).not.toMatch(/personnage/i)
     expect(smtp.received.some((message) => message.to.includes(cook.email!))).toBe(false)
   })
