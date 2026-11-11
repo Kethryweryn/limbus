@@ -53,7 +53,7 @@ Prisma crée des colonnes `timestamp(3)` sans fuseau ; aucune migration n'utilis
 
 ## Proposition
 
-Corriger ces écarts par des migrations compatibles avec le build en service ([ADR-0024](../../adr/ADR-0024-migrations-compatibles-avec-le-build-en-service.md)), ou marquées incompatibles quand un changement de type l'impose, sans changement visible pour les personnes qui utilisent Limbus. Le point de la fiche participant sans propriétaire (§ 3) change le fonctionnement des comptes : il part dans sa propre fiche, [Un compte pour chaque participant](../../todo/compte-pour-chaque-participant.md).
+Corriger ces écarts par des migrations compatibles avec le build en service ([ADR-0024](../../adr/ADR-0024-migrations-compatibles-avec-le-build-en-service.md)), ou marquées incompatibles quand un changement de type l'impose, sans changement visible pour les personnes qui utilisent Limbus. Le point de la fiche participant sans propriétaire (§ 3) change le fonctionnement des comptes : il part dans sa propre fiche, [Un compte pour chaque participant](compte-pour-chaque-participant.md).
 
 ## Découpage
 
@@ -78,7 +78,7 @@ Tranchées par l'utilisatrice le 2026-11-09 :
 - **Dates** : converties en `timestamptz`, en dernier, après vérification sur une copie ([ADR-0076](../../adr/ADR-0076-dates-avec-fuseau.md)).
 - **Même jeu** : imposé par la base, par des clés étrangères composées ([ADR-0074](../../adr/ADR-0074-meme-jeu-impose-par-la-base.md)).
 - **Emails** : comparés sans tenir compte de la casse par le type `citext` ([ADR-0075](../../adr/ADR-0075-emails-en-citext.md)).
-- **Propriétaire d'une fiche participant** : la fiche appartient à la personne elle-même, par un compte pré-créé ; traité dans [sa fiche](../../todo/compte-pour-chaque-participant.md).
+- **Propriétaire d'une fiche participant** : la fiche appartient à la personne elle-même, par un compte pré-créé ; traité dans [sa fiche](compte-pour-chaque-participant.md).
 - **Fichiers** : les PDF générés restent en base, comme le décide [ADR-0044](../../adr/ADR-0044-copies-des-envois.md) (petits, effacés le lendemain de la session ; la littérature l'admet pour des fichiers de courte durée, au prix de la taille de la base) ; le trombinoscope passe du base64 au binaire, par une nouvelle colonne.
 - **Dates de création** : ajoutées, les lignes existantes recevant la date de la migration.
 - **Relations entre personnages** : deux personnages peuvent avoir plusieurs relations ; seule la relation d'un personnage avec lui-même est interdite.

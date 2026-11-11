@@ -6,7 +6,6 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 |---|---|---|---|
 | [Durcissement web](durcissement-web.md) | en partie traitée | 2026-10-29 | CSP et COOP sur les pages, origine des écritures, cookie `__Host-` (revue R-01 à R-03) |
 | [Supervision](supervision.md) | en partie traitée | 2026-10-29 | Route de santé et sondes Better Stack faites ; reste les journaux structurés, si besoin (revue R-15, R-16) |
-| [Un compte pour chaque participant](compte-pour-chaque-participant.md) | prête | 2026-11-09 | Chaque fiche appartient à la personne, par un compte pré-créé ; une seule fiche par personne dans tout Limbus |
 
 ## Archivées
 
@@ -38,3 +37,4 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Revoir la page Inscriptions](../archive/todo/page-inscriptions.md) | [SPEC-020](../specs/SPEC-020-page-inscriptions.md) | 2026-11-10 |
 | [Une session sans nom, désignée par sa date](../archive/todo/session-sans-nom.md) | [SPEC-021](../specs/SPEC-021-session-sans-nom.md) | 2026-11-11 |
 | [Un déploiement rapide quand les dépendances changent](../archive/todo/deploiement-dependances.md) | [ADR-0085](../adr/ADR-0085-installation-serveur-sans-audit.md) | 2026-11-11 |
+| [Un compte pour chaque participant](../archive/todo/compte-pour-chaque-participant.md) | [SPEC-022](../specs/SPEC-022-compte-pour-chaque-participant.md) | 2026-11-11 |

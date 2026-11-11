@@ -129,3 +129,4 @@ Pour l'écart 5 : `Participant.published` est retiré de l'API et de l'interface
 - 2026-11-08 : R1c, sessions de la personne sur la fiche (US-183, retour A5-4) ; nom et téléphone du contact d'urgence sur deux lignes (US-182, retour A5-2).
 - 2026-11-08 : R5, une adresse n'a qu'une fiche dans les jeux d'une même propriétaire : la création rejoint la fiche existante (US-185, retour A5-5).
 - 2026-11-10 : R1b, un jeu téléchargé pour le hors ligne garde le contact d'urgence et les allergies de ses participants (SPEC-019, ADR-0080).
+- 2026-11-11 : R5 sera remplacée par [SPEC-022](SPEC-022-compte-pour-chaque-participant.md) (R4) : une fiche par adresse dans tout Limbus, plus seulement par propriétaire.

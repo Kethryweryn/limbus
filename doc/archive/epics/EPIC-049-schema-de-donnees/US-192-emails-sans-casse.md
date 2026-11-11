@@ -24,7 +24,7 @@ En tant que mainteneuse de Limbus, je veux que la base compare les adresses sans
 - Prisma 7 accepte `@db.Citext` sans déclarer l'extension dans la source de données : la migration la crée (`CREATE EXTENSION IF NOT EXISTS citext`), et `migrate diff` ne propose ni de la retirer ni de la recréer.
 - Vérifié avec le client Prisma du build d'avant sur une base migrée : lecture, connexion par `findUnique`, doublon par la casse refusé, rapprochement et rattachement en mode insensible.
 - Le code garde la mise en minuscules à l'écriture et retire ses espaces avant de comparer : citext ignore la casse, pas les espaces. Les deux `mode: 'insensitive'` sur une adresse sont retirés ; ceux des recherches par nom restent.
-- La fiche [Un compte pour chaque participant](../../../todo/compte-pour-chaque-participant.md) n'est pas encore spécifiée : rien à coordonner pour l'instant.
+- La fiche [Un compte pour chaque participant](../../todo/compte-pour-chaque-participant.md) n'est pas encore spécifiée : rien à coordonner pour l'instant.
 
 ADR :
 - [ADR-0075](../../../adr/ADR-0075-emails-en-citext.md)
