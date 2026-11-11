@@ -18,10 +18,12 @@ En tant qu'organisatrice, je veux qu'une personne n'ait qu'une fiche, même suiv
 - [ ] Étant donné la fiche commune, alors Alice ne voit que ses jeux, notes, casts, inscriptions, envois et paiements, et ses valeurs de nom et de téléphone ; Bob de même.
 - [ ] Étant donné une fiche dont je corrige l'adresse, alors seuls les jeux que je vois, avec leurs notes, valeurs, inscriptions, casts et envois, passent à la fiche de la nouvelle adresse (créée si besoin) ; les autres jeux gardent l'ancienne ; aucun compte ne change d'adresse.
 - [ ] Une inscription (lien personnel, formulaire public, vivier) rejoint la fiche de son adresse dans tout Limbus.
+- [ ] Tant que des doublons existent (avant [US-240](US-240-fusion-des-fiches.md)), la fiche rejointe est la plus ancienne de l'adresse.
+- [ ] Étant donné les jeux de test, alors une personne est suivie par deux propriétaires, chacune avec son nom ; `doc/jeux-de-test.md` le dit.
 
 ## Notes techniques
 
-Remplace `ficheForAddress`, limitée à la propriétaire, et `duplicateAddressError` (US-185) ([ADR-0086](../../adr/ADR-0086-fiche-unique-et-valeurs-par-jeu.md)). Rapprochement des inscriptions (`participantEmailMatchWhere`, `formRegistrations`, `publicRegistrations`). L'index unique sur l'adresse arrive avec la fusion ([US-240](US-240-fusion-des-fiches.md)).
+Remplace `ficheForAddress`, limitée à la propriétaire, et `duplicateAddressError` (US-185) ([ADR-0086](../../adr/ADR-0086-fiche-unique-et-valeurs-par-jeu.md)). Rapprochement des inscriptions (`participantEmailMatchWhere`, `formRegistrations`, `publicRegistrations`). L'index unique sur l'adresse arrive avec la fusion ([US-240](US-240-fusion-des-fiches.md)). Jeux de test : `prisma/seed/` et `doc/jeux-de-test.md` (CLAUDE.md, ADR-0066).
 
 ## Tests
 

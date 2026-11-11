@@ -14,12 +14,13 @@ liens: [SPEC-022, ADR-0040, ADR-0041, ADR-0042, ADR-0024, ADR-0075]
 
 ## Décision
 
-1. **Nom et téléphone par jeu** : colonnes `name` et `phone` sur `ParticipantGame`, choix de l'utilisatrice le 2026-11-11.
+1. **Nom et téléphone par jeu** : colonnes `name`, `phone` et `updatedAt` sur `ParticipantGame`, choix de l'utilisatrice le 2026-11-11.
    - Une modification s'applique aux jeux de la fiche que voit la personne qui modifie.
-   - Une lecture prend la valeur du jeu concerné. Sans jeu précis (fiche, liste), elle prend celle du jeu visible le plus récemment modifié.
+   - Une lecture prend la valeur du jeu concerné. Sans jeu précis (fiche, liste), elle prend celle du jeu visible au `updatedAt` le plus récent.
+   - Une modification envoie la version lue : le plus récent `updatedAt` des liens visibles (`assertRowsVersion`), comme une liste remplacée d'un bloc ; un lien modifié entre-temps la refuse, en ligne comme au retour du réseau (ADR-0036).
    - La recopie des coordonnées d'un compte ([ADR-0042](ADR-0042-coordonnees-du-compte.md)) écrit sur les liens.
    - Les colonnes de `Participant` sont retirées en deux temps (ADR-0024) : d'abord écrites et lues avec les nouvelles, puis supprimées (US-242).
-2. **Une fiche par adresse** : la création et le rapprochement des inscriptions cherchent la fiche de l'adresse dans tout Limbus, en comparant sans la casse (`citext`, [ADR-0075](ADR-0075-emails-en-citext.md)). Après la fusion, un index unique sur `Participant.email` le garantit en base. Plusieurs fiches sans adresse restent possibles, car PostgreSQL ne compare pas les valeurs nulles.
+2. **Une fiche par adresse** : la création et le rapprochement des inscriptions cherchent la fiche de l'adresse dans tout Limbus, en comparant sans la casse (`citext`, [ADR-0075](ADR-0075-emails-en-citext.md)). Tant que la fusion n'est pas passée, s'il y en a plusieurs, c'est la plus ancienne (`createdAt`), celle que la fusion gardera. Après la fusion, un index unique sur `Participant.email` le garantit en base. Plusieurs fiches sans adresse restent possibles, car PostgreSQL ne compare pas les valeurs nulles.
 3. **Correction d'adresse par équipe** : déplacer vers la fiche de la nouvelle adresse les seules lignes des jeux visibles. Ce sont les liens, les casts, les inscriptions, les présences, les envois, les paiements, les trombinoscopes et les responsabilités de déroulé. La fiche de la nouvelle adresse est créée si besoin. Une fiche qui n'a plus de jeu est supprimée.
 4. **Fusion** : une migration SQL réunit les fiches d'une même adresse dans la plus ancienne (`createdAt`).
    - Toutes les lignes qui désignent une fiche y sont reportées.
