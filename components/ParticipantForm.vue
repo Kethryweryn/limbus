@@ -18,24 +18,24 @@
         />
       </UFormField>
 
-      <!-- Fiche rattachée à un compte (US-075) : nom et téléphone sont tenus par la personne -->
+      <!-- Fiche rattachée à un compte activé (US-075) : les champs que la personne a remplis sont à elle (ADR-0089) -->
       <UAlert
         v-if="heldByPerson"
         color="info"
         variant="soft"
-        description="Cette personne a un compte Limbus : elle tient elle-même son nom, son téléphone et ses allergies."
+        description="Cette personne a un compte Limbus : ce qu’elle y remplit (nom, téléphone, contact d’urgence, allergies) remplace vos valeurs. Le reste, vous pouvez le compléter."
       />
 
-      <UFormField label="Nom" :error="errors.name" :help="heldByPerson ? 'Tenu par la personne depuis son compte.' : undefined">
-        <UInput v-model="localParticipant.name" size="lg" class="w-full" :disabled="heldByPerson" />
+      <UFormField label="Nom" :error="errors.name" :help="nameHeld ? 'Tenu par la personne depuis son compte.' : undefined">
+        <UInput v-model="localParticipant.name" size="lg" class="w-full" :disabled="nameHeld" />
       </UFormField>
 
       <UFormField label="Email" :error="errors.email" :help="heldByPerson ? 'Changer l’email détache la fiche de son compte : à faire seulement pour corriger une erreur.' : undefined">
         <UInput v-model.nullable="localParticipant.email" type="email" size="lg" class="w-full" />
       </UFormField>
 
-      <UFormField label="Téléphone" :help="heldByPerson ? 'Tenu par la personne depuis son compte.' : undefined">
-        <UInput v-model.nullable="localParticipant.phone" size="lg" class="w-full" :disabled="heldByPerson" />
+      <UFormField label="Téléphone" :help="phoneHeld ? 'Tenu par la personne depuis son compte.' : undefined">
+        <UInput v-model.nullable="localParticipant.phone" size="lg" class="w-full" :disabled="phoneHeld" />
       </UFormField>
 
       <!-- Une note par jeu (US-069) : chaque équipe ne voit que celles de ses jeux -->
@@ -88,6 +88,9 @@ const gameOptions = computed(() => props.games.map((game) => ({
 })))
 
 const heldByPerson = computed(() => Boolean(props.participant.heldByPerson))
+// Champs remplis par la personne dans son compte (ADR-0089) : les autres restent à l'équipe
+const nameHeld = computed(() => Boolean(props.participant.heldFields?.includes('name')))
+const phoneHeld = computed(() => Boolean(props.participant.heldFields?.includes('phone')))
 const selectedGames = computed(() => gameOptions.value.filter((game) => localParticipant.value.gameIds?.includes(game.value)))
 
 watch(() => props.participant, (newParticipant) => {

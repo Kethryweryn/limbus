@@ -480,10 +480,12 @@ describe('sessions et participants', () => {
     const bPerson = await prisma.participant.findUniqueOrThrow({ where: { id: b.participant.id } })
     expect((await call(client, 'modifier_participant', { participantId: b.participant.id, version: bPerson.updatedAt.toISOString(), name: 'Volée' })).error).toBe(true)
 
-    // Une fiche rattachée à un compte confirmé garde le nom du compte
+    // Une fiche rattachée à un compte activé : le nom est tenu par la personne, l'assistant ne le change pas (ADR-0089)
     const eve = await prisma.user.create({ data: { email: 'eve-ia@example.test', name: 'Ève', password: 'non-utilise', emailConfirmedAt: new Date(), termsAcceptedVersion: TERMS_VERSION } })
     const benLinked = await prisma.participant.update({ where: { id: ben.id }, data: { email: eve.email, userId: eve.id } })
-    expect((await call(client, 'modifier_participant', { participantId: ben.id, version: benLinked.updatedAt.toISOString(), name: 'Autre nom' })).error).toBe(false)
+    const refused = await call(client, 'modifier_participant', { participantId: ben.id, version: benLinked.updatedAt.toISOString(), name: 'Autre nom' })
+    expect(refused.error).toBe(true)
+    expect(JSON.stringify(refused)).toContain('Le nom est tenu par la personne depuis son compte.')
     expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: ben.id, gameId: game.id } } })).name).toBe('Ben Assisté')
 
     const log = await prisma.aiLogEntry.findMany({ where: { gameId: game.id }, orderBy: { createdAt: 'asc' } })

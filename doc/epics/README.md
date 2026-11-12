@@ -314,6 +314,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-242](../archive/epics/EPIC-056-une-fiche-par-personne/US-242-retirer-nom-et-telephone-de-la-fiche.md) | Retirer le nom et le téléphone de la fiche | EPIC-056 | terminée |
 | [US-243](../archive/epics/EPIC-056-une-fiche-par-personne/US-243-prouver-une-autre-adresse.md) | Prouver une autre adresse donnée en réponse, puis réunir les deux fiches | EPIC-056 | terminée |
 | [US-244](EPIC-057-compte-pre-cree-et-activation/US-244-compte-pre-cree.md) | Un compte pré-créé pour chaque fiche | EPIC-057 | terminée |
-| [US-245](EPIC-057-compte-pre-cree-et-activation/US-245-recopie-champ-par-champ.md) | Les coordonnées recopiées champ par champ | EPIC-057 | à faire |
+| [US-245](EPIC-057-compte-pre-cree-et-activation/US-245-recopie-champ-par-champ.md) | Les coordonnées recopiées champ par champ | EPIC-057 | terminée |
 | [US-246](EPIC-057-compte-pre-cree-et-activation/US-246-activer-son-compte.md) | Activer son compte | EPIC-057 | à faire |
 | [US-247](EPIC-057-compte-pre-cree-et-activation/US-247-ligne-des-emails.md) | Une ligne au bas des emails des équipes | EPIC-057 | à faire |

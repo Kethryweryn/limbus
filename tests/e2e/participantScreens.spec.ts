@@ -126,8 +126,9 @@ test('fiche : les coordonnées d’une personne qui a un compte ne se modifient 
     const game = await orgaGame(prisma, 'Jeu d’une personne avec compte')
     const name = uniqueName('Personne avec compte')
     const email = `${slugOf(name)}@example.test`
-    const user = await prisma.user.create({ data: { email, name, password: 'non-utilise', role: 'user', termsAcceptedVersion: TERMS_VERSION, emailConfirmedAt: new Date() } })
-    const person = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, userId: user.id, gameLinks: { create: { gameId: game.id , name: name } } } }), { name: name })
+    // Nom et téléphone remplis dans le compte : tenus par la personne (ADR-0089)
+    const user = await prisma.user.create({ data: { email, name, phone: '0611223344', password: 'non-utilise', role: 'user', termsAcceptedVersion: TERMS_VERSION, emailConfirmedAt: new Date() } })
+    const person = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, userId: user.id, gameLinks: { create: { gameId: game.id , name: name, phone: '0611223344' } } } }), { name: name })
     await signIn(page, prisma, E2E_USERS.orga)
     await openSheet(page, person)
 
@@ -458,6 +459,88 @@ test('compte pré-créé : la fiche créée à une adresse nouvelle reste à l�
     }
   } finally {
     await context.setOffline(false)
+    await prisma.$disconnect()
+  }
+})
+
+// US-245 (SPEC-022 R12, ADR-0089) : chaque champ que la personne remplit dans son compte remplace celui des équipes
+test('champ par champ : le téléphone rempli dans le compte est à la personne, vidé il revient à l’équipe, et une modification hors ligne ne l’écrase pas (US-245)', async ({ page, otherPage, context }) => {
+  test.setTimeout(120_000)
+  const prisma = createTestPrisma()
+  try {
+    const game = await orgaGame(prisma, 'Jeu des coordonnées champ par champ')
+    const { user, email, name } = await testUser(prisma, 'Personne champ par champ')
+    const person = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, userId: user.id, gameLinks: { create: { gameId: game.id, name, phone: '0100000000' } } } }), { name })
+    const link = () => prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: game.id } } })
+
+    // Le téléphone, jamais rempli par la personne, est à l'équipe ; le nom, non
+    await signIn(page, prisma, E2E_USERS.orga)
+    await openSheet(page, person)
+    await page.getByRole('button', { name: 'Modifier' }).click()
+    await expect(page.getByLabel('Nom', { exact: true })).toBeDisabled()
+    await expect(page.getByLabel('Téléphone', { exact: true })).toBeEnabled()
+
+    // Hors ligne, l'équipe change le téléphone ; entre-temps la personne remplit le sien
+    await context.setOffline(true)
+    await page.getByLabel('Téléphone', { exact: true }).fill('0699999999')
+    await page.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect(page.getByText(/Modifications faites hors ligne : 1 en attente/)).toBeVisible()
+    const personPage = await otherPage()
+    await signIn(personPage, prisma, email)
+    await personPage.goto('/compte')
+    await personPage.waitForLoadState('networkidle')
+    await personPage.getByLabel('Téléphone', { exact: true }).fill('0611223344')
+    await personPage.getByRole('button', { name: 'Enregistrer mes coordonnées' }).click()
+    await expect(personPage.getByText('Coordonnées enregistrées : vos fiches et inscriptions sont à jour.')).toBeVisible()
+    expect((await link()).phone).toBe('0611223344')
+
+    // Au retour du réseau, la modification de l'équipe n'écrase pas celui de la personne
+    await context.setOffline(false)
+    await expect(page.getByText(/Modifications faites hors ligne : 1 en attente/)).toHaveCount(0, { timeout: 20_000 })
+    expect((await link()).phone).toBe('0611223344')
+
+    // Le téléphone est maintenant tenu : grisé
+    await openSheet(page, person)
+    await page.getByRole('button', { name: 'Modifier' }).click()
+    await expect(page.getByLabel('Téléphone', { exact: true })).toBeDisabled()
+    await expect(page.getByLabel('Téléphone', { exact: true })).toHaveValue('0611223344')
+
+    // La personne le vide : il revient vide à l'équipe, qui le saisit
+    await personPage.getByLabel('Téléphone', { exact: true }).fill('')
+    await personPage.getByRole('button', { name: 'Enregistrer mes coordonnées' }).click()
+    await expect(personPage.getByText('Coordonnées enregistrées : vos fiches et inscriptions sont à jour.')).toBeVisible()
+    expect((await link()).phone).toBeNull()
+    await openSheet(page, person)
+    await page.getByRole('button', { name: 'Modifier' }).click()
+    await expect(page.getByLabel('Téléphone', { exact: true })).toBeEnabled()
+    await page.getByLabel('Téléphone', { exact: true }).fill('0655555555')
+    await page.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect.poll(async () => (await link()).phone).toBe('0655555555')
+  } finally {
+    await context.setOffline(false)
+    await prisma.$disconnect()
+  }
+})
+
+// US-245 (revue de la PR #242) : créer la fiche d'une personne au compte activé prend le nom qu'elle tient, et le dit
+test('champ par champ : la fiche créée à l’adresse d’un compte activé porte le nom du compte, et l’écran le dit (US-245)', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const game = await orgaGame(prisma, 'Jeu de la fiche au nom tenu')
+    const { email, name } = await testUser(prisma, 'Personne au nom tenu')
+    await signIn(page, prisma, E2E_USERS.orga)
+    await openParticipants(page)
+    await page.getByRole('button', { name: 'Créer un participant' }).click()
+    const form = page.getByRole('dialog')
+    await form.getByRole('button', { name: 'Jeux' }).click()
+    await page.getByRole('option', { name: game.title }).click()
+    await page.keyboard.press('Escape')
+    await form.getByLabel('Nom', { exact: true }).fill('Surnom saisi')
+    await form.getByLabel('Email').fill(email)
+    await form.getByRole('button', { name: 'Créer' }).click()
+    await expect(page.getByText(`Cette personne a un compte Limbus : la fiche porte le nom qu’elle y a donné, ${name}.`, { exact: true })).toBeVisible()
+    expect((await prisma.participantGame.findFirstOrThrow({ where: { participant: { email }, gameId: game.id } })).name).toBe(name)
+  } finally {
     await prisma.$disconnect()
   }
 })
