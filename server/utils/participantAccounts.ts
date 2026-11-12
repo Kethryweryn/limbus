@@ -157,8 +157,7 @@ export async function myParticipantIds(userId: string) {
  * à son adresse.
  */
 export async function assertActivatedForAdmin(userId: string) {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { emailConfirmedAt: true } })
-  if (user && !user.emailConfirmedAt) {
+  if (await prisma.user.findFirst({ where: { id: userId, ...notActivatedAccount }, select: { id: true } })) {
     throw createError({ statusCode: 400, message: 'Ce compte n’est pas activé : créez-le avec son nom pour le reprendre, ou laissez la personne l’activer.' })
   }
 }

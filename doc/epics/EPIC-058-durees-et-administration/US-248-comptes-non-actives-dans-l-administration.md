@@ -17,6 +17,7 @@ En tant qu'administratrice, je veux que la liste des comptes ne montre par défa
 - [x] Étant donné un compte non activé affiché (pré-créé pour une fiche, ou inscription jamais confirmée), alors :
   - il porte la mention « Non activé », à la place du badge « Adresse non confirmée » ;
   - sa carte est en lecture seule : ni enregistrement, ni lien de mot de passe, ni désactivation, ni suppression (choix de l'utilisatrice, 2026-11-12).
+- [x] Le serveur ne renvoie les comptes non activés que si la case est cochée (`?inactifs=1`), et leur nombre sinon : la page ne charge pas des milliers de comptes masqués (revue de la PR #248).
 - [x] Le serveur refuse ces actions sur tout compte non activé, comme il les refuse déjà pour un compte pré-créé qui porte des fiches (US-244).
 - [x] L'administratrice reprend toujours un compte non activé en le créant à son adresse (US-244).
 

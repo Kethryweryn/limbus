@@ -185,6 +185,17 @@ describe('adresse d’un compte non activé reprise (US-244)', () => {
     expect((await api(admin, 'POST', '/api/admin/users', { email, name: 'Encore' })).status).toBe(409)
   })
 
+  it('la liste de l’administration ne renvoie les comptes non activés que sur demande, et leur nombre sinon (US-248)', async () => {
+    const email = unique('liste-admin')
+    await createFiche(email)
+    const byDefault = await api(admin, 'GET', '/api/admin/users')
+    const body = byDefault.body as { users: Array<{ email: string }>, inactiveCount: number }
+    expect(body.users.map((user) => user.email)).not.toContain(email)
+    expect(body.inactiveCount).toBeGreaterThan(0)
+    const all = (await api(admin, 'GET', '/api/admin/users?inactifs=1')).body as { users: Array<{ email: string }> }
+    expect(all.users.map((user) => user.email)).toContain(email)
+  })
+
   it('l’administratrice ne touche pas non plus à une inscription jamais confirmée (US-248)', async () => {
     const pending = await prisma.user.create({ data: { email: unique('inscription-en-cours'), name: 'En cours', password: await someHash(), emailConfirmedAt: null } })
     for (const [method, path, body] of [['POST', `/api/admin/users/${pending.id}/password-link`, undefined], ['PUT', `/api/admin/users/${pending.id}`, { name: 'Autre' }], ['DELETE', `/api/admin/users/${pending.id}`, undefined]] as const) {

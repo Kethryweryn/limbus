@@ -36,7 +36,7 @@
     <UCheckbox v-if="!loadError" v-model="showInactive" :label="`Afficher les comptes non activés (${inactiveCount})`" />
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      <UCard v-for="user in visibleUsers" :key="user.id">
+      <UCard v-for="user in users" :key="user.id">
         <template #header>
           <div class="flex items-start justify-between gap-3">
             <div>
@@ -105,12 +105,12 @@ import { loadErrorMessage } from '~/utils/apiErrors'
 import { formatMegabytes as formatMb } from '~/utils/fileSizes'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
-type ManagedUser = ApiResponse<'/api/admin/users'>[number]
+type ManagedUser = ApiResponse<'/api/admin/users'>['users'][number]
 
 const users = ref<ManagedUser[]>([])
+// Comptes non activés (US-248) : le serveur ne les renvoie que si la case est cochée, et sinon seulement leur nombre
 const showInactive = ref(false)
-const inactiveCount = computed(() => users.value.filter((user) => !user.emailConfirmedAt).length)
-const visibleUsers = computed(() => showInactive.value ? users.value : users.value.filter((user) => user.emailConfirmedAt))
+const inactiveCount = ref(0)
 const saving = ref(false)
 const savingUserId = ref('')
 const loadError = ref('')
@@ -124,7 +124,9 @@ const emptyUser = () => ({ name: '', email: '', role: USER_ROLES.user as string 
 const newUser = ref(emptyUser())
 
 async function fetchUsers() {
-  users.value = await useApiFetch('/api/admin/users')
+  const list = await useApiFetch('/api/admin/users', { query: showInactive.value ? { inactifs: '1' } : {} })
+  users.value = list.users
+  inactiveCount.value = list.inactiveCount
 }
 
 async function createUser() {
@@ -188,6 +190,12 @@ async function deleteUser(user: ManagedUser) {
     return null
   })
 }
+
+watch(showInactive, () => {
+  fetchUsers().catch((err: unknown) => {
+    loadError.value = loadErrorMessage(err, 'Impossible de charger les comptes.')
+  })
+})
 
 // Refus du serveur (403 pour qui n'administre pas) : affiché au lieu d'une page vide (US-215)
 await fetchUsers().catch((err: unknown) => {
