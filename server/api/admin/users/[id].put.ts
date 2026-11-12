@@ -1,4 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
+import { assertActivatedForAdmin } from '~/server/utils/participantAccounts'
 import { requireAdmin } from '~/server/utils/auth'
 import { readZodBody, userUpdateSchema } from '~/server/utils/schemas'
 import { requireRouterParam } from '~/server/utils/routeParams'
@@ -10,12 +11,8 @@ export default defineEventHandler(async (event) => {
   const id = requireRouterParam(event, 'id')
 
   const body = await readZodBody(event, userUpdateSchema)
-  // Compte pré-créé pour une fiche (ADR-0088) : son adresse est celle de la fiche, et seule la personne l'active.
-  // L'administratrice le reprend en créant le compte à cette adresse
-  const target = await prisma.user.findUnique({ where: { id }, select: { emailConfirmedAt: true, password: true } })
-  if (target && !target.emailConfirmedAt && !target.password) {
-    throw createError({ statusCode: 400, message: 'Ce compte n’est pas activé : créez-le avec son nom pour le reprendre, ou laissez la personne l’activer.' })
-  }
+  // Compte non activé (US-248) : son adresse est celle de ses fiches, et seule la personne l'active
+  await assertActivatedForAdmin(id)
   const data: Record<string, unknown> = {
     email: body.email,
     name: body.name,

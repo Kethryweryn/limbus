@@ -42,8 +42,8 @@ test('l’administratrice crée et désactive un compte, puis teste l’envoi d�
   }
 })
 
-// US-244 (ADR-0088) : un compte pré-créé pour une fiche ne se modifie, ne s'active ni ne se supprime depuis sa carte
-test('l’administratrice ne touche pas à un compte pré-créé depuis sa carte, mais le reprend en le créant (US-244)', async ({ page }) => {
+// US-244, US-248 (ADR-0088) : un compte non activé est masqué par défaut ; affiché, sa carte est en lecture seule
+test('les comptes non activés sont masqués derrière une case, en lecture seule, et se reprennent en les créant (US-244, US-248)', async ({ page }) => {
   const prisma = createTestPrisma()
   const mailbox = openMailbox()
   try {
@@ -58,14 +58,14 @@ test('l’administratrice ne touche pas à un compte pré-créé depuis sa carte
     await signIn(page, prisma, adminEmail)
     await page.goto('/admin/users')
     await page.waitForLoadState('networkidle')
-    const card = blockWith(page, page.getByText(email, { exact: true }), 'Supprimer')
-    await card.getByRole('button', { name: 'Envoyer un lien de mot de passe' }).click()
-    await expect(card.getByText('Ce compte n’est pas activé : créez-le avec son nom pour le reprendre, ou laissez la personne l’activer.')).toBeVisible()
-    page.once('dialog', (dialog) => dialog.accept())
-    await card.getByRole('button', { name: 'Supprimer' }).click()
-    await expect(card.getByText('Ce compte n’est pas activé et porte des fiches participant : il disparaîtra avec elles.')).toBeVisible()
+    // Masqué par défaut ; la case le montre, avec sa mention, sans champ ni bouton
+    await expect(page.getByText(email, { exact: true })).toHaveCount(0)
+    await page.getByRole('checkbox', { name: /^Afficher les comptes non activés \(\d+\)$/ }).check()
+    const card = page.locator('div').filter({ has: page.getByText(email, { exact: true }) }).filter({ hasText: 'Ce compte n’est pas activé' }).last()
+    await expect(card.getByText('Ce compte n’est pas activé : la personne l’active elle-même, ou créez un compte à son adresse pour le reprendre.')).toBeVisible()
+    await expect(card.getByRole('button')).toHaveCount(0)
+    await expect(card.getByRole('textbox')).toHaveCount(0)
     expect(mailbox.to(email)).toHaveLength(0)
-    expect(await prisma.user.count({ where: { id: preCreated.id } })).toBe(1)
 
     // Le créer à son adresse le reprend : même compte, nom saisi, lien envoyé
     const creation = page.locator('form').filter({ has: page.getByRole('button', { name: 'Créer' }) })

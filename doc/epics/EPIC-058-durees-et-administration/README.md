@@ -21,7 +21,7 @@ La politique de confidentialité (R16) a été avancée au lot 2 (US-244).
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-248](US-248-comptes-non-actives-dans-l-administration.md) | Les comptes non activés dans l'administration | à faire |
+| [US-248](US-248-comptes-non-actives-dans-l-administration.md) | Les comptes non activés dans l'administration | terminée |
 | [US-249](US-249-effacement-du-compte-non-active.md) | Effacer un compte non activé avec sa dernière fiche | terminée |
 
 ## Définition de terminé

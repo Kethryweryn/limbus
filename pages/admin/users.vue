@@ -32,17 +32,20 @@
       <FormFeedback :result="resultFor('create')" />
     </UCard>
 
+    <!-- Comptes non activés (US-248) : pré-créés pour une fiche ou inscriptions jamais confirmées, masqués par défaut -->
+    <UCheckbox v-if="!loadError" v-model="showInactive" :label="`Afficher les comptes non activés (${inactiveCount})`" />
+
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      <UCard v-for="user in users" :key="user.id">
+      <UCard v-for="user in visibleUsers" :key="user.id">
         <template #header>
           <div class="flex items-start justify-between gap-3">
             <div>
-              <h2 class="font-semibold">{{ user.name }}</h2>
+              <h2 class="font-semibold">{{ user.name || 'Sans nom' }}</h2>
               <p class="text-sm text-gray-500">{{ user.email }}</p>
             </div>
             <div class="flex flex-wrap justify-end gap-1">
               <UBadge v-if="user.disabledAt" color="error" variant="solid">Désactivé</UBadge>
-              <UBadge v-else-if="!user.emailConfirmedAt" color="neutral" variant="subtle">Adresse non confirmée</UBadge>
+              <UBadge v-else-if="!user.emailConfirmedAt" color="neutral" variant="subtle">Non activé</UBadge>
               <UBadge :color="user.role === USER_ROLES.admin ? 'warning' : 'primary'" variant="subtle">
                 {{ user.role === USER_ROLES.admin ? 'Administratrice' : 'Compte' }}
               </UBadge>
@@ -50,7 +53,11 @@
           </div>
         </template>
 
-        <div class="space-y-4">
+        <!-- Lecture seule (US-248) : la personne l'active elle-même, ou l'administratrice le reprend en le créant -->
+        <p v-if="!user.emailConfirmedAt" class="text-sm text-gray-500">
+          Ce compte n’est pas activé : la personne l’active elle-même, ou créez un compte à son adresse pour le reprendre.
+        </p>
+        <div v-else class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <UFormField label="Nom">
               <UInput v-model="user.name" autocomplete="off" :name="`managed-user-name-${user.id}`" />
@@ -101,6 +108,9 @@ import type { ApiResponse } from '~/composables/useApiFetch'
 type ManagedUser = ApiResponse<'/api/admin/users'>[number]
 
 const users = ref<ManagedUser[]>([])
+const showInactive = ref(false)
+const inactiveCount = computed(() => users.value.filter((user) => !user.emailConfirmedAt).length)
+const visibleUsers = computed(() => showInactive.value ? users.value : users.value.filter((user) => user.emailConfirmedAt))
 const saving = ref(false)
 const savingUserId = ref('')
 const loadError = ref('')
