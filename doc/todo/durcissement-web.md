@@ -29,7 +29,7 @@ La [revue d'architecture du 29 octobre 2026](../revues/2026-10-29-architecture.m
 ## Suivi
 
 - 2026-11-01 : R-02, R-03 et la CSP en mode rapport faits ([EPIC-027](../archive/epics/EPIC-027-durcissement-web/README.md), [ADR-0053](../adr/ADR-0053-durcissement-web.md)). Reste : relire les violations (`GET /api/admin/csp-reports`) après une semaine, puis passer la CSP en mode bloquant.
-- 2026-11-12 : rapports relus. Deux violations : la page d'accueil prérendue, refusée par `'strict-dynamic'`, et des icônes demandées à `api.iconify.design`. Corrigées sans changer de mode ([EPIC-059](../epics/EPIC-059-csp-applicable/README.md), [ADR-0091](../adr/ADR-0091-csp-sans-strict-dynamic.md)) ; la suite de bout en bout échoue désormais sur toute violation. Reste : passer la CSP en mode bloquant, après une nouvelle relecture, une fois tous les écrans parcourus avec le cahier de tests.
+- 2026-11-12 : rapports relus. Deux violations : la page d'accueil prérendue, refusée par `'strict-dynamic'`, et des icônes demandées à `api.iconify.design`. Corrigées sans changer de mode ([EPIC-059](../archive/epics/EPIC-059-csp-applicable/README.md), [ADR-0091](../adr/ADR-0091-csp-sans-strict-dynamic.md)) ; la suite de bout en bout échoue désormais sur toute violation. Reste : passer la CSP en mode bloquant, après une nouvelle relecture, une fois tous les écrans parcourus avec le cahier de tests.
 
 ## Points à trancher
 

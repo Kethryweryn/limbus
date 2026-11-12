@@ -3,7 +3,7 @@ id: ADR-0091
 titre: CSP sans strict-dynamic, icônes livrées avec Limbus, violations vérifiées par la suite de bout en bout
 statut: accepté
 date: 2026-11-12
-liens: [ADR-0053-durcissement-web.md, ../todo/durcissement-web.md, ../epics/EPIC-059-csp-applicable/README.md]
+liens: [ADR-0053-durcissement-web.md, ../todo/durcissement-web.md, ../archive/epics/EPIC-059-csp-applicable/README.md]
 ---
 
 # ADR-0091 : CSP sans strict-dynamic, icônes livrées avec Limbus, violations vérifiées par la suite de bout en bout

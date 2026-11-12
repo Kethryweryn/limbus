@@ -66,7 +66,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-056](../archive/epics/EPIC-056-une-fiche-par-personne/README.md) | Une fiche par personne dans tout Limbus | [SPEC-022](../specs/SPEC-022-compte-pour-chaque-participant.md) | terminé |
 | [EPIC-057](../archive/epics/EPIC-057-compte-pre-cree-et-activation/README.md) | Un compte pré-créé pour chaque fiche, que la personne active | [SPEC-022](../specs/SPEC-022-compte-pour-chaque-participant.md) | terminé |
 | [EPIC-058](../archive/epics/EPIC-058-durees-et-administration/README.md) | Comptes non activés : durée et administration | [SPEC-022](../specs/SPEC-022-compte-pour-chaque-participant.md) | terminé |
-| [EPIC-059](EPIC-059-csp-applicable/README.md) | Une CSP prête à bloquer | [Durcissement web](../todo/durcissement-web.md) | en cours |
+| [EPIC-059](../archive/epics/EPIC-059-csp-applicable/README.md) | Une CSP prête à bloquer | [Durcissement web](../todo/durcissement-web.md) | terminé |
 
 ## US
 
@@ -321,4 +321,4 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-247](../archive/epics/EPIC-057-compte-pre-cree-et-activation/US-247-ligne-des-emails.md) | Une ligne au bas des emails des équipes | EPIC-057 | terminée |
 | [US-248](../archive/epics/EPIC-058-durees-et-administration/US-248-comptes-non-actives-dans-l-administration.md) | Les comptes non activés dans l'administration | EPIC-058 | terminée |
 | [US-249](../archive/epics/EPIC-058-durees-et-administration/US-249-effacement-du-compte-non-active.md) | Effacer un compte non activé avec sa dernière fiche | EPIC-058 | terminée |
-| [US-250](EPIC-059-csp-applicable/US-250-csp-accueil-icones-et-garde-fou.md) | La page d'accueil et les icônes passent la CSP, et les tests le vérifient | EPIC-059 | terminée |
+| [US-250](../archive/epics/EPIC-059-csp-applicable/US-250-csp-accueil-icones-et-garde-fou.md) | La page d'accueil et les icônes passent la CSP, et les tests le vérifient | EPIC-059 | terminée |
