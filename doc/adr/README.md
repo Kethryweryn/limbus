@@ -93,3 +93,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0087](ADR-0087-preuve-d-une-autre-adresse.md) | Une adresse donnée en réponse, déjà celle d'une autre fiche, se prouve par un lien avant la réunion des deux fiches | accepté | 2026-11-12 |
 | [ADR-0088](ADR-0088-compte-pre-cree-sans-mot-de-passe.md) | Un compte pré-créé est un compte sans mot de passe, activé par un lien envoyé à son adresse | accepté | 2026-11-12 |
 | [ADR-0089](ADR-0089-recopie-champ-par-champ.md) | Les coordonnées du compte sont recopiées champ par champ, seulement les champs que la personne a remplis | accepté | 2026-11-12 |
+| [ADR-0090](ADR-0090-effacement-du-compte-non-active.md) | Un compte non activé est effacé avec la dernière fiche qui porte son adresse | accepté | 2026-11-12 |
