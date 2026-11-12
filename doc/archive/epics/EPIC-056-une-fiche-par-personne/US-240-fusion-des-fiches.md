@@ -21,7 +21,7 @@ En tant qu'organisatrice, je veux que les fiches existantes d'une même personne
 
 ## Notes techniques
 
-Migration SQL ([ADR-0086](../../adr/ADR-0086-fiche-unique-et-valeurs-par-jeu.md)), après le déploiement d'[US-239](US-239-une-fiche-par-adresse.md) ; jeux de test (`prisma/seed/`, `doc/jeux-de-test.md`) mis à jour. Les fiches sans adresse ne sont pas concernées.
+Migration SQL ([ADR-0086](../../../adr/ADR-0086-fiche-unique-et-valeurs-par-jeu.md)), après le déploiement d'[US-239](US-239-une-fiche-par-adresse.md) ; jeux de test (`prisma/seed/`, `doc/jeux-de-test.md`) mis à jour. Les fiches sans adresse ne sont pas concernées.
 
 ## Tests
 

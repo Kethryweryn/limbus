@@ -24,7 +24,7 @@ En tant qu'organisatrice, je veux qu'une personne n'ait qu'une fiche, même suiv
 
 ## Notes techniques
 
-Remplace `ficheForAddress`, limitée à la propriétaire, et `duplicateAddressError` (US-185) ([ADR-0086](../../adr/ADR-0086-fiche-unique-et-valeurs-par-jeu.md)). Rapprochement des inscriptions (`participantEmailMatchWhere`, `formRegistrations`, `publicRegistrations`). L'index unique sur l'adresse arrive avec la fusion ([US-240](US-240-fusion-des-fiches.md)). Jeux de test : `prisma/seed/` et `doc/jeux-de-test.md` (CLAUDE.md, ADR-0066).
+Remplace `ficheForAddress`, limitée à la propriétaire, et `duplicateAddressError` (US-185) ([ADR-0086](../../../adr/ADR-0086-fiche-unique-et-valeurs-par-jeu.md)). Rapprochement des inscriptions (`participantEmailMatchWhere`, `formRegistrations`, `publicRegistrations`). L'index unique sur l'adresse arrive avec la fusion ([US-240](US-240-fusion-des-fiches.md)). Jeux de test : `prisma/seed/` et `doc/jeux-de-test.md` (CLAUDE.md, ADR-0066).
 
 ## Tests
 

@@ -24,7 +24,7 @@ Choix de l'utilisatrice, le 2026-11-11 : un lien envoyé à l'autre adresse prou
 
 ## Notes techniques
 
-[ADR-0087](../../adr/ADR-0087-preuve-d-une-autre-adresse.md) : table `ParticipantEmailProof` (migration `20261204090000_preuve_d_adresse`), jeton à usage unique dont seule l'empreinte est gardée, 7 jours (choix de l'utilisatrice), purgé par le nettoyage (`retention.ts`). `server/utils/emailProofs.ts` (`requestEmailProof`, `confirmEmailProof`) ; route publique `POST /api/public/email-proofs/[token]`, limitée en débit ; page `pages/inscription/adresse/[token].vue`, qui attend le clic. La confirmation de la réponse, avec le lien personnel, part à l'adresse gardée, jamais à l'adresse à prouver. Politique de confidentialité : la demande et sa durée (`RETENTION.addressProofDays`).
+[ADR-0087](../../../adr/ADR-0087-preuve-d-une-autre-adresse.md) : table `ParticipantEmailProof` (migration `20261204090000_preuve_d_adresse`), jeton à usage unique dont seule l'empreinte est gardée, 7 jours (choix de l'utilisatrice), purgé par le nettoyage (`retention.ts`). `server/utils/emailProofs.ts` (`requestEmailProof`, `confirmEmailProof`) ; route publique `POST /api/public/email-proofs/[token]`, limitée en débit ; page `pages/inscription/adresse/[token].vue`, qui attend le clic. La confirmation de la réponse, avec le lien personnel, part à l'adresse gardée, jamais à l'adresse à prouver. Politique de confidentialité : la demande et sa durée (`RETENTION.addressProofDays`).
 
 ## Tests
 

@@ -22,7 +22,7 @@ En tant qu'organisatrice, je veux que le nom et le téléphone que je saisis sur
 
 ## Notes techniques
 
-Colonnes `name`, `phone` et `updatedAt` sur `ParticipantGame` ([ADR-0086](../../adr/ADR-0086-fiche-unique-et-valeurs-par-jeu.md)), remplies par la migration ; les colonnes de `Participant` restent écrites et lues par le build en service jusqu'à [US-242](US-242-retirer-nom-et-telephone-de-la-fiche.md) (ADR-0024). Écriture commune par `server/utils/participantWrites.ts` (interface et assistants), recopie du compte (`syncProfileToParticipants`) sur les liens.
+Colonnes `name`, `phone` et `updatedAt` sur `ParticipantGame` ([ADR-0086](../../../adr/ADR-0086-fiche-unique-et-valeurs-par-jeu.md)), remplies par la migration ; les colonnes de `Participant` restent écrites et lues par le build en service jusqu'à [US-242](US-242-retirer-nom-et-telephone-de-la-fiche.md) (ADR-0024). Écriture commune par `server/utils/participantWrites.ts` (interface et assistants), recopie du compte (`syncProfileToParticipants`) sur les liens.
 
 ## Tests
 
