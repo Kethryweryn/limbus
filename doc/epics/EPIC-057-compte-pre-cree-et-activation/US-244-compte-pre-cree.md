@@ -3,7 +3,7 @@ id: US-244
 titre: Un compte pré-créé pour chaque fiche
 statut: à faire
 epic: EPIC-057
-regles: [R1, R2]
+regles: [R1, R2, R16]
 adr: [ADR-0088]
 ---
 
@@ -24,7 +24,8 @@ En tant qu'organisatrice, je veux que la fiche que je crée appartienne au compt
 - [ ] Étant donné une fiche rattachée à un compte non activé, alors :
   - l'équipe modifie le nom et le téléphone comme avant ;
   - la page de la fiche ne dit pas qu'elle est tenue par la personne.
-- [ ] Étant donné une inscription libre non confirmée à une adresse qui a une fiche, quand son délai passe, alors le compte perd son mot de passe et ses conditions acceptées mais reste rattaché à la fiche. Sans fiche, il est effacé comme avant.
+- [ ] Étant donné une inscription libre non confirmée à une adresse qui a une fiche, quand son délai passe, alors le compte perd son nom, son mot de passe et ses conditions acceptées mais reste rattaché à la fiche. Sans fiche, il est effacé comme avant.
+- [ ] La politique de confidentialité dit qu'une équipe qui inscrit une personne lui crée un compte inactif, sans email, ce que ce compte contient et quand il est effacé. `TERMS_VERSION` change, et chaque compte l'accepte de nouveau.
 - [ ] Étant donné un compte non activé, alors il ne peut pas se connecter, et n'a donc accès ni à l'espace « Je participe » ni à l'export ou à l'effacement du compte.
 
 ## Notes techniques
@@ -35,6 +36,7 @@ En tant qu'organisatrice, je veux que la fiche que je crée appartienne au compt
 - **Connexion** (`login.post.ts`) : comparaison avec une empreinte factice si le compte n'a pas de mot de passe.
 - **Nettoyage** : `purgeUnconfirmedAccounts` (`server/utils/accounts.ts`).
 - **Écran** (`components/ParticipantForm.vue`) : seule une fiche rattachée à un compte activé est tenue par la personne.
+- **Politique** : `pages/confidentialite.vue`, `utils/legal.ts` (`TERMS_VERSION`), note dans `nouveautes/`.
 - **Jeu de test** : `prisma/seed/` et `doc/jeux-de-test.md` gagnent une personne au compte non activé.
 
 ## Tests

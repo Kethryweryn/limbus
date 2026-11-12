@@ -14,7 +14,7 @@ Lot 2 de [SPEC-022](../../specs/SPEC-022-compte-pour-chaque-participant.md) : to
 
 Décisions :
 
-- [ADR-0088](../../adr/ADR-0088-compte-pre-cree-sans-mot-de-passe.md) : compte sans mot de passe, activation, ligne au bas des emails ;
+- [ADR-0088](../../adr/ADR-0088-compte-pre-cree-sans-mot-de-passe.md) : compte sans mot de passe, activation, ligne au bas des emails. La politique de confidentialité (R16) est avancée dans ce lot avec US-244, pour qu'aucun compte ne soit créé sans qu'elle le dise ;
 - [ADR-0089](../../adr/ADR-0089-recopie-champ-par-champ.md) : recopie champ par champ.
 
 ## US
@@ -32,7 +32,6 @@ Ordre : US-244 d'abord. Sa migration rend le mot de passe facultatif sans casser
 
 - La liste des comptes de l'administration montre les comptes non activés sans nom et sans mention.
 - Un compte non activé suit encore la règle des 24 mois sans connexion, comptés depuis sa création.
-- La politique de confidentialité ne parle pas encore de ces comptes.
 
 ## Définition de terminé
 

@@ -34,7 +34,7 @@ En tant que participant dont une équipe a créé la fiche, je veux activer le c
 - Email d'activation (`server/utils/email.ts`).
 - À adapter :
   - `password-forgotten.post.ts` ;
-  - `signup.post.ts` et `confirm.post.ts`, qui reprennent le nom saisi à l'inscription ;
+  - `signup.post.ts` et `confirm.post.ts` : le nom, le mot de passe et les conditions voyagent avec le jeton et ne s'appliquent qu'à la confirmation ;
   - `register.post.ts` et la lecture d'une invitation (`server/api/invitations/[token]`).
 - Un lien vers « Activer mon compte » depuis l'écran de connexion.
 

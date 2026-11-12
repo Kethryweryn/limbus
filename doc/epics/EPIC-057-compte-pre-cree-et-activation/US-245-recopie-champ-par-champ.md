@@ -20,14 +20,14 @@ En tant que participant, je veux que chaque champ que je remplis dans mon compte
   - le serveur refuse de changer un champ tenu, y compris depuis un assistant d'IA ou la file hors ligne.
 - [ ] Étant donné une personne qui vide son téléphone dans son compte, alors chaque équipe le voit vide et peut le saisir de nouveau.
 - [ ] Étant donné un compte activé, alors son nom est toujours tenu par la personne.
-- [ ] Étant donné les comptes activés existants, après la migration, alors leurs champs remplis sont recopiés, et rien d'autre ne change.
+- [ ] Étant donné les comptes activés existants, après la migration, alors leurs champs remplis, nom compris, sont recopiés sur les fiches et les inscriptions, et rien d'autre ne change.
 
 ## Notes techniques
 
 - Recopie : `syncProfileToParticipants` (`server/utils/participantAccounts.ts`).
 - Champs vidés à l'enregistrement : `server/api/account/profile.put.ts`.
 - Réponse depuis le compte : `server/utils/publicRegistrations.ts`.
-- Refus d'un champ tenu : `server/utils/participantWrites.ts` et les écritures d'inscription par l'équipe.
+- Refus d'un champ tenu : `server/utils/participantWrites.ts`. L'équipe n'écrit pas les coordonnées d'une inscription.
 - Lecture : `server/utils/participantEmergency.ts`.
 - Écran : `components/ParticipantForm.vue` (`heldFields`).
 - Migration de données pour les comptes activés.
