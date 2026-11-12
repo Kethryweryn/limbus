@@ -143,7 +143,7 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
   const result = await prisma.$transaction(async (tx) => {
     const current = await tx.participant.findUniqueOrThrow({
       where: { id },
-      select: { userId: true, email: true, gameLinks: { orderBy: { updatedAt: 'desc' }, take: 1, select: { name: true, phone: true } } }
+      select: { userId: true, email: true, user: { select: { name: true, phone: true } } }
     })
     // Adresse corrigée (SPEC-022 R7) : changée sur place si l'équipe voit tous les jeux de la fiche et qu'aucune autre
     // fiche ne la porte ; sinon, seuls les jeux de l'équipe passent à la fiche de cette adresse, créée au besoin. La
@@ -168,10 +168,10 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
     // Une fiche dont l'équipe part vers une autre adresse garde son adresse et son compte
     const userId = target ? current.userId : await accountIdForEmail(email)
     const heldByPerson = !target && Boolean(userId && userId === current.userId)
-    // Tenus par la personne : ceux que son compte a recopiés sur ses jeux (ADR-0042), jamais ceux que l'équipe envoie
-    const held = current.gameLinks[0]
-    const effectiveName = heldByPerson ? held?.name ?? name : name
-    const effectivePhone = heldByPerson ? held?.phone ?? null : phone || null
+    // Tenus par la personne (ADR-0042) : l'équipe n'y touche pas. Ses jeux gardent chacun leurs valeurs, et un jeu ajouté
+    // reçoit celles du compte, jamais celles qu'une autre équipe tient (revue de la PR #237)
+    const effectiveName = heldByPerson ? current.user?.name ?? name : name
+    const effectivePhone = heldByPerson ? current.user?.phone ?? null : phone || null
     // Nom et téléphone par jeu (ADR-0086) : ceux des jeux que voit la personne qui modifie
     const visibleKeptGameIds = managedExistingGameIds.filter((gameId) => nextGameIds.has(gameId))
     const updated = await tx.participant.update({
@@ -184,7 +184,7 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
         gameLinks: {
           create: gameIdsToAdd.map((gameId) => ({ gameId, notes: gameNotes[gameId] || null, name: effectiveName, phone: effectivePhone })),
           updateMany: [
-            { where: { gameId: { in: visibleKeptGameIds } }, data: { name: effectiveName, phone: effectivePhone } },
+            ...(heldByPerson ? [] : [{ where: { gameId: { in: visibleKeptGameIds } }, data: { name: effectiveName, phone: effectivePhone } }]),
             // Note de chaque jeu déjà lié et reçu ; les notes des autres jeux ne bougent pas (US-069)
             ...Object.entries(gameNotes)
               .filter(([gameId]) => existingGameIds.has(gameId) && nextGameIds.has(gameId))

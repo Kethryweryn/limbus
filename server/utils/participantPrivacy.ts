@@ -227,7 +227,7 @@ export async function exportParticipantData(participantId: string, gameIds: stri
     })),
     // Fiche rattachée au compte Limbus de la personne (US-070, ADR-0041)
     linkedToAccount: Boolean(userId),
-    // Notes de chaque jeu exporté (US-069)
-    games: gameLinks.map((link) => ({ title: link.game.title, registeredAt: link.createdAt, notes: link.notes }))
+    // Notes, nom et téléphone de chaque jeu exporté (US-069, ADR-0086) : pour la personne, ce que tient chaque équipe
+    games: gameLinks.map((link) => ({ title: link.game.title, registeredAt: link.createdAt, notes: link.notes, name: link.name, phone: link.phone }))
   }
 }

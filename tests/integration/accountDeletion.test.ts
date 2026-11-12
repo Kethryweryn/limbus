@@ -47,8 +47,11 @@ async function player() {
 describe('télécharger ses données (US-076)', () => {
   it('contient le compte, les coordonnées et les fiches de toutes les équipes, sans secret', async () => {
     const { user, teams } = await player()
+    // Chaque équipe tient son nom et son téléphone (ADR-0086) : l'export les donne tous (revue de la PR #237)
+    await prisma.participantGame.update({ where: { participantId_gameId: { participantId: teams[1]!.participant.id, gameId: teams[1]!.game.id } }, data: { name: 'Nom chez Bob', phone: '0699999999' } })
     const response = await api(user, 'GET', '/api/account/export')
     expect(response.status).toBe(200)
+    expect(JSON.stringify(response.body)).toMatch(/Nom chez Bob[^]*0699999999|0699999999[^]*Nom chez Bob/)
     expect(response.body).toMatchObject({ account: { email: user.email, phone: '0612345678', dietary: 'Arachides' } })
     const text = JSON.stringify(response.body)
     for (const { owner, game } of teams) {

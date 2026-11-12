@@ -72,7 +72,7 @@ export async function parcoursGame(prisma: TestPrisma) {
   })
   const character = (name: string) => game.characters.find((item) => item.name === name)!
   // Nom tenu par le lien au jeu (ADR-0086, US-242)
-  const participant = (name: string) => game.participantLinks.filter((link) => link.name === name).map((link) => ({ ...link.participant, name }))[0]!
+  const participant = (name: string) => ({ ...game.participantLinks.find((link) => link.name === name)!.participant, name })
   return { game, character, participant }
 }
 
