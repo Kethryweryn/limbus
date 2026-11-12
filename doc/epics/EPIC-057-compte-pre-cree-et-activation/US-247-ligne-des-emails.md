@@ -21,11 +21,12 @@ En tant que participant, je veux que les emails des équipes me disent où retro
   - annulation et report d'une session.
 - [x] Étant donné une personne au compte activé, alors la ligne l'invite à retrouver tout cela dans son espace « Je participe », avec un lien vers cet espace.
 - [x] Le lien ne contient ni adresse ni jeton.
+- [x] Sans compte à l'adresse du destinataire (inscription à une autre adresse que la fiche), ou pour un compte désactivé, l'email n'a pas de ligne : le lien ne mènerait à rien (revue de la PR #244).
 - [x] Les emails de test, envoyés à l'équipe, et la demande de confirmation d'un formulaire public n'ont pas de ligne.
 
 ## Notes techniques
 
-- La ligne est rendue par `participantAccountFooter` (`server/utils/email.ts`) et ajoutée par le transport d'emails à tout message marqué `accountFooter`, en texte et en HTML : un seul endroit pour tous les envois.
+- La ligne est rendue par `participantAccountFooter` (`server/utils/email.ts`) et ajoutée par le transport d'emails à tout message marqué `accountFooter` (un seul destinataire, imposé par le type), en texte et en HTML avec un vrai lien : un seul endroit pour tous les envois.
 - Les envois marqués : invitation, nouveau lien, rappel et annonce de sélection (`registrations.ts`, `registrationSelection.ts`), demande de disponibilité (`availabilityRequests.ts`), réponses enregistrées (`publicRegistrations.ts`), documents, fiches et trombinoscopes (`documents.ts`, `sendToEach`), paiement (`sessionPayments.ts`), annulation (`sessionLifecycle.ts`), report et présence (`attendance.ts`).
 - L'état du compte se lit par adresse, au moment de chaque envoi, sur l'index unique de l'adresse : une requête par email, sans la charger d'avance pour un envoi groupé.
 

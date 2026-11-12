@@ -8,15 +8,16 @@ type EmailAttachment = {
   contentType?: string
 }
 
-type EmailMessage = {
-  to: string | string[]
+type EmailContent = {
   subject: string
   text?: string
   html?: string
   attachments?: EmailAttachment[]
-  // Email d'une équipe à une personne (US-247, SPEC-022 R10) : une ligne en bas la mène à son compte Limbus
-  accountFooter?: boolean
 }
+
+// Email d'une équipe à une personne (US-247, SPEC-022 R10) : une ligne en bas la mène à son compte Limbus. Un seul
+// destinataire, dont le compte décide de la ligne
+type EmailMessage = EmailContent & ({ to: string | string[], accountFooter?: false } | { to: string, accountFooter: true })
 
 const SMTP_SETTINGS_ID = 'default'
 
@@ -184,23 +185,26 @@ export type EmailTransport = {
 
 /**
  * Ligne au bas des emails d'une équipe à une personne (US-247, SPEC-022 R10, ADR-0088), selon le compte de l'adresse :
- * activé, elle mène à « Je participe » ; sinon (pré-créé, ou pas de compte à cette adresse), à la page qui envoie le
- * lien d'activation. Ni l'adresse ni un jeton ne figurent dans le lien, et rien ne dit qu'une autre équipe la suit.
+ * activé, elle mène à « Je participe » ; pré-créé ou inscription non confirmée, à la page qui envoie le lien
+ * d'activation. Sans compte à l'adresse, ou compte désactivé, aucune ligne : le lien ne mènerait à rien. Ni l'adresse ni
+ * un jeton ne figurent dans le lien, et rien ne dit qu'une autre équipe la suit.
  */
 export async function participantAccountFooter(email: string) {
-  const account = await prisma.user.findUnique({ where: { email: email.trim() }, select: { emailConfirmedAt: true } })
-  return account?.emailConfirmedAt
-    ? `Retrouvez tout cela dans votre espace « Je participe » sur Limbus : ${absoluteAppUrl('/participer')}`
-    : `Retrouvez tout cela dans votre compte Limbus, en l’activant avec cette adresse : ${absoluteAppUrl('/acces/activer')}`
+  const account = await prisma.user.findUnique({ where: { email: email.trim() }, select: { emailConfirmedAt: true, disabledAt: true } })
+  if (!account || account.disabledAt) return null
+  return account.emailConfirmedAt
+    ? { text: 'Retrouvez tout cela dans votre espace « Je participe » sur Limbus :', url: absoluteAppUrl('/participer') }
+    : { text: 'Retrouvez tout cela dans votre compte Limbus, en l’activant avec cette adresse :', url: absoluteAppUrl('/acces/activer') }
 }
 
 async function withAccountFooter(message: EmailMessage): Promise<EmailMessage> {
-  if (!message.accountFooter || typeof message.to !== 'string') return message
+  if (!message.accountFooter) return message
   const footer = await participantAccountFooter(message.to)
+  if (!footer) return message
   return {
     ...message,
-    text: message.text === undefined ? undefined : [message.text, '', '—', footer].join('\n'),
-    html: message.html === undefined ? undefined : `${message.html}<hr><p>${escapeHtml(footer)}</p>`
+    text: message.text === undefined ? undefined : [message.text, '', '—', `${footer.text} ${footer.url}`].join('\n'),
+    html: message.html === undefined ? undefined : `${message.html}<hr><p>${escapeHtml(footer.text)} <a href="${escapeHtml(footer.url)}">${escapeHtml(footer.url)}</a></p>`
   }
 }
 
