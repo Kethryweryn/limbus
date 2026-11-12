@@ -521,3 +521,26 @@ test('champ par champ : le téléphone rempli dans le compte est à la personne,
     await prisma.$disconnect()
   }
 })
+
+// US-245 (revue de la PR #242) : créer la fiche d'une personne au compte activé prend le nom qu'elle tient, et le dit
+test('champ par champ : la fiche créée à l’adresse d’un compte activé porte le nom du compte, et l’écran le dit (US-245)', async ({ page }) => {
+  const prisma = createTestPrisma()
+  try {
+    const game = await orgaGame(prisma, 'Jeu de la fiche au nom tenu')
+    const { email, name } = await testUser(prisma, 'Personne au nom tenu')
+    await signIn(page, prisma, E2E_USERS.orga)
+    await openParticipants(page)
+    await page.getByRole('button', { name: 'Créer un participant' }).click()
+    const form = page.getByRole('dialog')
+    await form.getByRole('button', { name: 'Jeux' }).click()
+    await page.getByRole('option', { name: game.title }).click()
+    await page.keyboard.press('Escape')
+    await form.getByLabel('Nom', { exact: true }).fill('Surnom saisi')
+    await form.getByLabel('Email').fill(email)
+    await form.getByRole('button', { name: 'Créer' }).click()
+    await expect(page.getByText(`Cette personne a un compte Limbus : la fiche porte le nom qu’elle y a donné, ${name}.`, { exact: true })).toBeVisible()
+    expect((await prisma.participantGame.findFirstOrThrow({ where: { participant: { email }, gameId: game.id } })).name).toBe(name)
+  } finally {
+    await prisma.$disconnect()
+  }
+})

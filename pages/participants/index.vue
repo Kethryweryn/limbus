@@ -256,6 +256,13 @@ async function handleParticipantFormSubmit() {
         description: `Le jeu est ajouté à la fiche de ${created.name}.`,
         color: 'info'
       })
+    } else if (!isOfflineQueued(created) && created.heldFields.includes('name') && created.name !== activeFormParticipant.value.name?.trim()) {
+      // Nom tenu par la personne depuis son compte (ADR-0089) : la fiche porte le sien, pas celui saisi
+      toast.add({
+        title: 'Nom tenu par la personne',
+        description: `Cette personne a un compte Limbus : la fiche porte le nom qu’elle y a donné, ${created.name}.`,
+        color: 'info'
+      })
     }
   } else {
     await useApiFetch(`/api/participants/${activeFormParticipant.value.id}`, {

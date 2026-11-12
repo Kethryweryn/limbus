@@ -4,7 +4,7 @@ import { generateSessionTrombinoscopes } from '~/server/utils/trombinoscopes'
 import { publicAppUrl } from '~/server/utils/appUrl'
 import { REGISTRATION_SESSION_STATUSES, REGISTRATION_STATUSES, SESSION_STATUSES } from '~/utils/domain'
 import { latestOf, latestVisibleValues } from '~/server/utils/participantValues'
-import { heldProfileFields, profileValuesSelect, type ProfileValues } from '~/server/utils/participantAccounts'
+import { FICHE_PROFILE_FIELDS, ficheProfileSelect, heldProfileFields, type ProfileValues } from '~/server/utils/participantAccounts'
 
 type ParticipantWithGameLinks = {
   user?: ProfileValues | null
@@ -36,7 +36,7 @@ export function participantGameLinksInclude(gameIds: string[] | null = null) {
       include: { game: true }
     },
     // Compte activé : la personne tient alors les coordonnées qu'elle a remplies (US-244, US-245, ADR-0089)
-    user: { select: profileValuesSelect }
+    user: { select: ficheProfileSelect }
   }
 }
 
@@ -53,7 +53,7 @@ export function exposeParticipantGames<T extends ParticipantWithGameLinks>(parti
     // Fiche rattachée à un compte activé, pas seulement pré-créé (US-244), et les champs de la fiche que la personne y a
     // remplis : l'équipe ne les change pas (ADR-0089). Seulement le fait qu'ils sont tenus, jamais d'autres valeurs du compte
     heldByPerson: Boolean(user?.emailConfirmedAt),
-    heldFields: heldProfileFields(user).filter((field) => field === 'name' || field === 'phone'),
+    heldFields: heldProfileFields(user).filter((field): field is typeof FICHE_PROFILE_FIELDS[number] => (FICHE_PROFILE_FIELDS as readonly string[]).includes(field)),
     ...(version ? { updatedAt: version } : {}),
     // Création vue par l'équipe : l'entrée de la fiche dans ses jeux, pas sa création par une autre équipe (SPEC-022 R5)
     ...(gameLinks?.length ? { createdAt: new Date(Math.min(...gameLinks.map((link) => link.createdAt.getTime()))) } : {}),

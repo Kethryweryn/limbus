@@ -18,6 +18,7 @@ En tant que participant, je veux que chaque champ que je remplis dans mon compte
   - le nom et le téléphone, s'ils sont remplis dans le compte, sont grisés, avec « Tenu par la personne depuis son compte » ;
   - les autres champs restent modifiables ;
   - le serveur refuse de changer un champ tenu, y compris depuis un assistant d'IA ou la file hors ligne.
+- [x] Étant donné une adresse au compte activé, quand l'équipe y crée une fiche sous un autre nom, alors la fiche porte le nom du compte, et l'écran le dit (revue de la PR #242).
 - [x] Étant donné une personne qui vide son téléphone dans son compte, alors chaque équipe le voit vide et peut le saisir de nouveau.
 - [x] Étant donné un compte activé, alors son nom est toujours tenu par la personne.
 - [x] Étant donné les comptes activés existants, après la migration, alors leurs champs remplis, nom compris, sont recopiés sur les fiches et les inscriptions, et rien d'autre ne change.
@@ -34,7 +35,7 @@ En tant que participant, je veux que chaque champ que je remplis dans mon compte
 
 ## Tests
 
-- Actions (`tests/e2e/participantScreens.spec.ts`, « champ par champ ») : la personne remplit son téléphone, l'équipe le voit grisé ; la personne le vide, l'équipe le saisit. « coordonnées d'une personne qui a un compte » : nom et téléphone remplis, grisés.
+- Actions (`tests/e2e/participantScreens.spec.ts`, « champ par champ ») : la personne remplit son téléphone, l'équipe le voit grisé ; la personne le vide, l'équipe le saisit. « coordonnées d'une personne qui a un compte » : nom et téléphone remplis, grisés. « la fiche créée à l'adresse d'un compte activé » : le nom du compte, et le message qui le dit.
 - Erreurs de saisie : un nom ou un téléphone tenus, envoyés autrement par l'équipe, sont refusés avec « Le nom est tenu par la personne depuis son compte. » ou « Le téléphone est tenu… », rien n'est enregistré (`profile.test.ts`). L'écran grise ces champs : l'erreur ne vient que d'un assistant d'IA ou d'une file hors ligne.
 - Droits : une équipe ne lit que la liste des champs tenus (`heldFields`), jamais d'autres valeurs du compte ; ses valeurs des champs non tenus restent à ses jeux (`profile.test.ts`, revue de la PR #237).
 - Hors ligne : une modification mise en file pendant que la personne remplit son téléphone ne l'écrase pas au retour du réseau (même test e2e) : la recopie change la version de la fiche, la file reçoit un conflit.

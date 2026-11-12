@@ -6,7 +6,7 @@ import type { participantCreateSchema, participantSchema } from '~/server/utils/
 import { exposeParticipantGames, participantGameLinksInclude, planParticipantRemoval } from '~/server/utils/participants'
 import { eraseParticipant } from '~/server/utils/participantPrivacy'
 import { assertParticipantUnmodifiedSince } from '~/server/utils/concurrency'
-import { accountForEmail, heldProfileFields, profileValuesSelect, syncProfileToParticipants } from '~/server/utils/participantAccounts'
+import { accountForEmail, ficheProfileSelect, heldProfileFields, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 import { participantSlug } from '~/utils/participantSlug'
 import { lockAddress } from '~/server/utils/participantAddress'
 
@@ -144,7 +144,7 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
   const result = await prisma.$transaction(async (tx) => {
     const current = await tx.participant.findUniqueOrThrow({
       where: { id },
-      select: { userId: true, email: true, user: { select: profileValuesSelect } }
+      select: { userId: true, email: true, user: { select: ficheProfileSelect } }
     })
     // Adresse corrigée (SPEC-022 R7) : changée sur place si l'équipe voit tous les jeux de la fiche et qu'aucune autre
     // fiche ne la porte ; sinon, seuls les jeux de l'équipe passent à la fiche de cette adresse, créée au besoin. La

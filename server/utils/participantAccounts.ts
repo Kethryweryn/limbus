@@ -42,14 +42,16 @@ export async function linkParticipantsToUser(user: { id: string, email: string }
 /** Coordonnées qu'une personne peut tenir depuis son compte (ADR-0089) ; le contact d'urgence va par paire. */
 export const PROFILE_FIELDS = ['name', 'phone', 'emergencyContact', 'dietary'] as const
 export type ProfileField = typeof PROFILE_FIELDS[number]
+/** Ceux qui vivent sur la fiche, par jeu (ADR-0086) : les autres vont sur les inscriptions. */
+export const FICHE_PROFILE_FIELDS = ['name', 'phone'] as const satisfies readonly ProfileField[]
 
 export type ProfileValues = {
   emailConfirmedAt: Date | null
   name: string
   phone: string | null
-  emergencyContactName: string | null
-  emergencyContactPhone: string | null
-  dietary: string | null
+  emergencyContactName?: string | null
+  emergencyContactPhone?: string | null
+  dietary?: string | null
 }
 
 /**
@@ -72,6 +74,9 @@ export function clearedProfileFields(before: ProfileValues, after: ProfileValues
   const held = new Set(heldProfileFields(after))
   return heldProfileFields(before).filter((field) => !held.has(field))
 }
+
+/** Ce qu'il faut pour savoir si le nom et le téléphone d'une fiche sont tenus, sans lire l'urgence ni les allergies. */
+export const ficheProfileSelect = { emailConfirmedAt: true, name: true, phone: true } as const
 
 export const profileValuesSelect = {
   emailConfirmedAt: true, name: true, phone: true, emergencyContactName: true, emergencyContactPhone: true, dietary: true
