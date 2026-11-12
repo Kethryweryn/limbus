@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
+import { withFicheValues } from '../fiche'
 
 const prisma = createTestPrisma()
 const world = inject('world')
@@ -31,7 +32,7 @@ async function aliceGameWith(email: string) {
   const session = await prisma.session.create({ data: { slug: `session-${k}`, gameId: game.id, paymentLinkUrl: 'https://paiement.example.test' } })
   await prisma.sessionTariff.create({ data: { sessionId: session.id, name: 'Plein tarif', amountCents: 8000, defaultRole: 'pj' } })
   const character = await prisma.character.create({ data: { name: `Secret ${k}`, slug: `secret-${k}`, gameId: game.id } })
-  const participant = await prisma.participant.create({ data: { name: `Joueuse ${k}`, slug: `joueuse-${k}`, email, gameLinks: { create: { gameId: game.id, notes: 'Note de l’équipe' } } } })
+  const participant = await withFicheValues(prisma.participant.create({ data: { slug: `joueuse-${k}`, email, gameLinks: { create: { gameId: game.id, notes: 'Note de l’équipe' , name: `Joueuse ${k}` } } } }), { name: `Joueuse ${k}` })
   await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
   await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: character.id, participantId: participant.id } })
   return { game, session, character, participant }
@@ -71,7 +72,7 @@ describe('espace « Je participe » (US-071)', () => {
     await prisma.participant.update({ where: { id: participant.id }, data: { userId: user.id } })
     // Une autre personne dans la même session
     const otherKey = key()
-    const other = await prisma.participant.create({ data: { name: 'Autre personne', slug: `autre-${otherKey}`, email: `autre-${otherKey}@example.test`, gameLinks: { create: { gameId: game.id } } } })
+    const other = await withFicheValues(prisma.participant.create({ data: { slug: `autre-${otherKey}`, email: `autre-${otherKey}@example.test`, gameLinks: { create: { gameId: game.id , name: 'Autre personne' } } } }), { name: 'Autre personne' })
     await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: other.id, role: 'participant' } })
 
     const response = await api(user, 'GET', '/api/me/participations')
@@ -102,7 +103,7 @@ describe('répondre depuis son compte (US-072)', () => {
     const user = await account(key())
     const k = key()
     const game = await prisma.game.create({ data: { title: `Jeu ${k}`, slug: `jeu-${k}`, description: '', ownerId: bob.id } })
-    const participant = await prisma.participant.create({ data: { name: 'Camille Invitée', slug: `camille-${k}`, email: user.email, userId: user.id, gameLinks: { create: { gameId: game.id } } } })
+    const participant = await withFicheValues(prisma.participant.create({ data: { slug: `camille-${k}`, email: user.email, userId: user.id, gameLinks: { create: { gameId: game.id , name: 'Camille Invitée' } } } }), { name: 'Camille Invitée' })
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `periode-${k}`, state: 'open' } })
     const registration = await prisma.registration.create({
       data: { gameId: period.gameId, periodId: period.id, participantId: participant.id, status: 'invited', source: 'invitation', email: user.email, responseDueAt: new Date(Date.now() + 86_400_000) }

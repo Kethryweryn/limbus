@@ -27,7 +27,7 @@ async function ficheForAddress(client: PrismaTx, address: string, exceptId?: str
   return await client.participant.findFirst({
     where: { email: address, ...(exceptId ? { id: { not: exceptId } } : {}) },
     orderBy: { createdAt: 'asc' },
-    select: { id: true, slug: true, name: true, userId: true, gameLinks: { select: { gameId: true, notes: true, name: true, phone: true, updatedAt: true } } }
+    select: { id: true, slug: true, userId: true, gameLinks: { select: { gameId: true, notes: true, name: true, phone: true, updatedAt: true } } }
   })
 }
 
@@ -81,11 +81,9 @@ export async function createParticipant(event: H3Event, readBody: Reader<typeof 
     const accountId = await accountIdForEmail(email)
     const created = await tx.participant.create({
       data: {
-        name,
-        // Adresse neutre, sans le nom (US-239)
+        // Adresse neutre, sans le nom (US-239) ; nom et téléphone vivent sur les liens (US-242)
         slug: participantSlug(),
         email: email || null,
-        phone: phone || null,
         userId: accountId,
         gameLinks: { create: uniqueGameIds.map((gameId) => ({ gameId, notes: gameNotes[gameId] || null, name, phone: phone || null })) }
       },
@@ -143,7 +141,10 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
   // qu'un échec de la mise à jour ne laisse pas les jeux retirés
   const removal = await planParticipantRemoval(id, gameIdsToRemove, user)
   const result = await prisma.$transaction(async (tx) => {
-    const current = await tx.participant.findUniqueOrThrow({ where: { id }, select: { name: true, phone: true, userId: true, email: true } })
+    const current = await tx.participant.findUniqueOrThrow({
+      where: { id },
+      select: { userId: true, email: true, gameLinks: { orderBy: { updatedAt: 'desc' }, take: 1, select: { name: true, phone: true } } }
+    })
     // Adresse corrigée (SPEC-022 R7) : changée sur place si l'équipe voit tous les jeux de la fiche et qu'aucune autre
     // fiche ne la porte ; sinon, seuls les jeux de l'équipe passent à la fiche de cette adresse, créée au besoin. La
     // fiche d'origine garde son adresse pour les autres équipes, et aucun compte ne change d'adresse
@@ -154,7 +155,7 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
       const other = await ficheForAddress(tx, address, id)
       if (other || managedExistingGameIds.length < existingLinks.length) {
         target = other ?? await tx.participant.create({
-          data: { name, slug: participantSlug(), email: address, userId: await accountIdForEmail(address) },
+          data: { slug: participantSlug(), email: address, userId: await accountIdForEmail(address) },
           select: { id: true, userId: true }
         })
       }
@@ -167,18 +168,17 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
     // Une fiche dont l'équipe part vers une autre adresse garde son adresse et son compte
     const userId = target ? current.userId : await accountIdForEmail(email)
     const heldByPerson = !target && Boolean(userId && userId === current.userId)
-    const effectiveName = heldByPerson ? current.name : name
-    const effectivePhone = heldByPerson ? current.phone : phone || null
+    // Tenus par la personne : ceux que son compte a recopiés sur ses jeux (ADR-0042), jamais ceux que l'équipe envoie
+    const held = current.gameLinks[0]
+    const effectiveName = heldByPerson ? held?.name ?? name : name
+    const effectivePhone = heldByPerson ? held?.phone ?? null : phone || null
     // Nom et téléphone par jeu (ADR-0086) : ceux des jeux que voit la personne qui modifie
     const visibleKeptGameIds = managedExistingGameIds.filter((gameId) => nextGameIds.has(gameId))
     const updated = await tx.participant.update({
       where: { id },
       data: {
-        // La fiche d'une équipe qui part vers une autre adresse reste celle des autres : ses colonnes ne changent pas
-        name: target ? current.name : effectiveName,
         // L'adresse de page ne suit plus le nom : un nom donné par une équipe n'apparaît pas dans celle d'une autre (US-239)
         email: target ? current.email : email || null,
-        phone: target ? current.phone : effectivePhone,
         // Le rattachement suit l'adresse : autre compte, ou aucun (US-070)
         userId,
         gameLinks: {

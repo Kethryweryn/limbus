@@ -21,7 +21,7 @@ Lot 1 de [SPEC-022](../../specs/SPEC-022-compte-pour-chaque-participant.md) : un
 | [US-239](US-239-une-fiche-par-adresse.md) | Une fiche par adresse dans tout Limbus | terminée |
 | [US-240](US-240-fusion-des-fiches.md) | Fusionner les fiches d'une même adresse | terminée |
 | [US-241](US-241-effacement-et-export-par-equipe.md) | Effacer et exporter ce qui concerne son équipe | terminée |
-| [US-242](US-242-retirer-nom-et-telephone-de-la-fiche.md) | Retirer le nom et le téléphone de la fiche | à faire |
+| [US-242](US-242-retirer-nom-et-telephone-de-la-fiche.md) | Retirer le nom et le téléphone de la fiche | en cours |
 | [US-243](US-243-prouver-une-autre-adresse.md) | Prouver une autre adresse donnée en réponse, puis réunir les deux fiches | terminée |
 
 Ordre : US-237 et US-238, puis US-239, US-240 (migration après le déploiement d'US-239), US-241, et US-242 en dernier (ADR-0024).

@@ -32,7 +32,7 @@ export function registerSessionTools({ event, server }: ToolContext) {
     annotations: READ_ONLY
   }, ({ sessionId }) => toolResult(async () => {
     await requireSessionAccess(event, sessionId)
-    const [session, timeline] = await Promise.all([
+    const [loaded, loadedTimeline] = await Promise.all([
       prisma.session.findUniqueOrThrow({
         where: { id: sessionId },
         select: {
@@ -40,18 +40,18 @@ export function registerSessionTools({ event, server }: ToolContext) {
           location: named,
           postponedTo: { select: { id: true } },
           postponedFrom: { select: { id: true } },
-          participants: { select: { role: true, participant: named } },
-          assignments: { orderBy: { character: { name: 'asc' } }, select: { character: named, participant: named, locked: true, notes: true, reservedRegistrationId: true } }
+          participants: { select: { role: true, participant: { select: { id: true } } } },
+          assignments: { orderBy: { character: { name: 'asc' } }, select: { character: named, participant: { select: { id: true } }, locked: true, notes: true, reservedRegistrationId: true } }
         }
       }),
       prisma.timelineEventResponsible.findMany({
         where: { sessionId },
         orderBy: [{ timelineEvent: { day: 'asc' } }, { timelineEvent: { time: 'asc' } }],
-        select: { timelineEvent: { select: { id: true, name: true, day: true, time: true } }, participant: named }
+        select: { timelineEvent: { select: { id: true, name: true, day: true, time: true } }, participant: { select: { id: true } } }
       })
     ])
     // Nom tenu par l'équipe du jeu, trié à l'affichage (ADR-0086)
-    await withGameValues({ session, timeline }, session.gameId)
+    const { session, timeline } = await withGameValues({ session: loaded, timeline: loadedTimeline }, loaded.gameId)
     session.participants.sort((left, right) => byName(left.participant, right.participant))
     const labels = await sessionLabelsFor(prisma, [session.id, session.postponedTo?.id, session.postponedFrom?.id].filter((id): id is string => Boolean(id)))
     const labelled = (link: { id: string } | null) => link && { ...link, label: labels.get(link.id) ?? 'Session' }

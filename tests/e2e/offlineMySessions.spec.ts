@@ -3,6 +3,7 @@
 import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { orgaGame, orgaSession, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
+import { withFicheValues } from '../fiche'
 
 // Personne au compte confirmé, avec sa fiche dans un jeu, et un document reçu pour une session à venir et une passée
 async function member(prisma: TestPrisma, base: string) {
@@ -10,7 +11,7 @@ async function member(prisma: TestPrisma, base: string) {
   const upcoming = await orgaSession(prisma, game.id, `À venir ${base}`, { date: new Date('2099-05-15T09:00:00Z') })
   const past = await orgaSession(prisma, game.id, `Passée ${base}`, { date: new Date('2020-05-15T09:00:00Z'), status: 'completed' })
   const { user, email, name } = await testUser(prisma, `Joueuse ${base}`)
-  const participant = await prisma.participant.create({ data: { name, slug: slugOf(name), email, userId: user.id, gameLinks: { create: { gameId: game.id } } } })
+  const participant = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, userId: user.id, gameLinks: { create: { gameId: game.id , name: name } } } }), { name: name })
   const delivery = async (session: { id: string, label: string }) => {
     await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
     const title = uniqueName('Lettre')
@@ -107,7 +108,7 @@ test.describe('télécharger mes sessions à venir', () => {
       const game = await orgaGame(prisma, 'Jeu du PNJ')
       const session = await orgaSession(prisma, game.id, 'Session du PNJ', { date: new Date('2099-06-01T09:00:00Z') })
       const pnj = await testUser(prisma, 'PNJ téléchargement')
-      const participant = await prisma.participant.create({ data: { name: pnj.name, slug: slugOf(pnj.name), email: pnj.email, userId: pnj.user.id, gameLinks: { create: { gameId: game.id } } } })
+      const participant = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(pnj.name), email: pnj.email, userId: pnj.user.id, gameLinks: { create: { gameId: game.id , name: pnj.name } } } }), { name: pnj.name })
       await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'npc' } })
       await signIn(page, prisma, pnj.email)
       await page.goto('/compte')

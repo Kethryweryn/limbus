@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
 import { parcoursSession, signIn, slugOf, testUser, uniqueName } from './helpers'
+import { withFicheValues } from '../fiche'
 
 // EPIC-031 (US-118) : nom et coordonnées depuis « Mon compte »
 test('la personne change son nom et ses coordonnées depuis son compte', async ({ page }) => {
@@ -43,7 +44,7 @@ test('la personne accepte une invitation depuis « Je participe »', async ({ pa
     const game = await prisma.game.create({ data: { title, slug: slugOf(title), description: '', ownerId: owner.id } })
     const session = await prisma.session.create({ data: { slug: slugOf(`session ${title}`), gameId: game.id, date: new Date('2099-10-01T09:00:00Z') } })
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `c${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } } })
-    const participant = await prisma.participant.create({ data: { name, slug: slugOf(name), email, userId: user.id, gameLinks: { create: { gameId: game.id } } } })
+    const participant = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, userId: user.id, gameLinks: { create: { gameId: game.id , name: name } } } }), { name: name })
     const registration = await prisma.registration.create({
       data: {
         gameId: period.gameId, periodId: period.id, invitedSessionId: session.id, participantId: participant.id, status: 'invited', source: 'invitation', email,
@@ -88,15 +89,14 @@ test('« Mes photos » se règle depuis le compte, pour qui a une fiche', async 
     await expect(page.getByRole('heading', { name: 'Mes photos' })).toBeHidden()
 
     const { game } = await parcoursSession(prisma, 'Session des photos du compte')
-    await prisma.participant.create({
+    await withFicheValues(prisma.participant.create({
       data: {
-        name: 'Compte Photos',
         slug: email.replace(/[^a-z0-9]+/g, '-'),
         email,
         userId: user.id,
-        gameLinks: { create: { gameId: game.id } }
+        gameLinks: { create: { gameId: game.id , name: 'Compte Photos' } }
       }
-    })
+    }), { name: 'Compte Photos' })
 
     await page.goto('/participer')
     await expect(page.getByRole('heading', { name: 'Je participe' })).toBeVisible()

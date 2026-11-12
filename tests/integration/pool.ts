@@ -1,6 +1,7 @@
 import { labelled } from '../sessionLabel'
 import type { PrismaClient } from '~/generated/prisma/client'
 import type { RegistrationPeriodState, ReplayPolicy, SelectionMode } from '~/generated/prisma/enums'
+import { withFicheValues } from '../fiche'
 
 // Vivier de test (SPEC-018) : un jeu, ses personnages PJ (les places), ses sessions ouvertes, et des personnes
 const DAY = 24 * 60 * 60 * 1000
@@ -48,9 +49,9 @@ export async function createPool(prisma: PrismaClient, ownerId: string, options:
 export async function addPerson(prisma: PrismaClient, pool: { game: { id: string }, period: { id: string, gameId: string } }, name: string, sessionIds: string[] = [], extra: Record<string, unknown> = {}) {
   const suffix = `${name.toLowerCase()}-${++counter}-${Math.random().toString(36).slice(2, 8)}`
   const email = `${suffix}@example.test`
-  const participant = await prisma.participant.create({
-    data: { name, slug: suffix, email, gameLinks: { create: { gameId: pool.game.id } } }
-  })
+  const participant = await withFicheValues(prisma.participant.create({
+    data: { slug: suffix, email, gameLinks: { create: { gameId: pool.game.id , name: name } } }
+  }), { name: name })
   return await prisma.registration.create({
     data: {
       gameId: pool.period.gameId, periodId: pool.period.id,

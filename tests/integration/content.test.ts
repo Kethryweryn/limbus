@@ -7,6 +7,7 @@ import bcrypt from 'bcrypt'
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import { api, errorMessage } from './api'
 import { createTestPrisma } from './db'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice } = world.users
@@ -38,9 +39,9 @@ async function upload(kind: 'photo' | 'rib', gameId: string, sessionId?: string)
 async function aliceGame(key: string) {
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-contenu-${key}`, description: '', ownerId: alice.id } })
   const character = await prisma.character.create({ data: { name: `Perso ${key}`, slug: `perso-contenu-${key}`, gameId: game.id } })
-  const participant = await prisma.participant.create({
-    data: { name: `Joueur ${key}`, slug: `joueur-contenu-${key}`, gameLinks: { create: { gameId: game.id } } }
-  })
+  const participant = await withFicheValues(prisma.participant.create({
+    data: { slug: `joueur-contenu-${key}`, gameLinks: { create: { gameId: game.id , name: `Joueur ${key}` } } }
+  }), { name: `Joueur ${key}` })
   const session = await labelled(prisma, await prisma.session.create({ data: { slug: `session-contenu-${key}`, gameId: game.id } }))
   return { game, character, participant, session }
 }
@@ -244,9 +245,9 @@ describe('créations simultanées du même nom', () => {
 describe('trombinoscopes après un changement de distribution', () => {
   it('celui de l’ancien joueur n’est plus servi, et disparaît à la génération suivante', async () => {
     const { game, character, participant, session } = await aliceGame('trombi')
-    const remplacant = await prisma.participant.create({
-      data: { name: 'Remplaçant', slug: 'joueur-contenu-remplacant', gameLinks: { create: { gameId: game.id } } }
-    })
+    const remplacant = await withFicheValues(prisma.participant.create({
+      data: { slug: 'joueur-contenu-remplacant', gameLinks: { create: { gameId: game.id , name: 'Remplaçant' } } }
+    }), { name: 'Remplaçant' })
     const assignment = await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: character.id, participantId: participant.id } })
     const url = `/api/sessions/${session.id}/trombinoscopes/${character.id}`
 

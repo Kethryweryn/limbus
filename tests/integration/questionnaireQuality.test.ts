@@ -3,6 +3,7 @@ import { afterAll, describe, expect, inject, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf } from './api'
 import { createTestPrisma } from './db'
+import { withFicheValues } from '../fiche'
 
 const prisma = createTestPrisma()
 const { alice } = inject('world').users
@@ -103,9 +104,9 @@ describe('repères sur les réponses reçues', () => {
     expect(links.status, JSON.stringify(links.body)).toBe(200)
 
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: key } })
-    const people = await Promise.all(['Zoe', 'Ines', 'Leo', 'Hugo'].map((name) => prisma.participant.create({
-      data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
-    })))
+    const people = await Promise.all(['Zoe', 'Ines', 'Leo', 'Hugo'].map((name) => withFicheValues(prisma.participant.create({
+      data: { slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id , name: `${name} ${key}` } } }
+    }), { name: `${name} ${key}` })))
     const register = (person: { id: string, email: string | null }, answers: Record<string, string>) => prisma.registration.create({
       data: { gameId: period.gameId, periodId: period.id, participantId: person.id, status: 'received', source: 'form', email: person.email!, questionAnswers: answers }
     })

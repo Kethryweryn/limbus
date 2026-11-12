@@ -9,6 +9,7 @@ import { unlinked } from '~/server/utils/contentLinks'
 import { api, DENIED, errorMessage } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice, bob, carol, admin } = world.users
@@ -83,7 +84,7 @@ async function sourceGame(owner: { id: string } = alice) {
 
   // Données d'équipe, jamais copiées (R5)
   const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId } })
-  const participant = await prisma.participant.create({ data: { name: `Joueuse ${key}`, slug: `joueuse-${key}`, gameLinks: { create: { gameId } } } })
+  const participant = await withFicheValues(prisma.participant.create({ data: { slug: `joueuse-${key}`, gameLinks: { create: { gameId , name: `Joueuse ${key}` } } } }), { name: `Joueuse ${key}` })
   await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: hero.id, participantId: participant.id } })
   await prisma.registrationPeriod.create({ data: { gameId, publicId: `pub-${key}` } })
   await prisma.gameShare.create({ data: { gameId, userId: carol.id } })

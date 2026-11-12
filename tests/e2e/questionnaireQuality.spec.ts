@@ -3,6 +3,7 @@ import { DEFAULT_REGISTRATION_FORM_DEFINITION } from '../../utils/registrationFo
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
 import { gamePanel, openRegistrations, questionnaireAnswers, questionnaireGame, signIn } from './helpers'
+import { withFicheValues } from '../fiche'
 
 // EPIC-037 (US-133) : l'encadré « Qualité du questionnaire » signale un personnage sans lien, puis plus rien une fois relié.
 // EPIC-039 (US-136, US-139) : une fois la question reliée, les réponses reçues donnent leurs repères
@@ -181,7 +182,7 @@ test('la relecture signale les questions, et le mélange des options tient penda
 
     // Une fois des réponses reçues, même à une question sans lien, la partie reste là, repliée, avec son niveau
     const email = `zoe-${key}@example.test`
-    const person = await prisma.participant.create({ data: { name: `Zoé ${key}`, slug: `zoe-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
+    const person = await withFicheValues(prisma.participant.create({ data: { slug: `zoe-${key}`, email, gameLinks: { create: { gameId: game.id , name: `Zoé ${key}` } } } }), { name: `Zoé ${key}` })
     await prisma.registration.create({ data: { gameId: period.gameId, periodId: period.id, participantId: person.id, status: 'received', source: 'form', email, questionAnswers: { style: 'Alpha' } } })
     await openEditor()
     await expect(draftingTitle).toContainText('À surveiller')
@@ -303,7 +304,7 @@ test('la prévision du questionnaire suit les proportions attendues', async ({ p
 
     // Une fois des réponses reçues, la partie reste là, repliée
     const email = `zoe-${key}@example.test`
-    const person = await prisma.participant.create({ data: { name: `Zoé ${key}`, slug: `zoe-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
+    const person = await withFicheValues(prisma.participant.create({ data: { slug: `zoe-${key}`, email, gameLinks: { create: { gameId: game.id , name: `Zoé ${key}` } } } }), { name: `Zoé ${key}` })
     await prisma.registration.create({ data: { gameId: period.gameId, periodId: period.id, participantId: person.id, status: 'received', source: 'form', email, questionAnswers: { style: 'Manigance' } } })
     await openEditor()
     const forecastTitle = editor.locator('summary').filter({ hasText: 'Prévision' })

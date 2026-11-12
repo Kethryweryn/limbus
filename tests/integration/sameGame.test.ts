@@ -3,6 +3,7 @@
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import { api, errorMessage } from './api'
 import { createTestPrisma } from './db'
+import { withFicheValues } from '../fiche'
 
 const prisma = createTestPrisma()
 const { alice } = inject('world').users
@@ -31,7 +32,7 @@ async function gameWithContent() {
     prisma.location.create({ data: { name: 'Château', slug: `${key}-chateau`, gameId } }),
     prisma.registrationPeriod.create({ data: { gameId, publicId: `${key}-vivier` } }),
     prisma.registrationForm.create({ data: { gameId, versions: { create: { number: 1, definition: {} } } }, include: { versions: true } }),
-    prisma.participant.create({ data: { name: 'Lou', slug: `${key}-lou`, gameLinks: { create: { gameId } } } })
+    withFicheValues(prisma.participant.create({ data: { slug: `${key}-lou`, gameLinks: { create: { gameId , name: 'Lou' } } } }), { name: 'Lou' })
   ])
   const registration = await prisma.registration.create({
     data: { gameId, periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: `${key}@example.test` }
@@ -72,7 +73,7 @@ describe('liens entre éléments de deux jeux (US-191, US-195)', () => {
     ['session du vivier', (a, b) => prisma.registrationPeriodSession.create({ data: { gameId: a.gameId, periodId: a.period.id, sessionId: b.session.id } })],
     ['tirage', (a, b) => prisma.registrationDraw.create({ data: { gameId: a.gameId, periodId: a.period.id, sessionId: b.session.id, seed: 's', settings: {}, result: {} } })],
     ['inscription au vivier', async (a, b) => {
-      const participant = await prisma.participant.create({ data: { name: 'Max', slug: `${a.key}-max-${++counter}` } })
+      const participant = await withFicheValues(prisma.participant.create({ data: { slug: `${a.key}-max-${++counter}` } }), { name: 'Max' })
       return await prisma.registration.create({ data: { gameId: a.gameId, periodId: b.period.id, participantId: participant.id, status: 'received', source: 'form', email: `${a.key}-bis@example.test` } })
     }],
     ['session d’une invitation', (a, b) => prisma.registration.update({ where: { id: a.registration.id }, data: { invitedSessionId: b.session.id } })],

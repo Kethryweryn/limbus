@@ -3,6 +3,7 @@ import { afterAll, describe, expect, inject, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf } from './api'
 import { createTestPrisma } from './db'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice, bob } = world.users
@@ -38,9 +39,9 @@ describe('urgence et allergies de la fiche', () => {
     const key = `urgence-${++counter}`
     const mine = await gameOf(alice.id, `${key}-a`)
     const other = await gameOf(bob.id, `${key}-b`)
-    const participant = await prisma.participant.create({
-      data: { name: `Zoé ${key}`, slug: `zoe-${key}`, gameLinks: { create: [{ gameId: mine.game.id }, { gameId: other.game.id }] } }
-    })
+    const participant = await withFicheValues(prisma.participant.create({
+      data: { slug: `zoe-${key}`, gameLinks: { create: [{ gameId: mine.game.id , name: `Zoé ${key}` }, { gameId: other.game.id , name: `Zoé ${key}` }] } }
+    }), { name: `Zoé ${key}` })
     await registrationIn(mine.period, participant.id, { respondedAt: new Date(), emergencyContactName: 'Contact Alice', dietary: 'Gluten' })
     // Plus récente, mais chez Bob : ignorée
     await registrationIn(other.period, participant.id, { respondedAt: new Date(), emergencyContactName: 'Contact Bob', dietary: 'Arachides' })
@@ -63,9 +64,9 @@ describe('urgence et allergies de la fiche', () => {
     const user = await prisma.user.create({
       data: { email: `${key}@example.test`, name: `Léo ${key}`, password: 'x', emergencyContactName: 'Contact compte', emergencyContactPhone: '0611111111', dietary: 'Lactose', profileUpdatedAt: new Date() }
     })
-    const participant = await prisma.participant.create({
-      data: { name: `Léo ${key}`, slug: `leo-${key}`, userId: user.id, gameLinks: { create: { gameId: mine.game.id } } }
-    })
+    const participant = await withFicheValues(prisma.participant.create({
+      data: { slug: `leo-${key}`, userId: user.id, gameLinks: { create: { gameId: mine.game.id , name: `Léo ${key}` } } }
+    }), { name: `Léo ${key}` })
     await registrationIn(mine.period, participant.id, { respondedAt: null, emergencyContactName: 'Jamais rempli', dietary: 'Jamais rempli' })
 
     expect(await read(participant.id)).toEqual({ source: 'account', gameTitle: null, emergencyContactName: 'Contact compte', emergencyContactPhone: '0611111111', dietary: null })
@@ -78,16 +79,16 @@ describe('urgence et allergies de la fiche', () => {
     const key = `urgence-${++counter}`
     const mine = await gameOf(alice.id, key)
     const user = await prisma.user.create({ data: { email: `${key}@example.test`, name: `Inès ${key}`, password: 'x', emergencyContactName: 'Pas encore enregistré' } })
-    const participant = await prisma.participant.create({
-      data: { name: `Inès ${key}`, slug: `ines-${key}`, userId: user.id, gameLinks: { create: { gameId: mine.game.id } } }
-    })
+    const participant = await withFicheValues(prisma.participant.create({
+      data: { slug: `ines-${key}`, userId: user.id, gameLinks: { create: { gameId: mine.game.id , name: `Inès ${key}` } } }
+    }), { name: `Inès ${key}` })
     expect(await read(participant.id)).toEqual({ source: null, gameTitle: null, emergencyContactName: null, emergencyContactPhone: null, dietary: null })
   })
 
   it('n’apparaît ni dans la fiche ni dans la liste', async () => {
     const key = `urgence-${++counter}`
     const mine = await gameOf(alice.id, key)
-    const participant = await prisma.participant.create({ data: { name: `Hugo ${key}`, slug: `hugo-${key}`, gameLinks: { create: { gameId: mine.game.id } } } })
+    const participant = await withFicheValues(prisma.participant.create({ data: { slug: `hugo-${key}`, gameLinks: { create: { gameId: mine.game.id , name: `Hugo ${key}` } } } }), { name: `Hugo ${key}` })
     await registrationIn(mine.period, participant.id, { respondedAt: new Date(), emergencyContactName: 'Contact caché', dietary: 'Soja' })
     const sheet = JSON.stringify((await api(alice, 'GET', `/api/participants/${participant.id}`)).body)
     const list = JSON.stringify((await api(alice, 'GET', `/api/participants?gameId=${mine.game.id}`)).body)

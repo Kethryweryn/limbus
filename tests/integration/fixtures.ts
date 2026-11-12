@@ -1,6 +1,7 @@
 import { labelled, uniqueDate } from '../sessionLabel'
 import type { PrismaClient } from '~/generated/prisma/client'
 import type { UserRole } from '~/generated/prisma/enums'
+import { withFicheValues } from '../fiche'
 
 export type GameWorld = Awaited<ReturnType<typeof createGameWorld>>
 export type World = Awaited<ReturnType<typeof createWorld>>
@@ -24,14 +25,13 @@ async function createGameWorld(prisma: PrismaClient, key: string, ownerId: strin
   const timelineEvent = await prisma.timelineEvent.create({
     data: { name: `Événement ${key}`, slug: `evenement-${key}`, day: 1, time: '10:00', gameId }
   })
-  const participant = await prisma.participant.create({
+  const participant = await withFicheValues(prisma.participant.create({
     data: {
-      name: `Joueur ${key}`,
       slug: `joueur-${key}`,
       email: `joueur-${key}@example.test`,
-      gameLinks: { create: { gameId } }
+      gameLinks: { create: { gameId , name: `Joueur ${key}` } }
     }
-  })
+  }), { name: `Joueur ${key}` })
   const session = await labelled(prisma, await prisma.session.create({
     data: {
       slug: `session-${key}`,

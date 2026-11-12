@@ -2,6 +2,7 @@
 import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { parcoursSession, signIn, uniqueName } from './helpers'
+import { withFicheValues } from '../fiche'
 
 test('un compte qui ne fait que participer arrive sur « Je participe »', async ({ page }) => {
   const prisma = createTestPrisma()
@@ -9,16 +10,15 @@ test('un compte qui ne fait que participer arrive sur « Je participe »', async
     const email = `${uniqueName('joueuse').toLowerCase().replace(/[^a-z0-9]+/g, '-')}@example.test`
     const user = await prisma.user.create({ data: { email, name: 'Joueuse e2e', password: 'non-utilise' } })
     const { session, game } = await parcoursSession(prisma, 'Session vue par une joueuse')
-    await prisma.participant.create({
+    await withFicheValues(prisma.participant.create({
       data: {
-        name: 'Joueuse e2e',
         slug: email.replace(/[^a-z0-9]+/g, '-'),
         email,
         userId: user.id,
-        gameLinks: { create: { gameId: game.id } },
+        gameLinks: { create: { gameId: game.id , name: 'Joueuse e2e' } },
         sessionRoles: { create: { sessionId: session.id, role: 'participant' } }
       }
-    })
+    }), { name: 'Joueuse e2e' })
 
     await signIn(page, prisma, email)
     await expect(page).toHaveURL(/\/participer$/)
@@ -39,7 +39,7 @@ test('qui organise et participe passe d’un espace à l’autre, et retrouve le
     const slug = email.replace(/[^a-z0-9]+/g, '-')
     await prisma.game.create({ data: { title: `Jeu de ${slug}`, slug: `jeu-${slug}`, description: '', ownerId: user.id } })
     const { game } = await parcoursSession(prisma, 'Session d’une orga joueuse')
-    await prisma.participant.create({ data: { name: 'Orga joueuse e2e', slug, email, userId: user.id, gameLinks: { create: { gameId: game.id } } } })
+    await withFicheValues(prisma.participant.create({ data: { slug, email, userId: user.id, gameLinks: { create: { gameId: game.id , name: 'Orga joueuse e2e' } } } }), { name: 'Orga joueuse e2e' })
 
     // Première ouverture : « J'organise », puisqu'elle a un jeu
     await signIn(page, prisma, email)
@@ -66,16 +66,15 @@ test('qui ne fait que participer n’est jamais bloquée côté organisation', a
     const email = `${uniqueName('participante').toLowerCase().replace(/[^a-z0-9]+/g, '-')}@example.test`
     const user = await prisma.user.create({ data: { email, name: 'Participante e2e', password: 'non-utilise' } })
     const { session, game } = await parcoursSession(prisma, 'Session d’une participante')
-    await prisma.participant.create({
+    await withFicheValues(prisma.participant.create({
       data: {
-        name: 'Participante e2e',
         slug: email.replace(/[^a-z0-9]+/g, '-'),
         email,
         userId: user.id,
-        gameLinks: { create: { gameId: game.id } },
+        gameLinks: { create: { gameId: game.id , name: 'Participante e2e' } },
         sessionRoles: { create: { sessionId: session.id, role: 'participant' } }
       }
-    })
+    }), { name: 'Participante e2e' })
 
     // Une autre personne a utilisé l'organisation sur ce navigateur
     await page.goto('/nouveautes')
@@ -167,9 +166,9 @@ test('un document reçu s’ouvre depuis « Je participe »', async ({ page }) =
     const email = `${uniqueName('lectrice').toLowerCase().replace(/[^a-z0-9]+/g, '-')}@example.test`
     const user = await prisma.user.create({ data: { email, name: 'Lectrice e2e', password: 'non-utilise' } })
     const { session, game } = await parcoursSession(prisma, 'Session avec une lettre')
-    const participant = await prisma.participant.create({
-      data: { name: 'Lectrice e2e', slug: email.replace(/[^a-z0-9]+/g, '-'), email, userId: user.id, gameLinks: { create: { gameId: game.id } }, sessionRoles: { create: { sessionId: session.id, role: 'npc' } } }
-    })
+    const participant = await withFicheValues(prisma.participant.create({
+      data: { slug: email.replace(/[^a-z0-9]+/g, '-'), email, userId: user.id, gameLinks: { create: { gameId: game.id , name: 'Lectrice e2e' } }, sessionRoles: { create: { sessionId: session.id, role: 'npc' } } }
+    }), { name: 'Lectrice e2e' })
     const document = await prisma.document.create({ data: { title: `Lettre ${email}`, slug: `lettre-${participant.slug}`, gameId: game.id, content: 'Brouillon', readyToSend: true } })
     const copyContent = { kind: 'text', title: document.title, subtitle: session.label, sections: [{ title: 'Contenu', body: 'Rendez-vous à la taverne.' }] }
     await prisma.sessionDocumentDelivery.create({

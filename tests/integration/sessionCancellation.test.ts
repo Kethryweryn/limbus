@@ -4,6 +4,7 @@ import { api } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
 import type { SessionStatus } from '~/generated/prisma/enums'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice } = world.users
@@ -24,9 +25,9 @@ async function sessionWithTeam(status: SessionStatus) {
   const key = `annulation-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
   const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id, status } })
-  const person = (name: string, email: boolean) => prisma.participant.create({
-    data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: email ? `${name.toLowerCase()}-${key}@example.test` : null, gameLinks: { create: { gameId: game.id } } }
-  })
+  const person = (name: string, email: boolean) => withFicheValues(prisma.participant.create({
+    data: { slug: `${name.toLowerCase()}-${key}`, email: email ? `${name.toLowerCase()}-${key}@example.test` : null, gameLinks: { create: { gameId: game.id , name: `${name} ${key}` } } }
+  }), { name: `${name} ${key}` })
   const [lea, noe, sam] = await Promise.all([person('Lea', true), person('Noe', true), person('Sam', false)])
   await prisma.sessionParticipant.createMany({
     data: [

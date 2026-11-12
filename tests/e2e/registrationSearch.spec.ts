@@ -4,6 +4,7 @@ import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
 import { openRegistrations, orgaGame, orgaSession, registrationTab, signIn, slugOf, test, uniqueName, type TestPrisma } from './helpers'
+import { withFicheValues } from '../fiche'
 
 // Trois personnes dans le vivier, dont deux ont demandé la première session ; une invitation sans réponse
 async function pool(prisma: TestPrisma, base: string) {
@@ -14,7 +15,7 @@ async function pool(prisma: TestPrisma, base: string) {
   const person = async (label: string, status: 'received' | 'invited', lines: Array<{ sessionId: string, status: 'preregistered' | 'unavailable' }>) => {
     const name = uniqueName(label)
     const email = `${slugOf(name)}@example.test`
-    const participant = await prisma.participant.create({ data: { name, slug: slugOf(name), email, gameLinks: { create: { gameId: game.id } } } })
+    const participant = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, gameLinks: { create: { gameId: game.id , name: name } } } }), { name: name })
     await prisma.registration.create({
       data: {
         gameId: game.id, periodId: period.id, participantId: participant.id, email, status, source: status === 'invited' ? 'invitation' : 'form',

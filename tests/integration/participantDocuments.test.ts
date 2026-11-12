@@ -8,6 +8,7 @@ import { createTestPrisma } from './db'
 import { triggerPurge } from './purge'
 import { startTestSmtp } from './smtp'
 import type { DeliveryKind } from '~/generated/prisma/enums'
+import { withFicheValues } from '../fiche'
 
 const prisma = createTestPrisma()
 const { bob } = inject('world').users
@@ -41,9 +42,9 @@ async function world() {
   const player = await prisma.user.create({ data: { email: `joueuse-${k}@example.test`, name: 'Joueuse', password: 'non-utilise' } })
   const game = await prisma.game.create({ data: { title: `Jeu ${k}`, slug: `jeu-${k}`, description: '', ownerId: owner.id } })
   const session = await labelled(prisma, await prisma.session.create({ data: { slug: `session-${k}`, gameId: game.id, date: new Date(Date.now() + 10 * DAY) } }))
-  const participant = await prisma.participant.create({
-    data: { name: 'Joueuse', slug: `joueuse-${k}`, email: player.email, userId: player.id, gameLinks: { create: { gameId: game.id } } }
-  })
+  const participant = await withFicheValues(prisma.participant.create({
+    data: { slug: `joueuse-${k}`, email: player.email, userId: player.id, gameLinks: { create: { gameId: game.id , name: 'Joueuse' } } }
+  }), { name: 'Joueuse' })
   await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'npc' } })
   const document = await prisma.document.create({
     data: { title: `Lettre ${k}`, slug: `lettre-${k}`, gameId: game.id, content: 'Version envoyée', readyToSend: true, audiences: ['organizers', 'npcs', 'kitchen', 'pjs'] }
@@ -107,7 +108,7 @@ describe('copie de chaque envoi (US-078) et lecture dans « Je participe » (US-
     await writeFile(join(PHOTOS, filename), PNG)
     const photoUrl = `/api/uploads/session-assignment-photos/${filename}`
     await prisma.uploadedFile.create({ data: { kind: 'sessionAssignmentPhoto', filename, url: photoUrl, gameId: game.id, size: PNG.length } })
-    const otherPlayer = await prisma.participant.create({ data: { name: 'Autre', slug: `autre-${k}`, email: `autre-${k}@example.test`, gameLinks: { create: { gameId: game.id } } } })
+    const otherPlayer = await withFicheValues(prisma.participant.create({ data: { slug: `autre-${k}`, email: `autre-${k}@example.test`, gameLinks: { create: { gameId: game.id , name: 'Autre' } } } }), { name: 'Autre' })
     await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: viewer!.id, participantId: participant.id } })
     await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: other!.id, participantId: otherPlayer.id, photoUrl } })
     await prisma.characterTrombinoscopeEntry.create({ data: { gameId: viewer!.gameId, viewerCharacterId: viewer!.id, targetCharacterId: other!.id, included: true, faceKnown: true } })
@@ -197,7 +198,7 @@ describe('copies effacées après la session (US-080)', () => {
     await prisma.session.update({ where: { id: session.id }, data: { date: new Date(Date.now() - 2 * DAY) } })
     expect((await read(player, id)).source).toBe('current')
 
-    const other = await prisma.participant.create({ data: { name: 'Autre', slug: `autre-role-${k}`, gameLinks: { create: { gameId: game.id } } } })
+    const other = await withFicheValues(prisma.participant.create({ data: { slug: `autre-role-${k}`, gameLinks: { create: { gameId: game.id , name: 'Autre' } } } }), { name: 'Autre' })
     await prisma.sessionAssignment.update({ where: { sessionId_characterId: { sessionId: session.id, characterId: character.id } }, data: { participantId: other.id } })
     expect((await read(player, id)).source).toBeNull()
   })

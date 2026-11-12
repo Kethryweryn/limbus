@@ -5,6 +5,7 @@ import { linkToken } from '../integration/smtp'
 import { E2E_USERS } from './constants'
 import { openMailbox } from './mailbox'
 import { blockWith, expectLoggedIn, openUserMenu, orgaGame, signIn, slugOf, test, testUser, uniqueName } from './helpers'
+import { withFicheValues } from '../fiche'
 
 // EPIC-050, lot 4 (US-201) : inscription libre, compte, invitations à co-organiser et administration, sur les quatre
 // axes (actions, erreurs de saisie, droits, hors ligne)
@@ -136,7 +137,7 @@ test.describe('mon compte', () => {
     try {
       const { user, email } = await testUser(prisma, 'Compte Fiche')
       const game = await orgaGame(prisma, 'Jeu du compte')
-      const participant = await prisma.participant.create({ data: { name: user.name, slug: slugOf(user.name), email, userId: user.id, gameLinks: { create: { gameId: game.id } } } })
+      const participant = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(user.name), email, userId: user.id, gameLinks: { create: { gameId: game.id , name: user.name } } } }), { name: user.name })
 
       await signIn(page, prisma, email)
       await page.goto('/compte')
@@ -149,7 +150,7 @@ test.describe('mon compte', () => {
       await page.getByRole('button', { name: 'Enregistrer mes coordonnées' }).click()
       await expect(page.getByText('Coordonnées enregistrées : vos fiches et inscriptions sont à jour.')).toBeVisible()
 
-      const sheet = await prisma.participant.findUniqueOrThrow({ where: { id: participant.id }, select: { name: true, phone: true } })
+      const sheet = await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: participant.id, gameId: game.id } }, select: { name: true, phone: true } })
       expect(sheet).toEqual({ name, phone: '0644556677' })
     } finally {
       await prisma.$disconnect()

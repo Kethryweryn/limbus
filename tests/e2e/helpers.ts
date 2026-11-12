@@ -10,6 +10,7 @@ import { escapeRegExp } from '../regexp'
 import { labelled } from '../sessionLabel'
 import { sessionDayKey } from '../../utils/sessionLabels'
 import type { UserRole } from '~/generated/prisma/enums'
+import { withFicheValues } from '../fiche'
 
 // Tests des parcours : `otherPage()` ouvre un navigateur à part (autre personne, autre appareil), fermé à la fin du test
 export const test = base.extend<{ otherPage: () => Promise<Page> }>({
@@ -70,7 +71,8 @@ export async function parcoursGame(prisma: TestPrisma) {
     include: { characters: true, participantLinks: { include: { participant: true } } }
   })
   const character = (name: string) => game.characters.find((item) => item.name === name)!
-  const participant = (name: string) => game.participantLinks.map((link) => link.participant).find((item) => item.name === name)!
+  // Nom tenu par le lien au jeu (ADR-0086, US-242)
+  const participant = (name: string) => game.participantLinks.filter((link) => link.name === name).map((link) => ({ ...link.participant, name }))[0]!
   return { game, character, participant }
 }
 
@@ -134,7 +136,7 @@ export async function parcoursPerson(prisma: TestPrisma, base: string) {
   const { game } = await parcoursGame(prisma)
   const name = uniqueName(base)
   const email = `${slugOf(name)}@example.test`
-  await prisma.participant.create({ data: { name, slug: slugOf(name), email, gameLinks: { create: { gameId: game.id } } } })
+  await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, gameLinks: { create: { gameId: game.id , name: name } } } }), { name: name })
   return { name, email }
 }
 
@@ -198,7 +200,7 @@ export async function gamePerson(prisma: TestPrisma, gameId: string, base: strin
   const name = uniqueName(base)
   const email = emailPrefix === undefined ? undefined : `${emailPrefix}${slugOf(name)}@example.test`
   // Nom tenu par le jeu (ADR-0086)
-  return await prisma.participant.create({ data: { name, slug: slugOf(name), email, gameLinks: { create: { gameId, name } } } })
+  return await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, gameLinks: { create: { gameId, name } } } }), { name: name })
 }
 
 // Personnage du jeu donné (US-199)
@@ -276,7 +278,7 @@ export async function questionnaireAnswers(prisma: TestPrisma, ctx: Awaited<Retu
   for (const [index, questionAnswers] of rows.entries()) {
     const name = uniqueName(`Personne ${index + 1}`)
     const email = `${slugOf(name)}@example.test`
-    const person = await prisma.participant.create({ data: { name, slug: slugOf(name), email, gameLinks: { create: { gameId: ctx.game.id } } } })
+    const person = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, gameLinks: { create: { gameId: ctx.game.id , name: name } } } }), { name: name })
     await prisma.registration.create({ data: { gameId: ctx.game.id, periodId: ctx.period.id, participantId: person.id, status: 'received', source: 'form', email, questionAnswers } })
   }
 }

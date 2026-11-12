@@ -1,7 +1,7 @@
 ---
 id: US-242
 titre: Retirer le nom et le téléphone de la fiche
-statut: à faire
+statut: en cours
 epic: EPIC-056
 regles: [R6]
 adr: [ADR-0086]
@@ -31,8 +31,10 @@ Plan, en deux PR (ADR-0024) :
    - Les usages se repèrent en retirant les deux champs du schéma en local : le typage liste chaque lecture.
 2. **Suppression des colonnes** (`DROP COLUMN`, commentaire `deploiement-incompatible`), après le déploiement de l'étape 1. Le nom par jeu devient obligatoire (`SET NOT NULL`, après remplissage).
 
+## Avancement
 
-Migration `DROP COLUMN` après le déploiement d'US-237 et le dernier code qui écrit ces colonnes.
+- **Étape 1** : le code ne lit ni n'écrit plus les colonnes de la fiche ; migration `20261205090000_nom_de_fiche_facultatif` (`DROP NOT NULL` sur `name`, `phone` l'était déjà). `withGameValues` porte le nom et le téléphone dans son type (`GameNamed`) et ne retombe plus sur la fiche : un lien sans nom donne un nom vide. Les tests créent leurs fiches avec le nom et le téléphone sur leurs liens (`tests/fiche.ts`).
+- **Étape 2** : à faire après le déploiement de l'étape 1.
 
 ## Tests
 

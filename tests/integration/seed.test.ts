@@ -14,6 +14,7 @@ import { sessionDate } from '../../prisma/seed/options'
 import { api, bodyOf } from './api'
 import { createTestPrisma, testDatabaseUrl } from './db'
 import { startTestSmtp } from './smtp'
+import { withFicheValues } from '../fiche'
 
 const prisma = createTestPrisma()
 const OWNER = 'seed-proprietaire@example.test'
@@ -133,7 +134,7 @@ describe('rechargement des jeux de test', () => {
       expect(user.role).toBe('user')
       expect(user.emailConfirmedAt).not.toBeNull()
       expect(user.termsAcceptedAt).not.toBeNull()
-      expect(await prisma.participant.count({ where: { email, userId: user.id, name: user.name, phone: user.phone } })).toBeGreaterThan(0)
+      expect(await prisma.participant.count({ where: { email, userId: user.id, gameLinks: { some: { name: user.name, phone: user.phone } } } })).toBeGreaterThan(0)
     }
   })
 
@@ -185,12 +186,12 @@ describe('rechargement des jeux de test', () => {
   it('garde ce qui est hors des jeux de test, et les accès aux jeux rechargés', async () => {
     // Témoins : un jeu étranger, une fiche partagée avec lui, une fiche propre à lui
     const other = await prisma.game.create({ data: { title: 'Jeu témoin', slug: 'jeu-temoin-seed', description: '', ownerId } })
-    const shared = await prisma.participant.create({
-      data: { name: 'Fiche partagée', slug: 'fiche-partagee-seed', gameLinks: { create: [{ gameId: other.id }, { gameId: 'jeu-test-bal' }] } }
-    })
-    const own = await prisma.participant.create({
-      data: { name: 'Fiche étrangère', slug: 'fiche-etrangere-seed', gameLinks: { create: [{ gameId: other.id }] } }
-    })
+    const shared = await withFicheValues(prisma.participant.create({
+      data: { slug: 'fiche-partagee-seed', gameLinks: { create: [{ gameId: other.id , name: 'Fiche partagée' }, { gameId: 'jeu-test-bal' , name: 'Fiche partagée' }] } }
+    }), { name: 'Fiche partagée' })
+    const own = await withFicheValues(prisma.participant.create({
+      data: { slug: 'fiche-etrangere-seed', gameLinks: { create: [{ gameId: other.id , name: 'Fiche étrangère' }] } }
+    }), { name: 'Fiche étrangère' })
     const bystander = await prisma.user.create({ data: { email: 'seed-temoin@example.test', name: 'Témoin', password: 'x' } })
     await prisma.gameShare.create({ data: { gameId: 'jeu-test-bal', userId: bystander.id } })
 

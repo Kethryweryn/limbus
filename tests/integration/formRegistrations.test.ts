@@ -6,6 +6,7 @@ import { api, bodyOf, tokenFor, type WithField } from './api'
 import { createTestPrisma } from './db'
 import { triggerPurge } from './purge'
 import { personalLinkToken, startTestSmtp } from './smtp'
+import { withFicheValues } from '../fiche'
 
 const prisma = createTestPrisma()
 const { alice, bob } = inject('world').users
@@ -173,8 +174,8 @@ describe('confirmer son email et suivre son inscription (US-085)', () => {
     expect(confirmed.body).toMatchObject({ status: 'received', canEdit: true, canLeave: true })
     expect(bodyOf<PersonalRegistration>(confirmed).answers.availableSessionIds.sort()).toEqual(sessions.map((session) => session.id).sort())
 
-    const participant = await prisma.participant.findFirstOrThrow({ where: { email }, select: { id: true, name: true, gameLinks: { select: { gameId: true } } } })
-    expect(participant).toMatchObject({ name: 'Lou Dupont', gameLinks: [{ gameId: game.id }] })
+    const participant = await prisma.participant.findFirstOrThrow({ where: { email }, select: { id: true, gameLinks: { select: { gameId: true, name: true } } } })
+    expect(participant).toMatchObject({ gameLinks: [{ gameId: game.id, name: 'Lou Dupont' }] })
     await expect.poll(() => smtp.received.some((message) => message.to.includes('alice@example.test') && message.text.includes('Lou Dupont') && message.text.includes(`/registrations/${game.slug}?onglet=vivier`))).toBe(true)
 
     // Une seconde ouverture ne confirme rien de plus ; le lien personnel marche
@@ -199,7 +200,7 @@ describe('confirmer son email et suivre son inscription (US-085)', () => {
     const { key, game, sessions, period } = await aliceGame()
     const bobGame = await prisma.game.create({ data: { title: `Bob ${key}`, slug: `bob-${key}`, description: '', ownerId: bob.id } })
     const email = `fiche-de-bob-${key}@example.test`
-    const bobs = await prisma.participant.create({ data: { name: 'Nom chez Bob', slug: `nom-chez-bob-${key}`, email, gameLinks: { create: { gameId: bobGame.id, name: 'Nom chez Bob', phone: '0611111111' } } } })
+    const bobs = await withFicheValues(prisma.participant.create({ data: { slug: `nom-chez-bob-${key}`, email, gameLinks: { create: { gameId: bobGame.id, name: 'Nom chez Bob', phone: '0611111111' } } } }), { name: 'Nom chez Bob' })
     const { confirmed } = await registerAndConfirm(period.publicId, answers(email, [sessions[0]!.id]))
     expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200)
     expect(await prisma.participant.count({ where: { email } })).toBe(1)

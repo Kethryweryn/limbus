@@ -369,8 +369,8 @@ describe('sessions et participants', () => {
     const ana = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Ana Assistée', email: 'ana-ia@example.test', notes: 'Joue souvent les meneuses' })).json
     const ben = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Ben Assisté', email: 'ben-ia@example.test' })).json
     const cleo = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Cléo Orga', email: 'cleo-ia@example.test' })).json
-    expect(await prisma.participant.findUniqueOrThrow({ where: { id: ana.id }, select: { email: true, phone: true, gameLinks: { select: { gameId: true, notes: true } } } }))
-      .toEqual({ email: 'ana-ia@example.test', phone: null, gameLinks: [{ gameId: game.id, notes: 'Joue souvent les meneuses' }] })
+    expect(await prisma.participant.findUniqueOrThrow({ where: { id: ana.id }, select: { email: true, gameLinks: { select: { gameId: true, notes: true, phone: true } } } }))
+      .toEqual({ email: 'ana-ia@example.test', gameLinks: [{ gameId: game.id, notes: 'Joue souvent les meneuses', phone: null }] })
 
     // Session : prévue et non visible ; lieu et jeu de l'autorisation seulement
     const session = (await call(client, 'creer_session', { jeuId: game.id, name: 'Session de l’assistant', date: '2099-05-01T10:00:00.000Z', locationId: place.id })).json
@@ -463,15 +463,17 @@ describe('sessions et participants', () => {
     expect((await call(client, 'modifier_session', { sessionId: b.session.id, version: bSession.updatedAt.toISOString(), name: 'Volée' })).error).toBe(true)
 
     // Fiche : nom et note ; ajout à un autre jeu autorisé ; les coordonnées et les jeux hors de l'autorisation restent
-    await prisma.participant.update({ where: { id: ana.id }, data: { phone: '0600000000', gameLinks: { create: { gameId: b.game.id, notes: 'Note de Bob' } } } })
+    await prisma.participant.update({ where: { id: ana.id }, data: { gameLinks: { create: { gameId: b.game.id, notes: 'Note de Bob' } } } })
     // Téléphone saisi par l'équipe du jeu de l'autorisation : tenu par jeu (ADR-0086)
     await prisma.participantGame.update({ where: { participantId_gameId: { participantId: ana.id, gameId: game.id } }, data: { phone: '0600000000' } })
     const anaRead = (await call(client, 'lister_participants', { jeuId: game.id, recherche: 'Ana' })).json.items[0]
     expect(anaRead).not.toHaveProperty('phone')
     expect((await call(client, 'modifier_participant', { participantId: ana.id, version: anaRead.updatedAt, name: 'Ana Renommée', notes: [{ jeuId: game.id, notes: 'Meneuse' }], addToGames: [a.game.id] })).error).toBe(false)
     const anaLinks = [{ gameId: a.game.id, notes: null }, { gameId: b.game.id, notes: 'Note de Bob' }, { gameId: game.id, notes: 'Meneuse' }]
-    expect(await prisma.participant.findUniqueOrThrow({ where: { id: ana.id }, select: { name: true, phone: true, gameLinks: { orderBy: { gameId: 'asc' }, select: { gameId: true, notes: true } } } }))
-      .toEqual({ name: 'Ana Renommée', phone: '0600000000', gameLinks: anaLinks.sort((x, y) => x.gameId.localeCompare(y.gameId)) })
+    expect(await prisma.participantGame.findMany({ where: { participantId: ana.id }, orderBy: { gameId: 'asc' }, select: { gameId: true, notes: true } }))
+      .toEqual(anaLinks.sort((x, y) => x.gameId.localeCompare(y.gameId)))
+    expect(await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: ana.id, gameId: game.id } }, select: { name: true, phone: true } }))
+      .toEqual({ name: 'Ana Renommée', phone: '0600000000' })
     expect((await call(client, 'modifier_participant', { participantId: ana.id, version: anaRead.updatedAt, name: 'Écrasée' })).error).toBe(true)
     const bPerson = await prisma.participant.findUniqueOrThrow({ where: { id: b.participant.id } })
     expect((await call(client, 'modifier_participant', { participantId: b.participant.id, version: bPerson.updatedAt.toISOString(), name: 'Volée' })).error).toBe(true)
@@ -480,7 +482,7 @@ describe('sessions et participants', () => {
     const eve = await prisma.user.create({ data: { email: 'eve-ia@example.test', name: 'Ève', password: 'non-utilise', emailConfirmedAt: new Date(), termsAcceptedVersion: TERMS_VERSION } })
     const benLinked = await prisma.participant.update({ where: { id: ben.id }, data: { email: eve.email, userId: eve.id } })
     expect((await call(client, 'modifier_participant', { participantId: ben.id, version: benLinked.updatedAt.toISOString(), name: 'Autre nom' })).error).toBe(false)
-    expect((await prisma.participant.findUniqueOrThrow({ where: { id: ben.id } })).name).toBe(benLinked.name)
+    expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: ben.id, gameId: game.id } } })).name).toBe('Ben Assisté')
 
     const log = await prisma.aiLogEntry.findMany({ where: { gameId: game.id }, orderBy: { createdAt: 'asc' } })
     expect(log.map((entry) => `${entry.action} ${entry.tool} ${entry.targetType}`)).toEqual(expect.arrayContaining([

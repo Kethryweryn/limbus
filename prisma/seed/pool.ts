@@ -26,10 +26,10 @@ export async function placePlayersInPool(db: Db, gameId: string) {
       participant: {
         select: {
           id: true,
-          name: true,
           slug: true,
           email: true,
-          phone: true,
+          // Nom et téléphone de ce jeu (US-242)
+          gameLinks: { where: { gameId }, select: { name: true, phone: true } },
           // Ses coordonnées et ses allergies sont celles de son compte, comme après une vraie réponse
           user: { select: { phone: true, emergencyContactName: true, emergencyContactPhone: true, dietary: true, healthConsentAt: true } }
         }
@@ -62,10 +62,10 @@ export async function placePlayersInPool(db: Db, gameId: string) {
         source: REGISTRATION_SOURCES.form,
         formVersionId: version!.id,
         email: participant.email ?? `${participant.slug}@example.test`,
-        ...splitParticipantName(participant.name),
-        phone: participant.user?.phone ?? participant.phone,
+        ...splitParticipantName(participant.gameLinks[0]?.name ?? ''),
+        phone: participant.user?.phone ?? participant.gameLinks[0]?.phone ?? null,
         // Toujours demandé (US-181) : sans compte, un proche fictif
-        emergencyContactName: participant.user?.emergencyContactName ?? `Proche de ${splitParticipantName(participant.name).firstName || participant.name}`,
+        emergencyContactName: participant.user?.emergencyContactName ?? `Proche de ${splitParticipantName(participant.gameLinks[0]?.name ?? '').firstName || participant.gameLinks[0]?.name || 'joueur'}`,
         emergencyContactPhone: participant.user?.emergencyContactPhone ?? '07 00 00 03 00',
         dietary: participant.user?.dietary,
         healthConsentAt: participant.user?.healthConsentAt,

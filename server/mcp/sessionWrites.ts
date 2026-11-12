@@ -198,7 +198,7 @@ async function currentParticipant(event: H3Event, id: string) {
   // Nom et téléphone du jeu autorisé le plus récemment modifié (ADR-0086)
   const participant = latestVisibleValues(await prisma.participant.findUniqueOrThrow({
     where: { id },
-    select: { name: true, email: true, phone: true, gameLinks: { where: allowed ? { gameId: { in: allowed } } : {}, select: { gameId: true, notes: true, name: true, phone: true, updatedAt: true } } }
+    select: { email: true, gameLinks: { where: allowed ? { gameId: { in: allowed } } : {}, select: { gameId: true, notes: true, name: true, phone: true, updatedAt: true } } }
   }))
   // Les jeux hors de l'autorisation ne sont ni envoyés ni retirés par la modification (managedExistingGameIds)
   return { name: participant.name, email: participant.email, phone: participant.phone, links: participant.gameLinks }

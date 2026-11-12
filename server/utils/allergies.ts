@@ -66,7 +66,7 @@ export async function getAllergySheetForDisplay(sessionId: string) {
 }
 
 export async function getAllergySheet(sessionId: string) {
-  const session = await prisma.session.findUniqueOrThrow({
+  const loaded = await prisma.session.findUniqueOrThrow({
     where: { id: sessionId },
     select: {
       id: true,
@@ -75,14 +75,14 @@ export async function getAllergySheet(sessionId: string) {
       game: { select: { title: true } },
       registrationLines: {
         where: { status: REGISTRATION_SESSION_STATUSES.confirmed },
-        select: { registration: { select: { dietary: true, participant: { select: { id: true, name: true } } } } }
+        select: { registration: { select: { dietary: true, participant: { select: { id: true } } } } }
       },
-      participants: { select: { participantId: true, role: true, participant: { select: { id: true, name: true, user: { select: { dietary: true, healthConsentAt: true } } } } } },
-      assignments: { select: { participantId: true, participant: { select: { id: true, name: true, user: { select: { dietary: true, healthConsentAt: true } } } } } }
+      participants: { select: { participantId: true, role: true, participant: { select: { id: true, user: { select: { dietary: true, healthConsentAt: true } } } } } },
+      assignments: { select: { participantId: true, participant: { select: { id: true, user: { select: { dietary: true, healthConsentAt: true } } } } } }
     }
   })
-  // Noms tenus par l'équipe du jeu (ADR-0086)
-  await withGameValues(session, session.gameId)
+  // Noms tenus par l'équipe du jeu (ADR-0086, US-242)
+  const session = await withGameValues(loaded, loaded.gameId)
   // Allergies déclarées dans le compte, avec consentement, des personnes du cast (US-074)
   const accountDietaries = [...session.participants, ...session.assignments]
     .filter((entry) => entry.participantId && entry.participant?.user?.dietary && entry.participant.user.healthConsentAt)
@@ -135,7 +135,7 @@ export function allergySheetEmailText(sheet: AllergySheet) {
 export async function sendAllergySheet(sessionId: string) {
   const kitchen = await prisma.sessionParticipant.findMany({
     where: { sessionId, role: SESSION_ROLES.kitchen },
-    select: { participant: { select: { name: true, email: true } } }
+    select: { participant: { select: { id: true, email: true } } }
   })
   const recipients = [...new Set(kitchen.map((member) => member.participant.email?.trim().toLowerCase()).filter((email): email is string => Boolean(email)))]
   if (!kitchen.length) {

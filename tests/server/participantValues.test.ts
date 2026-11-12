@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PARTICIPANT_KEYS, latestVisibleValues, namesIn, withGameValues } from '~/server/utils/participantValues'
 import { prisma } from '~/server/utils/prisma'
 
-// Nom et téléphone tenus par jeu (SPEC-022 R6, ADR-0086, US-237)
+// Nom et téléphone tenus par jeu (SPEC-022 R6, ADR-0086, US-237) : la fiche n'en a plus (US-242)
 const links = [
   { gameId: 'jeu-a', participantId: 'paul', name: 'Paul chez A', phone: '0611' },
   { gameId: 'jeu-b', participantId: 'paul', name: 'Paul chez B', phone: '0622' },
@@ -17,8 +17,7 @@ beforeEach(() => {
     return links.filter((link) => pairs.some((pair) => pair.gameId === link.gameId && pair.participantId.in.includes(link.participantId)))
   })
   Object.assign(prisma, {
-    participantGame: { findMany },
-    participant: { findMany: vi.fn(async () => [{ id: 'paul', name: 'Paul fiche' }, { id: 'vide', name: 'Vide fiche' }]) }
+    participantGame: { findMany }
   })
 })
 
@@ -26,18 +25,19 @@ describe('withGameValues', () => {
   it('lit chaque fiche dans le jeu de l’objet le plus proche qui en porte un', async () => {
     const read = await withGameValues({
       sessions: [
-        { gameId: 'jeu-a', participants: [{ role: 'participant', participant: { id: 'paul', name: 'Paul fiche', phone: '0600' } }] },
-        { gameId: 'jeu-b', assignments: [{ participant: { id: 'paul', name: 'Paul fiche' } }] }
+        { gameId: 'jeu-a', participants: [{ role: 'participant', participant: { id: 'paul' } }] },
+        { gameId: 'jeu-b', assignments: [{ participant: { id: 'paul' } }] }
       ]
-    })
+    }, undefined, { phone: true })
     expect(read.sessions[0]!.participants![0]!.participant).toEqual({ id: 'paul', name: 'Paul chez A', phone: '0611' })
-    expect(read.sessions[1]!.assignments![0]!.participant).toEqual({ id: 'paul', name: 'Paul chez B' })
+    expect(read.sessions[1]!.assignments![0]!.participant).toEqual({ id: 'paul', name: 'Paul chez B', phone: '0622' })
   })
 
-  it('prend le jeu donné quand la lecture n’en porte pas, et garde la fiche pour un lien sans valeur', async () => {
-    const read = await withGameValues([{ targetParticipant: { id: 'paul', name: 'Paul fiche' } }, { transferredTo: { id: 'vide', name: 'Vide fiche' } }], 'jeu-a')
+  it('prend le jeu donné quand la lecture n’en porte pas, et donne un nom vide pour un lien sans valeur', async () => {
+    const read = await withGameValues([{ targetParticipant: { id: 'paul' } }, { transferredTo: { id: 'vide' } }], 'jeu-a')
     expect(read[0]!.targetParticipant?.name).toBe('Paul chez A')
-    expect(read[1]!.transferredTo?.name).toBe('Vide fiche')
+    expect(read[0]!.targetParticipant).not.toHaveProperty('phone')
+    expect(read[1]!.transferredTo?.name).toBe('')
   })
 
   it('ne touche ni une clé qui n’est pas une fiche, ni une lecture sans jeu', async () => {
@@ -48,15 +48,13 @@ describe('withGameValues', () => {
 })
 
 describe('namesIn et latestVisibleValues', () => {
-  it('donne le nom du jeu, ou celui de la fiche sans valeur', async () => {
+  it('donne le nom du jeu, vide pour un lien sans valeur', async () => {
     const names = await namesIn('jeu-a', ['paul', 'vide'])
-    expect(Object.fromEntries(names)).toEqual({ paul: 'Paul chez A', vide: 'Vide fiche' })
+    expect(Object.fromEntries(names)).toEqual({ paul: 'Paul chez A', vide: '' })
   })
 
   it('hors d’un jeu précis, prend le lien visible le plus récemment modifié', () => {
     const fiche = latestVisibleValues({
-      name: 'Paul fiche',
-      phone: '0600',
       gameLinks: [
         { name: 'Ancien', phone: '0601', updatedAt: new Date('2026-01-01') },
         { name: 'Récent', phone: '0602', updatedAt: new Date('2026-06-01') }

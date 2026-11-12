@@ -2,6 +2,7 @@
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice } = world.users
@@ -21,9 +22,9 @@ async function aliceSession() {
   const key = `hors-ligne-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
   const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } })
-  const lea = await prisma.participant.create({
-    data: { name: `Lea ${key}`, slug: `lea-${key}`, email: `lea-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
-  })
+  const lea = await withFicheValues(prisma.participant.create({
+    data: { slug: `lea-${key}`, email: `lea-${key}@example.test`, gameLinks: { create: { gameId: game.id , name: `Lea ${key}` } } }
+  }), { name: `Lea ${key}` })
   await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: lea.id, role: 'participant' } })
   return { key, game, session, lea }
 }

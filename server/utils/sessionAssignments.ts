@@ -299,7 +299,7 @@ export function participantWithSeveralPjs(
 export const castAssignmentInclude = {
   character: true,
   participant: true,
-  reservedRegistration: { select: { id: true, participant: { select: { id: true, name: true } } } }
+  reservedRegistration: { select: { id: true, participant: { select: { id: true } } } }
 } as const
 
 type ReservedRow = { reservedRegistrationId: string | null, reservedRegistration?: { id: string } | null }

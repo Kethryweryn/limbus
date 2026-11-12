@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
+import { withFicheValues } from '../fiche'
 
 const prisma = createTestPrisma()
 const { alice, bob } = inject('world').users
@@ -29,7 +30,7 @@ async function player() {
   })
   const teams = []
   // Une seule fiche par adresse (SPEC-022, US-240) : liée au jeu de chaque équipe
-  const participant = await prisma.participant.create({ data: { name: 'Joueuse Effacée', slug: `fiche-${key}`, email: user.email, userId: user.id } })
+  const participant = await withFicheValues(prisma.participant.create({ data: { slug: `fiche-${key}`, email: user.email, userId: user.id } }), { name: 'Joueuse Effacée' })
   for (const owner of [alice, bob]) {
     const k = `${key}-${owner.id}`.toLowerCase()
     const game = await prisma.game.create({ data: { title: `Jeu ${k}`, slug: `jeu-${k}`, description: '', ownerId: owner.id } })
@@ -90,7 +91,7 @@ describe('télécharger ses données (US-076)', () => {
   it('contient ses affinités, sans la personne que l’équipe y a rattachée (R24, US-095)', async () => {
     const { user, teams } = await player()
     const { game, participant } = teams[0]!
-    const target = await prisma.participant.create({ data: { name: 'Cible Rattachée', slug: `cible-${++counter}`, gameLinks: { create: { gameId: game.id } } } })
+    const target = await withFicheValues(prisma.participant.create({ data: { slug: `cible-${++counter}`, gameLinks: { create: { gameId: game.id , name: 'Cible Rattachée' } } } }), { name: 'Cible Rattachée' })
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `efface-periode-${counter}` } })
     await prisma.registration.create({
       data: {

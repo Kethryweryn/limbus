@@ -396,7 +396,7 @@ export async function announceCast(periodId: string, sessionId: string, includeW
       email: true,
       // Jeu et fiche : le nom est celui qu'en tient l'équipe du jeu (ADR-0086)
       gameId: true,
-      participant: { select: { id: true, name: true } },
+      participant: { select: { id: true } },
       sessionLines: { where: { sessionId }, select: announcementLineSelect }
     }
   }).then(withGameValues)
@@ -447,7 +447,7 @@ async function requireProposedLine(registrationId: string, sessionId: string) {
       periodId: true,
       // Jeu et fiche : le nom est celui qu'en tient l'équipe du jeu (ADR-0086)
       gameId: true,
-      participant: { select: { id: true, name: true } },
+      participant: { select: { id: true } },
       sessionLines: { where: { sessionId }, select: announcementLineSelect }
     }
   }).then(withGameValues)

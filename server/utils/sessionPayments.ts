@@ -129,7 +129,8 @@ export function buildPaymentRows<P extends PaymentParticipant, C extends { name:
   })
 }
 
-const participantSelect = { id: true, name: true, email: true } as const
+// Nom tenu par le jeu, ajouté à la lecture (US-242)
+const participantSelect = { id: true, email: true } as const
 
 export const REFUNDABLE_SESSION_STATUSES: string[] = [SESSION_STATUSES.cancelled, SESSION_STATUSES.postponed]
 
@@ -223,7 +224,7 @@ async function getPaymentSession(sessionId: string, participantIds?: string[]) {
         ...only,
         include: {
           participant: { select: participantSelect },
-          transferredTo: { select: { id: true, name: true } },
+          transferredTo: { select: { id: true } },
           instalments: { orderBy: { receivedAt: 'asc' } }
         }
       },

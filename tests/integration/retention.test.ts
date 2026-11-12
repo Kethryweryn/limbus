@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
+import { withFicheValues } from '../fiche'
 
 const prisma = createTestPrisma()
 const { alice } = inject('world').users
@@ -70,9 +71,9 @@ describe('comptes inactifs (US-112)', () => {
 describe('fiches sans compte (US-113)', () => {
   async function participant(key: string, data: Record<string, unknown> = {}, linkedAt = ago(4 * 12 * MONTH)) {
     const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-retention-${key}-${++counter}`, description: '', ownerId: alice.id } })
-    return await prisma.participant.create({
-      data: { name: key, slug: `retention-${key}-${counter}`, updatedAt: ago(4 * 12 * MONTH), gameLinks: { create: { gameId: game.id, createdAt: linkedAt } }, ...data }
-    })
+    return await withFicheValues(prisma.participant.create({
+      data: { slug: `retention-${key}-${counter}`, updatedAt: ago(4 * 12 * MONTH), gameLinks: { create: { gameId: game.id, createdAt: linkedAt , name: key } }, ...data }
+    }), { name: key })
   }
 
   it('efface une fiche sans activité depuis trois ans, garde les autres', async () => {

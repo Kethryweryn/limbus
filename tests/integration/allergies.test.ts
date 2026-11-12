@@ -5,6 +5,7 @@ import { api, bodyOf, tokenFor } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
 import type { RegistrationSessionStatus } from '~/generated/prisma/enums'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice } = world.users
@@ -29,9 +30,9 @@ async function sessionWithRegistrations() {
   const period = await prisma.registrationPeriod.create({
     data: { gameId: game.id, publicId: `pub-${key}`, state: 'open', sessions: { create: { sessionId: session.id } } }
   })
-  const person = (name: string) => prisma.participant.create({
-    data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
-  })
+  const person = (name: string) => withFicheValues(prisma.participant.create({
+    data: { slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id , name: `${name} ${key}` } } }
+  }), { name: `${name} ${key}` })
   const [zoe, ines, leo, hugo, cook, npc] = await Promise.all(['Zoe', 'Ines', 'Leo', 'Hugo', 'Cuisine', 'Pnj'].map(person))
   const registration = (participant: { id: string, email: string | null }, status: RegistrationSessionStatus, dietary: string | null) => prisma.registration.create({
     data: {

@@ -12,6 +12,7 @@ import { createTestPrisma } from './db'
 import { addPerson, createPool, lineOf } from './pool'
 import { personalLinkToken, startTestSmtp } from './smtp'
 import type { RegistrationPeriodState, RegistrationSessionStatus } from '~/generated/prisma/enums'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice } = world.users
@@ -69,9 +70,9 @@ async function invitation(options: { periodState?: RegistrationPeriodState, resp
   })
   // Adresse de l'invitation : par défaut, la réponse la garde (une autre adresse se prouve par un lien, US-243)
   invitedEmail = `camille-${key}@example.test`
-  const participant = await prisma.participant.create({
-    data: { name: `Camille ${key}`, slug: `camille-${key}`, email: invitedEmail, phone: '0100000000', gameLinks: { create: { gameId: game.id, name: `Camille ${key}`, phone: '0100000000' } } }
-  })
+  const participant = await withFicheValues(prisma.participant.create({
+    data: { slug: `camille-${key}`, email: invitedEmail, gameLinks: { create: { gameId: game.id, name: `Camille ${key}`, phone: '0100000000' } } }
+  }), { name: `Camille ${key}`, phone: '0100000000' })
   const token = randomBytes(32).toString('base64url')
   const registration = await prisma.registration.create({
     data: {
@@ -133,9 +134,9 @@ describe('consulter son invitation', () => {
 
   it('ne montre rien des autres personnes du vivier', async () => {
     const { path, period, session, game } = await invitation()
-    const other = await prisma.participant.create({
-      data: { name: 'Autre Inscrite', slug: `autre-inscrite-${counter}`, email: 'autre-inscrite@example.test', gameLinks: { create: { gameId: game.id } } }
-    })
+    const other = await withFicheValues(prisma.participant.create({
+      data: { slug: `autre-inscrite-${counter}`, email: 'autre-inscrite@example.test', gameLinks: { create: { gameId: game.id , name: 'Autre Inscrite' } } }
+    }), { name: 'Autre Inscrite' })
     await prisma.registration.create({
       data: { gameId: period.gameId, periodId: period.id, participantId: other.id, status: 'received', source: 'invitation', email: other.email!, phone: '0699999999', sessionLines: { create: { sessionId: session.id, status: 'confirmed' } } }
     })
@@ -185,7 +186,8 @@ describe('répondre à une invitation (R4)', () => {
     expect(await prisma.registrationSession.count({ where: { registrationId: registration.id } })).toBe(0)
     expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(0)
     // Les réponses restent sur l'inscription ; la fiche garde ses coordonnées
-    expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id } })).toMatchObject({ email: participant.email, phone: '0100000000' })
+    expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id }, select: { email: true } })).toEqual({ email: participant.email })
+    expect(await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: participant.id, gameId: game.id } } })).toMatchObject({ phone: '0100000000' })
 
     const email = smtp.to(participant.email!)[0]!
     expect(email.text).toContain(game.title)
@@ -678,7 +680,7 @@ describe('règles issues de la revue de code', () => {
   it('deux premières réponses simultanées partagent la version 1', async () => {
     const first = await invitation()
     const period = await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: first.period.id } })
-    const other = await prisma.participant.create({ data: { name: 'Seconde Personne', slug: `seconde-personne-${counter}`, email: `seconde-${counter}@example.test`, gameLinks: { create: { gameId: first.game.id } } } })
+    const other = await withFicheValues(prisma.participant.create({ data: { slug: `seconde-personne-${counter}`, email: `seconde-${counter}@example.test`, gameLinks: { create: { gameId: first.game.id , name: 'Seconde Personne' } } } }), { name: 'Seconde Personne' })
     const token = randomBytes(32).toString('base64url')
     await prisma.registration.create({ data: { gameId: period.gameId, periodId: period.id, invitedSessionId: first.session.id, participantId: other.id, status: 'invited', source: 'invitation', email: other.email!, links: { create: { tokenHash: sha256(token) } } } })
 
@@ -742,9 +744,9 @@ describe('prouver une autre adresse (US-243)', () => {
 
   async function otherFiche(key: string) {
     const bobGame = await prisma.game.create({ data: { title: `Jeu de Bob ${key}`, slug: `jeu-bob-${key}`, description: '', ownerId: bob.id } })
-    const fiche = await prisma.participant.create({
-      data: { name: 'Nom chez Bob', slug: `p-bob-${key}`.slice(0, 40), email: `autre-adresse-${key}@example.test`, gameLinks: { create: { gameId: bobGame.id, name: 'Nom chez Bob', notes: 'Note de Bob' } } }
-    })
+    const fiche = await withFicheValues(prisma.participant.create({
+      data: { slug: `p-bob-${key}`.slice(0, 40), email: `autre-adresse-${key}@example.test`, gameLinks: { create: { gameId: bobGame.id, name: 'Nom chez Bob', notes: 'Note de Bob' } } }
+    }), { name: 'Nom chez Bob' })
     return { bobGame, fiche }
   }
   const proofEmail = (to: string) => smtp.to(to).find((message) => message.text.includes('/inscription/adresse/'))!

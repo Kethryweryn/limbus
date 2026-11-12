@@ -867,7 +867,8 @@ model Location {
 
 model Participant {
   id          String     @id @default(cuid())
-  name        String
+  // Plus lus ni écrits : le nom et le téléphone vivent sur les liens aux jeux (ADR-0086). Retirés à l'étape 2 de US-242
+  name        String?
   slug        String     @unique
   // Une seule fiche par adresse dans tout Limbus (SPEC-022 R4, R8, ADR-0086)
   email       String?  @unique @db.Citext

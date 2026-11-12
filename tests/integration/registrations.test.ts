@@ -7,6 +7,7 @@ import { api, errorMessage } from './api'
 import { createTestPrisma } from './db'
 import { personalLinkToken, startTestSmtp } from './smtp'
 import type { RegistrationPeriodState } from '~/generated/prisma/enums'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice } = world.users
@@ -39,9 +40,9 @@ async function openPeriod(options: { state?: RegistrationPeriodState } = {}) {
       sessions: { create: { sessionId: session.id } }
     }
   })
-  const participant = await prisma.participant.create({
-    data: { name: `Joueuse ${key}`, slug: `joueuse-${key}`, email: `joueuse-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
-  })
+  const participant = await withFicheValues(prisma.participant.create({
+    data: { slug: `joueuse-${key}`, email: `joueuse-${key}@example.test`, gameLinks: { create: { gameId: game.id , name: `Joueuse ${key}` } } }
+  }), { name: `Joueuse ${key}` })
   return { key, game, session, period, participant }
 }
 
@@ -80,8 +81,8 @@ describe('inviter des participants', () => {
 
     // La nouvelle personne est créée et liée au jeu, son email en minuscules
     const created = registrations.find((registration) => registration.participantId !== participant.id)!
-    expect(created.participant).toMatchObject({ name: 'Nouvelle Venue', email: 'nouvelle.venue@example.test' })
-    expect(await prisma.participantGame.count({ where: { participantId: created.participantId, gameId: game.id } })).toBe(1)
+    expect(created.participant).toMatchObject({ email: 'nouvelle.venue@example.test' })
+    expect(await prisma.participantGame.findMany({ where: { participantId: created.participantId, gameId: game.id }, select: { name: true } })).toEqual([{ name: 'Nouvelle Venue' }])
 
     // Chaque email porte le jeu, la session, l'échéance et un lien dont seul le hash est en base
     const email = emailsTo(participant.email!)[0]!
@@ -116,7 +117,7 @@ describe('inviter des participants', () => {
   it('rapproche la fiche d’une autre équipe, avec le nom saisi par l’équipe', async () => {
     const { session, period } = await openPeriod()
     const bobGame = await prisma.game.create({ data: { title: `Bob ${period.id}`, slug: `bob-${period.id}`.toLowerCase(), description: '', ownerId: world.users.bob.id } })
-    const bobs = await prisma.participant.create({ data: { name: 'Nom chez Bob', slug: `nom-chez-bob-${period.id}`.toLowerCase(), email: `homonyme-${period.id}@example.test`.toLowerCase(), gameLinks: { create: { gameId: bobGame.id, name: 'Nom chez Bob' } } } })
+    const bobs = await withFicheValues(prisma.participant.create({ data: { slug: `nom-chez-bob-${period.id}`.toLowerCase(), email: `homonyme-${period.id}@example.test`.toLowerCase(), gameLinks: { create: { gameId: bobGame.id, name: 'Nom chez Bob' } } } }), { name: 'Nom chez Bob' })
 
     const response = await invite(period.id, {
       sessionId: session.id,
@@ -146,9 +147,9 @@ describe('inviter des participants', () => {
 
   it('refuse une personne sans email', async () => {
     const { game, session, period } = await openPeriod()
-    const withoutEmail = await prisma.participant.create({
-      data: { name: 'Sans Email', slug: `sans-email-${counter}`, gameLinks: { create: { gameId: game.id } } }
-    })
+    const withoutEmail = await withFicheValues(prisma.participant.create({
+      data: { slug: `sans-email-${counter}`, gameLinks: { create: { gameId: game.id , name: 'Sans Email' } } }
+    }), { name: 'Sans Email' })
 
     const response = await invite(period.id, { sessionId: session.id, participantIds: [withoutEmail.id] })
     expect(response.status).toBe(400)
