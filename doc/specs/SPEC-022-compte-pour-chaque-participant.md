@@ -4,8 +4,8 @@ titre: Un compte pour chaque participant, une seule fiche par personne
 statut: en cours
 date: 2026-11-11
 origine: ../archive/todo/compte-pour-chaque-participant.md
-epics: [EPIC-056]
-adr: [ADR-0086, ADR-0087]
+epics: [EPIC-056, EPIC-057]
+adr: [ADR-0086, ADR-0087, ADR-0088, ADR-0089]
 ---
 
 # SPEC-022 : Un compte pour chaque participant, une seule fiche par personne
@@ -85,8 +85,8 @@ La liste des comptes montre les comptes pré-créés avec la mention « non acti
 ## Lots
 
 1. **Une fiche par personne** : données par équipe (R5, R6), email obligatoire (R3), fiche unique dans tout Limbus (R4), correction d'adresse par équipe (R7), fusion des fiches existantes (R8), effacement et export par équipe (R14, R15).
-2. **Compte pré-créé et activation** : compte pré-créé (R1, R2), activation (R9, R11), recopie champ par champ (R12), ligne des emails et sa page (R10).
-3. **Durées, administration et politique** : effacement d'un compte jamais activé (R13), mention « non activé » dans l'administration, politique de confidentialité (R16).
+2. **Compte pré-créé et activation** : compte pré-créé (R1, R2), activation (R9, R11), recopie champ par champ (R12), ligne des emails et sa page (R10), politique de confidentialité (R16).
+3. **Durées et administration** : effacement d'un compte jamais activé (R13), mention « non activé » dans l'administration.
 
 ## Hors périmètre
 
@@ -101,3 +101,4 @@ La liste des comptes montre les comptes pré-créés avec la mention « non acti
 - 2026-11-11 : lot 1 découpé ([EPIC-056](../archive/epics/EPIC-056-une-fiche-par-personne/README.md), US-237 à US-242) ; nom et téléphone rangés par jeu, choix de l'utilisatrice (ADR-0086).
 - 2026-11-12 : US-243 ajoutée au lot 1 : une adresse donnée en réponse, déjà celle d'une autre fiche, se prouve par un lien de 7 jours, puis tout passe sur la fiche de l'adresse prouvée (choix de l'utilisatrice, ADR-0087).
 - 2026-11-12 : lot 1 terminé et déployé (PR #228 à #238) ; [EPIC-056](../archive/epics/EPIC-056-une-fiche-par-personne/README.md) archivé. Lots 2 et 3 à découper.
+- 2026-11-12 : lot 2 découpé ([EPIC-057](../epics/EPIC-057-compte-pre-cree-et-activation/README.md), US-244 à US-247), avec les choix de l'utilisatrice : un compte non activé est un compte sans mot de passe, des pages dédiées à l'activation, un champ vidé par la personne revient aux équipes, une ligne vers « Je participe » pour un compte activé ; R16 passe au lot 2, pour que la politique le dise dès la création des premiers comptes ([ADR-0088](../adr/ADR-0088-compte-pre-cree-sans-mot-de-passe.md), [ADR-0089](../adr/ADR-0089-recopie-champ-par-champ.md)).

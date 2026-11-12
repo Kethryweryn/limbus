@@ -1,7 +1,7 @@
 ---
 id: ADR-0042
 titre: Les coordonnées d'une personne qui a un compte vivent sur le compte et sont recopiées sur ses fiches
-statut: accepté
+statut: remplacé en partie par ADR-0089
 date: 2026-10-29
 liens: [../specs/SPEC-011-un-compte-pour-tout-le-monde.md, ADR-0041-fiches-rattachees-a-un-compte.md]
 ---
@@ -11,6 +11,8 @@ liens: [../specs/SPEC-011-un-compte-pour-tout-le-monde.md, ADR-0041-fiches-ratta
 ## Contexte
 
 Les coordonnées sont aujourd'hui sur la fiche participant (nom, téléphone) et sur chaque inscription (prénom, nom, téléphone, contact d'urgence, allergies) ; la fiche allergies et les écrans des équipes lisent ces copies. [SPEC-011](../specs/SPEC-011-un-compte-pour-tout-le-monde.md) (R12) veut que la personne qui a un compte les tienne seule, en une seule version.
+
+> La recopie de tous les champs dès le premier enregistrement est remplacée par la recopie champ par champ d'[ADR-0089](ADR-0089-recopie-champ-par-champ.md) (2026-11-12).
 
 ## Décision
 

@@ -45,7 +45,7 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0039](ADR-0039-comptes-en-libre-service.md) | Comptes en libre-service : liens de compte hachés, adresse confirmée, stockage compté par propriétaire | accepté | 2026-10-29 |
 | [ADR-0040](ADR-0040-notes-par-jeu.md) | Les notes sur une personne sont portées par son lien à chaque jeu | accepté | 2026-10-29 |
 | [ADR-0041](ADR-0041-fiches-rattachees-a-un-compte.md) | Fiches participant rattachées à un compte par l'adresse confirmée | accepté | 2026-10-29 |
-| [ADR-0042](ADR-0042-coordonnees-du-compte.md) | Les coordonnées d'une personne qui a un compte vivent sur le compte et sont recopiées sur ses fiches | accepté | 2026-10-29 |
+| [ADR-0042](ADR-0042-coordonnees-du-compte.md) | Les coordonnées d'une personne qui a un compte vivent sur le compte et sont recopiées sur ses fiches | remplacé en partie par ADR-0089 | 2026-10-29 |
 | [ADR-0043](ADR-0043-effacement-du-compte.md) | Effacer son compte efface ses fiches participant, après avoir prévenu les équipes | accepté | 2026-10-29 |
 | [ADR-0044](ADR-0044-copies-des-envois.md) | Une copie de chaque envoi, gardée jusqu'au lendemain de la session | accepté | 2026-10-30 |
 | [ADR-0045](ADR-0045-questions-et-affinites-du-formulaire.md) | Questions propres au jeu et affinités dans la définition du formulaire | accepté | 2026-10-31 |
@@ -91,3 +91,5 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0085](ADR-0085-installation-serveur-sans-audit.md) | Le serveur installe ses dépendances sans audit de sécurité, et note l'heure de chaque étape du déploiement | accepté | 2026-11-11 |
 | [ADR-0086](ADR-0086-fiche-unique-et-valeurs-par-jeu.md) | Une fiche par adresse dans tout Limbus, nom et téléphone par jeu, et fusion des fiches existantes | accepté | 2026-11-11 |
 | [ADR-0087](ADR-0087-preuve-d-une-autre-adresse.md) | Une adresse donnée en réponse, déjà celle d'une autre fiche, se prouve par un lien avant la réunion des deux fiches | accepté | 2026-11-12 |
+| [ADR-0088](ADR-0088-compte-pre-cree-sans-mot-de-passe.md) | Un compte pré-créé est un compte sans mot de passe, activé par un lien envoyé à son adresse | accepté | 2026-11-12 |
+| [ADR-0089](ADR-0089-recopie-champ-par-champ.md) | Les coordonnées du compte sont recopiées champ par champ, seulement les champs que la personne a remplis | accepté | 2026-11-12 |
