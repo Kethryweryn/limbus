@@ -1,3 +1,4 @@
+import { TERMS_VERSION } from '~/utils/legal'
 import { prisma } from '~/server/utils/prisma'
 import { setAuthCookie } from '~/server/utils/auth'
 import { accountTokenSchema, readZodBody } from '~/server/utils/schemas'
@@ -20,12 +21,21 @@ export default defineEventHandler(async (event) => {
   }
 
   if (record.kind === ACCOUNT_TOKEN_KINDS.confirm) {
-    // Le mot de passe de l'inscription dont c'est le lien ; les autres sessions et liens de confirmation tombent
+    // Le nom, le mot de passe et les conditions de l'inscription dont c'est le lien (US-246) ; les autres sessions et
+    // liens de confirmation tombent
     const confirmed = await prisma.user.update({
       where: { id: user.id },
       data: {
         emailConfirmedAt: user.emailConfirmedAt ?? new Date(),
-        ...(record.passwordHash && !user.emailConfirmedAt ? { password: record.passwordHash, sessionVersion: { increment: 1 } } : {})
+        ...(record.passwordHash && !user.emailConfirmedAt
+          ? {
+              password: record.passwordHash,
+              ...(record.name ? { name: record.name } : {}),
+              termsAcceptedVersion: TERMS_VERSION,
+              termsAcceptedAt: new Date(),
+              sessionVersion: { increment: 1 }
+            }
+          : {})
       },
       select: { id: true, sessionVersion: true }
     })

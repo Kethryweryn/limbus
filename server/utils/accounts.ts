@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
-import { getSmtpSettings } from '~/server/utils/email'
+import { getSmtpSettings, sendActivationEmail } from '~/server/utils/email'
 import { hashPassword } from '~/server/utils/passwordHash'
 import { createRegistrationToken, hashRegistrationToken } from '~/server/utils/registrations'
 
@@ -9,7 +9,9 @@ import { createRegistrationToken, hashRegistrationToken } from '~/server/utils/r
 export const ACCOUNT_TOKEN_KINDS = {
   confirm: 'confirm',
   email: 'email',
-  password: 'password'
+  password: 'password',
+  // Activation d'un compte pré-créé (US-246, ADR-0088)
+  activate: 'activate'
 } as const
 type AccountTokenKind = typeof ACCOUNT_TOKEN_KINDS[keyof typeof ACCOUNT_TOKEN_KINDS]
 
@@ -18,7 +20,8 @@ export const ACCOUNT_TOKEN_TTL = {
   confirm: 48 * HOUR,
   email: 48 * HOUR,
   passwordForgotten: HOUR,
-  passwordCreated: 7 * 24 * HOUR
+  passwordCreated: 7 * 24 * HOUR,
+  activate: 7 * 24 * HOUR
 }
 const UNCONFIRMED_ACCOUNT_LIFETIME = 7 * 24 * HOUR
 
@@ -45,6 +48,24 @@ export function passwordForgottenUrl() {
   return absoluteAppUrl('/acces/mot-de-passe-oublie')
 }
 
+export function activationUrl(token: string) {
+  return absoluteAppUrl(`/acces/activer/${token}`)
+}
+
+/** Page publique qui demande l'adresse et envoie le lien d'activation : jamais d'adresse ni de jeton dans l'URL (R10). */
+export function activationRequestUrl() {
+  return absoluteAppUrl('/acces/activer')
+}
+
+/**
+ * Envoie le lien d'activation d'un compte non activé (ADR-0088) : pré-créé pour une fiche, ou inscription jamais
+ * confirmée. Le lien remplace les précédents et vaut 7 jours.
+ */
+export async function sendActivationLink(user: { id: string, email: string }) {
+  const token = await createAccountToken(user.id, ACCOUNT_TOKEN_KINDS.activate, ACCOUNT_TOKEN_TTL.activate)
+  await sendActivationEmail({ to: user.email, url: activationUrl(token) })
+}
+
 // Les liens de compte partent par email : sans envoi, l'action n'a pas de sens
 export async function assertEmailEnabled() {
   if (!(await getSmtpSettings())?.enabled) {
@@ -60,13 +81,13 @@ export async function createAccountToken(
   userId: string,
   kind: AccountTokenKind,
   ttlMs: number,
-  options: { email?: string, passwordHash?: string, keepOthers?: boolean } = {}
+  options: { email?: string, passwordHash?: string, name?: string, keepOthers?: boolean } = {}
 ) {
   const { token, tokenHash } = createRegistrationToken()
   await prisma.$transaction([
     ...(options.keepOthers ? [] : [prisma.accountToken.deleteMany({ where: { userId, kind, usedAt: null } })]),
     prisma.accountToken.create({
-      data: { userId, kind, tokenHash, email: options.email ?? null, passwordHash: options.passwordHash ?? null, expiresAt: new Date(Date.now() + ttlMs) }
+      data: { userId, kind, tokenHash, email: options.email ?? null, passwordHash: options.passwordHash ?? null, name: options.name ?? null, expiresAt: new Date(Date.now() + ttlMs) }
     })
   ])
   return token

@@ -373,6 +373,18 @@ export async function sendAccountExistsEmail(params: { to: string, url: string }
   })
 }
 
+// Lien d'activation d'un compte pré-créé (US-246, ADR-0088) : la personne y choisit son nom et son mot de passe
+export async function sendActivationEmail(params: { to: string, url: string }) {
+  return await sendAccountEmail({
+    to: params.to,
+    subject: 'Activez votre compte Limbus',
+    intro: 'Un compte Limbus vous attend à cette adresse. Activez-le pour retrouver les jeux auxquels vous participez, et tenir vous-même vos coordonnées.',
+    linkLabel: 'Activer mon compte',
+    url: params.url,
+    outro: 'Le lien est valable 7 jours et ne sert qu’une fois. Si vous n’avez rien demandé, ignorez ce message : rien ne change.'
+  })
+}
+
 export async function sendPasswordLinkEmail(params: { to: string, url: string, created: boolean, validity: string }) {
   return await sendAccountEmail({
     to: params.to,

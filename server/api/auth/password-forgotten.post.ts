@@ -1,7 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { passwordForgottenSchema, readZodBody } from '~/server/utils/schemas'
 import { assertRateLimit } from '~/server/utils/rateLimit'
-import { ACCOUNT_TOKEN_KINDS, ACCOUNT_TOKEN_TTL, assertEmailEnabled, createAccountToken, passwordUrl } from '~/server/utils/accounts'
+import { ACCOUNT_TOKEN_KINDS, ACCOUNT_TOKEN_TTL, assertEmailEnabled, createAccountToken, passwordUrl, sendActivationLink } from '~/server/utils/accounts'
 import { sendPasswordLinkEmail } from '~/server/utils/email'
 
 // Mot de passe oublié (US-062) : même réponse que le compte existe ou non
@@ -11,9 +11,11 @@ export default defineEventHandler(async (event) => {
   assertRateLimit(event, { name: 'auth-password-forgotten-email', limit: 3, windowMs: 15 * 60 * 1000, keyParts: [email] })
   await assertEmailEnabled()
 
-  const user = await prisma.user.findUnique({ where: { email }, select: { id: true, disabledAt: true, password: true } })
-  // Un compte pré-créé (ADR-0088) n'a pas de mot de passe à retrouver : il s'active par son propre lien (US-246)
-  if (user?.password && !user.disabledAt) {
+  const user = await prisma.user.findUnique({ where: { email }, select: { id: true, email: true, disabledAt: true, password: true } })
+  if (user && !user.disabledAt && !user.password) {
+    // Compte pré-créé (ADR-0088) : pas de mot de passe à retrouver, le lien envoyé est celui de l'activation (US-246)
+    await sendActivationLink(user)
+  } else if (user && !user.disabledAt) {
     const token = await createAccountToken(user.id, ACCOUNT_TOKEN_KINDS.password, ACCOUNT_TOKEN_TTL.passwordForgotten)
     await sendPasswordLinkEmail({ to: email, url: passwordUrl(token), created: false, validity: '1 heure' })
   }
