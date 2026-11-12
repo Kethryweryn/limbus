@@ -1,4 +1,5 @@
 import { prisma } from '~/server/utils/prisma'
+import { notActivatedAccount } from '~/server/utils/participantAccounts'
 import { deleteOwnAccount } from '~/server/utils/accountDeletion'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
 import { openEmailTransport, sendEmail } from '~/server/utils/email'
@@ -114,7 +115,8 @@ async function eraseStaleParticipants(now: Date) {
   const recentSession = { OR: [{ date: { gte: cutoff } }, { date: null, createdAt: { gte: cutoff } }] }
   const stale = await prisma.participant.findMany({
     where: {
-      userId: null,
+      // Sans compte, ou avec un compte jamais activé (ADR-0088) : la personne n'a jamais rien tenu
+      OR: [{ userId: null }, { user: notActivatedAccount }],
       updatedAt: { lt: cutoff },
       NOT: {
         OR: [

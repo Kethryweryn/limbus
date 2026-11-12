@@ -41,3 +41,41 @@ test('l’administratrice crée et désactive un compte, puis teste l’envoi d�
     await prisma.$disconnect()
   }
 })
+
+// US-244 (ADR-0088) : un compte pré-créé pour une fiche ne se modifie, ne s'active ni ne se supprime depuis sa carte
+test('l’administratrice ne touche pas à un compte pré-créé depuis sa carte, mais le reprend en le créant (US-244)', async ({ page }) => {
+  const prisma = createTestPrisma()
+  const mailbox = openMailbox()
+  try {
+    const { email: adminEmail } = await testUser(prisma, 'Admin', 'admin')
+    const email = `${slugOf(uniqueName('pre-cree'))}@example.test`
+    const preCreated = await prisma.user.create({ data: { email, name: '', password: null, emailConfirmedAt: null } })
+    const owner = await testUser(prisma, 'Orga du compte pré-créé')
+    const title = uniqueName('Jeu du compte pré-créé')
+    const game = await prisma.game.create({ data: { title, slug: slugOf(title), description: '', ownerId: owner.user.id } })
+    await prisma.participant.create({ data: { slug: slugOf(uniqueName('fiche')), email, userId: preCreated.id, gameLinks: { create: { gameId: game.id, name: 'Paul' } } } })
+
+    await signIn(page, prisma, adminEmail)
+    await page.goto('/admin/users')
+    await page.waitForLoadState('networkidle')
+    const card = blockWith(page, page.getByText(email, { exact: true }), 'Supprimer')
+    await card.getByRole('button', { name: 'Envoyer un lien de mot de passe' }).click()
+    await expect(card.getByText('Ce compte n’est pas activé : créez-le avec son nom pour le reprendre, ou laissez la personne l’activer.')).toBeVisible()
+    page.once('dialog', (dialog) => dialog.accept())
+    await card.getByRole('button', { name: 'Supprimer' }).click()
+    await expect(card.getByText('Ce compte n’est pas activé et porte des fiches participant : il disparaîtra avec elles.')).toBeVisible()
+    expect(mailbox.to(email)).toHaveLength(0)
+    expect(await prisma.user.count({ where: { id: preCreated.id } })).toBe(1)
+
+    // Le créer à son adresse le reprend : même compte, nom saisi, lien envoyé
+    const creation = page.locator('form').filter({ has: page.getByRole('button', { name: 'Créer' }) })
+    await creation.getByLabel('Nom').fill('Paul Repris')
+    await creation.getByLabel('Email').fill(email)
+    await creation.getByRole('button', { name: 'Créer' }).click()
+    await expect(page.getByText(`Compte créé : ${email} a reçu un lien pour choisir son mot de passe.`)).toBeVisible()
+    await expect.poll(() => mailbox.to(email).length).toBe(1)
+    expect(await prisma.user.findUniqueOrThrow({ where: { email } })).toMatchObject({ id: preCreated.id, name: 'Paul Repris' })
+  } finally {
+    await prisma.$disconnect()
+  }
+})

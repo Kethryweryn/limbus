@@ -185,4 +185,23 @@ describe('adresse d’un compte non activé reprise (US-244)', () => {
     // Un compte activé reste refusé
     expect((await api(admin, 'POST', '/api/admin/users', { email, name: 'Encore' })).status).toBe(409)
   })
+
+  it('l’administratrice n’active pas un compte pré-créé par un simple lien, et ne le supprime pas sous ses fiches', async () => {
+    const email = unique('administree')
+    await createFiche(email)
+    const preCreated = await prisma.user.findUniqueOrThrow({ where: { email } })
+    const sent = smtp.received.length
+    const link = await api(admin, 'POST', `/api/admin/users/${preCreated.id}/password-link`)
+    expect(link.status).toBe(400)
+    expect(JSON.stringify(link.body)).toContain('n’est pas activé')
+    expect(sentTo(email, sent)).toEqual([])
+
+    const updated = await api(admin, 'PUT', `/api/admin/users/${preCreated.id}`, { name: 'Renommé', email: unique('ailleurs'), role: 'user' })
+    expect(updated.status).toBe(400)
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: preCreated.id } })).toMatchObject({ email, name: '' })
+
+    const deleted = await api(admin, 'DELETE', `/api/admin/users/${preCreated.id}`)
+    expect(deleted.status).toBe(400)
+    expect(await prisma.user.count({ where: { id: preCreated.id } })).toBe(1)
+  })
 })

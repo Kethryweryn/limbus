@@ -708,16 +708,16 @@ async function removeGames(replacedIds: string[]) {
  * ADR-0088), comme le fait Limbus à chaque création de fiche.
  */
 async function attachParticipantAccounts() {
-  const fiches = await db.participant.findMany({ where: { email: { not: null }, userId: null }, select: { id: true, email: true } })
-  for (const fiche of fiches) {
-    const account = await db.user.upsert({
-      where: { email: fiche.email! },
-      create: { email: fiche.email!, name: '', password: null, emailConfirmedAt: null },
-      update: {},
-      select: { id: true }
-    })
-    await db.participant.update({ where: { id: fiche.id }, data: { userId: account.id } })
-  }
+  await db.$executeRaw`
+    INSERT INTO "User" ("id", "email", "name", "password", "emailConfirmedAt", "createdAt", "updatedAt")
+    SELECT 'pre' || replace(gen_random_uuid()::text, '-', ''), p."email", '', NULL, NULL, now(), now()
+    FROM "Participant" p
+    WHERE p."email" IS NOT NULL AND p."userId" IS NULL
+    ON CONFLICT ("email") DO NOTHING`
+  await db.$executeRaw`
+    UPDATE "Participant" p SET "userId" = u."id"
+    FROM "User" u
+    WHERE p."email" = u."email" AND p."userId" IS NULL`
 }
 
 async function upsertTestAccounts(options: SeedOptions, password: string) {

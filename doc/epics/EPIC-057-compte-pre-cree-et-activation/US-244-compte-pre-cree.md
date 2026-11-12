@@ -27,6 +27,8 @@ En tant qu'organisatrice, je veux que la fiche que je crée appartienne au compt
 - [x] Étant donné une inscription libre non confirmée à une adresse qui a une fiche, quand son délai passe, alors le compte perd son nom, son mot de passe et ses conditions acceptées mais reste rattaché à la fiche. Sans fiche, il est effacé comme avant.
 - [x] Étant donné un compte activé, quand la personne change son adresse pour celle d'un compte non activé, alors la demande est acceptée ; à la confirmation du lien, le compte non activé disparaît et sa fiche se réunit à la sienne, avec les jeux de chaque équipe (choix de l'utilisatrice, 2026-11-12).
 - [x] Étant donné une adresse au compte non activé, quand l'administratrice crée un compte à cette adresse, alors ce compte est repris : nom et rôle saisis, fiches gardées, lien de création de mot de passe envoyé (choix de l'utilisatrice, 2026-11-12).
+- [x] Étant donné un compte non activé dans l'administration, alors sa carte ne le modifie pas, ne lui envoie pas de lien de mot de passe et ne le supprime pas tant qu'il porte des fiches : l'administratrice le reprend en le créant (revue de la PR #241).
+- [x] Étant donné une fiche au compte jamais activé, sans activité depuis la durée prévue, alors elle est effacée comme une fiche sans compte (revue de la PR #241).
 - [x] Étant donné « Mot de passe oublié » sur un compte non activé, alors rien ne part, avec la même réponse que pour une adresse inconnue, jusqu'à l'activation (US-246).
 - [x] La politique de confidentialité dit qu'une équipe qui inscrit une personne lui crée un compte inactif, sans email, ce que ce compte contient et quand il est effacé. `TERMS_VERSION` change, et chaque compte l'accepte de nouveau.
 - [x] Étant donné un compte non activé, alors il ne peut pas se connecter, et n'a donc accès ni à l'espace « Je participe » ni à l'export ou à l'effacement du compte.
@@ -49,6 +51,7 @@ En tant qu'organisatrice, je veux que la fiche que je crée appartienne au compt
 - Droits :
   - connexion refusée sur le compte pré-créé, avec le message d'un mauvais mot de passe (même test) ;
   - l'isolation d'une fiche suivie par Alice et Bob reste vérifiée (`isolation.test.ts`) : aucune route ne montre le compte.
+- Administration (`tests/e2e/admin.spec.ts`, « compte pré-créé ») : lien et suppression refusés sur la carte, reprise par la création.
 - Hors ligne : la fiche créée hors ligne reçoit son compte quand la création est rejouée (même test).
 
 Intégration (`tests/integration/preCreatedAccounts.test.ts`) :

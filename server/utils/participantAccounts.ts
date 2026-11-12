@@ -23,8 +23,11 @@ export async function accountForEmail(client: PrismaTx, email: string | null | u
   return account.id
 }
 
-/** Compte activé : son adresse est confirmée. Seul un compte activé tient les coordonnées de ses fiches (ADR-0042). */
-export const activatedAccount = { emailConfirmedAt: { not: null } } as const
+/**
+ * Compte non activé (ADR-0088) : pré-créé pour une fiche, ou inscription jamais confirmée. Seul un compte activé, dont
+ * l'adresse est confirmée, tient les coordonnées de ses fiches (ADR-0042).
+ */
+export const notActivatedAccount = { emailConfirmedAt: null } as const
 
 // À la confirmation d'une adresse : toutes les fiches qui la portent, la base comparant sans la casse (ADR-0075)
 export async function linkParticipantsToUser(user: { id: string, email: string }) {
