@@ -82,7 +82,7 @@ describe('une fiche a toujours un jeu (US-036)', () => {
 
     // Une fiche liée aussi au jeu de Bob : Alice retire son dernier jeu, la fiche reste
     const shared = await personInTwoGames()
-    await prisma.participantGame.create({ data: { participantId: shared.participant.id, gameId: world.b.game.id } })
+    await prisma.participantGame.create({ data: { participantId: shared.participant.id, gameId: world.b.game.id, name: shared.participant.name } })
     const response = await shared.update([])
     expect(response.status).toBe(200)
     expect(response.body).not.toEqual({ deleted: true })

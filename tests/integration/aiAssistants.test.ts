@@ -463,7 +463,7 @@ describe('sessions et participants', () => {
     expect((await call(client, 'modifier_session', { sessionId: b.session.id, version: bSession.updatedAt.toISOString(), name: 'Volée' })).error).toBe(true)
 
     // Fiche : nom et note ; ajout à un autre jeu autorisé ; les coordonnées et les jeux hors de l'autorisation restent
-    await prisma.participant.update({ where: { id: ana.id }, data: { gameLinks: { create: { gameId: b.game.id, notes: 'Note de Bob' } } } })
+    await prisma.participant.update({ where: { id: ana.id }, data: { gameLinks: { create: { gameId: b.game.id, name: 'Ana chez Bob', notes: 'Note de Bob' } } } })
     // Téléphone saisi par l'équipe du jeu de l'autorisation : tenu par jeu (ADR-0086)
     await prisma.participantGame.update({ where: { participantId_gameId: { participantId: ana.id, gameId: game.id } }, data: { phone: '0600000000' } })
     const anaRead = (await call(client, 'lister_participants', { jeuId: game.id, recherche: 'Ana' })).json.items[0]

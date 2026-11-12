@@ -1,3 +1,4 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { prisma, type PrismaTx } from '~/server/utils/prisma'
 import { REGISTRATION_SEAT_STATUSES } from '~/utils/domain'
 import { ALERT_AFFINITY_KINDS, PERSON_AFFINITY_KINDS, affinityLineKey, isPersonAffinityKind, suggestPeople } from '~/utils/affinityMatching'
@@ -71,7 +72,7 @@ export const linkableAffinitySelect = {
   id: true,
   kind: true,
   registration: { select: { participantId: true, period: { select: { gameId: true } } } }
-} as const
+} as const satisfies Prisma.RegistrationAffinitySelect
 
 type LinkableAffinity = { id: string, kind: string, registration: { participantId: string, period: { gameId: string } } }
 

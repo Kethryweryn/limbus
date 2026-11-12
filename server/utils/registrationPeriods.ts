@@ -1,3 +1,4 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { labelNestedSessions, labelSessions } from '~/server/utils/sessionLabels'
 import { randomBytes } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
@@ -53,7 +54,7 @@ export const registrationListSelect = {
   participant: { select: { id: true, slug: true } },
   invitedBy: { select: { name: true } },
   withdrawnBy: { select: { name: true } }
-} as const
+} as const satisfies Prisma.RegistrationSelect
 
 // Identifiant court du lien de diffusion (R32) : aléatoire, pour ne pas permettre de deviner les autres viviers
 export function createRegistrationPeriodPublicId() {

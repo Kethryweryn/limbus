@@ -2,6 +2,7 @@ import { inSentence } from '~/utils/sessionLabels'
 import { labelNestedSessions, labelSession, labelSessions, sessionLabelsFor } from '~/server/utils/sessionLabels'
 import { gamePhotoInformation } from '~/utils/photoInformation'
 import type { H3Event } from 'h3'
+import type { Prisma } from '~/generated/prisma/client'
 import { prisma } from '~/server/utils/prisma'
 import { syncProfileToParticipants } from '~/server/utils/participantAccounts'
 import { assertRateLimit } from '~/server/utils/rateLimit'
@@ -33,6 +34,7 @@ const TOKEN_PATTERN = /^[\w-]{43}$/
 
 const sessionView = { id: true, date: true, status: true, location: { select: { name: true, address: true } } } as const
 
+// Contrôlé par Prisma : un champ disparu du schéma (nom de la fiche, US-242) ne passe plus le typage
 const publicRegistrationSelect = {
   id: true,
   status: true,
@@ -72,8 +74,8 @@ const publicRegistrationSelect = {
   },
   participant: {
     select: {
+      // Nom tenu par le jeu, ajouté à la lecture (US-242)
       id: true,
-      name: true,
       userId: true,
       // Coordonnées du compte, pour préremplir une invitation (US-074)
       user: { select: { phone: true, emergencyContactName: true, emergencyContactPhone: true, dietary: true, healthConsentAt: true, profileUpdatedAt: true } }
@@ -87,7 +89,7 @@ const publicRegistrationSelect = {
       game: { select: { title: true, noteIntention: true, photoRetentionMonths: true, contactEmail: true, owner: { select: { email: true } } } }
     }
   }
-} as const
+} as const satisfies Prisma.RegistrationSelect
 
 export type PublicRegistration = NonNullable<Awaited<ReturnType<typeof findRegistrationByToken>>>
 

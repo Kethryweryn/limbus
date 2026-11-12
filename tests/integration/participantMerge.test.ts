@@ -82,6 +82,6 @@ describe('fusion des fiches d’une même adresse (US-240)', () => {
     await withFicheValues(prisma.participant.create({ data: { slug: `p-u-${key}`, email: `unique-${key}@example.test` } }), { name: 'Unique' })
     await expect(withFicheValues(prisma.participant.create({ data: { slug: `p-d-${key}`, email: `UNIQUE-${key}@example.test` } }), { name: 'Doublon' })).rejects.toThrow()
     // Plusieurs fiches sans adresse restent possibles
-    await prisma.participant.createMany({ data: [1, 2].map((index) => ({ name: `Sans adresse ${index}`, slug: `p-s${index}-${key}` })) })
+    await prisma.participant.createMany({ data: [1, 2].map((index) => ({ slug: `p-s${index}-${key}` })) })
   })
 })

@@ -1,3 +1,4 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { inSentence, withGame } from '~/utils/sessionLabels'
 import { labelSession } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
@@ -130,7 +131,7 @@ export function buildPaymentRows<P extends PaymentParticipant, C extends { name:
 }
 
 // Nom tenu par le jeu, ajouté à la lecture (US-242)
-const participantSelect = { id: true, email: true } as const
+const participantSelect = { id: true, email: true } as const satisfies Prisma.ParticipantSelect
 
 export const REFUNDABLE_SESSION_STATUSES: string[] = [SESSION_STATUSES.cancelled, SESSION_STATUSES.postponed]
 

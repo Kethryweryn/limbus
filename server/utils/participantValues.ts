@@ -7,7 +7,7 @@ import { prisma } from './prisma'
  */
 
 type Plain = Record<string, unknown>
-type GameValue = { name: string | null, phone: string | null }
+type GameValue = { name: string, phone: string | null }
 
 // Clés sous lesquelles une lecture expose une fiche participant : celles des relations vers `Participant` du schéma,
 // ce que vérifie tests/server/participantValues.test.ts
@@ -68,7 +68,7 @@ export async function withGameValuesIn<T extends { id: string }, P extends boole
  */
 export function latestVisibleValues<T extends Plain & { gameLinks?: Array<{ name?: string | null, phone?: string | null, updatedAt?: Date }> }>(fiche: T): T & { name: string, phone: string | null } {
   const latest = [...(fiche.gameLinks || [])].sort((left, right) => (right.updatedAt?.getTime() ?? 0) - (left.updatedAt?.getTime() ?? 0))[0]
-  applyValue(fiche, latest ? { name: latest.name ?? null, phone: latest.phone ?? null } : undefined, true)
+  applyValue(fiche, latest ? { name: latest.name ?? '', phone: latest.phone ?? null } : undefined, true)
   return fiche as T & { name: string, phone: string | null }
 }
 
@@ -101,7 +101,7 @@ export async function namesIn(gameId: string, participantIds: string[]): Promise
   if (!ids.length) return new Map()
   const links = await prisma.participantGame.findMany({ where: { gameId, participantId: { in: ids } }, select: { participantId: true, name: true } })
   const names = new Map(ids.map((id) => [id, '']))
-  for (const link of links) names.set(link.participantId, link.name ?? '')
+  for (const link of links) names.set(link.participantId, link.name)
   return names
 }
 

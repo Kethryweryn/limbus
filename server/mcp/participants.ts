@@ -31,6 +31,6 @@ export function registerParticipantTools({ event, server }: ToolContext) {
     ])
     // Version de la fiche : le plus récent de ses liens dans les jeux de l'autorisation (ADR-0086), celle que contrôle la modification
     const versionOf = await participantVersions(links.map((link) => link.participant.id), await accessibleGameIds(event))
-    return pageOf(links.map((link) => ({ id: link.participant.id, name: link.name ?? '', notes: link.notes, updatedAt: versionOf.get(link.participant.id) })), page, total)
+    return pageOf(links.map((link) => ({ id: link.participant.id, name: link.name, notes: link.notes, updatedAt: versionOf.get(link.participant.id) })), page, total)
   }))
 }
