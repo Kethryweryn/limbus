@@ -4,6 +4,8 @@ import { createTestPrisma } from '../integration/db'
 // signale chaque violation à /api/public/csp-report, qui la compte en base. Une seule violation fait échouer la suite :
 // une ressource que la CSP refuserait casserait cet écran une fois la CSP bloquante
 export default async function globalTeardown() {
+  // Le navigateur envoie ses rapports en différé : laisser arriver ceux des derniers tests
+  await new Promise((resolve) => setTimeout(resolve, 3000))
   const prisma = createTestPrisma()
   try {
     const violations = await prisma.cspViolation.findMany({

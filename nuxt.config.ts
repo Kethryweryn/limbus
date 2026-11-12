@@ -46,23 +46,13 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-04-07',
   devtools: { enabled: true },
   modules: ['@nuxt/ui', '@nuxt/eslint', '@pinia/nuxt', '@vite-pwa/nuxt', 'nuxt-security'],
-  // Icônes livrées avec Limbus (US-250, ADR-0091) : celles des pages et de Nuxt UI dans le code de la page, les autres
-  // servies par Limbus ; jamais demandées à api.iconify.design, que la CSP refuse
+  // Icônes livrées avec Limbus (US-250, ADR-0091) : servies par Limbus, et embarquées dans le code de la page (celles
+  // écrites dans les .vue et .ts, et celles de Nuxt UI, qu'il ajoute lui-même) ; jamais demandées à api.iconify.design,
+  // que la CSP refuse. Un nom d'icône s'écrit en entier : un nom calculé échapperait au scan (règle ESLint)
   icon: {
     serverBundle: { collections: ['heroicons', 'lucide'] },
     clientBundle: {
-      scan: { globInclude: ['**/*.{vue,ts}'], globExclude: ['node_modules', 'dist', 'tests', 'prisma', 'server', '.*'] },
-      // Icônes par défaut de Nuxt UI (flèches, fermeture, chargement…), absentes du code de Limbus
-      icons: [
-        'lucide:arrow-down', 'lucide:arrow-left', 'lucide:arrow-right', 'lucide:arrow-up', 'lucide:arrow-up-right',
-        'lucide:check', 'lucide:chevron-down', 'lucide:chevron-left', 'lucide:chevron-right', 'lucide:chevron-up',
-        'lucide:chevrons-left', 'lucide:chevrons-right', 'lucide:circle-alert', 'lucide:circle-check', 'lucide:circle-x',
-        'lucide:copy', 'lucide:copy-check', 'lucide:ellipsis', 'lucide:eye', 'lucide:eye-off', 'lucide:file',
-        'lucide:folder', 'lucide:folder-open', 'lucide:grip-vertical', 'lucide:hash', 'lucide:info', 'lucide:lightbulb',
-        'lucide:loader-circle', 'lucide:menu', 'lucide:minus', 'lucide:monitor', 'lucide:moon', 'lucide:panel-left-close',
-        'lucide:panel-left-open', 'lucide:plus', 'lucide:rotate-ccw', 'lucide:search', 'lucide:square', 'lucide:star',
-        'lucide:sun', 'lucide:terminal', 'lucide:triangle-alert', 'lucide:upload', 'lucide:x'
-      ]
+      scan: { globInclude: ['**/*.{vue,ts}'], globExclude: ['node_modules', 'dist', 'tests', 'prisma', 'server', '.*'] }
     },
     fallbackToApi: false
   },
