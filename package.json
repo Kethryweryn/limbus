@@ -19,6 +19,8 @@
     "test:e2e": "playwright test --config tests/e2e/playwright.config.ts"
   },
   "dependencies": {
+    "@iconify-json/heroicons": "^1.2.3",
+    "@iconify-json/lucide": "^1.2.154",
     "@modelcontextprotocol/server": "^2.4.0",
     "@nuxt/ui": "^4.7.1",
     "@pinia/nuxt": "^1.0.3",

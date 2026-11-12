@@ -46,13 +46,35 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-04-07',
   devtools: { enabled: true },
   modules: ['@nuxt/ui', '@nuxt/eslint', '@pinia/nuxt', '@vite-pwa/nuxt', 'nuxt-security'],
+  // Icônes livrées avec Limbus (US-250, ADR-0091) : celles des pages et de Nuxt UI dans le code de la page, les autres
+  // servies par Limbus ; jamais demandées à api.iconify.design, que la CSP refuse
+  icon: {
+    serverBundle: { collections: ['heroicons', 'lucide'] },
+    clientBundle: {
+      scan: { globInclude: ['**/*.{vue,ts}'], globExclude: ['node_modules', 'dist', 'tests', 'prisma', 'server', '.*'] },
+      // Icônes par défaut de Nuxt UI (flèches, fermeture, chargement…), absentes du code de Limbus
+      icons: [
+        'lucide:arrow-down', 'lucide:arrow-left', 'lucide:arrow-right', 'lucide:arrow-up', 'lucide:arrow-up-right',
+        'lucide:check', 'lucide:chevron-down', 'lucide:chevron-left', 'lucide:chevron-right', 'lucide:chevron-up',
+        'lucide:chevrons-left', 'lucide:chevrons-right', 'lucide:circle-alert', 'lucide:circle-check', 'lucide:circle-x',
+        'lucide:copy', 'lucide:copy-check', 'lucide:ellipsis', 'lucide:eye', 'lucide:eye-off', 'lucide:file',
+        'lucide:folder', 'lucide:folder-open', 'lucide:grip-vertical', 'lucide:hash', 'lucide:info', 'lucide:lightbulb',
+        'lucide:loader-circle', 'lucide:menu', 'lucide:minus', 'lucide:monitor', 'lucide:moon', 'lucide:panel-left-close',
+        'lucide:panel-left-open', 'lucide:plus', 'lucide:rotate-ccw', 'lucide:search', 'lucide:square', 'lucide:star',
+        'lucide:sun', 'lucide:terminal', 'lucide:triangle-alert', 'lucide:upload', 'lucide:x'
+      ]
+    },
+    fallbackToApi: false
+  },
   // CSP et COOP posées par l'application, d'abord en mode rapport (US-106, ADR-0053). Le reste du module est désactivé :
   // Limbus a ses propres limites de débit, de taille et contrôles d'origine, et Apache pose HSTS
   security: {
     headers: {
       contentSecurityPolicy: {
         'default-src': ["'self'"],
-        'script-src': ["'self'", "'nonce-{{nonce}}'", "'strict-dynamic'"],
+        // Sans 'strict-dynamic' (ADR-0091) : la page d'accueil, prérendue pour l'ouverture sans réseau, n'a pas de nonce,
+        // et ses fichiers de script ne passent que par 'self', que 'strict-dynamic' ferait ignorer
+        'script-src': ["'self'", "'nonce-{{nonce}}'"],
         'script-src-attr': ["'none'"],
         'style-src': ["'self'", "'unsafe-inline'"],
         'img-src': ["'self'", 'data:', 'blob:', 'https:'],

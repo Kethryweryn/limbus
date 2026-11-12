@@ -1,7 +1,7 @@
 ---
 id: ADR-0053
 titre: Origine vérifiée sur les écritures, cookies __Host-, CSP par Nuxt Security en mode rapport
-statut: accepté
+statut: remplacé en partie par ADR-0091
 date: 2026-11-01
 liens: [../todo/durcissement-web.md, ../revues/2026-10-29-architecture.md, ADR-0003-service-de-production.md]
 ---
