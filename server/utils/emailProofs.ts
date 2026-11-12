@@ -3,7 +3,7 @@ import { absoluteAppUrl } from '~/server/utils/appUrl'
 import { sendEmail } from '~/server/utils/email'
 import { lockAddress } from '~/server/utils/participantAddress'
 import { moveParticipant } from '~/server/utils/participantWrites'
-import { accountIdForEmail, syncProfileToParticipants } from '~/server/utils/participantAccounts'
+import { accountForEmail, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 import { createRegistrationToken, findParticipantByEmail, hashRegistrationToken } from '~/server/utils/registrations'
 import { RETENTION } from '~/utils/legal'
 
@@ -65,7 +65,7 @@ export async function adoptAddress(tx: PrismaTx, participantId: string, email: s
   await lockAddress(tx, email)
   const target = await findParticipantByEmail(email, tx)
   const finalId = target && target.id !== source.id ? target.id : source.id
-  const accountId = finalId === source.id ? await accountIdForEmail(email) : target!.userId
+  const accountId = finalId === source.id ? await accountForEmail(tx, email) : target!.userId
   if (finalId === source.id) await tx.participant.update({ where: { id: source.id }, data: { email, userId: accountId } })
   else await moveParticipant(tx, source.id, finalId, gameIds)
   if (source.email) {

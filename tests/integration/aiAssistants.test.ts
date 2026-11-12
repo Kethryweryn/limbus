@@ -369,6 +369,8 @@ describe('sessions et participants', () => {
     const ana = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Ana Assistée', email: 'ana-ia@example.test', notes: 'Joue souvent les meneuses' })).json
     const ben = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Ben Assisté', email: 'ben-ia@example.test' })).json
     const cleo = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Cléo Orga', email: 'cleo-ia@example.test' })).json
+    // Fiche à une adresse sans compte : un compte non activé est pré-créé, comme depuis l'interface (US-244)
+    expect(await prisma.user.findUnique({ where: { email: 'ana-ia@example.test' }, select: { password: true, emailConfirmedAt: true } })).toEqual({ password: null, emailConfirmedAt: null })
     expect(await prisma.participant.findUniqueOrThrow({ where: { id: ana.id }, select: { email: true, gameLinks: { select: { gameId: true, notes: true, phone: true } } } }))
       .toEqual({ email: 'ana-ia@example.test', gameLinks: [{ gameId: game.id, notes: 'Joue souvent les meneuses', phone: null }] })
 

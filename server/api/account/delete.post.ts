@@ -1,5 +1,5 @@
-import bcrypt from 'bcrypt'
 import { prisma } from '~/server/utils/prisma'
+import { passwordMatches } from '~/server/utils/passwordHash'
 import { clearAuthCookie, requireUser } from '~/server/utils/auth'
 import { accountDeleteSchema, readZodBody } from '~/server/utils/schemas'
 import { assertRateLimit } from '~/server/utils/rateLimit'
@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   assertRateLimit(event, { name: 'account-delete', limit: 5, windowMs: 15 * 60 * 1000, keyParts: [id] })
 
   const { password } = await prisma.user.findUniqueOrThrow({ where: { id }, select: { password: true } })
-  if (!await bcrypt.compare(body.password, password)) {
+  if (!await passwordMatches(body.password, password)) {
     throw createError({ statusCode: 400, message: 'Mot de passe incorrect.' })
   }
 

@@ -6,7 +6,7 @@ import type { participantCreateSchema, participantSchema } from '~/server/utils/
 import { exposeParticipantGames, participantGameLinksInclude, planParticipantRemoval } from '~/server/utils/participants'
 import { eraseParticipant } from '~/server/utils/participantPrivacy'
 import { assertParticipantUnmodifiedSince } from '~/server/utils/concurrency'
-import { accountIdForEmail, syncProfileToParticipants } from '~/server/utils/participantAccounts'
+import { accountForEmail, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 import { participantSlug } from '~/utils/participantSlug'
 import { lockAddress } from '~/server/utils/participantAddress'
 
@@ -77,8 +77,9 @@ export async function createParticipant(event: H3Event, readBody: Reader<typeof 
         return { id: existing.id, userId: existing.userId, joinedExisting: visible.length > 0 }
       }
     }
-    // Rattachée au compte de son adresse (US-070) ; slug et compte ne se calculent que pour une vraie création
-    const accountId = await accountIdForEmail(email)
+    // Rattachée au compte de son adresse, pré-créé au besoin (US-070, US-244) ; slug et compte ne se calculent que pour
+    // une vraie création
+    const accountId = await accountForEmail(tx, address)
     const created = await tx.participant.create({
       data: {
         // Adresse neutre, sans le nom (US-239) ; nom et téléphone vivent sur les liens (US-242)
@@ -143,7 +144,7 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
   const result = await prisma.$transaction(async (tx) => {
     const current = await tx.participant.findUniqueOrThrow({
       where: { id },
-      select: { userId: true, email: true, user: { select: { name: true, phone: true } } }
+      select: { userId: true, email: true, user: { select: { name: true, phone: true, emailConfirmedAt: true } } }
     })
     // Adresse corrigée (SPEC-022 R7) : changée sur place si l'équipe voit tous les jeux de la fiche et qu'aucune autre
     // fiche ne la porte ; sinon, seuls les jeux de l'équipe passent à la fiche de cette adresse, créée au besoin. La
@@ -155,7 +156,7 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
       const other = await ficheForAddress(tx, address, id)
       if (other || managedExistingGameIds.length < existingLinks.length) {
         target = other ?? await tx.participant.create({
-          data: { slug: participantSlug(), email: address, userId: await accountIdForEmail(address) },
+          data: { slug: participantSlug(), email: address, userId: await accountForEmail(tx, address) },
           select: { id: true, userId: true }
         })
       }
@@ -164,10 +165,11 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
     // Une fiche sans aucun jeu est supprimée (US-036) : l'interface l'a fait confirmer
     if (!gameIdsToAdd.length && !await tx.participantGame.count({ where: { participantId: id } })) return null
 
-    // Fiche qui reste rattachée : nom et téléphone sont tenus par la personne, l'envoi de l'équipe est ignoré (US-075).
-    // Une fiche dont l'équipe part vers une autre adresse garde son adresse et son compte
-    const userId = target ? current.userId : await accountIdForEmail(email)
-    const heldByPerson = !target && Boolean(userId && userId === current.userId)
+    // Fiche qui reste rattachée à un compte activé : nom et téléphone sont tenus par la personne, l'envoi de l'équipe est
+    // ignoré (US-075). Un compte pré-créé ne tient rien (US-244). Une fiche dont l'équipe part vers une autre adresse garde
+    // son adresse et son compte
+    const userId = target ? current.userId : await accountForEmail(tx, email)
+    const heldByPerson = !target && Boolean(userId && userId === current.userId && current.user?.emailConfirmedAt)
     // Tenus par la personne (ADR-0042) : l'équipe n'y touche pas. Ses jeux gardent chacun leurs valeurs, et un jeu ajouté
     // reçoit celles du compte, jamais celles qu'une autre équipe tient (revue de la PR #237)
     const effectiveName = heldByPerson ? current.user?.name ?? name : name

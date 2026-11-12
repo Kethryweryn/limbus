@@ -112,12 +112,12 @@
             Photo refusée depuis le {{ new Date(participant.photoRefusedAt).toLocaleDateString('fr-FR') }} : aucune photo de cette personne dans le cast ni les trombinoscopes.
           </p>
           <p v-else class="text-sm text-gray-600">Cette personne n’a pas refusé l’usage de sa photo.</p>
-          <p v-if="participant.photoRefusedAt && participant.userId" class="mt-2 text-xs text-gray-500">
+          <p v-if="participant.photoRefusedAt && participant.heldByPerson" class="mt-2 text-xs text-gray-500">
             Elle a un compte : elle seule peut lever ce refus, depuis « Mon compte ».
           </p>
           <div class="mt-3 flex items-center gap-3">
             <UButton
-              v-if="!participant.photoRefusedAt || !participant.userId"
+              v-if="!participant.photoRefusedAt || !participant.heldByPerson"
               size="sm"
               color="neutral"
               variant="soft"

@@ -5,7 +5,7 @@ import { prisma } from '~/server/utils/prisma'
 import { requireAuthUser } from '~/server/utils/auth'
 import { absoluteAppUrl } from '~/server/utils/appUrl'
 import { sendEmail } from '~/server/utils/email'
-import { accountIdForEmail } from '~/server/utils/participantAccounts'
+import { accountForEmail } from '~/server/utils/participantAccounts'
 import { assertRateLimit } from '~/server/utils/rateLimit'
 import { createRegistrationToken, findParticipantByEmail, hashRegistrationToken, notifyGameTeam } from '~/server/utils/registrations'
 import { freezeFormVersion, updateProfileFromAnswers, type RegistrationAnswers } from '~/server/utils/publicRegistrations'
@@ -191,8 +191,6 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
   const { affinities, questionAnswers, availableSessionIds, ...standard } = answers
   const email = standard.email
   const name = [standard.firstName, standard.lastName].filter(Boolean).join(' ').trim() || email.split('@')[0]!
-  // Adresse neutre, sans le nom (US-239)
-  const userId = await accountIdForEmail(email)
   const now = new Date()
   // Disponibilités encore valides : une session refermée entre l'envoi et la confirmation est ignorée
   const sessionIds = new Set((await offeredSessions(period.id)).map((session) => session.id))
@@ -207,6 +205,8 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
     // Fiche de l'adresse, cherchée sous verrou : deux réponses simultanées de la même adresse n'en font qu'une (US-240)
     await lockAddress(tx, email)
     const matched = await findParticipantByEmail(email, tx)
+    // Compte de l'adresse, pré-créé au besoin (US-244) ; adresse de page neutre, sans le nom (US-239)
+    const userId = await accountForEmail(tx, email)
     const participant = matched
       ? await tx.participant.update({ where: { id: matched.id }, data: { email, userId }, select: { id: true } })
       : await tx.participant.create({ data: { slug: participantSlug(), email, userId }, select: { id: true } })

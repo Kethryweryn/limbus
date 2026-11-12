@@ -3,7 +3,9 @@ import { setAuthCookie } from '~/server/utils/auth'
 import { accountTokenSchema, readZodBody } from '~/server/utils/schemas'
 import { ACCOUNT_TOKEN_KINDS, consumeAccountToken } from '~/server/utils/accounts'
 import { sendEmailChangedNoticeEmail } from '~/server/utils/email'
-import { linkParticipantsToUser } from '~/server/utils/participantAccounts'
+import { linkParticipantsToUser, syncProfileToParticipants } from '~/server/utils/participantAccounts'
+import { lockAddress } from '~/server/utils/participantAddress'
+import { adoptAddress } from '~/server/utils/emailProofs'
 
 // Lien de confirmation : adresse d'une inscription (US-061) ou nouvelle adresse d'un compte (US-063)
 export default defineEventHandler(async (event) => {
@@ -37,17 +39,26 @@ export default defineEventHandler(async (event) => {
   // Changement d'adresse : elle a pu être prise depuis la demande, ou à l'instant (index unique)
   const newEmail = record.email!
   const taken = () => createError({ statusCode: 409, message: 'Cette adresse est déjà utilisée par un autre compte.' })
-  if (await prisma.user.findUnique({ where: { email: newEmail }, select: { id: true } })) throw taken()
   try {
-    await prisma.user.update({ where: { id: user.id }, data: { email: newEmail, emailConfirmedAt: new Date() } })
+    await prisma.$transaction(async (tx) => {
+      await lockAddress(tx, newEmail)
+      const occupant = await tx.user.findUnique({ where: { email: newEmail }, select: { id: true, emailConfirmedAt: true } })
+      if (occupant?.emailConfirmedAt) throw taken()
+      // Compte non activé à cette adresse (ADR-0088), pré-créé pour une fiche : le lien prouve qu'elle est à la personne.
+      // Il disparaît, et sa fiche se réunit à celle de la personne, comme après une preuve d'adresse (ADR-0087)
+      if (occupant) await tx.user.delete({ where: { id: occupant.id } })
+      await tx.user.update({ where: { id: user.id }, data: { email: newEmail, emailConfirmedAt: new Date() } })
+      const own = await tx.participant.findFirst({ where: { userId: user.id }, select: { id: true } })
+      if (own) await adoptAddress(tx, own.id, newEmail)
+      await tx.participant.updateMany({ where: { email: newEmail }, data: { userId: user.id } })
+    })
   } catch (error) {
     if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002') throw taken()
     throw error
   }
-  // Les fiches rattachées prennent la nouvelle adresse, sinon une modification par l'équipe les détacherait ;
-  // celles qui portaient déjà la nouvelle adresse se rattachent (US-070, ADR-0041)
-  await prisma.participant.updateMany({ where: { userId: user.id }, data: { email: newEmail } })
-  await linkParticipantsToUser({ id: user.id, email: newEmail })
+  // Sa fiche a pris la nouvelle adresse, sinon une modification par l'équipe la détacherait ; elle reçoit les
+  // coordonnées du compte (US-070, ADR-0041)
+  await syncProfileToParticipants(user.id)
   // L'ancienne adresse est prévenue ; un échec d'envoi n'annule pas le changement
   await sendEmailChangedNoticeEmail({ to: user.email, newEmail }).catch(() => undefined)
   setAuthCookie(event, user)

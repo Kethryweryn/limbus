@@ -35,6 +35,10 @@ L'utilisatrice a choisi, le 2026-11-12 :
    Les pages et l'email d'activation répondent la même chose que l'adresse ait un compte ou non, comme « Mot de passe oublié ». Pour un compte déjà activé, la page `/acces/activer` envoie l'email « vous avez déjà un compte », comme l'inscription libre.
 6. **Ligne des emails** : `participantAccountFooter(email)` rend la ligne à ajouter à chaque email qu'une équipe envoie à une personne qui a une fiche : invitation, lien personnel, décisions et rappels d'inscription, réponses enregistrées, documents et fiche personnage, trombinoscope, paiement, annulation et report d'une session. Les emails de test, qui partent à l'équipe, et la demande de confirmation d'un formulaire public, qui précède la fiche, n'en ont pas. Pour un compte non activé, la ligne mène à `/acces/activer`. Pour un compte activé, elle mène à `/participer`. Aucune adresse ni aucun jeton ne figure dans l'URL.
 
+7. **Adresse déjà prise par un compte non activé** (choix de l'utilisatrice, 2026-11-12) : un compte non activé n'occupe pas son adresse.
+   - Une personne au compte activé peut prendre cette adresse pour son compte. Le lien envoyé à l'adresse la prouve ; à sa confirmation, le compte non activé disparaît et sa fiche se réunit à celle de la personne, comme après une preuve d'adresse ([ADR-0087](ADR-0087-preuve-d-une-autre-adresse.md)).
+   - L'administratrice qui crée un compte à cette adresse reprend le compte non activé : il prend le nom et le rôle saisis, garde ses fiches, perd les liens d'une inscription non confirmée, et la personne reçoit le lien de création de mot de passe.
+
 ## Conséquences
 
 - Un compte peut exister sans que la personne le sache. La politique de confidentialité le dit dès la mise en service des comptes pré-créés (R16, avancée au lot 2), et `TERMS_VERSION` change.

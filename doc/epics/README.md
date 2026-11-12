@@ -64,7 +64,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-054](../archive/epics/EPIC-054-page-inscriptions/README.md) | Une page Inscriptions par jeu, en onglets | [SPEC-020](../specs/SPEC-020-page-inscriptions.md) | terminé |
 | [EPIC-055](../archive/epics/EPIC-055-session-sans-nom/README.md) | Une session sans nom, désignée par sa date | [SPEC-021](../specs/SPEC-021-session-sans-nom.md) | terminé |
 | [EPIC-056](../archive/epics/EPIC-056-une-fiche-par-personne/README.md) | Une fiche par personne dans tout Limbus | [SPEC-022](../specs/SPEC-022-compte-pour-chaque-participant.md) | terminé |
-| [EPIC-057](EPIC-057-compte-pre-cree-et-activation/README.md) | Un compte pré-créé pour chaque fiche, que la personne active | [SPEC-022](../specs/SPEC-022-compte-pour-chaque-participant.md) | à faire |
+| [EPIC-057](EPIC-057-compte-pre-cree-et-activation/README.md) | Un compte pré-créé pour chaque fiche, que la personne active | [SPEC-022](../specs/SPEC-022-compte-pour-chaque-participant.md) | en cours |
 
 ## US
 
@@ -313,7 +313,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-241](../archive/epics/EPIC-056-une-fiche-par-personne/US-241-effacement-et-export-par-equipe.md) | Effacer et exporter ce qui concerne son équipe | EPIC-056 | terminée |
 | [US-242](../archive/epics/EPIC-056-une-fiche-par-personne/US-242-retirer-nom-et-telephone-de-la-fiche.md) | Retirer le nom et le téléphone de la fiche | EPIC-056 | terminée |
 | [US-243](../archive/epics/EPIC-056-une-fiche-par-personne/US-243-prouver-une-autre-adresse.md) | Prouver une autre adresse donnée en réponse, puis réunir les deux fiches | EPIC-056 | terminée |
-| [US-244](EPIC-057-compte-pre-cree-et-activation/US-244-compte-pre-cree.md) | Un compte pré-créé pour chaque fiche | EPIC-057 | à faire |
+| [US-244](EPIC-057-compte-pre-cree-et-activation/US-244-compte-pre-cree.md) | Un compte pré-créé pour chaque fiche | EPIC-057 | terminée |
 | [US-245](EPIC-057-compte-pre-cree-et-activation/US-245-recopie-champ-par-champ.md) | Les coordonnées recopiées champ par champ | EPIC-057 | à faire |
 | [US-246](EPIC-057-compte-pre-cree-et-activation/US-246-activer-son-compte.md) | Activer son compte | EPIC-057 | à faire |
 | [US-247](EPIC-057-compte-pre-cree-et-activation/US-247-ligne-des-emails.md) | Une ligne au bas des emails des équipes | EPIC-057 | à faire |

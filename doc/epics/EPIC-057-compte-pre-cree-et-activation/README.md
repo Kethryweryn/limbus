@@ -1,7 +1,7 @@
 ---
 id: EPIC-057
 titre: Un compte pré-créé pour chaque fiche, que la personne active
-statut: à faire
+statut: en cours
 spec: ../../specs/SPEC-022-compte-pour-chaque-participant.md
 date: 2026-11-12
 ---
@@ -21,7 +21,7 @@ Décisions :
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-244](US-244-compte-pre-cree.md) | Un compte pré-créé pour chaque fiche | à faire |
+| [US-244](US-244-compte-pre-cree.md) | Un compte pré-créé pour chaque fiche | terminée |
 | [US-245](US-245-recopie-champ-par-champ.md) | Les coordonnées recopiées champ par champ | à faire |
 | [US-246](US-246-activer-son-compte.md) | Activer son compte | à faire |
 | [US-247](US-247-ligne-des-emails.md) | Une ligne au bas des emails des équipes | à faire |

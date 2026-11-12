@@ -11,25 +11,29 @@ export default defineEventHandler(async (event) => {
   const body = await readZodBody(event, userCreateSchema)
   await assertEmailEnabled()
 
-  if (await prisma.user.findUnique({ where: { email: body.email }, select: { id: true } })) {
+  const existing = await prisma.user.findUnique({ where: { email: body.email }, select: { id: true, emailConfirmedAt: true } })
+  if (existing?.emailConfirmedAt) {
     throw createError({ statusCode: 409, message: 'Un compte existe déjà pour cette adresse.' })
   }
-  const user = await prisma.user.create({
-    data: {
-      email: body.email,
-      name: body.name,
-      password: await unusablePassword(),
-      role: body.role
-    },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-      createdAt: true,
-      updatedAt: true
-    }
-  })
+  // Compte non activé à cette adresse, pré-créé pour une fiche ou inscription jamais confirmée (ADR-0088) : il est repris,
+  // avec ses fiches, et rien de ce qu'une inscription avait saisi ne reste
+  const data = {
+    email: body.email,
+    name: body.name,
+    password: await unusablePassword(),
+    role: body.role,
+    emailConfirmedAt: new Date(),
+    termsAcceptedVersion: null,
+    termsAcceptedAt: null
+  }
+  const select = { id: true, email: true, name: true, role: true, createdAt: true, updatedAt: true } as const
+  // Les liens d'une inscription non confirmée tombent : l'un d'eux poserait le mot de passe d'un tiers
+  const user = existing
+    ? (await prisma.$transaction([
+        prisma.accountToken.deleteMany({ where: { userId: existing.id } }),
+        prisma.user.update({ where: { id: existing.id }, data, select })
+      ]))[1]
+    : await prisma.user.create({ data, select })
   // Adresse choisie par l'administratrice, confirmée d'emblée (ADR-0039) : les fiches s'y rattachent (US-070)
   await linkParticipantsToUser(user)
   const token = await createAccountToken(user.id, ACCOUNT_TOKEN_KINDS.password, ACCOUNT_TOKEN_TTL.passwordCreated)
