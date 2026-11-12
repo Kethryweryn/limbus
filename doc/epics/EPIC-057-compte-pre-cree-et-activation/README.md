@@ -23,7 +23,7 @@ Décisions :
 |---|---|---|
 | [US-244](US-244-compte-pre-cree.md) | Un compte pré-créé pour chaque fiche | terminée |
 | [US-245](US-245-recopie-champ-par-champ.md) | Les coordonnées recopiées champ par champ | terminée |
-| [US-246](US-246-activer-son-compte.md) | Activer son compte | à faire |
+| [US-246](US-246-activer-son-compte.md) | Activer son compte | terminée |
 | [US-247](US-247-ligne-des-emails.md) | Une ligne au bas des emails des équipes | à faire |
 
 Ordre : US-244 d'abord. Sa migration rend le mot de passe facultatif sans casser le build en service. Puis US-245, US-246 et US-247.

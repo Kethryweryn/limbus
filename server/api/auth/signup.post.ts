@@ -26,19 +26,17 @@ export default defineEventHandler(async (event) => {
     return { success: true }
   }
 
-  // Adresse déjà inscrite mais non confirmée : un nouveau lien, qui porte le mot de passe de CETTE inscription.
-  // Confirmer applique le mot de passe du lien cliqué : une inscription faite par un tiers avant la vraie
-  // personne ne lui impose pas son mot de passe
+  // Adresse déjà connue mais non activée (inscription non confirmée, ou compte pré-créé pour une fiche, ADR-0088) : rien
+  // ne s'écrit sur le compte avant la confirmation. Le lien porte le nom et le mot de passe de CETTE inscription, que la
+  // confirmation applique avec les conditions : une inscription faite par un tiers avant la vraie personne ne lui impose
+  // ni son nom ni son mot de passe (US-246)
   const passwordHash = await hashPassword(body.password)
-  // Conditions acceptées à l'inscription (US-111, ADR-0055)
-  const terms = { termsAcceptedVersion: TERMS_VERSION, termsAcceptedAt: new Date() }
-  const user = existing
-    ? await prisma.user.update({ where: { id: existing.id }, data: terms, select: { id: true, emailConfirmedAt: true } })
-    : await prisma.user.create({
-        data: { email: body.email, name: body.name, password: passwordHash, role: USER_ROLES.user, emailConfirmedAt: null, ...terms },
-        select: { id: true, emailConfirmedAt: true }
-      })
-  const token = await createAccountToken(user.id, ACCOUNT_TOKEN_KINDS.confirm, ACCOUNT_TOKEN_TTL.confirm, { passwordHash, keepOthers: true })
+  const user = existing ?? await prisma.user.create({
+    // Conditions acceptées à l'inscription (US-111, ADR-0055)
+    data: { email: body.email, name: body.name, password: passwordHash, role: USER_ROLES.user, emailConfirmedAt: null, termsAcceptedVersion: TERMS_VERSION, termsAcceptedAt: new Date() },
+    select: { id: true, emailConfirmedAt: true }
+  })
+  const token = await createAccountToken(user.id, ACCOUNT_TOKEN_KINDS.confirm, ACCOUNT_TOKEN_TTL.confirm, { passwordHash, name: body.name, keepOthers: true })
   await sendAccountConfirmationEmail({ to: body.email, url: confirmUrl(token) })
   return { success: true }
 })

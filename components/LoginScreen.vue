@@ -135,6 +135,10 @@ onUnmounted(() => {
                     <NuxtLink to="/acces/mot-de-passe-oublie" class="text-primary hover:underline">
                         Mot de passe oublié ?
                     </NuxtLink>
+                    <!-- Compte préparé par une équipe (US-246, SPEC-022 R9) -->
+                    <NuxtLink to="/acces/activer" class="text-primary hover:underline">
+                        Activer mon compte
+                    </NuxtLink>
                     <NuxtLink v-if="signupOpen" to="/acces/inscription" class="text-primary hover:underline">
                         Créer un compte
                     </NuxtLink>

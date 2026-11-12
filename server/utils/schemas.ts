@@ -622,6 +622,18 @@ export const accountTokenSchema = z.object({
   token: requiredText('Le lien')
 })
 
+// Activation d'un compte pré-créé (US-246) : l'adresse, puis le lien reçu avec le nom, le mot de passe et les conditions
+export const activationRequestSchema = z.object({
+  email: accountEmail()
+})
+
+export const activationSchema = z.object({
+  token: requiredText('Le lien'),
+  name: requiredText('Le nom'),
+  password: newPassword(),
+  termsAccepted: termsAccepted()
+})
+
 export const passwordForgottenSchema = z.object({
   email: accountEmail()
 })

@@ -1135,13 +1135,15 @@ model AccountToken {
   id        String    @id @default(cuid())
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  // confirm | email | password
+  // confirm | email | password | activate
   kind      AccountTokenKind
   tokenHash String    @unique
   // Nouvelle adresse, pour un changement d'email
   email     String?  @db.Citext
   // Mot de passe choisi à l'inscription : appliqué par ce lien seulement, pas par celui d'une autre inscription
   passwordHash String?
+  // Nom choisi à l'inscription : appliqué, avec le mot de passe et les conditions, à la confirmation seulement (US-246)
+  name      String?
   expiresAt DateTime @db.Timestamptz(3)
   usedAt    DateTime? @db.Timestamptz(3)
   createdAt DateTime  @default(now()) @db.Timestamptz(3)
@@ -1494,6 +1496,8 @@ enum AccountTokenKind {
   confirm
   email
   password
+  // Activation d'un compte pré-créé (US-246, ADR-0088)
+  activate
 }
 
 enum GameShareRole {

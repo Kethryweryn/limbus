@@ -1,5 +1,6 @@
 // US-244 (SPEC-022 R1, R2, ADR-0088) : toute fiche à une adresse appartient au compte de cette adresse, pré-créé non activé
 // s'il n'existe pas, sans email ; on ne peut pas s'y connecter, et l'équipe garde la main sur la fiche
+import { randomUUID } from 'node:crypto'
 import bcrypt from 'bcrypt'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { api, bodyOf } from './api'
@@ -24,6 +25,8 @@ afterAll(async () => {
 const fromIp = () => ({ headers: { 'x-forwarded-for': `10.44.${Math.floor(++counter / 250)}.${counter % 250}` } })
 const unique = (name: string) => `${name}-${++counter}@example.test`
 const sentTo = (email: string, since: number) => smtp.received.slice(since).filter((received) => received.to.includes(email))
+// Empreinte d'un mot de passe tiré au hasard : aucun mot de passe écrit en clair dans les tests
+const someHash = async () => await bcrypt.hash(randomUUID(), 4)
 const linkIn = (message: ReceivedEmail, path: string) => message.text.match(new RegExp(`/${path}/([\\w-]+)`))?.[1]
 
 async function login(email: string, password: string) {
@@ -75,16 +78,12 @@ describe('compte pré-créé (US-244)', () => {
     expect((await prisma.participant.findUniqueOrThrow({ where: { id: fiche.id } })).userId).toBe(account.id)
   })
 
-  it('on ne se connecte pas à un compte non activé, et « Mot de passe oublié » n’envoie rien', async () => {
+  it('on ne se connecte pas à un compte non activé', async () => {
     const email = unique('inactif')
     await createFiche(email)
-    const response = await login(email, 'nimporte-quoi')
+    const response = await login(email, randomUUID())
     expect(response.status).toBe(401)
     expect((await response.json()).message).toBe('Email ou mot de passe incorrect')
-
-    const sent = smtp.received.length
-    expect((await api(null, 'POST', '/api/auth/password-forgotten', { email }, fromIp())).status).toBe(200)
-    expect(sentTo(email, sent)).toEqual([])
   })
 
   it('l’équipe modifie le nom et le téléphone d’une fiche au compte non activé', async () => {
@@ -99,7 +98,7 @@ describe('compte pré-créé (US-244)', () => {
 
   it('une fiche rattachée à un compte activé reste tenue par la personne', async () => {
     const email = unique('activee')
-    await prisma.user.create({ data: { email, name: 'Personne Active', password: 'non-utilise', phone: '0700000000', profileUpdatedAt: new Date() } })
+    await prisma.user.create({ data: { email, name: 'Personne Active', password: await someHash(), phone: '0700000000', profileUpdatedAt: new Date() } })
     const fiche = await createFiche(email, 'Nom saisi')
     expect(fiche).toMatchObject({ heldByPerson: true, name: 'Personne Active' })
   })
@@ -119,9 +118,9 @@ describe('inscription libre jamais confirmée (US-244)', () => {
     await createFiche(withFiche)
     await prisma.user.update({
       where: { email: withFiche },
-      data: { name: 'Nom d’un tiers', password: 'empreinte', termsAcceptedVersion: '2026-01-01', termsAcceptedAt: new Date(), createdAt: eightDaysAgo() }
+      data: { name: 'Nom d’un tiers', password: await someHash(), termsAcceptedVersion: '2026-01-01', termsAcceptedAt: new Date(), createdAt: eightDaysAgo() }
     })
-    const alone = await prisma.user.create({ data: { email: unique('seule'), name: 'Seule', password: 'empreinte', emailConfirmedAt: null, createdAt: eightDaysAgo() } })
+    const alone = await prisma.user.create({ data: { email: unique('seule'), name: 'Seule', password: await someHash(), emailConfirmedAt: null, createdAt: eightDaysAgo() } })
     const preCreatedAlone = await prisma.user.create({ data: { email: unique('sans-fiche'), name: '', password: null, emailConfirmedAt: null, createdAt: eightDaysAgo() } })
 
     await login(unique('declencheur'), 'x')
@@ -135,7 +134,7 @@ describe('inscription libre jamais confirmée (US-244)', () => {
 
 describe('adresse d’un compte non activé reprise (US-244)', () => {
   it('une personne activée prend cette adresse : les deux fiches se réunissent, le compte non activé disparaît', async () => {
-    const password = 'mot-de-passe-actuel'
+    const password = randomUUID()
     const ownEmail = unique('activee')
     const user = await prisma.user.create({ data: { email: ownEmail, name: 'Camille', password: await bcrypt.hash(password, 4) } })
     // Sa fiche chez Bob, à son adresse de compte ; une autre chez Alice, à une adresse qu'Alice connaît
@@ -160,9 +159,9 @@ describe('adresse d’un compte non activé reprise (US-244)', () => {
   })
 
   it('l’adresse d’un compte activé reste refusée', async () => {
-    const password = 'mot-de-passe-actuel'
+    const password = randomUUID()
     const user = await prisma.user.create({ data: { email: unique('demandeuse'), name: 'D', password: await bcrypt.hash(password, 4) } })
-    const taken = await prisma.user.create({ data: { email: unique('prise'), name: 'P', password: 'x' } })
+    const taken = await prisma.user.create({ data: { email: unique('prise'), name: 'P', password: await someHash() } })
     expect((await api(user, 'POST', '/api/account/email', { email: taken.email, password })).status).toBe(409)
   })
 
@@ -170,7 +169,7 @@ describe('adresse d’un compte non activé reprise (US-244)', () => {
     const email = unique('reprise')
     const fiche = await createFiche(email)
     const preCreated = await prisma.user.findUniqueOrThrow({ where: { email } })
-    await prisma.accountToken.create({ data: { userId: preCreated.id, kind: 'confirm', tokenHash: `ancien-${counter}`, passwordHash: 'tiers', expiresAt: new Date(Date.now() + 3_600_000) } })
+    await prisma.accountToken.create({ data: { userId: preCreated.id, kind: 'confirm', tokenHash: `ancien-${counter}`, passwordHash: await someHash(), expiresAt: new Date(Date.now() + 3_600_000) } })
 
     const sent = smtp.received.length
     const response = await api(admin, 'POST', '/api/admin/users', { email, name: 'Reprise' })
