@@ -8,6 +8,7 @@ import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf } from './api'
 import { createTestPrisma } from './db'
 import { triggerPurge } from './purge'
+import { withFicheValues } from '../fiche'
 
 const prisma = createTestPrisma()
 const { alice, bob } = inject('world').users
@@ -34,9 +35,9 @@ async function aliceGame(extra: Record<string, unknown> = {}) {
   const key = `photos-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id, ...extra } })
   const [viewer, target] = await Promise.all(['Lea', 'Noe'].map((name) => prisma.character.create({ data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, gameId: game.id } })))
-  const person = (name: string, data: Record<string, unknown> = {}) => prisma.participant.create({
-    data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } }, ...data }
-  })
+  const person = (name: string, data: Record<string, unknown> = {}) => withFicheValues(prisma.participant.create({
+    data: { slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id , name: `${name} ${key}` } }, ...data }
+  }), { name: `${name} ${key}` })
   return { key, game, viewer: viewer!, target: target!, person }
 }
 

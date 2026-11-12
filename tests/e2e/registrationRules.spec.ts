@@ -9,6 +9,7 @@ import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
 import { gamePanel, openRegistrations, orgaGame, orgaSession, registrationTab, signIn, slugOf, test, type TestPrisma, testUser, uniqueName } from './helpers'
 import type { RegistrationSessionStatus } from '~/generated/prisma/enums'
+import { withFicheValues } from '../fiche'
 
 type Line = { status: RegistrationSessionStatus, answer?: 'available' | 'unavailable', waitlistPosition?: number, announcedStatus?: RegistrationSessionStatus }
 
@@ -34,7 +35,7 @@ async function member(prisma: TestPrisma, ctx: { game: { id: string }, session: 
   const name = uniqueName(base)
   const email = `${slugOf(name)}@example.test`
   const token = randomBytes(32).toString('base64url')
-  const participant = await prisma.participant.create({ data: { name, slug: slugOf(name), email, gameLinks: { create: { gameId: ctx.game.id } } } })
+  const participant = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, gameLinks: { create: { gameId: ctx.game.id , name: name } } } }), { name: name })
   const registration = await prisma.registration.create({
     data: {
       gameId: ctx.game.id, periodId: ctx.period.id, participantId: participant.id, status: 'received', source: 'form', email,
@@ -247,7 +248,7 @@ test.describe('réglages des inscriptions (US-220)', () => {
       await dialog.getByPlaceholder('Email').fill('adresse-sans-arobase')
       await dialog.getByRole('button', { name: /^Inviter/ }).click()
       await expect(dialog.getByText(/Email invalide|Adresse invalide/i)).toBeVisible()
-      expect(await prisma.participant.count({ where: { name: 'Sans arobase', gameLinks: { some: { gameId: ctx.game.id } } } })).toBe(0)
+      expect(await prisma.participantGame.count({ where: { name: 'Sans arobase', gameId: ctx.game.id } })).toBe(0)
     } finally {
       await prisma.$disconnect()
     }

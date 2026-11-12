@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt'
 import { createTestPrisma, testDatabaseUrl } from '../integration/db'
 import { E2E_PASSWORD, E2E_USERS, PARCOURS } from './constants'
 import { startSharedSmtp } from './mailbox'
+import { withFicheValues } from '../fiche'
 
 export default async function globalSetup() {
   execFileSync('npx', ['prisma', 'migrate', 'reset', '--force'], {
@@ -39,9 +40,9 @@ export default async function globalSetup() {
   await prisma.character.createMany({
     data: [1, 2, 3].map((index) => ({ name: `PJ ${index} des inscriptions`, slug: `pj-${index}-inscriptions`, gameId: registrationGame.id, type: 'pj' }))
   })
-  await prisma.participant.create({
-    data: { name: 'Camille Invitée', slug: 'camille-invitee', email: 'camille.invitee@example.test', gameLinks: { create: { gameId: registrationGame.id } } }
-  })
+  await withFicheValues(prisma.participant.create({
+    data: { slug: 'camille-invitee', email: 'camille.invitee@example.test', gameLinks: { create: { gameId: registrationGame.id , name: 'Camille Invitée' } } }
+  }), { name: 'Camille Invitée' })
   // Jeu commun des parcours (ADR-0037) : chaque test y crée sa session, sous un nom qui lui est propre
   const parcours = await prisma.game.create({
     data: { title: PARCOURS.game, slug: PARCOURS.gameSlug, description: '', ownerId: users[0]!.id }
@@ -52,12 +53,12 @@ export default async function globalSetup() {
     })
   }
   for (const person of PARCOURS.participants) {
-    await prisma.participant.create({
-      data: { name: person.name, slug: person.slug, email: person.email, gameLinks: { create: { gameId: parcours.id } } }
-    })
+    await withFicheValues(prisma.participant.create({
+      data: { slug: person.slug, email: person.email, gameLinks: { create: { gameId: parcours.id , name: person.name } } }
+    }), { name: person.name })
   }
   // Vivier du jeu commun (SPEC-018) : Léa et Noé y ont répondu ; les tests les placent dans leur propre session
-  const inPool = await prisma.participant.findMany({ where: { name: { in: ['Léa Parcours', 'Noé Parcours'] } }, select: { id: true, email: true } })
+  const inPool = await prisma.participant.findMany({ where: { gameLinks: { some: { gameId: parcours.id, name: { in: ['Léa Parcours', 'Noé Parcours'] } } } }, select: { id: true, email: true } })
   await prisma.registrationPeriod.create({
     data: {
       gameId: parcours.id,

@@ -5,6 +5,7 @@ import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf, tokenFor } from './api'
 import { createTestPrisma } from './db'
 import { personalLinkToken, startTestSmtp } from './smtp'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice } = world.users
@@ -45,9 +46,9 @@ async function invited() {
       sessions: { create: { sessionId: session.id } }
     }
   })
-  const participant = await prisma.participant.create({
-    data: { name: `Joueuse ${key}`, slug: `joueuse-${key}`, email: `joueuse-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
-  })
+  const participant = await withFicheValues(prisma.participant.create({
+    data: { slug: `joueuse-${key}`, email: `joueuse-${key}@example.test`, gameLinks: { create: { gameId: game.id , name: `Joueuse ${key}` } } }
+  }), { name: `Joueuse ${key}` })
   const response = await api(alice, 'POST', `/api/registration-periods/${period.id}/invitations`, { sessionId: session.id, participantIds: [participant.id] })
   expect(response.status, JSON.stringify(response.body)).toBe(200)
   const registration = await prisma.registration.findFirstOrThrow({ where: { periodId: period.id } })

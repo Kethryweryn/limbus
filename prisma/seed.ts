@@ -854,19 +854,19 @@ async function createGame(
       continue
     }
     const slug = await makeParticipantSlug()
-    participants.push(await db.participant.create({
+    const created = await db.participant.create({
       data: {
-        name: participant.name,
+        // Nom et téléphone vivent sur les liens (US-242)
         slug,
         email: personAddress(participant.email, options.ownerEmail),
-        phone: participant.phone,
         userId: accountIdByEmail.get(participant.email) ?? null,
         gameLinks: {
           create: [{ gameId: game.id, notes: participant.notes || null, name: participant.name, phone: participant.phone }]
         },
         published: true
       }
-    }))
+    })
+    participants.push({ ...created, name: participant.name })
     participantByEmail.set(participant.email, participants.at(-1)!)
   }
   const locations = await Promise.all(seed.locations.map((location) =>
@@ -1153,11 +1153,9 @@ async function createCrossGameParticipants(gameIds: string[]) {
   for (const { name, email, phone, gameIds: linkedGameIds, notes } of people) {
     await db.participant.create({
       data: {
-        name,
         slug: await makeParticipantSlug(),
         email,
-        phone,
-        // Nom et téléphone tenus par jeu (ADR-0086)
+        // Nom et téléphone tenus par jeu (ADR-0086, US-242)
         gameLinks: { create: linkedGameIds.map((gameId) => ({ gameId, notes, name, phone })) },
         published: true
       }

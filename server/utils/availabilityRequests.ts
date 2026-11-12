@@ -32,7 +32,7 @@ export async function sendAvailabilityRequest(periodId: string, sessionId: strin
     },
     orderBy: { createdAt: 'asc' },
     // Jeu et fiche : le nom est celui qu'en tient l'équipe du jeu (ADR-0086)
-    select: { id: true, email: true, participantId: true, gameId: true, participant: { select: { id: true, name: true } } }
+    select: { id: true, email: true, participantId: true, gameId: true, participant: { select: { id: true } } }
   }).then(withGameValues)
   const excluded = period.replayPolicy === REGISTRATION_REPLAY_POLICIES.excluded
     ? await replayerParticipantIds(period.gameId, people.map((person) => person.participantId))

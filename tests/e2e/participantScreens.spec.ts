@@ -4,6 +4,7 @@ import { TERMS_VERSION } from '../../utils/legal'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
 import { castSession, choose, gameCharacter, gamePerson, orgaGame, orgaSession, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
+import { withFicheValues } from '../fiche'
 
 // Jeu d'une autre équipe, celle du compte « autre »
 async function otherTeamGame(prisma: TestPrisma, base: string) {
@@ -36,7 +37,7 @@ test('liste : recherche par nom et par email, filtre par jeu, pages, et créatio
     const base = uniqueName('Personne listée')
     await Promise.all(Array.from({ length: 10 }, (_, index) => {
       const name = `${base} ${String(index + 1).padStart(2, '0')}`
-      return prisma.participant.create({ data: { name, slug: slugOf(name), email: index === 0 ? `adresse-unique-${slugOf(base)}@example.test` : null, gameLinks: { create: { gameId: game.id } } } })
+      return withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email: index === 0 ? `adresse-unique-${slugOf(base)}@example.test` : null, gameLinks: { create: { gameId: game.id , name: name } } } }), { name: name })
     }))
     await signIn(page, prisma, E2E_USERS.orga)
     await openParticipants(page)
@@ -126,7 +127,7 @@ test('fiche : les coordonnées d’une personne qui a un compte ne se modifient 
     const name = uniqueName('Personne avec compte')
     const email = `${slugOf(name)}@example.test`
     const user = await prisma.user.create({ data: { email, name, password: 'non-utilise', role: 'user', termsAcceptedVersion: TERMS_VERSION, emailConfirmedAt: new Date() } })
-    const person = await prisma.participant.create({ data: { name, slug: slugOf(name), email, userId: user.id, gameLinks: { create: { gameId: game.id } } } })
+    const person = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, userId: user.id, gameLinks: { create: { gameId: game.id , name: name } } } }), { name: name })
     await signIn(page, prisma, E2E_USERS.orga)
     await openSheet(page, person)
 
@@ -215,11 +216,11 @@ test('droits et conflit : une fiche d’une autre équipe est introuvable, et de
     await second.getByRole('button', { name: 'Modifier' }).click()
     await page.getByLabel('Téléphone', { exact: true }).fill('0611111111')
     await page.getByRole('button', { name: 'Enregistrer' }).click()
-    await expect.poll(async () => (await prisma.participant.findUniqueOrThrow({ where: { id: person.id } })).phone).toBe('0611111111')
+    await expect.poll(async () => (await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: game.id } } })).phone).toBe('0611111111')
     await second.getByLabel('Téléphone', { exact: true }).fill('0622222222')
     await second.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(second.getByText('Cet élément a été modifié par quelqu’un d’autre entre-temps.', { exact: false })).toBeVisible()
-    expect((await prisma.participant.findUniqueOrThrow({ where: { id: person.id } })).phone).toBe('0611111111')
+    expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: game.id } } })).phone).toBe('0611111111')
   } finally {
     await prisma.$disconnect()
   }
@@ -247,10 +248,10 @@ test('hors ligne : la fiche se relit, et une modification part au retour du rés
     await page.getByLabel('Téléphone', { exact: true }).fill('0633333333')
     await page.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(page.getByText(/Modifications faites hors ligne : 1 en attente/)).toBeVisible()
-    expect((await prisma.participant.findUniqueOrThrow({ where: { id: person.id } })).phone).toBeNull()
+    expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: game.id } } })).phone).toBeNull()
 
     await context.setOffline(false)
-    await expect.poll(async () => (await prisma.participant.findUniqueOrThrow({ where: { id: person.id } })).phone, { timeout: 20_000 }).toBe('0633333333')
+    await expect.poll(async () => (await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: game.id } } })).phone, { timeout: 20_000 }).toBe('0633333333')
   } finally {
     await prisma.$disconnect()
   }
@@ -347,7 +348,7 @@ test('email obligatoire : une fiche sans email est signalée et filtrée, et ne 
     await page.getByLabel('Téléphone', { exact: true }).fill('0655555555')
     await page.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(page.getByText('L’adresse email est obligatoire.')).toBeVisible()
-    expect((await prisma.participant.findUniqueOrThrow({ where: { id: legacy.id } })).phone).toBeNull()
+    expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: legacy.id, gameId: game.id } } })).phone).toBeNull()
 
     // Hors ligne : refusée avant la mise en file, rien n'attend le réseau
     await context.setOffline(true)
@@ -366,7 +367,7 @@ test('email obligatoire : une fiche sans email est signalée et filtrée, et ne 
     await page.getByLabel('Email', { exact: true }).fill(address)
     await page.getByRole('button', { name: 'Enregistrer' }).click()
     await expect.poll(async () => (await prisma.participant.findUniqueOrThrow({ where: { id: legacy.id } })).email).toBe(address)
-    expect((await prisma.participant.findUniqueOrThrow({ where: { id: legacy.id } })).phone).toBe('0655555555')
+    expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: legacy.id, gameId: game.id } } })).phone).toBe('0655555555')
   } finally {
     await context.setOffline(false)
     await prisma.$disconnect()

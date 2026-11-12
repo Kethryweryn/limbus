@@ -4,6 +4,7 @@ import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf, invalidMessages } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
+import { withFicheValues } from '../fiche'
 
 const prisma = createTestPrisma()
 const { alice } = inject('world').users
@@ -85,7 +86,7 @@ describe('relations entre personnages (US-097)', () => {
 
   it('la fiche envoyée contient les relations visibles de son côté, et une fiche envoyée devient dépassée', async () => {
     const { key, game, ada, bran } = await aliceGame()
-    const player = await prisma.participant.create({ data: { name: 'Joueuse', slug: `${key}-joueuse`, email: `${key}@example.test`, gameLinks: { create: { gameId: game.id } } } })
+    const player = await withFicheValues(prisma.participant.create({ data: { slug: `${key}-joueuse`, email: `${key}@example.test`, gameLinks: { create: { gameId: game.id , name: 'Joueuse' } } } }), { name: 'Joueuse' })
     const session = await prisma.session.create({
       data: { slug: `session-${key}`, gameId: game.id, assignments: { create: [{ characterId: ada.id, participantId: player.id }] } }
     })
@@ -154,7 +155,7 @@ describe('questionnaire relié aux rôles (US-098)', () => {
       { questionId: choice.id, option: 'Combat', characterId: ada.id },
       { questionId: scale.id, option: '', characterId: ada.id }
     ] })
-    const participant = await prisma.participant.create({ data: { name: 'Lou', slug: `${key}-lou`, gameLinks: { create: { gameId: game.id } } } })
+    const participant = await withFicheValues(prisma.participant.create({ data: { slug: `${key}-lou`, gameLinks: { create: { gameId: game.id , name: 'Lou' } } } }), { name: 'Lou' })
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: key } })
     const registration = await prisma.registration.create({
       data: { gameId: period.gameId, periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email: `${key}-lou@example.test`, respondedAt: new Date(), questionAnswers: { [choice.id]: 'Combat', [scale.id]: 4 } }

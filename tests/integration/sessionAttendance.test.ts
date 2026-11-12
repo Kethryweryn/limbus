@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp, type ReceivedEmail } from './smtp'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice } = world.users
@@ -27,9 +28,9 @@ async function postponedSession() {
   const key = `presence-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
   const old = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } })
-  const person = (name: string, email: boolean) => prisma.participant.create({
-    data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: email ? `${name.toLowerCase()}-${key}@example.test` : null, gameLinks: { create: { gameId: game.id } } }
-  })
+  const person = (name: string, email: boolean) => withFicheValues(prisma.participant.create({
+    data: { slug: `${name.toLowerCase()}-${key}`, email: email ? `${name.toLowerCase()}-${key}@example.test` : null, gameLinks: { create: { gameId: game.id , name: `${name} ${key}` } } }
+  }), { name: `${name} ${key}` })
   const [lea, noe, sam] = await Promise.all([person('Lea', true), person('Noe', true), person('Sam', false)])
   const aube = await prisma.character.create({ data: { name: `Aube ${key}`, slug: `aube-${key}`, gameId: game.id, type: 'pj' } })
   await prisma.sessionParticipant.createMany({
@@ -150,9 +151,9 @@ describe('personnes ajoutées ou revenues après une place libérée (US-024)', 
     expect((await api(alice, 'POST', `/api/sessions/${s.session.id}/attendance/${s.lea.id}/release`)).status).toBe(200)
 
     // Léa revient dans l'équipe, et une remplaçante arrive
-    const extra = await prisma.participant.create({
-      data: { name: `Remplacante ${s.key}`, slug: `remplacante-${s.key}`, email: `remplacante-${s.key}@example.test`, gameLinks: { create: { gameId: s.game.id } } }
-    })
+    const extra = await withFicheValues(prisma.participant.create({
+      data: { slug: `remplacante-${s.key}`, email: `remplacante-${s.key}@example.test`, gameLinks: { create: { gameId: s.game.id , name: `Remplacante ${s.key}` } } }
+    }), { name: `Remplacante ${s.key}` })
     await prisma.sessionParticipant.createMany({
       data: [{ sessionId: s.session.id, participantId: s.lea.id, role: 'participant' }, { sessionId: s.session.id, participantId: extra.id, role: 'participant' }]
     })

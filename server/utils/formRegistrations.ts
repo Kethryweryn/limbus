@@ -208,7 +208,7 @@ async function receiveRegistration(period: FormPeriod, answers: StoredAnswers, f
     const matched = await findParticipantByEmail(email, tx)
     const participant = matched
       ? await tx.participant.update({ where: { id: matched.id }, data: { email, userId }, select: { id: true } })
-      : await tx.participant.create({ data: { name, slug: participantSlug(), email, userId }, select: { id: true } })
+      : await tx.participant.create({ data: { slug: participantSlug(), email, userId }, select: { id: true } })
     // Nom et téléphone tenus par jeu (ADR-0086) : ceux de la réponse, jamais ceux d'une autre équipe qui suit la fiche
     await tx.participantGame.upsert({
       where: { participantId_gameId: { participantId: participant.id, gameId: period.gameId } },

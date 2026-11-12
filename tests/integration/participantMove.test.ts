@@ -4,6 +4,7 @@ import { afterAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
 import { isParticipantSlug } from '~/utils/participantSlug'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice, bob } = world.users
@@ -21,9 +22,8 @@ async function sharedFiche(withBob = true) {
   const key = `deplacement-${++counter}`
   const aliceGame = await prisma.game.create({ data: { title: `Alice ${key}`, slug: `alice-${key}`, description: '', ownerId: alice.id } })
   const bobGame = await prisma.game.create({ data: { title: `Bob ${key}`, slug: `bob-${key}`, description: '', ownerId: bob.id } })
-  const fiche = await prisma.participant.create({
+  const fiche = await withFicheValues(prisma.participant.create({
     data: {
-      name: `Paul ${key}`,
       slug: `p-${key}`.slice(0, 40),
       email: `paul-${key}@example.test`,
       gameLinks: {
@@ -33,7 +33,7 @@ async function sharedFiche(withBob = true) {
         ]
       }
     }
-  })
+  }), { name: `Paul ${key}` })
   const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: aliceGame.id } })
   const character = await prisma.character.create({ data: { name: `Rôle ${key}`, slug: `role-${key}`, gameId: aliceGame.id } })
   await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: fiche.id, role: 'participant' } })
@@ -71,15 +71,15 @@ describe('corriger l’adresse d’une fiche (US-239, SPEC-022 R7)', () => {
     expect(await prisma.timelineEventResponsible.count({ where: { sessionId: session.id, participantId: saved.id } })).toBe(1)
     expect(await prisma.sessionPayment.count({ where: { participantId: fiche.id } })).toBe(0)
     // Bob garde la fiche d'origine, son adresse, son nom et sa note
-    const original = await prisma.participant.findUniqueOrThrow({ where: { id: fiche.id }, select: { name: true, email: true, gameLinks: { select: { gameId: true, name: true, notes: true } } } })
-    expect(original).toEqual({ name: fiche.name, email: fiche.email, gameLinks: [{ gameId: bobGame.id, name: `Paul chez Bob ${key}`, notes: 'Note de Bob' }] })
+    const original = await prisma.participant.findUniqueOrThrow({ where: { id: fiche.id }, select: { email: true, gameLinks: { select: { gameId: true, name: true, notes: true } } } })
+    expect(original).toEqual({ email: fiche.email, gameLinks: [{ gameId: bobGame.id, name: `Paul chez Bob ${key}`, notes: 'Note de Bob' }] })
     expect(JSON.stringify(saved)).not.toMatch(/chez Bob|Note de Bob/)
   })
 
   it('vers l’adresse d’une fiche d’une autre équipe : les jeux la rejoignent, sans rien en montrer, et la fiche vide disparaît', async () => {
     const { key, aliceGame, fiche } = await sharedFiche(false)
     const bobsGame = await prisma.game.create({ data: { title: `Autre Bob ${key}`, slug: `autre-bob-${key}`, description: '', ownerId: bob.id } })
-    const bobs = await prisma.participant.create({ data: { name: 'Chez Bob', slug: `p-bob-${key}`.slice(0, 40), email: `bob-${key}@example.test`, gameLinks: { create: { gameId: bobsGame.id, name: 'Nom chez Bob', notes: 'Note de Bob' } } } })
+    const bobs = await withFicheValues(prisma.participant.create({ data: { slug: `p-bob-${key}`.slice(0, 40), email: `bob-${key}@example.test`, gameLinks: { create: { gameId: bobsGame.id, name: 'Nom chez Bob', notes: 'Note de Bob' } } } }), { name: 'Chez Bob' })
     const response = await correct(fiche.id, aliceGame, bobs.email!)
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     const saved = response.body as Saved
@@ -102,7 +102,7 @@ describe('corriger l’adresse d’une fiche (US-239, SPEC-022 R7)', () => {
 
   it('deux fiches de la même équipe réunies : notes bout à bout, la ligne la plus récente reste', async () => {
     const { key, aliceGame, fiche, period, session } = await sharedFiche(false)
-    const twin = await prisma.participant.create({ data: { name: 'Doublon', slug: `p-twin-${key}`.slice(0, 40), email: `twin-${key}@example.test`, gameLinks: { create: { gameId: aliceGame.id, name: 'Doublon', notes: 'Note du doublon' } } } })
+    const twin = await withFicheValues(prisma.participant.create({ data: { slug: `p-twin-${key}`.slice(0, 40), email: `twin-${key}@example.test`, gameLinks: { create: { gameId: aliceGame.id, name: 'Doublon', notes: 'Note du doublon' } } } }), { name: 'Doublon' })
     const newer = await prisma.registration.create({ data: { gameId: aliceGame.id, periodId: period.id, participantId: twin.id, status: 'received', source: 'form', email: twin.email! } })
     // Paiement du doublon, plus ancien que celui de la fiche corrigée : c'est celui de la fiche corrigée qui reste
     const older = await prisma.sessionPayment.create({ data: { gameId: aliceGame.id, sessionId: session.id, participantId: twin.id } })

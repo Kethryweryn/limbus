@@ -2,6 +2,7 @@
 // unique de l'adresse les interdit désormais : le test le retire dans une transaction, qui est ensuite annulée
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import { createTestPrisma } from './db'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice, bob } = world.users
@@ -34,8 +35,8 @@ describe('fusion des fiches d’une même adresse (US-240)', () => {
       const [aliceGame, bobGame] = await Promise.all([alice, bob].map((owner, index) =>
         tx.game.create({ data: { title: `Jeu ${index} ${key}`, slug: `jeu-${index}-${key}`, description: '', ownerId: owner.id } })
       ))
-      const oldest = await tx.participant.create({ data: { name: 'Paul A', slug: `p-a-${key}`, email: `paul-${key}@example.test`, createdAt: new Date('2026-01-01'), gameLinks: { create: { gameId: aliceGame!.id, name: 'Paul chez Alice', notes: 'Note d’Alice' } } } })
-      const younger = await tx.participant.create({ data: { name: 'Paul B', slug: `p-b-${key}`, email: `PAUL-${key}@Example.test`, photoRefusedAt: new Date(), gameLinks: { create: { gameId: bobGame!.id, name: 'Paul chez Bob', notes: 'Note de Bob' } } } })
+      const oldest = await withFicheValues(tx.participant.create({ data: { slug: `p-a-${key}`, email: `paul-${key}@example.test`, createdAt: new Date('2026-01-01'), gameLinks: { create: { gameId: aliceGame!.id, name: 'Paul chez Alice', notes: 'Note d’Alice' } } } }), { name: 'Paul A' })
+      const younger = await withFicheValues(tx.participant.create({ data: { slug: `p-b-${key}`, email: `PAUL-${key}@Example.test`, photoRefusedAt: new Date(), gameLinks: { create: { gameId: bobGame!.id, name: 'Paul chez Bob', notes: 'Note de Bob' } } } }), { name: 'Paul B' })
       const session = await tx.session.create({ data: { slug: `session-${key}`, gameId: bobGame!.id } })
       await tx.sessionParticipant.create({ data: { sessionId: session.id, participantId: younger.id, role: 'participant' } })
       await tx.sessionPayment.create({ data: { gameId: bobGame!.id, sessionId: session.id, participantId: younger.id } })
@@ -60,8 +61,8 @@ describe('fusion des fiches d’une même adresse (US-240)', () => {
     const key = `fusion-${++counter}`
     await mergedWorld(async (tx) => {
       const game = await tx.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
-      const oldest = await tx.participant.create({ data: { name: 'Lou', slug: `p-a-${key}`, email: `lou-${key}@example.test`, createdAt: new Date('2026-01-01'), gameLinks: { create: { gameId: game.id, name: 'Lou', notes: 'Première note' } } } })
-      const twin = await tx.participant.create({ data: { name: 'Lou bis', slug: `p-b-${key}`, email: `lou-${key}@example.test`, gameLinks: { create: { gameId: game.id, name: 'Lou bis', notes: 'Seconde note' } } } })
+      const oldest = await withFicheValues(tx.participant.create({ data: { slug: `p-a-${key}`, email: `lou-${key}@example.test`, createdAt: new Date('2026-01-01'), gameLinks: { create: { gameId: game.id, name: 'Lou', notes: 'Première note' } } } }), { name: 'Lou' })
+      const twin = await withFicheValues(tx.participant.create({ data: { slug: `p-b-${key}`, email: `lou-${key}@example.test`, gameLinks: { create: { gameId: game.id, name: 'Lou bis', notes: 'Seconde note' } } } }), { name: 'Lou bis' })
       const session = await tx.session.create({ data: { slug: `session-${key}`, gameId: game.id } })
       await tx.sessionParticipant.createMany({ data: [oldest, twin].map((fiche) => ({ sessionId: session.id, participantId: fiche.id, role: 'participant' as const })) })
       const period = await tx.registrationPeriod.create({ data: { gameId: game.id, publicId: `periode-${key}` } })
@@ -78,8 +79,8 @@ describe('fusion des fiches d’une même adresse (US-240)', () => {
 
   it('après la fusion, la base refuse une deuxième fiche à la même adresse, sans tenir compte de la casse', async () => {
     const key = `fusion-${++counter}`
-    await prisma.participant.create({ data: { name: 'Unique', slug: `p-u-${key}`, email: `unique-${key}@example.test` } })
-    await expect(prisma.participant.create({ data: { name: 'Doublon', slug: `p-d-${key}`, email: `UNIQUE-${key}@example.test` } })).rejects.toThrow()
+    await withFicheValues(prisma.participant.create({ data: { slug: `p-u-${key}`, email: `unique-${key}@example.test` } }), { name: 'Unique' })
+    await expect(withFicheValues(prisma.participant.create({ data: { slug: `p-d-${key}`, email: `UNIQUE-${key}@example.test` } }), { name: 'Doublon' })).rejects.toThrow()
     // Plusieurs fiches sans adresse restent possibles
     await prisma.participant.createMany({ data: [1, 2].map((index) => ({ name: `Sans adresse ${index}`, slug: `p-s${index}-${key}` })) })
   })

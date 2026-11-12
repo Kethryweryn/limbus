@@ -4,6 +4,7 @@ import { api } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
 import type { CharacterType } from '~/generated/prisma/enums'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice } = world.users
@@ -28,9 +29,9 @@ async function team() {
   const key = `tarifs-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
   const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } })
-  const person = (name: string) => prisma.participant.create({
-    data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
-  })
+  const person = (name: string) => withFicheValues(prisma.participant.create({
+    data: { slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id , name: `${name} ${key}` } } }
+  }), { name: `${name} ${key}` })
   const [player, npc, orga, cook] = await Promise.all([person('Joueuse'), person('Pnj'), person('Orga'), person('Cuisine')])
   const character = (name: string, type: CharacterType) => prisma.character.create({ data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, gameId: game.id, type } })
   const [hero, guard] = await Promise.all([character('Aube', 'pj'), character('Garde', 'pnj')])
@@ -101,7 +102,7 @@ describe('versements et état calculé (US-032)', () => {
 
     expect((await api(alice, 'PUT', `/api/sessions/${t.session.id}/payments/${t.player.id}`, { paid: true })).status).toBe(409)
     // Une personne hors du tableau ne reçoit pas de versement
-    const stranger = await prisma.participant.create({ data: { name: `Inconnue ${t.session.id}`, slug: `inconnue-${t.session.id}` } })
+    const stranger = await withFicheValues(prisma.participant.create({ data: { slug: `inconnue-${t.session.id}` } }), { name: `Inconnue ${t.session.id}` })
     expect((await api(alice, 'POST', `/api/sessions/${t.session.id}/payments/${stranger.id}/instalments`, { amount: 10 })).status).toBe(400)
 
     // Une session avec un versement ne se supprime pas

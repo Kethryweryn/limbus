@@ -6,6 +6,7 @@ import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice } = world.users
@@ -33,9 +34,9 @@ async function sessionWithPeople() {
   const key = `paiements-${++counter}`
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
   const session = await labelled(prisma, await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } }))
-  const person = (name: string) => prisma.participant.create({
-    data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
-  })
+  const person = (name: string) => withFicheValues(prisma.participant.create({
+    data: { slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id , name: `${name} ${key}` } } }
+  }), { name: `${name} ${key}` })
   const [player, confirmed, cook, both] = await Promise.all([person('Joueuse'), person('Inscrite'), person('Cuisine'), person('Double')])
   const character = (name: string) => prisma.character.create({ data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, gameId: game.id, type: 'pj' } })
   const [first, second] = await Promise.all([character('Aube'), character('Brume')])

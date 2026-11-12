@@ -4,6 +4,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
 import { choose, expectLoggedIn, gamePanel, login, offlineRecordCount, openRegistrations, openUserMenu, parcoursSession, signIn } from './helpers'
+import { withFicheValues } from '../fiche'
 
 // File d'attente de l'appareil, lue ou écrite directement dans IndexedDB
 async function writeQueue(page: Page, operations: unknown[]) {
@@ -133,7 +134,7 @@ test('la page Inscriptions et une inscription consultée se relisent sans résea
       data: { gameId: game.id, publicId: `h${Date.now().toString(36)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } }
     })
     const email = `iris-${key}@example.test`
-    const participant = await prisma.participant.create({ data: { name: 'Iris Hors Ligne', slug: `iris-${key}`, email, gameLinks: { create: { gameId: game.id } } } })
+    const participant = await withFicheValues(prisma.participant.create({ data: { slug: `iris-${key}`, email, gameLinks: { create: { gameId: game.id , name: 'Iris Hors Ligne' } } } }), { name: 'Iris Hors Ligne' })
     await prisma.registration.create({
       data: { gameId: period.gameId, periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email, links: { create: { tokenHash: `hash-${key}` } }, respondedAt: new Date(), dietary: 'Arachides', sessionLines: { create: { sessionId: session.id, status: 'preregistered', answer: 'available' } } }
     })

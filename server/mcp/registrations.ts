@@ -8,7 +8,7 @@ import { currentQuestionLinks } from '~/server/utils/registrationQuestionLinks'
 import { selectionOverview } from '~/server/utils/registrationSelection'
 import { listDraws } from '~/server/utils/registrationDraws'
 import { closedAnswers, processedAffinities } from '~/server/mcp/registrationProjection'
-import { READ_ONLY, named, toolResult, type ToolContext } from '~/server/mcp/tools'
+import { READ_ONLY, toolResult, type ToolContext } from '~/server/mcp/tools'
 import { withGameValues } from '~/server/utils/participantValues'
 
 // Inscriptions (R7, R8) : vivier, formulaire, sélection et tirages. D'une personne : statut pour le jeu et pour chaque
@@ -60,10 +60,10 @@ export function registerRegistrationTools({ event, server }: ToolContext) {
         orderBy: { createdAt: 'asc' },
         select: {
           id: true, status: true, source: true, balancePreference: true, questionAnswers: true, createdAt: true, respondedAt: true, updatedAt: true,
-          participant: named,
+          participant: { select: { id: true } },
           formVersion: { select: { definition: true } },
           sessionLines: { select: { sessionId: true, status: true, answer: true, waitlistPosition: true, announcedStatus: true, confirmedAt: true } },
-          affinities: { orderBy: { position: 'asc' }, select: { kind: true, text: true, targetUnknown: true, targetParticipant: named } }
+          affinities: { orderBy: { position: 'asc' }, select: { kind: true, text: true, targetUnknown: true, targetParticipant: { select: { id: true } } } }
         }
       }).then((rows) => withGameValues(rows, period.gameId))
     ])

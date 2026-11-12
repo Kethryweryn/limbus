@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
+import { withFicheValues } from '../fiche'
 
 const prisma = createTestPrisma()
 const { alice, bob } = inject('world').users
@@ -29,7 +30,7 @@ async function player() {
   })
   const teams = []
   // Une seule fiche par adresse (SPEC-022, US-240) : liée au jeu de chaque équipe
-  const participant = await prisma.participant.create({ data: { name: 'Joueuse Effacée', slug: `fiche-${key}`, email: user.email, userId: user.id } })
+  const participant = await withFicheValues(prisma.participant.create({ data: { slug: `fiche-${key}`, email: user.email, userId: user.id } }), { name: 'Joueuse Effacée' })
   for (const owner of [alice, bob]) {
     const k = `${key}-${owner.id}`.toLowerCase()
     const game = await prisma.game.create({ data: { title: `Jeu ${k}`, slug: `jeu-${k}`, description: '', ownerId: owner.id } })
@@ -46,8 +47,11 @@ async function player() {
 describe('télécharger ses données (US-076)', () => {
   it('contient le compte, les coordonnées et les fiches de toutes les équipes, sans secret', async () => {
     const { user, teams } = await player()
+    // Chaque équipe tient son nom et son téléphone (ADR-0086) : l'export les donne tous (revue de la PR #237)
+    await prisma.participantGame.update({ where: { participantId_gameId: { participantId: teams[1]!.participant.id, gameId: teams[1]!.game.id } }, data: { name: 'Nom chez Bob', phone: '0699999999' } })
     const response = await api(user, 'GET', '/api/account/export')
     expect(response.status).toBe(200)
+    expect(JSON.stringify(response.body)).toMatch(/Nom chez Bob[^]*0699999999|0699999999[^]*Nom chez Bob/)
     expect(response.body).toMatchObject({ account: { email: user.email, phone: '0612345678', dietary: 'Arachides' } })
     const text = JSON.stringify(response.body)
     for (const { owner, game } of teams) {
@@ -90,7 +94,7 @@ describe('télécharger ses données (US-076)', () => {
   it('contient ses affinités, sans la personne que l’équipe y a rattachée (R24, US-095)', async () => {
     const { user, teams } = await player()
     const { game, participant } = teams[0]!
-    const target = await prisma.participant.create({ data: { name: 'Cible Rattachée', slug: `cible-${++counter}`, gameLinks: { create: { gameId: game.id } } } })
+    const target = await withFicheValues(prisma.participant.create({ data: { slug: `cible-${++counter}`, gameLinks: { create: { gameId: game.id , name: 'Cible Rattachée' } } } }), { name: 'Cible Rattachée' })
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `efface-periode-${counter}` } })
     await prisma.registration.create({
       data: {

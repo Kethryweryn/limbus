@@ -4,6 +4,7 @@ import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf } from './api'
 import { createTestPrisma } from './db'
 import type { AffinityKind, RegistrationSessionStatus } from '~/generated/prisma/enums'
+import { withFicheValues } from '../fiche'
 
 const prisma = createTestPrisma()
 const { alice } = inject('world').users
@@ -35,9 +36,9 @@ async function aliceGame() {
 }
 
 async function person(game: { id: string }, name: string) {
-  return await prisma.participant.create({
-    data: { name, slug: `affinites-personne-${++counter}`, gameLinks: { create: { gameId: game.id } } }
-  })
+  return await withFicheValues(prisma.participant.create({
+    data: { slug: `affinites-personne-${++counter}`, gameLinks: { create: { gameId: game.id , name: name } } }
+  }), { name: name })
 }
 
 type Line = [kind: AffinityKind, text: string, targetParticipantId?: string]

@@ -5,6 +5,7 @@ import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf, errorMessage } from './api'
 import { createTestPrisma } from './db'
 import { createPool } from './pool'
+import { withFicheValues } from '../fiche'
 
 const { alice } = inject('world').users
 const prisma = createTestPrisma()
@@ -143,7 +144,7 @@ describe('ouvrir une session à la pré-inscription (R6, R8)', () => {
   it('refermer ne retire aucune pré-inscription, et le casting continue', async () => {
     const pool = await createPool(prisma, alice.id, { sessions: 1, seats: 1 })
     const session = pool.sessions[0]!
-    const participant = await prisma.participant.create({ data: { name: 'Lou', slug: `lou-${pool.key}`, email: `lou-${pool.key}@example.test`, gameLinks: { create: { gameId: pool.game.id } } } })
+    const participant = await withFicheValues(prisma.participant.create({ data: { slug: `lou-${pool.key}`, email: `lou-${pool.key}@example.test`, gameLinks: { create: { gameId: pool.game.id , name: 'Lou' } } } }), { name: 'Lou' })
     const registration = await prisma.registration.create({
       data: { gameId: pool.period.gameId, periodId: pool.period.id, participantId: participant.id, status: 'received', source: 'form', email: participant.email!, sessionLines: { create: { sessionId: session.id, status: 'preregistered', answer: 'available' } } }
     })

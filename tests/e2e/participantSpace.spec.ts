@@ -6,6 +6,7 @@ import { createTestPrisma } from '../integration/db'
 import { TERMS_VERSION } from '../../utils/legal'
 import { E2E_USERS } from './constants'
 import { authorizationRequest, captureCallback, orgaGame, orgaSession, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
+import { withFicheValues } from '../fiche'
 
 // Vivier ouvert d'un jeu propre au test, avec une session à venir proposée
 async function openPeriod(prisma: TestPrisma, base: string, state: 'open' | 'closed' = 'open') {
@@ -22,7 +23,7 @@ async function poolMember(prisma: TestPrisma, base: string) {
   const token = randomBytes(32).toString('base64url')
   const { game, session, period } = await openPeriod(prisma, base)
   const { user, email, name } = await testUser(prisma, `Joueuse ${base}`)
-  const participant = await prisma.participant.create({ data: { name, slug: slugOf(name), email, userId: user.id, gameLinks: { create: { gameId: game.id } } } })
+  const participant = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, userId: user.id, gameLinks: { create: { gameId: game.id , name: name } } } }), { name: name })
   const registration = await prisma.registration.create({
     data: {
       gameId: game.id, periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email,

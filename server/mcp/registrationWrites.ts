@@ -204,7 +204,7 @@ function registerSelectionTools({ event, server }: ToolContext) {
       await applySelection(registration.id, body.action, body.sessionId, await requireCurrentUser(event))
     })
     // Nom tenu par l'équipe du jeu (ADR-0086)
-    const { updatedAt, participant } = await withGameValues(await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { updatedAt: true, gameId: true, participant: { select: { id: true, name: true } } } }))
+    const { updatedAt, participant } = await withGameValues(await prisma.registration.findUniqueOrThrow({ where: { id: registration.id }, select: { updatedAt: true, gameId: true, participant: { select: { id: true } } } }))
     await logWrite(event, 'decider_inscription', AI_LOG_ACTIONS.changed, { type: 'registration', id: registration.id, name: participant.name, gameId: registration.period.gameId })
     return { id: registration.id, version: updatedAt }
   }))

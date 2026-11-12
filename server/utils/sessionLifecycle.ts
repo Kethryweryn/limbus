@@ -128,7 +128,7 @@ export async function sendCancellationEmail(sessionId: string, message: { subjec
   // Noms tenus par le jeu de la session (ADR-0086)
   const members = await withGameValues(await prisma.sessionParticipant.findMany({
     where: { sessionId },
-    select: { participant: { select: { id: true, name: true, email: true } } }
+    select: { participant: { select: { id: true, email: true } } }
   }), await gameIdOfSession(sessionId))
   const people = [...new Map(members.map((member) => [member.participant.id, member.participant])).values()]
   const recipients = people.filter((person) => person.email)

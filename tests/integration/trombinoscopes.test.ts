@@ -5,6 +5,7 @@ import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
 import { labelled } from '../sessionLabel'
 import { inGameSentence, withGame } from '~/utils/sessionLabels'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice } = world.users
@@ -26,9 +27,9 @@ async function castSession() {
   const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
   const character = (name: string) => prisma.character.create({ data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, gameId: game.id } })
   const [viewer, other] = await Promise.all([character('Lea'), character('Noe')])
-  const participant = await prisma.participant.create({
-    data: { name: `Joueur ${key}`, slug: `joueur-${key}`, email: `joueur-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
-  })
+  const participant = await withFicheValues(prisma.participant.create({
+    data: { slug: `joueur-${key}`, email: `joueur-${key}@example.test`, gameLinks: { create: { gameId: game.id , name: `Joueur ${key}` } } }
+  }), { name: `Joueur ${key}` })
   const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } })
   const assignment = await prisma.sessionAssignment.create({ data: { gameId: session.gameId, sessionId: session.id, characterId: viewer.id, participantId: participant.id } })
   return { game, viewer, other, participant, session, assignment }

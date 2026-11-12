@@ -6,6 +6,7 @@ import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf } from './api'
 import { createTestPrisma } from './db'
 import type { AffinityKind } from '~/generated/prisma/enums'
+import { withFicheValues } from '../fiche'
 
 const prisma = createTestPrisma()
 const { alice, bob } = inject('world').users
@@ -62,7 +63,7 @@ type Game = Awaited<ReturnType<typeof castingGame>>
 
 // Une personne du jeu, avec une inscription à la session ; confirmée, elle est aussi dans le cast
 async function player(game: Game, name: string, status: 'retained' | 'confirmed', extra: { answers?: Record<string, unknown>, affinities?: Array<{ kind: AffinityKind, text: string, targetParticipantId?: string }> } = {}) {
-  const participant = await prisma.participant.create({ data: { name, slug: `${game.key}-${name.toLowerCase()}`, email: `${game.key}-${name.toLowerCase()}@example.test`, gameLinks: { create: { gameId: game.game.id } } } })
+  const participant = await withFicheValues(prisma.participant.create({ data: { slug: `${game.key}-${name.toLowerCase()}`, email: `${game.key}-${name.toLowerCase()}@example.test`, gameLinks: { create: { gameId: game.game.id , name: name } } } }), { name: name })
   const token = randomBytes(32).toString('base64url')
   const registration = await prisma.registration.create({
     data: {

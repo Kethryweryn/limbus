@@ -5,6 +5,7 @@ import { createTestPrisma } from './db'
 import { startTestSmtp } from './smtp'
 import { labelled } from '../sessionLabel'
 import { inGameSentence } from '~/utils/sessionLabels'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice } = world.users
@@ -25,9 +26,9 @@ describe('envoi des documents d’une session', () => {
     const key = 'envoi-documents'
     const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
     const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } })
-    const participant = await prisma.participant.create({
-      data: { name: `Zoé ${key}`, slug: `zoe-${key}`, email: `zoe-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
-    })
+    const participant = await withFicheValues(prisma.participant.create({
+      data: { slug: `zoe-${key}`, email: `zoe-${key}@example.test`, gameLinks: { create: { gameId: game.id , name: `Zoé ${key}` } } }
+    }), { name: `Zoé ${key}` })
     const [first, second] = await Promise.all(['Heraut', 'Espion'].map((name) =>
       prisma.character.create({ data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, gameId: game.id } })
     ))
@@ -58,9 +59,9 @@ describe('envoi des documents d’une session', () => {
     const key = 'envoi-fiches'
     const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
     const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } })
-    const participant = await prisma.participant.create({
-      data: { name: `Léo ${key}`, slug: `leo-${key}`, email: `leo-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
-    })
+    const participant = await withFicheValues(prisma.participant.create({
+      data: { slug: `leo-${key}`, email: `leo-${key}@example.test`, gameLinks: { create: { gameId: game.id , name: `Léo ${key}` } } }
+    }), { name: `Léo ${key}` })
     const character = await prisma.character.create({
       data: { name: `Héraut ${key}`, slug: `heraut-${key}`, gameId: game.id, background: 'Histoire', sheetReadyToSend: true }
     })
@@ -86,9 +87,9 @@ describe('envoi des documents d’une session', () => {
     const key = 'envoi-echec'
     const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
     const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } })
-    const people = await Promise.all([['Ana', 'refuse-ana'], ['Bea', 'bea']].map(([name, local]) => prisma.participant.create({
-      data: { name: `${name} ${key}`, slug: `${local}-${key}`, email: `${local}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
-    })))
+    const people = await Promise.all([['Ana', 'refuse-ana'], ['Bea', 'bea']].map(([name, local]) => withFicheValues(prisma.participant.create({
+      data: { slug: `${local}-${key}`, email: `${local}-${key}@example.test`, gameLinks: { create: { gameId: game.id , name: `${name} ${key}` } } }
+    }), { name: `${name} ${key}` })))
     for (const [index, participant] of people.entries()) {
       const character = await prisma.character.create({
         data: { name: `Rôle ${index} ${key}`, slug: `role-${index}-${key}`, gameId: game.id, background: 'Histoire', sheetReadyToSend: true }
@@ -110,9 +111,9 @@ describe('envoi des documents d’une session', () => {
     const key = 'renvoi'
     const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
     const session = await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } })
-    const people = await Promise.all(['Ana', 'Bea'].map((name) => prisma.participant.create({
-      data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
-    })))
+    const people = await Promise.all(['Ana', 'Bea'].map((name) => withFicheValues(prisma.participant.create({
+      data: { slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id , name: `${name} ${key}` } } }
+    }), { name: `${name} ${key}` })))
     const characters = []
     for (const [index, participant] of people.entries()) {
       const character = await prisma.character.create({

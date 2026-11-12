@@ -90,7 +90,7 @@ export async function sessionCastingAssistant(session: { id: string, gameId: str
   ])]
   const [people, registrations] = await Promise.all([
     // Nom tenu par l'équipe du jeu, trié à l'affichage (ADR-0086)
-    prisma.participant.findMany({ where: { id: { in: candidateIds }, gameLinks: { some: { gameId } } }, select: { id: true, name: true } })
+    prisma.participant.findMany({ where: { id: { in: candidateIds }, gameLinks: { some: { gameId } } }, select: { id: true } })
       .then((rows) => withGameValuesIn(rows, gameId)).then((rows) => rows.sort(byName)),
     prisma.registration.findMany({
       where: { participantId: { in: candidateIds }, period: { gameId } },

@@ -50,7 +50,7 @@ export const registrationListSelect = {
       answersChangedAt: true
     }
   },
-  participant: { select: { id: true, name: true, slug: true } },
+  participant: { select: { id: true, slug: true } },
   invitedBy: { select: { name: true } },
   withdrawnBy: { select: { name: true } }
 } as const

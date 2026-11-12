@@ -44,7 +44,7 @@ export function isSentVersionOutdated(
 }
 
 export async function getSessionDocumentDashboard(sessionId: string) {
-  const session = unlinked(await prisma.session.findUnique({
+  const loaded = unlinked(await prisma.session.findUnique({
     where: { id: sessionId },
     include: {
       // Propriétaire : adresse donnée pour le retrait d'une photo, faute de contact du jeu (US-107)
@@ -63,18 +63,18 @@ export async function getSessionDocumentDashboard(sessionId: string) {
     }
   }))
 
-  if (!session) {
+  if (!loaded) {
     throw createError({ statusCode: 404, message: 'Session introuvable' })
   }
 
-  const [documents, deliveries, trombinoscopes, trombinoscopeFingerprints] = await Promise.all([
+  const [documents, loadedDeliveries, loadedTrombinoscopes, trombinoscopeFingerprints] = await Promise.all([
     prisma.document.findMany({
-      where: { gameId: session.gameId },
+      where: { gameId: loaded.gameId },
       orderBy: [{ updatedAt: 'desc' }, { title: 'asc' }],
       include: documentInclude
     }).then(unlinked),
     prisma.sessionDocumentDelivery.findMany({
-      where: { sessionId: session.id },
+      where: { sessionId: loaded.id },
       include: {
         participant: true,
         document: true,
@@ -82,7 +82,7 @@ export async function getSessionDocumentDashboard(sessionId: string) {
       }
     }),
     prisma.sessionTrombinoscope.findMany({
-      where: { sessionId: session.id },
+      where: { sessionId: loaded.id },
       // Le tableau n'en lit que les dates et les empreintes
       omit: { contentPdf: true, contentHtml: true, contentJson: true },
       include: {
@@ -90,10 +90,10 @@ export async function getSessionDocumentDashboard(sessionId: string) {
         participant: true
       }
     }),
-    currentTrombinoscopeFingerprints(session.id, session)
+    currentTrombinoscopeFingerprints(loaded.id, loaded)
   ])
-  // Nom et téléphone tenus par le jeu de la session (ADR-0086), pour l'écran comme pour les emails
-  await withGameValues({ session, deliveries, trombinoscopes }, session.gameId)
+  // Nom et téléphone tenus par le jeu de la session (ADR-0086, US-242), pour l'écran comme pour les emails
+  const { session, deliveries, trombinoscopes } = await withGameValues({ session: loaded, deliveries: loadedDeliveries, trombinoscopes: loadedTrombinoscopes }, loaded.gameId, { phone: true })
 
   const castByCharacterId = new Map(
     session.assignments

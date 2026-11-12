@@ -5,6 +5,7 @@ import { createTestPrisma } from '../integration/db'
 import { openMailbox } from './mailbox'
 import { E2E_USERS } from './constants'
 import { openRegistrations, registrationTab, signIn, slugOf, type TestPrisma, uniqueName } from './helpers'
+import { withFicheValues } from '../fiche'
 
 // Jeu propre au test, avec une session et un vivier ouvert
 async function testPeriod(prisma: TestPrisma, key: string) {
@@ -21,7 +22,7 @@ async function testPeriod(prisma: TestPrisma, key: string) {
 async function invitedPerson(prisma: TestPrisma, ids: { gameId: string, sessionId: string, periodId: string }, name: string, status: 'invited' | 'confirmed' = 'invited') {
   const slug = slugOf(uniqueName(name))
   const email = `${slug}@example.test`
-  const participant = await prisma.participant.create({ data: { name, slug, email, gameLinks: { create: { gameId: ids.gameId } } } })
+  const participant = await withFicheValues(prisma.participant.create({ data: { slug, email, gameLinks: { create: { gameId: ids.gameId , name: name } } } }), { name: name })
   if (status === 'confirmed') await prisma.sessionParticipant.create({ data: { sessionId: ids.sessionId, participantId: participant.id, role: 'participant' } })
   const registration = await prisma.registration.create({
     data: {

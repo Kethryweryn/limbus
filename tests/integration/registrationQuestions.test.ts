@@ -4,6 +4,7 @@ import { afterAll, describe, expect, inject, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf, invalidPaths, type WithField } from './api'
 import { createTestPrisma } from './db'
+import { withFicheValues } from '../fiche'
 
 const { alice, bob } = inject('world').users
 const prisma = createTestPrisma()
@@ -63,7 +64,7 @@ async function invitedWithForm() {
   const period = await prisma.registrationPeriod.create({
     data: { gameId: game.id, publicId: `pub-${key}`, state: 'open', sessions: { create: { sessionId: session.id } } }
   })
-  const participant = await prisma.participant.create({ data: { name: `Camille ${key}`, slug: `camille-${key}`, email: `camille-${key}@example.test`, gameLinks: { create: { gameId: game.id } } } })
+  const participant = await withFicheValues(prisma.participant.create({ data: { slug: `camille-${key}`, email: `camille-${key}@example.test`, gameLinks: { create: { gameId: game.id , name: `Camille ${key}` } } } }), { name: `Camille ${key}` })
   const token = randomBytes(32).toString('base64url')
   const registration = await prisma.registration.create({
     data: {
@@ -138,7 +139,7 @@ describe('répondre aux questions et aux affinités (US-081, US-082)', () => {
     expect(JSON.stringify(exported.body)).toContain('Noé')
 
     // Une modification remplace les affinités ; une ligne inchangée garde son rattachement (US-095)
-    const lea = await prisma.participant.create({ data: { name: 'Léa Martin', slug: `questions-lea-${counter}`, gameLinks: { create: { gameId: game.id } } } })
+    const lea = await withFicheValues(prisma.participant.create({ data: { slug: `questions-lea-${counter}`, gameLinks: { create: { gameId: game.id , name: 'Léa Martin' } } } }), { name: 'Léa Martin' })
     const leaLine = bodyOf<RegistrationDetail>(await api(alice, 'GET', `/api/registrations/${registration.id}`)).affinityLines.find((line) => line.text === 'Léa')!
     expect(leaLine.suggestions.map((person) => person.id)).toContain(lea.id)
     expect((await api(alice, 'POST', `/api/registration-affinities/${leaLine.id}/link`, { targetParticipantId: lea.id })).status).toBe(200)

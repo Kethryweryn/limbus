@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   // Nom tenu par l'équipe du jeu, trié à l'export (ADR-0086)
   const lines = (await withGameValues(await prisma.registrationSession.findMany({
     where: { sessionId: session.id },
-    select: { status: true, responseDueAt: true, registration: { select: { gameId: true, email: true, phone: true, participant: { select: { id: true, name: true } } } } }
+    select: { status: true, responseDueAt: true, registration: { select: { gameId: true, email: true, phone: true, participant: { select: { id: true } } } } }
   }))).sort((left, right) => byName(left.registration.participant, right.registration.participant))
 
   const now = new Date()

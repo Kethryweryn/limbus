@@ -118,11 +118,11 @@ export async function eraseParticipant(participantId: string) {
  * de ses affinités, que seule l'équipe voit (R24, ADR-0049).
  */
 /** Nom, téléphone et dates d'une fiche tels que les voit une équipe : ceux de ses liens (SPEC-022 R5, R6). */
-function teamView(links: Array<{ name: string | null, phone: string | null, createdAt: Date, updatedAt: Date }>, fiche: { name: string, phone: string | null, createdAt: Date, updatedAt: Date }) {
+function teamView(links: Array<{ name: string | null, phone: string | null, createdAt: Date, updatedAt: Date }>, fiche: { createdAt: Date, updatedAt: Date }) {
   const latest = [...links].sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())[0]
   return {
-    name: latest?.name ?? fiche.name,
-    phone: latest ? latest.phone : fiche.phone,
+    name: latest?.name ?? '',
+    phone: latest?.phone ?? null,
     // Création : l'entrée de la fiche dans les jeux de l'équipe, pas sa création par une autre
     createdAt: links.length ? new Date(Math.min(...links.map((link) => link.createdAt.getTime()))) : fiche.createdAt,
     updatedAt: latestOf(links.map((link) => link.updatedAt)) ?? fiche.updatedAt
@@ -139,9 +139,7 @@ export async function exportParticipantData(participantId: string, gameIds: stri
   const participant = await labelNestedSessions(prisma, await prisma.participant.findUniqueOrThrow({
     where: { id: participantId },
     select: {
-      name: true,
       email: true,
-      phone: true,
       userId: true,
       // Refus de l'usage de sa photo (US-109)
       photoRefusedAt: true,
@@ -179,7 +177,7 @@ export async function exportParticipantData(participantId: string, gameIds: stri
           sessionLines: { select: { status: true, answer: true, answeredAt: true, lastRemindedAt: true, responseDueAt: true, waitlistPosition: true, announcedStatus: true, announcedAt: true, confirmedAt: true, cancelledAt: true, cancelledById: true, cancelledBy: { select: { name: true } }, retainedBy: { select: { name: true } }, answersChangedAt: true, session: { select: { id: true, date: true } } } },
           // Affinités écrites par la personne, avec la personne rattachée ; jamais celles des autres qui la visent (US-095)
           affinities: {
-            select: { kind: true, text: true, ...(forPerson ? {} : { targetUnknown: true, targetParticipant: { select: { id: true, name: true } } }) },
+            select: { kind: true, text: true, ...(forPerson ? {} : { targetUnknown: true, targetParticipant: { select: { id: true } } }) },
             orderBy: { position: 'asc' }
           },
           invitationSentAt: true,
@@ -200,13 +198,16 @@ export async function exportParticipantData(participantId: string, gameIds: stri
     }
   }), { dropId: true })
 
-  await withGameValues(participant.registrations)
-  const { gameLinks, userId, documentDeliveries, registrations, ...rest } = participant
+  const { gameLinks, userId, documentDeliveries, registrations: loadedRegistrations, ...rest } = participant
+  // Personnes de ses affinités, nommées comme les tient l'équipe de chaque jeu (ADR-0086, US-242)
+  // Seulement les affinités : les réponses (JSON) n'ont pas de fiche à nommer
+  const namedAffinities = await withGameValues(loadedRegistrations.map(({ gameId, affinities }) => ({ gameId, affinities })))
+  const registrations = loadedRegistrations.map((registration, index) => ({ ...registration, affinities: namedAffinities[index]!.affinities }))
   return {
     exportedAt: new Date().toISOString(),
     ...rest,
-    // Exportée par une équipe : son nom, son téléphone et ses dates, rien d'une autre équipe qui suit la fiche (ADR-0086)
-    ...(gameIds === null ? {} : teamView(gameLinks, rest)),
+    // Nom, téléphone et dates des jeux exportés (ADR-0086, US-242) : par une équipe, rien d'une autre équipe qui suit la fiche
+    ...teamView(gameLinks, rest),
     // Réponses aux questions avec leur libellé, lu dans la version remplie (US-081)
     registrations: registrations.map(({ questionAnswers, formVersion, sessionLines, gameId: _gameId, ...registration }) => ({
       ...registration,
@@ -226,7 +227,7 @@ export async function exportParticipantData(participantId: string, gameIds: stri
     })),
     // Fiche rattachée au compte Limbus de la personne (US-070, ADR-0041)
     linkedToAccount: Boolean(userId),
-    // Notes de chaque jeu exporté (US-069)
-    games: gameLinks.map((link) => ({ title: link.game.title, registeredAt: link.createdAt, notes: link.notes }))
+    // Notes, nom et téléphone de chaque jeu exporté (US-069, ADR-0086) : pour la personne, ce que tient chaque équipe
+    games: gameLinks.map((link) => ({ title: link.game.title, registeredAt: link.createdAt, notes: link.notes, name: link.name, phone: link.phone }))
   }
 }

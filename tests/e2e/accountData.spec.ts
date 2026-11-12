@@ -5,6 +5,7 @@ import { linkToken } from '../integration/smtp'
 import { openMailbox } from './mailbox'
 import { E2E_PASSWORD, E2E_USERS } from './constants'
 import { blockWith, expectLoggedIn, login, signIn, slugOf, test, testUser, uniqueName } from './helpers'
+import { withFicheValues } from '../fiche'
 
 async function downloadedJson(download: Download) {
   return JSON.parse(await readFile((await download.path())!, 'utf8')) as unknown
@@ -105,7 +106,7 @@ test('l’équipe exporte les données d’une fiche participant puis la supprim
     const title = uniqueName('Jeu RGPD')
     const game = await prisma.game.create({ data: { title, slug: slugOf(title), description: '', ownerId: owner.id } })
     const name = uniqueName('Rita Données')
-    const participant = await prisma.participant.create({ data: { name, slug: slugOf(name), email: `${slugOf(name)}@example.test`, phone: '0611111111', gameLinks: { create: { gameId: game.id, notes: 'Végétarienne' } } } })
+    const participant = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email: `${slugOf(name)}@example.test`, gameLinks: { create: { gameId: game.id, notes: 'Végétarienne' , name: name, phone: '0611111111' } } } }), { name: name, phone: '0611111111' })
 
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto(`/participants/${participant.slug}`)

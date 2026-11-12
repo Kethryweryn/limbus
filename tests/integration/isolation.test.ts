@@ -5,6 +5,7 @@ import { afterAll, describe, expect, inject, it } from 'vitest'
 import { api, DENIED } from './api'
 import { createTestPrisma } from './db'
 import type { GameWorld } from './fixtures'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice, carol, admin } = world.users
@@ -361,9 +362,9 @@ describe('sous-routes de session et de jeu chez Bob', () => {
       data: { gameId: game.id, publicId: 'isolation-ouverte', state: 'open', sessions: { create: { sessionId: session.id } } }
     })
     // Participant dédié : les tests de ressources modifient celui des fixtures (email effacé)
-    const own = await prisma.participant.create({
-      data: { name: 'Invitée isolation', slug: 'invitee-isolation', email: 'invitee-isolation@example.test', gameLinks: { create: { gameId: game.id } } }
-    })
+    const own = await withFicheValues(prisma.participant.create({
+      data: { slug: 'invitee-isolation', email: 'invitee-isolation@example.test', gameLinks: { create: { gameId: game.id , name: 'Invitée isolation' } } }
+    }), { name: 'Invitée isolation' })
     const path = `/api/registration-periods/${period.id}/invitations`
 
     expect((await api(alice, 'POST', path, { sessionId: session.id, participantIds: [b.participant.id] })).status).toBe(400)
@@ -455,13 +456,12 @@ describe('sans authentification', () => {
 // Notes par jeu sur une fiche partagée entre deux équipes (US-069, ADR-0040)
 describe('notes d’une fiche commune', () => {
   it('Alice ne lit ni n’écrit la note du jeu de Bob ; témoin : la sienne', async () => {
-    const participant = await prisma.participant.create({
+    const participant = await withFicheValues(prisma.participant.create({
       data: {
-        name: 'Fiche commune isolation',
         slug: 'fiche-commune-isolation',
-        gameLinks: { create: [{ gameId: a.game.id, notes: 'Note A' }, { gameId: b.game.id, notes: 'Note B' }] }
+        gameLinks: { create: [{ gameId: a.game.id, notes: 'Note A' , name: 'Fiche commune isolation' }, { gameId: b.game.id, notes: 'Note B' , name: 'Fiche commune isolation' }] }
       }
-    })
+    }), { name: 'Fiche commune isolation' })
     const read = await api(alice, 'GET', `/api/participants/${participant.id}`)
     expect(read.body).toMatchObject({ gameNotes: { [a.game.id]: 'Note A' } })
     expect(JSON.stringify(read.body)).not.toContain('Note B')

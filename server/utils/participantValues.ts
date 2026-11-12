@@ -1,9 +1,9 @@
 import { prisma } from './prisma'
 
 /**
- * Nom et téléphone d'une personne tels que les tient l'équipe d'un jeu (SPEC-022 R6, ADR-0086, US-237) : ils vivent
- * sur le lien entre la fiche et chaque jeu, et une équipe ne lit jamais ceux d'une autre. Une lecture faite dans un
- * jeu (session, casting, inscription, paiement…) remplace donc ceux de la fiche par ceux de ce jeu.
+ * Nom et téléphone d'une personne tels que les tient l'équipe d'un jeu (SPEC-022 R6, ADR-0086, US-237, US-242) : ils
+ * vivent seulement sur le lien entre la fiche et chaque jeu, et une équipe ne lit jamais ceux d'une autre. Une lecture
+ * faite dans un jeu (session, casting, inscription, paiement…) reçoit donc ceux de ce jeu, sans repli possible.
  */
 
 type Plain = Record<string, unknown>
@@ -12,21 +12,33 @@ type GameValue = { name: string | null, phone: string | null }
 // Clés sous lesquelles une lecture expose une fiche participant : celles des relations vers `Participant` du schéma,
 // ce que vérifie tests/server/participantValues.test.ts
 export const PARTICIPANT_KEYS = new Set(['participant', 'targetParticipant', 'transferredTo'])
+type FicheKey = 'participant' | 'targetParticipant' | 'transferredTo'
+
+// Ce que reçoit chaque fiche d'une lecture : son nom, et son téléphone si la lecture le demande
+type FicheValues<P extends boolean> = P extends true ? { name: string, phone: string | null } : { name: string }
+type NamedFiche<F, P extends boolean> = F extends null ? null : F extends object ? GameNamed<F, P> & FicheValues<P> : F
+/** Une lecture dont chaque fiche porte le nom (et le téléphone) du jeu où elle est lue. */
+// Une colonne JSON (réponses, définitions) ne contient pas de fiche : le type s'arrête à un objet à clés libres, sans
+// parcourir ce qu'il contient
+export type GameNamed<T, P extends boolean = false> =
+  T extends Date ? T
+    : T extends readonly unknown[] ? { -readonly [K in keyof T]: GameNamed<T[K], P> }
+      : T extends object ? (string extends keyof T ? T : { [K in keyof T]: K extends FicheKey ? NamedFiche<T[K], P> : GameNamed<T[K], P> })
+        : T
 
 const isPlain = (value: unknown): value is Plain =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)
 
-const isFiche = (value: unknown): value is Plain & { id: string } =>
-  isPlain(value) && typeof value.id === 'string' && ('name' in value || 'phone' in value)
+const isFiche = (value: unknown): value is Plain & { id: string } => isPlain(value) && typeof value.id === 'string'
 
 const pairKey = (gameId: string, participantId: string) => `${gameId}:${participantId}`
 
 /**
- * Remplace, dans une lecture, le nom et le téléphone de chaque fiche par ceux du jeu où elle est lue. Le jeu est le
- * `gameId` de l'objet le plus proche qui en porte un (session, inscription, ligne de casting…), sinon `gameId`.
- * La lecture est modifiée sur place et renvoyée. Un lien sans valeur garde celle de la fiche.
+ * Donne, dans une lecture, à chaque fiche le nom (et, avec `phone`, le téléphone) du jeu où elle est lue. Le jeu est le
+ * `gameId` de l'objet le plus proche qui en porte un (session, inscription, ligne de casting…), sinon `gameId`. La
+ * lecture est modifiée sur place et renvoyée. La fiche doit porter son identifiant.
  */
-export async function withGameValues<T>(value: T, gameId?: string | null): Promise<T> {
+export async function withGameValues<T, P extends boolean = false>(value: T, gameId?: string | null, options: { phone?: P } = {}): Promise<GameNamed<T, P>> {
   const found: Array<{ gameId: string, fiche: Plain & { id: string } }> = []
   const walk = (node: unknown, context: string | null | undefined, key?: string) => {
     if (Array.isArray(node)) return node.forEach((child) => walk(child, context, key))
@@ -36,37 +48,36 @@ export async function withGameValues<T>(value: T, gameId?: string | null): Promi
     for (const [childKey, child] of Object.entries(node)) walk(child, here, childKey)
   }
   walk(value, gameId)
-  if (!found.length) return value
-
-  const values = await gameValues(found.map(({ gameId, fiche }) => ({ gameId, participantId: fiche.id })))
-  for (const { gameId, fiche } of found) applyValue(fiche, values.get(pairKey(gameId, fiche.id)))
-  return value
+  if (found.length) {
+    const values = await gameValues(found.map(({ gameId, fiche }) => ({ gameId, participantId: fiche.id })))
+    for (const { gameId, fiche } of found) applyValue(fiche, values.get(pairKey(gameId, fiche.id)), Boolean(options.phone))
+  }
+  return value as GameNamed<T, P>
 }
 
 /** Les fiches d'une liste, chacune avec les valeurs de son jeu (lecture faite dans un seul jeu). */
-export async function withGameValuesIn<T extends { id: string }>(fiches: T[], gameId: string): Promise<T[]> {
+export async function withGameValuesIn<T extends { id: string }, P extends boolean = false>(fiches: T[], gameId: string, options: { phone?: P } = {}): Promise<Array<T & FicheValues<P>>> {
   const values = await gameValues(fiches.map((fiche) => ({ gameId, participantId: fiche.id })))
-  for (const fiche of fiches) applyValue(fiche as unknown as Plain, values.get(pairKey(gameId, fiche.id)))
-  return fiches
+  for (const fiche of fiches) applyValue(fiche as unknown as Plain, values.get(pairKey(gameId, fiche.id)), Boolean(options.phone))
+  return fiches as Array<T & FicheValues<P>>
 }
 
 /**
  * Hors d'un jeu précis (page Participants, fiche) : les valeurs du jeu visible le plus récemment modifié parmi les
  * liens lus. `gameLinks` doit porter `name`, `phone` et `updatedAt`.
  */
-export function latestVisibleValues<T extends Plain & { gameLinks?: Array<{ name?: string | null, phone?: string | null, updatedAt?: Date }> }>(fiche: T): T {
+export function latestVisibleValues<T extends Plain & { gameLinks?: Array<{ name?: string | null, phone?: string | null, updatedAt?: Date }> }>(fiche: T): T & { name: string, phone: string | null } {
   const latest = [...(fiche.gameLinks || [])].sort((left, right) => (right.updatedAt?.getTime() ?? 0) - (left.updatedAt?.getTime() ?? 0))[0]
-  if (latest) applyValue(fiche, { name: latest.name ?? null, phone: latest.phone ?? null })
-  return fiche
+  applyValue(fiche, latest ? { name: latest.name ?? null, phone: latest.phone ?? null } : undefined, true)
+  return fiche as T & { name: string, phone: string | null }
 }
 
 /** Tri par nom, à l'affichage : les valeurs du jeu peuvent différer de l'ordre de la fiche. */
 export const byName = (left: { name: string }, right: { name: string }) => left.name.localeCompare(right.name, 'fr')
 
-function applyValue(fiche: Plain, value: GameValue | undefined) {
-  if (!value) return
-  if ('name' in fiche && value.name) fiche.name = value.name
-  if ('phone' in fiche && value.name !== null) fiche.phone = value.phone
+function applyValue(fiche: Plain, value: GameValue | undefined, withPhone: boolean) {
+  fiche.name = value?.name ?? ''
+  if (withPhone) fiche.phone = value?.phone ?? null
 }
 
 async function gameValues(pairs: Array<{ gameId: string, participantId: string }>) {
@@ -88,12 +99,9 @@ async function gameValues(pairs: Array<{ gameId: string, participantId: string }
 export async function namesIn(gameId: string, participantIds: string[]): Promise<Map<string, string>> {
   const ids = [...new Set(participantIds)]
   if (!ids.length) return new Map()
-  const [links, fiches] = await Promise.all([
-    prisma.participantGame.findMany({ where: { gameId, participantId: { in: ids } }, select: { participantId: true, name: true } }),
-    prisma.participant.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } })
-  ])
-  const names = new Map(fiches.map((fiche) => [fiche.id, fiche.name]))
-  for (const link of links) if (link.name) names.set(link.participantId, link.name)
+  const links = await prisma.participantGame.findMany({ where: { gameId, participantId: { in: ids } }, select: { participantId: true, name: true } })
+  const names = new Map(ids.map((id) => [id, '']))
+  for (const link of links) names.set(link.participantId, link.name ?? '')
   return names
 }
 

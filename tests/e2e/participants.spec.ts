@@ -36,7 +36,7 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
     await form.getByRole('button', { name: 'Créer' }).click()
     await expect(form).toBeHidden()
 
-    const created = await prisma.participant.findFirstOrThrow({ where: { name }, include: { gameLinks: true } })
+    const created = await prisma.participant.findFirstOrThrow({ where: { gameLinks: { some: { gameId: game.id, name } } }, include: { gameLinks: true } })
     expect(created.gameLinks).toEqual([expect.objectContaining({ gameId: game.id, notes: 'Vient en covoiturage.' })])
 
     // Le contact d'urgence et les allergies viennent de son inscription (US-178)
@@ -87,8 +87,8 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
     await page.getByLabel('Nom').fill(renamed)
     await page.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(page.getByRole('heading', { name: renamed, level: 1 })).toBeVisible()
-    const saved = await prisma.participant.findUniqueOrThrow({ where: { id: created.id }, select: { name: true, slug: true } })
-    expect(saved.name).toBe(renamed)
+    const saved = await prisma.participant.findUniqueOrThrow({ where: { id: created.id }, select: { slug: true, gameLinks: { select: { name: true } } } })
+    expect(saved.gameLinks.map((item) => item.name)).toEqual([renamed])
     expect(saved.slug).toBe(before)
     await expect(page).toHaveURL(new RegExp(`/participants/${before}$`))
 
@@ -110,7 +110,7 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
     await form.getByRole('button', { name: 'Créer' }).click()
     // Texte exact : la notification le répète aussi, avec son titre, dans une zone lue par les lecteurs d'écran
     await expect(page.getByText(`Le jeu est ajouté à la fiche de ${renamed}.`, { exact: true })).toBeVisible()
-    expect(await prisma.participant.count({ where: { name: 'Doublon' } })).toBe(0)
+    expect(await prisma.participantGame.count({ where: { name: 'Doublon' } })).toBe(0)
     expect((await prisma.participantGame.findMany({ where: { participantId: created.id }, select: { gameId: true } })).map((link) => link.gameId).sort()).toEqual([game.id, second.id].sort())
   } finally {
     await prisma.$disconnect()

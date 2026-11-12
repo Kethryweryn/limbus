@@ -3,6 +3,7 @@ import { labelled } from '../sessionLabel'
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import { api } from './api'
 import { createTestPrisma } from './db'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice } = world.users
@@ -22,9 +23,9 @@ async function aliceSession(options: { singlePjPerParticipant?: boolean } = {}) 
   const session = await labelled(prisma, await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id } }))
   const character = (name: string, type: 'pj' | 'pnj') => prisma.character.create({ data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, gameId: game.id, type } })
   const [aube, brume, garde] = await Promise.all([character('Aube', 'pj'), character('Brume', 'pj'), character('Garde', 'pnj')])
-  const person = (name: string) => prisma.participant.create({
-    data: { name: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id } } }
-  })
+  const person = (name: string) => withFicheValues(prisma.participant.create({
+    data: { slug: `${name.toLowerCase()}-${key}`, email: `${name.toLowerCase()}-${key}@example.test`, gameLinks: { create: { gameId: game.id , name: `${name} ${key}` } } }
+  }), { name: `${name} ${key}` })
   const [lea, noe] = await Promise.all([person('Lea'), person('Noe')])
   await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: lea.id, role: 'participant' } })
   return { key, game, session, aube, brume, garde, lea, noe }

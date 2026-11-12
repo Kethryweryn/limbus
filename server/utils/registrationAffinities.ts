@@ -37,20 +37,19 @@ export async function replaceAffinities(tx: PrismaTx, registrationId: string, af
  * libre parmi les fiches du jeu, sans la personne elle-même.
  */
 export async function affinitiesForTeam(registration: { id: string, participantId: string }, gameId: string) {
-  const [rows, people] = await Promise.all([
+  const [loadedRows, loadedPeople] = await Promise.all([
     prisma.registrationAffinity.findMany({
       where: { registrationId: registration.id },
       orderBy: { position: 'asc' },
-      select: { id: true, kind: true, text: true, targetUnknown: true, targetParticipant: { select: { id: true, name: true } } }
+      select: { id: true, kind: true, text: true, targetUnknown: true, targetParticipant: { select: { id: true } } }
     }),
     prisma.participant.findMany({
       where: { gameLinks: { some: { gameId } }, id: { not: registration.participantId } },
-      select: { id: true, name: true }
+      select: { id: true }
     })
   ])
   // Noms tenus par l'équipe du jeu, triés à l'affichage (ADR-0086)
-  await withGameValues(rows, gameId)
-  await withGameValuesIn(people, gameId)
+  const [rows, people] = await Promise.all([withGameValues(loadedRows, gameId), withGameValuesIn(loadedPeople, gameId)])
   people.sort(byName)
   const lines = rows.map(({ targetParticipant, ...row }) => {
     const linkable = isPersonAffinityKind(row.kind)
@@ -99,7 +98,7 @@ export async function linkAffinity(affinity: LinkableAffinity, link: { targetPar
   if (!count) throw createError({ statusCode: 409, message: 'Les réponses de cette personne ont changé entre-temps : rechargez l’inscription.' })
   return await withGameValues(await prisma.registrationAffinity.findUniqueOrThrow({
     where: { id: affinity.id },
-    select: { id: true, targetUnknown: true, targetParticipant: { select: { id: true, name: true } } }
+    select: { id: true, targetUnknown: true, targetParticipant: { select: { id: true } } }
   }), affinity.registration.period.gameId)
 }
 
@@ -111,7 +110,7 @@ export async function linkAffinity(affinity: LinkableAffinity, link: { targetPar
  */
 export async function affinityOverview(periodId: string, sessionIds: string[]) {
   const { gameId } = await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: periodId }, select: { gameId: true } })
-  const [placed, cast, periodRegistrations] = await Promise.all([
+  const loaded = await Promise.all([
     prisma.registrationSession.findMany({
       where: { sessionId: { in: sessionIds }, status: { in: REGISTRATION_SEAT_STATUSES } },
       select: {
@@ -119,7 +118,7 @@ export async function affinityOverview(periodId: string, sessionIds: string[]) {
         registration: {
           select: {
             id: true,
-            participant: { select: { id: true, name: true } },
+            participant: { select: { id: true } },
             affinities: {
               where: { kind: { in: [...ALERT_AFFINITY_KINDS] }, targetParticipantId: { not: null } },
               select: { kind: true, text: true, targetParticipantId: true }
@@ -130,7 +129,7 @@ export async function affinityOverview(periodId: string, sessionIds: string[]) {
     }),
     prisma.sessionParticipant.findMany({
       where: { sessionId: { in: sessionIds } },
-      select: { sessionId: true, participant: { select: { id: true, name: true } } }
+      select: { sessionId: true, participant: { select: { id: true } } }
     }),
     prisma.registration.findMany({
       where: { periodId },
@@ -139,7 +138,7 @@ export async function affinityOverview(periodId: string, sessionIds: string[]) {
         affinities: {
           where: { kind: 'wantWith', targetParticipantId: { not: null } },
           orderBy: { position: 'asc' },
-          select: { targetParticipant: { select: { id: true, name: true } } }
+          select: { targetParticipant: { select: { id: true } } }
         },
         _count: { select: { affinities: { where: { kind: { in: [...PERSON_AFFINITY_KINDS] }, targetParticipantId: null, targetUnknown: false } } } }
       }
@@ -147,7 +146,7 @@ export async function affinityOverview(periodId: string, sessionIds: string[]) {
   ])
 
   // Noms tenus par l'équipe du jeu (ADR-0086)
-  await withGameValues({ placed, cast, periodRegistrations }, gameId)
+  const [placed, cast, periodRegistrations] = await withGameValues(loaded, gameId)
   // Personnes présentes par session, avec leur nom
   const present = new Map<string, Map<string, string>>(sessionIds.map((id) => [id, new Map()]))
   for (const row of placed) present.get(row.sessionId)?.set(row.registration.participant.id, row.registration.participant.name)

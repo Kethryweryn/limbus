@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import { api, DENIED } from './api'
 import { createTestPrisma } from './db'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice, admin } = world.users
@@ -52,24 +53,23 @@ describe('export des données d’un participant', () => {
     expect(DENIED).toContain((await api(alice, 'GET', `/api/participants/${b.participant.id}/export`)).status)
 
     // Valeurs relues en base : les tests d'isolation renomment les données d'Alice
-    const participant = await prisma.participant.findUniqueOrThrow({ where: { id: a.participant.id } })
+    const participant = await prisma.participant.findUniqueOrThrow({ where: { id: a.participant.id }, include: { gameLinks: { where: { gameId: a.game.id } } } })
     const game = await prisma.game.findUniqueOrThrow({ where: { id: a.game.id } })
     const response = await api(alice, 'GET', `/api/participants/${a.participant.id}/export`)
     expect(response.status).toBe(200)
-    expect(response.body).toMatchObject({ name: participant.name, email: participant.email, games: [{ title: game.title }] })
+    expect(response.body).toMatchObject({ name: participant.gameLinks[0]!.name, email: participant.email, games: [{ title: game.title }] })
     // Date de création de la fiche (US-188)
     expect(response.body).toMatchObject({ createdAt: participant.createdAt.toISOString() })
   })
 
   it('un participant inscrit chez Alice et chez Bob n’expose que le jeu d’Alice', async () => {
-    const shared = await prisma.participant.create({
+    const shared = await withFicheValues(prisma.participant.create({
       data: {
-        name: 'Partagé',
         slug: 'participant-partage-export',
-        gameLinks: { create: [{ gameId: a.game.id }, { gameId: b.game.id }] },
+        gameLinks: { create: [{ gameId: a.game.id , name: 'Partagé' }, { gameId: b.game.id , name: 'Partagé' }] },
         sessionRoles: { create: [{ sessionId: a.session.id, role: 'participant' }, { sessionId: b.session.id, role: 'participant' }] }
       }
-    })
+    }), { name: 'Partagé' })
 
     const response = await api(alice, 'GET', `/api/participants/${shared.id}/export`)
     expect(response.status).toBe(200)
@@ -84,9 +84,9 @@ describe('export des données d’un participant', () => {
 
 describe('inscriptions d’un participant (US-003)', () => {
   it('l’export contient ses inscriptions, limitées aux jeux de l’organisatrice', async () => {
-    const shared = await prisma.participant.create({
-      data: { name: 'Inscrit partout', slug: 'participant-inscrit-partout', email: 'partout@example.test', gameLinks: { create: [{ gameId: a.game.id }, { gameId: b.game.id }] } }
-    })
+    const shared = await withFicheValues(prisma.participant.create({
+      data: { slug: 'participant-inscrit-partout', email: 'partout@example.test', gameLinks: { create: [{ gameId: a.game.id , name: 'Inscrit partout' }, { gameId: b.game.id , name: 'Inscrit partout' }] } }
+    }), { name: 'Inscrit partout' })
     for (const w of [a, b]) {
       await prisma.registration.create({
         data: { gameId: w.registrationPeriod.gameId, periodId: w.registrationPeriod.id, participantId: shared.id, status: 'received', source: 'invitation', email: 'partout@example.test', dietary: `Allergie ${w.game.id}`, sessionLines: { create: { sessionId: w.session.id, status: 'confirmed' } } }
@@ -102,9 +102,9 @@ describe('inscriptions d’un participant (US-003)', () => {
   })
 
   it('l’export d’une inscription contient sa dernière relance, et qui a invité ou retiré la personne (US-037)', async () => {
-    const person = await prisma.participant.create({
-      data: { name: 'Relancée', slug: 'participant-relancee', email: 'relancee@example.test', gameLinks: { create: [{ gameId: a.game.id }] } }
-    })
+    const person = await withFicheValues(prisma.participant.create({
+      data: { slug: 'participant-relancee', email: 'relancee@example.test', gameLinks: { create: [{ gameId: a.game.id , name: 'Relancée' }] } }
+    }), { name: 'Relancée' })
     const remindedAt = new Date('2026-10-20T10:00:00.000Z')
     await prisma.registration.create({
       data: {
@@ -124,9 +124,9 @@ describe('inscriptions d’un participant (US-003)', () => {
   })
 
   it('la suppression du participant efface ses inscriptions', async () => {
-    const participant = await prisma.participant.create({
-      data: { name: 'Inscrit effacé', slug: 'participant-inscrit-efface', email: 'inscrit-efface@example.test', gameLinks: { create: { gameId: a.game.id } } }
-    })
+    const participant = await withFicheValues(prisma.participant.create({
+      data: { slug: 'participant-inscrit-efface', email: 'inscrit-efface@example.test', gameLinks: { create: { gameId: a.game.id , name: 'Inscrit effacé' } } }
+    }), { name: 'Inscrit effacé' })
     await prisma.registration.create({
       data: { gameId: a.registrationPeriod.gameId, periodId: a.registrationPeriod.id, invitedSessionId: a.session.id, participantId: participant.id, status: 'invited', source: 'invitation', email: 'inscrit-efface@example.test', phone: '0600000000' }
     })
@@ -138,9 +138,9 @@ describe('inscriptions d’un participant (US-003)', () => {
 
 describe('suppression d’un participant', () => {
   it('efface ses photos (fichier compris) et les trombinoscopes qui les contiennent', async () => {
-    const participant = await prisma.participant.create({
-      data: { name: 'À effacer', slug: 'participant-a-effacer', email: 'efface@example.test', gameLinks: { create: { gameId: a.game.id } } }
-    })
+    const participant = await withFicheValues(prisma.participant.create({
+      data: { slug: 'participant-a-effacer', email: 'efface@example.test', gameLinks: { create: { gameId: a.game.id , name: 'À effacer' } } }
+    }), { name: 'À effacer' })
     const character = await prisma.character.create({
       data: { name: 'Rôle à effacer', slug: 'role-a-effacer', gameId: a.game.id }
     })
@@ -173,9 +173,9 @@ describe('suppression d’un participant', () => {
   })
 
   it('garde une photo encore utilisée comme photo de personnage', async () => {
-    const participant = await prisma.participant.create({
-      data: { name: 'Photo partagée', slug: 'participant-photo-partagee', gameLinks: { create: { gameId: a.game.id } } }
-    })
+    const participant = await withFicheValues(prisma.participant.create({
+      data: { slug: 'participant-photo-partagee', gameLinks: { create: { gameId: a.game.id , name: 'Photo partagée' } } }
+    }), { name: 'Photo partagée' })
     const url = '/api/uploads/session-assignment-photos/photo-partagee.png'
     const character = await prisma.character.create({
       data: { name: 'Rôle photo partagée', slug: 'role-photo-partagee', gameId: a.game.id, trombinoscopePhotoUrl: url }
@@ -199,12 +199,11 @@ describe('effacement et export par équipe (US-241)', () => {
     const [aliceGame, bobGame] = await Promise.all([alice, bob].map((owner, index) =>
       prisma.game.create({ data: { title: `Jeu ${index} ${key}`, slug: `jeu-${index}-${key}`, description: '', ownerId: owner.id } })
     ))
-    const fiche = await prisma.participant.create({
-      data: {
-        name: `Fiche ${key}`, slug: `p-${key}`.slice(0, 40), email: `fiche-${key}@example.test`,
+    const fiche = await withFicheValues(prisma.participant.create({
+      data: { slug: `p-${key}`.slice(0, 40), email: `fiche-${key}@example.test`,
         gameLinks: { create: [{ gameId: aliceGame!.id, name: 'Nom chez Alice', notes: 'Note d’Alice' }, { gameId: bobGame!.id, name: 'Nom chez Bob', notes: 'Note de Bob' }] }
       }
-    })
+    }), { name: `Fiche ${key}` })
     const sessions = []
     for (const game of [aliceGame!, bobGame!]) {
       const session = await prisma.session.create({ data: { slug: `session-${game.slug}`, gameId: game.id } })
@@ -222,7 +221,7 @@ describe('effacement et export par équipe (US-241)', () => {
   it('Alice efface ce qu’elle tient ; la fiche reste à Bob, intacte', async () => {
     const { aliceGame, bobGame, fiche } = await sharedFiche(`efface-equipe-${Date.now()}`)
     // L'affinité d'une autre personne qui la désigne, dans le jeu d'Alice : détachée, son texte reste (revue de la PR #235)
-    const lea = await prisma.participant.create({ data: { name: 'Léa', slug: `p-lea-${Date.now()}`.slice(0, 40), email: `lea-${Date.now()}@example.test`, gameLinks: { create: { gameId: aliceGame.id, name: 'Léa' } } } })
+    const lea = await withFicheValues(prisma.participant.create({ data: { slug: `p-lea-${Date.now()}`.slice(0, 40), email: `lea-${Date.now()}@example.test`, gameLinks: { create: { gameId: aliceGame.id, name: 'Léa' } } } }), { name: 'Léa' })
     const period = await prisma.registrationPeriod.findFirstOrThrow({ where: { gameId: aliceGame.id } })
     const leaRegistration = await prisma.registration.create({ data: { gameId: aliceGame.id, periodId: period.id, participantId: lea.id, status: 'received', source: 'form', email: lea.email! } })
     const affinity = await prisma.registrationAffinity.create({ data: { registrationId: leaRegistration.id, kind: 'wantWith', text: 'Jouer avec elle', position: 0, targetParticipantId: fiche.id } })
@@ -246,7 +245,7 @@ describe('effacement et export par équipe (US-241)', () => {
 
   it('l’export d’Alice ne contient que ses jeux, son nom et les personnes nommées comme dans son jeu', async () => {
     const { aliceGame, fiche } = await sharedFiche(`export-equipe-${Date.now()}`)
-    const target = await prisma.participant.create({ data: { name: 'Cible', slug: `p-cible-${Date.now()}`.slice(0, 40), email: `cible-${Date.now()}@example.test`, gameLinks: { create: { gameId: aliceGame.id, name: 'Cible chez Alice' } } } })
+    const target = await withFicheValues(prisma.participant.create({ data: { slug: `p-cible-${Date.now()}`.slice(0, 40), email: `cible-${Date.now()}@example.test`, gameLinks: { create: { gameId: aliceGame.id, name: 'Cible chez Alice' } } } }), { name: 'Cible' })
     const registration = await prisma.registration.findFirstOrThrow({ where: { participantId: fiche.id, gameId: aliceGame.id } })
     await prisma.registrationAffinity.create({ data: { registrationId: registration.id, kind: 'wantWith', text: 'Cible', position: 0, targetParticipantId: target.id } })
     const exported = (await api(alice, 'GET', `/api/participants/${fiche.id}/export`)).body as { name: string, registrations: Array<{ affinities: Array<{ targetParticipant?: { name: string } | null }> }> }

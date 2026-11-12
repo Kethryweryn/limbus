@@ -5,6 +5,7 @@ import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf, errorMessage } from './api'
 import { createTestPrisma } from './db'
 import { addPerson, createPool, lineOf, type Pool } from './pool'
+import { withFicheValues } from '../fiche'
 
 const prisma = createTestPrisma()
 const { alice } = inject('world').users
@@ -27,7 +28,7 @@ async function castPool(options: Parameters<typeof createPool>[2] = {}) {
 // Une personne du jeu, hors du vivier
 async function outsider(pool: Pool, name: string) {
   const slug = `${name.toLowerCase()}-${++counter}-${pool.key}`
-  return await prisma.participant.create({ data: { name, slug, email: `${slug}@example.test`, gameLinks: { create: { gameId: pool.game.id } } } })
+  return await withFicheValues(prisma.participant.create({ data: { slug, email: `${slug}@example.test`, gameLinks: { create: { gameId: pool.game.id , name: name } } } }), { name: name })
 }
 
 async function saveCast(pool: Pool, sessionId: string, assignments: Line[], participants: Member[] = []) {

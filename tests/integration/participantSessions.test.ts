@@ -4,6 +4,7 @@ import type { ApiResponse } from '~/composables/useApiFetch'
 import { api, bodyOf } from './api'
 import { createTestPrisma } from './db'
 import type { SessionStatus } from '~/generated/prisma/enums'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { alice, bob } = world.users
@@ -21,9 +22,9 @@ describe('sessions de la fiche', () => {
     const key = `sessions-fiche-${++counter}`
     const mine = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
     const other = await prisma.game.create({ data: { title: `Autre ${key}`, slug: `autre-${key}`, description: '', ownerId: bob.id } })
-    const participant = await prisma.participant.create({
-      data: { name: `Zoé ${key}`, slug: `zoe-${key}`, gameLinks: { create: [{ gameId: mine.id }, { gameId: other.id }] } }
-    })
+    const participant = await withFicheValues(prisma.participant.create({
+      data: { slug: `zoe-${key}`, gameLinks: { create: [{ gameId: mine.id , name: `Zoé ${key}` }, { gameId: other.id , name: `Zoé ${key}` }] } }
+    }), { name: `Zoé ${key}` })
     const session = (gameId: string, name: string, date: Date | null, status: SessionStatus = 'scheduled') =>
       prisma.session.create({ data: { slug: `${name.toLowerCase()}-${key}`, gameId, date, status } })
     const [later, past, undated, bobs] = await Promise.all([

@@ -297,7 +297,7 @@ export async function inviteToRegistrationPeriod(params: {
   // Noms tenus par l'équipe du jeu (ADR-0086), pour les messages et les emails
   const participants = await withGameValuesIn(await prisma.participant.findMany({
     where: { id: { in: params.participantIds }, gameLinks: { some: { gameId: period.gameId } } },
-    select: { id: true, name: true, email: true }
+    select: { id: true, email: true }
   }), period.gameId)
   if (participants.length !== params.participantIds.length) {
     throw createError({ statusCode: 400, message: 'Participant invalide pour ce jeu' })
@@ -316,7 +316,7 @@ export async function inviteToRegistrationPeriod(params: {
   const knownIds = [...new Set([...participants.map((participant) => participant.id), ...(matched ? [matched.id] : [])])]
   const existing = await withGameValues(await prisma.registration.findMany({
     where: { periodId: period.id, participantId: { in: knownIds } },
-    select: { id: true, participantId: true, status: true, participant: { select: { id: true, name: true } } }
+    select: { id: true, participantId: true, status: true, participant: { select: { id: true } } }
   }), period.gameId)
   const active = existing.filter((registration) => registration.status !== REGISTRATION_STATUSES.withdrawn)
   if (active.length) {
@@ -356,15 +356,14 @@ export async function inviteToRegistrationPeriod(params: {
       }
       const created = await tx.participant.create({
         data: {
-          name: newParticipant.name,
           slug: slug!,
           email: newParticipant.email,
           userId: await accountIdForEmail(newParticipant.email),
           gameLinks: { create: { gameId: period.gameId, name: newParticipant.name } }
         },
-        select: { id: true, name: true }
+        select: { id: true }
       })
-      invited.push({ id: created.id, name: created.name, email: newParticipant.email })
+      invited.push({ id: created.id, name: newParticipant.name, email: newParticipant.email })
     }
 
     const created: InvitationEmailTarget[] = []
@@ -478,7 +477,7 @@ const invitationSelect = {
   responseDueAt: true,
   // Jeu et fiche : le nom est celui qu'en tient l'équipe du jeu (ADR-0086)
   gameId: true,
-  participant: { select: { id: true, name: true } },
+  participant: { select: { id: true } },
   invitedSession: { select: { id: true, date: true } },
   period: { select: { game: { select: { title: true, photoRetentionMonths: true, contactEmail: true, owner: { select: { email: true } } } } } }
 } as const
@@ -740,7 +739,7 @@ const withdrawalSelect = {
   participantId: true,
   // Jeu et fiche : le nom est celui qu'en tient l'équipe du jeu (ADR-0086)
   gameId: true,
-  participant: { select: { id: true, name: true } },
+  participant: { select: { id: true } },
   period: { select: { gameId: true, game: { select: { title: true } } } },
   sessionLines: { select: { sessionId: true, status: true, session: { select: { id: true, status: true } } } }
 } as const

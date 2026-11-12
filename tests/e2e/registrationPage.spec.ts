@@ -4,6 +4,7 @@ import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
 import { cardByTitle, orgaGame, orgaSession, registrationTab, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
+import { withFicheValues } from '../fiche'
 
 // Jeu au vivier ouvert, une session prévue, deux personnes dans le vivier et une sortie
 async function gameWithPool(prisma: TestPrisma, base: string) {
@@ -15,7 +16,7 @@ async function gameWithPool(prisma: TestPrisma, base: string) {
   const person = async (label: string, status: 'received' | 'withdrawn') => {
     const name = uniqueName(label)
     const email = `${slugOf(name)}@example.test`
-    const participant = await prisma.participant.create({ data: { name, slug: slugOf(name), email, gameLinks: { create: { gameId: game.id } } } })
+    const participant = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, gameLinks: { create: { gameId: game.id , name: name } } } }), { name: name })
     await prisma.registration.create({ data: { gameId: game.id, periodId: period.id, participantId: participant.id, email, status, source: 'form', firstName: label, lastName: 'Test' } })
     return name
   }
@@ -186,7 +187,7 @@ test.describe('page Inscriptions d’un jeu', () => {
 
       // Une participante du jeu, sans accès à son organisation
       const player = await testUser(prisma, 'Joueuse inscriptions')
-      await prisma.participant.create({ data: { name: player.name, slug: slugOf(player.name), email: player.email, userId: player.user.id, gameLinks: { create: { gameId: ctx.game.id } } } })
+      await withFicheValues(prisma.participant.create({ data: { slug: slugOf(player.name), email: player.email, userId: player.user.id, gameLinks: { create: { gameId: ctx.game.id , name: player.name } } } }), { name: player.name })
       await signIn(page, prisma, player.email)
       await page.goto(`/registrations/${ctx.game.slug}`)
       await expect(page.getByText('Ce jeu est introuvable, ou vous n’y avez pas accès.')).toBeVisible()
