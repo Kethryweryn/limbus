@@ -21,7 +21,7 @@ export async function readParticipantEmergency(participantId: string, gameIds: s
         take: 1,
         select: { ...emergencySelect, period: { select: { game: { select: { title: true } } } } }
       },
-      user: { select: { ...emergencySelect, healthConsentAt: true, profileUpdatedAt: true } }
+      user: { select: { ...emergencySelect, healthConsentAt: true, emailConfirmedAt: true } }
     }
   })
   if (!participant) throw createError({ statusCode: 404, message: 'Participant introuvable' })
@@ -32,8 +32,8 @@ export async function readParticipantEmergency(participantId: string, gameIds: s
     return { source: 'registration' as const, gameTitle: period.game.title, ...fields }
   }
   const { user } = participant
-  // Coordonnées jamais enregistrées dans le compte : rien à montrer
-  if (user?.profileUpdatedAt) {
+  // Compte activé qui a rempli son contact d'urgence ou ses allergies (ADR-0089) ; un compte pré-créé n'a rien
+  if (user?.emailConfirmedAt && (user.emergencyContactName || user.emergencyContactPhone || user.dietary)) {
     return {
       source: 'account' as const,
       gameTitle: null,

@@ -39,16 +39,55 @@ export async function linkParticipantsToUser(user: { id: string, email: string }
   await syncProfileToParticipants(user.id)
 }
 
+/** Coordonnées qu'une personne peut tenir depuis son compte (ADR-0089) ; le contact d'urgence va par paire. */
+export const PROFILE_FIELDS = ['name', 'phone', 'emergencyContact', 'dietary'] as const
+export type ProfileField = typeof PROFILE_FIELDS[number]
+
+export type ProfileValues = {
+  emailConfirmedAt: Date | null
+  name: string
+  phone: string | null
+  emergencyContactName: string | null
+  emergencyContactPhone: string | null
+  dietary: string | null
+}
+
 /**
- * Coordonnées du compte recopiées sur ses fiches et ses inscriptions non désistées (US-074, ADR-0042) :
- * chaque équipe lit la version à jour pour ses jeux. Rien tant que la personne ne les a jamais enregistrées.
+ * Champs tenus par la personne (ADR-0089) : un champ non vide d'un compte activé. Le nom d'un compte activé est toujours
+ * tenu ; un compte non activé ne tient rien. Un champ tenu remplace celui de chaque équipe, qui ne peut plus le changer.
  */
-export async function syncProfileToParticipants(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { name: true, phone: true, emergencyContactName: true, emergencyContactPhone: true, dietary: true, healthConsentAt: true, profileUpdatedAt: true }
-  })
-  if (!user?.profileUpdatedAt) return
+export function heldProfileFields(user: ProfileValues | null | undefined): ProfileField[] {
+  if (!user?.emailConfirmedAt) return []
+  const filled: Record<ProfileField, boolean> = {
+    name: Boolean(user.name.trim()),
+    phone: Boolean(user.phone),
+    emergencyContact: Boolean(user.emergencyContactName || user.emergencyContactPhone),
+    dietary: Boolean(user.dietary)
+  }
+  return PROFILE_FIELDS.filter((field) => filled[field])
+}
+
+/** Champs que la personne vient de vider : remplis avant l'enregistrement, vides après (ADR-0089). */
+export function clearedProfileFields(before: ProfileValues, after: ProfileValues): ProfileField[] {
+  const held = new Set(heldProfileFields(after))
+  return heldProfileFields(before).filter((field) => !held.has(field))
+}
+
+export const profileValuesSelect = {
+  emailConfirmedAt: true, name: true, phone: true, emergencyContactName: true, emergencyContactPhone: true, dietary: true
+} as const
+
+/**
+ * Coordonnées du compte recopiées champ par champ (ADR-0089, qui remplace en partie ADR-0042) : les champs tenus par la
+ * personne, et ceux qu'elle vient de vider (`cleared`), vont sur toutes ses fiches (nom et téléphone de chaque jeu) et
+ * sur ses inscriptions non désistées déjà remplies, pour les seuls champs que le formulaire de chacune a demandés. Un
+ * champ jamais rempli n'est jamais écrit : chaque équipe garde le sien. Rien pour un compte non activé.
+ */
+export async function syncProfileToParticipants(userId: string, cleared: ProfileField[] = []) {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { ...profileValuesSelect, healthConsentAt: true } })
+  if (!user?.emailConfirmedAt) return
+  const written = new Set<ProfileField>([...heldProfileFields(user), ...cleared])
+  if (!written.size) return
   const { firstName, lastName } = splitParticipantName(user.name)
   // Inscriptions déjà remplies : seulement les champs que leur formulaire a demandés (on ne stocke que ce qui
   // a été demandé, R8). Une invitation sans réponse se préremplit à l'affichage
@@ -56,21 +95,24 @@ export async function syncProfileToParticipants(userId: string) {
     where: { participant: { userId }, status: { not: REGISTRATION_STATUSES.withdrawn }, formVersionId: { not: null } },
     select: { id: true, formVersion: { select: { definition: true } } }
   })
+  const linkData = {
+    ...(written.has('name') ? { name: user.name } : {}),
+    ...(written.has('phone') ? { phone: user.phone } : {})
+  }
   await prisma.$transaction([
-    // Tenus par jeu (ADR-0086) : chaque jeu de ses fiches reçoit les coordonnées du compte
-    prisma.participantGame.updateMany({ where: { participant: { userId } }, data: { name: user.name, phone: user.phone } }),
-    ...registrations.map((registration) => {
+    // Tenus par jeu (ADR-0086) : chaque jeu de ses fiches reçoit les champs du compte
+    ...(Object.keys(linkData).length ? [prisma.participantGame.updateMany({ where: { participant: { userId } }, data: linkData })] : []),
+    ...registrations.flatMap((registration) => {
       const asked = normalizeRegistrationFormDefinition(registration.formVersion!.definition as RegistrationFormDefinition).standardFields
-      return prisma.registration.update({
-        where: { id: registration.id },
-        data: {
-          ...(asked.firstName.asked ? { firstName } : {}),
-          ...(asked.lastName.asked ? { lastName: lastName || null } : {}),
-          ...(asked.phone.asked ? { phone: user.phone } : {}),
-          ...(asked.emergencyContact.asked ? { emergencyContactName: user.emergencyContactName, emergencyContactPhone: user.emergencyContactPhone } : {}),
-          ...(asked.dietary.asked ? { dietary: user.dietary, healthConsentAt: user.dietary ? user.healthConsentAt : null } : {})
-        }
-      })
+      const data = {
+        ...(written.has('name') && asked.firstName.asked ? { firstName } : {}),
+        ...(written.has('name') && asked.lastName.asked ? { lastName: lastName || null } : {}),
+        ...(written.has('phone') && asked.phone.asked ? { phone: user.phone } : {}),
+        ...(written.has('emergencyContact') && asked.emergencyContact.asked ? { emergencyContactName: user.emergencyContactName, emergencyContactPhone: user.emergencyContactPhone } : {}),
+        ...(written.has('dietary') && asked.dietary.asked ? { dietary: user.dietary, healthConsentAt: user.dietary ? user.healthConsentAt : null } : {})
+      }
+      // Rien de demandé parmi ces champs : l'inscription ne change pas, ni sa version
+      return Object.keys(data).length ? [prisma.registration.update({ where: { id: registration.id }, data })] : []
     })
   ])
 }

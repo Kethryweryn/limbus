@@ -75,10 +75,11 @@ describe('urgence et allergies de la fiche', () => {
     expect(await read(participant.id)).toMatchObject({ source: 'account', dietary: 'Lactose' })
   })
 
-  it('ne montre rien sans inscription ni coordonnées enregistrées dans le compte', async () => {
+  it('ne montre rien sans inscription ni coordonnées remplies dans un compte activé (ADR-0089)', async () => {
     const key = `urgence-${++counter}`
     const mine = await gameOf(alice.id, key)
-    const user = await prisma.user.create({ data: { email: `${key}@example.test`, name: `Inès ${key}`, password: 'x', emergencyContactName: 'Pas encore enregistré' } })
+    // Compte pré-créé pour la fiche : il ne tient rien, même rempli (US-244)
+    const user = await prisma.user.create({ data: { email: `${key}@example.test`, name: '', password: null, emailConfirmedAt: null, emergencyContactName: 'Pas encore activé' } })
     const participant = await withFicheValues(prisma.participant.create({
       data: { slug: `ines-${key}`, userId: user.id, gameLinks: { create: { gameId: mine.game.id , name: `Inès ${key}` } } }
     }), { name: `Inès ${key}` })

@@ -1,14 +1,15 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
 import { accountProfileSchema, readZodBody } from '~/server/utils/schemas'
-import { syncProfileToParticipants } from '~/server/utils/participantAccounts'
+import { clearedProfileFields, profileValuesSelect, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 
-// Mes coordonnées (US-074) : enregistrées sur le compte, puis recopiées sur mes fiches et inscriptions
+// Mes coordonnées (US-074) : enregistrées sur le compte, puis recopiées champ par champ sur mes fiches et inscriptions (US-245)
 export default defineEventHandler(async (event) => {
   const { id } = await requireUser(event)
   const body = await readZodBody(event, accountProfileSchema)
   const now = new Date()
-  await prisma.user.update({
+  const before = await prisma.user.findUniqueOrThrow({ where: { id }, select: profileValuesSelect })
+  const after = await prisma.user.update({
     where: { id },
     data: {
       phone: body.phone || null,
@@ -17,8 +18,10 @@ export default defineEventHandler(async (event) => {
       dietary: body.dietary || null,
       healthConsentAt: body.dietary ? now : null,
       profileUpdatedAt: now
-    }
+    },
+    select: profileValuesSelect
   })
-  await syncProfileToParticipants(id)
+  // Champ par champ (ADR-0089) : un champ rempli remplace celui des équipes, un champ vidé leur revient vide
+  await syncProfileToParticipants(id, clearedProfileFields(before, after))
   return { success: true }
 })

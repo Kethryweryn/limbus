@@ -79,11 +79,11 @@ describe('mes coordonnées (US-074)', () => {
     expect((await api(user, 'PUT', '/api/account/profile', { ...profile, healthConsent: false })).status).toBe(400)
   })
 
-  it('rien n’est recopié tant que la personne n’a pas enregistré ses coordonnées', async () => {
+  it('le nom d’un compte activé est recopié ; un champ jamais rempli reste celui de chaque équipe (US-245)', async () => {
     const { user, teams } = await personInTwoTeams()
     expect((await api(user, 'PUT', '/api/account', { name: 'Autre Nom' })).status).toBe(200)
-    expect((await prisma.participantGame.findMany({ where: { participantId: teams[0]!.participant.id }, select: { name: true } })).map((link) => link.name))
-      .toEqual(['Nom saisi par l’équipe', 'Nom saisi par l’équipe'])
+    expect(await prisma.participantGame.findMany({ where: { participantId: teams[0]!.participant.id }, select: { name: true, phone: true } }))
+      .toEqual([{ name: 'Autre Nom', phone: '0100000000' }, { name: 'Autre Nom', phone: '0100000000' }])
   })
 
   it('une fiche rattachée après coup prend les coordonnées du compte', async () => {
@@ -155,7 +155,15 @@ describe('fiche tenue par la personne (US-075)', () => {
     await api(user, 'PUT', '/api/account/profile', profile)
     const { participant, game } = teams[0]!
     const body = { name: 'Renommée par l’équipe', email: user.email, phone: '0700000000', gameIds: [game.id] }
-    expect((await api(alice, 'PUT', `/api/participants/${participant.id}`, body)).status).toBe(200)
+    // Champs tenus par la personne (US-245, ADR-0089) : refusés, rien n'est enregistré
+    const renamed = await api(alice, 'PUT', `/api/participants/${participant.id}`, { ...body, phone: '0612345678' })
+    expect(renamed.status).toBe(400)
+    expect(JSON.stringify(renamed.body)).toContain('Le nom est tenu par la personne depuis son compte.')
+    const rephoned = await api(alice, 'PUT', `/api/participants/${participant.id}`, { ...body, name: 'Camille Dupont' })
+    expect(rephoned.status).toBe(400)
+    expect(JSON.stringify(rephoned.body)).toContain('Le téléphone est tenu par la personne depuis son compte.')
+    // Les valeurs du compte, renvoyées telles quelles, passent
+    expect((await api(alice, 'PUT', `/api/participants/${participant.id}`, { ...body, name: 'Camille Dupont', phone: '0612345678' })).status).toBe(200)
     expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id }, select: { userId: true } })).toEqual({ userId: user.id })
     expect(await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: participant.id, gameId: game.id } } })).toMatchObject({ name: 'Camille Dupont', phone: '0612345678' })
 
@@ -176,16 +184,65 @@ describe('fiche tenue par la personne (US-075)', () => {
   it('tenue par la personne, la fiche garde dans chaque jeu ses valeurs, jamais celles d’une autre équipe (revue de la PR #237)', async () => {
     const { user, teams } = await personInTwoTeams()
     const [mine, bobs] = teams
-    // Bob modifie son jeu en dernier ; la personne n'a pas encore enregistré ses coordonnées
-    await prisma.participantGame.update({ where: { participantId_gameId: { participantId: bobs!.participant.id, gameId: bobs!.game.id } }, data: { name: 'Nom chez Bob', phone: '0699999999' } })
-    const body = { name: 'Renommée par l’équipe', email: user.email, phone: '0700000000', gameIds: [mine!.game.id] }
+    // Le nom du compte est recopié partout (US-245) ; son téléphone, jamais rempli, reste à chaque équipe
+    expect((await api(user, 'PUT', '/api/account', { name: 'Camille Dupont' })).status).toBe(200)
+    // Bob modifie son téléphone en dernier
+    await prisma.participantGame.update({ where: { participantId_gameId: { participantId: bobs!.participant.id, gameId: bobs!.game.id } }, data: { phone: '0699999999' } })
+    const body = { name: 'Camille Dupont', email: user.email, phone: '0700000000', gameIds: [mine!.game.id] }
     expect((await api(alice, 'PUT', `/api/participants/${mine!.participant.id}`, body)).status).toBe(200)
     expect(await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: mine!.participant.id, gameId: mine!.game.id } }, select: { name: true, phone: true } }))
-      .toEqual({ name: 'Nom saisi par l’équipe', phone: '0100000000' })
+      .toEqual({ name: 'Camille Dupont', phone: '0700000000' })
+    expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: bobs!.participant.id, gameId: bobs!.game.id } } })).phone).toBe('0699999999')
 
-    // Export de l'équipe : le nom et le téléphone de son jeu, rien de ceux de Bob
+    // Export de l'équipe : le téléphone de son jeu, rien de celui de Bob
     const exported = await api(alice, 'GET', `/api/participants/${mine!.participant.id}/export`)
-    expect(exported.body).toMatchObject({ games: [{ name: 'Nom saisi par l’équipe', phone: '0100000000' }] })
-    expect(JSON.stringify(exported.body)).not.toMatch(/Nom chez Bob|0699999999/)
+    expect(exported.body).toMatchObject({ games: [{ name: 'Camille Dupont', phone: '0700000000' }] })
+    expect(JSON.stringify(exported.body)).not.toMatch(/0699999999/)
+  })
+})
+
+describe('recopie champ par champ (US-245, ADR-0089)', () => {
+  const ficheOf = (team: { participant: { id: string }, game: { id: string } }) => ({ participantId_gameId: { participantId: team.participant.id, gameId: team.game.id } })
+
+  it('seul le téléphone rempli : il remplace celui des équipes, qui gardent leurs allergies', async () => {
+    const { user, teams } = await personInTwoTeams()
+    expect((await api(user, 'PUT', '/api/account/profile', { phone: '0612345678' })).status).toBe(200)
+    for (const team of teams) {
+      expect((await prisma.participantGame.findUniqueOrThrow({ where: ficheOf(team) })).phone).toBe('0612345678')
+    }
+    // Les allergies notées chez Alice restent, faute d'allergies remplies dans le compte
+    expect(await prisma.registration.findFirstOrThrow({ where: { participantId: teams[0]!.participant.id, gameId: teams[0]!.game.id } })).toMatchObject({ phone: '0612345678', dietary: 'Ancienne allergie' })
+
+    // L'équipe voit que le nom et le téléphone sont tenus, sans autre valeur du compte
+    const read = await api(alice, 'GET', `/api/participants/${teams[0]!.participant.id}`)
+    expect(read.body).toMatchObject({ heldByPerson: true, heldFields: ['name', 'phone'] })
+  })
+
+  it('un téléphone vidé dans le compte revient vide aux équipes, qui peuvent le saisir de nouveau', async () => {
+    const { user, teams } = await personInTwoTeams()
+    await api(user, 'PUT', '/api/account/profile', profile)
+    expect((await api(user, 'PUT', '/api/account/profile', { ...profile, phone: '' })).status).toBe(200)
+    for (const team of teams) {
+      expect((await prisma.participantGame.findUniqueOrThrow({ where: ficheOf(team) })).phone).toBeNull()
+    }
+    const aliceRegistration = () => prisma.registration.findFirstOrThrow({ where: { participantId: teams[0]!.participant.id, gameId: teams[0]!.game.id } })
+    expect((await aliceRegistration()).phone).toBeNull()
+    // Les autres champs, toujours remplis, ne bougent pas
+    expect((await aliceRegistration()).dietary).toBe('Sans gluten')
+
+    const { participant, game } = teams[0]!
+    expect((await api(alice, 'GET', `/api/participants/${participant.id}`)).body).toMatchObject({ heldFields: ['name'] })
+    const saved = await api(alice, 'PUT', `/api/participants/${participant.id}`, { name: 'Camille Dupont', email: user.email, phone: '0655555555', gameIds: [game.id] })
+    expect(saved.status, JSON.stringify(saved.body)).toBe(200)
+    expect((await prisma.participantGame.findUniqueOrThrow({ where: ficheOf(teams[0]!) })).phone).toBe('0655555555')
+    expect((await prisma.participantGame.findUniqueOrThrow({ where: ficheOf(teams[1]!) })).phone).toBeNull()
+  })
+
+  it('le contact d’urgence de la fiche vient du compte quand la personne l’a rempli', async () => {
+    const { user, teams } = await personInTwoTeams()
+    await prisma.registration.deleteMany({ where: { participantId: teams[0]!.participant.id } })
+    expect((await api(alice, 'GET', `/api/participants/${teams[0]!.participant.id}/emergency`)).body).toMatchObject({ source: null })
+    await api(user, 'PUT', '/api/account/profile', { emergencyContactName: 'Dominique', emergencyContactPhone: '0698765432' })
+    expect((await api(alice, 'GET', `/api/participants/${teams[0]!.participant.id}/emergency`)).body).toMatchObject({ source: 'account', emergencyContactName: 'Dominique', dietary: null })
   })
 })

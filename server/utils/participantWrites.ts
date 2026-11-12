@@ -6,7 +6,7 @@ import type { participantCreateSchema, participantSchema } from '~/server/utils/
 import { exposeParticipantGames, participantGameLinksInclude, planParticipantRemoval } from '~/server/utils/participants'
 import { eraseParticipant } from '~/server/utils/participantPrivacy'
 import { assertParticipantUnmodifiedSince } from '~/server/utils/concurrency'
-import { accountForEmail, syncProfileToParticipants } from '~/server/utils/participantAccounts'
+import { accountForEmail, heldProfileFields, profileValuesSelect, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 import { participantSlug } from '~/utils/participantSlug'
 import { lockAddress } from '~/server/utils/participantAddress'
 
@@ -144,7 +144,7 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
   const result = await prisma.$transaction(async (tx) => {
     const current = await tx.participant.findUniqueOrThrow({
       where: { id },
-      select: { userId: true, email: true, user: { select: { name: true, phone: true, emailConfirmedAt: true } } }
+      select: { userId: true, email: true, user: { select: profileValuesSelect } }
     })
     // Adresse corrigée (SPEC-022 R7) : changée sur place si l'équipe voit tous les jeux de la fiche et qu'aucune autre
     // fiche ne la porte ; sinon, seuls les jeux de l'équipe passent à la fiche de cette adresse, créée au besoin. La
@@ -165,15 +165,22 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
     // Une fiche sans aucun jeu est supprimée (US-036) : l'interface l'a fait confirmer
     if (!gameIdsToAdd.length && !await tx.participantGame.count({ where: { participantId: id } })) return null
 
-    // Fiche qui reste rattachée à un compte activé : nom et téléphone sont tenus par la personne, l'envoi de l'équipe est
-    // ignoré (US-075). Un compte pré-créé ne tient rien (US-244). Une fiche dont l'équipe part vers une autre adresse garde
-    // son adresse et son compte
+    // Fiche qui reste rattachée à un compte activé : les champs que la personne a remplis sont à elle (ADR-0089), l'équipe
+    // ne les change pas. Un compte pré-créé ne tient rien (US-244). Une fiche dont l'équipe part vers une autre adresse
+    // garde son adresse et son compte
     const userId = target ? current.userId : await accountForEmail(tx, email)
-    const heldByPerson = !target && Boolean(userId && userId === current.userId && current.user?.emailConfirmedAt)
-    // Tenus par la personne (ADR-0042) : l'équipe n'y touche pas. Ses jeux gardent chacun leurs valeurs, et un jeu ajouté
-    // reçoit celles du compte, jamais celles qu'une autre équipe tient (revue de la PR #237)
-    const effectiveName = heldByPerson ? current.user?.name ?? name : name
-    const effectivePhone = heldByPerson ? current.user?.phone ?? null : phone || null
+    const held = new Set(!target && userId && userId === current.userId ? heldProfileFields(current.user) : [])
+    if (held.has('name') && name.trim() !== current.user!.name.trim()) {
+      throw createError({ statusCode: 400, message: 'Le nom est tenu par la personne depuis son compte.' })
+    }
+    if (held.has('phone') && (phone?.trim() || null) !== current.user!.phone) {
+      throw createError({ statusCode: 400, message: 'Le téléphone est tenu par la personne depuis son compte.' })
+    }
+    // Un champ tenu garde la valeur du compte, déjà recopiée sur chaque jeu ; un jeu ajouté la reçoit, jamais celle qu'une
+    // autre équipe tient (revue de la PR #237)
+    const effectiveName = held.has('name') ? current.user!.name : name
+    const effectivePhone = held.has('phone') ? current.user!.phone : phone || null
+    const teamValues = { ...(held.has('name') ? {} : { name: effectiveName }), ...(held.has('phone') ? {} : { phone: effectivePhone }) }
     // Nom et téléphone par jeu (ADR-0086) : ceux des jeux que voit la personne qui modifie
     const visibleKeptGameIds = managedExistingGameIds.filter((gameId) => nextGameIds.has(gameId))
     const updated = await tx.participant.update({
@@ -186,7 +193,7 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
         gameLinks: {
           create: gameIdsToAdd.map((gameId) => ({ gameId, notes: gameNotes[gameId] || null, name: effectiveName, phone: effectivePhone })),
           updateMany: [
-            ...(heldByPerson ? [] : [{ where: { gameId: { in: visibleKeptGameIds } }, data: { name: effectiveName, phone: effectivePhone } }]),
+            ...(Object.keys(teamValues).length ? [{ where: { gameId: { in: visibleKeptGameIds } }, data: teamValues }] : []),
             // Note de chaque jeu déjà lié et reçu ; les notes des autres jeux ne bougent pas (US-069)
             ...Object.entries(gameNotes)
               .filter(([gameId]) => existingGameIds.has(gameId) && nextGameIds.has(gameId))
@@ -210,7 +217,7 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
       const moved = await tx.participant.findUniqueOrThrow({ where: { id: target.id }, include: participantGameLinksInclude(allowedGameIds) })
       return { updated: moved, newlyLinkedUserId: target.userId }
     }
-    return { updated, newlyLinkedUserId: userId && !heldByPerson ? userId : null }
+    return { updated, newlyLinkedUserId: userId && userId !== current.userId ? userId : null }
   })
   await removal.afterCommit()
 

@@ -4,7 +4,7 @@ import { gamePhotoInformation } from '~/utils/photoInformation'
 import type { H3Event } from 'h3'
 import type { Prisma } from '~/generated/prisma/client'
 import { prisma } from '~/server/utils/prisma'
-import { syncProfileToParticipants } from '~/server/utils/participantAccounts'
+import { clearedProfileFields, profileValuesSelect, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 import { assertRateLimit } from '~/server/utils/rateLimit'
 import { sendEmail } from '~/server/utils/email'
 import { hashRegistrationToken, notifyGameTeam } from '~/server/utils/registrations'
@@ -78,7 +78,7 @@ const publicRegistrationSelect = {
       id: true,
       userId: true,
       // Coordonnées du compte, pour préremplir une invitation (US-074)
-      user: { select: { phone: true, emergencyContactName: true, emergencyContactPhone: true, dietary: true, healthConsentAt: true, profileUpdatedAt: true } }
+      user: { select: { phone: true, emergencyContactName: true, emergencyContactPhone: true, dietary: true, healthConsentAt: true, emailConfirmedAt: true } }
     }
   },
   period: {
@@ -245,8 +245,9 @@ export async function exposePublicRegistration(registration: PublicRegistration,
 
   const prefill = splitParticipantName(registration.participant.name)
   const answered = Boolean(registration.respondedAt)
-  // Invitation sans réponse d'une personne qui a enregistré ses coordonnées : elles préremplissent le formulaire
-  const profile = !answered && registration.participant.user?.profileUpdatedAt ? registration.participant.user : null
+  // Invitation sans réponse d'une personne au compte activé : les champs qu'elle a remplis préremplissent le formulaire
+  // (ADR-0089) ; un compte pré-créé n'a rien
+  const profile = !answered && registration.participant.user?.emailConfirmedAt ? registration.participant.user : null
   const proposed = await proposedSessions(registration)
   const proposedIds = new Set(proposed.map((session) => session.id))
   return {
@@ -496,7 +497,8 @@ export async function updateProfileFromAnswers(userId: string, answers: Registra
   const now = new Date()
   const asked = normalizeRegistrationFormDefinition(definition).standardFields
   const answeredName = [answers.firstName, answers.lastName].filter(Boolean).join(' ').trim()
-  await prisma.user.update({
+  const before = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: profileValuesSelect })
+  const after = await prisma.user.update({
     where: { id: userId },
     data: {
       ...(answeredName ? { name: answeredName } : {}),
@@ -504,9 +506,11 @@ export async function updateProfileFromAnswers(userId: string, answers: Registra
       ...(asked.emergencyContact.asked ? { emergencyContactName: answers.emergencyContactName, emergencyContactPhone: answers.emergencyContactPhone } : {}),
       ...(asked.dietary.asked ? { dietary: answers.dietary, healthConsentAt: answers.dietary ? now : null } : {}),
       profileUpdatedAt: now
-    }
+    },
+    select: profileValuesSelect
   })
-  await syncProfileToParticipants(userId)
+  // Champ par champ (ADR-0089) : un champ vidé dans la réponse revient vide aux équipes
+  await syncProfileToParticipants(userId, clearedProfileFields(before, after))
 }
 
 // Décliner une invitation sans réponse : la personne n'entre pas dans le vivier
