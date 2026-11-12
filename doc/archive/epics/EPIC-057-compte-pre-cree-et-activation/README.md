@@ -35,7 +35,7 @@ Ordre : US-244 d'abord. Sa migration rend le mot de passe facultatif sans casser
 
 ## Suivi
 
-- 2026-11-12 : déployé en quatre PR, chacune vérifiée en production (sites joignables, /nouveautes, page /acces/activer) : #241 (US-244), #242 (US-245), #243 (US-246), #244 (US-247).
+- 2026-11-12 : déployé en quatre PR, chacune vérifiée en production (sites joignables, numéro de déploiement sur /nouveautes) : #241 (US-244), #242 (US-245), #243 (US-246, page /acces/activer joignable), #244 (US-247).
 - Toute fiche qui a une adresse appartient à un compte, pré-créé sans mot de passe et sans email ([ADR-0088](../../../adr/ADR-0088-compte-pre-cree-sans-mot-de-passe.md)) ; la personne l'active par un lien reçu à son adresse, et ce qu'elle remplit remplace champ par champ les valeurs des équipes ([ADR-0089](../../../adr/ADR-0089-recopie-champ-par-champ.md)). La politique de confidentialité le dit depuis US-244 (`TERMS_VERSION` 2026-11-12).
 - Choix de l'utilisatrice pendant le lot : une personne activée peut prendre l'adresse d'un compte non activé (fiches réunies), l'administratrice reprend un compte non activé en le créant.
 - Les revues ont fait : effacer une fiche au compte jamais activé comme une fiche sans compte ; refuser à l'administratrice le lien de mot de passe, la modification et la suppression d'un compte pré-créé qui porte des fiches ; ne lire du compte, pour la liste des fiches, que le nom et le téléphone ; dire à la création qu'un nom est tenu par la personne ; noter un échec de la demande de lien sans changer la réponse ; ne pas mettre de ligne au bas d'un email sans compte à l'adresse ou pour un compte désactivé ; tests sans mot de passe écrit en clair (alerte GitGuardian, fausse alerte).
