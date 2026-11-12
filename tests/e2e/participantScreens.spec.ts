@@ -544,3 +544,43 @@ test('champ par champ : la fiche créée à l’adresse d’un compte activé po
     await prisma.$disconnect()
   }
 })
+
+// US-249 (SPEC-022 R13, ADR-0090) : un compte non activé part avec la dernière fiche qui porte son adresse
+test('suppression : le compte non activé de la fiche part avec elle, même supprimée hors ligne (US-249)', async ({ page, context }) => {
+  test.setTimeout(90_000)
+  const prisma = createTestPrisma()
+  try {
+    const game = await orgaGame(prisma, 'Jeu des comptes effacés avec la fiche')
+    const preCreatedFiche = async (base: string) => {
+      const name = uniqueName(base)
+      const email = `${slugOf(name)}@example.test`
+      const account = await prisma.user.create({ data: { email, name: '', password: null, emailConfirmedAt: null } })
+      const fiche = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, userId: account.id, gameLinks: { create: { gameId: game.id, name } } } }), { name })
+      return { ...fiche, account }
+    }
+    const online = await preCreatedFiche('Fiche supprimée en ligne')
+    const offline = await preCreatedFiche('Fiche supprimée hors ligne')
+    await signIn(page, prisma, E2E_USERS.orga)
+
+    // En ligne, depuis la fiche
+    await openSheet(page, online)
+    page.once('dialog', (dialog) => dialog.accept())
+    await page.getByRole('button', { name: 'Supprimer' }).click()
+    await expect(page).toHaveURL(/\/participants$/)
+    await expect.poll(() => prisma.user.findUnique({ where: { id: online.account.id } })).toBeNull()
+
+    // Hors ligne, depuis la liste : le compte part au retour du réseau
+    await openParticipants(page)
+    await context.setOffline(true)
+    await page.getByPlaceholder('Rechercher un participant...').fill(offline.name)
+    page.once('dialog', (dialog) => dialog.accept())
+    await personCard(page, offline.name).getByRole('button', { name: 'Supprimer' }).click()
+    await expect(page.getByText(/Modifications faites hors ligne : 1 en attente/)).toBeVisible()
+    expect(await prisma.user.findUnique({ where: { id: offline.account.id } })).not.toBeNull()
+    await context.setOffline(false)
+    await expect.poll(() => prisma.user.findUnique({ where: { id: offline.account.id } }), { timeout: 20_000 }).toBeNull()
+  } finally {
+    await context.setOffline(false)
+    await prisma.$disconnect()
+  }
+})

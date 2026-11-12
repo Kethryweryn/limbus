@@ -767,10 +767,14 @@ describe('prouver une autre adresse (US-243)', () => {
     expect(proofEmail(fiche.email!).text).not.toMatch(new RegExp(`${game.title}|${bobGame.title}|Nom chez Bob`))
     expect(smtp.to(participant.email!).some((message) => message.text.includes('/inscription/'))).toBe(true)
     const token = proofLink(fiche.email!)!
+    // La fiche d'origine appartient au compte pré-créé de son adresse (US-244) : il part avec elle (US-249, ADR-0090)
+    const originAccount = await prisma.user.create({ data: { email: participant.email!, name: '', password: null, emailConfirmedAt: null } })
+    await prisma.participant.update({ where: { id: participant.id }, data: { userId: originAccount.id } })
 
     const proved = await publicApi('POST', `/api/public/email-proofs/${token}`)
     expect(proved.status, JSON.stringify(proved.body)).toBe(200)
     expect(proved.body).toEqual({ email: fiche.email })
+    expect(await prisma.user.findUnique({ where: { id: originAccount.id } })).toBeNull()
     // La fiche d'origine a rejoint celle de l'adresse prouvée : ses jeux, son nom, son inscription, à la bonne adresse
     expect(await prisma.participant.findUnique({ where: { id: participant.id } })).toBeNull()
     const links = await prisma.participantGame.findMany({ where: { participantId: fiche.id }, select: { gameId: true, name: true } })

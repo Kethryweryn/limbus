@@ -24,6 +24,16 @@ export async function accountForEmail(client: PrismaTx, email: string | null | u
 }
 
 /**
+ * Supprime une fiche ; le compte non activé de son adresse, qui ne porte plus aucune fiche, part avec elle (SPEC-022 R13,
+ * ADR-0090) : rien ne reste sur une personne qu'aucune équipe ne suit plus. Un compte activé reste, il suit la règle des
+ * 24 mois. À appeler dans la transaction de toute suppression de fiche.
+ */
+export async function deleteFiche(tx: PrismaTx, participantId: string) {
+  const { userId } = await tx.participant.delete({ where: { id: participantId }, select: { userId: true } })
+  if (userId) await tx.user.deleteMany({ where: { id: userId, ...notActivatedAccount, participants: { none: {} } } })
+}
+
+/**
  * Compte non activé (ADR-0088) : pré-créé pour une fiche, ou inscription jamais confirmée. Seul un compte activé, dont
  * l'adresse est confirmée, tient les coordonnées de ses fiches (ADR-0042).
  */

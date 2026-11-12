@@ -6,7 +6,7 @@ import type { participantCreateSchema, participantSchema } from '~/server/utils/
 import { exposeParticipantGames, participantGameLinksInclude, planParticipantRemoval } from '~/server/utils/participants'
 import { eraseParticipant } from '~/server/utils/participantPrivacy'
 import { assertParticipantUnmodifiedSince } from '~/server/utils/concurrency'
-import { accountForEmail, ficheProfileSelect, heldProfileFields, syncProfileToParticipants } from '~/server/utils/participantAccounts'
+import { accountForEmail, deleteFiche, ficheProfileSelect, heldProfileFields, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 import { participantSlug } from '~/utils/participantSlug'
 import { lockAddress } from '~/server/utils/participantAddress'
 
@@ -213,7 +213,7 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
     }
     if (target) {
       // Partie de tous ses jeux : la fiche d'origine n'a plus de raison d'être
-      if (!await tx.participantGame.count({ where: { participantId: id } })) await tx.participant.delete({ where: { id } })
+      if (!await tx.participantGame.count({ where: { participantId: id } })) await deleteFiche(tx, id)
       const moved = await tx.participant.findUniqueOrThrow({ where: { id: target.id }, include: participantGameLinksInclude(allowedGameIds) })
       return { updated: moved, newlyLinkedUserId: target.userId }
     }

@@ -3,7 +3,7 @@ import { absoluteAppUrl } from '~/server/utils/appUrl'
 import { sendEmail } from '~/server/utils/email'
 import { lockAddress } from '~/server/utils/participantAddress'
 import { moveParticipant } from '~/server/utils/participantWrites'
-import { accountForEmail, syncProfileToParticipants } from '~/server/utils/participantAccounts'
+import { accountForEmail, deleteFiche, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 import { createRegistrationToken, findParticipantByEmail, hashRegistrationToken } from '~/server/utils/registrations'
 import { RETENTION } from '~/utils/legal'
 
@@ -71,7 +71,8 @@ export async function adoptAddress(tx: PrismaTx, participantId: string, email: s
   if (source.email) {
     await tx.registration.updateMany({ where: { participantId: finalId, gameId: { in: gameIds }, email: source.email }, data: { email } })
   }
-  if (finalId !== source.id) await tx.participant.delete({ where: { id: source.id } })
+  // La fiche d'origine disparaît, et le compte non activé de son ancienne adresse avec elle (ADR-0090)
+  if (finalId !== source.id) await deleteFiche(tx, source.id)
   return accountId
 }
 

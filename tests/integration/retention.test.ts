@@ -92,6 +92,8 @@ describe('fiches sans compte (US-113)', () => {
     await loginSomeone()
     await expect.poll(async () => await prisma.participant.findUnique({ where: { id: stale.id } })).toBeNull()
     await expect.poll(async () => await prisma.participant.findUnique({ where: { id: staleWithPreCreated.id } })).toBeNull()
+    // Son compte jamais activé part avec elle (US-249, ADR-0090)
+    expect(await prisma.user.findUnique({ where: { id: preCreated.id } })).toBeNull()
     for (const kept of [recentLink, withAccount, withSession]) {
       expect(await prisma.participant.findUnique({ where: { id: kept.id } })).not.toBeNull()
     }
