@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test'
 import { TERMS_VERSION } from '../../utils/legal'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { castSession, choose, gameCharacter, gamePerson, orgaGame, orgaSession, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
+import { castSession, choose, gameCharacter, gamePerson, login, orgaGame, orgaSession, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
 import { withFicheValues } from '../fiche'
 
 // Jeu d'une autre équipe, celle du compte « autre »
@@ -403,6 +403,61 @@ test('corriger l’adresse : seuls mes jeux passent à la fiche de la nouvelle a
     expect(original).toEqual({ email: person.email, gameLinks: [{ gameId: foreign.id }] })
     expect(target.id).not.toBe(person.id)
   } finally {
+    await prisma.$disconnect()
+  }
+})
+
+// US-244 (SPEC-022 R1, R2, ADR-0088) : une fiche à une adresse sans compte reçoit un compte pré-créé, non activé
+test('compte pré-créé : la fiche créée à une adresse nouvelle reste à l’équipe, et son compte ne se connecte pas, même créée hors ligne (US-244)', async ({ page, context, browser }) => {
+  test.setTimeout(90_000)
+  const prisma = createTestPrisma()
+  try {
+    const game = await orgaGame(prisma, 'Jeu des comptes pré-créés')
+    const name = uniqueName('Personne sans compte')
+    const email = `${slugOf(name)}@example.test`
+    await signIn(page, prisma, E2E_USERS.orga)
+    await openParticipants(page)
+
+    // Création hors ligne : rejouée au retour du réseau, elle reçoit son compte
+    await context.setOffline(true)
+    await page.getByRole('button', { name: 'Créer un participant' }).click()
+    const form = page.getByRole('dialog')
+    await form.getByRole('button', { name: 'Jeux' }).click()
+    await page.getByRole('option', { name: game.title }).click()
+    await page.keyboard.press('Escape')
+    await form.getByLabel('Nom').fill(name)
+    await form.getByLabel('Email').fill(email)
+    await form.getByRole('button', { name: 'Créer' }).click()
+    await expect(page.getByText(/Modifications faites hors ligne : 1 en attente/)).toBeVisible()
+    expect(await prisma.user.count({ where: { email } })).toBe(0)
+    await context.setOffline(false)
+    await expect.poll(async () => await prisma.user.findUnique({ where: { email }, select: { password: true, emailConfirmedAt: true, name: true } }), { timeout: 20_000 })
+      .toEqual({ password: null, emailConfirmedAt: null, name: '' })
+    // La file rejouée relit la liste : attendre qu'elle soit vide et la page posée avant d'en ouvrir une autre
+    await expect(page.getByText(/Modifications faites hors ligne/)).toHaveCount(0)
+    await page.waitForLoadState('networkidle')
+    const fiche = await prisma.participant.findUniqueOrThrow({ where: { email }, select: { slug: true, userId: true } })
+    expect(fiche.userId).not.toBeNull()
+
+    // L'équipe garde la main : nom et téléphone modifiables, sans mention d'une fiche tenue par la personne
+    await openSheet(page, { slug: fiche.slug, name })
+    await page.getByRole('button', { name: 'Modifier' }).click()
+    await expect(page.getByLabel('Nom', { exact: true })).toBeEnabled()
+    await expect(page.getByText('Tenu par la personne depuis son compte.')).toHaveCount(0)
+    await page.getByLabel('Téléphone', { exact: true }).fill('0612121212')
+    await page.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect.poll(async () => (await prisma.participantGame.findFirstOrThrow({ where: { participant: { email }, gameId: game.id } })).phone).toBe('0612121212')
+
+    // Le compte pré-créé ne se connecte pas : même message qu'un mauvais mot de passe
+    const visitor = await browser.newPage()
+    try {
+      await login(visitor, email, 'un-mot-de-passe-quelconque')
+      await expect(visitor.getByText('Email ou mot de passe incorrect')).toBeVisible()
+    } finally {
+      await visitor.close()
+    }
+  } finally {
+    await context.setOffline(false)
     await prisma.$disconnect()
   }
 })

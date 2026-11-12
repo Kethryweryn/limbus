@@ -93,7 +93,13 @@ export async function consumeAccountToken(token: string, kinds: AccountTokenKind
 
 // Comptes jamais confirmés, supprimés au bout de 7 jours (R5) : appelé à l'inscription et à la connexion
 export async function purgeUnconfirmedAccounts() {
-  await prisma.user.deleteMany({
-    where: { emailConfirmedAt: null, createdAt: { lt: new Date(Date.now() - UNCONFIRMED_ACCOUNT_LIFETIME) } }
+  const expired = { emailConfirmedAt: null, createdAt: { lt: new Date(Date.now() - UNCONFIRMED_ACCOUNT_LIFETIME) } }
+  // Une adresse qui a une fiche garde son compte (SPEC-022 R1, ADR-0088) : il redevient pré-créé, sans rien de ce que
+  // l'inscription avait saisi, car elle a pu être faite par un tiers
+  await prisma.user.updateMany({
+    where: { ...expired, password: { not: null }, participants: { some: {} } },
+    data: { name: '', password: null, termsAcceptedVersion: null, termsAcceptedAt: null }
   })
+  // Sans fiche, le compte n'a plus de raison d'être, qu'il soit une inscription ou un compte pré-créé
+  await prisma.user.deleteMany({ where: { ...expired, participants: { none: {} } } })
 }

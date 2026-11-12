@@ -6,6 +6,7 @@ import { REGISTRATION_SESSION_STATUSES, REGISTRATION_STATUSES, SESSION_STATUSES 
 import { latestOf, latestVisibleValues } from '~/server/utils/participantValues'
 
 type ParticipantWithGameLinks = {
+  user?: { emailConfirmedAt: Date | null } | null
   gameLinks?: Array<{
     createdAt: Date
     notes?: string | null
@@ -32,13 +33,15 @@ export function participantGameLinksInclude(gameIds: string[] | null = null) {
       where: gameIds === null ? undefined : { gameId: { in: gameIds } },
       orderBy: { createdAt: 'desc' as const },
       include: { game: true }
-    }
+    },
+    // Compte activé : la personne tient alors ses coordonnées (US-244, ADR-0088)
+    user: { select: { emailConfirmedAt: true } }
   }
 }
 
 export function exposeParticipantGames<T extends ParticipantWithGameLinks>(participant: T) {
   // Nom et téléphone du jeu visible le plus récemment modifié (ADR-0086) : gameLinks est déjà filtré
-  const { gameLinks, ...rest } = latestVisibleValues(participant)
+  const { gameLinks, user, ...rest } = latestVisibleValues(participant)
   // `published` n'a aucun effet sur une fiche : il n'est plus exposé (US-038). L'ancienne note commune non plus (ADR-0040)
   delete (rest as { published?: unknown }).published
   delete (rest as { notes?: unknown }).notes
@@ -46,6 +49,8 @@ export function exposeParticipantGames<T extends ParticipantWithGameLinks>(parti
   const version = latestOf((gameLinks || []).map((link) => link.updatedAt))
   return {
     ...rest,
+    // Fiche tenue par la personne : rattachée à un compte activé, pas seulement pré-créé (US-244)
+    heldByPerson: Boolean(user?.emailConfirmedAt),
     ...(version ? { updatedAt: version } : {}),
     // Création vue par l'équipe : l'entrée de la fiche dans ses jeux, pas sa création par une autre équipe (SPEC-022 R5)
     ...(gameLinks?.length ? { createdAt: new Date(Math.min(...gameLinks.map((link) => link.createdAt.getTime()))) } : {}),

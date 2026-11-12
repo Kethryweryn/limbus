@@ -48,7 +48,10 @@ describe('rattachement des fiches (US-070)', () => {
     expect((await prisma.participant.findUniqueOrThrow({ where: { id } })).userId).toBe(user.id)
 
     expect((await api(alice, 'PUT', `/api/participants/${id}`, { name: 'Rattachée', email: 'personne@example.test', gameIds: [game.id] })).status).toBe(200)
-    expect((await prisma.participant.findUniqueOrThrow({ where: { id } })).userId).toBeNull()
+    // Une adresse sans compte en reçoit un, pré-créé non activé (US-244)
+    const preCreated = await prisma.user.findUniqueOrThrow({ where: { email: 'personne@example.test' } })
+    expect(preCreated.emailConfirmedAt).toBeNull()
+    expect((await prisma.participant.findUniqueOrThrow({ where: { id } })).userId).toBe(preCreated.id)
   })
 
   it('un compte non confirmé ne reçoit pas de fiche ; sa confirmation les rattache', async () => {

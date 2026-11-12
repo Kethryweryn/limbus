@@ -698,7 +698,26 @@ async function removeGames(replacedIds: string[]) {
     }
   })
   await db.game.deleteMany({ where: { id: { in: gameIds } } })
+  // Comptes pré-créés de ces fiches, sans fiche désormais (ADR-0088) : le nettoyage les effacerait de toute façon
+  await db.user.deleteMany({ where: { password: null, emailConfirmedAt: null, participants: { none: {} } } })
   return uploadUrls
+}
+
+/**
+ * Chaque fiche à une adresse appartient au compte de cette adresse, pré-créé non activé s'il n'existe pas (SPEC-022 R1,
+ * ADR-0088), comme le fait Limbus à chaque création de fiche.
+ */
+async function attachParticipantAccounts() {
+  await db.$executeRaw`
+    INSERT INTO "User" ("id", "email", "name", "password", "emailConfirmedAt", "createdAt", "updatedAt")
+    SELECT 'pre' || replace(gen_random_uuid()::text, '-', ''), p."email", '', NULL, NULL, now(), now()
+    FROM "Participant" p
+    WHERE p."email" IS NOT NULL AND p."userId" IS NULL
+    ON CONFLICT ("email") DO NOTHING`
+  await db.$executeRaw`
+    UPDATE "Participant" p SET "userId" = u."id"
+    FROM "User" u
+    WHERE p."email" = u."email" AND p."userId" IS NULL`
 }
 
 async function upsertTestAccounts(options: SeedOptions, password: string) {
@@ -1236,6 +1255,7 @@ async function main() {
     }
     await createCrossGameParticipants(createdGameIds)
     await createInesGame(accountIdByEmail, options)
+    await attachParticipantAccounts()
     for (const gameId of createdGameIds) await placePlayersInPool(db, gameId)
     await restoreAccess(preservedAccess)
 

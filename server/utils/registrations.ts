@@ -4,7 +4,7 @@ import { labelSession, labelSessions } from '~/server/utils/sessionLabels'
 import { gamePhotoInformation } from '~/utils/photoInformation'
 import { createHash, randomBytes } from 'node:crypto'
 import { prisma, type PrismaTx } from '~/server/utils/prisma'
-import { accountIdForEmail } from '~/server/utils/participantAccounts'
+import { accountForEmail } from '~/server/utils/participantAccounts'
 import { absoluteAppUrl, publicAppUrl } from '~/server/utils/appUrl'
 import { openEmailTransport, sendEmail, type EmailTransport } from '~/server/utils/email'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
@@ -359,7 +359,7 @@ export async function inviteToRegistrationPeriod(params: {
         data: {
           slug: slug!,
           email: newParticipant.email,
-          userId: await accountIdForEmail(newParticipant.email),
+          userId: await accountForEmail(tx, newParticipant.email),
           gameLinks: { create: { gameId: period.gameId, name: newParticipant.name } }
         },
         select: { id: true }

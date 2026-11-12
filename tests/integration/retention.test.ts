@@ -78,6 +78,9 @@ describe('fiches sans compte (US-113)', () => {
 
   it('efface une fiche sans activité depuis trois ans, garde les autres', async () => {
     const stale = await participant('ancienne')
+    // Rattachée à un compte jamais activé, pré-créé pour la fiche (US-244) : c'est encore une fiche sans compte
+    const preCreated = await prisma.user.create({ data: { email: unique('pre-creee'), name: '', password: null, emailConfirmedAt: null } })
+    const staleWithPreCreated = await participant('ancienne-pre-creee', { userId: preCreated.id })
     const recentLink = await participant('ajout-recent', {}, ago(DAY))
     const account = await user('titulaire', {})
     const withAccount = await participant('avec-compte', { userId: account.id })
@@ -88,6 +91,7 @@ describe('fiches sans compte (US-113)', () => {
 
     await loginSomeone()
     await expect.poll(async () => await prisma.participant.findUnique({ where: { id: stale.id } })).toBeNull()
+    await expect.poll(async () => await prisma.participant.findUnique({ where: { id: staleWithPreCreated.id } })).toBeNull()
     for (const kept of [recentLink, withAccount, withSession]) {
       expect(await prisma.participant.findUnique({ where: { id: kept.id } })).not.toBeNull()
     }

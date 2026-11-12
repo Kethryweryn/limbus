@@ -165,7 +165,10 @@ describe('fiche tenue par la personne (US-075)', () => {
     const moved = corrected.body as { id: string, name: string, phone: string | null }
     expect(moved.id).not.toBe(participant.id)
     expect(moved).toMatchObject({ name: 'Renommée par l’équipe', phone: '0700000000' })
-    expect(await prisma.participant.findUniqueOrThrow({ where: { id: moved.id } })).toMatchObject({ userId: null })
+    // La nouvelle adresse a son propre compte, pré-créé non activé (US-244), jamais celui de la personne
+    const preCreated = await prisma.user.findUniqueOrThrow({ where: { email: `erreur-${user.id}@example.test` } })
+    expect(preCreated).toMatchObject({ password: null, emailConfirmedAt: null })
+    expect(await prisma.participant.findUniqueOrThrow({ where: { id: moved.id } })).toMatchObject({ userId: preCreated.id })
     expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id }, select: { userId: true, gameLinks: { select: { gameId: true } } } }))
       .toEqual({ userId: user.id, gameLinks: [{ gameId: teams[1]!.game.id }] })
   })

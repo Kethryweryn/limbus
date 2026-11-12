@@ -1,7 +1,7 @@
 import { purgeRetention } from '~/server/utils/retention'
 import { purgeExpiredPhotos } from '~/server/utils/photoRetention'
-import bcrypt from 'bcrypt'
 import { prisma } from '~/server/utils/prisma'
+import { passwordMatches } from '~/server/utils/passwordHash'
 import { setAuthCookie, touchAccount } from '~/server/utils/auth'
 import { loginSchema, readZodBody } from '~/server/utils/schemas'
 import { assertRateLimit } from '~/server/utils/rateLimit'
@@ -9,8 +9,6 @@ import { purgeUnconfirmedAccounts } from '~/server/utils/accounts'
 import { purgeExpiredCopies } from '~/server/utils/deliveryCopies'
 import { purgeAiData } from '~/server/utils/aiAuth'
 import { purgeRegistrationRequests } from '~/server/utils/formRegistrations'
-
-const DUMMY_PASSWORD_HASH = bcrypt.hashSync('mot-de-passe-factice', 10)
 
 export default defineEventHandler(async (event) => {
   const body = await readZodBody(event, loginSchema)
@@ -33,8 +31,9 @@ export default defineEventHandler(async (event) => {
     where: { email }
   })
 
-  // Même coût de calcul que l'email existe ou non : le temps de réponse ne révèle pas les comptes
-  const passwordMatch = await bcrypt.compare(password, user?.password ?? DUMMY_PASSWORD_HASH)
+  // Même coût de calcul que l'email existe ou non, et qu'il soit activé ou pré-créé (ADR-0088) : le temps de réponse ne
+  // révèle pas les comptes
+  const passwordMatch = await passwordMatches(password, user?.password)
 
   // 401 et non 200 { success: false } : l'écran de connexion n'affiche l'erreur que si la requête échoue
   if (!user || !passwordMatch) {

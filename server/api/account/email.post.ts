@@ -1,5 +1,5 @@
-import bcrypt from 'bcrypt'
 import { prisma } from '~/server/utils/prisma'
+import { passwordMatches } from '~/server/utils/passwordHash'
 import { requireUser } from '~/server/utils/auth'
 import { accountEmailSchema, readZodBody } from '~/server/utils/schemas'
 import { assertRateLimit } from '~/server/utils/rateLimit'
@@ -13,13 +13,14 @@ export default defineEventHandler(async (event) => {
   assertRateLimit(event, { name: 'account-email', limit: 5, windowMs: 15 * 60 * 1000, keyParts: [id] })
 
   const user = await prisma.user.findUniqueOrThrow({ where: { id }, select: { email: true, password: true } })
-  if (!await bcrypt.compare(body.password, user.password)) {
+  if (!await passwordMatches(body.password, user.password)) {
     throw createError({ statusCode: 400, message: 'Mot de passe incorrect.' })
   }
   if (body.email === user.email) {
     throw createError({ statusCode: 400, message: 'C’est déjà l’adresse de votre compte.' })
   }
-  if (await prisma.user.findUnique({ where: { email: body.email }, select: { id: true } })) {
+  // Un compte non activé à cette adresse (ADR-0088) ne l'occupe pas : le lien la prouve, puis le compte se réunit au sien
+  if ((await prisma.user.findUnique({ where: { email: body.email }, select: { emailConfirmedAt: true } }))?.emailConfirmedAt) {
     throw createError({ statusCode: 409, message: 'Cette adresse est déjà utilisée par un autre compte.' })
   }
 

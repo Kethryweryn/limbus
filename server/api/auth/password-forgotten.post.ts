@@ -11,8 +11,9 @@ export default defineEventHandler(async (event) => {
   assertRateLimit(event, { name: 'auth-password-forgotten-email', limit: 3, windowMs: 15 * 60 * 1000, keyParts: [email] })
   await assertEmailEnabled()
 
-  const user = await prisma.user.findUnique({ where: { email }, select: { id: true, disabledAt: true } })
-  if (user && !user.disabledAt) {
+  const user = await prisma.user.findUnique({ where: { email }, select: { id: true, disabledAt: true, password: true } })
+  // Un compte pré-créé (ADR-0088) n'a pas de mot de passe à retrouver : il s'active par son propre lien (US-246)
+  if (user?.password && !user.disabledAt) {
     const token = await createAccountToken(user.id, ACCOUNT_TOKEN_KINDS.password, ACCOUNT_TOKEN_TTL.passwordForgotten)
     await sendPasswordLinkEmail({ to: email, url: passwordUrl(token), created: false, validity: '1 heure' })
   }

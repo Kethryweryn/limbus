@@ -1,18 +1,33 @@
-import { prisma } from '~/server/utils/prisma'
+import { prisma, type PrismaTx } from '~/server/utils/prisma'
 import { REGISTRATION_STATUSES } from '~/utils/domain'
 import { splitParticipantName } from '~/utils/registrations'
 import { normalizeRegistrationFormDefinition, type RegistrationFormDefinition } from '~/utils/registrationForms'
 
-// Rattachement des fiches participant au compte de leur adresse confirmée (US-070, ADR-0041)
+// Rattachement des fiches participant au compte de leur adresse (US-070, ADR-0041, ADR-0088)
 
-// Compte confirmé d'une adresse, auquel une fiche à cette adresse se rattache ; null sinon. La base compare sans la
-// casse (citext, ADR-0075) : seuls les espaces sont retirés
-export async function accountIdForEmail(email: string | null | undefined) {
+/**
+ * Compte de l'adresse d'une fiche, pré-créé non activé s'il n'existe pas (SPEC-022 R1, ADR-0088) : sans mot de passe,
+ * nom, adresse confirmée ni conditions, et sans email. Toute fiche qui a une adresse appartient ainsi à un compte. La base
+ * compare sans la casse (citext, ADR-0075) : seuls les espaces sont retirés. À appeler dans la transaction qui écrit la
+ * fiche, sous le verrou de l'adresse (`lockAddress`).
+ */
+export async function accountForEmail(client: PrismaTx, email: string | null | undefined) {
   const normalized = email?.trim()
   if (!normalized) return null
-  const user = await prisma.user.findUnique({ where: { email: normalized }, select: { id: true, emailConfirmedAt: true } })
-  return user?.emailConfirmedAt ? user.id : null
+  const account = await client.user.upsert({
+    where: { email: normalized },
+    create: { email: normalized, name: '', password: null, emailConfirmedAt: null },
+    update: {},
+    select: { id: true }
+  })
+  return account.id
 }
+
+/**
+ * Compte non activé (ADR-0088) : pré-créé pour une fiche, ou inscription jamais confirmée. Seul un compte activé, dont
+ * l'adresse est confirmée, tient les coordonnées de ses fiches (ADR-0042).
+ */
+export const notActivatedAccount = { emailConfirmedAt: null } as const
 
 // À la confirmation d'une adresse : toutes les fiches qui la portent, la base comparant sans la casse (ADR-0075)
 export async function linkParticipantsToUser(user: { id: string, email: string }) {

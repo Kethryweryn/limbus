@@ -140,7 +140,7 @@ export async function exportParticipantData(participantId: string, gameIds: stri
     where: { id: participantId },
     select: {
       email: true,
-      userId: true,
+      user: { select: { emailConfirmedAt: true } },
       // Refus de l'usage de sa photo (US-109)
       photoRefusedAt: true,
       createdAt: true,
@@ -198,7 +198,7 @@ export async function exportParticipantData(participantId: string, gameIds: stri
     }
   }), { dropId: true })
 
-  const { gameLinks, userId, documentDeliveries, registrations: loadedRegistrations, ...rest } = participant
+  const { gameLinks, user, documentDeliveries, registrations: loadedRegistrations, ...rest } = participant
   // Personnes de ses affinités, nommées comme les tient l'équipe de chaque jeu (ADR-0086, US-242)
   // Seulement les affinités : les réponses (JSON) n'ont pas de fiche à nommer
   const namedAffinities = await withGameValues(loadedRegistrations.map(({ gameId, affinities }) => ({ gameId, affinities })))
@@ -225,8 +225,8 @@ export async function exportParticipantData(participantId: string, gameIds: stri
       ...delivery,
       copy: delivery.kind === 'trombinoscope' ? null : copyContent
     })),
-    // Fiche rattachée au compte Limbus de la personne (US-070, ADR-0041)
-    linkedToAccount: Boolean(userId),
+    // Fiche rattachée au compte Limbus activé de la personne (US-070, ADR-0041) ; un compte pré-créé ne compte pas (US-244)
+    linkedToAccount: Boolean(user?.emailConfirmedAt),
     // Notes, nom et téléphone de chaque jeu exporté (US-069, ADR-0086) : pour la personne, ce que tient chaque équipe
     games: gameLinks.map((link) => ({ title: link.game.title, registeredAt: link.createdAt, notes: link.notes, name: link.name, phone: link.phone }))
   }

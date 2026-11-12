@@ -870,7 +870,7 @@ model Participant {
   slug        String     @unique
   // Une seule fiche par adresse dans tout Limbus (SPEC-022 R4, R8, ADR-0086)
   email       String?  @unique @db.Citext
-  // Compte rattaché par l'adresse confirmée (US-070, ADR-0041)
+  // Compte de l'adresse, pré-créé s'il n'existait pas (SPEC-022 R1, ADR-0088) ; tenu par la personne une fois activé
   userId      String?
   user        User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
   // Photo refusée (US-109, ADR-0054) : aucune photo de la personne dans le cast ni les trombinoscopes
@@ -1082,7 +1082,8 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique @db.Citext
   name      String
-  password  String
+  // Absent : compte pré-créé pour une fiche, pas encore activé (SPEC-022 R1, ADR-0088) ; on ne peut pas s'y connecter
+  password  String?
   // admin ou user (ADR-0038)
   role      UserRole @default(user)
   // Incrémenté pour invalider toutes les sessions ouvertes (déconnexion partout, changement de mot de passe)

@@ -87,7 +87,7 @@ const gameOptions = computed(() => props.games.map((game) => ({
   value: game.id
 })))
 
-const heldByPerson = computed(() => Boolean(props.participant.userId))
+const heldByPerson = computed(() => Boolean(props.participant.heldByPerson))
 const selectedGames = computed(() => gameOptions.value.filter((game) => localParticipant.value.gameIds?.includes(game.value)))
 
 watch(() => props.participant, (newParticipant) => {

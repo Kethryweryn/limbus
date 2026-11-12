@@ -21,6 +21,7 @@
     <h2>Données traitées et finalités</h2>
     <ul>
       <li><strong>Compte</strong> : nom, email, mot de passe (jamais en clair), date d’acceptation des conditions, et la date de votre dernière connexion. Pour vous connecter, organiser vos jeux et participer à ceux des autres.</li>
+      <li><strong>Compte non activé</strong> : quand une équipe crée votre fiche participant avec votre adresse email, Limbus crée à cette adresse un compte non activé, sans vous écrire. Il ne contient que votre adresse : ni nom, ni mot de passe. On ne peut pas s’y connecter. Il sert à rattacher à vous les fiches de toutes les équipes, pour que vous retrouviez vos jeux en l’activant.</li>
       <li><strong>Coordonnées</strong>, si vous les donnez : téléphone, contact d’urgence, régime alimentaire et allergies. Elles sont transmises aux équipes de vos jeux, pour l’organisation, votre sécurité et les repas.</li>
       <li><strong>Inscription à un jeu</strong> : identité, coordonnées, réponses au questionnaire de l’équipe, personnes avec qui vous voulez jouer ou non, disponibilités. Pour la sélection et la distribution des rôles. Votre lien personnel vous permet de revoir ces réponses : il reste valable tant que vous êtes dans le vivier du jeu, et l’équipe peut le renouveler à votre demande.</li>
       <li><strong>Photos</strong> ajoutées par l’équipe : pour le trombinoscope de la session. Le formulaire et les emails précisent leur usage et leur durée.</li>
@@ -59,7 +60,8 @@
     <h2>Durées de conservation</h2>
     <ul>
       <li>Compte : tant que vous l’utilisez. Après {{ RETENTION.inactiveAccountMonths }} mois sans connexion, il est effacé ; un email vous prévient un mois avant, et une connexion suffit à le garder.</li>
-      <li>Compte créé mais jamais confirmé : {{ RETENTION.unconfirmedAccountDays }} jours.</li>
+      <li>Compte créé mais jamais confirmé : {{ RETENTION.unconfirmedAccountDays }} jours. Si une équipe a une fiche à cette adresse, il redevient un compte non activé, sans rien de ce qui avait été saisi.</li>
+      <li>Compte non activé : tant qu’une fiche participant porte son adresse, puis au plus {{ RETENTION.unconfirmedAccountDays }} jours.</li>
       <li>Formulaire d’inscription jamais confirmé : {{ RETENTION.unconfirmedFormDays }} jours.</li>
       <li>Autre adresse donnée en répondant à une invitation, quand elle est déjà connue de Limbus : un lien part à cette adresse pour confirmer qu’elle est la vôtre ; la demande est effacée au bout de {{ RETENTION.addressProofDays }} jours si le lien n’est pas ouvert.</li>
       <li>Fiche participant sans compte : effacée {{ RETENTION.participantWithoutAccountYears }} ans après sa dernière activité (dernière session ou dernière inscription), ou avant si l’équipe l’efface.</li>
