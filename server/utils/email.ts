@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
+import { absoluteAppUrl } from '~/server/utils/appUrl'
 
 type EmailAttachment = {
   filename: string
@@ -13,6 +14,8 @@ type EmailMessage = {
   text?: string
   html?: string
   attachments?: EmailAttachment[]
+  // Email d'une équipe à une personne (US-247, SPEC-022 R10) : une ligne en bas la mène à son compte Limbus
+  accountFooter?: boolean
 }
 
 const SMTP_SETTINGS_ID = 'default'
@@ -180,6 +183,28 @@ export type EmailTransport = {
 }
 
 /**
+ * Ligne au bas des emails d'une équipe à une personne (US-247, SPEC-022 R10, ADR-0088), selon le compte de l'adresse :
+ * activé, elle mène à « Je participe » ; sinon (pré-créé, ou pas de compte à cette adresse), à la page qui envoie le
+ * lien d'activation. Ni l'adresse ni un jeton ne figurent dans le lien, et rien ne dit qu'une autre équipe la suit.
+ */
+export async function participantAccountFooter(email: string) {
+  const account = await prisma.user.findUnique({ where: { email: email.trim() }, select: { emailConfirmedAt: true } })
+  return account?.emailConfirmedAt
+    ? `Retrouvez tout cela dans votre espace « Je participe » sur Limbus : ${absoluteAppUrl('/participer')}`
+    : `Retrouvez tout cela dans votre compte Limbus, en l’activant avec cette adresse : ${absoluteAppUrl('/acces/activer')}`
+}
+
+async function withAccountFooter(message: EmailMessage): Promise<EmailMessage> {
+  if (!message.accountFooter || typeof message.to !== 'string') return message
+  const footer = await participantAccountFooter(message.to)
+  return {
+    ...message,
+    text: message.text === undefined ? undefined : [message.text, '', '—', footer].join('\n'),
+    html: message.html === undefined ? undefined : `${message.html}<hr><p>${escapeHtml(footer)}</p>`
+  }
+}
+
+/**
  * Connexion SMTP réutilisable pour un envoi groupé (une seule connexion pour N emails).
  * null si l'envoi d'emails est désactivé. Penser à appeler close().
  */
@@ -213,7 +238,8 @@ export async function openEmailTransport(): Promise<EmailTransport | null> {
     : settings.fromEmail
 
   return {
-    async send(message: EmailMessage) {
+    async send(original: EmailMessage) {
+      const message = await withAccountFooter(original)
       try {
         const info = await transporter.sendMail({
           from,

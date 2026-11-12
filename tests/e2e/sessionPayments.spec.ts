@@ -51,6 +51,13 @@ test('paiement simple : valider puis annuler, demande puis relance, et le paieme
     // Hors des pages du jeu, l'objet porte le jeu devant le libellé (SPEC-021, R4)
     expect(mailbox.to(lea!.email!)[0]!.subject).toBe(`Paiement - ${withGame(game.title, session.label)}`)
     expect(mailbox.to(lea!.email!)[0]!.text).toContain(`participation à la ${inSentence(session.label)}`)
+    // Ligne au bas de l'email (US-247) : Léa n'a pas activé de compte, le lien mène à la page d'activation
+    const footer = /Retrouvez tout cela dans votre compte Limbus, en l’activant avec cette adresse : (\S+)/.exec(mailbox.to(lea!.email!)[0]!.text)
+    expect(footer?.[1]).toMatch(/\/acces\/activer$/)
+    const activation = await page.context().newPage()
+    await activation.goto(new URL(footer![1]!).pathname)
+    await expect(activation.getByRole('heading', { name: 'Activer mon compte' })).toBeVisible()
+    await activation.close()
     await expect(row(page, lea!.name).getByRole('button', { name: 'Relancer' })).toBeVisible()
     await row(page, lea!.name).getByRole('button', { name: 'Relancer' }).click()
     await expect.poll(() => mailbox.to(lea!.email!).length).toBe(2)

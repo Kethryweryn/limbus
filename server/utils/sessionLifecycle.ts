@@ -144,7 +144,7 @@ export async function sendCancellationEmail(sessionId: string, message: { subjec
   try {
     for (const person of recipients) {
       try {
-        await transport.send({ to: person.email!, subject: message.subject, text: message.text })
+        await transport.send({ to: person.email!, subject: message.subject, text: message.text, accountFooter: true })
         sentCount++
       } catch {
         failures.push(person.name)

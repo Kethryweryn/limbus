@@ -153,6 +153,7 @@ export async function sendAttendanceRequests(sessionId: string, responseDueAt: D
       try {
         await transport!.send({
           to: person.email,
+          accountFooter: true,
           subject: `Session reportée : ${session.game.title}`,
           text: attendanceInvitationEmailText({ ...emailParams(session, person.name, responseDueAt), url: attendanceUrl(token) })
         })
@@ -201,6 +202,7 @@ export async function remindAttendance(sessionId: string, participantId: string)
   const session = await attendanceSession(sessionId)
   await sendOrFail({
     to: attendance.participant.email,
+    accountFooter: true,
     subject: `Rappel – session reportée : ${session.game.title}`,
     text: attendanceReminderEmailText({ ...emailParams(session, attendance.participant.name, attendance.responseDueAt), invitationSentAt: attendance.invitationSentAt })
   }, 'Le rappel')
@@ -221,6 +223,7 @@ export async function resendAttendance(sessionId: string, participantId: string)
   const { token, tokenHash } = createRegistrationToken()
   await sendOrFail({
     to: attendance.participant.email,
+    accountFooter: true,
     subject: `Session reportée : ${session.game.title}`,
     text: attendanceInvitationEmailText({ ...emailParams(session, attendance.participant.name, attendance.responseDueAt), url: attendanceUrl(token) })
   }, 'Le nouveau lien')

@@ -250,6 +250,7 @@ async function sendInvitationEmail(transport: EmailTransport | null, target: Inv
   try {
     await transport.send({
       to: target.to,
+      accountFooter: true,
       subject: `Invitation : ${context.gameTitle}`,
       text: registrationInvitationEmailText({ ...context, participantName: target.participantName, url: registrationUrl(target.token) })
     })
@@ -523,7 +524,7 @@ export async function resendRegistrationInvitation(registrationId: string, invit
             'Il remplace ceux des emails précédents ; il vous est propre, ne le transférez pas.'
           ].join('\n')
         }
-    const sent = await sendEmail({ to, ...email }).catch(() => ({ sent: false }))
+    const sent = await sendEmail({ to, ...email, accountFooter: true }).catch(() => ({ sent: false }))
     if (!sent.sent) {
       throw createError({ statusCode: 502, message: 'L’ancien lien est invalidé, mais l’email n’est pas parti.' })
     }
@@ -566,6 +567,7 @@ export async function remindRegistration(registrationId: string, sessionId?: str
 
   const result = await sendEmail({
     to: registration.email,
+    accountFooter: true,
     subject: retained ? `Rappel – place retenue : ${registration.period.game.title}` : `Rappel – invitation : ${registration.period.game.title}`,
     text: registrationReminderEmailText({
       participantName: registration.participant.name,
