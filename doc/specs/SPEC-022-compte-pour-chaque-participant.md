@@ -1,7 +1,7 @@
 ---
 id: SPEC-022
 titre: Un compte pour chaque participant, une seule fiche par personne
-statut: en cours
+statut: implémentée
 date: 2026-11-11
 origine: ../archive/todo/compte-pour-chaque-participant.md
 epics: [EPIC-056, EPIC-057, EPIC-058]
@@ -103,4 +103,5 @@ La liste des comptes montre les comptes pré-créés avec la mention « non acti
 - 2026-11-12 : lot 1 terminé et déployé (PR #228 à #238) ; [EPIC-056](../archive/epics/EPIC-056-une-fiche-par-personne/README.md) archivé. Lots 2 et 3 à découper.
 - 2026-11-12 : lot 2 découpé ([EPIC-057](../archive/epics/EPIC-057-compte-pre-cree-et-activation/README.md), US-244 à US-247), avec les choix de l'utilisatrice : un compte non activé est un compte sans mot de passe, des pages dédiées à l'activation, un champ vidé par la personne revient aux équipes, une ligne vers « Je participe » pour un compte activé ; R16 passe au lot 2, pour que la politique le dise dès la création des premiers comptes ([ADR-0088](../adr/ADR-0088-compte-pre-cree-sans-mot-de-passe.md), [ADR-0089](../adr/ADR-0089-recopie-champ-par-champ.md)).
 - 2026-11-12 : lot 2 terminé et déployé (PR #241 à #244) ; [EPIC-057](../archive/epics/EPIC-057-compte-pre-cree-et-activation/README.md) archivé. Choix de l'utilisatrice pendant le lot : une personne activée peut prendre l'adresse d'un compte non activé, l'administratrice reprend un compte non activé en le créant. Lot 3 à découper.
-- 2026-11-12 : lot 3 découpé ([EPIC-058](../epics/EPIC-058-durees-et-administration/README.md), US-248 et US-249), avec les choix de l'utilisatrice : un compte non activé est effacé aussitôt avec sa dernière fiche ([ADR-0090](../adr/ADR-0090-effacement-du-compte-non-active.md)) ; l'administration masque les comptes non activés, inscriptions non confirmées comprises, derrière une case, en lecture seule.
+- 2026-11-12 : lot 3 découpé ([EPIC-058](../archive/epics/EPIC-058-durees-et-administration/README.md), US-248 et US-249), avec les choix de l'utilisatrice : un compte non activé est effacé aussitôt avec sa dernière fiche ([ADR-0090](../adr/ADR-0090-effacement-du-compte-non-active.md)) ; l'administration masque les comptes non activés, inscriptions non confirmées comprises, derrière une case, en lecture seule.
+- 2026-11-12 : lot 3 terminé et déployé (PR #247, #248) ; [EPIC-058](../archive/epics/EPIC-058-durees-et-administration/README.md) archivé. Spec implémentée.
