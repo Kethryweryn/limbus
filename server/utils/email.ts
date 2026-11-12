@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
+import { absoluteAppUrl } from '~/server/utils/appUrl'
 
 type EmailAttachment = {
   filename: string
@@ -7,13 +8,16 @@ type EmailAttachment = {
   contentType?: string
 }
 
-type EmailMessage = {
-  to: string | string[]
+type EmailContent = {
   subject: string
   text?: string
   html?: string
   attachments?: EmailAttachment[]
 }
+
+// Email d'une équipe à une personne (US-247, SPEC-022 R10) : une ligne en bas la mène à son compte Limbus. Un seul
+// destinataire, dont le compte décide de la ligne
+type EmailMessage = EmailContent & ({ to: string | string[], accountFooter?: false } | { to: string, accountFooter: true })
 
 const SMTP_SETTINGS_ID = 'default'
 
@@ -180,6 +184,31 @@ export type EmailTransport = {
 }
 
 /**
+ * Ligne au bas des emails d'une équipe à une personne (US-247, SPEC-022 R10, ADR-0088), selon le compte de l'adresse :
+ * activé, elle mène à « Je participe » ; pré-créé ou inscription non confirmée, à la page qui envoie le lien
+ * d'activation. Sans compte à l'adresse, ou compte désactivé, aucune ligne : le lien ne mènerait à rien. Ni l'adresse ni
+ * un jeton ne figurent dans le lien, et rien ne dit qu'une autre équipe la suit.
+ */
+export async function participantAccountFooter(email: string) {
+  const account = await prisma.user.findUnique({ where: { email: email.trim() }, select: { emailConfirmedAt: true, disabledAt: true } })
+  if (!account || account.disabledAt) return null
+  return account.emailConfirmedAt
+    ? { text: 'Retrouvez tout cela dans votre espace « Je participe » sur Limbus :', url: absoluteAppUrl('/participer') }
+    : { text: 'Retrouvez tout cela dans votre compte Limbus, en l’activant avec cette adresse :', url: absoluteAppUrl('/acces/activer') }
+}
+
+async function withAccountFooter(message: EmailMessage): Promise<EmailMessage> {
+  if (!message.accountFooter) return message
+  const footer = await participantAccountFooter(message.to)
+  if (!footer) return message
+  return {
+    ...message,
+    text: message.text === undefined ? undefined : [message.text, '', '—', `${footer.text} ${footer.url}`].join('\n'),
+    html: message.html === undefined ? undefined : `${message.html}<hr><p>${escapeHtml(footer.text)} <a href="${escapeHtml(footer.url)}">${escapeHtml(footer.url)}</a></p>`
+  }
+}
+
+/**
  * Connexion SMTP réutilisable pour un envoi groupé (une seule connexion pour N emails).
  * null si l'envoi d'emails est désactivé. Penser à appeler close().
  */
@@ -213,7 +242,8 @@ export async function openEmailTransport(): Promise<EmailTransport | null> {
     : settings.fromEmail
 
   return {
-    async send(message: EmailMessage) {
+    async send(original: EmailMessage) {
+      const message = await withAccountFooter(original)
       try {
         const info = await transporter.sendMail({
           from,

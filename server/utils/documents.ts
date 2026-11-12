@@ -305,7 +305,7 @@ async function sendToEach<Target extends { participant: { name: string, email: s
       try {
         const { copies: built, ...message } = await buildMessage(target)
         copies = built
-        await transport.send({ ...message, to: target.participant.email! })
+        await transport.send({ ...message, to: target.participant.email!, accountFooter: true })
       } catch {
         failures.push(target.participant.name)
         continue

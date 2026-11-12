@@ -362,6 +362,7 @@ async function deliverAnnouncement(transport: EmailTransport, period: { response
   try {
     await transport.send({
       to: registration.email,
+      accountFooter: true,
       ...selectionAnnouncementEmail({ status, participantName: registration.participant.name, gameTitle: period.game.title, url: registrationUrl(token), sessions: [await labelSession(prisma, line.session)], responseDueAt })
     })
   } catch (error) {

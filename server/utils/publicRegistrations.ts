@@ -551,6 +551,7 @@ export async function sendRegistrationConfirmationEmail(registration: PublicRegi
   try {
     const result = await sendEmail({
       to: answers.email,
+      accountFooter: true,
       subject: `Réponses enregistrées : ${registration.period.game.title}`,
       text: registrationConfirmationEmailText({ firstName: answers.firstName, gameTitle: registration.period.game.title, url })
     })

@@ -56,6 +56,7 @@ export async function sendAvailabilityRequest(periodId: string, sessionId: strin
       try {
         await transport.send({
           to: person.email,
+          accountFooter: true,
           ...availabilityRequestEmail({ participantName, gameTitle: period.game.title, session, url: registrationUrl(token), reminder })
         })
         sentCount++

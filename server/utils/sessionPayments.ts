@@ -677,6 +677,7 @@ export async function sendSessionPaymentEmails(sessionId: string, reminder = fal
       try {
         await transport.send({
           to: row.participant.email!,
+          accountFooter: true,
           subject: `${isReminder ? 'Relance paiement' : 'Paiement'} - ${withGame(dashboard.session.game.title, dashboard.session.label)}`,
           text: paymentEmailText({
             participantName: row.participant.name,

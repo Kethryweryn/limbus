@@ -94,6 +94,20 @@ describe('inviter des participants', () => {
     expect(await prisma.registrationLink.findMany({ where: { registrationId: own.id }, select: { tokenHash: true } })).toEqual([{ tokenHash: sha256(token) }])
     expect(JSON.stringify(registrations)).not.toContain(token)
     expect(emailsTo('nouvelle.venue@example.test')).toHaveLength(1)
+    // Ligne au bas de l'email (US-247) : la nouvelle personne a un compte pré-créé, la ligne mène à la page d'activation,
+    // sans adresse ni jeton ; la fiche faite sans compte (avant US-244) n'en a pas, le lien ne mènerait à rien
+    expect(emailsTo('nouvelle.venue@example.test')[0]!.text).toMatch(/—\s+Retrouvez tout cela dans votre compte Limbus, en l’activant avec cette adresse : \S+\/acces\/activer\s*$/)
+    expect(email.text).not.toContain('Retrouvez tout cela')
+  })
+
+  it('la ligne au bas de l’invitation mène une personne au compte activé à « Je participe » (US-247)', async () => {
+    const { period, session, participant } = await openPeriod()
+    await prisma.user.create({ data: { email: participant.email!, name: 'Joueuse activée', password: null } })
+    const response = await invite(period.id, { sessionId: session.id, participantIds: [participant.id] })
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    const message = emailsTo(participant.email!)[0]!
+    expect(message.text).toMatch(/Retrouvez tout cela dans votre espace « Je participe » sur Limbus : \S+\/participer\s*$/)
+    expect(message.text).not.toContain('acces/activer')
   })
 
   it('rapproche une nouvelle personne d’un participant d’un autre jeu de la même propriétaire, sans tenir compte de la casse (R12)', async () => {
