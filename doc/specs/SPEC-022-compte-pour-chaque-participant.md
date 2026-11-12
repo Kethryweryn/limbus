@@ -4,8 +4,8 @@ titre: Un compte pour chaque participant, une seule fiche par personne
 statut: en cours
 date: 2026-11-11
 origine: ../archive/todo/compte-pour-chaque-participant.md
-epics: [EPIC-056]
-adr: [ADR-0086, ADR-0087]
+epics: [EPIC-056, EPIC-057]
+adr: [ADR-0086, ADR-0087, ADR-0088, ADR-0089]
 ---
 
 # SPEC-022 : Un compte pour chaque participant, une seule fiche par personne
@@ -101,3 +101,4 @@ La liste des comptes montre les comptes pré-créés avec la mention « non acti
 - 2026-11-11 : lot 1 découpé ([EPIC-056](../archive/epics/EPIC-056-une-fiche-par-personne/README.md), US-237 à US-242) ; nom et téléphone rangés par jeu, choix de l'utilisatrice (ADR-0086).
 - 2026-11-12 : US-243 ajoutée au lot 1 : une adresse donnée en réponse, déjà celle d'une autre fiche, se prouve par un lien de 7 jours, puis tout passe sur la fiche de l'adresse prouvée (choix de l'utilisatrice, ADR-0087).
 - 2026-11-12 : lot 1 terminé et déployé (PR #228 à #238) ; [EPIC-056](../archive/epics/EPIC-056-une-fiche-par-personne/README.md) archivé. Lots 2 et 3 à découper.
+- 2026-11-12 : lot 2 découpé ([EPIC-057](../epics/EPIC-057-compte-pre-cree-et-activation/README.md), US-244 à US-247), avec les choix de l'utilisatrice : un compte non activé est un compte sans mot de passe, des pages dédiées à l'activation, un champ vidé par la personne revient aux équipes, une ligne vers « Je participe » pour un compte activé ([ADR-0088](../adr/ADR-0088-compte-pre-cree-sans-mot-de-passe.md), [ADR-0089](../adr/ADR-0089-recopie-champ-par-champ.md)).
