@@ -23,9 +23,11 @@ export default defineEventHandler(async (event) => {
   const answers = { ...body, email: user.email, availableSessionIds: await readAvailability(event, registration) }
 
   const versionId = await frozenFormVersionId(registration, form.versionId)
-  const { accepted, keptSessions } = await saveRegistrationAnswers(registration, versionId, answers, form.definition, true)
+  const { accepted, keptSessions, addressProofSent } = await saveRegistrationAnswers(registration, versionId, answers, form.definition, true)
   // Le lien de l'email mène à l'espace « Je participe » : le jeton du lien personnel n'est pas connu ici
-  const emailSent = accepted ? await sendRegistrationConfirmationEmail(registration, answers, absoluteAppUrl('/participer')) : null
+  // Adresse à prouver (US-243) : la confirmation part à l'adresse gardée
+  const confirmedTo = addressProofSent === null ? answers : { ...answers, email: registration.email }
+  const emailSent = accepted ? await sendRegistrationConfirmationEmail(registration, confirmedTo, absoluteAppUrl('/participer')) : null
 
-  return { ...(await exposeMyRegistration(await requireMyRegistration(user.id, id), user.email)), emailSent, keptSessions }
+  return { ...(await exposeMyRegistration(await requireMyRegistration(user.id, id), user.email)), emailSent, keptSessions, addressProofSent }
 })

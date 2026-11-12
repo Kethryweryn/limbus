@@ -623,3 +623,65 @@ test('le parcours affiche « Inscrite validée » pour l’équipe et pour la pe
     await prisma.$disconnect()
   }
 })
+
+// US-243 (ADR-0087) : une autre adresse, déjà celle d'une autre fiche, se prouve par un lien ; les fiches sont réunies
+test('une personne répond avec l’adresse d’une autre fiche, puis la prouve par le lien reçu (US-243)', async ({ otherPage }) => {
+  test.setTimeout(90_000)
+  const prisma = createTestPrisma()
+  const mailbox = openMailbox()
+  try {
+    const key = `preuve-e2e-${Date.now()}`
+    const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
+    const other = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.autre } })
+    const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: owner.id, noteIntention: 'Note' } })
+    const otherGame = await prisma.game.create({ data: { title: `Jeu d’une autre équipe ${key}`, slug: `jeu-autre-${key}`, description: '', ownerId: other.id } })
+    const session = await labelled(prisma, await prisma.session.create({ data: { slug: `session-${key}`, gameId: game.id, date: new Date('2099-05-01T09:00:00Z') } }))
+    const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `pub-${key}`, state: 'open', sessions: { create: { sessionId: session.id } } } })
+    const participant = await prisma.participant.create({ data: { name: 'Lou Preuve', slug: `p-lou-${key}`.slice(0, 40), email: `lou-${key}@example.test`, gameLinks: { create: { gameId: game.id, name: 'Lou Preuve' } } } })
+    const elsewhere = await prisma.participant.create({ data: { name: 'Nom ailleurs', slug: `p-ailleurs-${key}`.slice(0, 40), email: `lou-perso-${key}@example.test`, gameLinks: { create: { gameId: otherGame.id, name: 'Nom ailleurs' } } } })
+    const token = randomBytes(32).toString('base64url')
+    await prisma.registration.create({
+      data: {
+        gameId: period.gameId, periodId: period.id, invitedSessionId: session.id, participantId: participant.id, status: 'invited', source: 'invitation',
+        email: participant.email!, links: { create: { tokenHash: createHash('sha256').update(token).digest('hex') } }, responseDueAt: new Date(Date.now() + 7 * 86_400_000)
+      }
+    })
+
+    // La réponse donne l'autre adresse : enregistrée, et la page dit qu'un lien est parti
+    const guest = await otherPage()
+    await guest.goto(`/inscription/${token}`)
+    await guest.waitForLoadState('networkidle')
+    await guest.getByLabel('Email', { exact: true }).fill(elsewhere.email!)
+    await guest.getByLabel('Téléphone', { exact: true }).fill('0611111111')
+    await guest.getByLabel('J’ai lu la note d’intention et j’y adhère').check()
+    await guest.getByLabel('Contact d’urgence : nom').fill('Dominique')
+    await guest.getByLabel('Contact d’urgence : téléphone').fill('0698765432')
+    await guest.getByRole('button', { name: 'Envoyer mes réponses' }).click()
+    await expect(guest.getByText(`Un lien vient de partir à ${elsewhere.email}`, { exact: false })).toBeVisible()
+    expect((await prisma.participant.findUniqueOrThrow({ where: { id: participant.id } })).email).toBe(participant.email)
+
+    // Le lien de preuve : rien de l'autre fiche n'y paraît ; il faut cliquer pour prouver
+    await expect.poll(() => mailbox.to(elsewhere.email!).length).toBe(1)
+    const proof = mailbox.to(elsewhere.email!)[0]!.text.match(/\/inscription\/adresse\/([\w-]+)/)![1]
+    await guest.goto(`/inscription/adresse/${proof}`)
+    await guest.waitForLoadState('networkidle')
+    await expect(guest.getByText('Nom ailleurs')).toHaveCount(0)
+    expect(await prisma.participant.findUnique({ where: { id: participant.id } })).not.toBeNull()
+    await guest.getByRole('button', { name: 'C’est bien mon adresse' }).click()
+    await expect(guest.getByText(`L’adresse ${elsewhere.email} est confirmée`, { exact: false })).toBeVisible()
+    await expect.poll(() => prisma.participant.findUnique({ where: { id: participant.id } })).toBeNull()
+    expect((await prisma.participantGame.findMany({ where: { participantId: elsewhere.id }, select: { gameId: true } })).map((link) => link.gameId).sort())
+      .toEqual([game.id, otherGame.id].sort())
+
+    // Un lien qui a servi ne marche plus, et le dit ; sans réseau, la page le dit aussi
+    await guest.reload()
+    await guest.waitForLoadState('networkidle')
+    await guest.getByRole('button', { name: 'C’est bien mon adresse' }).click()
+    await expect(guest.getByText('Ce lien n’est pas valable', { exact: false })).toBeVisible()
+    await guest.context().setOffline(true)
+    await guest.getByRole('button', { name: 'C’est bien mon adresse' }).click()
+    await expect(guest.getByText(/réseau/i).first()).toBeVisible()
+  } finally {
+    await prisma.$disconnect()
+  }
+})

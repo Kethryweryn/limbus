@@ -24,8 +24,10 @@ export default defineEventHandler(async (event) => {
   const availableSessionIds = await readAvailability(event, registration)
 
   const versionId = await frozenFormVersionId(registration, form.versionId)
-  const { accepted, keptSessions } = await saveRegistrationAnswers(registration, versionId, { ...answers, availableSessionIds }, form.definition)
-  const emailSent = accepted ? await sendRegistrationConfirmationEmail(registration, answers, registrationUrl(token)) : null
+  const { accepted, keptSessions, addressProofSent } = await saveRegistrationAnswers(registration, versionId, { ...answers, availableSessionIds }, form.definition)
+  // Adresse à prouver (US-243) : la confirmation, avec le lien personnel, part à l'adresse gardée, jamais à l'autre
+  const confirmedTo = addressProofSent === null ? answers : { ...answers, email: registration.email }
+  const emailSent = accepted ? await sendRegistrationConfirmationEmail(registration, confirmedTo, registrationUrl(token)) : null
 
-  return { ...(await exposePublicRegistration(await requireRegistrationByToken(token))), emailSent, keptSessions }
+  return { ...(await exposePublicRegistration(await requireRegistrationByToken(token))), emailSent, keptSessions, addressProofSent }
 })

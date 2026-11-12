@@ -724,6 +724,22 @@ model RegistrationLink {
   @@index([registrationId])
 }
 
+// Adresse donnée en réponse, déjà celle d'une autre fiche, à prouver par un lien (US-243, ADR-0087) : 7 jours, à usage
+// unique ; seule l'empreinte du jeton est gardée
+model ParticipantEmailProof {
+  id            String   @id @default(cuid())
+  participantId String
+  email         String   @db.Citext
+  tokenHash     String   @unique
+  expiresAt     DateTime @db.Timestamptz(3)
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@index([participantId])
+  @@index([expiresAt])
+}
+
 // Formulaire public envoyé, en attente de la confirmation de l'email (US-084, US-085, ADR-0046) : ni fiche ni
 // inscription avant la confirmation ; supprimé à la confirmation, ou au bout de 7 jours
 model RegistrationRequest {
@@ -876,6 +892,7 @@ model Participant {
   registrations Registration[]
   attendances SessionAttendance[]
   affinityMentions RegistrationAffinity[] @relation("AffinityTargets")
+  emailProofs ParticipantEmailProof[]
 
   @@index([userId])
 }

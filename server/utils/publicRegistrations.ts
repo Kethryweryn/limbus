@@ -3,10 +3,10 @@ import { labelNestedSessions, labelSession, labelSessions, sessionLabelsFor } fr
 import { gamePhotoInformation } from '~/utils/photoInformation'
 import type { H3Event } from 'h3'
 import { prisma } from '~/server/utils/prisma'
-import { accountIdForEmail, syncProfileToParticipants } from '~/server/utils/participantAccounts'
+import { syncProfileToParticipants } from '~/server/utils/participantAccounts'
 import { assertRateLimit } from '~/server/utils/rateLimit'
 import { sendEmail } from '~/server/utils/email'
-import { findParticipantByEmail, hashRegistrationToken, notifyGameTeam } from '~/server/utils/registrations'
+import { hashRegistrationToken, notifyGameTeam } from '~/server/utils/registrations'
 import { validatedPlaces } from '~/server/utils/sessionPayments'
 import { answerAvailability, availabilitySchema } from '~/server/utils/registrationAvailability'
 import { replaceAffinities } from '~/server/utils/registrationAffinities'
@@ -24,7 +24,7 @@ import {
   type RegistrationFormDefinition
 } from '~/utils/registrationForms'
 import { withGameValues } from '~/server/utils/participantValues'
-import { lockAddress } from '~/server/utils/participantAddress'
+import { adoptAddress, requestEmailProof } from '~/server/utils/emailProofs'
 
 // Même réponse pour un jeton inconnu ou invalidé : on ne dit pas pourquoi (ADR-0018)
 export const INVALID_LINK_MESSAGE = 'Ce lien n’est pas valide.'
@@ -325,13 +325,14 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
   const now = new Date()
   const accepting = registration.status === REGISTRATION_STATUSES.invited
   const { affinities, questionAnswers, availableSessionIds, ...answers } = allAnswers
-  // Adresse déjà celle d'une autre fiche (une seule fiche par adresse, SPEC-022) : la fiche et l'inscription gardent la
-  // leur, jusqu'à ce que la personne prouve que l'autre adresse est la sienne (choix de l'utilisatrice, US-243)
-  const other = await findParticipantByEmail(answers.email)
-  const addressTaken = Boolean(other && other.id !== registration.participantId)
+  // Une autre adresse que celle de l'inscription se prouve par un lien, qu'elle soit connue de Limbus ou non : rien ne
+  // révèle si une adresse a une fiche (choix de l'utilisatrice, US-243, revue de la PR #236). En attendant, la fiche et
+  // l'inscription gardent la leur. Depuis le compte, l'adresse est celle du compte, déjà confirmée : elle est adoptée
+  const addressChanged = registration.email.trim().toLowerCase() !== answers.email.trim().toLowerCase()
+  const proofNeeded = addressChanged && !updateAccount
   const data = {
     ...answers,
-    ...(addressTaken ? { email: registration.email } : {}),
+    ...(addressChanged ? { email: registration.email } : {}),
     // Réponses aux questions propres au jeu (US-081) ; les affinités sont rangées à part (US-082)
     questionAnswers: questionAnswers ?? {},
     // Le consentement santé n'a de sens qu'avec des allergies déclarées ; il date du dernier enregistrement
@@ -343,7 +344,7 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
   const proposed = availableSessionIds ? await proposedSessions(registration) : []
   const seats = accepting && registration.invitedSession ? await countPlayableCharacters(registration.period.gameId) : 0
   // Une adresse gardée (prise par une autre fiche) n'est pas un changement de réponse
-  const changed = !accepting && answersDiffer(registration, addressTaken ? { ...allAnswers, email: registration.email } : allAnswers, definition)
+  const changed = !accepting && answersDiffer(registration, addressChanged ? { ...allAnswers, email: registration.email } : allAnswers, definition)
   const previouslyChecked = new Set(registration.sessionLines.filter(saysAvailable).map((line) => line.sessionId))
 
   const outcome = await prisma.$transaction(async (tx) => {
@@ -394,11 +395,8 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
       }
     }
 
-    // L'adresse donnée fait foi ; le rattachement au compte la suit (US-070). Prise par une autre fiche, même depuis la
-    // lecture de la réponse (vérifié sous verrou, US-240) : rien ne change
-    await lockAddress(tx, answers.email)
-    const takenNow = await findParticipantByEmail(answers.email, tx)
-    if (!addressTaken && (!takenNow || takenNow.id === registration.participantId)) await tx.participant.update({ where: { id: registration.participantId }, data: { email: answers.email, userId: await accountIdForEmail(answers.email) } })
+    // Adresse du compte, confirmée : adoptée, et la fiche rejoint celle de cette adresse s'il y en a une (US-243)
+    if (addressChanged && updateAccount) await adoptAddress(tx, registration.participantId, answers.email)
     return { kept, removed, fullSession, changedSessions: changedLines.map((line) => line.sessionId) }
   })
 
@@ -421,7 +419,13 @@ export async function saveRegistrationAnswers(registration: PublicRegistration, 
     notifyTeam(registration, `${name} a répondu à votre invitation pour la ${inSentence(labelOf(outcome.fullSession))} (${gameTitle}), mais elle est complète : la personne reste pré-inscrite. Créez un personnage pour ajouter une place.`, `Session complète : ${name} (${gameTitle})`)
   }
 
-  return { accepted: accepting, keptSessions: outcome.kept.map(labelOf) }
+  // Adresse d'une autre fiche : un lien part à cette adresse pour la prouver, puis réunir les deux fiches (US-243)
+  const addressProofSent = proofNeeded ? await requestEmailProof(registration.participantId, answers.email) : null
+  if (addressChanged && updateAccount) {
+    const account = await prisma.user.findUnique({ where: { email: answers.email }, select: { id: true } })
+    if (account) await syncProfileToParticipants(account.id)
+  }
+  return { accepted: accepting, keptSessions: outcome.kept.map(labelOf), addressProofSent }
 }
 
 function notifyTeam(registration: PublicRegistration, text: string, subject: string) {

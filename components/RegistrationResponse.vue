@@ -306,6 +306,8 @@ async function submit() {
   errorMessage.value = ''
   fieldErrors.value = {}
   successMessage.value = ''
+  // Adresse donnée, lue avant que la réponse du serveur ne recharge le formulaire (US-243)
+  const givenEmail = form.value.email
   try {
     const result = await publicFetch<Saved>(props.endpoint, { method: 'PUT', body: { ...form.value } })
     apply(result)
@@ -318,6 +320,12 @@ async function submit() {
           : 'Un email de confirmation vous a été envoyé. Vous pouvez revenir modifier vos réponses depuis votre compte à tout moment.'
         : props.personalLink ? 'Gardez ce lien : il vous permet de revenir modifier vos réponses à tout moment.' : ''
       : ''
+    // Adresse déjà celle d'une autre fiche (US-243) : la réponse est enregistrée, un lien part pour la prouver
+    if ('addressProofSent' in result && result.addressProofSent !== null) {
+      successDetail.value = [successDetail.value, result.addressProofSent
+        ? `Un lien vient de partir à ${givenEmail} : ouvrez-le pour confirmer que cette adresse est la vôtre. En attendant, Limbus garde l’adresse d’origine.`
+        : `Limbus n’a pas pu écrire à ${givenEmail} pour confirmer cette adresse : réessayez plus tard. En attendant, il garde l’adresse d’origine.`].filter(Boolean).join(' ')
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (err) {
     showError(err, 'Enregistrement impossible. Réessayez dans quelques minutes.')

@@ -61,6 +61,7 @@
       <li>Compte : tant que vous l’utilisez. Après {{ RETENTION.inactiveAccountMonths }} mois sans connexion, il est effacé ; un email vous prévient un mois avant, et une connexion suffit à le garder.</li>
       <li>Compte créé mais jamais confirmé : {{ RETENTION.unconfirmedAccountDays }} jours.</li>
       <li>Formulaire d’inscription jamais confirmé : {{ RETENTION.unconfirmedFormDays }} jours.</li>
+      <li>Autre adresse donnée en répondant à une invitation, quand elle est déjà connue de Limbus : un lien part à cette adresse pour confirmer qu’elle est la vôtre ; la demande est effacée au bout de {{ RETENTION.addressProofDays }} jours si le lien n’est pas ouvert.</li>
       <li>Fiche participant sans compte : effacée {{ RETENTION.participantWithoutAccountYears }} ans après sa dernière activité (dernière session ou dernière inscription), ou avant si l’équipe l’efface.</li>
       <li>Photos : supprimées après le délai choisi par l’équipe du jeu (6 mois après la session par défaut).</li>
       <li>Copies des emails envoyés : effacées après la session.</li>

@@ -5,6 +5,7 @@ import { openEmailTransport, sendEmail } from '~/server/utils/email'
 import { eraseParticipant } from '~/server/utils/participantPrivacy'
 import { USER_ROLES } from '~/utils/domain'
 import { RETENTION } from '~/utils/legal'
+import { purgeEmailProofs } from '~/server/utils/emailProofs'
 
 // Durées de conservation (US-112, US-113, SPEC-013 L6, ADR-0056) : comptes inactifs et fiches sans compte
 
@@ -135,6 +136,8 @@ let running: Promise<number> | null = null
 let rerun = false
 
 async function purgeOnce(now: Date) {
+  // Liens de preuve d'adresse expirés (US-243, ADR-0087)
+  await purgeEmailProofs(now)
   const kept = await warnInactiveAccounts(now)
   await deleteInactiveAccounts(now, kept)
   return await eraseStaleParticipants(now)

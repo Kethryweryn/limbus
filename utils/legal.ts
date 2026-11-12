@@ -25,6 +25,8 @@ export const RETENTION = {
   participantWithoutAccountYears: 3,
   unconfirmedAccountDays: 7,
   unconfirmedFormDays: 7,
+  // Autre adresse donnée en réponse, à prouver par un lien (US-243, ADR-0087)
+  addressProofDays: 7,
   contactEmailYears: 3,
   // Assistants d'IA (SPEC-014) : autorisation finie après 90 jours sans usage, journal gardé un an
   aiAuthorizationIdleDays: 90,

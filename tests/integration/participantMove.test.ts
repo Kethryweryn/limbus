@@ -126,7 +126,9 @@ describe('fonction de déplacement', () => {
       .filter(([, , body]) => /^\s+\w+\s+Participant\??\s+@relation/m.test(body!))
       .map(([, name]) => name!)
     const move = readFileSync('prisma/migrations/20261202090000_deplacer_une_fiche/migration.sql', 'utf8')
+    // Une demande de preuve d'adresse (US-243) reste à la fiche qui l'a faite, et part avec elle : rien à déplacer
+    const notMoved = new Set(['ParticipantEmailProof'])
     expect(models.length).toBeGreaterThan(5)
-    expect(models.filter((model) => !move.includes(`"${model}"`))).toEqual([])
+    expect(models.filter((model) => !notMoved.has(model) && !move.includes(`"${model}"`))).toEqual([])
   })
 })
