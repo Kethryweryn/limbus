@@ -32,17 +32,20 @@
       <FormFeedback :result="resultFor('create')" />
     </UCard>
 
+    <!-- Comptes non activés (US-248) : pré-créés pour une fiche ou inscriptions jamais confirmées, masqués par défaut -->
+    <UCheckbox v-if="!loadError" v-model="showInactive" :label="`Afficher les comptes non activés (${inactiveCount})`" />
+
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
       <UCard v-for="user in users" :key="user.id">
         <template #header>
           <div class="flex items-start justify-between gap-3">
             <div>
-              <h2 class="font-semibold">{{ user.name }}</h2>
+              <h2 class="font-semibold">{{ user.name || 'Sans nom' }}</h2>
               <p class="text-sm text-gray-500">{{ user.email }}</p>
             </div>
             <div class="flex flex-wrap justify-end gap-1">
               <UBadge v-if="user.disabledAt" color="error" variant="solid">Désactivé</UBadge>
-              <UBadge v-else-if="!user.emailConfirmedAt" color="neutral" variant="subtle">Adresse non confirmée</UBadge>
+              <UBadge v-else-if="!user.emailConfirmedAt" color="neutral" variant="subtle">Non activé</UBadge>
               <UBadge :color="user.role === USER_ROLES.admin ? 'warning' : 'primary'" variant="subtle">
                 {{ user.role === USER_ROLES.admin ? 'Administratrice' : 'Compte' }}
               </UBadge>
@@ -50,7 +53,11 @@
           </div>
         </template>
 
-        <div class="space-y-4">
+        <!-- Lecture seule (US-248) : la personne l'active elle-même, ou l'administratrice le reprend en le créant -->
+        <p v-if="!user.emailConfirmedAt" class="text-sm text-gray-500">
+          Ce compte n’est pas activé : la personne l’active elle-même, ou créez un compte à son adresse pour le reprendre.
+        </p>
+        <div v-else class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <UFormField label="Nom">
               <UInput v-model="user.name" autocomplete="off" :name="`managed-user-name-${user.id}`" />
@@ -98,9 +105,12 @@ import { loadErrorMessage } from '~/utils/apiErrors'
 import { formatMegabytes as formatMb } from '~/utils/fileSizes'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
-type ManagedUser = ApiResponse<'/api/admin/users'>[number]
+type ManagedUser = ApiResponse<'/api/admin/users'>['users'][number]
 
 const users = ref<ManagedUser[]>([])
+// Comptes non activés (US-248) : le serveur ne les renvoie que si la case est cochée, et sinon seulement leur nombre
+const showInactive = ref(false)
+const inactiveCount = ref(0)
 const saving = ref(false)
 const savingUserId = ref('')
 const loadError = ref('')
@@ -114,7 +124,9 @@ const emptyUser = () => ({ name: '', email: '', role: USER_ROLES.user as string 
 const newUser = ref(emptyUser())
 
 async function fetchUsers() {
-  users.value = await useApiFetch('/api/admin/users')
+  const list = await useApiFetch('/api/admin/users', { query: showInactive.value ? { inactifs: '1' } : {} })
+  users.value = list.users
+  inactiveCount.value = list.inactiveCount
 }
 
 async function createUser() {
@@ -178,6 +190,12 @@ async function deleteUser(user: ManagedUser) {
     return null
   })
 }
+
+watch(showInactive, () => {
+  fetchUsers().catch((err: unknown) => {
+    loadError.value = loadErrorMessage(err, 'Impossible de charger les comptes.')
+  })
+})
 
 // Refus du serveur (403 pour qui n'administre pas) : affiché au lieu d'une page vide (US-215)
 await fetchUsers().catch((err: unknown) => {

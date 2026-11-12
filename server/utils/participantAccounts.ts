@@ -150,3 +150,14 @@ export async function syncProfileToParticipants(userId: string, cleared: Profile
 export async function myParticipantIds(userId: string) {
   return (await prisma.participant.findMany({ where: { userId }, select: { id: true } })).map((participant) => participant.id)
 }
+
+/**
+ * L'administration ne touche pas à un compte non activé (US-248, ADR-0088) : ni modification, ni lien de mot de passe,
+ * ni désactivation, ni suppression. La personne l'active elle-même, ou l'administratrice le reprend en créant le compte
+ * à son adresse.
+ */
+export async function assertActivatedForAdmin(userId: string) {
+  if (await prisma.user.findFirst({ where: { id: userId, ...notActivatedAccount }, select: { id: true } })) {
+    throw createError({ statusCode: 400, message: 'Ce compte n’est pas activé : créez-le avec son nom pour le reprendre, ou laissez la personne l’activer.' })
+  }
+}

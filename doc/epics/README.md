@@ -318,5 +318,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-245](../archive/epics/EPIC-057-compte-pre-cree-et-activation/US-245-recopie-champ-par-champ.md) | Les coordonnées recopiées champ par champ | EPIC-057 | terminée |
 | [US-246](../archive/epics/EPIC-057-compte-pre-cree-et-activation/US-246-activer-son-compte.md) | Activer son compte | EPIC-057 | terminée |
 | [US-247](../archive/epics/EPIC-057-compte-pre-cree-et-activation/US-247-ligne-des-emails.md) | Une ligne au bas des emails des équipes | EPIC-057 | terminée |
-| [US-248](EPIC-058-durees-et-administration/US-248-comptes-non-actives-dans-l-administration.md) | Les comptes non activés dans l'administration | EPIC-058 | à faire |
+| [US-248](EPIC-058-durees-et-administration/US-248-comptes-non-actives-dans-l-administration.md) | Les comptes non activés dans l'administration | EPIC-058 | terminée |
 | [US-249](EPIC-058-durees-et-administration/US-249-effacement-du-compte-non-active.md) | Effacer un compte non activé avec sa dernière fiche | EPIC-058 | terminée |

@@ -1,0 +1,5 @@
+{
+  "type": "modifie",
+  "titre": "Les comptes non activés à part dans l’administration",
+  "texte": "La liste des comptes ne montre plus que les comptes activés. Une case affiche les autres, marqués « Non activé » et en lecture seule : la personne les active elle-même, ou l’administratrice les reprend en créant le compte à leur adresse."
+}
