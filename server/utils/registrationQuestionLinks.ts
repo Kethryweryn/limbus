@@ -1,3 +1,4 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { isUniqueConflict, prisma } from '~/server/utils/prisma'
 import { getCurrentRegistrationForm } from '~/server/utils/registrationForms'
 import { REGISTRATION_CHOICE_TYPES, type RegistrationQuestion } from '~/utils/registrationForms'
@@ -5,7 +6,7 @@ import { REGISTRATION_CHOICE_TYPES, type RegistrationQuestion } from '~/utils/re
 // Liens du questionnaire vers les personnages, factions et intrigues (US-098, ADR-0050)
 
 const targetSelect = { select: { id: true, name: true } } as const
-const linkSelect = { questionId: true, option: true, character: targetSelect, faction: targetSelect, intrigue: targetSelect } as const
+const linkSelect = { questionId: true, option: true, character: targetSelect, faction: targetSelect, intrigue: targetSelect } as const satisfies Prisma.RegistrationQuestionLinkSelect
 
 type LinkInput = { questionId: string, option: string, characterId?: string | null, factionId?: string | null, intrigueId?: string | null }
 

@@ -15,7 +15,7 @@ export const registrationPeriodInclude = {
       session: { select: { id: true, slug: true, date: true, status: true } }
     }
   }
-} as const
+} as const satisfies Prisma.RegistrationPeriodInclude
 
 // Personnes du vivier telles que la liste des organisatrices les montre, sans les réponses au formulaire
 // (détail : GET /api/registrations/:id)

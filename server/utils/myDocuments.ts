@@ -1,3 +1,4 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { labelSession } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
 import { myParticipantIds } from '~/server/utils/participantAccounts'
@@ -20,7 +21,7 @@ const deliverySelect = {
   document: { select: { title: true, content: true, documentUrl: true, readyToSend: true } },
   character: { select: { id: true, name: true, pitch: true, background: true, backgroundDocumentUrl: true, costumeIndications: true, sheetReadyToSend: true, ...sheetRelationsInclude } },
   session: { select: { id: true, game: { select: { title: true } } } }
-} as const
+} as const satisfies Prisma.SessionDocumentDeliverySelect
 
 type MyDelivery = NonNullable<Awaited<ReturnType<typeof findDelivery>>>
 

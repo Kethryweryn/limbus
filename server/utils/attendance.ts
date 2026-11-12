@@ -1,3 +1,4 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { sessionLabelsFor } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
 import { absoluteAppUrl, publicAppUrl } from '~/server/utils/appUrl'
@@ -31,7 +32,7 @@ const sessionContextSelect = {
   game: { select: { title: true } },
   location: { select: { name: true, address: true } },
   postponedFrom: { select: { id: true } }
-} as const
+} as const satisfies Prisma.SessionSelect
 
 type SessionContext = { id: string, postponedFrom: { id: string } | null }
 

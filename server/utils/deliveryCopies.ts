@@ -93,7 +93,7 @@ export function copiesExpireAt(session: SessionTiming, sessionsById: Map<string,
   return current.date ? new Date(current.date.getTime() + DAY) : null
 }
 
-const timingSelect = { id: true, date: true, status: true, cancelledAt: true, postponedToSessionId: true } as const
+const timingSelect = { id: true, date: true, status: true, cancelledAt: true, postponedToSessionId: true } as const satisfies Prisma.SessionSelect
 
 // Les sessions d'où partent ces sessions-ci et la chaîne de leurs reports
 async function loadTimings(sessionIds: string[]) {

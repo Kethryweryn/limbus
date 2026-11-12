@@ -1,3 +1,4 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { labelSession } from '~/server/utils/sessionLabels'
 import { createHash } from 'node:crypto'
 import { prisma } from '~/server/utils/prisma'
@@ -220,7 +221,7 @@ const trombinoscopeSessionInclude = {
       }
     }
   }
-}
+} satisfies Prisma.SessionInclude
 
 type TrombinoscopeSession = NonNullable<Awaited<ReturnType<typeof findTrombinoscopeSession>>>
 

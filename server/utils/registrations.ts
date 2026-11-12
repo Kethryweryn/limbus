@@ -267,7 +267,7 @@ const periodForInvitationSelect = {
   state: true,
   responseDelayDays: true,
   game: { select: { id: true, title: true, ownerId: true, photoRetentionMonths: true, contactEmail: true, owner: { select: { email: true } } } }
-} as const
+} as const satisfies Prisma.RegistrationPeriodSelect
 
 /**
  * Invite des personnes à rejoindre le vivier ouvert (R4) : des participants du jeu, et/ou une nouvelle personne

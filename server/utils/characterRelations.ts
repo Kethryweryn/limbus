@@ -1,3 +1,4 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { prisma } from '~/server/utils/prisma'
 import { relationSheetLine } from '~/utils/characterRelations'
 
@@ -5,7 +6,7 @@ import { relationSheetLine } from '~/utils/characterRelations'
 export const characterRelationInclude = {
   fromCharacter: { select: { id: true, name: true, slug: true } },
   toCharacter: { select: { id: true, name: true, slug: true } }
-} as const
+} as const satisfies Prisma.CharacterRelationInclude
 
 export async function findCharacterRelationOr404(id: string) {
   const relation = await prisma.characterRelation.findUnique({ where: { id }, select: { id: true, gameId: true } })
@@ -26,7 +27,7 @@ export async function relationGameId(fromCharacterId: string, toCharacterId: str
 export const sheetRelationsInclude = {
   relationsFrom: { where: { fromVisible: true }, include: characterRelationInclude, orderBy: { createdAt: 'asc' } },
   relationsTo: { where: { toVisible: true }, include: characterRelationInclude, orderBy: { createdAt: 'asc' } }
-} as const
+} as const satisfies Prisma.CharacterInclude
 
 type WithSheetRelations = { id: string, relationsFrom: Parameters<typeof relationSheetLine>[0][], relationsTo: Parameters<typeof relationSheetLine>[0][] }
 

@@ -9,7 +9,7 @@ type ParticipantWithGameLinks = {
   gameLinks?: Array<{
     createdAt: Date
     notes?: string | null
-    name?: string | null
+    name?: string
     phone?: string | null
     updatedAt?: Date
     game: {

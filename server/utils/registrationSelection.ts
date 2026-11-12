@@ -31,7 +31,7 @@ const selectionPeriodSelect = {
   responseDelayDays: true,
   createdAt: true,
   game: { select: { title: true, balanceAttribute: true, balanceValues: true } }
-} as const
+} as const satisfies Prisma.RegistrationPeriodSelect
 
 export type SelectionPeriod = NonNullable<Awaited<ReturnType<typeof findSelectionPeriod>>>
 

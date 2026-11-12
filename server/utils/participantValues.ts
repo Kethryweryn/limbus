@@ -66,7 +66,7 @@ export async function withGameValuesIn<T extends { id: string }, P extends boole
  * Hors d'un jeu précis (page Participants, fiche) : les valeurs du jeu visible le plus récemment modifié parmi les
  * liens lus. `gameLinks` doit porter `name`, `phone` et `updatedAt`.
  */
-export function latestVisibleValues<T extends Plain & { gameLinks?: Array<{ name?: string | null, phone?: string | null, updatedAt?: Date }> }>(fiche: T): T & { name: string, phone: string | null } {
+export function latestVisibleValues<T extends Plain & { gameLinks?: Array<{ name?: string, phone?: string | null, updatedAt?: Date }> }>(fiche: T): T & { name: string, phone: string | null } {
   const latest = [...(fiche.gameLinks || [])].sort((left, right) => (right.updatedAt?.getTime() ?? 0) - (left.updatedAt?.getTime() ?? 0))[0]
   applyValue(fiche, latest ? { name: latest.name ?? '', phone: latest.phone ?? null } : undefined, true)
   return fiche as T & { name: string, phone: string | null }
