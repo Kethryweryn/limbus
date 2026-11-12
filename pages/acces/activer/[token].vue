@@ -21,7 +21,7 @@
         Activer et me connecter
       </UButton>
       <UAlert v-if="error" color="error" variant="soft" :description="error" />
-      <p v-if="expired" class="text-sm text-center">
+      <p v-if="offerNewLink" class="text-sm text-center">
         <NuxtLink to="/acces/activer" class="text-primary hover:underline">Demander un nouveau lien</NuxtLink>
       </p>
     </form>
@@ -40,11 +40,12 @@ const form = ref({ name: '', password: '', termsAccepted: false })
 const confirmation = ref('')
 const saving = ref(false)
 const error = ref('')
-const expired = ref(false)
+// Après un refus du serveur (lien expiré, déjà utilisé, compte déjà activé…), un nouveau lien est toujours possible
+const offerNewLink = ref(false)
 
 async function save() {
   error.value = ''
-  expired.value = false
+  offerNewLink.value = false
   if (form.value.password !== confirmation.value) {
     error.value = 'Les deux mots de passe ne correspondent pas.'
     return
@@ -55,7 +56,7 @@ async function save() {
     window.location.replace('/participer')
   } catch (err) {
     error.value = apiErrorMessage(err, 'Impossible d’activer le compte.')
-    expired.value = /lien/i.test(error.value)
+    offerNewLink.value = true
   } finally {
     saving.value = false
   }

@@ -184,3 +184,25 @@ test('activer mon compte : la page envoie le lien, qui active le compte et ouvre
     await prisma.$disconnect()
   }
 })
+
+// US-246 : « Mot de passe oublié » sur un compte pré-créé envoie le lien d'activation, qui ouvre la page d'activation
+test('mot de passe oublié sur un compte pré-créé : le lien reçu est celui de l’activation (US-246)', async ({ page }) => {
+  const prisma = createTestPrisma()
+  const mailbox = openMailbox()
+  try {
+    const email = `${slugOf(uniqueName('oubli pre-cree'))}@example.test`
+    await prisma.user.create({ data: { email, name: '', password: null, emailConfirmedAt: null } })
+    await page.goto('/acces/mot-de-passe-oublie')
+    await page.waitForLoadState('networkidle')
+    await page.getByLabel('Email').fill(email)
+    await page.getByRole('button', { name: 'Recevoir le lien' }).click()
+    await expect(page.getByText(`Si un compte utilise ${email}, un lien vient d’y partir.`)).toBeVisible()
+    await expect.poll(() => mailbox.to(email).length).toBe(1)
+    const token = linkToken(mailbox.to(email)[0]!, '/acces/activer/')
+    await page.goto(`/acces/activer/${token}`)
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByRole('button', { name: 'Activer et me connecter' })).toBeVisible()
+  } finally {
+    await prisma.$disconnect()
+  }
+})

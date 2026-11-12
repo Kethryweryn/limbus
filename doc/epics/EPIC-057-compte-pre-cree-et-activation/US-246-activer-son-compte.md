@@ -41,6 +41,7 @@ En tant que participant dont une équipe a créé la fiche, je veux activer le c
 ## Tests
 
 - Actions (`tests/e2e/access.spec.ts`, « activer mon compte ») : lien depuis l'écran de connexion, demande du lien, activation, arrivée dans « Je participe » avec le jeu de l'équipe.
+- Invitation à co-organiser (`tests/e2e/accountScreens.spec.ts`, « active le compte pré-créé ») et « Mot de passe oublié » sur un compte pré-créé (`access.spec.ts`), ajoutés à la revue de la PR #243.
 - Erreurs de saisie : mots de passe différents, conditions non acceptées (même test) ; nom vide, mot de passe trop court, lien expiré (`tests/integration/activation.test.ts`) ; rien n'est activé.
 - Droits : la page répond pareil pour une adresse inconnue (même test e2e, aucun email) ; un compte activé reçoit « vous avez déjà un compte », un compte non activé le lien (intégration) ; le lien ne sert qu'une fois, la page le dit et propose d'en demander un autre.
 - Hors ligne : sans objet. Comme la connexion, l'activation se fait sans session ouverte et demande le réseau.

@@ -14,8 +14,9 @@ export default defineEventHandler(async (event) => {
 
   const user = await prisma.user.findUnique({ where: { email }, select: { id: true, email: true, disabledAt: true, emailConfirmedAt: true } })
   if (user && !user.disabledAt) {
-    // Un échec d'envoi, noté côté serveur, ne change pas la réponse : sinon elle dirait que l'adresse a un compte
-    await (user.emailConfirmedAt ? sendAccountExistsEmail({ to: user.email, url: passwordForgottenUrl() }) : sendActivationLink(user)).catch(() => undefined)
+    // Un échec, noté côté serveur sans l'adresse, ne change pas la réponse : sinon elle dirait que l'adresse a un compte
+    await (user.emailConfirmedAt ? sendAccountExistsEmail({ to: user.email, url: passwordForgottenUrl() }) : sendActivationLink(user))
+      .catch((error: unknown) => console.error('[activation] lien non envoyé', { message: (error as { message?: string })?.message }))
   }
   return { success: true }
 })

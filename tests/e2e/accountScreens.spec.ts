@@ -293,6 +293,35 @@ test.describe('invitation à co-organiser', () => {
     }
   })
 
+  // US-246 (SPEC-022 R2, R9) : l'adresse invitée a un compte pré-créé pour une fiche ; l'invitation l'active
+  test('créer son compte depuis l’invitation active le compte pré-créé de l’adresse, avec sa fiche (US-246)', async ({ page }) => {
+    const prisma = createTestPrisma()
+    try {
+      const game = await orgaGame(prisma, 'Jeu de la co-orga pré-créée')
+      const name = uniqueName('Co-orga pré-créée')
+      const email = `${slugOf(name)}@example.test`
+      const account = await prisma.user.create({ data: { email, name: '', password: null, emailConfirmedAt: null } })
+      const fiche = await prisma.participant.create({ data: { slug: slugOf(uniqueName('fiche co-orga')), email, userId: account.id, gameLinks: { create: { gameId: game.id, name: 'Nom chez l’équipe' } } } })
+      const token = await shareInvitation(prisma, game.id, email)
+
+      await page.goto(`/invitations/${token}`)
+      await page.waitForLoadState('networkidle')
+      await page.getByLabel('Nom').fill(name)
+      await page.getByLabel('Mot de passe').fill('co-orga-secret-2')
+      await page.getByLabel(/J’accepte les conditions d’utilisation/).check()
+      await page.getByRole('button', { name: 'Créer mon compte et accepter' }).click()
+      await expect(page).toHaveURL(new RegExp(`/games/${game.slug}$`))
+      const user = await prisma.user.findUniqueOrThrow({ where: { email }, select: { id: true, name: true, emailConfirmedAt: true } })
+      expect(user.id).toBe(account.id)
+      expect(user.name).toBe(name)
+      expect(user.emailConfirmedAt).not.toBeNull()
+      expect((await prisma.participant.findUniqueOrThrow({ where: { id: fiche.id } })).userId).toBe(account.id)
+      expect(await prisma.gameShare.count({ where: { gameId: game.id, userId: account.id } })).toBe(1)
+    } finally {
+      await prisma.$disconnect()
+    }
+  })
+
   test('la propriétaire et une personne qui a déjà accès ne s’invitent pas ; une invitation annulée ne sert plus', async ({ page }) => {
     const prisma = createTestPrisma()
     const mailbox = openMailbox()
