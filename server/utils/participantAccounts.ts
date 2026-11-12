@@ -1,4 +1,5 @@
 import { prisma, type PrismaTx } from '~/server/utils/prisma'
+import { lockAddress } from '~/server/utils/participantAddress'
 import { REGISTRATION_STATUSES } from '~/utils/domain'
 import { splitParticipantName } from '~/utils/registrations'
 import { normalizeRegistrationFormDefinition, type RegistrationFormDefinition } from '~/utils/registrationForms'
@@ -21,6 +22,29 @@ export async function accountForEmail(client: PrismaTx, email: string | null | u
     select: { id: true }
   })
   return account.id
+}
+
+/**
+ * Supprime une fiche ; le compte non activé de son adresse, qui ne porte plus aucune fiche, part avec elle (SPEC-022 R13,
+ * ADR-0090) : rien ne reste sur une personne qu'aucune équipe ne suit plus. Un compte activé reste, il suit la règle des
+ * 24 mois, et un compte dont une inscription attend sa confirmation aussi : la personne veut ce compte, le nettoyage des
+ * inscriptions non confirmées s'en charge sinon. À appeler dans la transaction de toute suppression de fiche ; le verrou
+ * de l'adresse fait passer après elle une création de fiche à la même adresse, qui reprendrait ce compte (revue de la
+ * PR #247).
+ */
+export async function deleteFiche(tx: PrismaTx, participantId: string) {
+  const { email } = await tx.participant.findUniqueOrThrow({ where: { id: participantId }, select: { email: true } })
+  if (email) await lockAddress(tx, email)
+  const { userId } = await tx.participant.delete({ where: { id: participantId }, select: { userId: true } })
+  if (!userId) return
+  await tx.user.deleteMany({
+    where: {
+      id: userId,
+      ...notActivatedAccount,
+      participants: { none: {} },
+      accountTokens: { none: { kind: 'confirm', usedAt: null, expiresAt: { gt: new Date() } } }
+    }
+  })
 }
 
 /**

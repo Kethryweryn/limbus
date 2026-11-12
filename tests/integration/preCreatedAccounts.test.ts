@@ -204,3 +204,59 @@ describe('adresse d’un compte non activé reprise (US-244)', () => {
     expect(await prisma.user.count({ where: { id: preCreated.id } })).toBe(1)
   })
 })
+
+describe('compte non activé effacé avec sa dernière fiche (US-249, ADR-0090)', () => {
+  const accountOf = (email: string) => prisma.user.findUnique({ where: { email } })
+
+  it('la dernière équipe qui efface la fiche efface aussi le compte ; avant, il reste pour l’autre équipe', async () => {
+    const email = unique('suivie-par-deux')
+    const fiche = await createFiche(email)
+    expect((await api(bob, 'POST', '/api/participants', { name: 'Chez Bob', email, gameIds: [world.b.game.id] })).status).toBe(200)
+
+    expect((await api(alice, 'DELETE', `/api/participants/${fiche.id}`)).status).toBe(200)
+    expect(await prisma.participant.findUnique({ where: { id: fiche.id } })).not.toBeNull()
+    expect(await accountOf(email)).not.toBeNull()
+
+    expect((await api(bob, 'DELETE', `/api/participants/${fiche.id}`)).status).toBe(200)
+    expect(await prisma.participant.findUnique({ where: { id: fiche.id } })).toBeNull()
+    expect(await accountOf(email)).toBeNull()
+  })
+
+  it('retirer la fiche de son dernier jeu efface aussi le compte', async () => {
+    const email = unique('dernier-jeu')
+    const fiche = await createFiche(email)
+    const response = await api(alice, 'PUT', `/api/participants/${fiche.id}`, { name: 'Paul Martin', email, gameIds: [], updatedAt: fiche.updatedAt })
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    expect(await accountOf(email)).toBeNull()
+  })
+
+  it('corriger l’adresse d’une fiche qu’on est seule à suivre efface le compte de l’ancienne adresse', async () => {
+    const wrong = unique('faute-de-frappe')
+    const right = unique('bonne-adresse')
+    const fiche = await createFiche(wrong)
+    // Une fiche existe déjà à la bonne adresse, chez Bob : tous les jeux d'Alice la rejoignent
+    expect((await api(bob, 'POST', '/api/participants', { name: 'Chez Bob', email: right, gameIds: [world.b.game.id] })).status).toBe(200)
+    const response = await api(alice, 'PUT', `/api/participants/${fiche.id}`, { name: 'Paul Martin', email: right, gameIds: [world.a.game.id], updatedAt: fiche.updatedAt })
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    expect(await prisma.participant.findUnique({ where: { id: fiche.id } })).toBeNull()
+    expect(await accountOf(wrong)).toBeNull()
+    expect(await accountOf(right)).not.toBeNull()
+  })
+
+  it('un compte dont une inscription attend sa confirmation reste quand sa fiche est effacée (revue de la PR #247)', async () => {
+    const email = unique('inscription-en-attente')
+    const fiche = await createFiche(email)
+    const signup = await api(null, 'POST', '/api/auth/signup', { name: 'Paul Inscrit', email, password: randomUUID(), termsAccepted: true }, fromIp())
+    expect(signup.status).toBe(200)
+    expect((await api(alice, 'DELETE', `/api/participants/${fiche.id}`)).status).toBe(200)
+    expect(await accountOf(email)).not.toBeNull()
+  })
+
+  it('un compte activé reste quand sa fiche est effacée', async () => {
+    const email = unique('activee-gardee')
+    await prisma.user.create({ data: { email, name: 'Activée', password: await someHash() } })
+    const fiche = await createFiche(email)
+    expect((await api(alice, 'DELETE', `/api/participants/${fiche.id}`)).status).toBe(200)
+    expect(await accountOf(email)).not.toBeNull()
+  })
+})

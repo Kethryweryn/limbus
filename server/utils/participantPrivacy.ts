@@ -1,4 +1,5 @@
 import { labelNestedSessions } from '~/server/utils/sessionLabels'
+import { deleteFiche } from '~/server/utils/participantAccounts'
 import { prisma } from '~/server/utils/prisma'
 import { deleteUnusedUploads } from '~/server/utils/uploads'
 import { NO_COPY } from '~/server/utils/deliveryCopies'
@@ -73,7 +74,7 @@ export async function eraseParticipantForTeam(participantId: string, gameIds: st
     await tx.sessionParticipant.deleteMany({ where: inSessions })
     await tx.participantGame.deleteMany({ where: inGames })
     // Plus aucune équipe (l'autre l'a effacée entre-temps) : la fiche ne reste pas sans jeu
-    if (!await tx.participantGame.count({ where: { participantId } })) await tx.participant.delete({ where: { id: participantId } })
+    if (!await tx.participantGame.count({ where: { participantId } })) await deleteFiche(tx, participantId)
   })
   return { deletedPhotos: await deleteUnusedUploads(photoUrls) }
 }
@@ -104,7 +105,8 @@ export async function eraseParticipant(participantId: string) {
       await tx.sessionTrombinoscope.deleteMany({ where: { sessionId: { in: sessionsWithPhoto } } })
       await tx.sessionDocumentDelivery.updateMany({ where: { sessionId: { in: sessionsWithPhoto }, kind: 'trombinoscope', copySize: { not: null } }, data: NO_COPY })
     }
-    await tx.participant.delete({ where: { id: participantId } })
+    // Son compte non activé part avec elle (ADR-0090)
+    await deleteFiche(tx, participantId)
   })
 
   // Une photo encore utilisée ailleurs (autre assignation, photo de personnage) est gardée

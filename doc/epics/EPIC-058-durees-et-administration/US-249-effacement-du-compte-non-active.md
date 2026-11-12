@@ -1,7 +1,7 @@
 ---
 id: US-249
 titre: Effacer un compte non activé avec sa dernière fiche
-statut: à faire
+statut: terminée
 epic: EPIC-058
 regles: [R13, R14]
 adr: [ADR-0090]
@@ -13,25 +13,26 @@ En tant que personne inscrite à un jeu sans avoir activé de compte, je veux qu
 
 ## Critères d'acceptation
 
-- [ ] Étant donné une fiche au compte non activé, quand la dernière équipe qui la suit l'efface ou la retire de son dernier jeu, alors le compte est effacé aussitôt, avec la fiche.
-- [ ] Étant donné une fiche au compte non activé suivie par deux équipes, quand l'une l'efface, alors la fiche et le compte restent pour l'autre (R14).
-- [ ] Étant donné une fiche au compte non activé effacée par l'effacement automatique des fiches inactives, alors le compte part avec elle.
-- [ ] Étant donné une fiche réunie à une autre (preuve d'adresse, changement d'adresse d'un compte), alors le compte non activé de la fiche qui disparaît est effacé, s'il ne porte plus aucune fiche.
-- [ ] Étant donné une équipe qui corrige l'adresse d'une fiche qu'elle est seule à suivre, alors le compte non activé de l'ancienne adresse, sans plus aucune fiche, est effacé (revue de la PR #246).
-- [ ] Un compte activé n'est jamais effacé ainsi.
-- [ ] La politique de confidentialité dit : « Compte non activé : tant qu'une fiche participant porte son adresse ».
+- [x] Étant donné une fiche au compte non activé, quand la dernière équipe qui la suit l'efface ou la retire de son dernier jeu, alors le compte est effacé aussitôt, avec la fiche.
+- [x] Étant donné une fiche au compte non activé suivie par deux équipes, quand l'une l'efface, alors la fiche et le compte restent pour l'autre (R14).
+- [x] Étant donné une fiche au compte non activé effacée par l'effacement automatique des fiches inactives, alors le compte part avec elle.
+- [x] Étant donné une fiche réunie à une autre (preuve d'adresse, changement d'adresse d'un compte), alors le compte non activé de la fiche qui disparaît est effacé, s'il ne porte plus aucune fiche.
+- [x] Étant donné une équipe qui corrige l'adresse d'une fiche qu'elle est seule à suivre, alors le compte non activé de l'ancienne adresse, sans plus aucune fiche, est effacé (revue de la PR #246).
+- [x] Un compte activé n'est jamais effacé ainsi.
+- [x] Un compte dont une inscription libre attend sa confirmation n'est pas effacé : le nettoyage des inscriptions non confirmées s'en charge. La suppression prend le verrou de l'adresse, pour qu'une création de fiche à la même adresse passe après elle (revue de la PR #247).
+- [x] La politique de confidentialité dit : « Compte non activé : tant qu'une fiche participant porte son adresse ».
 
 ## Notes techniques
 
-- Une fonction commune, appelée dans la transaction de chaque suppression de fiche : `participantPrivacy.ts`, `participantWrites.ts`, `emailProofs.ts`, `retention.ts`.
+- `deleteFiche` (`server/utils/participantAccounts.ts`), appelée dans la transaction de chaque suppression de fiche : `participantPrivacy.ts` (effacement, donc aussi le retrait du dernier jeu et l'effacement automatique), `participantWrites.ts` (correction d'adresse), `emailProofs.ts` (réunion).
 - `pages/confidentialite.vue`.
 - Pas de changement de `TERMS_VERSION` : la durée devient plus courte, sans nouvelle donnée.
 
 ## Tests
 
-- Actions (`tests/e2e/participantScreens.spec.ts`) : supprimer la fiche d'une personne au compte non activé efface aussi son compte.
+- Actions (`tests/e2e/participantScreens.spec.ts`, « le compte non activé de la fiche part avec elle ») : la suppression depuis la fiche efface aussi le compte.
 - Erreurs de saisie : sans objet, rien n'est saisi.
-- Droits : une fiche suivie par une autre équipe garde son compte (intégration).
-- Hors ligne : une suppression faite hors ligne efface le compte au retour du réseau.
+- Droits : une fiche suivie par une autre équipe garde son compte, jusqu'à ce que la dernière équipe l'efface (`preCreatedAccounts.test.ts`).
+- Hors ligne : la suppression faite hors ligne depuis la liste efface le compte au retour du réseau (même test e2e).
 
-Intégration : chaque chemin de suppression, et le compte activé gardé.
+Intégration : retrait du dernier jeu, correction d'adresse (`preCreatedAccounts.test.ts`), effacement automatique des fiches inactives (`retention.test.ts`), preuve d'adresse (`publicRegistrations.test.ts`), compte activé gardé.

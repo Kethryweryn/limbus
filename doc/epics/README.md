@@ -65,7 +65,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-055](../archive/epics/EPIC-055-session-sans-nom/README.md) | Une session sans nom, désignée par sa date | [SPEC-021](../specs/SPEC-021-session-sans-nom.md) | terminé |
 | [EPIC-056](../archive/epics/EPIC-056-une-fiche-par-personne/README.md) | Une fiche par personne dans tout Limbus | [SPEC-022](../specs/SPEC-022-compte-pour-chaque-participant.md) | terminé |
 | [EPIC-057](../archive/epics/EPIC-057-compte-pre-cree-et-activation/README.md) | Un compte pré-créé pour chaque fiche, que la personne active | [SPEC-022](../specs/SPEC-022-compte-pour-chaque-participant.md) | terminé |
-| [EPIC-058](EPIC-058-durees-et-administration/README.md) | Comptes non activés : durée et administration | [SPEC-022](../specs/SPEC-022-compte-pour-chaque-participant.md) | à faire |
+| [EPIC-058](EPIC-058-durees-et-administration/README.md) | Comptes non activés : durée et administration | [SPEC-022](../specs/SPEC-022-compte-pour-chaque-participant.md) | en cours |
 
 ## US
 
@@ -319,4 +319,4 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-246](../archive/epics/EPIC-057-compte-pre-cree-et-activation/US-246-activer-son-compte.md) | Activer son compte | EPIC-057 | terminée |
 | [US-247](../archive/epics/EPIC-057-compte-pre-cree-et-activation/US-247-ligne-des-emails.md) | Une ligne au bas des emails des équipes | EPIC-057 | terminée |
 | [US-248](EPIC-058-durees-et-administration/US-248-comptes-non-actives-dans-l-administration.md) | Les comptes non activés dans l'administration | EPIC-058 | à faire |
-| [US-249](EPIC-058-durees-et-administration/US-249-effacement-du-compte-non-active.md) | Effacer un compte non activé avec sa dernière fiche | EPIC-058 | à faire |
+| [US-249](EPIC-058-durees-et-administration/US-249-effacement-du-compte-non-active.md) | Effacer un compte non activé avec sa dernière fiche | EPIC-058 | terminée |
