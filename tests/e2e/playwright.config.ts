@@ -11,6 +11,8 @@ export const BASE_URL = `http://localhost:${PORT}`
 export default defineConfig({
   testDir: '.',
   globalSetup: './globalSetup.ts',
+  // Échoue si la CSP a refusé une ressource pendant la suite (US-250)
+  globalTeardown: './globalTeardown.ts',
   // Les fichiers se répartissent entre trois navigateurs ; les tests d'un fichier se suivent. Les tests partagent la
   // base et le serveur d'emails : chacun crée ses propres données et écrit à ses propres adresses (mailbox.ts).
   fullyParallel: false,

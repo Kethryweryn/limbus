@@ -1,4 +1,4 @@
-// EPIC-027 : origine des écritures (US-104), CSP en mode rapport (US-106)
+// EPIC-027 : origine des écritures (US-104), CSP en mode rapport (US-106) ; EPIC-059 : CSP sans strict-dynamic, icônes livrées (US-250)
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import { api, tokenFor } from './api'
 import { createTestPrisma } from './db'
@@ -63,7 +63,8 @@ describe('CSP en mode rapport (US-106)', () => {
     expect(page.status).toBe(200)
     const policy = page.headers.get('content-security-policy-report-only')
     expect(page.headers.get('content-security-policy')).toBeNull()
-    expect(policy).toMatch(/script-src [^;]*'nonce-[^']+'[^;]*'strict-dynamic'/)
+    // Sans 'strict-dynamic' (US-250, ADR-0091) : 'self' compte, et seuls les scripts intégrés à nonce passent
+    expect(policy).toMatch(/script-src 'self' 'nonce-[^']+'(;|$)/)
     expect(policy).toContain("object-src 'none'")
     expect(policy).toContain('report-uri /api/public/csp-report')
     expect(page.headers.get('cross-origin-opener-policy')).toBe('same-origin')
@@ -77,6 +78,9 @@ describe('CSP en mode rapport (US-106)', () => {
     expect(home.headers.get('content-security-policy')).toBeNull()
     expect(policy).toContain("object-src 'none'")
     expect(policy).not.toContain('{{nonce}}')
+    // Sans nonce, ses fichiers de script passent par 'self', ses scripts intégrés par empreinte (US-250)
+    expect(policy).toMatch(/script-src 'self'( 'sha256-[^']+')+(;|$)/)
+    expect(policy).not.toContain('strict-dynamic')
     expect(await home.text()).not.toMatch(/http-equiv="Content-Security-Policy"/i)
   })
 
@@ -97,5 +101,16 @@ describe('CSP en mode rapport (US-106)', () => {
     const listed = await api(admin, 'GET', '/api/admin/csp-reports', undefined, { adminMode: true })
     expect(listed.status).toBe(200)
     expect(listed.body).toEqual(expect.arrayContaining([expect.objectContaining({ directive: 'img-src', blockedUri: 'https://images.example', count: 2 })]))
+  })
+})
+
+describe('icônes livrées avec Limbus (US-250)', () => {
+  it('sert lui-même les icônes de ses pages et de Nuxt UI, sans les demander à un autre site', async () => {
+    for (const [collection, icon] of [['heroicons', 'x-mark'], ['lucide', 'chevron-down']] as const) {
+      const response = await fetch(`${inject('baseUrl')}/api/_nuxt_icon/${collection}.json?icons=${icon}`)
+      expect(response.status).toBe(200)
+      const body = await response.json() as { icons: Record<string, { body: string }> }
+      expect(body.icons[icon]?.body).toContain('<path')
+    }
   })
 })

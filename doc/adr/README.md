@@ -56,7 +56,7 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0050](ADR-0050-relations-et-questionnaire-relie.md) | Relations orientées entre personnages, liens du questionnaire hors des versions du formulaire, relations refusées en lignes d'affinité | accepté | 2026-11-01 |
 | [ADR-0051](ADR-0051-assistant-de-casting.md) | Assistant de casting calculé à la demande, cadenas et réservation sur l'attribution | accepté | 2026-11-01 |
 | [ADR-0052](ADR-0052-page-de-sante.md) | Page de santé publique et surveillance par un service externe | accepté | 2026-11-01 |
-| [ADR-0053](ADR-0053-durcissement-web.md) | Origine vérifiée sur les écritures, cookies __Host-, CSP par Nuxt Security en mode rapport | accepté | 2026-11-01 |
+| [ADR-0053](ADR-0053-durcissement-web.md) | Origine vérifiée sur les écritures, cookies __Host-, CSP par Nuxt Security en mode rapport | remplacé en partie par ADR-0091 | 2026-11-01 |
 | [ADR-0054](ADR-0054-photos-des-participants.md) | Photos des participants, information sans accord préalable, purge à l'échéance et refus bloquant | accepté | 2026-11-01 |
 | [ADR-0055](ADR-0055-pages-legales-et-acceptation.md) | Pages légales dans l'application, version des conditions acceptée sur le compte | accepté | 2026-11-02 |
 | [ADR-0056](ADR-0056-durees-de-conservation.md) | Comptes inactifs et fiches sans compte effacés à la connexion, en tâche de fond | accepté | 2026-11-02 |
@@ -94,3 +94,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0088](ADR-0088-compte-pre-cree-sans-mot-de-passe.md) | Un compte pré-créé est un compte sans mot de passe, activé par un lien envoyé à son adresse | accepté | 2026-11-12 |
 | [ADR-0089](ADR-0089-recopie-champ-par-champ.md) | Les coordonnées du compte sont recopiées champ par champ, seulement les champs que la personne a remplis | accepté | 2026-11-12 |
 | [ADR-0090](ADR-0090-effacement-du-compte-non-active.md) | Un compte non activé est effacé avec la dernière fiche qui porte son adresse | accepté | 2026-11-12 |
+| [ADR-0091](ADR-0091-csp-sans-strict-dynamic.md) | CSP sans strict-dynamic, icônes livrées avec Limbus, violations vérifiées par la suite de bout en bout | accepté | 2026-11-12 |

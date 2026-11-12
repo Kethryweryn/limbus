@@ -46,13 +46,25 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-04-07',
   devtools: { enabled: true },
   modules: ['@nuxt/ui', '@nuxt/eslint', '@pinia/nuxt', '@vite-pwa/nuxt', 'nuxt-security'],
+  // Icônes livrées avec Limbus (US-250, ADR-0091) : servies par Limbus, et embarquées dans le code de la page (celles
+  // écrites dans les .vue et .ts, et celles de Nuxt UI, qu'il ajoute lui-même) ; jamais demandées à api.iconify.design,
+  // que la CSP refuse. Un nom d'icône s'écrit en entier : un nom calculé échapperait au scan (règle ESLint)
+  icon: {
+    serverBundle: { collections: ['heroicons', 'lucide'] },
+    clientBundle: {
+      scan: { globInclude: ['**/*.{vue,ts}'], globExclude: ['node_modules', 'dist', 'tests', 'prisma', 'server', '.*'] }
+    },
+    fallbackToApi: false
+  },
   // CSP et COOP posées par l'application, d'abord en mode rapport (US-106, ADR-0053). Le reste du module est désactivé :
   // Limbus a ses propres limites de débit, de taille et contrôles d'origine, et Apache pose HSTS
   security: {
     headers: {
       contentSecurityPolicy: {
         'default-src': ["'self'"],
-        'script-src': ["'self'", "'nonce-{{nonce}}'", "'strict-dynamic'"],
+        // Sans 'strict-dynamic' (ADR-0091) : la page d'accueil, prérendue pour l'ouverture sans réseau, n'a pas de nonce,
+        // et ses fichiers de script ne passent que par 'self', que 'strict-dynamic' ferait ignorer
+        'script-src': ["'self'", "'nonce-{{nonce}}'"],
         'script-src-attr': ["'none'"],
         'style-src': ["'self'", "'unsafe-inline'"],
         'img-src': ["'self'", 'data:', 'blob:', 'https:'],
