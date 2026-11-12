@@ -29,7 +29,7 @@ L'utilisatrice a choisi, le 2026-11-12, de l'effacer aussitôt.
    - la correction d'adresse par une équipe qui emmène tous les jeux de la fiche vers celle de la nouvelle adresse (R7) ;
    - l'effacement automatique des fiches inactives ;
    - la réunion de deux fiches.
-2. Un compte activé n'est jamais effacé ainsi : il suit la règle des 24 mois.
+2. Un compte activé n'est jamais effacé ainsi : il suit la règle des 24 mois. Un compte dont une inscription libre attend sa confirmation non plus : la personne veut ce compte. La suppression prend le verrou de l'adresse ([ADR-0086](ADR-0086-fiche-unique-et-valeurs-par-jeu.md)), pour qu'une création de fiche à la même adresse passe après elle.
 3. Le nettoyage des inscriptions non confirmées continue d'effacer les comptes sans fiche qu'il trouve encore : une inscription jamais confirmée, ou un compte que rien n'a effacé.
 4. La politique de confidentialité dit : « Compte non activé : tant qu'une fiche participant porte son adresse ».
 

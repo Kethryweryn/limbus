@@ -19,6 +19,7 @@ En tant que personne inscrite à un jeu sans avoir activé de compte, je veux qu
 - [x] Étant donné une fiche réunie à une autre (preuve d'adresse, changement d'adresse d'un compte), alors le compte non activé de la fiche qui disparaît est effacé, s'il ne porte plus aucune fiche.
 - [x] Étant donné une équipe qui corrige l'adresse d'une fiche qu'elle est seule à suivre, alors le compte non activé de l'ancienne adresse, sans plus aucune fiche, est effacé (revue de la PR #246).
 - [x] Un compte activé n'est jamais effacé ainsi.
+- [x] Un compte dont une inscription libre attend sa confirmation n'est pas effacé : le nettoyage des inscriptions non confirmées s'en charge. La suppression prend le verrou de l'adresse, pour qu'une création de fiche à la même adresse passe après elle (revue de la PR #247).
 - [x] La politique de confidentialité dit : « Compte non activé : tant qu'une fiche participant porte son adresse ».
 
 ## Notes techniques

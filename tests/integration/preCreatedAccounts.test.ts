@@ -243,6 +243,15 @@ describe('compte non activé effacé avec sa dernière fiche (US-249, ADR-0090)'
     expect(await accountOf(right)).not.toBeNull()
   })
 
+  it('un compte dont une inscription attend sa confirmation reste quand sa fiche est effacée (revue de la PR #247)', async () => {
+    const email = unique('inscription-en-attente')
+    const fiche = await createFiche(email)
+    const signup = await api(null, 'POST', '/api/auth/signup', { name: 'Paul Inscrit', email, password: randomUUID(), termsAccepted: true }, fromIp())
+    expect(signup.status).toBe(200)
+    expect((await api(alice, 'DELETE', `/api/participants/${fiche.id}`)).status).toBe(200)
+    expect(await accountOf(email)).not.toBeNull()
+  })
+
   it('un compte activé reste quand sa fiche est effacée', async () => {
     const email = unique('activee-gardee')
     await prisma.user.create({ data: { email, name: 'Activée', password: await someHash() } })
