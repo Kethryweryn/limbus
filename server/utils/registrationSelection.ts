@@ -1,3 +1,4 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { inSentence } from '~/utils/sessionLabels'
 import { labelSession } from '~/server/utils/sessionLabels'
 import { prisma, type PrismaTx } from '~/server/utils/prisma'
@@ -30,7 +31,7 @@ const selectionPeriodSelect = {
   responseDelayDays: true,
   createdAt: true,
   game: { select: { title: true, balanceAttribute: true, balanceValues: true } }
-} as const
+} as const satisfies Prisma.RegistrationPeriodSelect
 
 export type SelectionPeriod = NonNullable<Awaited<ReturnType<typeof findSelectionPeriod>>>
 
@@ -338,7 +339,7 @@ const announcementLineSelect = {
   ignoredStatus: true,
   cancelledById: true,
   session: { select: { id: true, date: true } }
-} as const
+} as const satisfies Prisma.RegistrationSessionSelect
 
 type AnnouncementTarget = {
   id: string

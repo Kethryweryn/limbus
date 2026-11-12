@@ -1,6 +1,7 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { prisma } from '~/server/utils/prisma'
 
-const emergencySelect = { emergencyContactName: true, emergencyContactPhone: true, dietary: true } as const
+const emergencySelect = { emergencyContactName: true, emergencyContactPhone: true, dietary: true } as const satisfies Prisma.RegistrationSelect
 
 /**
  * Contact d'urgence et allergies montrés sur la fiche (SPEC-007, R1b) : ceux de l'inscription la plus récente dans les

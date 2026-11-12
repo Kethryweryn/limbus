@@ -1,3 +1,4 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { createHash, randomBytes } from 'node:crypto'
 import type { H3Event } from 'h3'
 import { prisma } from '~/server/utils/prisma'
@@ -150,7 +151,7 @@ const authorizationInclude = {
   user: { select: { id: true, name: true, email: true, role: true, sessionVersion: true, disabledAt: true, emailConfirmedAt: true, termsAcceptedVersion: true, lastSeenAt: true } },
   client: { select: { id: true, name: true } },
   games: { select: { gameId: true } }
-} as const
+} as const satisfies Prisma.AiAuthorizationInclude
 
 async function loadAuthorization(id: string) {
   return await prisma.aiAuthorization.findUnique({ where: { id }, include: authorizationInclude })

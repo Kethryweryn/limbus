@@ -1,3 +1,4 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { inGameSentence, withGame } from '~/utils/sessionLabels'
 import { sessionLabelsFor } from '~/server/utils/sessionLabels'
 import { gamePhotoInformation } from '~/utils/photoInformation'
@@ -29,7 +30,7 @@ export const documentInclude = {
     },
     orderBy: { faction: { name: 'asc' as const } }
   }
-}
+} satisfies Prisma.DocumentInclude
 
 // Empreinte de ce qu'un envoi contient (ADR-0031) : elle dit si la version reçue est dépassée
 // Version reçue dépassée : empreinte différente, ou, pour un envoi sans empreinte, source modifiée depuis l'envoi

@@ -1,3 +1,4 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { inSentence } from '~/utils/sessionLabels'
 import { labelSession, labelSessions } from '~/server/utils/sessionLabels'
 import { gamePhotoInformation } from '~/utils/photoInformation'
@@ -266,7 +267,7 @@ const periodForInvitationSelect = {
   state: true,
   responseDelayDays: true,
   game: { select: { id: true, title: true, ownerId: true, photoRetentionMonths: true, contactEmail: true, owner: { select: { email: true } } } }
-} as const
+} as const satisfies Prisma.RegistrationPeriodSelect
 
 /**
  * Invite des personnes à rejoindre le vivier ouvert (R4) : des participants du jeu, et/ou une nouvelle personne
@@ -480,7 +481,7 @@ const invitationSelect = {
   participant: { select: { id: true } },
   invitedSession: { select: { id: true, date: true } },
   period: { select: { game: { select: { title: true, photoRetentionMonths: true, contactEmail: true, owner: { select: { email: true } } } } } }
-} as const
+} as const satisfies Prisma.RegistrationSelect
 
 /**
  * Nouveau lien à la demande de la personne (R13) : tous les anciens cessent de marcher (ADR-0070). L'email part à l'adresse de l'inscription : c'est elle
@@ -742,7 +743,7 @@ const withdrawalSelect = {
   participant: { select: { id: true } },
   period: { select: { gameId: true, game: { select: { title: true } } } },
   sessionLines: { select: { sessionId: true, status: true, session: { select: { id: true, status: true } } } }
-} as const
+} as const satisfies Prisma.RegistrationSelect
 
 /**
  * Annule la présence d'une personne à une session, par elle-même ou par une organisatrice (R19) : elle reste dans le

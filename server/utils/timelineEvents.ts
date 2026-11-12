@@ -1,3 +1,5 @@
+import type { Prisma } from '~/generated/prisma/client'
+
 export const timelineEventInclude = {
   game: true,
   // Liens par les tables qui portent le jeu (US-191) : la lecture passe par unlinked
@@ -8,7 +10,7 @@ export const timelineEventInclude = {
   factionLinks: { select: { faction: true }, orderBy: { faction: { name: 'asc' as const } } },
   intrigueLinks: { select: { intrigue: true }, orderBy: { intrigue: { name: 'asc' as const } } },
   itemLinks: { select: { item: true }, orderBy: { item: { name: 'asc' as const } } }
-}
+} satisfies Prisma.TimelineEventInclude
 
 type TimelineEventWithRelations = {
   id: string

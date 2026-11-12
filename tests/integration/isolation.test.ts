@@ -94,6 +94,9 @@ describe.each(resources)('/api/$path', (resource) => {
     if (resource.model === 'registrationPeriod') {
       // Un vivier n'a pas de nom : c'est son délai de réponse qui ne doit pas changer
       expect((await prisma.registrationPeriod.findUniqueOrThrow({ where: { id: foreign.id }, select: { responseDelayDays: true } })).responseDelayDays).not.toBe(3)
+    } else if (resource.model === 'participant') {
+      // Le nom vit sur les liens aux jeux (ADR-0086, US-242) : aucun ne change
+      expect((await prisma.participantGame.findMany({ where: { participantId: foreign.id }, select: { name: true } })).map((link) => link.name)).not.toContain('Renommé')
     } else if (resource.model === 'session') {
       expect((await prisma.session.findUniqueOrThrow({ where: { id: foreign.id }, select: { date: true } })).date?.toISOString()).not.toBe('2099-12-31T12:00:00.000Z')
     } else {

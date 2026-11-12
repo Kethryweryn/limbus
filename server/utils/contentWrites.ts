@@ -153,7 +153,7 @@ export async function updateGame(event: H3Event, id: string, readBody: Reader<ty
 
 // Personnages
 
-const characterInclude = { game: true, factionLinks: { select: { faction: true } } } as const
+const characterInclude = { game: true, factionLinks: { select: { faction: true } } } as const satisfies Prisma.CharacterInclude
 
 export async function createCharacter(event: H3Event, readBody: Reader<typeof createCharacterSchema>) {
   const body = await readBody()

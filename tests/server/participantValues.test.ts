@@ -6,8 +6,7 @@ import { prisma } from '~/server/utils/prisma'
 // Nom et téléphone tenus par jeu (SPEC-022 R6, ADR-0086, US-237) : la fiche n'en a plus (US-242)
 const links = [
   { gameId: 'jeu-a', participantId: 'paul', name: 'Paul chez A', phone: '0611' },
-  { gameId: 'jeu-b', participantId: 'paul', name: 'Paul chez B', phone: '0622' },
-  { gameId: 'jeu-a', participantId: 'vide', name: null, phone: null }
+  { gameId: 'jeu-b', participantId: 'paul', name: 'Paul chez B', phone: '0622' }
 ]
 const findMany = vi.fn()
 
@@ -33,7 +32,7 @@ describe('withGameValues', () => {
     expect(read.sessions[1]!.assignments![0]!.participant).toEqual({ id: 'paul', name: 'Paul chez B', phone: '0622' })
   })
 
-  it('prend le jeu donné quand la lecture n’en porte pas, et donne un nom vide pour un lien sans valeur', async () => {
+  it('prend le jeu donné quand la lecture n’en porte pas, et donne un nom vide à une fiche sans lien à ce jeu', async () => {
     const read = await withGameValues([{ targetParticipant: { id: 'paul' } }, { transferredTo: { id: 'vide' } }], 'jeu-a')
     expect(read[0]!.targetParticipant?.name).toBe('Paul chez A')
     expect(read[0]!.targetParticipant).not.toHaveProperty('phone')
@@ -48,7 +47,7 @@ describe('withGameValues', () => {
 })
 
 describe('namesIn et latestVisibleValues', () => {
-  it('donne le nom du jeu, vide pour un lien sans valeur', async () => {
+  it('donne le nom du jeu, vide pour une fiche sans lien à ce jeu', async () => {
     const names = await namesIn('jeu-a', ['paul', 'vide'])
     expect(Object.fromEntries(names)).toEqual({ paul: 'Paul chez A', vide: '' })
   })

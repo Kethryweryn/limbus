@@ -118,7 +118,7 @@ export async function eraseParticipant(participantId: string) {
  * de ses affinités, que seule l'équipe voit (R24, ADR-0049).
  */
 /** Nom, téléphone et dates d'une fiche tels que les voit une équipe : ceux de ses liens (SPEC-022 R5, R6). */
-function teamView(links: Array<{ name: string | null, phone: string | null, createdAt: Date, updatedAt: Date }>, fiche: { createdAt: Date, updatedAt: Date }) {
+function teamView(links: Array<{ name: string, phone: string | null, createdAt: Date, updatedAt: Date }>, fiche: { createdAt: Date, updatedAt: Date }) {
   const latest = [...links].sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())[0]
   return {
     name: latest?.name ?? '',

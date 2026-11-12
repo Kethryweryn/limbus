@@ -1,3 +1,4 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { prisma } from '~/server/utils/prisma'
 import { replayerParticipantIds } from '~/server/utils/registrationSelection'
 import { CHARACTER_TYPES, REGISTRATION_REPLAY_POLICIES, REGISTRATION_SEAT_STATUSES, REGISTRATION_SESSION_STATUSES, REGISTRATION_STATUSES, SESSION_CAST_ROLES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
@@ -300,7 +301,7 @@ export const castAssignmentInclude = {
   character: true,
   participant: true,
   reservedRegistration: { select: { id: true, participant: { select: { id: true } } } }
-} as const
+} as const satisfies Prisma.SessionAssignmentInclude
 
 type ReservedRow = { reservedRegistrationId: string | null, reservedRegistration?: { id: string } | null }
 

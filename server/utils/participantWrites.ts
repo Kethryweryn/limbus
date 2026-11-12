@@ -57,7 +57,7 @@ export async function createParticipant(event: H3Event, readBody: Reader<typeof 
         // Jeux de la fiche que voit l'équipe : leur nom et leur téléphone valent pour ses nouveaux jeux (US-185)
         const visible = existing.gameLinks.filter((link) => allowedGameIds === null || allowedGameIds.includes(link.gameId))
         const [latest] = [...visible].sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())
-        const values = latest ? { name: latest.name ?? name, phone: latest.phone } : { name, phone: phone || null }
+        const values = latest ? { name: latest.name, phone: latest.phone } : { name, phone: phone || null }
         await tx.participantGame.createMany({
           data: uniqueGameIds.filter((gameId) => !notesByGame.has(gameId)).map((gameId) => ({ participantId: existing.id, gameId, notes: gameNotes[gameId] || null, ...values }))
         })

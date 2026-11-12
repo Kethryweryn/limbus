@@ -1,3 +1,4 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { labelNestedSessions, sessionLabelsFor } from '~/server/utils/sessionLabels'
 import { gamePhotoInformation } from '~/utils/photoInformation'
 import { prisma } from '~/server/utils/prisma'
@@ -15,7 +16,7 @@ const sessionSelect = {
   paymentLinkUrl: true,
   paymentRibUrl: true,
   location: { select: { name: true, address: true } }
-} as const
+} as const satisfies Prisma.SessionSelect
 
 type MySession = {
   id: string

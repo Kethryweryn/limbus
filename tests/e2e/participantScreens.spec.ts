@@ -148,7 +148,7 @@ test('export : il ne contient que les jeux de l’organisatrice qui exporte (R7,
     const game = await orgaGame(prisma, 'Jeu de l’export')
     const foreign = await otherTeamGame(prisma, 'Jeu d’une autre équipe à l’export')
     const person = await gamePerson(prisma, game.id, 'Personne exportée')
-    await prisma.participantGame.create({ data: { participantId: person.id, gameId: foreign.id, notes: 'Note de l’autre équipe' } })
+    await prisma.participantGame.create({ data: { participantId: person.id, gameId: foreign.id, name: 'Nom tenu par l’autre équipe', phone: '0699999999', notes: 'Note de l’autre équipe' } })
     await signIn(page, prisma, E2E_USERS.orga)
     await openSheet(page, person)
 
@@ -160,6 +160,10 @@ test('export : il ne contient que les jeux de l’organisatrice qui exporte (R7,
     expect(text).toContain(game.title)
     expect(text).not.toContain(foreign.title)
     expect(text).not.toContain('Note de l’autre équipe')
+    // Ni le nom ni le téléphone que tient l'autre équipe (ADR-0086, revue de la PR #238)
+    expect(text).toContain('Personne exportée')
+    expect(text).not.toContain('Nom tenu par l’autre équipe')
+    expect(text).not.toContain('0699999999')
   } finally {
     await prisma.$disconnect()
   }

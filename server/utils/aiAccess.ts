@@ -1,3 +1,4 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { prisma } from '~/server/utils/prisma'
 import { AI_LOG_ACTIONS, aiGameWhere, aiLog, endAiAuthorization } from '~/server/utils/aiAuth'
 
@@ -9,7 +10,7 @@ const logSelect = {
   id: true, createdAt: true, clientName: true, action: true, tool: true, targetType: true, targetName: true,
   game: { select: { id: true, title: true } },
   user: { select: { id: true, name: true } }
-} as const
+} as const satisfies Prisma.AiLogEntrySelect
 
 async function effectiveGameIds(userId: string, gameIds: string[]) {
   const games = await prisma.game.findMany({ where: { id: { in: gameIds }, ...aiGameWhere(userId) }, select: { id: true } })

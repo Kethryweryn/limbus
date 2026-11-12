@@ -1,3 +1,4 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { labelSessionAndLinks } from '~/server/utils/sessionLabels'
 import type { H3Event } from 'h3'
 import { prisma } from '~/server/utils/prisma'
@@ -23,20 +24,20 @@ export const characterSheetInclude = {
   game: true,
   intrigueLinks: { select: { intrigue: true }, orderBy: { intrigue: { updatedAt: 'desc' as const } } },
   factionLinks: { select: { faction: true } }
-}
+} satisfies Prisma.CharacterInclude
 
 export const factionInclude = {
   game: true,
   characterLinks: { select: { character: true }, orderBy: { character: { name: 'asc' as const } } },
   intrigueLinks: { select: { intrigue: true }, orderBy: { intrigue: { updatedAt: 'desc' as const } } }
-}
+} satisfies Prisma.FactionInclude
 
 export const intrigueInclude = {
   game: true,
   characterLinks: { select: { character: true }, orderBy: { character: { name: 'asc' as const } } },
   factionLinks: { select: { faction: true }, orderBy: { faction: { name: 'asc' as const } } },
   itemLinks: { select: { item: true }, orderBy: { item: { name: 'asc' as const } } }
-}
+} satisfies Prisma.IntrigueInclude
 
 export async function readCharacter(event: H3Event, key: SheetKey) {
   const character = await prisma.character.findFirst({ where: await gameScopedWhere(event, key), include: characterSheetInclude })

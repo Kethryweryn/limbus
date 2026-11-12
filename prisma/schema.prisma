@@ -867,12 +867,9 @@ model Location {
 
 model Participant {
   id          String     @id @default(cuid())
-  // Plus lus ni écrits : le nom et le téléphone vivent sur les liens aux jeux (ADR-0086). Retirés à l'étape 2 de US-242
-  name        String?
   slug        String     @unique
   // Une seule fiche par adresse dans tout Limbus (SPEC-022 R4, R8, ADR-0086)
   email       String?  @unique @db.Citext
-  phone       String?
   // Compte rattaché par l'adresse confirmée (US-070, ADR-0041)
   userId      String?
   user        User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -1048,8 +1045,9 @@ model ParticipantGame {
   gameId    String
   // Notes de l'équipe de ce jeu sur la personne (US-069, ADR-0040)
   notes     String?
-  // Nom et téléphone saisis par l'équipe de ce jeu, ou recopiés du compte (SPEC-022 R6, ADR-0086, US-237)
-  name      String?
+  // Nom et téléphone saisis par l'équipe de ce jeu, ou recopiés du compte (SPEC-022 R6, ADR-0086, US-237) : la fiche
+  // n'en a pas (US-242)
+  name      String
   phone     String?
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(3)

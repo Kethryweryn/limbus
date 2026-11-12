@@ -1,3 +1,4 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { photoInformation } from '~/utils/photoInformation'
 import type { H3Event } from 'h3'
 import { prisma } from '~/server/utils/prisma'
@@ -34,7 +35,7 @@ export const formPeriodSelect = {
   notifyTeam: true,
   publicId: true,
   game: { select: { id: true, title: true, slug: true, noteIntention: true, teaserUrl: true, ownerId: true, photoRetentionMonths: true, contactEmail: true } }
-} as const
+} as const satisfies Prisma.RegistrationPeriodSelect
 
 type FormPeriod = NonNullable<Awaited<ReturnType<typeof findFormPeriod>>>
 
