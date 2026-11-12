@@ -15,11 +15,12 @@ Choix de l'utilisatrice, le 2026-11-11 : un lien envoyé à l'autre adresse prou
 
 ## Critères d'acceptation
 
-- [x] Étant donné une réponse par le lien personnel qui donne l'adresse d'une autre fiche, alors la réponse est enregistrée, la fiche et l'inscription gardent leur adresse, un email part à l'autre adresse avec un lien de preuve, et la page dit à la personne de cliquer sur ce lien.
+- [x] Étant donné une réponse par le lien personnel qui donne une autre adresse, connue de Limbus ou non (revue de la PR #236 : rien ne révèle si une adresse a une fiche), alors la réponse est enregistrée, la fiche et l'inscription gardent leur adresse, un email part à l'autre adresse avec un lien de preuve, et la page dit à la personne de cliquer sur ce lien.
 - [x] Étant donné le lien de preuve ouvert, alors tout ce que tient la fiche d'origine (jeux, notes, noms, inscriptions, sessions, paiements…) passe sur la fiche de l'adresse prouvée (`limbus_move_participant`), la fiche d'origine disparaît, et les inscriptions déplacées prennent l'adresse prouvée.
 - [x] Le lien de preuve ne sert qu'une fois et expire ; un lien inconnu, déjà utilisé ou expiré répond pareil.
 - [x] Le lien de preuve ne montre rien de l'autre fiche (ni nom, ni jeux) ; l'email ne dit pas quelles équipes la suivent.
-- [x] Une réponse faite connectée au compte (« Je participe ») suit la même règle.
+- [x] Une réponse faite connectée au compte (« Je participe ») porte l'adresse du compte, déjà confirmée : elle est adoptée aussitôt, et la fiche rejoint celle de cette adresse s'il y en a une.
+- [x] Une réponse corrigée dans l'heure ne renvoie pas le lien.
 
 ## Notes techniques
 

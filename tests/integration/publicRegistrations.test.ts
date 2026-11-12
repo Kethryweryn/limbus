@@ -67,8 +67,10 @@ async function invitation(options: { periodState?: RegistrationPeriodState, resp
       sessions: { create: { sessionId: session.id } }
     }
   })
+  // Adresse de l'invitation : par défaut, la réponse la garde (une autre adresse se prouve par un lien, US-243)
+  invitedEmail = `camille-${key}@example.test`
   const participant = await prisma.participant.create({
-    data: { name: `Camille ${key}`, slug: `camille-${key}`, email: `camille-${key}@example.test`, phone: '0100000000', gameLinks: { create: { gameId: game.id, name: `Camille ${key}`, phone: '0100000000' } } }
+    data: { name: `Camille ${key}`, slug: `camille-${key}`, email: invitedEmail, phone: '0100000000', gameLinks: { create: { gameId: game.id, name: `Camille ${key}`, phone: '0100000000' } } }
   })
   const token = randomBytes(32).toString('base64url')
   const registration = await prisma.registration.create({
@@ -87,9 +89,11 @@ async function invitation(options: { periodState?: RegistrationPeriodState, resp
   return { key, game, session, period, participant, registration, token, path: `/api/public/registrations/${token}` }
 }
 
+let invitedEmail = ''
+
 function answers(extra: Record<string, unknown> = {}) {
   return {
-    email: 'Camille.Perso@Example.test',
+    email: invitedEmail,
     firstName: 'Camille',
     lastName: 'Martin',
     phone: '0612345678',
@@ -165,7 +169,7 @@ describe('répondre à une invitation (R4)', () => {
     expect(saved).toMatchObject({
       status: 'received',
       invitedSessionId: null,
-      email: 'camille.perso@example.test',
+      email: participant.email,
       lastName: 'Martin',
       phone: '0612345678',
       emergencyContactName: 'Dominique',
@@ -180,10 +184,10 @@ describe('répondre à une invitation (R4)', () => {
     // Elle n'a pas dit être disponible pour la session : ni statut, ni participation
     expect(await prisma.registrationSession.count({ where: { registrationId: registration.id } })).toBe(0)
     expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(0)
-    // L'email du formulaire fait foi et remonte sur la fiche ; le reste reste sur l'inscription
-    expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id } })).toMatchObject({ email: 'camille.perso@example.test', phone: '0100000000' })
+    // Les réponses restent sur l'inscription ; la fiche garde ses coordonnées
+    expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id } })).toMatchObject({ email: participant.email, phone: '0100000000' })
 
-    const email = smtp.to('camille.perso@example.test')[0]!
+    const email = smtp.to(participant.email!)[0]!
     expect(email.text).toContain(game.title)
     expect(personalLinkToken(email)).toBe(token)
     expect(email.text).not.toContain('Arachides')
@@ -776,6 +780,28 @@ describe('prouver une autre adresse (US-243)', () => {
     const unknown = await publicApi('POST', `/api/public/email-proofs/${'x'.repeat(43)}`)
     expect([again.status, unknown.status]).toEqual([404, 404])
     expect(errorMessage(again)).toBe(errorMessage(unknown))
+  })
+
+  it('une adresse que Limbus ne connaît pas se prouve de même : même réponse, adoptée au clic', async () => {
+    const { key, participant, registration, path } = await invitation()
+    const fresh = `adresse-libre-${key}@example.test`
+    const response = await publicApi('PUT', path, answers({ email: fresh }))
+    expect(response.status, JSON.stringify(response.body)).toBe(200)
+    // Rien ne distingue une adresse inconnue d'une adresse déjà connue (revue de la PR #236)
+    expect(response.body).toMatchObject({ addressProofSent: true })
+    expect((await prisma.participant.findUniqueOrThrow({ where: { id: participant.id } })).email).toBe(participant.email)
+    const proved = await publicApi('POST', `/api/public/email-proofs/${proofLink(fresh)}`)
+    expect(proved.status, JSON.stringify(proved.body)).toBe(200)
+    expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id }, select: { email: true } })).toEqual({ email: fresh })
+    expect((await prisma.registration.findUniqueOrThrow({ where: { id: registration.id } })).email).toBe(fresh)
+  })
+
+  it('une réponse corrigée dans l’heure ne renvoie pas le lien', async () => {
+    const { key, path } = await invitation()
+    const other = `adresse-repetee-${key}@example.test`
+    await publicApi('PUT', path, answers({ email: other }))
+    await publicApi('PUT', path, answers({ email: other, lastName: 'Martin-Bis' }))
+    expect(smtp.to(other).filter((message) => message.text.includes('/inscription/adresse/'))).toHaveLength(1)
   })
 
   it('un lien expiré est refusé, et rien ne change', async () => {
