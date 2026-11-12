@@ -26,6 +26,7 @@ L'utilisatrice a choisi, le 2026-11-12, de l'effacer aussitôt.
 1. Toute suppression de fiche efface, dans la même transaction, le compte non activé de son adresse s'il ne porte plus aucune fiche. Les suppressions concernées :
    - l'effacement par une équipe (`eraseParticipant`) ;
    - le retrait du dernier jeu de la fiche ;
+   - la correction d'adresse par une équipe qui emmène tous les jeux de la fiche vers celle de la nouvelle adresse (R7) ;
    - l'effacement automatique des fiches inactives ;
    - la réunion de deux fiches.
 2. Un compte activé n'est jamais effacé ainsi : il suit la règle des 24 mois.

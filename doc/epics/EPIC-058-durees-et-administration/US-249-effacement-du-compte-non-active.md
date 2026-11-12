@@ -17,6 +17,7 @@ En tant que personne inscrite à un jeu sans avoir activé de compte, je veux qu
 - [ ] Étant donné une fiche au compte non activé suivie par deux équipes, quand l'une l'efface, alors la fiche et le compte restent pour l'autre (R14).
 - [ ] Étant donné une fiche au compte non activé effacée par l'effacement automatique des fiches inactives, alors le compte part avec elle.
 - [ ] Étant donné une fiche réunie à une autre (preuve d'adresse, changement d'adresse d'un compte), alors le compte non activé de la fiche qui disparaît est effacé, s'il ne porte plus aucune fiche.
+- [ ] Étant donné une équipe qui corrige l'adresse d'une fiche qu'elle est seule à suivre, alors le compte non activé de l'ancienne adresse, sans plus aucune fiche, est effacé (revue de la PR #246).
 - [ ] Un compte activé n'est jamais effacé ainsi.
 - [ ] La politique de confidentialité dit : « Compte non activé : tant qu'une fiche participant porte son adresse ».
 
