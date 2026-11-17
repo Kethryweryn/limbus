@@ -68,7 +68,7 @@ async function aliceGame(options: { notifyTeam?: boolean } = {}) {
 }
 
 const answers = (email: string, sessionIds: string[], extra: Record<string, unknown> = {}) => ({
-  email, firstName: 'Lou', lastName: 'Dupont', phone: '0600000000', emergencyContactName: 'Paul Secours', emergencyContactPhone: '0699999999', charterAccepted: true,
+  email, firstName: 'Lou', lastName: 'Dupont', phone: '+33600000000', emergencyContactName: 'Paul Secours', emergencyContactPhone: '+33699999999', charterAccepted: true,
   availableSessionIds: sessionIds, affinities: { wantWith: ['Léa'] }, ...extra
 })
 
@@ -150,23 +150,23 @@ describe('formulaire public (US-084)', () => {
 
   it('une personne connectée est inscrite aussitôt, avec l’adresse de son compte', async () => {
     const { key, sessions, period } = await aliceGame()
-    const user = await prisma.user.create({ data: { email: `connectee-${key}@example.test`, name: 'Camille Connectée', password: 'non-utilise', phone: '0611111111' } })
+    const user = await prisma.user.create({ data: { email: `connectee-${key}@example.test`, name: 'Camille Connectée', password: 'non-utilise', phone: '+33611111111' } })
     const read = await publicApi('GET', `/api/public/periods/${period.publicId}`, undefined, user)
-    expect(bodyOf<PublicPeriod>(read).account).toMatchObject({ email: user.email, firstName: 'Camille', phone: '0611111111' })
+    expect(bodyOf<PublicPeriod>(read).account).toMatchObject({ email: user.email, firstName: 'Camille', phone: '+33611111111' })
 
-    const sent = await publicApi('POST', `/api/public/periods/${period.publicId}`, answers('autre@example.test', [sessions[1]!.id], { phone: '0622222222' }), user)
+    const sent = await publicApi('POST', `/api/public/periods/${period.publicId}`, answers('autre@example.test', [sessions[1]!.id], { phone: '+33622222222' }), user)
     expect(sent.body).toEqual({ received: true, emailSent: false })
     const registration = await prisma.registration.findFirstOrThrow({ where: { periodId: period.id }, select: { status: true, email: true, participant: { select: { userId: true } }, sessionLines: { select: { sessionId: true, status: true, answer: true } } } })
     expect(registration).toMatchObject({ status: 'received', email: user.email, participant: { userId: user.id }, sessionLines: [{ sessionId: sessions[1]!.id, status: 'preregistered', answer: 'available' }] })
-    expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).phone).toBe('0622222222')
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).phone).toBe('+33622222222')
     expect(await prisma.registrationRequest.count({ where: { periodId: period.id } })).toBe(0)
 
     // Déjà dans le vivier : une seule ligne, qui prend les nouvelles réponses, et une place acquise ne bouge pas
     await prisma.registrationSession.updateMany({ where: { sessionId: sessions[1]!.id }, data: { status: 'confirmed' } })
-    const again = await publicApi('POST', `/api/public/periods/${period.publicId}`, answers('autre@example.test', [sessions[0]!.id, sessions[1]!.id], { phone: '0633333333' }), user)
+    const again = await publicApi('POST', `/api/public/periods/${period.publicId}`, answers('autre@example.test', [sessions[0]!.id, sessions[1]!.id], { phone: '+33633333333' }), user)
     expect(again.body).toEqual({ received: true, emailSent: false })
     expect(await prisma.registration.count({ where: { periodId: period.id } })).toBe(1)
-    expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).phone).toBe('0633333333')
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).phone).toBe('+33633333333')
     // Triées par session ici : un tri par statut suivrait l'ordre de l'énumération (ADR-0073)
     const bySession = (left: { sessionId: string }, right: { sessionId: string }) => left.sessionId.localeCompare(right.sessionId)
     const lines = await prisma.registrationSession.findMany({ where: { sessionId: { in: sessions.map((session) => session.id) } }, select: { sessionId: true, status: true } })
@@ -209,12 +209,12 @@ describe('confirmer son email et suivre son inscription (US-085)', () => {
     const { key, game, sessions, period } = await aliceGame()
     const bobGame = await prisma.game.create({ data: { title: `Bob ${key}`, slug: `bob-${key}`, description: '', ownerId: bob.id } })
     const email = `fiche-de-bob-${key}@example.test`
-    const bobs = await withFicheValues(prisma.participant.create({ data: { slug: `nom-chez-bob-${key}`, email, gameLinks: { create: { gameId: bobGame.id, name: 'Nom chez Bob', phone: '0611111111' } } } }), { name: 'Nom chez Bob' })
+    const bobs = await withFicheValues(prisma.participant.create({ data: { slug: `nom-chez-bob-${key}`, email, gameLinks: { create: { gameId: bobGame.id, name: 'Nom chez Bob', phone: '+33611111111' } } } }), { name: 'Nom chez Bob' })
     const { confirmed } = await registerAndConfirm(period.publicId, answers(email, [sessions[0]!.id]))
     expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200)
     expect(await prisma.participant.count({ where: { email } })).toBe(1)
     const links = await prisma.participantGame.findMany({ where: { participantId: bobs.id }, select: { gameId: true, name: true, phone: true } })
-    expect(links).toEqual(expect.arrayContaining([{ gameId: bobGame.id, name: 'Nom chez Bob', phone: '0611111111' }, { gameId: game.id, name: 'Lou Dupont', phone: '0600000000' }]))
+    expect(links).toEqual(expect.arrayContaining([{ gameId: bobGame.id, name: 'Nom chez Bob', phone: '+33611111111' }, { gameId: game.id, name: 'Lou Dupont', phone: '+33600000000' }]))
   })
 
   it('l’équipe voit l’inscription reçue et ses disponibilités, pas une autre équipe', async () => {

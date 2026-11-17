@@ -277,13 +277,13 @@ describe('règles issues de la revue de code', () => {
     await invite(period.id, { sessionId: session.id, participantIds: [participant.id] })
     const declined = await prisma.registration.update({
       where: { periodId_participantId: { periodId: period.id, participantId: participant.id } },
-      data: { status: 'withdrawn', respondedAt: new Date(), withdrawnAt: new Date(), phone: '0612345678', charterAcceptedAt: new Date() }
+      data: { status: 'withdrawn', respondedAt: new Date(), withdrawnAt: new Date(), phone: '+33612345678', charterAcceptedAt: new Date() }
     })
 
     const response = await invite(period.id, { sessionId: session.id, participantIds: [participant.id] })
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     const reinvited = await prisma.registration.findUniqueOrThrow({ where: { id: declined.id } })
-    expect(reinvited).toMatchObject({ status: 'invited', respondedAt: null, withdrawnAt: null, charterAcceptedAt: null, phone: '0612345678' })
+    expect(reinvited).toMatchObject({ status: 'invited', respondedAt: null, withdrawnAt: null, charterAcceptedAt: null, phone: '+33612345678' })
     // Réinvitée : un seul lien, le nouveau
     expect(await prisma.registrationLink.findMany({ where: { registrationId: declined.id }, select: { tokenHash: true } })).toEqual([{ tokenHash: sha256(personalLinkToken(emailsTo(participant.email!).at(-1)!)!) }])
     expect(emailsTo(participant.email!)).toHaveLength(2)

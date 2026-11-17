@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
-import { optionalPersonName, personName, tooLong } from '~/server/utils/fieldRules'
+import { optionalPersonName, optionalPhone, personName, requiredPhone, tooLong } from '~/server/utils/fieldRules'
 import { prisma } from '~/server/utils/prisma'
 import { REFUSED_RELATION_NONE, REFUSED_RELATION_VALUES } from '~/utils/characterRelations'
 import {
@@ -118,6 +118,13 @@ function nameAnswerField(definition: NormalizedRegistrationFormDefinition, key: 
   return setting.required ? personName(label) : optionalPersonName(label)
 }
 
+// Téléphone et téléphone du contact d'urgence : vérifiés selon leur pays, rangés au format international (SPEC-023, R4 à R6)
+function phoneAnswerField(definition: NormalizedRegistrationFormDefinition, key: RegistrationStandardFieldKey, label: string) {
+  const setting = definition.standardFields[key]
+  if (!setting.asked) return z.unknown().optional().transform(() => null)
+  return setting.required ? requiredPhone(label) : optionalPhone()
+}
+
 // Une affinité : une ligne par personne ou relation citée, lignes vides retirées (US-082)
 function affinityField(setting: RegistrationFieldSetting, label: string) {
   if (!setting.asked) return z.unknown().optional().transform((): string[] => [])
@@ -200,9 +207,9 @@ export function registrationAnswerSchema(rawDefinition: RegistrationFormDefiniti
     lastName: nameAnswerField(definition, 'lastName', 'Le nom'),
     firstName: nameAnswerField(definition, 'firstName', 'Le prénom'),
     facebookName: answerField(definition, 'facebookName', 'Le nom Facebook'),
-    phone: answerField(definition, 'phone', 'Le téléphone'),
+    phone: phoneAnswerField(definition, 'phone', 'Le téléphone'),
     emergencyContactName: nameAnswerField(definition, 'emergencyContact', 'Le nom du contact d’urgence'),
-    emergencyContactPhone: answerField(definition, 'emergencyContact', 'Le téléphone du contact d’urgence'),
+    emergencyContactPhone: phoneAnswerField(definition, 'emergencyContact', 'Le téléphone du contact d’urgence'),
     dietary: answerField(definition, 'dietary', 'Les allergies et intolérances', REGISTRATION_DIETARY_MAX_LENGTH),
     // Adhésion à la note d'intention : toujours obligatoire (R8)
     charterAccepted: z.literal(true, { error: 'L’adhésion à la note d’intention est obligatoire' }),

@@ -60,7 +60,7 @@ async function confirm(registrationId: string, session: { id: string, gameId: st
   const sessionId = session.id
   await prisma.registration.update({
     where: { id: registrationId },
-    data: { status: 'received', respondedAt: new Date(), charterAcceptedAt: new Date(), phone: '0612345678', dietary: 'Arachides', healthConsentAt: new Date(), invitedSessionId: null }
+    data: { status: 'received', respondedAt: new Date(), charterAcceptedAt: new Date(), phone: '+33612345678', dietary: 'Arachides', healthConsentAt: new Date(), invitedSessionId: null }
   })
   await prisma.registrationSession.create({ data: { gameId: session.gameId, registrationId, sessionId, status: 'confirmed', confirmedAt: new Date(), answer: 'available' } })
   await prisma.sessionParticipant.create({ data: { sessionId, participantId, role: 'participant' } })
@@ -197,7 +197,7 @@ describe('suivi dans la liste', () => {
 
     const detail = await api(alice, 'GET', `/api/registrations/${registration.id}`)
     expect(detail.status).toBe(200)
-    expect(detail.body).toMatchObject({ id: registration.id, phone: '0612345678', dietary: 'Arachides', sessionLines: [{ sessionId: session.id, status: 'confirmed' }] })
+    expect(detail.body).toMatchObject({ id: registration.id, phone: '+33612345678', dietary: 'Arachides', sessionLines: [{ sessionId: session.id, status: 'confirmed' }] })
     expect(bodyOf<ApiResponse<'/api/registrations/:id'>>(detail).healthConsentAt).toBeTruthy()
     expect(detail.body).not.toHaveProperty('tokenHash')
 
@@ -210,7 +210,7 @@ describe('export CSV d’une session', () => {
   it('nom, email, téléphone, statut ; jamais d’allergies ni de contact d’urgence', async () => {
     const { session, participant, registration } = await invited()
     await confirm(registration.id, session, participant.id)
-    await prisma.registration.update({ where: { id: registration.id }, data: { emergencyContactName: 'Maman Urgence', emergencyContactPhone: '0699999999' } })
+    await prisma.registration.update({ where: { id: registration.id }, data: { emergencyContactName: 'Maman Urgence', emergencyContactPhone: '+33699999999' } })
 
     const response = await fetch(`${inject('baseUrl')}/api/sessions/${session.id}/registrations/export`, {
       headers: { cookie: `__Host-limbus_token=${tokenFor(alice)}` }
@@ -220,9 +220,9 @@ describe('export CSV d’une session', () => {
     expect(response.headers.get('content-disposition')).toContain('attachment; filename="inscriptions-session-')
     const csv = await response.text()
     expect(csv).toContain('Nom;Email;Téléphone;Statut')
-    expect(csv).toContain(`${participant.name};${registration.email};0612345678;Inscrite`)
+    expect(csv).toContain(`${participant.name};${registration.email};+33612345678;Inscrite`)
     expect(csv).not.toContain('Arachides')
     expect(csv).not.toContain('Urgence')
-    expect(csv).not.toContain('0699999999')
+    expect(csv).not.toContain('+33699999999')
   })
 })

@@ -90,15 +90,15 @@ describe('compte pré-créé (US-244)', () => {
     const email = unique('modifiable')
     const fiche = await createFiche(email)
     const response = await api(alice, 'PUT', `/api/participants/${fiche.id}`, {
-      name: 'Paul Renommé', email, phone: '0611223344', gameIds: [world.a.game.id], updatedAt: fiche.updatedAt
+      name: 'Paul Renommé', email, phone: '+33611223344', gameIds: [world.a.game.id], updatedAt: fiche.updatedAt
     })
     expect(response.status, JSON.stringify(response.body)).toBe(200)
-    expect(response.body).toMatchObject({ name: 'Paul Renommé', phone: '0611223344', heldByPerson: false })
+    expect(response.body).toMatchObject({ name: 'Paul Renommé', phone: '+33611223344', heldByPerson: false })
   })
 
   it('une fiche rattachée à un compte activé reste tenue par la personne', async () => {
     const email = unique('activee')
-    await prisma.user.create({ data: { email, name: 'Personne Active', password: await someHash(), phone: '0700000000', profileUpdatedAt: new Date() } })
+    await prisma.user.create({ data: { email, name: 'Personne Active', password: await someHash(), phone: '+33644444444', profileUpdatedAt: new Date() } })
     const fiche = await createFiche(email, 'Nom saisi')
     expect(fiche).toMatchObject({ heldByPerson: true, name: 'Personne Active' })
   })

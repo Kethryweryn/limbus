@@ -128,7 +128,7 @@ describe('inscriptions d’un participant (US-003)', () => {
       data: { slug: 'participant-inscrit-efface', email: 'inscrit-efface@example.test', gameLinks: { create: { gameId: a.game.id , name: 'Inscrit effacé' } } }
     }), { name: 'Inscrit effacé' })
     await prisma.registration.create({
-      data: { gameId: a.registrationPeriod.gameId, periodId: a.registrationPeriod.id, invitedSessionId: a.session.id, participantId: participant.id, status: 'invited', source: 'invitation', email: 'inscrit-efface@example.test', phone: '0600000000' }
+      data: { gameId: a.registrationPeriod.gameId, periodId: a.registrationPeriod.id, invitedSessionId: a.session.id, participantId: participant.id, status: 'invited', source: 'invitation', email: 'inscrit-efface@example.test', phone: '+33600000000' }
     })
 
     expect((await api(alice, 'DELETE', `/api/participants/${participant.id}`)).status).toBe(200)

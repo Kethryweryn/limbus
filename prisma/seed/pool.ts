@@ -69,7 +69,7 @@ export async function placePlayersInPool(db: Db, gameId: string) {
         phone: participant.user?.phone ?? link?.phone ?? null,
         // Toujours demandé (US-181) : sans compte, un proche fictif
         emergencyContactName: participant.user?.emergencyContactName ?? `Proche de ${names.firstName || link?.name || 'joueur'}`,
-        emergencyContactPhone: participant.user?.emergencyContactPhone ?? '07 00 00 03 00',
+        emergencyContactPhone: participant.user?.emergencyContactPhone ?? '+33615000300',
         dietary: participant.user?.dietary,
         healthConsentAt: participant.user?.healthConsentAt,
         charterAcceptedAt: daysFromNow(-90),

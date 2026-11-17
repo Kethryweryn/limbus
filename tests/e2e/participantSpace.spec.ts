@@ -27,7 +27,7 @@ async function poolMember(prisma: TestPrisma, base: string) {
   const registration = await prisma.registration.create({
     data: {
       gameId: game.id, periodId: period.id, participantId: participant.id, status: 'received', source: 'form', email,
-      firstName: 'Ana', lastName: 'Lys', phone: '0611111111', emergencyContactName: 'Paul', emergencyContactPhone: '0622222222', charterAcceptedAt: new Date(),
+      firstName: 'Ana', lastName: 'Lys', phone: '+33611111111', emergencyContactName: 'Paul', emergencyContactPhone: '+33622222222', charterAcceptedAt: new Date(),
       sessionLines: { create: { sessionId: session.id, status: 'preregistered', answer: 'available' } },
       links: { create: { tokenHash: createHash('sha256').update(token).digest('hex') } }
     }
@@ -53,9 +53,9 @@ async function fillPublicForm(page: Page, email: string) {
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Prénom').fill('Marie')
   await page.getByLabel('Nom', { exact: true }).fill('Curie')
-  await page.getByLabel('Téléphone', { exact: true }).fill('0612345678')
+  await page.getByLabel('Téléphone', { exact: true }).fill('+33612345678')
   await page.getByLabel('Contact d’urgence : nom').fill('Pierre')
-  await page.getByLabel('Contact d’urgence : téléphone').fill('0698765432')
+  await page.getByLabel('Contact d’urgence : téléphone').fill('+33698765432')
   await page.getByLabel('J’ai lu la note d’intention et j’y adhère').check()
 }
 
@@ -111,9 +111,9 @@ test.describe('lien public d’inscription', () => {
 
       await page.getByLabel('Prénom').fill('Rosa')
       await page.getByLabel('Nom', { exact: true }).fill('Luxe')
-      await page.getByLabel('Téléphone', { exact: true }).fill('0612345678')
+      await page.getByLabel('Téléphone', { exact: true }).fill('+33612345678')
       await page.getByLabel('Contact d’urgence : nom').fill('Karl')
-      await page.getByLabel('Contact d’urgence : téléphone').fill('0698765432')
+      await page.getByLabel('Contact d’urgence : téléphone').fill('+33698765432')
       await page.getByLabel(new RegExp(`^${session.label}`)).check()
       await page.getByLabel('J’ai lu la note d’intention et j’y adhère').check()
       await page.getByRole('button', { name: 'M’inscrire' }).click()

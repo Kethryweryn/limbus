@@ -127,8 +127,8 @@ test('fiche : les coordonnées d’une personne qui a un compte ne se modifient 
     const name = uniquePersonName('Personne avec compte')
     const email = `${slugOf(name)}@example.test`
     // Nom et téléphone remplis dans le compte : tenus par la personne (ADR-0089)
-    const user = await prisma.user.create({ data: { email, name, phone: '0611223344', password: 'non-utilise', role: 'user', termsAcceptedVersion: TERMS_VERSION, emailConfirmedAt: new Date() } })
-    const person = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, userId: user.id, gameLinks: { create: { gameId: game.id , name: name, phone: '0611223344' } } } }), { name: name })
+    const user = await prisma.user.create({ data: { email, name, phone: '+33611223344', password: 'non-utilise', role: 'user', termsAcceptedVersion: TERMS_VERSION, emailConfirmedAt: new Date() } })
+    const person = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, userId: user.id, gameLinks: { create: { gameId: game.id , name: name, phone: '+33611223344' } } } }), { name: name })
     await signIn(page, prisma, E2E_USERS.orga)
     await openSheet(page, person)
 
@@ -149,7 +149,7 @@ test('export : il ne contient que les jeux de l’organisatrice qui exporte (R7,
     const game = await orgaGame(prisma, 'Jeu de l’export')
     const foreign = await otherTeamGame(prisma, 'Jeu d’une autre équipe à l’export')
     const person = await gamePerson(prisma, game.id, 'Personne exportée')
-    await prisma.participantGame.create({ data: { participantId: person.id, gameId: foreign.id, name: 'Nom tenu par l’autre équipe', phone: '0699999999', notes: 'Note de l’autre équipe' } })
+    await prisma.participantGame.create({ data: { participantId: person.id, gameId: foreign.id, name: 'Nom tenu par l’autre équipe', phone: '+33699999999', notes: 'Note de l’autre équipe' } })
     await signIn(page, prisma, E2E_USERS.orga)
     await openSheet(page, person)
 
@@ -164,7 +164,7 @@ test('export : il ne contient que les jeux de l’organisatrice qui exporte (R7,
     // Ni le nom ni le téléphone que tient l'autre équipe (ADR-0086, revue de la PR #238)
     expect(text).toContain('Personne exportée')
     expect(text).not.toContain('Nom tenu par l’autre équipe')
-    expect(text).not.toContain('0699999999')
+    expect(text).not.toContain('+33699999999')
   } finally {
     await prisma.$disconnect()
   }
@@ -219,13 +219,13 @@ test('droits et conflit : une fiche d’une autre équipe est introuvable, et de
     await openSheet(second, person)
     await page.getByRole('button', { name: 'Modifier' }).click()
     await second.getByRole('button', { name: 'Modifier' }).click()
-    await page.getByLabel('Téléphone', { exact: true }).fill('0611111111')
+    await page.getByLabel('Téléphone', { exact: true }).fill('+33611111111')
     await page.getByRole('button', { name: 'Enregistrer' }).click()
-    await expect.poll(async () => (await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: game.id } } })).phone).toBe('0611111111')
-    await second.getByLabel('Téléphone', { exact: true }).fill('0622222222')
+    await expect.poll(async () => (await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: game.id } } })).phone).toBe('+33611111111')
+    await second.getByLabel('Téléphone', { exact: true }).fill('+33622222222')
     await second.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(second.getByText('Cet élément a été modifié par quelqu’un d’autre entre-temps.', { exact: false })).toBeVisible()
-    expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: game.id } } })).phone).toBe('0611111111')
+    expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: game.id } } })).phone).toBe('+33611111111')
   } finally {
     await prisma.$disconnect()
   }
@@ -250,13 +250,13 @@ test('hors ligne : la fiche se relit, et une modification part au retour du rés
     await expect(page.getByRole('heading', { level: 1, name: person.name })).toBeVisible()
 
     await page.getByRole('button', { name: 'Modifier' }).click()
-    await page.getByLabel('Téléphone', { exact: true }).fill('0633333333')
+    await page.getByLabel('Téléphone', { exact: true }).fill('+33633333333')
     await page.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(page.getByText(/Modifications faites hors ligne : 1 en attente/)).toBeVisible()
     expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: game.id } } })).phone).toBeNull()
 
     await context.setOffline(false)
-    await expect.poll(async () => (await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: game.id } } })).phone, { timeout: 20_000 }).toBe('0633333333')
+    await expect.poll(async () => (await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: game.id } } })).phone, { timeout: 20_000 }).toBe('+33633333333')
   } finally {
     await prisma.$disconnect()
   }
@@ -306,13 +306,13 @@ test('nom par jeu : une co-organisatrice ne change que son jeu, et une autre éq
     await page.goto(`/participants/${slug}`)
     await page.waitForLoadState('networkidle')
     await page.getByRole('button', { name: 'Modifier' }).click()
-    await prisma.participantGame.update({ where: { participantId_gameId: { participantId: person.id, gameId: foreign.id } }, data: { phone: '0699999999' } })
-    await page.getByLabel('Téléphone', { exact: true }).fill('0644444444')
+    await prisma.participantGame.update({ where: { participantId_gameId: { participantId: person.id, gameId: foreign.id } }, data: { phone: '+33699999999' } })
+    await page.getByLabel('Téléphone', { exact: true }).fill('+33644444444')
     await page.getByRole('button', { name: 'Enregistrer' }).click()
-    await expect.poll(async () => (await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: mine.id } } })).phone).toBe('0644444444')
+    await expect.poll(async () => (await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: mine.id } } })).phone).toBe('+33644444444')
     await expect(page.getByText('Cet élément a été modifié par quelqu’un d’autre entre-temps.', { exact: false })).toHaveCount(0)
     // L'autre équipe garde son téléphone
-    expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: foreign.id } } })).phone).toBe('0699999999')
+    expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: foreign.id } } })).phone).toBe('+33699999999')
   } finally {
     await prisma.$disconnect()
   }
@@ -350,7 +350,7 @@ test('email obligatoire : une fiche sans email est signalée et filtrée, et ne 
     // Modifier une fiche sans email demande une adresse ; rien n'est enregistré
     await openSheet(page, legacy)
     await page.getByRole('button', { name: 'Modifier' }).click()
-    await page.getByLabel('Téléphone', { exact: true }).fill('0655555555')
+    await page.getByLabel('Téléphone', { exact: true }).fill('+33655555555')
     await page.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(page.getByText('L’adresse email est obligatoire.')).toBeVisible()
     expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: legacy.id, gameId: game.id } } })).phone).toBeNull()
@@ -372,7 +372,7 @@ test('email obligatoire : une fiche sans email est signalée et filtrée, et ne 
     await page.getByLabel('Email', { exact: true }).fill(address)
     await page.getByRole('button', { name: 'Enregistrer' }).click()
     await expect.poll(async () => (await prisma.participant.findUniqueOrThrow({ where: { id: legacy.id } })).email).toBe(address)
-    expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: legacy.id, gameId: game.id } } })).phone).toBe('0655555555')
+    expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: legacy.id, gameId: game.id } } })).phone).toBe('+33655555555')
   } finally {
     await context.setOffline(false)
     await prisma.$disconnect()
@@ -445,9 +445,9 @@ test('compte pré-créé : la fiche créée à une adresse nouvelle reste à l�
     await page.getByRole('button', { name: 'Modifier' }).click()
     await expect(page.getByLabel('Nom', { exact: true })).toBeEnabled()
     await expect(page.getByText('Tenu par la personne depuis son compte.')).toHaveCount(0)
-    await page.getByLabel('Téléphone', { exact: true }).fill('0612121212')
+    await page.getByLabel('Téléphone', { exact: true }).fill('+33612121212')
     await page.getByRole('button', { name: 'Enregistrer' }).click()
-    await expect.poll(async () => (await prisma.participantGame.findFirstOrThrow({ where: { participant: { email }, gameId: game.id } })).phone).toBe('0612121212')
+    await expect.poll(async () => (await prisma.participantGame.findFirstOrThrow({ where: { participant: { email }, gameId: game.id } })).phone).toBe('+33612121212')
 
     // Le compte pré-créé ne se connecte pas : même message qu'un mauvais mot de passe
     const visitor = await browser.newPage()
@@ -470,7 +470,7 @@ test('champ par champ : le téléphone rempli dans le compte est à la personne,
   try {
     const game = await orgaGame(prisma, 'Jeu des coordonnées champ par champ')
     const { user, email, name } = await testUser(prisma, 'Personne champ par champ')
-    const person = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, userId: user.id, gameLinks: { create: { gameId: game.id, name, phone: '0100000000' } } } }), { name })
+    const person = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, userId: user.id, gameLinks: { create: { gameId: game.id, name, phone: '+33100000000' } } } }), { name })
     const link = () => prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: person.id, gameId: game.id } } })
 
     // Le téléphone, jamais rempli par la personne, est à l'équipe ; le nom, non
@@ -482,28 +482,28 @@ test('champ par champ : le téléphone rempli dans le compte est à la personne,
 
     // Hors ligne, l'équipe change le téléphone ; entre-temps la personne remplit le sien
     await context.setOffline(true)
-    await page.getByLabel('Téléphone', { exact: true }).fill('0699999999')
+    await page.getByLabel('Téléphone', { exact: true }).fill('+33699999999')
     await page.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(page.getByText(/Modifications faites hors ligne : 1 en attente/)).toBeVisible()
     const personPage = await otherPage()
     await signIn(personPage, prisma, email)
     await personPage.goto('/compte')
     await personPage.waitForLoadState('networkidle')
-    await personPage.getByLabel('Téléphone', { exact: true }).fill('0611223344')
+    await personPage.getByLabel('Téléphone', { exact: true }).fill('+33611223344')
     await personPage.getByRole('button', { name: 'Enregistrer mes coordonnées' }).click()
     await expect(personPage.getByText('Coordonnées enregistrées : vos fiches et inscriptions sont à jour.')).toBeVisible()
-    expect((await link()).phone).toBe('0611223344')
+    expect((await link()).phone).toBe('+33611223344')
 
     // Au retour du réseau, la modification de l'équipe n'écrase pas celui de la personne
     await context.setOffline(false)
     await expect(page.getByText(/Modifications faites hors ligne : 1 en attente/)).toHaveCount(0, { timeout: 20_000 })
-    expect((await link()).phone).toBe('0611223344')
+    expect((await link()).phone).toBe('+33611223344')
 
     // Le téléphone est maintenant tenu : grisé
     await openSheet(page, person)
     await page.getByRole('button', { name: 'Modifier' }).click()
     await expect(page.getByLabel('Téléphone', { exact: true })).toBeDisabled()
-    await expect(page.getByLabel('Téléphone', { exact: true })).toHaveValue('0611223344')
+    await expect(page.getByLabel('Téléphone', { exact: true })).toHaveValue('+33611223344')
 
     // La personne le vide : il revient vide à l'équipe, qui le saisit
     await personPage.getByLabel('Téléphone', { exact: true }).fill('')
@@ -513,9 +513,9 @@ test('champ par champ : le téléphone rempli dans le compte est à la personne,
     await openSheet(page, person)
     await page.getByRole('button', { name: 'Modifier' }).click()
     await expect(page.getByLabel('Téléphone', { exact: true })).toBeEnabled()
-    await page.getByLabel('Téléphone', { exact: true }).fill('0655555555')
+    await page.getByLabel('Téléphone', { exact: true }).fill('+33655555555')
     await page.getByRole('button', { name: 'Enregistrer' }).click()
-    await expect.poll(async () => (await link()).phone).toBe('0655555555')
+    await expect.poll(async () => (await link()).phone).toBe('+33655555555')
   } finally {
     await context.setOffline(false)
     await prisma.$disconnect()

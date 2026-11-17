@@ -24,7 +24,7 @@ async function gameOf(ownerId: string, key: string) {
 
 function registrationIn(period: { id: string, gameId: string }, participantId: string, data: { respondedAt: Date | null, emergencyContactName: string, dietary: string | null }) {
   return prisma.registration.create({
-    data: { gameId: period.gameId, periodId: period.id, participantId, status: data.respondedAt ? 'received' : 'invited', source: 'invitation', email: `urgence-${++counter}@example.test`, emergencyContactPhone: '0699999999', ...data }
+    data: { gameId: period.gameId, periodId: period.id, participantId, status: data.respondedAt ? 'received' : 'invited', source: 'invitation', email: `urgence-${++counter}@example.test`, emergencyContactPhone: '+33699999999', ...data }
   })
 }
 
@@ -50,7 +50,7 @@ describe('urgence et allergies de la fiche', () => {
       source: 'registration',
       gameTitle: mine.game.title,
       emergencyContactName: 'Contact Alice',
-      emergencyContactPhone: '0699999999',
+      emergencyContactPhone: '+33699999999',
       dietary: 'Gluten'
     })
     // Témoin : Bob lit la sienne
@@ -62,14 +62,14 @@ describe('urgence et allergies de la fiche', () => {
     const key = `urgence-${++counter}`
     const mine = await gameOf(alice.id, key)
     const user = await prisma.user.create({
-      data: { email: `${key}@example.test`, name: `Léo ${key}`, password: 'x', emergencyContactName: 'Contact compte', emergencyContactPhone: '0611111111', dietary: 'Lactose', profileUpdatedAt: new Date() }
+      data: { email: `${key}@example.test`, name: `Léo ${key}`, password: 'x', emergencyContactName: 'Contact compte', emergencyContactPhone: '+33611111111', dietary: 'Lactose', profileUpdatedAt: new Date() }
     })
     const participant = await withFicheValues(prisma.participant.create({
       data: { slug: `leo-${key}`, userId: user.id, gameLinks: { create: { gameId: mine.game.id , name: `Léo ${key}` } } }
     }), { name: `Léo ${key}` })
     await registrationIn(mine.period, participant.id, { respondedAt: null, emergencyContactName: 'Jamais rempli', dietary: 'Jamais rempli' })
 
-    expect(await read(participant.id)).toEqual({ source: 'account', gameTitle: null, emergencyContactName: 'Contact compte', emergencyContactPhone: '0611111111', dietary: null })
+    expect(await read(participant.id)).toEqual({ source: 'account', gameTitle: null, emergencyContactName: 'Contact compte', emergencyContactPhone: '+33611111111', dietary: null })
 
     await prisma.user.update({ where: { id: user.id }, data: { healthConsentAt: new Date() } })
     expect(await read(participant.id)).toMatchObject({ source: 'account', dietary: 'Lactose' })

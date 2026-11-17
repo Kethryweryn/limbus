@@ -1,4 +1,4 @@
-import { enteredPersonName, optionalEnteredPersonName, personName } from '~/server/utils/fieldRules'
+import { enteredPersonName, enteredPhone, optionalEnteredPersonName, optionalPhone, personName, refineEmergencyContact } from '~/server/utils/fieldRules'
 import { z, type ZodError, type ZodType } from 'zod'
 import { PHOTO_RETENTION_MAX_MONTHS, PHOTO_RETENTION_MIN_MONTHS } from '~/utils/photoInformation'
 import { REGISTRATION_DIETARY_MAX_LENGTH } from '~/utils/registrationForms'
@@ -236,7 +236,8 @@ export const participantSchema = z.object({
   name: enteredPersonName(),
   // Une fiche appartient à la personne de son adresse (SPEC-022 R3, US-238) : l'adresse est obligatoire
   email: z.string({ error: 'L’adresse email est obligatoire' }).trim().min(1, 'L’adresse email est obligatoire').max(254, 'Email trop long').email('Email invalide'),
-  phone: optionalText,
+  // Rangé au format international ; vérifié s'il change (SPEC-023 R4 à R6, R12, `updateParticipant`)
+  phone: enteredPhone(),
   // Une note par jeu (US-069) : { idDuJeu: texte }, pour les seuls jeux accessibles
   gameNotes: z.record(z.string(), z.string().nullable()).optional().default({}),
   gameIds: z.array(requiredId('Le jeu')).optional().default([])
@@ -245,6 +246,7 @@ export const participantSchema = z.object({
 // Création d'une fiche : au moins un jeu (US-036)
 export const participantCreateSchema = participantSchema.extend({
   name: personName(),
+  phone: optionalPhone(),
   gameIds: z.array(requiredId('Le jeu')).min(1, 'Choisissez au moins un jeu')
 })
 
@@ -658,14 +660,14 @@ export const accountEmailSchema = z.object({
 })
 
 // Mes coordonnées (US-074) : consentement exigé dès qu'une allergie est déclarée, comme à l'inscription (R14)
+// Nom et téléphones vérifiés par la route s'ils changent (SPEC-023 R12) ; contact d'urgence complet (R8)
 export const accountProfileSchema = z.object({
-  phone: optionalText,
-  // Vérifié par la route s'il change (SPEC-023 R12)
+  phone: enteredPhone(),
   emergencyContactName: optionalEnteredPersonName(),
-  emergencyContactPhone: optionalText,
+  emergencyContactPhone: enteredPhone(),
   dietary: z.string().trim().max(REGISTRATION_DIETARY_MAX_LENGTH, 'Texte trop long').optional().nullable(),
   healthConsent: z.boolean().optional().default(false)
-}).refine((profile) => !profile.dietary || profile.healthConsent, {
+}).superRefine(refineEmergencyContact).refine((profile) => !profile.dietary || profile.healthConsent, {
   message: 'Le consentement est nécessaire pour enregistrer des allergies ou intolérances',
   path: ['healthConsent']
 })

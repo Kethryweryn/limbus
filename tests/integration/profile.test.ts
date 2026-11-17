@@ -26,12 +26,12 @@ async function personInTwoTeams() {
   // Une seule fiche par adresse (SPEC-022, US-240) : liée au jeu de chaque équipe
   const participant = await withFicheValues(prisma.participant.create({
     data: { slug: `fiche-${key}`, email: user.email, userId: user.id }
-  }), { name: 'Nom saisi par l’équipe', phone: '0100000000' })
+  }), { name: 'Nom saisi par l’équipe', phone: '+33100000000' })
   for (const owner of [alice, bob]) {
     const k = `${key}-${owner.id}`.toLowerCase()
     const game = await prisma.game.create({ data: { title: `Jeu ${k}`, slug: `jeu-${k}`, description: '', ownerId: owner.id } })
     const session = await prisma.session.create({ data: { slug: `session-${k}`, gameId: game.id } })
-    await prisma.participantGame.create({ data: { participantId: participant.id, gameId: game.id, name: 'Nom saisi par l’équipe', phone: '0100000000' } })
+    await prisma.participantGame.create({ data: { participantId: participant.id, gameId: game.id, name: 'Nom saisi par l’équipe', phone: '+33100000000' } })
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: `periode-${k}`, state: 'open' } })
     const definition = owner.id === alice.id ? FULL_FORM : NO_PHONE_FORM
     const form = await prisma.registrationForm.create({ data: { gameId: game.id, versions: { create: { number: 1, definition } } }, include: { versions: true } })
@@ -53,7 +53,7 @@ async function personInTwoTeams() {
   return { user, teams }
 }
 
-const profile = { phone: '0612345678', emergencyContactName: 'Dominique', emergencyContactPhone: '0698765432', dietary: 'Sans gluten', healthConsent: true }
+const profile = { phone: '+33612345678', emergencyContactName: 'Dominique', emergencyContactPhone: '+33698765432', dietary: 'Sans gluten', healthConsent: true }
 
 describe('mes coordonnées (US-074)', () => {
   it('se recopient sur les fiches et les inscriptions de chaque équipe, champs demandés seulement', async () => {
@@ -61,17 +61,17 @@ describe('mes coordonnées (US-074)', () => {
     expect((await api(user, 'PUT', '/api/account/profile', profile)).status).toBe(200)
 
     for (const { participant, game } of teams) {
-      expect(await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: participant.id, gameId: game.id } } })).toMatchObject({ name: 'Camille Dupont', phone: '0612345678' })
+      expect(await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: participant.id, gameId: game.id } } })).toMatchObject({ name: 'Camille Dupont', phone: '+33612345678' })
       expect(await prisma.registration.findFirstOrThrow({ where: { participantId: participant.id, gameId: game.id } })).toMatchObject({
         firstName: 'Camille', lastName: 'Dupont', emergencyContactName: 'Dominique', dietary: 'Sans gluten'
       })
     }
     // Téléphone : chez Alice, qui le demande ; jamais sur l'inscription chez Bob, dont le formulaire ne le demande pas
     const [aliceTeam, bobTeam] = teams
-    expect((await prisma.registration.findFirstOrThrow({ where: { participantId: aliceTeam!.participant.id, gameId: aliceTeam!.game.id } })).phone).toBe('0612345678')
+    expect((await prisma.registration.findFirstOrThrow({ where: { participantId: aliceTeam!.participant.id, gameId: aliceTeam!.game.id } })).phone).toBe('+33612345678')
     expect((await prisma.registration.findFirstOrThrow({ where: { participantId: bobTeam!.participant.id, gameId: bobTeam!.game.id } })).phone).toBeNull()
     expect(JSON.stringify((await api(alice, 'GET', `/api/sessions/${aliceTeam!.session.id}/allergies`)).body)).toContain('Sans gluten')
-    expect((await api(user, 'GET', '/api/account')).body).toMatchObject({ profile: { phone: '0612345678', dietary: 'Sans gluten', healthConsent: true } })
+    expect((await api(user, 'GET', '/api/account')).body).toMatchObject({ profile: { phone: '+33612345678', dietary: 'Sans gluten', healthConsent: true } })
   })
 
   it('exige le consentement pour des allergies', async () => {
@@ -83,7 +83,7 @@ describe('mes coordonnées (US-074)', () => {
     const { user, teams } = await personInTwoTeams()
     expect((await api(user, 'PUT', '/api/account', { name: 'Autre Nom' })).status).toBe(200)
     expect(await prisma.participantGame.findMany({ where: { participantId: teams[0]!.participant.id }, select: { name: true, phone: true } }))
-      .toEqual([{ name: 'Autre Nom', phone: '0100000000' }, { name: 'Autre Nom', phone: '0100000000' }])
+      .toEqual([{ name: 'Autre Nom', phone: '+33100000000' }, { name: 'Autre Nom', phone: '+33100000000' }])
   })
 
   it('une fiche rattachée après coup prend les coordonnées du compte', async () => {
@@ -92,9 +92,9 @@ describe('mes coordonnées (US-074)', () => {
     // Une autre équipe, qui n'a pas encore de fiche pour cette adresse (une seule fiche par adresse, US-185)
     const { carol } = inject('world').users
     const game = await prisma.game.create({ data: { title: `Jeu de Carol ${++counter}`, slug: `jeu-carol-${counter}`, description: '', ownerId: carol.id } })
-    const created = await api(carol, 'POST', '/api/participants', { name: 'Saisie', email: user.email, phone: '0000', gameIds: [game.id] })
+    const created = await api(carol, 'POST', '/api/participants', { name: 'Saisie', email: user.email, phone: '+33600000000', gameIds: [game.id] })
     expect(created.status).toBe(200)
-    expect(created.body).toMatchObject({ name: 'Camille Dupont', phone: '0612345678' })
+    expect(created.body).toMatchObject({ name: 'Camille Dupont', phone: '+33612345678' })
   })
 })
 
@@ -109,11 +109,11 @@ describe('inscriptions et coordonnées (US-074)', () => {
     const invited = await prisma.registration.create({
       data: { gameId: period.gameId, periodId: period.id, participantId: participant.id, status: 'invited', source: 'invitation', email: user.email, responseDueAt: new Date(Date.now() + 86_400_000) }
     })
-    expect((await api(user, 'GET', `/api/me/registrations/${invited.id}`)).body).toMatchObject({ answers: { phone: '0612345678', emergencyContactName: 'Dominique', dietary: 'Sans gluten', healthConsent: true } })
+    expect((await api(user, 'GET', `/api/me/registrations/${invited.id}`)).body).toMatchObject({ answers: { phone: '+33612345678', emergencyContactName: 'Dominique', dietary: 'Sans gluten', healthConsent: true } })
 
-    const answers = { email: user.email, firstName: 'Camille', lastName: 'Martin', phone: '0611111111', emergencyContactName: 'Dominique', emergencyContactPhone: '0698765432', dietary: '', charterAccepted: true }
+    const answers = { email: user.email, firstName: 'Camille', lastName: 'Martin', phone: '+33611111111', emergencyContactName: 'Dominique', emergencyContactPhone: '+33698765432', dietary: '', charterAccepted: true }
     expect((await api(user, 'PUT', `/api/me/registrations/${invited.id}`, answers)).status).toBe(200)
-    expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({ name: 'Camille Martin', phone: '0611111111', dietary: null })
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({ name: 'Camille Martin', phone: '+33611111111', dietary: null })
     // Recopié aussi dans l'autre équipe, qui ne demande pas le téléphone
     expect(await prisma.registration.findFirstOrThrow({ where: { participantId: teams[1]!.participant.id, gameId: teams[1]!.game.id } })).toMatchObject({ lastName: 'Martin', phone: null, dietary: null })
   })
@@ -142,10 +142,10 @@ describe('lien personnel (US-074)', () => {
     await prisma.registration.create({
       data: { gameId: period.gameId, periodId: period.id, participantId: participant.id, status: 'invited', source: 'invitation', email: user.email, links: { create: { tokenHash: createHash('sha256').update(token).digest('hex') } }, responseDueAt: new Date(Date.now() + 86_400_000) }
     })
-    const answers = { email: user.email, firstName: 'Quelqu’un', lastName: 'D’autre', phone: '0799999999', emergencyContactName: 'X', emergencyContactPhone: '0700000000', charterAccepted: true }
+    const answers = { email: user.email, firstName: 'Quelqu’un', lastName: 'D’autre', phone: '+33644444449', emergencyContactName: 'X', emergencyContactPhone: '+33644444444', charterAccepted: true }
     const response = await api(null, 'PUT', `/api/public/registrations/${token}`, answers)
     expect(response.status, JSON.stringify(response.body)).toBe(200)
-    expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({ name: 'Camille Dupont', phone: '0612345678' })
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({ name: 'Camille Dupont', phone: '+33612345678' })
   })
 })
 
@@ -154,25 +154,25 @@ describe('fiche tenue par la personne (US-075)', () => {
     const { user, teams } = await personInTwoTeams()
     await api(user, 'PUT', '/api/account/profile', profile)
     const { participant, game } = teams[0]!
-    const body = { name: 'Renommée par l’équipe', email: user.email, phone: '0700000000', gameIds: [game.id] }
+    const body = { name: 'Renommée par l’équipe', email: user.email, phone: '+33644444444', gameIds: [game.id] }
     // Champs tenus par la personne (US-245, ADR-0089) : refusés, rien n'est enregistré
-    const renamed = await api(alice, 'PUT', `/api/participants/${participant.id}`, { ...body, phone: '0612345678' })
+    const renamed = await api(alice, 'PUT', `/api/participants/${participant.id}`, { ...body, phone: '+33612345678' })
     expect(renamed.status).toBe(400)
     expect(JSON.stringify(renamed.body)).toContain('Le nom est tenu par la personne depuis son compte.')
     const rephoned = await api(alice, 'PUT', `/api/participants/${participant.id}`, { ...body, name: 'Camille Dupont' })
     expect(rephoned.status).toBe(400)
     expect(JSON.stringify(rephoned.body)).toContain('Le téléphone est tenu par la personne depuis son compte.')
     // Les valeurs du compte, renvoyées telles quelles, passent
-    expect((await api(alice, 'PUT', `/api/participants/${participant.id}`, { ...body, name: 'Camille Dupont', phone: '0612345678' })).status).toBe(200)
+    expect((await api(alice, 'PUT', `/api/participants/${participant.id}`, { ...body, name: 'Camille Dupont', phone: '+33612345678' })).status).toBe(200)
     expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id }, select: { userId: true } })).toEqual({ userId: user.id })
-    expect(await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: participant.id, gameId: game.id } } })).toMatchObject({ name: 'Camille Dupont', phone: '0612345678' })
+    expect(await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: participant.id, gameId: game.id } } })).toMatchObject({ name: 'Camille Dupont', phone: '+33612345678' })
 
     // La fiche est aussi suivie par Bob : la correction d'Alice ne vaut que pour son jeu (SPEC-022 R7)
     const corrected = await api(alice, 'PUT', `/api/participants/${participant.id}`, { ...body, email: `erreur-${user.id}@example.test` })
     expect(corrected.status).toBe(200)
     const moved = corrected.body as { id: string, name: string, phone: string | null }
     expect(moved.id).not.toBe(participant.id)
-    expect(moved).toMatchObject({ name: 'Renommée par l’équipe', phone: '0700000000' })
+    expect(moved).toMatchObject({ name: 'Renommée par l’équipe', phone: '+33644444444' })
     // La nouvelle adresse a son propre compte, pré-créé non activé (US-244), jamais celui de la personne
     const preCreated = await prisma.user.findUniqueOrThrow({ where: { email: `erreur-${user.id}@example.test` } })
     expect(preCreated).toMatchObject({ password: null, emailConfirmedAt: null })
@@ -187,16 +187,16 @@ describe('fiche tenue par la personne (US-075)', () => {
     // Le nom du compte est recopié partout (US-245) ; son téléphone, jamais rempli, reste à chaque équipe
     expect((await api(user, 'PUT', '/api/account', { name: 'Camille Dupont' })).status).toBe(200)
     // Bob modifie son téléphone en dernier
-    await prisma.participantGame.update({ where: { participantId_gameId: { participantId: bobs!.participant.id, gameId: bobs!.game.id } }, data: { phone: '0699999999' } })
-    const body = { name: 'Camille Dupont', email: user.email, phone: '0700000000', gameIds: [mine!.game.id] }
+    await prisma.participantGame.update({ where: { participantId_gameId: { participantId: bobs!.participant.id, gameId: bobs!.game.id } }, data: { phone: '+33699999999' } })
+    const body = { name: 'Camille Dupont', email: user.email, phone: '+33644444444', gameIds: [mine!.game.id] }
     expect((await api(alice, 'PUT', `/api/participants/${mine!.participant.id}`, body)).status).toBe(200)
     expect(await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: mine!.participant.id, gameId: mine!.game.id } }, select: { name: true, phone: true } }))
-      .toEqual({ name: 'Camille Dupont', phone: '0700000000' })
-    expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: bobs!.participant.id, gameId: bobs!.game.id } } })).phone).toBe('0699999999')
+      .toEqual({ name: 'Camille Dupont', phone: '+33644444444' })
+    expect((await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: bobs!.participant.id, gameId: bobs!.game.id } } })).phone).toBe('+33699999999')
 
     // Export de l'équipe : le téléphone de son jeu, rien de celui de Bob
     const exported = await api(alice, 'GET', `/api/participants/${mine!.participant.id}/export`)
-    expect(exported.body).toMatchObject({ games: [{ name: 'Camille Dupont', phone: '0700000000' }] })
+    expect(exported.body).toMatchObject({ games: [{ name: 'Camille Dupont', phone: '+33644444444' }] })
     expect(JSON.stringify(exported.body)).not.toMatch(/0699999999/)
   })
 })
@@ -206,12 +206,12 @@ describe('recopie champ par champ (US-245, ADR-0089)', () => {
 
   it('seul le téléphone rempli : il remplace celui des équipes, qui gardent leurs allergies', async () => {
     const { user, teams } = await personInTwoTeams()
-    expect((await api(user, 'PUT', '/api/account/profile', { phone: '0612345678' })).status).toBe(200)
+    expect((await api(user, 'PUT', '/api/account/profile', { phone: '+33612345678' })).status).toBe(200)
     for (const team of teams) {
-      expect((await prisma.participantGame.findUniqueOrThrow({ where: ficheOf(team) })).phone).toBe('0612345678')
+      expect((await prisma.participantGame.findUniqueOrThrow({ where: ficheOf(team) })).phone).toBe('+33612345678')
     }
     // Les allergies notées chez Alice restent, faute d'allergies remplies dans le compte
-    expect(await prisma.registration.findFirstOrThrow({ where: { participantId: teams[0]!.participant.id, gameId: teams[0]!.game.id } })).toMatchObject({ phone: '0612345678', dietary: 'Ancienne allergie' })
+    expect(await prisma.registration.findFirstOrThrow({ where: { participantId: teams[0]!.participant.id, gameId: teams[0]!.game.id } })).toMatchObject({ phone: '+33612345678', dietary: 'Ancienne allergie' })
 
     // L'équipe voit que le nom et le téléphone sont tenus, sans autre valeur du compte
     const read = await api(alice, 'GET', `/api/participants/${teams[0]!.participant.id}`)
@@ -232,9 +232,9 @@ describe('recopie champ par champ (US-245, ADR-0089)', () => {
 
     const { participant, game } = teams[0]!
     expect((await api(alice, 'GET', `/api/participants/${participant.id}`)).body).toMatchObject({ heldFields: ['name'] })
-    const saved = await api(alice, 'PUT', `/api/participants/${participant.id}`, { name: 'Camille Dupont', email: user.email, phone: '0655555555', gameIds: [game.id] })
+    const saved = await api(alice, 'PUT', `/api/participants/${participant.id}`, { name: 'Camille Dupont', email: user.email, phone: '+33655555555', gameIds: [game.id] })
     expect(saved.status, JSON.stringify(saved.body)).toBe(200)
-    expect((await prisma.participantGame.findUniqueOrThrow({ where: ficheOf(teams[0]!) })).phone).toBe('0655555555')
+    expect((await prisma.participantGame.findUniqueOrThrow({ where: ficheOf(teams[0]!) })).phone).toBe('+33655555555')
     expect((await prisma.participantGame.findUniqueOrThrow({ where: ficheOf(teams[1]!) })).phone).toBeNull()
   })
 
@@ -242,7 +242,7 @@ describe('recopie champ par champ (US-245, ADR-0089)', () => {
     const { user, teams } = await personInTwoTeams()
     await prisma.registration.deleteMany({ where: { participantId: teams[0]!.participant.id } })
     expect((await api(alice, 'GET', `/api/participants/${teams[0]!.participant.id}/emergency`)).body).toMatchObject({ source: null })
-    await api(user, 'PUT', '/api/account/profile', { emergencyContactName: 'Dominique', emergencyContactPhone: '0698765432' })
+    await api(user, 'PUT', '/api/account/profile', { emergencyContactName: 'Dominique', emergencyContactPhone: '+33698765432' })
     expect((await api(alice, 'GET', `/api/participants/${teams[0]!.participant.id}/emergency`)).body).toMatchObject({ source: 'account', emergencyContactName: 'Dominique', dietary: null })
   })
 })

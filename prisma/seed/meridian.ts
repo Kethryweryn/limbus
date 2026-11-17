@@ -24,16 +24,16 @@ const LAST_NAMES = ['Arnaud', 'Barbier']
 const GENERATED_PEOPLE = LAST_NAMES.flatMap((lastName, lastIndex) => FIRST_NAMES.map((firstName, firstIndex) => {
   const local = `${firstName}.${lastName}`.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
   const number = String(lastIndex * FIRST_NAMES.length + firstIndex + 1).padStart(2, '0')
-  return { name: `${firstName} ${lastName}`, email: `${local}@example.test`, phone: `07 00 00 00 ${number}` }
+  return { name: `${firstName} ${lastName}`, email: `${local}@example.test`, phone: `+33612${number.padStart(6, '0')}` }
 }))
 
 // Les comptes de test et les personnes sans compte qui reçoivent leurs emails, en plus des personnes générées
 export const MERIDIAN_EXTRA_PEOPLE = [
-  { name: 'Camille Bernard', email: 'camille.bernard@example.test', phone: '06 11 22 33 01' },
-  { name: 'Lucie Moreau', email: 'lucie.moreau@example.test', phone: '06 11 22 33 02' },
-  { name: 'Nicolas Martin', email: 'nicolas.martin@example.test', phone: '06 11 22 33 03' },
-  { name: 'Sarah Petit', email: 'sarah.petit@example.test', phone: '06 11 22 33 04' },
-  { name: 'Manon Richard', email: 'manon.richard@example.test', phone: '06 11 22 33 06' },
+  { name: 'Camille Bernard', email: 'camille.bernard@example.test', phone: '+33611223301' },
+  { name: 'Lucie Moreau', email: 'lucie.moreau@example.test', phone: '+33611223302' },
+  { name: 'Nicolas Martin', email: 'nicolas.martin@example.test', phone: '+33611223303' },
+  { name: 'Sarah Petit', email: 'sarah.petit@example.test', phone: '+33611223304' },
+  { name: 'Manon Richard', email: 'manon.richard@example.test', phone: '+33611223306' },
   ...GENERATED_PEOPLE
 ]
 
@@ -236,10 +236,10 @@ export async function createMeridianStage(db: Db, context: StageContext) {
               formVersionId: fields.oldForm ? oldVersionId : formVersionId,
               firstName,
               lastName: lastName.join(' '),
-              phone: profile?.phone ?? `07 00 00 01 ${String(rank % 100).padStart(2, '0')}`,
+              phone: profile?.phone ?? `+336130001${String(rank % 100).padStart(2, '0')}`,
               // Un vrai nom, comme celui qu'une personne donnerait (US-182) : pas un libellé qu'on confondrait avec le champ
               emergencyContactName: profile?.emergencyContactName ?? `Proche de ${firstName}`,
-              emergencyContactPhone: profile?.emergencyContactPhone ?? '07 00 00 02 00',
+              emergencyContactPhone: profile?.emergencyContactPhone ?? '+33614000200',
               dietary,
               healthConsentAt: dietary ? daysFromNow(-10) : null,
               charterAcceptedAt: daysFromNow(-10),

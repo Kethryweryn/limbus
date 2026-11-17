@@ -106,7 +106,7 @@ test('l’équipe exporte les données d’une fiche participant puis la supprim
     const title = uniqueName('Jeu RGPD')
     const game = await prisma.game.create({ data: { title, slug: slugOf(title), description: '', ownerId: owner.id } })
     const name = uniquePersonName('Rita Données')
-    const participant = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email: `${slugOf(name)}@example.test`, gameLinks: { create: { gameId: game.id, notes: 'Végétarienne' , name: name, phone: '0611111111' } } } }), { name: name, phone: '0611111111' })
+    const participant = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email: `${slugOf(name)}@example.test`, gameLinks: { create: { gameId: game.id, notes: 'Végétarienne' , name: name, phone: '+33611111111' } } } }), { name: name, phone: '+33611111111' })
 
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto(`/participants/${participant.slug}`)

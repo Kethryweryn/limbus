@@ -146,12 +146,12 @@ test.describe('mon compte', () => {
       await page.getByLabel('Nom', { exact: true }).fill(name)
       await page.getByRole('button', { name: 'Enregistrer', exact: true }).click()
       await expect(page.getByText('Nom enregistré.')).toBeVisible()
-      await page.getByLabel('Téléphone', { exact: true }).fill('0644556677')
+      await page.getByLabel('Téléphone', { exact: true }).fill('+33644556677')
       await page.getByRole('button', { name: 'Enregistrer mes coordonnées' }).click()
       await expect(page.getByText('Coordonnées enregistrées : vos fiches et inscriptions sont à jour.')).toBeVisible()
 
       const sheet = await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: participant.id, gameId: game.id } }, select: { name: true, phone: true } })
-      expect(sheet).toEqual({ name, phone: '0644556677' })
+      expect(sheet).toEqual({ name, phone: '+33644556677' })
     } finally {
       await prisma.$disconnect()
     }

@@ -26,7 +26,7 @@ afterAll(async () => {
 async function player() {
   const key = `efface-${++counter}`
   const user = await prisma.user.create({
-    data: { email: `${key}@example.test`, name: 'Joueuse Effacée', password: await bcrypt.hash(PASSWORD, 4), phone: '0612345678', dietary: 'Arachides', healthConsentAt: new Date(), profileUpdatedAt: new Date() }
+    data: { email: `${key}@example.test`, name: 'Joueuse Effacée', password: await bcrypt.hash(PASSWORD, 4), phone: '+33612345678', dietary: 'Arachides', healthConsentAt: new Date(), profileUpdatedAt: new Date() }
   })
   const teams = []
   // Une seule fiche par adresse (SPEC-022, US-240) : liée au jeu de chaque équipe
@@ -48,11 +48,11 @@ describe('télécharger ses données (US-076)', () => {
   it('contient le compte, les coordonnées et les fiches de toutes les équipes, sans secret', async () => {
     const { user, teams } = await player()
     // Chaque équipe tient son nom et son téléphone (ADR-0086) : l'export les donne tous (revue de la PR #237)
-    await prisma.participantGame.update({ where: { participantId_gameId: { participantId: teams[1]!.participant.id, gameId: teams[1]!.game.id } }, data: { name: 'Nom chez Bob', phone: '0699999999' } })
+    await prisma.participantGame.update({ where: { participantId_gameId: { participantId: teams[1]!.participant.id, gameId: teams[1]!.game.id } }, data: { name: 'Nom chez Bob', phone: '+33699999999' } })
     const response = await api(user, 'GET', '/api/account/export')
     expect(response.status).toBe(200)
-    expect(JSON.stringify(response.body)).toMatch(/Nom chez Bob[^]*0699999999|0699999999[^]*Nom chez Bob/)
-    expect(response.body).toMatchObject({ account: { email: user.email, phone: '0612345678', dietary: 'Arachides' } })
+    expect(JSON.stringify(response.body)).toMatch(/Nom chez Bob[^]*\+33699999999|\+33699999999[^]*Nom chez Bob/)
+    expect(response.body).toMatchObject({ account: { email: user.email, phone: '+33612345678', dietary: 'Arachides' } })
     const text = JSON.stringify(response.body)
     for (const { owner, game } of teams) {
       expect(text).toContain(game.title)

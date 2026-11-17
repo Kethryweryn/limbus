@@ -59,6 +59,13 @@ describe('réponses d’un inscrit', () => {
     expect(schema.safeParse({ ...answers, email: 'pas-un-email' }).success).toBe(false)
   })
 
+  it('range les téléphones au format international et refuse un numéro qui n’en est pas un (SPEC-023, R4 à R6)', () => {
+    const schema = registrationAnswerSchema(DEFAULT_REGISTRATION_FORM_DEFINITION)
+    expect(schema.parse({ ...answers, phone: '06.12.34.56.78', emergencyContactPhone: '+32 470 12 34 56' })).toMatchObject({ phone: '+33612345678', emergencyContactPhone: '+32470123456' })
+    const refused = schema.safeParse({ ...answers, phone: '12', emergencyContactPhone: 'bonjour' })
+    expect(refused.error?.issues.map((issue) => [issue.path.join('.'), issue.message])).toEqual([['phone', 'Numéro de téléphone invalide'], ['emergencyContactPhone', 'Numéro de téléphone invalide']])
+  })
+
   it('refuse un prénom, un nom ou un nom de contact d’urgence avec des chiffres (SPEC-023, R1)', () => {
     const schema = registrationAnswerSchema(DEFAULT_REGISTRATION_FORM_DEFINITION)
     for (const field of ['firstName', 'lastName', 'emergencyContactName'] as const) {

@@ -21,13 +21,15 @@ test('la personne change son nom et ses coordonnées depuis son compte', async (
     await page.getByRole('button', { name: 'Enregistrer', exact: true }).click()
     await expect(page.getByText('Nom enregistré.')).toBeVisible()
 
-    await page.getByLabel('Téléphone', { exact: true }).fill('0611223344')
+    await page.getByLabel('Téléphone', { exact: true }).fill('+33611223344')
     await page.getByLabel('Contact d’urgence : nom').fill('Camille')
+    // Un contact d'urgence se remplit en entier (SPEC-023, R8)
+    await page.getByLabel('Contact d’urgence : téléphone').fill('06 98 76 54 32')
     await page.getByRole('button', { name: 'Enregistrer mes coordonnées' }).click()
     await expect(page.getByText('Coordonnées enregistrées : vos fiches et inscriptions sont à jour.')).toBeVisible()
 
-    const saved = await prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { name: true, phone: true, emergencyContactName: true } })
-    expect(saved).toEqual({ name, phone: '0611223344', emergencyContactName: 'Camille' })
+    const saved = await prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { name: true, phone: true, emergencyContactName: true, emergencyContactPhone: true } })
+    expect(saved).toEqual({ name, phone: '+33611223344', emergencyContactName: 'Camille', emergencyContactPhone: '+33698765432' })
   } finally {
     await prisma.$disconnect()
   }
@@ -63,9 +65,9 @@ test('la personne accepte une invitation depuis « Je participe »', async ({ pa
     // Champs demandés par le formulaire par défaut, que le compte ne tient pas encore
     await page.getByLabel('Prénom', { exact: true }).fill('Compte')
     await page.getByLabel('Nom', { exact: true }).fill('Invitation')
-    await page.getByLabel('Téléphone', { exact: true }).fill('0612345678')
+    await page.getByLabel('Téléphone', { exact: true }).fill('+33612345678')
     await page.getByLabel('Contact d’urgence : nom', { exact: true }).fill('Dominique')
-    await page.getByLabel('Contact d’urgence : téléphone', { exact: true }).fill('0698765432')
+    await page.getByLabel('Contact d’urgence : téléphone', { exact: true }).fill('+33698765432')
     await page.getByLabel('J’ai lu la note d’intention et j’y adhère').check()
     await page.getByRole('button', { name: 'Envoyer mes réponses' }).click()
     await expect(page.getByText('Vos réponses sont enregistrées.')).toBeVisible()

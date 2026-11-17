@@ -42,7 +42,7 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
     // Le contact d'urgence et les allergies viennent de son inscription (US-178)
     const period = await prisma.registrationPeriod.create({ data: { gameId: game.id, publicId: slugOf(title), state: 'open' } })
     await prisma.registration.create({
-      data: { gameId: period.gameId, periodId: period.id, participantId: created.id, status: 'received', source: 'form', email: created.email!, respondedAt: new Date(), emergencyContactName: 'Paul Secours', emergencyContactPhone: '0699999999', dietary: 'Sans gluten' }
+      data: { gameId: period.gameId, periodId: period.id, participantId: created.id, status: 'received', source: 'form', email: created.email!, respondedAt: new Date(), emergencyContactName: 'Paul Secours', emergencyContactPhone: '+33699999999', dietary: 'Sans gluten' }
     })
     // Une session où elle est PNJ, à ouvrir depuis sa fiche (US-183)
     const session = await labelled(prisma, await prisma.session.create({ data: { slug: slugOf(uniqueName('Session fiche')), gameId: game.id, date: new Date('2099-04-12T09:00:00Z') } }))
@@ -68,7 +68,7 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
     await expect(page.getByText('Vient en covoiturage.')).toBeVisible()
     // Nom et téléphone du contact sur deux lignes (US-182)
     await expect(page.getByText('Paul Secours', { exact: true })).toBeVisible()
-    await expect(page.getByText('0699999999', { exact: true })).toBeVisible()
+    await expect(page.getByText('+33699999999', { exact: true })).toBeVisible()
     await expect(page.getByText('Sans gluten')).toBeVisible()
     await expect(page.getByText(`D’après son inscription à ${title}.`)).toBeVisible()
     await expect(page.getByText('12 avril 2099 · PNJ')).toBeVisible()
