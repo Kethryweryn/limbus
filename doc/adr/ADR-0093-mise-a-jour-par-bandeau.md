@@ -28,7 +28,7 @@ web.dev ([« Update »](https://web.dev/learn/pwa/update)) et la documentation d
 
 ## Conséquences
 
-- Une page ne se recharge plus d'elle-même à cause d'un déploiement : ni pendant une saisie, ni pendant une navigation, ni depuis un autre onglet.
+- Une page ne se recharge plus d'elle-même à cause d'un déploiement : ni pendant une saisie, ni pendant une navigation, ni depuis un autre onglet, à l'exception décrite plus bas.
 - Une personne qui ignore le bandeau garde l'ancienne version tant qu'un onglet de Limbus reste ouvert : l'ancien service worker sert les fichiers de l'ancienne version.
 - Un onglet resté ouvert après qu'un autre a choisi « Recharger » tourne avec l'ancienne page sous le nouveau service worker, qui n'a plus les fichiers de l'ancienne version, et le serveur non plus. Son bandeau reste affiché. S'il change de page vers un écran dont le fichier n'était pas encore chargé, Nuxt recharge la page (`emitRouteChunkError`, par défaut), car l'écran resterait sinon blanc : c'est la seule exception à R14, acceptée par l'utilisatrice.
 - Le bandeau, fixé en bas de l'écran, ne masque rien : la page lui réserve sa hauteur tant qu'il est affiché.
