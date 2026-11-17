@@ -74,7 +74,7 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0068](ADR-0068-organisation-des-instructions-de-claude.md) | Instructions de Claude Code par thème, hook avant push et skill de documentation | accepté | 2026-11-06 |
 | [ADR-0069](ADR-0069-vivier-unique-et-statut-par-session.md) | Vivier unique par jeu et statut d'inscription par session | accepté | 2026-11-06 |
 | [ADR-0070](ADR-0070-liens-personnels-durables.md) | Plusieurs liens personnels valides pour une personne du vivier | accepté | 2026-11-06 |
-| [ADR-0071](ADR-0071-mise-a-jour-au-changement-de-page.md) | Une nouvelle version de l'application se charge au changement de page | accepté | 2026-11-08 |
+| [ADR-0071](ADR-0071-mise-a-jour-au-changement-de-page.md) | Une nouvelle version de l'application se charge au changement de page | remplacé par ADR-0093 | 2026-11-08 |
 | [ADR-0072](ADR-0072-public-des-documents.md) | Le public d'un document est une liste de rôles, plus des personnages et des groupes | accepté | 2026-11-08 |
 | [ADR-0073](ADR-0073-enumerations-du-schema.md) | Les valeurs à liste fermée sont des énumérations, les règles entre colonnes des contraintes CHECK | accepté | 2026-11-09 |
 | [ADR-0074](ADR-0074-meme-jeu-impose-par-la-base.md) | Les liens entre éléments d'un jeu passent par des clés étrangères composées avec le jeu | remplacé en partie par ADR-0077 | 2026-11-09 |
@@ -96,3 +96,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0090](ADR-0090-effacement-du-compte-non-active.md) | Un compte non activé est effacé avec la dernière fiche qui porte son adresse | accepté | 2026-11-12 |
 | [ADR-0091](ADR-0091-csp-sans-strict-dynamic.md) | CSP sans strict-dynamic, icônes livrées avec Limbus, violations vérifiées par la suite de bout en bout | accepté | 2026-11-12 |
 | [ADR-0092](ADR-0092-validation-des-saisies.md) | Règles de saisie partagées, téléphones vérifiés par libphonenumber-js | accepté | 2026-11-17 |
+| [ADR-0093](ADR-0093-mise-a-jour-par-bandeau.md) | Une nouvelle version se charge depuis un bandeau, jamais d'elle-même | accepté | 2026-11-17 |
