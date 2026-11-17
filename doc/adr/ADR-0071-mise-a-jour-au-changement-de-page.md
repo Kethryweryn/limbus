@@ -1,12 +1,14 @@
 ---
 id: ADR-0071
 titre: Une nouvelle version de l'application se charge au changement de page
-statut: accepté
+statut: remplacé par ADR-0093
 date: 2026-11-08
 liens: [../specs/SPEC-010-hors-ligne.md, ADR-0012-donnees-hors-ligne.md]
 ---
 
 # ADR-0071 : Une nouvelle version de l'application se charge au changement de page
+
+> Remplacé par [ADR-0093](ADR-0093-mise-a-jour-par-bandeau.md) le 2026-11-17 : la nouvelle version se charge depuis un bandeau.
 
 ## Contexte
 

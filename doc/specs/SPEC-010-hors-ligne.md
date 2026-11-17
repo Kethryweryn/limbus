@@ -4,8 +4,8 @@ titre: Mode hors ligne
 statut: implémentée
 date: 2026-10-29
 origine: ../archive/todo/documentation-de-l-existant.md
-epics: [EPIC-010, EPIC-032]
-adr: [ADR-0006, ADR-0012, ADR-0036, ADR-0071, ADR-0078]
+epics: [EPIC-010, EPIC-032, EPIC-061]
+adr: [ADR-0006, ADR-0012, ADR-0036, ADR-0071, ADR-0078, ADR-0093]
 ---
 
 # SPEC-010 : Mode hors ligne
@@ -34,7 +34,7 @@ Continuer à consulter un jeu sur le lieu du GN, où le réseau manque souvent, 
 ### Modifier hors ligne
 
 1. Elle crée, modifie ou supprime un élément. La modification s'affiche aussitôt et part dans la file d'attente ; un bandeau en donne le nombre.
-2. Au retour du réseau, ou à l'ouverture de l'application, la file est envoyée (R7). Une fenêtre bloque l'écran pendant l'envoi, puis la page se recharge si tout est passé.
+2. Au retour du réseau, ou à l'ouverture de l'application, la file est envoyée (R7). Une fenêtre bloque l'écran pendant l'envoi ; si tout est passé, la page relit ses données sans se recharger (R7).
 3. Si des modifications échouent, le bandeau en donne le nombre (« 3 en attente, 1 erreur ») et ouvre leur liste : elle y renvoie, abandonne ou tranche chaque conflit (R9).
 
 ## Règles métier
@@ -50,11 +50,11 @@ Continuer à consulter un jeu sur le lieu du GN, où le réseau manque souvent, 
 
 - **R5** Partent dans la file les créations, modifications et suppressions des jeux, du contenu d'un jeu, des participants, des lieux et des sessions. Une action (POST ou DELETE sur une sous-route : envoi d'emails, génération, legs, partage…) n'y part jamais : hors ligne, elle échoue. Un téléversement de fichier non plus. En revanche, une modification (PUT) sur une sous-route part dans la file : déroulé d'une session, paiement d'une personne, réglages de paiement, tarif, trombinoscope d'un personnage. Elle ne touche pas l'élément parent en cache. Un paiement validé hors ligne garde la date du clic ([US-048](../archive/epics/EPIC-010-ecarts-hors-ligne/US-048-modifier-une-session-hors-ligne.md)).
 - **R6** Une modification mise en file s'applique aussitôt au cache de l'appareil, marquée « en attente », en gardant la version lue de l'élément. Sur la page d'une session, les détails, l'équipe, le casting et le déroulé s'affichent aussitôt modifiés ; les paiements et le trombinoscope se mettent à jour à l'envoi. Un élément créé hors ligne reçoit un identifiant provisoire, remplacé par le vrai à l'envoi, y compris dans les modifications suivantes de la file.
-- **R7** La file est envoyée dans l'ordre quand le réseau revient (événement du navigateur), quand le serveur répond de nouveau, sur « Réessayer », au changement de page si le serveur était marqué indisponible, et à l'ouverture de l'application quand le serveur répond ([US-052](../archive/epics/EPIC-010-ecarts-hors-ligne/US-052-envoi-a-l-ouverture.md)). Si le réseau retombe pendant l'envoi, l'envoi s'arrête et reprend plus tard.
+- **R7** La file est envoyée dans l'ordre quand le réseau revient (événement du navigateur), quand le serveur répond de nouveau, sur « Réessayer », au changement de page si le serveur était marqué indisponible, et à l'ouverture de l'application quand le serveur répond ([US-052](../archive/epics/EPIC-010-ecarts-hors-ligne/US-052-envoi-a-l-ouverture.md)). Si le réseau retombe pendant l'envoi, l'envoi s'arrête et reprend plus tard. Si tout est passé, un message le dit, et la page affichée relit ses données sans recharger l'application ; si une fenêtre est ouverte ou un champ en cours de saisie, elle attend que la fenêtre se ferme et que la saisie s'arrête ([US-255](../epics/EPIC-061-mise-a-jour-par-bandeau/US-255-retour-du-reseau-sans-rechargement.md)).
 - **R8** Toute écriture mise en file porte la version lue de l'élément, suppressions et sous-routes comprises ; elle est refusée (409, conflit) si l'élément a été modifié entre-temps sur le serveur. Deux modifications du même élément passent l'une après l'autre : la seconde reprend la version laissée par la première ([ADR-0036](../adr/ADR-0036-protocole-de-resynchronisation.md)).
 - **R9** Une modification refusée reste dans la file, en erreur ou en conflit ; elle retient les suivantes du même élément, et les autres partent. Le panneau des modifications liste chacune (élément, action, date, cause du refus). On renvoie une modification en erreur ; face à un conflit, on voit côte à côte les seuls champs qui diffèrent, puis on garde sa version (elle remplace celle du serveur) ou celle du serveur. On abandonne une modification, ou toute la file, sans se déconnecter ([US-049](../archive/epics/EPIC-010-ecarts-hors-ligne/US-049-panneau-des-modifications-en-attente.md), [US-050](../archive/epics/EPIC-010-ecarts-hors-ligne/US-050-conflit-a-la-resynchronisation.md)).
 
-- **R14** Une nouvelle version de l'application ne recharge jamais la page ouverte : elle se charge au prochain changement de page fait en ligne : la page arrivée se recharge aussitôt. Changer seulement d'onglet ou de filtre n'est pas changer de page. Hors ligne, ou serveur indisponible, rien ne change ([US-184](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-184-mise-a-jour-sans-perdre-sa-saisie.md), [ADR-0071](../adr/ADR-0071-mise-a-jour-au-changement-de-page.md)). Pour la repérer, Limbus la cherche à chaque changement de page fait en ligne, une fois par minute au plus, et toutes les heures ([US-196](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-196-reperer-la-nouvelle-version.md), [ADR-0078](../adr/ADR-0078-recherche-de-la-nouvelle-version.md)).
+- **R14** Une nouvelle version de l'application ne recharge jamais la page d'elle-même : ni pendant une saisie, ni au changement de page, ni depuis un autre onglet. Un bandeau en bas de l'écran dit qu'elle est disponible, avec « Recharger » et une croix ; fermé, il revient au prochain chargement de la page, ou avec une version plus récente. Sans réseau, ou serveur indisponible, il est masqué. Sans clic, la version se charge quand tous les onglets de Limbus sont fermés. Seule exception : quand « Recharger » a été choisi dans un autre onglet, un onglet resté sur l'ancienne version, bandeau affiché, se recharge au changement de page qui demande un fichier de l'ancienne version, qui n'existe plus ([US-254](../epics/EPIC-061-mise-a-jour-par-bandeau/US-254-bandeau-de-mise-a-jour.md), [ADR-0093](../adr/ADR-0093-mise-a-jour-par-bandeau.md), qui remplace [ADR-0071](../adr/ADR-0071-mise-a-jour-au-changement-de-page.md)). Pour la repérer, Limbus la cherche à chaque changement de page fait en ligne, une fois par minute au plus, et toutes les heures ([US-196](../archive/epics/EPIC-045-retours-du-cahier-de-tests/US-196-reperer-la-nouvelle-version.md), [ADR-0078](../adr/ADR-0078-recherche-de-la-nouvelle-version.md)).
 
 ### Appareil partagé
 
@@ -105,3 +105,5 @@ Relevés le 29 octobre 2026. Les écarts 1 et 2 ont été confirmés par l'utili
 - 2026-11-09 : R1, toute fiche consultée se rouvre hors ligne, et non plus la seule fiche de personnage (US-212).
 - 2026-11-10 : R3, effacer depuis le compte garde l'identité locale, désactiver le hors ligne l'oublie ; un appareil désactivé ne garde rien (SPEC-019, lot 1).
 - 2026-11-10 : R1, un jeu se télécharge en entier depuis « Mon compte » (SPEC-019, US-226).
+- 2026-11-17 : R14, une nouvelle version se charge depuis un bandeau, quand la personne le décide, et plus jamais d'elle-même (US-254, choix de l'utilisatrice).
+- 2026-11-17 : R7, après l'envoi de la file, la page relit ses données sans recharger l'application (US-255, retour de la revue de la PR #259, choix de l'utilisatrice).

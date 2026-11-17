@@ -28,3 +28,5 @@ ADR-0071 charge une nouvelle version au changement de page qui suit son arrivée
 
 - **Chercher toutes les minutes, même sans navigation** : un onglet oublié interrogerait le serveur en permanence.
 - **Chercher toutes les heures seulement** : une nouvelle version pourrait attendre une heure.
+
+Depuis [ADR-0093](ADR-0093-mise-a-jour-par-bandeau.md), la version trouvée ne se charge plus au changement de page : elle est proposée par un bandeau.
