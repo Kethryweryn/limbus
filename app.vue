@@ -84,6 +84,8 @@
       <NuxtLoadingIndicator />
       <LoginScreen />
     </div>
+    <!-- Nouvelle version proposée, sur toutes les pages (US-254, ADR-0093) -->
+    <AppUpdateBanner />
   </UApp>
 </template>
 

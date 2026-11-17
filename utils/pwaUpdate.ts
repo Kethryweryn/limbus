@@ -1,23 +1,25 @@
-// Nouvelle version au prochain changement de page (US-184, ADR-0071), cherchée à chaque changement de page et toutes les
-// heures (US-196, ADR-0078)
+// Nouvelle version proposée par un bandeau, jamais chargée d'elle-même (US-254, ADR-0093), cherchée à chaque changement
+// de page et toutes les heures (US-196, ADR-0078)
 
-export type UpdateRegistration = { installing: unknown, update: () => Promise<unknown> }
+export type UpdateRegistration = { installing: unknown, waiting: unknown, update: () => Promise<unknown> }
 
 export type PwaUpdate = {
+  // Une nouvelle version attend : le bandeau la propose
   needRefresh: boolean
+  // Bandeau fermé par la croix, jusqu'au prochain chargement de la page ou à une version plus récente
+  dismissed: boolean
+  // « Recharger » choisi dans cet onglet : la prise de main par la nouvelle version recharge alors l'onglet
+  applying: boolean
   updateServiceWorker: (reloadPage?: boolean) => Promise<void>
   getSWRegistration: () => UpdateRegistration | undefined
 }
 
 export type UpdateBrowser = {
-  // En ligne et serveur joignable : sinon la page rechargée ne pourrait pas être servie, ni la version cherchée
-  reachable: boolean
   reload: () => void
   setTimeout: (callback: () => void, delay: number) => unknown
 }
 
-// Le module recharge la page dès que le nouveau service worker a la main ; s'il ne la prend pas, la page se recharge
-// quand même après ce délai
+// « Recharger » : la page se recharge quand le nouveau service worker a la main ; s'il ne la prend pas, après ce délai
 export const PWA_UPDATE_FALLBACK_MS = 4000
 
 // Le navigateur ne cherche un nouveau service worker qu'au chargement complet d'une page : Limbus le lui demande, une
@@ -26,8 +28,8 @@ export const PWA_UPDATE_CHECK_MS = 60_000
 export const PWA_UPDATE_PERIOD_MS = 60 * 60_000
 
 /**
- * Recherche d'une nouvelle version, une fois par minute au plus. La version trouvée se télécharge en arrière-plan et se
- * charge au changement de page suivant.
+ * Recherche d'une nouvelle version, une fois par minute au plus. La version trouvée se télécharge en arrière-plan, puis
+ * le bandeau la propose.
  */
 export class NewVersionCheck {
   // Le chargement complet de la page vient de faire chercher le navigateur
@@ -47,15 +49,26 @@ export class NewVersionCheck {
 }
 
 /**
- * Appelé une fois la page changée, sur la page arrivée. Un changement de la seule requête (onglet, filtre) n'est pas un
- * changement de page. Hors ligne ou serveur indisponible, rien ne change. Sinon, si une nouvelle version attend, l'active
- * et recharge cette page ; sinon, en fait chercher une.
+ * Appelé une fois la page changée. Un changement de la seule requête (onglet, filtre) n'est pas un changement de page.
+ * Hors ligne, serveur indisponible, ou version qui attend déjà, rien n'est cherché. Ne recharge jamais rien.
  */
-export function afterNavigation(pwa: PwaUpdate | undefined, toPath: string, fromPath: string, browser: UpdateBrowser, check: NewVersionCheck, now: number) {
-  if (!pwa || !browser.reachable || toPath === fromPath) return 'nothing'
-  if (!pwa.needRefresh) return check.run(pwa.getSWRegistration(), true, now) ? 'check' : 'nothing'
+export function afterNavigation(pwa: PwaUpdate | undefined, toPath: string, fromPath: string, reachable: boolean, check: NewVersionCheck, now: number) {
+  if (!pwa || !reachable || toPath === fromPath || pwa.needRefresh) return 'nothing'
+  return check.run(pwa.getSWRegistration(), true, now) ? 'check' : 'nothing'
+}
+
+/**
+ * « Recharger » : active la version qui attend, et l'onglet se recharge quand elle a pris la main (onNeedReload), ou
+ * après PWA_UPDATE_FALLBACK_MS. Déjà activée par un autre onglet, plus rien n'attend : l'onglet se recharge aussitôt.
+ */
+export function applyUpdate(pwa: PwaUpdate, browser: UpdateBrowser) {
+  pwa.applying = true
+  if (!pwa.getSWRegistration()?.waiting) {
+    browser.reload()
+    return 'reload'
+  }
   // Un échec d'activation laisse le rechargement de secours faire le travail
   pwa.updateServiceWorker().catch(() => {})
   browser.setTimeout(browser.reload, PWA_UPDATE_FALLBACK_MS)
-  return 'reload'
+  return 'activate'
 }

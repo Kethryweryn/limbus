@@ -327,5 +327,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-251](../archive/epics/EPIC-060-validation-des-saisies/US-251-noms-de-personnes.md) | Un nom de personne ne contient que des lettres et des séparateurs | EPIC-060 | terminée |
 | [US-252](../archive/epics/EPIC-060-validation-des-saisies/US-252-telephones-et-contact-d-urgence.md) | Des téléphones vérifiés selon leur pays, et un contact d'urgence complet | EPIC-060 | terminée |
 | [US-253](../archive/epics/EPIC-060-validation-des-saisies/US-253-longueurs-et-emails.md) | Une longueur maximale sur chaque texte, des emails vérifiés partout | EPIC-060 | terminée |
-| [US-254](EPIC-061-mise-a-jour-par-bandeau/US-254-bandeau-de-mise-a-jour.md) | Charger une nouvelle version quand je le décide | EPIC-061 | à faire |
+| [US-254](EPIC-061-mise-a-jour-par-bandeau/US-254-bandeau-de-mise-a-jour.md) | Charger une nouvelle version quand je le décide | EPIC-061 | terminée |
 | [US-255](EPIC-061-mise-a-jour-par-bandeau/US-255-retour-du-reseau-sans-rechargement.md) | Retrouver le réseau sans que la page se recharge | EPIC-061 | à faire |

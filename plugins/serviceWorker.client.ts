@@ -16,6 +16,8 @@ export default defineNuxtPlugin(() => {
 
   const pwa: LimbusPwa = reactive({
     needRefresh: false,
+    dismissed: false,
+    applying: false,
     updateServiceWorker: (reloadPage?: boolean) => update(reloadPage),
     getSWRegistration: () => registration,
     register: () => {
@@ -23,7 +25,16 @@ export default defineNuxtPlugin(() => {
       registered = true
       update = registerSW({
         immediate: true,
-        onNeedRefresh: () => { pwa.needRefresh = true },
+        // Une version (ou une plus récente) attend : le bandeau la propose, même s'il avait été fermé
+        onNeedRefresh: () => {
+          pwa.needRefresh = true
+          pwa.dismissed = false
+        },
+        // La nouvelle version a pris la main. Sans ce rappel, le module rechargerait l'onglet, même quand un autre
+        // onglet l'a activée : seul « Recharger » choisi ici recharge (US-254, ADR-0093)
+        onNeedReload: () => {
+          if (pwa.applying) window.location.reload()
+        },
         onRegisteredSW: (_url, swRegistration) => { registration = swRegistration }
       })
     }
