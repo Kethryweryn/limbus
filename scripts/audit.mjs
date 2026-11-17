@@ -17,7 +17,7 @@ try {
   // npm audit sort en erreur dès qu'il trouve un avis : son rapport est sur la sortie standard
   output = error.stdout
   // Sans rapport, l'audit lui-même a échoué (registre injoignable…) : son message dit pourquoi
-  if (!output?.trim()) throw new Error(`npm audit n'a rendu aucun rapport : ${error.stderr || error.message}`)
+  if (!output?.trim()) throw new Error(`npm audit n'a rendu aucun rapport : ${error.stderr || error.message}`, { cause: error })
 }
 const report = JSON.parse(output)
 if (report.error) throw new Error(`npm audit : ${report.error.summary ?? JSON.stringify(report.error)}`)
