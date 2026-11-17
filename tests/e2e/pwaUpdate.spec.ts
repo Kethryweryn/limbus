@@ -2,7 +2,7 @@
 import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { signIn, test } from './helpers'
+import { markPage, notReloaded, signIn, test } from './helpers'
 
 const banner = (page: Page) => page.getByRole('status', { name: 'Nouvelle version' })
 
@@ -11,10 +11,8 @@ async function openControlled(page: Page, path: string) {
   await page.goto(path)
   await page.waitForLoadState('networkidle')
   await page.waitForFunction(() => Boolean(navigator.serviceWorker?.controller), undefined, { timeout: 20_000 })
-  await page.evaluate(() => { (window as unknown as { sansRechargement: boolean }).sansRechargement = true })
+  await markPage(page)
 }
-
-const notReloaded = (page: Page) => page.evaluate(() => (window as unknown as { sansRechargement?: boolean }).sansRechargement === true)
 const controllerUrl = (page: Page) => page.evaluate(() => navigator.serviceWorker.controller?.scriptURL ?? '')
 
 /**

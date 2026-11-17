@@ -135,7 +135,12 @@ const syncing = ref(false)
 const pageGeneration = ref(0)
 const pageRefresh = new DeferredRefresh(
   () => Boolean(document.querySelector('[role="dialog"]')) || isTyping(document.activeElement as HTMLElement | null),
-  () => { pageGeneration.value++ }
+  () => {
+    // La page remontée rend la position de défilement, comme le faisait le rechargement du navigateur
+    const scroll = window.scrollY
+    nuxtApp.hooks.hookOnce('page:finish', () => { window.scrollTo(0, scroll) })
+    pageGeneration.value++
+  }
 )
 const PAGE_REFRESH_CHECK_MS = 1000
 let pageRefreshTimer: number | undefined
@@ -157,6 +162,7 @@ const syncSummary = computed(() => [
   syncErrorCount.value && `${syncErrorCount.value} ${syncErrorCount.value > 1 ? 'erreurs' : 'erreur'}`
 ].filter(Boolean).join(', '))
 const toast = useToast()
+const nuxtApp = useNuxtApp()
 const route = useRoute()
 // Route visée par la navigation : useRoute() suit la page affichée, et sous l'écran de connexion aucune page ne
 // l'est, donc il ne changerait pas en suivant un lien de cet écran

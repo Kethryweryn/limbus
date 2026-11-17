@@ -3,10 +3,8 @@
 import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { cardByTitle as card, orgaGame, signIn, slugOf, test, uniqueName } from './helpers'
+import { cardByTitle as card, markPage, notReloaded, orgaGame, signIn, slugOf, test, uniqueName } from './helpers'
 
-const markPage = (page: Page) => page.evaluate(() => { (window as unknown as { sansRechargement: boolean }).sansRechargement = true })
-const notReloaded = (page: Page) => page.evaluate(() => (window as unknown as { sansRechargement?: boolean }).sansRechargement === true)
 
 async function twoLocations(page: Page, base: string) {
   const prisma = createTestPrisma()
@@ -33,18 +31,25 @@ async function renameOffline(page: Page, name: string, newName: string) {
 test('au retour du réseau, la modification part et la page relit ses données, sans se recharger', async ({ page, context }) => {
   const { prisma, renamed, reread } = await twoLocations(page, 'Jeu du retour du réseau')
   try {
+    // Page défilée : la relecture rend la position
+    await page.setViewportSize({ width: 1280, height: 400 })
     await context.setOffline(true)
     const newName = `${renamed.name} (hors ligne)`
     await renameOffline(page, renamed.name, newName)
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+    const scrolled = await page.evaluate(() => window.scrollY)
+    expect(scrolled).toBeGreaterThan(0)
     // Changé sur le serveur entre-temps : seule une relecture l'affiche
     await prisma.location.update({ where: { id: reread.id }, data: { address: 'Adresse venue du serveur' } })
 
     await context.setOffline(false)
-    await expect(page.getByText('Modifications envoyées')).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText('Modifications envoyées', { exact: true })).toBeVisible({ timeout: 20_000 })
     await expect.poll(async () => (await prisma.location.findUniqueOrThrow({ where: { id: renamed.id } })).name).toBe(newName)
     await expect(card(page, reread.name).getByText('Adresse venue du serveur')).toBeVisible()
     await expect(card(page, newName)).toBeVisible()
     expect(await notReloaded(page)).toBe(true)
+    // Rendue à la hauteur près du bandeau des modifications en attente, qui a disparu ; sans rien, elle serait à 0
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(scrolled - 100)
   } finally {
     await context.setOffline(false)
     await prisma.$disconnect()
@@ -65,7 +70,7 @@ test('une saisie en cours au retour du réseau reste intacte, et la page se reli
     await form.getByLabel('Notes', { exact: true }).fill('Saisie en cours')
     await context.setOffline(false)
     await expect.poll(async () => (await prisma.location.findUniqueOrThrow({ where: { id: renamed.id } })).name, { timeout: 20_000 }).toBe(newName)
-    await expect(page.getByText('Modifications envoyées')).toBeVisible()
+    await expect(page.getByText('Modifications envoyées', { exact: true })).toBeVisible()
     await page.waitForTimeout(3_000)
     await expect(form.getByLabel('Notes', { exact: true })).toHaveValue('Saisie en cours')
     expect(await notReloaded(page)).toBe(true)
