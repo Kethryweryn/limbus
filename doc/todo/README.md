@@ -38,3 +38,4 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Une session sans nom, désignée par sa date](../archive/todo/session-sans-nom.md) | [SPEC-021](../specs/SPEC-021-session-sans-nom.md) | 2026-11-11 |
 | [Un déploiement rapide quand les dépendances changent](../archive/todo/deploiement-dependances.md) | [ADR-0085](../adr/ADR-0085-installation-serveur-sans-audit.md) | 2026-11-11 |
 | [Un compte pour chaque participant](../archive/todo/compte-pour-chaque-participant.md) | [SPEC-022](../specs/SPEC-022-compte-pour-chaque-participant.md) | 2026-11-11 |
+| [Valider les saisies partout](../archive/todo/validation-des-saisies.md) | [SPEC-023](../specs/SPEC-023-validation-des-saisies.md) | 2026-11-17 |
