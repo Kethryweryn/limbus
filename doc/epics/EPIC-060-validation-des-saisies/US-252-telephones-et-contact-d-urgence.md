@@ -70,7 +70,13 @@ Tests d'intégration :
 
 ### Notes
 
-- Limbus n'a pas de lien « appeler » : le numéro s'affiche et s'exporte sous sa forme rangée, sans autre changement d'affichage.
+- Limbus n'a pas de lien « appeler » : le numéro s'affiche sous sa forme rangée, sans autre changement d'affichage.
+
+### Revue de la PR #255
+
+- Export CSV : le téléphone est écrit `="+33612345678"`, pour qu'Excel le garde en texte, au lieu de le lire comme le nombre 33612345678 (`csvPhone`, choix de l'utilisatrice). L'exception pour les téléphones dans la neutralisation des formules disparaît.
+- `fieldError` est partagé dans `tests/e2e/helpers.ts`.
+- Hors ligne, la fiche montre le numéro tel qu'il a été tapé jusqu'au retour du réseau, comme toute modification faite hors ligne. C'est un choix de l'utilisatrice : le mettre au format sur l'écran enverrait les métadonnées de la bibliothèque à chaque appareil (ADR-0092).
 - Les outils des assistants d'IA n'écrivent pas de téléphone : `modifier_participant` renvoie celui de la fiche, gardé tel quel s'il ne change pas.
 - Le questionnaire demande toujours le contact d'urgence en entier (US-181). R8 s'ajoute donc dans Mes coordonnées.
 - Les jeux de test et les tests existants sont passés au format international. Les numéros fictifs « 07 00… », qui n'existent pas dans le plan français, sont remplacés par des numéros valides.

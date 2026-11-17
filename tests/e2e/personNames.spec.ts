@@ -1,16 +1,11 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { gamePerson, orgaGame, orgaSession, signIn, slugOf, testUser, uniquePersonName } from './helpers'
+import { fieldError, gamePerson, orgaGame, orgaSession, signIn, slugOf, testUser, uniquePersonName } from './helpers'
 
 // SPEC-023, US-251 : un nom de personne ne contient que des lettres et des séparateurs ; le refus s'affiche sous son champ
 const refusal = (label: string) => `${label} ne peut contenir que des lettres, des espaces, des traits d’union, des apostrophes et des points`
 const FIELDS_INVALID = 'Certaines informations sont manquantes ou incorrectes.'
-
-// Message affiché sous le champ de ce libellé (UFormField)
-function fieldError(page: Page, label: string, message: string) {
-  return page.locator('[data-slot="root"]').filter({ has: page.getByLabel(label, { exact: true }) }).getByText(message)
-}
 
 test('Mon compte : un nom ou un nom de contact d’urgence avec un chiffre est refusé sous son champ, un nom accentué s’enregistre', async ({ page }) => {
   const prisma = createTestPrisma()

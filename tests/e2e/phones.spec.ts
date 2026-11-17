@@ -1,15 +1,10 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { gamePerson, orgaGame, orgaSession, signIn, slugOf, testUser, uniquePersonName } from './helpers'
+import { fieldError, gamePerson, orgaGame, orgaSession, signIn, slugOf, testUser, uniquePersonName } from './helpers'
 
 // SPEC-023, US-252 : téléphones vérifiés selon leur pays et rangés au format international, contact d'urgence complet
 const INVALID = 'Numéro de téléphone invalide'
-
-// Message affiché sous le champ de ce libellé (UFormField)
-function fieldError(page: Page, label: string, message: string) {
-  return page.locator('[data-slot="root"]').filter({ has: page.getByLabel(label, { exact: true }) }).getByText(message)
-}
 
 test('Mes coordonnées : un numéro invalide ou un contact d’urgence à moitié rempli est refusé sous son champ, un numéro avec points se range au format international', async ({ page }) => {
   const prisma = createTestPrisma()

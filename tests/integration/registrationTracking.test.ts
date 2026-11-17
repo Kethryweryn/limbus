@@ -220,7 +220,7 @@ describe('export CSV d’une session', () => {
     expect(response.headers.get('content-disposition')).toContain('attachment; filename="inscriptions-session-')
     const csv = await response.text()
     expect(csv).toContain('Nom;Email;Téléphone;Statut')
-    expect(csv).toContain(`${participant.name};${registration.email};+33612345678;Inscrite`)
+    expect(csv).toContain(`${participant.name};${registration.email};"=""+33612345678""";Inscrite`)
     expect(csv).not.toContain('Arachides')
     expect(csv).not.toContain('Urgence')
     expect(csv).not.toContain('+33699999999')
