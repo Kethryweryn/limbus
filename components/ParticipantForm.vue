@@ -104,7 +104,7 @@ watch(() => props.participant, (newParticipant) => {
 function validate() {
   errors.value = {}
   if (!localParticipant.value.name?.trim()) {
-    errors.value.name = 'Le nom est requis.'
+    errors.value.name = 'Le nom est obligatoire'
   }
   // Une fiche appartient à la personne de son adresse (SPEC-022 R3, US-238)
   if (!localParticipant.value.email?.trim()) {

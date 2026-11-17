@@ -68,6 +68,13 @@ Tests d'intégration : chaque route de R2, et les outils des assistants.
   - message d'un refus hors ligne (`tests/utils/offlineSync.test.ts`).
 - L'activation et l'invitation dans une équipe passent par le même schéma (`personName`) et affichent le message sous le champ. Leur parcours de bout en bout n'a pas été rejoué avec un nom refusé, car il demande un mot de passe choisi.
 
+### Revue de la PR #254
+
+- Un nom déjà enregistré n'est vérifié que s'il change, comme le dit R12 : il ne bloque plus la modification d'un autre champ de la fiche. Le contrôle passe par `assertChangedPersonName` : fiche participant, Mon compte, contact d'urgence, administration. Un nom tenu par le compte ne bloque plus la fiche.
+- Un refus qui porte sur tout le formulaire reste affiché, même quand un champ est aussi refusé.
+- Le refus du rôle s'affiche sous son champ dans l'administration.
+- L'activation ne propose plus de nouveau lien pour une saisie à corriger.
+
 ### Changé en passant
 
 - Une modification faite hors ligne et refusée au retour du réseau garde le détail du refus, au lieu de « Requête invalide » (`utils/offlineSync.ts`).

@@ -59,7 +59,7 @@ test('liste : recherche par nom et par email, filtre par jeu, pages, et créatio
     await page.getByRole('button', { name: 'Créer un participant' }).click()
     const form = page.getByRole('dialog')
     await form.getByRole('button', { name: 'Créer', exact: true }).click()
-    await expect(form.getByText('Le nom est requis.')).toBeVisible()
+    await expect(form.getByText('Le nom est obligatoire')).toBeVisible()
     await expect(form.getByText('Choisissez au moins un jeu.')).toBeVisible()
     // Une fiche appartient à la personne de son adresse (SPEC-022 R3, US-238)
     await expect(form.getByText('L’adresse email est obligatoire.')).toBeVisible()

@@ -22,7 +22,7 @@
         <UFormField label="Email" :error="errorsFor('create').email">
           <UInput v-model="newUser.email" type="email" autocomplete="off" name="new-user-contact-email" />
         </UFormField>
-        <UFormField label="Rôle">
+        <UFormField label="Rôle" :error="errorsFor('create').role">
           <USelect v-model="newUser.role" :items="roleItems" value-key="value" />
         </UFormField>
         <UButton type="submit" color="primary" :loading="saving">
@@ -65,7 +65,7 @@
             <UFormField label="Email" :error="errorsFor(user.id).email">
               <UInput v-model="user.email" type="email" autocomplete="off" :name="`managed-user-email-${user.id}`" />
             </UFormField>
-            <UFormField label="Rôle">
+            <UFormField label="Rôle" :error="errorsFor(user.id).role">
               <USelect v-model="user.role" :items="roleItems" value-key="value" />
             </UFormField>
             <UFormField label="Plafond de stockage (Mo)" :help="`${formatMb(user.storageUsedBytes)} utilisés`" :error="errorsFor(user.id).storageQuotaMb">

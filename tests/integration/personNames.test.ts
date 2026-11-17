@@ -2,6 +2,7 @@
 import { afterAll, describe, expect, inject, it } from 'vitest'
 import { api, invalidMessages, invalidPaths } from './api'
 import { createTestPrisma } from './db'
+import { withFicheValues } from '../fiche'
 
 const world = inject('world')
 const { admin, alice } = world.users
@@ -44,6 +45,28 @@ describe('noms de personnes (SPEC-023, R1, R2)', () => {
     expect(profile.status).toBe(400)
     expect(invalidPaths(profile)).toEqual(['emergencyContactName'])
     expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { name: true, emergencyContactName: true } })).toEqual({ name: 'Ŝofia Ñúñez', emergencyContactName: null })
+  })
+
+  it('un nom déjà enregistré qui ne suit pas la règle passe tant qu’il ne change pas (R12)', async () => {
+    const key = `ancien-${++counter}`
+    const email = unique(key)
+    const user = await prisma.user.create({ data: { email: unique(`compte-${key}`), name: 'Ancien  Compte 2', password: 'non-utilise', emailConfirmedAt: new Date() } })
+    expect((await api(user, 'PUT', '/api/account', { name: 'Ancien Compte 2' })).status).toBe(200)
+    expect(invalidPaths(await api(user, 'PUT', '/api/account', { name: 'Ancien Compte 3' }))).toEqual(['name'])
+
+    const person = await withFicheValues(prisma.participant.create({ data: { slug: key, email, gameLinks: { create: { gameId: world.a.game.id, name: 'Fiche 2' } } } }), { name: 'Fiche 2' })
+    const kept = await api(alice, 'PUT', `/api/participants/${person.id}`, { name: 'Fiche 2', email, gameIds: [world.a.game.id], gameNotes: { [world.a.game.id]: 'Note ajoutée' } })
+    expect(kept.status, JSON.stringify(kept.body)).toBe(200)
+    const changed = await api(alice, 'PUT', `/api/participants/${person.id}`, { name: 'Fiche 3', email, gameIds: [world.a.game.id] })
+    expect(changed.status).toBe(400)
+    expect(invalidPaths(changed)).toEqual(['name'])
+
+    // Un nom tenu par le compte (champ grisé pour l'équipe) ne bloque pas la fiche
+    const heldEmail = unique(`tenu-${key}`)
+    const holder = await prisma.user.create({ data: { email: heldEmail, name: 'Tenu 2', password: 'non-utilise', emailConfirmedAt: new Date(), profileUpdatedAt: new Date() } })
+    const held = await withFicheValues(prisma.participant.create({ data: { slug: `tenu-${key}`, email: heldEmail, userId: holder.id, gameLinks: { create: { gameId: world.a.game.id, name: 'Tenu 2' } } } }), { name: 'Tenu 2' })
+    const notes = await api(alice, 'PUT', `/api/participants/${held.id}`, { name: 'Tenu 2', email: heldEmail, gameIds: [world.a.game.id], gameNotes: { [world.a.game.id]: 'Note' } })
+    expect(notes.status, JSON.stringify(notes.body)).toBe(200)
   })
 
   it('administration : création et modification d’un compte', async () => {

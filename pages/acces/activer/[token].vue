@@ -31,6 +31,7 @@
 <script setup lang="ts">
 // Lien d'activation (US-246, SPEC-022 R9, R11) : nom, mot de passe et conditions ; le compte part vide, chaque équipe
 // garde ses coordonnées. Le lien expiré ou déjà utilisé le dit, et propose d'en demander un autre
+import { isValidationError } from '~/utils/apiErrors'
 
 definePageMeta({ layout: false })
 
@@ -57,8 +58,8 @@ async function save() {
     window.location.replace('/participer')
   } catch (err) {
     error.value = report(err, 'Impossible d’activer le compte.')
-    // Un champ à corriger n'est pas un lien périmé
-    offerNewLink.value = !Object.keys(fieldErrors.value).length
+    // Une saisie à corriger (nom, conditions…) n'est pas un lien périmé ou déjà utilisé
+    offerNewLink.value = !isValidationError(err)
   } finally {
     saving.value = false
   }

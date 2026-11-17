@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isPersonName, optionalPersonName, personName } from '~/server/utils/fieldRules'
+import { assertChangedPersonName, isPersonName, optionalPersonName, personName } from '~/server/utils/fieldRules'
 
 const message = 'Le nom ne peut contenir que des lettres, des espaces, des traits d’union, des apostrophes et des points'
 
@@ -38,5 +38,14 @@ describe('personName (SPEC-023, R1)', () => {
     expect(optional.parse(undefined)).toBeNull()
     expect(optional.parse(' Paul  Martin')).toBe('Paul Martin')
     expect(optional.safeParse('Paul 2').error?.issues[0]?.message).toBe('Le nom du contact d’urgence ne peut contenir que des lettres, des espaces, des traits d’union, des apostrophes et des points')
+  })
+})
+
+describe('assertChangedPersonName (SPEC-023, R12)', () => {
+  it('laisse passer un nom enregistré inchangé, aux espaces près, et vérifie un nom modifié', () => {
+    expect(() => assertChangedPersonName('name', 'Le nom', 'Ancien 2', ['Ancien  2 '])).not.toThrow()
+    expect(() => assertChangedPersonName('name', 'Le nom', null, ['x'])).not.toThrow()
+    expect(() => assertChangedPersonName('name', 'Le nom', 'Léa Martin', [null])).not.toThrow()
+    expect(() => assertChangedPersonName('name', 'Le nom', 'Ancien 3', ['Ancien 2'])).toThrow(expect.objectContaining({ statusCode: 400, data: expect.objectContaining({ data: [{ path: 'name', message }] }) }))
   })
 })

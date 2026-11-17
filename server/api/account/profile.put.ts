@@ -2,6 +2,7 @@ import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
 import { accountProfileSchema, readZodBody } from '~/server/utils/schemas'
 import { clearedProfileFields, profileValuesSelect, syncProfileToParticipants } from '~/server/utils/participantAccounts'
+import { assertChangedPersonName } from '~/server/utils/fieldRules'
 
 // Mes coordonnées (US-074) : enregistrées sur le compte, puis recopiées champ par champ sur mes fiches et inscriptions (US-245)
 export default defineEventHandler(async (event) => {
@@ -9,6 +10,7 @@ export default defineEventHandler(async (event) => {
   const body = await readZodBody(event, accountProfileSchema)
   const now = new Date()
   const before = await prisma.user.findUniqueOrThrow({ where: { id }, select: profileValuesSelect })
+  assertChangedPersonName('emergencyContactName', 'Le nom du contact d’urgence', body.emergencyContactName, [before.emergencyContactName])
   const after = await prisma.user.update({
     where: { id },
     data: {

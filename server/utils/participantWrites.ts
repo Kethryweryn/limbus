@@ -9,6 +9,7 @@ import { assertParticipantUnmodifiedSince } from '~/server/utils/concurrency'
 import { accountForEmail, deleteFiche, ficheProfileSelect, heldProfileFields, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 import { participantSlug } from '~/utils/participantSlug'
 import { lockAddress } from '~/server/utils/participantAddress'
+import { assertChangedPersonName, collapseSpaces } from '~/server/utils/fieldRules'
 
 // Écritures d'une fiche participant, communes aux routes de l'interface et aux outils des assistants d'IA (US-129,
 // SPEC-014 R12) : mêmes contrôles d'accès aux jeux, de version et de rattachement au compte de l'adresse
@@ -127,7 +128,7 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
 
   const existingLinks = await prisma.participantGame.findMany({
     where: { participantId: id },
-    select: { gameId: true }
+    select: { gameId: true, name: true }
   })
   const existingGameIds = new Set(existingLinks.map((link) => link.gameId))
   const nextGameIds = new Set(uniqueGameIds)
@@ -170,9 +171,11 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
     // garde son adresse et son compte
     const userId = target ? current.userId : await accountForEmail(tx, email)
     const held = new Set(!target && userId && userId === current.userId ? heldProfileFields(current.user) : [])
-    if (held.has('name') && name.trim() !== current.user!.name.trim()) {
+    if (held.has('name') && name !== collapseSpaces(current.user!.name)) {
       throw createError({ statusCode: 400, message: 'Le nom est tenu par la personne depuis son compte.' })
     }
+    // Nom modifié par l'équipe : vérifié s'il change ; un nom déjà enregistré garde sa forme (SPEC-023 R1, R12)
+    if (!held.has('name')) assertChangedPersonName('name', 'Le nom', name, existingLinks.filter((link) => managedExistingGameIds.includes(link.gameId)).map((link) => link.name))
     if (held.has('phone') && (phone?.trim() || null) !== current.user!.phone) {
       throw createError({ statusCode: 400, message: 'Le téléphone est tenu par la personne depuis son compte.' })
     }
