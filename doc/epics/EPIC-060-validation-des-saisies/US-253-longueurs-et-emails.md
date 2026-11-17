@@ -61,6 +61,12 @@ Tests d'intégration : un champ de chaque type, et un texte de fond de 1 000 000
   - invitation à co-organiser.
 - Tests unitaires : `tests/server/fieldRules.test.ts` (`TEXT_MAX`, `tooLong`, `requiredTextField`, `optionalTextField`, `requiredEmail`, `optionalEmail`).
 
+### Revue de la PR #256
+
+- Les messages nomment le champ comme l'écran : « Le pitch », « Le background », « Le corps », « La localisation libre », « La fausse identité »…
+- Le plafond du serveur d'envoi passe par `TEXT_MAX` et `tooLong`.
+- R12 précisée par l'utilisatrice : un texte déjà trop long est refusé à la prochaine modification de sa fiche, sans comparaison champ par champ.
+
 ### Notes
 
 - Chaque formulaire de l'écriture du jeu et des sessions range les refus du serveur sous leur champ (`SERVER_FIELDS`) ; ceux d'un champ absent restent sous le bouton. Les messages faits sur l'écran reprennent le texte du serveur : « Le nom est obligatoire », et non plus « Le nom est requis. ».

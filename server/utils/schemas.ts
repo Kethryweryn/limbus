@@ -99,7 +99,7 @@ const balanceValues = z.array(z.string().trim().min(1, 'Valeur vide').max(100, '
 const balanceValue = z.string().trim().max(100, 'Valeur trop longue').optional().nullable()
 
 // Colonne obligatoire : une description vidée (null) devient un texte vide ; absente, elle ne change pas
-const gameDescription = optionalTextField('long', 'La présentation').transform((value) => value === null ? '' : value)
+const gameDescription = optionalTextField('long', 'La description').transform((value) => value === null ? '' : value)
 
 export const createGameSchema = z.object({
   title: requiredTextField('title', 'Le titre'),
@@ -139,16 +139,16 @@ export const updateGameSchema = z.object({
 export const createCharacterSchema = z.object({
   name: requiredTextField('title', 'Le nom'),
   type: characterType.default(CHARACTER_TYPES.pj),
-  pitch: optionalTextField('long', 'L’accroche'),
-  background: optionalTextField('background', 'L’historique'),
+  pitch: optionalTextField('long', 'Le pitch'),
+  background: optionalTextField('background', 'Le background'),
   backgroundDocumentUrl: externalUrl,
   sheetReadyToSend: optionalBoolean,
-  costumeIndications: optionalTextField('long', 'Les indications de costume'),
+  costumeIndications: optionalTextField('long', 'Les indications costumes'),
   excludeFromTrombinoscope: optionalBoolean,
   trombinoscopeFaceHidden: optionalBoolean,
   trombinoscopePhotoUrl: uploadOrExternalUrl(PHOTO_UPLOAD_PREFIX),
-  trombinoscopeNote: optionalTextField('short', 'La note du trombinoscope'),
-  trombinoscopeDisplayName: optionalTextField('title', 'Le nom affiché'),
+  trombinoscopeNote: optionalTextField('short', 'La note de trombinoscope'),
+  trombinoscopeDisplayName: optionalTextField('title', 'La fausse identité'),
   balanceValue,
   gameId: requiredId('Le jeu'),
   factionIds: z.array(requiredId('Le groupe')).optional().default([])
@@ -157,16 +157,16 @@ export const createCharacterSchema = z.object({
 export const updateCharacterSchema = z.object({
   name: requiredTextField('title', 'Le nom').optional(),
   type: characterType.optional(),
-  pitch: optionalTextField('long', 'L’accroche'),
-  background: optionalTextField('background', 'L’historique'),
+  pitch: optionalTextField('long', 'Le pitch'),
+  background: optionalTextField('background', 'Le background'),
   backgroundDocumentUrl: externalUrl,
   sheetReadyToSend: optionalBoolean,
-  costumeIndications: optionalTextField('long', 'Les indications de costume'),
+  costumeIndications: optionalTextField('long', 'Les indications costumes'),
   excludeFromTrombinoscope: optionalBoolean,
   trombinoscopeFaceHidden: optionalBoolean,
   trombinoscopePhotoUrl: uploadOrExternalUrl(PHOTO_UPLOAD_PREFIX),
-  trombinoscopeNote: optionalTextField('short', 'La note du trombinoscope'),
-  trombinoscopeDisplayName: optionalTextField('title', 'Le nom affiché'),
+  trombinoscopeNote: optionalTextField('short', 'La note de trombinoscope'),
+  trombinoscopeDisplayName: optionalTextField('title', 'La fausse identité'),
   balanceValue,
   gameId: requiredId('Le jeu').optional(),
   factionIds: z.array(requiredId('Le groupe')).optional()
@@ -174,10 +174,10 @@ export const updateCharacterSchema = z.object({
 
 export const factionSchema = z.object({
   name: requiredTextField('title', 'Le nom'),
-  pitch: optionalTextField('long', 'L’accroche'),
-  background: optionalTextField('background', 'L’historique'),
+  pitch: optionalTextField('long', 'Le pitch'),
+  background: optionalTextField('background', 'Le background'),
   backgroundDocumentUrl: externalUrl,
-  costumeIndications: optionalTextField('long', 'Les indications de costume'),
+  costumeIndications: optionalTextField('long', 'Les indications costumes'),
   showInTrombinoscope: optionalBoolean,
   gameId: requiredId('Le jeu'),
   characterIds: z.array(requiredId('Le personnage')).optional().default([])
@@ -185,7 +185,7 @@ export const factionSchema = z.object({
 
 export const intrigueSchema = z.object({
   name: requiredTextField('title', 'Le nom'),
-  pitch: optionalTextField('long', 'L’accroche'),
+  pitch: optionalTextField('long', 'Le pitch'),
   description: optionalTextField('long', 'La description'),
   level: intrigueLevel.default(INTRIGUE_LEVELS.minor),
   gameId: requiredId('Le jeu'),
@@ -258,7 +258,7 @@ export const itemSchema = z.object({
   description: optionalTextField('long', 'La description'),
   // Absente : 1 à la création, valeur actuelle à la modification (US-014)
   quantity: z.coerce.number().int('La quantité doit être un nombre entier').min(1, 'La quantité doit être d’au moins 1').optional(),
-  locationText: optionalTextField('short', 'L’emplacement'),
+  locationText: optionalTextField('short', 'La localisation libre'),
   locationCharacterId: optionalText,
   gameId: requiredId('Le jeu'),
   characterIds: z.array(requiredId('Le personnage')).optional().default([]),
@@ -270,7 +270,7 @@ export const itemSchema = z.object({
 const outdatedDocumentField = z.undefined({ error: 'Cette page est d’une ancienne version : rechargez-la avant d’enregistrer.' }).optional()
 export const documentSchema = z.object({
   title: requiredTextField('title', 'Le titre'),
-  content: optionalTextField('background', 'Le contenu'),
+  content: optionalTextField('background', 'Le corps'),
   documentUrl: externalUrl,
   audiences: z.array(documentRoleSchema).optional().default([]),
   audience: outdatedDocumentField,
@@ -368,7 +368,7 @@ export const characterTrombinoscopeSchema = z.object({
     targetCharacterId: requiredId('Le personnage'),
     included: z.boolean(),
     faceKnown: z.boolean(),
-    displayName: optionalTextField('title', 'Le nom affiché'),
+    displayName: optionalTextField('title', 'La fausse identité'),
     note: optionalTextField('short', 'La note')
   })).default([])
 })
@@ -715,7 +715,7 @@ export const invitationAcceptSchema = z.object({
 
 export const smtpSettingsSchema = z.object({
   enabled: z.boolean().optional().default(false),
-  host: z.string().trim().max(500, 'Le serveur SMTP : 500 caractères au plus').default(''),
+  host: z.string().trim().max(TEXT_MAX.short, tooLong('Le serveur SMTP', TEXT_MAX.short)).default(''),
   port: z.coerce.number().int().min(1).max(65535).default(587),
   secure: z.boolean().optional().default(false),
   username: optionalTextField('short', 'L’identifiant'),

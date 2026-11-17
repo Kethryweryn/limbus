@@ -25,7 +25,7 @@ describe('longueurs maximales (R9)', () => {
     const refused = await api(alice, 'POST', '/api/characters', { name: `Trop long ${++counter}`, gameId: gameId(), background: 'a'.repeat(1_000_001) })
     expect(refused.status).toBe(400)
     expect(invalidPaths(refused)).toEqual(['background'])
-    expect(invalidMessages(refused)).toEqual(['L’historique : 1 000 000 caractères au plus'])
+    expect(invalidMessages(refused)).toEqual(['Le background : 1 000 000 caractères au plus'])
   })
 
   it('refuse un nom de personnage, un titre de document ou une description d’intrigue trop longs, avec leur plafond', async () => {

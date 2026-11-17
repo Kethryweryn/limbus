@@ -109,7 +109,7 @@ describe('contact d’urgence complet (SPEC-023, R8)', () => {
 describe('longueurs maximales (SPEC-023, R9)', () => {
   it('donne à chaque type de texte son plafond, avec un message lisible', () => {
     expect(TEXT_MAX).toEqual({ personName: 100, title: 200, short: 500, long: 50_000, background: 1_000_000 })
-    expect(tooLong('L’historique', 1_000_000)).toBe('L’historique : 1 000 000 caractères au plus')
+    expect(tooLong('Le background', 1_000_000)).toBe('Le background : 1 000 000 caractères au plus')
     expect(tooLong('Le nom', 200)).toBe('Le nom : 200 caractères au plus')
   })
 
