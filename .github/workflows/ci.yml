@@ -81,8 +81,9 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
-      # Toutes les dépendances, outils de build compris : ils produisent le build déployé et tournent aussi sur le serveur
-      - run: npm audit --audit-level=high
+      # Toutes les dépendances, outils de build compris : ils produisent le build déployé et tournent aussi sur le serveur.
+      # Un avis grave bloque, sauf exemption nommée dans le script (ADR-0094)
+      - run: node scripts/audit.mjs
 
   # Le build, construit une fois : l'intégration et Playwright le testent en parallèle, puis `check` l'archive.
   # L'arbre Git et la version de Node l'accompagnent : le déploiement vérifie le premier, le serveur le second.

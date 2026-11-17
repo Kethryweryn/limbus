@@ -97,3 +97,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0091](ADR-0091-csp-sans-strict-dynamic.md) | CSP sans strict-dynamic, icônes livrées avec Limbus, violations vérifiées par la suite de bout en bout | accepté | 2026-11-12 |
 | [ADR-0092](ADR-0092-validation-des-saisies.md) | Règles de saisie partagées, téléphones vérifiés par libphonenumber-js | accepté | 2026-11-17 |
 | [ADR-0093](ADR-0093-mise-a-jour-par-bandeau.md) | Une nouvelle version se charge depuis un bandeau, jamais d'elle-même | accepté | 2026-11-17 |
+| [ADR-0094](ADR-0094-exemptions-de-l-audit.md) | L'audit de la CI peut exempter un avis nommé, sans correctif, qui ne touche pas le serveur en service | accepté | 2026-11-17 |
