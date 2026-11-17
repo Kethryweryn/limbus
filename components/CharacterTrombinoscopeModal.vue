@@ -68,12 +68,12 @@
                 </div>
               </div>
 
-              <UFormField label="Nom affiché">
-                <UInput v-model="entry.displayName" :disabled="!entry.included" class="w-full" />
+              <UFormField label="Nom affiché" :error="rowErrors[entry.targetCharacterId]?.displayName">
+                <UInput v-model="entry.displayName" :disabled="!entry.included && !rowErrors[entry.targetCharacterId]?.displayName" class="w-full" />
               </UFormField>
 
-              <UFormField label="Note personnalisée">
-                <UTextarea v-model="entry.note" :disabled="!entry.included" :rows="3" class="w-full" />
+              <UFormField label="Note personnalisée" :error="rowErrors[entry.targetCharacterId]?.note">
+                <UTextarea v-model="entry.note" :disabled="!entry.included && !rowErrors[entry.targetCharacterId]?.note" :rows="3" class="w-full" />
               </UFormField>
             </div>
           </article>
@@ -109,6 +109,8 @@ const entries = ref<Entry[]>([])
 // Version lue du trombinoscope, renvoyée à l'enregistrement (ADR-0036)
 const version = ref<string>(NO_VERSION)
 const serverError = ref('')
+// Refus du serveur rangés sous les champs de chaque personnage (SPEC-023, R11)
+const { rowErrors, report, reset } = useListErrors('entries', ['displayName', 'note'])
 
 watch(() => props.open, async (value) => {
   if (value) {
@@ -121,6 +123,7 @@ async function loadConfig() {
 
   loading.value = true
   serverError.value = ''
+  reset()
 
   try {
     const data = await useApiFetch(characterReads.trombinoscope(props.character.id), { offlineCache: true })
@@ -152,6 +155,7 @@ async function saveConfig() {
 
   saving.value = true
   serverError.value = ''
+  reset()
   try {
     await useApiFetch(characterReads.trombinoscope(props.character.id), {
       method: 'PUT',
@@ -168,7 +172,7 @@ async function saveConfig() {
     })
     isOpen.value = false
   } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
+    serverError.value = report(err, 'Erreur inconnue', entries.value.map((entry) => entry.targetCharacterId))
   } finally {
     saving.value = false
   }

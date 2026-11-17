@@ -49,7 +49,7 @@ Cet epic répond aux retours A9-1, A9-2 et A10-1 du cahier de tests.
   - R12 précisée : un texte déjà trop long est refusé à la prochaine modification de sa fiche.
 - Changé en passant : une modification faite hors ligne et refusée affiche le détail du refus.
 - Limites connues :
-  - le trombinoscope d'un personnage, la note d'une ligne de casting et les réglages d'envoi gardent le message sous le bouton ;
+  - le trombinoscope d'un personnage, la note d'une ligne de casting et les réglages d'envoi gardaient le message sous le bouton : corrigé le 2026-11-17 (branche `fix/refus-sous-le-champ`), chaque refus s'affiche sous le champ de sa ligne ;
   - la limite de taille d'Apache sur le serveur n'a pas été vérifiée ;
   - hors ligne, un numéro s'affiche tel qu'il a été tapé jusqu'au retour du réseau (choix de l'utilisatrice).
 - À vérifier dans le cahier : A9-1, A9-2 et A10-1.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FIELDS_INVALID_MESSAGE, NO_NETWORK_MESSAGE, NO_NETWORK_PAGE_MESSAGE, apiErrorMessage, apiFieldErrors, isValidationError, loadErrorMessage, splitApiErrors } from '~/utils/apiErrors'
+import { FIELDS_INVALID_MESSAGE, NO_NETWORK_MESSAGE, NO_NETWORK_PAGE_MESSAGE, apiErrorMessage, apiFieldErrors, isValidationError, loadErrorMessage, splitApiErrors, splitListErrors } from '~/utils/apiErrors'
 
 const validation = { data: { message: 'Requête invalide', data: { data: [{ path: 'phone', message: 'Le téléphone est obligatoire' }, { path: 'email', message: 'Email invalide' }] } } }
 
@@ -53,7 +53,33 @@ describe('splitApiErrors (SPEC-023, R11)', () => {
     expect(isValidationError({ data: { message: 'Ce lien a expiré : demandez-en un nouveau.' } })).toBe(false)
   })
 
+  it('garde sous un champ son premier refus, le plus précis', () => {
+    const twice = { data: { message: 'Requête invalide', data: { data: [{ path: 'to', message: 'Le destinataire est obligatoire' }, { path: 'to', message: 'Email invalide' }] } } }
+    expect(splitApiErrors(twice, 'Erreur').fields).toEqual({ to: 'Le destinataire est obligatoire' })
+    expect(apiFieldErrors(twice)).toEqual({ to: 'Le destinataire est obligatoire' })
+  })
+
   it('sans validation, rend le message habituel', () => {
     expect(splitApiErrors({ data: { message: 'Période introuvable' } }, 'Erreur', ['email'])).toEqual({ fields: {}, message: 'Période introuvable' })
+  })
+})
+
+describe('splitListErrors (SPEC-023, R11)', () => {
+  const refused = { data: { message: 'Requête invalide', data: { data: [
+    { path: 'entries.1.note', message: 'La note : 500 caractères au plus' },
+    { path: 'entries.0.displayName', message: 'La fausse identité : 200 caractères au plus' },
+    { path: 'updatedAt', message: 'Version manquante' }
+  ] } } }
+
+  it('range chaque refus sous le champ de sa ligne, désignée par son identifiant', () => {
+    expect(splitListErrors(refused, 'Erreur', 'entries', ['a', 'b'], ['displayName', 'note'])).toEqual({
+      rows: { a: { displayName: 'La fausse identité : 200 caractères au plus' }, b: { note: 'La note : 500 caractères au plus' } },
+      message: 'Version manquante'
+    })
+  })
+
+  it('garde dans le message le refus d’un champ que la ligne n’affiche pas', () => {
+    expect(splitListErrors(refused, 'Erreur', 'entries', ['a', 'b'], ['note']).rows).toEqual({ b: { note: 'La note : 500 caractères au plus' } })
+    expect(splitListErrors(refused, 'Erreur', 'entries', ['a', 'b'], ['note']).message).toBe('La fausse identité : 200 caractères au plus ; Version manquante')
   })
 })

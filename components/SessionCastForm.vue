@@ -136,7 +136,9 @@
             </p>
           </div>
         </div>
-        <UInput v-model="assignment.notes" placeholder="Notes" class="lg:col-span-2" />
+        <UFormField :error="rowErrors[assignment.characterId]?.notes" class="lg:col-span-2">
+          <UInput v-model="assignment.notes" placeholder="Notes" aria-label="Notes" class="w-full" />
+        </UFormField>
         <div class="lg:col-span-1" />
       </div>
 
@@ -321,6 +323,8 @@ const assignments = ref<CastLine[]>([])
 const uploadingIndex = ref<number | null>(null)
 const saving = ref(false)
 const serverError = ref('')
+// Refus du serveur rangés sous la note de chaque ligne (SPEC-023, R11)
+const { rowErrors, report, reset } = useListErrors('assignments', ['notes'])
 const fileInputs = ref<HTMLInputElement[]>([])
 const selectedPhotoNames = ref<Record<number, string>>({})
 const showPhotoPreview = ref(false)
@@ -555,17 +559,26 @@ async function submit() {
   if (saving.value) return
 
   saving.value = true
+  reset()
+  // Une personne qui a refusé l'usage de sa photo ne garde pas celle de la ligne (US-109)
+  const lines = assignments.value
+    .filter((assignment) => assignment.characterId)
+    .map((assignment) => photoRefused(assignment) ? { ...assignment, photoUrl: '' } : assignment)
   try {
-    // Une personne qui a refusé l'usage de sa photo ne garde pas celle de la ligne (US-109)
-    await props.onSave(assignments.value
-      .filter((assignment) => assignment.characterId)
-      .map((assignment) => photoRefused(assignment) ? { ...assignment, photoUrl: '' } : assignment))
+    await props.onSave(lines)
     serverError.value = ''
   } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
+    serverError.value = report(err, 'Erreur inconnue', lines.map((line) => line.characterId))
+    showFirstRefusedLine()
   } finally {
     saving.value = false
   }
+}
+
+// Page de la première ligne refusée, pour que son message soit à l'écran
+function showFirstRefusedLine() {
+  const index = sortedAssignments.value.findIndex((assignment) => rowErrors.value[assignment.characterId])
+  if (index >= 0) currentPage.value = Math.floor(index / itemsPerPage) + 1
 }
 
 async function uploadAssignmentPhoto(event: Event, assignment: CastLine, index: number) {

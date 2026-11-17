@@ -37,6 +37,15 @@ function validationIssues(err: unknown) {
   return Array.isArray(issues) ? issues : []
 }
 
+// Premier message de chaque chemin, comme zod les rend : le plus précis (« obligatoire », plafond) passe avant la forme
+function firstByPath(issues: Array<{ path?: string, message?: string }>) {
+  const byPath: Record<string, string> = {}
+  for (const issue of issues) {
+    if (issue.path && !(issue.path in byPath)) byPath[issue.path] = issue.message || ''
+  }
+  return byPath
+}
+
 // Refus d'une validation de la saisie (et non d'un refus du serveur pour une autre raison)
 export function isValidationError(err: unknown) {
   return validationIssues(err).length > 0
@@ -44,7 +53,7 @@ export function isValidationError(err: unknown) {
 
 // Détail par champ d'une validation zod, pour afficher chaque message sous son champ
 export function apiFieldErrors(err: unknown): Record<string, string> {
-  return Object.fromEntries(validationIssues(err).filter((issue) => issue.path).map((issue) => [issue.path!, issue.message || '']))
+  return firstByPath(validationIssues(err))
 }
 
 export const FIELDS_INVALID_MESSAGE = 'Certaines informations sont manquantes ou incorrectes.'
@@ -56,13 +65,30 @@ export const FIELDS_INVALID_MESSAGE = 'Certaines informations sont manquantes ou
  */
 export function splitApiErrors(err: unknown, fallback: string, fields?: readonly string[]) {
   const isShown = (path?: string) => Boolean(path) && (!fields || fields.includes(path!))
-  const shown = Object.fromEntries(validationIssues(err).filter((issue) => isShown(issue.path)).map((issue) => [issue.path!, issue.message || '']))
+  const shown = firstByPath(validationIssues(err).filter((issue) => isShown(issue.path)))
   // Un refus sans champ (tout le corps) ou d'un champ absent de l'écran reste dans le message
   const hidden = validationIssues(err).filter((issue) => !isShown(issue.path)).map((issue) => issue.message).filter(Boolean)
   const message = hidden.length
     ? [...new Set(hidden)].join(' ; ')
     : Object.keys(shown).length ? FIELDS_INVALID_MESSAGE : apiErrorMessage(err, fallback)
   return { fields: shown, message }
+}
+
+/**
+ * Refus des champs d'une liste envoyée d'un bloc (`list.N.champ`), rangés par ligne : `ids` donne l'identifiant de
+ * chaque ligne dans l'ordre de l'envoi, `fields` les champs affichés sur une ligne. Le reste va dans le message,
+ * comme pour splitApiErrors.
+ */
+export function splitListErrors(err: unknown, fallback: string, list: string, ids: readonly string[], fields: readonly string[]) {
+  const paths = ids.flatMap((_, index) => fields.map((field) => `${list}.${index}.${field}`))
+  const { fields: shown, message } = splitApiErrors(err, fallback, paths)
+  const rows: Record<string, Record<string, string>> = {}
+  for (const [path, text] of Object.entries(shown)) {
+    const [, index, field] = path.split('.')
+    const id = ids[Number(index)]!
+    rows[id] = { ...rows[id], [field!]: text }
+  }
+  return { rows, message }
 }
 
 // Message du serveur seul (h3 le range sous data.message), sinon le texte par défaut ; les écrans passent par

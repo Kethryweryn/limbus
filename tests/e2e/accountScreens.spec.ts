@@ -4,7 +4,7 @@ import { createTestPrisma } from '../integration/db'
 import { linkToken } from '../integration/smtp'
 import { E2E_USERS } from './constants'
 import { openMailbox } from './mailbox'
-import { blockWith, expectLoggedIn, openUserMenu, orgaGame, signIn, slugOf, test, testUser, uniqueName, uniquePersonName } from './helpers'
+import { blockWith, expectLoggedIn, fieldError, openUserMenu, orgaGame, signIn, slugOf, test, testUser, uniqueName, uniquePersonName } from './helpers'
 import { withFicheValues } from '../fiche'
 
 // EPIC-050, lot 4 (US-201) : inscription libre, compte, invitations à co-organiser et administration, sur les quatre
@@ -441,7 +441,7 @@ test.describe('administration', () => {
     }
   })
 
-  test('le réglage SMTP refuse un envoi activé sans serveur, sans rien enregistrer', async ({ page }) => {
+  test('le réglage SMTP refuse un envoi activé sans serveur, sous son champ, sans rien enregistrer', async ({ page }) => {
     const prisma = createTestPrisma()
     try {
       const { email: adminEmail } = await testUser(prisma, 'Admin SMTP', 'admin')
@@ -451,11 +451,23 @@ test.describe('administration', () => {
       await expect(page.getByLabel('Serveur SMTP')).toHaveValue('127.0.0.1')
       await page.getByLabel('Serveur SMTP').fill('')
       await page.getByRole('button', { name: 'Enregistrer' }).click()
-      await expect(page.getByText(/Le serveur SMTP est obligatoire quand l’envoi est activé/)).toBeVisible()
+      await expect(fieldError(page, 'Serveur SMTP', 'Le serveur SMTP est obligatoire quand l’envoi est activé')).toBeVisible()
+
+      // Un nom d'expéditeur trop long et une adresse mal formée : chacun sous son champ (SPEC-023, R11)
+      await page.getByLabel('Serveur SMTP').fill('127.0.0.1')
+      await page.getByLabel('Nom expéditeur').fill('a'.repeat(501))
+      await page.getByLabel('Email expéditeur').fill('contact@limbus')
+      await page.getByLabel('Port').fill('70000')
+      await page.getByRole('button', { name: 'Enregistrer' }).click()
+      await expect(fieldError(page, 'Nom expéditeur', 'Le nom expéditeur : 500 caractères au plus')).toBeVisible()
+      await expect(fieldError(page, 'Email expéditeur', 'Email invalide')).toBeVisible()
+      await expect(fieldError(page, 'Port', 'Le port : un nombre entier de 1 à 65535')).toBeVisible()
+      await expect(fieldError(page, 'Serveur SMTP', 'Le serveur SMTP est obligatoire quand l’envoi est activé')).toBeHidden()
 
       await page.getByLabel('Destinataire').fill('')
       await page.getByRole('button', { name: 'Envoyer un test' }).click()
-      await expect(page.getByText('Le destinataire est obligatoire')).toBeVisible()
+      await expect(fieldError(page, 'Destinataire', 'Le destinataire est obligatoire')).toBeVisible()
+      await expect(fieldError(page, 'Nom expéditeur', 'Le nom expéditeur : 500 caractères au plus')).toBeHidden()
 
       await page.reload()
       await page.waitForLoadState('networkidle')
