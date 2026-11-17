@@ -28,10 +28,10 @@
         <AppCheckboxRow v-model="form.enabled" label="Activer l’envoi d’emails" />
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <UFormField label="Serveur SMTP">
+          <UFormField label="Serveur SMTP" :error="fieldErrors.host">
             <UInput v-model="form.host" placeholder="smtp.exemple.fr" class="w-full" />
           </UFormField>
-          <UFormField label="Port">
+          <UFormField label="Port" :error="fieldErrors.port">
             <UInput v-model="form.port" type="number" min="1" max="65535" class="w-full" />
           </UFormField>
           <UFormField label="Sécurité">
@@ -40,10 +40,10 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <UFormField label="Utilisateur SMTP">
+          <UFormField label="Utilisateur SMTP" :error="fieldErrors.username">
             <UInput v-model="form.username" autocomplete="username" class="w-full" />
           </UFormField>
-          <UFormField :label="settings?.hasPassword ? 'Nouveau mot de passe SMTP' : 'Mot de passe SMTP'">
+          <UFormField :label="settings?.hasPassword ? 'Nouveau mot de passe SMTP' : 'Mot de passe SMTP'" :error="fieldErrors.password">
             <PasswordInput
               v-model="form.password"
               autocomplete="new-password"
@@ -54,10 +54,10 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <UFormField label="Email expéditeur">
+          <UFormField label="Email expéditeur" :error="fieldErrors.fromEmail">
             <UInput v-model="form.fromEmail" type="email" placeholder="contact@exemple.fr" class="w-full" />
           </UFormField>
-          <UFormField label="Nom expéditeur">
+          <UFormField label="Nom expéditeur" :error="fieldErrors.fromName">
             <UInput v-model="form.fromName" placeholder="Limbus" class="w-full" />
           </UFormField>
         </div>
@@ -84,7 +84,7 @@
       </template>
 
       <form class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-end" novalidate @submit.prevent="sendTest">
-        <UFormField label="Destinataire">
+        <UFormField label="Destinataire" :error="testErrors.to">
           <UInput v-model="testEmail" type="email" class="w-full" />
         </UFormField>
         <UButton type="submit" color="primary" variant="soft" :loading="testing" :disabled="testing || testCooldown">
@@ -109,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { apiErrorMessage, loadErrorMessage } from '~/utils/apiErrors'
+import { loadErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
 
 const secureOptions = [
@@ -125,6 +125,9 @@ const message = ref('')
 const serverError = ref('')
 const testEmail = ref('')
 const loadError = ref('')
+// Refus du serveur sous leurs champs (SPEC-023, R11), un jeu par formulaire
+const { fieldErrors, report, reset } = useFieldErrors(['host', 'port', 'username', 'password', 'fromEmail', 'fromName'])
+const { fieldErrors: testErrors, report: reportTest, reset: resetTest } = useFieldErrors(['to'])
 
 const form = ref({
   enabled: false,
@@ -168,6 +171,8 @@ async function save(password: string | null | undefined) {
   saving.value = true
   serverError.value = ''
   message.value = ''
+  reset()
+  resetTest()
 
   try {
     settings.value = await useApiAction('/api/admin/smtp', {
@@ -181,7 +186,7 @@ async function save(password: string | null | undefined) {
     form.value.password = ''
     message.value = 'Configuration SMTP enregistrée.'
   } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Impossible d’enregistrer la configuration SMTP')
+    serverError.value = report(err, 'Impossible d’enregistrer la configuration SMTP')
   } finally {
     saving.value = false
   }
@@ -197,6 +202,8 @@ async function sendTest() {
   testing.value = true
   serverError.value = ''
   message.value = ''
+  reset()
+  resetTest()
 
   try {
     await useApiAction('/api/admin/smtp/test', {
@@ -205,7 +212,7 @@ async function sendTest() {
     })
     message.value = `Email de test envoyé à ${testEmail.value}.`
   } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Impossible d’envoyer l’email de test')
+    serverError.value = reportTest(err, 'Impossible d’envoyer l’email de test')
   } finally {
     testing.value = false
     testCooldown.value = true

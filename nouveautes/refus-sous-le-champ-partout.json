@@ -1,0 +1,5 @@
+{
+  "type": "corrige",
+  "titre": "Le message d’un refus sous son champ, partout",
+  "texte": "Dans le trombinoscope d’un personnage, dans le casting d’une session et dans les réglages d’envoi des emails, un texte trop long ou une adresse mal formée est signalé sous le champ concerné, sur la bonne ligne, au lieu d’un message en bas du formulaire."
+}

@@ -68,11 +68,11 @@
                 </div>
               </div>
 
-              <UFormField label="Nom affiché">
+              <UFormField label="Nom affiché" :error="rowErrors[entry.targetCharacterId]?.displayName">
                 <UInput v-model="entry.displayName" :disabled="!entry.included" class="w-full" />
               </UFormField>
 
-              <UFormField label="Note personnalisée">
+              <UFormField label="Note personnalisée" :error="rowErrors[entry.targetCharacterId]?.note">
                 <UTextarea v-model="entry.note" :disabled="!entry.included" :rows="3" class="w-full" />
               </UFormField>
             </div>
@@ -88,7 +88,7 @@
 <script setup lang="ts">
 import { CHARACTER_TYPES } from '~/utils/domain'
 import { NO_VERSION } from '~/utils/offlineSync'
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { apiErrorMessage, splitListErrors } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { characterReads } from '~/utils/offlinePlan'
 
@@ -109,6 +109,8 @@ const entries = ref<Entry[]>([])
 // Version lue du trombinoscope, renvoyée à l'enregistrement (ADR-0036)
 const version = ref<string>(NO_VERSION)
 const serverError = ref('')
+// Refus du serveur rangés sous les champs de chaque personnage (SPEC-023, R11)
+const rowErrors = ref<Record<string, Record<string, string>>>({})
 
 watch(() => props.open, async (value) => {
   if (value) {
@@ -121,6 +123,7 @@ async function loadConfig() {
 
   loading.value = true
   serverError.value = ''
+  rowErrors.value = {}
 
   try {
     const data = await useApiFetch(characterReads.trombinoscope(props.character.id), { offlineCache: true })
@@ -152,6 +155,7 @@ async function saveConfig() {
 
   saving.value = true
   serverError.value = ''
+  rowErrors.value = {}
   try {
     await useApiFetch(characterReads.trombinoscope(props.character.id), {
       method: 'PUT',
@@ -168,7 +172,9 @@ async function saveConfig() {
     })
     isOpen.value = false
   } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
+    const { rows, message } = splitListErrors(err, 'Erreur inconnue', 'entries', entries.value.map((entry) => entry.targetCharacterId), ['displayName', 'note'])
+    rowErrors.value = rows
+    serverError.value = message
   } finally {
     saving.value = false
   }

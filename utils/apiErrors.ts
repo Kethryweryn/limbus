@@ -65,6 +65,23 @@ export function splitApiErrors(err: unknown, fallback: string, fields?: readonly
   return { fields: shown, message }
 }
 
+/**
+ * Refus des champs d'une liste envoyée d'un bloc (`list.N.champ`), rangés par ligne : `ids` donne l'identifiant de
+ * chaque ligne dans l'ordre de l'envoi, `fields` les champs affichés sur une ligne. Le reste va dans le message,
+ * comme pour splitApiErrors.
+ */
+export function splitListErrors(err: unknown, fallback: string, list: string, ids: readonly string[], fields: readonly string[]) {
+  const paths = ids.flatMap((_, index) => fields.map((field) => `${list}.${index}.${field}`))
+  const { fields: shown, message } = splitApiErrors(err, fallback, paths)
+  const rows: Record<string, Record<string, string>> = {}
+  for (const [path, text] of Object.entries(shown)) {
+    const [, index, field] = path.split('.')
+    const id = ids[Number(index)]!
+    rows[id] = { ...rows[id], [field!]: text }
+  }
+  return { rows, message }
+}
+
 // Message du serveur seul (h3 le range sous data.message), sinon le texte par défaut ; les écrans passent par
 // apiErrorMessage ou loadErrorMessage, qui y ajoutent le réseau absent et le détail d'une validation
 function serverMessage(err: unknown, fallback: string) {

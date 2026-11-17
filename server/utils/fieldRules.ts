@@ -41,8 +41,9 @@ export function optionalTextField(kind: TextKind, label: string) {
 export const EMAIL_MAX_LENGTH = 254
 
 /** Adresse email obligatoire (R10) : en minuscules, 254 caractères au plus, de la forme d'une adresse. */
+// Vide, seul « obligatoire » est rendu : « Email invalide » l'écraserait sous le champ
 export function requiredEmail(label = 'L’email') {
-  return z.string({ error: `${label} est obligatoire` }).trim().min(1, `${label} est obligatoire`).toLowerCase()
+  return z.string({ error: `${label} est obligatoire` }).trim().min(1, { message: `${label} est obligatoire`, abort: true }).toLowerCase()
     .max(EMAIL_MAX_LENGTH, tooLong(label, EMAIL_MAX_LENGTH)).email('Email invalide')
 }
 
