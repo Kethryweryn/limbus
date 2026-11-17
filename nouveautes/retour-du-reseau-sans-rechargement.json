@@ -1,0 +1,5 @@
+{
+  "type": "modifie",
+  "titre": "Le retour du réseau ne recharge plus la page",
+  "texte": "Quand le réseau revient, les modifications faites hors ligne partent comme avant, puis un message dit qu’elles sont envoyées. La page se met à jour sans se recharger. Si vous êtes en train d’écrire ou si une fenêtre est ouverte, elle attend que vous ayez fini."
+}

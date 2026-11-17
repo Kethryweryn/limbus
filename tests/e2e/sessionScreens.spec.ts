@@ -227,7 +227,10 @@ test('déroulé : les responsables se choisissent parmi l’organisation et les 
     await expect(page.getByLabel(`Assigner ${player.name} à ${eventName}`)).toHaveCount(0)
     await page.getByLabel(`Assigner ${npc.name} à ${eventName}`).check()
     await expect(page.locator('article').filter({ hasText: eventName }).getByText('1/2', { exact: true })).toBeVisible()
+    // La réponse porte la nouvelle version de la session : l'enregistrement suivant doit partir avec elle
+    const saved = page.waitForResponse((response) => response.url().endsWith(`/api/sessions/${session.id}/timeline`) && response.request().method() === 'PUT')
     await page.getByRole('button', { name: 'Enregistrer la timeline' }).click()
+    expect((await saved).ok()).toBe(true)
     await expect.poll(() => prisma.timelineEventResponsible.findMany({ where: { sessionId: session.id, timelineEventId: event.id }, select: { participantId: true } }))
       .toEqual([{ participantId: npc.id }])
 
