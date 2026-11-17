@@ -31,7 +31,7 @@ Les dépendances n'étaient pas suivies. Fusionner une PR de mise à jour la dé
 
 ## Conséquences
 
-- Les correctifs de sécurité arrivent avec 7 jours de retard ; `npm audit` en CI signale entre-temps les vulnérabilités graves des dépendances de production.
+- Les correctifs de sécurité arrivent avec 7 jours de retard ; `npm audit` en CI signale entre-temps les vulnérabilités graves des dépendances de production. Depuis [ADR-0094](ADR-0094-exemptions-de-l-audit.md), un avis sans correctif qui ne touche pas le serveur en service peut en être exempté, nommément.
 - Les majeures ignorées doivent être revérifiées de temps en temps, puisque Dependabot ne les propose plus.
 
 ## Options écartées
