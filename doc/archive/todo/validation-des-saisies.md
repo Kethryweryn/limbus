@@ -1,6 +1,7 @@
 ---
 titre: Valider les saisies partout
 statut: prête
+epic: ../epics/EPIC-060-validation-des-saisies/README.md
 date: 2026-11-17
 spec: ../../specs/SPEC-023-validation-des-saisies.md
 ---

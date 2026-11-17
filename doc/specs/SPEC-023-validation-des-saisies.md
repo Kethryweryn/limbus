@@ -1,7 +1,7 @@
 ---
 id: SPEC-023
 titre: Valider les saisies partout
-statut: en cours
+statut: implémentée
 date: 2026-11-17
 origine: ../archive/todo/validation-des-saisies.md
 epics: [EPIC-060]
@@ -116,3 +116,13 @@ Cette spec répond aux retours A9-1, A9-2 et A10-1 du cahier de tests, et étend
 - Les mots de passe : leurs règles ne changent pas.
 - Les liens, dont les règles sont déjà en place (https:// ou fichier téléversé).
 - La vérification qu'un téléphone existe vraiment, par appel ou SMS.
+
+## Historique
+
+- 2026-11-17 : spec rédigée à partir de la [fiche](../archive/todo/validation-des-saisies.md), avec les choix de l'utilisatrice du 2026-11-17. Ces choix portent sur les caractères des noms, la vérification des téléphones selon leur pays, le format +33, l'affichage sous la forme rangée, le contact d'urgence complet, le barème des longueurs et les valeurs existantes.
+- 2026-11-17 : précisions de l'utilisatrice :
+  - les intrigues et la note d'intention sont des textes longs ;
+  - les points, tirets et parenthèses sont acceptés dans un numéro ;
+  - l'export CSV garde le numéro en texte ;
+  - R12 vaut pour les noms et téléphones, et un texte déjà trop long est refusé à la prochaine modification de sa fiche.
+- 2026-11-17 : implémentée en un lot ([EPIC-060](../archive/epics/EPIC-060-validation-des-saisies/README.md), PR #254 à #256), déployée.
