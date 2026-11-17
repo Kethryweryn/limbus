@@ -256,7 +256,7 @@ test('timeline : le jour est demandé, et l’événement s’affiche à son jou
     // Jour vide : refusé avec son message (US-204), rien n'est créé
     await field(form, 'Jour').fill('')
     await form.getByRole('button', { name: 'Créer', exact: true }).click()
-    await expect(form.getByText('Le jour est requis.')).toBeVisible()
+    await expect(form.getByText('Le jour est obligatoire')).toBeVisible()
     expect(await prisma.timelineEvent.findFirst({ where: { name } })).toBeNull()
 
     await field(form, 'Jour').fill('2')

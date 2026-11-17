@@ -20,11 +20,11 @@
         <UInput v-model="localLocation.name" size="lg" class="w-full" />
       </UFormField>
 
-      <UFormField label="Adresse">
+      <UFormField label="Adresse" :error="errors.address">
         <UTextarea v-model.nullable="localLocation.address" :rows="8" size="lg" class="w-full" />
       </UFormField>
 
-      <UFormField label="Notes">
+      <UFormField label="Notes" :error="errors.notes">
         <UTextarea v-model.nullable="localLocation.notes" :rows="8" size="lg" class="w-full" />
       </UFormField>
 
@@ -44,7 +44,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { splitApiErrors } from '~/utils/apiErrors'
 import type { GameOption, LocationDraft } from '~/utils/writingDrafts'
 
 const props = withDefaults(defineProps<{
@@ -59,6 +59,8 @@ const emit = defineEmits<{ cancel: [], 'update:location': [location: LocationDra
 
 const localLocation = ref<LocationDraft>({ ...props.location })
 const errors = ref<Record<string, string>>({})
+// Champs du formulaire qui affichent un refus du serveur
+const SERVER_FIELDS = ['address', 'gameId', 'name', 'notes']
 const serverError = ref('')
 
 const gameOptions = computed(() => props.games.map((game) => ({
@@ -75,10 +77,10 @@ watch(() => props.location, (newLocation) => {
 function validate() {
   errors.value = {}
   if (!localLocation.value.name?.trim()) {
-    errors.value.name = 'Le nom est requis.'
+    errors.value.name = 'Le nom est obligatoire'
   }
   if (!localLocation.value.gameId) {
-    errors.value.gameId = 'Le jeu est requis.'
+    errors.value.gameId = 'Le jeu est obligatoire'
   }
   return Object.keys(errors.value).length === 0
 }
@@ -91,7 +93,10 @@ async function submit() {
     await props.onSubmit()
     serverError.value = ''
   } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
+    // Refus du serveur sous son champ (SPEC-023, R11) ; les autres restent sous le bouton
+    const { fields, message } = splitApiErrors(err, 'Erreur inconnue', SERVER_FIELDS)
+    errors.value = fields
+    serverError.value = message
   }
 }
 </script>

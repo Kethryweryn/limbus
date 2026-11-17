@@ -1,0 +1,5 @@
+{
+  "type": "modifie",
+  "titre": "Une longueur maximale pour chaque texte",
+  "texte": "Chaque texte a désormais une longueur maximale selon son usage : 200 caractères pour un titre ou un nom, 500 pour une adresse ou une note courte, 50 000 pour une description ou une note d’intention, et un million pour l’historique d’un personnage ou d’un groupe et le contenu d’un document. Un texte trop long est signalé sous son champ, avec son plafond. Les adresses email sont vérifiées partout de la même façon, et enregistrées en minuscules."
+}

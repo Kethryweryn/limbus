@@ -24,7 +24,7 @@
         <UTextarea v-model.nullable="localDocument.content" :rows="12" size="lg" class="w-full" />
       </UFormField>
 
-      <UFormField label="Document lié">
+      <UFormField label="Document lié" :error="errors.documentUrl">
         <UInput v-model.nullable="localDocument.documentUrl" size="lg" class="w-full" placeholder="Lien PDF, docx, Google Docs..." />
       </UFormField>
 
@@ -51,7 +51,7 @@
       />
 
       <div v-if="advanced" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <UFormField label="Personnages">
+        <UFormField label="Personnages" :error="errors.characterIds">
           <USelectMenu
             v-model="localDocument.characterIds"
             :items="characterOptions"
@@ -64,7 +64,7 @@
           />
         </UFormField>
 
-        <UFormField label="Groupes">
+        <UFormField label="Groupes" :error="errors.factionIds">
           <USelectMenu
             v-model="localDocument.factionIds"
             :items="factionOptions"
@@ -111,7 +111,7 @@
 import { computed, ref, watch } from 'vue'
 import { CHARACTER_TYPES } from '~/utils/domain'
 import { ALL_DOCUMENT_ROLES, DOCUMENT_ROLE_OPTIONS, documentRoles, isDocumentTargeted, isEveryone, type DocumentRole } from '~/utils/documentAudiences'
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { splitApiErrors } from '~/utils/apiErrors'
 import type { CharacterOption, DocumentDraft, FactionOption, GameOption } from '~/utils/writingDrafts'
 
 type EditedDocument = DocumentDraft & { audiences: string[], characterIds: string[], factionIds: string[] }
@@ -131,6 +131,8 @@ const emit = defineEmits<{ cancel: [], 'update:document': [document: DocumentDra
 const localDocument = ref<EditedDocument>({ ...props.document, audiences: [], characterIds: [], factionIds: [] })
 const advanced = ref(false)
 const errors = ref<Record<string, string>>({})
+// Champs du formulaire qui affichent un refus du serveur
+const SERVER_FIELDS = ['characterIds', 'content', 'documentUrl', 'factionIds', 'gameId', 'title']
 const serverError = ref('')
 
 const gameOptions = computed(() => props.games.map((game) => ({
@@ -199,8 +201,8 @@ watch(() => localDocument.value.gameId, () => {
 
 function validate() {
   errors.value = {}
-  if (!localDocument.value.title?.trim()) errors.value.title = 'Le titre est requis.'
-  if (!localDocument.value.gameId) errors.value.gameId = 'Le jeu est requis.'
+  if (!localDocument.value.title?.trim()) errors.value.title = 'Le titre est obligatoire'
+  if (!localDocument.value.gameId) errors.value.gameId = 'Le jeu est obligatoire'
   if (!localDocument.value.content?.trim() && !localDocument.value.documentUrl?.trim()) {
     errors.value.content = 'Renseignez un corps ou un document lié.'
   }
@@ -216,7 +218,10 @@ async function submit() {
     await props.onSubmit()
     serverError.value = ''
   } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
+    // Refus du serveur sous son champ (SPEC-023, R11) ; les autres restent sous le bouton
+    const { fields, message } = splitApiErrors(err, 'Erreur inconnue', SERVER_FIELDS)
+    errors.value = fields
+    serverError.value = message
   }
 }
 </script>

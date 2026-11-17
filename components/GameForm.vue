@@ -42,17 +42,17 @@
 
       <!-- Photos des participants (US-107, SPEC-012) : données dans le texte d'information des personnes -->
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <UFormField label="Conservation des photos (mois après la session)" description="Les photos du cast et les trombinoscopes sont ensuite supprimés.">
+        <UFormField label="Conservation des photos (mois après la session)" description="Les photos du cast et les trombinoscopes sont ensuite supprimés." :error="errors.photoRetentionMonths">
           <UInputNumber v-model="localGame.photoRetentionMonths" :min="PHOTO_RETENTION_MIN_MONTHS" :max="PHOTO_RETENTION_MAX_MONTHS" class="w-full" />
         </UFormField>
-        <UFormField label="Adresse de contact" description="Pour demander le retrait d’une photo. Facultative : à défaut, l’adresse de la propriétaire du jeu.">
+        <UFormField label="Adresse de contact" description="Pour demander le retrait d’une photo. Facultative : à défaut, l’adresse de la propriétaire du jeu." :error="errors.contactEmail">
           <UInput v-model.nullable="localGame.contactEmail" type="email" class="w-full" />
         </UFormField>
       </div>
 
       <!-- Attribut d'équilibre des personnages (US-091) : sert à la question d'équilibre et au tirage -->
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <UFormField label="Attribut d’équilibre" description="Facultatif, par exemple « Genre du personnage ».">
+        <UFormField label="Attribut d’équilibre" description="Facultatif, par exemple « Genre du personnage »." :error="errors.balanceAttribute">
           <UInput v-model.nullable="localGame.balanceAttribute" class="w-full" />
         </UFormField>
         <UFormField v-if="localGame.balanceAttribute?.trim()" label="Valeurs" description="Une par ligne, par exemple F, H, Autre.">
@@ -78,7 +78,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { PHOTO_RETENTION_MAX_MONTHS, PHOTO_RETENTION_MIN_MONTHS } from '~/utils/photoInformation'
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { splitApiErrors } from '~/utils/apiErrors'
 import type { GameDraft } from '~/utils/writingDrafts'
 
 const props = withDefaults(defineProps<{
@@ -98,6 +98,8 @@ watch(balanceValuesText, (text) => {
   localGame.value.balanceValues = [...new Set(String(text).split('\n').map((value) => value.trim()).filter(Boolean))]
 })
 const errors = ref<Record<string, string>>({})
+// Champs du formulaire qui affichent un refus du serveur
+const SERVER_FIELDS = ['balanceAttribute', 'contactEmail', 'description', 'noteIntention', 'photoRetentionMonths', 'teaserUrl', 'title']
 const serverError = ref('')
 
 watch(() => props.game, (newGame) => {
@@ -110,7 +112,7 @@ watch(() => props.game, (newGame) => {
 function validate() {
   errors.value = {}
   if (!localGame.value.title?.trim()) {
-    errors.value.title = 'Le titre est requis.'
+    errors.value.title = 'Le titre est obligatoire'
   }
   return Object.keys(errors.value).length === 0
 }
@@ -123,7 +125,10 @@ async function submit() {
     await props.onSubmit()
     serverError.value = ''
   } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
+    // Refus du serveur sous son champ (SPEC-023, R11) ; les autres restent sous le bouton
+    const { fields, message } = splitApiErrors(err, 'Erreur inconnue', SERVER_FIELDS)
+    errors.value = fields
+    serverError.value = message
   }
 }
 </script>

@@ -16,7 +16,7 @@
         />
       </UFormField>
 
-      <UFormField label="Statut">
+      <UFormField label="Statut" :error="errors.status">
         <USelect
           v-model="localSession.status"
           :items="statusOptions"
@@ -26,7 +26,7 @@
         />
       </UFormField>
 
-      <UFormField label="Date">
+      <UFormField label="Date" :error="errors.date">
         <UInput v-model.nullable="localSession.date" type="datetime-local" size="lg" class="w-full" />
       </UFormField>
 
@@ -48,7 +48,7 @@
       </UFormField>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <UFormField label="Organisateurs">
+        <UFormField label="Organisateurs" :error="errors.organizerIds">
           <USelectMenu
             v-model="localSession.organizerIds"
             :items="sessionParticipantOptions"
@@ -61,7 +61,7 @@
           />
         </UFormField>
 
-        <UFormField label="PNJ de session">
+        <UFormField label="PNJ de session" :error="errors.npcIds">
           <USelectMenu
             v-model="localSession.npcIds"
             :items="sessionParticipantOptions"
@@ -74,7 +74,7 @@
           />
         </UFormField>
 
-        <UFormField label="Équipe cuisine">
+        <UFormField label="Équipe cuisine" :error="errors.kitchenIds">
           <USelectMenu
             v-model="localSession.kitchenIds"
             :items="sessionParticipantOptions"
@@ -106,7 +106,7 @@
 import { computed, ref, watch } from 'vue'
 import { nameInGame } from '~/utils/participantNames'
 import { CHARACTER_TYPES, SESSION_ROLES, SESSION_STATUS_OPTIONS } from '~/utils/domain'
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { splitApiErrors } from '~/utils/apiErrors'
 import { noneOption } from '~/utils/selectOptions'
 import { emptyStringModel, type CharacterOption, type GameOption, type SessionDraft } from '~/utils/writingDrafts'
 
@@ -126,6 +126,8 @@ const emit = defineEmits<{ cancel: [], 'update:session': [session: SessionDraft]
 
 const localSession = ref<SessionDraft>({ ...props.session })
 const errors = ref<Record<string, string>>({})
+// Champs du formulaire qui affichent un refus du serveur
+const SERVER_FIELDS = ['date', 'gameId', 'kitchenIds', 'npcIds', 'organizerIds', 'status']
 const serverError = ref('')
 
 const gameOptions = computed(() => props.games.map((game) => ({
@@ -233,7 +235,7 @@ watch([() => localSession.value.organizerIds, () => localSession.value.npcIds], 
 function validate() {
   errors.value = {}
   if (!localSession.value.gameId) {
-    errors.value.gameId = 'Le jeu est requis.'
+    errors.value.gameId = 'Le jeu est obligatoire'
   }
   return Object.keys(errors.value).length === 0
 }
@@ -252,7 +254,10 @@ async function submit() {
     await props.onSubmit()
     serverError.value = ''
   } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
+    // Refus du serveur sous son champ (SPEC-023, R11) ; les autres restent sous le bouton
+    const { fields, message } = splitApiErrors(err, 'Erreur inconnue', SERVER_FIELDS)
+    errors.value = fields
+    serverError.value = message
   }
 }
 </script>

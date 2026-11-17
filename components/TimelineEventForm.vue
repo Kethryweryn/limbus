@@ -25,7 +25,7 @@
           <UInput v-model="localEvent.time" type="time" size="lg" class="w-full" />
         </UFormField>
 
-        <UFormField label="Responsables nécessaires">
+        <UFormField label="Responsables nécessaires" :error="errors.requiredResponsibles">
           <UInput v-model="localEvent.requiredResponsibles" type="number" min="0" size="lg" class="w-full" />
         </UFormField>
       </div>
@@ -34,11 +34,11 @@
         <UInput v-model="localEvent.name" autofocus size="lg" class="w-full" />
       </UFormField>
 
-      <UFormField label="Description">
+      <UFormField label="Description" :error="errors.description">
         <UTextarea v-model.nullable="localEvent.description" :rows="8" size="lg" class="w-full" />
       </UFormField>
 
-      <UFormField label="Personnages liés">
+      <UFormField label="Personnages liés" :error="errors.characterIds">
         <USelectMenu
           v-model="localEvent.characterIds"
           :items="characterOptions"
@@ -51,7 +51,7 @@
         />
       </UFormField>
 
-      <UFormField label="Intrigues liées">
+      <UFormField label="Intrigues liées" :error="errors.intrigueIds">
         <USelectMenu
           v-model="localEvent.intrigueIds"
           :items="intrigueOptions"
@@ -64,7 +64,7 @@
         />
       </UFormField>
 
-      <UFormField label="Groupes liés">
+      <UFormField label="Groupes liés" :error="errors.factionIds">
         <USelectMenu
           v-model="localEvent.factionIds"
           :items="factionOptions"
@@ -77,7 +77,7 @@
         />
       </UFormField>
 
-      <UFormField label="Objets liés">
+      <UFormField label="Objets liés" :error="errors.itemIds">
         <USelectMenu
           v-model="localEvent.itemIds"
           :items="itemOptions"
@@ -107,7 +107,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { CHARACTER_TYPES, VIRTUAL_CHARACTER_GROUP_OPTIONS, VIRTUAL_CHARACTER_GROUPS } from '~/utils/domain'
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { splitApiErrors } from '~/utils/apiErrors'
 import type { CharacterOption, FactionOption, GameOption, TimelineEventDraft } from '~/utils/writingDrafts'
 
 type Named = { id: string, name: string, gameId: string }
@@ -129,6 +129,8 @@ const emit = defineEmits<{ cancel: [], 'update:event': [event: TimelineEventDraf
 
 const localEvent = ref<TimelineEventDraft>({ ...props.event })
 const errors = ref<Record<string, string>>({})
+// Champs du formulaire qui affichent un refus du serveur
+const SERVER_FIELDS = ['characterIds', 'day', 'description', 'factionIds', 'gameId', 'intrigueIds', 'itemIds', 'name', 'requiredResponsibles', 'time']
 const serverError = ref('')
 
 const gameOptions = computed(() => props.games.map((game) => ({
@@ -209,10 +211,10 @@ watch(() => localEvent.value.gameId, () => {
 
 function validate() {
   errors.value = {}
-  if (!localEvent.value.name?.trim()) errors.value.name = 'Le nom est requis.'
-  if (!localEvent.value.gameId) errors.value.gameId = 'Le jeu est requis.'
-  if (!Number(localEvent.value.day) || Number(localEvent.value.day) < 1) errors.value.day = 'Le jour est requis.'
-  if (!/^\d{2}:\d{2}$/.test(localEvent.value.time || '')) errors.value.time = 'L’heure est requise.'
+  if (!localEvent.value.name?.trim()) errors.value.name = 'Le nom est obligatoire'
+  if (!localEvent.value.gameId) errors.value.gameId = 'Le jeu est obligatoire'
+  if (!Number(localEvent.value.day) || Number(localEvent.value.day) < 1) errors.value.day = 'Le jour est obligatoire'
+  if (!/^\d{2}:\d{2}$/.test(localEvent.value.time || '')) errors.value.time = 'L’heure est obligatoire'
   return Object.keys(errors.value).length === 0
 }
 
@@ -248,7 +250,10 @@ async function submit() {
     await props.onSubmit()
     serverError.value = ''
   } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
+    // Refus du serveur sous son champ (SPEC-023, R11) ; les autres restent sous le bouton
+    const { fields, message } = splitApiErrors(err, 'Erreur inconnue', SERVER_FIELDS)
+    errors.value = fields
+    serverError.value = message
   }
 }
 </script>

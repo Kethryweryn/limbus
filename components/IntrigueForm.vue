@@ -32,16 +32,16 @@
         </UFormField>
       </div>
 
-      <UFormField label="Pitch">
+      <UFormField label="Pitch" :error="errors.pitch">
         <UTextarea v-model.nullable="localIntrigue.pitch" :rows="5" size="lg" class="w-full" />
       </UFormField>
 
-      <UFormField label="Description">
+      <UFormField label="Description" :error="errors.description">
         <UTextarea v-model.nullable="localIntrigue.description" :rows="14" size="lg" class="w-full" />
       </UFormField>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <UFormField label="Personnages">
+        <UFormField label="Personnages" :error="errors.characterIds">
           <USelectMenu
             v-model="localIntrigue.characterIds"
             :items="characterOptions"
@@ -54,7 +54,7 @@
           />
         </UFormField>
 
-        <UFormField label="Groupes">
+        <UFormField label="Groupes" :error="errors.factionIds">
           <USelectMenu
             v-model="localIntrigue.factionIds"
             :items="factionOptions"
@@ -100,7 +100,7 @@ import {
   VIRTUAL_CHARACTER_GROUP_OPTIONS,
   VIRTUAL_CHARACTER_GROUPS
 } from '~/utils/domain'
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { splitApiErrors } from '~/utils/apiErrors'
 import type { CharacterOption, FactionOption, GameOption, IntrigueDraft } from '~/utils/writingDrafts'
 
 const props = withDefaults(defineProps<{
@@ -117,6 +117,8 @@ const emit = defineEmits<{ cancel: [], 'update:intrigue': [intrigue: IntrigueDra
 
 const localIntrigue = ref<IntrigueDraft>({ ...props.intrigue })
 const errors = ref<Record<string, string>>({})
+// Champs du formulaire qui affichent un refus du serveur
+const SERVER_FIELDS = ['characterIds', 'description', 'factionIds', 'gameId', 'level', 'name', 'pitch']
 const serverError = ref('')
 
 const levelOptions: Array<{ label: string, value: string }> = [...INTRIGUE_LEVEL_OPTIONS]
@@ -176,10 +178,10 @@ watch(() => localIntrigue.value.gameId, () => {
 function validate() {
   errors.value = {}
   if (!localIntrigue.value.name?.trim()) {
-    errors.value.name = 'Le nom est requis.'
+    errors.value.name = 'Le nom est obligatoire'
   }
   if (!localIntrigue.value.gameId) {
-    errors.value.gameId = 'Le jeu est requis.'
+    errors.value.gameId = 'Le jeu est obligatoire'
   }
   return Object.keys(errors.value).length === 0
 }
@@ -212,7 +214,10 @@ async function submit() {
     await props.onSubmit()
     serverError.value = ''
   } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
+    // Refus du serveur sous son champ (SPEC-023, R11) ; les autres restent sous le bouton
+    const { fields, message } = splitApiErrors(err, 'Erreur inconnue', SERVER_FIELDS)
+    errors.value = fields
+    serverError.value = message
   }
 }
 </script>

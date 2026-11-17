@@ -16,7 +16,7 @@ v-model="localCharacter.gameId"
                 <UInput v-model="localCharacter.name" autofocus size="lg" class="w-full" />
             </UFormField>
 
-            <UFormField label="Type">
+            <UFormField label="Type" :error="errors.type">
                 <USelect
                     v-model="localCharacter.type"
                     :items="characterTypeOptions"
@@ -37,7 +37,7 @@ v-model="localCharacter.gameId"
                 />
             </UFormField>
 
-            <UFormField v-if="factionOptions.length" label="Groupes">
+            <UFormField v-if="factionOptions.length" label="Groupes" :error="errors.factionIds">
                 <USelectMenu
                     v-model="localCharacter.factionIds"
                     :items="factionOptions"
@@ -126,7 +126,7 @@ v-model="localCharacter.gameId"
                             </UButton>
                         </div>
                     </UFormField>
-                    <UFormField label="Fausse identité par défaut">
+                    <UFormField label="Fausse identité par défaut" :error="errors.trombinoscopeDisplayName">
                         <UInput
                             v-model.nullable="localCharacter.trombinoscopeDisplayName"
                             size="lg"
@@ -134,7 +134,7 @@ v-model="localCharacter.gameId"
                             placeholder="Nom affiché dans les trombinoscopes"
                         />
                     </UFormField>
-                    <UFormField label="Note de trombinoscope par défaut">
+                    <UFormField label="Note de trombinoscope par défaut" :error="errors.trombinoscopeNote">
                         <UTextarea
                             v-model.nullable="localCharacter.trombinoscopeNote"
                             :rows="3"
@@ -171,7 +171,7 @@ v-model="localCharacter.gameId"
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { CHARACTER_TYPE_OPTIONS, CHARACTER_TYPES } from '~/utils/domain'
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { apiErrorMessage, splitApiErrors } from '~/utils/apiErrors'
 import { fromSelectValue, noneOption, toSelectValue } from '~/utils/selectOptions'
 import type { CharacterDraft, FactionOption, GameOption } from '~/utils/writingDrafts'
 
@@ -202,6 +202,8 @@ const balanceSelection = computed({
     set: (value: string) => { localCharacter.value.balanceValue = fromSelectValue(value) || null }
 })
 const errors = ref<Record<string, string>>({})
+// Champs du formulaire qui affichent un refus du serveur
+const SERVER_FIELDS = ['background', 'backgroundDocumentUrl', 'costumeIndications', 'factionIds', 'gameId', 'name', 'pitch', 'trombinoscopeDisplayName', 'trombinoscopeNote', 'trombinoscopePhotoUrl', 'type']
 const serverError = ref('')
 const trombinoscopePhotoInput = ref<HTMLInputElement | null>(null)
 const uploadingTrombinoscopePhoto = ref(false)
@@ -239,10 +241,10 @@ watch(() => localCharacter.value.gameId, () => {
 function validate() {
     errors.value = {}
     if (!localCharacter.value.name?.trim()) {
-        errors.value.name = 'Le nom est requis.'
+        errors.value.name = 'Le nom est obligatoire'
     }
     if (!localCharacter.value.gameId) {
-        errors.value.gameId = 'Le jeu est requis.'
+        errors.value.gameId = 'Le jeu est obligatoire'
     }
     return Object.keys(errors.value).length === 0
 }
@@ -253,7 +255,10 @@ async function submit() {
         emit('update:character', localCharacter.value)
         await props.onSubmit()
     } catch (err) {
-        serverError.value = apiErrorMessage(err, 'Erreur inconnue')
+        // Refus du serveur sous son champ (SPEC-023, R11) ; les autres restent sous le bouton
+        const { fields, message } = splitApiErrors(err, 'Erreur inconnue', SERVER_FIELDS)
+        errors.value = fields
+        serverError.value = message
     }
 }
 

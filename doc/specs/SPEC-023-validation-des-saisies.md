@@ -96,7 +96,9 @@ Cette spec répond aux retours A9-1, A9-2 et A10-1 du cahier de tests, et étend
 ### Affichage et valeurs existantes
 
 - **R11 :** un refus d'une règle de cette spec s'affiche sous le champ concerné, en français, sur chaque formulaire. Pour un champ qui n'est pas à l'écran (outil d'un assistant, écriture faite hors ligne et refusée au retour du réseau), il s'affiche comme les autres refus.
-- **R12 :** une migration remet au format de R6 chaque téléphone déjà en base qu'elle reconnaît. Les autres valeurs ne bougent pas : un nom avec un chiffre, un téléphone non reconnu, un texte trop long. Elles restent affichées, et la règle s'applique à la prochaine modification du champ.
+- **R12 :** une migration remet au format de R6 chaque téléphone déjà en base qu'elle reconnaît. Les autres valeurs ne bougent pas : un nom avec un chiffre, un téléphone non reconnu, un texte trop long. Elles restent affichées.
+  - Un nom ou un téléphone n'est vérifié qu'à la prochaine modification de ce champ.
+  - Un texte trop long est refusé à la prochaine modification de sa fiche, avec son message (précision du 2026-11-17, revue de la PR #256). Les données en production sont des données de test.
 
 ## Données
 
