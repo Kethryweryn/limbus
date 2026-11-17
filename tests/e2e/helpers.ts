@@ -82,6 +82,11 @@ export function uniqueName(base: string) {
   return `${base} ${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`
 }
 
+// Nom de personne unique, en lettres seulement : un nom de personne refuse les chiffres (SPEC-023, R1)
+export function uniquePersonName(base: string) {
+  return uniqueName(base).replace(/\d/g, (digit) => 'abcdefghij'[Number(digit)]!)
+}
+
 // Le plus petit bloc de la page Inscriptions qui porte à la fois le titre du jeu et le bouton donné
 // Bloc d'un jeu sur la page Inscriptions, dont le titre est un titre de niveau 2. Jamais un bloc qui contient aussi le
 // titre d'un autre jeu : tant que le bouton n'est pas affiché (sessions encore en lecture), on attend, au lieu de
@@ -103,7 +108,7 @@ export function blockWith(page: Page, has: Locator, button: string | RegExp, has
 // Compte propre au test, confirmé, aux conditions acceptées et au mot de passe des tests : ses changements ne touchent pas
 // les comptes partagés
 export async function testUser(prisma: TestPrisma, base: string, role: UserRole = 'user') {
-  const name = uniqueName(base)
+  const name = uniquePersonName(base)
   const email = `${slugOf(name)}@example.test`
   const password = await bcrypt.hash(E2E_PASSWORD, 4)
   const user = await prisma.user.create({ data: { email, name, password, role, termsAcceptedVersion: TERMS_VERSION, emailConfirmedAt: new Date() } })
@@ -134,7 +139,7 @@ export async function parcoursSession(prisma: TestPrisma, base: string, cast: Ar
 // qui tournent en parallèle
 export async function parcoursPerson(prisma: TestPrisma, base: string) {
   const { game } = await parcoursGame(prisma)
-  const name = uniqueName(base)
+  const name = uniquePersonName(base)
   const email = `${slugOf(name)}@example.test`
   await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, gameLinks: { create: { gameId: game.id , name: name } } } }), { name: name })
   return { name, email }
@@ -197,7 +202,7 @@ export { labelled } from '../sessionLabel'
 // Personne liée au jeu donné (US-199). Sans `emailPrefix`, elle n'a pas d'email et aucun envoi ne lui part ; avec, son
 // adresse lui est propre (un préfixe « refuse » la fait rejeter par le serveur d'emails de test)
 export async function gamePerson(prisma: TestPrisma, gameId: string, base: string, emailPrefix?: string) {
-  const name = uniqueName(base)
+  const name = uniquePersonName(base)
   const email = emailPrefix === undefined ? undefined : `${emailPrefix}${slugOf(name)}@example.test`
   // Nom tenu par le jeu (ADR-0086)
   return await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, gameLinks: { create: { gameId, name } } } }), { name: name })

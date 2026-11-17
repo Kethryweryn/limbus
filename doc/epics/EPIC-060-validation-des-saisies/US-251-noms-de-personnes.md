@@ -1,7 +1,7 @@
 ---
 id: US-251
 titre: Un nom de personne ne contient que des lettres et des séparateurs
-statut: à faire
+statut: terminée
 epic: EPIC-060
 regles: [R1, R2, R3, R11, R12]
 adr: [ADR-0092]
@@ -13,18 +13,18 @@ En tant que personne qui saisit un nom, le sien ou celui d'un participant, je ve
 
 ## Critères d'acceptation
 
-- [ ] Étant donné « Jean-Pierre O'Neill », « Zoë Ŝ. Müller » ou « Мария », quand je l'enregistre, alors il est accepté.
-- [ ] Étant donné « Jean2 », « @lice » ou « - », quand je l'enregistre, alors il est refusé, avec le message de R1 sous le champ.
-- [ ] Étant donné « Jean   Martin », quand je l'enregistre, alors il est rangé sous la forme « Jean Martin ».
-- [ ] La règle vaut pour chaque champ de R2 :
+- [x] Étant donné « Jean-Pierre O'Neill », « Zoë Ŝ. Müller » ou « Мария », quand je l'enregistre, alors il est accepté.
+- [x] Étant donné « Jean2 », « @lice » ou « - », quand je l'enregistre, alors il est refusé, avec le message de R1 sous le champ.
+- [x] Étant donné « Jean   Martin », quand je l'enregistre, alors il est rangé sous la forme « Jean Martin ».
+- [x] La règle vaut pour chaque champ de R2 :
   - inscription, activation, Mon compte, administration, invitation dans une équipe ;
   - fiche participant, invitation au questionnaire ;
   - prénom et nom du questionnaire ;
   - nom du contact d'urgence.
 
   Elle vaut aussi pour les outils des assistants d'IA qui écrivent ces champs.
-- [ ] Les noms de R3 ne sont pas concernés : personnage, trombinoscope, nom Facebook, expéditeur, nom tiré de l'adresse email.
-- [ ] Un nom déjà en base qui ne suit pas R1 s'affiche. Il est refusé à la prochaine modification de la fiche (R12).
+- [x] Les noms de R3 ne sont pas concernés : personnage, trombinoscope, nom Facebook, expéditeur, nom tiré de l'adresse email.
+- [x] Un nom déjà en base qui ne suit pas R1 s'affiche. Il est refusé à la prochaine modification de la fiche (R12).
 
 ## Notes techniques
 
@@ -44,3 +44,31 @@ De bout en bout (Playwright) :
 Tests unitaires : `personName`, avec les alphabets, les séparateurs et les refus.
 
 Tests d'intégration : chaque route de R2, et les outils des assistants.
+
+### Tests écrits
+
+- `tests/e2e/personNames.spec.ts` :
+  - Mon compte : nom et nom du contact d'urgence ;
+  - création d'une fiche participant ;
+  - questionnaire public ;
+  - refus d'une modification faite hors ligne.
+- `tests/integration/personNames.test.ts` :
+  - fiche participant (création et modification) ;
+  - Mon compte et Mes coordonnées ;
+  - administration ;
+  - invitation au vivier.
+- Tests ajoutés à des fichiers d'intégration existants :
+  - inscription libre (`accounts.test.ts`) ;
+  - questionnaire public (`formRegistrations.test.ts`) ;
+  - outil `creer_participant` (`aiAssistants.test.ts`).
+- Tests unitaires :
+  - `tests/server/fieldRules.test.ts` ;
+  - `tests/server/registrationForms.test.ts` ;
+  - `splitApiErrors` (`tests/utils/apiErrors.test.ts`) ;
+  - message d'un refus hors ligne (`tests/utils/offlineSync.test.ts`).
+- L'activation et l'invitation dans une équipe passent par le même schéma (`personName`) et affichent le message sous le champ. Leur parcours de bout en bout n'a pas été rejoué avec un nom refusé, car il demande un mot de passe choisi.
+
+### Changé en passant
+
+- Une modification faite hors ligne et refusée au retour du réseau garde le détail du refus, au lieu de « Requête invalide » (`utils/offlineSync.ts`).
+- Les tests génèrent des noms de personnes en lettres seulement (`uniquePersonName`).

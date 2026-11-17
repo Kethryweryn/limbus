@@ -1,5 +1,6 @@
 import { deleteFromStore, forgetSavedResponse, getFromStore, listStoreEntries, saveToStore } from '~/utils/storage'
 import { getErrorStatus, isServerUnavailableError, setServerUnavailable } from '~/utils/connection'
+import { apiErrorMessage } from '~/utils/apiErrors'
 
 // Corps d'une écriture, élément gardé sur l'appareil, version relue du serveur : des objets JSON
 type JsonRecord = Record<string, unknown>
@@ -251,8 +252,8 @@ async function sendOfflineQueue() {
         return { results, aborted: true }
       }
 
-      const { data, message: thrown } = error as { data?: { message?: string }, message?: string }
-      const message = data?.message || thrown || 'Erreur de synchronisation'
+      // Le détail d'une validation (« Le nom ne peut contenir que des lettres… ») plutôt que « Requête invalide »
+      const message = apiErrorMessage(error, 'Erreur de synchronisation')
       if (isConflictError(error)) {
         const serverVersion = await fetchServerVersion(operation).catch(() => undefined)
         await markOperation(id, { status: 'conflict', error: message, serverVersion })

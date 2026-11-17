@@ -1,7 +1,7 @@
 ---
 id: SPEC-023
 titre: Valider les saisies partout
-statut: validée
+statut: en cours
 date: 2026-11-17
 origine: ../archive/todo/validation-des-saisies.md
 epics: [EPIC-060]
@@ -87,8 +87,8 @@ Cette spec répond aux retours A9-1, A9-2 et A10-1 du cahier de tests, et étend
   | Nom de personne | 100 | R2 |
   | Titre ou nom d'élément | 200 | titre d'un jeu ou d'un document, nom d'un personnage, d'un groupe, d'une intrigue, d'un lieu, d'un objet, d'un événement ; nom affiché d'un trombinoscope |
   | Texte court | 500 | adresse d'un lieu, emplacement d'un objet, note de trombinoscope, réglages d'envoi des emails |
-  | Texte long | 50 000 | accroche, indications de costume, description d'un objet ou d'un événement, présentation d'un jeu, notes (fiche participant, lieu, casting) |
-  | Texte de fond | 1 000 000 | historique d'un personnage ou d'un groupe, description d'une intrigue, contenu d'un document, note d'intention |
+  | Texte long | 50 000 | accroche, indications de costume, description d'une intrigue, d'un objet ou d'un événement, présentation d'un jeu, note d'intention, notes (fiche participant, lieu, casting) |
+  | Texte de fond | 1 000 000 | historique d'un personnage ou d'un groupe, contenu d'un document |
 
   Les plafonds déjà en place ne changent pas : réponses et questions du questionnaire, allergies, relations, tarifs, emails d'annulation. Un texte qui dépasse est refusé avec son plafond : « Le nom : 200 caractères au plus ».
 - **R10 :** une adresse email saisie est vérifiée de la même façon partout. Elle est mise en minuscules, fait 254 caractères au plus, et doit avoir la forme d'une adresse.

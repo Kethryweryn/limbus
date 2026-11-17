@@ -127,6 +127,15 @@ describe('resynchronisation (US-049, US-050, ADR-0036)', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
+  it('une modification refusée garde le détail du refus, pas « Requête invalide » (SPEC-023, R11)', async () => {
+    await enqueueOfflineOperation('/api/participants/p1', { method: 'PUT', body: { name: 'Léa 2', updatedAt: READ } })
+    const name = 'Le nom ne peut contenir que des lettres, des espaces, des traits d’union, des apostrophes et des points'
+    fetchMock.mockRejectedValueOnce(Object.assign(new Error('[PUT] "/api/participants/p1": 400'), { name: 'FetchError', statusCode: 400, data: { message: 'Requête invalide', data: { data: [{ path: 'name', message: name }] } } }))
+    const { results } = await processOfflineQueue()
+    expect(results).toEqual([expect.objectContaining({ ok: false, error: name })])
+    expect((await readQueue())[0]).toMatchObject({ status: 'error', error: name })
+  })
+
   it('« garder ma version » renvoie la modification sans version', async () => {
     await enqueueOfflineOperation('/api/factions/f1', { method: 'PUT', body: { name: 'Loups', updatedAt: READ } })
     fetchMock.mockRejectedValueOnce(conflict()).mockResolvedValueOnce({ id: 'f1', name: 'Ours' })

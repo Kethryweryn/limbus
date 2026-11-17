@@ -1,6 +1,6 @@
 // US-203 (EPIC-050, lot 6, 1/2) : les règles du vivier et de la sélection sans test de bout en bout (SPEC-001, SPEC-018),
 // sur les quatre axes (ADR-0079) : actions, erreurs de saisie, droits, hors ligne
-import { labelled } from './helpers'
+import { labelled, uniquePersonName } from './helpers'
 import { createHash, randomBytes } from 'node:crypto'
 import { expect, type Page } from '@playwright/test'
 import { DEFAULT_REGISTRATION_FORM_DEFINITION } from '../../utils/registrationForms'
@@ -32,7 +32,7 @@ async function vivier(prisma: TestPrisma, base: string, options: { seats?: numbe
 
 // Personne du vivier, avec sa ligne pour la session et son lien personnel
 async function member(prisma: TestPrisma, ctx: { game: { id: string }, session: { id: string }, period: { id: string } }, base: string, line?: Line) {
-  const name = uniqueName(base)
+  const name = uniquePersonName(base)
   const email = `${slugOf(name)}@example.test`
   const token = randomBytes(32).toString('base64url')
   const participant = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, gameLinks: { create: { gameId: ctx.game.id , name: name } } } }), { name: name })

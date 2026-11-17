@@ -59,6 +59,16 @@ describe('réponses d’un inscrit', () => {
     expect(schema.safeParse({ ...answers, email: 'pas-un-email' }).success).toBe(false)
   })
 
+  it('refuse un prénom, un nom ou un nom de contact d’urgence avec des chiffres (SPEC-023, R1)', () => {
+    const schema = registrationAnswerSchema(DEFAULT_REGISTRATION_FORM_DEFINITION)
+    for (const field of ['firstName', 'lastName', 'emergencyContactName'] as const) {
+      const refused = schema.safeParse({ ...answers, [field]: 'Léa2' })
+      expect(refused.error?.issues.map((issue) => issue.path.join('.')), field).toEqual([field])
+    }
+    expect(schema.parse({ ...answers, firstName: ' Anne-Sophie ', lastName: 'D’Arc' })).toMatchObject({ firstName: 'Anne-Sophie', lastName: 'D’Arc' })
+    expect(schema.safeParse({ ...answers, firstName: null }).error?.issues[0]?.message).toBe('Le prénom est obligatoire')
+  })
+
   it('un champ obligatoire laissé vide (null) a un message en français', () => {
     const result = registrationAnswerSchema(DEFAULT_REGISTRATION_FORM_DEFINITION).safeParse({ ...answers, phone: null, email: null })
     expect(result.error?.issues.map((issue) => issue.message)).toEqual(['L’email est obligatoire', 'Le téléphone est obligatoire'])

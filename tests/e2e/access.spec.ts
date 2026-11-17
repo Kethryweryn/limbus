@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { linkToken } from '../integration/smtp'
 import { openMailbox } from './mailbox'
-import { expectLoggedIn, login, slugOf, testUser, uniqueName } from './helpers'
+import { expectLoggedIn, login, slugOf, testUser, uniqueName, uniquePersonName } from './helpers'
 
 // EPIC-013 (US-062) : mot de passe oublié, lien reçu par email, nouveau mot de passe qui connecte
 test('une personne qui a oublié son mot de passe en choisit un nouveau par le lien reçu', async ({ page }) => {
@@ -64,7 +64,7 @@ test('une personne crée son compte et le confirme par le lien reçu', async ({ 
   const prisma = createTestPrisma()
   const mailbox = openMailbox()
   try {
-    const name = uniqueName('Nouvelle Venue')
+    const name = uniquePersonName('Nouvelle Venue')
     const email = `${slugOf(name)}@example.test`
 
     await page.goto('/')
@@ -121,7 +121,7 @@ test('activer mon compte : la page envoie le lien, qui active le compte et ouvre
   const prisma = createTestPrisma()
   const mailbox = openMailbox()
   try {
-    const name = uniqueName('Activée')
+    const name = uniquePersonName('Activée')
     const email = `${slugOf(name)}@example.test`
     const owner = await testUser(prisma, 'Équipe de l’activée')
     const title = uniqueName('Jeu de l’activée')

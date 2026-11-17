@@ -4,7 +4,7 @@ import { createTestPrisma } from '../integration/db'
 import { linkToken } from '../integration/smtp'
 import { E2E_USERS } from './constants'
 import { openMailbox } from './mailbox'
-import { blockWith, expectLoggedIn, openUserMenu, orgaGame, signIn, slugOf, test, testUser, uniqueName } from './helpers'
+import { blockWith, expectLoggedIn, openUserMenu, orgaGame, signIn, slugOf, test, testUser, uniqueName, uniquePersonName } from './helpers'
 import { withFicheValues } from '../fiche'
 
 // EPIC-050, lot 4 (US-201) : inscription libre, compte, invitations à co-organiser et administration, sur les quatre
@@ -34,7 +34,7 @@ test.describe('inscription libre', () => {
   test('un champ manquant ou un mot de passe trop court est refusé avec son message, sans créer de compte', async ({ page }) => {
     const prisma = createTestPrisma()
     try {
-      const name = uniqueName('Inscription Refusée')
+      const name = uniquePersonName('Inscription Refusée')
       const email = `${slugOf(name)}@example.test`
       await page.goto('/acces/inscription')
       await page.waitForLoadState('networkidle')
@@ -90,7 +90,7 @@ test.describe('inscription libre', () => {
     const prisma = createTestPrisma()
     const mailbox = openMailbox()
     try {
-      const name = uniqueName('Robot')
+      const name = uniquePersonName('Robot')
       const email = `${slugOf(name)}@example.test`
       await page.goto('/acces/inscription')
       await page.waitForLoadState('networkidle')
@@ -112,7 +112,7 @@ test.describe('inscription libre', () => {
   test('hors ligne, la création est refusée et le dit', async ({ page, context }) => {
     const prisma = createTestPrisma()
     try {
-      const name = uniqueName('Hors Réseau')
+      const name = uniquePersonName('Hors Réseau')
       const email = `${slugOf(name)}@example.test`
       await page.goto('/acces/inscription')
       await page.waitForLoadState('networkidle')
@@ -142,7 +142,7 @@ test.describe('mon compte', () => {
       await signIn(page, prisma, email)
       await page.goto('/compte')
       await page.waitForLoadState('networkidle')
-      const name = uniqueName('Nom Recopié')
+      const name = uniquePersonName('Nom Recopié')
       await page.getByLabel('Nom', { exact: true }).fill(name)
       await page.getByRole('button', { name: 'Enregistrer', exact: true }).click()
       await expect(page.getByText('Nom enregistré.')).toBeVisible()
@@ -213,7 +213,7 @@ test.describe('mon compte', () => {
       await page.goto('/compte')
       await page.waitForLoadState('networkidle')
       await context.setOffline(true)
-      await page.getByLabel('Nom', { exact: true }).fill(uniqueName('Nom Hors Ligne'))
+      await page.getByLabel('Nom', { exact: true }).fill(uniquePersonName('Nom Hors Ligne'))
       await page.getByRole('button', { name: 'Enregistrer', exact: true }).click()
       // La section « Hors ligne sur cet appareil » (US-223) a aussi « hors ligne » dans son titre
       await expect(page.getByText(/Pas de réseau : cette action demande une connexion/)).toBeVisible()
@@ -269,7 +269,7 @@ test.describe('invitation à co-organiser', () => {
     const prisma = createTestPrisma()
     try {
       const game = await orgaGame(prisma, 'Jeu de la nouvelle venue')
-      const name = uniqueName('Nouvelle Co-orga')
+      const name = uniquePersonName('Nouvelle Co-orga')
       const email = `${slugOf(name)}@example.test`
       const token = await shareInvitation(prisma, game.id, email)
 
@@ -298,7 +298,7 @@ test.describe('invitation à co-organiser', () => {
     const prisma = createTestPrisma()
     try {
       const game = await orgaGame(prisma, 'Jeu de la co-orga pré-créée')
-      const name = uniqueName('Co-orga pré-créée')
+      const name = uniquePersonName('Co-orga pré-créée')
       const email = `${slugOf(name)}@example.test`
       const account = await prisma.user.create({ data: { email, name: '', password: null, emailConfirmedAt: null } })
       const fiche = await prisma.participant.create({ data: { slug: slugOf(uniqueName('fiche co-orga')), email, userId: account.id, gameLinks: { create: { gameId: game.id, name: 'Nom chez l’équipe' } } } })
@@ -377,7 +377,7 @@ test.describe('administration', () => {
       await page.goto('/admin/users')
       await page.waitForLoadState('networkidle')
       const creation = page.locator('form').filter({ has: page.getByRole('button', { name: 'Créer' }) })
-      const name = uniqueName('Compte Invalide')
+      const name = uniquePersonName('Compte Invalide')
 
       await creation.getByRole('button', { name: 'Créer' }).click()
       await expect(page.getByText(/Le nom est obligatoire/)).toBeVisible()

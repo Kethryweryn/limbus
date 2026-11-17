@@ -40,8 +40,12 @@
 
         <UFormField label="Nouvelle personne" description="Si l’email correspond déjà à un participant de vos jeux, sa fiche est reprise.">
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <UInput v-model="newParticipant.name" placeholder="Nom" class="w-full" />
-            <UInput v-model="newParticipant.email" type="email" placeholder="Email" class="w-full" />
+            <UFormField :error="fieldErrors['newParticipant.name']">
+              <UInput v-model="newParticipant.name" placeholder="Nom" aria-label="Nom" class="w-full" />
+            </UFormField>
+            <UFormField :error="fieldErrors['newParticipant.email']">
+              <UInput v-model="newParticipant.email" type="email" placeholder="Email" aria-label="Email" class="w-full" />
+            </UFormField>
           </div>
         </UFormField>
 
@@ -88,6 +92,7 @@ const participants = ref<Participant[]>([])
 const selected = ref<string[]>([])
 const search = ref('')
 const newParticipant = reactive({ name: '', email: '' })
+const { fieldErrors, report, reset } = useFieldErrors(['newParticipant.name', 'newParticipant.email'])
 const serverError = ref('')
 const saving = ref(false)
 
@@ -112,6 +117,7 @@ watch(open, async (value) => {
   newParticipant.name = ''
   newParticipant.email = ''
   serverError.value = ''
+  reset()
   try {
     const [people, overview] = await Promise.all([
       fetchByUrl<Participant[]>(`/api/participants?gameId=${encodeURIComponent(props.gameId)}`),
@@ -150,6 +156,7 @@ function toggle(id: string, checked: boolean) {
 async function submit() {
   saving.value = true
   serverError.value = ''
+  reset()
   try {
     const result = await useApiAction(`/api/registration-periods/${props.period.id}/invitations`, {
       method: 'POST',
@@ -162,7 +169,7 @@ async function submit() {
     emit('invited', result)
     open.value = false
   } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Invitation impossible')
+    serverError.value = report(err, 'Invitation impossible')
   } finally {
     saving.value = false
   }

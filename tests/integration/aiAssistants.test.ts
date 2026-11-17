@@ -366,6 +366,10 @@ describe('sessions et participants', () => {
 
     // Fiches participant : une adresse, obligatoire (SPEC-022 R3, US-238), et pas de téléphone
     expect((await call(client, 'creer_participant', { jeuId: game.id, name: 'Sans adresse', email: '' })).error).toBe(true)
+    // Un nom de personne ne contient que des lettres et des séparateurs (SPEC-023, R1, US-251)
+    const digits = await call(client, 'creer_participant', { jeuId: game.id, name: 'Ana 2', email: 'ana-chiffre-ia@example.test' })
+    expect(digits.error).toBe(true)
+    expect(digits.text).toContain('Le nom ne peut contenir que des lettres')
     const ana = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Ana Assistée', email: 'ana-ia@example.test', notes: 'Joue souvent les meneuses' })).json
     const ben = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Ben Assisté', email: 'ben-ia@example.test' })).json
     const cleo = (await call(client, 'creer_participant', { jeuId: game.id, name: 'Cléo Orga', email: 'cleo-ia@example.test' })).json

@@ -84,7 +84,6 @@
 
 <script setup lang="ts">
 import { emptyRegistrationAnswerForm } from '~/utils/registrationForms'
-import { apiErrorMessage, apiFieldErrors } from '~/utils/apiErrors'
 import { publicFetch, type ApiResponse } from '~/composables/useApiFetch'
 
 type Submitted = ApiResponse<'/api/public/periods/:publicId', 'post'>
@@ -106,7 +105,7 @@ const website = ref('')
 
 const saving = ref(false)
 const errorMessage = ref('')
-const fieldErrors = ref<Record<string, string>>({})
+const { fieldErrors, report, reset } = useFieldErrors()
 const result = ref<Submitted | null>(null)
 
 
@@ -115,15 +114,12 @@ const result = ref<Submitted | null>(null)
 async function submit() {
   saving.value = true
   errorMessage.value = ''
-  fieldErrors.value = {}
+  reset()
   try {
     result.value = await publicFetch<Submitted>(`/api/public/periods/${publicId}`, { method: 'POST', body: { ...form.value, website: website.value } })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (err) {
-    fieldErrors.value = apiFieldErrors(err)
-    errorMessage.value = Object.keys(fieldErrors.value).length
-      ? 'Certaines informations sont manquantes ou incorrectes.'
-      : apiErrorMessage(err, 'Inscription impossible. Réessayez dans quelques minutes.')
+    errorMessage.value = report(err, 'Inscription impossible. Réessayez dans quelques minutes.')
   } finally {
     saving.value = false
   }

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { openMailbox } from './mailbox'
-import { blockWith, signIn, slugOf, testUser, uniqueName } from './helpers'
+import { blockWith, signIn, slugOf, testUser, uniqueName, uniquePersonName } from './helpers'
 
 // EPIC-031 (US-118) : l'administratrice crée un compte, le désactive, et teste l'envoi d'emails
 test('l’administratrice crée et désactive un compte, puis teste l’envoi d’emails', async ({ page }) => {
@@ -9,7 +9,7 @@ test('l’administratrice crée et désactive un compte, puis teste l’envoi d�
   const mailbox = openMailbox()
   try {
     const { email: adminEmail } = await testUser(prisma, 'Admin', 'admin')
-    const name = uniqueName('Compte Créé')
+    const name = uniquePersonName('Compte Créé')
     const email = `${slugOf(name)}@example.test`
 
     await signIn(page, prisma, adminEmail)

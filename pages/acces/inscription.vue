@@ -9,13 +9,13 @@
     />
     <UAlert v-else-if="closed" color="neutral" variant="soft" description="L’inscription n’est pas ouverte pour le moment." />
     <form v-else class="space-y-4" novalidate @submit.prevent="signup">
-      <UFormField label="Nom">
+      <UFormField label="Nom" :error="fieldErrors.name">
         <UInput v-model="form.name" autocomplete="name" class="w-full" />
       </UFormField>
-      <UFormField label="Email">
+      <UFormField label="Email" :error="fieldErrors.email">
         <UInput v-model="form.email" type="email" autocomplete="email" class="w-full" />
       </UFormField>
-      <UFormField label="Mot de passe" help="8 caractères au moins.">
+      <UFormField label="Mot de passe" help="8 caractères au moins." :error="fieldErrors.password">
         <PasswordInput v-model="form.password" autocomplete="new-password" class="w-full" />
       </UFormField>
       <!-- Conditions d'utilisation (US-111) -->
@@ -39,8 +39,6 @@
 
 <script setup lang="ts">
 // Inscription libre (US-061)
-import { apiErrorMessage } from '~/utils/apiErrors'
-
 definePageMeta({ layout: false })
 
 const form = ref({ name: '', email: '', password: '', website: '', termsAccepted: false })
@@ -48,6 +46,7 @@ const saving = ref(false)
 const done = ref(false)
 const error = ref('')
 const closed = ref(false)
+const { fieldErrors, report, reset } = useFieldErrors(['name', 'email', 'password'])
 
 onMounted(async () => {
   closed.value = !(await $fetch('/api/auth/signup').catch(() => ({ open: false }))).open
@@ -56,11 +55,12 @@ onMounted(async () => {
 async function signup() {
   saving.value = true
   error.value = ''
+  reset()
   try {
     await $fetch('/api/auth/signup', { method: 'POST', body: form.value })
     done.value = true
   } catch (err) {
-    error.value = apiErrorMessage(err, 'Impossible de créer le compte.')
+    error.value = report(err, 'Impossible de créer le compte.')
   } finally {
     saving.value = false
   }

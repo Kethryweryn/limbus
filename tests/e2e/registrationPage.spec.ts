@@ -3,7 +3,7 @@
 import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { cardByTitle, orgaGame, orgaSession, registrationTab, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
+import { cardByTitle, orgaGame, orgaSession, registrationTab, signIn, slugOf, test, testUser, type TestPrisma, uniquePersonName } from './helpers'
 import { withFicheValues } from '../fiche'
 
 // Jeu au vivier ouvert, une session prévue, deux personnes dans le vivier et une sortie
@@ -14,7 +14,7 @@ async function gameWithPool(prisma: TestPrisma, base: string) {
     data: { gameId: game.id, publicId: `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, state: 'open', sessions: { create: { sessionId: session.id, open: true } } }
   })
   const person = async (label: string, status: 'received' | 'withdrawn') => {
-    const name = uniqueName(label)
+    const name = uniquePersonName(label)
     const email = `${slugOf(name)}@example.test`
     const participant = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, gameLinks: { create: { gameId: game.id , name: name } } } }), { name: name })
     await prisma.registration.create({ data: { gameId: game.id, periodId: period.id, participantId: participant.id, email, status, source: 'form', firstName: label, lastName: 'Test' } })

@@ -38,6 +38,23 @@ export function apiFieldErrors(err: unknown): Record<string, string> {
   return Object.fromEntries(issues.filter((issue) => issue.path).map((issue) => [issue.path!, issue.message || '']))
 }
 
+export const FIELDS_INVALID_MESSAGE = 'Certaines informations sont manquantes ou incorrectes.'
+
+/**
+ * Refus d'une validation réparti entre les champs à l'écran et le message du formulaire (SPEC-023, R11) : chaque
+ * champ affiché reçoit son message ; ceux d'un champ absent de l'écran restent dans le message, qui sinon dit
+ * seulement que des informations sont à corriger. `fields` absent : tous les champs sont à l'écran.
+ */
+export function splitApiErrors(err: unknown, fallback: string, fields?: readonly string[]) {
+  const all = apiFieldErrors(err)
+  const shown = Object.fromEntries(Object.entries(all).filter(([path]) => !fields || fields.includes(path)))
+  const hidden = Object.entries(all).filter(([path]) => !(path in shown)).map(([, message]) => message)
+  const message = hidden.length
+    ? [...new Set(hidden)].join(' ; ')
+    : Object.keys(shown).length ? FIELDS_INVALID_MESSAGE : apiErrorMessage(err, fallback)
+  return { fields: shown, message }
+}
+
 // Message du serveur seul (h3 le range sous data.message), sinon le texte par défaut ; les écrans passent par
 // apiErrorMessage ou loadErrorMessage, qui y ajoutent le réseau absent et le détail d'une validation
 function serverMessage(err: unknown, fallback: string) {

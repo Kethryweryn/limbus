@@ -46,4 +46,4 @@ Ce ne sont pas des cas isolés : ailleurs non plus, Limbus ne vérifie ni la for
   - titre ou nom d'élément : 200 ;
   - texte court : 500 ;
   - texte long : 50 000.
-- **Textes de fond :** 1 000 000 de caractères, car un historique peut être très long. Cela couvre l'historique d'un personnage ou d'un groupe, la description d'une intrigue, le contenu d'un document et la note d'intention.
+- **Textes de fond :** 1 000 000 de caractères, car un historique peut être très long. Cela couvre l'historique d'un personnage ou d'un groupe et le contenu d'un document. La description d'une intrigue et la note d'intention sont des textes longs (précision du 2026-11-17).

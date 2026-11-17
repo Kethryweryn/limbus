@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
+import { optionalPersonName, personName, tooLong } from '~/server/utils/fieldRules'
 import { prisma } from '~/server/utils/prisma'
 import { REFUSED_RELATION_NONE, REFUSED_RELATION_VALUES } from '~/utils/characterRelations'
 import {
@@ -98,7 +99,6 @@ export async function saveRegistrationFormDefinition(gameId: string, definition:
   return await getCurrentRegistrationForm(gameId, balance)
 }
 
-const tooLong = (label: string, max: number) => `${label} : ${max} caractères au plus`
 const optionalAnswer = (label: string, max: number) =>
   z.string().trim().max(max, tooLong(label, max)).optional().nullable().transform((value) => value || null)
 // Un champ laissé vide arrive comme null : même message que pour une chaîne vide
@@ -109,6 +109,13 @@ function answerField(definition: NormalizedRegistrationFormDefinition, key: Regi
   const setting = definition.standardFields[key]
   if (!setting.asked) return z.unknown().optional().transform(() => null)
   return setting.required ? requiredAnswer(label, max) : optionalAnswer(label, max)
+}
+
+// Prénom, nom, nom du contact d'urgence : un nom de personne (SPEC-023, R1)
+function nameAnswerField(definition: NormalizedRegistrationFormDefinition, key: RegistrationStandardFieldKey, label: string) {
+  const setting = definition.standardFields[key]
+  if (!setting.asked) return z.unknown().optional().transform(() => null)
+  return setting.required ? personName(label) : optionalPersonName(label)
 }
 
 // Une affinité : une ligne par personne ou relation citée, lignes vides retirées (US-082)
@@ -190,11 +197,11 @@ export function registrationAnswerSchema(rawDefinition: RegistrationFormDefiniti
 
   return z.object({
     email: z.string({ error: 'L’email est obligatoire' }).trim().toLowerCase().max(254, 'Email trop long').email('Email invalide'),
-    lastName: answerField(definition, 'lastName', 'Le nom'),
-    firstName: answerField(definition, 'firstName', 'Le prénom'),
+    lastName: nameAnswerField(definition, 'lastName', 'Le nom'),
+    firstName: nameAnswerField(definition, 'firstName', 'Le prénom'),
     facebookName: answerField(definition, 'facebookName', 'Le nom Facebook'),
     phone: answerField(definition, 'phone', 'Le téléphone'),
-    emergencyContactName: answerField(definition, 'emergencyContact', 'Le nom du contact d’urgence'),
+    emergencyContactName: nameAnswerField(definition, 'emergencyContact', 'Le nom du contact d’urgence'),
     emergencyContactPhone: answerField(definition, 'emergencyContact', 'Le téléphone du contact d’urgence'),
     dietary: answerField(definition, 'dietary', 'Les allergies et intolérances', REGISTRATION_DIETARY_MAX_LENGTH),
     // Adhésion à la note d'intention : toujours obligatoire (R8)

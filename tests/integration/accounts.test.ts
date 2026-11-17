@@ -2,7 +2,7 @@ import { TERMS_VERSION } from '~/utils/legal'
 // EPIC-013 : inscription libre, confirmation, mot de passe, compte en libre-service, comptes gérés par l'administratrice,
 // invitation par la bonne adresse, plafond de stockage, transfert prévenu par email
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
-import { api, tokenFor, type TestUser } from './api'
+import { api, invalidPaths, tokenFor, type TestUser } from './api'
 import { createTestPrisma } from './db'
 import { startTestSmtp, type ReceivedEmail } from './smtp'
 
@@ -49,6 +49,14 @@ async function signup(email: string, extra: Record<string, unknown> = {}) {
 }
 
 describe('inscription libre et confirmation (US-061)', () => {
+  it('refuse un nom avec des chiffres ou des symboles (SPEC-023, R1, US-251)', async () => {
+    const email = unique('nom-chiffre')
+    const response = await signup(email, { name: 'Nouvelle2' })
+    expect(response.status).toBe(400)
+    expect(invalidPaths(response)).toEqual(['name'])
+    expect(await prisma.user.count({ where: { email } })).toBe(0)
+  })
+
   it('refuse une inscription sans accepter les conditions, et garde la version acceptée (US-111)', async () => {
     const refused = unique('sans-conditions')
     const response = await signup(refused, { termsAccepted: false })

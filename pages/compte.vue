@@ -11,7 +11,7 @@
       <UCard>
         <template #header><h2 class="font-semibold">Nom</h2></template>
         <form class="flex flex-col sm:flex-row gap-3 sm:items-end" @submit.prevent="saveName">
-          <UFormField label="Nom" class="flex-1">
+          <UFormField label="Nom" class="flex-1" :error="errorsFor('name').name">
             <UInput v-model="name" class="w-full" />
           </UFormField>
           <UButton type="submit" color="primary" :loading="saving === 'name'">Enregistrer</UButton>
@@ -30,10 +30,10 @@
           :description="`Un lien de confirmation attend à ${account.pendingEmail} : l’adresse changera quand vous l’ouvrirez.`"
         />
         <form class="grid grid-cols-1 sm:grid-cols-2 gap-3" novalidate @submit.prevent="changeEmail">
-          <UFormField label="Nouvelle adresse">
+          <UFormField label="Nouvelle adresse" :error="errorsFor('email').email">
             <UInput v-model="emailForm.email" type="email" autocomplete="email" class="w-full" />
           </UFormField>
-          <UFormField label="Mot de passe actuel">
+          <UFormField label="Mot de passe actuel" :error="errorsFor('email').password">
             <PasswordInput v-model="emailForm.password" autocomplete="current-password" class="w-full" />
           </UFormField>
           <div class="sm:col-span-2">
@@ -46,10 +46,10 @@
       <UCard>
         <template #header><h2 class="font-semibold">Mot de passe</h2></template>
         <form class="grid grid-cols-1 sm:grid-cols-2 gap-3" @submit.prevent="changePassword">
-          <UFormField label="Mot de passe actuel">
+          <UFormField label="Mot de passe actuel" :error="errorsFor('password').currentPassword">
             <PasswordInput v-model="passwordForm.currentPassword" autocomplete="current-password" class="w-full" />
           </UFormField>
-          <UFormField label="Nouveau mot de passe" help="8 caractères au moins. Vos autres appareils seront déconnectés.">
+          <UFormField label="Nouveau mot de passe" help="8 caractères au moins. Vos autres appareils seront déconnectés." :error="errorsFor('password').password">
             <PasswordInput v-model="passwordForm.password" autocomplete="new-password" class="w-full" />
           </UFormField>
           <div class="sm:col-span-2">
@@ -66,20 +66,20 @@
           <p class="text-sm text-gray-500">Les équipes des jeux auxquels vous participez les voient pour leurs jeux seulement. Vous seul·e les modifiez.</p>
         </template>
         <form class="grid grid-cols-1 sm:grid-cols-2 gap-3" @submit.prevent="saveProfile">
-          <UFormField label="Téléphone">
+          <UFormField label="Téléphone" :error="errorsFor('profile').phone">
             <UInput v-model="profileForm.phone" type="tel" autocomplete="tel" class="w-full" />
           </UFormField>
           <div />
-          <UFormField label="Contact d’urgence : nom">
+          <UFormField label="Contact d’urgence : nom" :error="errorsFor('profile').emergencyContactName">
             <UInput v-model="profileForm.emergencyContactName" class="w-full" />
           </UFormField>
-          <UFormField label="Contact d’urgence : téléphone">
+          <UFormField label="Contact d’urgence : téléphone" :error="errorsFor('profile').emergencyContactPhone">
             <UInput v-model="profileForm.emergencyContactPhone" type="tel" class="w-full" />
           </UFormField>
-          <UFormField label="Régime, allergies et intolérances" class="sm:col-span-2">
+          <UFormField label="Régime, allergies et intolérances" class="sm:col-span-2" :error="errorsFor('profile').dietary">
             <UTextarea v-model="profileForm.dietary" :rows="3" class="w-full" />
           </UFormField>
-          <UFormField v-if="profileForm.dietary?.trim()" class="sm:col-span-2">
+          <UFormField v-if="profileForm.dietary?.trim()" class="sm:col-span-2" :error="errorsFor('profile').healthConsent">
             <UCheckbox
               v-model="profileForm.healthConsent"
               label="J’accepte que ces informations de santé soient transmises aux équipes d’organisation et de cuisine de mes jeux"
@@ -150,7 +150,7 @@ const emailForm = ref({ email: '', password: '' })
 const passwordForm = ref({ currentPassword: '', password: '' })
 const profileForm = ref({ phone: '', emergencyContactName: '', emergencyContactPhone: '', dietary: '', healthConsent: false })
 // Résultat du dernier formulaire envoyé, affiché dans sa carte (US-216)
-const { pending: saving, resultFor, run } = useFormResult<FormKey>()
+const { pending: saving, resultFor, errorsFor, run } = useFormResult<FormKey>()
 
 const storagePercent = computed(() => {
   const storage = account.value?.storage
@@ -172,7 +172,7 @@ const saveName = () => run('name', async () => {
   await useApiAction('/api/account', { method: 'PUT', body: { name: name.value } })
   await load()
   return 'Nom enregistré.'
-})
+}, ['name'])
 
 const changeEmail = () => run('email', async () => {
   await useApiAction('/api/account/email', { method: 'POST', body: emailForm.value })
@@ -180,18 +180,18 @@ const changeEmail = () => run('email', async () => {
   // Pas de confirmation : la carte affiche le lien qui attend à la nouvelle adresse
   await load()
   return null
-})
+}, ['email', 'password'])
 
 const changePassword = () => run('password', async () => {
   await useApiAction('/api/account/password', { method: 'PUT', body: passwordForm.value })
   passwordForm.value = { currentPassword: '', password: '' }
   return 'Mot de passe changé. Vos autres appareils sont déconnectés.'
-})
+}, ['currentPassword', 'password'])
 
 const saveProfile = () => run('profile', async () => {
   await useApiAction('/api/account/profile', { method: 'PUT', body: profileForm.value })
   return 'Coordonnées enregistrées : vos fiches et inscriptions sont à jour.'
-})
+}, ['phone', 'emergencyContactName', 'emergencyContactPhone', 'dietary', 'healthConsent'])
 
 const deletePassword = ref('')
 const deleteAccount = () => {

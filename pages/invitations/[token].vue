@@ -62,13 +62,13 @@
           </div>
 
           <form v-if="mode === 'register'" class="space-y-3" @submit.prevent="register">
-            <UFormField label="Nom">
+            <UFormField label="Nom" :error="registerErrors.name">
               <UInput v-model="form.name" />
             </UFormField>
             <UFormField label="Email" help="L’adresse de l’invitation.">
               <UInput :model-value="invitation.email" type="email" disabled />
             </UFormField>
-            <UFormField label="Mot de passe" help="8 caractères au moins.">
+            <UFormField label="Mot de passe" help="8 caractères au moins." :error="registerErrors.password">
               <PasswordInput v-model="form.password" autocomplete="new-password" />
             </UFormField>
             <!-- Conditions d'utilisation (US-111) -->
@@ -117,6 +117,7 @@ const invitation = ref<ApiResponse<'/api/invitations/:token'> | null>(null)
 const loadError = ref('')
 const serverError = ref('')
 const saving = ref(false)
+const { fieldErrors: registerErrors, report: reportRegister, reset: resetRegister } = useFieldErrors(['name', 'password'])
 const mode = ref<'register' | 'login'>('register')
 const form = ref({
   name: '',
@@ -176,6 +177,7 @@ async function acceptInvitation() {
 async function register() {
   saving.value = true
   serverError.value = ''
+  resetRegister()
   try {
     const result = await publicFetch<ApiResponse<'/api/auth/register', 'post'>>('/api/auth/register', {
       method: 'POST',
@@ -188,7 +190,7 @@ async function register() {
     })
     await navigateTo(`/games/${result.game.slug}`)
   } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Impossible de créer le compte')
+    serverError.value = reportRegister(err, 'Impossible de créer le compte')
   } finally {
     saving.value = false
   }

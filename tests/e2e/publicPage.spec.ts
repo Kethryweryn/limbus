@@ -1,4 +1,4 @@
-import { labelled, slugOf, uniqueName  } from './helpers'
+import { labelled, slugOf, uniqueName, uniquePersonName } from './helpers'
 import { createHash, randomBytes } from 'node:crypto'
 import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
@@ -84,7 +84,7 @@ test('une personne confirme sa présence par son lien', async ({ page }) => {
     const title = uniqueName('Jeu présence')
     const game = await prisma.game.create({ data: { title, slug: slugOf(title), description: '', ownerId: owner.id } })
     const session = await labelled(prisma, await prisma.session.create({ data: { slug: slugOf(`session ${title}`), gameId: game.id, date: new Date('2099-12-01T09:00:00Z') } }))
-    const name = uniqueName('Paul Présence')
+    const name = uniquePersonName('Paul Présence')
     const participant = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email: `${slugOf(name)}@example.test`, gameLinks: { create: { gameId: game.id , name: name } } } }), { name: name })
     const token = randomBytes(32).toString('base64url')
     const attendance = await prisma.sessionAttendance.create({

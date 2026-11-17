@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { NO_NETWORK_MESSAGE, NO_NETWORK_PAGE_MESSAGE, apiErrorMessage, apiFieldErrors, loadErrorMessage } from '~/utils/apiErrors'
+import { FIELDS_INVALID_MESSAGE, NO_NETWORK_MESSAGE, NO_NETWORK_PAGE_MESSAGE, apiErrorMessage, apiFieldErrors, loadErrorMessage, splitApiErrors } from '~/utils/apiErrors'
 
 const validation = { data: { message: 'Requête invalide', data: { data: [{ path: 'phone', message: 'Le téléphone est obligatoire' }, { path: 'email', message: 'Email invalide' }] } } }
 
@@ -34,5 +34,19 @@ describe('apiFieldErrors', () => {
   it('range chaque message sous son champ', () => {
     expect(apiFieldErrors(validation)).toEqual({ phone: 'Le téléphone est obligatoire', email: 'Email invalide' })
     expect(apiFieldErrors({ data: { message: 'x' } })).toEqual({})
+  })
+})
+
+describe('splitApiErrors (SPEC-023, R11)', () => {
+  it('range chaque refus sous son champ affiché, et le formulaire dit seulement qu’il y a à corriger', () => {
+    expect(splitApiErrors(validation, 'Erreur')).toEqual({ fields: { phone: 'Le téléphone est obligatoire', email: 'Email invalide' }, message: FIELDS_INVALID_MESSAGE })
+  })
+
+  it('garde dans le message le refus d’un champ absent de l’écran', () => {
+    expect(splitApiErrors(validation, 'Erreur', ['email'])).toEqual({ fields: { email: 'Email invalide' }, message: 'Le téléphone est obligatoire' })
+  })
+
+  it('sans validation, rend le message habituel', () => {
+    expect(splitApiErrors({ data: { message: 'Période introuvable' } }, 'Erreur', ['email'])).toEqual({ fields: {}, message: 'Période introuvable' })
   })
 })

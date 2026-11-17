@@ -174,7 +174,7 @@
 
 <script setup lang="ts">
 import { REGISTRATION_SESSION_STATUSES as LINE, REGISTRATION_SESSION_STATUS_META, REGISTRATION_STATUS_META, SESSION_STATUSES, metaOf } from '~/utils/domain'
-import { apiErrorMessage, apiFieldErrors, loadErrorMessage } from '~/utils/apiErrors'
+import { apiErrorMessage, loadErrorMessage } from '~/utils/apiErrors'
 import { getErrorStatus } from '~/utils/connection'
 import { emptyRegistrationAnswerForm } from '~/utils/registrationForms'
 import { formatLongDate } from '~/utils/dates'
@@ -204,7 +204,7 @@ const saving = ref(false)
 const declining = ref(false)
 const withdrawing = ref(false)
 const errorMessage = ref('')
-const fieldErrors = ref<Record<string, string>>({})
+const { fieldErrors, report, reset } = useFieldErrors()
 const successMessage = ref('')
 const successDetail = ref('')
 const busySession = ref<string | null>(null)
@@ -294,17 +294,14 @@ const readOnly = computed(() => !details.value?.canAccept && !details.value?.can
 
 
 function showError(err: unknown, fallback: string) {
-  fieldErrors.value = apiFieldErrors(err)
-  errorMessage.value = Object.keys(fieldErrors.value).length
-    ? 'Certaines informations sont manquantes ou incorrectes.'
-    : apiErrorMessage(err, fallback)
+  errorMessage.value = report(err, fallback)
 }
 
 async function submit() {
   const accepting = details.value?.canAccept
   saving.value = true
   errorMessage.value = ''
-  fieldErrors.value = {}
+  reset()
   successMessage.value = ''
   // Adresse donnée, lue avant que la réponse du serveur ne recharge le formulaire (US-243)
   const givenEmail = form.value.email

@@ -2,7 +2,7 @@
 import { labelled } from '../sessionLabel'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 import type { ApiResponse } from '~/composables/useApiFetch'
-import { api, bodyOf, tokenFor, type WithField } from './api'
+import { api, bodyOf, invalidPaths, tokenFor, type WithField } from './api'
 import { createTestPrisma } from './db'
 import { triggerPurge } from './purge'
 import { personalLinkToken, startTestSmtp } from './smtp'
@@ -86,6 +86,15 @@ async function registerAndConfirm(publicId: string, body: Record<string, unknown
 const DENIED_OR_NOT_FOUND = [403, 404]
 
 describe('formulaire public (US-084)', () => {
+  it('refuse un prénom ou un nom de contact d’urgence avec des chiffres, chacun sous son champ (SPEC-023, R1, US-251)', async () => {
+    const { key, sessions, period } = await aliceGame()
+    const email = `chiffres-${key}@example.test`
+    const refused = await publicApi('POST', `/api/public/periods/${period.publicId}`, answers(email, [sessions[0]!.id], { firstName: 'Lou2', emergencyContactName: 'Paul @Secours' }))
+    expect(refused.status).toBe(400)
+    expect(invalidPaths(refused)).toEqual(['firstName', 'emergencyContactName'])
+    expect(await prisma.registrationRequest.count({ where: { email } })).toBe(0)
+  })
+
   it('montre le jeu, les sessions ouvertes et le formulaire ; brouillon : lien inconnu ; fermé : inscriptions closes (R2)', async () => {
     const { game, sessions, period } = await aliceGame()
     const read = await publicApi('GET', `/api/public/periods/${period.publicId}`)
