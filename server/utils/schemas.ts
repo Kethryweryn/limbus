@@ -713,13 +713,15 @@ export const invitationAcceptSchema = z.object({
   token: requiredText('Le lien')
 })
 
+const SMTP_PORT_MESSAGE = 'Le port : un nombre entier de 1 à 65535'
+
 export const smtpSettingsSchema = z.object({
   enabled: z.boolean().optional().default(false),
   host: z.string().trim().max(TEXT_MAX.short, tooLong('Le serveur SMTP', TEXT_MAX.short)).default(''),
-  port: z.coerce.number().int().min(1).max(65535).default(587),
+  port: z.coerce.number({ error: SMTP_PORT_MESSAGE }).int(SMTP_PORT_MESSAGE).min(1, SMTP_PORT_MESSAGE).max(65535, SMTP_PORT_MESSAGE).default(587),
   secure: z.boolean().optional().default(false),
   username: optionalTextField('short', 'L’utilisateur SMTP'),
-  password: z.string().optional().nullable(),
+  password: z.string().max(TEXT_MAX.short, tooLong('Le mot de passe SMTP', TEXT_MAX.short)).optional().nullable(),
   fromEmail: optionalEmail('L’email expéditeur').transform((value) => value ?? ''),
   fromName: optionalTextField('short', 'Le nom expéditeur')
 }).superRefine((value, ctx) => {

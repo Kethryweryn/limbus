@@ -69,11 +69,11 @@
               </div>
 
               <UFormField label="Nom affiché" :error="rowErrors[entry.targetCharacterId]?.displayName">
-                <UInput v-model="entry.displayName" :disabled="!entry.included" class="w-full" />
+                <UInput v-model="entry.displayName" :disabled="!entry.included && !rowErrors[entry.targetCharacterId]?.displayName" class="w-full" />
               </UFormField>
 
               <UFormField label="Note personnalisée" :error="rowErrors[entry.targetCharacterId]?.note">
-                <UTextarea v-model="entry.note" :disabled="!entry.included" :rows="3" class="w-full" />
+                <UTextarea v-model="entry.note" :disabled="!entry.included && !rowErrors[entry.targetCharacterId]?.note" :rows="3" class="w-full" />
               </UFormField>
             </div>
           </article>
@@ -88,7 +88,7 @@
 <script setup lang="ts">
 import { CHARACTER_TYPES } from '~/utils/domain'
 import { NO_VERSION } from '~/utils/offlineSync'
-import { apiErrorMessage, splitListErrors } from '~/utils/apiErrors'
+import { apiErrorMessage } from '~/utils/apiErrors'
 import type { ApiResponse } from '~/composables/useApiFetch'
 import { characterReads } from '~/utils/offlinePlan'
 
@@ -110,7 +110,7 @@ const entries = ref<Entry[]>([])
 const version = ref<string>(NO_VERSION)
 const serverError = ref('')
 // Refus du serveur rangés sous les champs de chaque personnage (SPEC-023, R11)
-const rowErrors = ref<Record<string, Record<string, string>>>({})
+const { rowErrors, report, reset } = useListErrors('entries', ['displayName', 'note'])
 
 watch(() => props.open, async (value) => {
   if (value) {
@@ -123,7 +123,7 @@ async function loadConfig() {
 
   loading.value = true
   serverError.value = ''
-  rowErrors.value = {}
+  reset()
 
   try {
     const data = await useApiFetch(characterReads.trombinoscope(props.character.id), { offlineCache: true })
@@ -155,7 +155,7 @@ async function saveConfig() {
 
   saving.value = true
   serverError.value = ''
-  rowErrors.value = {}
+  reset()
   try {
     await useApiFetch(characterReads.trombinoscope(props.character.id), {
       method: 'PUT',
@@ -172,9 +172,7 @@ async function saveConfig() {
     })
     isOpen.value = false
   } catch (err) {
-    const { rows, message } = splitListErrors(err, 'Erreur inconnue', 'entries', entries.value.map((entry) => entry.targetCharacterId), ['displayName', 'note'])
-    rowErrors.value = rows
-    serverError.value = message
+    serverError.value = report(err, 'Erreur inconnue', entries.value.map((entry) => entry.targetCharacterId))
   } finally {
     saving.value = false
   }

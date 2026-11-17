@@ -281,7 +281,7 @@
 import { formatScore } from '~/utils/castingAssistant'
 import { computed, ref, watch } from 'vue'
 import { CHARACTER_TYPES, REGISTRATION_PERIOD_STATES, SESSION_ROLES, SESSION_STATUSES } from '~/utils/domain'
-import { apiErrorMessage, splitListErrors } from '~/utils/apiErrors'
+import { apiErrorMessage } from '~/utils/apiErrors'
 import { fromSelectValue, NONE_VALUE, noneOption, toSelectValue } from '~/utils/selectOptions'
 import { registrationStatusMeta } from '~/utils/registrations'
 import { fetchByUrl, type ApiResponse } from '~/composables/useApiFetch'
@@ -324,7 +324,7 @@ const uploadingIndex = ref<number | null>(null)
 const saving = ref(false)
 const serverError = ref('')
 // Refus du serveur rangés sous la note de chaque ligne (SPEC-023, R11)
-const rowErrors = ref<Record<string, Record<string, string>>>({})
+const { rowErrors, report, reset } = useListErrors('assignments', ['notes'])
 const fileInputs = ref<HTMLInputElement[]>([])
 const selectedPhotoNames = ref<Record<number, string>>({})
 const showPhotoPreview = ref(false)
@@ -559,7 +559,7 @@ async function submit() {
   if (saving.value) return
 
   saving.value = true
-  rowErrors.value = {}
+  reset()
   // Une personne qui a refusé l'usage de sa photo ne garde pas celle de la ligne (US-109)
   const lines = assignments.value
     .filter((assignment) => assignment.characterId)
@@ -568,9 +568,7 @@ async function submit() {
     await props.onSave(lines)
     serverError.value = ''
   } catch (err) {
-    const { rows, message } = splitListErrors(err, 'Erreur inconnue', 'assignments', lines.map((line) => line.characterId), ['notes'])
-    rowErrors.value = rows
-    serverError.value = message
+    serverError.value = report(err, 'Erreur inconnue', lines.map((line) => line.characterId))
     showFirstRefusedLine()
   } finally {
     saving.value = false

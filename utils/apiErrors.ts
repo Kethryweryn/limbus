@@ -37,6 +37,15 @@ function validationIssues(err: unknown) {
   return Array.isArray(issues) ? issues : []
 }
 
+// Premier message de chaque chemin, comme zod les rend : le plus précis (« obligatoire », plafond) passe avant la forme
+function firstByPath(issues: Array<{ path?: string, message?: string }>) {
+  const byPath: Record<string, string> = {}
+  for (const issue of issues) {
+    if (issue.path && !(issue.path in byPath)) byPath[issue.path] = issue.message || ''
+  }
+  return byPath
+}
+
 // Refus d'une validation de la saisie (et non d'un refus du serveur pour une autre raison)
 export function isValidationError(err: unknown) {
   return validationIssues(err).length > 0
@@ -44,7 +53,7 @@ export function isValidationError(err: unknown) {
 
 // Détail par champ d'une validation zod, pour afficher chaque message sous son champ
 export function apiFieldErrors(err: unknown): Record<string, string> {
-  return Object.fromEntries(validationIssues(err).filter((issue) => issue.path).map((issue) => [issue.path!, issue.message || '']))
+  return firstByPath(validationIssues(err))
 }
 
 export const FIELDS_INVALID_MESSAGE = 'Certaines informations sont manquantes ou incorrectes.'
@@ -56,7 +65,7 @@ export const FIELDS_INVALID_MESSAGE = 'Certaines informations sont manquantes ou
  */
 export function splitApiErrors(err: unknown, fallback: string, fields?: readonly string[]) {
   const isShown = (path?: string) => Boolean(path) && (!fields || fields.includes(path!))
-  const shown = Object.fromEntries(validationIssues(err).filter((issue) => isShown(issue.path)).map((issue) => [issue.path!, issue.message || '']))
+  const shown = firstByPath(validationIssues(err).filter((issue) => isShown(issue.path)))
   // Un refus sans champ (tout le corps) ou d'un champ absent de l'écran reste dans le message
   const hidden = validationIssues(err).filter((issue) => !isShown(issue.path)).map((issue) => issue.message).filter(Boolean)
   const message = hidden.length

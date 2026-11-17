@@ -127,7 +127,7 @@ describe('emails (SPEC-023, R10)', () => {
   it('obligatoire : en minuscules, de la forme d’une adresse, 254 caractères au plus', () => {
     expect(requiredEmail().parse(' Lea@Example.TEST ')).toBe('lea@example.test')
     expect(requiredEmail().safeParse('pas-une-adresse').error?.issues[0]?.message).toBe('Email invalide')
-    expect(requiredEmail().safeParse('').error?.issues.map((issue) => issue.message)).toEqual(['L’email est obligatoire'])
+    expect(requiredEmail().safeParse('').error?.issues[0]?.message).toBe('L’email est obligatoire')
     expect(requiredEmail().safeParse(`${'a'.repeat(250)}@x.fr`).error?.issues[0]?.message).toBe('L’email : 254 caractères au plus')
   })
 

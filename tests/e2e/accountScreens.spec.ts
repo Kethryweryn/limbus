@@ -457,9 +457,11 @@ test.describe('administration', () => {
       await page.getByLabel('Serveur SMTP').fill('127.0.0.1')
       await page.getByLabel('Nom expéditeur').fill('a'.repeat(501))
       await page.getByLabel('Email expéditeur').fill('contact@limbus')
+      await page.getByLabel('Port').fill('70000')
       await page.getByRole('button', { name: 'Enregistrer' }).click()
       await expect(fieldError(page, 'Nom expéditeur', 'Le nom expéditeur : 500 caractères au plus')).toBeVisible()
       await expect(fieldError(page, 'Email expéditeur', 'Email invalide')).toBeVisible()
+      await expect(fieldError(page, 'Port', 'Le port : un nombre entier de 1 à 65535')).toBeVisible()
       await expect(fieldError(page, 'Serveur SMTP', 'Le serveur SMTP est obligatoire quand l’envoi est activé')).toBeHidden()
 
       await page.getByLabel('Destinataire').fill('')

@@ -53,6 +53,12 @@ describe('splitApiErrors (SPEC-023, R11)', () => {
     expect(isValidationError({ data: { message: 'Ce lien a expiré : demandez-en un nouveau.' } })).toBe(false)
   })
 
+  it('garde sous un champ son premier refus, le plus précis', () => {
+    const twice = { data: { message: 'Requête invalide', data: { data: [{ path: 'to', message: 'Le destinataire est obligatoire' }, { path: 'to', message: 'Email invalide' }] } } }
+    expect(splitApiErrors(twice, 'Erreur').fields).toEqual({ to: 'Le destinataire est obligatoire' })
+    expect(apiFieldErrors(twice)).toEqual({ to: 'Le destinataire est obligatoire' })
+  })
+
   it('sans validation, rend le message habituel', () => {
     expect(splitApiErrors({ data: { message: 'Période introuvable' } }, 'Erreur', ['email'])).toEqual({ fields: {}, message: 'Période introuvable' })
   })
