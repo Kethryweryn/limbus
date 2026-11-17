@@ -95,3 +95,4 @@ Toute décision technique fait l'objet d'un ADR : choix de modèle de données, 
 | [ADR-0089](ADR-0089-recopie-champ-par-champ.md) | Les coordonnées du compte sont recopiées champ par champ, seulement les champs que la personne a remplis | accepté | 2026-11-12 |
 | [ADR-0090](ADR-0090-effacement-du-compte-non-active.md) | Un compte non activé est effacé avec la dernière fiche qui porte son adresse | accepté | 2026-11-12 |
 | [ADR-0091](ADR-0091-csp-sans-strict-dynamic.md) | CSP sans strict-dynamic, icônes livrées avec Limbus, violations vérifiées par la suite de bout en bout | accepté | 2026-11-12 |
+| [ADR-0092](ADR-0092-validation-des-saisies.md) | Règles de saisie partagées, téléphones vérifiés par libphonenumber-js | accepté | 2026-11-17 |

@@ -67,6 +67,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-057](../archive/epics/EPIC-057-compte-pre-cree-et-activation/README.md) | Un compte pré-créé pour chaque fiche, que la personne active | [SPEC-022](../specs/SPEC-022-compte-pour-chaque-participant.md) | terminé |
 | [EPIC-058](../archive/epics/EPIC-058-durees-et-administration/README.md) | Comptes non activés : durée et administration | [SPEC-022](../specs/SPEC-022-compte-pour-chaque-participant.md) | terminé |
 | [EPIC-059](../archive/epics/EPIC-059-csp-applicable/README.md) | Une CSP prête à bloquer | [Durcissement web](../todo/durcissement-web.md) | terminé |
+| [EPIC-060](EPIC-060-validation-des-saisies/README.md) | Valider les saisies partout | [SPEC-023](../specs/SPEC-023-validation-des-saisies.md) | à faire |
 
 ## US
 
@@ -322,3 +323,6 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-248](../archive/epics/EPIC-058-durees-et-administration/US-248-comptes-non-actives-dans-l-administration.md) | Les comptes non activés dans l'administration | EPIC-058 | terminée |
 | [US-249](../archive/epics/EPIC-058-durees-et-administration/US-249-effacement-du-compte-non-active.md) | Effacer un compte non activé avec sa dernière fiche | EPIC-058 | terminée |
 | [US-250](../archive/epics/EPIC-059-csp-applicable/US-250-csp-accueil-icones-et-garde-fou.md) | La page d'accueil et les icônes passent la CSP, et les tests le vérifient | EPIC-059 | terminée |
+| [US-251](EPIC-060-validation-des-saisies/US-251-noms-de-personnes.md) | Un nom de personne ne contient que des lettres et des séparateurs | EPIC-060 | à faire |
+| [US-252](EPIC-060-validation-des-saisies/US-252-telephones-et-contact-d-urgence.md) | Des téléphones vérifiés selon leur pays, et un contact d'urgence complet | EPIC-060 | à faire |
+| [US-253](EPIC-060-validation-des-saisies/US-253-longueurs-et-emails.md) | Une longueur maximale sur chaque texte, des emails vérifiés partout | EPIC-060 | à faire |
