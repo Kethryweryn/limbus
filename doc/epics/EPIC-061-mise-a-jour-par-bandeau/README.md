@@ -11,13 +11,14 @@ date: 2026-11-17
 
 ## Objectif
 
-Après un déploiement, aucune page ne se recharge d'elle-même : un bandeau propose de recharger, et la personne choisit le moment (R14 de [SPEC-010](../../specs/SPEC-010-hors-ligne.md), [ADR-0093](../../adr/ADR-0093-mise-a-jour-par-bandeau.md)).
+Après un déploiement, aucune page ne se recharge d'elle-même : un bandeau propose de recharger, et la personne choisit le moment (R14 de [SPEC-010](../../specs/SPEC-010-hors-ligne.md), [ADR-0093](../../adr/ADR-0093-mise-a-jour-par-bandeau.md)). Au retour du réseau, l'envoi des modifications faites hors ligne ne recharge plus la page non plus (R7).
 
 ## US
 
 | US | Titre | Statut |
 |---|---|---|
 | [US-254](US-254-bandeau-de-mise-a-jour.md) | Charger une nouvelle version quand je le décide | à faire |
+| [US-255](US-255-retour-du-reseau-sans-rechargement.md) | Retrouver le réseau sans que la page se recharge | à faire |
 
 ## Définition de terminé
 

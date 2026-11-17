@@ -29,6 +29,8 @@ Après un déploiement, la page se recharge encore pendant que l'utilisatrice na
 - Sans réseau, ou serveur indisponible, il est masqué, et revient avec le réseau.
 - Sans clic, la nouvelle version se charge d'elle-même quand tous les onglets de Limbus sont fermés.
 - La recherche de la nouvelle version reste celle d'[ADR-0078](../../adr/ADR-0078-recherche-de-la-nouvelle-version.md).
+- Seule exception : un onglet resté sur l'ancienne version après « Recharger » dans un autre se recharge au changement de page qui demande un fichier disparu (accepté).
+- Au retour du réseau, l'envoi des modifications faites hors ligne ne recharge plus la page : elle relit ses données (relevé par la revue de la PR #259).
 
 ## Découpage envisagé
 
