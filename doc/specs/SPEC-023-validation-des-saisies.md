@@ -76,7 +76,7 @@ Cette spec répond aux retours A9-1, A9-2 et A10-1 du cahier de tests, et étend
 
 ### Contact d'urgence
 
-- **R8 :** le nom et le téléphone d'un contact d'urgence vont ensemble. Un nom sans téléphone est refusé, et un téléphone sans nom aussi. Le message s'affiche sous le champ vide. Les deux vides restent acceptés là où le contact est facultatif, c'est-à-dire dans le compte. Le questionnaire les demande déjà tous les deux.
+- **R8 :** le nom et le téléphone d'un contact d'urgence vont ensemble. Un nom sans téléphone est refusé, et un téléphone sans nom aussi. Le message s'affiche sous le champ vide. La règle vaut pour chaque écriture d'un contact d'urgence : compte, questionnaire, outils des assistants d'IA. Les deux vides restent acceptés là où le contact est facultatif, c'est-à-dire dans le compte.
 
 ### Longueurs
 
@@ -106,7 +106,7 @@ Cette spec répond aux retours A9-1, A9-2 et A10-1 du cahier de tests, et étend
 ## Sécurité et droits
 
 - Toutes les règles sont vérifiées par le serveur. L'écran peut prévenir plus tôt, mais c'est le serveur qui décide.
-- Les plafonds de R9 protègent aussi le serveur contre un envoi démesuré. Ils s'ajoutent à la limite générale de taille d'une requête.
+- Les plafonds de R9 protègent aussi le serveur contre un envoi démesuré. Limbus n'a pas de limite générale de taille d'une requête (celle de nuxt-security est désactivée) : ce sont donc eux qui la posent, champ par champ.
 - Aucun droit ne change.
 
 ## Hors périmètre

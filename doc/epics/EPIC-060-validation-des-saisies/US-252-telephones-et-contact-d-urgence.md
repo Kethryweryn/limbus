@@ -24,6 +24,7 @@ En tant qu'organisatrice, je veux des numéros de téléphone justes, rangés so
 - [ ] Le téléphone s'affiche et s'exporte sous sa forme rangée, y compris dans le lien « appeler ».
 - [ ] Chaque téléphone de R7 suit ces règles : compte, fiche participant, questionnaire, contact d'urgence. Les outils des assistants d'IA aussi.
 - [ ] Étant donné, dans Mon compte, un nom de contact d'urgence sans téléphone, ou un téléphone sans nom, quand j'enregistre, alors le message s'affiche sous le champ vide.
+- [ ] Un contact d'urgence à moitié rempli est refusé par chaque écriture : compte, questionnaire, outils des assistants (R8).
 - [ ] La migration range au format les téléphones qu'elle reconnaît (ADR-0092) et laisse les autres tels quels.
 
 ## Notes techniques
@@ -49,4 +50,4 @@ Tests d'intégration :
 
 - les routes de R7 ;
 - les outils des assistants ;
-- la migration, sur une valeur de chaque forme.
+- la migration, sur une valeur de chaque forme, « +33 (0)6… » compris.

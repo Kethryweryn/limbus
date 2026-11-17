@@ -28,7 +28,7 @@ afin qu'aucune saisie démesurée ou mal formée n'entre dans Limbus.
 
 - Les plafonds sont écrits une seule fois : `text(type)` et `TEXT_MAX`, dans `server/utils/fieldRules.ts`.
 - Il faut relever chaque champ de `schemas.ts` et de `server/mcp/`.
-- La limite générale de taille d'une requête doit laisser passer un texte de fond de 1 000 000 de caractères.
+- Limbus n'a pas de limite générale de taille d'une requête : vérifier qu'un texte de fond de 1 000 000 de caractères (jusqu'à 4 Mo en UTF-8) passe aussi Apache en production.
 
 ## Tests
 

@@ -23,7 +23,7 @@ Pour vérifier un téléphone selon son pays (R4), il faut connaître le plan de
 ## Décision
 
 1. **Des briques de champ uniques**, dans un module serveur (`server/utils/fieldRules.ts`), que réutilisent `schemas.ts`, `registrationForms.ts` et les schémas de `server/mcp/` :
-   - `personName` (R1) : `/^[\p{L}\p{M}][\p{L}\p{M} '’.-]*$/u` après réduction des espaces, avec au moins une lettre et 100 caractères au plus ;
+   - `personName` (R1) : `/^(?=.*\p{L})[\p{L}\p{M} '’.-]+$/u` après réduction des espaces : au moins une lettre, à n'importe quelle place (« 't Hooft ») et 100 caractères au plus ;
    - `phone` (R4 à R6) ;
    - `emergencyContact` (R8), un `superRefine` posé sur l'objet qui porte les deux champs, qui range son message sous le champ vide ;
    - `email` (R10) ;
@@ -35,7 +35,7 @@ Pour vérifier un téléphone selon son pays (R4), il faut connaître le plan de
    - Le « (0) » d'un « +33 (0)6… » est retiré avant l'analyse.
    - La bibliothèque ne sert qu'au serveur : aucune métadonnée n'est envoyée dans le code des pages.
 3. **Affichage sous le champ** : chaque formulaire concerné lit `apiFieldErrors` et passe le message à l'`error` de son `UFormField`. Le message reste aussi sous le bouton, pour un champ qui n'est pas à l'écran.
-4. **Téléphones déjà en base (R12)** : une migration SQL, sans bibliothèque. Elle retire les espaces, points, tirets et parenthèses, puis ne réécrit que les formes sûres :
+4. **Téléphones déjà en base (R12)** : une migration SQL, sans bibliothèque. Elle retire d'abord un « (0) » placé après un indicatif, puis les espaces, points, tirets et parenthèses. Elle ne réécrit ensuite que les formes sûres :
    - un numéro de 10 chiffres commençant par 0 (sauf 00) devient +33 suivi des 9 derniers chiffres ;
    - un numéro commençant par 0033 devient +33 suivi du reste ;
    - un numéro commençant par + et suivi de 8 à 15 chiffres est gardé, sans ses séparateurs.
