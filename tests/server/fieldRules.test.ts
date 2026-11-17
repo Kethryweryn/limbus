@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { assertChangedPersonName, isPersonName, optionalPersonName, personName } from '~/server/utils/fieldRules'
+import { z } from 'zod'
+import { assertChangedPersonName, assertChangedPhone, enteredPhone, normalizePhone, optionalPhone, PHONE_MESSAGE, refineEmergencyContact, requiredPhone, isPersonName, optionalPersonName, personName } from '~/server/utils/fieldRules'
 
 const message = 'Le nom ne peut contenir que des lettres, des espaces, des traits d’union, des apostrophes et des points'
 
@@ -47,5 +48,60 @@ describe('assertChangedPersonName (SPEC-023, R12)', () => {
     expect(() => assertChangedPersonName('name', 'Le nom', null, ['x'])).not.toThrow()
     expect(() => assertChangedPersonName('name', 'Le nom', 'Léa Martin', [null])).not.toThrow()
     expect(() => assertChangedPersonName('name', 'Le nom', 'Ancien 3', ['Ancien 2'])).toThrow(expect.objectContaining({ statusCode: 400, data: expect.objectContaining({ data: [{ path: 'name', message }] }) }))
+  })
+})
+
+describe('téléphones (SPEC-023, R4 à R6)', () => {
+  it('range au format international un numéro français, avec ou sans séparateurs ni indicatif', () => {
+    for (const typed of ['06 12 34 56 78', '06.12.34.56.78', '06-12-34-56-78', '(06) 12 34 56 78', '+33 (0)6 12 34 56 78', '0033612345678', '+33612345678']) {
+      expect(normalizePhone(typed), typed).toBe('+33612345678')
+    }
+  })
+
+  it('vérifie un numéro étranger selon son pays', () => {
+    expect(normalizePhone('+32 470 12 34 56')).toBe('+32470123456')
+    expect(normalizePhone('0032 470 12 34 56')).toBe('+32470123456')
+    expect(normalizePhone('+41 79 123 45 67')).toBe('+41791234567')
+  })
+
+  it('refuse ce qui n’est pas un numéro, même s’il en contient un', () => {
+    for (const typed of ['12', 'bonjour', '06 12 34', '07 00 00 00 00', 'tél. 06 12 34 56 78', '0612345678 poste 2', '+33 6 12 34 56 78 9']) {
+      expect(normalizePhone(typed), typed).toBeNull()
+    }
+  })
+
+  it('obligatoire ou facultatif, avec le message du champ', () => {
+    expect(requiredPhone().parse(' 06 12 34 56 78 ')).toBe('+33612345678')
+    expect(requiredPhone().safeParse('').error?.issues[0]?.message).toBe('Le téléphone est obligatoire')
+    expect(requiredPhone().safeParse('12').error?.issues[0]?.message).toBe(PHONE_MESSAGE)
+    expect(optionalPhone().parse('  ')).toBeNull()
+    expect(optionalPhone().parse(undefined)).toBeNull()
+    expect(optionalPhone().safeParse('bonjour').error?.issues[0]?.message).toBe(PHONE_MESSAGE)
+  })
+
+  it('une modification garde un numéro non reconnu tel quel, refusé seulement s’il change (R12)', () => {
+    expect(enteredPhone().parse('06 12 34 56 78')).toBe('+33612345678')
+    expect(enteredPhone().parse(' standard ')).toBe('standard')
+    expect(enteredPhone().parse('')).toBeNull()
+    expect(() => assertChangedPhone('phone', 'standard', ['standard '])).not.toThrow()
+    expect(() => assertChangedPhone('phone', '+33612345678', [null])).not.toThrow()
+    expect(() => assertChangedPhone('phone', null, ['x'])).not.toThrow()
+    expect(() => assertChangedPhone('phone', 'autre', ['standard'])).toThrow(expect.objectContaining({ statusCode: 400, data: expect.objectContaining({ data: [{ path: 'phone', message: PHONE_MESSAGE }] }) }))
+  })
+})
+
+describe('contact d’urgence complet (SPEC-023, R8)', () => {
+  const contact = z.object({ emergencyContactName: z.string().nullable(), emergencyContactPhone: z.string().nullable() }).superRefine(refineEmergencyContact)
+  const refused = (value: { emergencyContactName: string | null, emergencyContactPhone: string | null }) =>
+    contact.safeParse(value).error?.issues.map((issue) => [issue.path.join('.'), issue.message])
+
+  it('refuse un nom sans téléphone, et un téléphone sans nom, sous le champ vide', () => {
+    expect(refused({ emergencyContactName: 'Paul', emergencyContactPhone: null })).toEqual([['emergencyContactPhone', 'Le téléphone du contact d’urgence est obligatoire']])
+    expect(refused({ emergencyContactName: null, emergencyContactPhone: '+33612345678' })).toEqual([['emergencyContactName', 'Le nom du contact d’urgence est obligatoire']])
+  })
+
+  it('accepte les deux, ou aucun', () => {
+    expect(contact.safeParse({ emergencyContactName: 'Paul', emergencyContactPhone: '+33612345678' }).success).toBe(true)
+    expect(contact.safeParse({ emergencyContactName: null, emergencyContactPhone: null }).success).toBe(true)
   })
 })

@@ -7,12 +7,12 @@ const empty = { emailConfirmedAt: new Date(), name: 'Camille', phone: null, emer
 describe('heldProfileFields', () => {
   it('un compte activé tient son nom et les seuls champs remplis', () => {
     expect(heldProfileFields(empty)).toEqual(['name'])
-    expect(heldProfileFields({ ...empty, phone: '0600000000', emergencyContactPhone: '0700000000' })).toEqual(['name', 'phone', 'emergencyContact'])
+    expect(heldProfileFields({ ...empty, phone: '+33600000000', emergencyContactPhone: '+33644444444' })).toEqual(['name', 'phone', 'emergencyContact'])
     expect(heldProfileFields({ ...empty, dietary: 'Sans gluten' })).toEqual(['name', 'dietary'])
   })
 
   it('un compte non activé, ou absent, ne tient rien', () => {
-    expect(heldProfileFields({ ...empty, emailConfirmedAt: null, phone: '0600000000' })).toEqual([])
+    expect(heldProfileFields({ ...empty, emailConfirmedAt: null, phone: '+33600000000' })).toEqual([])
     expect(heldProfileFields(null)).toEqual([])
   })
 
@@ -23,9 +23,9 @@ describe('heldProfileFields', () => {
 
 describe('clearedProfileFields', () => {
   it('rend les champs remplis avant et vides après, pas ceux jamais remplis', () => {
-    const before = { ...empty, phone: '0600000000', dietary: 'Sans gluten' }
+    const before = { ...empty, phone: '+33600000000', dietary: 'Sans gluten' }
     expect(clearedProfileFields(before, { ...before, phone: null })).toEqual(['phone'])
-    expect(clearedProfileFields(empty, { ...empty, phone: '0600000000' })).toEqual([])
+    expect(clearedProfileFields(empty, { ...empty, phone: '+33600000000' })).toEqual([])
     expect(clearedProfileFields(before, before)).toEqual([])
   })
 })

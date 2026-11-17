@@ -50,7 +50,7 @@ async function post(path: string, body: unknown) {
 
 async function preCreated(key: string) {
   const email = unique(key)
-  const response = await api(alice, 'POST', '/api/participants', { name: 'Nom chez Alice', email, phone: '0100000000', gameIds: [world.a.game.id] })
+  const response = await api(alice, 'POST', '/api/participants', { name: 'Nom chez Alice', email, phone: '+33100000000', gameIds: [world.a.game.id] })
   expect(response.status, JSON.stringify(response.body)).toBe(200)
   const fiche = response.body as { id: string }
   return { email, fiche, account: await prisma.user.findUniqueOrThrow({ where: { email } }) }
@@ -90,7 +90,7 @@ describe('activer mon compte (US-246)', () => {
     expect(activated.emailConfirmedAt).not.toBeNull()
     // Son nom est recopié ; le téléphone, qu'il n'a pas rempli, reste celui de l'équipe (ADR-0089)
     expect(await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: fiche.id, gameId: world.a.game.id } }, select: { name: true, phone: true } }))
-      .toEqual({ name: 'Paul Martin', phone: '0100000000' })
+      .toEqual({ name: 'Paul Martin', phone: '+33100000000' })
     const session = await login(email, password)
     expect(session.status).toBe(200)
     const participations = await fetch(`${inject('baseUrl')}/api/me/participations`, { headers: { cookie: sessionOf(session) } })

@@ -67,7 +67,7 @@ Cette spec répond aux retours A9-1, A9-2 et A10-1 du cahier de tests, et étend
   - Un numéro étranger s'écrit avec son indicatif : +32…, ou 0032….
   - Un numéro que son pays ne reconnaît pas est refusé : « Numéro de téléphone invalide ».
 - **R5 :** les espaces, points, tirets et parenthèses sont acceptés à la saisie, puis retirés. Le « (0) » d'un « +33 (0)6… » est retiré aussi.
-- **R6 :** un téléphone est rangé, affiché et exporté sous une seule forme : le + et l'indicatif, puis les chiffres sans séparateur (+33612345678). Cela vaut aussi pour le lien « appeler ».
+- **R6 :** un téléphone est rangé, affiché et exporté sous une seule forme : le + et l'indicatif, puis les chiffres sans séparateur (+33612345678). Dans l'export CSV, il est écrit pour qu'un tableur le garde en texte : Excel lirait sinon « +33612345678 » comme un nombre et retirerait le + (choix de l'utilisatrice, revue de la PR #255).
 - **R7 :** R4 à R6 valent pour chaque téléphone saisi :
   - le téléphone du compte ;
   - celui de la fiche participant ;

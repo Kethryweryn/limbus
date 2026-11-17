@@ -80,7 +80,7 @@ const body = (ids: { text: string, single: string, multiple: string, scale: stri
   email: `reponse-${counter}@example.test`,
   firstName: 'Camille',
   emergencyContactName: 'Paul Secours',
-  emergencyContactPhone: '0699999999',
+  emergencyContactPhone: '+33699999999',
   charterAccepted: true,
   affinities: { wantWith: ['Léa', '', ' Noé '], notWith: [], avoid: ['Max'], refusedRelations: ['ignorée'] },
   questionAnswers: { [ids.text]: 'Pour l’ambiance', [ids.single]: 'Intrigue', [ids.multiple]: ['Romance', 'Mystère'], [ids.scale]: 4, inconnue: 'ignorée' },

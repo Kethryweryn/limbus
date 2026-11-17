@@ -87,6 +87,11 @@ export function uniquePersonName(base: string) {
   return uniqueName(base).replace(/\d/g, (digit) => 'abcdefghij'[Number(digit)]!)
 }
 
+// Message affiché sous le champ de ce libellé (UFormField, SPEC-023 R11)
+export function fieldError(page: Page, label: string, message: string) {
+  return page.locator('[data-slot="root"]').filter({ has: page.getByLabel(label, { exact: true }) }).getByText(message)
+}
+
 // Le plus petit bloc de la page Inscriptions qui porte à la fois le titre du jeu et le bouton donné
 // Bloc d'un jeu sur la page Inscriptions, dont le titre est un titre de niveau 2. Jamais un bloc qui contient aussi le
 // titre d'un autre jeu : tant que le bouton n'est pas affiché (sessions encore en lecture), on attend, au lieu de

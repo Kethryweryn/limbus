@@ -99,27 +99,27 @@ const TEST_ACCOUNTS = [
     key: 'ines',
     name: 'Inès Lefèvre',
     email: 'ines.lefevre@example.test',
-    phone: '06 11 22 33 10',
+    phone: '+33611223310',
     emergencyContactName: 'Paul Lefèvre',
-    emergencyContactPhone: '06 55 00 00 10',
+    emergencyContactPhone: '+33655000010',
     dietary: null
   },
   {
     key: 'camille',
     name: 'Camille Bernard',
     email: 'camille.bernard@example.test',
-    phone: '06 11 22 33 01',
+    phone: '+33611223301',
     emergencyContactName: 'Aline Bernard',
-    emergencyContactPhone: '06 55 00 00 01',
+    emergencyContactPhone: '+33655000001',
     dietary: 'Végétarienne, allergie aux fruits à coque'
   },
   {
     key: 'lucie',
     name: 'Lucie Moreau',
     email: 'lucie.moreau@example.test',
-    phone: '06 11 22 33 02',
+    phone: '+33611223302',
     emergencyContactName: 'Marc Moreau',
-    emergencyContactPhone: '06 55 00 00 02',
+    emergencyContactPhone: '+33655000002',
     dietary: null
   }
 ]
@@ -192,16 +192,16 @@ const games: GameSeed[] = [
       }
     ],
     participants: [
-      { name: 'Camille Bernard', email: 'camille.bernard@example.test', phone: '06 11 22 33 01' },
-      { name: 'Lucie Moreau', email: 'lucie.moreau@example.test', phone: '06 11 22 33 02' },
-      { name: 'Nicolas Martin', email: 'nicolas.martin@example.test', phone: '06 11 22 33 03' },
-      { name: 'Sarah Petit', email: 'sarah.petit@example.test', phone: '06 11 22 33 04' },
-      { name: 'Julien Robert', email: 'julien.robert@example.test', phone: '06 11 22 33 05' },
-      { name: 'Manon Richard', email: 'manon.richard@example.test', phone: '06 11 22 33 06' },
-      { name: 'Antoine Durand', email: 'antoine.durand@example.test', phone: '06 11 22 33 07' },
-      { name: 'Élise Leroy', email: 'elise.leroy@example.test', phone: '06 11 22 33 08' },
-      { name: 'Thomas Garnier', email: 'thomas.garnier@example.test', phone: '06 11 22 33 09' },
-      { name: 'Inès Lefèvre', email: 'ines.lefevre@example.test', phone: '06 11 22 33 10' }
+      { name: 'Camille Bernard', email: 'camille.bernard@example.test', phone: '+33611223301' },
+      { name: 'Lucie Moreau', email: 'lucie.moreau@example.test', phone: '+33611223302' },
+      { name: 'Nicolas Martin', email: 'nicolas.martin@example.test', phone: '+33611223303' },
+      { name: 'Sarah Petit', email: 'sarah.petit@example.test', phone: '+33611223304' },
+      { name: 'Julien Robert', email: 'julien.robert@example.test', phone: '+33611223305' },
+      { name: 'Manon Richard', email: 'manon.richard@example.test', phone: '+33611223306' },
+      { name: 'Antoine Durand', email: 'antoine.durand@example.test', phone: '+33611223307' },
+      { name: 'Élise Leroy', email: 'elise.leroy@example.test', phone: '+33611223308' },
+      { name: 'Thomas Garnier', email: 'thomas.garnier@example.test', phone: '+33611223309' },
+      { name: 'Inès Lefèvre', email: 'ines.lefevre@example.test', phone: '+33611223310' }
     ],
     locations: [
       {
@@ -296,16 +296,16 @@ const games: GameSeed[] = [
       }
     ],
     participants: [
-      { name: 'Amandine Blanc', email: 'amandine.blanc@example.test', phone: '06 22 33 44 01' },
-      { name: 'Mehdi Laurent', email: 'mehdi.laurent@example.test', phone: '06 22 33 44 02' },
-      { name: 'Clara Rousseau', email: 'clara.rousseau@example.test', phone: '06 22 33 44 03' },
-      { name: 'Hugo Fontaine', email: 'hugo.fontaine@example.test', phone: '06 22 33 44 04' },
-      { name: 'Léa Mercier', email: 'lea.mercier@example.test', phone: '06 22 33 44 05' },
-      { name: 'Raphaël Chevalier', email: 'raphael.chevalier@example.test', phone: '06 22 33 44 06' },
-      { name: 'Nina Perrin', email: 'nina.perrin@example.test', phone: '06 22 33 44 07' },
-      { name: 'Olivier Girard', email: 'olivier.girard@example.test', phone: '06 22 33 44 08' },
-      { name: 'Maëlle Renaud', email: 'maelle.renaud@example.test', phone: '06 22 33 44 09' },
-      { name: 'Baptiste Collet', email: 'baptiste.collet@example.test', phone: '06 22 33 44 10' },
+      { name: 'Amandine Blanc', email: 'amandine.blanc@example.test', phone: '+33622334401' },
+      { name: 'Mehdi Laurent', email: 'mehdi.laurent@example.test', phone: '+33622334402' },
+      { name: 'Clara Rousseau', email: 'clara.rousseau@example.test', phone: '+33622334403' },
+      { name: 'Hugo Fontaine', email: 'hugo.fontaine@example.test', phone: '+33622334404' },
+      { name: 'Léa Mercier', email: 'lea.mercier@example.test', phone: '+33622334405' },
+      { name: 'Raphaël Chevalier', email: 'raphael.chevalier@example.test', phone: '+33622334406' },
+      { name: 'Nina Perrin', email: 'nina.perrin@example.test', phone: '+33622334407' },
+      { name: 'Olivier Girard', email: 'olivier.girard@example.test', phone: '+33622334408' },
+      { name: 'Maëlle Renaud', email: 'maelle.renaud@example.test', phone: '+33622334409' },
+      { name: 'Baptiste Collet', email: 'baptiste.collet@example.test', phone: '+33622334410' },
       ...MERIDIAN_EXTRA_PEOPLE
     ],
     locations: [
@@ -401,16 +401,16 @@ const games: GameSeed[] = [
       }
     ],
     participants: [
-      { name: 'Pauline Aubert', email: 'pauline.aubert@example.test', phone: '06 33 44 55 01' },
-      { name: 'Maxime Henry', email: 'maxime.henry@example.test', phone: '06 33 44 55 02' },
-      { name: 'Chloé Renard', email: 'chloe.renard@example.test', phone: '06 33 44 55 03' },
-      { name: 'Arthur Masson', email: 'arthur.masson@example.test', phone: '06 33 44 55 04' },
-      { name: 'Eva Marchand', email: 'eva.marchand@example.test', phone: '06 33 44 55 05' },
-      { name: 'Noé Caron', email: 'noe.caron@example.test', phone: '06 33 44 55 06' },
-      { name: 'Jeanne Giraud', email: 'jeanne.giraud@example.test', phone: '06 33 44 55 07' },
-      { name: 'Louis Lambert', email: 'louis.lambert@example.test', phone: '06 33 44 55 08' },
-      { name: 'Anaïs Vidal', email: 'anais.vidal@example.test', phone: '06 33 44 55 09' },
-      { name: 'Pierre Moulin', email: 'pierre.moulin@example.test', phone: '06 33 44 55 10' },
+      { name: 'Pauline Aubert', email: 'pauline.aubert@example.test', phone: '+33633445501' },
+      { name: 'Maxime Henry', email: 'maxime.henry@example.test', phone: '+33633445502' },
+      { name: 'Chloé Renard', email: 'chloe.renard@example.test', phone: '+33633445503' },
+      { name: 'Arthur Masson', email: 'arthur.masson@example.test', phone: '+33633445504' },
+      { name: 'Eva Marchand', email: 'eva.marchand@example.test', phone: '+33633445505' },
+      { name: 'Noé Caron', email: 'noe.caron@example.test', phone: '+33633445506' },
+      { name: 'Jeanne Giraud', email: 'jeanne.giraud@example.test', phone: '+33633445507' },
+      { name: 'Louis Lambert', email: 'louis.lambert@example.test', phone: '+33633445508' },
+      { name: 'Anaïs Vidal', email: 'anais.vidal@example.test', phone: '+33633445509' },
+      { name: 'Pierre Moulin', email: 'pierre.moulin@example.test', phone: '+33633445510' },
       ...BAL_EXTRA_PEOPLE
     ],
     locations: [
@@ -1166,8 +1166,8 @@ async function createInesGame(accountIdByEmail: Map<string, string>, options: Se
 
 async function createCrossGameParticipants(gameIds: string[]) {
   const people = [
-    { name: 'Alex Morgan', email: 'alex.morgan@example.test', phone: '06 44 55 66 01', gameIds: gameIds.slice(0, 2), notes: 'Inscrit sur plusieurs jeux, pour essayer les filtres.' },
-    { name: 'Morgan Da Silva', email: 'morgan.dasilva@example.test', phone: '06 44 55 66 02', gameIds, notes: 'Disponible sur tous les jeux de test.' }
+    { name: 'Alex Morgan', email: 'alex.morgan@example.test', phone: '+33644556601', gameIds: gameIds.slice(0, 2), notes: 'Inscrit sur plusieurs jeux, pour essayer les filtres.' },
+    { name: 'Morgan Da Silva', email: 'morgan.dasilva@example.test', phone: '+33644556602', gameIds, notes: 'Disponible sur tous les jeux de test.' }
   ]
   for (const { name, email, phone, gameIds: linkedGameIds, notes } of people) {
     await db.participant.create({

@@ -71,8 +71,8 @@ async function invitation(options: { periodState?: RegistrationPeriodState, resp
   // Adresse de l'invitation : par défaut, la réponse la garde (une autre adresse se prouve par un lien, US-243)
   invitedEmail = `camille-${key}@example.test`
   const participant = await withFicheValues(prisma.participant.create({
-    data: { slug: `camille-${key}`, email: invitedEmail, gameLinks: { create: { gameId: game.id, name: `Camille ${key}`, phone: '0100000000' } } }
-  }), { name: `Camille ${key}`, phone: '0100000000' })
+    data: { slug: `camille-${key}`, email: invitedEmail, gameLinks: { create: { gameId: game.id, name: `Camille ${key}`, phone: '+33100000000' } } }
+  }), { name: `Camille ${key}`, phone: '+33100000000' })
   const token = randomBytes(32).toString('base64url')
   const registration = await prisma.registration.create({
     data: {
@@ -97,9 +97,9 @@ function answers(extra: Record<string, unknown> = {}) {
     email: invitedEmail,
     firstName: 'Camille',
     lastName: 'Martin',
-    phone: '0612345678',
+    phone: '+33612345678',
     emergencyContactName: 'Dominique',
-    emergencyContactPhone: '0698765432',
+    emergencyContactPhone: '+33698765432',
     dietary: 'Arachides',
     healthConsent: true,
     charterAccepted: true,
@@ -138,7 +138,7 @@ describe('consulter son invitation', () => {
       data: { slug: `autre-inscrite-${counter}`, email: 'autre-inscrite@example.test', gameLinks: { create: { gameId: game.id , name: 'Autre Inscrite' } } }
     }), { name: 'Autre Inscrite' })
     await prisma.registration.create({
-      data: { gameId: period.gameId, periodId: period.id, participantId: other.id, status: 'received', source: 'invitation', email: other.email!, phone: '0699999999', sessionLines: { create: { sessionId: session.id, status: 'confirmed' } } }
+      data: { gameId: period.gameId, periodId: period.id, participantId: other.id, status: 'received', source: 'invitation', email: other.email!, phone: '+33699999999', sessionLines: { create: { sessionId: session.id, status: 'confirmed' } } }
     })
 
     const response = await publicApi('GET', path)
@@ -172,7 +172,7 @@ describe('répondre à une invitation (R4)', () => {
       invitedSessionId: null,
       email: participant.email,
       lastName: 'Martin',
-      phone: '0612345678',
+      phone: '+33612345678',
       emergencyContactName: 'Dominique',
       dietary: 'Arachides'
     })
@@ -187,7 +187,7 @@ describe('répondre à une invitation (R4)', () => {
     expect(await prisma.sessionParticipant.count({ where: { sessionId: session.id, participantId: participant.id } })).toBe(0)
     // Les réponses restent sur l'inscription ; la fiche garde ses coordonnées
     expect(await prisma.participant.findUniqueOrThrow({ where: { id: participant.id }, select: { email: true } })).toEqual({ email: participant.email })
-    expect(await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: participant.id, gameId: game.id } } })).toMatchObject({ phone: '0100000000' })
+    expect(await prisma.participantGame.findUniqueOrThrow({ where: { participantId_gameId: { participantId: participant.id, gameId: game.id } } })).toMatchObject({ phone: '+33100000000' })
 
     const email = smtp.to(participant.email!)[0]!
     expect(email.text).toContain(game.title)
@@ -279,7 +279,7 @@ describe('modifier ses réponses (R14)', () => {
 
     await prisma.registrationPeriod.update({ where: { id: period.id }, data: { state: 'closed' } })
     expect((await publicApi('GET', path)).body).toMatchObject({ status: 'received', canEdit: true })
-    expect((await publicApi('PUT', path, answers({ phone: '0622222222' }))).status).toBe(200)
+    expect((await publicApi('PUT', path, answers({ phone: '+33622222222' }))).status).toBe(200)
   })
 })
 
@@ -288,7 +288,7 @@ describe('réponses modifiées (US-173, R16)', () => {
     const pool = await createPool(prisma, alice.id, { key: 'modif', sessions: 1, seats: 2 })
     const session = pool.sessions[0]!
     const token = randomBytes(32).toString('base64url')
-    const lou = await addPerson(prisma, pool, 'Lou', [], { links: { create: { tokenHash: sha256(token) } }, firstName: 'Lou', lastName: 'Dupont', phone: '0600000000', emergencyContactName: 'Maman', emergencyContactPhone: '0600000001', charterAcceptedAt: new Date() })
+    const lou = await addPerson(prisma, pool, 'Lou', [], { links: { create: { tokenHash: sha256(token) } }, firstName: 'Lou', lastName: 'Dupont', phone: '+33600000000', emergencyContactName: 'Maman', emergencyContactPhone: '+33600000001', charterAcceptedAt: new Date() })
     if (status) await prisma.registrationSession.create({ data: { registrationId: lou.id, gameId: session.gameId, sessionId: session.id, status, answer: 'available', announcedStatus: 'retained' } })
     counter++
     return { pool, session, lou, path: `/api/public/registrations/${token}` }
@@ -298,11 +298,11 @@ describe('réponses modifiées (US-173, R16)', () => {
   it('castée : le repère apparaît et l’équipe est prévenue, sans recopier les réponses ; marqué comme lu, il disparaît', async () => {
     const { session, lou, path } = await person('retained')
     const before = emailsAboutChange().length
-    expect((await publicApi('PUT', path, answers({ phone: '0699999999' }))).status).toBe(200)
+    expect((await publicApi('PUT', path, answers({ phone: '+33699999999' }))).status).toBe(200)
     await expect.poll(() => emailsAboutChange().length).toBeGreaterThan(before)
     const email = emailsAboutChange().at(-1)!
     expect(email.text).toContain(session.label)
-    expect(email.text).not.toContain('0699999999')
+    expect(email.text).not.toContain('+33699999999')
     expect((await lineOf(prisma, lou.id, session.id))?.answersChangedAt).not.toBeNull()
 
     expect((await api(alice, 'POST', `/api/registrations/${lou.id}/answers-read`, { sessionId: session.id })).status).toBe(200)
@@ -315,7 +315,7 @@ describe('réponses modifiées (US-173, R16)', () => {
     await prisma.registrationSession.update({ where: { registrationId_sessionId: { registrationId: lou.id, sessionId: session.id } }, data: { answersChangedAt: null } })
     expect((await publicApi('PUT', path, answers())).status).toBe(200)
     expect((await lineOf(prisma, lou.id, session.id))?.answersChangedAt).toBeNull()
-    expect((await publicApi('PUT', path, answers({ phone: '0688888888' }))).status).toBe(200)
+    expect((await publicApi('PUT', path, answers({ phone: '+33688888888' }))).status).toBe(200)
     expect((await lineOf(prisma, lou.id, session.id))?.answersChangedAt).not.toBeNull()
   })
 
@@ -345,12 +345,12 @@ describe('réponses modifiées (US-173, R16)', () => {
   it('pré-inscrite, en attente ou simplement intéressée : rien ne se déclenche ; une session passée non plus', async () => {
     for (const status of ['preregistered', 'waitlisted'] as const) {
       const { session, lou, path } = await person(status)
-      expect((await publicApi('PUT', path, answers({ phone: '0677777777' }))).status).toBe(200)
+      expect((await publicApi('PUT', path, answers({ phone: '+33677777777' }))).status).toBe(200)
       expect((await lineOf(prisma, lou.id, session.id))?.answersChangedAt).toBeNull()
     }
     const { session, lou, path } = await person('confirmed')
     await prisma.session.update({ where: { id: session.id }, data: { date: new Date(Date.now() - 30 * 86_400_000) } })
-    expect((await publicApi('PUT', path, answers({ phone: '0677777778' }))).status).toBe(200)
+    expect((await publicApi('PUT', path, answers({ phone: '+33677777778' }))).status).toBe(200)
     expect((await lineOf(prisma, lou.id, session.id))?.answersChangedAt).toBeNull()
   })
 })
@@ -435,7 +435,7 @@ describe('disponibilités (R7, R29)', () => {
     const pool = await createPool(prisma, alice.id, { key: 'dispo', seats: options.seats ?? 2 })
     const [first, second] = pool.sessions as [typeof pool.sessions[number], typeof pool.sessions[number]]
     const token = randomBytes(32).toString('base64url')
-    const person = await addPerson(prisma, pool, 'Lou', [first.id], { links: { create: { tokenHash: sha256(token) } }, firstName: 'Lou', lastName: 'Dupont', phone: '0600000000', emergencyContactName: 'D', emergencyContactPhone: '0600000001' })
+    const person = await addPerson(prisma, pool, 'Lou', [first.id], { links: { create: { tokenHash: sha256(token) } }, firstName: 'Lou', lastName: 'Dupont', phone: '+33600000000', emergencyContactName: 'D', emergencyContactPhone: '+33600000001' })
     counter++
     return { pool, first, second, person, path: `/api/public/registrations/${token}` }
   }

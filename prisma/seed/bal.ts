@@ -7,7 +7,7 @@ import { daysFromNow, sessionFields } from './options'
 import type { RefundStatus, SessionStatus } from '../../generated/prisma/enums'
 
 export const BAL_EXTRA_PEOPLE = [
-  { name: 'Lucie Moreau', email: 'lucie.moreau@example.test', phone: '06 11 22 33 02' }
+  { name: 'Lucie Moreau', email: 'lucie.moreau@example.test', phone: '+33611223302' }
 ]
 
 export async function createBalStage(db: Db, context: StageContext) {

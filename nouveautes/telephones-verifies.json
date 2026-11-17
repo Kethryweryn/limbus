@@ -1,0 +1,5 @@
+{
+  "type": "modifie",
+  "titre": "Des numéros de téléphone vérifiés",
+  "texte": "Chaque numéro de téléphone est vérifié selon son pays : dans votre compte, sur une fiche participant et dans le questionnaire. Vous pouvez l’écrire avec des espaces, des points ou des tirets ; un numéro français peut s’écrire sans indicatif. Il est ensuite enregistré et affiché sous une seule forme, avec son indicatif, par exemple +33612345678. Les numéros déjà enregistrés ont été mis sous cette forme quand c’était possible. Un contact d’urgence se remplit désormais en entier, nom et téléphone, ou pas du tout."
+}

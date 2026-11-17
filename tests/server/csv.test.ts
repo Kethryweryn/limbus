@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { csvFilename, toCsv } from '~/server/utils/csv'
+import { csvFilename, csvPhone, toCsv } from '~/server/utils/csv'
 
 const BOM = '﻿'
 
@@ -14,9 +14,10 @@ describe('export CSV', () => {
     expect(lines.slice(1, 6)).toEqual([`"'=HYPERLINK(""x"")"`, `' =1+1`, `'+1+cmd`, `'-1`, `'@SUM`])
   })
 
-  it('laisse intact un numéro de téléphone international', () => {
-    const lines = toCsv(['Téléphone'], [['+33 6 12 34 56 78'], ['+33612345678']]).split('\r\n')
-    expect(lines.slice(1, 3)).toEqual(['+33 6 12 34 56 78', '+33612345678'])
+  it('garde un téléphone en texte, que le tableur ne lise pas comme un nombre (SPEC-023, R6)', () => {
+    const lines = toCsv(['Téléphone'], [[csvPhone('+33612345678')], [csvPhone(null)], [csvPhone('a"b')], ['+33612345678']]).split('\r\n')
+    // Cellule ="+33612345678", puis guillemets doublés pour le CSV ; une chaîne qui n'est pas un téléphone reste neutralisée
+    expect(lines.slice(1, 5)).toEqual(['"=""+33612345678"""', '', '"=""a""""b"""', `'+33612345678`])
   })
 
   it('nom de fichier sans accent ni caractère spécial', () => {

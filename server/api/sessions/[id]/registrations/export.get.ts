@@ -2,7 +2,7 @@ import { sessionLabelsFor } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
 import { requireSessionAccess } from '~/server/utils/gameAccess'
-import { csvFilename, toCsv } from '~/server/utils/csv'
+import { csvFilename, csvPhone, toCsv } from '~/server/utils/csv'
 import { REGISTRATION_DISPLAY_STATUS_META, registrationDisplayStatus } from '~/utils/registrations'
 import { byName, withGameValues } from '~/server/utils/participantValues'
 
@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
     lines.map((line) => [
       line.registration.participant.name,
       line.registration.email,
-      line.registration.phone,
+      csvPhone(line.registration.phone),
       REGISTRATION_DISPLAY_STATUS_META[registrationDisplayStatus(line, now)]?.label ?? line.status
     ])
   )

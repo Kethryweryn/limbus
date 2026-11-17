@@ -44,7 +44,7 @@ describe('fiche allergies (US-008)', () => {
   it('ne contient que le nom et les allergies : ni téléphone, ni contact d’urgence, ni email', () => {
     const sheet = buildAllergySheet({
       ...session,
-      registrations: [{ dietary: 'Gluten', participant: { id: 'zoe', name: 'Zoé Martin' }, phone: '0612345678', emergencyContactPhone: '0699999999' } as never]
+      registrations: [{ dietary: 'Gluten', participant: { id: 'zoe', name: 'Zoé Martin' }, phone: '+33612345678', emergencyContactPhone: '+33699999999' } as never]
     })
     expect(JSON.stringify(sheet)).not.toMatch(/06\d{8}/)
     expect(Object.keys(sheet.people[0]!)).toEqual(['name', 'dietary'])

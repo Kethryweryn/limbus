@@ -41,7 +41,7 @@ describe('noms de personnes (SPEC-023, R1, R2)', () => {
     expect(invalidPaths(name)).toEqual(['name'])
     expect((await api(user, 'PUT', '/api/account', { name: 'Ŝofia Ñúñez' })).status).toBe(200)
 
-    const profile = await api(user, 'PUT', '/api/account/profile', { emergencyContactName: 'Paul#', emergencyContactPhone: '0611111111' })
+    const profile = await api(user, 'PUT', '/api/account/profile', { emergencyContactName: 'Paul#', emergencyContactPhone: '+33611111111' })
     expect(profile.status).toBe(400)
     expect(invalidPaths(profile)).toEqual(['emergencyContactName'])
     expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { name: true, emergencyContactName: true } })).toEqual({ name: 'Ŝofia Ñúñez', emergencyContactName: null })

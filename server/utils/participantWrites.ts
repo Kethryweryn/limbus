@@ -9,7 +9,7 @@ import { assertParticipantUnmodifiedSince } from '~/server/utils/concurrency'
 import { accountForEmail, deleteFiche, ficheProfileSelect, heldProfileFields, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 import { participantSlug } from '~/utils/participantSlug'
 import { lockAddress } from '~/server/utils/participantAddress'
-import { assertChangedPersonName, collapseSpaces } from '~/server/utils/fieldRules'
+import { assertChangedPersonName, assertChangedPhone, collapseSpaces, normalizePhone } from '~/server/utils/fieldRules'
 
 // Écritures d'une fiche participant, communes aux routes de l'interface et aux outils des assistants d'IA (US-129,
 // SPEC-014 R12) : mêmes contrôles d'accès aux jeux, de version et de rattachement au compte de l'adresse
@@ -128,7 +128,7 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
 
   const existingLinks = await prisma.participantGame.findMany({
     where: { participantId: id },
-    select: { gameId: true, name: true }
+    select: { gameId: true, name: true, phone: true }
   })
   const existingGameIds = new Set(existingLinks.map((link) => link.gameId))
   const nextGameIds = new Set(uniqueGameIds)
@@ -175,8 +175,12 @@ export async function updateParticipant(event: H3Event, id: string, readBody: Re
       throw createError({ statusCode: 400, message: 'Le nom est tenu par la personne depuis son compte.' })
     }
     // Nom modifié par l'équipe : vérifié s'il change ; un nom déjà enregistré garde sa forme (SPEC-023 R1, R12)
-    if (!held.has('name')) assertChangedPersonName('name', 'Le nom', name, existingLinks.filter((link) => managedExistingGameIds.includes(link.gameId)).map((link) => link.name))
-    if (held.has('phone') && (phone?.trim() || null) !== current.user!.phone) {
+    const visibleLinks = existingLinks.filter((link) => managedExistingGameIds.includes(link.gameId))
+    if (!held.has('name')) assertChangedPersonName('name', 'Le nom', name, visibleLinks.map((link) => link.name))
+    if (!held.has('phone')) assertChangedPhone('phone', phone, visibleLinks.map((link) => link.phone))
+    // Comparé au format rangé : l'équipe renvoie le numéro du compte, que le schéma a mis au format international
+    const accountPhone = current.user?.phone?.trim() || null
+    if (held.has('phone') && phone !== (accountPhone && (normalizePhone(accountPhone) ?? accountPhone))) {
       throw createError({ statusCode: 400, message: 'Le téléphone est tenu par la personne depuis son compte.' })
     }
     // Un champ tenu garde la valeur du compte, déjà recopiée sur chaque jeu ; un jeu ajouté la reçoit, jamais celle qu'une

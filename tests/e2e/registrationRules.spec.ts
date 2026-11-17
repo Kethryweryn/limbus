@@ -39,7 +39,7 @@ async function member(prisma: TestPrisma, ctx: { game: { id: string }, session: 
   const registration = await prisma.registration.create({
     data: {
       gameId: ctx.game.id, periodId: ctx.period.id, participantId: participant.id, status: 'received', source: 'form', email,
-      firstName: base, lastName: 'Test', phone: '0611111111', emergencyContactName: 'Urgence', emergencyContactPhone: '0622222222', charterAcceptedAt: new Date(),
+      firstName: base, lastName: 'Test', phone: '+33611111111', emergencyContactName: 'Urgence', emergencyContactPhone: '+33622222222', charterAcceptedAt: new Date(),
       links: { create: { tokenHash: createHash('sha256').update(token).digest('hex') } },
       ...(line ? { sessionLines: { create: { sessionId: ctx.session.id, answer: line.status === 'unavailable' ? 'unavailable' : 'available', ...line } } } : {})
     }

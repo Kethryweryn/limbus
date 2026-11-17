@@ -1,3 +1,4 @@
+import { parsePhoneNumberFromString } from 'libphonenumber-js/max'
 import { z } from 'zod'
 
 // Règles de saisie communes aux routes, au questionnaire et aux outils des assistants (SPEC-023, ADR-0092) : une règle
@@ -54,10 +55,79 @@ export function optionalEnteredPersonName() {
 export function assertChangedPersonName(path: string, label: string, value: string | null | undefined, saved: Array<string | null | undefined>) {
   if (value == null || saved.some((previous) => previous != null && collapseSpaces(previous) === value)) return
   const checked = checkPersonName(label).safeParse(value)
-  if (checked.success) return
-  // Même forme qu'un refus de readZodBody (h3 range le détail sous data.data) : l'écran le met sous le champ
-  const issues = checked.error.issues.map((issue) => ({ path, message: issue.message }))
+  if (!checked.success) refuseField(path, checked.error.issues.map((issue) => issue.message))
+}
+
+// Refus d'un champ, de la même forme qu'un refus de readZodBody (h3 range le détail sous data.data) : l'écran le met
+// sous le champ
+function refuseField(path: string, messages: string[]): never {
+  const issues = messages.map((message) => ({ path, message }))
   throw createError({ statusCode: 400, statusMessage: 'Validation Error', message: 'Requête invalide', data: { statusCode: 400, message: 'Requête invalide', data: issues } })
+}
+
+export const PHONE_MESSAGE = 'Numéro de téléphone invalide'
+
+// Chiffres, un + au début, et les séparateurs tolérés (R5) : la bibliothèque, elle, extrairait un numéro d'un texte
+const PHONE_CHARACTERS = /^\+?[\d\s.()-]+$/
+
+/**
+ * Téléphone rangé au format international (« +33612345678 »), ou null s'il n'est pas reconnu (R4 à R6) : vérifié selon
+ * le plan de numérotation de son pays, français sans indicatif ; séparateurs et « (0) » après l'indicatif retirés.
+ */
+export function normalizePhone(value: string) {
+  const typed = value.trim()
+  if (!PHONE_CHARACTERS.test(typed)) return null
+  const parsed = parsePhoneNumberFromString(typed, 'FR')
+  return parsed?.isValid() ? parsed.number : null
+}
+
+function checkPhone() {
+  return z.string().transform((value, ctx) => {
+    const phone = normalizePhone(value)
+    if (phone) return phone
+    ctx.addIssue({ code: 'custom', message: PHONE_MESSAGE })
+    return z.NEVER
+  })
+}
+
+/** Téléphone obligatoire d'une nouvelle saisie, rangé au format international. */
+export function requiredPhone(label = 'Le téléphone') {
+  return z.string({ error: `${label} est obligatoire` }).trim().min(1, `${label} est obligatoire`).pipe(checkPhone())
+}
+
+/** Téléphone facultatif d'une nouvelle saisie : vide ou absent devient null. */
+export function optionalPhone() {
+  return z.string().optional().nullable().transform((value) => value?.trim() || null).pipe(checkPhone().nullable())
+}
+
+/**
+ * Téléphone d'une modification : rangé au format international s'il est reconnu, sinon gardé tel quel pour que la route
+ * le compare à la valeur enregistrée (`assertChangedPhone`, R12).
+ */
+export function enteredPhone() {
+  return z.string().optional().nullable().transform((value) => {
+    const typed = value?.trim()
+    return typed ? normalizePhone(typed) ?? typed : null
+  })
+}
+
+/** Refuse un téléphone non reconnu, sauf s'il est celui déjà enregistré (R12). */
+export function assertChangedPhone(path: string, value: string | null | undefined, saved: Array<string | null | undefined>) {
+  if (value == null || normalizePhone(value) === value || saved.some((previous) => previous?.trim() === value)) return
+  refuseField(path, [PHONE_MESSAGE])
+}
+
+/**
+ * Contact d'urgence (R8) : nom et téléphone ensemble ; le message va sous le champ vide. Les deux vides passent : le
+ * contact est facultatif là où cette règle s'applique seule.
+ */
+export function refineEmergencyContact(contact: { emergencyContactName?: string | null, emergencyContactPhone?: string | null }, ctx: z.RefinementCtx) {
+  if (contact.emergencyContactName && !contact.emergencyContactPhone) {
+    ctx.addIssue({ code: 'custom', path: ['emergencyContactPhone'], message: 'Le téléphone du contact d’urgence est obligatoire' })
+  }
+  if (contact.emergencyContactPhone && !contact.emergencyContactName) {
+    ctx.addIssue({ code: 'custom', path: ['emergencyContactName'], message: 'Le nom du contact d’urgence est obligatoire' })
+  }
 }
 
 /** Nom de personne facultatif : vide ou absent devient null. */

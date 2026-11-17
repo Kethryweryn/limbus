@@ -43,9 +43,9 @@ async function sessionWithRegistrations() {
       source: 'invitation',
       email: participant.email!,
       dietary,
-      phone: '0612345678',
+      phone: '+33612345678',
       emergencyContactName: 'Contact Urgence',
-      emergencyContactPhone: '0699999999'
+      emergencyContactPhone: '+33699999999'
     }
   })
   await Promise.all([
@@ -75,7 +75,7 @@ describe('fiche allergies', () => {
     expect(response.body).toMatchObject({ confirmedCount: 2, eaterCount: 4, people: [{ name: zoe.name, dietary: 'Gluten' }] })
     expect(bodyOf<ApiResponse<'/api/sessions/:id/allergies'>>(response).people).toHaveLength(1)
     const json = JSON.stringify(response.body)
-    expect(json).not.toContain('0612345678')
+    expect(json).not.toContain('+33612345678')
     expect(json).not.toContain('Urgence')
     expect(json).not.toContain('Arachides')
     expect(json).not.toContain('Lactose')

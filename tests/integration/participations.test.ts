@@ -123,7 +123,7 @@ describe('répondre depuis son compte (US-072)', () => {
     expect((await api(stranger, 'GET', `/api/me/registrations/${registration.id}`)).status).toBe(404)
     expect((await api(stranger, 'POST', `/api/me/registrations/${registration.id}/decline`)).status).toBe(404)
 
-    const answers = { email: user.email, firstName: 'Camille', lastName: 'Invitée', phone: '0600000000', emergencyContactName: 'Proche', emergencyContactPhone: '0611111111', charterAccepted: true }
+    const answers = { email: user.email, firstName: 'Camille', lastName: 'Invitée', phone: '+33600000000', emergencyContactName: 'Proche', emergencyContactPhone: '+33611111111', charterAccepted: true }
     // Une autre adresse saisie ne détache pas la fiche : depuis le compte, c'est l'adresse du compte qui compte
     const accepted = await api(user, 'PUT', `/api/me/registrations/${registration.id}`, { ...answers, email: 'ailleurs@example.test' })
     expect(accepted.status, JSON.stringify(accepted.body)).toBe(200)
