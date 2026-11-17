@@ -1,4 +1,4 @@
-import { enteredPersonName, enteredPhone, optionalEnteredPersonName, optionalPhone, personName, refineEmergencyContact } from '~/server/utils/fieldRules'
+import { enteredPersonName, enteredPhone, optionalEmail, optionalEnteredPersonName, optionalPhone, optionalTextField, personName, refineEmergencyContact, requiredEmail, requiredTextField, TEXT_MAX, tooLong } from '~/server/utils/fieldRules'
 import { z, type ZodError, type ZodType } from 'zod'
 import { PHOTO_RETENTION_MAX_MONTHS, PHOTO_RETENTION_MIN_MONTHS } from '~/utils/photoInformation'
 import { REGISTRATION_DIETARY_MAX_LENGTH } from '~/utils/registrationForms'
@@ -43,7 +43,7 @@ const uploadOrExternalUrl = (prefix: string) => optionalText.refine(
 // Champ obligatoire : « Le nom est obligatoire », jamais un nom de champ anglais (US-210)
 const requiredText = (label: string) => z.string({ error: `${label} est obligatoire` }).trim().min(1, `${label} est obligatoire`)
 // Les emails de compte sont stockés en minuscules : la connexion ne dépend pas de la casse saisie
-const accountEmail = () => requiredText('L’email').toLowerCase().email('Email invalide')
+const accountEmail = () => requiredEmail()
 const requiredId = requiredText
 const sessionStatus = z.enum([
   SESSION_STATUSES.scheduled,
@@ -67,10 +67,6 @@ const sessionParticipantRole = z.enum([
 export const documentRoleSchema = z.enum(ALL_DOCUMENT_ROLES as [DocumentRole, ...DocumentRole[]])
 const timelineTime = z.string().trim().regex(/^\d{2}:\d{2}$/, 'L’heure doit être au format HH:MM')
 const userRole = z.enum([USER_ROLES.admin, USER_ROLES.user])
-const optionalEmail = z.string().trim().default('').refine(
-  (value) => !value || z.string().email().safeParse(value).success,
-  'Email invalide'
-)
 
 export async function readZodBody<T>(event: H3Event, schema: ZodType<T>): Promise<T> {
   return await readValidatedBody(event, (body) => parseZod(schema, body))
@@ -100,16 +96,16 @@ const balanceAttribute = z.string().trim().max(100, 'Nom d’attribut trop long'
 const balanceValues = z.array(z.string().trim().min(1, 'Valeur vide').max(100, 'Valeur trop longue')).max(20, 'Vingt valeurs au plus')
   .refine((values) => new Set(values).size === values.length, 'Une valeur est donnée deux fois')
   .optional()
-const balanceValue = z.string().trim().max(100).optional().nullable()
+const balanceValue = z.string().trim().max(100, 'Valeur trop longue').optional().nullable()
 
 // Colonne obligatoire : une description vidée (null) devient un texte vide ; absente, elle ne change pas
-const gameDescription = optionalText.transform((value) => value === null ? '' : value)
+const gameDescription = optionalTextField('long', 'La présentation').transform((value) => value === null ? '' : value)
 
 export const createGameSchema = z.object({
-  title: requiredText('Le titre'),
+  title: requiredTextField('title', 'Le titre'),
   description: gameDescription,
   teaserUrl: externalUrl,
-  noteIntention: optionalText,
+  noteIntention: optionalTextField('long', 'La note d’intention'),
   publicPage: optionalBoolean,
   // Ce que la page publique montre en plus de la présentation (US-086)
   publicShowSessions: optionalBoolean,
@@ -119,14 +115,14 @@ export const createGameSchema = z.object({
   balanceValues,
   // Photos des participants (US-107) : durée de conservation et adresse pour en demander le retrait
   photoRetentionMonths: z.number().int().min(PHOTO_RETENTION_MIN_MONTHS).max(PHOTO_RETENTION_MAX_MONTHS).optional().nullable(),
-  contactEmail: z.union([z.literal(''), z.string().trim().toLowerCase().email('Adresse de contact invalide')]).optional().nullable()
+  contactEmail: optionalEmail('L’adresse de contact')
 })
 
 export const updateGameSchema = z.object({
-  title: requiredText('Le titre').optional(),
+  title: requiredTextField('title', 'Le titre').optional(),
   description: gameDescription,
   teaserUrl: externalUrl,
-  noteIntention: optionalText,
+  noteIntention: optionalTextField('long', 'La note d’intention'),
   published: optionalBoolean,
   publicPage: optionalBoolean,
   // Ce que la page publique montre en plus de la présentation (US-086)
@@ -137,60 +133,60 @@ export const updateGameSchema = z.object({
   balanceValues,
   // Photos des participants (US-107) : durée de conservation et adresse pour en demander le retrait
   photoRetentionMonths: z.number().int().min(PHOTO_RETENTION_MIN_MONTHS).max(PHOTO_RETENTION_MAX_MONTHS).optional().nullable(),
-  contactEmail: z.union([z.literal(''), z.string().trim().toLowerCase().email('Adresse de contact invalide')]).optional().nullable()
+  contactEmail: optionalEmail('L’adresse de contact')
 })
 
 export const createCharacterSchema = z.object({
-  name: requiredText('Le nom'),
+  name: requiredTextField('title', 'Le nom'),
   type: characterType.default(CHARACTER_TYPES.pj),
-  pitch: optionalText,
-  background: optionalText,
+  pitch: optionalTextField('long', 'L’accroche'),
+  background: optionalTextField('background', 'L’historique'),
   backgroundDocumentUrl: externalUrl,
   sheetReadyToSend: optionalBoolean,
-  costumeIndications: optionalText,
+  costumeIndications: optionalTextField('long', 'Les indications de costume'),
   excludeFromTrombinoscope: optionalBoolean,
   trombinoscopeFaceHidden: optionalBoolean,
   trombinoscopePhotoUrl: uploadOrExternalUrl(PHOTO_UPLOAD_PREFIX),
-  trombinoscopeNote: optionalText,
-  trombinoscopeDisplayName: optionalText,
+  trombinoscopeNote: optionalTextField('short', 'La note du trombinoscope'),
+  trombinoscopeDisplayName: optionalTextField('title', 'Le nom affiché'),
   balanceValue,
   gameId: requiredId('Le jeu'),
   factionIds: z.array(requiredId('Le groupe')).optional().default([])
 })
 
 export const updateCharacterSchema = z.object({
-  name: requiredText('Le nom').optional(),
+  name: requiredTextField('title', 'Le nom').optional(),
   type: characterType.optional(),
-  pitch: optionalText,
-  background: optionalText,
+  pitch: optionalTextField('long', 'L’accroche'),
+  background: optionalTextField('background', 'L’historique'),
   backgroundDocumentUrl: externalUrl,
   sheetReadyToSend: optionalBoolean,
-  costumeIndications: optionalText,
+  costumeIndications: optionalTextField('long', 'Les indications de costume'),
   excludeFromTrombinoscope: optionalBoolean,
   trombinoscopeFaceHidden: optionalBoolean,
   trombinoscopePhotoUrl: uploadOrExternalUrl(PHOTO_UPLOAD_PREFIX),
-  trombinoscopeNote: optionalText,
-  trombinoscopeDisplayName: optionalText,
+  trombinoscopeNote: optionalTextField('short', 'La note du trombinoscope'),
+  trombinoscopeDisplayName: optionalTextField('title', 'Le nom affiché'),
   balanceValue,
   gameId: requiredId('Le jeu').optional(),
   factionIds: z.array(requiredId('Le groupe')).optional()
 })
 
 export const factionSchema = z.object({
-  name: requiredText('Le nom'),
-  pitch: optionalText,
-  background: optionalText,
+  name: requiredTextField('title', 'Le nom'),
+  pitch: optionalTextField('long', 'L’accroche'),
+  background: optionalTextField('background', 'L’historique'),
   backgroundDocumentUrl: externalUrl,
-  costumeIndications: optionalText,
+  costumeIndications: optionalTextField('long', 'Les indications de costume'),
   showInTrombinoscope: optionalBoolean,
   gameId: requiredId('Le jeu'),
   characterIds: z.array(requiredId('Le personnage')).optional().default([])
 })
 
 export const intrigueSchema = z.object({
-  name: requiredText('Le nom'),
-  pitch: optionalText,
-  description: optionalText,
+  name: requiredTextField('title', 'Le nom'),
+  pitch: optionalTextField('long', 'L’accroche'),
+  description: optionalTextField('long', 'La description'),
   level: intrigueLevel.default(INTRIGUE_LEVELS.minor),
   gameId: requiredId('Le jeu'),
   characterIds: z.array(requiredId('Le personnage')).optional().default([]),
@@ -214,7 +210,7 @@ export const characterRelationSchema = z.object({
 export const registrationQuestionLinksSchema = z.object({
   links: z.array(z.object({
     questionId: requiredId('La question'),
-    option: z.string().trim().max(REGISTRATION_QUESTION_LABEL_MAX_LENGTH).optional().default(''),
+    option: z.string().trim().max(REGISTRATION_QUESTION_LABEL_MAX_LENGTH, 'Option trop longue').optional().default(''),
     characterId: z.string().min(1).nullable().optional(),
     factionId: z.string().min(1).nullable().optional(),
     intrigueId: z.string().min(1).nullable().optional()
@@ -226,7 +222,7 @@ export const registrationQuestionLinksSchema = z.object({
 export const registrationOptionExpectationsSchema = z.object({
   expectations: z.array(z.object({
     questionId: requiredId('La question'),
-    option: z.string().trim().min(1).max(REGISTRATION_QUESTION_LABEL_MAX_LENGTH),
+    option: z.string().trim().min(1).max(REGISTRATION_QUESTION_LABEL_MAX_LENGTH, 'Option trop longue'),
     share: z.number().min(0, 'Une part va de 0 à 100 %').max(1, 'Une part va de 0 à 100 %')
   })).max(2000, 'Trop de proportions')
 })
@@ -235,11 +231,11 @@ export const registrationOptionExpectationsSchema = z.object({
 export const participantSchema = z.object({
   name: enteredPersonName(),
   // Une fiche appartient à la personne de son adresse (SPEC-022 R3, US-238) : l'adresse est obligatoire
-  email: z.string({ error: 'L’adresse email est obligatoire' }).trim().min(1, 'L’adresse email est obligatoire').max(254, 'Email trop long').email('Email invalide'),
+  email: requiredEmail('L’adresse email'),
   // Rangé au format international ; vérifié s'il change (SPEC-023 R4 à R6, R12, `updateParticipant`)
   phone: enteredPhone(),
   // Une note par jeu (US-069) : { idDuJeu: texte }, pour les seuls jeux accessibles
-  gameNotes: z.record(z.string(), z.string().nullable()).optional().default({}),
+  gameNotes: z.record(z.string(), z.string().max(TEXT_MAX.long, tooLong('La note', TEXT_MAX.long)).nullable()).optional().default({}),
   gameIds: z.array(requiredId('Le jeu')).optional().default([])
 })
 
@@ -251,18 +247,18 @@ export const participantCreateSchema = participantSchema.extend({
 })
 
 export const locationSchema = z.object({
-  name: requiredText('Le nom'),
-  address: optionalText,
-  notes: optionalText,
+  name: requiredTextField('title', 'Le nom'),
+  address: optionalTextField('short', 'L’adresse'),
+  notes: optionalTextField('long', 'Les notes'),
   gameId: requiredId('Le jeu')
 })
 
 export const itemSchema = z.object({
-  name: requiredText('Le nom'),
-  description: optionalText,
+  name: requiredTextField('title', 'Le nom'),
+  description: optionalTextField('long', 'La description'),
   // Absente : 1 à la création, valeur actuelle à la modification (US-014)
   quantity: z.coerce.number().int('La quantité doit être un nombre entier').min(1, 'La quantité doit être d’au moins 1').optional(),
-  locationText: optionalText,
+  locationText: optionalTextField('short', 'L’emplacement'),
   locationCharacterId: optionalText,
   gameId: requiredId('Le jeu'),
   characterIds: z.array(requiredId('Le personnage')).optional().default([]),
@@ -273,8 +269,8 @@ export const itemSchema = z.object({
 // unique « Personnage », vient d'une page périmée : refusée plutôt qu'enregistrée sans public (US-193)
 const outdatedDocumentField = z.undefined({ error: 'Cette page est d’une ancienne version : rechargez-la avant d’enregistrer.' }).optional()
 export const documentSchema = z.object({
-  title: requiredText('Le titre'),
-  content: optionalText,
+  title: requiredTextField('title', 'Le titre'),
+  content: optionalTextField('background', 'Le contenu'),
   documentUrl: externalUrl,
   audiences: z.array(documentRoleSchema).optional().default([]),
   audience: outdatedDocumentField,
@@ -293,8 +289,8 @@ export const documentSchema = z.object({
 }))
 
 export const timelineEventSchema = z.object({
-  name: requiredText('Le nom'),
-  description: optionalText,
+  name: requiredTextField('title', 'Le nom'),
+  description: optionalTextField('long', 'La description'),
   day: z.coerce.number().int().min(1),
   time: timelineTime,
   requiredResponsibles: z.coerce.number().int().min(0).optional().default(0),
@@ -324,7 +320,7 @@ export const sessionDocumentSendSchema = z.object({
 })
 
 export const emailTestSchema = z.object({
-  emails: z.array(requiredText('L’email').email('Email invalide'))
+  emails: z.array(requiredEmail())
     .min(1, 'Indiquez au moins un email')
     .max(10, 'Dix adresses au plus'),
   documentIds: z.array(requiredId('Le document')).optional().default([]),
@@ -372,8 +368,8 @@ export const characterTrombinoscopeSchema = z.object({
     targetCharacterId: requiredId('Le personnage'),
     included: z.boolean(),
     faceKnown: z.boolean(),
-    displayName: optionalText,
-    note: optionalText
+    displayName: optionalTextField('title', 'Le nom affiché'),
+    note: optionalTextField('short', 'La note')
   })).default([])
 })
 
@@ -381,7 +377,7 @@ export const sessionAssignmentSchema = z.object({
   characterId: requiredId('Le personnage'),
   participantId: optionalText,
   photoUrl: uploadOrExternalUrl(PHOTO_UPLOAD_PREFIX),
-  notes: optionalText,
+  notes: optionalTextField('long', 'La note'),
   // Cadenas et réservation (US-100) ; absents, la ligne garde ceux enregistrés
   locked: optionalBoolean,
   reservedRegistrationId: optionalText
@@ -525,7 +521,7 @@ export const registrationInvitationSchema = z.object({
     .refine((ids) => new Set(ids).size === ids.length, 'Une personne est choisie deux fois'),
   newParticipant: z.object({
     name: personName(),
-    email: requiredText('L’email').toLowerCase().max(254, 'Email trop long').email('Email invalide')
+    email: requiredEmail()
   }).optional().nullable()
 }).refine((body) => body.participantIds.length > 0 || body.newParticipant, 'Choisissez au moins une personne à inviter')
 
@@ -539,12 +535,12 @@ export const registrationExtensionSchema = z.object({
 
 // Email d'annulation relu par l'organisation (US-025) ; « emails » pour un test
 export const cancellationEmailSchema = z.object({
-  subject: requiredText('Le sujet').max(200),
-  text: requiredText('Le texte').max(10_000)
+  subject: requiredText('Le sujet').max(200, tooLong('Le sujet', 200)),
+  text: requiredText('Le texte').max(10_000, tooLong('Le texte', 10_000))
 })
 
 export const cancellationEmailTestSchema = cancellationEmailSchema.extend({
-  emails: z.array(requiredText('L’email').email('Email invalide')).min(1, 'Indiquez au moins un email').max(10, 'Dix adresses au plus')
+  emails: z.array(requiredEmail()).min(1, 'Indiquez au moins un email').max(10, 'Dix adresses au plus')
 })
 
 // Réponse au lien de confirmation de présence (US-024)
@@ -697,12 +693,12 @@ export const adminModeSchema = z.object({
 })
 
 export const gameInvitationCreateSchema = z.object({
-  email: requiredText('L’email').email('Email invalide')
+  email: requiredEmail()
 })
 
 // Legs d'une copie du jeu (SPEC-002)
 export const gameBequestSchema = z.object({
-  email: requiredText('L’email').toLowerCase().max(254, 'Email trop long').email('Email invalide')
+  email: requiredEmail()
 })
 
 // L'adresse est celle de l'invitation (US-064) : un email envoyé est ignoré
@@ -719,13 +715,13 @@ export const invitationAcceptSchema = z.object({
 
 export const smtpSettingsSchema = z.object({
   enabled: z.boolean().optional().default(false),
-  host: z.string().trim().default(''),
+  host: z.string().trim().max(500, 'Le serveur SMTP : 500 caractères au plus').default(''),
   port: z.coerce.number().int().min(1).max(65535).default(587),
   secure: z.boolean().optional().default(false),
-  username: optionalText,
+  username: optionalTextField('short', 'L’identifiant'),
   password: z.string().optional().nullable(),
-  fromEmail: optionalEmail,
-  fromName: optionalText
+  fromEmail: optionalEmail('L’email d’expédition').transform((value) => value ?? ''),
+  fromName: optionalTextField('short', 'Le nom d’expéditeur')
 }).superRefine((value, ctx) => {
   if (!value.enabled) return
 
@@ -746,14 +742,14 @@ export const smtpSettingsSchema = z.object({
 })
 
 export const smtpTestSchema = z.object({
-  to: requiredText('Le destinataire').email('Email invalide')
+  to: requiredEmail('Le destinataire')
 })
 
 // Tarifs d'une session et versements (US-031 à US-033, ADR-0032) : montants en euros, stockés en centimes
 const euros = (label: string) => z.number({ error: `${label} est obligatoire` }).finite().max(100_000, `${label} est trop élevé`)
 
 export const sessionTariffSchema = z.object({
-  name: requiredText('Le nom').max(120),
+  name: requiredText('Le nom').max(120, tooLong('Le nom', 120)),
   amount: euros('Le montant').min(0, 'Le montant ne peut pas être négatif'),
   defaultRole: z.enum(['pj', 'pnj', 'organizer', 'kitchen']).optional().nullable(),
   baseTariffId: optionalText

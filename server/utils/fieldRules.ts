@@ -10,7 +10,51 @@ export const PERSON_NAME_MAX_LENGTH = 100
 // une lettre, à n'importe quelle place (« 't Hooft »)
 const PERSON_NAME_PATTERN = /^(?=.*\p{L})[\p{L}\p{M} '’.-]+$/u
 
-export const tooLong = (label: string, max: number) => `${label} : ${max} caractères au plus`
+// Plafond lisible : « 1 000 000 caractères au plus », espaces insécables entre les milliers
+export const tooLong = (label: string, max: number) => `${label} : ${String(max).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} caractères au plus`
+
+// Longueur maximale de chaque texte saisi, selon son type (R9). Les plafonds déjà posés ailleurs (questionnaire,
+// allergies, relations, tarifs, emails d'annulation) ne changent pas
+export const TEXT_MAX = {
+  personName: PERSON_NAME_MAX_LENGTH,
+  // Titre ou nom d'un élément : jeu, personnage, groupe, intrigue, lieu, objet, document, événement
+  title: 200,
+  // Adresse, emplacement, note de trombinoscope, réglages d'envoi
+  short: 500,
+  // Accroche, description, présentation, note d'intention, notes
+  long: 50_000,
+  // Historique d'un personnage ou d'un groupe, contenu d'un document
+  background: 1_000_000
+} as const
+export type TextKind = keyof typeof TEXT_MAX
+
+/** Texte obligatoire, au plafond de son type. */
+export function requiredTextField(kind: TextKind, label: string) {
+  return z.string({ error: `${label} est obligatoire` }).trim().min(1, `${label} est obligatoire`).max(TEXT_MAX[kind], tooLong(label, TEXT_MAX[kind]))
+}
+
+/** Texte facultatif, au plafond de son type. */
+export function optionalTextField(kind: TextKind, label: string) {
+  return z.string().trim().max(TEXT_MAX[kind], tooLong(label, TEXT_MAX[kind])).optional().nullable()
+}
+
+export const EMAIL_MAX_LENGTH = 254
+
+/** Adresse email obligatoire (R10) : en minuscules, 254 caractères au plus, de la forme d'une adresse. */
+export function requiredEmail(label = 'L’email') {
+  return z.string({ error: `${label} est obligatoire` }).trim().min(1, `${label} est obligatoire`).toLowerCase()
+    .max(EMAIL_MAX_LENGTH, tooLong(label, EMAIL_MAX_LENGTH)).email('Email invalide')
+}
+
+/**
+ * Adresse email facultative (R10) : vide, elle reste vide ; absente (undefined) ou nulle, elle le reste aussi, car une
+ * modification lit une valeur absente comme « ne pas changer ».
+ */
+export function optionalEmail(label = 'L’email') {
+  return z.string().trim().toLowerCase().max(EMAIL_MAX_LENGTH, tooLong(label, EMAIL_MAX_LENGTH))
+    .refine((value) => !value || z.email().safeParse(value).success, 'Email invalide')
+    .optional().nullable()
+}
 export const personNameMessage = (label: string) =>
   `${label} ne peut contenir que des lettres, des espaces, des traits d’union, des apostrophes et des points`
 

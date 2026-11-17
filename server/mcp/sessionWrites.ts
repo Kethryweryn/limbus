@@ -4,7 +4,7 @@ import { labelSession } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
 import { accessibleGameIds, requireCurrentUser, requireSessionAccess } from '~/server/utils/gameAccess'
 import { participantCreateSchema, participantSchema, parseZod, sessionSchema, sessionTimelineSchema } from '~/server/utils/schemas'
-import { PERSON_NAME_MAX_LENGTH, tooLong } from '~/server/utils/fieldRules'
+import { PERSON_NAME_MAX_LENGTH, TEXT_MAX, tooLong } from '~/server/utils/fieldRules'
 import { createSession, updateSession, updateSessionTimeline } from '~/server/utils/sessionWrites'
 import { createParticipant, updateParticipant } from '~/server/utils/participantWrites'
 import { sessionCastingAssistant } from '~/server/utils/castingAssistant'
@@ -230,7 +230,7 @@ function registerParticipantWriteTools({ event, server }: ToolContext) {
       participantId: z.string(),
       version,
       name: z.string().max(PERSON_NAME_MAX_LENGTH, tooLong('Le nom', PERSON_NAME_MAX_LENGTH)).optional(),
-      notes: z.array(z.object({ jeuId: z.string(), notes: z.string().max(20_000).nullable() })).max(100).optional().describe('Note d’organisation, pour des jeux où la personne est ou est ajoutée'),
+      notes: z.array(z.object({ jeuId: z.string(), notes: z.string().max(TEXT_MAX.long, tooLong('La note', TEXT_MAX.long)).nullable() })).max(100).optional().describe('Note d’organisation, pour des jeux où la personne est ou est ajoutée'),
       addToGames: z.array(z.string()).max(100).optional().describe('Jeux où ajouter la personne')
     }),
     annotations: WRITE

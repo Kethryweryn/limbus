@@ -325,4 +325,4 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-250](../archive/epics/EPIC-059-csp-applicable/US-250-csp-accueil-icones-et-garde-fou.md) | La page d'accueil et les icônes passent la CSP, et les tests le vérifient | EPIC-059 | terminée |
 | [US-251](EPIC-060-validation-des-saisies/US-251-noms-de-personnes.md) | Un nom de personne ne contient que des lettres et des séparateurs | EPIC-060 | terminée |
 | [US-252](EPIC-060-validation-des-saisies/US-252-telephones-et-contact-d-urgence.md) | Des téléphones vérifiés selon leur pays, et un contact d'urgence complet | EPIC-060 | terminée |
-| [US-253](EPIC-060-validation-des-saisies/US-253-longueurs-et-emails.md) | Une longueur maximale sur chaque texte, des emails vérifiés partout | EPIC-060 | à faire |
+| [US-253](EPIC-060-validation-des-saisies/US-253-longueurs-et-emails.md) | Une longueur maximale sur chaque texte, des emails vérifiés partout | EPIC-060 | terminée |

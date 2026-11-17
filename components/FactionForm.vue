@@ -20,7 +20,7 @@
         <UInput v-model="localFaction.name" autofocus size="lg" class="w-full" />
       </UFormField>
 
-      <UFormField label="Pitch">
+      <UFormField label="Pitch" :error="errors.pitch">
         <UTextarea
           v-model.nullable="localFaction.pitch"
           :rows="5"
@@ -30,7 +30,7 @@
         />
       </UFormField>
 
-      <UFormField label="Background">
+      <UFormField label="Background" :error="errors.background">
         <UTextarea
           v-model.nullable="localFaction.background"
           :rows="16"
@@ -40,7 +40,7 @@
         />
       </UFormField>
 
-      <UFormField label="Lien vers un background externe">
+      <UFormField label="Lien vers un background externe" :error="errors.backgroundDocumentUrl">
         <UInput
           v-model.nullable="localFaction.backgroundDocumentUrl"
           size="lg"
@@ -49,7 +49,7 @@
         />
       </UFormField>
 
-      <UFormField label="Indications costumes">
+      <UFormField label="Indications costumes" :error="errors.costumeIndications">
         <UTextarea v-model.nullable="localFaction.costumeIndications" :rows="5" size="lg" class="w-full" />
       </UFormField>
 
@@ -59,7 +59,7 @@
         description="Désactivé par défaut pour ne pas révéler les appartenances de groupe."
       />
 
-      <UFormField label="Personnages">
+      <UFormField label="Personnages" :error="errors.characterIds">
         <USelectMenu
           v-model="localFaction.characterIds"
           :items="characterOptions"
@@ -89,7 +89,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { CHARACTER_TYPES } from '~/utils/domain'
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { splitApiErrors } from '~/utils/apiErrors'
 import type { CharacterOption, FactionDraft, GameOption } from '~/utils/writingDrafts'
 
 const props = withDefaults(defineProps<{
@@ -105,6 +105,8 @@ const emit = defineEmits<{ cancel: [], 'update:faction': [faction: FactionDraft]
 
 const localFaction = ref<FactionDraft>({ ...props.faction })
 const errors = ref<Record<string, string>>({})
+// Champs du formulaire qui affichent un refus du serveur
+const SERVER_FIELDS = ['background', 'backgroundDocumentUrl', 'characterIds', 'costumeIndications', 'gameId', 'name', 'pitch']
 const serverError = ref('')
 
 const gameOptions = computed(() => props.games.map((game) => ({
@@ -140,10 +142,10 @@ watch(() => localFaction.value.gameId, () => {
 function validate() {
   errors.value = {}
   if (!localFaction.value.name?.trim()) {
-    errors.value.name = 'Le nom est requis.'
+    errors.value.name = 'Le nom est obligatoire'
   }
   if (!localFaction.value.gameId) {
-    errors.value.gameId = 'Le jeu est requis.'
+    errors.value.gameId = 'Le jeu est obligatoire'
   }
   return Object.keys(errors.value).length === 0
 }
@@ -156,7 +158,10 @@ async function submit() {
     await props.onSubmit()
     serverError.value = ''
   } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
+    // Refus du serveur sous son champ (SPEC-023, R11) ; les autres restent sous le bouton
+    const { fields, message } = splitApiErrors(err, 'Erreur inconnue', SERVER_FIELDS)
+    errors.value = fields
+    serverError.value = message
   }
 }
 </script>

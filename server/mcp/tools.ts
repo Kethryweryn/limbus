@@ -2,6 +2,7 @@ import * as z from 'zod'
 import type { H3Event } from 'h3'
 import type { McpServer } from '@modelcontextprotocol/server'
 import { aiLog } from '~/server/utils/aiAuth'
+import { TEXT_MAX, tooLong } from '~/server/utils/fieldRules'
 
 // Outils MCP de Limbus (US-122, SPEC-014 R7 à R9, R12, R15) : chaque outil rend une projection explicite, jamais un
 // objet Prisma tel quel, pour qu'aucun champ exclu (coordonnées, allergies, paiements, fichiers, texte libre d'un
@@ -52,8 +53,11 @@ export const named = { select: { id: true, name: true } } as const
 export const WRITE = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
 export const DESTRUCTIVE = { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false }
 
-/** Texte libre d'une fiche écrit par l'assistant. */
-export const text = (description: string) => z.string().max(20_000).nullable().optional().describe(description)
+/**
+ * Texte libre d'une fiche écrit par l'assistant : borné ici au plus grand plafond, celui d'un historique ; le plafond de
+ * chaque champ, avec son message, vient du schéma commun que l'outil applique ensuite (SPEC-023 R9).
+ */
+export const text = (description: string) => z.string().max(TEXT_MAX.background, tooLong('Le texte', TEXT_MAX.background)).nullable().optional().describe(description)
 
 export const version = z.string().describe('Version lue : le champ updatedAt rendu par la lecture de l’élément')
 

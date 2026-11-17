@@ -29,33 +29,33 @@ type List = {
 
 const LISTS: List[] = [
   {
-    noun: 'personnage', list: '/characters', heading: 'Personnages', create: 'Créer un personnage', search: 'Rechercher un personnage...', pageSize: 6, nameLabel: 'Nom', nameRequired: 'Le nom est requis.', notFound: 'Personnage introuvable',
+    noun: 'personnage', list: '/characters', heading: 'Personnages', create: 'Créer un personnage', search: 'Rechercher un personnage...', pageSize: 6, nameLabel: 'Nom', nameRequired: 'Le nom est obligatoire', notFound: 'Personnage introuvable',
     find: (prisma, name) => prisma.character.findFirst({ where: { name } }),
     seed: (prisma, gameId, name, secondary) => prisma.character.create({ data: { name, slug: slugOf(name), gameId, pitch: secondary } })
   },
   {
-    noun: 'groupe', list: '/factions', heading: 'Groupes', create: 'Créer un groupe', search: 'Rechercher un groupe...', pageSize: 9, nameLabel: 'Nom', nameRequired: 'Le nom est requis.', notFound: 'Groupe introuvable',
+    noun: 'groupe', list: '/factions', heading: 'Groupes', create: 'Créer un groupe', search: 'Rechercher un groupe...', pageSize: 9, nameLabel: 'Nom', nameRequired: 'Le nom est obligatoire', notFound: 'Groupe introuvable',
     find: (prisma, name) => prisma.faction.findFirst({ where: { name } }),
     seed: (prisma, gameId, name, secondary) => prisma.faction.create({ data: { name, slug: slugOf(name), gameId, pitch: secondary } })
   },
   {
-    noun: 'intrigue', list: '/intrigues', heading: 'Intrigues', create: 'Créer une intrigue', search: 'Rechercher une intrigue...', pageSize: 9, nameLabel: 'Nom', nameRequired: 'Le nom est requis.', notFound: 'Intrigue introuvable',
+    noun: 'intrigue', list: '/intrigues', heading: 'Intrigues', create: 'Créer une intrigue', search: 'Rechercher une intrigue...', pageSize: 9, nameLabel: 'Nom', nameRequired: 'Le nom est obligatoire', notFound: 'Intrigue introuvable',
     find: (prisma, name) => prisma.intrigue.findFirst({ where: { name } }),
     seed: (prisma, gameId, name, secondary) => prisma.intrigue.create({ data: { name, slug: slugOf(name), gameId, pitch: secondary } })
   },
   {
-    noun: 'objet', list: '/items', heading: 'Objets', create: 'Créer un objet', search: 'Rechercher un objet...', pageSize: 9, nameLabel: 'Nom', nameRequired: 'Le nom est requis.', notFound: 'Objet introuvable',
+    noun: 'objet', list: '/items', heading: 'Objets', create: 'Créer un objet', search: 'Rechercher un objet...', pageSize: 9, nameLabel: 'Nom', nameRequired: 'Le nom est obligatoire', notFound: 'Objet introuvable',
     find: (prisma, name) => prisma.item.findFirst({ where: { name } }),
     seed: (prisma, gameId, name, secondary) => prisma.item.create({ data: { name, slug: slugOf(name), gameId, description: secondary } })
   },
   {
-    noun: 'document', list: '/documents', heading: 'Documents', create: 'Créer un document', search: 'Rechercher un document...', pageSize: 9, nameLabel: 'Titre', nameRequired: 'Le titre est requis.', notFound: 'Document introuvable',
+    noun: 'document', list: '/documents', heading: 'Documents', create: 'Créer un document', search: 'Rechercher un document...', pageSize: 9, nameLabel: 'Titre', nameRequired: 'Le titre est obligatoire', notFound: 'Document introuvable',
     fillRequired: (form) => form.getByLabel('Corps', { exact: true }).fill('Texte du document'),
     find: (prisma, name) => prisma.document.findFirst({ where: { title: name } }),
     seed: (prisma, gameId, name, secondary) => prisma.document.create({ data: { title: name, slug: slugOf(name), gameId, content: secondary ?? 'Texte' } })
   },
   {
-    noun: 'lieu', list: '/locations', heading: 'Lieux', create: 'Créer un lieu', search: 'Rechercher un lieu...', pageSize: 9, nameLabel: 'Nom', nameRequired: 'Le nom est requis.', notFound: 'Lieu introuvable',
+    noun: 'lieu', list: '/locations', heading: 'Lieux', create: 'Créer un lieu', search: 'Rechercher un lieu...', pageSize: 9, nameLabel: 'Nom', nameRequired: 'Le nom est obligatoire', notFound: 'Lieu introuvable',
     find: (prisma, name) => prisma.location.findFirst({ where: { name } }),
     seed: (prisma, gameId, name, secondary) => prisma.location.create({ data: { name, slug: slugOf(name), gameId, address: secondary } })
   }

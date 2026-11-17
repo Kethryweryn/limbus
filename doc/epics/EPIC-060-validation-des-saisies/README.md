@@ -25,7 +25,7 @@ Cet epic répond aux retours A9-1, A9-2 et A10-1 du cahier de tests.
 |---|---|---|
 | [US-251](US-251-noms-de-personnes.md) | Un nom de personne ne contient que des lettres et des séparateurs | terminée |
 | [US-252](US-252-telephones-et-contact-d-urgence.md) | Des téléphones vérifiés selon leur pays, et un contact d'urgence complet | terminée |
-| [US-253](US-253-longueurs-et-emails.md) | Une longueur maximale sur chaque texte, des emails vérifiés partout | à faire |
+| [US-253](US-253-longueurs-et-emails.md) | Une longueur maximale sur chaque texte, des emails vérifiés partout | terminée |
 
 ## Définition de terminé
 

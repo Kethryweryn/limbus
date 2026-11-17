@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
-import { assertChangedPersonName, assertChangedPhone, enteredPhone, normalizePhone, optionalPhone, PHONE_MESSAGE, refineEmergencyContact, requiredPhone, isPersonName, optionalPersonName, personName } from '~/server/utils/fieldRules'
+import { assertChangedPersonName, assertChangedPhone, enteredPhone, isPersonName, normalizePhone, optionalEmail, optionalPersonName, optionalPhone, optionalTextField, personName, PHONE_MESSAGE, refineEmergencyContact, requiredEmail, requiredPhone, requiredTextField, TEXT_MAX, tooLong } from '~/server/utils/fieldRules'
 
 const message = 'Le nom ne peut contenir que des lettres, des espaces, des traits d’union, des apostrophes et des points'
 
@@ -103,5 +103,39 @@ describe('contact d’urgence complet (SPEC-023, R8)', () => {
   it('accepte les deux, ou aucun', () => {
     expect(contact.safeParse({ emergencyContactName: 'Paul', emergencyContactPhone: '+33612345678' }).success).toBe(true)
     expect(contact.safeParse({ emergencyContactName: null, emergencyContactPhone: null }).success).toBe(true)
+  })
+})
+
+describe('longueurs maximales (SPEC-023, R9)', () => {
+  it('donne à chaque type de texte son plafond, avec un message lisible', () => {
+    expect(TEXT_MAX).toEqual({ personName: 100, title: 200, short: 500, long: 50_000, background: 1_000_000 })
+    expect(tooLong('L’historique', 1_000_000)).toBe('L’historique : 1 000 000 caractères au plus')
+    expect(tooLong('Le nom', 200)).toBe('Le nom : 200 caractères au plus')
+  })
+
+  it('accepte un texte à son plafond et refuse un caractère de plus', () => {
+    expect(requiredTextField('title', 'Le nom').parse(' ' + 'a'.repeat(200) + ' ')).toHaveLength(200)
+    expect(requiredTextField('title', 'Le nom').safeParse('a'.repeat(201)).error?.issues[0]?.message).toBe('Le nom : 200 caractères au plus')
+    expect(requiredTextField('title', 'Le nom').safeParse('  ').error?.issues[0]?.message).toBe('Le nom est obligatoire')
+    expect(optionalTextField('background', 'L’historique').parse('a'.repeat(1_000_000))).toHaveLength(1_000_000)
+    expect(optionalTextField('background', 'L’historique').safeParse('a'.repeat(1_000_001)).success).toBe(false)
+    expect(optionalTextField('long', 'La description').parse(null)).toBeNull()
+  })
+})
+
+describe('emails (SPEC-023, R10)', () => {
+  it('obligatoire : en minuscules, de la forme d’une adresse, 254 caractères au plus', () => {
+    expect(requiredEmail().parse(' Lea@Example.TEST ')).toBe('lea@example.test')
+    expect(requiredEmail().safeParse('pas-une-adresse').error?.issues[0]?.message).toBe('Email invalide')
+    expect(requiredEmail().safeParse('').error?.issues[0]?.message).toBe('L’email est obligatoire')
+    expect(requiredEmail().safeParse(`${'a'.repeat(250)}@x.fr`).error?.issues[0]?.message).toBe('L’email : 254 caractères au plus')
+  })
+
+  it('facultative : vide, absente ou nulle, elle le reste (une modification lit l’absence comme « inchangée »)', () => {
+    expect(optionalEmail().parse(undefined)).toBeUndefined()
+    expect(optionalEmail().parse(null)).toBeNull()
+    expect(optionalEmail().parse('  ')).toBe('')
+    expect(optionalEmail().parse(' Contact@Jeu.TEST')).toBe('contact@jeu.test')
+    expect(optionalEmail().safeParse('contact').error?.issues[0]?.message).toBe('Email invalide')
   })
 })

@@ -20,7 +20,7 @@
         <UInput v-model="localItem.name" autofocus size="lg" class="w-full" />
       </UFormField>
 
-      <UFormField label="Description">
+      <UFormField label="Description" :error="errors.description">
         <UTextarea v-model.nullable="localItem.description" :rows="8" size="lg" class="w-full" />
       </UFormField>
 
@@ -41,7 +41,7 @@
           />
         </UFormField>
 
-        <UFormField label="Localisation libre">
+        <UFormField label="Localisation libre" :error="errors.locationText">
           <UInput
             v-model.nullable="localItem.locationText"
             :disabled="Boolean(localItem.locationCharacterId)"
@@ -52,7 +52,7 @@
         </UFormField>
       </div>
 
-      <UFormField label="Personnages associés">
+      <UFormField label="Personnages associés" :error="errors.characterIds">
         <USelectMenu
           v-model="localItem.characterIds"
           :items="characterOptions"
@@ -65,7 +65,7 @@
         />
       </UFormField>
 
-      <UFormField label="Intrigues associées">
+      <UFormField label="Intrigues associées" :error="errors.intrigueIds">
         <USelectMenu
           v-model="localItem.intrigueIds"
           :items="intrigueOptions"
@@ -104,7 +104,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { CHARACTER_TYPES } from '~/utils/domain'
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { splitApiErrors } from '~/utils/apiErrors'
 import { noneOption } from '~/utils/selectOptions'
 import { emptyStringModel, type CharacterOption, type GameOption, type ItemDraft } from '~/utils/writingDrafts'
 
@@ -122,6 +122,8 @@ const emit = defineEmits<{ cancel: [], 'update:item': [item: ItemDraft] }>()
 
 const localItem = ref<ItemDraft>({ ...props.item })
 const errors = ref<Record<string, string>>({})
+// Champs du formulaire qui affichent un refus du serveur
+const SERVER_FIELDS = ['characterIds', 'description', 'gameId', 'intrigueIds', 'locationText', 'name', 'quantity']
 const serverError = ref('')
 
 const gameOptions = computed(() => props.games.map((game) => ({
@@ -189,10 +191,10 @@ watch(() => localItem.value.gameId, () => {
 function validate() {
   errors.value = {}
   if (!localItem.value.name?.trim()) {
-    errors.value.name = 'Le nom est requis.'
+    errors.value.name = 'Le nom est obligatoire'
   }
   if (!localItem.value.gameId) {
-    errors.value.gameId = 'Le jeu est requis.'
+    errors.value.gameId = 'Le jeu est obligatoire'
   }
   const quantity = localItem.value.quantity ?? 1
   if (!Number.isInteger(quantity) || quantity < 1) {
@@ -209,7 +211,10 @@ async function submit() {
     await props.onSubmit()
     serverError.value = ''
   } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
+    // Refus du serveur sous son champ (SPEC-023, R11) ; les autres restent sous le bouton
+    const { fields, message } = splitApiErrors(err, 'Erreur inconnue', SERVER_FIELDS)
+    errors.value = fields
+    serverError.value = message
   }
 }
 </script>
