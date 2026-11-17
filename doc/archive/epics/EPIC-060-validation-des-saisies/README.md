@@ -39,7 +39,7 @@ Cet epic répond aux retours A9-1, A9-2 et A10-1 du cahier de tests.
 
 - 2026-11-17 : les trois US sont déployées.
   - US-251, noms de personnes : PR #254, déploiement n° 254.
-  - US-252, téléphones et contact d'urgence : PR #255, déploiement n° 255. La migration a remis au format les numéros reconnus.
+  - US-252, téléphones et contact d'urgence : PR #255, déploiement n° 255. La migration s'est appliquée avec le déploiement ; son résultat sur les numéros de production n'a pas été relu, seulement vérifié par le test d'intégration.
   - US-253, longueurs et emails : PR #256, déploiement n° 256.
 - Ce que les revues ont changé :
   - un nom ou un téléphone déjà enregistré n'est vérifié que s'il change ;
