@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { labelled, signIn, slugOf, uniqueName } from './helpers'
+import { labelled, signIn, slugOf, uniqueName, uniquePersonName } from './helpers'
 
 // EPIC-031 (US-118) : la liste des participants crée une fiche, la fiche se modifie et note un refus de photo
 test('l’équipe crée une fiche participant, la renomme et note un refus de photo', async ({ page }) => {
@@ -10,7 +10,7 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
     const owner = await prisma.user.findUniqueOrThrow({ where: { email: E2E_USERS.orga } })
     const title = uniqueName('Jeu participants')
     const game = await prisma.game.create({ data: { title, slug: slugOf(title), description: '', ownerId: owner.id } })
-    const name = uniqueName('Iris Fiche')
+    const name = uniquePersonName('Iris Fiche')
 
     await signIn(page, prisma, E2E_USERS.orga)
     await page.goto('/participants')
@@ -82,7 +82,7 @@ test('l’équipe crée une fiche participant, la renomme et note un refus de ph
 
     // Renommer ne change pas l'adresse de la fiche : un nom donné par une équipe n'y apparaît pas (US-239)
     const before = (await prisma.participant.findUniqueOrThrow({ where: { id: created.id }, select: { slug: true } })).slug
-    const renamed = uniqueName('Iris Renommée')
+    const renamed = uniquePersonName('Iris Renommée')
     await page.getByRole('button', { name: 'Modifier' }).click()
     await page.getByLabel('Nom').fill(renamed)
     await page.getByRole('button', { name: 'Enregistrer' }).click()

@@ -31,11 +31,38 @@ export function loadErrorMessage(err: unknown, fallback: string) {
   return isUnanswered(err) ? NO_NETWORK_PAGE_MESSAGE : apiErrorMessage(err, fallback)
 }
 
+// Refus d'une validation zod, rangés par h3 sous data.data ; un refus de tout le corps a un chemin vide
+function validationIssues(err: unknown) {
+  const issues = (err as { data?: { data?: { data?: Array<{ path?: string, message?: string }> } } } | null)?.data?.data?.data
+  return Array.isArray(issues) ? issues : []
+}
+
+// Refus d'une validation de la saisie (et non d'un refus du serveur pour une autre raison)
+export function isValidationError(err: unknown) {
+  return validationIssues(err).length > 0
+}
+
 // Détail par champ d'une validation zod, pour afficher chaque message sous son champ
 export function apiFieldErrors(err: unknown): Record<string, string> {
-  const issues = (err as { data?: { data?: { data?: Array<{ path?: string, message?: string }> } } } | null)?.data?.data?.data
-  if (!Array.isArray(issues)) return {}
-  return Object.fromEntries(issues.filter((issue) => issue.path).map((issue) => [issue.path!, issue.message || '']))
+  return Object.fromEntries(validationIssues(err).filter((issue) => issue.path).map((issue) => [issue.path!, issue.message || '']))
+}
+
+export const FIELDS_INVALID_MESSAGE = 'Certaines informations sont manquantes ou incorrectes.'
+
+/**
+ * Refus d'une validation réparti entre les champs à l'écran et le message du formulaire (SPEC-023, R11) : chaque
+ * champ affiché reçoit son message ; ceux d'un champ absent de l'écran restent dans le message, qui sinon dit
+ * seulement que des informations sont à corriger. `fields` absent : tous les champs sont à l'écran.
+ */
+export function splitApiErrors(err: unknown, fallback: string, fields?: readonly string[]) {
+  const isShown = (path?: string) => Boolean(path) && (!fields || fields.includes(path!))
+  const shown = Object.fromEntries(validationIssues(err).filter((issue) => isShown(issue.path)).map((issue) => [issue.path!, issue.message || '']))
+  // Un refus sans champ (tout le corps) ou d'un champ absent de l'écran reste dans le message
+  const hidden = validationIssues(err).filter((issue) => !isShown(issue.path)).map((issue) => issue.message).filter(Boolean)
+  const message = hidden.length
+    ? [...new Set(hidden)].join(' ; ')
+    : Object.keys(shown).length ? FIELDS_INVALID_MESSAGE : apiErrorMessage(err, fallback)
+  return { fields: shown, message }
 }
 
 // Message du serveur seul (h3 le range sous data.message), sinon le texte par défaut ; les écrans passent par

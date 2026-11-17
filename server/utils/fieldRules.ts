@@ -1,0 +1,68 @@
+import { z } from 'zod'
+
+// Règles de saisie communes aux routes, au questionnaire et aux outils des assistants (SPEC-023, ADR-0092) : une règle
+// s'écrit ici, une seule fois
+
+export const PERSON_NAME_MAX_LENGTH = 100
+
+// Nom de personne (R1) : lettres de tout alphabet (accents compris), espace, trait d'union, apostrophe, point ; au moins
+// une lettre, à n'importe quelle place (« 't Hooft »)
+const PERSON_NAME_PATTERN = /^(?=.*\p{L})[\p{L}\p{M} '’.-]+$/u
+
+export const tooLong = (label: string, max: number) => `${label} : ${max} caractères au plus`
+export const personNameMessage = (label: string) =>
+  `${label} ne peut contenir que des lettres, des espaces, des traits d’union, des apostrophes et des points`
+
+// Espaces en double ou aux extrémités retirés : « Jean   Martin » devient « Jean Martin »
+export const collapseSpaces = (value: string) => value.replace(/\s+/g, ' ').trim()
+
+export function isPersonName(value: string) {
+  return PERSON_NAME_PATTERN.test(value)
+}
+
+// Contrôles d'un nom déjà débarrassé de ses espaces superflus, vide exclu
+function checkPersonName(label: string) {
+  return z.string()
+    .max(PERSON_NAME_MAX_LENGTH, tooLong(label, PERSON_NAME_MAX_LENGTH))
+    .refine(isPersonName, personNameMessage(label))
+}
+
+/** Nom de personne obligatoire (R1, R2). */
+export function personName(label = 'Le nom') {
+  return z.string({ error: `${label} est obligatoire` })
+    .transform(collapseSpaces)
+    .pipe(z.string().min(1, `${label} est obligatoire`).pipe(checkPersonName(label)))
+}
+
+/**
+ * Nom d'une modification : seulement obligatoire ici, car une valeur déjà en base garde sa forme tant qu'elle ne change
+ * pas (R12). La route vérifie R1 par `assertChangedPersonName`, avec la valeur enregistrée.
+ */
+export function enteredPersonName(label = 'Le nom') {
+  return z.string({ error: `${label} est obligatoire` }).transform(collapseSpaces).pipe(z.string().min(1, `${label} est obligatoire`))
+}
+
+/** Nom facultatif d'une modification : vide ou absent devient null ; R1 vérifiée par `assertChangedPersonName`. */
+export function optionalEnteredPersonName() {
+  return z.string().optional().nullable().transform((value) => value == null ? null : collapseSpaces(value) || null)
+}
+
+/**
+ * Vérifie R1 sur un nom modifié, au format d'un refus de validation (champ `path`). Un nom identique à une valeur
+ * enregistrée, aux espaces près, passe tel quel : la règle s'applique à la prochaine modification du champ (R12).
+ */
+export function assertChangedPersonName(path: string, label: string, value: string | null | undefined, saved: Array<string | null | undefined>) {
+  if (value == null || saved.some((previous) => previous != null && collapseSpaces(previous) === value)) return
+  const checked = checkPersonName(label).safeParse(value)
+  if (checked.success) return
+  // Même forme qu'un refus de readZodBody (h3 range le détail sous data.data) : l'écran le met sous le champ
+  const issues = checked.error.issues.map((issue) => ({ path, message: issue.message }))
+  throw createError({ statusCode: 400, statusMessage: 'Validation Error', message: 'Requête invalide', data: { statusCode: 400, message: 'Requête invalide', data: issues } })
+}
+
+/** Nom de personne facultatif : vide ou absent devient null. */
+export function optionalPersonName(label = 'Le nom') {
+  return z.string().optional().nullable()
+    .transform((value) => value == null ? null : collapseSpaces(value) || null)
+    .pipe(checkPersonName(label).nullable())
+}

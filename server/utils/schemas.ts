@@ -1,3 +1,4 @@
+import { enteredPersonName, optionalEnteredPersonName, personName } from '~/server/utils/fieldRules'
 import { z, type ZodError, type ZodType } from 'zod'
 import { PHOTO_RETENTION_MAX_MONTHS, PHOTO_RETENTION_MIN_MONTHS } from '~/utils/photoInformation'
 import { REGISTRATION_DIETARY_MAX_LENGTH } from '~/utils/registrationForms'
@@ -230,8 +231,9 @@ export const registrationOptionExpectationsSchema = z.object({
   })).max(2000, 'Trop de proportions')
 })
 
+// Modification d'une fiche : son nom n'est vérifié que s'il change (SPEC-023 R12, `updateParticipant`)
 export const participantSchema = z.object({
-  name: requiredText('Le nom'),
+  name: enteredPersonName(),
   // Une fiche appartient à la personne de son adresse (SPEC-022 R3, US-238) : l'adresse est obligatoire
   email: z.string({ error: 'L’adresse email est obligatoire' }).trim().min(1, 'L’adresse email est obligatoire').max(254, 'Email trop long').email('Email invalide'),
   phone: optionalText,
@@ -242,6 +244,7 @@ export const participantSchema = z.object({
 
 // Création d'une fiche : au moins un jeu (US-036)
 export const participantCreateSchema = participantSchema.extend({
+  name: personName(),
   gameIds: z.array(requiredId('Le jeu')).min(1, 'Choisissez au moins un jeu')
 })
 
@@ -519,7 +522,7 @@ export const registrationInvitationSchema = z.object({
   participantIds: z.array(requiredText('Le participant')).optional().default([])
     .refine((ids) => new Set(ids).size === ids.length, 'Une personne est choisie deux fois'),
   newParticipant: z.object({
-    name: requiredText('Le nom'),
+    name: personName(),
     email: requiredText('L’email').toLowerCase().max(254, 'Email trop long').email('Email invalide')
   }).optional().nullable()
 }).refine((body) => body.participantIds.length > 0 || body.newParticipant, 'Choisissez au moins une personne à inviter')
@@ -592,13 +595,14 @@ export const loginSchema = z.object({
 // Plus de mot de passe choisi par l'administratrice : la personne reçoit un lien (US-065)
 export const userCreateSchema = z.object({
   email: accountEmail(),
-  name: requiredText('Le nom'),
+  name: personName(),
   role: userRole.default(USER_ROLES.user)
 })
 
 export const userUpdateSchema = z.object({
   email: accountEmail().optional(),
-  name: requiredText('Le nom').optional(),
+  // Vérifié par la route s'il change (SPEC-023 R12)
+  name: enteredPersonName().optional(),
   role: userRole.optional(),
   disabled: z.boolean().optional(),
   storageQuotaMb: z.number().int().min(0).max(1_000_000).optional()
@@ -610,7 +614,7 @@ const newPassword = () => requiredText('Le mot de passe').min(8, 'Le mot de pass
 const termsAccepted = () => z.literal(true, { error: 'Acceptez les conditions d’utilisation pour créer votre compte.' })
 
 export const signupSchema = z.object({
-  name: requiredText('Le nom'),
+  name: personName(),
   email: accountEmail(),
   password: newPassword(),
   website: z.string().optional(),
@@ -629,7 +633,7 @@ export const activationRequestSchema = z.object({
 
 export const activationSchema = z.object({
   token: requiredText('Le lien'),
-  name: requiredText('Le nom'),
+  name: personName(),
   password: newPassword(),
   termsAccepted: termsAccepted()
 })
@@ -643,8 +647,9 @@ export const passwordResetSchema = z.object({
   password: newPassword()
 })
 
+// Vérifié par la route s'il change (SPEC-023 R12)
 export const accountUpdateSchema = z.object({
-  name: requiredText('Le nom')
+  name: enteredPersonName()
 })
 
 export const accountEmailSchema = z.object({
@@ -655,7 +660,8 @@ export const accountEmailSchema = z.object({
 // Mes coordonnées (US-074) : consentement exigé dès qu'une allergie est déclarée, comme à l'inscription (R14)
 export const accountProfileSchema = z.object({
   phone: optionalText,
-  emergencyContactName: optionalText,
+  // Vérifié par la route s'il change (SPEC-023 R12)
+  emergencyContactName: optionalEnteredPersonName(),
   emergencyContactPhone: optionalText,
   dietary: z.string().trim().max(REGISTRATION_DIETARY_MAX_LENGTH, 'Texte trop long').optional().nullable(),
   healthConsent: z.boolean().optional().default(false)
@@ -700,7 +706,7 @@ export const gameBequestSchema = z.object({
 // L'adresse est celle de l'invitation (US-064) : un email envoyé est ignoré
 export const invitationRegistrationSchema = z.object({
   token: requiredText('Le lien'),
-  name: requiredText('Le nom'),
+  name: personName(),
   password: newPassword(),
   termsAccepted: termsAccepted()
 })

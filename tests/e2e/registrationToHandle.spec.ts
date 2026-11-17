@@ -3,7 +3,7 @@
 import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { orgaGame, orgaSession, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
+import { orgaGame, orgaSession, signIn, slugOf, test, testUser, type TestPrisma, uniquePersonName } from './helpers'
 import { withFicheValues } from '../fiche'
 
 // Une session prévue au casting jamais annoncé : une retenue aux réponses modifiées, une place annoncée qui attend sa réponse ; une
@@ -16,7 +16,7 @@ async function gameToHandle(prisma: TestPrisma, base: string) {
     data: { gameId: game.id, publicId: `h${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, state: 'open', sessions: { create: [{ sessionId: session.id, open: true }, { sessionId: done.id }] } }
   })
   const person = async (label: string, lines: Array<Record<string, unknown> & { sessionId: string }>) => {
-    const name = uniqueName(label)
+    const name = uniquePersonName(label)
     const email = `${slugOf(name)}@example.test`
     const participant = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, gameLinks: { create: { gameId: game.id , name: name } } } }), { name: name })
     await prisma.registration.create({

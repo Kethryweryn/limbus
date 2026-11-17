@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import { expect, test } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { parcoursSession, signIn, slugOf, testUser, uniqueName } from './helpers'
+import { parcoursSession, signIn, slugOf, testUser, uniqueName, uniquePersonName } from './helpers'
 import { withFicheValues } from '../fiche'
 
 // EPIC-031 (US-118) : nom et coordonnées depuis « Mon compte »
@@ -16,7 +16,7 @@ test('la personne change son nom et ses coordonnées depuis son compte', async (
     await page.waitForLoadState('networkidle')
     await expect(page.getByText(`Adresse actuelle : ${email}`)).toBeVisible()
 
-    const name = uniqueName('Nouveau Nom')
+    const name = uniquePersonName('Nouveau Nom')
     await page.getByLabel('Nom', { exact: true }).fill(name)
     await page.getByRole('button', { name: 'Enregistrer', exact: true }).click()
     await expect(page.getByText('Nom enregistré.')).toBeVisible()

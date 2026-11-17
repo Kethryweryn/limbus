@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test'
 import { TERMS_VERSION } from '../../utils/legal'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
-import { castSession, choose, gameCharacter, gamePerson, login, orgaGame, orgaSession, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
+import { castSession, choose, gameCharacter, gamePerson, login, orgaGame, orgaSession, signIn, slugOf, test, testUser, type TestPrisma, uniqueName, uniquePersonName } from './helpers'
 import { withFicheValues } from '../fiche'
 
 // Jeu d'une autre équipe, celle du compte « autre »
@@ -59,7 +59,7 @@ test('liste : recherche par nom et par email, filtre par jeu, pages, et créatio
     await page.getByRole('button', { name: 'Créer un participant' }).click()
     const form = page.getByRole('dialog')
     await form.getByRole('button', { name: 'Créer', exact: true }).click()
-    await expect(form.getByText('Le nom est requis.')).toBeVisible()
+    await expect(form.getByText('Le nom est obligatoire')).toBeVisible()
     await expect(form.getByText('Choisissez au moins un jeu.')).toBeVisible()
     // Une fiche appartient à la personne de son adresse (SPEC-022 R3, US-238)
     await expect(form.getByText('L’adresse email est obligatoire.')).toBeVisible()
@@ -124,7 +124,7 @@ test('fiche : les coordonnées d’une personne qui a un compte ne se modifient 
   const prisma = createTestPrisma()
   try {
     const game = await orgaGame(prisma, 'Jeu d’une personne avec compte')
-    const name = uniqueName('Personne avec compte')
+    const name = uniquePersonName('Personne avec compte')
     const email = `${slugOf(name)}@example.test`
     // Nom et téléphone remplis dans le compte : tenus par la personne (ADR-0089)
     const user = await prisma.user.create({ data: { email, name, phone: '0611223344', password: 'non-utilise', role: 'user', termsAcceptedVersion: TERMS_VERSION, emailConfirmedAt: new Date() } })
@@ -283,7 +283,7 @@ test('nom par jeu : une co-organisatrice ne change que son jeu, et une autre éq
     const second = await otherPage()
     await signIn(second, prisma, coorga.email)
     await openSheet(second, person)
-    const renamed = uniqueName('Nom donné par la co-organisatrice')
+    const renamed = uniquePersonName('Nom donné par la co-organisatrice')
     await second.getByRole('button', { name: 'Modifier' }).click()
     await second.getByLabel('Nom', { exact: true }).fill(renamed)
     await second.getByRole('button', { name: 'Enregistrer' }).click()
@@ -414,7 +414,7 @@ test('compte pré-créé : la fiche créée à une adresse nouvelle reste à l�
   const prisma = createTestPrisma()
   try {
     const game = await orgaGame(prisma, 'Jeu des comptes pré-créés')
-    const name = uniqueName('Personne sans compte')
+    const name = uniquePersonName('Personne sans compte')
     const email = `${slugOf(name)}@example.test`
     await signIn(page, prisma, E2E_USERS.orga)
     await openParticipants(page)
@@ -552,7 +552,7 @@ test('suppression : le compte non activé de la fiche part avec elle, même supp
   try {
     const game = await orgaGame(prisma, 'Jeu des comptes effacés avec la fiche')
     const preCreatedFiche = async (base: string) => {
-      const name = uniqueName(base)
+      const name = uniquePersonName(base)
       const email = `${slugOf(name)}@example.test`
       const account = await prisma.user.create({ data: { email, name: '', password: null, emailConfirmedAt: null } })
       const fiche = await withFicheValues(prisma.participant.create({ data: { slug: slugOf(name), email, userId: account.id, gameLinks: { create: { gameId: game.id, name } } } }), { name })

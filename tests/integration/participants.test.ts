@@ -9,6 +9,8 @@ const world = inject('world')
 const { alice } = world.users
 const prisma = createTestPrisma()
 let counter = 0
+// Nom de personne sans chiffre (SPEC-023, R1) : la clé du test, chiffres changés en lettres
+const letters = (key: string) => key.replace(/\d/g, (digit) => 'abcdefghij'[Number(digit)]!)
 
 afterAll(async () => {
   await prisma.$disconnect()
@@ -21,8 +23,8 @@ async function personInTwoGames() {
     prisma.game.create({ data: { title: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, description: '', ownerId: alice.id } })
   ))
   const participant = await withFicheValues(prisma.participant.create({
-    data: { slug: `lea-${key}`, email: `lea-${key}@example.test`, gameLinks: { create: games.map((game) => ({ gameId: game.id , name: `Léa ${key}` })) } }
-  }), { name: `Léa ${key}` })
+    data: { slug: `lea-${key}`, email: `lea-${key}@example.test`, gameLinks: { create: games.map((game) => ({ gameId: game.id , name: `Léa ${letters(key)}` })) } }
+  }), { name: `Léa ${letters(key)}` })
   const sessions = []
   for (const game of games) {
     const character = await prisma.character.create({ data: { name: `Rôle ${game.slug}`, slug: `role-${game.slug}`, gameId: game.id } })
@@ -115,9 +117,9 @@ describe('notes propres à chaque jeu (US-069)', () => {
       data: {
         slug: `noe-${key}`,
         email: `noe-${key}@example.test`,
-        gameLinks: { create: [{ gameId: aliceGame!.id, notes: 'Note d’Alice' , name: `Noé ${key}` }, { gameId: bobGame!.id, notes: 'Note de Bob' , name: `Noé ${key}` }] }
+        gameLinks: { create: [{ gameId: aliceGame!.id, notes: 'Note d’Alice' , name: `Noé ${letters(key)}` }, { gameId: bobGame!.id, notes: 'Note de Bob' , name: `Noé ${letters(key)}` }] }
       }
-    }), { name: `Noé ${key}` })
+    }), { name: `Noé ${letters(key)}` })
     return { aliceGame: aliceGame!, bobGame: bobGame!, participant }
   }
 
@@ -149,7 +151,7 @@ describe('notes propres à chaque jeu (US-069)', () => {
 
   it('une fiche créée reçoit la note de chacun de ses jeux', async () => {
     const game = await prisma.game.create({ data: { title: 'Jeu créé', slug: `jeu-cree-${++counter}`, description: '', ownerId: alice.id } })
-    const created = await api(alice, 'POST', '/api/participants', { name: `Créée ${counter}`, email: `creee-${counter}@example.test`, gameIds: [game.id], gameNotes: { [game.id]: 'Première note' } })
+    const created = await api(alice, 'POST', '/api/participants', { name: `Créée ${letters(String(counter))}`, email: `creee-${counter}@example.test`, gameIds: [game.id], gameNotes: { [game.id]: 'Première note' } })
     expect(created.status).toBe(200)
     expect(created.body).toMatchObject({ gameNotes: { [game.id]: 'Première note' } })
     expect(created.body).not.toHaveProperty('notes')
@@ -162,11 +164,11 @@ describe('une seule fiche par adresse (US-185, US-239)', () => {
 
   async function aliceFiche() {
     const key = `adresse-${++counter}`
-    const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
-    const other = await prisma.game.create({ data: { title: `Autre ${key}`, slug: `autre-${key}`, description: '', ownerId: alice.id } })
+    const game = await prisma.game.create({ data: { title: `Jeu ${letters(key)}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
+    const other = await prisma.game.create({ data: { title: `Autre ${letters(key)}`, slug: `autre-${key}`, description: '', ownerId: alice.id } })
     const existing = await withFicheValues(prisma.participant.create({
-      data: { slug: `camille-${key}`, email: `camille-${key}@example.test`, gameLinks: { create: { gameId: game.id, notes: 'Note du premier jeu', name: `Camille ${key}`, phone: '0601010101' } } }
-    }), { name: `Camille ${key}`, phone: '0601010101' })
+      data: { slug: `camille-${key}`, email: `camille-${key}@example.test`, gameLinks: { create: { gameId: game.id, notes: 'Note du premier jeu', name: `Camille ${letters(key)}`, phone: '0601010101' } } }
+    }), { name: `Camille ${letters(key)}`, phone: '0601010101' })
     return { key, game, other, existing }
   }
 
@@ -198,7 +200,7 @@ describe('une seule fiche par adresse (US-185, US-239)', () => {
     const created = response.body as Created
     // La fiche n'était pas dans ses jeux : la réponse est celle d'une création (SPEC-022 R4)
     expect(created).toMatchObject({ id: existing.id, joinedExisting: false, name: 'Saisie par Carol' })
-    expect(JSON.stringify(created)).not.toContain(`Camille ${key}`)
+    expect(JSON.stringify(created)).not.toContain(`Camille ${letters(key)}`)
     expect(created.games.map((row) => row.id)).toEqual([other.id])
     expect(Object.keys(created.gameNotes)).toEqual([other.id])
     expect(JSON.stringify(created)).not.toContain(game.id)
@@ -207,9 +209,9 @@ describe('une seule fiche par adresse (US-185, US-239)', () => {
   // SPEC-022 R4 : une fiche par adresse dans tout Limbus, même suivie par une autre équipe, sans rien en montrer
   it('une fiche d’une autre propriétaire est rejointe, sans que rien ne le dise ni ne montre de l’autre équipe', async () => {
     const key = `adresse-bob-${++counter}`
-    const bobGame = await prisma.game.create({ data: { title: `Bob ${key}`, slug: `bob-${key}`, description: '', ownerId: bob.id } })
-    const bobs = await withFicheValues(prisma.participant.create({ data: { slug: `chez-bob-${key}`, email: `partage-${key}@example.test`, gameLinks: { create: { gameId: bobGame.id, name: `Chez Bob ${key}`, phone: '0699999999', notes: 'Note de Bob' } } } }), { name: `Chez Bob ${key}` })
-    const game = await prisma.game.create({ data: { title: `Alice ${key}`, slug: `alice-${key}`, description: '', ownerId: alice.id } })
+    const bobGame = await prisma.game.create({ data: { title: `Bob ${letters(key)}`, slug: `bob-${key}`, description: '', ownerId: bob.id } })
+    const bobs = await withFicheValues(prisma.participant.create({ data: { slug: `chez-bob-${key}`, email: `partage-${key}@example.test`, gameLinks: { create: { gameId: bobGame.id, name: `Chez Bob ${letters(key)}`, phone: '0699999999', notes: 'Note de Bob' } } } }), { name: `Chez Bob ${letters(key)}` })
+    const game = await prisma.game.create({ data: { title: `Alice ${letters(key)}`, slug: `alice-${key}`, description: '', ownerId: alice.id } })
     const response = await api(alice, 'POST', '/api/participants', { name: 'Chez Alice', email: ` ${bobs.email!.toUpperCase()} `, phone: '0611111111', gameIds: [game.id] })
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     const created = response.body as Created
@@ -219,7 +221,7 @@ describe('une seule fiche par adresse (US-185, US-239)', () => {
     expect(await prisma.participant.count({ where: { email: bobs.email! } })).toBe(1)
     // Bob ne voit rien d'Alice, et garde son nom
     const bobRead = (await api(bob, 'GET', `/api/participants/${bobs.id}`)).body as { name: string, games: Array<{ id: string }> }
-    expect(bobRead).toMatchObject({ name: `Chez Bob ${key}` })
+    expect(bobRead).toMatchObject({ name: `Chez Bob ${letters(key)}` })
     expect(bobRead.games.map((row) => row.id)).toEqual([bobGame.id])
     // L'adresse de page ne suit pas le nom (US-239)
     expect((await prisma.participant.findUniqueOrThrow({ where: { id: bobs.id } })).slug).toBe(bobs.slug)
@@ -247,40 +249,40 @@ describe('nom et téléphone par jeu (US-237)', () => {
   it('une création écrit le nom et le téléphone sur chacun de ses jeux', async () => {
     const key = `par-jeu-${++counter}`
     const games = await Promise.all(['Un', 'Deux'].map((name) => prisma.game.create({ data: { title: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`, description: '', ownerId: alice.id } })))
-    const response = await api(alice, 'POST', '/api/participants', { name: `Zoé ${key}`, email: `zoe-${key}@example.test`, phone: '0611111111', gameIds: games.map((game) => game.id) })
+    const response = await api(alice, 'POST', '/api/participants', { name: `Zoé ${letters(key)}`, email: `zoe-${key}@example.test`, phone: '0611111111', gameIds: games.map((game) => game.id) })
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     const { id } = response.body as { id: string }
-    expect((await links(id)).map(({ name, phone }) => ({ name, phone }))).toEqual([{ name: `Zoé ${key}`, phone: '0611111111' }, { name: `Zoé ${key}`, phone: '0611111111' }])
+    expect((await links(id)).map(({ name, phone }) => ({ name, phone }))).toEqual([{ name: `Zoé ${letters(key)}`, phone: '0611111111' }, { name: `Zoé ${letters(key)}`, phone: '0611111111' }])
   })
 
   it('une modification change les seuls jeux que voit la personne qui modifie', async () => {
     const key = `par-jeu-${++counter}`
     const [mine, shared] = await Promise.all(['Mien', 'Partagé'].map((name) => prisma.game.create({ data: { title: `${name} ${key}`, slug: `${name.toLowerCase()}-${key}`.normalize('NFD').replace(/[\u0300-\u036f]/g, ''), description: '', ownerId: alice.id } })))
-    const bobGame = await prisma.game.create({ data: { title: `Bob ${key}`, slug: `bob-${key}`, description: '', ownerId: bob.id } })
+    const bobGame = await prisma.game.create({ data: { title: `Bob ${letters(key)}`, slug: `bob-${key}`, description: '', ownerId: bob.id } })
     await prisma.gameShare.create({ data: { gameId: shared!.id, userId: carol.id } })
     const participant = await withFicheValues(prisma.participant.create({
       data: {
         slug: `ilan-${key}`,
         email: `ilan-${key}@example.test`,
-        gameLinks: { create: [mine!, shared!, bobGame].map((game) => ({ gameId: game.id, name: `Ilan ${key}`, phone: '0600000000' })) }
+        gameLinks: { create: [mine!, shared!, bobGame].map((game) => ({ gameId: game.id, name: `Ilan ${letters(key)}`, phone: '0600000000' })) }
       }
-    }), { name: `Ilan ${key}` })
-    const response = await api(carol, 'PUT', `/api/participants/${participant.id}`, { name: `Ilan par Carol ${key}`, email: participant.email, phone: '0699999999', gameIds: [shared!.id] })
+    }), { name: `Ilan ${letters(key)}` })
+    const response = await api(carol, 'PUT', `/api/participants/${participant.id}`, { name: `Ilan par Carol ${letters(key)}`, email: participant.email, phone: '0699999999', gameIds: [shared!.id] })
     expect(response.status, JSON.stringify(response.body)).toBe(200)
     const byGame = new Map((await links(participant.id)).map((link) => [link.gameId, link]))
-    expect(byGame.get(shared!.id)).toMatchObject({ name: `Ilan par Carol ${key}`, phone: '0699999999' })
+    expect(byGame.get(shared!.id)).toMatchObject({ name: `Ilan par Carol ${letters(key)}`, phone: '0699999999' })
     // Témoins : le jeu d'Alice que Carol ne voit pas et celui de Bob ne changent pas
-    expect(byGame.get(mine!.id)).toMatchObject({ name: `Ilan ${key}`, phone: '0600000000' })
-    expect(byGame.get(bobGame.id)).toMatchObject({ name: `Ilan ${key}`, phone: '0600000000' })
+    expect(byGame.get(mine!.id)).toMatchObject({ name: `Ilan ${letters(key)}`, phone: '0600000000' })
+    expect(byGame.get(bobGame.id)).toMatchObject({ name: `Ilan ${letters(key)}`, phone: '0600000000' })
   })
 
   it('les coordonnées enregistrées dans le compte sont recopiées sur chaque jeu de ses fiches', async () => {
     const key = `par-jeu-${++counter}`
-    const game = await prisma.game.create({ data: { title: `Jeu ${key}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
-    const user = await prisma.user.create({ data: { email: `compte-${key}@example.test`, name: `Compte ${key}`, password: 'x', phone: '0688888888', profileUpdatedAt: new Date() } })
-    const response = await api(alice, 'POST', '/api/participants', { name: `Saisi ${key}`, email: user.email, phone: '0611111111', gameIds: [game.id] })
+    const game = await prisma.game.create({ data: { title: `Jeu ${letters(key)}`, slug: `jeu-${key}`, description: '', ownerId: alice.id } })
+    const user = await prisma.user.create({ data: { email: `compte-${key}@example.test`, name: `Compte ${letters(key)}`, password: 'x', phone: '0688888888', profileUpdatedAt: new Date() } })
+    const response = await api(alice, 'POST', '/api/participants', { name: `Saisi ${letters(key)}`, email: user.email, phone: '0611111111', gameIds: [game.id] })
     expect(response.status, JSON.stringify(response.body)).toBe(200)
-    expect(await links((response.body as { id: string }).id)).toEqual([{ gameId: game.id, name: `Compte ${key}`, phone: '0688888888' }])
+    expect(await links((response.body as { id: string }).id)).toEqual([{ gameId: game.id, name: `Compte ${letters(key)}`, phone: '0688888888' }])
   })
 })
 
@@ -297,9 +299,9 @@ describe('chaque équipe lit le nom et le téléphone de son jeu (US-237)', () =
       data: {
         slug: `fiche-${key}`,
         email: `fiche-${key}@example.test`,
-        gameLinks: { create: [{ gameId: aliceGame!.id, name: `Nom d’Alice ${key}`, phone: '0611111111' }, { gameId: bobGame!.id, name: `Nom de Bob ${key}`, phone: '0622222222' }] }
+        gameLinks: { create: [{ gameId: aliceGame!.id, name: `Nom d’Alice ${letters(key)}`, phone: '0611111111' }, { gameId: bobGame!.id, name: `Nom de Bob ${letters(key)}`, phone: '0622222222' }] }
       }
-    }), { name: `Fiche ${key}` })
+    }), { name: `Fiche ${letters(key)}` })
     const sessions = await Promise.all([aliceGame!, bobGame!].map(async (game) => {
       const session = await prisma.session.create({ data: { slug: `session-${game.slug}`, gameId: game.id } })
       await prisma.sessionParticipant.create({ data: { sessionId: session.id, participantId: participant.id, role: 'participant' } })
@@ -310,7 +312,7 @@ describe('chaque équipe lit le nom et le téléphone de son jeu (US-237)', () =
 
   it('dans la liste, la fiche, les sessions et les paiements', async () => {
     const { key, participant, sessions } = await sharedFiche()
-    for (const [user, name, phone, session] of [[alice, `Nom d’Alice ${key}`, '0611111111', sessions[0]!], [bob, `Nom de Bob ${key}`, '0622222222', sessions[1]!]] as const) {
+    for (const [user, name, phone, session] of [[alice, `Nom d’Alice ${letters(key)}`, '0611111111', sessions[0]!], [bob, `Nom de Bob ${letters(key)}`, '0622222222', sessions[1]!]] as const) {
       const list = (await api(user, 'GET', '/api/participants')).body as Array<{ id: string, name: string, phone: string | null }>
       expect(list.find((row) => row.id === participant.id)).toMatchObject({ name, phone })
       const fiche = (await api(user, 'GET', `/api/participants/${participant.id}`)).body as { name: string, phone: string | null }
@@ -342,9 +344,9 @@ describe('version de la fiche par équipe (US-237)', () => {
       data: {
         slug: `lou-${key}`,
         email: `lou-${key}@example.test`,
-        gameLinks: { create: [aliceGame!, sharedGame!, bobGame!].map((game) => ({ gameId: game.id, name: `Lou ${key}` })) }
+        gameLinks: { create: [aliceGame!, sharedGame!, bobGame!].map((game) => ({ gameId: game.id, name: `Lou ${letters(key)}` })) }
       }
-    }), { name: `Lou ${key}` })
+    }), { name: `Lou ${letters(key)}` })
     return { key, aliceGame: aliceGame!, sharedGame: sharedGame!, bobGame: bobGame!, participant }
   }
   const read = async (user: typeof alice, id: string) => (await api(user, 'GET', `/api/participants/${id}`)).body as { updatedAt: string }
@@ -353,9 +355,9 @@ describe('version de la fiche par équipe (US-237)', () => {
     const { key, aliceGame, sharedGame, bobGame, participant } = await fiche()
     const aliceVersion = (await read(alice, participant.id)).updatedAt
     const bobVersion = (await read(bob, participant.id)).updatedAt
-    expect((await api(bob, 'PUT', `/api/participants/${participant.id}`, { name: `Lou par Bob ${key}`, email: participant.email, gameIds: [bobGame.id] }, since(bobVersion))).status).toBe(200)
+    expect((await api(bob, 'PUT', `/api/participants/${participant.id}`, { name: `Lou par Bob ${letters(key)}`, email: participant.email, gameIds: [bobGame.id] }, since(bobVersion))).status).toBe(200)
     expect((await read(alice, participant.id)).updatedAt).toBe(aliceVersion)
-    const response = await api(alice, 'PUT', `/api/participants/${participant.id}`, { name: `Lou par Alice ${key}`, email: participant.email, gameIds: [aliceGame.id, sharedGame.id] }, since(aliceVersion))
+    const response = await api(alice, 'PUT', `/api/participants/${participant.id}`, { name: `Lou par Alice ${letters(key)}`, email: participant.email, gameIds: [aliceGame.id, sharedGame.id] }, since(aliceVersion))
     expect(response.status, JSON.stringify(response.body)).toBe(200)
   })
 
@@ -363,10 +365,10 @@ describe('version de la fiche par équipe (US-237)', () => {
     const { key, aliceGame, sharedGame, participant } = await fiche()
     const aliceVersion = (await read(alice, participant.id)).updatedAt
     const carolVersion = (await read(carol, participant.id)).updatedAt
-    expect((await api(carol, 'PUT', `/api/participants/${participant.id}`, { name: `Lou par Carol ${key}`, email: participant.email, gameIds: [sharedGame.id] }, since(carolVersion))).status).toBe(200)
-    const refused = await api(alice, 'PUT', `/api/participants/${participant.id}`, { name: `Lou par Alice ${key}`, email: participant.email, gameIds: [aliceGame.id, sharedGame.id] }, since(aliceVersion))
+    expect((await api(carol, 'PUT', `/api/participants/${participant.id}`, { name: `Lou par Carol ${letters(key)}`, email: participant.email, gameIds: [sharedGame.id] }, since(carolVersion))).status).toBe(200)
+    const refused = await api(alice, 'PUT', `/api/participants/${participant.id}`, { name: `Lou par Alice ${letters(key)}`, email: participant.email, gameIds: [aliceGame.id, sharedGame.id] }, since(aliceVersion))
     expect(refused.status).toBe(409)
     // Rien d'enregistré : le jeu partagé garde le nom donné par Carol
-    expect((await prisma.participantGame.findFirstOrThrow({ where: { participantId: participant.id, gameId: sharedGame.id } })).name).toBe(`Lou par Carol ${key}`)
+    expect((await prisma.participantGame.findFirstOrThrow({ where: { participantId: participant.id, gameId: sharedGame.id } })).name).toBe(`Lou par Carol ${letters(key)}`)
   })
 })

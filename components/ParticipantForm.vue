@@ -34,7 +34,7 @@
         <UInput v-model.nullable="localParticipant.email" type="email" size="lg" class="w-full" />
       </UFormField>
 
-      <UFormField label="Téléphone" :help="phoneHeld ? 'Tenu par la personne depuis son compte.' : undefined">
+      <UFormField label="Téléphone" :error="errors.phone" :help="phoneHeld ? 'Tenu par la personne depuis son compte.' : undefined">
         <UInput v-model.nullable="localParticipant.phone" size="lg" class="w-full" :disabled="phoneHeld" />
       </UFormField>
 
@@ -44,6 +44,7 @@
         :key="game.value"
         :label="`Notes — ${game.label}`"
         help="Visibles par l’équipe de ce jeu seulement."
+        :error="errors[`gameNotes.${game.value}`]"
       >
         <UTextarea v-model.nullable="localParticipant.gameNotes[game.value]" :rows="5" size="lg" class="w-full" />
       </UFormField>
@@ -64,7 +65,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { apiErrorMessage } from '~/utils/apiErrors'
+import { splitApiErrors } from '~/utils/apiErrors'
 import type { GameOption, ParticipantDraft } from '~/utils/writingDrafts'
 import { isParticipantEmail } from '~/utils/participantEmail'
 
@@ -103,7 +104,7 @@ watch(() => props.participant, (newParticipant) => {
 function validate() {
   errors.value = {}
   if (!localParticipant.value.name?.trim()) {
-    errors.value.name = 'Le nom est requis.'
+    errors.value.name = 'Le nom est obligatoire'
   }
   // Une fiche appartient à la personne de son adresse (SPEC-022 R3, US-238)
   if (!localParticipant.value.email?.trim()) {
@@ -139,7 +140,11 @@ async function submit() {
     await props.onSubmit()
     serverError.value = ''
   } catch (err) {
-    serverError.value = apiErrorMessage(err, 'Erreur inconnue')
+    // Refus du serveur sous son champ (SPEC-023, R11) : nom, téléphone, notes d'un jeu affiché…
+    const shown = ['name', 'email', 'phone', 'gameIds', ...selectedGames.value.map((game) => `gameNotes.${game.value}`)]
+    const { fields, message } = splitApiErrors(err, 'Erreur inconnue', shown)
+    errors.value = fields
+    serverError.value = message
   }
 }
 </script>

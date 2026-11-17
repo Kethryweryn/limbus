@@ -4,6 +4,7 @@ import { labelSession } from '~/server/utils/sessionLabels'
 import { prisma } from '~/server/utils/prisma'
 import { accessibleGameIds, requireCurrentUser, requireSessionAccess } from '~/server/utils/gameAccess'
 import { participantCreateSchema, participantSchema, parseZod, sessionSchema, sessionTimelineSchema } from '~/server/utils/schemas'
+import { PERSON_NAME_MAX_LENGTH, tooLong } from '~/server/utils/fieldRules'
 import { createSession, updateSession, updateSessionTimeline } from '~/server/utils/sessionWrites'
 import { createParticipant, updateParticipant } from '~/server/utils/participantWrites'
 import { sessionCastingAssistant } from '~/server/utils/castingAssistant'
@@ -210,7 +211,7 @@ function registerParticipantWriteTools({ event, server }: ToolContext) {
     description: 'Crée une fiche participant dans un jeu : nom, adresse email (obligatoire : la fiche est celle de la personne de cette adresse) et note d’organisation de ce jeu. Elle n’a pas de téléphone. Une adresse qui a déjà une fiche ajoute ce jeu à la fiche existante.',
     inputSchema: z.object({
       jeuId: z.string(),
-      name: z.string().max(200),
+      name: z.string().max(PERSON_NAME_MAX_LENGTH, tooLong('Le nom', PERSON_NAME_MAX_LENGTH)),
       email: z.string().max(254).describe('Adresse email de la personne'),
       notes: text('Note d’organisation pour ce jeu')
     }),
@@ -228,7 +229,7 @@ function registerParticipantWriteTools({ event, server }: ToolContext) {
     inputSchema: z.object({
       participantId: z.string(),
       version,
-      name: z.string().max(200).optional(),
+      name: z.string().max(PERSON_NAME_MAX_LENGTH, tooLong('Le nom', PERSON_NAME_MAX_LENGTH)).optional(),
       notes: z.array(z.object({ jeuId: z.string(), notes: z.string().max(20_000).nullable() })).max(100).optional().describe('Note d’organisation, pour des jeux où la personne est ou est ajoutée'),
       addToGames: z.array(z.string()).max(100).optional().describe('Jeux où ajouter la personne')
     }),

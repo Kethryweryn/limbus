@@ -4,6 +4,7 @@ import { requireAdmin } from '~/server/utils/auth'
 import { readZodBody, userUpdateSchema } from '~/server/utils/schemas'
 import { requireRouterParam } from '~/server/utils/routeParams'
 import { USER_ROLES } from '~/utils/domain'
+import { assertChangedPersonName } from '~/server/utils/fieldRules'
 
 export default defineEventHandler(async (event) => {
   const currentUser = await requireAdmin(event)
@@ -13,6 +14,10 @@ export default defineEventHandler(async (event) => {
   const body = await readZodBody(event, userUpdateSchema)
   // Compte non activé (US-248) : son adresse est celle de ses fiches, et seule la personne l'active
   await assertActivatedForAdmin(id)
+  if (body.name !== undefined) {
+    const saved = await prisma.user.findUnique({ where: { id }, select: { name: true } })
+    assertChangedPersonName('name', 'Le nom', body.name, [saved?.name])
+  }
   const data: Record<string, unknown> = {
     email: body.email,
     name: body.name,

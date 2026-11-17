@@ -154,6 +154,8 @@ test.describe('place prise et effacement', () => {
       await signIn(page, prisma, E2E_USERS.orga)
       await page.goto('/games')
       await page.waitForLoadState('networkidle')
+      // La page du compte n'a jamais été ouverte : sans réseau, elle vient du cache du service worker, à attendre
+      await page.waitForFunction(() => Boolean(navigator.serviceWorker?.controller), undefined, { timeout: 20_000 })
       await context.setOffline(true)
       await openUserMenu(page)
       await page.getByRole('menuitem', { name: 'Mon compte' }).click()

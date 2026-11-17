@@ -16,13 +16,13 @@
 
       <p class="text-sm text-gray-500 mb-3">La personne reçoit un lien pour choisir son mot de passe, valable 7 jours.</p>
       <form class="grid grid-cols-1 lg:grid-cols-4 gap-3 items-end" autocomplete="off" novalidate @submit.prevent="createUser">
-        <UFormField label="Nom">
+        <UFormField label="Nom" :error="errorsFor('create').name">
           <UInput v-model="newUser.name" autocomplete="off" name="new-user-display-name" />
         </UFormField>
-        <UFormField label="Email">
+        <UFormField label="Email" :error="errorsFor('create').email">
           <UInput v-model="newUser.email" type="email" autocomplete="off" name="new-user-contact-email" />
         </UFormField>
-        <UFormField label="Rôle">
+        <UFormField label="Rôle" :error="errorsFor('create').role">
           <USelect v-model="newUser.role" :items="roleItems" value-key="value" />
         </UFormField>
         <UButton type="submit" color="primary" :loading="saving">
@@ -59,16 +59,16 @@
         </p>
         <div v-else class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <UFormField label="Nom">
+            <UFormField label="Nom" :error="errorsFor(user.id).name">
               <UInput v-model="user.name" autocomplete="off" :name="`managed-user-name-${user.id}`" />
             </UFormField>
-            <UFormField label="Email">
+            <UFormField label="Email" :error="errorsFor(user.id).email">
               <UInput v-model="user.email" type="email" autocomplete="off" :name="`managed-user-email-${user.id}`" />
             </UFormField>
-            <UFormField label="Rôle">
+            <UFormField label="Rôle" :error="errorsFor(user.id).role">
               <USelect v-model="user.role" :items="roleItems" value-key="value" />
             </UFormField>
-            <UFormField label="Plafond de stockage (Mo)" :help="`${formatMb(user.storageUsedBytes)} utilisés`">
+            <UFormField label="Plafond de stockage (Mo)" :help="`${formatMb(user.storageUsedBytes)} utilisés`" :error="errorsFor(user.id).storageQuotaMb">
               <UInput v-model.number="user.storageQuotaMb" type="number" min="0" />
             </UFormField>
           </div>
@@ -115,7 +115,7 @@ const saving = ref(false)
 const savingUserId = ref('')
 const loadError = ref('')
 // Résultat de la dernière action, dans la carte de la création ('create') ou du compte touché (US-216)
-const { resultFor, run } = useFormResult<string>()
+const { resultFor, errorsFor, run } = useFormResult<string>()
 const { data: authState } = await useFetch('/api/auth/me')
 const currentUserId = computed(() => authState.value?.authenticated ? authState.value.user.id : null)
 const roleItems: Array<{ label: string, value: string }> = [...USER_ROLE_OPTIONS]
@@ -141,7 +141,7 @@ async function createUser() {
     return created.emailSent
       ? `Compte créé : ${created.email} a reçu un lien pour choisir son mot de passe.`
       : `Compte créé, mais l’email n’est pas parti : utilisez « Envoyer un lien de mot de passe » sur la fiche de ${created.email}.`
-  })
+  }, ['name', 'email', 'role'])
   saving.value = false
 }
 
@@ -160,7 +160,7 @@ async function updateUser(user: ManagedUser) {
     })
     await fetchUsers()
     return 'Compte enregistré.'
-  })
+  }, ['name', 'email', 'role', 'storageQuotaMb'])
   savingUserId.value = ''
 }
 
