@@ -1,5 +1,6 @@
 <template>
-  <UApp>
+  <!-- Zone des toasts repérable : elle passe au-dessus du bandeau de nouvelle version (AppUpdateBanner) -->
+  <UApp :toaster="{ class: 'limbus-toaster' }">
     <!-- Pages autonomes (liens personnels, accès au compte, page publique) : même rendu connecté ou non, sans bandeaux de
          synchronisation. Elles ne changent pas de bloc quand la connexion est vérifiée, donc ne se remontent pas : la
          confirmation d'une adresse ne part qu'une fois -->

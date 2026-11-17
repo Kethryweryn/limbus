@@ -10,7 +10,6 @@ export default defineNuxtPlugin((nuxtApp) => {
     if (failure) return
     afterNavigation(nuxtApp.$limbusPwa, to.path, from.path, reachable(), check, Date.now())
   })
-  window.setInterval(() => {
-    if (!nuxtApp.$limbusPwa?.needRefresh) check.run(nuxtApp.$limbusPwa?.getSWRegistration(), reachable(), Date.now())
-  }, PWA_UPDATE_PERIOD_MS)
+  // Une version qui attend n'arrête pas la recherche : une plus récente rouvre le bandeau fermé
+  window.setInterval(() => check.run(nuxtApp.$limbusPwa?.getSWRegistration(), reachable(), Date.now()), PWA_UPDATE_PERIOD_MS)
 })

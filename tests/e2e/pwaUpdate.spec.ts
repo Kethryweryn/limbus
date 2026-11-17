@@ -4,7 +4,7 @@ import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
 import { signIn, test } from './helpers'
 
-const banner = (page: Page) => page.getByRole('region', { name: 'Nouvelle version' })
+const banner = (page: Page) => page.getByRole('status', { name: 'Nouvelle version' })
 
 // Page ouverte sous un service worker, avec un repère qu'un rechargement effacerait
 async function openControlled(page: Page, path: string) {
@@ -58,6 +58,9 @@ test('une nouvelle version : un bandeau, aucun rechargement au changement de pag
       return { banner: region.offsetHeight, spacer: (region.previousElementSibling as HTMLElement).offsetHeight }
     })
     expect(heights.spacer).toBeGreaterThanOrEqual(heights.banner)
+    // Les toasts passent au-dessus du bandeau
+    const toasterBottom = await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('.limbus-toaster') as HTMLElement).bottom))
+    expect(toasterBottom).toBeGreaterThanOrEqual(heights.banner)
 
     // Hors ligne : masqué, puis de retour avec le réseau
     await context.setOffline(true)

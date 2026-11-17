@@ -25,6 +25,8 @@ web.dev ([« Update »](https://web.dev/learn/pwa/update)) et la documentation d
 - `registerSW` reçoit `onNeedReload` : la prise de main par la nouvelle version ne recharge l'onglet que si on y a choisi « Recharger ». Les autres onglets gardent leur bandeau.
 - La croix ferme le bandeau jusqu'au prochain chargement complet de la page, ou jusqu'à ce qu'une version plus récente attende.
 - Sans clic, la version s'active d'elle-même quand tous les onglets de Limbus sont fermés : c'est le fonctionnement par défaut du navigateur.
+- Une version qui attend n'arrête plus la recherche d'[ADR-0078](ADR-0078-recherche-de-la-nouvelle-version.md) : une version plus récente rouvre le bandeau fermé (revue de la PR #260).
+- Le bandeau est annoncé aux lecteurs d'écran (`role="status"`) ; tant qu'il est affiché, les toasts passent au-dessus de lui.
 
 ## Conséquences
 

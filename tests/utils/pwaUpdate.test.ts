@@ -27,11 +27,12 @@ describe('changement de page', () => {
     expect(afterNavigation(undefined, '/participants', '/', true, check, START)).toBe('nothing')
   })
 
-  it('avec une version qui attend, ne recharge ni n’active rien : le bandeau la propose', () => {
-    const { pwa, reg, check } = setup(true)
-    expect(afterNavigation(pwa, '/participants', '/', true, check, START)).toBe('nothing')
+  it('avec une version qui attend, ne recharge ni n’active rien, mais en cherche une plus récente', () => {
+    const { pwa, reg, browser, check } = setup(true)
+    expect(afterNavigation(pwa, '/participants', '/', true, check, START)).toBe('check')
     expect(pwa.updateServiceWorker).not.toHaveBeenCalled()
-    expect(reg.update).not.toHaveBeenCalled()
+    expect(browser.reload).not.toHaveBeenCalled()
+    expect(reg.update).toHaveBeenCalledTimes(1)
   })
 
   it('hors ligne, serveur indisponible ou même page (requête seule), ne cherche rien', () => {

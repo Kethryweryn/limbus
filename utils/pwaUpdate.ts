@@ -50,10 +50,11 @@ export class NewVersionCheck {
 
 /**
  * Appelé une fois la page changée. Un changement de la seule requête (onglet, filtre) n'est pas un changement de page.
- * Hors ligne, serveur indisponible, ou version qui attend déjà, rien n'est cherché. Ne recharge jamais rien.
+ * Hors ligne ou serveur indisponible, rien n'est cherché. Une version qui attend n'empêche pas d'en chercher une plus
+ * récente, que le bandeau proposera de nouveau. Ne recharge jamais rien.
  */
 export function afterNavigation(pwa: PwaUpdate | undefined, toPath: string, fromPath: string, reachable: boolean, check: NewVersionCheck, now: number) {
-  if (!pwa || !reachable || toPath === fromPath || pwa.needRefresh) return 'nothing'
+  if (!pwa || !reachable || toPath === fromPath) return 'nothing'
   return check.run(pwa.getSWRegistration(), true, now) ? 'check' : 'nothing'
 }
 
