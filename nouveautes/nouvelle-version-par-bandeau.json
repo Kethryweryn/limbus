@@ -1,0 +1,5 @@
+{
+  "type": "modifie",
+  "titre": "Une nouvelle version vous est proposée, sans recharger la page",
+  "texte": "Quand une nouvelle version de Limbus est en ligne, un bandeau en bas de l’écran vous le dit, avec un bouton « Recharger ». La page ne se recharge plus d’elle-même, ni pendant que vous écrivez, ni quand vous changez de page, ni depuis un autre onglet. Vous pouvez fermer le bandeau ; sans réseau, il n’apparaît pas. Si vous ne rechargez pas, la nouvelle version se charge à la prochaine ouverture de Limbus, une fois tous ses onglets fermés."
+}

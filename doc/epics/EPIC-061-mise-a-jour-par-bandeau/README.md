@@ -17,7 +17,7 @@ Après un déploiement, aucune page ne se recharge d'elle-même : un bandeau pro
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-254](US-254-bandeau-de-mise-a-jour.md) | Charger une nouvelle version quand je le décide | à faire |
+| [US-254](US-254-bandeau-de-mise-a-jour.md) | Charger une nouvelle version quand je le décide | terminée |
 | [US-255](US-255-retour-du-reseau-sans-rechargement.md) | Retrouver le réseau sans que la page se recharge | à faire |
 
 ## Définition de terminé

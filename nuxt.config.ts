@@ -112,8 +112,8 @@ export default defineNuxtConfig({
     port: 3000,
   },
   pwa: {
-    // Une nouvelle version attend le prochain changement de page (plugins/pwaUpdate.client.ts, ADR-0071) : le mode
-    // automatique rechargeait la page ouverte, saisie en cours comprise
+    // Une nouvelle version attend : un bandeau la propose (components/AppUpdateBanner.vue, ADR-0093). Le mode automatique
+    // rechargeait la page ouverte, saisie en cours comprise
     registerType: 'prompt',
     injectRegister: false,
     // Inscription faite par plugins/serviceWorker.client.ts, qui ne l'inscrit pas quand le hors ligne est désactivé

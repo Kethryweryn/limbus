@@ -1,59 +1,72 @@
-// US-184 : la nouvelle version se charge au prochain changement de page (ADR-0071)
+// US-254 : la nouvelle version est proposée par un bandeau, jamais chargée d'elle-même (ADR-0093)
 // US-196 : elle est cherchée à chaque changement de page, une fois par minute au plus (ADR-0078)
 import { describe, expect, it, vi } from 'vitest'
-import { afterNavigation, NewVersionCheck, PWA_UPDATE_CHECK_MS, PWA_UPDATE_FALLBACK_MS } from '~/utils/pwaUpdate'
+import { afterNavigation, applyUpdate, NewVersionCheck, PWA_UPDATE_CHECK_MS, PWA_UPDATE_FALLBACK_MS } from '~/utils/pwaUpdate'
 
 const START = 1_000_000
 
-function registration(installing: unknown = null, update: () => Promise<unknown> = async () => {}) {
-  return { installing, update: vi.fn(update) }
+function registration(installing: unknown = null, update: () => Promise<unknown> = async () => {}, waiting: unknown = null) {
+  return { installing, waiting, update: vi.fn(update) }
 }
 
-function setup(needRefresh: boolean, reachable = true, activate = async () => {}) {
-  const reg = registration()
-  const pwa = { needRefresh, updateServiceWorker: vi.fn(activate), getSWRegistration: () => reg }
+function setup(needRefresh: boolean, { waiting = {}, activate = async () => {} }: { waiting?: unknown, activate?: () => Promise<void> } = {}) {
+  const reg = registration(null, async () => {}, waiting)
+  const pwa = { needRefresh, dismissed: false, applying: false, updateServiceWorker: vi.fn(activate), getSWRegistration: () => reg }
   const timers: Array<{ callback: () => void, delay: number }> = []
-  const browser = { reachable, reload: vi.fn(), setTimeout: (callback: () => void, delay: number) => timers.push({ callback, delay }) }
+  const browser = { reload: vi.fn(), setTimeout: (callback: () => void, delay: number) => timers.push({ callback, delay }) }
   // Page chargée il y a plus d'une minute
   const check = new NewVersionCheck(START - PWA_UPDATE_CHECK_MS)
   return { pwa, reg, browser, timers, check }
 }
 
-describe('nouvelle version au changement de page', () => {
+describe('changement de page', () => {
   it('sans nouvelle version, la fait chercher', () => {
-    const { pwa, reg, browser, check } = setup(false)
-    expect(afterNavigation(pwa, '/participants', '/', browser, check, START)).toBe('check')
-    expect(pwa.updateServiceWorker).not.toHaveBeenCalled()
+    const { pwa, reg, check } = setup(false)
+    expect(afterNavigation(pwa, '/participants', '/', true, check, START)).toBe('check')
     expect(reg.update).toHaveBeenCalledTimes(1)
-    expect(afterNavigation(undefined, '/participants', '/', browser, check, START)).toBe('nothing')
+    expect(afterNavigation(undefined, '/participants', '/', true, check, START)).toBe('nothing')
   })
 
-  it('avec une nouvelle version, active le service worker, et recharge quand même s’il ne prend pas la main', () => {
-    const { pwa, reg, browser, timers, check } = setup(true)
-    expect(afterNavigation(pwa, '/participants', '/', browser, check, START)).toBe('reload')
-    expect(pwa.updateServiceWorker).toHaveBeenCalled()
-    expect(reg.update).not.toHaveBeenCalled()
+  it('avec une version qui attend, ne recharge ni n’active rien, mais en cherche une plus récente', () => {
+    const { pwa, reg, browser, check } = setup(true)
+    expect(afterNavigation(pwa, '/participants', '/', true, check, START)).toBe('check')
+    expect(pwa.updateServiceWorker).not.toHaveBeenCalled()
     expect(browser.reload).not.toHaveBeenCalled()
-    expect(timers).toHaveLength(1)
-    expect(timers[0]!.delay).toBe(PWA_UPDATE_FALLBACK_MS)
-    timers[0]!.callback()
+    expect(reg.update).toHaveBeenCalledTimes(1)
+  })
+
+  it('hors ligne, serveur indisponible ou même page (requête seule), ne cherche rien', () => {
+    for (const [reachable, to, from] of [[false, '/participants', '/'], [true, '/sessions/a', '/sessions/a']] as const) {
+      const { pwa, reg, check } = setup(false)
+      expect(afterNavigation(pwa, to, from, reachable, check, START)).toBe('nothing')
+      expect(reg.update).not.toHaveBeenCalled()
+    }
+  })
+})
+
+describe('« Recharger »', () => {
+  it('active la version qui attend, et recharge quand même si elle ne prend pas la main', () => {
+    const { pwa, browser, timers } = setup(true)
+    expect(applyUpdate(pwa, browser)).toBe('activate')
+    expect(pwa.applying).toBe(true)
+    expect(pwa.updateServiceWorker).toHaveBeenCalled()
+    expect(browser.reload).not.toHaveBeenCalled()
+    expect(timers).toEqual([{ callback: browser.reload, delay: PWA_UPDATE_FALLBACK_MS }])
+  })
+
+  it('une version déjà activée par un autre onglet : recharge aussitôt', () => {
+    const { pwa, browser, timers } = setup(true, { waiting: null })
+    expect(applyUpdate(pwa, browser)).toBe('reload')
     expect(browser.reload).toHaveBeenCalled()
+    expect(pwa.updateServiceWorker).not.toHaveBeenCalled()
+    expect(timers).toHaveLength(0)
   })
 
   it('un échec d’activation ne remonte pas', async () => {
-    const { pwa, browser, timers, check } = setup(true, true, async () => { throw new Error('refus') })
-    expect(afterNavigation(pwa, '/participants', '/', browser, check, START)).toBe('reload')
+    const { pwa, browser, timers } = setup(true, { activate: async () => { throw new Error('refus') } })
+    expect(applyUpdate(pwa, browser)).toBe('activate')
     await Promise.resolve()
     expect(timers).toHaveLength(1)
-  })
-
-  it('hors ligne, serveur indisponible ou même page (requête seule), ne recharge ni ne cherche rien', () => {
-    for (const [needRefresh, reachable, to, from] of [[true, false, '/participants', '/'], [false, false, '/participants', '/'], [true, true, '/sessions/a', '/sessions/a'], [false, true, '/sessions/a', '/sessions/a']] as const) {
-      const { pwa, reg, browser, check } = setup(needRefresh, reachable)
-      expect(afterNavigation(pwa, to, from, browser, check, START)).toBe('nothing')
-      expect(pwa.updateServiceWorker).not.toHaveBeenCalled()
-      expect(reg.update).not.toHaveBeenCalled()
-    }
   })
 })
 
