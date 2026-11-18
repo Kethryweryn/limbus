@@ -88,6 +88,15 @@ export function uniquePersonName(base: string) {
 }
 
 // Message affiché sous le champ de ce libellé (UFormField, SPEC-023 R11)
+// Repère posé sur la page : un rechargement l'efface (US-254, US-255)
+export async function markPage(page: Page) {
+  await page.evaluate(() => { (window as unknown as { sansRechargement: boolean }).sansRechargement = true })
+}
+
+export async function notReloaded(page: Page) {
+  return await page.evaluate(() => (window as unknown as { sansRechargement?: boolean }).sansRechargement === true)
+}
+
 export function fieldError(page: Page, label: string, message: string) {
   return page.locator('[data-slot="root"]').filter({ has: page.getByLabel(label, { exact: true }) }).getByText(message)
 }

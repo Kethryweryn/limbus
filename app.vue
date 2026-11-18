@@ -52,7 +52,9 @@
       </div>
       <OfflineQueuePanel v-model:open="showSyncPanel" @sync="syncPendingChanges" />
       <NuxtLayout>
-        <NuxtPage />
+        <!-- Clé changée après l'envoi des modifications faites hors ligne : la page se relit sans recharger l'application
+             (US-255) -->
+        <NuxtPage :key="pageGeneration" />
       </NuxtLayout>
       <div
         v-if="syncing"
@@ -102,6 +104,7 @@ import { refreshDownloads } from '~/utils/offlineDownload'
 import OfflineQueuePanel from '~/components/OfflineQueuePanel.vue'
 import TermsAcceptanceScreen from '~/components/TermsAcceptanceScreen.vue'
 import { LEGAL_PAGES } from '~/utils/legal'
+import { DeferredRefresh, isTyping } from '~/utils/pageRefresh'
 
 useHead({
   title: 'Limbus',
@@ -127,6 +130,30 @@ const readOfflineSetting = () => { offlineDisabled.value = isOfflineDisabled() }
 // Réglage changé dans un autre onglet
 const readOfflineSettingFromStorage = (event: StorageEvent) => { if (event.key === null || event.key === OFFLINE_DISABLED_KEY) readOfflineSetting() }
 const syncing = ref(false)
+// Relecture de la page après l'envoi de la file (US-255, R7) : la page est remontée, jamais pendant une saisie ni dans une
+// fenêtre ouverte ; elle attend alors la fin de la saisie, ou le changement de page, qui la relit de toute façon
+const pageGeneration = ref(0)
+const pageRefresh = new DeferredRefresh(
+  () => Boolean(document.querySelector('[role="dialog"]')) || isTyping(document.activeElement as HTMLElement | null),
+  () => {
+    // La page remontée rend la position de défilement, comme le faisait le rechargement du navigateur
+    const scroll = window.scrollY
+    nuxtApp.hooks.hookOnce('page:finish', () => { window.scrollTo(0, scroll) })
+    pageGeneration.value++
+  }
+)
+const PAGE_REFRESH_CHECK_MS = 1000
+let pageRefreshTimer: number | undefined
+const refreshPageAfterSync = () => {
+  if (pageRefresh.request() || pageRefreshTimer !== undefined) return
+  pageRefreshTimer = window.setInterval(() => {
+    if (pageRefresh.tick() || !pageRefresh.isPending) stopPageRefreshTimer()
+  }, PAGE_REFRESH_CHECK_MS)
+}
+const stopPageRefreshTimer = () => {
+  window.clearInterval(pageRefreshTimer)
+  pageRefreshTimer = undefined
+}
 const pendingSyncCount = ref(0)
 const syncErrorCount = ref(0)
 const showSyncPanel = ref(false)
@@ -135,6 +162,7 @@ const syncSummary = computed(() => [
   syncErrorCount.value && `${syncErrorCount.value} ${syncErrorCount.value > 1 ? 'erreurs' : 'erreur'}`
 ].filter(Boolean).join(', '))
 const toast = useToast()
+const nuxtApp = useNuxtApp()
 const route = useRoute()
 // Route visée par la navigation : useRoute() suit la page affichée, et sous l'écran de connexion aucune page ne
 // l'est, donc il ne changerait pas en suivant un lien de cet écran
@@ -286,9 +314,11 @@ const syncPendingChanges = async () => {
     }
 
     await refreshQueueState()
-    // Tout est passé : la page reprend les données du serveur. Sinon, le panneau montre ce qui reste
+    // Tout est passé : la page reprend les données du serveur, sans recharger l'application (US-255). Sinon, le panneau
+    // montre ce qui reste
     if (results.every((result) => result.ok)) {
-      window.location.reload()
+      toast.add({ title: 'Modifications envoyées', description: 'Les modifications faites hors ligne sont enregistrées.', color: 'success' })
+      refreshPageAfterSync()
       return
     }
     if (results.some((result) => result.ok)) showSyncPanel.value = true
@@ -328,6 +358,9 @@ onMounted(async () => {
   }
 })
 
+// La page arrivée a lu ses données : une relecture en attente n'a plus lieu d'être
+watch(() => route.path, () => { pageRefresh.cancel() })
+
 watch(() => route.fullPath, () => {
   if (serverUnavailable.value && navigator.onLine) {
     checkAuth(true).then(syncPendingChanges)
@@ -335,6 +368,7 @@ watch(() => route.fullPath, () => {
 })
 
 onUnmounted(() => {
+  stopPageRefreshTimer()
   window.removeEventListener('limbus:offline-setting', readOfflineSetting)
   window.removeEventListener('storage', readOfflineSettingFromStorage)
   window.removeEventListener('online', checkAuthFromEvent)
