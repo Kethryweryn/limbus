@@ -1,7 +1,7 @@
 import { prisma } from '~/server/utils/prisma'
 import { requireUser } from '~/server/utils/auth'
 import { accountProfileSchema, readZodBody } from '~/server/utils/schemas'
-import { clearedProfileFields, profileValuesSelect, syncProfileToParticipants } from '~/server/utils/participantAccounts'
+import { accountProfileOf, accountProfileSelect, clearedProfileFields, profileValuesSelect, syncProfileToParticipants } from '~/server/utils/participantAccounts'
 import { assertChangedPersonName, assertChangedPhone } from '~/server/utils/fieldRules'
 
 // Mes coordonnées (US-074) : enregistrées sur le compte, puis recopiées champ par champ sur mes fiches et inscriptions (US-245)
@@ -23,9 +23,10 @@ export default defineEventHandler(async (event) => {
       healthConsentAt: body.dietary ? now : null,
       profileUpdatedAt: now
     },
-    select: profileValuesSelect
+    select: { ...profileValuesSelect, ...accountProfileSelect }
   })
   // Champ par champ (ADR-0089) : un champ rempli remplace celui des équipes, un champ vidé leur revient vide
   await syncProfileToParticipants(id, clearedProfileFields(before, after))
-  return { success: true }
+  // Les coordonnées telles qu'enregistrées : l'écran montre aussitôt les téléphones au format rangé (SPEC-023, R6)
+  return { success: true, profile: accountProfileOf(after) }
 })

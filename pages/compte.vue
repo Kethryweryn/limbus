@@ -157,12 +157,27 @@ const storagePercent = computed(() => {
   return storage?.quotaBytes ? Math.min(100, Math.round(storage.usedBytes / storage.quotaBytes * 100)) : 0
 })
 
-async function load() {
+type ProfileForm = typeof profileForm.value
+
+// Coordonnées telles que le serveur les a rangées (SPEC-023, R6) ; un champ vide reste vide
+function profileFormOf(profile: ApiResponse<'/api/account'>['profile']): ProfileForm {
+  return {
+    phone: profile.phone ?? '',
+    emergencyContactName: profile.emergencyContactName ?? '',
+    emergencyContactPhone: profile.emergencyContactPhone ?? '',
+    dietary: profile.dietary ?? '',
+    healthConsent: profile.healthConsent
+  }
+}
+
+// Seule la première lecture remplit les coordonnées : relire le compte après le nom ou l'email ne touche pas à une
+// saisie en cours dans la carte des coordonnées
+async function load(withProfile = false) {
   try {
     const loaded = await useApiFetch('/api/account')
     account.value = loaded
     name.value = loaded.name
-    profileForm.value = { ...profileForm.value, ...Object.fromEntries(Object.entries(loaded.profile).filter(([key, value]) => key !== 'updatedAt' && value !== null)) }
+    if (withProfile) profileForm.value = profileFormOf(loaded.profile)
   } catch (err) {
     loadError.value = loadErrorMessage(err, 'Impossible de charger le compte.')
   }
@@ -189,7 +204,12 @@ const changePassword = () => run('password', async () => {
 }, ['currentPassword', 'password'])
 
 const saveProfile = () => run('profile', async () => {
-  await useApiAction('/api/account/profile', { method: 'PUT', body: profileForm.value })
+  const sent = { ...profileForm.value }
+  const saved = profileFormOf((await useApiAction('/api/account/profile', { method: 'PUT', body: sent })).profile)
+  // Chaque champ montre sa forme rangée, sauf s'il a été modifié pendant l'envoi : la nouvelle saisie reste
+  const current = profileForm.value
+  profileForm.value = Object.fromEntries((Object.keys(sent) as (keyof ProfileForm)[])
+    .map((key) => [key, current[key] === sent[key] ? saved[key] : current[key]])) as ProfileForm
   return 'Coordonnées enregistrées : vos fiches et inscriptions sont à jour.'
 }, ['phone', 'emergencyContactName', 'emergencyContactPhone', 'dietary', 'healthConsent'])
 
@@ -209,5 +229,5 @@ const deleteAccount = () => {
   })
 }
 
-await load()
+await load(true)
 </script>

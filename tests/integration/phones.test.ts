@@ -1,7 +1,8 @@
 // SPEC-023, US-252 : téléphones vérifiés selon leur pays et rangés au format international, contact d'urgence complet
 import { readFileSync } from 'node:fs'
 import { afterAll, describe, expect, inject, it } from 'vitest'
-import { api, invalidMessages, invalidPaths } from './api'
+import type { ApiResponse } from '~/composables/useApiFetch'
+import { api, bodyOf, invalidMessages, invalidPaths } from './api'
 import { createTestPrisma } from './db'
 import { withFicheValues } from '../fiche'
 
@@ -58,6 +59,8 @@ describe('téléphones (SPEC-023, R4 à R7)', () => {
 
     const saved = await api(user, 'PUT', '/api/account/profile', { phone: '06 12 34 56 78', emergencyContactName: 'Paul Martin', emergencyContactPhone: '+41 79 123 45 67' })
     expect(saved.status, JSON.stringify(saved.body)).toBe(200)
+    // La réponse rend la forme rangée, que l'écran affiche aussitôt (retour A9-3 du cahier)
+    expect(bodyOf<ApiResponse<'/api/account/profile', 'put'>>(saved).profile).toMatchObject({ phone: '+33612345678', emergencyContactPhone: '+41791234567' })
     expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { phone: true, emergencyContactName: true, emergencyContactPhone: true } }))
       .toEqual({ phone: '+33612345678', emergencyContactName: 'Paul Martin', emergencyContactPhone: '+41791234567' })
     // Les deux vides restent acceptés : le contact est facultatif dans le compte
