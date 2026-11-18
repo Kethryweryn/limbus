@@ -33,7 +33,7 @@ web.dev ([« Update »](https://web.dev/learn/pwa/update)) et la documentation d
 - Une page ne se recharge plus d'elle-même à cause d'un déploiement : ni pendant une saisie, ni pendant une navigation, ni depuis un autre onglet, à l'exception décrite plus bas.
 - Une personne qui ignore le bandeau garde l'ancienne version tant qu'un onglet de Limbus reste ouvert : l'ancien service worker sert les fichiers de l'ancienne version.
 - Un onglet resté ouvert après qu'un autre a choisi « Recharger » tourne avec l'ancienne page sous le nouveau service worker, qui n'a plus les fichiers de l'ancienne version, et le serveur non plus. Son bandeau reste affiché. S'il change de page vers un écran dont le fichier n'était pas encore chargé, Nuxt recharge la page (`emitRouteChunkError`, par défaut), car l'écran resterait sinon blanc : c'est la seule exception à R14, acceptée par l'utilisatrice.
-- Le bandeau, fixé en bas de l'écran, ne masque rien : la page lui réserve sa hauteur tant qu'il est affiché.
+- Le bandeau, fixé en bas de l'écran, ne masque rien : la page lui réserve sa hauteur tant qu'il est affiché. Remplacé le 2026-11-18 : voir la note plus bas.
 - Le rechargement qui suivait l'envoi des modifications faites hors ligne (R7) disparaît aussi : la page relit ses données sans recharger l'application ([US-255](../archive/epics/EPIC-061-mise-a-jour-par-bandeau/US-255-retour-du-reseau-sans-rechargement.md)).
 
 ## Options écartées
@@ -42,3 +42,7 @@ web.dev ([« Update »](https://web.dev/learn/pwa/update)) et la documentation d
 - **Le bandeau et le rechargement au changement de page** : écarté pour la même raison.
 - **Bandeau toujours visible, ou pastille dans la barre du haut** : l'utilisatrice a choisi un bandeau en bas, qu'on peut fermer.
 - **Bandeau visible sans réseau, bouton grisé** : l'utilisatrice a choisi de le masquer.
+
+## Note du 2026-11-18
+
+À la demande de l'utilisatrice ([US-256](../epics/EPIC-062-bandeau-en-haut/US-256-bandeau-en-haut.md)), le bandeau quitte le bas de l'écran : il s'affiche tout en haut de la page, au-dessus de la barre du logo, comme les bandeaux « Pas de connexion au serveur » et « Modifications faites hors ligne ». Il pousse la page vers le bas et défile avec elle ; il ne recouvre donc rien, et les toasts, en bas de l'écran, n'ont plus à passer au-dessus de lui. Le reste de la décision ne change pas.
