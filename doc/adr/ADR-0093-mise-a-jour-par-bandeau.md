@@ -20,13 +20,13 @@ web.dev ([« Update »](https://web.dev/learn/pwa/update)) et la documentation d
 ## Décision
 
 - Le module reste en mode `prompt`. `plugins/pwaUpdate.client.ts` ne recharge plus rien au changement de page : il y cherche seulement une nouvelle version, comme toutes les heures ([ADR-0078](ADR-0078-recherche-de-la-nouvelle-version.md), inchangé).
-- Une version qui attend affiche un bandeau en bas de l'écran (`components/AppUpdateBanner.vue`), sur toutes les pages : « Une nouvelle version de Limbus est disponible », « Recharger » et une croix. Il est masqué sans réseau et quand le serveur est indisponible, car une page rechargée ne pourrait pas être servie.
+- Une version qui attend affiche un bandeau en bas de l'écran, en haut de la page depuis la note du 2026-11-18 (`components/AppUpdateBanner.vue`), sur toutes les pages : « Une nouvelle version de Limbus est disponible », « Recharger » et une croix. Il est masqué sans réseau et quand le serveur est indisponible, car une page rechargée ne pourrait pas être servie.
 - « Recharger » active la version en attente (`updateServiceWorker`), et recharge l'onglet quand elle a pris la main, ou après 4 secondes si elle ne la prend pas. Si la version a déjà été activée par un autre onglet, l'onglet se recharge aussitôt.
 - `registerSW` reçoit `onNeedReload` : la prise de main par la nouvelle version ne recharge l'onglet que si on y a choisi « Recharger ». Les autres onglets gardent leur bandeau.
 - La croix ferme le bandeau jusqu'au prochain chargement complet de la page, ou jusqu'à ce qu'une version plus récente attende.
 - Sans clic, la version s'active d'elle-même quand tous les onglets de Limbus sont fermés : c'est le fonctionnement par défaut du navigateur.
 - Une version qui attend n'arrête plus la recherche d'[ADR-0078](ADR-0078-recherche-de-la-nouvelle-version.md) : une version plus récente rouvre le bandeau fermé (revue de la PR #260).
-- Le bandeau est annoncé aux lecteurs d'écran (`role="status"`) ; tant qu'il est affiché, les toasts passent au-dessus de lui.
+- Le bandeau est annoncé aux lecteurs d'écran (`role="status"`) ; tant qu'il est affiché, les toasts passent au-dessus de lui (jusqu'à la note du 2026-11-18 : en haut de la page, il ne les croise plus).
 
 ## Conséquences
 
@@ -45,4 +45,4 @@ web.dev ([« Update »](https://web.dev/learn/pwa/update)) et la documentation d
 
 ## Note du 2026-11-18
 
-À la demande de l'utilisatrice ([US-256](../epics/EPIC-062-bandeau-en-haut/US-256-bandeau-en-haut.md)), le bandeau quitte le bas de l'écran : il s'affiche tout en haut de la page, au-dessus de la barre du logo, comme les bandeaux « Pas de connexion au serveur » et « Modifications faites hors ligne ». Il pousse la page vers le bas et défile avec elle ; il ne recouvre donc rien, et les toasts, en bas de l'écran, n'ont plus à passer au-dessus de lui. Le reste de la décision ne change pas.
+À la demande de l'utilisatrice ([US-256](../epics/EPIC-062-bandeau-en-haut/US-256-bandeau-en-haut.md)), le bandeau quitte le bas de l'écran : il s'affiche tout en haut de la page, au-dessus de la barre du logo, comme les bandeaux « Pas de connexion au serveur » et « Modifications faites hors ligne ». Il pousse la page vers le bas et défile avec elle ; il ne recouvre donc rien, et les toasts, en bas de l'écran, n'ont plus à passer au-dessus de lui. Sa zone annoncée aux lecteurs d'écran reste dans la page, vide sans version qui attend, pour que son texte soit lu quand il apparaît (revue de la PR #265). Le reste de la décision ne change pas.

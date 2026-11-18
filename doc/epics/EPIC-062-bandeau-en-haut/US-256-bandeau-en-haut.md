@@ -19,7 +19,7 @@ En tant qu'organisatrice ou participante, je veux que le bandeau de nouvelle ver
 
 ## Notes techniques
 
-- `components/AppUpdateBanner.vue` monté en premier dans `UApp` (`app.vue`), hors du flux fixe ; la place réservée en bas et le décalage des toasts (`limbus-toaster`) disparaissent.
+- `components/AppUpdateBanner.vue` monté en premier dans `UApp` (`app.vue`), dans le flux de la page et non plus fixé à l'écran ; la place réservée en bas et le décalage des toasts (`limbus-toaster`) disparaissent. La zone `role="status"` reste dans la page, vide sans version qui attend, pour que les lecteurs d'écran lisent le texte quand il apparaît (revue de la PR #265).
 
 ## Tests
 
