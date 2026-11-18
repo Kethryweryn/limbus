@@ -330,4 +330,4 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-253](../archive/epics/EPIC-060-validation-des-saisies/US-253-longueurs-et-emails.md) | Une longueur maximale sur chaque texte, des emails vérifiés partout | EPIC-060 | terminée |
 | [US-254](../archive/epics/EPIC-061-mise-a-jour-par-bandeau/US-254-bandeau-de-mise-a-jour.md) | Charger une nouvelle version quand je le décide | EPIC-061 | terminée |
 | [US-255](../archive/epics/EPIC-061-mise-a-jour-par-bandeau/US-255-retour-du-reseau-sans-rechargement.md) | Retrouver le réseau sans que la page se recharge | EPIC-061 | terminée |
-| [US-256](EPIC-062-bandeau-en-haut/US-256-bandeau-en-haut.md) | Voir la nouvelle version annoncée en haut de la page | EPIC-062 | à faire |
+| [US-256](EPIC-062-bandeau-en-haut/US-256-bandeau-en-haut.md) | Voir la nouvelle version annoncée en haut de la page | EPIC-062 | terminée |

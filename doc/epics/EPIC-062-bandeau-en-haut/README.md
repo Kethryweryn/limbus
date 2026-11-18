@@ -17,7 +17,7 @@ Le bandeau qui propose une nouvelle version s'affiche tout en haut de la page, a
 
 | US | Titre | Statut |
 |---|---|---|
-| [US-256](US-256-bandeau-en-haut.md) | Voir la nouvelle version annoncée en haut de la page | à faire |
+| [US-256](US-256-bandeau-en-haut.md) | Voir la nouvelle version annoncée en haut de la page | terminée |
 
 ## Définition de terminé
 

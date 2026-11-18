@@ -1,4 +1,4 @@
-// US-254 : une nouvelle version est proposée par un bandeau, et ne recharge jamais la page d'elle-même (ADR-0093)
+// US-254, US-256 : une nouvelle version est proposée par un bandeau en haut de la page, et ne recharge jamais la page d'elle-même (ADR-0093)
 import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
 import { E2E_USERS } from './constants'
@@ -50,15 +50,15 @@ test('une nouvelle version : un bandeau, aucun rechargement au changement de pag
     expect(await notReloaded(page)).toBe(true)
     await expect(banner(page)).toBeVisible()
 
-    // La page réserve la hauteur du bandeau : il ne masque pas le bas de la page
-    const heights = await page.evaluate(() => {
+    // Tout en haut de la page, au-dessus de la barre du logo, dans le flux : il défile avec la page (US-256)
+    const placement = await page.evaluate(() => {
       const region = document.querySelector('[aria-label="Nouvelle version"]') as HTMLElement
-      return { banner: region.offsetHeight, spacer: (region.previousElementSibling as HTMLElement).offsetHeight }
+      const header = document.querySelector('header') as HTMLElement
+      return { top: region.getBoundingClientRect().top, bannerBottom: region.getBoundingClientRect().bottom, headerTop: header.getBoundingClientRect().top, position: getComputedStyle(region).position }
     })
-    expect(heights.spacer).toBeGreaterThanOrEqual(heights.banner)
-    // Les toasts passent au-dessus du bandeau
-    const toasterBottom = await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('.limbus-toaster') as HTMLElement).bottom))
-    expect(toasterBottom).toBeGreaterThanOrEqual(heights.banner)
+    expect(placement.top).toBe(0)
+    expect(placement.headerTop).toBeGreaterThanOrEqual(placement.bannerBottom)
+    expect(placement.position).toBe('static')
 
     // Hors ligne : masqué, puis de retour avec le réseau
     await context.setOffline(true)
