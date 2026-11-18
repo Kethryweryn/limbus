@@ -106,6 +106,26 @@ export const profileValuesSelect = {
   emailConfirmedAt: true, name: true, phone: true, emergencyContactName: true, emergencyContactPhone: true, dietary: true
 } as const
 
+// Mes coordonnées telles qu'enregistrées (US-074) : relues par Mon compte, et rendues à l'enregistrement pour que
+// l'écran montre la forme rangée (SPEC-023, R6)
+export const accountProfileSelect = {
+  phone: true, emergencyContactName: true, emergencyContactPhone: true, dietary: true, healthConsentAt: true, profileUpdatedAt: true
+} as const
+
+export function accountProfileOf(user: {
+  phone: string | null, emergencyContactName: string | null, emergencyContactPhone: string | null, dietary: string | null,
+  healthConsentAt: Date | null, profileUpdatedAt: Date | null
+}) {
+  return {
+    phone: user.phone,
+    emergencyContactName: user.emergencyContactName,
+    emergencyContactPhone: user.emergencyContactPhone,
+    dietary: user.dietary,
+    healthConsent: Boolean(user.healthConsentAt),
+    updatedAt: user.profileUpdatedAt
+  }
+}
+
 /**
  * Coordonnées du compte recopiées champ par champ (ADR-0089, qui remplace en partie ADR-0042) : les champs tenus par la
  * personne, et ceux qu'elle vient de vider (`cleared`), vont sur toutes ses fiches (nom et téléphone de chaque jeu) et

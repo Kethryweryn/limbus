@@ -157,12 +157,23 @@ const storagePercent = computed(() => {
   return storage?.quotaBytes ? Math.min(100, Math.round(storage.usedBytes / storage.quotaBytes * 100)) : 0
 })
 
+// Coordonnées relues du serveur, sous leur forme rangée (SPEC-023, R6) ; un champ vide reste vide
+function showProfile(profile: ApiResponse<'/api/account'>['profile']) {
+  profileForm.value = {
+    phone: profile.phone ?? '',
+    emergencyContactName: profile.emergencyContactName ?? '',
+    emergencyContactPhone: profile.emergencyContactPhone ?? '',
+    dietary: profile.dietary ?? '',
+    healthConsent: profile.healthConsent
+  }
+}
+
 async function load() {
   try {
     const loaded = await useApiFetch('/api/account')
     account.value = loaded
     name.value = loaded.name
-    profileForm.value = { ...profileForm.value, ...Object.fromEntries(Object.entries(loaded.profile).filter(([key, value]) => key !== 'updatedAt' && value !== null)) }
+    showProfile(loaded.profile)
   } catch (err) {
     loadError.value = loadErrorMessage(err, 'Impossible de charger le compte.')
   }
@@ -189,7 +200,8 @@ const changePassword = () => run('password', async () => {
 }, ['currentPassword', 'password'])
 
 const saveProfile = () => run('profile', async () => {
-  await useApiAction('/api/account/profile', { method: 'PUT', body: profileForm.value })
+  const saved = await useApiAction('/api/account/profile', { method: 'PUT', body: profileForm.value })
+  showProfile(saved.profile)
   return 'Coordonnées enregistrées : vos fiches et inscriptions sont à jour.'
 }, ['phone', 'emergencyContactName', 'emergencyContactPhone', 'dietary', 'healthConsent'])
 

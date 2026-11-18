@@ -6,7 +6,7 @@ import { fieldError, gamePerson, orgaGame, orgaSession, signIn, slugOf, testUser
 // SPEC-023, US-252 : téléphones vérifiés selon leur pays et rangés au format international, contact d'urgence complet
 const INVALID = 'Numéro de téléphone invalide'
 
-test('Mes coordonnées : un numéro invalide ou un contact d’urgence à moitié rempli est refusé sous son champ, un numéro avec points se range au format international', async ({ page }) => {
+test('Mes coordonnées : un numéro invalide ou un contact d’urgence à moitié rempli est refusé sous son champ, un numéro avec points se range au format international, affiché dès l’enregistrement', async ({ page }) => {
   const prisma = createTestPrisma()
   try {
     const { user, email } = await testUser(prisma, 'Compte aux téléphones vérifiés')
@@ -32,6 +32,9 @@ test('Mes coordonnées : un numéro invalide ou un contact d’urgence à moiti�
     await save.click()
     await expect(page.getByText('Coordonnées enregistrées : vos fiches et inscriptions sont à jour.')).toBeVisible()
     expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { phone: true, emergencyContactPhone: true } })).toEqual({ phone: '+33612345678', emergencyContactPhone: '+32470123456' })
+    // La forme rangée s'affiche dès l'enregistrement, sans recharger la page (retour A9-3 du cahier)
+    await expect(page.getByLabel('Téléphone', { exact: true })).toHaveValue('+33612345678')
+    await expect(page.getByLabel('Contact d’urgence : téléphone', { exact: true })).toHaveValue('+32470123456')
     await page.reload()
     await page.waitForLoadState('networkidle')
     await expect(page.getByLabel('Téléphone', { exact: true })).toHaveValue('+33612345678')
