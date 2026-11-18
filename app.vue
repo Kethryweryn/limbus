@@ -1,6 +1,8 @@
 <template>
-  <!-- Zone des toasts repérable : elle passe au-dessus du bandeau de nouvelle version (AppUpdateBanner) -->
-  <UApp :toaster="{ class: 'limbus-toaster' }">
+  <UApp>
+    <!-- Nouvelle version proposée, tout en haut de toutes les pages, au-dessus des autres bandeaux (US-254, US-256,
+         ADR-0093) -->
+    <AppUpdateBanner />
     <!-- Pages autonomes (liens personnels, accès au compte, page publique) : même rendu connecté ou non, sans bandeaux de
          synchronisation. Elles ne changent pas de bloc quand la connexion est vérifiée, donc ne se remontent pas : la
          confirmation d'une adresse ne part qu'une fois -->
@@ -87,8 +89,6 @@
       <NuxtLoadingIndicator />
       <LoginScreen />
     </div>
-    <!-- Nouvelle version proposée, sur toutes les pages (US-254, ADR-0093) -->
-    <AppUpdateBanner />
   </UApp>
 </template>
 
