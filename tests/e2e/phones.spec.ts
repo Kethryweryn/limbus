@@ -38,6 +38,25 @@ test('Mes coordonnées : un numéro invalide ou un contact d’urgence à moiti�
     await page.reload()
     await page.waitForLoadState('networkidle')
     await expect(page.getByLabel('Téléphone', { exact: true })).toHaveValue('+33612345678')
+
+    // Une saisie faite pendant l'envoi reste, les autres champs prennent leur forme rangée
+    let release = () => {}
+    const held = new Promise<void>((resolve) => { release = resolve })
+    await page.route('**/api/account/profile', async (route) => { await held; await route.continue() })
+    await page.getByLabel('Téléphone', { exact: true }).fill('07 81 22 33 44')
+    await save.click()
+    await page.getByLabel('Contact d’urgence : nom', { exact: true }).fill('Paula Martin')
+    release()
+    await expect(page.getByText('Coordonnées enregistrées : vos fiches et inscriptions sont à jour.')).toBeVisible()
+    await expect(page.getByLabel('Téléphone', { exact: true })).toHaveValue('+33781223344')
+    await expect(page.getByLabel('Contact d’urgence : nom', { exact: true })).toHaveValue('Paula Martin')
+    await page.unroute('**/api/account/profile')
+
+    // Enregistrer le nom ne touche pas à une saisie en cours dans les coordonnées
+    await page.getByLabel('Téléphone', { exact: true }).fill('06 99 88 77 66')
+    await page.getByRole('button', { name: 'Enregistrer', exact: true }).click()
+    await expect(page.getByText('Nom enregistré.')).toBeVisible()
+    await expect(page.getByLabel('Téléphone', { exact: true })).toHaveValue('06 99 88 77 66')
   } finally {
     await prisma.$disconnect()
   }

@@ -1,3 +1,4 @@
+import type { Prisma } from '~/generated/prisma/client'
 import { prisma, type PrismaTx } from '~/server/utils/prisma'
 import { lockAddress } from '~/server/utils/participantAddress'
 import { REGISTRATION_STATUSES } from '~/utils/domain'
@@ -112,10 +113,7 @@ export const accountProfileSelect = {
   phone: true, emergencyContactName: true, emergencyContactPhone: true, dietary: true, healthConsentAt: true, profileUpdatedAt: true
 } as const
 
-export function accountProfileOf(user: {
-  phone: string | null, emergencyContactName: string | null, emergencyContactPhone: string | null, dietary: string | null,
-  healthConsentAt: Date | null, profileUpdatedAt: Date | null
-}) {
+export function accountProfileOf(user: Prisma.UserGetPayload<{ select: typeof accountProfileSelect }>) {
   return {
     phone: user.phone,
     emergencyContactName: user.emergencyContactName,
