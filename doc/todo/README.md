@@ -39,4 +39,4 @@ Propositions pas encore engagées. Modèle : [`../modeles/todo.md`](../modeles/t
 | [Un déploiement rapide quand les dépendances changent](../archive/todo/deploiement-dependances.md) | [ADR-0085](../adr/ADR-0085-installation-serveur-sans-audit.md) | 2026-11-11 |
 | [Un compte pour chaque participant](../archive/todo/compte-pour-chaque-participant.md) | [SPEC-022](../specs/SPEC-022-compte-pour-chaque-participant.md) | 2026-11-11 |
 | [Valider les saisies partout](../archive/todo/validation-des-saisies.md) | [SPEC-023](../specs/SPEC-023-validation-des-saisies.md) | 2026-11-17 |
-| [Une nouvelle version se charge quand on le décide](../archive/todo/mise-a-jour-par-bandeau.md) | [EPIC-061](../epics/EPIC-061-mise-a-jour-par-bandeau/README.md) | 2026-11-17 |
+| [Une nouvelle version se charge quand on le décide](../archive/todo/mise-a-jour-par-bandeau.md) | [EPIC-061](../archive/epics/EPIC-061-mise-a-jour-par-bandeau/README.md) | 2026-11-17 |

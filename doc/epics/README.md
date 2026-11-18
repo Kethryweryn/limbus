@@ -68,7 +68,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-058](../archive/epics/EPIC-058-durees-et-administration/README.md) | Comptes non activés : durée et administration | [SPEC-022](../specs/SPEC-022-compte-pour-chaque-participant.md) | terminé |
 | [EPIC-059](../archive/epics/EPIC-059-csp-applicable/README.md) | Une CSP prête à bloquer | [Durcissement web](../todo/durcissement-web.md) | terminé |
 | [EPIC-060](../archive/epics/EPIC-060-validation-des-saisies/README.md) | Valider les saisies partout | [SPEC-023](../specs/SPEC-023-validation-des-saisies.md) | terminé |
-| [EPIC-061](EPIC-061-mise-a-jour-par-bandeau/README.md) | Une nouvelle version se charge depuis un bandeau | [SPEC-010](../specs/SPEC-010-hors-ligne.md) | en cours |
+| [EPIC-061](../archive/epics/EPIC-061-mise-a-jour-par-bandeau/README.md) | Une nouvelle version se charge depuis un bandeau | [SPEC-010](../specs/SPEC-010-hors-ligne.md) | terminé |
 
 ## US
 
@@ -327,5 +327,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-251](../archive/epics/EPIC-060-validation-des-saisies/US-251-noms-de-personnes.md) | Un nom de personne ne contient que des lettres et des séparateurs | EPIC-060 | terminée |
 | [US-252](../archive/epics/EPIC-060-validation-des-saisies/US-252-telephones-et-contact-d-urgence.md) | Des téléphones vérifiés selon leur pays, et un contact d'urgence complet | EPIC-060 | terminée |
 | [US-253](../archive/epics/EPIC-060-validation-des-saisies/US-253-longueurs-et-emails.md) | Une longueur maximale sur chaque texte, des emails vérifiés partout | EPIC-060 | terminée |
-| [US-254](EPIC-061-mise-a-jour-par-bandeau/US-254-bandeau-de-mise-a-jour.md) | Charger une nouvelle version quand je le décide | EPIC-061 | terminée |
-| [US-255](EPIC-061-mise-a-jour-par-bandeau/US-255-retour-du-reseau-sans-rechargement.md) | Retrouver le réseau sans que la page se recharge | EPIC-061 | terminée |
+| [US-254](../archive/epics/EPIC-061-mise-a-jour-par-bandeau/US-254-bandeau-de-mise-a-jour.md) | Charger une nouvelle version quand je le décide | EPIC-061 | terminée |
+| [US-255](../archive/epics/EPIC-061-mise-a-jour-par-bandeau/US-255-retour-du-reseau-sans-rechargement.md) | Retrouver le réseau sans que la page se recharge | EPIC-061 | terminée |

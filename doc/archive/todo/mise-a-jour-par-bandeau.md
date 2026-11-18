@@ -3,7 +3,7 @@ titre: Une nouvelle version se charge quand on le décide
 statut: prête
 date: 2026-11-17
 spec: ../../specs/SPEC-010-hors-ligne.md
-epic: ../../epics/EPIC-061-mise-a-jour-par-bandeau/README.md
+epic: ../epics/EPIC-061-mise-a-jour-par-bandeau/README.md
 ---
 
 # Une nouvelle version se charge quand on le décide
@@ -34,7 +34,7 @@ Après un déploiement, la page se recharge encore pendant que l'utilisatrice na
 
 ## Découpage envisagé
 
-Un lot : [EPIC-061](../../epics/EPIC-061-mise-a-jour-par-bandeau/README.md).
+Un lot : [EPIC-061](../epics/EPIC-061-mise-a-jour-par-bandeau/README.md).
 
 ## Points à trancher
 
