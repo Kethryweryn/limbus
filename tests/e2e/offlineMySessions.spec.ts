@@ -2,7 +2,7 @@
 // actions, erreurs de saisie, droits, hors ligne
 import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
-import { orgaGame, orgaSession, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
+import { expectSteadyDownloadTotal, orgaGame, orgaSession, recordTexts, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
 import { withFicheValues } from '../fiche'
 
 // Personne au compte confirmé, avec sa fiche dans un jeu, et un document reçu pour une session à venir et une passée
@@ -41,11 +41,14 @@ async function storedKeys(page: Page) {
   }))
 }
 
+// L'avancement relevé pendant le téléchargement : un total qui ne change plus (R11, retour A14-1)
 async function downloadMine(page: Page) {
   await page.goto('/compte')
   await page.waitForLoadState('networkidle')
+  const texts = await recordTexts(row(page))
   await row(page).getByRole('button', { name: /^Télécharger/ }).click()
   await expect(card(page).getByText('Vos sessions à venir sont téléchargées : « Je participe » et vos documents s’ouvrent sans réseau sur cet appareil.')).toBeVisible({ timeout: 30000 })
+  expectSteadyDownloadTotal(await texts())
 }
 
 test.describe('télécharger mes sessions à venir', () => {

@@ -2,7 +2,7 @@
 // actions, erreurs de saisie, droits, hors ligne
 import { expect, type Page } from '@playwright/test'
 import { createTestPrisma } from '../integration/db'
-import { cardByTitle, castSession, gameCharacter, gamePerson, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
+import { cardByTitle, castSession, expectSteadyDownloadTotal, gameCharacter, gamePerson, recordTexts, signIn, slugOf, test, testUser, uniqueName, type TestPrisma } from './helpers'
 
 // Jeu propre au test, à une organisatrice qui n'a que lui : ses listes tiennent sur une page
 async function ownGame(prisma: TestPrisma, base: string) {
@@ -103,23 +103,35 @@ test.describe('télécharger un jeu', () => {
       await signIn(page, prisma, owner.email)
       await openAccount(page)
       await expect(gameRow(page, game.title).getByText('Pas encore téléchargé')).toBeVisible()
-      // Chaque texte montré par la ligne du jeu pendant le téléchargement
-      await gameRow(page, game.title).evaluate((row) => {
-        const seen: string[] = []
-        Object.assign(window, { __downloadTexts: seen })
-        new MutationObserver(() => seen.push(row.textContent ?? '')).observe(row, { childList: true, subtree: true, characterData: true })
-      })
+      const texts = await recordTexts(gameRow(page, game.title))
       await download(page, game.title)
-      const texts = await page.evaluate(() => (window as unknown as { __downloadTexts: string[] }).__downloadTexts)
-      expect(texts.some((text) => text.includes('Préparation du téléchargement…'))).toBe(true)
-      const counts = texts.flatMap((text) => {
-        const match = /(\d+) \/ (\d+) éléments gardés/.exec(text)
-        return match ? [{ done: Number(match[1]), total: Number(match[2]) }] : []
+      expectSteadyDownloadTotal(await texts())
+    } finally {
+      await prisma.$disconnect()
+    }
+  })
+
+  test('un clic pendant la mise à jour en arrière-plan en suit l’avancement', async ({ page }) => {
+    const prisma = createTestPrisma()
+    try {
+      const { owner, game } = await ownGame(prisma, 'Jeu rejoint')
+      await signIn(page, prisma, owner.email)
+      await openAccount(page)
+      await download(page, game.title)
+      await setDownloadDates(page, { [game.id]: 2 })
+
+      // Les fiches de personnage tardent : la mise à jour partie au retour du réseau est encore en cours au clic
+      await page.route('**/api/characters/slug/**', async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+        await route.continue()
       })
-      expect(counts.length).toBeGreaterThan(1)
-      expect(new Set(counts.map((count) => count.total)).size).toBe(1)
-      // Le dernier élément gardé atteint le total
-      expect(counts.at(-1)?.done).toBe(counts[0]?.total)
+      const started = page.waitForRequest(/\/api\/characters\/slug\//)
+      await page.evaluate(() => window.dispatchEvent(new Event('online')))
+      await started
+      await gameRow(page, game.title).getByRole('button', { name: 'Télécharger de nouveau' }).click()
+      await expect(gameRow(page, game.title).getByText(/^\d+ \/ \d+ éléments gardés…$/)).toBeVisible()
+      await expect(gameRow(page, game.title).getByText(/^Téléchargé le /)).toBeVisible({ timeout: 30000 })
+      await page.unroute('**/api/characters/slug/**')
     } finally {
       await prisma.$disconnect()
     }

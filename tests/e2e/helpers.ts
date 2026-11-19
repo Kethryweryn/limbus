@@ -184,6 +184,29 @@ export async function orgaGame(prisma: TestPrisma, base: string, data: { publish
 }
 
 // Carte cliquable d'une liste, par son titre ; celui d'un objet en plusieurs exemplaires finit par sa quantité (« × 3 »)
+// Textes successifs d'un élément, relevés à chaque changement : pour vérifier un affichage passager
+export async function recordTexts(locator: Locator) {
+  await locator.evaluate((element) => {
+    const seen: string[] = []
+    Object.assign(element, { __texts: seen })
+    new MutationObserver(() => seen.push(element.textContent ?? '')).observe(element, { childList: true, subtree: true, characterData: true })
+  })
+  return () => locator.evaluate((element) => (element as unknown as { __texts: string[] }).__texts)
+}
+
+// Avancement d'un téléchargement pour le hors ligne (SPEC-019, R11) : une préparation sans chiffre, puis un total qui
+// ne change plus et que le dernier élément gardé atteint
+export function expectSteadyDownloadTotal(texts: string[]) {
+  expect(texts.some((text) => text.includes('Préparation du téléchargement…'))).toBe(true)
+  const counts = texts.flatMap((text) => {
+    const match = /(\d+) \/ (\d+) éléments gardés/.exec(text)
+    return match ? [{ done: Number(match[1]), total: Number(match[2]) }] : []
+  })
+  expect(counts.length).toBeGreaterThan(1)
+  expect(new Set(counts.map((count) => count.total)).size).toBe(1)
+  expect(counts.at(-1)?.done).toBe(counts[0]?.total)
+}
+
 export function cardByTitle(page: Page, title: string) {
   return page.locator('[role="link"]').filter({ has: page.getByRole('heading', { name: new RegExp(`^${escapeRegExp(title)}( × \\d+)?$`) }) })
 }

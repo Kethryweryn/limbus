@@ -59,32 +59,49 @@ async function read(url: string) {
   }
 }
 
-// Un seul téléchargement à la fois par jeu : un clic pendant la mise à jour en arrière-plan reprend la même
-const inFlight = new Map<string, Promise<OfflineDownload>>()
+type ProgressListener = (progress: DownloadProgress) => void
+type Flight = { promise: Promise<OfflineDownload>, listeners: Set<ProgressListener>, last: DownloadProgress | null }
 
-function once(id: string, run: () => Promise<OfflineDownload>) {
-  let running = inFlight.get(id)
-  if (!running) {
-    running = run().finally(() => inFlight.delete(id))
-    inFlight.set(id, running)
+// Un seul téléchargement à la fois par jeu : un clic pendant la mise à jour en arrière-plan reprend la même, et en
+// suit l'avancement à partir du dernier annoncé
+const inFlight = new Map<string, Flight>()
+
+function once(id: string, onProgress: ProgressListener, run: (report: ProgressListener) => Promise<OfflineDownload>) {
+  let flight = inFlight.get(id)
+  if (!flight) {
+    const listeners = new Set<ProgressListener>()
+    const started: Flight = {
+      listeners,
+      last: null,
+      promise: Promise.resolve()
+        .then(() => run((progress) => {
+          started.last = progress
+          for (const listener of listeners) listener(progress)
+        }))
+        .finally(() => inFlight.delete(id))
+    }
+    flight = started
+    inFlight.set(id, flight)
   }
-  return running
+  flight.listeners.add(onProgress)
+  if (flight.last) onProgress(flight.last)
+  return flight.promise
 }
 
-export function downloadGame(target: { id: string, title: string }, onProgress: (progress: DownloadProgress) => void = () => {}) {
-  return once(target.id, () => runGameDownload(target, onProgress))
+export function downloadGame(target: { id: string, title: string }, onProgress: ProgressListener = () => {}) {
+  return once(target.id, onProgress, (report) => runGameDownload(target, report))
 }
 
 // « Mes sessions à venir » d'une participante (R16), gardées sous cette entrée du registre
 export const MY_SESSIONS = 'mes-sessions'
 export const MY_SESSIONS_TITLE = 'Mes sessions à venir'
 
-export function downloadMySessions(onProgress: (progress: DownloadProgress) => void = () => {}) {
-  return once(MY_SESSIONS, () => runMySessionsDownload(onProgress))
+export function downloadMySessions(onProgress: ProgressListener = () => {}) {
+  return once(MY_SESSIONS, onProgress, runMySessionsDownload)
 }
 
 // Ce que garde un téléchargement : réponses, fichiers, place, avancement
-function startRun(onProgress: (progress: DownloadProgress) => void) {
+function startRun(onProgress: ProgressListener) {
   const responses = new Set<string>()
   const files = new Set<string>()
   const progress = { done: 0, total: 0 }
@@ -109,7 +126,6 @@ function startRun(onProgress: (progress: DownloadProgress) => void) {
     responses.add(url)
     if (current?.__offlinePending) return
     await saveCachedResponse(url, value)
-    responses.add(url)
   }
 
   // Une fiche introuvable ou refusée (élément supprimé entre-temps) est sautée ; le réseau tombé arrête tout
@@ -182,7 +198,7 @@ async function forgetEntries(previous: OfflineDownload, next: OfflineDownload | 
   for (const url of previous.files) if (!keptFiles.has(url)) await cache.delete(url)
 }
 
-async function runGameDownload(target: { id: string, title: string }, onProgress: (progress: DownloadProgress) => void) {
+async function runGameDownload(target: { id: string, title: string }, onProgress: ProgressListener) {
   const queue = await getOfflineQueue()
   const pendingStores = new Set(queue.map((operation) => operation.store).filter(Boolean))
   const run = startRun(onProgress)
@@ -258,7 +274,7 @@ async function runGameDownload(target: { id: string, title: string }, onProgress
 }
 
 // Participations, et pour chaque session à venir ses documents reçus et leurs fichiers (R16)
-async function runMySessionsDownload(onProgress: (progress: DownloadProgress) => void) {
+async function runMySessionsDownload(onProgress: ProgressListener) {
   const run = startRun(onProgress)
   const participations = await read(MY_PARTICIPATIONS_READ) as Array<{ sessions: Array<{ date?: string | null, documents: Array<{ id: string }> }> }>
   await run.keep(MY_PARTICIPATIONS_READ, participations)
