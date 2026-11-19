@@ -84,13 +84,23 @@ export function downloadMySessions(onProgress: (progress: DownloadProgress) => v
 }
 
 // Ce que garde un téléchargement : réponses, fichiers, place, avancement
-function startRun(onProgress: (progress: DownloadProgress) => void, total: number) {
+function startRun(onProgress: (progress: DownloadProgress) => void) {
   const responses = new Set<string>()
   const files = new Set<string>()
-  const progress = { done: 0, total }
+  const progress = { done: 0, total: 0 }
   let size = 0
-  const report = () => onProgress({ ...progress })
-  const step = () => { progress.done++; report() }
+  // Préparation : les premières lectures disent ce qu'il reste à garder. L'avancement n'est annoncé qu'une fois ce
+  // total connu (R11), et le total ne bouge plus ensuite
+  let counted = false
+  const step = () => {
+    progress.done++
+    if (counted) onProgress({ ...progress })
+  }
+  const begin = (remaining: number) => {
+    progress.total = progress.done + remaining
+    counted = true
+    onProgress({ ...progress })
+  }
 
   async function keep(url: string, value: unknown) {
     // Une modification en attente garde sa copie sur l'appareil (R12)
@@ -119,8 +129,6 @@ function startRun(onProgress: (progress: DownloadProgress) => void, total: numbe
 
   // Fichiers dans un cache sans limite de nombre ni de durée (R9)
   async function keepFiles(urls: Set<string>) {
-    progress.total += urls.size
-    report()
     const cache = await caches.open(DOWNLOAD_CACHE_NAME)
     await eachInParallel(urls, async (url) => {
       // Une photo ne change jamais sous son adresse : déjà gardée, elle n'est pas relue à chaque mise à jour
@@ -157,7 +165,7 @@ function startRun(onProgress: (progress: DownloadProgress) => void, total: numbe
     return download
   }
 
-  return { progress, report, step, keep, keepRead, keepFiles, finish }
+  return { step, begin, keep, keepRead, keepFiles, finish }
 }
 
 const SHARED_READS = new Set<string>([...LIST_READS.map(([, url]) => url), DASHBOARD_READ, AUTH_READ, REGISTRATION_PERIODS_READ, MY_PARTICIPATIONS_READ])
@@ -177,8 +185,7 @@ async function forgetEntries(previous: OfflineDownload, next: OfflineDownload | 
 async function runGameDownload(target: { id: string, title: string }, onProgress: (progress: DownloadProgress) => void) {
   const queue = await getOfflineQueue()
   const pendingStores = new Set(queue.map((operation) => operation.store).filter(Boolean))
-  const run = startRun(onProgress, LIST_READS.length + 4)
-  run.report()
+  const run = startRun(onProgress)
   // Le jeu lui-même, par son identifiant : refusé, il n'est plus accessible (R15)
   let game: { id: string, slug: string, title: string }
   try {
@@ -218,41 +225,46 @@ async function runGameDownload(target: { id: string, title: string }, onProgress
     ...sessions.flatMap(sessionPlan)
   ])
   const gamePeriods = (periods || []).filter((period) => period.gameId === game.id)
-  const periodReads = gamePeriods.flatMap((period) => [registrationReads.selection(period.id), registrationReads.draws(period.id), registrationReads.registrations(period.id)])
-  run.progress.total += sheets.size + periodReads.length
-  run.report()
+  const upcoming = sessions.filter((item) => isUpcoming(item))
 
-  await eachInParallel(sheets, async (url) => { await run.keepRead(url) })
-  for (const url of periodReads) {
+  // Fin de la préparation : les inscriptions de chaque période et les sessions à venir disent quelles inscriptions et
+  // quels fichiers restent à garder
+  const registrationLists = new Set<string>(gamePeriods.map((period) => registrationReads.registrations(period.id)))
+  const counting = new Set<string>([...registrationLists, ...upcoming.flatMap((session) => [sessionReads.sheet(session.slug), sessionReads.documents(session.id)])])
+  const registrations: string[] = []
+  await eachInParallel(counting, async (url) => {
     const value = await run.keepRead(url)
-    if (url.endsWith('/registrations') && Array.isArray(value)) {
-      const ids = value.map((registration: { id?: string }) => registration.id).filter((id): id is string => Boolean(id))
-      run.progress.total += ids.length
-      await eachInParallel(ids, async (id) => { await run.keepRead(registrationReads.registration(id)) })
-    }
-  }
-
+    if (!registrationLists.has(url) || !Array.isArray(value)) return
+    for (const registration of value as Array<{ id?: string }>) if (registration.id) registrations.push(registrationReads.registration(registration.id))
+  })
   // Fichiers des sessions à venir seulement (R9)
   const wanted = new Set<string>()
-  for (const session of sessions.filter((item) => isUpcoming(item))) {
+  for (const session of upcoming) {
     filesIn(await getCachedResponse(sessionReads.sheet(session.slug)), wanted)
     filesIn(await getCachedResponse(sessionReads.documents(session.id)), wanted)
     wanted.add(sessionReads.allergiesPdf(session.id))
   }
+
+  const remaining = new Set<string>([
+    ...sheets,
+    ...gamePeriods.flatMap((period) => [registrationReads.selection(period.id), registrationReads.draws(period.id)]),
+    ...registrations
+  ])
+  for (const url of counting) remaining.delete(url)
+  run.begin(remaining.size + wanted.size)
+  await eachInParallel(remaining, async (url) => { await run.keepRead(url) })
   await run.keepFiles(wanted)
   return await run.finish(game.id, game.title)
 }
 
 // Participations, et pour chaque session à venir ses documents reçus et leurs fichiers (R16)
 async function runMySessionsDownload(onProgress: (progress: DownloadProgress) => void) {
-  const run = startRun(onProgress, 1)
-  run.report()
+  const run = startRun(onProgress)
   const participations = await read(MY_PARTICIPATIONS_READ) as Array<{ sessions: Array<{ date?: string | null, documents: Array<{ id: string }> }> }>
   await run.keep(MY_PARTICIPATIONS_READ, participations)
   run.step()
   const deliveries = participations.flatMap((game) => game.sessions.filter((session) => isUpcoming(session)).flatMap((session) => session.documents))
-  run.progress.total += deliveries.length
-  run.report()
+  // Préparation : chaque document reçu dit quels fichiers restent à garder
   const wanted = new Set<string>()
   await eachInParallel(deliveries, async (delivery) => {
     const value = await run.keepRead(myDocumentReads.document(delivery.id))
@@ -261,6 +273,7 @@ async function runMySessionsDownload(onProgress: (progress: DownloadProgress) =>
       wanted.add(myDocumentReads.pdf(delivery.id))
     }
   })
+  run.begin(wanted.size)
   await run.keepFiles(wanted)
   return await run.finish(MY_SESSIONS, MY_SESSIONS_TITLE)
 }

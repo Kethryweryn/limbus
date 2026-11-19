@@ -96,6 +96,35 @@ test.describe('télécharger un jeu', () => {
     }
   })
 
+  test('l’avancement annonce un total qui ne change plus (retour A14-1)', async ({ page }) => {
+    const prisma = createTestPrisma()
+    try {
+      const { owner, game } = await ownGame(prisma, 'Jeu compté')
+      await signIn(page, prisma, owner.email)
+      await openAccount(page)
+      await expect(gameRow(page, game.title).getByText('Pas encore téléchargé')).toBeVisible()
+      // Chaque texte montré par la ligne du jeu pendant le téléchargement
+      await gameRow(page, game.title).evaluate((row) => {
+        const seen: string[] = []
+        Object.assign(window, { __downloadTexts: seen })
+        new MutationObserver(() => seen.push(row.textContent ?? '')).observe(row, { childList: true, subtree: true, characterData: true })
+      })
+      await download(page, game.title)
+      const texts = await page.evaluate(() => (window as unknown as { __downloadTexts: string[] }).__downloadTexts)
+      expect(texts.some((text) => text.includes('Préparation du téléchargement…'))).toBe(true)
+      const counts = texts.flatMap((text) => {
+        const match = /(\d+) \/ (\d+) éléments gardés/.exec(text)
+        return match ? [{ done: Number(match[1]), total: Number(match[2]) }] : []
+      })
+      expect(counts.length).toBeGreaterThan(1)
+      expect(new Set(counts.map((count) => count.total)).size).toBe(1)
+      // Le dernier élément gardé atteint le total
+      expect(counts.at(-1)?.done).toBe(counts[0]?.total)
+    } finally {
+      await prisma.$disconnect()
+    }
+  })
+
   test('sans réseau, le bouton est indisponible ; un réseau qui tombe arrête le téléchargement et le dit', async ({ page, context }) => {
     const prisma = createTestPrisma()
     try {

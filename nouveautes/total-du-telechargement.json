@@ -1,0 +1,5 @@
+{
+  "type": "corrige",
+  "titre": "Le total d’un téléchargement ne change plus en route",
+  "texte": "Quand vous téléchargez un jeu ou vos sessions à venir pour le hors ligne, Limbus compte d’abord ce qu’il doit garder, puis affiche l’avancement sur un total qui ne bouge plus."
+}
