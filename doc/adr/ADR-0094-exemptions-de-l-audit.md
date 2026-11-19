@@ -19,13 +19,17 @@ Vérifié dans Limbus : picomatch n'est pas dans le serveur en service (`.output
 - La CI lance `node scripts/audit.mjs` à la place de `npm audit --audit-level=high`. Le script lit `npm audit --json` et échoue sur tout avis grave ou critique, sauf ceux de sa liste d'exemptions, nommés par leur adresse, chacun avec sa raison.
 - Une exemption n'est admise que pour un avis sans version corrigée, dont le paquet n'est pas dans le serveur en service, sur l'accord de l'utilisatrice.
 - Une exemption devenue inutile fait échouer le script : quand l'avis disparaît de l'audit (version corrigée installée), on la retire.
-- Première exemption : GHSA-fc5q-39xc-vjpf (picomatch), accordée par l'utilisatrice le 2026-11-17.
+- Première exemption : GHSA-fc5q-39xc-vjpf (picomatch), accordée par l'utilisatrice le 2026-11-17, retirée le 2026-11-19 (voir la note).
+
+## Note du 2026-11-19
+
+L'avis GHSA-fc5q-39xc-vjpf n'apparaît plus dans `npm audit` : le script a demandé de retirer l'exemption, ce qui est fait. La liste des exemptions est vide ; la règle de cet ADR reste en vigueur pour un prochain avis.
 
 ## Conséquences
 
 - Les PR se fusionnent de nouveau. Tout autre avis grave bloque comme avant.
-- L'audit ne signalerait pas qu'une future version de Limbus se met à appeler picomatch avec un motif saisi par quelqu'un : une revue de code qui ajoute un tel appel doit le relever.
-- Quand picomatch publie un correctif, Dependabot propose la mise à jour, l'avis disparaît, et le script demande de retirer l'exemption.
+- Tant qu'un paquet est exempté (picomatch l'a été du 2026-11-17 au 2026-11-19), l'audit ne signalerait pas qu'une future version de Limbus se met à l'appeler avec une valeur saisie par quelqu'un : une revue de code qui ajoute un tel appel doit le relever.
+- Quand l'avis disparaît de l'audit (version corrigée installée, ou avis qui ne vise plus la version installée), le script demande de retirer l'exemption.
 
 ## Options écartées
 
