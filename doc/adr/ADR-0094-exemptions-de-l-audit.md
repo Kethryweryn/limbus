@@ -28,8 +28,8 @@ L'avis GHSA-fc5q-39xc-vjpf n'apparaît plus dans `npm audit` : le script a deman
 ## Conséquences
 
 - Les PR se fusionnent de nouveau. Tout autre avis grave bloque comme avant.
-- L'audit ne signalerait pas qu'une future version de Limbus se met à appeler picomatch avec un motif saisi par quelqu'un : une revue de code qui ajoute un tel appel doit le relever.
-- Quand picomatch publie un correctif, Dependabot propose la mise à jour, l'avis disparaît, et le script demande de retirer l'exemption.
+- Tant qu'un paquet est exempté (picomatch l'a été du 2026-11-17 au 2026-11-19), l'audit ne signalerait pas qu'une future version de Limbus se met à l'appeler avec une valeur saisie par quelqu'un : une revue de code qui ajoute un tel appel doit le relever.
+- Quand l'avis disparaît de l'audit (version corrigée installée, ou avis qui ne vise plus la version installée), le script demande de retirer l'exemption.
 
 ## Options écartées
 

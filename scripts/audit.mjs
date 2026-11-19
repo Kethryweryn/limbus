@@ -2,7 +2,7 @@
 // chacun avec sa raison. Une exemption devenue inutile (l'avis a disparu de l'audit) fait aussi échouer : on la retire.
 import { execSync } from 'node:child_process'
 
-// Aucune exemption en cours : celle de picomatch (GHSA-fc5q-39xc-vjpf) est retirée depuis le 2026-11-19
+// Adresse de l'avis → raison de l'exemption
 const EXEMPTIONS = {}
 
 const BLOCKING = new Set(['high', 'critical'])
