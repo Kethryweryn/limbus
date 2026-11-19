@@ -2,11 +2,8 @@
 // chacun avec sa raison. Une exemption devenue inutile (l'avis a disparu de l'audit) fait aussi échouer : on la retire.
 import { execSync } from 'node:child_process'
 
-const EXEMPTIONS = {
-  // ReDoS par un motif de fichiers piégé, aucune version corrigée (2026-11-17). picomatch n'est pas dans le serveur en
-  // service (.output/server) : seulement dans les outils de build, avec des motifs écrits dans leur configuration
-  'https://github.com/advisories/GHSA-fc5q-39xc-vjpf': 'picomatch, outils de build seulement'
-}
+// Adresse de l'avis → raison de l'exemption
+const EXEMPTIONS = {}
 
 const BLOCKING = new Set(['high', 'critical'])
 
