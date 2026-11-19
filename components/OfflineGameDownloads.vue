@@ -17,7 +17,9 @@
         <div class="text-sm">
           <div class="font-medium">{{ row.title }}</div>
           <div v-if="row.lost" class="text-warning-700">Ce jeu n’est plus accessible : ce que l’appareil en gardait est effacé.</div>
-          <div v-else-if="running === row.id && progress" class="text-gray-500">{{ progress.done }} / {{ progress.total }} éléments gardés…</div>
+          <div v-else-if="running === row.id" class="text-gray-500">
+            {{ progress ? `${progress.done} / ${progress.total} éléments gardés…` : 'Préparation du téléchargement…' }}
+          </div>
           <div v-else-if="row.date" class="text-gray-500">Téléchargé le {{ formatLongDateTime(row.date) }}</div>
           <div v-else class="text-gray-500">Pas encore téléchargé</div>
         </div>
