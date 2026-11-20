@@ -178,6 +178,8 @@ async function finish() {
     cancel()
   } catch {
     message.value = { color: 'error', text: 'Impossible d’effacer les données de l’appareil. Réessayez.' }
+    // La fenêtre se ferme : le message est dans la section, derrière elle
+    cancel()
   } finally {
     busy.value = false
   }

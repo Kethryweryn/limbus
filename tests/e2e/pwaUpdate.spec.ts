@@ -67,6 +67,10 @@ test('une nouvelle version : un bandeau, aucun rechargement au changement de pag
     })
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
     expect(await page.evaluate(() => document.querySelector('[aria-label="Nouvelle version"]')!.getBoundingClientRect().top)).toBe(0)
+    // Un champ qui prend le focus s'arrête sous le bandeau, pas derrière lui
+    const bannerHeight = await page.evaluate(() => document.querySelector('[aria-label="Nouvelle version"]')!.getBoundingClientRect().height)
+    expect(bannerHeight).toBeGreaterThan(0)
+    await expect.poll(() => page.evaluate(() => parseFloat(document.documentElement.style.scrollPaddingTop))).toBeGreaterThanOrEqual(bannerHeight)
     await page.evaluate(() => {
       window.scrollTo(0, 0)
       document.getElementById('__nuxt')!.style.minHeight = ''

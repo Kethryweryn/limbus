@@ -1,7 +1,7 @@
 <template>
   <UApp>
     <!-- Bandeaux collés en haut de l'écran : ils restent visibles quand la page défile (SPEC-010, R15 ; US-257) -->
-    <div class="sticky top-0 z-30">
+    <div ref="banners" class="sticky top-0 z-40">
       <!-- Nouvelle version proposée, sur toutes les pages, au-dessus des autres bandeaux (US-254, US-256, ADR-0093) -->
       <AppUpdateBanner />
       <!-- Bandeaux de connexion, dans l'application ouverte par un compte seulement -->
@@ -10,7 +10,7 @@
           v-if="serverUnavailable"
           class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-900"
         >
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex flex-wrap items-center justify-between gap-2">
             <span v-if="offlineDisabled">Pas de connexion au serveur : le hors ligne est désactivé sur cet appareil, rien n’y est gardé. Les modifications et les actions attendent la connexion.</span>
             <span v-else>Pas de connexion au serveur : les modifications des fiches sont gardées sur l’appareil et partiront quand la connexion reviendra. Les envois et les autres actions attendent la connexion.</span>
             <UButton size="xs" color="warning" variant="soft" @click="retryServer">
@@ -24,7 +24,7 @@
           class="border-b px-4 py-2 text-sm"
           :class="syncErrorCount ? 'bg-red-50 border-red-200 text-red-900' : 'bg-blue-50 border-blue-200 text-blue-900'"
         >
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex flex-wrap items-center justify-between gap-2">
             <span>
               Modifications faites hors ligne : {{ syncSummary }}.
             </span>
@@ -195,6 +195,9 @@ const screen = computed(() => {
   return authReady.value ? 'login' : 'loading'
 })
 const inApp = computed(() => screen.value === 'app')
+// Un champ qui prend le focus, ou une ancre, s'arrête sous les bandeaux collés et non derrière eux (US-257)
+const banners = useTemplateRef<HTMLElement>('banners')
+let bannersObserver: ResizeObserver | undefined
 let authCheckInProgress = false
 // Un réseau qui ne répond pas ne retient pas l'application : passé ce délai, elle ouvre ce qui est sur l'appareil
 const AUTH_CHECK_TIMEOUT_MS = 10_000
@@ -358,6 +361,12 @@ onMounted(async () => {
   refreshQueueState()
   readOfflineSetting()
   window.addEventListener('limbus:offline-setting', readOfflineSetting)
+  if (banners.value) {
+    bannersObserver = new ResizeObserver(([entry]) => {
+      document.documentElement.style.scrollPaddingTop = `${Math.ceil(entry?.contentRect.height ?? 0)}px`
+    })
+    bannersObserver.observe(banners.value)
+  }
   window.addEventListener('storage', readOfflineSettingFromStorage)
   window.addEventListener('online', checkAuthFromEvent)
   window.addEventListener('limbus:connection-change', checkAuthFromEvent)
@@ -386,6 +395,7 @@ watch(() => route.fullPath, () => {
 onUnmounted(() => {
   stopPageRefreshTimer()
   window.removeEventListener('limbus:offline-setting', readOfflineSetting)
+  bannersObserver?.disconnect()
   window.removeEventListener('storage', readOfflineSettingFromStorage)
   window.removeEventListener('online', checkAuthFromEvent)
   window.removeEventListener('limbus:connection-change', checkAuthFromEvent)

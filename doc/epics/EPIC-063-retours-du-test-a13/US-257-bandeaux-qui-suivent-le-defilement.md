@@ -21,6 +21,7 @@ En tant qu'organisatrice ou participante, je veux que les bandeaux du haut reste
 ## Notes techniques
 
 - `app.vue` : les trois bandeaux sont dans un même bloc collé en haut de l'écran (`sticky top-0`), en premier dans `UApp`. Les bandeaux de connexion ne s'affichent, comme avant, que dans l'application ouverte par un compte.
+- Les bandeaux de connexion gardent texte et bouton sur une même ligne quand ils tiennent, pour prendre moins de hauteur sur un téléphone ; la page règle `scroll-padding-top` sur la hauteur du bloc, pour qu'un champ qui prend le focus ne s'arrête pas derrière lui (revue de la PR #269).
 - `nuxt.config.ts` : la racine de l'application isole son empilement (`isolate`), pour que les fenêtres de Nuxt UI, posées après elle dans la page, passent au-dessus du bloc collé.
 
 ## Tests

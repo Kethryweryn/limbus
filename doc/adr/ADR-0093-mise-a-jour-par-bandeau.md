@@ -20,7 +20,7 @@ web.dev ([« Update »](https://web.dev/learn/pwa/update)) et la documentation d
 ## Décision
 
 - Le module reste en mode `prompt`. `plugins/pwaUpdate.client.ts` ne recharge plus rien au changement de page : il y cherche seulement une nouvelle version, comme toutes les heures ([ADR-0078](ADR-0078-recherche-de-la-nouvelle-version.md), inchangé).
-- Une version qui attend affiche un bandeau en bas de l'écran, en haut de la page depuis la note du 2026-11-18 (`components/AppUpdateBanner.vue`), sur toutes les pages : « Une nouvelle version de Limbus est disponible », « Recharger » et une croix. Il est masqué sans réseau et quand le serveur est indisponible, car une page rechargée ne pourrait pas être servie.
+- Une version qui attend affiche un bandeau en bas de l'écran, en haut de la page depuis la note du 2026-11-18, et collé en haut de l'écran depuis celle du 2026-11-20 (`components/AppUpdateBanner.vue`), sur toutes les pages : « Une nouvelle version de Limbus est disponible », « Recharger » et une croix. Il est masqué sans réseau et quand le serveur est indisponible, car une page rechargée ne pourrait pas être servie.
 - « Recharger » active la version en attente (`updateServiceWorker`), et recharge l'onglet quand elle a pris la main, ou après 4 secondes si elle ne la prend pas. Si la version a déjà été activée par un autre onglet, l'onglet se recharge aussitôt.
 - `registerSW` reçoit `onNeedReload` : la prise de main par la nouvelle version ne recharge l'onglet que si on y a choisi « Recharger ». Les autres onglets gardent leur bandeau.
 - La croix ferme le bandeau jusqu'au prochain chargement complet de la page, ou jusqu'à ce qu'une version plus récente attende.
