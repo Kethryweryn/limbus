@@ -11,7 +11,7 @@ adr: []
 
 En tant qu'organisatrice ou participante, je veux que la confirmation d'un effacement ou d'une désactivation du hors ligne s'ouvre dans une fenêtre, afin de voir tout de suite qu'une réponse est attendue, sans que la section change sous mes yeux.
 
-Règles de [SPEC-019](../../specs/SPEC-019-hors-ligne-dans-le-compte.md).
+Règles de [SPEC-019](../../../specs/SPEC-019-hors-ligne-dans-le-compte.md).
 
 ## Critères d'acceptation
 
