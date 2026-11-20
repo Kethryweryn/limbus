@@ -29,6 +29,10 @@ Les dépendances n'étaient pas suivies. Fusionner une PR de mise à jour la dé
   - `pinia` et `@pinia/nuxt` : chaque version de l'un exige une majeure précise de l'autre. Une PR qui n'en monte qu'un échoue, on les monte donc ensemble à la main.
 - Le motif de chaque exclusion est écrit en commentaire dans le fichier ; une exclusion se retire quand le blocage disparaît.
 
+## Note du 2026-11-20
+
+Quand un avis grave vise un paquet qu'une dépendance épingle à une version exacte, et qu'une version corrigée existe dans la même majeure, on force cette version par `overrides` dans `package.json`, sans attendre la dépendance. Deux cas : `@hono/node-server`, et `effect` (avis [GHSA-7589-6fvf-x4pw](https://github.com/advisories/GHSA-7589-6fvf-x4pw), corrigé en 3.22.1), que `@prisma/config` épingle en 3.20.0. `effect` ne sert qu'à l'outil Prisma en ligne de commande (génération, migrations), pas au serveur en service. Un forçage se retire quand la dépendance demande elle-même une version corrigée. L'exemption d'[ADR-0094](ADR-0094-exemptions-de-l-audit.md) reste réservée aux avis sans version corrigée.
+
 ## Conséquences
 
 - Les correctifs de sécurité arrivent avec 7 jours de retard ; `npm audit` en CI signale entre-temps les vulnérabilités graves des dépendances de production. Depuis [ADR-0094](ADR-0094-exemptions-de-l-audit.md), un avis sans correctif qui ne touche pas le serveur en service peut en être exempté, nommément.
