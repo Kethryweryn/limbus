@@ -61,7 +61,8 @@
     "workbox-build": "^7.3.0"
   },
   "overrides": {
-    "@hono/node-server": "^1.19.14"
+    "@hono/node-server": "^1.19.14",
+    "effect": "^3.22.5"
   },
   "engines": {
     "node": ">=24"
