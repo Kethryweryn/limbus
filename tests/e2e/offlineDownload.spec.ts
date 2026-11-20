@@ -296,7 +296,7 @@ test.describe('télécharger un jeu', () => {
       await signIn(page, prisma, owner.email)
       await openAccount(page)
       await card(page).getByRole('checkbox', { name: 'Garder Limbus sur cet appareil pour le hors ligne' }).click()
-      await card(page).getByRole('button', { name: 'Désactiver', exact: true }).click()
+      await page.getByRole('dialog').getByRole('button', { name: 'Désactiver', exact: true }).click()
       await expect(card(page).getByText('Le hors ligne est désactivé sur cet appareil.')).toBeVisible()
       await expect(card(page).getByText('Le hors ligne est désactivé sur cet appareil : rien ne peut y être téléchargé.')).toBeVisible()
       await expect(gameRow(page, game.title).getByRole('button', { name: 'Télécharger' })).toBeDisabled()

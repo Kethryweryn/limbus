@@ -34,6 +34,8 @@ async function queueLength(page: Page) {
 const registrations = (page: Page) => page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length)
 const card = (page: Page) => page.getByRole('region', { name: 'Hors ligne sur cet appareil' })
 const keepBox = (page: Page) => page.getByRole('checkbox', { name: 'Garder Limbus sur cet appareil pour le hors ligne' })
+// Fenêtre de confirmation d'un effacement ou d'une désactivation (US-258)
+const confirmation = (page: Page) => page.getByRole('dialog')
 
 function newLocation(id: string, gameId: string, name: string, status: 'pending' | 'error' = 'pending') {
   return {
@@ -68,7 +70,7 @@ test.describe('place prise et effacement', () => {
       await expect(card(page).getByText(/Place totale réservée à Limbus par le navigateur/)).toBeVisible()
 
       await card(page).getByRole('button', { name: 'Effacer les données de l’appareil' }).click()
-      await card(page).getByRole('button', { name: 'Effacer', exact: true }).click()
+      await confirmation(page).getByRole('button', { name: 'Effacer', exact: true }).click()
       await expect(card(page).getByText('Les données de l’appareil sont effacées.')).toBeVisible()
       expect(await offlineRecordCount(page)).toBe(0)
       // Toujours connectée, et l'identité gardée pour s'ouvrir sans réseau reste (R3)
@@ -90,8 +92,8 @@ test.describe('place prise et effacement', () => {
       await writeQueue(page, [newLocation('op-envoi', game.id, name)])
 
       await card(page).getByRole('button', { name: 'Effacer les données de l’appareil' }).click()
-      await expect(card(page).getByText('1 modification(s) faite(s) sans réseau n’ont pas encore été envoyée(s) :')).toBeVisible()
-      await card(page).getByRole('button', { name: 'Les envoyer d’abord' }).click()
+      await expect(confirmation(page).getByText('1 modification(s) faite(s) sans réseau n’ont pas encore été envoyée(s) :')).toBeVisible()
+      await confirmation(page).getByRole('button', { name: 'Les envoyer d’abord' }).click()
       await expect(card(page).getByText('Les données de l’appareil sont effacées.')).toBeVisible()
       expect(await prisma.location.count({ where: { gameId: game.id, name } })).toBe(1)
       expect(await queueLength(page)).toBe(0)
@@ -109,16 +111,16 @@ test.describe('place prise et effacement', () => {
       await writeQueue(page, [newLocation('op-refus', game.id, 'Lieu refusé', 'error')])
 
       await card(page).getByRole('button', { name: 'Effacer les données de l’appareil' }).click()
-      await card(page).getByRole('button', { name: 'Les envoyer d’abord' }).click()
-      await expect(card(page).getByText('Ces modifications n’ont pas pu partir :')).toBeVisible()
-      await expect(card(page).getByRole('button', { name: 'Les envoyer d’abord' })).toBeHidden()
+      await confirmation(page).getByRole('button', { name: 'Les envoyer d’abord' }).click()
+      await expect(confirmation(page).getByText('Ces modifications n’ont pas pu partir :')).toBeVisible()
+      await expect(confirmation(page).getByRole('button', { name: 'Les envoyer d’abord' })).toBeHidden()
 
       // Renoncer : rien n'est effacé
-      await card(page).getByRole('button', { name: 'Annuler' }).click()
+      await confirmation(page).getByRole('button', { name: 'Annuler' }).click()
       expect(await queueLength(page)).toBe(1)
 
       await card(page).getByRole('button', { name: 'Effacer les données de l’appareil' }).click()
-      await card(page).getByRole('button', { name: 'Les abandonner et effacer' }).click()
+      await confirmation(page).getByRole('button', { name: 'Les abandonner et effacer' }).click()
       await expect(card(page).getByText('Les données de l’appareil sont effacées.')).toBeVisible()
       expect(await queueLength(page)).toBe(0)
       expect(await prisma.location.count({ where: { gameId: game.id } })).toBe(0)
@@ -134,11 +136,28 @@ test.describe('place prise et effacement', () => {
       await signIn(page, prisma, E2E_USERS.orga)
       await openAccount(page)
       await writeQueue(page, [newLocation('op-hors-ligne', game.id, 'Lieu hors ligne')])
+      await page.evaluate(() => window.dispatchEvent(new CustomEvent('limbus:sync-queue-change')))
       await context.setOffline(true)
 
+      // En bas de la page, le bandeau des modifications reste collé en haut de l'écran (US-257)
+      const banner = page.getByText('Modifications faites hors ligne : 1 en attente.')
+      await expect(banner).toBeVisible()
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+      await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+      await expect(banner).toBeInViewport()
+      const coveredBy = () => banner.evaluate((element) => {
+        const box = element.getBoundingClientRect()
+        const top = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
+        return element.contains(top) ? 'bandeau' : 'autre'
+      })
+      expect(await coveredBy()).toBe('bandeau')
+
       await card(page).getByRole('button', { name: 'Effacer les données de l’appareil' }).click()
-      await expect(card(page).getByRole('button', { name: 'Les envoyer d’abord' })).toBeHidden()
-      await card(page).getByRole('button', { name: 'Les abandonner et effacer' }).click()
+      await expect(confirmation(page).getByRole('button', { name: 'Les abandonner et effacer' })).toBeVisible()
+      // La fenêtre passe au-dessus du bandeau
+      expect(await coveredBy()).toBe('autre')
+      await expect(confirmation(page).getByRole('button', { name: 'Les envoyer d’abord' })).toBeHidden()
+      await confirmation(page).getByRole('button', { name: 'Les abandonner et effacer' }).click()
       await expect(card(page).getByText('Les données de l’appareil sont effacées.')).toBeVisible()
       expect(await queueLength(page)).toBe(0)
       await context.setOffline(false)
@@ -193,13 +212,29 @@ test.describe('désactivation', () => {
       await expect.poll(() => registrations(page)).toBeGreaterThan(0)
       await openAccount(page)
 
-      // Renoncer laisse la case cochée
+      // La confirmation s'ouvre dans une fenêtre ; derrière elle, la section reste en place (US-258)
+      await expect(card(page).getByRole('heading', { name: 'Télécharger pour le hors ligne' })).toHaveCount(1)
       await keepBox(page).click()
-      await card(page).getByRole('button', { name: 'Annuler' }).click()
+      await expect(confirmation(page).getByRole('heading', { name: 'Désactiver le hors ligne' })).toBeVisible()
+      await expect(confirmation(page).getByText(/Tout ce que l’appareil garde sera effacé/)).toBeVisible()
+      await expect(page.getByText('Vide les pages, PDF et photos gardés, sans vous déconnecter.')).toBeAttached()
+      await expect(page.getByText('Télécharger pour le hors ligne', { exact: true })).toBeAttached()
+      // Renoncer, par « Annuler » ou par Échap, laisse la case cochée
+      await confirmation(page).getByRole('button', { name: 'Annuler' }).click()
+      await expect(confirmation(page)).toBeHidden()
       await expect(keepBox(page)).toBeChecked()
+      await keepBox(page).click()
+      await expect(confirmation(page)).toBeVisible()
+      await page.keyboard.press('Escape')
+      await expect(confirmation(page)).toBeHidden()
+      await expect(keepBox(page)).toBeChecked()
+      await card(page).getByRole('button', { name: 'Effacer les données de l’appareil' }).click()
+      await expect(confirmation(page).getByRole('heading', { name: 'Effacer les données de l’appareil' })).toBeVisible()
+      await confirmation(page).getByRole('button', { name: 'Annuler' }).click()
+      await expect(confirmation(page)).toBeHidden()
 
       await keepBox(page).click()
-      await card(page).getByRole('button', { name: 'Désactiver', exact: true }).click()
+      await confirmation(page).getByRole('button', { name: 'Désactiver', exact: true }).click()
       await expect(card(page).getByText('Le hors ligne est désactivé sur cet appareil.')).toBeVisible()
       await expect(keepBox(page)).not.toBeChecked()
       await expect(card(page).getByText(/rien n’y est gardé, Limbus ne s’ouvre pas sans réseau/)).toBeVisible()
@@ -223,6 +258,9 @@ test.describe('désactivation', () => {
       await openAccount(page)
       await keepBox(page).click()
       await expect(card(page).getByText('Le hors ligne est de nouveau actif : les pages consultées sont gardées sur cet appareil.')).toBeVisible()
+      // La liste des téléchargements ne s'affiche qu'une fois (retour A13-3)
+      await expect(card(page).getByRole('button', { name: 'Effacer les données de l’appareil' })).toBeVisible()
+      await expect(card(page).getByRole('heading', { name: 'Télécharger pour le hors ligne' })).toHaveCount(1)
       await expect.poll(() => registrations(page)).toBeGreaterThan(0)
       await page.goto('/games')
       await page.waitForLoadState('networkidle')
@@ -239,7 +277,7 @@ test.describe('désactivation', () => {
       await signIn(page, prisma, E2E_USERS.orga)
       await openAccount(page)
       await keepBox(page).click()
-      await card(page).getByRole('button', { name: 'Désactiver', exact: true }).click()
+      await confirmation(page).getByRole('button', { name: 'Désactiver', exact: true }).click()
       await expect(keepBox(page)).not.toBeChecked()
 
       await page.goto(`/sessions/${session.slug}?tab=cast`)
@@ -251,6 +289,10 @@ test.describe('désactivation', () => {
       await page.getByRole('button', { name: 'Enregistrer le cast' }).click()
       await expect(page.getByText(/Pas de réseau : cette action demande une connexion/)).toBeVisible()
       await expect(page.getByText(/le hors ligne est désactivé sur cet appareil, rien n’y est gardé/)).toBeVisible()
+      // En bas de la page, le bandeau reste en haut de l'écran (US-257, retour A13-2)
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+      await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+      await expect(page.getByText(/le hors ligne est désactivé sur cet appareil, rien n’y est gardé/)).toBeInViewport()
       expect(await queueLength(page)).toBe(0)
       await context.setOffline(false)
 

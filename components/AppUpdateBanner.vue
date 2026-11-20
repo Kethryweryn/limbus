@@ -1,5 +1,6 @@
 <template>
-  <!-- Tout en haut de la page, comme les bandeaux de connexion : il pousse la page et défile avec elle (US-256).
+  <!-- Tout en haut de la page, avec les bandeaux de connexion, dans le bloc collé en haut de l'écran (app.vue, US-256,
+       US-257).
        La zone annoncée aux lecteurs d'écran est toujours présente, vide sans version qui attend : son texte, qui
        apparaît ensuite, est lu -->
   <div role="status" aria-label="Nouvelle version">

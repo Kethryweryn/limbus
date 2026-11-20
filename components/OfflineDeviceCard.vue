@@ -23,46 +23,59 @@
 
       <UCheckbox
         :model-value="!disabled"
-        :disabled="busy || !!confirming"
+        :disabled="busy"
         label="Garder Limbus sur cet appareil pour le hors ligne"
         description="Décochée, rien n’est gardé sur l’appareil : à choisir sur un appareil prêté ou partagé."
         @update:model-value="(keep) => keep ? enable() : start('disable')"
       />
 
-      <div v-if="!disabled && !confirming">
+      <div v-if="!disabled">
         <UButton color="neutral" variant="soft" icon="i-heroicons-trash" :disabled="busy" @click="start('erase')">
           Effacer les données de l’appareil
         </UButton>
         <p class="mt-1 text-sm text-gray-500">Vide les pages, PDF et photos gardés, sans vous déconnecter.</p>
       </div>
 
-      <OfflineGameDownloads v-if="!confirming" :key="downloadsKey" :disabled="disabled" @downloaded="measure" />
-
-      <!-- Confirmation, avec les modifications faites sans réseau pas encore envoyées (R4) -->
-      <div v-if="confirming" class="space-y-3 rounded border border-gray-200 p-3" role="group" aria-label="Confirmation">
-        <p class="text-sm">{{ confirming === 'erase' ? ERASE_TEXT : DISABLE_TEXT }}</p>
-        <template v-if="pending.length">
-          <p class="text-sm font-medium">
-            {{ refused ? 'Ces modifications n’ont pas pu partir :' : `${pending.length} modification(s) faite(s) sans réseau n’ont pas encore été envoyée(s) :` }}
-          </p>
-          <ul class="list-disc pl-5 text-sm">
-            <li v-for="operation in pending" :key="operation.id">{{ operation.element }} : {{ operation.action }}</li>
-          </ul>
-          <p v-if="refused" class="text-sm text-gray-500">Vous pouvez renoncer pour les régler d’abord dans le panneau des modifications.</p>
-        </template>
-        <div class="flex flex-wrap gap-2">
-          <UButton v-if="pending.length && !refused && canSend" color="primary" :loading="busy" @click="sendThenFinish">
-            Les envoyer d’abord
-          </UButton>
-          <UButton :color="pending.length ? 'error' : 'primary'" :variant="pending.length ? 'soft' : 'solid'" :loading="busy && !sending" :disabled="sending" @click="finish">
-            {{ finishLabel }}
-          </UButton>
-          <UButton color="neutral" variant="ghost" :disabled="busy" @click="cancel">Annuler</UButton>
-        </div>
-      </div>
+      <!-- Clé en texte : un nombre se confondrait avec la clé que Vue donne aux blocs conditionnels voisins, et la
+           liste resterait en double quand l'un d'eux disparaît (retour A13-3) -->
+      <OfflineGameDownloads :key="`telechargements-${downloadsKey}`" :disabled="disabled" @downloaded="measure" />
 
       <UAlert v-if="message" :color="message.color" variant="soft" :description="message.text" />
     </div>
+
+    <!-- Confirmation dans une fenêtre, avec les modifications faites sans réseau pas encore envoyées (R4, US-258) ;
+         elle ne se ferme pas pendant un envoi ou un effacement -->
+    <UModal
+      :open="confirming !== null"
+      :title="intent === 'erase' ? 'Effacer les données de l’appareil' : 'Désactiver le hors ligne'"
+      :dismissible="!busy"
+      :close="!busy"
+      @update:open="(open) => { if (!open) cancel() }"
+    >
+      <template #body>
+        <div class="space-y-3">
+          <p class="text-sm">{{ intent === 'erase' ? ERASE_TEXT : DISABLE_TEXT }}</p>
+          <template v-if="pending.length">
+            <p class="text-sm font-medium">
+              {{ refused ? 'Ces modifications n’ont pas pu partir :' : `${pending.length} modification(s) faite(s) sans réseau n’ont pas encore été envoyée(s) :` }}
+            </p>
+            <ul class="list-disc pl-5 text-sm">
+              <li v-for="operation in pending" :key="operation.id">{{ operation.element }} : {{ operation.action }}</li>
+            </ul>
+            <p v-if="refused" class="text-sm text-gray-500">Vous pouvez renoncer pour les régler d’abord dans le panneau des modifications.</p>
+          </template>
+          <div class="flex flex-wrap gap-2">
+            <UButton v-if="pending.length && !refused && canSend" color="primary" :loading="busy" @click="sendThenFinish">
+              Les envoyer d’abord
+            </UButton>
+            <UButton :color="pending.length ? 'error' : 'primary'" :variant="pending.length ? 'soft' : 'solid'" :loading="busy && !sending" :disabled="sending" @click="finish">
+              {{ finishLabel }}
+            </UButton>
+            <UButton color="neutral" variant="ghost" :disabled="busy" @click="cancel">Annuler</UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
   </UCard>
 </template>
 
@@ -81,6 +94,8 @@ const DISABLE_TEXT = 'Désactiver le hors ligne ? Tout ce que l’appareil garde
 const disabled = ref(false)
 const size = ref<OfflineStorageSize | null>(null)
 const confirming = ref<Intent | null>(null)
+// Dernière demande : son texte reste affiché pendant que la fenêtre se referme
+const intent = ref<Intent>('erase')
 const pending = ref<PendingOperation[]>([])
 const refused = ref(false)
 const busy = ref(false)
@@ -91,9 +106,8 @@ const downloadsKey = ref(0)
 const message = ref<{ color: 'success' | 'error', text: string } | null>(null)
 
 const finishLabel = computed(() => {
-  const verb = confirming.value === 'disable' ? 'désactiver' : 'effacer'
-  if (pending.value.length) return `Les abandonner et ${verb}`
-  return confirming.value === 'disable' ? 'Désactiver' : 'Effacer'
+  if (pending.value.length) return `Les abandonner et ${intent.value === 'disable' ? 'désactiver' : 'effacer'}`
+  return intent.value === 'disable' ? 'Désactiver' : 'Effacer'
 })
 
 function formatBytes(bytes: number) {
@@ -110,18 +124,18 @@ async function readPending() {
   pending.value = queue.map((operation) => ({ id: operation.id, ...operationSummary(operation) }))
 }
 
-async function start(intent: Intent) {
+async function start(asked: Intent) {
   message.value = null
   refused.value = false
   canSend.value = !isOfflineMode()
   await readPending()
-  confirming.value = intent
+  intent.value = asked
+  confirming.value = asked
 }
 
+// La liste des modifications reste telle quelle pendant que la fenêtre se referme : start la relit
 function cancel() {
   confirming.value = null
-  pending.value = []
-  refused.value = false
 }
 
 // Envoi d'abord (R4) : si des modifications restent (refus, conflit), on s'arrête et on le dit
@@ -143,12 +157,12 @@ async function sendThenFinish() {
 }
 
 async function finish() {
-  const intent = confirming.value
-  if (!intent) return
+  const asked = confirming.value
+  if (!asked) return
   busy.value = true
   try {
     // La base effacée emporte la file : les modifications en attente sont abandonnées avec elle
-    if (intent === 'disable') {
+    if (asked === 'disable') {
       await disableOfflineOnDevice()
       // L'application retirée contrôle encore la page jusqu'à son rechargement, et garderait PDF et photos
       rememberMessage(DISABLED_MESSAGE)

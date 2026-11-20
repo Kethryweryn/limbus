@@ -60,6 +60,18 @@ test('une nouvelle version : un bandeau, aucun rechargement au changement de pag
     expect(placement.headerTop).toBeGreaterThanOrEqual(placement.bannerBottom)
     expect(placement.position).toBe('static')
 
+    // La page défile, le bandeau reste collé en haut de l'écran (US-257)
+    await page.evaluate(() => {
+      document.getElementById('__nuxt')!.style.minHeight = '3000px'
+      window.scrollTo(0, 1200)
+    })
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+    expect(await page.evaluate(() => document.querySelector('[aria-label="Nouvelle version"]')!.getBoundingClientRect().top)).toBe(0)
+    await page.evaluate(() => {
+      window.scrollTo(0, 0)
+      document.getElementById('__nuxt')!.style.minHeight = ''
+    })
+
     // Hors ligne : masqué, puis de retour avec le réseau
     await context.setOffline(true)
     await expect(banner(page)).toBeHidden()

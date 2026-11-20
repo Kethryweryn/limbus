@@ -1,57 +1,62 @@
 <template>
   <UApp>
-    <!-- Nouvelle version proposée, tout en haut de toutes les pages, au-dessus des autres bandeaux (US-254, US-256,
-         ADR-0093) -->
-    <AppUpdateBanner />
+    <!-- Bandeaux collés en haut de l'écran : ils restent visibles quand la page défile (SPEC-010, R15 ; US-257) -->
+    <div class="sticky top-0 z-30">
+      <!-- Nouvelle version proposée, sur toutes les pages, au-dessus des autres bandeaux (US-254, US-256, ADR-0093) -->
+      <AppUpdateBanner />
+      <!-- Bandeaux de connexion, dans l'application ouverte par un compte seulement -->
+      <template v-if="inApp">
+        <div
+          v-if="serverUnavailable"
+          class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-900"
+        >
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span v-if="offlineDisabled">Pas de connexion au serveur : le hors ligne est désactivé sur cet appareil, rien n’y est gardé. Les modifications et les actions attendent la connexion.</span>
+            <span v-else>Pas de connexion au serveur : les modifications des fiches sont gardées sur l’appareil et partiront quand la connexion reviendra. Les envois et les autres actions attendent la connexion.</span>
+            <UButton size="xs" color="warning" variant="soft" @click="retryServer">
+              Réessayer
+            </UButton>
+          </div>
+        </div>
+        <!-- Modifications faites hors ligne (US-049) : le bandeau ouvre leur liste -->
+        <div
+          v-if="pendingSyncCount || syncErrorCount"
+          class="border-b px-4 py-2 text-sm"
+          :class="syncErrorCount ? 'bg-red-50 border-red-200 text-red-900' : 'bg-blue-50 border-blue-200 text-blue-900'"
+        >
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              Modifications faites hors ligne : {{ syncSummary }}.
+            </span>
+            <UButton size="xs" :color="syncErrorCount ? 'error' : 'info'" variant="soft" @click="showSyncPanel = true">
+              Voir les modifications
+            </UButton>
+          </div>
+        </div>
+      </template>
+    </div>
     <!-- Pages autonomes (liens personnels, accès au compte, page publique) : même rendu connecté ou non, sans bandeaux de
          synchronisation. Elles ne changent pas de bloc quand la connexion est vérifiée, donc ne se remontent pas : la
          confirmation d'une adresse ne part qu'une fois -->
-    <div v-if="isStandaloneRoute">
+    <div v-if="screen === 'standalone'">
       <!-- Manifeste de l'application : les liens personnels gardent leurs propres métadonnées, en mode clair -->
       <NuxtPwaAssets v-if="!isPersonalLinkRoute" />
       <NuxtLoadingIndicator />
       <NuxtPage />
     </div>
     <!-- Adresse pas encore confirmée (R5) : seul le renvoi du lien est possible -->
-    <div v-else-if="unconfirmedEmail && !isOpenRoute">
+    <div v-else-if="screen === 'unconfirmed'">
       <NuxtPwaAssets />
       <UnconfirmedAccountScreen :email="unconfirmedEmail" />
     </div>
     <!-- Conditions d'utilisation à accepter (US-111) : les pages légales restent lisibles -->
-    <div v-else-if="authenticated && termsPending && !isLegalRoute && currentPath !== '/logout'">
+    <div v-else-if="screen === 'terms'">
       <NuxtPwaAssets />
       <TermsAcceptanceScreen @accepted="termsPending = false" />
     </div>
-    <div v-else-if="authenticated">
+    <div v-else-if="inApp">
       <NuxtPwaAssets />
       <NuxtLoadingIndicator />
-      <div
-        v-if="serverUnavailable"
-        class="bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-900"
-      >
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span v-if="offlineDisabled">Pas de connexion au serveur : le hors ligne est désactivé sur cet appareil, rien n’y est gardé. Les modifications et les actions attendent la connexion.</span>
-          <span v-else>Pas de connexion au serveur : les modifications des fiches sont gardées sur l’appareil et partiront quand la connexion reviendra. Les envois et les autres actions attendent la connexion.</span>
-          <UButton size="xs" color="warning" variant="soft" @click="retryServer">
-            Réessayer
-          </UButton>
-        </div>
-      </div>
-      <!-- Modifications faites hors ligne (US-049) : le bandeau ouvre leur liste -->
-      <div
-        v-if="pendingSyncCount || syncErrorCount"
-        class="border-b px-4 py-2 text-sm"
-        :class="syncErrorCount ? 'bg-red-50 border-red-200 text-red-900' : 'bg-blue-50 border-blue-200 text-blue-900'"
-      >
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span>
-            Modifications faites hors ligne : {{ syncSummary }}.
-          </span>
-          <UButton size="xs" :color="syncErrorCount ? 'error' : 'info'" variant="soft" @click="showSyncPanel = true">
-            Voir les modifications
-          </UButton>
-        </div>
-      </div>
       <OfflineQueuePanel v-model:open="showSyncPanel" @sync="syncPendingChanges" />
       <NuxtLayout>
         <!-- Clé changée après l'envoi des modifications faites hors ligne : la page se relit sans recharger l'application
@@ -68,12 +73,12 @@
         </div>
       </div>
     </div>
-    <div v-else-if="isOpenRoute">
+    <div v-else-if="screen === 'open'">
       <NuxtPwaAssets />
       <NuxtLoadingIndicator />
       <NuxtPage />
     </div>
-    <div v-else-if="!authReady">
+    <div v-else-if="screen === 'loading'">
       <NuxtPwaAssets />
       <NuxtLoadingIndicator />
       <div class="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -179,6 +184,17 @@ const isPersonalLinkRoute = computed(() => ['/inscription/', '/presence/', '/i/'
 // Pages autonomes : liens personnels, accès au compte (inscription, confirmation, mot de passe, EPIC-013), page publique
 // d'un jeu (US-019)
 const isStandaloneRoute = computed(() => isPersonalLinkRoute.value || ['/acces/', '/public/'].some((prefix) => currentPath.value.startsWith(prefix)))
+// Écran affiché, dans l'ordre des priorités ; « app » est l'application ouverte par un compte, seule à montrer les
+// bandeaux de connexion
+const screen = computed(() => {
+  if (isStandaloneRoute.value) return 'standalone'
+  if (unconfirmedEmail.value && !isOpenRoute.value) return 'unconfirmed'
+  if (authenticated.value && termsPending.value && !isLegalRoute.value && currentPath.value !== '/logout') return 'terms'
+  if (authenticated.value) return 'app'
+  if (isOpenRoute.value) return 'open'
+  return authReady.value ? 'login' : 'loading'
+})
+const inApp = computed(() => screen.value === 'app')
 let authCheckInProgress = false
 // Un réseau qui ne répond pas ne retient pas l'application : passé ce délai, elle ouvre ce qui est sur l'appareil
 const AUTH_CHECK_TIMEOUT_MS = 10_000
