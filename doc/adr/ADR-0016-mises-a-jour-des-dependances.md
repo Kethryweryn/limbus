@@ -31,7 +31,7 @@ Les dépendances n'étaient pas suivies. Fusionner une PR de mise à jour la dé
 
 ## Note du 2026-11-20
 
-Quand un avis grave vise un paquet qu'une dépendance épingle à une version exacte, et qu'une version corrigée existe dans la même majeure, on force cette version par `overrides` dans `package.json`, sans attendre la dépendance. Deux cas : `@hono/node-server`, et `effect` (avis [GHSA-7589-6fvf-x4pw](https://github.com/advisories/GHSA-7589-6fvf-x4pw), corrigé en 3.22.1), que `@prisma/config` épingle en 3.20.0. `effect` ne sert qu'à l'outil Prisma en ligne de commande (génération, migrations), pas au serveur en service. Un forçage se retire quand la dépendance demande elle-même une version corrigée. L'exemption d'[ADR-0094](ADR-0094-exemptions-de-l-audit.md) reste réservée aux avis sans version corrigée.
+Quand un avis grave vise un paquet qu'une dépendance épingle à une version exacte, et qu'une version corrigée existe dans la même majeure, on force cette version par `overrides` dans `package.json`, sans attendre la dépendance. Premier cas : `effect` (avis [GHSA-7589-6fvf-x4pw](https://github.com/advisories/GHSA-7589-6fvf-x4pw), corrigé en 3.22.1), que `@prisma/config` épingle en 3.20.0. `effect` ne sert qu'à l'outil Prisma en ligne de commande : il n'est pas dans le serveur en service, mais le déploiement lance cet outil sur le serveur (`prisma generate`, `prisma migrate deploy`) ; les tests d'intégration de la CI jouent les migrations avec la version forcée. Le forçage de `@hono/node-server`, plus ancien, suit la même forme. Un forçage se retire quand la dépendance demande elle-même une version corrigée. L'exemption d'[ADR-0094](ADR-0094-exemptions-de-l-audit.md) reste réservée aux avis sans version corrigée.
 
 ## Conséquences
 
