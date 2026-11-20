@@ -20,7 +20,7 @@ web.dev ([« Update »](https://web.dev/learn/pwa/update)) et la documentation d
 ## Décision
 
 - Le module reste en mode `prompt`. `plugins/pwaUpdate.client.ts` ne recharge plus rien au changement de page : il y cherche seulement une nouvelle version, comme toutes les heures ([ADR-0078](ADR-0078-recherche-de-la-nouvelle-version.md), inchangé).
-- Une version qui attend affiche un bandeau en bas de l'écran, en haut de la page depuis la note du 2026-11-18 (`components/AppUpdateBanner.vue`), sur toutes les pages : « Une nouvelle version de Limbus est disponible », « Recharger » et une croix. Il est masqué sans réseau et quand le serveur est indisponible, car une page rechargée ne pourrait pas être servie.
+- Une version qui attend affiche un bandeau en bas de l'écran, en haut de la page depuis la note du 2026-11-18, et collé en haut de l'écran depuis celle du 2026-11-20 (`components/AppUpdateBanner.vue`), sur toutes les pages : « Une nouvelle version de Limbus est disponible », « Recharger » et une croix. Il est masqué sans réseau et quand le serveur est indisponible, car une page rechargée ne pourrait pas être servie.
 - « Recharger » active la version en attente (`updateServiceWorker`), et recharge l'onglet quand elle a pris la main, ou après 4 secondes si elle ne la prend pas. Si la version a déjà été activée par un autre onglet, l'onglet se recharge aussitôt.
 - `registerSW` reçoit `onNeedReload` : la prise de main par la nouvelle version ne recharge l'onglet que si on y a choisi « Recharger ». Les autres onglets gardent leur bandeau.
 - La croix ferme le bandeau jusqu'au prochain chargement complet de la page, ou jusqu'à ce qu'une version plus récente attende.
@@ -46,3 +46,7 @@ web.dev ([« Update »](https://web.dev/learn/pwa/update)) et la documentation d
 ## Note du 2026-11-18
 
 À la demande de l'utilisatrice ([US-256](../archive/epics/EPIC-062-bandeau-en-haut/US-256-bandeau-en-haut.md)), le bandeau quitte le bas de l'écran : il s'affiche tout en haut de la page, au-dessus de la barre du logo, comme les bandeaux « Pas de connexion au serveur » et « Modifications faites hors ligne ». Il pousse la page vers le bas et défile avec elle ; il ne recouvre donc rien, et les toasts, en bas de l'écran, n'ont plus à passer au-dessus de lui. Sa zone annoncée aux lecteurs d'écran reste dans la page, vide sans version qui attend, pour que son texte soit lu quand il apparaît (revue de la PR #265). Le reste de la décision ne change pas.
+
+## Note du 2026-11-20
+
+À la demande de l'utilisatrice ([US-257](../epics/EPIC-063-retours-du-test-a13/US-257-bandeaux-qui-suivent-le-defilement.md), retour A13-2 du cahier de tests), le bandeau ne défile plus avec la page : avec les bandeaux « Pas de connexion au serveur » et « Modifications faites hors ligne », il reste collé en haut de l'écran. En haut de la page, il pousse toujours la page vers le bas ; plus bas, il recouvre le haut de ce qui défile, de sa propre hauteur. Les trois bandeaux sont dans un même bloc collé (`sticky`), et la racine de l'application isole son empilement pour que les fenêtres de Nuxt UI passent au-dessus.

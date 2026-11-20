@@ -70,6 +70,7 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [EPIC-060](../archive/epics/EPIC-060-validation-des-saisies/README.md) | Valider les saisies partout | [SPEC-023](../specs/SPEC-023-validation-des-saisies.md) | terminé |
 | [EPIC-061](../archive/epics/EPIC-061-mise-a-jour-par-bandeau/README.md) | Une nouvelle version se charge depuis un bandeau | [SPEC-010](../specs/SPEC-010-hors-ligne.md) | terminé |
 | [EPIC-062](../archive/epics/EPIC-062-bandeau-en-haut/README.md) | Le bandeau de nouvelle version en haut de la page | [SPEC-010](../specs/SPEC-010-hors-ligne.md) | terminé |
+| [EPIC-063](EPIC-063-retours-du-test-a13/README.md) | Bandeaux qui suivent le défilement, confirmation en fenêtre | [SPEC-010](../specs/SPEC-010-hors-ligne.md), [SPEC-019](../specs/SPEC-019-hors-ligne-dans-le-compte.md) | en cours |
 
 ## US
 
@@ -331,3 +332,5 @@ Les epics terminés partent dans `../archive/epics/` ; leur ligne reste ici, ave
 | [US-254](../archive/epics/EPIC-061-mise-a-jour-par-bandeau/US-254-bandeau-de-mise-a-jour.md) | Charger une nouvelle version quand je le décide | EPIC-061 | terminée |
 | [US-255](../archive/epics/EPIC-061-mise-a-jour-par-bandeau/US-255-retour-du-reseau-sans-rechargement.md) | Retrouver le réseau sans que la page se recharge | EPIC-061 | terminée |
 | [US-256](../archive/epics/EPIC-062-bandeau-en-haut/US-256-bandeau-en-haut.md) | Voir la nouvelle version annoncée en haut de la page | EPIC-062 | terminée |
+| [US-257](EPIC-063-retours-du-test-a13/US-257-bandeaux-qui-suivent-le-defilement.md) | Garder les bandeaux sous les yeux quand la page défile | EPIC-063 | terminée |
+| [US-258](EPIC-063-retours-du-test-a13/US-258-confirmation-en-fenetre.md) | Confirmer un effacement dans une fenêtre | EPIC-063 | terminée |

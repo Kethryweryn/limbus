@@ -5,6 +5,11 @@ export default defineNuxtConfig({
     app: 'app'
   },
   css: ['~/assets/css/main.css'],
+  // La racine isole son empilement : les fenêtres de Nuxt UI, posées après elle dans la page, passent au-dessus des
+  // bandeaux collés en haut de l'écran (US-257)
+  app: {
+    rootAttrs: { id: '__nuxt', class: 'isolate' }
+  },
   // Valeurs vides au build : les secrets sont lus dans l'environnement au démarrage
   // (JWT_SECRET, SMTP_ENCRYPTION_SECRET, PUBLIC_APP_URL). Un process.env ici serait
   // figé en clair dans .output au moment du build.
