@@ -41,7 +41,7 @@ Aujourd'hui, seule une page consultée avec le réseau se rouvre sans réseau ([
 ### Effacer
 
 - **R3** « Effacer » vide ce que l'appareil garde : pages, PDF, photos, jeux téléchargés et file des modifications. La personne reste connectée, et Limbus garde de quoi s'ouvrir sans réseau pour ce compte ([SPEC-010](SPEC-010-hors-ligne.md), R3) : seule la désactivation (R5) l'oublie.
-- **R4** S'il reste des modifications faites sans réseau, Limbus le dit avant d'effacer, et propose de les envoyer d'abord (avec le réseau), ou de les abandonner. Sans réseau, seul l'abandon est proposé. On peut aussi renoncer à effacer. Si l'envoi laisse des modifications refusées (erreur, conflit), Limbus s'arrête, dit lesquelles restent, et propose de les abandonner pour effacer, ou de renoncer pour les régler d'abord dans le panneau des modifications. La confirmation s'ouvre dans une fenêtre, même sans modification en attente ; derrière elle, la section ne change pas ([US-258](../epics/EPIC-063-retours-du-test-a13/US-258-confirmation-en-fenetre.md)).
+- **R4** S'il reste des modifications faites sans réseau, Limbus le dit avant d'effacer, et propose de les envoyer d'abord (avec le réseau), ou de les abandonner. Sans réseau, seul l'abandon est proposé. On peut aussi renoncer à effacer. Si l'envoi laisse des modifications refusées (erreur, conflit), Limbus s'arrête, dit lesquelles restent, et propose de les abandonner pour effacer, ou de renoncer pour les régler d'abord dans le panneau des modifications. La confirmation s'ouvre dans une fenêtre, même sans modification en attente ; derrière elle, la section ne change pas ([US-258](../archive/epics/EPIC-063-retours-du-test-a13/US-258-confirmation-en-fenetre.md)).
 
 ### Désactiver
 
