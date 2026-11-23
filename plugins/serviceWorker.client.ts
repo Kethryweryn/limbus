@@ -1,3 +1,6 @@
+// Types de virtual:pwa-register : fournis par @unplugin-pwa/core, qui vient avec @vite-pwa/nuxt 2 et que Limbus ne
+// déclare pas lui-même, pour rester sur la version que le module utilise. Si le module change de paquet, le typage
+// de la CI le signale
 /// <reference types="@unplugin-pwa/core/vanillajs" />
 import { registerSW } from 'virtual:pwa-register'
 import { reactive } from 'vue'
