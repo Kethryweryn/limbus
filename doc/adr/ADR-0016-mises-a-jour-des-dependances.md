@@ -25,7 +25,7 @@ Les dépendances n'étaient pas suivies. Fusionner une PR de mise à jour la dé
 - **Majeures ignorées**, parce qu'elles dépendent d'une autre dépendance qui n'a pas encore suivi :
   - `h3` : fixé en v1 pour correspondre à Nitro ;
   - `typescript` : typescript-eslint 8 exige une version inférieure à 6.1 ;
-  - `@vite-pwa/assets-generator` : `@vite-pwa/nuxt` 1.1 exige la version 1 ;
+  - `@vite-pwa/assets-generator` : `@vite-pwa/nuxt` 1.1 exigeait la version 1 (exclusion retirée le 2026-11-23 : `@vite-pwa/nuxt` 2 accepte la version 2) ;
   - `pinia` et `@pinia/nuxt` : chaque version de l'un exige une majeure précise de l'autre. Une PR qui n'en monte qu'un échoue, on les monte donc ensemble à la main.
 - Le motif de chaque exclusion est écrit en commentaire dans le fichier ; une exclusion se retire quand le blocage disparaît.
 

@@ -50,3 +50,7 @@ web.dev ([« Update »](https://web.dev/learn/pwa/update)) et la documentation d
 ## Note du 2026-11-20
 
 À la demande de l'utilisatrice ([US-257](../archive/epics/EPIC-063-retours-du-test-a13/US-257-bandeaux-qui-suivent-le-defilement.md), retour A13-2 du cahier de tests), le bandeau ne défile plus avec la page : avec les bandeaux « Pas de connexion au serveur » et « Modifications faites hors ligne », il reste collé en haut de l'écran. En haut de la page, il pousse toujours la page vers le bas ; plus bas, il recouvre le haut de ce qui défile, de sa propre hauteur. Les trois bandeaux sont dans un même bloc collé (`sticky`), et la racine de l'application isole son empilement pour que les fenêtres de Nuxt UI passent au-dessus.
+
+## Note du 2026-11-23
+
+`@vite-pwa/nuxt` passe en version 2 (PR #272) : `registerSW` vient maintenant de `@unplugin-pwa/core` et non plus de `vite-plugin-pwa`, sa fonction de mise à jour ne prend plus de paramètre, et l'option `workbox` s'appelle `generateSW`. Les rappels sur lesquels repose cette décision (`onNeedRefresh`, `onNeedReload`, `onRegisteredSW`) existent toujours ; `tests/e2e/pwaUpdate.spec.ts` et les tests du hors ligne passent avec cette version. La décision ne change pas.
