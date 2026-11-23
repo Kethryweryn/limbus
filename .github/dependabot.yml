@@ -28,9 +28,6 @@ updates:
       # TypeScript 7 : typescript-eslint 8 exige typescript < 6.1,
       - dependency-name: typescript
         update-types: [version-update:semver-major]
-      # assets-generator 2 : @vite-pwa/nuxt 1.1 exige assets-generator ^1.0.
-      - dependency-name: '@vite-pwa/assets-generator'
-        update-types: [version-update:semver-major]
       # pinia et @pinia/nuxt se montent ensemble (chaque version de l'un exige une majeure précise de l'autre) :
       # une PR qui n'en monte qu'un échoue. Les monter à la main, ensemble.
       - dependency-name: '@pinia/nuxt'

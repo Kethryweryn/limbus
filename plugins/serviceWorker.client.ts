@@ -1,4 +1,4 @@
-/// <reference types="vite-plugin-pwa/vanillajs" />
+/// <reference types="@unplugin-pwa/core/vanillajs" />
 import { registerSW } from 'virtual:pwa-register'
 import { reactive } from 'vue'
 import { isOfflineDisabled } from '~/utils/offlineDevice'
@@ -11,14 +11,14 @@ export type LimbusPwa = PwaUpdate & { register: () => void }
 
 export default defineNuxtPlugin(() => {
   let registration: UpdateRegistration | undefined
-  let update: (reloadPage?: boolean) => Promise<void> = async () => {}
+  let update: () => Promise<void> = async () => {}
   let registered = false
 
   const pwa: LimbusPwa = reactive({
     needRefresh: false,
     dismissed: false,
     applying: false,
-    updateServiceWorker: (reloadPage?: boolean) => update(reloadPage),
+    updateServiceWorker: () => update(),
     getSWRegistration: () => registration,
     register: () => {
       if (registered || !('serviceWorker' in navigator)) return

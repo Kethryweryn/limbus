@@ -10,7 +10,7 @@ export type PwaUpdate = {
   dismissed: boolean
   // « Recharger » choisi dans cet onglet : la prise de main par la nouvelle version recharge alors l'onglet
   applying: boolean
-  updateServiceWorker: (reloadPage?: boolean) => Promise<void>
+  updateServiceWorker: () => Promise<void>
   getSWRegistration: () => UpdateRegistration | undefined
 }
 
